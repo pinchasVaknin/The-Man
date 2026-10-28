@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Systems / Combat And Inventory
+// DESIGN: Player weapon equipping, market trading, sword striking, and arrow physics (SRP)
+// SUMMARY: Manages inventory item ownership, market buy/sell transactions, hotbar slots,
+//          melee hit detection against targets and solid volumes, and ballistic arrow flight.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import {
   INVENTORY_ITEMS,
   type PlayerState,
@@ -17,7 +26,36 @@ import {
 } from '../domain/landmarksRegistry';
 import { groundHeightAt, walkableHeightAt } from './terrainAndBiomeSystem';
 import { awardSkillXp, getPlayerHeroLevel } from './playerPhysicsSystem';
+import {
+  SWORD_ACTIVE_STRIKE_WINDOW_START,
+  SWORD_ACTIVE_STRIKE_WINDOW_END,
+  SWORD_STRIKE_CONTACT_APEX,
+} from './swordAttackAnimationSystem';
+// #endregion
 
+// ======================== CONSTANTS & LABELS ======================== \\
+// #region Constants & Labels
+export { SWORD_ACTIVE_STRIKE_WINDOW_START, SWORD_ACTIVE_STRIKE_WINDOW_END, SWORD_STRIKE_CONTACT_APEX };
+
+export const ARROW_TRAIL_MAX_AGE = 0.85;
+
+/** Summary: Market resell value ratio (70% of buy price, minimum 5 gold). */
+const MARKET_SELL_RATIO = 0.7;
+const MARKET_MIN_SELL_PRICE = 5;
+
+/** Summary: Stamina costs for sword attacks. */
+const STAMINA_COST_LIGHT_SWORD = 5;
+const STAMINA_COST_HEAVY_SWORD = 14;
+
+/** Summary: Melee hit reach distances in meters. */
+const SWORD_LIGHT_REACH = 2.55;
+const SWORD_HEAVY_REACH = 4.25;
+
+let _nextArrowId = 1;
+
+/**
+ * Summary: Returns the localized Hebrew display label for an equipped tool slot.
+ */
 export function getEquippedToolLabelHe(tool: EquippedToolSlot = 'bow'): string {
   switch (tool) {
     case 'bow':
@@ -31,6 +69,9 @@ export function getEquippedToolLabelHe(tool: EquippedToolSlot = 'bow'): string {
   }
 }
 
+/**
+ * Summary: Returns the localized Hebrew display label for an arrow element type.
+ */
 export function getArrowKindLabelHe(kind: ArrowElementKind = 'normal'): string {
   switch (kind) {
     case 'normal':
@@ -42,10 +83,19 @@ export function getArrowKindLabelHe(kind: ArrowElementKind = 'normal'): string {
   }
 }
 
+/**
+ * Summary: Calculates the gold payout for selling an inventory item at market stalls.
+ */
 export function getMarketSellPrice(item: InventoryItemDef): number {
-  return Math.max(5, Math.round(item.valueGold * 0.7));
+  return Math.max(MARKET_MIN_SELL_PRICE, Math.round(item.valueGold * MARKET_SELL_RATIO));
 }
+// #endregion
 
+// ======================== INVENTORY & MARKET OPERATIONS ======================== \\
+// #region Inventory & Market Operations
+/**
+ * Summary: Checks whether the player owns a specified inventory item.
+ */
 export function isInventoryItemOwned(state: PlayerState, itemId: InventoryItemId): boolean {
   if (!state.ownedItemIds) {
     const def = INVENTORY_ITEMS.find((i) => i.id === itemId);
@@ -54,11 +104,15 @@ export function isInventoryItemOwned(state: PlayerState, itemId: InventoryItemId
   return state.ownedItemIds.includes(itemId);
 }
 
+/**
+ * Summary: Checks whether the player currently has an inventory item actively equipped.
+ */
 export function isInventoryItemEquipped(state: PlayerState, itemId: InventoryItemId): boolean {
   const tool = state.equippedTool ?? 'bow';
   const activeWep = state.activeWeaponId ?? tool;
   const arrow = state.arrowKind ?? 'normal';
   const def = INVENTORY_ITEMS.find((i) => i.id === itemId);
+
   if (def?.weaponRole === 'bow') {
     return tool === 'bow' && activeWep === itemId;
   }
@@ -74,6 +128,9 @@ export function isInventoryItemEquipped(state: PlayerState, itemId: InventoryIte
   return false;
 }
 
+/**
+ * Summary: Equips an inventory item to the appropriate active weapon or arrow slot.
+ */
 export function equipInventoryItem(state: PlayerState, itemId: InventoryItemId): void {
   const def = INVENTORY_ITEMS.find((i) => i.id === itemId);
   if (def?.weaponRole === 'bow') {
@@ -122,6 +179,9 @@ export function equipInventoryItem(state: PlayerState, itemId: InventoryItemId):
   }
 }
 
+/**
+ * Summary: Purchases an item from a market stall if within range, level-eligible, and affordable.
+ */
 export function buyMarketItem(
   state: PlayerState,
   itemId: InventoryItemId
@@ -168,6 +228,9 @@ export function buyMarketItem(
   return { ok: true, goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel };
 }
 
+/**
+ * Summary: Sells an owned inventory item to a nearby market stall.
+ */
 export function sellMarketItem(
   state: PlayerState,
   itemId: InventoryItemId
@@ -210,6 +273,9 @@ export function sellMarketItem(
   return { ok: true, goldCoins: state.goldCoins, soldForGold: sellPrice };
 }
 
+/**
+ * Summary: Assigns an inventory item to one of the 4 hotbar quick slots.
+ */
 export function assignHotbarSlot(
   state: PlayerState,
   slotIndex: 0 | 1 | 2 | 3,
@@ -226,6 +292,9 @@ export function assignHotbarSlot(
   state.hotbarSlots[slotIndex] = itemId;
 }
 
+/**
+ * Summary: Toggles the favorite status of an inventory item for quick-menu filtering.
+ */
 export function toggleFavoriteItem(state: PlayerState, itemId: InventoryItemId): boolean {
   if (!state.favoriteIds) {
     state.favoriteIds = ['bow', 'torch', 'sword', 'arrow_normal', 'arrow_fire', 'arrow_wind', 'unarmed'];
@@ -238,25 +307,21 @@ export function toggleFavoriteItem(state: PlayerState, itemId: InventoryItemId):
   state.favoriteIds.push(itemId);
   return true;
 }
+// #endregion
 
-import {
-  SWORD_ACTIVE_STRIKE_WINDOW_END,
-  SWORD_ACTIVE_STRIKE_WINDOW_START,
-  SWORD_STRIKE_CONTACT_APEX,
-} from './swordAttackAnimationSystem';
-
+// ======================== SWORD MELEE COMBAT ======================== \\
+// #region Sword Melee Combat
 export interface SwordSlashHitResult {
-  comboIndex: number;
-  isHeavy: boolean;
-  hitKind: 'none' | 'target' | 'obstacle' | 'wall';
-  hitTarget: ArcheryTargetDef | null;
-  hitAnySurface: boolean;
+  readonly comboIndex: number;
+  readonly isHeavy: boolean;
+  readonly hitKind: 'none' | 'target' | 'obstacle' | 'wall';
+  readonly hitTarget: ArcheryTargetDef | null;
+  readonly hitAnySurface: boolean;
 }
 
 /**
- * Evaluates melee hit detection during the Phase C Active Strike Window (`p in [0.30, 0.50]`).
- * Spawns clash sparks (`lastSwordHitPoint`) and heavy forward air-cleave waves (`lastSwordAirWave`)
- * at the exact moment the blade crosses the center aiming line.
+ * Summary: Evaluates melee hit detection during the Phase C Active Strike Window.
+ * Note: [HOT-PATH EXCEPTION] Ray-marches and mutates combat state directly.
  */
 export function evaluateSwordStrikeWindowHit(
   state: PlayerState,
@@ -290,7 +355,7 @@ export function evaluateSwordStrikeWindowHit(
     };
   }
 
-  const maxReach = isHeavy ? 4.25 : 2.55;
+  const maxReach = isHeavy ? SWORD_HEAVY_REACH : SWORD_LIGHT_REACH;
   for (let d = 0.75; d <= maxReach; d += 0.25) {
     const sx = state.x + dirX * d;
     const sy = eyeY + dirY * d;
@@ -337,6 +402,9 @@ export function evaluateSwordStrikeWindowHit(
   return { comboIndex, isHeavy, hitKind: 'none', hitTarget: null, hitAnySurface: false };
 }
 
+/**
+ * Summary: Initiates a sword attack swing, advances combo chain, and consumes stamina.
+ */
 export function triggerSwordSlash(
   state: PlayerState,
   obstacles: readonly ObstacleCylinder[] = [],
@@ -354,7 +422,7 @@ export function triggerSwordSlash(
   state.swordSwingProgress = 0.01;
   state.swordHitStopTimer = 0;
 
-  const stamCost = isHeavy ? 14 : 5;
+  const stamCost = isHeavy ? STAMINA_COST_HEAVY_SWORD : STAMINA_COST_LIGHT_SWORD;
   state.stamina = Math.max(5, (state.stamina ?? 100) - stamCost);
   awardSkillXp(state, 'swordsmanship', isHeavy ? 12 : 6);
 
@@ -376,9 +444,8 @@ export function triggerSwordSlash(
 }
 
 /**
- * Steps the 5-phase sword attack progress over time `dt` and triggers hit detection
- * strictly once when `swordSwingProgress` enters the Phase C Active Strike Window
- * (`[SWORD_ACTIVE_STRIKE_WINDOW_START, SWORD_ACTIVE_STRIKE_WINDOW_END]`, crossing `SWORD_STRIKE_CONTACT_APEX`).
+ * Summary: Steps the 5-phase sword attack progress over time and executes hit checks in the strike window.
+ * Note: [HOT-PATH EXCEPTION] Evaluated in 60FPS combat simulation tick.
  */
 export function stepSwordSwingCombat(
   state: PlayerState,
@@ -423,10 +490,13 @@ export function stepSwordSwingCombat(
 
   return strikeResult;
 }
-export { SWORD_ACTIVE_STRIKE_WINDOW_START, SWORD_ACTIVE_STRIKE_WINDOW_END, SWORD_STRIKE_CONTACT_APEX };
+// #endregion
 
-let _nextArrowId = 1;
-
+// ======================== ARROW BALLISTIC PROJECTILES ======================== \\
+// #region Arrow Ballistic Projectiles
+/**
+ * Summary: Instantiates a ballistic arrow projectile based on player aim and bow power.
+ */
 export function spawnArrowProjectile(
   state: PlayerState,
   drawPower = 1.0
@@ -482,8 +552,10 @@ export function spawnArrowProjectile(
   };
 }
 
-export const ARROW_TRAIL_MAX_AGE = 0.85;
-
+/**
+ * Summary: Steps physics integration, gravity, and collision detection for all flying arrows.
+ * Note: [HOT-PATH EXCEPTION] 60FPS arrow sub-step integration loop with in-place mutation.
+ */
 export function stepArrowsPhysics(
   arrows: ArrowProjectile[],
   obstacles: readonly ObstacleCylinder[],
@@ -609,3 +681,4 @@ export function stepArrowsPhysics(
 
   return { hitTarget, hitAnySurface };
 }
+// #endregion

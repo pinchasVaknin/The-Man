@@ -1,18 +1,52 @@
+// ============================================================================
+// MODULE: World / Systems / Dwarven Mine And Caravan
+// DESIGN: Deterministic daily schedule, pathing waypoints, and mine height queries (SRP)
+// SUMMARY: Schedules the 8 Dwarven Miners through sunrise commute, cavern work,
+//          sunset return, and hearth rest, while providing terrain elevation for mine geometry.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import type { DwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
+// #endregion
 
+// ======================== CONSTANTS & CONFIGURATION ======================== \\
+// #region Constants & Configuration
 export const DWARVEN_MINERS_COUNT = 8;
 
-const DWARVEN_MINER_STATIONS: readonly {
-  nameHe: string;
-  houseIdx: number;
-  homeOffsetX: number;
-  homeOffsetZ: number;
-  laneOffsetX: number;
-  workLocalX: number;
-  workLocalZ: number;
-  workYaw: number;
-}[] = [
+/** Summary: Hours in a standard astronomical day */
+const HOURS_IN_DAY = 24.0;
+
+/** Summary: Schedule threshold hours (24h clock) */
+const SCHEDULE_DAWN_START = 6.0;
+const SCHEDULE_WORK_START = 7.6;
+const SCHEDULE_WORK_END = 17.8;
+const SCHEDULE_NIGHT_START = 19.5;
+
+/** Summary: Caravan movement duration spans (in world hours) */
+const DAWN_CARAVAN_DURATION = SCHEDULE_WORK_START - SCHEDULE_DAWN_START;
+const DUSK_CARAVAN_DURATION = SCHEDULE_NIGHT_START - SCHEDULE_WORK_END;
+
+/** Summary: Catwalk vertical & depth constants */
+const CATWALK_STAIR_START_LZ = 35.5;
+const CATWALK_STAIR_END_LZ = 44.5;
+const CATWALK_STAIR_SPAN = CATWALK_STAIR_END_LZ - CATWALK_STAIR_START_LZ;
+const DOCK_PIER_HEIGHT_OFFSET = 0.14;
+const CRYSTAL_LAKE_DEPTH = 1.9;
+
+interface MinerStationConfig {
+  readonly nameHe: string;
+  readonly houseIdx: number;
+  readonly homeOffsetX: number;
+  readonly homeOffsetZ: number;
+  readonly laneOffsetX: number;
+  readonly workLocalX: number;
+  readonly workLocalZ: number;
+  readonly workYaw: number;
+}
+
+const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
   // Room 1 (Central Junction Hall) ore veins
   { nameHe: 'דורין חוצב הסלע', houseIdx: 0, homeOffsetX: -1.6, homeOffsetZ: -1.4, laneOffsetX: -1.25, workLocalX: -8.2, workLocalZ: 41.5, workYaw: Math.PI / 2 },
   { nameHe: 'באלין זקן־הברזל', houseIdx: 1, homeOffsetX: 1.6, homeOffsetZ: -1.4, laneOffsetX: 1.25, workLocalX: 8.2, workLocalZ: 42.5, workYaw: -Math.PI / 2 },
@@ -26,14 +60,21 @@ const DWARVEN_MINER_STATIONS: readonly {
   { nameHe: 'בופור שומר־האוצר', houseIdx: 2, homeOffsetX: -1.6, homeOffsetZ: 1.4, laneOffsetX: -1.25, workLocalX: -9.5, workLocalZ: 88.0, workYaw: Math.PI / 2 },
   { nameHe: 'בומבור פטיש־האבן', houseIdx: 3, homeOffsetX: 1.6, homeOffsetZ: 1.4, laneOffsetX: 1.25, workLocalX: 9.5, workLocalZ: 88.0, workYaw: -Math.PI / 2 },
 ];
+// #endregion
 
+// ======================== WAYPOINT MATH ======================== \\
+// #region Waypoint Math
+/**
+ * Summary: Linearly interpolates a multi-segment 3D waypoint path given a normalized factor u in [0, 1].
+ */
 function interpolateDwarvenCaravanWaypoints(
-  waypoints: readonly [number, number, number][],
+  waypoints: readonly (readonly [number, number, number])[],
   u: number
 ): { x: number; y: number; z: number; yaw: number } {
   const clampedU = Math.max(0, Math.min(1, u));
   let totalLen = 0;
   const segLens: number[] = [];
+
   for (let i = 0; i < waypoints.length - 1; i++) {
     const a = waypoints[i];
     const b = waypoints[i + 1];
@@ -41,8 +82,10 @@ function interpolateDwarvenCaravanWaypoints(
     segLens.push(len);
     totalLen += len;
   }
+
   const targetDist = clampedU * totalLen;
   let acc = 0;
+
   for (let i = 0; i < segLens.length; i++) {
     const segLen = segLens[i];
     if (acc + segLen >= targetDist || i === segLens.length - 1) {
@@ -57,16 +100,16 @@ function interpolateDwarvenCaravanWaypoints(
     }
     acc += segLen;
   }
+
   const last = waypoints[waypoints.length - 1];
   return { x: last[0], y: last[1], z: last[2], yaw: 0 };
 }
+// #endregion
 
+// ======================== CARAVAN SCHEDULING ======================== \\
+// #region Caravan Scheduling
 /**
- * Pure deterministic scheduler for the 8 LOTR-style Dwarven Miners:
- * - Sunrise (06:00..07:36, worldHours in [6.0, 7.6]): Emerge from the 4 Dwarven Stone Houses and march together as an ordered caravan into the Southern Mine.
- * - Daytime (07:36..17:48, worldHours in (7.6, 17.8)): Work inside the 4 subterranean mine chambers swinging pickaxes/hammers.
- * - Sunset (17:48..19:30, worldHours in [17.8, 19.5]): March together as an ordered caravan up the mine shaft and back into their stone houses.
- * - Night (19:30..06:00): Rest inside their stone houses around the warm hearth.
+ * Summary: Pure deterministic scheduler for the 8 LOTR-style Dwarven Miners.
  */
 export function computeDwarvenMinerCaravanState(
   worldHours: number,
@@ -98,6 +141,7 @@ export function computeDwarvenMinerCaravanState(
     [roadX, SOUTHERN_MINE_POS.entranceFloorY, SOUTHERN_MINE_POS.shaftStartZ],
     [roadX, SOUTHERN_MINE_POS.cavernFloorY, SOUTHERN_MINE_POS.shaftEndZ + 4.0],
   ];
+
   if (Math.abs(station.workLocalX) > 20.0) {
     waypointsToMine.push([roadX, workY, midCorridorZ]);
     waypointsToMine.push([
@@ -110,13 +154,13 @@ export function computeDwarvenMinerCaravanState(
   }
   waypointsToMine.push([workX, workY, workZ]);
 
-  const h = ((worldHours % 24) + 24) % 24;
+  const h = ((worldHours % HOURS_IN_DAY) + HOURS_IN_DAY) % HOURS_IN_DAY;
   const rowIndex = Math.floor(idx / 2);
   const caravanLag = rowIndex * 0.048 + (idx % 2) * 0.014;
 
   // 1) SUNRISE CARAVAN TO MINE (06:00 .. 07:36 -> h in [6.0, 7.6])
-  if (h >= 6.0 && h <= 7.6) {
-    const rawProgress = (h - 6.0) / 1.6;
+  if (h >= SCHEDULE_DAWN_START && h <= SCHEDULE_WORK_START) {
+    const rawProgress = (h - SCHEDULE_DAWN_START) / DAWN_CARAVAN_DURATION;
     const u = Math.max(0, Math.min(1, (rawProgress - caravanLag) / (1.0 - 0.19)));
     const pt = interpolateDwarvenCaravanWaypoints(waypointsToMine, u);
     const isMoving = u > 0.001 && u < 0.999;
@@ -135,7 +179,7 @@ export function computeDwarvenMinerCaravanState(
   }
 
   // 2) DAYTIME MINING WORK IN THE UNDERGROUND MINE (07:36 .. 17:48 -> h in (7.6, 17.8))
-  if (h > 7.6 && h < 17.8) {
+  if (h > SCHEDULE_WORK_START && h < SCHEDULE_WORK_END) {
     const swingPhase = (animTimeSec * 0.95 + idx * 0.37) % 1.0;
     return {
       dwarfIndex: idx,
@@ -152,8 +196,8 @@ export function computeDwarvenMinerCaravanState(
   }
 
   // 3) SUNSET CARAVAN BACK HOME (17:48 .. 19:30 -> h in [17.8, 19.5])
-  if (h >= 17.8 && h <= 19.5) {
-    const rawProgress = (h - 17.8) / 1.7;
+  if (h >= SCHEDULE_WORK_END && h <= SCHEDULE_NIGHT_START) {
+    const rawProgress = (h - SCHEDULE_WORK_END) / DUSK_CARAVAN_DURATION;
     const uForward = Math.max(0, Math.min(1, (rawProgress - caravanLag) / (1.0 - 0.19)));
     const reversedWaypoints = [...waypointsToMine].reverse();
     const pt = interpolateDwarvenCaravanWaypoints(reversedWaypoints, uForward);
@@ -186,7 +230,13 @@ export function computeDwarvenMinerCaravanState(
     lanternLit: false,
   };
 }
+// #endregion
 
+// ======================== MINE HEIGHT QUERIES ======================== \\
+// #region Mine Height Queries
+/**
+ * Summary: Computes the sloping tunnel floor elevation at a given world Z coordinate.
+ */
 export function southernMineFloorHeightAt(z: number): number {
   if (z <= SOUTHERN_MINE_POS.shaftStartZ) {
     return SOUTHERN_MINE_POS.entranceFloorY;
@@ -203,6 +253,9 @@ export function southernMineFloorHeightAt(z: number): number {
   );
 }
 
+/**
+ * Summary: Queries the complex walkable subterranean surface height inside the mine.
+ */
 export function southernMineWalkableHeightAt(
   x: number,
   z: number,
@@ -214,9 +267,9 @@ export function southernMineWalkableHeightAt(
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
-  // 1) Room 1 Walkable Timber Staircase ascending from cavernFloorY (-9.35m at lz=35.5) to catwalkY (-5.15m at lz=44.5) along lx in [-12.5, -9.3]
-  if (lx >= -12.5 && lx <= -9.3 && lz >= 35.5 && lz <= 44.5) {
-    const tStair = Math.max(0, Math.min(1, (lz - 35.5) / 9.0));
+  // 1) Room 1 Walkable Timber Staircase ascending from cavernFloorY to catwalkY along lx in [-12.5, -9.3]
+  if (lx >= -12.5 && lx <= -9.3 && lz >= CATWALK_STAIR_START_LZ && lz <= CATWALK_STAIR_END_LZ) {
+    const tStair = Math.max(0, Math.min(1, (lz - CATWALK_STAIR_START_LZ) / CATWALK_STAIR_SPAN));
     const stairH =
       SOUTHERN_MINE_POS.cavernFloorY +
       tStair * (SOUTHERN_MINE_POS.catwalkY - SOUTHERN_MINE_POS.cavernFloorY);
@@ -224,7 +277,8 @@ export function southernMineWalkableHeightAt(
       return stairH;
     }
   }
-  // 2) Room 1 Elevated Timber Catwalk Ring & Cross-Bridge at y = -5.15m:
+
+  // 2) Room 1 Elevated Timber Catwalk Ring & Cross-Bridge at y = catwalkY
   const onWestCatwalk = lx >= -13.6 && lx <= -9.0 && lz >= 44.5 && lz <= 63.0;
   const onSouthBridge = lx >= -13.6 && lx <= 13.6 && lz >= 58.5 && lz <= 63.0;
   const onEastCatwalk = lx >= 9.0 && lx <= 13.6 && lz >= 44.5 && lz <= 63.0;
@@ -238,23 +292,29 @@ export function southernMineWalkableHeightAt(
 
   // 3) Room 2 (West Chamber): Miner's Wooden Dock Pier jutting over the Underground Crystal Lake
   if (lx >= -39.5 && lx <= -31.5 && lz >= 61.5 && lz <= 66.5) {
-    return SOUTHERN_MINE_POS.cavernFloorY + 0.14;
+    return SOUTHERN_MINE_POS.cavernFloorY + DOCK_PIER_HEIGHT_OFFSET;
   }
 
-  // 4) Room 2 (West Chamber): Carved 1.9m-deep Swimmable Bioluminescent Crystal Lake Basin (lx in [-50.0, -33.0], lz in [41.0, 84.0])
+  // 4) Room 2 (West Chamber): Carved 1.9m-deep Swimmable Bioluminescent Crystal Lake Basin
   if (lx >= -50.0 && lx <= -33.0 && lz >= 41.0 && lz <= 84.0) {
     const lakeNormX = (lx - -41.5) / 8.5;
     const lakeNormZ = (lz - 62.5) / 21.5;
     const lakeRad = Math.hypot(lakeNormX, lakeNormZ);
     if (lakeRad < 1.0) {
       const depthFactor = Math.max(0, Math.min(1, (1.0 - lakeRad) * 2.2));
-      return SOUTHERN_MINE_POS.cavernFloorY - depthFactor * 1.9;
+      return SOUTHERN_MINE_POS.cavernFloorY - depthFactor * CRYSTAL_LAKE_DEPTH;
     }
   }
 
   return SOUTHERN_MINE_POS.cavernFloorY;
 }
+// #endregion
 
+// ======================== MINE BOUNDARY QUERIES ======================== \\
+// #region Mine Boundary Queries
+/**
+ * Summary: Determines whether a given 3D coordinate falls within the subterranean volumes of the Southern Dwarven Mine.
+ */
 export function isInsideSouthernMine(x: number, z: number, currentY?: number): boolean {
   const mineFloorY = southernMineFloorHeightAt(z);
   const ceilingMargin = z > SOUTHERN_MINE_POS.shaftEndZ - 1.0 ? 11.8 : 5.2;
@@ -264,27 +324,35 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
+  // Main entrance tunnel
   if (Math.abs(lx) <= SOUTHERN_MINE_POS.tunnelHalfW && lz >= -1.2 && lz <= 34.5) {
     return true;
   }
+  // Room 1 (Central Junction Hall)
   if (Math.abs(lx) <= 14.0 && lz >= 34.0 && lz <= 64.0) {
     return true;
   }
+  // Connector to West Room 2
   if (lx >= -26.5 && lx <= -13.5 && lz >= 45.0 && lz <= 53.0) {
     return true;
   }
+  // Room 2 (West Crystal Lake Chamber)
   if (lx >= -52.0 && lx <= -26.0 && lz >= 36.0 && lz <= 96.0) {
     return true;
   }
+  // Connector to East Room 3
   if (lx >= 13.5 && lx <= 26.5 && lz >= 45.0 && lz <= 53.0) {
     return true;
   }
+  // Room 3 (East Dwarven Smelting Foundry)
   if (lx >= 26.0 && lx <= 52.0 && lz >= 36.0 && lz <= 96.0) {
     return true;
   }
+  // Deep South connector shaft
   if (Math.abs(lx) <= 4.5 && lz >= 63.5 && lz <= 78.5) {
     return true;
   }
+  // Guard towers before Treasury
   if (
     ((lx >= -26.5 && lx <= -15.5) || (lx >= 15.5 && lx <= 26.5)) &&
     lz >= 85.0 &&
@@ -292,8 +360,10 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
   ) {
     return true;
   }
+  // Room 4 (Deep South Royal Treasure Vault)
   if (Math.abs(lx) <= 16.0 && lz >= 78.0 && lz <= 110.0) {
     return true;
   }
   return false;
 }
+// #endregion

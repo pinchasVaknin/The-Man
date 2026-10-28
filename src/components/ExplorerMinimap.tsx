@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: Components / Explorer Minimap
+// DESIGN: Humble UI circular minimap HUD with Fog-of-War parchment discovery (SRP)
+// SUMMARY: Renders an offscreen 2D canvas map tracking player coordinates, heading
+//          compass arrow, cardinal North indicator, and dynamic cell discovery.
+// ============================================================================
+
+// ======================== IMPORTS & PROPS ======================== \\
+// #region Imports & Props
 import React, { useEffect, useRef } from 'react';
 import { sampleMinimapColorAt } from '../world/terrainMath';
 
@@ -12,7 +21,10 @@ const METERS_PER_CELL = 2;  // 2m per pixel cell -> 680 x 680 offscreen map
 const GRID_SIZE = Math.floor((MAP_WORLD_HALF * 2) / METERS_PER_CELL); // 680
 const DISCOVERY_RADIUS_M = 46; // Reveal radius around the player in meters
 const VIEW_WINDOW_M = 180; // Visible meters across the minimap diameter
+// #endregion
 
+// ======================== EXPLORER MINIMAP COMPONENT ======================== \\
+// #region Explorer Minimap Component
 export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
   playerX,
   playerZ,
@@ -255,3 +267,4 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
     </div>
   );
 };
+// #endregion

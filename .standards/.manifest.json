@@ -1,0 +1,14 @@
+{
+  "tool": "build-protocol",
+  "version": "2.0.1",
+  "files": {
+    "applicability.md": "cfb9a5b3391db5e9be005eb40be0039eeece6c11c07a352a6ca88b436db82e8d",
+    "architecture.md": "399145cbe1773c33d340feacaf2c18553b94f0196d3a26d639b5ff7512b00a2b",
+    "code-style.md": "3c4704dcaa6801e778bf140be5d298877e9f513f919dc2d280438bd2272d0e41",
+    "errors-logging.md": "8984414b6c0207e0cd46c6f89d37d72e218873e8f50c046f0f1d63761e2170b4",
+    "git.md": "f22cf1b5264fcec3583b922b7486d0dcfebf71da20533d89c77e1a1d95ce8ade",
+    "glossary.md": "ad35c2d6f7410a2817f6d5d9b55a72dd1f611df23f09f68bb36e3f61c0dcf884",
+    "security.md": "ee95a9a6309b7fd72498024c43913b08725d663dcea0278bbd41209465a4601e",
+    "testing.md": "8e0b598eb0dd572349ea5ae0c0c56801205bf91bd9f77c06e433257129ad2a0e"
+  }
+}

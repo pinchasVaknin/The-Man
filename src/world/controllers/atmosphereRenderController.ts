@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Controllers / Atmosphere Render Controller
+// DESIGN: Synchronizes Three.js scene lighting, sky, and fog with solar/weather state (SRP)
+// SUMMARY: Applies solar cycle, Preetham sky shader uniforms, dynamic fog density,
+//          directional sunlight, hemisphere ambient, and lantern intensities.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import {
@@ -10,7 +19,10 @@ const _stormFogColor = new THREE.Color(0x3a4759);
 const _sandFogColor = new THREE.Color(0xc9a87a);
 const _denseFogColor = new THREE.Color(0xc2d1dc);
 const _lightningColor = new THREE.Color(0xdbeafe);
+// #endregion
 
+// ======================== CONTEXT & TYPES ======================== \\
+// #region Context & Types
 export interface AtmosphereRenderContext {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
@@ -25,7 +37,10 @@ export interface AtmosphereRenderContext {
   waterMaterial: THREE.MeshPhysicalMaterial;
   lanternLights: THREE.PointLight[];
 }
+// #endregion
 
+// ======================== CONTROLLER LOGIC ======================== \\
+// #region Controller Logic
 /**
  * Controller Pattern: Applies dynamic solar cycle and weather state to the Three.js scene,
  * Preetham sky shader, directional/hemisphere lights, exponential fog, water material, and lanterns.
@@ -127,3 +142,4 @@ export function applyDynamicAtmosphereToScene(
 
   return atmo;
 }
+// #endregion

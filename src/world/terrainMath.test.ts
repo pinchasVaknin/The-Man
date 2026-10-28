@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Terrain Math Test Suite
+// DESIGN: Regression oracle verifying 25 world landmarks and mechanics (SRP)
+// SUMMARY: End-to-end integration and unit tests for terrain, water basins, fortress,
+//          rope bridge, weather, horses, inventory, combat, and wildlife systems.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -50,7 +59,10 @@ import {
   runSeasonalWeatherCycle,
   computeWeatherState,
 } from './terrainMath';
+// #endregion
 
+// ======================== INTEGRATION TEST SUITE ======================== \\
+// #region Integration Test Suite
 test('Water basins, Grand Waterfall plunge pool, and dry spawn vista are coherent', () => {
   const centralLake = groundHeightAt(-2, 1.5);
   assert.ok(centralLake < WATER_LEVEL - 2.0, `Expected central lake bottom < -2.0m, got ${centralLake}`);
@@ -1871,6 +1883,7 @@ test('5-Phase First-Person Sword Attack Kinematics (Ready -> Wind-Up -> Strike -
   assert.equal(duplicateHits, 0, 'Expected zero duplicate hits during Follow-Through and Recovery');
   assert.equal(player.swordSwingProgress, 0, 'Expected swordSwingProgress to reset cleanly to 0 after Recovery completes');
 });
+// #endregion
 
 
 

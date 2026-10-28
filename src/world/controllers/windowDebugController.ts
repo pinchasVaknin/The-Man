@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Controllers / Window Debug Controller
+// DESIGN: Controller pattern for deterministic window debug & testing bridges (SRP)
+// SUMMARY: Exposes headless inspection hooks (`render_game_to_text`, `teleportPlayer`,
+//          `drawBow`, `shootArrow`, `swingSword`, `setWorldHours`) to window for QA.
+// ============================================================================
+
+// ======================== IMPORTS & CONTRACTS ======================== \\
+// #region Imports & Contracts
 import * as THREE from 'three';
 import {
   ArrowElementKind,
@@ -49,7 +58,10 @@ export interface WindowDebugBridgeDeps {
   getCurrentWeather: () => WeatherStateSnapshot;
   emitHudSnapshot?: () => void;
 }
+// #endregion
 
+// ======================== CONTROLLER IMPLEMENTATION ======================== \\
+// #region Controller Implementation
 /**
  * Controller Pattern: Registers deterministic window debug/inspection hooks (`render_game_to_text`,
  * `teleportPlayer`, `drawBow`, `shootArrow`, `swingSword`, `setWorldHours`, etc.) for automated testing.
@@ -340,3 +352,4 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     });
   };
 }
+// #endregion

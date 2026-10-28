@@ -1,5 +1,17 @@
-import { BiomeType } from './terrainMath';
+// ============================================================================
+// MODULE: World / Sound Engine
+// DESIGN: Web Audio API synthesized procedural ambient and SFX sound engine (SRP)
+// SUMMARY: Synthesizes ambient wind, water lapping, birdsong, footsteps, bow draw,
+//          arrow releases, sword swings, combat impacts, and horse gallop audio.
+// ============================================================================
 
+// ======================== IMPORTS & TYPES ======================== \\
+// #region Imports & Types
+import { BiomeType } from './terrainMath';
+// #endregion
+
+// ======================== SOUND ENGINE CLASS ======================== \\
+// #region Sound Engine Class
 export class NatureSoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -528,4 +540,5 @@ export class NatureSoundEngine {
     }
   }
 }
+// #endregion
 

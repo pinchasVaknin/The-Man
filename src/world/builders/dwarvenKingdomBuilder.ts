@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Builders / Dwarven Kingdom Builder
+// DESIGN: Builder for dwarven entrance arch, guardian statues, houses & miners (SRP)
+// SUMMARY: Constructs the colossal twin king statues, 4 enterable stone houses,
+//          8 animated dwarven miners, and caravan schedule animation updates.
+// ============================================================================
+
+// ======================== IMPORTS & CONTRACTS ======================== \\
+// #region Imports & Contracts
 import * as THREE from 'three';
 import {
   DWARVEN_GUARDIAN_STATUES,
@@ -57,6 +66,10 @@ export interface DwarvenKingdomHandle {
     playerZ: number
   ) => void;
 }
+// #endregion
+
+// ======================== BUILD DWARVEN KINGDOM ======================== \\
+// #region Build Dwarven Kingdom
 
 /**
  * Builder Pattern for the Southern Dwarven Kingdom:
@@ -589,3 +602,4 @@ export function buildDwarvenKingdomAndMiners(
     updateDwarvenMiners,
   };
 }
+// #endregion

@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: Components / Skyrim Inventory Modal
+// DESIGN: Humble UI modal implementing Skyrim-style split-pane inventory (SRP)
+// SUMMARY: Displays categories (Weapons, Ammo, Gear, Market, Skills), 3D item inspections,
+//          gold transactions, hotbar slot bindings, and player attributes.
+// ============================================================================
+
+// ======================== IMPORTS & PROPS ======================== \\
+// #region Imports & Props
 import React, { useState } from 'react';
 import {
   INVENTORY_ITEMS,
@@ -66,6 +75,10 @@ export const SHORT_NAMES_HE: Record<InventoryItemId, string> = {
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];
+// #endregion
+
+// ======================== MODAL COMPONENT ======================== \\
+// #region Modal Component
 
 export function renderArtifactArtwork(itemId: InventoryItemId, sizeClass = 'w-56 h-56') {
   switch (itemId) {
@@ -984,4 +997,5 @@ export const SkyrimInventoryModal: React.FC<SkyrimInventoryModalProps> = ({
     </div>
   );
 };
+// #endregion
 

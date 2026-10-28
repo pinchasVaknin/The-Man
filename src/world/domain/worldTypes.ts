@@ -1,3 +1,20 @@
+// ============================================================================
+// MODULE: World / Domain / Types
+// DESIGN: Core domain data structures, state models, and configuration types (DIP, SRP)
+// SUMMARY: Declares immutable and runtime types for player state, world landmarks,
+//          inventory catalog, dynamic atmosphere, weather cycles, and entities.
+//          Does not contain business logic or Three.js scene instances.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
+export { Result } from '../../core/Result';
+export { AppException, InfrastructureCorruptedException, InvalidResultAccessException } from '../../core/AppException';
+// #endregion
+
+// ======================== BIOME & LOCOMOTION TYPES ======================== \\
+// #region Biome & Locomotion Types
+/** Summary: Spatial biome classifications determining terrain texture, vegetation and sound. */
 export type BiomeType =
   | 'water'
   | 'pier'
@@ -12,10 +29,19 @@ export type BiomeType =
   | 'highland'
   | 'rock';
 
+/** Summary: Movement speed pacing options for ground navigation. */
 export type WalkPaceMode = 'relaxed' | 'normal' | 'fast';
+
+/** Summary: Camera point-of-view modes. */
 export type CameraPerspectiveMode = 'third_person' | 'first_person';
+
+/** Summary: Active hand-held tool or weapon equipment slot. */
 export type EquippedToolSlot = 'bow' | 'sword' | 'torch' | 'unarmed';
+
+/** Summary: Elemental arrow enchantment types. */
 export type ArrowElementKind = 'normal' | 'fire' | 'wind';
+
+/** Summary: Unique inventory item catalog identifiers. */
 export type InventoryItemId =
   | 'bow'
   | 'sword'
@@ -38,23 +64,28 @@ export type InventoryItemId =
   | 'crystal_gem'
   | 'ancient_dwarven_horn'
   | 'elven_cloak';
+// #endregion
 
+// ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
+// #region Inventory & Equipment Types
+/** Summary: Definition schema for static inventory items in the world catalog. */
 export interface InventoryItemDef {
-  id: InventoryItemId;
-  nameHe: string;
-  category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures';
-  categoryLabelHe: string;
-  statLabelHe: string;
-  weight: number;
-  valueGold: number;
-  requiredLevel: number;
-  weaponRole?: 'bow' | 'sword';
-  starterOwned?: boolean;
-  descriptionHe: string;
-  loreHe?: string;
-  rarity?: 'common' | 'refined' | 'epic' | 'legendary';
+  readonly id: InventoryItemId;
+  readonly nameHe: string;
+  readonly category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures';
+  readonly categoryLabelHe: string;
+  readonly statLabelHe: string;
+  readonly weight: number;
+  readonly valueGold: number;
+  readonly requiredLevel: number;
+  readonly weaponRole?: 'bow' | 'sword';
+  readonly starterOwned?: boolean;
+  readonly descriptionHe: string;
+  readonly loreHe?: string;
+  readonly rarity?: 'common' | 'refined' | 'epic' | 'legendary';
 }
 
+/** Summary: Static registry of all available inventory items in the game world. */
 export const INVENTORY_ITEMS: readonly InventoryItemDef[] = [
   {
     id: 'bow',
@@ -375,7 +406,11 @@ export const INVENTORY_ITEMS: readonly InventoryItemDef[] = [
       'מאפסן את הקשת והנשק על הגב לתנועה חופשית, תצפית נקייה ושחייה מהירה במים.',
   },
 ] as const;
+// #endregion
 
+// ======================== CHARACTER SKILLS & PLAYER STATE ======================== \\
+// #region Character Skills & Player State
+/** Summary: Skill progression tracking for RPG attributes. */
 export interface CharacterSkillsState {
   archeryLevel: number;
   archeryXp: number;
@@ -397,6 +432,7 @@ export interface CharacterSkillsState {
   lastLevelUpTimer?: number;
 }
 
+/** Summary: Procedural collision cylinder definition. */
 export interface ObstacleCylinder {
   x: number;
   z: number;
@@ -406,6 +442,7 @@ export interface ObstacleCylinder {
   seed: number;
 }
 
+/** Summary: Complete runtime simulation state for the active player character. */
 export interface PlayerState {
   x: number;
   y: number;
@@ -486,11 +523,12 @@ export interface PlayerState {
   lastArrowHitTarget?: string | null;
 }
 
+/** Summary: Processed user input intent for a single simulation tick. */
 export interface PlayerInput {
   forward: number; // -1 to 1
   right: number;   // -1 to 1
-  sprint: boolean; // Shift = מהיר
-  relaxed: boolean; // Ctrl = נינוח (or descend when flying)
+  sprint: boolean; // Shift = fast
+  relaxed: boolean; // Ctrl = relaxed (or descend when flying)
   jumpPressed: boolean;
   jumpHeld: boolean;
   toggleFlyRequested?: boolean;
@@ -498,18 +536,23 @@ export interface PlayerInput {
   lookYawDelta: number;
   lookPitchDelta: number;
 }
+// #endregion
 
+// ======================== ANIMAL & HORSE ENTITY TYPES ======================== \\
+// #region Animal & Horse Entity Types
+/** Summary: Immutable definition for a persistent mountable horse in the world. */
 export interface RideableHorseDef {
-  id: string;
-  nameHe: string;
-  coatColorHex: number;
-  maneColorHex: number;
-  saddleColorHex: number;
-  homeX: number;
-  homeZ: number;
-  homeYaw: number;
+  readonly id: string;
+  readonly nameHe: string;
+  readonly coatColorHex: number;
+  readonly maneColorHex: number;
+  readonly saddleColorHex: number;
+  readonly homeX: number;
+  readonly homeZ: number;
+  readonly homeYaw: number;
 }
 
+/** Summary: Dynamic runtime state of a mountable horse. */
 export interface RideableHorseState {
   id: string;
   nameHe: string;
@@ -520,7 +563,11 @@ export interface RideableHorseState {
   speed: number;
   gaitPhase: number;
 }
+// #endregion
 
+// ======================== ATMOSPHERE & WEATHER STATE ======================== \\
+// #region Atmosphere & Weather State
+/** Summary: Complete atmospheric lighting and sky rendering parameters for a frame. */
 export interface DynamicAtmosphereState {
   worldHours: number; // 0..24 continuous clock
   timeString: string; // e.g. "06:52"
@@ -549,175 +596,10 @@ export interface DynamicAtmosphereState {
   exposure: number;
 }
 
-export interface ValleyFarmDef {
-  id: string;
-  doorId: string;
-  nameHe: string;
-  x: number;
-  z: number;
-  height: number;
-  clearRadius: number;
-  fenceHalfW: number;
-  fenceHalfD: number;
-  gateHalfW: number;
-  dirZ: 1 | -1; // +1 = front gate faces South (+Z), -1 = front gate faces North (-Z) toward approaching trail
-}
-
-export interface HillWatchtowerDef {
-  id: string;
-  doorId: string;
-  nameHe: string;
-  x: number;
-  z: number;
-  baseY: number;
-  deckY: number;
-  halfSize: number;
-  yaw: number;
-  doorSideLocalZ: 1 | -1;
-  bridgeSideLocalZ: 1 | -1 | 0;
-  localLadderX: number;
-  localLadderZ: number;
-  ladderX: number;
-  ladderZ: number;
-  standX: number;
-  standZ: number;
-  doorX: number;
-  doorZ: number;
-  doorMinX: number;
-  doorMaxX: number;
-  doorMinZ: number;
-  doorMaxZ: number;
-  isWest: boolean;
-  isSouth: boolean;
-  connectedToBridge: boolean;
-}
-
-export interface DwarvenGuardianStatueDef {
-  id: string;
-  nameHe: string;
-  x: number;
-  z: number;
-  baseY: number;
-  pedestalHalfSize: number;
-  totalHeight: number;
-  yaw: number;
-  side: 'west' | 'east';
-}
-
-export interface DwarvenStoneHouseDef {
-  id: string;
-  doorId: string;
-  nameHe: string;
-  x: number;
-  z: number;
-  terraceY: number;
-  floorY: number;
-  halfW: number; // along X
-  halfD: number; // along Z
-  dirX: 1 | -1;  // +1 = door on East wall (+X) facing the central road, -1 = door on West wall (-X) facing the central road
-  doorX: number;
-  doorZ: number;
-}
-
-export interface DwarvenMinerCaravanState {
-  dwarfIndex: number;
-  nameHe: string;
-  x: number;
-  y: number;
-  z: number;
-  yaw: number;
-  activity: 'resting_home' | 'caravan_to_mine' | 'mining_work' | 'caravan_to_home';
-  walkCycle: number;
-  miningSwing: number; // 0..1 pickaxe swing phase when mining
-  lanternLit: boolean;
-}
-
-export interface CornerWatchtowerDef {
-  id: string;
-  doorId: string;
-  nameHe: string;
-  cx: number;
-  cz: number;
-  doorX: number;
-  doorZ: number;
-  ladderX: number;
-  ladderZ: number;
-  isWest: boolean;
-  isSouth: boolean;
-}
-
-export interface ClimbableLadderInfo {
-  id: string;
-  nameHe: string;
-  ladderX: number;
-  ladderZ: number;
-  standX: number;
-  standZ: number;
-  isWest: boolean;
-  isSouth: boolean;
-  minY: number;
-  maxY: number;
-  floors: readonly number[];
-}
-
-export interface FortressDoorDef {
-  id: string;
-  buildingNameHe: string;
-  x: number;
-  y: number;
-  z: number;
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-  interactRadius: number;
-}
-
-export interface SolidBuildingBox {
-  id: string;
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-  minY?: number;
-  maxY?: number;
-}
-
-export interface ArcheryTargetDef {
-  id: string;
-  nameHe: string;
-  x: number;
-  z: number;
-  yaw: number;
-  bullseyeRadius: number;
-}
-
-export interface ArrowTrailPoint {
-  x: number;
-  y: number;
-  z: number;
-  age: number; // seconds since emitted (fades out over 0.85s)
-}
-
-export interface ArrowProjectile {
-  id: number;
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vy: number;
-  vz: number;
-  yaw: number;
-  pitch: number;
-  arrowKind?: ArrowElementKind;
-  stuck: boolean;
-  hitKind: 'none' | 'target' | 'obstacle' | 'building' | 'ground';
-  hitTargetId: string | null;
-  age: number;
-  trail: ArrowTrailPoint[];
-}
-
+/** Summary: Active world season category. */
 export type SeasonType = 'spring' | 'summer' | 'autumn' | 'winter';
+
+/** Summary: Discrete weather condition types. */
 export type WeatherKind =
   | 'clear_clouds'
   | 'regional_rain'
@@ -725,7 +607,11 @@ export type WeatherKind =
   | 'mountain_snow'
   | 'lightning_storm'
   | 'wind_sand';
+
+/** Summary: Weather progression cycle modes. */
 export type WeatherCycleMode = 'turbo_test' | 'seasonal';
+
+/** Summary: User-selectable weather override options. */
 export type WeatherToggleOption =
   | 'auto'
   | 'clear_clouds'
@@ -733,6 +619,7 @@ export type WeatherToggleOption =
   | 'dense_fog'
   | 'lightning_storm';
 
+/** Summary: Immutable snapshot of the dynamic weather system state. */
 export interface WeatherStateSnapshot {
   mode: WeatherCycleMode;
   season: SeasonType;
@@ -752,3 +639,190 @@ export interface WeatherStateSnapshot {
   boltOriginX: number;
   boltOriginZ: number;
 }
+// #endregion
+
+// ======================== WORLD STRUCTURES & LANDMARKS ======================== \\
+// #region World Structures & Landmarks
+/** Summary: Definition schema for a farm house compound. */
+export interface ValleyFarmDef {
+  readonly id: string;
+  readonly doorId: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly z: number;
+  readonly height: number;
+  readonly clearRadius: number;
+  readonly fenceHalfW: number;
+  readonly fenceHalfD: number;
+  readonly gateHalfW: number;
+  readonly dirZ: 1 | -1;
+}
+
+/** Summary: Definition schema for a hill watchtower structure. */
+export interface HillWatchtowerDef {
+  readonly id: string;
+  readonly doorId: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly z: number;
+  readonly baseY: number;
+  readonly deckY: number;
+  readonly halfSize: number;
+  readonly yaw: number;
+  readonly doorSideLocalZ: 1 | -1;
+  readonly bridgeSideLocalZ: 1 | -1 | 0;
+  readonly localLadderX: number;
+  readonly localLadderZ: number;
+  readonly ladderX: number;
+  readonly ladderZ: number;
+  readonly standX: number;
+  readonly standZ: number;
+  readonly doorX: number;
+  readonly doorZ: number;
+  readonly doorMinX: number;
+  readonly doorMaxX: number;
+  readonly doorMinZ: number;
+  readonly doorMaxZ: number;
+  readonly isWest: boolean;
+  readonly isSouth: boolean;
+  readonly connectedToBridge: boolean;
+}
+
+/** Summary: Definition schema for ancient dwarven kingdom guardian statues. */
+export interface DwarvenGuardianStatueDef {
+  readonly id: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly z: number;
+  readonly baseY: number;
+  readonly pedestalHalfSize: number;
+  readonly totalHeight: number;
+  readonly yaw: number;
+  readonly side: 'west' | 'east';
+}
+
+/** Summary: Definition schema for enterable stone houses in the dwarven kingdom. */
+export interface DwarvenStoneHouseDef {
+  readonly id: string;
+  readonly doorId: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly z: number;
+  readonly terraceY: number;
+  readonly floorY: number;
+  readonly halfW: number;
+  readonly halfD: number;
+  readonly dirX: 1 | -1;
+  readonly doorX: number;
+  readonly doorZ: number;
+}
+
+/** Summary: Runtime simulation state for a travelling dwarven miner NPC. */
+export interface DwarvenMinerCaravanState {
+  dwarfIndex: number;
+  nameHe: string;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  activity: 'resting_home' | 'caravan_to_mine' | 'mining_work' | 'caravan_to_home';
+  walkCycle: number;
+  miningSwing: number;
+  lanternLit: boolean;
+}
+
+/** Summary: Definition schema for fortress corner watchtowers. */
+export interface CornerWatchtowerDef {
+  readonly id: string;
+  readonly doorId: string;
+  readonly nameHe: string;
+  readonly cx: number;
+  readonly cz: number;
+  readonly doorX: number;
+  readonly doorZ: number;
+  readonly ladderX: number;
+  readonly ladderZ: number;
+  readonly isWest: boolean;
+  readonly isSouth: boolean;
+}
+
+/** Summary: Information required to inspect and climb a vertical ladder. */
+export interface ClimbableLadderInfo {
+  readonly id: string;
+  readonly nameHe: string;
+  readonly ladderX: number;
+  readonly ladderZ: number;
+  readonly standX: number;
+  readonly standZ: number;
+  readonly isWest: boolean;
+  readonly isSouth: boolean;
+  readonly minY: number;
+  readonly maxY: number;
+  readonly floors: readonly number[];
+}
+
+/** Summary: Door entry interactable zone specification. */
+export interface FortressDoorDef {
+  readonly id: string;
+  readonly buildingNameHe: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly interactRadius: number;
+}
+
+/** Summary: Axis-aligned bounding box for solid building collision. */
+export interface SolidBuildingBox {
+  readonly id: string;
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly minY?: number;
+  readonly maxY?: number;
+}
+// #endregion
+
+// ======================== COMBAT & PROJECTILE TYPES ======================== \\
+// #region Combat & Projectile Types
+/** Summary: Stationary archery practice target definition. */
+export interface ArcheryTargetDef {
+  readonly id: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly z: number;
+  readonly yaw: number;
+  readonly bullseyeRadius: number;
+}
+
+/** Summary: Fading visual trail particle point emitted by a flying projectile. */
+export interface ArrowTrailPoint {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly age: number;
+}
+
+/** Summary: Runtime physics state for an active flying or lodged projectile arrow. */
+export interface ArrowProjectile {
+  id: number;
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  yaw: number;
+  pitch: number;
+  arrowKind?: ArrowElementKind;
+  stuck: boolean;
+  hitKind: 'none' | 'target' | 'obstacle' | 'building' | 'ground';
+  hitTargetId: string | null;
+  age: number;
+  trail: ArrowTrailPoint[];
+}
+// #endregion

@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Builders / Player & Combat Builder
+// DESIGN: Viewmodel, ranger character rig, archery targets & combat systems (SRP)
+// SUMMARY: Constructs 3rd-person ranger, 1st-person viewmodels (hands, bow, sword,
+//          torch), archery target stands, arrow projectiles, and animations.
+// ============================================================================
+
+// ======================== IMPORTS & CONTRACTS ======================== \\
+// #region Imports & Contracts
 import * as THREE from 'three';
 import {
   ARCHERY_TARGETS,
@@ -27,7 +36,10 @@ export interface PlayerAndCombatHandle {
     activeArrows?: readonly ArrowProjectile[]
   ) => void;
 }
+// #endregion
 
+// ======================== BUILD PLAYER & COMBAT ======================== \\
+// #region Build Player & Combat
 /**
  * Builder Pattern for Player Character, First-Person Viewmodel, Weapons & Archery Systems:
  * - 5 World Archery Bullseye Target Stands
@@ -1714,3 +1726,4 @@ export function buildPlayerAndCombatSystems(
     updatePlayerAndCombat,
   };
 }
+// #endregion

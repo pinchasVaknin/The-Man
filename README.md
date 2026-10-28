@@ -18,3 +18,11 @@ View your app in AI Studio: https://ai.studio/apps/84df16e3-e727-48c1-8be1-15a71
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+<!-- build-protocol:begin -->
+## Engineering standards
+
+How code in this repository is planned, written, tested and committed is defined in
+[`.standards/profile.md`](./.standards/profile.md) and the standards it links to.
+Read the profile before your first change.
+<!-- build-protocol:end -->

@@ -1,25 +1,20 @@
+// ============================================================================
+// MODULE: World / Systems / Boids And Wildlife
+// DESIGN: Reynolds 3D boids flocking algorithm and reactive ground wildlife (SRP)
+// SUMMARY: Simulates bird flock separation, alignment, cohesion, and altitude control,
+//          as well as proximity-reactive foraging, alert, and fleeing woodland critters.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import { groundHeightAt as heightAt, walkableHeightAt } from './terrainAndBiomeSystem';
+// #endregion
 
-/**
- * Boids Flocking & Proximity-Reactive Forest Wildlife System (`boidsAndWildlifeSystem.ts`)
- *
- * Implements:
- * 1. Reynolds Boids Algorithm for Bird Flocks:
- *    - Separation: steer to avoid crowding local flockmates
- *    - Alignment: steer towards the average heading of local flockmates
- *    - Cohesion: steer to move toward the average position (center of mass) of local flockmates
- *    - Home Orbit & Altitude Bounds: gentle attraction to patrol zones and safe flight altitudes above terrain
- *    - Player Proximity Evade/Scatter: when the player (or horse) approaches within `fleeRadius` (28m),
- *      birds startle, climb rapidly, and scatter away in organized flock waves, returning audio trigger events.
- * 2. Proximity-Reactive Small Forest Animals (Woodland Rabbits & Red Bush Squirrels):
- *    - Idle/foraging behavior when player is distant (`> 18m`)
- *    - Alert ear-perk & head-turn toward player at medium proximity (`11m - 18m`)
- *    - Rapid darting/hopping escape away from player at close proximity (`< 11m`), with audio trigger events.
- */
-
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export interface BoidBirdState {
-  id: string;
-  flockId: number;
+  readonly id: string;
+  readonly flockId: number;
   x: number;
   y: number;
   z: number;
@@ -31,22 +26,22 @@ export interface BoidBirdState {
   bankRoll: number;
   wingPhase: number;
   fleeTimer: number;
-  scale: number;
+  readonly scale: number;
 }
 
 export interface BirdFlockConfig {
-  flockId: number;
-  homeX: number;
-  homeZ: number;
-  cruiseAltitudeAboveGround: number;
-  patrolRadius: number;
+  readonly flockId: number;
+  readonly homeX: number;
+  readonly homeZ: number;
+  readonly cruiseAltitudeAboveGround: number;
+  readonly patrolRadius: number;
 }
 
 export interface SmallAnimalState {
-  id: string;
-  species: 'rabbit' | 'squirrel';
-  homeX: number;
-  homeZ: number;
+  readonly id: string;
+  readonly species: 'rabbit' | 'squirrel';
+  readonly homeX: number;
+  readonly homeZ: number;
   x: number;
   y: number;
   z: number;
@@ -61,10 +56,10 @@ export interface SmallAnimalState {
 }
 
 export interface BoidsAndWildlifeStepResult {
-  startledFlockCount: number;
-  scamperedCritterCount: number;
-  nearestBirdDist: number;
-  nearestCritterDist: number;
+  readonly startledFlockCount: number;
+  readonly scamperedCritterCount: number;
+  readonly nearestBirdDist: number;
+  readonly nearestCritterDist: number;
 }
 
 export const BIRD_FLOCK_CONFIGS: readonly BirdFlockConfig[] = [
@@ -74,15 +69,43 @@ export const BIRD_FLOCK_CONFIGS: readonly BirdFlockConfig[] = [
   { flockId: 3, homeX: 185.0, homeZ: 215.0, cruiseAltitudeAboveGround: 14.5, patrolRadius: 46.0 },
 ] as const;
 
+/** Summary: Birds instantiated per flock patrol node. */
+const BIRDS_PER_FLOCK = 9;
+
+/** Summary: Reynolds Boids flocking weights and perception radii. */
+const BOID_NEIGHBOR_RADIUS = 15.5;
+const BOID_SEPARATION_RADIUS = 3.8;
+const BOID_SEPARATION_WEIGHT = 2.65;
+const BOID_ALIGNMENT_WEIGHT = 1.35;
+const BOID_COHESION_WEIGHT = 1.15;
+const BOID_HOME_WEIGHT = 0.55;
+const BOID_PLAYER_BASE_THREAT_RADIUS = 29.0;
+
+/** Summary: Small wildlife interaction radii & speeds. */
+const CRITTER_ALERT_RADIUS = 18.0;
+const CRITTER_BASE_FLEE_RADIUS = 11.5;
+const RABBIT_FLEE_SPEED = 6.8;
+const SQUIRREL_FLEE_SPEED = 7.4;
+const RABBIT_HOP_RATE = 14.0;
+const SQUIRREL_HOP_RATE = 18.0;
+const RABBIT_HOP_HEIGHT = 0.28;
+const SQUIRREL_HOP_HEIGHT = 0.16;
+// #endregion
+
+// ======================== FACTORY INITIALIZERS ======================== \\
+// #region Factory Initializers
+/**
+ * Summary: Initializes and distributes boid bird flocks across all defined patrol centers.
+ */
 export function createInitialBoidBirds(): BoidBirdState[] {
   const birds: BoidBirdState[] = [];
-  const birdsPerFlock = 9;
 
   for (let f = 0; f < BIRD_FLOCK_CONFIGS.length; f++) {
     const cfg = BIRD_FLOCK_CONFIGS[f];
     const groundY = heightAt(cfg.homeX, cfg.homeZ);
-    for (let i = 0; i < birdsPerFlock; i++) {
-      const angle = (i / birdsPerFlock) * Math.PI * 2 + f * 0.8;
+
+    for (let i = 0; i < BIRDS_PER_FLOCK; i++) {
+      const angle = (i / BIRDS_PER_FLOCK) * Math.PI * 2 + f * 0.8;
       const dist = 3.5 + (i % 3) * 2.4;
       const bx = cfg.homeX + Math.cos(angle) * dist;
       const bz = cfg.homeZ + Math.sin(angle) * dist;
@@ -91,6 +114,7 @@ export function createInitialBoidBirds(): BoidBirdState[] {
       const heading = angle + Math.PI * 0.5;
       const vx = Math.cos(heading) * speed;
       const vz = Math.sin(heading) * speed;
+
       birds.push({
         id: `boid-bird-${f}-${i}`,
         flockId: f,
@@ -113,8 +137,11 @@ export function createInitialBoidBirds(): BoidBirdState[] {
   return birds;
 }
 
+/**
+ * Summary: Initializes small reactive forest critters (woodland rabbits and red squirrels).
+ */
 export function createInitialSmallAnimals(): SmallAnimalState[] {
-  const spots: ReadonlyArray<{ species: 'rabbit' | 'squirrel'; x: number; z: number; yaw: number }> = [
+  const spots: readonly { species: 'rabbit' | 'squirrel'; x: number; z: number; yaw: number }[] = [
     // Near Spawn & Forest Trail so the player immediately encounters them while exploring
     { species: 'rabbit', x: 11.5, z: 58.0, yaw: 0.4 },
     { species: 'rabbit', x: 13.2, z: 56.5, yaw: 1.8 },
@@ -157,9 +184,13 @@ export function createInitialSmallAnimals(): SmallAnimalState[] {
     };
   });
 }
+// #endregion
 
+// ======================== SIMULATION STEP ======================== \\
+// #region Simulation Step
 /**
- * Steps the Boids Flocking Algorithm for all birds and updates proximity-reactive forest animals.
+ * Summary: Steps the Boids Flocking Algorithm for all birds and updates proximity-reactive forest animals.
+ * Note: [HOT-PATH EXCEPTION] 60FPS simulation loop updating bird boid velocities and animal hops in place.
  */
 export function stepBoidsAndWildlife(
   birds: BoidBirdState[],
@@ -176,15 +207,9 @@ export function stepBoidsAndWildlife(
   let nearestBirdDist = Infinity;
   let nearestCritterDist = Infinity;
 
-  // Boids Tuning Parameters
-  const neighborRadius = 15.5;
-  const separationRadius = 3.8;
-  const separationWeight = 2.65;
-  const alignmentWeight = 1.35;
-  const cohesionWeight = 1.15;
-  const homeWeight = 0.55;
-  const playerThreatRadius = 29.0 + Math.min(12.0, playerSpeed * 1.1);
+  const playerThreatRadius = BOID_PLAYER_BASE_THREAT_RADIUS + Math.min(12.0, playerSpeed * 1.1);
 
+  // 1. Step Reynolds Boids Birds
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
     const cfg = BIRD_FLOCK_CONFIGS[b.flockId] ?? BIRD_FLOCK_CONFIGS[0];
@@ -210,7 +235,7 @@ export function stepBoidsAndWildlife(
       const dz = b.z - other.z;
       const dist = Math.hypot(dx, dy, dz);
 
-      if (dist > 0.001 && dist < neighborRadius) {
+      if (dist > 0.001 && dist < BOID_NEIGHBOR_RADIUS) {
         neighborCount++;
         alignX += other.vx;
         alignY += other.vy;
@@ -219,8 +244,8 @@ export function stepBoidsAndWildlife(
         cohY += other.y;
         cohZ += other.z;
 
-        if (dist < separationRadius) {
-          const inv = (separationRadius - dist) / (dist * separationRadius);
+        if (dist < BOID_SEPARATION_RADIUS) {
+          const inv = (BOID_SEPARATION_RADIUS - dist) / (dist * BOID_SEPARATION_RADIUS);
           sepX += dx * inv;
           sepY += dy * inv;
           sepZ += dz * inv;
@@ -228,24 +253,24 @@ export function stepBoidsAndWildlife(
       }
     }
 
-    let ax = sepX * separationWeight;
-    let ay = sepY * separationWeight;
-    let az = sepZ * separationWeight;
+    let ax = sepX * BOID_SEPARATION_WEIGHT;
+    let ay = sepY * BOID_SEPARATION_WEIGHT;
+    let az = sepZ * BOID_SEPARATION_WEIGHT;
 
     if (neighborCount > 0) {
       alignX /= neighborCount;
       alignY /= neighborCount;
       alignZ /= neighborCount;
-      ax += (alignX - b.vx) * alignmentWeight * 0.35;
-      ay += (alignY - b.vy) * alignmentWeight * 0.35;
-      az += (alignZ - b.vz) * alignmentWeight * 0.35;
+      ax += (alignX - b.vx) * BOID_ALIGNMENT_WEIGHT * 0.35;
+      ay += (alignY - b.vy) * BOID_ALIGNMENT_WEIGHT * 0.35;
+      az += (alignZ - b.vz) * BOID_ALIGNMENT_WEIGHT * 0.35;
 
       cohX = cohX / neighborCount - b.x;
       cohY = cohY / neighborCount - b.y;
       cohZ = cohZ / neighborCount - b.z;
-      ax += cohX * cohesionWeight * 0.28;
-      ay += cohY * cohesionWeight * 0.28;
-      az += cohZ * cohesionWeight * 0.28;
+      ax += cohX * BOID_COHESION_WEIGHT * 0.28;
+      ay += cohY * BOID_COHESION_WEIGHT * 0.28;
+      az += cohZ * BOID_COHESION_WEIGHT * 0.28;
     }
 
     // Gentle attraction to flock patrol zone + tangential cruise
@@ -253,7 +278,7 @@ export function stepBoidsAndWildlife(
     const toHomeZ = cfg.homeZ - b.z;
     const distFromHome = Math.hypot(toHomeX, toHomeZ);
     if (distFromHome > cfg.patrolRadius) {
-      const pull = (distFromHome - cfg.patrolRadius) * 0.14 * homeWeight;
+      const pull = (distFromHome - cfg.patrolRadius) * 0.14 * BOID_HOME_WEIGHT;
       ax += (toHomeX / distFromHome) * pull;
       az += (toHomeZ / distFromHome) * pull;
     } else if (distFromHome > 1.0) {
@@ -337,9 +362,8 @@ export function stepBoidsAndWildlife(
     b.wingPhase = (b.wingPhase + dt * flapFreq) % (Math.PI * 2);
   }
 
-  // Step Small Forest Animals (Rabbits & Squirrels)
-  const alertRadius = 18.0;
-  const fleeRadius = 11.5 + Math.min(5.0, playerSpeed * 0.65);
+  // 2. Step Small Forest Animals (Rabbits & Squirrels)
+  const fleeRadius = CRITTER_BASE_FLEE_RADIUS + Math.min(5.0, playerSpeed * 0.65);
 
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
@@ -359,7 +383,7 @@ export function stepBoidsAndWildlife(
       a.earPerk = 1.0;
 
       const safeDist = Math.max(0.25, dist);
-      const fleeSpeed = a.species === 'rabbit' ? 6.8 : 7.4;
+      const fleeSpeed = a.species === 'rabbit' ? RABBIT_FLEE_SPEED : SQUIRREL_FLEE_SPEED;
       const targetYaw = Math.atan2(dx / safeDist, dz / safeDist);
       a.yaw = targetYaw;
       a.vx = (dx / safeDist) * fleeSpeed;
@@ -369,7 +393,7 @@ export function stepBoidsAndWildlife(
       a.alertLevel = 'fleeing';
       a.vx *= Math.exp(-2.2 * dt);
       a.vz *= Math.exp(-2.2 * dt);
-    } else if (dist < alertRadius) {
+    } else if (dist < CRITTER_ALERT_RADIUS) {
       a.alertLevel = 'alert';
       a.earPerk += (0.95 - a.earPerk) * (1 - Math.exp(-8 * dt));
       a.vx *= Math.exp(-6 * dt);
@@ -397,9 +421,9 @@ export function stepBoidsAndWildlife(
     if (moveSpeed > 0.08) {
       a.x += a.vx * dt;
       a.z += a.vz * dt;
-      const hopRate = a.species === 'rabbit' ? 14.0 : 18.0;
+      const hopRate = a.species === 'rabbit' ? RABBIT_HOP_RATE : SQUIRREL_HOP_RATE;
       a.hopPhase = (a.hopPhase + dt * hopRate) % (Math.PI * 2);
-      a.hopHeight = Math.max(0, Math.sin(a.hopPhase)) * (a.species === 'rabbit' ? 0.28 : 0.16);
+      a.hopHeight = Math.max(0, Math.sin(a.hopPhase)) * (a.species === 'rabbit' ? RABBIT_HOP_HEIGHT : SQUIRREL_HOP_HEIGHT);
     } else {
       a.hopPhase = (a.hopPhase + dt * 2.5) % (Math.PI * 2);
       a.hopHeight *= Math.exp(-10 * dt);
@@ -416,3 +440,4 @@ export function stepBoidsAndWildlife(
     nearestCritterDist,
   };
 }
+// #endregion

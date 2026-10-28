@@ -1,8 +1,12 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+// ============================================================================
+// MODULE: Application Root Component
+// DESIGN: Root shell coordinating canvas, overlay HUD, state, and inputs (SRP)
+// SUMMARY: Manages top-level game state (title, playing, paused), audio mute,
+//          weather cycles, and binds WorldCanvas with GameShellOverlay.
+// ============================================================================
 
+// ======================== IMPORTS & CONSTANTS ======================== \\
+// #region Imports & Constants
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WORLD_SPAWN, WeatherToggleOption } from './world/terrainMath';
 import { WorldCanvas, GameStateMode, TelemetrySnapshot, VirtualMoveState } from './components/WorldCanvas';
@@ -15,7 +19,10 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
   'lightning_storm',
   'clear_clouds',
 ];
+// #endregion
 
+// ======================== ROOT APPLICATION COMPONENT ======================== \\
+// #region Root Application Component
 export default function App() {
   const [gameState, setGameState] = useState<GameStateMode>(() => {
     if (typeof window !== 'undefined') {
@@ -142,3 +149,4 @@ export default function App() {
     </div>
   );
 }
+// #endregion

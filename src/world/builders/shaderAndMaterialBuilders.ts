@@ -1,10 +1,20 @@
+// ============================================================================
+// MODULE: World / Builders / Shader & Material Builders
+// DESIGN: Reusable procedural vertex deformation, wave shaders, and textures (SRP)
+// SUMMARY: Implements geometry vertex perturbation, wind sway shaders, flag flutter
+//          wave shaders, and procedural birch bark canvas textures.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import * as THREE from 'three';
 import { fbm2D, hash2D } from '../domain/noiseAndMath';
+// #endregion
 
+// ======================== VERTEX PERTURBATION ======================== \\
+// #region Vertex Perturbation
 /**
- * Shader & Procedural Geometry/Texture Builders (Builder Pattern).
- * Encapsulates reusable GPU vertex-sway shaders, flag wave shaders, organic vertex perturbation,
- * and procedural bark canvas textures.
+ * Perturbs geometry vertices organically using multi-octave 2D fractional Brownian motion.
  */
 export function perturbGeometryVertices(
   geo: THREE.BufferGeometry,
@@ -22,7 +32,13 @@ export function perturbGeometryVertices(
   }
   geo.computeVertexNormals();
 }
+// #endregion
 
+// ======================== WIND & WAVE SHADERS ======================== \\
+// #region Wind & Wave Shaders
+/**
+ * Injects a GPU vertex wind sway animation into Standard material shaders.
+ */
 export function attachWindSwayShader(
   mat: THREE.MeshStandardMaterial,
   strength: number,
@@ -86,7 +102,10 @@ export function attachFlagHorizontalWaveShader(
   };
   swayMaterials.push(mat);
 }
+// #endregion
 
+// ======================== PROCEDURAL TEXTURES ======================== \\
+// #region Procedural Textures
 /**
  * Generates a procedural Silver Birch bark texture (pale silver-white bark with dark horizontal lenticel markings).
  */
@@ -122,3 +141,4 @@ export function createBirchBarkTexture(): THREE.CanvasTexture {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+// #endregion

@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Systems / Terrain And Biome
+// DESIGN: Continuous procedural heightfield math, walkable geometry, and biome layers (SRP)
+// SUMMARY: Computes analytical ground elevation, roofs, stairs, water basins,
+//          surface biomes, surface normals, and world obstacle placement.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import type { BiomeType, WalkPaceMode, ObstacleCylinder } from '../domain/worldTypes';
 import { hash2D, fbm2D, smoothstep, distToSegment } from '../domain/noiseAndMath';
 import {
@@ -39,12 +48,21 @@ import {
 
 const FZ = FORTRESS_Z_OFFSET;
 const FY = FORTRESS_Y_OFFSET;
+// #endregion
 
+// ======================== REGIONAL BIOME FACTORS ======================== \\
+// #region Regional Biome Factors
+/**
+ * Summary: Evaluates radial falloff factor for the Orange Birch Grove landmark.
+ */
 export function birchGroveFactorAt(x: number, z: number): number {
   const d = Math.hypot(x - BIRCH_GROVE_CENTER.x, z - BIRCH_GROVE_CENTER.z);
   return 1.0 - smoothstep(BIRCH_GROVE_CENTER.radius * 0.48, BIRCH_GROVE_CENTER.radius, d);
 }
 
+/**
+ * Summary: Evaluates non-linear procedural transition into the Southwest Desert and Oasis.
+ */
 export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   if (x > -105 || z < 130) return 0;
   const farmWestDist = Math.hypot(x - VALLEY_FARMS[0].x, z - VALLEY_FARMS[0].z);
@@ -67,6 +85,9 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   return Math.max(0, Math.min(1, Math.max(regionalExpanse, oasisCore) * (1.0 - farmProtect)));
 }
 
+/**
+ * Summary: Calculates composite regional density of forest trees across the landscape.
+ */
 export function regionalForestDensityAt(x: number, z: number): number {
   const westForestDist = Math.hypot((x + 65) * 0.85, (z + 15) * 0.95);
   const westDense = 1.0 - smoothstep(35, 135, westForestDist);
@@ -91,6 +112,13 @@ export function regionalForestDensityAt(x: number, z: number): number {
   return Math.max(0, Math.min(1, baseRegional * (1.0 - openValleySuppress * 0.98)));
 }
 
+// #endregion
+
+// ======================== ROOF & SHELTER QUERIES ======================== \\
+// #region Roof & Shelter Queries
+/**
+ * Summary: Queries the elevation of overhead roofs and ceilings at the given coordinate.
+ */
 export function getRoofHeightAt(x: number, z: number): number | null {
   if (Math.abs(x) <= 23.2 && z >= -216.5 + FZ && z <= -188.8 + FZ) {
     return CHINESE_FORTRESS_POS.mainHallFloor2Y + 5.2;
@@ -219,11 +247,21 @@ export function getRoofHeightAt(x: number, z: number): number | null {
   return null;
 }
 
+/**
+ * Summary: Determines whether a 3D coordinate is sheltered beneath an overhead roof.
+ */
 export function isPositionUnderRoof(x: number, y: number, z: number): boolean {
   const roofH = getRoofHeightAt(x, z);
   return roofH !== null && y < roofH;
 }
 
+// #endregion
+
+// ======================== TRAIL & FOOTPATH NETWORK ======================== \\
+// #region Trail & Footpath Network
+/**
+ * Summary: Computes proximity factor to the interconnected dirt trail and road network.
+ */
 export function trailFactorAt(x: number, z: number): number {
   for (let i = 0; i < VALLEY_FARMS.length; i++) {
     const f = VALLEY_FARMS[i];
@@ -339,6 +377,13 @@ export function trailFactorAt(x: number, z: number): number {
   return 1.0 - smoothstep(1.3, 3.2, minDist);
 }
 
+// #endregion
+
+// ======================== FORTRESS ZONES & STAIRS ======================== \\
+// #region Fortress Zones & Stairs
+/**
+ * Summary: Checks whether coordinates fall within walkable fortress courtyards or staircases.
+ */
 export function isChineseFortressWalkableZone(x: number, z: number): boolean {
   const onLowerStairs =
     Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.stairHalfWidth &&
@@ -359,6 +404,9 @@ export function isChineseFortressWalkableZone(x: number, z: number): boolean {
   return onLowerStairs || onMidLanding || onUpperStairs || onPlaza;
 }
 
+/**
+ * Summary: Calculates walkable stepped incline height along the central mountain staircase.
+ */
 export function chineseFortressStairHeightAt(z: number): number {
   if (z >= CHINESE_FORTRESS_POS.stairFootZ) {
     return CHINESE_FORTRESS_POS.stairBaseHeight;
@@ -387,6 +435,14 @@ export function chineseFortressStairHeightAt(z: number): number {
   return CHINESE_FORTRESS_POS.summitHeight;
 }
 
+// #endregion
+
+// ======================== GROUND HEIGHTFIELD MATH ======================== \\
+// #region Ground Heightfield Math
+/**
+ * Summary: Pure analytical heightfield function evaluating continuous terrain elevation.
+ * Note: [HOT-PATH EXCEPTION] Evaluated repeatedly during frame rendering and physics steps.
+ */
 export function groundHeightAt(x: number, z: number): number {
   const r = Math.hypot(x, z);
 
@@ -627,6 +683,13 @@ export function groundHeightAt(x: number, z: number): number {
   return h;
 }
 
+// #endregion
+
+// ======================== WATER & SNOW ZONE QUERIES ======================== \\
+// #region Water & Snow Zone Queries
+/**
+ * Summary: Queries the local water plane elevation for oceans, lakes, pools, and oasis lagoons.
+ */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
   if (currentY !== undefined && currentY < -3.5) {
     const lx = x - SOUTHERN_MINE_POS.x;
@@ -651,6 +714,9 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   return null;
 }
 
+/**
+ * Summary: Calculates snow accumulation factor based on terrain altitude above the snowline.
+ */
 export function northernSnowZoneFactorAt(x: number, z: number): number {
   if (isChineseFortressWalkableZone(x, z)) {
     return 0;
@@ -663,6 +729,14 @@ export function northernSnowZoneFactorAt(x: number, z: number): number {
   return Math.max(0, Math.min(1, altitudeSnow));
 }
 
+// #endregion
+
+// ======================== WALKABLE SURFACE RESOLUTION ======================== \\
+// #region Walkable Surface Resolution
+/**
+ * Summary: Resolves complex multi-story walkable surface heights (ground, bridges, decks, cabins).
+ * Note: [HOT-PATH EXCEPTION] Evaluated at 60FPS for entity positioning and camera collision.
+ */
 export function walkableHeightAt(
   x: number,
   z: number,
@@ -1002,6 +1076,10 @@ export function walkableHeightAt(
   return { height: groundH, surface: 'ground' };
 }
 
+/**
+ * Summary: Calculates analytical surface normal unit vector via central finite differences.
+ * Note: [HOT-PATH EXCEPTION] Sampled in real-time for player alignment and slopes.
+ */
 export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: number; nz: number } {
   const eps = 0.4;
   const hL = groundHeightAt(x - eps, z);
@@ -1019,6 +1097,14 @@ export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: numb
   };
 }
 
+// #endregion
+
+// ======================== SURFACE BIOME CLASSIFICATION ======================== \\
+// #region Surface Biome Classification
+/**
+ * Summary: Classifies the dominant surface biome type at given spatial coordinates.
+ * Note: [HOT-PATH EXCEPTION] Queried continuously for footsteps, shaders, and audio cues.
+ */
 export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): BiomeType {
   const walk = walkableHeightAt(x, z, currentY);
   if (walk.surface === 'pier') return 'pier';
@@ -1051,6 +1137,9 @@ export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): Biom
   return 'meadow';
 }
 
+/**
+ * Summary: Returns the localized Hebrew display label for a world biome.
+ */
 export function getBiomeLabelHe(biome: BiomeType): string {
   switch (biome) {
     case 'water':
@@ -1080,6 +1169,9 @@ export function getBiomeLabelHe(biome: BiomeType): string {
   }
 }
 
+/**
+ * Summary: Returns the localized Hebrew display label for a walking pace mode.
+ */
 export function getWalkPaceLabelHe(pace: WalkPaceMode): string {
   switch (pace) {
     case 'relaxed':
@@ -1091,6 +1183,9 @@ export function getWalkPaceLabelHe(pace: WalkPaceMode): string {
   }
 }
 
+/**
+ * Summary: Samples RGB color representation of terrain and structures for the explorer minimap.
+ */
 export function sampleMinimapColorAt(x: number, z: number): [number, number, number] {
   if (isChineseFortressWalkableZone(x, z)) {
     if (
@@ -1284,6 +1379,13 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   ];
 }
 
+// #endregion
+
+// ======================== WORLD OBSTACLE GENERATOR ======================== \\
+// #region World Obstacle Generator
+/**
+ * Summary: Generates procedural static collision cylinders for trees, boulders, and flora.
+ */
 export function generateWorldObstacles(): ObstacleCylinder[] {
   const obstacles: ObstacleCylinder[] = [];
 
@@ -1555,3 +1657,5 @@ export function generateWorldObstacles(): ObstacleCylinder[] {
 
   return obstacles;
 }
+
+// #endregion

@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: Components / World Canvas
+// DESIGN: Humble UI host for WebGL rendering, pointer lock, and physics tick (SRP)
+// SUMMARY: Initializes Three.js renderer, camera, solar atmosphere, dynamic weather,
+//          input event listeners, audio integration, and animation loop.
+// ============================================================================
+
+// ======================== IMPORTS & CONTRACTS ======================== \\
+// #region Imports & Contracts
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -119,7 +128,10 @@ export interface WorldCanvasProps {
   onRequestPauseToggle: () => void;
   virtualMoveRef: React.MutableRefObject<VirtualMoveState>;
 }
+// #endregion
 
+// ======================== WORLD CANVAS COMPONENT ======================== \\
+// #region World Canvas Component
 // Reusable scratch vectors outside render loop (Zero GC)
 const _sunVec = new THREE.Vector3();
 const _tourPos = new THREE.Vector3();
@@ -1378,3 +1390,4 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
     />
   );
 };
+// #endregion

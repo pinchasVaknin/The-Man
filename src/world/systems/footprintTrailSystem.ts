@@ -1,16 +1,20 @@
+// ============================================================================
+// MODULE: World / Systems / Footprint Trail
+// DESIGN: Fading ground decals for boot prints and horse hoofprints (SRP)
+// SUMMARY: Tracks player and mounted horse steps on imprintable biomes (sand, snow,
+//          trail, wet mud) using a cyclic decal ring buffer that fades smoothly over time.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import type { BiomeType } from '../domain/worldTypes';
 import { walkableHeightAt, getSurfaceBiomeAt, northernSnowZoneFactorAt } from './terrainAndBiomeSystem';
+// #endregion
 
-/**
- * Temporary Fading Footprints & Horse Hoofprints Trail System (`footprintTrailSystem.ts`)
- *
- * Renders temporary footprints (on foot) and U-shaped horse hoofprints (when mounted)
- * in mud/wet ground, sand, snow, or dirt trails wherever the player or horse steps,
- * which smoothly fade away over time (`maxAge = 16s`) to enhance world immersion.
- */
-
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export interface FootprintDecalState {
-  id: number;
+  readonly id: number;
   active: boolean;
   kind: 'boot' | 'hoof';
   biome: BiomeType;
@@ -26,7 +30,7 @@ export interface FootprintDecalState {
 }
 
 export interface FootprintTrailTracker {
-  decals: FootprintDecalState[];
+  readonly decals: FootprintDecalState[];
   nextSlotIndex: number;
   lastStepX: number;
   lastStepZ: number;
@@ -37,6 +41,29 @@ export interface FootprintTrailTracker {
 export const MAX_FOOTPRINT_DECALS = 96;
 export const FOOTPRINT_MAX_AGE_SECONDS = 16.0;
 
+/** Summary: Distance threshold per footprint imprint. */
+const STRIDE_DISTANCE_HORSE = 1.15;
+const STRIDE_DISTANCE_FOOT = 0.92;
+
+/** Summary: Lateral separation from center line. */
+const LATERAL_OFFSET_HORSE = 0.24;
+const LATERAL_OFFSET_FOOT = 0.16;
+
+/** Summary: Maximum allowable movement between frames before treating as a teleport/respawn. */
+const MAX_STRIDE_TELEPORT_DIST = 12.0;
+
+/** Summary: Initial opacity values by ground tint. */
+const OPACITY_SAND_OR_SNOW = 0.78;
+const OPACITY_TRAIL = 0.68;
+const OPACITY_DEFAULT_GROUND = 0.54;
+const GROUND_Y_OFFSET = 0.022;
+// #endregion
+
+// ======================== FACTORY & SURFACE QUERIES ======================== \\
+// #region Factory & Surface Queries
+/**
+ * Summary: Creates and initializes an empty circular decal ring buffer for footprint tracking.
+ */
 export function createFootprintTrailTracker(
   initialX = 0,
   initialZ = 68,
@@ -60,6 +87,7 @@ export function createFootprintTrailTracker(
       opacity: 0,
     });
   }
+
   return {
     decals,
     nextSlotIndex: 0,
@@ -71,11 +99,13 @@ export function createFootprintTrailTracker(
 }
 
 /**
- * Determines whether the ground surface supports visible footprints/hoofprints
- * (sand, snow, dirt trail, wet mud near water, or soft meadow/forest soil).
+ * Summary: Determines whether the ground surface supports visible footprints or hoofprints.
  */
 export function isImprintableBiomeSurface(biome: BiomeType, inWater: boolean): boolean {
-  if (inWater) return true; // wet mud
+  if (inWater) {
+    return true;
+  }
+
   return (
     biome === 'trail' ||
     biome === 'shore' ||
@@ -86,7 +116,14 @@ export function isImprintableBiomeSurface(biome: BiomeType, inWater: boolean): b
     biome === 'highland'
   );
 }
+// #endregion
 
+// ======================== SIMULATION STEP ======================== \\
+// #region Simulation Step
+/**
+ * Summary: Advances the footprint trail simulation and stamps decals on stride.
+ * Note: [HOT-PATH EXCEPTION] In-place mutation of the preallocated decal ring buffer within 60FPS tick.
+ */
 export function stepFootprintTrailSystem(
   tracker: FootprintTrailTracker,
   x: number,
@@ -107,6 +144,7 @@ export function stepFootprintTrailSystem(
   for (let i = 0; i < tracker.decals.length; i++) {
     const d = tracker.decals[i];
     if (!d.active) continue;
+
     d.age += dt;
     if (d.age >= d.maxAge) {
       d.active = false;
@@ -116,10 +154,10 @@ export function stepFootprintTrailSystem(
       const lifeRatio = d.age / d.maxAge;
       const baseStrength =
         d.surfaceTint === 'sand' || d.surfaceTint === 'snow'
-          ? 0.78
+          ? OPACITY_SAND_OR_SNOW
           : d.biome === 'trail'
-            ? 0.68
-            : 0.54;
+            ? OPACITY_TRAIL
+            : OPACITY_DEFAULT_GROUND;
       d.opacity = baseStrength * Math.pow(1.0 - lifeRatio, 1.35);
       activeCount++;
     }
@@ -132,23 +170,24 @@ export function stepFootprintTrailSystem(
   tracker.lastStepX = x;
   tracker.lastStepZ = z;
 
-  if (!onGround || isFlying || distMoved > 12.0) {
+  if (!onGround || isFlying || distMoved > MAX_STRIDE_TELEPORT_DIST) {
     return { spawnedCount: 0, activeCount };
   }
 
   tracker.accumulatedDistance += distMoved;
-  const strideThreshold = isMountedOnHorse ? 1.15 : 0.92;
+  const strideThreshold = isMountedOnHorse ? STRIDE_DISTANCE_HORSE : STRIDE_DISTANCE_FOOT;
 
   if (tracker.accumulatedDistance >= strideThreshold) {
     tracker.accumulatedDistance %= strideThreshold;
     const walkInfo = walkableHeightAt(x, z, y);
+
     // Only imprint on natural ground (not wooden bridges or roofs)
     if (walkInfo.surface === 'ground') {
       const biome = getSurfaceBiomeAt(x, z, walkInfo.height);
       if (isImprintableBiomeSurface(biome, inWater)) {
         tracker.stepAlternator = !tracker.stepAlternator;
         const isLeft = tracker.stepAlternator;
-        const lateralOffset = (isLeft ? -1 : 1) * (isMountedOnHorse ? 0.24 : 0.16);
+        const lateralOffset = (isLeft ? -1 : 1) * (isMountedOnHorse ? LATERAL_OFFSET_HORSE : LATERAL_OFFSET_FOOT);
         const rightX = Math.cos(headingYaw);
         const rightZ = -Math.sin(headingYaw);
 
@@ -167,13 +206,13 @@ export function stepFootprintTrailSystem(
         slot.biome = biome;
         slot.surfaceTint = isSnow ? 'snow' : isSand ? 'sand' : 'mud_trail';
         slot.x = printX;
-        slot.y = printGroundY + 0.022;
+        slot.y = printGroundY + GROUND_Y_OFFSET;
         slot.z = printZ;
         slot.yaw = headingYaw;
         slot.isLeft = isLeft;
         slot.age = 0;
         slot.maxAge = FOOTPRINT_MAX_AGE_SECONDS;
-        slot.opacity = isSnow || isSand ? 0.78 : 0.65;
+        slot.opacity = isSnow || isSand ? OPACITY_SAND_OR_SNOW : OPACITY_TRAIL;
         spawnedCount++;
         activeCount++;
       }
@@ -182,3 +221,4 @@ export function stepFootprintTrailSystem(
 
   return { spawnedCount, activeCount };
 }
+// #endregion

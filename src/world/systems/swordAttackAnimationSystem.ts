@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Systems / Sword Attack Animation
+// DESIGN: 5-phase first-person sword kinematics and camera recoil impulse (SRP)
+// SUMMARY: Computes analytical first-person sword, wrist, forearm, off-hand poses,
+//          whip acceleration curves, and synchronized strike windows across 3-hit combos.
+// ============================================================================
+
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export type SwordAttackPhase =
   | 'ready'
   | 'windup'
@@ -8,105 +17,95 @@ export type SwordAttackPhase =
 export type SwordImpactKind = 'none' | 'target' | 'obstacle' | 'wall';
 
 export interface Vec3Tuple {
-  x: number;
-  y: number;
-  z: number;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
 }
 
 export interface FirstPersonArmPose {
-  elbowX: number;
-  elbowY: number;
-  elbowZ: number;
-  wristX: number;
-  wristY: number;
-  wristZ: number;
-  handRx: number;
-  handRy: number;
-  handRz: number;
-  fingerCurl: number;
+  readonly elbowX: number;
+  readonly elbowY: number;
+  readonly elbowZ: number;
+  readonly wristX: number;
+  readonly wristY: number;
+  readonly wristZ: number;
+  readonly handRx: number;
+  readonly handRy: number;
+  readonly handRz: number;
+  readonly fingerCurl: number;
 }
 
 export interface FirstPersonSwordGripTransform {
-  posX: number;
-  posY: number;
-  posZ: number;
-  rotX: number;
-  rotY: number;
-  rotZ: number;
+  readonly posX: number;
+  readonly posY: number;
+  readonly posZ: number;
+  readonly rotX: number;
+  readonly rotY: number;
+  readonly rotZ: number;
 }
 
 export interface FirstPersonSlashRibbonPose {
-  visible: boolean;
-  opacity: number;
-  posX: number;
-  posY: number;
-  posZ: number;
-  rotX: number;
-  rotY: number;
-  rotZ: number;
-  scale: number;
+  readonly visible: boolean;
+  readonly opacity: number;
+  readonly posX: number;
+  readonly posY: number;
+  readonly posZ: number;
+  readonly rotX: number;
+  readonly rotY: number;
+  readonly rotZ: number;
+  readonly scale: number;
 }
 
 export interface FirstPersonSwordCameraImpulse {
-  pitchOffset: number;
-  yawOffset: number;
-  rollOffset: number;
+  readonly pitchOffset: number;
+  readonly yawOffset: number;
+  readonly rollOffset: number;
 }
 
 export interface FirstPersonSwordAttackPoseResult {
-  phase: SwordAttackPhase;
-  phaseProgress: number; // 0..1 within the current phase
-  swingProgress: number; // 0..1 overall
-  isInActiveStrikeWindow: boolean;
-  rightArm: FirstPersonArmPose;
-  leftArm: FirstPersonArmPose;
-  swordGrip: FirstPersonSwordGripTransform;
-  bladeDirCamera: Vec3Tuple;
-  edgeDirCamera: Vec3Tuple;
-  swordTipCamera: Vec3Tuple;
-  swordCrossguardCamera: Vec3Tuple;
-  slashRibbon: FirstPersonSlashRibbonPose;
-  cameraImpulse: FirstPersonSwordCameraImpulse;
+  readonly phase: SwordAttackPhase;
+  readonly phaseProgress: number;
+  readonly swingProgress: number;
+  readonly isInActiveStrikeWindow: boolean;
+  readonly rightArm: FirstPersonArmPose;
+  readonly leftArm: FirstPersonArmPose;
+  readonly swordGrip: FirstPersonSwordGripTransform;
+  readonly bladeDirCamera: Vec3Tuple;
+  readonly edgeDirCamera: Vec3Tuple;
+  readonly swordTipCamera: Vec3Tuple;
+  readonly swordCrossguardCamera: Vec3Tuple;
+  readonly slashRibbon: FirstPersonSlashRibbonPose;
+  readonly cameraImpulse: FirstPersonSwordCameraImpulse;
 }
 
 export interface FirstPersonSwordPoseInput {
-  swingProgress: number; // 0..1 (0 = ready stance)
-  comboIndex: number; // 0, 1, 2
-  isHeavy: boolean;
-  chargeProgress: number; // 0..1 when holding attack button before release
-  blockProgress: number; // 0..1 when holding block
-  swayX: number;
-  swayY: number;
-  breathY: number;
-  sprintCarry: number; // 0..1
-  impactKind?: SwordImpactKind;
-  impactAge?: number; // seconds since impact in current swing
+  readonly swingProgress: number;
+  readonly comboIndex: number;
+  readonly isHeavy: boolean;
+  readonly chargeProgress: number;
+  readonly blockProgress: number;
+  readonly swayX: number;
+  readonly swayY: number;
+  readonly breathY: number;
+  readonly sprintCarry: number;
+  readonly impactKind?: SwordImpactKind;
+  readonly impactAge?: number;
 }
 
-/**
- * Phase boundaries across normalized swingProgress p in [0, 1]:
- * - Phase A (Ready Stance): p === 0
- * - Phase B (Wind-Up): p in (0, 0.24]
- * - Phase C (Acceleration & Strike): p in (0.24, 0.50]
- * - Phase D (Follow-Through): p in (0.50, 0.72]
- * - Phase E (Recovery): p in (0.72, 1.00]
- */
+/** Summary: Phase boundary thresholds across normalized swingProgress p in [0, 1]. */
 export const SWORD_PHASE_WINDUP_END = 0.24;
 export const SWORD_PHASE_STRIKE_END = 0.50;
 export const SWORD_PHASE_FOLLOW_THROUGH_END = 0.72;
 
-/**
- * Active combat hit-detection window within Phase C (Acceleration & Strike).
- * Hit detection occurs only inside [0.30, 0.50] as the blade crosses the center aiming line,
- * never during Wind-Up (p <= 0.24) and never during Follow-Through/Recovery (p > 0.50).
- */
+/** Summary: Active combat hit-detection window within Phase C (Acceleration & Strike). */
 export const SWORD_ACTIVE_STRIKE_WINDOW_START = 0.30;
 export const SWORD_ACTIVE_STRIKE_WINDOW_END = 0.50;
 export const SWORD_STRIKE_CONTACT_APEX = 0.34;
 
+/** Summary: Internal mechanical constants for sword grip tilt and dimensions. */
 const SWORD_GRIP_FORWARD_TILT = 0.24;
-const COS_TILT = Math.cos(SWORD_GRIP_FORWARD_TILT); // 0.971338
-const SIN_TILT = Math.sin(SWORD_GRIP_FORWARD_TILT); // 0.237703
+const COS_TILT = Math.cos(SWORD_GRIP_FORWARD_TILT);
+const SIN_TILT = Math.sin(SWORD_GRIP_FORWARD_TILT);
 
 export const LOCKED_SWORD_GRIP_TRANSFORM: FirstPersonSwordGripTransform = {
   posX: -0.078,
@@ -119,7 +118,10 @@ export const LOCKED_SWORD_GRIP_TRANSFORM: FirstPersonSwordGripTransform = {
 
 const FOREARM_LENGTH = 0.34;
 const BLADE_TIP_LENGTH = 0.86;
+// #endregion
 
+// ======================== MATH & CURVE UTILITIES ======================== \\
+// #region Math & Curve Utilities
 function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v;
 }
@@ -139,9 +141,7 @@ function smootherstep(t: number): number {
 }
 
 /**
- * Non-linear whip acceleration curve for Phase C (Acceleration & Strike):
- * Smoothly accelerates out of the chamber, reaches maximum angular/linear velocity
- * near u = 0.42..0.52 (center-screen contact apex), and carries into follow-through.
+ * Summary: Non-linear whip acceleration curve for Phase C (Acceleration & Strike).
  */
 function strikeWhipCurve(u: number): number {
   const t = clamp(u, 0, 1);
@@ -175,7 +175,10 @@ function bezier3(p0: Vec3Tuple, p1: Vec3Tuple, p2: Vec3Tuple, t: number): Vec3Tu
     z: c0 * p0.z + c1 * p1.z + c2 * p2.z,
   };
 }
+// #endregion
 
+// ======================== KINEMATIC SOLVERS ======================== \\
+// #region Kinematic Solvers
 function solveRightHandEulerFromBladeAndEdge(
   bladeRaw: Vec3Tuple,
   knuckleHintRaw: Vec3Tuple
@@ -188,8 +191,7 @@ function solveRightHandEulerFromBladeAndEdge(
   knuckleDir: Vec3Tuple;
 } {
   const B = normalize3(bladeRaw.x, bladeRaw.y, bladeRaw.z);
-  const dotKB =
-    knuckleHintRaw.x * B.x + knuckleHintRaw.y * B.y + knuckleHintRaw.z * B.z;
+  const dotKB = knuckleHintRaw.x * B.x + knuckleHintRaw.y * B.y + knuckleHintRaw.z * B.z;
   const K = normalize3(
     knuckleHintRaw.x - dotKB * B.x,
     knuckleHintRaw.y - dotKB * B.y,
@@ -232,6 +234,9 @@ function solveRightHandEulerFromBladeAndEdge(
   };
 }
 
+/**
+ * Summary: Classifies normalized swingProgress into discrete attack phase and local progress.
+ */
 export function classifySwordAttackPhase(swingProgress: number): {
   phase: SwordAttackPhase;
   phaseProgress: number;
@@ -267,7 +272,10 @@ export function classifySwordAttackPhase(swingProgress: number): {
       (p - SWORD_PHASE_FOLLOW_THROUGH_END) / (1.0 - SWORD_PHASE_FOLLOW_THROUGH_END),
   };
 }
+// #endregion
 
+// ======================== COMBO TRAJECTORY KEYFRAMES ======================== \\
+// #region Combo Trajectory Keyframes
 interface AttackTrajectoryKeyframes {
   readyWrist: Vec3Tuple;
   readyBlade: Vec3Tuple;
@@ -311,30 +319,25 @@ const COMBO_0_KEYFRAMES: AttackTrajectoryKeyframes = {
   readyEdge: READY_POSE.edge,
   readyShoulder: READY_POSE.shoulder,
 
-  // Phase B (Wind-Up): Draw right hand & forearm up-right-back into upper-right chamber, cocking blade back-right
   chamberWrist: { x: 0.33, y: -0.07, z: -0.40 },
   chamberBlade: { x: 0.30, y: 0.68, z: -0.67 },
   chamberEdge: { x: -0.52, y: -0.42, z: -0.74 },
   chamberShoulder: { x: 0.49, y: -0.27, z: -0.17 },
 
-  // Phase C (Strike Control Point & End): Forearm pronates & wrist casts blade into diagonal cutting plane across center!
   midStrikeWrist: { x: 0.04, y: -0.13, z: -0.56 },
   midStrikeBlade: { x: -0.46, y: 0.24, z: -0.85 },
   midStrikeEdge: { x: -0.44, y: -0.58, z: -0.68 },
 
-  // Wrist & crossguard remain framed in lower-left while blade sweeps across into diagonal ulnar extension
   endStrikeWrist: { x: -0.12, y: -0.15, z: -0.50 },
   endStrikeBlade: { x: -0.72, y: 0.14, z: -0.68 },
   endStrikeEdge: { x: -0.32, y: -0.68, z: -0.66 },
   endStrikeShoulder: { x: 0.34, y: -0.52, z: -0.22 },
 
-  // Phase D (Follow-Through): Natural deceleration cushion on the left while keeping blade tip & hilt inside FOV
   followWrist: { x: -0.16, y: -0.17, z: -0.48 },
   followBlade: { x: -0.76, y: 0.08, z: -0.64 },
   followEdge: { x: -0.28, y: -0.70, z: -0.66 },
   followShoulder: { x: 0.32, y: -0.54, z: -0.22 },
 
-  // Phase E (Recovery Midpoint): Supinates wrist and lifts blade along a smooth lower arc back into Ready Stance
   recoveryMidWrist: { x: 0.06, y: -0.23, z: -0.47 },
   recoveryMidBlade: { x: -0.46, y: 0.36, z: -0.81 },
   recoveryMidEdge: { x: -0.38, y: -0.64, z: -0.67 },
@@ -346,13 +349,11 @@ const COMBO_1_KEYFRAMES: AttackTrajectoryKeyframes = {
   readyEdge: READY_POSE.edge,
   readyShoulder: READY_POSE.shoulder,
 
-  // Phase B (Wind-Up): Chamber across chest to left guard with blade tilted left-diagonal for cross-body cleave
   chamberWrist: { x: -0.16, y: -0.15, z: -0.45 },
   chamberBlade: { x: -0.68, y: 0.24, z: -0.69 },
   chamberEdge: { x: -0.32, y: -0.68, z: -0.66 },
   chamberShoulder: { x: 0.30, y: -0.50, z: -0.21 },
 
-  // Phase C (Strike Control Point & End): Sweeping left-to-right cross cut across center crosshair
   midStrikeWrist: { x: 0.05, y: -0.13, z: -0.56 },
   midStrikeBlade: { x: 0.06, y: 0.36, z: -0.93 },
   midStrikeEdge: { x: -0.24, y: -0.72, z: -0.65 },
@@ -362,13 +363,11 @@ const COMBO_1_KEYFRAMES: AttackTrajectoryKeyframes = {
   endStrikeEdge: { x: -0.14, y: -0.76, z: -0.63 },
   endStrikeShoulder: { x: 0.48, y: -0.46, z: -0.22 },
 
-  // Phase D (Follow-Through): Carries through on the right side with momentum
   followWrist: { x: 0.32, y: -0.17, z: -0.45 },
   followBlade: { x: 0.62, y: 0.28, z: -0.73 },
   followEdge: { x: -0.12, y: -0.76, z: -0.64 },
   followShoulder: { x: 0.50, y: -0.48, z: -0.22 },
 
-  // Phase E (Recovery Midpoint): Smooth return back into Ready Stance
   recoveryMidWrist: { x: 0.29, y: -0.21, z: -0.45 },
   recoveryMidBlade: { x: 0.16, y: 0.48, z: -0.86 },
   recoveryMidEdge: { x: -0.32, y: -0.66, z: -0.68 },
@@ -380,13 +379,11 @@ const COMBO_2_HEAVY_KEYFRAMES: AttackTrajectoryKeyframes = {
   readyEdge: READY_POSE.edge,
   readyShoulder: READY_POSE.shoulder,
 
-  // Phase B (Wind-Up): High two-handed overhead-right chamber
   chamberWrist: { x: 0.20, y: -0.02, z: -0.40 },
   chamberBlade: { x: 0.10, y: 0.74, z: -0.66 },
   chamberEdge: { x: -0.48, y: -0.52, z: -0.71 },
   chamberShoulder: { x: 0.42, y: -0.36, z: -0.18 },
 
-  // Phase C (Strike Control Point & End): Explosive downward-diagonal power cleave with deep forward extension
   midStrikeWrist: { x: 0.02, y: -0.12, z: -0.60 },
   midStrikeBlade: { x: -0.26, y: 0.28, z: -0.92 },
   midStrikeEdge: { x: -0.44, y: -0.62, z: -0.65 },
@@ -396,21 +393,23 @@ const COMBO_2_HEAVY_KEYFRAMES: AttackTrajectoryKeyframes = {
   endStrikeEdge: { x: -0.36, y: -0.66, z: -0.66 },
   endStrikeShoulder: { x: 0.34, y: -0.52, z: -0.22 },
 
-  // Phase D (Follow-Through): Heavy downward settle while keeping crossguard & blade in viewport
   followWrist: { x: -0.14, y: -0.18, z: -0.48 },
   followBlade: { x: -0.64, y: 0.08, z: -0.76 },
   followEdge: { x: -0.34, y: -0.68, z: -0.65 },
   followShoulder: { x: 0.32, y: -0.54, z: -0.22 },
 
-  // Phase E (Recovery Midpoint): Balanced return loop back to Ready Stance
   recoveryMidWrist: { x: 0.06, y: -0.23, z: -0.47 },
   recoveryMidBlade: { x: -0.40, y: 0.36, z: -0.84 },
   recoveryMidEdge: { x: -0.42, y: -0.62, z: -0.66 },
 };
+// #endregion
 
+// ======================== POSE EVALUATION & INTEGRATION ======================== \\
+// #region Pose Evaluation & Integration
 /**
- * Computes the complete 5-phase first-person sword, wrist, forearm, off-hand,
- * and synchronized camera response pose.
+ * Summary: Computes the complete 5-phase first-person sword, wrist, forearm, off-hand,
+ *          and synchronized camera response pose.
+ * Note: [HOT-PATH EXCEPTION] Evaluated continuously during attack swings in 60FPS render loop.
  */
 export function computeFirstPersonSwordAttackPose(
   input: FirstPersonSwordPoseInput
@@ -425,7 +424,7 @@ export function computeFirstPersonSwordAttackPose(
       : COMBO_0_KEYFRAMES;
 
   const swayScale = p > 0.001 ? Math.max(0.15, 1 - Math.sin(p * Math.PI) * 0.85) : 1.0;
-  const baseReadyWrist: Vec3Tuple = {
+  const baseReadyWrist: { x: number; y: number; z: number } = {
     x:
       READY_POSE.wrist.x +
       input.swayX * swayScale -
@@ -437,7 +436,7 @@ export function computeFirstPersonSwordAttackPose(
       input.sprintCarry * 0.03,
     z: READY_POSE.wrist.z,
   };
-  const baseReadyBlade: Vec3Tuple = {
+  const baseReadyBlade: { x: number; y: number; z: number } = {
     x: READY_POSE.blade.x - input.sprintCarry * 0.14,
     y: READY_POSE.blade.y - input.sprintCarry * 0.10,
     z: READY_POSE.blade.z,
@@ -487,7 +486,6 @@ export function computeFirstPersonSwordAttackPose(
     edgeVec = baseReadyEdge;
     shoulderBias = baseReadyShoulder;
   } else if (phase === 'windup') {
-    // Phase B (Wind-Up): Smooth ease-in-out preparation drawing weapon back into striking chamber
     const u = smootherstep(phaseProgress);
     const windupMidWrist: Vec3Tuple = {
       x: (baseReadyWrist.x + kf.chamberWrist.x) * 0.5 + (input.comboIndex === 1 ? -0.03 : 0.03),
@@ -499,21 +497,18 @@ export function computeFirstPersonSwordAttackPose(
     edgeVec = lerpVec3(baseReadyEdge, kf.chamberEdge, u);
     shoulderBias = lerpVec3(baseReadyShoulder, kf.chamberShoulder, u);
   } else if (phase === 'strike') {
-    // Phase C (Acceleration & Strike): Non-linear whip acceleration along 3D curved arc
     const u = strikeWhipCurve(phaseProgress);
     wristR = bezier3(kf.chamberWrist, kf.midStrikeWrist, kf.endStrikeWrist, u);
     bladeVec = bezier3(kf.chamberBlade, kf.midStrikeBlade, kf.endStrikeBlade, u);
     edgeVec = bezier3(kf.chamberEdge, kf.midStrikeEdge, kf.endStrikeEdge, u);
     shoulderBias = lerpVec3(kf.chamberShoulder, kf.endStrikeShoulder, u);
   } else if (phase === 'follow_through') {
-    // Phase D (Follow-Through): Natural deceleration beyond the main striking point
     const u = 1 - Math.pow(1 - clamp(phaseProgress, 0, 1), 2.8);
     wristR = lerpVec3(kf.endStrikeWrist, kf.followWrist, u);
     bladeVec = lerpVec3(kf.endStrikeBlade, kf.followBlade, u);
     edgeVec = lerpVec3(kf.endStrikeEdge, kf.followEdge, u);
     shoulderBias = lerpVec3(kf.endStrikeShoulder, kf.followShoulder, u);
   } else {
-    // Phase E (Recovery): Smooth curved deceleration returning into Phase A Ready Stance
     const u = smootherstep(phaseProgress);
     wristR = bezier3(kf.followWrist, kf.recoveryMidWrist, baseReadyWrist, u);
     bladeVec = bezier3(kf.followBlade, kf.recoveryMidBlade, baseReadyBlade, u);
@@ -521,7 +516,7 @@ export function computeFirstPersonSwordAttackPose(
     shoulderBias = lerpVec3(kf.followShoulder, baseReadyShoulder, u);
   }
 
-  // Apply physical impact deflection recoil when a solid surface or target was struck during this swing
+  // Apply physical impact deflection recoil when a solid surface or target was struck
   const impactKind = input.impactKind ?? 'none';
   const impactAge = input.impactAge ?? 99;
   let hitRecoilPulse = 0;
@@ -544,7 +539,6 @@ export function computeFirstPersonSwordAttackPose(
 
   const solvedR = solveRightHandEulerFromBladeAndEdge(bladeVec, edgeVec);
 
-  // Compute anatomically coupled right elbow position at exact FOREARM_LENGTH (0.34m) from wristR
   const forearmBackDir = normalize3(
     shoulderBias.x - wristR.x,
     Math.min(-0.18, shoulderBias.y - wristR.y),
@@ -556,7 +550,6 @@ export function computeFirstPersonSwordAttackPose(
     z: wristR.z + forearmBackDir.z * FOREARM_LENGTH,
   };
 
-  // Compute Left Arm (Off-Hand) Pose:
   let twoHandBlend = 0;
   if (isHeavyOrFinisher && p > 0.001) {
     if (phase === 'windup') {
@@ -570,7 +563,6 @@ export function computeFirstPersonSwordAttackPose(
     twoHandBlend = smoothstep(charge);
   }
 
-  // During one-handed swings, the off-hand draws back-left to counterbalance the torso & avoid clipping with the right arm
   const counterBalanceEnv =
     !isHeavyOrFinisher && p > 0.001 ? Math.sin(p * Math.PI) : 0;
   const guardLeftWrist: Vec3Tuple = {
@@ -584,9 +576,11 @@ export function computeFirstPersonSwordAttackPose(
   };
   if (blk > 0.001) {
     const bEase = smoothstep(blk);
-    guardLeftWrist.x = lerp(guardLeftWrist.x, -0.14 + input.swayX * 0.35, bEase);
-    guardLeftWrist.y = lerp(guardLeftWrist.y, -0.08 - input.swayY * 0.35, bEase);
-    guardLeftWrist.z = lerp(guardLeftWrist.z, -0.42, bEase);
+    guardLeftWrist = {
+      x: lerp(guardLeftWrist.x, -0.14 + input.swayX * 0.35, bEase),
+      y: lerp(guardLeftWrist.y, -0.08 - input.swayY * 0.35, bEase),
+      z: lerp(guardLeftWrist.z, -0.42, bEase),
+    };
   }
 
   const pommelGripWrist: Vec3Tuple = {
@@ -636,7 +630,6 @@ export function computeFirstPersonSwordAttackPose(
     scale: 1,
   };
 
-  // Restrained, Phase-Synchronized First-Person Camera Impulse
   const dirSign = input.comboIndex === 1 ? -1 : 1;
   const heavyMult = isHeavyOrFinisher ? 1.35 : 1.0;
   let camPitch = 0;
@@ -717,3 +710,4 @@ export function computeFirstPersonSwordAttackPose(
     },
   };
 }
+// #endregion

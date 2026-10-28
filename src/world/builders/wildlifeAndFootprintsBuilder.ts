@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Builders / Wildlife & Footprints Builder
+// DESIGN: Instanced boid bird flocks, critters, eagle & footprint decals (SRP)
+// SUMMARY: Constructs procedural wildlife visual layers, fireflies, soaring mountain
+//          eagle, footprint decals, and runtime proximity/sound synchronization.
+// ============================================================================
+
+// ======================== IMPORTS & CONTRACTS ======================== \\
+// #region Imports & Contracts
 import * as THREE from 'three';
 import type { PlayerState, RideableHorseState } from '../domain/worldTypes';
 import { isWithinViewDistance } from '../domain/landmarksRegistry';
@@ -34,7 +43,10 @@ export interface WildlifeAndFootprintsController {
     }
   ) => void;
 }
+// #endregion
 
+// ======================== BUILD WILDLIFE & FOOTPRINTS ======================== \\
+// #region Build Wildlife & Footprints
 export function buildWildlifeAndFootprintsLayer(
   scene: THREE.Scene
 ): WildlifeAndFootprintsController {
@@ -505,3 +517,4 @@ export function buildWildlifeAndFootprintsLayer(
     },
   };
 }
+// #endregion

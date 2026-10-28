@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Procedural Textures
+// DESIGN: Tileable procedural canvas textures for terrain, bark, rock & shadows (SRP)
+// SUMMARY: Generates seamless noise-driven diffuse/bump canvas maps and soft radial
+//          contact shadows without requiring external bitmap asset files.
+// ============================================================================
+
+// ======================== IMPORTS & INTERFACES ======================== \\
+// #region Imports & Interfaces
 import * as THREE from 'three';
 import { valueNoise2D } from './terrainMath';
 
@@ -28,7 +37,10 @@ function configureTexture(
   tex.anisotropy = maxAnisotropy;
   tex.needsUpdate = true;
 }
+// #endregion
 
+// ======================== TEXTURE GENERATORS ======================== \\
+// #region Texture Generators
 export function createWorldTextures(renderer: THREE.WebGLRenderer): WorldTextureSet {
   const maxAniso = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
 
@@ -252,3 +264,4 @@ export function createWorldTextures(renderer: THREE.WebGLRenderer): WorldTexture
     },
   };
 }
+// #endregion

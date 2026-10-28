@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: World / Systems / Player Physics
+// DESIGN: Player kinematic locomotion, jumping, swimming, ladder climbing, and RPG skills (SRP)
+// SUMMARY: Implements 60FPS kinematic player physics, coyote time, jump buffering,
+//          obstacle and building collision resolution, water buoyancy, and skill progression.
+// ============================================================================
+
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import type {
   PlayerState,
   PlayerInput,
@@ -27,9 +36,15 @@ import {
   getSurfaceBiomeAt,
 } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
+// #endregion
 
+// ======================== INITIALIZERS & LEVEL QUERIES ======================== \\
+// #region Initializers & Level Queries
 const FZ = FORTRESS_Z_OFFSET;
 
+/**
+ * Summary: Creates and initializes default player state at the designated world spawn coordinates.
+ */
 export function createInitialPlayerState(): PlayerState {
   const ground = walkableHeightAt(WORLD_SPAWN.x, WORLD_SPAWN.z);
   return {
@@ -122,6 +137,9 @@ export function createInitialPlayerState(): PlayerState {
   };
 }
 
+/**
+ * Summary: Calculates the composite RPG Hero Level based on individual skill levels.
+ */
 export function getPlayerHeroLevel(state: PlayerState): number {
   const s = state.skills;
   if (!s) return 1;
@@ -135,6 +153,9 @@ export function getPlayerHeroLevel(state: PlayerState): number {
   return Math.max(1, 1 + Math.floor((totalSkillLevels - 5) / 2));
 }
 
+/**
+ * Summary: Creates initial instances of rideable horses located at their respective home spawns.
+ */
 export function createInitialRideableHorses(): RideableHorseState[] {
   return RIDEABLE_HORSES.map((def) => {
     const walk = walkableHeightAt(def.homeX, def.homeZ);
@@ -150,7 +171,13 @@ export function createInitialRideableHorses(): RideableHorseState[] {
     };
   });
 }
+// #endregion
 
+// ======================== HORSE SEARCH & MOUNTING ======================== \\
+// #region Horse Search & Mounting
+/**
+ * Summary: Finds the nearest rideable horse within interaction proximity of the player.
+ */
 export function findNearestRideableHorse(
   px: number,
   py: number,
@@ -171,7 +198,14 @@ export function findNearestRideableHorse(
   }
   return best;
 }
+// #endregion
 
+// ======================== KINEMATIC SIMULATION STEP ======================== \\
+// #region Kinematic Simulation Step
+/**
+ * Summary: Steps player movement physics, collision handling, jumping, climbing, and swimming.
+ * Note: [HOT-PATH EXCEPTION] Evaluated each frame at 60FPS; mutates player velocity and position in place.
+ */
 export function stepPlayerPhysics(
   state: PlayerState,
   input: PlayerInput,
@@ -236,8 +270,6 @@ export function stepPlayerPhysics(
   let moveZ = 0;
 
   if (activeMountedHorse) {
-    // 1. Steer horse with speed-dependent turning resistance; horse turn rotates riderYaw (state.yaw),
-    // while rider mouse look (already added to state.yaw above) does NOT rotate the horse!
     const currentHorseSpeed = Math.hypot(state.vx, state.vz);
     const steerResult = stepMountedHorseSteering(
       activeMountedHorse,
@@ -760,7 +792,6 @@ export function stepPlayerPhysics(
   const horizSpeed = Math.hypot(state.vx, state.vz);
   if ((state.onGround || state.isSwimming) && horizSpeed > 0.22) {
     const isHorseGallop = isMountedOnHorse && horizSpeed > 6.8;
-    // When galloping on a horse, the horse opens its stride (longer distance per stride, lower frequency)
     const strideFreq = state.isSwimming
       ? 1.65
       : isHorseGallop
@@ -835,7 +866,13 @@ export function stepPlayerPhysics(
 
   return { steppedFoot, landedImpact };
 }
+// #endregion
 
+// ======================== SKILL PROGRESSION & EXPERIENCE ======================== \\
+// #region Skill Progression & Experience
+/**
+ * Summary: Awards RPG skill experience points and handles level-up thresholds and stat bonuses.
+ */
 export function awardSkillXp(
   state: PlayerState,
   skillName: 'archery' | 'swordsmanship' | 'horsemanship' | 'athletics' | 'exploration',
@@ -916,3 +953,4 @@ export function awardSkillXp(
   }
   return null;
 }
+// #endregion

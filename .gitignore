@@ -8,3 +8,5 @@ coverage/
 !.env.example
 .aistudio/
 .playwright-cli/
+graphify-out/cache/
+graphify-out/2026-*/

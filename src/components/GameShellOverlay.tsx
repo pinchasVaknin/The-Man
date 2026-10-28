@@ -1,3 +1,12 @@
+// ============================================================================
+// MODULE: Components / Game Shell Overlay
+// DESIGN: Humble UI overlay HUD, pause modal, notifications & touch controls (SRP)
+// SUMMARY: Displays telemetry stats (coordinates, biome, clock), crosshairs, stamina bars,
+//          quick hotbar, pause menu, and on-screen virtual joystick controls.
+// ============================================================================
+
+// ======================== IMPORTS & PROPS ======================== \\
+// #region Imports & Props
 import React, { useEffect, useState } from 'react';
 import {
   WeatherToggleOption,
@@ -103,7 +112,10 @@ function renderItemSvgIcon(itemId: InventoryItemId, className = 'w-4 h-4') {
       );
   }
 }
+// #endregion
 
+// ======================== OVERLAY COMPONENT ======================== \\
+// #region Overlay Component
 export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
   gameState,
   telemetry,
@@ -984,3 +996,4 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
     </div>
   );
 };
+// #endregion
