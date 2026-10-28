@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
-import type { WeatherStateSnapshot } from '../../domain/worldTypes';
+import type { WeatherStateSnapshot } from '../domain/worldTypes';
 import {
   WATER_LEVEL,
   HUNTER_LODGE_POS,

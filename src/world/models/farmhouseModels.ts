@@ -30,7 +30,9 @@ export interface FarmhouseModelHandles {
   readonly mineGroup: THREE.Group;
   readonly updateFarmhousesAndMine: (
     elapsedTime: number,
-    worldHours?: number
+    worldHours?: number,
+    playerX?: number,
+    playerZ?: number
   ) => void;
 }
 // #endregion
@@ -227,7 +229,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     darkWoolMat
   );
 
-  function createLanternAssembly(x: number, y: number, z: number, _addLight: boolean): THREE.Group {
+  function createLanternAssembly(x: number, y: number, z: number, _addLight = false): THREE.Group {
     const g = new THREE.Group();
     g.position.set(x, y, z);
     const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.45, 8);
@@ -1417,7 +1419,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     mineEntY,
     mineEntZ,
     cavernBackZ,
-    stonePatternTex: textures.stonePattern,
+    stonePatternTex: textures.rockAlbedo,
     mineGoldOreMat,
     mineMoltenCoalMat,
     barkMat,
@@ -1432,7 +1434,12 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     doorPivotHandles,
   });
 
-  const updateFarmhousesAndMine = (elapsedTime: number, worldHours?: number) => {
+  const updateFarmhousesAndMine = (
+    elapsedTime: number,
+    worldHours = 8.5,
+    playerX = 0,
+    playerZ = 0
+  ) => {
     for (let s = 0; s < sheepFlock.length; s++) {
       const sh = sheepFlock[s];
       const ang = elapsedTime * sh.speed + sh.phase;
@@ -1453,7 +1460,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
       mineOreWheelGroup.rotation.z = elapsedTime * 0.85;
     }
     if (updateDwarvenMiners) {
-      updateDwarvenMiners(elapsedTime, worldHours);
+      updateDwarvenMiners(worldHours, elapsedTime, playerX, playerZ);
     }
   };
 

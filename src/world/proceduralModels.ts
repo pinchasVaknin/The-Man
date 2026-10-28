@@ -204,7 +204,7 @@ export function buildRealisticWorld(
 
       // 4. Submodule simulation updates
       updateSettlement(elapsedTime);
-      updateFarmhousesAndMine(elapsedTime, worldHours);
+      updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
       updateFortress(elapsedTime, playerX, playerZ);
       updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
       updateHarbor(elapsedTime, playerX, playerZ);

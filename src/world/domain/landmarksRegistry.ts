@@ -76,6 +76,8 @@ export {
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
   ARCHERY_TARGETS,
+  isChineseFortressWalkableZone,
+  chineseFortressStairHeightAt,
 } from './landmarks/fortressLandmarks';
 // #endregion
 

@@ -441,7 +441,7 @@ export function computeFirstPersonSwordAttackPose(
     y: READY_POSE.blade.y - input.sprintCarry * 0.10,
     z: READY_POSE.blade.z,
   };
-  const baseReadyEdge: Vec3Tuple = { ...READY_POSE.edge };
+  const baseReadyEdge: { x: number; y: number; z: number } = { ...READY_POSE.edge };
   const baseReadyShoulder: Vec3Tuple = { ...READY_POSE.shoulder };
 
   // Blend in hold-charge anticipation when holding mouse button before swing starts
@@ -565,7 +565,7 @@ export function computeFirstPersonSwordAttackPose(
 
   const counterBalanceEnv =
     !isHeavyOrFinisher && p > 0.001 ? Math.sin(p * Math.PI) : 0;
-  const guardLeftWrist: Vec3Tuple = {
+  let guardLeftWrist: Vec3Tuple = {
     x: -0.22 + input.swayX * 0.65 * swayScale - counterBalanceEnv * 0.13,
     y:
       -0.25 -

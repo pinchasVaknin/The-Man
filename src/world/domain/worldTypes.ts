@@ -517,9 +517,9 @@ export interface PlayerState {
   } | null;
   dashCooldown?: number;
   dashTimer?: number;
-  bowDrawn?: boolean;
-  bowDrawProgress?: number; // 0..1
-  arrowsShotCount?: number;
+  bowDrawn: boolean;
+  bowDrawProgress: number; // 0..1
+  arrowsShotCount: number;
   lastArrowHitTarget?: string | null;
 }
 
@@ -595,6 +595,9 @@ export interface DynamicAtmosphereState {
   mieDirectionalG: number;
   exposure: number;
 }
+
+/** Summary: Alias for DynamicAtmosphereState used by atmosphere and debug controllers. */
+export type SolarAtmosphere = DynamicAtmosphereState;
 
 /** Summary: Active world season category. */
 export type SeasonType = 'spring' | 'summer' | 'autumn' | 'winter';
@@ -804,7 +807,7 @@ export interface ArrowTrailPoint {
   readonly x: number;
   readonly y: number;
   readonly z: number;
-  readonly age: number;
+  age: number;
 }
 
 /** Summary: Runtime physics state for an active flying or lodged projectile arrow. */

@@ -149,4 +149,54 @@ export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
     bullseyeRadius: 0.95,
   },
 ] as const;
+
+/** Summary: Checks whether coordinates fall within walkable fortress courtyards or staircases. */
+export function isChineseFortressWalkableZone(x: number, z: number): boolean {
+  const onLowerStairs =
+    Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.stairHalfWidth &&
+    z <= CHINESE_FORTRESS_POS.stairFootZ + 0.5 &&
+    z >= CHINESE_FORTRESS_POS.stairMidZ - 0.5;
+  const onMidLanding =
+    Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.midLandingHalfWidth &&
+    z <= CHINESE_FORTRESS_POS.midLandingMaxZ + 0.5 &&
+    z >= CHINESE_FORTRESS_POS.midLandingMinZ - 0.5;
+  const onUpperStairs =
+    Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.stairHalfWidth &&
+    z <= CHINESE_FORTRESS_POS.upperStairFootZ + 0.5 &&
+    z >= CHINESE_FORTRESS_POS.upperStairTopZ - 0.5;
+  const onPlaza =
+    Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.plazaHalfWidth + 2.5 &&
+    z <= CHINESE_FORTRESS_POS.plazaMaxZ + 1.8 &&
+    z >= CHINESE_FORTRESS_POS.plazaMinZ - 0.5;
+  return onLowerStairs || onMidLanding || onUpperStairs || onPlaza;
+}
+
+/** Summary: Calculates walkable stepped incline height along the central mountain staircase. */
+export function chineseFortressStairHeightAt(z: number): number {
+  if (z >= CHINESE_FORTRESS_POS.stairFootZ) {
+    return CHINESE_FORTRESS_POS.stairBaseHeight;
+  }
+  if (z >= CHINESE_FORTRESS_POS.stairMidZ) {
+    const t =
+      (CHINESE_FORTRESS_POS.stairFootZ - z) /
+      (CHINESE_FORTRESS_POS.stairFootZ - CHINESE_FORTRESS_POS.stairMidZ);
+    return (
+      CHINESE_FORTRESS_POS.stairBaseHeight +
+      t * (CHINESE_FORTRESS_POS.midLandingHeight - CHINESE_FORTRESS_POS.stairBaseHeight)
+    );
+  }
+  if (z >= CHINESE_FORTRESS_POS.midLandingMinZ) {
+    return CHINESE_FORTRESS_POS.midLandingHeight;
+  }
+  if (z >= CHINESE_FORTRESS_POS.upperStairTopZ) {
+    const t =
+      (CHINESE_FORTRESS_POS.upperStairFootZ - z) /
+      (CHINESE_FORTRESS_POS.upperStairFootZ - CHINESE_FORTRESS_POS.upperStairTopZ);
+    return (
+      CHINESE_FORTRESS_POS.midLandingHeight +
+      t * (CHINESE_FORTRESS_POS.summitHeight - CHINESE_FORTRESS_POS.midLandingHeight)
+    );
+  }
+  return CHINESE_FORTRESS_POS.summitHeight;
+}
 // #endregion
