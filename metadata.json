@@ -1,0 +1,6 @@
+{
+  "name": "שביל הטבע — עולם תלת־ממדי חי",
+  "description": "סימולטור הליכה בגוף ראשון בעולם טבע תלת־ממדי ריאליסטי עם יערות, אגם מים, שמיים דינמיים, שמש וצללים בזמן אמת.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

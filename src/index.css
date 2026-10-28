@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Heebo', system-ui, -apple-system, sans-serif;
+    --font-display: 'Frank Ruhl Libre', 'Heebo', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'Heebo', system-ui, monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #0c0a09;
+    color: #f5f5f4;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+.font-display-he {
+  font-family: var(--font-display);
+}
+
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-stroke {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px rgba(12, 10, 9, 0.85);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+}
