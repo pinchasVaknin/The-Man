@@ -20,10 +20,11 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== OASIS MODEL INTERFACE ======================== \\
 // #region Oasis Model Interface
-export interface OasisModelHandles {
+export interface IOasisModelHandles {
   readonly oasisGroup: THREE.Group;
   readonly updateOasis: (elapsedTime: number) => void;
 }
+export type OasisModelHandles = IOasisModelHandles;
 // #endregion
 
 // ======================== BUILD OASIS MODELS ======================== \\
@@ -42,7 +43,7 @@ export function buildOasisModels(ctx: WorldModelBuildContext): OasisModelHandles
     distanceCulledObjects,
   } = ctx;
 
-  const archAssets = createArchitecturalSharedAssets(ctx);
+  const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
   const {
     imperialGoldMat,
     imperialCrimsonMat,

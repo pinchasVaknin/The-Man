@@ -20,7 +20,7 @@ import {
   computeDwarvenMinerCaravanState,
 } from '../systems/dwarvenMineAndCaravanSystem';
 
-export interface DwarvenMinerRig {
+export interface IDwarvenMinerRig {
   root: THREE.Group;
   leftLeg: THREE.Group;
   rightLeg: THREE.Group;
@@ -29,8 +29,9 @@ export interface DwarvenMinerRig {
   torsoPivot: THREE.Group;
   lanternGlow: THREE.Mesh;
 }
+export type DwarvenMinerRig = IDwarvenMinerRig;
 
-export interface DwarvenKingdomBuilderContext {
+export interface IDwarvenKingdomBuilderContext {
   scene: THREE.Scene;
   mineGroup: THREE.Group;
   mineX: number;
@@ -56,9 +57,10 @@ export interface DwarvenKingdomBuilderContext {
     currentAngle: number;
   }[];
 }
+export type DwarvenKingdomBuilderContext = IDwarvenKingdomBuilderContext;
 
-export interface DwarvenKingdomHandle {
-  dwarvenMiners: DwarvenMinerRig[];
+export interface IDwarvenKingdomHandle {
+  dwarvenMiners: IDwarvenMinerRig[];
   updateDwarvenMiners: (
     worldHours: number,
     elapsedTime: number,
@@ -66,6 +68,7 @@ export interface DwarvenKingdomHandle {
     playerZ: number
   ) => void;
 }
+export type DwarvenKingdomHandle = IDwarvenKingdomHandle;
 // #endregion
 
 // ======================== BUILD DWARVEN KINGDOM ======================== \\
@@ -129,11 +132,12 @@ export function buildDwarvenKingdomAndMiners(
   portalArchPillarGeo.translate(0, 2.7, 0);
   const portalArchHeaderGeo = new THREE.BoxGeometry(9.6, 1.35, 1.65);
   const portalArchCrestGeo = new THREE.OctahedronGeometry(0.85, 0);
-  disposableGeometries.push(portalArchPillarGeo, portalArchHeaderGeo, portalArchCrestGeo);
+  const portalGoldBandGeo = new THREE.BoxGeometry(1.58, 0.32, 1.58);
+  disposableGeometries.push(portalArchPillarGeo, portalArchHeaderGeo, portalArchCrestGeo, portalGoldBandGeo);
   for (const side of [-1, 1]) {
     const archPil = new THREE.Mesh(portalArchPillarGeo, dwarvenGraniteMat);
     archPil.position.set(side * 3.85, mineEntY, -0.35);
-    const goldBand = new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.32, 1.58), mineGoldOreMat);
+    const goldBand = new THREE.Mesh(portalGoldBandGeo, mineGoldOreMat);
     goldBand.position.set(side * 3.85, mineEntY + 3.8, -0.35);
     dwarvenPortalArchGroup.add(archPil, goldBand);
   }
@@ -175,6 +179,11 @@ export function buildDwarvenKingdomAndMiners(
   statueAxeShaftGeo.translate(0, 2.8, 0);
   const statueAxeBladeGeo = new THREE.ConeGeometry(1.15, 1.45, 4);
   statueAxeBladeGeo.scale(0.24, 1.0, 1.15);
+  const statueBeltGeo = new THREE.CylinderGeometry(1.42, 1.42, 0.38, 8);
+  const statueNoseGuardGeo = new THREE.BoxGeometry(0.24, 0.58, 0.25);
+  const statueEyeGeo = new THREE.BoxGeometry(0.22, 0.10, 0.12);
+  const statueBeardRing1Geo = new THREE.TorusGeometry(0.52, 0.09, 6, 10);
+  const statueBeardRing2Geo = new THREE.TorusGeometry(0.34, 0.08, 6, 10);
   disposableGeometries.push(
     statuePedestalBaseGeo,
     statuePedestalCapGeo,
@@ -186,7 +195,12 @@ export function buildDwarvenKingdomAndMiners(
     statueBeardMainGeo,
     statueArmGeo,
     statueAxeShaftGeo,
-    statueAxeBladeGeo
+    statueAxeBladeGeo,
+    statueBeltGeo,
+    statueNoseGuardGeo,
+    statueEyeGeo,
+    statueBeardRing1Geo,
+    statueBeardRing2Geo
   );
 
   for (let s = 0; s < DWARVEN_GUARDIAN_STATUES.length; s++) {
@@ -199,7 +213,7 @@ export function buildDwarvenKingdomAndMiners(
     const pedCap = new THREE.Mesh(statuePedestalCapGeo, dwarvenBronzeMat);
     const torso = new THREE.Mesh(statueTorsoGeo, dwarvenGraniteMat);
     const pauldron = new THREE.Mesh(statuePauldronGeo, dwarvenBronzeMat);
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.42, 0.38, 8), mineGoldOreMat);
+    const belt = new THREE.Mesh(statueBeltGeo, mineGoldOreMat);
     belt.position.y = 3.65;
     const head = new THREE.Mesh(statueHeadGeo, dwarvenGraniteMat);
     head.position.z = 0.35;
@@ -208,11 +222,11 @@ export function buildDwarvenKingdomAndMiners(
     const helmCrest = new THREE.Mesh(statueHelmCrestGeo, mineGoldOreMat);
     helmCrest.position.z = 0.35;
 
-    const noseGuard = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.58, 0.25), dwarvenBronzeMat);
+    const noseGuard = new THREE.Mesh(statueNoseGuardGeo, dwarvenBronzeMat);
     noseGuard.position.set(0, 6.62, 1.15);
-    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.10, 0.12), mineGoldOreMat);
+    const eyeL = new THREE.Mesh(statueEyeGeo, mineGoldOreMat);
     eyeL.position.set(-0.32, 6.68, 1.10);
-    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.10, 0.12), mineGoldOreMat);
+    const eyeR = new THREE.Mesh(statueEyeGeo, mineGoldOreMat);
     eyeR.position.set(0.32, 6.68, 1.10);
 
     const beardCenter = new THREE.Mesh(statueBeardMainGeo, dwarvenGraniteMat);
@@ -223,10 +237,10 @@ export function buildDwarvenKingdomAndMiners(
     const beardBraidR = new THREE.Mesh(statueBeardMainGeo, dwarvenGraniteMat);
     beardBraidR.scale.set(0.55, 0.88, 0.55);
     beardBraidR.position.set(0.55, 5.05, 1.28);
-    const beardRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.09, 6, 10), mineGoldOreMat);
+    const beardRing1 = new THREE.Mesh(statueBeardRing1Geo, mineGoldOreMat);
     beardRing1.rotation.x = Math.PI / 2;
     beardRing1.position.set(0, 4.65, 1.40);
-    const beardRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.08, 6, 10), mineGoldOreMat);
+    const beardRing2 = new THREE.Mesh(statueBeardRing2Geo, mineGoldOreMat);
     beardRing2.rotation.x = Math.PI / 2;
     beardRing2.position.set(0, 3.92, 1.40);
 
@@ -297,6 +311,12 @@ export function buildDwarvenKingdomAndMiners(
   const dhFloorGeo = new THREE.BoxGeometry(10.6, 0.22, 8.8);
   dhFloorGeo.translate(0, 0.09, 0);
   const dhDoorLeafGeo = new THREE.BoxGeometry(0.14, 2.85, 1.12);
+  const dhStepSlabGeo = new THREE.BoxGeometry(1.6, 0.16, 3.2);
+  const dhCapGeo = new THREE.BoxGeometry(1.08, 0.28, 1.08);
+  const dhRidgeCrestGeo = new THREE.BoxGeometry(6.8, 0.36, 0.36);
+  const dhTableGeo = new THREE.BoxGeometry(2.2, 0.78, 1.2);
+  const dhOutdoorAnvilGeo = new THREE.BoxGeometry(0.95, 0.75, 0.52);
+
   disposableGeometries.push(
     dhWallFBGeo,
     dhWallSideGeo,
@@ -308,7 +328,12 @@ export function buildDwarvenKingdomAndMiners(
     dhRoofTopGeo,
     dhChimneyGeo,
     dhFloorGeo,
-    dhDoorLeafGeo
+    dhDoorLeafGeo,
+    dhStepSlabGeo,
+    dhCapGeo,
+    dhRidgeCrestGeo,
+    dhTableGeo,
+    dhOutdoorAnvilGeo
   );
 
   for (let hIdx = 0; hIdx < DWARVEN_STONE_HOUSES.length; hIdx++) {
@@ -317,7 +342,7 @@ export function buildDwarvenKingdomAndMiners(
     dhGroup.position.set(dh.x, dh.terraceY, dh.z);
 
     const floorSlab = new THREE.Mesh(dhFloorGeo, dwarvenGraniteMat);
-    const stepSlab = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 3.2), dwarvenGraniteMat);
+    const stepSlab = new THREE.Mesh(dhStepSlabGeo, dwarvenGraniteMat);
     stepSlab.position.set(dh.dirX * (dh.halfW + 0.55), 0.08, 0);
     dhGroup.add(floorSlab, stepSlab);
 
@@ -339,7 +364,7 @@ export function buildDwarvenKingdomAndMiners(
       for (const bz of [-dh.halfD, dh.halfD]) {
         const buttress = new THREE.Mesh(dhButtressGeo, dwarvenGraniteMat);
         buttress.position.set(bx, 0, bz);
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.28, 1.08), dwarvenBronzeMat);
+        const cap = new THREE.Mesh(dhCapGeo, dwarvenBronzeMat);
         cap.position.set(bx, 4.65, bz);
         dhGroup.add(buttress, cap);
       }
@@ -348,7 +373,7 @@ export function buildDwarvenKingdomAndMiners(
     const roof1 = new THREE.Mesh(dhRoofLowerGeo, dwarvenGraniteMat);
     const roof2 = new THREE.Mesh(dhRoofMidGeo, dwarvenGraniteMat);
     const roof3 = new THREE.Mesh(dhRoofTopGeo, dwarvenGraniteMat);
-    const ridgeCrest = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.36, 0.36), dwarvenBronzeMat);
+    const ridgeCrest = new THREE.Mesh(dhRidgeCrestGeo, dwarvenBronzeMat);
     ridgeCrest.position.set(0, 6.2, 0);
     const chimney = new THREE.Mesh(dhChimneyGeo, dwarvenGraniteMat);
     chimney.position.set(-dh.dirX * 2.8, 0, -1.8);
@@ -380,9 +405,9 @@ export function buildDwarvenKingdomAndMiners(
     const hearthCoals = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
     hearthCoals.scale.set(0.75, 0.45, 0.75);
     hearthCoals.position.set(-dh.dirX * 2.8, 0.72, -1.8);
-    const table = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.78, 1.2), timberMat);
+    const table = new THREE.Mesh(dhTableGeo, timberMat);
     table.position.set(-dh.dirX * 0.8, 0.56, 1.6);
-    const outdoorAnvil = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.75, 0.52), darkIronMat);
+    const outdoorAnvil = new THREE.Mesh(dhOutdoorAnvilGeo, darkIronMat);
     outdoorAnvil.position.set(dh.dirX * (dh.halfW + 1.8), 0.38, 2.8);
     dhGroup.add(
       hearthRing,
@@ -436,6 +461,11 @@ export function buildDwarvenKingdomAndMiners(
   const dwPickHeadGeo = new THREE.ConeGeometry(0.065, 0.52, 4);
   dwPickHeadGeo.rotateZ(Math.PI / 2);
   const dwLanternBodyGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.16, 6);
+  const dwBeltGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.09, 9);
+  const dwBuckleGeo = new THREE.BoxGeometry(0.12, 0.11, 0.05);
+  const dwNoseGeo = new THREE.SphereGeometry(0.048, 8, 8);
+  const dwBeardRingGeo = new THREE.TorusGeometry(0.072, 0.016, 6, 10);
+
   disposableGeometries.push(
     dwTorsoGeo,
     dwShoulderGeo,
@@ -449,7 +479,11 @@ export function buildDwarvenKingdomAndMiners(
     dwArmGeo,
     dwPickHandleGeo,
     dwPickHeadGeo,
-    dwLanternBodyGeo
+    dwLanternBodyGeo,
+    dwBeltGeo,
+    dwBuckleGeo,
+    dwNoseGeo,
+    dwBeardRingGeo
   );
 
   const dwarvenMiners: DwarvenMinerRig[] = [];
@@ -464,9 +498,9 @@ export function buildDwarvenKingdomAndMiners(
 
     const torsoMesh = new THREE.Mesh(dwTorsoGeo, tunicMat);
     const shoulderMesh = new THREE.Mesh(dwShoulderGeo, dwarvenScaleArmorMat);
-    const beltMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.09, 9), darkIronMat);
+    const beltMesh = new THREE.Mesh(dwBeltGeo, darkIronMat);
     beltMesh.position.y = 0.10;
-    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.11, 0.05), mineGoldOreMat);
+    const buckle = new THREE.Mesh(dwBuckleGeo, mineGoldOreMat);
     buckle.position.set(0, 0.10, -0.30);
     const headMesh = new THREE.Mesh(dwHeadGeo, dwarfSkinMat);
     headMesh.position.z = -0.07;
@@ -475,7 +509,7 @@ export function buildDwarvenKingdomAndMiners(
     const helmRim = new THREE.Mesh(dwHelmRimGeo, dwarvenBronzeMat);
     helmRim.position.z = -0.07;
 
-    const noseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.048, 8, 8), dwarfSkinMat);
+    const noseMesh = new THREE.Mesh(dwNoseGeo, dwarfSkinMat);
     noseMesh.position.set(0, 0.72, -0.25);
 
     const beardCenter = new THREE.Mesh(dwBeardMainGeo, beardMat);
@@ -486,7 +520,7 @@ export function buildDwarvenKingdomAndMiners(
     const braidR = new THREE.Mesh(dwBeardBraidGeo, beardMat);
     braidR.position.set(0.11, 0.43, -0.28);
     braidR.rotation.z = 0.16;
-    const beardRing = new THREE.Mesh(new THREE.TorusGeometry(0.072, 0.016, 6, 10), mineGoldOreMat);
+    const beardRing = new THREE.Mesh(dwBeardRingGeo, mineGoldOreMat);
     beardRing.rotation.x = Math.PI / 2;
     beardRing.position.set(0, 0.33, -0.30);
 

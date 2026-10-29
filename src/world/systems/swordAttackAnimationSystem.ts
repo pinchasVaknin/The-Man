@@ -16,13 +16,14 @@ export type SwordAttackPhase =
 
 export type SwordImpactKind = 'none' | 'target' | 'obstacle' | 'wall';
 
-export interface Vec3Tuple {
-  readonly x: number;
-  readonly y: number;
-  readonly z: number;
+export interface IVec3Tuple {
+  x: number;
+  y: number;
+  z: number;
 }
+export type Vec3Tuple = IVec3Tuple;
 
-export interface FirstPersonArmPose {
+export interface IFirstPersonArmPose {
   readonly elbowX: number;
   readonly elbowY: number;
   readonly elbowZ: number;
@@ -34,8 +35,9 @@ export interface FirstPersonArmPose {
   readonly handRz: number;
   readonly fingerCurl: number;
 }
+export type FirstPersonArmPose = IFirstPersonArmPose;
 
-export interface FirstPersonSwordGripTransform {
+export interface IFirstPersonSwordGripTransform {
   readonly posX: number;
   readonly posY: number;
   readonly posZ: number;
@@ -43,8 +45,9 @@ export interface FirstPersonSwordGripTransform {
   readonly rotY: number;
   readonly rotZ: number;
 }
+export type FirstPersonSwordGripTransform = IFirstPersonSwordGripTransform;
 
-export interface FirstPersonSlashRibbonPose {
+export interface IFirstPersonSlashRibbonPose {
   readonly visible: boolean;
   readonly opacity: number;
   readonly posX: number;
@@ -55,30 +58,33 @@ export interface FirstPersonSlashRibbonPose {
   readonly rotZ: number;
   readonly scale: number;
 }
+export type FirstPersonSlashRibbonPose = IFirstPersonSlashRibbonPose;
 
-export interface FirstPersonSwordCameraImpulse {
+export interface IFirstPersonSwordCameraImpulse {
   readonly pitchOffset: number;
   readonly yawOffset: number;
   readonly rollOffset: number;
 }
+export type FirstPersonSwordCameraImpulse = IFirstPersonSwordCameraImpulse;
 
-export interface FirstPersonSwordAttackPoseResult {
+export interface IFirstPersonSwordAttackPoseResult {
   readonly phase: SwordAttackPhase;
   readonly phaseProgress: number;
   readonly swingProgress: number;
   readonly isInActiveStrikeWindow: boolean;
-  readonly rightArm: FirstPersonArmPose;
-  readonly leftArm: FirstPersonArmPose;
-  readonly swordGrip: FirstPersonSwordGripTransform;
-  readonly bladeDirCamera: Vec3Tuple;
-  readonly edgeDirCamera: Vec3Tuple;
-  readonly swordTipCamera: Vec3Tuple;
-  readonly swordCrossguardCamera: Vec3Tuple;
-  readonly slashRibbon: FirstPersonSlashRibbonPose;
-  readonly cameraImpulse: FirstPersonSwordCameraImpulse;
+  readonly rightArm: IFirstPersonArmPose;
+  readonly leftArm: IFirstPersonArmPose;
+  readonly swordGrip: IFirstPersonSwordGripTransform;
+  readonly bladeDirCamera: IVec3Tuple;
+  readonly edgeDirCamera: IVec3Tuple;
+  readonly swordTipCamera: IVec3Tuple;
+  readonly swordCrossguardCamera: IVec3Tuple;
+  readonly slashRibbon: IFirstPersonSlashRibbonPose;
+  readonly cameraImpulse: IFirstPersonSwordCameraImpulse;
 }
+export type FirstPersonSwordAttackPoseResult = IFirstPersonSwordAttackPoseResult;
 
-export interface FirstPersonSwordPoseInput {
+export interface IFirstPersonSwordPoseInput {
   readonly swingProgress: number;
   readonly comboIndex: number;
   readonly isHeavy: boolean;
@@ -91,6 +97,7 @@ export interface FirstPersonSwordPoseInput {
   readonly impactKind?: SwordImpactKind;
   readonly impactAge?: number;
 }
+export type FirstPersonSwordPoseInput = IFirstPersonSwordPoseInput;
 
 /** Summary: Phase boundary thresholds across normalized swingProgress p in [0, 1]. */
 export const SWORD_PHASE_WINDUP_END = 0.24;
@@ -276,18 +283,18 @@ export function classifySwordAttackPhase(swingProgress: number): {
 
 // ======================== COMBO TRAJECTORY KEYFRAMES ======================== \\
 // #region Combo Trajectory Keyframes
-interface AttackTrajectoryKeyframes {
-  readyWrist: Vec3Tuple;
-  readyBlade: Vec3Tuple;
-  readyEdge: Vec3Tuple;
-  readyShoulder: Vec3Tuple;
+interface IAttackTrajectoryKeyframes {
+  readyWrist: IVec3Tuple;
+  readyBlade: IVec3Tuple;
+  readyEdge: IVec3Tuple;
+  readyShoulder: IVec3Tuple;
 
-  chamberWrist: Vec3Tuple;
-  chamberBlade: Vec3Tuple;
-  chamberEdge: Vec3Tuple;
-  chamberShoulder: Vec3Tuple;
+  chamberWrist: IVec3Tuple;
+  chamberBlade: IVec3Tuple;
+  chamberEdge: IVec3Tuple;
+  chamberShoulder: IVec3Tuple;
 
-  midStrikeWrist: Vec3Tuple;
+  midStrikeWrist: IVec3Tuple;
   midStrikeBlade: Vec3Tuple;
   midStrikeEdge: Vec3Tuple;
 
@@ -313,7 +320,7 @@ const READY_POSE = {
   shoulder: { x: 0.42, y: -0.42, z: -0.21 },
 };
 
-const COMBO_0_KEYFRAMES: AttackTrajectoryKeyframes = {
+const COMBO_0_KEYFRAMES: IAttackTrajectoryKeyframes = {
   readyWrist: READY_POSE.wrist,
   readyBlade: READY_POSE.blade,
   readyEdge: READY_POSE.edge,
@@ -343,7 +350,7 @@ const COMBO_0_KEYFRAMES: AttackTrajectoryKeyframes = {
   recoveryMidEdge: { x: -0.38, y: -0.64, z: -0.67 },
 };
 
-const COMBO_1_KEYFRAMES: AttackTrajectoryKeyframes = {
+const COMBO_1_KEYFRAMES: IAttackTrajectoryKeyframes = {
   readyWrist: READY_POSE.wrist,
   readyBlade: READY_POSE.blade,
   readyEdge: READY_POSE.edge,
@@ -373,7 +380,7 @@ const COMBO_1_KEYFRAMES: AttackTrajectoryKeyframes = {
   recoveryMidEdge: { x: -0.32, y: -0.66, z: -0.68 },
 };
 
-const COMBO_2_HEAVY_KEYFRAMES: AttackTrajectoryKeyframes = {
+const COMBO_2_HEAVY_KEYFRAMES: IAttackTrajectoryKeyframes = {
   readyWrist: READY_POSE.wrist,
   readyBlade: READY_POSE.blade,
   readyEdge: READY_POSE.edge,
@@ -618,7 +625,7 @@ export function computeFirstPersonSwordAttackPose(
     z: swordCrossguardCamera.z + solvedR.bladeDir.z * BLADE_TIP_LENGTH,
   };
 
-  const slashRibbon: FirstPersonSlashRibbonPose = {
+  let slashRibbon: FirstPersonSlashRibbonPose = {
     visible: false,
     opacity: 0,
     posX: 0,
@@ -646,6 +653,17 @@ export function computeFirstPersonSwordAttackPose(
     camPitch = lerp(0.0055, -0.011, sEnv) * heavyMult;
     camYaw = lerp(-0.0050, 0.012, sEnv) * dirSign * heavyMult;
     camRoll = lerp(-0.0045, 0.014, sEnv) * dirSign * heavyMult;
+    slashRibbon = {
+      visible: true,
+      opacity: Math.sin(phaseProgress * Math.PI) * 0.75,
+      posX: lerp(0.18 * dirSign, -0.22 * dirSign, phaseProgress),
+      posY: lerp(-0.05, -0.15, phaseProgress),
+      posZ: -0.74,
+      rotX: 0,
+      rotY: 0,
+      rotZ: dirSign * (0.35 + phaseProgress * 0.85),
+      scale: 1,
+    };
   } else if (phase === 'follow_through') {
     const fEnv = smoothstep(phaseProgress);
     camPitch = lerp(-0.011, -0.006, fEnv) * heavyMult;

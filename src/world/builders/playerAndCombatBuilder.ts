@@ -9,7 +9,6 @@
 // #region Imports & Contracts
 import * as THREE from 'three';
 import {
-  ARCHERY_TARGETS,
   ARROW_TRAIL_MAX_AGE,
   ArrowElementKind,
   ArrowProjectile,
@@ -17,18 +16,18 @@ import {
   PLAYER_EYE_HEIGHT,
   PlayerState,
   computeFirstPersonSwordAttackPose,
-  walkableHeightAt,
 } from '../terrainMath';
 
-export interface PlayerAndCombatBuilderContext {
+export interface IPlayerAndCombatBuilderContext {
   scene: THREE.Scene;
   furnitureWoodMat: THREE.Material;
   disposableGeometries: THREE.BufferGeometry[];
   disposableMaterials: THREE.Material[];
   distanceCulledObjects: { obj: THREE.Object3D; cx: number; cz: number; radius: number }[];
 }
+export type PlayerAndCombatBuilderContext = IPlayerAndCombatBuilderContext;
 
-export interface PlayerAndCombatHandle {
+export interface IPlayerAndCombatHandle {
   playerCharacterGroup: THREE.Group;
   updatePlayerAndCombat: (
     elapsedTime: number,
@@ -36,6 +35,7 @@ export interface PlayerAndCombatHandle {
     activeArrows?: readonly ArrowProjectile[]
   ) => void;
 }
+export type PlayerAndCombatHandle = IPlayerAndCombatHandle;
 // #endregion
 
 // ======================== BUILD PLAYER & COMBAT ======================== \\
@@ -53,18 +53,9 @@ export function buildPlayerAndCombatSystems(
 ): PlayerAndCombatHandle {
   const {
     scene,
-    furnitureWoodMat,
     disposableGeometries,
     disposableMaterials,
-    distanceCulledObjects,
   } = ctx;
-
-  // Note: The 4 Imperial Archery Bullseye Targets next to the Grand Hall in the Chinese Fortress
-  // are built directly in proceduralModels.ts (at [-18, -12.5, 12.5, 18], z = -182 + FZ).
-  void ARCHERY_TARGETS;
-  void walkableHeightAt;
-  void furnitureWoodMat;
-  void distanceCulledObjects;
 
   // 10B) Reusable 3D Feathered Arrow Geometry & Pool of 28 Active Arrow Meshes
   const arrowWoodMat = new THREE.MeshStandardMaterial({ color: 0xc29b61, roughness: 0.55 });

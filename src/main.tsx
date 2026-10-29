@@ -8,10 +8,21 @@
 // #region Imports & Dependencies
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { InfrastructureCorruptedException } from './core/AppException';
 import './index.css';
 // #endregion
 
 // ======================== APPLICATION MOUNT ======================== \\
 // #region Application Mount
-createRoot(document.getElementById('root')!).render(<App />);
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+    throw new InfrastructureCorruptedException("Root element '#root' was not found in document DOM.");
+}
+
+createRoot(rootElement).render(
+    <ErrorBoundary>
+        <App />
+    </ErrorBoundary>,
+);
 // #endregion

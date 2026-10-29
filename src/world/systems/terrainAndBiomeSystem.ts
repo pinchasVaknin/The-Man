@@ -886,7 +886,7 @@ export function walkableHeightAt(
     }
   }
 
-  const towerCenterH = HUNTER_LODGE_POS ? 6.4 : groundHeightAt(30.0, -26.0);
+  const towerCenterH = 6.4;
   if (Math.abs(x - 30.0) <= 3.1 && Math.abs(z + 26.0) <= 3.1) {
     return { height: towerCenterH + 0.55, surface: 'tower' };
   }

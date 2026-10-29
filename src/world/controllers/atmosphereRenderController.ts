@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import {
-  SolarAtmosphere,
+  DynamicAtmosphereState,
   WeatherStateSnapshot,
   computeDynamicSolarCycle,
 } from '../terrainMath';
@@ -23,7 +23,7 @@ const _lightningColor = new THREE.Color(0xdbeafe);
 
 // ======================== CONTEXT & TYPES ======================== \\
 // #region Context & Types
-export interface AtmosphereRenderContext {
+export interface IAtmosphereRenderContext {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   sky: Sky;
@@ -37,6 +37,7 @@ export interface AtmosphereRenderContext {
   waterMaterial: THREE.MeshPhysicalMaterial;
   lanternLights: THREE.PointLight[];
 }
+export type AtmosphereRenderContext = IAtmosphereRenderContext;
 // #endregion
 
 // ======================== CONTROLLER LOGIC ======================== \\
@@ -49,7 +50,7 @@ export function applyDynamicAtmosphereToScene(
   ctx: AtmosphereRenderContext,
   hours: number,
   weather?: WeatherStateSnapshot
-): SolarAtmosphere {
+): DynamicAtmosphereState {
   const {
     scene,
     renderer,

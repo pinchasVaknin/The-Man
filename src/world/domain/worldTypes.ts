@@ -69,7 +69,7 @@ export type InventoryItemId =
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
 // #region Inventory & Equipment Types
 /** Summary: Definition schema for static inventory items in the world catalog. */
-export interface InventoryItemDef {
+export interface IInventoryItemDef {
   readonly id: InventoryItemId;
   readonly nameHe: string;
   readonly category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures';
@@ -84,9 +84,10 @@ export interface InventoryItemDef {
   readonly loreHe?: string;
   readonly rarity?: 'common' | 'refined' | 'epic' | 'legendary';
 }
+export type InventoryItemDef = IInventoryItemDef;
 
 /** Summary: Static registry of all available inventory items in the game world. */
-export const INVENTORY_ITEMS: readonly InventoryItemDef[] = [
+export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   {
     id: 'bow',
     nameHe: 'קשת ציידים מורכבת',
@@ -411,7 +412,7 @@ export const INVENTORY_ITEMS: readonly InventoryItemDef[] = [
 // ======================== CHARACTER SKILLS & PLAYER STATE ======================== \\
 // #region Character Skills & Player State
 /** Summary: Skill progression tracking for RPG attributes. */
-export interface CharacterSkillsState {
+export interface ICharacterSkillsState {
   archeryLevel: number;
   archeryXp: number;
   archeryXpNext: number;
@@ -431,19 +432,21 @@ export interface CharacterSkillsState {
   lastLevelUpTitleHe?: string | null;
   lastLevelUpTimer?: number;
 }
+export type CharacterSkillsState = ICharacterSkillsState;
 
 /** Summary: Procedural collision cylinder definition. */
-export interface ObstacleCylinder {
-  x: number;
-  z: number;
-  radius: number;
-  kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia' | 'boulder' | 'pillar';
-  scale: number;
-  seed: number;
+export interface IObstacleCylinder {
+  readonly x: number;
+  readonly z: number;
+  readonly radius: number;
+  readonly kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia' | 'boulder' | 'pillar';
+  readonly scale: number;
+  readonly seed: number;
 }
+export type ObstacleCylinder = IObstacleCylinder;
 
 /** Summary: Complete runtime simulation state for the active player character. */
-export interface PlayerState {
+export interface IPlayerState {
   x: number;
   y: number;
   z: number;
@@ -522,9 +525,10 @@ export interface PlayerState {
   arrowsShotCount: number;
   lastArrowHitTarget?: string | null;
 }
+export type PlayerState = IPlayerState;
 
 /** Summary: Processed user input intent for a single simulation tick. */
-export interface PlayerInput {
+export interface IPlayerInput {
   forward: number; // -1 to 1
   right: number;   // -1 to 1
   sprint: boolean; // Shift = fast
@@ -536,12 +540,13 @@ export interface PlayerInput {
   lookYawDelta: number;
   lookPitchDelta: number;
 }
+export type PlayerInput = IPlayerInput;
 // #endregion
 
 // ======================== ANIMAL & HORSE ENTITY TYPES ======================== \\
 // #region Animal & Horse Entity Types
 /** Summary: Immutable definition for a persistent mountable horse in the world. */
-export interface RideableHorseDef {
+export interface IRideableHorseDef {
   readonly id: string;
   readonly nameHe: string;
   readonly coatColorHex: number;
@@ -551,9 +556,10 @@ export interface RideableHorseDef {
   readonly homeZ: number;
   readonly homeYaw: number;
 }
+export type RideableHorseDef = IRideableHorseDef;
 
 /** Summary: Dynamic runtime state of a mountable horse. */
-export interface RideableHorseState {
+export interface IRideableHorseState {
   id: string;
   nameHe: string;
   x: number;
@@ -563,12 +569,13 @@ export interface RideableHorseState {
   speed: number;
   gaitPhase: number;
 }
+export type RideableHorseState = IRideableHorseState;
 // #endregion
 
 // ======================== ATMOSPHERE & WEATHER STATE ======================== \\
 // #region Atmosphere & Weather State
 /** Summary: Complete atmospheric lighting and sky rendering parameters for a frame. */
-export interface DynamicAtmosphereState {
+export interface IDynamicAtmosphereState {
   worldHours: number; // 0..24 continuous clock
   timeString: string; // e.g. "06:52"
   phaseLabelHe: string;
@@ -595,6 +602,7 @@ export interface DynamicAtmosphereState {
   mieDirectionalG: number;
   exposure: number;
 }
+export type DynamicAtmosphereState = IDynamicAtmosphereState;
 
 /** Summary: Alias for DynamicAtmosphereState used by atmosphere and debug controllers. */
 export type SolarAtmosphere = DynamicAtmosphereState;
@@ -623,7 +631,7 @@ export type WeatherToggleOption =
   | 'lightning_storm';
 
 /** Summary: Immutable snapshot of the dynamic weather system state. */
-export interface WeatherStateSnapshot {
+export interface IWeatherStateSnapshot {
   mode: WeatherCycleMode;
   season: SeasonType;
   seasonLabelHe: string;
@@ -642,12 +650,13 @@ export interface WeatherStateSnapshot {
   boltOriginX: number;
   boltOriginZ: number;
 }
+export type WeatherStateSnapshot = IWeatherStateSnapshot;
 // #endregion
 
 // ======================== WORLD STRUCTURES & LANDMARKS ======================== \\
 // #region World Structures & Landmarks
 /** Summary: Definition schema for a farm house compound. */
-export interface ValleyFarmDef {
+export interface IValleyFarmDef {
   readonly id: string;
   readonly doorId: string;
   readonly nameHe: string;
@@ -660,9 +669,10 @@ export interface ValleyFarmDef {
   readonly gateHalfW: number;
   readonly dirZ: 1 | -1;
 }
+export type ValleyFarmDef = IValleyFarmDef;
 
 /** Summary: Definition schema for a hill watchtower structure. */
-export interface HillWatchtowerDef {
+export interface IHillWatchtowerDef {
   readonly id: string;
   readonly doorId: string;
   readonly nameHe: string;
@@ -690,9 +700,10 @@ export interface HillWatchtowerDef {
   readonly isSouth: boolean;
   readonly connectedToBridge: boolean;
 }
+export type HillWatchtowerDef = IHillWatchtowerDef;
 
 /** Summary: Definition schema for ancient dwarven kingdom guardian statues. */
-export interface DwarvenGuardianStatueDef {
+export interface IDwarvenGuardianStatueDef {
   readonly id: string;
   readonly nameHe: string;
   readonly x: number;
@@ -703,9 +714,10 @@ export interface DwarvenGuardianStatueDef {
   readonly yaw: number;
   readonly side: 'west' | 'east';
 }
+export type DwarvenGuardianStatueDef = IDwarvenGuardianStatueDef;
 
 /** Summary: Definition schema for enterable stone houses in the dwarven kingdom. */
-export interface DwarvenStoneHouseDef {
+export interface IDwarvenStoneHouseDef {
   readonly id: string;
   readonly doorId: string;
   readonly nameHe: string;
@@ -719,9 +731,10 @@ export interface DwarvenStoneHouseDef {
   readonly doorX: number;
   readonly doorZ: number;
 }
+export type DwarvenStoneHouseDef = IDwarvenStoneHouseDef;
 
 /** Summary: Runtime simulation state for a travelling dwarven miner NPC. */
-export interface DwarvenMinerCaravanState {
+export interface IDwarvenMinerCaravanState {
   dwarfIndex: number;
   nameHe: string;
   x: number;
@@ -733,9 +746,10 @@ export interface DwarvenMinerCaravanState {
   miningSwing: number;
   lanternLit: boolean;
 }
+export type DwarvenMinerCaravanState = IDwarvenMinerCaravanState;
 
 /** Summary: Definition schema for fortress corner watchtowers. */
-export interface CornerWatchtowerDef {
+export interface ICornerWatchtowerDef {
   readonly id: string;
   readonly doorId: string;
   readonly nameHe: string;
@@ -748,9 +762,10 @@ export interface CornerWatchtowerDef {
   readonly isWest: boolean;
   readonly isSouth: boolean;
 }
+export type CornerWatchtowerDef = ICornerWatchtowerDef;
 
 /** Summary: Information required to inspect and climb a vertical ladder. */
-export interface ClimbableLadderInfo {
+export interface IClimbableLadderInfo {
   readonly id: string;
   readonly nameHe: string;
   readonly ladderX: number;
@@ -763,9 +778,10 @@ export interface ClimbableLadderInfo {
   readonly maxY: number;
   readonly floors: readonly number[];
 }
+export type ClimbableLadderInfo = IClimbableLadderInfo;
 
 /** Summary: Door entry interactable zone specification. */
-export interface FortressDoorDef {
+export interface IFortressDoorDef {
   readonly id: string;
   readonly buildingNameHe: string;
   readonly x: number;
@@ -777,9 +793,10 @@ export interface FortressDoorDef {
   readonly maxZ: number;
   readonly interactRadius: number;
 }
+export type FortressDoorDef = IFortressDoorDef;
 
 /** Summary: Axis-aligned bounding box for solid building collision. */
-export interface SolidBuildingBox {
+export interface ISolidBuildingBox {
   readonly id: string;
   readonly minX: number;
   readonly maxX: number;
@@ -788,12 +805,13 @@ export interface SolidBuildingBox {
   readonly minY?: number;
   readonly maxY?: number;
 }
+export type SolidBuildingBox = ISolidBuildingBox;
 // #endregion
 
 // ======================== COMBAT & PROJECTILE TYPES ======================== \\
 // #region Combat & Projectile Types
 /** Summary: Stationary archery practice target definition. */
-export interface ArcheryTargetDef {
+export interface IArcheryTargetDef {
   readonly id: string;
   readonly nameHe: string;
   readonly x: number;
@@ -801,17 +819,19 @@ export interface ArcheryTargetDef {
   readonly yaw: number;
   readonly bullseyeRadius: number;
 }
+export type ArcheryTargetDef = IArcheryTargetDef;
 
 /** Summary: Fading visual trail particle point emitted by a flying projectile. */
-export interface ArrowTrailPoint {
+export interface IArrowTrailPoint {
   readonly x: number;
   readonly y: number;
   readonly z: number;
   age: number;
 }
+export type ArrowTrailPoint = IArrowTrailPoint;
 
 /** Summary: Runtime physics state for an active flying or lodged projectile arrow. */
-export interface ArrowProjectile {
+export interface IArrowProjectile {
   id: number;
   x: number;
   y: number;
@@ -826,6 +846,18 @@ export interface ArrowProjectile {
   hitKind: 'none' | 'target' | 'obstacle' | 'building' | 'ground';
   hitTargetId: string | null;
   age: number;
-  trail: ArrowTrailPoint[];
+  trail: IArrowTrailPoint[];
 }
+export type ArrowProjectile = IArrowProjectile;
+
+/** Summary: Interface for decoupled UI game action dispatches (equip, market, hotbar). */
+export interface IGameActions {
+  readonly onEquipItem: (id: InventoryItemId) => void;
+  readonly onBuyItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
+  readonly onSellItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
+  readonly onAssignHotbar: (slotIndex: number, id: InventoryItemId) => void;
+  readonly onToggleFavorite: (id: InventoryItemId) => void;
+}
+export type GameActions = IGameActions;
+// #endregion
 // #endregion

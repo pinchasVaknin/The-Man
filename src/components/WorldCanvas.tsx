@@ -48,7 +48,11 @@ import {
   triggerSwordSlash,
   stepSwordSwingCombat,
   computeFirstPersonSwordAttackPose,
+  buyMarketItem,
+  sellMarketItem,
+  IGameActions,
 } from '../world/terrainMath';
+import { ConsoleLogger } from '../core/ILogger';
 import { createWorldTextures } from '../world/proceduralTextures';
 import { buildRealisticWorld } from '../world/proceduralModels';
 import { NatureSoundEngine } from '../world/soundEngine';
@@ -57,7 +61,7 @@ import { registerWindowDebugBridge } from '../world/controllers/windowDebugContr
 
 export type GameStateMode = 'title' | 'playing' | 'paused';
 
-export interface TelemetrySnapshot {
+export interface ITelemetrySnapshot {
   x: number;
   y: number;
   z: number;
@@ -110,8 +114,9 @@ export interface TelemetrySnapshot {
   maxStamina?: number;
   skills?: CharacterSkillsState;
 }
+export type TelemetrySnapshot = ITelemetrySnapshot;
 
-export interface VirtualMoveState {
+export interface IVirtualMoveState {
   forward: number;
   right: number;
   sprint: boolean;
@@ -119,15 +124,18 @@ export interface VirtualMoveState {
   jump: boolean;
   drawBow?: boolean;
 }
+export type VirtualMoveState = IVirtualMoveState;
 
-export interface WorldCanvasProps {
+export interface IWorldCanvasProps {
   gameState: GameStateMode;
   muted: boolean;
   weatherToggle: WeatherToggleOption;
-  onTelemetryUpdate: (snapshot: TelemetrySnapshot) => void;
+  onTelemetryUpdate: (snapshot: ITelemetrySnapshot) => void;
   onRequestPauseToggle: () => void;
-  virtualMoveRef: React.MutableRefObject<VirtualMoveState>;
+  virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
+  onRegisterGameActions?: (actions: IGameActions | null) => void;
 }
+export type WorldCanvasProps = IWorldCanvasProps;
 // #endregion
 
 // ======================== WORLD CANVAS COMPONENT ======================== \\
@@ -139,13 +147,14 @@ const _tourLook = new THREE.Vector3();
 const _camTargetLook = new THREE.Vector3();
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
-export const WorldCanvas: React.FC<WorldCanvasProps> = ({
+export const WorldCanvas = React.memo<WorldCanvasProps>(({
   gameState,
   muted,
   weatherToggle,
   onTelemetryUpdate,
   onRequestPauseToggle,
   virtualMoveRef,
+  onRegisterGameActions,
 }) => {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
@@ -344,7 +353,7 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
       const pwr =
         powerOverride !== undefined
           ? Math.max(0.28, Math.min(1.0, powerOverride))
-          : Math.max(0.35, playerState.bowDrawProgress);
+          : Math.max(0.35, playerState.bowDrawProgress ?? 0);
       const arrow = spawnArrowProjectile(playerState, pwr);
       activeArrows.push(arrow);
       if (activeArrows.length > 28) {
@@ -473,37 +482,79 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
       return res;
     }
 
-    registerWindowDebugBridge({
-      playerState,
-      obstacles,
-      rideableHorses,
-      activeArrows,
-      openDoorIds,
-      camera,
-      soundEngine,
-      gameStateRef,
-      weatherToggleRef,
-      setActiveWeatherMode: (mode) => {
-        activeWeatherMode = mode;
+    const gameActions: IGameActions = {
+      onEquipItem: (itemId) => {
+        equipInventoryItem(playerState, itemId);
+        soundEngine.playFootstep('trail', 1.15);
+        emitHudSnapshot();
       },
-      setSmoothAimZoom: (val) => {
-        smoothAimZoom = val;
+      onBuyItem: (itemId) => {
+        const res = buyMarketItem(playerState, itemId);
+        if (res.ok) {
+          soundEngine.playFootstep('trail', 1.22);
+        }
+        emitHudSnapshot();
+        return {
+          ok: res.ok,
+          reasonHe: res.ok ? 'נרכש בהצלחה' : (res.error ? String(res.error) : 'שגיאה ברכישה'),
+        };
       },
-      setSmoothRightClickZoom: (val) => {
-        smoothRightClickZoom = val;
+      onSellItem: (itemId) => {
+        const res = sellMarketItem(playerState, itemId);
+        if (res.ok) {
+          soundEngine.playFootstep('trail', 0.95);
+        }
+        emitHudSnapshot();
+        return {
+          ok: res.ok,
+          reasonHe: res.ok ? 'נמכר בהצלחה' : (res.error ? String(res.error) : 'שגיאה במכירה'),
+        };
       },
-      fireArrowNow,
-      executeSwordSlash,
-      getWorldHours: () => worldHours,
-      setWorldHoursAndApply: (hours) => {
-        worldHours = ((Number(hours) % 24) + 24) % 24;
-        currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
-        return Number(worldHours.toFixed(2));
+      onAssignHotbar: (slotIndex, itemId) => {
+        assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId);
+        emitHudSnapshot();
       },
-      getCurrentAtmo: () => currentAtmo,
-      getCurrentWeather: () => currentWeather,
-      emitHudSnapshot,
-    });
+      onToggleFavorite: (itemId) => {
+        toggleFavoriteItem(playerState, itemId);
+        emitHudSnapshot();
+      },
+    };
+    onRegisterGameActions?.(gameActions);
+
+    let unregisterDebugBridge: (() => void) | undefined;
+    if (import.meta.env.DEV) {
+      unregisterDebugBridge = registerWindowDebugBridge({
+        playerState,
+        obstacles,
+        rideableHorses,
+        activeArrows,
+        openDoorIds,
+        camera,
+        soundEngine,
+        gameStateRef,
+        weatherToggleRef,
+        setActiveWeatherMode: (mode) => {
+          activeWeatherMode = mode;
+        },
+        setSmoothAimZoom: (val) => {
+          smoothAimZoom = val;
+        },
+        setSmoothRightClickZoom: (val) => {
+          smoothRightClickZoom = val;
+        },
+        fireArrowNow,
+        executeSwordSlash,
+        getWorldHours: () => worldHours,
+        setWorldHoursAndApply: (hours) => {
+          worldHours = ((Number(hours) % 24) + 24) % 24;
+          currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
+          return Number(worldHours.toFixed(2));
+        },
+        getCurrentAtmo: () => currentAtmo,
+        getCurrentWeather: () => currentWeather,
+        emitHudSnapshot,
+      });
+    }
 
     if (!isSoftwareGl) {
       renderer.compile(scene, camera);
@@ -686,8 +737,11 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
         if (document.pointerLockElement !== renderer.domElement) {
           try {
             renderer.domElement.requestPointerLock?.();
-          } catch {
-            // Fallback to drag-look
+          } catch (err: unknown) {
+            ConsoleLogger.instance.warn(
+              'PointerLock request rejected by browser security policy or unsupported',
+              { error: String(err) }
+            );
           }
         }
       }
@@ -1372,6 +1426,8 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
       renderer.domElement.removeEventListener('touchstart', onTouchStart);
       renderer.domElement.removeEventListener('touchmove', onTouchMove);
       renderer.domElement.removeEventListener('touchend', onTouchEnd);
+      onRegisterGameActions?.(null);
+      unregisterDebugBridge?.();
       soundEngine.dispose();
       worldHandles.dispose();
       textures.dispose();
@@ -1389,5 +1445,6 @@ export const WorldCanvas: React.FC<WorldCanvasProps> = ({
       aria-label="תצוגת עולם תלת ממדי בגוף ראשון"
     />
   );
-};
+});
+WorldCanvas.displayName = 'WorldCanvas';
 // #endregion

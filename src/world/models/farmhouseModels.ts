@@ -26,7 +26,7 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== FARMHOUSE MODEL INTERFACES ======================== \\
 // #region Farmhouse Model Interfaces
-export interface FarmhouseModelHandles {
+export interface IFarmhouseModelHandles {
   readonly mineGroup: THREE.Group;
   readonly updateFarmhousesAndMine: (
     elapsedTime: number,
@@ -35,6 +35,7 @@ export interface FarmhouseModelHandles {
     playerZ?: number
   ) => void;
 }
+export type FarmhouseModelHandles = IFarmhouseModelHandles;
 // #endregion
 
 // ======================== BUILD FARMHOUSE MODELS ======================== \\
@@ -303,6 +304,10 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   const barrelGeo = new THREE.CylinderGeometry(0.38, 0.42, 0.92, 10);
   const toolShaftGeo = new THREE.CylinderGeometry(0.025, 0.028, 1.85, 6);
 
+  const ovenGeo = new THREE.BoxGeometry(2.4, 2.2, 1.8);
+  const churnGeo = new THREE.CylinderGeometry(0.28, 0.38, 0.95, 8);
+  const loomGeo = new THREE.BoxGeometry(2.2, 1.8, 1.4);
+
   disposableGeometries.push(
     tableTopGeo,
     tableLegGeo,
@@ -317,7 +322,10 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     chestBodyGeo,
     grainSackGeo,
     barrelGeo,
-    toolShaftGeo
+    toolShaftGeo,
+    ovenGeo,
+    churnGeo,
+    loomGeo
   );
 
   function createInteriorFurnitureSet(interiorKind: HouseInteriorKind = 'hunter'): THREE.Group {
@@ -347,15 +355,15 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     fGroup.add(wardrobe, bFrame, bHead, bMat, bPil, chest);
 
     if (interiorKind === 'farm_bakery') {
-      const oven = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 1.8), brickOvenMat);
+      const oven = new THREE.Mesh(ovenGeo, brickOvenMat);
       oven.position.set(-2.8, 1.1, -1.2);
       fGroup.add(oven);
     } else if (interiorKind === 'farm_dairy') {
-      const churn = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, 0.95, 8), furnitureWoodMat);
+      const churn = new THREE.Mesh(churnGeo, furnitureWoodMat);
       churn.position.set(-2.6, 0.48, -1.0);
       fGroup.add(churn);
     } else if (interiorKind === 'farm_weaver') {
-      const loom = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.8, 1.4), furnitureWoodMat);
+      const loom = new THREE.Mesh(loomGeo, furnitureWoodMat);
       loom.position.set(-2.8, 0.9, -1.0);
       fGroup.add(loom);
     }
@@ -586,7 +594,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   sheepLegGeo.translate(0, -0.21, 0);
   disposableGeometries.push(sheepBodyGeo, sheepHeadGeo, sheepLegGeo);
 
-  interface GrazingSheep {
+  interface IGrazingSheep {
     root: THREE.Group;
     headPivot: THREE.Group;
     legs: [THREE.Mesh, THREE.Mesh, THREE.Mesh, THREE.Mesh];
@@ -596,7 +604,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     speed: number;
     phase: number;
   }
-  const sheepFlock: GrazingSheep[] = [];
+  const sheepFlock: IGrazingSheep[] = [];
   const sheepSpots = [
     { x: -112, z: 142, r: 4.5, speed: 0.16 },
     { x: -108, z: 146, r: 5.2, speed: 0.14 },
@@ -947,37 +955,61 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   const cavernEndLocalZ = 110.0;
   const cavernMidLocalZ = (cavernStartLocalZ + cavernEndLocalZ) * 0.5;
 
-  const mainEastFloorMesh = new THREE.Mesh(new THREE.BoxGeometry(79.0, 0.8, 78.0), mineDeepSlateMat);
+  const mainEastFloorGeo = new THREE.BoxGeometry(79.0, 0.8, 78.0);
+  const westRoomSouthFloorGeo = new THREE.BoxGeometry(28.0, 0.8, 13.0);
+  const westRoomNorthFloorGeo = new THREE.BoxGeometry(28.0, 0.8, 6.0);
+  const westRoomEastWalkwayGeo = new THREE.BoxGeometry(7.5, 0.8, 44.0);
+  const westLakeBasinFloorGeo = new THREE.BoxGeometry(20.0, 0.8, 46.0);
+  const cCeilingGeo = new THREE.BoxGeometry(108.0, 1.4, 80.0);
+  const cSideWallGeo = new THREE.BoxGeometry(2.4, cavernHeight + 1.2, 64.0);
+  const rRoomWallGeo = new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2);
+  const cBackWallGeo = new THREE.BoxGeometry(36.0, cavernHeight + 1.2, 2.6);
+  const cNorthFlankWallGeo = new THREE.BoxGeometry(11.6, cavernHeight + 1.2, 2.4);
+
+  disposableGeometries.push(
+    mainEastFloorGeo,
+    westRoomSouthFloorGeo,
+    westRoomNorthFloorGeo,
+    westRoomEastWalkwayGeo,
+    westLakeBasinFloorGeo,
+    cCeilingGeo,
+    cSideWallGeo,
+    rRoomWallGeo,
+    cBackWallGeo,
+    cNorthFlankWallGeo
+  );
+
+  const mainEastFloorMesh = new THREE.Mesh(mainEastFloorGeo, mineDeepSlateMat);
   mainEastFloorMesh.position.set(13.5, cavernFloorY - 0.4, 72.0);
-  const westRoomSouthFloorMesh = new THREE.Mesh(new THREE.BoxGeometry(28.0, 0.8, 13.0), mineDeepSlateMat);
+  const westRoomSouthFloorMesh = new THREE.Mesh(westRoomSouthFloorGeo, mineDeepSlateMat);
   westRoomSouthFloorMesh.position.set(-39.0, cavernFloorY - 0.4, 90.5);
-  const westRoomNorthFloorMesh = new THREE.Mesh(new THREE.BoxGeometry(28.0, 0.8, 6.0), mineDeepSlateMat);
+  const westRoomNorthFloorMesh = new THREE.Mesh(westRoomNorthFloorGeo, mineDeepSlateMat);
   westRoomNorthFloorMesh.position.set(-39.0, cavernFloorY - 0.4, 38.0);
-  const westRoomEastWalkwayMesh = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.8, 44.0), mineDeepSlateMat);
+  const westRoomEastWalkwayMesh = new THREE.Mesh(westRoomEastWalkwayGeo, mineDeepSlateMat);
   westRoomEastWalkwayMesh.position.set(-29.5, cavernFloorY - 0.4, 62.5);
-  const westLakeBasinFloorMesh = new THREE.Mesh(new THREE.BoxGeometry(20.0, 0.8, 46.0), mineDeepSlateMat);
+  const westLakeBasinFloorMesh = new THREE.Mesh(westLakeBasinFloorGeo, mineDeepSlateMat);
   westLakeBasinFloorMesh.position.set(-42.0, cavernFloorY - 2.25, 62.5);
 
-  const cCeiling = new THREE.Mesh(new THREE.BoxGeometry(108.0, 1.4, 80.0), mineDeepSlateMat);
+  const cCeiling = new THREE.Mesh(cCeilingGeo, mineDeepSlateMat);
   cCeiling.position.set(0, cavernFloorY + cavernHeight + 0.65, cavernMidLocalZ);
 
-  const cWestWall = new THREE.Mesh(new THREE.BoxGeometry(2.4, cavernHeight + 1.2, 64.0), mineDeepSlateMat);
+  const cWestWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
   cWestWall.position.set(-53.0, cavernFloorY + cavernHeight * 0.5, 66.0);
-  const cEastWall = new THREE.Mesh(new THREE.BoxGeometry(2.4, cavernHeight + 1.2, 64.0), mineDeepSlateMat);
+  const cEastWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
   cEastWall.position.set(53.0, cavernFloorY + cavernHeight * 0.5, 66.0);
-  const r2NorthWall = new THREE.Mesh(new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2), mineDeepSlateMat);
+  const r2NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
   r2NorthWall.position.set(-39.0, cavernFloorY + cavernHeight * 0.5, 35.0);
-  const r2SouthWall = new THREE.Mesh(new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2), mineDeepSlateMat);
+  const r2SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
   r2SouthWall.position.set(-39.0, cavernFloorY + cavernHeight * 0.5, 97.0);
-  const r3NorthWall = new THREE.Mesh(new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2), mineDeepSlateMat);
+  const r3NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
   r3NorthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5, 35.0);
-  const r3SouthWall = new THREE.Mesh(new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2), mineDeepSlateMat);
+  const r3SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
   r3SouthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5, 97.0);
-  const cBackWall = new THREE.Mesh(new THREE.BoxGeometry(36.0, cavernHeight + 1.2, 2.6), mineDeepSlateMat);
+  const cBackWall = new THREE.Mesh(cBackWallGeo, mineDeepSlateMat);
   cBackWall.position.set(0, cavernFloorY + cavernHeight * 0.5, cavernEndLocalZ + 1.0);
-  const cNorthWestWall = new THREE.Mesh(new THREE.BoxGeometry(11.6, cavernHeight + 1.2, 2.4), mineDeepSlateMat);
+  const cNorthWestWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
   cNorthWestWall.position.set(-9.0, cavernFloorY + cavernHeight * 0.5, cavernStartLocalZ);
-  const cNorthEastWall = new THREE.Mesh(new THREE.BoxGeometry(11.6, cavernHeight + 1.2, 2.4), mineDeepSlateMat);
+  const cNorthEastWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
   cNorthEastWall.position.set(9.0, cavernFloorY + cavernHeight * 0.5, cavernStartLocalZ);
   const cNorthUpperWall = new THREE.Mesh(cavernNorthUpperWallGeo, mineDeepSlateMat);
   cNorthUpperWall.position.set(0, cavernFloorY + cavernHeight - 2.4, cavernStartLocalZ);
@@ -1168,7 +1200,27 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   lanternLights.push(subLakeLight);
   mineGroup.add(subWaterfallMesh, subPlungeFoam, subLakeLight);
 
-  const subPierDeck = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.22, 3.6), timberMat);
+  const subPierDeckGeo = new THREE.BoxGeometry(6.8, 0.22, 3.6);
+  const wheelAxleGeo = new THREE.CylinderGeometry(0.22, 0.22, 1.8, 10);
+  const paddleGeo = new THREE.BoxGeometry(0.32, 0.85, 1.1);
+  const fBand1Geo = new THREE.CylinderGeometry(2.65, 2.7, 0.45, 10);
+  const fBand2Geo = new THREE.CylinderGeometry(2.4, 2.45, 0.45, 10);
+  const moltenGoldPoolGeo = new THREE.CylinderGeometry(1.38, 1.38, 0.25, 12);
+  const moltenStreamGeo = new THREE.CylinderGeometry(0.18, 0.24, 1.8, 8);
+  const chestGeo = new THREE.BoxGeometry(1.6, 1.05, 1.1);
+
+  disposableGeometries.push(
+    subPierDeckGeo,
+    wheelAxleGeo,
+    paddleGeo,
+    fBand1Geo,
+    fBand2Geo,
+    moltenGoldPoolGeo,
+    moltenStreamGeo,
+    chestGeo
+  );
+
+  const subPierDeck = new THREE.Mesh(subPierDeckGeo, timberMat);
   subPierDeck.position.set(-32.2, cavernFloorY + 0.32, 49.0);
   mineGroup.add(
     subPierDeck,
@@ -1223,7 +1275,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     standPost.position.set(sideX, -1.2, 0);
     waterwheelStandGroup.add(standPost);
   }
-  const wheelAxleMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.8, 10), darkIronMat);
+  const wheelAxleMesh = new THREE.Mesh(wheelAxleGeo, darkIronMat);
   wheelAxleMesh.rotation.z = Math.PI / 2;
   wheelAxleMesh.position.set(0, 3.0, 0);
   waterwheelStandGroup.add(wheelAxleMesh);
@@ -1239,7 +1291,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   mineOreWheelGroup.add(wheelRim1, wheelRim2);
   for (let sp = 0; sp < 8; sp++) {
     const ang = (sp / 8) * Math.PI * 2;
-    const paddle = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 1.1), timberMat);
+    const paddle = new THREE.Mesh(paddleGeo, timberMat);
     paddle.position.set(Math.cos(ang) * 2.6, Math.sin(ang) * 2.6, 0);
     paddle.rotation.z = ang;
     mineOreWheelGroup.add(paddle);
@@ -1250,18 +1302,18 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
     const furnaceGroup = new THREE.Group();
     furnaceGroup.position.set(44.5, cavernFloorY, fz);
     const fBody = new THREE.Mesh(blastFurnaceBodyGeo, mineDarkRockMat);
-    const fBand1 = new THREE.Mesh(new THREE.CylinderGeometry(2.65, 2.7, 0.45, 10), darkIronMat);
+    const fBand1 = new THREE.Mesh(fBand1Geo, darkIronMat);
     fBand1.position.y = 2.4;
-    const fBand2 = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.45, 0.45, 10), darkIronMat);
+    const fBand2 = new THREE.Mesh(fBand2Geo, darkIronMat);
     fBand2.position.y = 5.8;
     const fCoreGlow = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
     fCoreGlow.scale.set(1.5, 1.2, 1.5);
     fCoreGlow.position.set(-1.6, 1.1, 0);
     const crucible = new THREE.Mesh(moltenCrucibleGeo, darkIronMat);
     crucible.position.set(-3.8, 0, 0);
-    const moltenGoldPool = new THREE.Mesh(new THREE.CylinderGeometry(1.38, 1.38, 0.25, 12), mineGoldOreMat);
+    const moltenGoldPool = new THREE.Mesh(moltenGoldPoolGeo, mineGoldOreMat);
     moltenGoldPool.position.set(-3.8, 1.32, 0);
-    const moltenStream = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 1.8, 8), mineMoltenCoalMat);
+    const moltenStream = new THREE.Mesh(moltenStreamGeo, mineMoltenCoalMat);
     moltenStream.position.set(-2.9, 1.45, 0);
     moltenStream.rotation.z = 0.65;
     furnaceGroup.add(fBody, fBand1, fBand2, fCoreGlow, crucible, moltenGoldPool, moltenStream);
@@ -1304,7 +1356,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
   lanternLights.push(vaultLight);
   mineGroup.add(vaultLight);
   for (const vx of [-10.5, -5.5, 5.5, 10.5]) {
-    const chest = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.05, 1.1), barkMat);
+    const chest = new THREE.Mesh(chestGeo, barkMat);
     chest.position.set(vx, cavernFloorY + 0.52, 103.5);
     const chestGold = new THREE.Mesh(forgeCoalMoundGeo, mineGoldOreMat);
     chestGold.position.set(vx, cavernFloorY + 1.05, 103.5);
@@ -1460,7 +1512,7 @@ export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseMode
       mineOreWheelGroup.rotation.z = elapsedTime * 0.85;
     }
     if (updateDwarvenMiners) {
-      updateDwarvenMiners(worldHours, elapsedTime, playerX, playerZ);
+      updateDwarvenMiners(worldHours ?? 12, elapsedTime, playerX, playerZ);
     }
   };
 

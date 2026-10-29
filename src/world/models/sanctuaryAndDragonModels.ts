@@ -21,7 +21,7 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== INTERFACES & TYPES ======================== \\
 // #region Interfaces & Types
-interface TaiChiMonk {
+interface ITaiChiMonk {
   group: THREE.Group;
   leftArm: THREE.Group;
   rightArm: THREE.Group;
@@ -34,11 +34,12 @@ interface TaiChiMonk {
   phase: number;
 }
 
-export interface SanctuaryAndDragonResult {
+export interface ISanctuaryAndDragonResult {
   skyDragonGroup: THREE.Group;
   sakuraSanctuaryGroup: THREE.Group;
   updateSanctuaryAndDragon: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
+export type SanctuaryAndDragonResult = ISanctuaryAndDragonResult;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\
@@ -49,7 +50,7 @@ export interface SanctuaryAndDragonResult {
  */
 export function buildSanctuaryAndDragonModels(ctx: WorldModelBuildContext): SanctuaryAndDragonResult {
   const { scene, textures, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
-  const archAssets = createArchitecturalSharedAssets(ctx);
+  const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 
   // --- 1) ARTICULATED FLYING IMPERIAL SKY DRAGON ---
   const skyDragonGroup = new THREE.Group();
@@ -382,7 +383,7 @@ export function buildSanctuaryAndDragonModels(ctx: WorldModelBuildContext): Sanc
   const [m3x, m3z] = toSakuraWorld(-6.5, 16.5);
   const [m4x, m4z] = toSakuraWorld(6.5, 16.5);
 
-  const taiChiMonks: TaiChiMonk[] = [];
+  const taiChiMonks: ITaiChiMonk[] = [];
   const monkPlacements: Array<[number, number, number, number]> = [
     [m1x, sY, m1z, SAKURA_SANCTUARY_YAW],
     [m2x, sY, m2z, SAKURA_SANCTUARY_YAW],

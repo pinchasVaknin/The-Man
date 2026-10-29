@@ -23,10 +23,11 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== SETTLEMENT MODEL INTERFACE ======================== \\
 // #region Settlement Model Interface
-export interface SettlementModelHandles {
+export interface ISettlementModelHandles {
   readonly rowboatGroup: THREE.Group;
   readonly updateSettlement: (elapsedTime: number) => void;
 }
+export type SettlementModelHandles = ISettlementModelHandles;
 // #endregion
 
 // ======================== BUILD SETTLEMENT MODELS ======================== \\
@@ -45,7 +46,7 @@ export function buildSettlementModels(ctx: WorldModelBuildContext): SettlementMo
     doorPivotHandles,
   } = ctx;
 
-  const birchBarkTex = createBirchBarkTexture();
+  const birchBarkTex = ctx.birchBarkTexture ?? createBirchBarkTexture();
 
   // Materials
   const timberMat = new THREE.MeshStandardMaterial({
@@ -397,7 +398,7 @@ export function buildSettlementModels(ctx: WorldModelBuildContext): SettlementMo
     westPierGroup.add(lPad, lGlow);
   }
 
-  interface SwimmingKoi {
+  interface ISwimmingKoi {
     mesh: THREE.Group;
     orbitCenterX: number;
     orbitCenterZ: number;
@@ -405,7 +406,7 @@ export function buildSettlementModels(ctx: WorldModelBuildContext): SettlementMo
     speed: number;
     phase: number;
   }
-  const swimmingKoiList: SwimmingKoi[] = [];
+  const swimmingKoiList: ISwimmingKoi[] = [];
   for (let k = 0; k < 12; k++) {
     const koiGroup = new THREE.Group();
     const kMat = k % 2 === 0 ? koiGoldMat : koiWhiteMat;

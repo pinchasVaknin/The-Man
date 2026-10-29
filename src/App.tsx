@@ -8,9 +8,11 @@
 // ======================== IMPORTS & CONSTANTS ======================== \\
 // #region Imports & Constants
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { WORLD_SPAWN, WeatherToggleOption } from './world/terrainMath';
-import { WorldCanvas, GameStateMode, TelemetrySnapshot, VirtualMoveState } from './components/WorldCanvas';
+import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
+import { WorldCanvas, GameStateMode, VirtualMoveState } from './components/WorldCanvas';
 import { GameShellOverlay } from './components/GameShellOverlay';
+import { CharacterLabView } from './lab/CharacterLabView';
+import { telemetryStore } from './core/telemetryStore';
 
 const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
   'auto',
@@ -34,24 +36,19 @@ export default function App() {
     return 'title';
   });
 
+  const [isLabOpen, setIsLabOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('lab') === '1') {
+        return true;
+      }
+    }
+    return false;
+  });
+
   const [muted, setMuted] = useState<boolean>(false);
   const [weatherToggle, setWeatherToggle] = useState<WeatherToggleOption>('auto');
-
-  const [telemetry, setTelemetry] = useState<TelemetrySnapshot>({
-    x: WORLD_SPAWN.x,
-    y: 2.15,
-    z: WORLD_SPAWN.z,
-    yawDeg: 0,
-    distanceWalked: 0,
-    stepCount: 0,
-    biome: 'trail',
-    walkPace: 'normal',
-    timeString: '06:40',
-    phaseLabelHe: 'זריחה וערפל בוקר',
-    sunElevationDeg: 14,
-    pointerLocked: false,
-    isFlying: false,
-  });
+  const [gameActions, setGameActions] = useState<IGameActions | null>(null);
 
   const virtualMoveRef = useRef<VirtualMoveState>({
     forward: 0,
@@ -63,8 +60,8 @@ export default function App() {
 
   // Sync game state to document.body.dataset.state
   useEffect(() => {
-    document.body.dataset.state = gameState;
-  }, [gameState]);
+    document.body.dataset.state = isLabOpen ? 'lab' : gameState;
+  }, [gameState, isLabOpen]);
 
   const handleStartGame = useCallback(() => {
     document.body.dataset.state = 'playing';
@@ -104,6 +101,7 @@ export default function App() {
 
   // Global keyboard shortcuts for Title Start (Enter/Space), Mute (M), and Weather Cycle (V)
   useEffect(() => {
+    if (isLabOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (gameState === 'title' && (e.code === 'Enter' || e.code === 'Space')) {
         e.preventDefault();
@@ -119,7 +117,11 @@ export default function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [gameState, handleStartGame, handleCycleWeather]);
+  }, [gameState, isLabOpen, handleStartGame, handleCycleWeather]);
+
+  if (isLabOpen) {
+    return <CharacterLabView onClose={() => setIsLabOpen(false)} />;
+  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-stone-950 select-none">
@@ -127,14 +129,14 @@ export default function App() {
         gameState={gameState}
         muted={muted}
         weatherToggle={weatherToggle}
-        onTelemetryUpdate={setTelemetry}
+        onTelemetryUpdate={telemetryStore.setSnapshot}
         onRequestPauseToggle={handleTogglePause}
         virtualMoveRef={virtualMoveRef}
+        onRegisterGameActions={setGameActions}
       />
 
       <GameShellOverlay
         gameState={gameState}
-        telemetry={telemetry}
         muted={muted}
         weatherToggle={weatherToggle}
         onStartGame={handleStartGame}
@@ -144,7 +146,9 @@ export default function App() {
         onToggleMute={() => setMuted((m) => !m)}
         onCycleWeather={handleCycleWeather}
         onSelectWeather={setWeatherToggle}
+        onOpenLab={() => setIsLabOpen(true)}
         virtualMoveRef={virtualMoveRef}
+        gameActions={gameActions}
       />
     </div>
   );

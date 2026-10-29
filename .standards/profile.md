@@ -22,7 +22,7 @@
   <!-- language for plans, questions and reports -->
 - code-language: english
   <!-- identifiers, comments, log messages, commit messages -->
-- ui-strings: english
+- ui-strings: localized: src/locales/
   <!-- english | localized: <where the translation files live>. Localized UI text may be in any language,
        but only inside those files, never inline in code. -->
 
@@ -32,12 +32,12 @@
 - test: npx.cmd tsx --test src/world/terrainMath.test.ts
 - test-one: npx.cmd tsx --test
   <!-- how to run a single test file or test name, e.g. "npx vitest run <file>" -->
-- lint: npm run lint
-- typecheck: npm run lint
-- build: npm run build
-- run: npm run dev -> http://localhost:3000
+- lint: npm.cmd run lint
+- typecheck: npm.cmd run lint
+- build: npm.cmd run build
+- run: npm.cmd run dev -> http://localhost:3000
   <!-- how to start the app; for a web app add the URL, e.g. "npm run dev -> http://localhost:5173" -->
-- full-check: npx.cmd tsx --test src/world/terrainMath.test.ts
+- full-check: npm.cmd run lint && npm.cmd run build && npx.cmd tsx --test src/world/terrainMath.test.ts
   <!-- the one command that must pass before every commit -->
 
 ## Verification

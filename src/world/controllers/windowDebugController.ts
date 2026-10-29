@@ -16,7 +16,7 @@ import {
   ObstacleCylinder,
   PlayerState,
   RideableHorseState,
-  SolarAtmosphere,
+  DynamicAtmosphereState,
   WeatherCycleMode,
   WeatherStateSnapshot,
   WeatherToggleOption,
@@ -37,7 +37,7 @@ import {
 } from '../terrainMath';
 import { NatureSoundEngine } from '../soundEngine';
 
-export interface WindowDebugBridgeDeps {
+export interface IWindowDebugBridgeDeps {
   playerState: PlayerState;
   obstacles: ObstacleCylinder[];
   rideableHorses: RideableHorseState[];
@@ -54,10 +54,11 @@ export interface WindowDebugBridgeDeps {
   executeSwordSlash: (isHeavy?: boolean) => ReturnType<typeof triggerSwordSlash> | null;
   getWorldHours: () => number;
   setWorldHoursAndApply: (hours: number) => number;
-  getCurrentAtmo: () => SolarAtmosphere;
+  getCurrentAtmo: () => DynamicAtmosphereState;
   getCurrentWeather: () => WeatherStateSnapshot;
   emitHudSnapshot?: () => void;
 }
+export type WindowDebugBridgeDeps = IWindowDebugBridgeDeps;
 // #endregion
 
 // ======================== CONTROLLER IMPLEMENTATION ======================== \\
@@ -65,8 +66,9 @@ export interface WindowDebugBridgeDeps {
 /**
  * Controller Pattern: Registers deterministic window debug/inspection hooks (`render_game_to_text`,
  * `teleportPlayer`, `drawBow`, `shootArrow`, `swingSword`, `setWorldHours`, etc.) for automated testing.
+ * @returns Cleanup function that unbinds all registered properties from window.
  */
-export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
+export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => void {
   const {
     playerState,
     rideableHorses,
@@ -89,16 +91,22 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
   } = deps;
 
   const win = window as unknown as Record<string, unknown>;
+  const registeredKeys: string[] = [];
 
-  win.setWeatherCycleMode = (mode: WeatherCycleMode) => {
+  const bind = (key: string, fn: unknown) => {
+    win[key] = fn;
+    registeredKeys.push(key);
+  };
+
+  bind('setWeatherCycleMode', (mode: WeatherCycleMode) => {
     setActiveWeatherMode(mode);
-  };
+  });
 
-  win.setWeatherOverride = (kind: WeatherToggleOption) => {
+  bind('setWeatherOverride', (kind: WeatherToggleOption) => {
     weatherToggleRef.current = kind;
-  };
+  });
 
-  win.teleportPlayer = (x?: number, z?: number, yaw?: number, y?: number, pitch?: number) => {
+  bind('teleportPlayer', (x?: number, z?: number, yaw?: number, y?: number, pitch?: number) => {
     if (x !== undefined && z !== undefined) {
       if (playerState.mountedHorseId && Math.hypot(x - playerState.x, z - playerState.z) > 12) {
         playerState.mountedHorseId = null;
@@ -118,9 +126,9 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     if (yaw !== undefined) playerState.yaw = yaw;
     if (pitch !== undefined) playerState.pitch = pitch;
     emitHudSnapshot?.();
-  };
+  });
 
-  win.drawBow = (progress = 1.0) => {
+  bind('drawBow', (progress = 1.0) => {
     if (playerState.isSwimming) return 0;
     playerState.equippedTool = 'bow';
     playerState.bowDrawn = true;
@@ -129,13 +137,13 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     soundEngine.playBowDraw();
     emitHudSnapshot?.();
     return playerState.bowDrawProgress;
-  };
+  });
 
-  win.shootArrow = (power = 1.0) => {
+  bind('shootArrow', (power = 1.0) => {
     return fireArrowNow(power);
-  };
+  });
 
-  win.setEquippedTool = (tool: EquippedToolSlot) => {
+  bind('setEquippedTool', (tool: EquippedToolSlot) => {
     playerState.equippedTool = tool;
     if (tool !== 'bow') {
       playerState.bowDrawn = false;
@@ -143,9 +151,9 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     }
     emitHudSnapshot?.();
     return playerState.equippedTool;
-  };
+  });
 
-  win.cycleArrowKind = () => {
+  bind('cycleArrowKind', () => {
     const order: ArrowElementKind[] = ['normal', 'fire', 'wind'];
     const curr = playerState.arrowKind ?? 'normal';
     const next = order[(order.indexOf(curr) + 1) % order.length];
@@ -153,9 +161,9 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     soundEngine.playBowDraw();
     emitHudSnapshot?.();
     return next;
-  };
+  });
 
-  win.equipItem = (itemId: InventoryItemId) => {
+  bind('equipItem', (itemId: InventoryItemId) => {
     equipInventoryItem(playerState, itemId);
     soundEngine.playFootstep('trail', 1.15);
     emitHudSnapshot?.();
@@ -163,44 +171,44 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
       equippedTool: playerState.equippedTool,
       arrowKind: playerState.arrowKind,
     };
-  };
+  });
 
-  win.assignHotbar = (slotIndex: number, itemId: InventoryItemId) => {
+  bind('assignHotbar', (slotIndex: number, itemId: InventoryItemId) => {
     assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId);
     emitHudSnapshot?.();
     return [...(playerState.hotbarSlots ?? [])];
-  };
+  });
 
-  win.toggleFavorite = (itemId: InventoryItemId) => {
+  bind('toggleFavorite', (itemId: InventoryItemId) => {
     toggleFavoriteItem(playerState, itemId);
     emitHudSnapshot?.();
     return [...(playerState.favoriteIds ?? [])];
-  };
+  });
 
-  win.buyItem = (itemId: InventoryItemId) => {
+  bind('buyItem', (itemId: InventoryItemId) => {
     const res = buyMarketItem(playerState, itemId);
     if (res.ok) {
       soundEngine.playFootstep('trail', 1.22);
     }
     emitHudSnapshot?.();
     return res;
-  };
+  });
 
-  win.sellItem = (itemId: InventoryItemId) => {
+  bind('sellItem', (itemId: InventoryItemId) => {
     const res = sellMarketItem(playerState, itemId);
     if (res.ok) {
       soundEngine.playFootstep('trail', 0.95);
     }
     emitHudSnapshot?.();
     return res;
-  };
+  });
 
-  win.swingSword = (isHeavy = false) => {
+  bind('swingSword', (isHeavy = false) => {
     playerState.swordDebugFreezeProgress = null;
     return executeSwordSlash(Boolean(isHeavy)) ?? false;
-  };
+  });
 
-  win.setSwordSwingDebugPose = (
+  bind('setSwordSwingDebugPose', (
     progress: number | null,
     comboIndex = 0,
     isHeavy = false
@@ -213,17 +221,17 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     playerState.swordDebugFreezeProgress = progress;
     playerState.swordSwingProgress = progress ?? 0;
     return classifySwordAttackPhase(playerState.swordSwingProgress);
-  };
+  });
 
-  win.setBowZoom = (active = true) => {
+  bind('setBowZoom', (active = true) => {
     if (playerState.isSwimming) return false;
     playerState.equippedTool = 'bow';
     playerState.bowZoomHeld = Boolean(active);
     setSmoothRightClickZoom(active ? 1.0 : 0.0);
     return playerState.bowZoomHeld;
-  };
+  });
 
-  win.blockSword = (active = true) => {
+  bind('blockSword', (active = true) => {
     if (playerState.isSwimming) return false;
     playerState.equippedTool = 'sword';
     playerState.bowDrawn = false;
@@ -232,9 +240,9 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
     playerState.swordBlockProgress = active ? 1.0 : 0.0;
     if (active) soundEngine.playSwordClash(true);
     return playerState.swordBlocking;
-  };
+  });
 
-  win.triggerDash = () => {
+  bind('triggerDash', () => {
     if ((playerState.dashCooldown ?? 0) <= 0.05) {
       playerState.dashTimer = 0.42;
       playerState.dashCooldown = 1.4;
@@ -245,19 +253,19 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
       return true;
     }
     return false;
-  };
+  });
 
-  win.toggleCameraPerspective = () => {
+  bind('toggleCameraPerspective', () => {
     playerState.cameraPerspective =
       playerState.cameraPerspective === 'third_person' ? 'first_person' : 'third_person';
     return playerState.cameraPerspective;
-  };
+  });
 
-  win.setWorldHours = (hours: number) => {
+  bind('setWorldHours', (hours: number) => {
     return setWorldHoursAndApply(hours);
-  };
+  });
 
-  win.getPlayerState = () => {
+  bind('getPlayerState', () => {
     const worldHours = getWorldHours();
     return {
       ...playerState,
@@ -265,9 +273,9 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
       activeArrowsCount: activeArrows.length,
       stuckArrowsCount: activeArrows.filter((a) => a.stuck).length,
     };
-  };
+  });
 
-  win.render_game_to_text = () => {
+  bind('render_game_to_text', () => {
     const worldHours = getWorldHours();
     const currentAtmo = getCurrentAtmo();
     const currentWeather = getCurrentWeather();
@@ -350,6 +358,12 @@ export function registerWindowDebugBridge(deps: WindowDebugBridgeDeps): void {
       underRoof: isPositionUnderRoof(playerState.x, playerState.y, playerState.z),
       openDoors: Array.from(openDoorIds),
     });
+  });
+
+  return () => {
+    for (const key of registeredKeys) {
+      delete win[key];
+    }
   };
 }
 // #endregion

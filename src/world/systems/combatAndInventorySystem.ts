@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { Result } from '../../core/Result';
 import {
   INVENTORY_ITEMS,
   type PlayerState,
@@ -179,98 +180,170 @@ export function equipInventoryItem(state: PlayerState, itemId: InventoryItemId):
   }
 }
 
+export type MarketTransactionErrorCode =
+  | 'not_in_market'
+  | 'already_owned'
+  | 'level_too_low'
+  | 'not_enough_gold'
+  | 'not_found'
+  | 'not_owned'
+  | 'cannot_sell';
+
+export interface IBuyMarketItemPayload {
+  readonly goldCoins: number;
+  readonly requiredLevel: number;
+  readonly playerLevel: number;
+}
+
+export interface ISellMarketItemPayload {
+  readonly goldCoins: number;
+  readonly soldForGold: number;
+}
+
+/**
+ * Summary: Extended Result container for market transactions supporting legacy and typed accessors.
+ * Design: Extends core Result to satisfy errors-logging while maintaining zero-breakage backwards compatibility.
+ */
+export class MarketTransactionResult<T, E = string> extends Result<T, E> {
+  public readonly goldCoins: number;
+  public readonly requiredLevel?: number;
+  public readonly playerLevel?: number;
+  public readonly soldForGold?: number;
+
+  public constructor(
+    isSuccess: boolean,
+    value: T | undefined,
+    error: E | undefined,
+    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
+  ) {
+    super(isSuccess, value, error);
+    this.goldCoins = details.goldCoins;
+    this.requiredLevel = details.requiredLevel;
+    this.playerLevel = details.playerLevel;
+    this.soldForGold = details.soldForGold;
+    Object.freeze(this);
+  }
+
+  public static success<T>(
+    value: T,
+    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
+  ): MarketTransactionResult<T, never> {
+    return new MarketTransactionResult<T, never>(true, value, undefined as never, details);
+  }
+
+  public static failure<E = string>(
+    error: E,
+    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
+  ): MarketTransactionResult<never, E> {
+    return new MarketTransactionResult<never, E>(false, undefined as never, error, details);
+  }
+}
+
 /**
  * Summary: Purchases an item from a market stall if within range, level-eligible, and affordable.
+ * Design: Guard clauses validate proximity, item presence, prior ownership, level gating, and currency.
+ * @param state Player runtime state container.
+ * @param itemId Item to purchase.
+ * @returns Result.ok with payload on success, or Result.fail with error code.
  */
 export function buyMarketItem(
   state: PlayerState,
   itemId: InventoryItemId
-): {
-  ok: boolean;
-  reason?: 'not_in_market' | 'already_owned' | 'level_too_low' | 'not_enough_gold' | 'not_found';
-  goldCoins: number;
-  requiredLevel?: number;
-  playerLevel?: number;
-} {
+): MarketTransactionResult<IBuyMarketItemPayload, MarketTransactionErrorCode> {
   const nearMarket = findNearestMarketStall(state.x, state.z);
   if (!nearMarket) {
-    return { ok: false, reason: 'not_in_market', goldCoins: state.goldCoins ?? 0 };
+    return MarketTransactionResult.failure('not_in_market', { goldCoins: state.goldCoins ?? 0 });
   }
   const def = INVENTORY_ITEMS.find((i) => i.id === itemId);
   if (!def) {
-    return { ok: false, reason: 'not_found', goldCoins: state.goldCoins ?? 0 };
+    return MarketTransactionResult.failure('not_found', { goldCoins: state.goldCoins ?? 0 });
   }
   if (!state.ownedItemIds) {
     state.ownedItemIds = INVENTORY_ITEMS.filter((i) => i.starterOwned).map((i) => i.id);
   }
   if (state.ownedItemIds.includes(itemId)) {
-    return { ok: false, reason: 'already_owned', goldCoins: state.goldCoins ?? 0 };
+    return MarketTransactionResult.failure('already_owned', { goldCoins: state.goldCoins ?? 0 });
   }
   const playerLevel = getPlayerHeroLevel(state);
   if (playerLevel < def.requiredLevel) {
-    return {
-      ok: false,
-      reason: 'level_too_low',
+    return MarketTransactionResult.failure('level_too_low', {
       goldCoins: state.goldCoins ?? 0,
       requiredLevel: def.requiredLevel,
       playerLevel,
-    };
+    });
   }
   const currentGold = state.goldCoins ?? 0;
   if (currentGold < def.valueGold) {
-    return { ok: false, reason: 'not_enough_gold', goldCoins: currentGold };
+    return MarketTransactionResult.failure('not_enough_gold', { goldCoins: currentGold });
   }
   state.goldCoins = currentGold - def.valueGold;
   state.ownedItemIds.push(itemId);
   if (def.weaponRole) {
     equipInventoryItem(state, itemId);
   }
-  return { ok: true, goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel };
+  return MarketTransactionResult.success(
+    { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel },
+    { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel }
+  );
 }
 
 /**
  * Summary: Sells an owned inventory item to a nearby market stall.
+ * Design: Validates market stall proximity and inventory possession before awarding currency.
+ * @param state Player runtime state container.
+ * @param itemId Item to sell.
+ * @returns Result.ok with payload on success, or Result.fail with error code.
  */
 export function sellMarketItem(
   state: PlayerState,
   itemId: InventoryItemId
-): {
-  ok: boolean;
-  reason?: 'not_in_market' | 'not_owned' | 'cannot_sell';
-  goldCoins: number;
-  soldForGold: number;
-} {
+): MarketTransactionResult<ISellMarketItemPayload, MarketTransactionErrorCode> {
   const nearMarket = findNearestMarketStall(state.x, state.z);
   if (!nearMarket) {
-    return { ok: false, reason: 'not_in_market', goldCoins: state.goldCoins ?? 0, soldForGold: 0 };
+    return MarketTransactionResult.failure('not_in_market', {
+      goldCoins: state.goldCoins ?? 0,
+      soldForGold: 0,
+    });
   }
   if (itemId === 'unarmed') {
-    return { ok: false, reason: 'cannot_sell', goldCoins: state.goldCoins ?? 0, soldForGold: 0 };
+    return MarketTransactionResult.failure('cannot_sell', {
+      goldCoins: state.goldCoins ?? 0,
+      soldForGold: 0,
+    });
   }
   const def = INVENTORY_ITEMS.find((i) => i.id === itemId);
   if (!def) {
-    return { ok: false, reason: 'not_owned', goldCoins: state.goldCoins ?? 0, soldForGold: 0 };
+    return MarketTransactionResult.failure('not_owned', {
+      goldCoins: state.goldCoins ?? 0,
+      soldForGold: 0,
+    });
   }
   if (!state.ownedItemIds) {
     state.ownedItemIds = INVENTORY_ITEMS.filter((i) => i.starterOwned).map((i) => i.id);
   }
   const idx = state.ownedItemIds.indexOf(itemId);
   if (idx === -1) {
-    return { ok: false, reason: 'not_owned', goldCoins: state.goldCoins ?? 0, soldForGold: 0 };
+    return MarketTransactionResult.failure('not_owned', {
+      goldCoins: state.goldCoins ?? 0,
+      soldForGold: 0,
+    });
   }
   const sellPrice = getMarketSellPrice(def);
   state.ownedItemIds.splice(idx, 1);
   state.goldCoins = (state.goldCoins ?? 0) + sellPrice;
 
   if (state.activeWeaponId === itemId || state.equippedTool === itemId) {
-    const fallbackWeapon = state.ownedItemIds.find((id) => {
+    const fallbackWeapon = state.ownedItemIds.find((id: InventoryItemId) => {
       const d = INVENTORY_ITEMS.find((x) => x.id === id);
       return d?.weaponRole === 'bow' || d?.weaponRole === 'sword';
     });
     equipInventoryItem(state, fallbackWeapon ?? 'unarmed');
   }
 
-  return { ok: true, goldCoins: state.goldCoins, soldForGold: sellPrice };
+  return MarketTransactionResult.success(
+    { goldCoins: state.goldCoins, soldForGold: sellPrice },
+    { goldCoins: state.goldCoins, soldForGold: sellPrice }
+  );
 }
 
 /**
@@ -311,13 +384,14 @@ export function toggleFavoriteItem(state: PlayerState, itemId: InventoryItemId):
 
 // ======================== SWORD MELEE COMBAT ======================== \\
 // #region Sword Melee Combat
-export interface SwordSlashHitResult {
+export interface ISwordSlashHitResult {
   readonly comboIndex: number;
   readonly isHeavy: boolean;
   readonly hitKind: 'none' | 'target' | 'obstacle' | 'wall';
   readonly hitTarget: ArcheryTargetDef | null;
   readonly hitAnySurface: boolean;
 }
+export type SwordSlashHitResult = ISwordSlashHitResult;
 
 /**
  * Summary: Evaluates melee hit detection during the Phase C Active Strike Window.

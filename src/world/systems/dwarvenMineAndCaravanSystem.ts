@@ -35,7 +35,7 @@ const CATWALK_STAIR_SPAN = CATWALK_STAIR_END_LZ - CATWALK_STAIR_START_LZ;
 const DOCK_PIER_HEIGHT_OFFSET = 0.14;
 const CRYSTAL_LAKE_DEPTH = 1.9;
 
-interface MinerStationConfig {
+interface IMinerStationConfig {
   readonly nameHe: string;
   readonly houseIdx: number;
   readonly homeOffsetX: number;
@@ -45,6 +45,7 @@ interface MinerStationConfig {
   readonly workLocalZ: number;
   readonly workYaw: number;
 }
+type MinerStationConfig = IMinerStationConfig;
 
 const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
   // Room 1 (Central Junction Hall) ore veins
@@ -108,31 +109,20 @@ function interpolateDwarvenCaravanWaypoints(
 
 // ======================== CARAVAN SCHEDULING ======================== \\
 // #region Caravan Scheduling
-/**
- * Summary: Pure deterministic scheduler for the 8 LOTR-style Dwarven Miners.
- */
-export function computeDwarvenMinerCaravanState(
-  worldHours: number,
-  dwarfIndex: number,
-  animTimeSec = 0
-): DwarvenMinerCaravanState {
-  const idx = ((dwarfIndex % DWARVEN_MINERS_COUNT) + DWARVEN_MINERS_COUNT) % DWARVEN_MINERS_COUNT;
-  const station = DWARVEN_MINER_STATIONS[idx];
+function buildMinerWaypoints(dwarfIdx: number): [number, number, number][] {
+  const station = DWARVEN_MINER_STATIONS[dwarfIdx];
   const house = DWARVEN_STONE_HOUSES[station.houseIdx];
-
   const homeX = house.x + station.homeOffsetX;
   const homeZ = house.z + station.homeOffsetZ;
   const homeY = house.floorY;
-
   const doorStepX = house.doorX + house.dirX * 1.4;
   const doorStepZ = house.doorZ;
-
   const roadX = SOUTHERN_MINE_POS.x + station.laneOffsetX;
   const workX = SOUTHERN_MINE_POS.x + station.workLocalX;
   const workZ = SOUTHERN_MINE_POS.entranceZ + station.workLocalZ;
   const workY = SOUTHERN_MINE_POS.cavernFloorY;
-
   const midCorridorZ = SOUTHERN_MINE_POS.entranceZ + 49.0;
+
   const waypointsToMine: [number, number, number][] = [
     [homeX, homeY, homeZ],
     [doorStepX, house.terraceY, doorStepZ],
@@ -153,6 +143,41 @@ export function computeDwarvenMinerCaravanState(
     waypointsToMine.push([SOUTHERN_MINE_POS.x + station.laneOffsetX * 0.8, workY, SOUTHERN_MINE_POS.entranceZ + 78.5]);
   }
   waypointsToMine.push([workX, workY, workZ]);
+  return waypointsToMine;
+}
+
+type CaravanPath = readonly (readonly [number, number, number])[];
+
+const PRECOMPUTED_CARAVAN_TO_MINE: readonly CaravanPath[] = Object.freeze(
+  Array.from({ length: DWARVEN_MINERS_COUNT }, (_, i) => Object.freeze(buildMinerWaypoints(i)))
+);
+
+const PRECOMPUTED_CARAVAN_TO_HOME: readonly CaravanPath[] = Object.freeze(
+  Array.from({ length: DWARVEN_MINERS_COUNT }, (_, i) => Object.freeze([...buildMinerWaypoints(i)].reverse()))
+);
+
+/**
+ * Summary: Pure deterministic scheduler for the 8 LOTR-style Dwarven Miners.
+ */
+export function computeDwarvenMinerCaravanState(
+  worldHours: number,
+  dwarfIndex: number,
+  animTimeSec = 0
+): DwarvenMinerCaravanState {
+  const idx = ((dwarfIndex % DWARVEN_MINERS_COUNT) + DWARVEN_MINERS_COUNT) % DWARVEN_MINERS_COUNT;
+  const station = DWARVEN_MINER_STATIONS[idx];
+  const house = DWARVEN_STONE_HOUSES[station.houseIdx];
+
+  const homeX = house.x + station.homeOffsetX;
+  const homeZ = house.z + station.homeOffsetZ;
+  const homeY = house.floorY;
+
+  const workX = SOUTHERN_MINE_POS.x + station.workLocalX;
+  const workZ = SOUTHERN_MINE_POS.entranceZ + station.workLocalZ;
+  const workY = SOUTHERN_MINE_POS.cavernFloorY;
+
+  const waypointsToMine = PRECOMPUTED_CARAVAN_TO_MINE[idx];
+  const reversedWaypoints = PRECOMPUTED_CARAVAN_TO_HOME[idx];
 
   const h = ((worldHours % HOURS_IN_DAY) + HOURS_IN_DAY) % HOURS_IN_DAY;
   const rowIndex = Math.floor(idx / 2);
@@ -199,7 +224,6 @@ export function computeDwarvenMinerCaravanState(
   if (h >= SCHEDULE_WORK_END && h <= SCHEDULE_NIGHT_START) {
     const rawProgress = (h - SCHEDULE_WORK_END) / DUSK_CARAVAN_DURATION;
     const uForward = Math.max(0, Math.min(1, (rawProgress - caravanLag) / (1.0 - 0.19)));
-    const reversedWaypoints = [...waypointsToMine].reverse();
     const pt = interpolateDwarvenCaravanWaypoints(reversedWaypoints, uForward);
     const isMoving = uForward > 0.001 && uForward < 0.999;
     return {

@@ -24,16 +24,28 @@ export class Result<T, E = string> {
     /** Summary: Inverse of isSuccess, kept as a field for readable guard clauses. */
     public readonly isFailure: boolean;
 
+    /** Summary: Compatibility alias for isSuccess. */
+    public get ok(): boolean {
+        return this.isSuccess;
+    }
+
+    /** Summary: Safe access to error without throwing when used in legacy checks. */
+    public get reason(): E | undefined {
+        return this._error;
+    }
+
     private readonly _value: T | undefined;
     private readonly _error: E | undefined;
 
-    /** Summary: Builds a frozen Result; reachable only through ok() and fail(). */
-    private constructor(isSuccess: boolean, value: T | undefined, error: E | undefined) {
+    /** Summary: Builds a frozen Result; reachable through ok(), fail(), or subclasses. */
+    protected constructor(isSuccess: boolean, value: T | undefined, error: E | undefined) {
         this.isSuccess = isSuccess;
         this.isFailure = !isSuccess;
         this._value = value;
         this._error = error;
-        Object.freeze(this);
+        if (new.target === Result) {
+            Object.freeze(this);
+        }
     }
 
     /**

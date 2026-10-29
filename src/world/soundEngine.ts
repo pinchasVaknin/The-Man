@@ -8,6 +8,7 @@
 // ======================== IMPORTS & TYPES ======================== \\
 // #region Imports & Types
 import { BiomeType } from './terrainMath';
+import { type ILogger, NullLogger } from '../core/ILogger';
 // #endregion
 
 // ======================== SOUND ENGINE CLASS ======================== \\
@@ -22,11 +23,21 @@ export class NatureSoundEngine {
   private noiseBuffer: AudioBuffer | null = null;
   private birdTimer = 0;
 
+  public constructor(private readonly logger: ILogger = NullLogger.instance) {}
+
+  private _resumeContext(): void {
+    if (this.ctx && this.ctx.state === 'suspended' && !this.muted) {
+      void this.ctx.resume().catch((err: unknown) => {
+        this.logger.warn('AudioContext resume deferred by browser autoplay policy', {
+          error: String(err),
+        });
+      });
+    }
+  }
+
   public init() {
     if (this.initialized) {
-      if (this.ctx && this.ctx.state === 'suspended' && !this.muted) {
-        this.ctx.resume().catch(() => {});
-      }
+      this._resumeContext();
       return;
     }
     try {
@@ -87,8 +98,11 @@ export class NatureSoundEngine {
       waterSource.start();
 
       this.initialized = true;
-    } catch {
-      // Ignore audio restrictions in headless browsers
+    } catch (err: unknown) {
+      this.logger.warn('AudioContext initialization failed or audio unavailable in environment', {
+        error: String(err),
+      });
+      this.initialized = false;
     }
   }
 
@@ -160,9 +174,7 @@ export class NatureSoundEngine {
       this.init();
     }
     if (!this.ctx || !this.masterGain || !this.noiseBuffer) return;
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    this._resumeContext();
     const now = this.ctx.currentTime;
 
     // Stage 1: Sharp Electric Lightning Snap / Crack (0.0s -> 0.24s)
@@ -310,9 +322,7 @@ export class NatureSoundEngine {
   public playBowDraw() {
     if (!this.initialized) this.init();
     if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    this._resumeContext();
     const now = this.ctx.currentTime;
 
     // Subtle wooden bow limb creak + hemp string tension slide
@@ -333,9 +343,7 @@ export class NatureSoundEngine {
   public playArrowShoot(drawPower = 1.0) {
     if (!this.initialized) this.init();
     if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    this._resumeContext();
     const now = this.ctx.currentTime;
     const p = Math.max(0.3, Math.min(1.0, drawPower));
 
@@ -379,9 +387,7 @@ export class NatureSoundEngine {
   public playSwordSwing(comboIndex = 0, isHeavy = false) {
     if (!this.initialized) this.init();
     if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    this._resumeContext();
     const now = this.ctx.currentTime;
     const pitchMod = isHeavy ? 0.76 : comboIndex === 1 ? 1.12 : comboIndex === 2 ? 0.92 : 1.0;
     const dur = isHeavy ? 0.36 : 0.23;
@@ -422,9 +428,7 @@ export class NatureSoundEngine {
   public playSwordClash(isBlock = false) {
     if (!this.initialized) this.init();
     if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+    this._resumeContext();
     const now = this.ctx.currentTime;
 
     // Crisp metallic steel-on-steel / spark clash ring
@@ -535,7 +539,11 @@ export class NatureSoundEngine {
 
   public dispose() {
     if (this.ctx) {
-      this.ctx.close().catch(() => {});
+      void this.ctx.close().catch((err: unknown) => {
+        this.logger.warn('AudioContext teardown error on dispose', {
+          error: String(err),
+        });
+      });
       this.ctx = null;
     }
   }

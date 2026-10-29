@@ -10,11 +10,12 @@
 import React, { useEffect, useRef } from 'react';
 import { sampleMinimapColorAt } from '../world/terrainMath';
 
-export interface ExplorerMinimapProps {
+export interface IExplorerMinimapProps {
   playerX: number;
   playerZ: number;
   yawDeg: number;
 }
+export type ExplorerMinimapProps = IExplorerMinimapProps;
 
 const MAP_WORLD_HALF = 680; // -680m .. +680m
 const METERS_PER_CELL = 2;  // 2m per pixel cell -> 680 x 680 offscreen map
@@ -25,7 +26,7 @@ const VIEW_WINDOW_M = 180; // Visible meters across the minimap diameter
 
 // ======================== EXPLORER MINIMAP COMPONENT ======================== \\
 // #region Explorer Minimap Component
-export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
+export const ExplorerMinimap = React.memo<ExplorerMinimapProps>(({
   playerX,
   playerZ,
   yawDeg,
@@ -34,9 +35,11 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenImgDataRef = useRef<ImageData | null>(null);
   const revealedLevelRef = useRef<Uint8Array | null>(null);
+  const cachedColorsRef = useRef<Uint8Array | null>(null);
+  const hasCachedColorRef = useRef<Uint8Array | null>(null);
   const lastRevealPosRef = useRef<{ x: number; z: number }>({ x: 99999, z: 99999 });
 
-  // Initialize persistent Fog-of-War offscreen canvas once
+  // Initialize persistent Fog-of-War offscreen canvas and cached color arrays once
   useEffect(() => {
     const off = document.createElement('canvas');
     off.width = GRID_SIZE;
@@ -51,6 +54,8 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
     offscreenCanvasRef.current = off;
     offscreenImgDataRef.current = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
     revealedLevelRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    cachedColorsRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE * 3);
+    hasCachedColorRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
   }, []);
 
   useEffect(() => {
@@ -83,6 +88,8 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
 
       let dirty = false;
       const data = imgData.data;
+      const cachedColors = cachedColorsRef.current;
+      const hasCached = hasCachedColorRef.current;
 
       for (let cz = minCz; cz <= maxCz; cz++) {
         const wz = (cz + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
@@ -102,7 +109,25 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
 
           if (newLevel > revealed[cellIdx]) {
             revealed[cellIdx] = newLevel;
-            const [r, g, b] = sampleMinimapColorAt(wx, wz);
+            let r: number;
+            let g: number;
+            let b: number;
+            const cIdx = cellIdx * 3;
+
+            if (hasCached && cachedColors && hasCached[cellIdx] === 1) {
+              r = cachedColors[cIdx];
+              g = cachedColors[cIdx + 1];
+              b = cachedColors[cIdx + 2];
+            } else {
+              [r, g, b] = sampleMinimapColorAt(wx, wz);
+              if (hasCached && cachedColors) {
+                cachedColors[cIdx] = r;
+                cachedColors[cIdx + 1] = g;
+                cachedColors[cIdx + 2] = b;
+                hasCached[cellIdx] = 1;
+              }
+            }
+
             const alpha = newLevel / 255;
             // Blend topographic color over dark fog base (#151310 -> 21, 19, 16)
             const pIdx = cellIdx * 4;
@@ -266,5 +291,6 @@ export const ExplorerMinimap: React.FC<ExplorerMinimapProps> = ({
       </div>
     </div>
   );
-};
+});
+ExplorerMinimap.displayName = 'ExplorerMinimap';
 // #endregion

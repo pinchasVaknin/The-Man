@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { valueNoise2D } from './terrainMath';
 
-export interface WorldTextureSet {
+export interface IWorldTextureSet {
   terrainAlbedo: THREE.CanvasTexture;
   terrainBump: THREE.CanvasTexture;
   barkAlbedo: THREE.CanvasTexture;
@@ -22,6 +22,7 @@ export interface WorldTextureSet {
   contactShadow: THREE.CanvasTexture;
   dispose: () => void;
 }
+export type WorldTextureSet = IWorldTextureSet;
 
 function configureTexture(
   tex: THREE.CanvasTexture,

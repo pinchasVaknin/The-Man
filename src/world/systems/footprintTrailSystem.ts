@@ -13,7 +13,7 @@ import { walkableHeightAt, getSurfaceBiomeAt, northernSnowZoneFactorAt } from '.
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Constants & Types
-export interface FootprintDecalState {
+export interface IFootprintDecalState {
   readonly id: number;
   active: boolean;
   kind: 'boot' | 'hoof';
@@ -28,15 +28,17 @@ export interface FootprintDecalState {
   maxAge: number;
   opacity: number;
 }
+export type FootprintDecalState = IFootprintDecalState;
 
-export interface FootprintTrailTracker {
-  readonly decals: FootprintDecalState[];
+export interface IFootprintTrailTracker {
+  readonly decals: IFootprintDecalState[];
   nextSlotIndex: number;
   lastStepX: number;
   lastStepZ: number;
   stepAlternator: boolean;
   accumulatedDistance: number;
 }
+export type FootprintTrailTracker = IFootprintTrailTracker;
 
 export const MAX_FOOTPRINT_DECALS = 96;
 export const FOOTPRINT_MAX_AGE_SECONDS = 16.0;

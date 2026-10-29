@@ -22,7 +22,7 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== TYPES & INTERFACES ======================== \\
 // #region Types & Interfaces
-export interface EnvironmentAtmosphereHandle {
+export interface IEnvironmentAtmosphereHandle {
   readonly pollenPoints: THREE.Points;
   readonly starsMaterial: THREE.PointsMaterial;
   readonly cloudMesh: THREE.Mesh;
@@ -37,6 +37,7 @@ export interface EnvironmentAtmosphereHandle {
     weather?: WeatherStateSnapshot
   ) => void;
 }
+export type EnvironmentAtmosphereHandle = IEnvironmentAtmosphereHandle;
 
 type SquirrelActionState =
   | 'perched'
@@ -47,7 +48,7 @@ type SquirrelActionState =
   | 'climb_to_sleep'
   | 'sleeping_in_crown';
 
-interface ForestSquirrel {
+interface IForestSquirrel {
   root: THREE.Group;
   tailMesh: THREE.Mesh;
   currentTreeIdx: number;
@@ -63,7 +64,7 @@ interface ForestSquirrel {
   decisionCounter: number;
 }
 
-interface AnimatedDeer {
+interface IAnimatedDeer {
   root: THREE.Group;
   bodyMesh: THREE.Mesh;
   neckPivot: THREE.Group;
@@ -106,7 +107,7 @@ export function buildEnvironmentAtmosphereModels(
   sqTailGeo.translate(0, 0.16, -0.24);
   disposableGeometries.push(sqBodyGeo, sqHeadGeo, sqTailGeo);
 
-  const forestSquirrels: ForestSquirrel[] = [];
+  const forestSquirrels: IForestSquirrel[] = [];
   const squirrelTrees = [
     { x: -55, z: 12 },
     { x: -48, z: 25 },
@@ -169,7 +170,7 @@ export function buildEnvironmentAtmosphereModels(
   deerAntlerGeo.translate(0, 0.82, 0.05);
   disposableGeometries.push(deerBodyGeo, deerNeckGeo, deerHeadGeo, deerLegGeo, deerAntlerGeo);
 
-  const deerHerd: AnimatedDeer[] = [];
+  const deerHerd: IAnimatedDeer[] = [];
   const deerHomeSpots = [
     { x: -22, z: 22, r: 6.5, speed: 0.22 },
     { x: 26, z: 18, r: 7.0, speed: 0.24 },

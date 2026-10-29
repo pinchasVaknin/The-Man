@@ -13,6 +13,7 @@ import {
   INVENTORY_ITEMS,
   InventoryItemId,
   InventoryItemDef,
+  type IGameActions,
 } from '../world/terrainMath';
 import { GameStateMode, TelemetrySnapshot, VirtualMoveState } from './WorldCanvas';
 import { ExplorerMinimap } from './ExplorerMinimap';
@@ -21,10 +22,12 @@ import {
   InventoryCategoryTab,
   SHORT_NAMES_HE,
 } from './SkyrimInventoryModal';
+import { renderItemSvgIcon } from './itemArtworkRegistry';
+import { useTelemetry } from '../core/telemetryStore';
 
-export interface GameShellOverlayProps {
+export interface IGameShellOverlayProps {
   gameState: GameStateMode;
-  telemetry: TelemetrySnapshot;
+  telemetry?: TelemetrySnapshot;
   muted: boolean;
   weatherToggle: WeatherToggleOption;
   onStartGame: () => void;
@@ -34,8 +37,11 @@ export interface GameShellOverlayProps {
   onToggleMute: () => void;
   onCycleWeather: () => void;
   onSelectWeather: (option: WeatherToggleOption) => void;
+  onOpenLab?: () => void;
   virtualMoveRef: React.MutableRefObject<VirtualMoveState>;
+  gameActions?: IGameActions | null;
 }
+export type GameShellOverlayProps = IGameShellOverlayProps;
 
 const WEATHER_OPTIONS: { id: WeatherToggleOption; labelHe: string; shortHe: string }[] = [
   { id: 'auto', labelHe: 'אוטומטי (עונות השנה)', shortHe: 'אוטומטי' },
@@ -62,71 +68,25 @@ const DEFAULT_OWNED_IDS: InventoryItemId[] = [
   'crystal_gem',
   'ancient_dwarven_horn',
 ];
-
-function renderItemSvgIcon(itemId: InventoryItemId, className = 'w-4 h-4') {
-  switch (itemId) {
-    case 'bow':
-    case 'elven_longbow':
-    case 'dragonbone_bow':
-      return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
-          <path d="M4 20c6-2 14-10 16-16" />
-          <path d="M4 4l16 16" />
-          <polyline points="15 4 20 4 20 9" />
-        </svg>
-      );
-    case 'sword':
-    case 'katana_imperial':
-    case 'dwarven_warhammer':
-    case 'celestial_jin_sword':
-      return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
-          <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
-          <path d="M13 19l6-6" />
-          <path d="M16 16l4 4" />
-          <path d="M19 21l2-2" />
-        </svg>
-      );
-    case 'torch':
-      return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
-          <path d="M12 2c2.5 2.5 3.5 5 2 8-1.5 2-4 2-4-1 0-2 1-4 2-7z" />
-          <path d="M10 12h4l-1 10h-2l-1-10z" />
-        </svg>
-      );
-    case 'arrow_normal':
-    case 'arrow_fire':
-    case 'arrow_wind':
-      return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
-          <path d="M5 19L19 5" />
-          <polyline points="12 5 19 5 19 12" />
-          <path d="M5 19l3-1-2-2-1 3z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
-          <circle cx="12" cy="12" r="8" />
-        </svg>
-      );
-  }
-}
 // #endregion
 
 // ======================== OVERLAY COMPONENT ======================== \\
 // #region Overlay Component
-export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
+export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
   gameState,
-  telemetry,
+  telemetry: externalTelemetry,
   weatherToggle,
   onStartGame,
   onResumeGame,
   onReturnToTitle,
   onCycleWeather,
   onSelectWeather,
+  onOpenLab,
   virtualMoveRef,
+  gameActions,
 }) => {
+  const storeTelemetry = useTelemetry();
+  const telemetry = externalTelemetry ?? storeTelemetry;
   const [skyrimModal, setSkyrimModal] = useState<SkyrimModalMode>('none');
   const [selectedCategory, setSelectedCategory] = useState<InventoryCategoryTab>('all');
   const [selectedItemId, setSelectedItemId] = useState<InventoryItemId>('bow');
@@ -178,74 +138,35 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
   };
 
   const triggerEquipItem = (itemId: InventoryItemId) => {
-    (window as unknown as { equipItem?: (id: InventoryItemId) => void }).equipItem?.(itemId);
+    gameActions?.onEquipItem(itemId);
     setUiTick((t) => t + 1);
   };
 
   const triggerBuyItem = (itemId: InventoryItemId): { ok: boolean; reasonHe: string } => {
-    const fn = (
-      window as unknown as {
-        buyItem?: (id: InventoryItemId) => {
-          ok: boolean;
-          reason?: string;
-          goldCoins: number;
-          requiredLevel?: number;
-        };
-      }
-    ).buyItem;
-    const raw = fn ? fn(itemId) : { ok: false, reason: 'error', goldCoins };
-    setUiTick((t) => t + 1);
-    if (raw.ok) {
-      return { ok: true, reasonHe: `נרכש בהצלחה! יתרת זהב: ${raw.goldCoins}` };
+    if (gameActions) {
+      const res = gameActions.onBuyItem(itemId);
+      setUiTick((t) => t + 1);
+      return res;
     }
-    if (raw.reason === 'not_in_market') {
-      return { ok: false, reasonHe: 'קניית נשקים וחומרים מתבצעת רק בחנויות שוק הנמל!' };
-    }
-    if (raw.reason === 'level_too_low') {
-      return { ok: false, reasonHe: `נדרשת דרגת סייר ${raw.requiredLevel ?? 2} לרכישת פריט זה` };
-    }
-    if (raw.reason === 'not_enough_gold') {
-      return { ok: false, reasonHe: 'אין ברשותך מספיק מטבעות זהב' };
-    }
-    return { ok: false, reasonHe: 'הפריט כבר בבעלותך' };
+    return { ok: false, reasonHe: 'מערכת המסחר אינה זמינה' };
   };
 
   const triggerSellItem = (itemId: InventoryItemId): { ok: boolean; reasonHe: string } => {
-    const fn = (
-      window as unknown as {
-        sellItem?: (id: InventoryItemId) => {
-          ok: boolean;
-          reason?: string;
-          goldCoins: number;
-          soldForGold: number;
-        };
-      }
-    ).sellItem;
-    const raw = fn ? fn(itemId) : { ok: false, reason: 'error', goldCoins, soldForGold: 0 };
-    setUiTick((t) => t + 1);
-    if (raw.ok) {
-      return {
-        ok: true,
-        reasonHe: `נמכר לסוחר תמורת +${raw.soldForGold} זהב! (יתרה: ${raw.goldCoins})`,
-      };
+    if (gameActions) {
+      const res = gameActions.onSellItem(itemId);
+      setUiTick((t) => t + 1);
+      return res;
     }
-    if (raw.reason === 'not_in_market') {
-      return { ok: false, reasonHe: 'מכירה מתבצעת רק אצל המוכרים בשוק הנמל!' };
-    }
-    return { ok: false, reasonHe: 'לא ניתן למכור פריט זה' };
+    return { ok: false, reasonHe: 'מערכת המסחר אינה זמינה' };
   };
 
   const triggerAssignHotbar = (slotIndex: number, itemId: InventoryItemId) => {
-    (
-      window as unknown as { assignHotbar?: (idx: number, id: InventoryItemId) => void }
-    ).assignHotbar?.(slotIndex, itemId);
+    gameActions?.onAssignHotbar(slotIndex, itemId);
     setUiTick((t) => t + 1);
   };
 
   const triggerToggleFavorite = (itemId: InventoryItemId) => {
-    (window as unknown as { toggleFavorite?: (id: InventoryItemId) => void }).toggleFavorite?.(
-      itemId
-    );
+    gameActions?.onToggleFavorite(itemId);
     setUiTick((t) => t + 1);
   };
 
@@ -263,27 +184,36 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
 
   // Expose helper hooks for automated tests & handle [Tab] / [B] / [Q] / [1-4] / [F] / [E]
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).openInventoryModal = (
-      open?: boolean,
-      category?: InventoryCategoryTab
-    ) => {
-      if (category) {
-        setSelectedCategory(category);
-        if (category === 'market') {
-          const firstMarket = INVENTORY_ITEMS.find((i) => !i.starterOwned);
-          if (firstMarket) setSelectedItemId(firstMarket.id);
+    if (import.meta.env.DEV) {
+      const win = window as unknown as Record<string, unknown>;
+      win.openInventoryModal = (
+        open?: boolean,
+        category?: InventoryCategoryTab
+      ) => {
+        if (category) {
+          setSelectedCategory(category);
+          if (category === 'market') {
+            const firstMarket = INVENTORY_ITEMS.find((i) => !i.starterOwned);
+            if (firstMarket) setSelectedItemId(firstMarket.id);
+          }
         }
-      }
-      setSkyrimModal((prev) =>
-        open === undefined ? (prev === 'inventory' ? 'none' : 'inventory') : open ? 'inventory' : 'none'
-      );
-    };
-    (window as unknown as Record<string, unknown>).openFavoritesModal = (open?: boolean) => {
-      setSkyrimModal((prev) =>
-        open === undefined ? (prev === 'favorites' ? 'none' : 'favorites') : open ? 'favorites' : 'none'
-      );
-    };
+        setSkyrimModal((prev) =>
+          open === undefined ? (prev === 'inventory' ? 'none' : 'inventory') : open ? 'inventory' : 'none'
+        );
+      };
+      win.openFavoritesModal = (open?: boolean) => {
+        setSkyrimModal((prev) =>
+          open === undefined ? (prev === 'favorites' ? 'none' : 'favorites') : open ? 'favorites' : 'none'
+        );
+      };
+      return () => {
+        delete win.openInventoryModal;
+        delete win.openFavoritesModal;
+      };
+    }
+  }, []);
 
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState !== 'playing') return;
 
@@ -343,95 +273,72 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
   }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket]);
 
   // ============================================================================
-  // 1. TITLE SCREEN OVERLAY (Clean Negative Space + Only Weather [V] Button)
+  // 1. TITLE SCREEN OVERLAY ("the man" — Right-Aligned Typographic Menu)
   // ============================================================================
   if (gameState === 'title') {
     return (
       <main
-        className="fixed inset-0 z-20 flex flex-col justify-between p-6 md:p-12 pointer-events-none"
+        dir="rtl"
+        data-testid="title-screen-overlay"
+        className="fixed inset-0 z-20 flex flex-col justify-center items-start pr-8 sm:pr-14 md:pr-20 pl-6 pointer-events-none select-none"
         style={{
           background:
-            'linear-gradient(to bottom, rgba(12, 10, 9, 0.55) 0%, rgba(12, 10, 9, 0.12) 45%, rgba(12, 10, 9, 0.72) 100%)',
+            'linear-gradient(to left, rgba(9, 8, 7, 0.88) 0%, rgba(12, 10, 9, 0.56) 26%, rgba(12, 10, 9, 0.14) 50%, rgba(12, 10, 9, 0) 72%)',
         }}
       >
-        {/* Top Row: Only Weather [V] Button */}
-        <div className="flex items-center justify-end w-full">
-          <div className="flex items-center gap-2 pointer-events-auto">
-            <button
-              type="button"
-              data-testid="weather-toggle-btn"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                onCycleWeather();
-              }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium text-stone-200 transition-colors cursor-pointer shrink-0"
-              style={{
-                backgroundColor: 'rgba(20, 18, 15, 0.85)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-              }}
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-sky-400 stroke-2">
-                <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
-                <path d="M8 19v2M12 19v2M16 19v2" />
-              </svg>
-              <span className="whitespace-nowrap">מזג אוויר: {activeWeatherOption.shortHe}</span>
-              <kbd className="px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
-                V
-              </kbd>
-            </button>
-          </div>
-        </div>
+        {/* Subtle Architectural Right-Margin Vertical Hairline */}
+        <div
+          aria-hidden="true"
+          className="fixed top-12 bottom-12 right-5 sm:right-8 md:right-11 w-px pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to bottom, rgba(251, 191, 36, 0) 0%, rgba(251, 191, 36, 0.38) 30%, rgba(251, 191, 36, 0.38) 70%, rgba(251, 191, 36, 0) 100%)',
+          }}
+        />
 
-        {/* Center / Right-Third Negative-Space Title Lockup */}
-        <div className="my-auto max-w-xl flex flex-col items-start gap-6">
-          <div className="flex items-center gap-4">
-            <svg
-              viewBox="0 0 72 72"
-              className="w-16 h-16 shrink-0"
-              aria-hidden="true"
-            >
-              <circle
-                cx="36"
-                cy="36"
-                r="33"
-                fill="rgba(20, 18, 14, 0.88)"
-                stroke="#d97706"
-                strokeWidth="2"
-              />
-              <circle cx="46" cy="24" r="7" fill="#fbbf24" />
-              <path
-                d="M10 48 L26 26 L38 40 L48 30 L62 48 Z"
-                fill="#44403c"
-                stroke="#78716c"
-                strokeWidth="1"
-              />
-              <path
-                d="M26 17 L18 31 L22 31 L16 42 L23 42 L23 48 L29 48 L29 42 L36 42 L30 31 L34 31 Z"
-                fill="#4d7c38"
-              />
-              <path
-                d="M15 53 Q36 50 57 53 M20 58 Q36 56 52 58"
-                stroke="#38bdf8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </svg>
-
-            <div>
-              <h1
-                className="font-display-he text-4xl md:text-6xl font-bold text-stone-100 tracking-tight hud-stroke"
-                style={{ textWrap: 'balance' }}
+        {/* Right-Docked Title & Pure Text Menu Stack (Raised higher in viewport) */}
+        <div className="flex flex-col items-start text-right w-full max-w-lg -mt-20 sm:-mt-28 md:-mt-32">
+          {/* Sculptural Game Title Lockup — "the man" (No description text) */}
+          <div className="mb-8 sm:mb-9 pr-5 flex flex-col items-start">
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <span className="inline-block w-2 h-2 rotate-45 bg-amber-400/90" />
+              <span
+                dir="ltr"
+                className="text-[11px] font-mono uppercase tracking-[0.42em] text-amber-300/85"
               >
-                שביל הטבע
-              </h1>
-              <p className="text-base md:text-lg text-amber-200/90 font-medium mt-1 hud-stroke">
-                עולם פתוח וחי של טבע, מבצר קיסרי, שוק סוחרים וממלכת גמדים
-              </p>
+                OPEN WORLD EDITION
+              </span>
             </div>
+
+            <h1
+              dir="ltr"
+              data-testid="game-main-title"
+              className="font-display-he text-5xl sm:text-6xl md:text-7xl font-bold tracking-[0.14em] lowercase text-stone-100 leading-none whitespace-nowrap"
+              style={{
+                textShadow:
+                  '0 10px 36px rgba(0, 0, 0, 0.92), 0 2px 8px rgba(0, 0, 0, 0.85)',
+              }}
+            >
+              the man
+            </h1>
+
+            {/* Ornamental Gold Tapered Rule (Fades toward inner screen) */}
+            <div
+              aria-hidden="true"
+              className="mt-5 h-[2px] w-72 sm:w-88"
+              style={{
+                background:
+                  'linear-gradient(to left, rgba(251, 191, 36, 0.95) 0%, rgba(217, 119, 6, 0.45) 52%, rgba(217, 119, 6, 0) 100%)',
+              }}
+            />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pointer-events-auto pt-1">
+          {/* Right-Aligned Pure Text Menu Buttons with Inner-Screen Fading Hover Background */}
+          <nav
+            aria-label="תפריט ראשי"
+            className="flex flex-col items-start w-full gap-1.5 pointer-events-auto"
+          >
+            {/* 1. Start Game Text Button */}
             <button
               type="button"
               data-start="true"
@@ -439,14 +346,91 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
                 e.currentTarget.blur();
                 onStartGame();
               }}
-              className="px-7 py-3.5 rounded-xl text-base font-semibold text-stone-950 bg-amber-400 hover:bg-amber-300 active:scale-98 transition-all shadow-lg cursor-pointer whitespace-nowrap"
+              className="group relative w-80 sm:w-96 py-4 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              התחל הליכה בעולם
+              {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(245, 158, 11, 0.34) 0%, rgba(28, 22, 15, 0.72) 38%, rgba(28, 22, 15, 0.22) 74%, rgba(28, 22, 15, 0) 100%)',
+                }}
+              />
+              {/* Right-Edge Illuminated Accent Bar on Hover */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
+              />
+              <span className="relative z-10 inline-block font-display-he text-2xl sm:text-3xl font-bold text-stone-100 group-hover:text-amber-300 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
+                התחל משחק
+              </span>
             </button>
-          </div>
-        </div>
 
-        <div />
+            {/* 2. Character & Animation Lab Text Button */}
+            {onOpenLab && (
+              <button
+                type="button"
+                data-testid="open-lab-btn"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  onOpenLab();
+                }}
+                className="group relative w-80 sm:w-96 py-4 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              >
+                {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
+                  style={{
+                    background:
+                      'linear-gradient(to left, rgba(245, 158, 11, 0.3) 0%, rgba(28, 22, 15, 0.68) 38%, rgba(28, 22, 15, 0.2) 74%, rgba(28, 22, 15, 0) 100%)',
+                  }}
+                />
+                {/* Right-Edge Illuminated Accent Bar on Hover */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
+                />
+                <span className="relative z-10 inline-block font-display-he text-2xl sm:text-3xl font-bold text-stone-200 group-hover:text-amber-300 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
+                  מעבדה
+                </span>
+              </button>
+            )}
+
+            {/* 3. Weather Cycle Text Button */}
+            <button
+              type="button"
+              data-testid="weather-toggle-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onCycleWeather();
+              }}
+              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+            >
+              {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(56, 189, 248, 0.26) 0%, rgba(15, 23, 34, 0.65) 38%, rgba(15, 23, 34, 0.18) 74%, rgba(15, 23, 34, 0) 100%)',
+                }}
+              />
+              {/* Right-Edge Illuminated Accent Bar on Hover */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-sky-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
+              />
+              <span className="relative z-10 inline-flex items-baseline gap-2.5 text-lg sm:text-xl font-medium text-stone-300 group-hover:text-sky-200 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
+                <span>מזג אוויר: {activeWeatherOption.shortHe}</span>
+                <span className="text-xs font-mono-tabular text-stone-400 group-hover:text-sky-300">
+                  [V]
+                </span>
+              </span>
+            </button>
+          </nav>
+        </div>
       </main>
     );
   }
@@ -995,5 +979,6 @@ export const GameShellOverlay: React.FC<GameShellOverlayProps> = ({
       )}
     </div>
   );
-};
+});
+GameShellOverlay.displayName = 'GameShellOverlay';
 // #endregion

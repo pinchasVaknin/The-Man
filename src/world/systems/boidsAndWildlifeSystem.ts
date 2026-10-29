@@ -12,7 +12,7 @@ import { groundHeightAt as heightAt, walkableHeightAt } from './terrainAndBiomeS
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Constants & Types
-export interface BoidBirdState {
+export interface IBoidBirdState {
   readonly id: string;
   readonly flockId: number;
   x: number;
@@ -28,16 +28,18 @@ export interface BoidBirdState {
   fleeTimer: number;
   readonly scale: number;
 }
+export type BoidBirdState = IBoidBirdState;
 
-export interface BirdFlockConfig {
+export interface IBirdFlockConfig {
   readonly flockId: number;
   readonly homeX: number;
   readonly homeZ: number;
   readonly cruiseAltitudeAboveGround: number;
   readonly patrolRadius: number;
 }
+export type BirdFlockConfig = IBirdFlockConfig;
 
-export interface SmallAnimalState {
+export interface ISmallAnimalState {
   readonly id: string;
   readonly species: 'rabbit' | 'squirrel';
   readonly homeX: number;
@@ -54,13 +56,15 @@ export interface SmallAnimalState {
   fleeCooldown: number;
   earPerk: number;
 }
+export type SmallAnimalState = ISmallAnimalState;
 
-export interface BoidsAndWildlifeStepResult {
+export interface IBoidsAndWildlifeStepResult {
   readonly startledFlockCount: number;
   readonly scamperedCritterCount: number;
   readonly nearestBirdDist: number;
   readonly nearestCritterDist: number;
 }
+export type BoidsAndWildlifeStepResult = IBoidsAndWildlifeStepResult;
 
 export const BIRD_FLOCK_CONFIGS: readonly BirdFlockConfig[] = [
   { flockId: 0, homeX: 12.0, homeZ: 34.0, cruiseAltitudeAboveGround: 13.5, patrolRadius: 42.0 },

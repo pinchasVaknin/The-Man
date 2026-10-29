@@ -25,7 +25,7 @@ import {
   type FootprintTrailTracker,
 } from '../systems/footprintTrailSystem';
 
-export interface WildlifeAndFootprintsController {
+export interface IWildlifeAndFootprintsController {
   group: THREE.Group;
   birds: BoidBirdState[];
   animals: SmallAnimalState[];
@@ -43,12 +43,15 @@ export interface WildlifeAndFootprintsController {
     }
   ) => void;
 }
+export type WildlifeAndFootprintsController = IWildlifeAndFootprintsController;
 // #endregion
 
 // ======================== BUILD WILDLIFE & FOOTPRINTS ======================== \\
 // #region Build Wildlife & Footprints
 export function buildWildlifeAndFootprintsLayer(
-  scene: THREE.Scene
+  scene: THREE.Scene,
+  disposableGeometries?: THREE.BufferGeometry[],
+  disposableMaterials?: THREE.Material[]
 ): WildlifeAndFootprintsController {
   const group = new THREE.Group();
   group.name = 'wildlife-boids-footprints-layer';
@@ -94,6 +97,9 @@ export function buildWildlifeAndFootprintsLayer(
   tailGeo.scale(1.2, 0.25, 1.0);
   const beakGeo = new THREE.ConeGeometry(0.035, 0.12, 4);
   beakGeo.rotateX(Math.PI / 2);
+
+  disposableGeometries?.push(bodyGeo, breastGeo, wingInnerGeo, wingTipGeo, tailGeo, beakGeo);
+  disposableMaterials?.push(birdBodyMat, birdBreastMat, birdWingMat, beakMat);
 
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
@@ -168,6 +174,44 @@ export function buildWildlifeAndFootprintsLayer(
     roughness: 0.25,
   });
 
+  // Pre-allocated static geometries for rabbits and squirrels (eliminates loop allocations)
+  const rabbitTorsoGeo = new THREE.SphereGeometry(0.22, 10, 8);
+  rabbitTorsoGeo.scale(0.88, 0.82, 1.38);
+  const sqTorsoGeo = new THREE.SphereGeometry(0.16, 10, 8);
+  sqTorsoGeo.scale(0.88, 0.82, 1.38);
+
+  const rabbitHaunchGeo = new THREE.SphereGeometry(0.15, 8, 8);
+  rabbitHaunchGeo.scale(0.65, 0.9, 1.1);
+  const sqHaunchGeo = new THREE.SphereGeometry(0.11, 8, 8);
+  sqHaunchGeo.scale(0.65, 0.9, 1.1);
+
+  const rabbitHeadGeo = new THREE.SphereGeometry(0.14, 10, 8);
+  rabbitHeadGeo.scale(0.88, 0.88, 1.18);
+  const sqHeadGeo = new THREE.SphereGeometry(0.11, 10, 8);
+  sqHeadGeo.scale(0.88, 0.88, 1.18);
+
+  const critterEyeGeo = new THREE.SphereGeometry(0.024, 6, 6);
+  const rabbitEarGeo = new THREE.CapsuleGeometry(0.032, 0.22, 4, 8);
+  const sqEarGeo = new THREE.CapsuleGeometry(0.024, 0.06, 4, 8);
+
+  const rabbitTailGeo = new THREE.SphereGeometry(0.085, 8, 8);
+  const sqTailGeo = new THREE.CapsuleGeometry(0.085, 0.26, 5, 8);
+
+  disposableGeometries?.push(
+    rabbitTorsoGeo,
+    sqTorsoGeo,
+    rabbitHaunchGeo,
+    sqHaunchGeo,
+    rabbitHeadGeo,
+    sqHeadGeo,
+    critterEyeGeo,
+    rabbitEarGeo,
+    sqEarGeo,
+    rabbitTailGeo,
+    sqTailGeo
+  );
+  disposableMaterials?.push(rabbitFurMat, rabbitTailMat, squirrelFurMat, critterEyeMat);
+
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     const isRabbit = a.species === 'rabbit';
@@ -178,16 +222,13 @@ export function buildWildlifeAndFootprintsLayer(
     root.rotation.y = a.yaw;
 
     // Sculpted plump body
-    const torsoGeo = new THREE.SphereGeometry(isRabbit ? 0.22 : 0.16, 10, 8);
-    torsoGeo.scale(0.88, 0.82, 1.38);
-    const torso = new THREE.Mesh(torsoGeo, furMat);
+    const torso = new THREE.Mesh(isRabbit ? rabbitTorsoGeo : sqTorsoGeo, furMat);
     torso.position.set(0, isRabbit ? 0.21 : 0.16, 0);
     torso.castShadow = true;
     root.add(torso);
 
     // Muscular haunches
-    const haunchGeo = new THREE.SphereGeometry(isRabbit ? 0.15 : 0.11, 8, 8);
-    haunchGeo.scale(0.65, 0.9, 1.1);
+    const haunchGeo = isRabbit ? rabbitHaunchGeo : sqHaunchGeo;
     for (const side of [-1, 1]) {
       const haunch = new THREE.Mesh(haunchGeo, furMat);
       haunch.position.set(side * (isRabbit ? 0.14 : 0.1), isRabbit ? 0.16 : 0.12, -0.09);
@@ -197,24 +238,16 @@ export function buildWildlifeAndFootprintsLayer(
     // Head + Perking Ears
     const headGroup = new THREE.Group();
     headGroup.position.set(0, isRabbit ? 0.34 : 0.26, isRabbit ? 0.24 : 0.18);
-    const headGeo = new THREE.SphereGeometry(isRabbit ? 0.14 : 0.11, 10, 8);
-    headGeo.scale(0.88, 0.88, 1.18);
-    const headMesh = new THREE.Mesh(headGeo, furMat);
+    const headMesh = new THREE.Mesh(isRabbit ? rabbitHeadGeo : sqHeadGeo, furMat);
     headGroup.add(headMesh);
 
-    const eyeGeo = new THREE.SphereGeometry(0.024, 6, 6);
     for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(eyeGeo, critterEyeMat);
+      const eye = new THREE.Mesh(critterEyeGeo, critterEyeMat);
       eye.position.set(side * 0.08, 0.03, 0.08);
       headGroup.add(eye);
     }
 
-    const earGeo = new THREE.CapsuleGeometry(
-      isRabbit ? 0.032 : 0.024,
-      isRabbit ? 0.22 : 0.06,
-      4,
-      8
-    );
+    const earGeo = isRabbit ? rabbitEarGeo : sqEarGeo;
     const leftEar = new THREE.Mesh(earGeo, furMat);
     leftEar.position.set(-0.055, isRabbit ? 0.18 : 0.1, -0.02);
     const rightEar = new THREE.Mesh(earGeo, furMat);
@@ -225,12 +258,10 @@ export function buildWildlifeAndFootprintsLayer(
     // Tail (fluffy white cotton tail for rabbit, big curved bushy tail for squirrel)
     let tail: THREE.Mesh;
     if (isRabbit) {
-      const cottonGeo = new THREE.SphereGeometry(0.085, 8, 8);
-      tail = new THREE.Mesh(cottonGeo, rabbitTailMat);
+      tail = new THREE.Mesh(rabbitTailGeo, rabbitTailMat);
       tail.position.set(0, 0.22, -0.28);
     } else {
-      const bushyGeo = new THREE.CapsuleGeometry(0.085, 0.26, 5, 8);
-      tail = new THREE.Mesh(bushyGeo, squirrelFurMat);
+      tail = new THREE.Mesh(sqTailGeo, squirrelFurMat);
       tail.position.set(0, 0.32, -0.22);
       tail.rotation.x = 0.52;
     }
@@ -259,6 +290,8 @@ export function buildWildlifeAndFootprintsLayer(
   const hoofPrintGeo = new THREE.RingGeometry(0.09, 0.17, 12, 1, 0.25, Math.PI * 1.5);
   hoofPrintGeo.rotateX(-Math.PI / 2);
 
+  disposableGeometries?.push(bootPrintGeo, hoofPrintGeo);
+
   for (let i = 0; i < MAX_FOOTPRINT_DECALS; i++) {
     const mat = new THREE.MeshStandardMaterial({
       color: 0x2a1f16,
@@ -269,6 +302,7 @@ export function buildWildlifeAndFootprintsLayer(
       polygonOffset: true,
       polygonOffsetFactor: -2,
     });
+    disposableMaterials?.push(mat);
 
     const root = new THREE.Group();
     root.visible = false;
@@ -308,6 +342,8 @@ export function buildWildlifeAndFootprintsLayer(
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
+  disposableGeometries?.push(fireflyGeo);
+  disposableMaterials?.push(fireflyMat);
   const fireflyPoints = new THREE.Points(fireflyGeo, fireflyMat);
   group.add(fireflyPoints);
 
@@ -315,6 +351,7 @@ export function buildWildlifeAndFootprintsLayer(
   const eagleGroup = new THREE.Group();
   const eagleBodyMat = new THREE.MeshStandardMaterial({ color: 0x3b2616, roughness: 0.6 });
   const eagleGoldMat = new THREE.MeshStandardMaterial({ color: 0xc8963e, roughness: 0.55 });
+  disposableMaterials?.push(eagleBodyMat, eagleGoldMat);
   const eagleBody = new THREE.Mesh(bodyGeo, eagleBodyMat);
   eagleBody.scale.set(2.2, 2.0, 2.4);
   const eagleHead = new THREE.Mesh(breastGeo, eagleGoldMat);

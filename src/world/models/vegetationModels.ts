@@ -46,7 +46,7 @@ export function buildVegetationModels(ctx: WorldModelBuildContext): void {
   const acacias = obstacles.filter((o) => o.kind === 'acacia');
   const boulders = obstacles.filter((o) => o.kind === 'boulder');
 
-  const birchBarkTex = createBirchBarkTexture();
+  const birchBarkTex = ctx.birchBarkTexture ?? createBirchBarkTexture();
 
   const barkMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,

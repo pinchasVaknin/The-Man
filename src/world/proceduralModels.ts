@@ -28,6 +28,8 @@ import { buildSanctuaryAndDragonModels } from './models/sanctuaryAndDragonModels
 import { buildHarborModels } from './models/harborModels';
 import { buildOasisModels } from './models/oasisModels';
 import { buildEnvironmentAtmosphereModels } from './models/environmentAtmosphereModels';
+import { createArchitecturalSharedAssets } from './models/architecturalHelpers';
+import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
 import type {
   DistanceCulledObject,
   DoorPivotHandle,
@@ -37,8 +39,9 @@ import type {
 
 // ======================== INTERFACES & CONTRACTS ======================== \\
 // #region Interfaces & Contracts
-export interface AnimatedWorldHandles {
+export interface IAnimatedWorldHandles {
   waterMaterial: THREE.MeshPhysicalMaterial;
+  terrainMaterial: THREE.MeshStandardMaterial;
   swayMaterials: THREE.MeshStandardMaterial[];
   rowboatGroup: THREE.Group;
   birdsGroup: THREE.Group;
@@ -69,6 +72,7 @@ export interface AnimatedWorldHandles {
   ) => void;
   dispose: () => void;
 }
+export type AnimatedWorldHandles = IAnimatedWorldHandles;
 // #endregion
 
 // ======================== FACADE ORCHESTRATOR ======================== \\
@@ -85,12 +89,16 @@ export function buildRealisticWorld(
 ): AnimatedWorldHandles {
   const disposableGeometries: THREE.BufferGeometry[] = [];
   const disposableMaterials: THREE.Material[] = [];
+  const disposableTextures: THREE.Texture[] = [];
   const swayMaterials: THREE.MeshStandardMaterial[] = [];
   const animatedWaterMaterials: THREE.MeshPhysicalMaterial[] = [];
   const lanternLights: THREE.PointLight[] = [];
   const mistMaterials: THREE.MeshBasicMaterial[] = [];
   const distanceCulledObjects: DistanceCulledObject[] = [];
   const doorPivotHandles: DoorPivotHandle[] = [];
+
+  const birchBarkTexture = createBirchBarkTexture();
+  disposableTextures.push(birchBarkTexture);
 
   const ctx: WorldModelBuildContext = {
     scene,
@@ -99,16 +107,21 @@ export function buildRealisticWorld(
     isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
+    disposableTextures,
     swayMaterials,
     animatedWaterMaterials,
     lanternLights,
     mistMaterials,
     distanceCulledObjects,
     doorPivotHandles,
+    birchBarkTexture,
   };
 
+  const archAssets = createArchitecturalSharedAssets(ctx);
+  ctx.archAssets = archAssets;
+
   // Modular subsystem builds
-  const { waterMaterial } = buildTerrainAndWaterModel(ctx);
+  const { waterMaterial, terrainMaterial } = buildTerrainAndWaterModel(ctx);
   buildVegetationModels(ctx);
   const { rowboatGroup, updateSettlement } = buildSettlementModels(ctx);
   const { updateFarmhousesAndMine } = buildFarmhouseModels(ctx);
@@ -135,12 +148,17 @@ export function buildRealisticWorld(
     distanceCulledObjects,
   });
 
-  const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(scene);
+  const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(
+    scene,
+    disposableGeometries,
+    disposableMaterials
+  );
 
   let lastTime = 0;
 
   return {
     waterMaterial,
+    terrainMaterial,
     swayMaterials,
     rowboatGroup,
     birdsGroup,
@@ -194,12 +212,28 @@ export function buildRealisticWorld(
         }
       }
 
-      // 3. Water surface waves shader time tick
+      // 3. Water surface waves, wind sway & terrain wetness shader time tick
       for (let i = 0; i < animatedWaterMaterials.length; i++) {
         const m = animatedWaterMaterials[i];
         if (m.userData.uTime) {
           m.userData.uTime.value = elapsedTime;
         }
+      }
+      const windScale = weather ? (weather.windStrength ?? 1.0) : 1.0;
+      for (let i = 0; i < swayMaterials.length; i++) {
+        const sm = swayMaterials[i];
+        if (sm.userData.uTime) {
+          sm.userData.uTime.value = elapsedTime;
+        }
+        if (sm.userData.uWindScale) {
+          sm.userData.uWindScale.value = windScale;
+        }
+      }
+      if (terrainMaterial.userData.uTime) {
+        terrainMaterial.userData.uTime.value = elapsedTime;
+      }
+      if (terrainMaterial.userData.uWetness) {
+        terrainMaterial.userData.uWetness.value = weather ? (weather.wetness ?? 0.0) : 0.0;
       }
 
       // 4. Submodule simulation updates
@@ -232,6 +266,7 @@ export function buildRealisticWorld(
     dispose: () => {
       for (let i = 0; i < disposableGeometries.length; i++) disposableGeometries[i].dispose();
       for (let i = 0; i < disposableMaterials.length; i++) disposableMaterials[i].dispose();
+      for (let i = 0; i < disposableTextures.length; i++) disposableTextures[i].dispose();
     },
   };
 }

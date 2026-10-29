@@ -12,7 +12,7 @@ import type { RideableHorseState } from '../domain/worldTypes';
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Constants & Types
-export interface HorseSteeringStepResult {
+export interface IHorseSteeringStepResult {
   /** Summary: Change in horse yaw applied during this physics step (radians). */
   readonly deltaHorseYaw: number;
   /** Summary: Updated horse yaw (radians). */
@@ -26,8 +26,9 @@ export interface HorseSteeringStepResult {
   /** Summary: Instantaneous turning circle radius (meters). */
   readonly turningRadiusMeters: number;
 }
+export type HorseSteeringStepResult = IHorseSteeringStepResult;
 
-export interface HorseLimbAngles {
+export interface IHorseLimbAngles {
   /** Summary: Upper limb (shoulder/hip) pitch rotation in radians. */
   readonly upperPitch: number;
   /** Summary: Lower limb (knee/carpus or hock/tarsus) flexion in radians. */
@@ -35,13 +36,14 @@ export interface HorseLimbAngles {
   /** Summary: Hoof/fetlock pitch angle in radians. */
   readonly hoofPitch: number;
 }
+export type HorseLimbAngles = IHorseLimbAngles;
 
-export interface HorseBiomechanicalPose {
+export interface IHorseBiomechanicalPose {
   readonly gaitKind: 'idle' | 'walk' | 'trot' | 'gallop';
-  readonly frontLeft: HorseLimbAngles;
-  readonly frontRight: HorseLimbAngles;
-  readonly backLeft: HorseLimbAngles;
-  readonly backRight: HorseLimbAngles;
+  readonly frontLeft: IHorseLimbAngles;
+  readonly frontRight: IHorseLimbAngles;
+  readonly backLeft: IHorseLimbAngles;
+  readonly backRight: IHorseLimbAngles;
   readonly bodyPitch: number;
   readonly bodyLiftY: number;
   readonly neckPitch: number;
@@ -49,6 +51,7 @@ export interface HorseBiomechanicalPose {
   readonly tailPitch: number;
   readonly tailSwayY: number;
 }
+export type HorseBiomechanicalPose = IHorseBiomechanicalPose;
 
 /** Summary: Maximum free-look angle for rider relative to horse heading (115 degrees in radians). */
 const MAX_RIDER_FREE_LOOK_RAD = (115 * Math.PI) / 180;

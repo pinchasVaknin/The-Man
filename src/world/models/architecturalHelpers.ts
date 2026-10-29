@@ -14,7 +14,7 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== ARCHITECTURAL ASSETS INTERFACE ======================== \\
 // #region Architectural Assets Interface
-export interface ArchitecturalSharedAssets {
+export interface IArchitecturalSharedAssets {
   readonly imperialGoldMat: THREE.MeshStandardMaterial;
   readonly imperialDoorWoodMat: THREE.MeshStandardMaterial;
   readonly pagodaTileMat: THREE.MeshStandardMaterial;
@@ -45,6 +45,7 @@ export interface ArchitecturalSharedAssets {
   createAngledWatchtowerFlag: (px: number, py: number, pz: number, outwardYaw: number) => THREE.Group;
   createOrnatePaifangGate: (gateZ: number, gateY: number) => THREE.Group;
 }
+export type ArchitecturalSharedAssets = IArchitecturalSharedAssets;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\

@@ -74,9 +74,11 @@ function smoothstepLocal(edge0: number, edge1: number, val: number): number {
 
 // ======================== BUILD TERRAIN & WATER ======================== \\
 // #region Build Terrain & Water
-export interface TerrainAndWaterResult {
+export interface ITerrainAndWaterResult {
   readonly waterMaterial: THREE.MeshPhysicalMaterial;
+  readonly terrainMaterial: THREE.MeshStandardMaterial;
 }
+export type TerrainAndWaterResult = ITerrainAndWaterResult;
 
 /**
  * Builds the 7x7 spatially chunked terrain grid and the animated central water surface mesh.
@@ -312,6 +314,6 @@ export function buildTerrainAndWaterModel(ctx: WorldModelBuildContext): TerrainA
   waterMesh.receiveShadow = !isSoftwareGl;
   scene.add(waterMesh);
 
-  return { waterMaterial: waterMat };
+  return { waterMaterial: waterMat, terrainMaterial: terrainMat };
 }
 // #endregion

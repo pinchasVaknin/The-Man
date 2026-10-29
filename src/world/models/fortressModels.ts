@@ -14,17 +14,16 @@ import {
   FORTRESS_Z_OFFSET,
   HILL_WATCHTOWERS,
   ROPE_BRIDGE_DEF,
-  chineseFortressStairHeightAt,
   ropeBridgePointInfoAt,
 } from '../domain/landmarksRegistry';
-import { groundHeightAt, isWithinViewDistance } from '../terrainMath';
+import { groundHeightAt, isWithinViewDistance, chineseFortressStairHeightAt } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
 import type { WorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== INTERFACES & TYPES ======================== \\
 // #region Interfaces & Types
-interface MartialArtsMonk {
+interface IMartialArtsMonk {
   group: THREE.Group;
   leftArm: THREE.Group;
   rightArm: THREE.Group;
@@ -37,10 +36,11 @@ interface MartialArtsMonk {
   phase: number;
 }
 
-export interface FortressModelResult {
+export interface IFortressModelResult {
   fortressGroup: THREE.Group;
   updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
+export type FortressModelResult = IFortressModelResult;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\
@@ -51,7 +51,7 @@ export interface FortressModelResult {
  */
 export function buildFortressModels(ctx: WorldModelBuildContext): FortressModelResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
-  const archAssets = createArchitecturalSharedAssets(ctx);
+  const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 
   const FZ = FORTRESS_Z_OFFSET;
   const fortressGroup = new THREE.Group();
@@ -84,6 +84,7 @@ export function buildFortressModels(ctx: WorldModelBuildContext): FortressModelR
     wpCtx.fillRect(jointX, r * rowH, 2, rowH);
   }
   const woodPlankTex = new THREE.CanvasTexture(woodPlankCanvas);
+  ctx.disposableTextures.push(woodPlankTex);
   const imperialWoodFloorMat = new THREE.MeshStandardMaterial({
     map: woodPlankTex,
     roughness: 0.72,
@@ -1441,7 +1442,7 @@ export function buildFortressModels(ctx: WorldModelBuildContext): FortressModelR
     monkStaffGeo
   );
 
-  const shaolinMonks: MartialArtsMonk[] = [];
+  const shaolinMonks: IMartialArtsMonk[] = [];
   const monkPlacements: Array<[number, number, number, number]> = [
     [-14.5, summitY, -146.0 + FZ, 0],
     [14.5, summitY, -146.0 + FZ, 0],

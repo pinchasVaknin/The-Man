@@ -495,8 +495,10 @@ export function stepPlayerPhysics(
       state.vy *= 0.65;
     }
 
-    const gravity = -14.8;
-    state.vy += gravity * dt;
+    if (!state.isSwimming) {
+      const gravity = -14.8;
+      state.vy += gravity * dt;
+    }
   }
 
   let nextX = state.x + state.vx * dt;
@@ -581,14 +583,14 @@ export function stepPlayerPhysics(
     const doorOpen = Boolean(openDoorIds?.has(hw.doorId));
     const onUpperDeck = state.y >= hw.deckY - 1.2;
 
-    interface LocalBox {
+    interface ILocalBox {
       minX: number;
       maxX: number;
       minZ: number;
       maxZ: number;
       maxY?: number;
     }
-    const localWalls: LocalBox[] = [];
+    const localWalls: ILocalBox[] = [];
     if (!onUpperDeck) {
       localWalls.push(
         { minX: -3.75, maxX: -3.25, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 },
@@ -735,7 +737,6 @@ export function stepPlayerPhysics(
       state.isSwimming = true;
       state.bowDrawn = false;
       state.bowDrawProgress = 0;
-      state.vy -= -14.8 * dt;
       const buoyancy = (swimTargetY - state.y) * 18.0;
       state.vy = state.vy * Math.exp(-8.5 * dt) + buoyancy * dt;
       if (input.jumpPressed && waterSurfaceY - walkSurface.height < 1.35) {

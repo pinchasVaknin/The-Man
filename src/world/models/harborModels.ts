@@ -18,12 +18,13 @@ import type { WorldModelBuildContext } from './types';
 
 // ======================== HARBOR MODEL INTERFACES ======================== \\
 // #region Harbor Model Interfaces
-export interface HarborModelHandles {
+export interface IHarborModelHandles {
   readonly harborGroup: THREE.Group;
   readonly lighthouseBeaconGroup: THREE.Group;
   readonly harborSeagullsGroup: THREE.Group;
   readonly updateHarbor: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
+export type HarborModelHandles = IHarborModelHandles;
 // #endregion
 
 // ======================== BUILD HARBOR MODELS ======================== \\
@@ -41,7 +42,7 @@ export function buildHarborModels(ctx: WorldModelBuildContext): HarborModelHandl
     distanceCulledObjects,
   } = ctx;
 
-  const archAssets = createArchitecturalSharedAssets(ctx);
+  const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
   const {
     imperialGoldMat,
     imperialCrimsonMat,
