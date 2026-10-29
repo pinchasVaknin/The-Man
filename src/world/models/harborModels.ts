@@ -532,16 +532,42 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   fntGroup.add(fWat, fCol, fUpperBowl, fUpperWat, aShank, aFluke);
   harborGroup.add(fntGroup);
 
-  const stallPlacements: Array<[number, number, number, THREE.Material]> = [
-    [212.0, 254.0, 0, imperialCrimsonMat],
-    [212.0, 263.0, 0, sleepingBagColors[2]],
-    [224.0, 263.0, 0, sleepingBagColors[1]],
-    [240.0, 263.0, 0, sleepingBagColors[3]],
-    [246.0, 238.0, -Math.PI / 2, imperialCrimsonMat],
-    [246.0, 246.0, -Math.PI / 2, sleepingBagColors[0]],
+  const stallPlacements: Array<[number, number, THREE.Material]> = [
+    [212.0, 254.0, imperialCrimsonMat],
+    [212.0, 263.0, sleepingBagColors[2]],
+    [224.0, 263.0, sleepingBagColors[1]],
+    [240.0, 263.0, sleepingBagColors[3]],
+    [246.0, 238.0, imperialCrimsonMat],
+    [246.0, 246.0, sleepingBagColors[0]],
   ];
   const merchantSkinMat = new THREE.MeshStandardMaterial({ color: 0xe0b596, roughness: 0.65 });
   const merchantHairMat = new THREE.MeshStandardMaterial({ color: 0x241911, roughness: 0.85 });
+  const steelDisplayMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    roughness: 0.22,
+    metalness: 0.88,
+  });
+  const ironIngotMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    roughness: 0.35,
+    metalness: 0.82,
+  });
+  const roastMeatMat = new THREE.MeshStandardMaterial({
+    color: 0x9a3412,
+    roughness: 0.55,
+  });
+  const breadCrustMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    roughness: 0.72,
+  });
+  const cheeseGoldMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    roughness: 0.58,
+  });
+  const appleRedMat = new THREE.MeshStandardMaterial({
+    color: 0xdc2626,
+    roughness: 0.38,
+  });
   const merchantRobeColors = [
     new THREE.MeshStandardMaterial({ color: 0x8b1e24, roughness: 0.72 }),
     new THREE.MeshStandardMaterial({ color: 0x1d4d4f, roughness: 0.72 }),
@@ -550,19 +576,60 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     new THREE.MeshStandardMaterial({ color: 0x3b281e, roughness: 0.78 }),
     new THREE.MeshStandardMaterial({ color: 0x9c5a1a, roughness: 0.72 }),
   ];
-  disposableMaterials.push(merchantSkinMat, merchantHairMat, ...merchantRobeColors);
+  disposableMaterials.push(
+    merchantSkinMat,
+    merchantHairMat,
+    steelDisplayMat,
+    ironIngotMat,
+    roastMeatMat,
+    breadCrustMat,
+    cheeseGoldMat,
+    appleRedMat,
+    ...merchantRobeColors
+  );
 
   const npcTorsoGeo = new THREE.CylinderGeometry(0.22, 0.28, 0.76, 8);
   const npcHeadGeo = new THREE.SphereGeometry(0.16, 10, 8);
   const npcHatGeo = new THREE.CylinderGeometry(0.18, 0.17, 0.14, 10);
   const npcArmGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.52, 6);
   npcArmGeo.translate(0, -0.22, 0);
-  disposableGeometries.push(npcTorsoGeo, npcHeadGeo, npcHatGeo, npcArmGeo);
+  const displayBladeGeo = new THREE.BoxGeometry(0.06, 0.02, 0.88);
+  const displayGuardGeo = new THREE.BoxGeometry(0.24, 0.03, 0.04);
+  const displayBowArcGeo = new THREE.TorusGeometry(0.38, 0.022, 6, 14, Math.PI * 0.85);
+  const displayLogGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.95, 8);
+  displayLogGeo.rotateZ(Math.PI / 2);
+  const displayStoneBlockGeo = new THREE.BoxGeometry(0.42, 0.24, 0.32);
+  const displayIngotGeo = new THREE.BoxGeometry(0.28, 0.10, 0.14);
+  const displayPlatterGeo = new THREE.CylinderGeometry(0.32, 0.26, 0.04, 12);
+  const displayRoastGeo = new THREE.SphereGeometry(0.18, 10, 8);
+  displayRoastGeo.scale(1.35, 0.75, 0.95);
+  const displayLoafGeo = new THREE.SphereGeometry(0.15, 10, 8);
+  displayLoafGeo.scale(1.4, 0.68, 0.85);
+  disposableGeometries.push(
+    npcTorsoGeo,
+    npcHeadGeo,
+    npcHatGeo,
+    npcArmGeo,
+    displayBladeGeo,
+    displayGuardGeo,
+    displayBowArcGeo,
+    displayLogGeo,
+    displayStoneBlockGeo,
+    displayIngotGeo,
+    displayPlatterGeo,
+    displayRoastGeo,
+    displayLoafGeo
+  );
 
   const merchantArmPivots: THREE.Group[] = [];
 
   for (let s = 0; s < stallPlacements.length; s++) {
-    const [sx, sz, syaw, canopyMat] = stallPlacements[s];
+    const [sx, sz, canopyMat] = stallPlacements[s];
+    // Orient every stall so its front (+Z) and merchant face directly toward the Harbor Fountain & Plaza
+    const syaw = Math.atan2(
+      SOUTHEAST_HARBOR_POS.fountainX - sx,
+      SOUTHEAST_HARBOR_POS.fountainZ - sz
+    );
     const stGroup = new THREE.Group();
     stGroup.position.set(sx, hPlazaY, sz);
     stGroup.rotation.y = syaw;
@@ -581,27 +648,121 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
       }
     }
 
-    if (s === 0 || s === 1 || s === 4) {
+    if (s === 0) {
+      // Stall 0: Swords & Blades (דוכן חרבות ולהבים)
       const displayRack = new THREE.Mesh(weaponRackBarGeo, imperialGoldMat);
       displayRack.scale.set(0.85, 1, 1);
-      displayRack.position.set(-0.65, 1.18, -0.10);
-      const goldChest = new THREE.Mesh(chestBodyGeo, imperialGoldMat);
-      goldChest.scale.setScalar(0.55);
-      goldChest.position.set(0.95, 1.04, 0.05);
-      stGroup.add(displayRack, goldChest);
-    } else {
-      for (let b = 0; b < 3; b++) {
-        const basket = new THREE.Mesh(
-          spiceBasketGeo,
-          sleepingBagColors[(s + b) % sleepingBagColors.length]
-        );
-        basket.position.set(-1.15 + b * 0.85, 1.05, 0);
-        stGroup.add(basket);
+      displayRack.position.set(-0.65, 1.18, -0.15);
+      stGroup.add(displayRack);
+      for (let w = 0; w < 3; w++) {
+        const swordGrp = new THREE.Group();
+        swordGrp.position.set(-1.1 + w * 0.55, 0.94, 0.08);
+        swordGrp.rotation.y = 0.25 - w * 0.2;
+        const blade = new THREE.Mesh(displayBladeGeo, steelDisplayMat);
+        const guard = new THREE.Mesh(displayGuardGeo, imperialGoldMat);
+        guard.position.z = -0.32;
+        swordGrp.add(blade, guard);
+        stGroup.add(swordGrp);
       }
-      const goldChest = new THREE.Mesh(chestBodyGeo, imperialGoldMat);
-      goldChest.scale.setScalar(0.52);
-      goldChest.position.set(1.15, 1.04, 0);
-      stGroup.add(goldChest);
+      const warhammerHead = new THREE.Mesh(displayStoneBlockGeo, imperialGoldMat);
+      warhammerHead.scale.set(0.65, 0.65, 0.65);
+      warhammerHead.position.set(1.05, 1.02, 0.05);
+      stGroup.add(warhammerHead);
+    } else if (s === 1) {
+      // Stall 1: Bows & Arrows (דוכן קשתות וחצים)
+      for (let b = 0; b < 3; b++) {
+        const bowArc = new THREE.Mesh(
+          displayBowArcGeo,
+          b === 1 ? imperialGoldMat : furnitureWoodMat
+        );
+        bowArc.position.set(-1.05 + b * 0.65, 1.02, 0.05);
+        bowArc.rotation.set(Math.PI / 2, 0, 0.35);
+        stGroup.add(bowArc);
+      }
+      const quiverTube = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.09, 0.52, 8),
+        imperialCrimsonMat
+      );
+      disposableGeometries.push(quiverTube.geometry);
+      quiverTube.position.set(1.12, 1.14, 0.0);
+      quiverTube.rotation.z = -0.22;
+      stGroup.add(quiverTube);
+    } else if (s === 2) {
+      // Stall 2: Timber & Building Materials (דוכן חומרי בנייה ועץ)
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3 - row; col++) {
+          const logMesh = new THREE.Mesh(displayLogGeo, barkMat);
+          logMesh.position.set(-0.75 + col * 0.24 + row * 0.12, 0.98 + row * 0.19, 0.04);
+          stGroup.add(logMesh);
+        }
+      }
+      for (let t = 0; t < 3; t++) {
+        const clayTile = new THREE.Mesh(displayStoneBlockGeo, imperialCrimsonMat);
+        clayTile.scale.set(0.85, 0.42, 0.85);
+        clayTile.position.set(0.85, 0.94 + t * 0.11, 0.04);
+        stGroup.add(clayTile);
+      }
+    } else if (s === 3) {
+      // Stall 3: Cut Stone & White Marble (דוכן אבן ושיש)
+      for (let b = 0; b < 3; b++) {
+        const granite = new THREE.Mesh(displayStoneBlockGeo, fortressStoneMat);
+        granite.position.set(-1.05 + b * 0.48, 1.0, 0.06);
+        stGroup.add(granite);
+      }
+      for (let m = 0; m < 2; m++) {
+        const marbleCol = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.16, 0.16, 0.52, 10),
+          carvedMarbleMat
+        );
+        disposableGeometries.push(marbleCol.geometry);
+        marbleCol.position.set(0.75 + m * 0.42, 1.14, 0.02);
+        stGroup.add(marbleCol);
+      }
+    } else if (s === 4) {
+      // Stall 4: Smithy, Iron Ingots & Gold Ore (נפחיית הנמל ומטילי מתכת)
+      for (let i = 0; i < 6; i++) {
+        const ingot = new THREE.Mesh(
+          displayIngotGeo,
+          i >= 4 ? imperialGoldMat : ironIngotMat
+        );
+        ingot.position.set(
+          -1.05 + (i % 3) * 0.34,
+          0.93 + Math.floor(i / 3) * 0.11,
+          0.06
+        );
+        stGroup.add(ingot);
+      }
+      const swordBlade = new THREE.Mesh(displayBladeGeo, steelDisplayMat);
+      swordBlade.position.set(0.85, 0.94, 0.05);
+      swordBlade.rotation.y = 0.4;
+      stGroup.add(swordBlade);
+    } else {
+      // Stall 5: Food, Roast Game Meat & Harbor Provisions (דוכן אוכל וצידה)
+      for (let p = 0; p < 3; p++) {
+        const platter = new THREE.Mesh(displayPlatterGeo, furnitureWoodMat);
+        platter.position.set(-1.05 + p * 0.72, 0.90, 0.04);
+        stGroup.add(platter);
+      }
+      const roastMeat = new THREE.Mesh(displayRoastGeo, roastMeatMat);
+      roastMeat.position.set(-1.05, 1.02, 0.04);
+      const breadLoaf1 = new THREE.Mesh(displayLoafGeo, breadCrustMat);
+      breadLoaf1.position.set(-0.33, 1.0, 0.06);
+      const cheeseWheel = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.18, 0.12, 10),
+        cheeseGoldMat
+      );
+      disposableGeometries.push(cheeseWheel.geometry);
+      cheeseWheel.position.set(0.39, 0.98, 0.04);
+      stGroup.add(roastMeat, breadLoaf1, cheeseWheel);
+      for (let a = 0; a < 4; a++) {
+        const apple = new THREE.Mesh(
+          new THREE.SphereGeometry(0.075, 8, 8),
+          appleRedMat
+        );
+        disposableGeometries.push(apple.geometry);
+        apple.position.set(1.02 + (a % 2) * 0.16, 0.95, -0.04 + Math.floor(a / 2) * 0.16);
+        stGroup.add(apple);
+      }
     }
 
     // Harbor Bazaar Merchant / Blacksmith NPC standing behind counter
@@ -893,7 +1054,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   const shipQuarterdeckSlabGeo = new THREE.BoxGeometry(12.6, 0.28, 13.4);
   const cabinSideWallGeo = new THREE.BoxGeometry(0.38, 3.0, 13.3);
   const cabinSternWallGeo = new THREE.BoxGeometry(12.6, 3.0, 0.42);
-  const cabinFrontFlankGeo = new THREE.BoxGeometry(2.2, 3.0, 0.42);
+  const cabinFrontFlankGeo = new THREE.BoxGeometry(5.05, 3.0, 0.42);
   const cabinFrontLintelGeo = new THREE.BoxGeometry(2.6, 0.65, 0.44);
   const sternWindowPaneGeo = new THREE.BoxGeometry(2.2, 1.35, 0.52);
   const shipBulwarkSideGeo = new THREE.BoxGeometry(0.34, 1.1, 17.6);
@@ -967,9 +1128,9 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   const cabWallStern = new THREE.Mesh(cabinSternWallGeo, timberMat);
   cabWallStern.position.set(0, 1.5, 20.65);
   const cabFrontL = new THREE.Mesh(cabinFrontFlankGeo, timberMat);
-  cabFrontL.position.set(-2.3, 1.5, 7.5);
+  cabFrontL.position.set(-3.72, 1.5, 7.5);
   const cabFrontR = new THREE.Mesh(cabinFrontFlankGeo, timberMat);
-  cabFrontR.position.set(2.3, 1.5, 7.5);
+  cabFrontR.position.set(3.72, 1.5, 7.5);
   const cabFrontLintel = new THREE.Mesh(cabinFrontLintelGeo, imperialCrimsonMat);
   cabFrontLintel.position.set(0, 2.68, 7.5);
   const captainDoor = createInteractiveDoubleDoor(
@@ -1029,12 +1190,23 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     createRedChineseLantern(2.2, 2.35, 16.5)
   );
 
+  const shipStepSubWallGeo = new THREE.BoxGeometry(2.36, 1.0, 0.48);
+  disposableGeometries.push(shipStepSubWallGeo);
   for (const stairSide of [-1, 1]) {
     for (let s = 0; s <= 12; s++) {
       const t = s / 12;
+      const stepTopY = t * 3.0;
+      const stepZ = 2.5 + t * 5.0;
       const step = new THREE.Mesh(shipStepGeo, imperialWoodFloorMat);
-      step.position.set(stairSide * 4.55, t * 3.0 - 0.08, 2.5 + t * 5.0);
+      step.position.set(stairSide * 4.55, stepTopY - 0.08, stepZ);
       shipGroup.add(step);
+
+      if (stepTopY > 0.12) {
+        const subWall = new THREE.Mesh(shipStepSubWallGeo, timberMat);
+        subWall.scale.set(1.0, stepTopY, 1.0);
+        subWall.position.set(stairSide * 4.55, stepTopY * 0.5 - 0.05, stepZ);
+        shipGroup.add(subWall);
+      }
     }
   }
 

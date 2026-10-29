@@ -188,6 +188,90 @@ ARTWORK_STRATEGIES.set('crystal_gem', (sizeClass) => (
     <line x1="40" y1="64" x2="120" y2="64" stroke="#cffafe" strokeWidth="2.5" />
   </svg>
 ));
+
+ARTWORK_STRATEGIES.set('raw_game_meat', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#ea580c" fillOpacity="0.2" />
+    <ellipse cx="76" cy="82" rx="44" ry="30" fill="#9a3412" stroke="#fdba74" strokeWidth="3.5" />
+    <ellipse cx="64" cy="78" rx="14" ry="11" fill="#fed7aa" stroke="#7c2d12" strokeWidth="2.5" />
+    <circle cx="64" cy="78" r="4" fill="#7c2d12" />
+    <path d="M114 76 L136 68 M114 86 L136 94" stroke="#fef3c7" strokeWidth="5" strokeLinecap="round" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('roasted_meat', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f97316" fillOpacity="0.24" />
+    <ellipse cx="74" cy="86" rx="46" ry="30" fill="#7c2d12" stroke="#fbbf24" strokeWidth="3.5" />
+    <path d="M52 72 L64 98 M72 68 L84 96 M92 72 L102 96" stroke="#431407" strokeWidth="4" strokeLinecap="round" />
+    <path d="M116 80 L138 72 M116 90 L138 98" stroke="#fef3c7" strokeWidth="5" strokeLinecap="round" />
+    <path d="M62 48 Q56 36 64 26 M82 44 Q76 32 84 22 M100 50 Q94 38 102 28" stroke="#fde68a" strokeWidth="2.5" strokeLinecap="round" strokeOpacity="0.75" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('fresh_bread_loaf', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f59e0b" fillOpacity="0.2" />
+    <path d="M32 98 C30 62, 56 46, 80 46 C104 46, 130 62, 128 98 C128 110, 114 116, 80 116 C46 116, 32 110, 32 98 Z" fill="#d97706" stroke="#fde68a" strokeWidth="3.5" />
+    <path d="M56 58 Q66 72 60 88 M78 54 Q88 70 82 88 M100 58 Q108 72 102 88" stroke="#fef3c7" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('harbor_cheese_wheel', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#eab308" fillOpacity="0.2" />
+    <ellipse cx="80" cy="70" rx="48" ry="24" fill="#facc15" stroke="#fef08a" strokeWidth="3" />
+    <path d="M32 70 L32 98 C32 112, 128 112, 128 98 L128 70" fill="#eab308" stroke="#fde047" strokeWidth="3" />
+    <circle cx="62" cy="88" r="5" fill="#ca8a04" />
+    <circle cx="94" cy="92" r="6" fill="#ca8a04" />
+    <circle cx="78" cy="68" r="4.5" fill="#ca8a04" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('red_orchard_apples', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#ef4444" fillOpacity="0.2" />
+    <circle cx="64" cy="88" r="28" fill="#dc2626" stroke="#fca5a5" strokeWidth="3" />
+    <circle cx="98" cy="84" r="26" fill="#ef4444" stroke="#fecaca" strokeWidth="3" />
+    <path d="M64 60 Q68 46 76 44 M98 58 Q102 44 110 42" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
+    <ellipse cx="82" cy="48" rx="10" ry="5" fill="#22c55e" />
+  </svg>
+));
+
+const createHideArtwork = (fillHex: string, strokeHex: string): ArtworkRenderStrategy => (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill={fillHex} fillOpacity="0.2" />
+    <path
+      d="M52 32 Q80 42 108 32 L124 58 Q106 80 122 108 L102 130 Q80 118 58 130 L38 108 Q54 80 36 58 Z"
+      fill={fillHex}
+      stroke={strokeHex}
+      strokeWidth="3.5"
+    />
+  </svg>
+);
+ARTWORK_STRATEGIES.set('small_hide', createHideArtwork('#a8a29e', '#fde68a'));
+ARTWORK_STRATEGIES.set('deer_hide', createHideArtwork('#92400e', '#fbbf24'));
+ARTWORK_STRATEGIES.set('sheep_hide', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f8fafc" fillOpacity="0.18" />
+    <circle cx="62" cy="86" r="24" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="3" />
+    <circle cx="98" cy="86" r="24" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="3" />
+    <circle cx="80" cy="64" r="26" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="3" />
+    <circle cx="80" cy="94" r="24" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="3" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('deer_antlers', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#d97706" fillOpacity="0.18" />
+    <path
+      d="M72 126 C52 102, 36 74, 42 36 M48 84 L28 68 M54 62 L66 44 M88 126 C108 102, 124 74, 118 36 M112 84 L132 68 M106 62 L94 44"
+      stroke="#fde68a"
+      strokeWidth="5.5"
+      strokeLinecap="round"
+    />
+  </svg>
+));
 // #endregion
 
 // ======================== PUBLIC RENDER FUNCTIONS ======================== \\

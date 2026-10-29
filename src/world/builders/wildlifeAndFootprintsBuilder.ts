@@ -1,19 +1,15 @@
 // ============================================================================
 // MODULE: World / Builders / Wildlife & Footprints Builder
-// DESIGN: Instanced boid bird flocks, critters, eagle & footprint decals (SRP)
-// SUMMARY: Constructs procedural wildlife visual layers, fireflies, soaring mountain
-//          eagle, footprint decals, and runtime proximity/sound synchronization.
+// DESIGN: 3D mesh layer for Reynolds bird boids, reactive critters/deer/sheep, and footprints
+// SUMMARY: Builds and animates 3D bird flocks, meadow rabbits, birch-grove squirrels,
+//          forest deer (with antlers), valley sheep, and fading footprint decals.
 // ============================================================================
 
 // ======================== IMPORTS & CONTRACTS ======================== \\
 // #region Imports & Contracts
 import * as THREE from 'three';
-import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
-import { isWithinViewDistance } from '../domain/landmarksRegistry';
-import { groundHeightAt as heightAt } from '../systems/terrainAndBiomeSystem';
 import {
-  createInitialBoidBirds,
-  createInitialSmallAnimals,
+  createInitialWildlifeState,
   stepBoidsAndWildlife,
   type IBoidBirdState,
   type ISmallAnimalState,
@@ -22,561 +18,521 @@ import {
   createFootprintTrailTracker,
   stepFootprintTrailSystem,
   MAX_FOOTPRINT_DECALS,
-  type IFootprintTrailTracker,
 } from '../systems/footprintTrailSystem';
+import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
 
-/**
- * Summary: Runtime controller handle for bird flocks, small animals, and footprint trails.
- * Design: Exposes update callback to advance wildlife simulation and footprint decals per frame.
- */
-export interface IWildlifeAndFootprintsController {
-  group: THREE.Group;
-  birds: IBoidBirdState[];
-  animals: ISmallAnimalState[];
-  footprintTracker: IFootprintTrailTracker;
-  update: (
+export interface IWildlifeSoundCallbacks {
+  onBirdFlockStartled?: (distance: number, count: number) => void;
+  onCritterScampered?: (distance: number, species: 'rabbit' | 'squirrel') => void;
+  onAmbientWildlifeProximity?: (nearestBirdDist: number, nearestCritterDist: number) => void;
+}
+export type WildlifeSoundCallbacks = IWildlifeSoundCallbacks;
+
+export interface IWildlifeAndFootprintsHandles {
+  readonly birds: IBoidBirdState[];
+  readonly animals: ISmallAnimalState[];
+  readonly update: (
     dt: number,
-    elapsed: number,
+    elapsedTime: number,
     playerState: IPlayerState,
     horses: readonly IRideableHorseState[],
     daylightFactor: number,
-    callbacks?: {
-      onBirdFlockStartled?: (distance: number, count: number) => void;
-      onCritterScampered?: (distance: number, species: 'rabbit' | 'squirrel') => void;
-      onAmbientWildlifeProximity?: (nearestBirdDist: number, nearestCritterDist: number) => void;
-    }
+    soundCallbacks?: IWildlifeSoundCallbacks,
+    rainIntensity?: number
   ) => void;
 }
-export type WildlifeAndFootprintsController = IWildlifeAndFootprintsController;
+export type WildlifeAndFootprintsHandles = IWildlifeAndFootprintsHandles;
 // #endregion
 
-// ======================== BUILD WILDLIFE & FOOTPRINTS ======================== \\
-// #region Build Wildlife & Footprints
-/**
- * Summary: Build wildlife and footprints layer.
- * Design: Standard function implementing domain specifications and behavioral contracts.
- * @param scene Input parameter for buildWildlifeAndFootprintsLayer.
- * @param disposableGeometries Input parameter for buildWildlifeAndFootprintsLayer.
- * @param disposableMaterials Input parameter for buildWildlifeAndFootprintsLayer.
- * @returns Computed result for buildWildlifeAndFootprintsLayer.
- */
+// ======================== BUILDER IMPLEMENTATION ======================== \\
+// #region Builder Implementation
 export function buildWildlifeAndFootprintsLayer(
   scene: THREE.Scene,
-  disposableGeometries?: THREE.BufferGeometry[],
-  disposableMaterials?: THREE.Material[]
-): IWildlifeAndFootprintsController {
-  const group = new THREE.Group();
-  group.name = 'wildlife-boids-footprints-layer';
-  scene.add(group);
+  disposableGeometries: THREE.BufferGeometry[],
+  disposableMaterials: THREE.Material[]
+): IWildlifeAndFootprintsHandles {
+  const { birds, animals } = createInitialWildlifeState();
+  const footprintState = createFootprintTrailTracker();
 
-  // ---------------------------------------------------------------------------
-  // 1. REYNOLDS BOIDS BIRD FLOCKS (36 Birds across 4 Flocks)
-  // ---------------------------------------------------------------------------
-  const birds = createInitialBoidBirds();
-  const birdHandles: Array<{
-    root: THREE.Group;
-    leftWing: THREE.Group;
-    rightWing: THREE.Group;
-    tailFan: THREE.Mesh;
-  }> = [];
+  const layerGroup = new THREE.Group();
+  layerGroup.name = 'WildlifeAndFootprintsLayer';
+  scene.add(layerGroup);
 
+  // --- 1. FLOCKING BOID BIRDS (3D Articulated Wings) ---
   const birdBodyMat = new THREE.MeshStandardMaterial({
-    color: 0x2c353d,
-    roughness: 0.65,
-  });
-  const birdBreastMat = new THREE.MeshStandardMaterial({
-    color: 0xd8cfc2,
+    color: 0x334155,
     roughness: 0.75,
   });
   const birdWingMat = new THREE.MeshStandardMaterial({
-    color: 0x3b4752,
-    roughness: 0.68,
+    color: 0x475569,
+    roughness: 0.8,
     side: THREE.DoubleSide,
   });
-  const beakMat = new THREE.MeshStandardMaterial({
-    color: 0xdba032,
-    roughness: 0.5,
-  });
+  disposableMaterials.push(birdBodyMat, birdWingMat);
 
-  const bodyGeo = new THREE.ConeGeometry(0.14, 0.52, 6);
-  bodyGeo.rotateX(Math.PI / 2);
-  const breastGeo = new THREE.SphereGeometry(0.12, 6, 6);
-  breastGeo.scale(0.95, 0.78, 1.35);
-  const wingInnerGeo = new THREE.BoxGeometry(0.46, 0.025, 0.22);
-  const wingTipGeo = new THREE.BoxGeometry(0.38, 0.02, 0.16);
-  const tailGeo = new THREE.ConeGeometry(0.16, 0.26, 4);
-  tailGeo.rotateX(-Math.PI / 2);
-  tailGeo.scale(1.2, 0.25, 1.0);
-  const beakGeo = new THREE.ConeGeometry(0.035, 0.12, 4);
-  beakGeo.rotateX(Math.PI / 2);
+  const birdBodyGeo = new THREE.ConeGeometry(0.11, 0.44, 5);
+  birdBodyGeo.rotateX(Math.PI * 0.5);
+  const birdWingGeo = new THREE.BoxGeometry(0.38, 0.02, 0.18);
+  disposableGeometries.push(birdBodyGeo, birdWingGeo);
 
-  disposableGeometries?.push(bodyGeo, breastGeo, wingInnerGeo, wingTipGeo, tailGeo, beakGeo);
-  disposableMaterials?.push(birdBodyMat, birdBreastMat, birdWingMat, beakMat);
+  const birdMeshes: Array<{
+    root: THREE.Group;
+    leftWing: THREE.Mesh;
+    rightWing: THREE.Mesh;
+  }> = [];
 
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
     const root = new THREE.Group();
     root.position.set(b.x, b.y, b.z);
-    root.scale.setScalar(b.scale);
 
-    const body = new THREE.Mesh(bodyGeo, birdBodyMat);
-    root.add(body);
+    const body = new THREE.Mesh(birdBodyGeo, birdBodyMat);
+    const leftWing = new THREE.Mesh(birdWingGeo, birdWingMat);
+    leftWing.position.set(-0.18, 0, 0);
+    const rightWing = new THREE.Mesh(birdWingGeo, birdWingMat);
+    rightWing.position.set(0.18, 0, 0);
 
-    const breast = new THREE.Mesh(breastGeo, birdBreastMat);
-    breast.position.set(0, -0.04, 0.06);
-    root.add(breast);
-
-    const beak = new THREE.Mesh(beakGeo, beakMat);
-    beak.position.set(0, 0.02, 0.3);
-    root.add(beak);
-
-    const tailFan = new THREE.Mesh(tailGeo, birdWingMat);
-    tailFan.position.set(0, 0.01, -0.28);
-    root.add(tailFan);
-
-    const leftWing = new THREE.Group();
-    leftWing.position.set(-0.08, 0.03, 0.04);
-    const lInner = new THREE.Mesh(wingInnerGeo, birdWingMat);
-    lInner.position.set(-0.22, 0, 0);
-    const lTip = new THREE.Mesh(wingTipGeo, birdWingMat);
-    lTip.position.set(-0.56, 0.02, -0.03);
-    lTip.rotation.y = 0.18;
-    leftWing.add(lInner, lTip);
-
-    const rightWing = new THREE.Group();
-    rightWing.position.set(0.08, 0.03, 0.04);
-    const rInner = new THREE.Mesh(wingInnerGeo, birdWingMat);
-    rInner.position.set(0.22, 0, 0);
-    const rTip = new THREE.Mesh(wingTipGeo, birdWingMat);
-    rTip.position.set(0.56, 0.02, -0.03);
-    rTip.rotation.y = -0.18;
-    rightWing.add(rInner, rTip);
-
-    root.add(leftWing, rightWing);
-    group.add(root);
-    birdHandles.push({ root, leftWing, rightWing, tailFan });
+    root.add(body, leftWing, rightWing);
+    layerGroup.add(root);
+    birdMeshes.push({ root, leftWing, rightWing });
   }
 
-  // ---------------------------------------------------------------------------
-  // 2. PROXIMITY-REACTIVE SMALL FOREST ANIMALS (Rabbits & Squirrels)
-  // ---------------------------------------------------------------------------
-  const animals = createInitialSmallAnimals();
-  const animalHandles: Array<{
-    root: THREE.Group;
-    headGroup: THREE.Group;
-    leftEar: THREE.Mesh;
-    rightEar: THREE.Mesh;
-    tail: THREE.Mesh;
-  }> = [];
-
+  // --- 2. GROUND ANIMALS (Rabbits, Squirrels, Forest Deer & Grazing Sheep) ---
   const rabbitFurMat = new THREE.MeshStandardMaterial({
-    color: 0x9b8672,
-    roughness: 0.82,
-  });
-  const rabbitTailMat = new THREE.MeshStandardMaterial({
-    color: 0xf4efe8,
-    roughness: 0.88,
+    color: 0xa89f91,
+    roughness: 0.9,
   });
   const squirrelFurMat = new THREE.MeshStandardMaterial({
-    color: 0xb85228,
-    roughness: 0.78,
+    color: 0xb45309,
+    roughness: 0.85,
   });
-  const critterEyeMat = new THREE.MeshStandardMaterial({
-    color: 0x161210,
-    roughness: 0.25,
+  const deerCoatMat = new THREE.MeshStandardMaterial({
+    color: 0x8b5a2b,
+    roughness: 0.82,
   });
-
-  // Pre-allocated static geometries for rabbits and squirrels (eliminates loop allocations)
-  const rabbitTorsoGeo = new THREE.SphereGeometry(0.22, 10, 8);
-  rabbitTorsoGeo.scale(0.88, 0.82, 1.38);
-  const sqTorsoGeo = new THREE.SphereGeometry(0.16, 10, 8);
-  sqTorsoGeo.scale(0.88, 0.82, 1.38);
-
-  const rabbitHaunchGeo = new THREE.SphereGeometry(0.15, 8, 8);
-  rabbitHaunchGeo.scale(0.65, 0.9, 1.1);
-  const sqHaunchGeo = new THREE.SphereGeometry(0.11, 8, 8);
-  sqHaunchGeo.scale(0.65, 0.9, 1.1);
-
-  const rabbitHeadGeo = new THREE.SphereGeometry(0.14, 10, 8);
-  rabbitHeadGeo.scale(0.88, 0.88, 1.18);
-  const sqHeadGeo = new THREE.SphereGeometry(0.11, 10, 8);
-  sqHeadGeo.scale(0.88, 0.88, 1.18);
-
-  const critterEyeGeo = new THREE.SphereGeometry(0.024, 6, 6);
-  const rabbitEarGeo = new THREE.CapsuleGeometry(0.032, 0.22, 4, 8);
-  const sqEarGeo = new THREE.CapsuleGeometry(0.024, 0.06, 4, 8);
-
-  const rabbitTailGeo = new THREE.SphereGeometry(0.085, 8, 8);
-  const sqTailGeo = new THREE.CapsuleGeometry(0.085, 0.26, 5, 8);
-
-  disposableGeometries?.push(
-    rabbitTorsoGeo,
-    sqTorsoGeo,
-    rabbitHaunchGeo,
-    sqHaunchGeo,
-    rabbitHeadGeo,
-    sqHeadGeo,
-    critterEyeGeo,
-    rabbitEarGeo,
-    sqEarGeo,
-    rabbitTailGeo,
-    sqTailGeo
+  const deerBellyMat = new THREE.MeshStandardMaterial({
+    color: 0xd6c3a5,
+    roughness: 0.88,
+  });
+  const deerAntlerMat = new THREE.MeshStandardMaterial({
+    color: 0xe7d8c1,
+    roughness: 0.65,
+  });
+  const sheepWoolMat = new THREE.MeshStandardMaterial({
+    color: 0xf3f4f6,
+    roughness: 0.95,
+  });
+  const sheepDarkMat = new THREE.MeshStandardMaterial({
+    color: 0x374151,
+    roughness: 0.9,
+  });
+  disposableMaterials.push(
+    rabbitFurMat,
+    squirrelFurMat,
+    deerCoatMat,
+    deerBellyMat,
+    deerAntlerMat,
+    sheepWoolMat,
+    sheepDarkMat
   );
-  disposableMaterials?.push(rabbitFurMat, rabbitTailMat, squirrelFurMat, critterEyeMat);
+
+  const critterBodyGeo = new THREE.SphereGeometry(0.18, 8, 6);
+  critterBodyGeo.scale(0.85, 0.78, 1.35);
+  const critterHeadGeo = new THREE.SphereGeometry(0.11, 7, 6);
+  const rabbitEarGeo = new THREE.BoxGeometry(0.035, 0.16, 0.045);
+  const squirrelTailGeo = new THREE.SphereGeometry(0.12, 6, 6);
+  squirrelTailGeo.scale(0.65, 1.45, 0.9);
+
+  // Deer geometries
+  const deerTorsoGeo = new THREE.CylinderGeometry(0.28, 0.31, 1.15, 8);
+  deerTorsoGeo.rotateX(Math.PI / 2);
+  const deerNeckGeo = new THREE.CylinderGeometry(0.13, 0.18, 0.56, 7);
+  const deerHeadGeo = new THREE.BoxGeometry(0.20, 0.20, 0.36);
+  const deerLegGeo = new THREE.CylinderGeometry(0.055, 0.04, 0.76, 6);
+  deerLegGeo.translate(0, -0.38, 0);
+  const deerAntlerBranchGeo = new THREE.CylinderGeometry(0.018, 0.028, 0.38, 5);
+  const deerAntlerTineGeo = new THREE.CylinderGeometry(0.012, 0.018, 0.22, 5);
+
+  // Sheep geometries
+  const sheepBodyGeo = new THREE.SphereGeometry(0.42, 8, 8);
+  sheepBodyGeo.scale(0.95, 0.85, 1.35);
+  const sheepHeadGeo = new THREE.BoxGeometry(0.22, 0.22, 0.34);
+  sheepHeadGeo.translate(0, 0.08, 0.14);
+  const sheepLegGeo = new THREE.CylinderGeometry(0.045, 0.038, 0.42, 6);
+  sheepLegGeo.translate(0, -0.21, 0);
+
+  disposableGeometries.push(
+    critterBodyGeo,
+    critterHeadGeo,
+    rabbitEarGeo,
+    squirrelTailGeo,
+    deerTorsoGeo,
+    deerNeckGeo,
+    deerHeadGeo,
+    deerLegGeo,
+    deerAntlerBranchGeo,
+    deerAntlerTineGeo,
+    sheepBodyGeo,
+    sheepHeadGeo,
+    sheepLegGeo
+  );
+
+  interface IAnimalMeshRig {
+    root: THREE.Group;
+    posePivot: THREE.Group;
+    headPivot?: THREE.Group;
+    legs?: THREE.Mesh[];
+  }
+  const animalMeshes: IAnimalMeshRig[] = [];
 
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
-    const isRabbit = a.species === 'rabbit';
-    const furMat = isRabbit ? rabbitFurMat : squirrelFurMat;
-
     const root = new THREE.Group();
-    root.position.set(a.x, a.y, a.z);
-    root.rotation.y = a.yaw;
+    const posePivot = new THREE.Group();
+    root.add(posePivot);
 
-    // Sculpted plump body
-    const torso = new THREE.Mesh(isRabbit ? rabbitTorsoGeo : sqTorsoGeo, furMat);
-    torso.position.set(0, isRabbit ? 0.21 : 0.16, 0);
-    torso.castShadow = true;
-    root.add(torso);
+    if (a.species === 'deer') {
+      const torso = new THREE.Mesh(deerTorsoGeo, deerCoatMat);
+      torso.position.y = 0.86;
+      const belly = new THREE.Mesh(deerTorsoGeo, deerBellyMat);
+      belly.scale.set(0.92, 0.55, 0.96);
+      belly.position.y = 0.78;
+      posePivot.add(torso, belly);
 
-    // Muscular haunches
-    const haunchGeo = isRabbit ? rabbitHaunchGeo : sqHaunchGeo;
-    for (const side of [-1, 1]) {
-      const haunch = new THREE.Mesh(haunchGeo, furMat);
-      haunch.position.set(side * (isRabbit ? 0.14 : 0.1), isRabbit ? 0.16 : 0.12, -0.09);
-      root.add(haunch);
-    }
+      const headPivot = new THREE.Group();
+      headPivot.position.set(0, 1.04, 0.48);
+      const neck = new THREE.Mesh(deerNeckGeo, deerCoatMat);
+      neck.position.set(0, 0.20, 0.08);
+      neck.rotation.x = 0.35;
+      const head = new THREE.Mesh(deerHeadGeo, deerCoatMat);
+      head.position.set(0, 0.44, 0.22);
 
-    // Head + Perking Ears
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, isRabbit ? 0.34 : 0.26, isRabbit ? 0.24 : 0.18);
-    const headMesh = new THREE.Mesh(isRabbit ? rabbitHeadGeo : sqHeadGeo, furMat);
-    headGroup.add(headMesh);
+      // Antlers on every deer so hunting deer visibly rewards antlers!
+      for (const side of [-1, 1]) {
+        const antlerBeam = new THREE.Mesh(deerAntlerBranchGeo, deerAntlerMat);
+        antlerBeam.position.set(side * 0.11, 0.68, 0.14);
+        antlerBeam.rotation.set(-0.25, 0, side * -0.42);
+        const tine1 = new THREE.Mesh(deerAntlerTineGeo, deerAntlerMat);
+        tine1.position.set(side * 0.16, 0.74, 0.22);
+        tine1.rotation.set(0.45, 0, side * -0.28);
+        const tine2 = new THREE.Mesh(deerAntlerTineGeo, deerAntlerMat);
+        tine2.position.set(side * 0.20, 0.82, 0.08);
+        tine2.rotation.set(-0.35, 0, side * -0.55);
+        headPivot.add(antlerBeam, tine1, tine2);
+      }
 
-    for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(critterEyeGeo, critterEyeMat);
-      eye.position.set(side * 0.08, 0.03, 0.08);
-      headGroup.add(eye);
-    }
+      headPivot.add(neck, head);
+      posePivot.add(headPivot);
 
-    const earGeo = isRabbit ? rabbitEarGeo : sqEarGeo;
-    const leftEar = new THREE.Mesh(earGeo, furMat);
-    leftEar.position.set(-0.055, isRabbit ? 0.18 : 0.1, -0.02);
-    const rightEar = new THREE.Mesh(earGeo, furMat);
-    rightEar.position.set(0.055, isRabbit ? 0.18 : 0.1, -0.02);
-    headGroup.add(leftEar, rightEar);
-    root.add(headGroup);
+      const fl = new THREE.Mesh(deerLegGeo, deerCoatMat);
+      fl.position.set(-0.16, 0.76, 0.38);
+      const fr = new THREE.Mesh(deerLegGeo, deerCoatMat);
+      fr.position.set(0.16, 0.76, 0.38);
+      const bl = new THREE.Mesh(deerLegGeo, deerCoatMat);
+      bl.position.set(-0.16, 0.76, -0.38);
+      const br = new THREE.Mesh(deerLegGeo, deerCoatMat);
+      br.position.set(0.16, 0.76, -0.38);
+      posePivot.add(fl, fr, bl, br);
 
-    // Tail (fluffy white cotton tail for rabbit, big curved bushy tail for squirrel)
-    let tail: THREE.Mesh;
-    if (isRabbit) {
-      tail = new THREE.Mesh(rabbitTailGeo, rabbitTailMat);
-      tail.position.set(0, 0.22, -0.28);
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({ root, posePivot, headPivot, legs: [fl, fr, bl, br] });
+    } else if (a.species === 'sheep') {
+      const body = new THREE.Mesh(sheepBodyGeo, sheepWoolMat);
+      body.position.y = 0.58;
+      posePivot.add(body);
+
+      const headPivot = new THREE.Group();
+      headPivot.position.set(0, 0.68, 0.48);
+      const head = new THREE.Mesh(sheepHeadGeo, sheepDarkMat);
+      headPivot.add(head);
+      posePivot.add(headPivot);
+
+      const sfl = new THREE.Mesh(sheepLegGeo, sheepDarkMat);
+      sfl.position.set(-0.15, 0.42, 0.28);
+      const sfr = new THREE.Mesh(sheepLegGeo, sheepDarkMat);
+      sfr.position.set(0.15, 0.42, 0.28);
+      const sbl = new THREE.Mesh(sheepLegGeo, sheepDarkMat);
+      sbl.position.set(-0.15, 0.42, -0.28);
+      const sbr = new THREE.Mesh(sheepLegGeo, sheepDarkMat);
+      sbr.position.set(0.15, 0.42, -0.28);
+      posePivot.add(sfl, sfr, sbl, sbr);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({ root, posePivot, headPivot, legs: [sfl, sfr, sbl, sbr] });
     } else {
-      tail = new THREE.Mesh(sqTailGeo, squirrelFurMat);
-      tail.position.set(0, 0.32, -0.22);
-      tail.rotation.x = 0.52;
-    }
-    root.add(tail);
+      const mat = a.species === 'rabbit' ? rabbitFurMat : squirrelFurMat;
+      const body = new THREE.Mesh(critterBodyGeo, mat);
+      body.position.set(0, 0.15, 0);
+      const head = new THREE.Mesh(critterHeadGeo, mat);
+      head.position.set(0, 0.24, 0.18);
+      posePivot.add(body, head);
 
-    group.add(root);
-    animalHandles.push({ root, headGroup, leftEar, rightEar, tail });
+      if (a.species === 'rabbit') {
+        const earL = new THREE.Mesh(rabbitEarGeo, mat);
+        earL.position.set(-0.045, 0.36, 0.16);
+        earL.rotation.x = -0.15;
+        const earR = new THREE.Mesh(rabbitEarGeo, mat);
+        earR.position.set(0.045, 0.36, 0.16);
+        earR.rotation.x = -0.15;
+        posePivot.add(earL, earR);
+      } else {
+        const tail = new THREE.Mesh(squirrelTailGeo, mat);
+        tail.position.set(0, 0.26, -0.22);
+        tail.rotation.x = 0.45;
+        posePivot.add(tail);
+      }
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({ root, posePivot });
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // 3. TEMPORARY FADING FOOTPRINTS & HORSE HOOFPRINTS TRAIL SYSTEM
-  // ---------------------------------------------------------------------------
-  const footprintTracker = createFootprintTrailTracker();
-  const decalHandles: Array<{
-    root: THREE.Group;
-    bootMesh: THREE.Mesh;
-    hoofMesh: THREE.Mesh;
-    mat: THREE.MeshStandardMaterial;
+  // --- 3. FOOTPRINT TRAIL RING-BUFFER DECALS ---
+  const footprintGeo = new THREE.PlaneGeometry(0.24, 0.42);
+  footprintGeo.rotateX(-Math.PI * 0.5);
+  disposableGeometries.push(footprintGeo);
+
+  const footprintPool: Array<{
+    mesh: THREE.Mesh;
+    mat: THREE.MeshBasicMaterial;
   }> = [];
 
-  // Boot footprint geometry (sole + heel indentation)
-  const bootPrintGeo = new THREE.PlaneGeometry(0.18, 0.36);
-  bootPrintGeo.rotateX(-Math.PI / 2);
-
-  // U-shaped horse hoofprint geometry (open torus ring lying flat on terrain)
-  const hoofPrintGeo = new THREE.RingGeometry(0.09, 0.17, 12, 1, 0.25, Math.PI * 1.5);
-  hoofPrintGeo.rotateX(-Math.PI / 2);
-
-  disposableGeometries?.push(bootPrintGeo, hoofPrintGeo);
-
   for (let i = 0; i < MAX_FOOTPRINT_DECALS; i++) {
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x2a1f16,
-      roughness: 0.96,
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x1e293b,
       transparent: true,
       opacity: 0,
       depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
     });
-    disposableMaterials?.push(mat);
-
-    const root = new THREE.Group();
-    root.visible = false;
-
-    const bootMesh = new THREE.Mesh(bootPrintGeo, mat);
-    const hoofMesh = new THREE.Mesh(hoofPrintGeo, mat);
-    root.add(bootMesh, hoofMesh);
-
-    group.add(root);
-    decalHandles.push({ root, bootMesh, hoofMesh, mat });
+    disposableMaterials.push(mat);
+    const mesh = new THREE.Mesh(footprintGeo, mat);
+    mesh.visible = false;
+    layerGroup.add(mesh);
+    footprintPool.push({ mesh, mat });
   }
 
-  // ---------------------------------------------------------------------------
-  // 4. MAJOR UPGRADE: INTERACTIVE FIREFLIES / FOREST POLLEN & MOUNTAIN EAGLE
-  // ---------------------------------------------------------------------------
-  const fireflyCount = 42;
-  const fireflyPositions = new Float32Array(fireflyCount * 3);
-  const fireflyOffsets: Array<{ dx: number; dy: number; dz: number; phase: number }> = [];
-  for (let i = 0; i < fireflyCount; i++) {
-    const angle = (i / fireflyCount) * Math.PI * 2;
-    const rad = 3.5 + (i % 7) * 2.8;
-    const dx = Math.cos(angle) * rad;
-    const dz = Math.sin(angle) * rad;
-    const dy = 0.8 + (i % 5) * 0.65;
-    fireflyOffsets.push({ dx, dy, dz, phase: i * 0.73 });
-    fireflyPositions[i * 3] = dx;
-    fireflyPositions[i * 3 + 1] = dy;
-    fireflyPositions[i * 3 + 2] = dz;
-  }
-  const fireflyGeo = new THREE.BufferGeometry();
-  fireflyGeo.setAttribute('position', new THREE.BufferAttribute(fireflyPositions, 3));
-  const fireflyMat = new THREE.PointsMaterial({
-    color: 0xc8ff64,
-    size: 0.22,
-    transparent: true,
-    opacity: 0.75,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  disposableGeometries?.push(fireflyGeo);
-  disposableMaterials?.push(fireflyMat);
-  const fireflyPoints = new THREE.Points(fireflyGeo, fireflyMat);
-  group.add(fireflyPoints);
-
-  // Majestic Golden Mountain Eagle soaring above the Northern Cliffs & Waterfall
-  const eagleGroup = new THREE.Group();
-  const eagleBodyMat = new THREE.MeshStandardMaterial({ color: 0x3b2616, roughness: 0.6 });
-  const eagleGoldMat = new THREE.MeshStandardMaterial({ color: 0xc8963e, roughness: 0.55 });
-  const eagleBeakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.38 });
-  disposableMaterials?.push(eagleBodyMat, eagleGoldMat, eagleBeakMat);
-  const eagleBody = new THREE.Mesh(bodyGeo, eagleBodyMat);
-  eagleBody.scale.set(2.2, 2.0, 2.4);
-  const eagleHead = new THREE.Mesh(breastGeo, eagleGoldMat);
-  eagleHead.position.set(0, 0.08, 0.55);
-  eagleHead.scale.setScalar(1.5);
-  const eagleBeak = new THREE.Mesh(bodyGeo, eagleBeakMat);
-  eagleBeak.scale.set(0.65, 0.65, 0.9);
-  eagleBeak.position.set(0, 0.06, 0.82);
-  const eagleTail = new THREE.Mesh(tailGeo, eagleBodyMat);
-  eagleTail.scale.set(2.4, 1.5, 2.2);
-  eagleTail.position.set(0, 0.02, -0.78);
-
-  const eagleLeftWingPivot = new THREE.Group();
-  eagleLeftWingPivot.position.set(-0.18, 0.06, 0.05);
-  const eagleLeftWing = new THREE.Mesh(wingInnerGeo, eagleBodyMat);
-  eagleLeftWing.scale.set(3.4, 1.4, 2.2);
-  eagleLeftWing.position.set(-0.68, 0, 0);
-  eagleLeftWingPivot.add(eagleLeftWing);
-
-  const eagleRightWingPivot = new THREE.Group();
-  eagleRightWingPivot.position.set(0.18, 0.06, 0.05);
-  const eagleRightWing = new THREE.Mesh(wingInnerGeo, eagleBodyMat);
-  eagleRightWing.scale.set(3.4, 1.4, 2.2);
-  eagleRightWing.position.set(0.68, 0, 0);
-  eagleRightWingPivot.add(eagleRightWing);
-
-  eagleGroup.add(eagleBody, eagleHead, eagleBeak, eagleTail, eagleLeftWingPivot, eagleRightWingPivot);
-  group.add(eagleGroup);
-
-  let soundStartleCooldown = 0;
-  let soundScamperCooldown = 0;
+  let soundCheckAccumulator = 0;
 
   return {
-    group,
     birds,
     animals,
-    footprintTracker,
-    update(dt, elapsed, playerState, horses, daylightFactor, callbacks) {
-      soundStartleCooldown = Math.max(0, soundStartleCooldown - dt);
-      soundScamperCooldown = Math.max(0, soundScamperCooldown - dt);
-
-      const playerSpeed = Math.hypot(playerState.vx, playerState.vz);
-      const wildlifeResult = stepBoidsAndWildlife(
-        birds,
-        animals,
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        playerSpeed,
-        dt
-      );
-
-      if (
-        wildlifeResult.startledFlockCount > 0 &&
-        soundStartleCooldown <= 0 &&
-        callbacks?.onBirdFlockStartled
-      ) {
-        soundStartleCooldown = 2.6;
-        callbacks.onBirdFlockStartled(
-          wildlifeResult.nearestBirdDist,
-          wildlifeResult.startledFlockCount
-        );
-      }
-
-      if (
-        wildlifeResult.scamperedCritterCount > 0 &&
-        soundScamperCooldown <= 0 &&
-        callbacks?.onCritterScampered
-      ) {
-        soundScamperCooldown = 1.8;
-        callbacks.onCritterScampered(wildlifeResult.nearestCritterDist, 'rabbit');
-      }
-
-      if (callbacks?.onAmbientWildlifeProximity) {
-        callbacks.onAmbientWildlifeProximity(
-          wildlifeResult.nearestBirdDist,
-          wildlifeResult.nearestCritterDist
-        );
-      }
-
-      // Sync Boids Bird Meshes
+    update: (
+      dt: number,
+      elapsedTime: number,
+      playerState: IPlayerState,
+      horses: readonly IRideableHorseState[],
+      daylightFactor: number,
+      soundCallbacks?: IWildlifeSoundCallbacks,
+      rainIntensity = 0
+    ) => {
+      // Track pre-step alert states so we can fire one-shot audio cues on transitions
+      let prevStartledBirds = 0;
       for (let i = 0; i < birds.length; i++) {
-        const b = birds[i];
-        const h = birdHandles[i];
-        const inView = isWithinViewDistance(b.x, b.z, playerState.x, playerState.z, 35);
-        h.root.visible = inView;
-        if (!inView) continue;
-
-        h.root.position.set(b.x, b.y, b.z);
-        h.root.rotation.order = 'YXZ';
-        h.root.rotation.y = b.yaw;
-        h.root.rotation.x = b.pitch;
-        h.root.rotation.z = b.bankRoll;
-
-        const wingFlap = Math.sin(b.wingPhase) * (b.fleeTimer > 0 ? 0.78 : 0.56);
-        h.leftWing.rotation.z = wingFlap;
-        h.rightWing.rotation.z = -wingFlap;
-        h.tailFan.scale.x = b.fleeTimer > 0 ? 1.45 : 1.1;
+        if (birds[i].startleTimer > 3.85) prevStartledBirds++;
       }
-
-      // Sync Small Forest Animal Meshes
+      const prevFleeingIds = new Set<number>();
       for (let i = 0; i < animals.length; i++) {
-        const a = animals[i];
-        const h = animalHandles[i];
-        const inView = isWithinViewDistance(a.x, a.z, playerState.x, playerState.z, 25);
-        h.root.visible = inView;
-        if (!inView) continue;
-
-        h.root.position.set(a.x, a.y, a.z);
-        h.root.rotation.y = a.yaw;
-
-        const isMoving = Math.hypot(a.vx, a.vz) > 0.12;
-        h.root.rotation.x = isMoving ? -Math.sin(a.hopPhase) * 0.24 : 0;
-        h.headGroup.rotation.x =
-          a.alertLevel === 'alert'
-            ? -0.28
-            : Math.sin(elapsed * 3.2 + i) * 0.08;
-
-        const earPitch = -0.55 + a.earPerk * 0.62;
-        h.leftEar.rotation.x = earPitch;
-        h.rightEar.rotation.x = earPitch;
-        h.leftEar.rotation.z = 0.18;
-        h.rightEar.rotation.z = -0.18;
-
-        if (a.species === 'squirrel') {
-          h.tail.rotation.x = 0.45 + Math.sin(elapsed * 7.5 + i) * 0.18;
+        if (animals[i].alertLevel === 'fleeing') {
+          prevFleeingIds.add(animals[i].id);
         }
       }
 
-      // Step & Sync Temporary Fading Footprints / Horse Hoofprints
-      const isMounted = Boolean(playerState.mountedHorseId);
-      const activeHorse = isMounted
-        ? horses.find((h) => h.id === playerState.mountedHorseId) ?? null
-        : null;
-      const headingYaw = activeHorse ? activeHorse.yaw : playerState.yaw;
-
+      stepBoidsAndWildlife(
+        dt,
+        elapsedTime,
+        birds,
+        animals,
+        playerState,
+        horses,
+        daylightFactor,
+        rainIntensity
+      );
       stepFootprintTrailSystem(
-        footprintTracker,
+        footprintState,
         playerState.x,
         playerState.y,
         playerState.z,
-        headingYaw,
+        playerState.yaw,
         playerState.onGround,
         playerState.isFlying,
         playerState.inWater,
-        isMounted,
+        Boolean(playerState.mountedHorseId),
         dt
       );
 
-      for (let i = 0; i < footprintTracker.decals.length; i++) {
-        const d = footprintTracker.decals[i];
-        const h = decalHandles[i];
-        if (!d.active || d.opacity <= 0.01) {
-          h.root.visible = false;
+      // Check for newly startled bird flock or scampering critter to trigger spatial sound
+      if (soundCallbacks) {
+        let newlyStartledCount = 0;
+        let minStartledBirdDist = Infinity;
+        let nearestBirdDist = Infinity;
+        for (let i = 0; i < birds.length; i++) {
+          const b = birds[i];
+          const d = Math.hypot(b.x - playerState.x, b.z - playerState.z);
+          if (!b.roosting && d < nearestBirdDist) nearestBirdDist = d;
+          if (b.startleTimer > 3.85) {
+            newlyStartledCount++;
+            if (d < minStartledBirdDist) minStartledBirdDist = d;
+          }
+        }
+        if (
+          newlyStartledCount > prevStartledBirds &&
+          minStartledBirdDist < 28 &&
+          soundCallbacks.onBirdFlockStartled
+        ) {
+          soundCallbacks.onBirdFlockStartled(minStartledBirdDist, newlyStartledCount);
+        }
+
+        let nearestCritterDist = Infinity;
+        for (let i = 0; i < animals.length; i++) {
+          const a = animals[i];
+          if (a.isDead) continue;
+          const d = Math.hypot(a.x - playerState.x, a.z - playerState.z);
+          if (!a.isResting && d < nearestCritterDist) nearestCritterDist = d;
+          if (
+            a.alertLevel === 'fleeing' &&
+            !prevFleeingIds.has(a.id) &&
+            d < 22 &&
+            soundCallbacks.onCritterScampered
+          ) {
+            soundCallbacks.onCritterScampered(
+              d,
+              a.species === 'squirrel' ? 'squirrel' : 'rabbit'
+            );
+          }
+        }
+
+        soundCheckAccumulator += dt;
+        if (soundCheckAccumulator >= 0.25) {
+          soundCheckAccumulator = 0;
+          soundCallbacks.onAmbientWildlifeProximity?.(nearestBirdDist, nearestCritterDist);
+        }
+      }
+
+      // Sync bird meshes
+      for (let i = 0; i < birds.length; i++) {
+        const b = birds[i];
+        const m = birdMeshes[i];
+        m.root.visible = !b.roosting;
+        if (b.roosting) continue;
+
+        m.root.position.set(b.x, b.y, b.z);
+        const yaw = Math.atan2(b.vx, b.vz);
+        const horizSpd = Math.hypot(b.vx, b.vz) || 1;
+        const pitch = -Math.atan2(b.vy, horizSpd) * 0.5;
+        m.root.rotation.set(pitch, yaw, 0, 'YXZ');
+
+        const flap = Math.sin(b.wingPhase) * 0.65;
+        m.leftWing.rotation.z = flap;
+        m.rightWing.rotation.z = -flap;
+      }
+
+      // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep)
+      for (let i = 0; i < animals.length; i++) {
+        const a = animals[i];
+        const rig = animalMeshes[i];
+
+        if (a.isLooted) {
+          rig.root.visible = false;
           continue;
         }
-        h.root.visible = true;
-        h.root.position.set(d.x, d.y, d.z);
-        h.root.rotation.y = d.yaw;
-        h.bootMesh.visible = d.kind === 'boot';
-        h.hoofMesh.visible = d.kind === 'hoof';
+        rig.root.visible = true;
 
-        if (d.surfaceTint === 'snow') {
-          h.mat.color.setHex(0x8fa6b8);
-        } else if (d.surfaceTint === 'sand') {
-          h.mat.color.setHex(0x8c6e46);
-        } else {
-          h.mat.color.setHex(0x281d14);
+        if (a.isDead) {
+          // Hunted animal: lies motionless on its side on top of the ground until looted with [E]
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0);
+          // Rotating posePivot +90 deg around Z maps local +Y (where torso/body sits) onto local -X.
+          // Offset posePivot by (+bodyLocalY, +bodyRadius, 0) so the corpse stays centered at (a.x, a.z)
+          // and rests cleanly on top of the ground without sinking underground!
+          if (a.species === 'deer') {
+            rig.posePivot.position.set(0.82, 0.28, 0);
+          } else if (a.species === 'sheep') {
+            rig.posePivot.position.set(0.56, 0.38, 0);
+          } else {
+            rig.posePivot.position.set(0.15, 0.14, 0);
+          }
+          rig.posePivot.rotation.set(0, 0, Math.PI * 0.5);
+          if (rig.legs) {
+            for (let l = 0; l < rig.legs.length; l++) {
+              rig.legs[l].rotation.x = 0;
+            }
+          }
+          continue;
         }
-        h.mat.opacity = d.opacity;
+
+        const moveSpd = Math.hypot(a.vx, a.vz);
+        if (a.isResting) {
+          // Sleeping at night or huddled under tree canopy during rain
+          const sleepDrop = a.species === 'deer' ? -0.38 : a.species === 'sheep' ? -0.22 : -0.05;
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0);
+          rig.posePivot.position.set(0, sleepDrop, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          if (rig.headPivot) {
+            rig.headPivot.rotation.x = 0.42 + Math.sin(elapsedTime * 1.4 + i) * 0.04;
+          }
+          if (rig.legs) {
+            for (let l = 0; l < rig.legs.length; l++) {
+              rig.legs[l].rotation.x = l < 2 ? 1.15 : -1.15;
+            }
+          }
+        } else if (a.species === 'deer' || a.species === 'sheep') {
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0);
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const strideAmp = moveSpd > 0.2 ? Math.min(0.55, moveSpd * 0.12) : 0;
+          const stride = Math.sin(a.hopPhase) * strideAmp;
+          if (rig.legs && rig.legs.length === 4) {
+            rig.legs[0].rotation.x = stride;
+            rig.legs[1].rotation.x = -stride;
+            rig.legs[2].rotation.x = -stride;
+            rig.legs[3].rotation.x = stride;
+          }
+          if (rig.headPivot) {
+            rig.headPivot.rotation.x =
+              a.alertLevel === 'fleeing'
+                ? -0.15
+                : Math.sin(elapsedTime * 1.2 + i) * 0.14 + 0.12;
+          }
+        } else {
+          const hopHeight =
+            moveSpd > 0.35 ? Math.max(0, Math.sin(a.hopPhase)) * 0.22 : 0;
+          rig.root.position.set(a.x, a.y + hopHeight, a.z);
+          rig.root.rotation.set(
+            hopHeight > 0.02 ? -0.18 : 0,
+            a.yaw,
+            0,
+            'YXZ'
+          );
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+        }
       }
 
-      // Update Interactive Fireflies (Dusk/Night) & Sunlit Forest Pollen Motes (Day)
-      const isNightOrDusk = daylightFactor < 0.55;
-      fireflyMat.color.setHex(isNightOrDusk ? 0xb8ff58 : 0xffe494);
-      fireflyMat.size = isNightOrDusk ? 0.25 : 0.15;
-      fireflyMat.opacity = isNightOrDusk
-        ? 0.65 + 0.25 * Math.sin(elapsed * 3.0)
-        : 0.38;
-
-      const posAttr = fireflyGeo.getAttribute('position') as THREE.BufferAttribute;
-      for (let i = 0; i < fireflyCount; i++) {
-        const off = fireflyOffsets[i];
-        const swirl = elapsed * (isNightOrDusk ? 0.85 : 0.45) + off.phase;
-        const fx = playerState.x + off.dx + Math.cos(swirl) * 1.4;
-        const fz = playerState.z + off.dz + Math.sin(swirl * 0.9) * 1.4;
-        const fy =
-          playerState.y +
-          off.dy +
-          Math.sin(elapsed * 2.1 + off.phase) * 0.45;
-        posAttr.setXYZ(i, fx, fy, fz);
+      // Sync active footprints
+      const activePrints = footprintState.decals;
+      for (let i = 0; i < MAX_FOOTPRINT_DECALS; i++) {
+        const slot = footprintPool[i];
+        const fp = activePrints[i];
+        if (fp && fp.active) {
+          slot.mesh.visible = true;
+          slot.mesh.position.set(fp.x, fp.y, fp.z);
+          slot.mesh.rotation.y = fp.yaw;
+          const scale = fp.kind === 'hoof' ? 1.45 : 1.0;
+          slot.mesh.scale.set(scale, 1, scale);
+          slot.mat.opacity = fp.opacity;
+          slot.mat.color.setHex(fp.surfaceTint === 'snow' ? 0x64748b : 0x292524);
+        } else {
+          slot.mesh.visible = false;
+        }
       }
-      posAttr.needsUpdate = true;
-
-      // Update Soaring Mountain Golden Eagle above Northern Cliffs
-      const eagleAngle = elapsed * 0.18;
-      const eagleX = -15.0 + Math.cos(eagleAngle) * 55.0;
-      const eagleZ = -85.0 + Math.sin(eagleAngle) * 42.0;
-      const cliffY = heightAt(eagleX, eagleZ);
-      eagleGroup.position.set(
-        eagleX,
-        Math.max(46.0, cliffY + 24.0) + Math.sin(elapsed * 0.9) * 2.5,
-        eagleZ
-      );
-      const eagleVx = -Math.sin(eagleAngle) * 55.0;
-      const eagleVz = Math.cos(eagleAngle) * 42.0;
-      eagleGroup.rotation.order = 'YXZ';
-      eagleGroup.rotation.y = Math.atan2(eagleVx, eagleVz);
-      eagleGroup.rotation.z = -0.24;
-      const slowFlap = Math.sin(elapsed * 3.2) * 0.24;
-      eagleLeftWingPivot.rotation.z = 0.08 + slowFlap;
-      eagleRightWingPivot.rotation.z = -0.08 - slowFlap;
     },
   };
 }

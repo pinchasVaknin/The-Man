@@ -32,6 +32,11 @@ import {
 } from './SkyrimInventoryModal';
 import { renderItemSvgIcon } from './itemArtworkRegistry';
 import { useTelemetry } from '../core/telemetryStore';
+import {
+  formatKeyCodeLabel,
+  SAVED_GAME_SETTINGS,
+  type IGameSettingsConfig,
+} from '../config/savedGameSettings';
 
 /**
  * Summary: Props contract for GameShellOverlay heads-up display.
@@ -42,6 +47,7 @@ export interface IGameShellOverlayProps {
   telemetry?: ITelemetrySnapshot;
   muted: boolean;
   weatherToggle: WeatherToggleOption;
+  gameSettings?: IGameSettingsConfig;
   onStartGame: () => void;
   onResumeGame: () => void;
   onReturnToTitle: () => void;
@@ -50,6 +56,7 @@ export interface IGameShellOverlayProps {
   onCycleWeather: () => void;
   onSelectWeather: (option: WeatherToggleOption) => void;
   onOpenLab: () => void;
+  onOpenSettings?: () => void;
   virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
   gameActions?: IGameActions | null;
 }
@@ -82,15 +89,18 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   gameState,
   telemetry: externalTelemetry,
   weatherToggle,
+  gameSettings = SAVED_GAME_SETTINGS,
   onStartGame,
   onResumeGame,
   onReturnToTitle,
   onCycleWeather,
   onSelectWeather,
   onOpenLab,
+  onOpenSettings,
   virtualMoveRef,
   gameActions,
 }) => {
+  const kb = gameSettings.keybindings;
   const storeTelemetry = useTelemetry();
   const telemetry = externalTelemetry ?? storeTelemetry;
   const [skyrimModal, setSkyrimModal] = useState<SkyrimModalMode>('none');
@@ -226,13 +236,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState !== 'playing') return;
 
-      if (e.code === 'Tab') {
+      if (e.code === kb.inventoryModal) {
         e.preventDefault();
         setSkyrimModal((prev) => (prev === 'inventory' ? 'none' : 'inventory'));
         return;
       }
 
-      if (e.code === 'KeyB' && !e.repeat) {
+      if (e.code === kb.marketModal && !e.repeat) {
         if (!telemetry.nearbyMarket) return;
         e.preventDefault();
         if (skyrimModal === 'inventory' && selectedCategory === 'market') {
@@ -245,17 +255,28 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         return;
       }
 
-      if (e.code === 'KeyQ' && !e.repeat) {
+      if (e.code === kb.favoritesModal && !e.repeat) {
         e.preventDefault();
         setSkyrimModal((prev) => (prev === 'favorites' ? 'none' : 'favorites'));
         return;
       }
 
       if (skyrimModal !== 'none') {
-        if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4') {
+        if (
+          e.code === kb.hotbarSlot1 ||
+          e.code === kb.hotbarSlot2 ||
+          e.code === kb.hotbarSlot3 ||
+          e.code === kb.hotbarSlot4
+        ) {
           e.preventDefault();
           const slotIdx =
-            e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : e.code === 'Digit3' ? 2 : 3;
+            e.code === kb.hotbarSlot1
+              ? 0
+              : e.code === kb.hotbarSlot2
+                ? 1
+                : e.code === kb.hotbarSlot3
+                  ? 2
+                  : 3;
           triggerAssignHotbar(slotIdx, selectedItemId);
           return;
         }
@@ -264,7 +285,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           triggerToggleFavorite(selectedItemId);
           return;
         }
-        if ((e.code === 'Enter' || e.code === 'KeyE') && !e.repeat) {
+        if ((e.code === 'Enter' || e.code === kb.interactDoor) && !e.repeat) {
           e.preventDefault();
           if (isItemOwned(selectedItemId)) {
             triggerEquipItem(selectedItemId);
@@ -278,7 +299,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket]);
+  }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket, kb]);
 
   // ============================================================================
   // 1. TITLE SCREEN OVERLAY ("the man" — Right-Aligned Typographic Menu)
@@ -408,7 +429,37 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </span>
             </button>
 
-            {/* 3. Weather Cycle Text Button */}
+            {/* 3. Settings & Keybindings Text Button */}
+            <button
+              type="button"
+              data-testid="open-settings-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onOpenSettings?.();
+              }}
+              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+              />
+              <span
+                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+              >
+                הגדרות (Settings)
+              </span>
+            </button>
+
+            {/* 4. Weather Cycle Text Button */}
             <button
               type="button"
               data-testid="weather-toggle-btn"
@@ -719,12 +770,28 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             </div>
           </div>
 
-          {/* Top-Center Combat & Level-Up Toasts (Well above the center view!) */}
-          {(telemetry.lastArrowHitTargetName || telemetry.skills?.lastLevelUpTitle) && (
+          {/* Top-Center Combat, Hunting Loot & Level-Up Toasts (Well above the center view!) */}
+          {(telemetry.lastArrowHitTargetName ||
+            telemetry.lootNotificationHe ||
+            telemetry.skills?.lastLevelUpTitle) && (
             <div
               className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
               aria-hidden="true"
             >
+              {telemetry.lootNotificationHe && (
+                <div
+                  data-testid="hunting-loot-toast"
+                  dir="rtl"
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold text-emerald-200 whitespace-nowrap shadow-xl"
+                  style={{
+                    backgroundColor: 'rgba(6, 28, 20, 0.92)',
+                    border: '1px solid rgba(52, 211, 153, 0.65)',
+                  }}
+                >
+                  {telemetry.lootNotificationHe}
+                </div>
+              )}
+
               {telemetry.lastArrowHitTargetName && (
                 <div
                   data-testid="archery-hit-toast"
@@ -756,6 +823,42 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             className="fixed right-4 bottom-36 md:right-6 md:bottom-8 z-20 pointer-events-none flex flex-col items-end gap-2"
             aria-hidden="true"
           >
+            {telemetry.isCrouching && !telemetry.isSwimming && (
+              <div
+                data-testid="stealth-crouch-badge"
+                dir="rtl"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-emerald-200 shadow-xl"
+                style={{
+                  backgroundColor: 'rgba(10, 22, 18, 0.88)',
+                  border: '1px solid rgba(52, 211, 153, 0.5)',
+                }}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-semibold text-xs">מצב התגנבות · שקט</span>
+              </div>
+            )}
+
+            {telemetry.nearbyDeadAnimal && (
+              <div
+                data-testid="loot-animal-prompt"
+                dir="rtl"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(12, 26, 18, 0.92)',
+                  border: '1px solid rgba(52, 211, 153, 0.72)',
+                }}
+              >
+                <kbd
+                  dir="ltr"
+                  className="px-2 py-0.5 rounded-md bg-emerald-400 text-stone-950 font-mono-tabular font-bold text-xs shadow"
+                >
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold text-xs text-emerald-100">
+                  אסוף שלל ציד ({telemetry.nearbyDeadAnimal.speciesNameHe})
+                </span>
+              </div>
+            )}
             {telemetry.nearbyMarket && (
               <div
                 data-testid="market-stall-prompt"
@@ -766,7 +869,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
-                  B
+                  {formatKeyCodeLabel(kb.marketModal)}
                 </kbd>
                 <span className="font-semibold text-xs text-amber-100">
                   {t('market.hud.buy_and_sell_weapons', {
@@ -787,7 +890,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
-                  E
+                  {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-sm text-amber-100">
                   {telemetry.nearbyDoor.isOpen ? 'Close' : 'Open'}
@@ -806,7 +909,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
-                  Space
+                  {formatKeyCodeLabel(kb.jump)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-sm text-amber-100">
                   Climb
@@ -827,7 +930,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   }}
                 >
                   <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
-                    F
+                    {formatKeyCodeLabel(kb.mountHorse)}
                   </kbd>
                   <span className="font-semibold tracking-wide text-sm text-amber-100">
                     {telemetry.mountedHorseId ? 'Dismount' : 'Ride Horse'}
@@ -1019,8 +1122,45 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             </div>
 
+            {/* Visual Collider Wireframe Debug Toggle */}
+            <div
+              className="p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs text-stone-300"
+              style={{
+                backgroundColor: 'rgba(30, 26, 22, 0.9)',
+                border: telemetry.colliderDebugVisible
+                  ? '1px solid rgba(56, 189, 248, 0.55)'
+                  : '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-amber-200">
+                  מצב דיבאג התנגשויות (Collider Wireframes)
+                </span>
+                <span className="text-[11px] text-stone-400">
+                  מציג קווי מתאר תלת-ממדיים של קירות, מדרגות, מעקות ועצמים (קיצור: F3)
+                </span>
+              </div>
+              <button
+                type="button"
+                data-testid="toggle-collider-debug-btn"
+                onClick={() => {
+                  const win = window as unknown as {
+                    toggleColliderDebug?: () => boolean;
+                  };
+                  win.toggleColliderDebug?.();
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+                  telemetry.colliderDebugVisible
+                    ? 'bg-sky-400 text-stone-950'
+                    : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                }`}
+              >
+                {telemetry.colliderDebugVisible ? 'פעיל (F3)' : 'כבוי (F3)'}
+              </button>
+            </div>
+
             {/* Primary Modal Actions */}
-            <div className="flex items-center justify-between gap-3 pt-2 border-t border-stone-800">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-stone-800">
               <button
                 type="button"
                 data-start="true"
@@ -1028,6 +1168,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="flex-1 py-3 px-5 rounded-xl text-sm font-semibold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer whitespace-nowrap"
               >
                 {t('ui.resume_walking')}
+              </button>
+              <button
+                type="button"
+                data-testid="pause-open-settings-btn"
+                onClick={() => onOpenSettings?.()}
+                className="py-3 px-4 rounded-xl text-sm font-medium text-amber-200 hover:text-white bg-stone-800 hover:bg-stone-700 border border-amber-500/35 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                הגדרות (Settings)
               </button>
               <button
                 type="button"

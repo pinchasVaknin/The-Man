@@ -17,6 +17,8 @@ import {
   IPlayerState,
   computeFirstPersonSwordAttackPose,
 } from '../terrainMath';
+import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
+import { DEFAULT_LAB_POSE_OVERRIDES, type ILabPoseOverrides } from '../../lab/labCatalog';
 
 /**
  * Summary: Construction context for player avatar, bow, sword, and projectile systems.
@@ -178,66 +180,80 @@ export function buildPlayerAndCombatSystems(
     arrowMeshPool.push(am);
   }
 
-  // 10C) HIGH-QUALITY ARTICULATED 3D RANGER CHARACTER & PROPER RECURVE BOW RIG
+  // 10C) HIGH-QUALITY ARTICULATED 3D LOTR RANGER CHARACTER & PROPER RECURVE BOW RIG
   const playerCharacterGroup = new THREE.Group();
   const rangerBodyGroup = new THREE.Group();
   const rangerUpperTorsoPivot = new THREE.Group();
   rangerUpperTorsoPivot.position.set(0, 0.92, 0);
 
-  const rangerSkinMat = new THREE.MeshStandardMaterial({ color: 0xe8be9e, roughness: 0.58 });
-  const rangerHairMat = new THREE.MeshStandardMaterial({ color: 0x3b2314, roughness: 0.78 });
-  const rangerTunicMat = new THREE.MeshStandardMaterial({ color: 0x1e4d3b, roughness: 0.72 });
+  const rangerSkinMat = new THREE.MeshStandardMaterial({ color: 0xdfb18b, roughness: 0.56 });
+  const rangerHairMat = new THREE.MeshStandardMaterial({ color: 0x2c1b10, roughness: 0.78 });
+  const rangerBeardMat = new THREE.MeshStandardMaterial({ color: 0x24150b, roughness: 0.84 });
+  const rangerTunicMat = new THREE.MeshStandardMaterial({ color: 0x3e2a1b, roughness: 0.65 });
   const rangerCloakMat = new THREE.MeshStandardMaterial({
-    color: 0x143829,
-    roughness: 0.82,
+    color: 0x2e3627,
+    roughness: 0.84,
     side: THREE.DoubleSide,
   });
-  const rangerLeatherMat = new THREE.MeshStandardMaterial({ color: 0x5c3818, roughness: 0.52 });
-  const rangerDarkLeatherMat = new THREE.MeshStandardMaterial({ color: 0x36200d, roughness: 0.58 });
-  const rangerPantsMat = new THREE.MeshStandardMaterial({ color: 0x2c3539, roughness: 0.78 });
+  const rangerLeatherMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.52 });
+  const rangerDarkLeatherMat = new THREE.MeshStandardMaterial({ color: 0x29180c, roughness: 0.58 });
+  const rangerChainmailMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    roughness: 0.36,
+    metalness: 0.82,
+  });
+  const rangerEmblemMat = new THREE.MeshStandardMaterial({
+    color: 0xcbd5e1,
+    roughness: 0.25,
+    metalness: 0.78,
+  });
+  const rangerPantsMat = new THREE.MeshStandardMaterial({ color: 0x24201c, roughness: 0.8 });
   const bowWoodMat = new THREE.MeshStandardMaterial({
     color: 0x7c3f14,
     roughness: 0.36,
     metalness: 0.08,
   });
   const bowHornMat = new THREE.MeshStandardMaterial({
-    color: 0xd9a838,
+    color: 0xb48a48,
     roughness: 0.28,
-    metalness: 0.65,
+    metalness: 0.78,
   });
   const bowStringMat = new THREE.MeshBasicMaterial({ color: 0xfef3c7 });
   disposableMaterials.push(
     rangerSkinMat,
     rangerHairMat,
+    rangerBeardMat,
     rangerTunicMat,
     rangerCloakMat,
     rangerLeatherMat,
     rangerDarkLeatherMat,
+    rangerChainmailMat,
+    rangerEmblemMat,
     rangerPantsMat,
     bowWoodMat,
     bowHornMat,
     bowStringMat
   );
 
-  // Sculpted Torso, Belt, Baldric Strap, Cloak & Quiver (relative to rangerUpperTorsoPivot at y = 0.92)
-  const rPelvisGeo = new THREE.CylinderGeometry(0.18, 0.17, 0.22, 10);
-  const rChestGeo = new THREE.CylinderGeometry(0.22, 0.18, 0.52, 10);
-  const rShoulderMantleGeo = new THREE.CylinderGeometry(0.26, 0.29, 0.18, 10);
-  const rBeltGeo = new THREE.CylinderGeometry(0.19, 0.19, 0.08, 10);
-  const rBaldricGeo = new THREE.BoxGeometry(0.08, 0.56, 0.34);
-  const rNeckGeo = new THREE.CylinderGeometry(0.075, 0.085, 0.14, 8);
-  const rHeadGeo = new THREE.SphereGeometry(0.145, 14, 14);
-  const rHairCapGeo = new THREE.SphereGeometry(0.154, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62);
-  const rCloakBackGeo = new THREE.PlaneGeometry(0.46, 0.74, 4, 6);
-  const rQuiverTubeGeo = new THREE.CylinderGeometry(0.068, 0.055, 0.52, 8);
+  // Sculpted Torso, Chainmail Skirt, Belt, Baldric Strap, Gondor Cloak & Quiver (relative to rangerUpperTorsoPivot at y = 0.92)
+  const rPelvisGeo = new THREE.CylinderGeometry(0.185, 0.21, 0.24, 12);
+  const rChestGeo = new THREE.CylinderGeometry(0.225, 0.19, 0.52, 12);
+  const rShoulderMantleGeo = new THREE.CylinderGeometry(0.26, 0.305, 0.19, 12);
+  const rBeltGeo = new THREE.CylinderGeometry(0.202, 0.202, 0.085, 12);
+  const rBaldricGeo = new THREE.BoxGeometry(0.075, 0.58, 0.37);
+  const rNeckGeo = new THREE.CylinderGeometry(0.074, 0.084, 0.14, 8);
+  const rHeadGeo = new THREE.SphereGeometry(0.144, 14, 14);
+  const rHairCapGeo = new THREE.SphereGeometry(0.156, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.58);
+  const rCloakBackGeo = new THREE.BoxGeometry(0.5, 0.92, 0.03);
+  const rQuiverTubeGeo = new THREE.CylinderGeometry(0.064, 0.052, 0.5, 8);
   const rUpperArmGeo = new THREE.CylinderGeometry(0.068, 0.058, 0.30, 8);
   const rForearmGeo = new THREE.CylinderGeometry(0.058, 0.048, 0.28, 8);
   const rHandGeo = new THREE.SphereGeometry(0.052, 8, 8);
   const rThighGeo = new THREE.CylinderGeometry(0.095, 0.078, 0.44, 8);
   rThighGeo.translate(0, -0.22, 0);
-  const rBootGeo = new THREE.CylinderGeometry(0.078, 0.068, 0.44, 8);
+  const rBootGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.44, 8);
   rBootGeo.translate(0, -0.64, 0);
-  const rFootGeo = new THREE.BoxGeometry(0.12, 0.08, 0.24);
+  const rFootGeo = new THREE.BoxGeometry(0.125, 0.085, 0.25);
   rFootGeo.translate(0, -0.86, -0.04);
 
   // Sculpted Recurve Bow Geometries (Held vertically in the Left Hand, facing -Z)
@@ -272,26 +288,84 @@ export function buildPlayerAndCombatSystems(
     bowStringSegGeo
   );
 
-  const pelvisMesh = new THREE.Mesh(rPelvisGeo, rangerTunicMat);
-  pelvisMesh.position.y = 0.02;
+  const pelvisMesh = new THREE.Mesh(rPelvisGeo, rangerChainmailMat);
+  pelvisMesh.position.y = -0.06;
+  const skirtFlapGeo = new THREE.BoxGeometry(0.17, 0.25, 0.34);
+  const pouchGeo = new THREE.BoxGeometry(0.075, 0.095, 0.065);
+  const hoodFoldGeo = new THREE.TorusGeometry(0.165, 0.056, 8, 14);
+  const claspDiscGeo = new THREE.CylinderGeometry(0.032, 0.032, 0.016, 10);
+  claspDiscGeo.rotateX(Math.PI / 2);
+  const scabbardBodyGeo = new THREE.BoxGeometry(0.032, 0.66, 0.065);
+  const treeTrunkGeo = new THREE.BoxGeometry(0.018, 0.24, 0.008);
+  const treeBranchGeo = new THREE.BoxGeometry(0.14, 0.01, 0.008);
+  const jawBeardGeo = new THREE.SphereGeometry(0.146, 12, 8, 0, Math.PI * 2, Math.PI * 0.48, Math.PI * 0.45);
+  const hairBackDrapeGeo = new THREE.BoxGeometry(0.25, 0.26, 0.09);
+  disposableGeometries.push(
+    skirtFlapGeo,
+    pouchGeo,
+    hoodFoldGeo,
+    claspDiscGeo,
+    scabbardBodyGeo,
+    treeTrunkGeo,
+    treeBranchGeo,
+    jawBeardGeo,
+    hairBackDrapeGeo
+  );
+
+  const skirtFlapL = new THREE.Mesh(skirtFlapGeo, rangerTunicMat);
+  skirtFlapL.position.set(-0.095, -0.03, 0);
+  skirtFlapL.rotation.z = 0.06;
+  const skirtFlapR = new THREE.Mesh(skirtFlapGeo, rangerTunicMat);
+  skirtFlapR.position.set(0.095, -0.03, 0);
+  skirtFlapR.rotation.z = -0.06;
+
   const beltMesh = new THREE.Mesh(rBeltGeo, rangerDarkLeatherMat);
   beltMesh.position.y = 0.08;
-  const buckleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.04), bowHornMat);
-  buckleMesh.position.set(0, 0.08, -0.19);
+  const buckleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.085, 0.038), bowHornMat);
+  buckleMesh.position.set(0, 0.08, -0.198);
+  const pouchL = new THREE.Mesh(pouchGeo, rangerLeatherMat);
+  pouchL.position.set(-0.14, 0.05, -0.155);
+  pouchL.rotation.y = 0.45;
+  const pouchR = new THREE.Mesh(pouchGeo, rangerLeatherMat);
+  pouchR.position.set(0.15, 0.05, -0.145);
+  pouchR.rotation.y = -0.45;
+
+  const scabbardMesh = new THREE.Mesh(scabbardBodyGeo, rangerDarkLeatherMat);
+  scabbardMesh.position.set(-0.21, -0.26, 0.02);
+  scabbardMesh.rotation.set(0.32, 0, 0.14);
+
   const chestMesh = new THREE.Mesh(rChestGeo, rangerTunicMat);
   chestMesh.position.y = 0.34;
   const mantleMesh = new THREE.Mesh(rShoulderMantleGeo, rangerCloakMat);
   mantleMesh.position.y = 0.54;
+  const hoodFoldMesh = new THREE.Mesh(hoodFoldGeo, rangerCloakMat);
+  hoodFoldMesh.rotation.x = Math.PI / 2 + 0.18;
+  hoodFoldMesh.position.set(0, 0.61, 0.03);
+  const claspL = new THREE.Mesh(claspDiscGeo, bowHornMat);
+  claspL.position.set(-0.058, 0.53, -0.215);
+  const claspR = new THREE.Mesh(claspDiscGeo, bowHornMat);
+  claspR.position.set(0.058, 0.53, -0.215);
+
   const baldricMesh = new THREE.Mesh(rBaldricGeo, rangerLeatherMat);
   baldricMesh.position.set(0, 0.34, 0);
   baldricMesh.rotation.z = 0.52;
+
   const cloakBackMesh = new THREE.Mesh(rCloakBackGeo, rangerCloakMat);
-  cloakBackMesh.position.set(0, 0.20, 0.21);
-  cloakBackMesh.rotation.x = 0.12;
+  cloakBackMesh.position.set(0, 0.16, 0.22);
+  cloakBackMesh.rotation.x = 0.08;
+  const treeTrunkMesh = new THREE.Mesh(treeTrunkGeo, rangerEmblemMat);
+  treeTrunkMesh.position.set(0, 0.04, 0.02);
+  const treeBranchL = new THREE.Mesh(treeBranchGeo, rangerEmblemMat);
+  treeBranchL.position.set(-0.045, 0.11, 0.02);
+  treeBranchL.rotation.z = -0.35;
+  const treeBranchR = new THREE.Mesh(treeBranchGeo, rangerEmblemMat);
+  treeBranchR.position.set(0.045, 0.11, 0.02);
+  treeBranchR.rotation.z = 0.35;
+  cloakBackMesh.add(treeTrunkMesh, treeBranchL, treeBranchR);
 
   // Leather Back Quiver with 4 visible feathered arrows
   const quiverGroup = new THREE.Group();
-  quiverGroup.position.set(0.11, 0.38, 0.22);
+  quiverGroup.position.set(0.11, 0.38, 0.24);
   quiverGroup.rotation.z = -0.38;
   quiverGroup.rotation.x = -0.12;
   quiverGroup.add(new THREE.Mesh(rQuiverTubeGeo, rangerLeatherMat));
@@ -304,13 +378,13 @@ export function buildPlayerAndCombatSystems(
 
   // Stowed Recurve Bow mounted diagonally on the Ranger's Back
   const stowedBackBowGroup = new THREE.Group();
-  stowedBackBowGroup.position.set(-0.04, 0.36, 0.24);
+  stowedBackBowGroup.position.set(-0.04, 0.36, 0.25);
   stowedBackBowGroup.rotation.set(0.12, Math.PI * 0.5, 0.58);
   const stowedRiser = new THREE.Mesh(bowRiserGeo, bowWoodMat);
   const stowedUpperLimb = new THREE.Mesh(bowLimbGeo, bowWoodMat);
   stowedUpperLimb.position.set(0, 0.36, 0.03);
   stowedUpperLimb.rotation.x = -0.14;
-  const stowedLowerLimb = new THREE.Mesh(bowLimbGeo, bowWoodMat);
+  const stowedLowerLimb = new THREE.Mesh(bowLimbGeo, bowLimbGeo ? bowWoodMat : bowWoodMat);
   stowedLowerLimb.position.set(0, -0.36, 0.03);
   stowedLowerLimb.rotation.x = 0.14;
   const stowedString = new THREE.Mesh(
@@ -321,24 +395,39 @@ export function buildPlayerAndCombatSystems(
   stowedBackBowGroup.add(stowedRiser, stowedUpperLimb, stowedLowerLimb, stowedString);
   stowedBackBowGroup.visible = false;
 
-  // Head & Hair Pivot
+  // Head, Wavy Shoulder-Length Chestnut Hair & Short Rugged Beard Pivot
   const rangerHeadGroup = new THREE.Group();
   rangerHeadGroup.position.set(0, 0.62, 0);
   const neckMesh = new THREE.Mesh(rNeckGeo, rangerSkinMat);
   neckMesh.position.y = 0.04;
   const headSphere = new THREE.Mesh(rHeadGeo, rangerSkinMat);
+  headSphere.scale.set(0.95, 1.06, 0.98);
   headSphere.position.y = 0.16;
+  const jawBeardMesh = new THREE.Mesh(jawBeardGeo, rangerBeardMat);
+  jawBeardMesh.scale.set(0.95, 1.02, 1.03);
+  jawBeardMesh.position.set(0, 0.148, -0.008);
   const hairCap = new THREE.Mesh(rHairCapGeo, rangerHairMat);
-  hairCap.position.set(0, 0.17, 0.015);
-  hairCap.rotation.x = 0.25;
-  rangerHeadGroup.add(neckMesh, headSphere, hairCap);
+  hairCap.position.set(0, 0.175, 0.012);
+  hairCap.rotation.x = 0.2;
+  const hairBackDrape = new THREE.Mesh(hairBackDrapeGeo, rangerHairMat);
+  hairBackDrape.position.set(0, 0.09, 0.11);
+  hairBackDrape.rotation.x = 0.16;
+  rangerHeadGroup.add(neckMesh, headSphere, jawBeardMesh, hairCap, hairBackDrape);
 
   rangerBodyGroup.add(
     pelvisMesh,
+    skirtFlapL,
+    skirtFlapR,
     beltMesh,
     buckleMesh,
+    pouchL,
+    pouchR,
+    scabbardMesh,
     chestMesh,
     mantleMesh,
+    hoodFoldMesh,
+    claspL,
+    claspR,
     baldricMesh,
     cloakBackMesh,
     quiverGroup,
@@ -349,14 +438,14 @@ export function buildPlayerAndCombatSystems(
 
   // LEFT ARM & PROPER RECURVE BOW GRIP
   const rangerLeftArmGroup = new THREE.Group();
-  rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
-  const lUpperArm = new THREE.Mesh(rUpperArmGeo, rangerTunicMat);
+  rangerLeftArmGroup.position.set(-0.26, 0.52, 0);
+  const lUpperArm = new THREE.Mesh(rUpperArmGeo, rangerChainmailMat);
   lUpperArm.position.set(0, -0.04, -0.14);
   lUpperArm.rotation.x = Math.PI / 2;
   const lForearm = new THREE.Mesh(rForearmGeo, rangerLeatherMat);
   lForearm.position.set(0, -0.04, -0.40);
   lForearm.rotation.x = Math.PI / 2;
-  const lHand = new THREE.Mesh(rHandGeo, rangerSkinMat);
+  const lHand = new THREE.Mesh(rHandGeo, rangerDarkLeatherMat);
   lHand.position.set(0, -0.04, -0.56);
   rangerLeftArmGroup.add(lUpperArm, lForearm, lHand);
 
@@ -1310,30 +1399,39 @@ export function buildPlayerAndCombatSystems(
       rangerRightLeg.visible = false;
       fpViewModelGroup.visible = true;
 
+      const isFlying = Boolean(playerState.isFlying);
+      const isCrouching =
+        !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
+      const crouchOffset = isCrouching ? -0.48 : 0;
       const saddleHeightBonus = isMounted ? 0.68 : 0;
-      const bobScale = isMounted ? 0.014 : isSwim ? 0.042 : 0.048;
-      const bobY = isMounted
-        ? Math.sin(playerState.bobPhase) * bobScale * playerState.bobAmount
-        : Math.sin(playerState.bobPhase * 2) * bobScale * playerState.bobAmount;
-      const bobRoll =
-        Math.cos(playerState.bobPhase) * (isMounted ? 0.0025 : 0.006) * playerState.bobAmount;
+      const bobScale = isFlying ? 0 : isMounted ? 0.014 : isSwim ? 0.042 : isCrouching ? 0.024 : 0.048;
+      const bobY = isFlying
+        ? 0
+        : isMounted
+          ? Math.sin(playerState.bobPhase) * bobScale * playerState.bobAmount
+          : Math.sin(playerState.bobPhase * 2) * bobScale * playerState.bobAmount;
+      const bobRoll = isFlying
+        ? 0
+        : Math.cos(playerState.bobPhase) * (isMounted ? 0.0025 : 0.006) * playerState.bobAmount;
 
       fpViewModelGroup.position.set(
         playerState.x,
-        playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + bobY,
+        playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + crouchOffset + bobY,
         playerState.z
       );
       fpViewModelGroup.rotation.order = 'YXZ';
       fpViewModelGroup.rotation.set(playerState.pitch, playerState.yaw, bobRoll);
 
-      // When mounted on a horse, do NOT swing arms left/right with walking bobPhase!
+      // When mounted on a horse or flying (double-space), do NOT swing arms with walking bobPhase!
       const swayX =
-        (isMounted ? 0 : Math.cos(playerState.bobPhase) * 0.012 * playerState.bobAmount) +
+        (isMounted || isFlying ? 0 : Math.cos(playerState.bobPhase) * 0.012 * playerState.bobAmount) +
         lookSwayX;
       const swayY =
-        (isMounted
-          ? Math.sin(playerState.bobPhase) * 0.003 * playerState.bobAmount
-          : Math.abs(Math.sin(playerState.bobPhase * 2)) * 0.014 * playerState.bobAmount) +
+        (isFlying
+          ? 0
+          : isMounted
+            ? Math.sin(playerState.bobPhase) * 0.003 * playerState.bobAmount
+            : Math.abs(Math.sin(playerState.bobPhase * 2)) * 0.014 * playerState.bobAmount) +
         lookSwayY;
       const breathY = Math.sin(elapsedTime * 2.1) * 0.005;
 
@@ -1581,6 +1679,9 @@ export function buildPlayerAndCombatSystems(
     rangerLeftLeg.visible = true;
     rangerRightLeg.visible = true;
 
+    const isFlying = Boolean(playerState.isFlying);
+    const isCrouching =
+      !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
     const bowInHands = !isSwim && (isAimingBow || equippedTool === 'bow');
     bowGroup.visible = bowInHands;
     stowedBackBowGroup.visible = !bowInHands;
@@ -1601,18 +1702,27 @@ export function buildPlayerAndCombatSystems(
       rangerRightLeg.position.set(0.10, 0.90, 0.14);
       rangerLeftLeg.rotation.set(bodyPitch * 0.7 + swimKick, 0, 0);
       rangerRightLeg.rotation.set(bodyPitch * 0.7 - swimKick, 0, 0);
+    } else if (isCrouching) {
+      rangerLeftLeg.position.set(-0.11, 0.72, 0.08);
+      rangerRightLeg.position.set(0.11, 0.72, -0.06);
+      const sneakSwing =
+        horizSpd > 0.12
+          ? Math.sin(playerState.bobPhase * 2.0) * Math.min(0.36, horizSpd * 0.12)
+          : 0;
+      rangerLeftLeg.rotation.set(0.32 + sneakSwing, 0, 0);
+      rangerRightLeg.rotation.set(-0.26 - sneakSwing, 0, 0);
     } else {
       rangerLeftLeg.position.set(-0.10, 0.90, 0);
       rangerRightLeg.position.set(0.10, 0.90, 0);
       const legSwing =
-        horizSpd > 0.18
+        !isFlying && horizSpd > 0.18
           ? Math.sin(playerState.bobPhase * 2.0) * Math.min(0.68, horizSpd * 0.11)
           : 0;
       rangerLeftLeg.rotation.set(legSwing, 0, 0);
       rangerRightLeg.rotation.set(-legSwing, 0, 0);
     }
 
-    rangerHeadGroup.rotation.x = playerState.pitch * 0.65;
+    rangerHeadGroup.rotation.x = playerState.pitch * 0.65 + (isCrouching ? 0.24 : 0);
     rangerHeadGroup.rotation.y = isMounted ? mountedRelLookYaw * 0.38 : 0;
 
     if (isSwim) {
@@ -1640,16 +1750,22 @@ export function buildPlayerAndCombatSystems(
       return;
     }
 
+    const crouchBodyDrop = isCrouching ? -0.22 : 0;
+    const crouchForwardLean = isCrouching ? -0.32 : 0;
     rangerUpperTorsoPivot.position.set(
       0,
       0.92 +
+        crouchBodyDrop +
         (isMounted
           ? 0
-          : Math.abs(Math.sin(playerState.bobPhase * 2.0)) * playerState.bobAmount * 0.035),
+          : Math.abs(Math.sin(playerState.bobPhase * 2.0)) *
+            playerState.bobAmount *
+            (isCrouching ? 0.018 : 0.035)),
       0
     );
     rangerUpperTorsoPivot.rotation.set(
-      isAimingBow ? playerState.pitch * 0.35 : -Math.min(0.10, horizSpd * 0.010),
+      (isAimingBow ? playerState.pitch * 0.35 : -Math.min(0.10, horizSpd * 0.010)) +
+        crouchForwardLean,
       (isMounted ? mountedRelLookYaw * 0.68 : 0) + (isAimingBow ? -0.16 : 0),
       0
     );
@@ -1697,8 +1813,9 @@ export function buildPlayerAndCombatSystems(
         poseRightArmSegments(0.23, 0.50, -0.04, 0.24, 0.32, -0.18, 0.12, 0.24, -0.34);
       }
     } else {
-      const armSwing =
-        horizSpd > 0.18
+      const armSwing = isFlying
+        ? 0
+        : horizSpd > 0.18
           ? Math.sin(playerState.bobPhase * 2.0) * Math.min(0.42, horizSpd * 0.07)
           : Math.sin(elapsedTime * 1.6) * 0.03;
       rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
@@ -1736,6 +1853,24 @@ export function buildPlayerAndCombatSystems(
         );
       }
     }
+
+    // Apply any saved Character & Animation Lab overrides for ranger_third_person
+    const labOv: ILabPoseOverrides = {
+      ...DEFAULT_LAB_POSE_OVERRIDES,
+      ...(SAVED_LAB_OVERRIDES['ranger_third_person'] ?? {}),
+    };
+    const deg2rad = Math.PI / 180;
+    thirdPersonSwordGroup.rotation.set(
+      -Math.PI * 0.42 + labOv.weaponRotXDeg * deg2rad,
+      labOv.weaponRotYDeg * deg2rad,
+      labOv.weaponRotZDeg * deg2rad
+    );
+    thirdPersonSwordGroup.position.set(0, 0.06, -0.04);
+    thirdPersonSwordGroup.scale.setScalar(labOv.weaponScale || 1);
+    bowGroup.rotation.x += labOv.leftWeaponRotXDeg * deg2rad;
+    bowGroup.rotation.y += labOv.leftWeaponRotYDeg * deg2rad;
+    bowGroup.rotation.z += labOv.leftWeaponRotZDeg * deg2rad;
+    bowGroup.scale.setScalar(labOv.leftWeaponScale || 1);
   };
 
   return {

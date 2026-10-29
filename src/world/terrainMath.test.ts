@@ -1352,7 +1352,7 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const animals = createInitialSmallAnimals();
   // Assert
   assert.equal(birds.length, 36);
-  assert.equal(animals.length, 18);
+  assert.equal(animals.length, 30);
 
   // Place player right beneath bird flock 0 and next to critter 0
   const targetBird = birds[0];
@@ -2065,5 +2065,176 @@ test('riverBridgesAndUnderwaterDiving_WhenTraversingOrSwimming_ShouldSpanBankToB
   }
   assert.ok(diver.y > WATER_LEVEL - 1.15, `Expected holding Space underwater to ascend back to surface, got y=${diver.y}`);
 });
+
+test('startingDockStairSideCollisionAndClimbableFountains_WhenEvaluated_ShouldPreventSnapUpAndSupportClimbing', () => {
+  // 1) Starting Dock at (-11.5, 15.5) oriented along pierAngle = atan2(-8, 6) prevents falling into deep water
+  const pierAngle = Math.atan2(-8.0, 6.0);
+  const lakeTipX = -11.5 + -7.0 * Math.cos(pierAngle);
+  const lakeTipZ = 15.5 - -7.0 * Math.sin(pierAngle);
+  assert.ok(groundHeightAt(lakeTipX, lakeTipZ) < WATER_LEVEL - 0.5, 'Expected lake-end tip of starting dock to be over deep water');
+  const dockTipWalk = walkableHeightAt(lakeTipX, lakeTipZ, 0.55);
+  assert.equal(dockTipWalk.surface, 'pier', 'Expected starting dock tip over deep lake water to be solid pier surface');
+  assert.ok(Math.abs(dockTipWalk.height - 0.55) < 0.05, `Expected starting dock height 0.55m, got ${dockTipWalk.height}`);
+
+  // Walking along the starting dock from shore toward the lake tip keeps the player dry on the dock (isSwimming === false)
+  const dockWalker = createInitialPlayerState();
+  dockWalker.x = -11.5;
+  dockWalker.z = 15.5;
+  dockWalker.y = 0.55;
+  dockWalker.yaw = Math.PI / 2 + pierAngle; // walking along local -X toward the deep lake tip
+  for (let i = 0; i < 15; i++) {
+    stepPlayerPhysics(
+      dockWalker,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.equal(dockWalker.isSwimming, false, 'Expected player walking on starting dock not to fall into water');
+  assert.ok(dockWalker.y >= 0.54, `Expected player on starting dock to stay at y >= 0.54, got ${dockWalker.y}`);
+
+  // 2) Approaching the Galleon Ship from the side while swimming in the sea does NOT snap the player up to shipDeckY (3.65m)
+  const seaSwimmer = createInitialPlayerState();
+  seaSwimmer.x = SOUTHEAST_HARBOR_POS.shipX - SOUTHEAST_HARBOR_POS.shipHalfW - 0.8;
+  seaSwimmer.z = SOUTHEAST_HARBOR_POS.shipZ;
+  seaSwimmer.y = WATER_LEVEL - 0.95;
+  seaSwimmer.isSwimming = true;
+  seaSwimmer.yaw = -Math.PI / 2; // swimming East (+X) into the side of the ship hull
+  for (let i = 0; i < 20; i++) {
+    stepPlayerPhysics(
+      seaSwimmer,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(seaSwimmer.y < 1.0, `Expected swimmer colliding with side of ship hull not to snap up to deck (3.65m), got y=${seaSwimmer.y}`);
+
+  // 3) Approaching high stairs on the ship main deck from the side blocks instead of snapping to the top of the stairs
+  const deckWalker = createInitialPlayerState();
+  deckWalker.x = SOUTHEAST_HARBOR_POS.shipX;
+  deckWalker.z = SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ - 0.6;
+  deckWalker.y = SOUTHEAST_HARBOR_POS.shipDeckY;
+  deckWalker.yaw = Math.PI / 2; // walking West (-X) into the side of the port staircase at its high end
+  for (let i = 0; i < 15; i++) {
+    stepPlayerPhysics(
+      deckWalker,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(
+    deckWalker.y < SOUTHEAST_HARBOR_POS.shipDeckY + 0.6,
+    `Expected walking into the side of the high ship staircase not to snap onto the top of the stairs, got y=${deckWalker.y}`
+  );
+
+  // 4) Climbable Harbor Fountain outer rim & inner basin when jumping
+  const fountainRim = walkableHeightAt(232.0 + 3.2, 252.0, SOUTHEAST_HARBOR_POS.plazaY + 0.6);
+  assert.equal(fountainRim.surface, 'pier', 'Expected Harbor Fountain outer rim to be climbable');
+  assert.ok(fountainRim.height > SOUTHEAST_HARBOR_POS.plazaY + 0.45);
+});
+
+test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_ShouldBehaveDeterministically', async () => {
+  const {
+    createInitialSmallAnimals,
+    stepSmallAnimals,
+    computePlayerNoiseRateAtDistance,
+    killGroundAnimal,
+    findNearestDeadLootableAnimal,
+    lootDeadAnimal,
+    getAnimalLootDrops,
+  } = await import('./terrainMath');
+
+  // 1) Stealth crouch mode (Ctrl / relaxed = true) sets isCrouching = true and drastically lowers noise emission
+  const player = createInitialPlayerState();
+  player.x = 0;
+  player.z = 26;
+  player.y = walkableHeightAt(0, 26).height;
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 1,
+      right: 0,
+      sprint: false,
+      relaxed: true,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.equal(player.isCrouching, true, 'Expected holding Ctrl (relaxed) on ground to enable stealth crouch');
+  const stealthSpeed = Math.hypot(player.vx, player.vz);
+  const stealthNoise = computePlayerNoiseRateAtDistance(3.5, stealthSpeed, true, false);
+  const sprintNoise = computePlayerNoiseRateAtDistance(3.5, 7.5, false, false);
+  assert.ok(
+    stealthNoise < 0.08 && sprintNoise > 0.9,
+    `Expected stealth crouch noise (${stealthNoise.toFixed(3)}) to be drastically lower than sprint noise (${sprintNoise.toFixed(3)})`
+  );
+
+  // 2) Sleeping animals at night have an invisible wake-up meter that does NOT wake them when sneaking, but wakes & flees when noisy
+  const animals = createInitialSmallAnimals();
+  const testDeer = animals.find((a) => a.species === 'deer')!;
+  assert.ok(testDeer, 'Expected deer in initial world animals');
+  testDeer.x = 10;
+  testDeer.z = 20;
+  testDeer.wakeMeter = 0;
+  testDeer.wokenUpTimer = 0;
+
+  // Sneaking near sleeping deer at night (daylightFactor = 0.1) for 1.5s keeps wakeMeter < 1.0 (stays asleep)
+  for (let i = 0; i < 15; i++) {
+    stepSmallAnimals(animals, 0.1, 100 + i * 0.1, 12.5, 20, [], 0.1, undefined, 1.5, true, false, 0);
+  }
+  assert.equal(testDeer.wokenUpTimer, 0, 'Expected sneaking player with Ctrl not to wake sleeping deer at night');
+  assert.ok(testDeer.wakeMeter < 0.35, `Expected low wakeMeter when sneaking, got ${testDeer.wakeMeter}`);
+
+  // Sprinting loudly right next to sleeping deer at night fills wakeMeter to 1.0 and wakes it up to flee!
+  for (let i = 0; i < 20; i++) {
+    stepSmallAnimals(animals, 0.1, 102 + i * 0.1, 12.0, 20, [], 0.1, undefined, 7.8, false, false, 0);
+  }
+  assert.ok(testDeer.wokenUpTimer > 0, 'Expected loud sprinting near sleeping deer at night to fill wakeMeter and wake it up');
+  assert.equal(testDeer.isFleeing, true, 'Expected woken animal at night to flee from the noise');
+
+  // 3) In the rain (rainIntensity > 0.15), animals seek shelter under nearby trees
+  const testRabbit = animals.find((a) => a.species === 'rabbit')!;
+  testRabbit.wokenUpTimer = 0;
+  testRabbit.fleeCooldown = 0;
+  stepSmallAnimals(animals, 0.1, 200, 999, 999, [], 1.0, undefined, 0, false, false, 0.85);
+  assert.equal(testRabbit.isSeekingShelter, true, 'Expected animal to seek tree shelter during rain');
+
+  // 4) Hunting & Corpse Looting ([E]): killing an animal stops it in place; looting gives species-specific drops
+  assert.deepEqual(getAnimalLootDrops('rabbit').itemIds, ['raw_game_meat', 'small_hide']);
+  assert.deepEqual(getAnimalLootDrops('squirrel').itemIds, ['raw_game_meat', 'small_hide']);
+  assert.deepEqual(getAnimalLootDrops('sheep').itemIds, ['raw_game_meat', 'sheep_hide']);
+  assert.deepEqual(getAnimalLootDrops('deer').itemIds, ['raw_game_meat', 'deer_hide', 'deer_antlers']);
+
+  killGroundAnimal(testDeer);
+  assert.equal(testDeer.isDead, true, 'Expected hunted deer to be marked dead');
+  const deadX = testDeer.x;
+  const deadZ = testDeer.z;
+  stepSmallAnimals(animals, 0.5, 250, deadX + 1, deadZ + 1, [], 1.0, undefined, 6.0, false, false, 0);
+  assert.equal(testDeer.x, deadX, 'Expected dead animal not to move');
+  assert.equal(testDeer.z, deadZ, 'Expected dead animal not to move');
+
+  const nearDead = findNearestDeadLootableAnimal(deadX + 1.2, deadZ - 0.8, animals);
+  assert.equal(nearDead?.id, testDeer.id, 'Expected to find dead deer within loot interaction radius');
+
+  const lootPlayer = createInitialPlayerState();
+  const lootResult = lootDeadAnimal(lootPlayer, testDeer);
+  assert.equal(testDeer.isLooted, true, 'Expected deer to be marked looted after pressing E');
+  assert.ok(lootPlayer.ownedItemIds?.includes('raw_game_meat'), 'Expected deer loot to add raw_game_meat');
+  assert.ok(lootPlayer.ownedItemIds?.includes('deer_hide'), 'Expected deer loot to add deer_hide');
+  assert.ok(lootPlayer.ownedItemIds?.includes('deer_antlers'), 'Expected deer loot to add deer_antlers');
+  assert.ok(
+    lootResult.notificationHe.includes('בשר') &&
+      lootResult.notificationHe.includes('עור אייל') &&
+      lootResult.notificationHe.includes('קרניים'),
+    `Expected Hebrew loot notification to list meat, deer hide, and antlers, got: ${lootResult.notificationHe}`
+  );
+});
 // #endregion
+
 

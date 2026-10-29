@@ -13,11 +13,43 @@ import {
   createInitialSmallAnimals,
   stepBoidsAndWildlife,
   BIRD_FLOCK_CONFIGS,
+  getAnimalLootDrops,
+  killGroundAnimal,
 } from './boidsAndWildlifeSystem';
 // #endregion
 
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests
+test('getAnimalLootDrops_WhenSheepHunted_ShouldYieldOnlyWoolAndMeat', () => {
+  const sheepDrops = getAnimalLootDrops('sheep');
+  assert.deepEqual(sheepDrops.itemIds, ['raw_game_meat', 'sheep_hide']);
+  assert.deepEqual(sheepDrops.itemLabelsHe, ['בשר', 'צמר']);
+  assert.equal(sheepDrops.notificationHe, 'נאסף שלל ציד (כבשה): צמר + בשר');
+});
+
+test('killGroundAnimal_WhenDeerOrSheepKilled_ShouldAnchorYToGroundHeightAndStopMovement', () => {
+  const animals = createInitialSmallAnimals();
+  const deer = animals.find((a) => a.species === 'deer');
+  const sheep = animals.find((a) => a.species === 'sheep');
+  assert.ok(deer, 'Expected deer in initial animals');
+  assert.ok(sheep, 'Expected sheep in initial animals');
+
+  deer.vx = 4.2;
+  deer.vz = -3.1;
+  killGroundAnimal(deer);
+  assert.equal(deer.isDead, true);
+  assert.equal(deer.isLooted, false);
+  assert.equal(deer.vx, 0);
+  assert.equal(deer.vz, 0);
+  assert.ok(Number.isFinite(deer.y));
+
+  killGroundAnimal(sheep);
+  assert.equal(sheep.isDead, true);
+  assert.equal(sheep.vx, 0);
+  assert.equal(sheep.vz, 0);
+  assert.ok(Number.isFinite(sheep.y));
+});
+
 test('createInitialBoidBirds_WhenInitialized_ShouldCreateConfiguredFlocksWithPositions', () => {
   // Arrange
   const factory = createInitialBoidBirds;
@@ -39,7 +71,15 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInValidBiomes
   // Assert
   assert.ok(Array.isArray(animals));
   assert.ok(animals.length >= 4, 'Expected small animal roster in forest biomes');
-  assert.ok(animals.every((a) => a.species === 'rabbit' || a.species === 'squirrel'));
+  assert.ok(
+    animals.every(
+      (a) =>
+        a.species === 'rabbit' ||
+        a.species === 'squirrel' ||
+        a.species === 'deer' ||
+        a.species === 'sheep'
+    )
+  );
 });
 
 test('stepBoidsAndWildlife_WhenSteppedWithPlayerProximity_ShouldUpdateCreaturesAndTriggerFleeing', () => {
@@ -71,7 +111,7 @@ test('BIRD_FLOCK_CONFIGS_WhenLoaded_ShouldContainFlockCentersAndSpecies', () => 
   const configs = BIRD_FLOCK_CONFIGS;
 
   // Assert
-  assert.ok(configs.length >= 3, 'Expected at least 3 bird flock nodes');
+  assert.ok(configs.length >= expectedMinCount, 'Expected at least 3 bird flock nodes');
   for (const cfg of configs) {
     assert.ok(cfg.patrolRadius > 0, 'Flock patrol radius must be positive');
     assert.ok(cfg.cruiseAltitudeAboveGround > 0, 'Cruising altitude must be positive');

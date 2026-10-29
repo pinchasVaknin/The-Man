@@ -744,14 +744,14 @@ export function walkableHeightAt(
       return { height: CHINESE_FORTRESS_POS.summitHeight + tStep * 0.35, surface: 'cabin' };
     }
     if (z <= -189.6 + FZ) {
-      const inMainStairX = x >= 13.5 && x <= 18.5;
+      const inMainStairX = x >= 13.55 && x <= 18.5;
       const inMainStairZ = z >= -206.0 + FZ && z <= -194.0 + FZ;
       if (inMainStairX && inMainStairZ) {
         const tStair = Math.max(0, Math.min(1, (-194.0 + FZ - z) / 12.0));
         const stairY =
           CHINESE_FORTRESS_POS.mainHallFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.mainHallFloor2Y - CHINESE_FORTRESS_POS.mainHallFloor1Y);
-        if (currentY === undefined || currentY <= stairY + 2.4) {
+        if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 2.4)) {
           return { height: stairY, surface: 'cabin' };
         }
       }
@@ -768,14 +768,14 @@ export function walkableHeightAt(
 
   for (const px of [-30.0, 30.0]) {
     if (Math.abs(x - px) <= 8.8 && z >= -171.3 + FZ && z <= -156.3 + FZ) {
-      const inPavStairX = px < 0 ? x >= -38.6 && x <= -35.0 : x >= 35.0 && x <= 38.6;
+      const inPavStairX = px < 0 ? x >= -38.6 && x <= -35.15 : x >= 35.15 && x <= 38.6;
       const inPavStairZ = z >= -167.5 + FZ && z <= -159.5 + FZ;
       if (inPavStairX && inPavStairZ) {
         const tStair = Math.max(0, Math.min(1, (-159.5 + FZ - z) / 8.0));
         const stairY =
           CHINESE_FORTRESS_POS.pavilionFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.pavilionFloor2Y - CHINESE_FORTRESS_POS.pavilionFloor1Y);
-        if (currentY === undefined || currentY <= stairY + 2.2) {
+        if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 2.2)) {
           return { height: stairY, surface: 'cabin' };
         }
       }
@@ -837,12 +837,15 @@ export function walkableHeightAt(
       }
     } else {
       const tWallStair = Math.max(0, Math.min(1, (-142.0 + FZ - z) / 10.0));
-      return {
-        height:
-          CHINESE_FORTRESS_POS.summitHeight +
-          tWallStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight),
-        surface: 'bridge',
-      };
+      const wallStairY =
+        CHINESE_FORTRESS_POS.summitHeight +
+        tWallStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
+      if (currentY === undefined || (currentY >= wallStairY - 0.55 && currentY <= wallStairY + 2.2)) {
+        return {
+          height: wallStairY,
+          surface: 'bridge',
+        };
+      }
     }
   }
 
@@ -863,8 +866,11 @@ export function walkableHeightAt(
       z <= CHINESE_FORTRESS_POS.midLandingMaxZ && z >= CHINESE_FORTRESS_POS.midLandingMinZ
         ? CHINESE_FORTRESS_POS.midLandingHalfWidth
         : CHINESE_FORTRESS_POS.stairHalfWidth;
-    if (Math.abs(x - CHINESE_FORTRESS_POS.x) <= allowedHalfW) {
-      return { height: chineseFortressStairHeightAt(z), surface: 'bridge' };
+    if (Math.abs(x - CHINESE_FORTRESS_POS.x) <= allowedHalfW - 0.25) {
+      const fortStairY = chineseFortressStairHeightAt(z);
+      if (currentY === undefined || currentY >= fortStairY - 0.65) {
+        return { height: fortStairY, surface: 'bridge' };
+      }
     }
   }
 
@@ -873,7 +879,9 @@ export function walkableHeightAt(
     z <= CHINESE_FORTRESS_POS.plazaMaxZ &&
     z >= CHINESE_FORTRESS_POS.plazaMinZ
   ) {
-    return { height: CHINESE_FORTRESS_POS.summitHeight, surface: 'bridge' };
+    if (currentY === undefined || currentY >= CHINESE_FORTRESS_POS.summitHeight - 1.5) {
+      return { height: CHINESE_FORTRESS_POS.summitHeight, surface: 'bridge' };
+    }
   }
 
   if (isInsideSouthernMine(x, z, currentY)) {
@@ -882,49 +890,55 @@ export function walkableHeightAt(
 
   const groundH = groundHeightAt(x, z);
 
+  // Starting wooden dock at (-11.5, 15.5) with rotation.y = Math.atan2(-8.0, 6.0):
+  // Inverse world-to-local transform uses +pierAngle so the walkable box aligns 100% with the visual planks.
   const pierCx = -11.5;
   const pierCz = 15.5;
   const pierAngle = Math.atan2(-8.0, 6.0);
   const dxP = x - pierCx;
   const dzP = z - pierCz;
-  const cosP = Math.cos(-pierAngle);
-  const sinP = Math.sin(-pierAngle);
+  const cosP = Math.cos(pierAngle);
+  const sinP = Math.sin(pierAngle);
   const localPX = dxP * cosP - dzP * sinP;
   const localPZ = dxP * sinP + dzP * cosP;
 
-  if (localPX >= -5.8 && localPX <= 9.0 && Math.abs(localPZ) <= 1.35) {
-    const pierDeckH = 0.55;
-    if (
-      pierDeckH >= groundH - 0.15 &&
-      (currentY === undefined || currentY >= pierDeckH - 0.55)
-    ) {
+  if (localPX >= -8.4 && localPX <= 9.2 && Math.abs(localPZ) <= 1.55) {
+    const pierDeckH = Math.max(0.55, groundH);
+    if (currentY === undefined || currentY >= 0.55 - 0.85) {
       return { height: pierDeckH, surface: 'pier' };
     }
   }
 
+  // Moored wooden rowboat beside the starting lake pier at (-6.5, 10.2)
+  const rbDx = x - -6.5;
+  const rbDz = z - 10.2;
+  const cosBoat = Math.cos(0.65);
+  const sinBoat = Math.sin(0.65);
+  const localBoatX = rbDx * cosBoat - rbDz * sinBoat;
+  const localBoatZ = rbDx * sinBoat + rbDz * cosBoat;
+  if (Math.abs(localBoatX) <= 1.45 && Math.abs(localBoatZ) <= 0.68) {
+    if (currentY === undefined || currentY >= -0.35) {
+      return { height: 0.35, surface: 'pier' };
+    }
+  }
+
   if (
-    (x >= -127 && x <= -105.5 && Math.abs(z - 48.0) <= 1.45) ||
-    (Math.abs(x - LAKESIDE_TEA_PAVILION_POS.x) <= LAKESIDE_TEA_PAVILION_POS.halfSize &&
-      Math.abs(z - LAKESIDE_TEA_PAVILION_POS.z) <= LAKESIDE_TEA_PAVILION_POS.halfSize)
+    (x >= -127.0 && x <= -104.8 && Math.abs(z - 48.0) <= 1.65) ||
+    (Math.abs(x - LAKESIDE_TEA_PAVILION_POS.x) <= LAKESIDE_TEA_PAVILION_POS.halfSize + 0.25 &&
+      Math.abs(z - LAKESIDE_TEA_PAVILION_POS.z) <= LAKESIDE_TEA_PAVILION_POS.halfSize + 0.25)
   ) {
-    const westPierH = LAKESIDE_TEA_PAVILION_POS.deckHeight;
-    if (
-      westPierH >= groundH - 0.15 &&
-      (currentY === undefined || currentY >= westPierH - 0.55)
-    ) {
+    const westPierH = Math.max(LAKESIDE_TEA_PAVILION_POS.deckHeight, groundH);
+    if (currentY === undefined || currentY >= LAKESIDE_TEA_PAVILION_POS.deckHeight - 0.85) {
       return { height: westPierH, surface: 'pier' };
     }
   }
 
   const bridgeDx = x - 18.0;
   const bridgeDz = z - 2.0;
-  if (Math.abs(bridgeDx) <= 1.65 && Math.abs(bridgeDz) <= 11.2) {
-    const normZ = bridgeDz / 11.2;
-    const archH = 0.52 + (1.0 - normZ * normZ) * 1.58;
-    if (
-      archH >= groundH - 0.1 &&
-      (currentY === undefined || currentY >= archH - 0.65)
-    ) {
+  if (Math.abs(bridgeDx) <= 1.75 && Math.abs(bridgeDz) <= 11.4) {
+    const normZ = Math.max(-1, Math.min(1, bridgeDz / 11.2));
+    const archH = Math.max(groundH, 0.52 + (1.0 - normZ * normZ) * 1.58);
+    if (currentY === undefined || currentY >= archH - 0.85) {
       return { height: archH, surface: 'bridge' };
     }
   }
@@ -934,13 +948,10 @@ export function walkableHeightAt(
   const rbAngle = 0.54;
   const rbLocalX = rbx * Math.cos(rbAngle) - rbz * Math.sin(rbAngle);
   const rbLocalZ = rbx * Math.sin(rbAngle) + rbz * Math.cos(rbAngle);
-  if (Math.abs(rbLocalX) <= 1.65 && Math.abs(rbLocalZ) <= 11.6) {
-    const norm = rbLocalZ / 11.6;
-    const deckH = 0.72 + (1.0 - norm * norm) * 1.18;
-    if (
-      deckH >= groundH - 0.15 &&
-      (currentY === undefined || currentY >= deckH - 0.65)
-    ) {
+  if (Math.abs(rbLocalX) <= 1.75 && Math.abs(rbLocalZ) <= 11.8) {
+    const norm = Math.max(-1, Math.min(1, rbLocalZ / 11.6));
+    const deckH = Math.max(groundH, 0.72 + (1.0 - norm * norm) * 1.18);
+    if (currentY === undefined || currentY >= deckH - 0.85) {
       return { height: deckH, surface: 'pier' };
     }
   }
@@ -960,6 +971,23 @@ export function walkableHeightAt(
     const maxZ = f.dirZ === 1 ? f.z + 4.5 : f.z + 6.3;
     if (Math.abs(x - f.x) <= 5.4 && z >= minZ && z <= maxZ) {
       return { height: f.height + 0.18, surface: 'cabin' };
+    }
+  }
+
+  // Climbable Harbor Fountain (232, 252) & Oasis Fountain (-310, 300) stepped outer rims and basins
+  const harborFountainDist = Math.hypot(x - 232.0, z - 252.0);
+  if (harborFountainDist <= 4.25 && harborFountainDist > 0.72) {
+    const fTopY = harborFountainDist <= 2.3 ? SOUTHEAST_HARBOR_POS.plazaY + 1.02 : SOUTHEAST_HARBOR_POS.plazaY + 0.54;
+    if (currentY === undefined || currentY >= fTopY - 0.82) {
+      return { height: fTopY, surface: 'pier' };
+    }
+  }
+
+  const oasisFountainDist = Math.hypot(x - -310.0, z - 300.0);
+  if (oasisFountainDist <= 3.55 && oasisFountainDist > 0.68) {
+    const fTopY = oasisFountainDist <= 1.95 ? SOUTHWEST_OASIS_POS.terraceY + 0.92 : SOUTHWEST_OASIS_POS.terraceY + 0.48;
+    if (currentY === undefined || currentY >= fTopY - 0.82) {
+      return { height: fTopY, surface: 'pier' };
     }
   }
 
@@ -998,21 +1026,12 @@ export function walkableHeightAt(
   }
 
   if (
-    x >= SOUTHEAST_HARBOR_POS.pierStartX - 0.5 &&
-    x <= SOUTHEAST_HARBOR_POS.pierEndX &&
-    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= SOUTHEAST_HARBOR_POS.pierHalfW &&
-    (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.65)
-  ) {
-    return { height: SOUTHEAST_HARBOR_POS.pierY, surface: 'pier' };
-  }
-
-  if (
-    x >= 271.0 &&
+    x >= 268.2 &&
     x <= 276.2 &&
-    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 2.1 &&
+    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 1.62 &&
     (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.65)
   ) {
-    const tGang = Math.max(0, Math.min(1, (x - 271.0) / 5.0));
+    const tGang = Math.max(0, Math.min(1, (x - 268.2) / 8.0));
     return {
       height:
         SOUTHEAST_HARBOR_POS.pierY +
@@ -1022,11 +1041,21 @@ export function walkableHeightAt(
   }
 
   if (
+    x >= SOUTHEAST_HARBOR_POS.pierStartX - 0.5 &&
+    x <= SOUTHEAST_HARBOR_POS.pierEndX &&
+    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= SOUTHEAST_HARBOR_POS.pierHalfW &&
+    (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.85)
+  ) {
+    return { height: SOUTHEAST_HARBOR_POS.pierY, surface: 'pier' };
+  }
+
+  if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.shipX) <= SOUTHEAST_HARBOR_POS.shipHalfW &&
-    Math.abs(z - SOUTHEAST_HARBOR_POS.shipZ) <= SOUTHEAST_HARBOR_POS.shipHalfL
+    Math.abs(z - SOUTHEAST_HARBOR_POS.shipZ) <= SOUTHEAST_HARBOR_POS.shipHalfL &&
+    (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.shipDeckY - 0.65)
   ) {
     const absShipDx = Math.abs(x - SOUTHEAST_HARBOR_POS.shipX);
-    if (absShipDx >= 2.8 && absShipDx <= 6.1 && z >= 254.5 && z <= SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ) {
+    if (absShipDx >= 3.45 && absShipDx <= 5.65 && z >= 254.5 && z <= SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ) {
       const tStair = Math.max(
         0,
         Math.min(1, (z - 254.5) / (SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ - 254.5))
@@ -1034,7 +1063,7 @@ export function walkableHeightAt(
       const stairY =
         SOUTHEAST_HARBOR_POS.shipDeckY +
         tStair * (SOUTHEAST_HARBOR_POS.shipQuarterdeckY - SOUTHEAST_HARBOR_POS.shipDeckY);
-      if (currentY === undefined || currentY <= stairY + 1.8) {
+      if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 1.8)) {
         return { height: stairY, surface: 'pier' };
       }
     }
@@ -1068,12 +1097,12 @@ export function walkableHeightAt(
   }
 
   if (
-    ((Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.gazeboHalfSize &&
-      Math.abs(z - SOUTHWEST_OASIS_POS.gazeboZ) <= SOUTHWEST_OASIS_POS.gazeboHalfSize) ||
-      (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.bridgeHalfW &&
-        z >= SOUTHWEST_OASIS_POS.bridgeMinZ &&
-        z <= SOUTHWEST_OASIS_POS.bridgeMaxZ)) &&
-    (currentY === undefined || currentY >= SOUTHWEST_OASIS_POS.gazeboDeckY - 0.5)
+    ((Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.gazeboHalfSize + 0.2 &&
+      Math.abs(z - SOUTHWEST_OASIS_POS.gazeboZ) <= SOUTHWEST_OASIS_POS.gazeboHalfSize + 0.2) ||
+      (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.bridgeHalfW + 0.15 &&
+        z >= SOUTHWEST_OASIS_POS.bridgeMinZ - 0.2 &&
+        z <= SOUTHWEST_OASIS_POS.bridgeMaxZ + 0.2)) &&
+    (currentY === undefined || currentY >= SOUTHWEST_OASIS_POS.gazeboDeckY - 0.85)
   ) {
     return { height: SOUTHWEST_OASIS_POS.gazeboDeckY, surface: 'pier' };
   }

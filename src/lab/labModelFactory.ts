@@ -95,27 +95,31 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
   // 1. RANGER THIRD-PERSON CHARACTER (סייר השמורה)
   // ==========================================================================
   if (entityId === 'ranger_third_person') {
-    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe8be9e, roughness: 0.55 }));
-    const hairMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x3b2314, roughness: 0.75 }));
-    const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x1e4d3b, roughness: 0.68 }));
+    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdfb18b, roughness: 0.55 }));
+    const hairMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x2c1b10, roughness: 0.78 }));
+    const beardMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x24150b, roughness: 0.84 }));
+    const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x3e2a1b, roughness: 0.65 }));
     const cloakMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x143829, roughness: 0.8, side: THREE.DoubleSide })
+      new THREE.MeshStandardMaterial({ color: 0x2e3627, roughness: 0.84, side: THREE.DoubleSide })
     );
-    const leatherMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x5c3818, roughness: 0.5 }));
-    const darkLeatherMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x36200d, roughness: 0.58 }));
-    const pantsMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x2c3539, roughness: 0.78 }));
+    const leatherMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.52 }));
+    const darkLeatherMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x29180c, roughness: 0.58 }));
+    const chainmailMat = trackMat(
+      new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.36, metalness: 0.82 })
+    );
+    const pantsMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x24201c, roughness: 0.8 }));
     const goldMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xd9a838, roughness: 0.25, metalness: 0.82 })
+      new THREE.MeshStandardMaterial({ color: 0xb48a48, roughness: 0.28, metalness: 0.82 })
     );
     const steelMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.88 })
+      new THREE.MeshStandardMaterial({ color: 0xdbe4ee, roughness: 0.2, metalness: 0.9 })
     );
     const runeGlowMat = trackMat(
       new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        emissive: 0x38bdf8,
-        emissiveIntensity: 0.9,
-        roughness: 0.2,
+        color: 0xcbd5e1,
+        emissive: 0x94a3b8,
+        emissiveIntensity: 0.35,
+        roughness: 0.25,
       })
     );
     const flameMat = trackMat(
@@ -129,74 +133,320 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     const upperTorsoPivot = new THREE.Group();
     upperTorsoPivot.position.set(0, 0.92, 0);
 
-    const pelvis = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.18, 0.17, 0.22, 12)), pantsMat);
-    pelvis.position.y = -0.02;
-    const belt = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.195, 0.195, 0.08, 12)), darkLeatherMat);
-    belt.position.y = 0.06;
-    const buckle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.08, 0.08, 0.03)), goldMat);
-    buckle.position.set(0, 0.06, -0.19);
-    const chest = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.22, 0.18, 0.52, 12)), tunicMat);
-    chest.position.y = 0.34;
-    const mantle = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.26, 0.29, 0.18, 12)), cloakMat);
-    mantle.position.y = 0.54;
-    const baldric = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.08, 0.56, 0.34)), leatherMat);
-    baldric.position.set(0, 0.34, 0);
-    baldric.rotation.z = 0.48;
-    const cloakBack = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.46, 0.76, 0.03)), cloakMat);
-    cloakBack.position.set(0, 0.22, 0.21);
-    cloakBack.rotation.x = 0.08;
+    // Chainmail lower skirt hem + split weathered leather jerkin skirt
+    const chainmailSkirt = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.185, 0.215, 0.26, 14)),
+      chainmailMat
+    );
+    chainmailSkirt.position.y = -0.07;
 
-    // Quiver + Feathered Arrows on Back
+    const leatherSkirtL = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.17, 0.26, 0.34)),
+      tunicMat
+    );
+    leatherSkirtL.position.set(-0.095, -0.04, 0);
+    leatherSkirtL.rotation.z = 0.06;
+    const leatherSkirtR = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.17, 0.26, 0.34)),
+      tunicMat
+    );
+    leatherSkirtR.position.set(0.095, -0.04, 0);
+    leatherSkirtR.rotation.z = -0.06;
+
+    const skirtTrimL = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.175, 0.024, 0.35)),
+      goldMat
+    );
+    skirtTrimL.position.set(-0.098, -0.16, 0);
+    const skirtTrimR = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.175, 0.024, 0.35)),
+      goldMat
+    );
+    skirtTrimR.position.set(0.098, -0.16, 0);
+
+    // Waist belt, brass frame buckle, belt pouches, canteen & hip scabbard
+    const belt = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.202, 0.202, 0.085, 14)),
+      darkLeatherMat
+    );
+    belt.position.y = 0.08;
+    const buckle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.085, 0.085, 0.035)), goldMat);
+    buckle.position.set(0, 0.08, -0.198);
+    const beltTongue = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.048, 0.22, 0.022)),
+      darkLeatherMat
+    );
+    beltTongue.position.set(0.035, -0.02, -0.198);
+    beltTongue.rotation.z = -0.08;
+
+    const pouchGeo = trackGeo(new THREE.BoxGeometry(0.075, 0.095, 0.065));
+    const pouchL = new THREE.Mesh(pouchGeo, leatherMat);
+    pouchL.position.set(-0.14, 0.05, -0.155);
+    pouchL.rotation.y = 0.45;
+    const pouchR = new THREE.Mesh(pouchGeo, leatherMat);
+    pouchR.position.set(0.15, 0.05, -0.145);
+    pouchR.rotation.y = -0.45;
+
+    const canteen = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.055, 0.055, 0.045, 12)),
+      steelMat
+    );
+    canteen.rotation.z = Math.PI / 2;
+    canteen.position.set(0.21, 0.02, 0.06);
+
+    // Hip Sword Scabbard on Left Hip
+    const scabbardGroup = new THREE.Group();
+    scabbardGroup.position.set(-0.21, 0.04, 0.02);
+    scabbardGroup.rotation.set(0.32, 0, 0.14);
+    const scabbardBody = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.032, 0.68, 0.068)),
+      darkLeatherMat
+    );
+    scabbardBody.position.y = -0.32;
+    const scabbardLocket = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.038, 0.07, 0.074)),
+      steelMat
+    );
+    scabbardLocket.position.y = 0.0;
+    const scabbardChape = new THREE.Mesh(
+      trackGeo(new THREE.ConeGeometry(0.038, 0.11, 4)),
+      steelMat
+    );
+    scabbardChape.rotation.x = Math.PI;
+    scabbardChape.position.y = -0.69;
+    scabbardGroup.add(scabbardBody, scabbardLocket, scabbardChape);
+
+    // Weathered Leather Chest Jerkin with Laced V-Collar
+    const chest = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.225, 0.19, 0.52, 14)),
+      tunicMat
+    );
+    chest.position.y = 0.34;
+    const collarV = new THREE.Mesh(
+      trackGeo(new THREE.ConeGeometry(0.065, 0.16, 4)),
+      darkLeatherMat
+    );
+    collarV.rotation.x = Math.PI;
+    collarV.position.set(0, 0.48, -0.185);
+    const laceGeo = trackGeo(new THREE.BoxGeometry(0.075, 0.008, 0.012));
+    for (let lc = 0; lc < 3; lc++) {
+      const lace = new THREE.Mesh(laceGeo, goldMat);
+      lace.position.set(0, 0.43 + lc * 0.038, -0.205);
+      lace.rotation.z = lc % 2 === 0 ? 0.28 : -0.28;
+      upperTorsoPivot.add(lace);
+    }
+
+    // Diagonal Sword Baldric Strap + Buckle across Chest
+    const baldric = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.075, 0.58, 0.37)), leatherMat);
+    baldric.position.set(0, 0.34, 0);
+    baldric.rotation.z = 0.52;
+    const baldricBuckle = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.055, 0.055, 0.025)),
+      goldMat
+    );
+    baldricBuckle.position.set(-0.06, 0.42, -0.198);
+    baldricBuckle.rotation.z = 0.52;
+
+    // Gondor Ranger Hooded Cloak, Twin Throat Clasps & White Tree of Gondor Back Emblem
+    const mantle = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.245, 0.285, 0.17, 14)),
+      cloakMat
+    );
+    mantle.position.set(0, 0.52, 0.02);
+    const hoodFold = new THREE.Mesh(
+      trackGeo(new THREE.TorusGeometry(0.148, 0.044, 8, 16)),
+      cloakMat
+    );
+    hoodFold.rotation.x = Math.PI / 2 - 0.28;
+    hoodFold.position.set(0, 0.58, 0.065);
+
+    const claspGeo = trackGeo(new THREE.CylinderGeometry(0.032, 0.032, 0.016, 12));
+    claspGeo.rotateX(Math.PI / 2);
+    const claspL = new THREE.Mesh(claspGeo, goldMat);
+    claspL.position.set(-0.058, 0.53, -0.215);
+    const claspR = new THREE.Mesh(claspGeo, goldMat);
+    claspR.position.set(0.058, 0.53, -0.215);
+    const claspChain = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.09, 0.01, 0.012)),
+      goldMat
+    );
+    claspChain.position.set(0, 0.53, -0.218);
+
+    const cloakBackGroup = new THREE.Group();
+    cloakBackGroup.position.set(0, 0.16, 0.22);
+    cloakBackGroup.rotation.x = 0.08;
+    const cloakBack = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.52, 0.96, 0.032)),
+      cloakMat
+    );
+    cloakBackGroup.add(cloakBack);
+
+    // White Tree of Gondor + 7 Silver Stars Emblem on Back of Cloak
+    const treeTrunk = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.018, 0.24, 0.008)),
+      runeGlowMat
+    );
+    treeTrunk.position.set(0, 0.04, 0.02);
+    cloakBackGroup.add(treeTrunk);
+    for (let b = 0; b < 3; b++) {
+      const span = 0.09 + b * 0.045;
+      const yPos = 0.04 + b * 0.055;
+      const branchL = new THREE.Mesh(
+        trackGeo(new THREE.BoxGeometry(span, 0.01, 0.008)),
+        runeGlowMat
+      );
+      branchL.position.set(-span * 0.42, yPos, 0.02);
+      branchL.rotation.z = -0.38;
+      const branchR = new THREE.Mesh(
+        trackGeo(new THREE.BoxGeometry(span, 0.01, 0.008)),
+        runeGlowMat
+      );
+      branchR.position.set(span * 0.42, yPos, 0.02);
+      branchR.rotation.z = 0.38;
+      cloakBackGroup.add(branchL, branchR);
+    }
+    const starGeo = trackGeo(new THREE.OctahedronGeometry(0.014, 0));
+    for (let st = 0; st < 7; st++) {
+      const ang = ((st / 6) - 0.5) * Math.PI * 0.82;
+      const star = new THREE.Mesh(starGeo, runeGlowMat);
+      star.position.set(Math.sin(ang) * 0.16, 0.14 + Math.cos(ang) * 0.11, 0.022);
+      cloakBackGroup.add(star);
+    }
+
+    // Quiver + Bedroll on Back
     const quiverGroup = new THREE.Group();
-    quiverGroup.position.set(0.1, 0.36, 0.24);
+    quiverGroup.position.set(0.11, 0.36, 0.25);
     quiverGroup.rotation.z = -0.36;
-    const quiverTube = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.068, 0.055, 0.52, 10)), leatherMat);
+    const quiverTube = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.064, 0.052, 0.5, 10)),
+      leatherMat
+    );
     quiverGroup.add(quiverTube);
-    const shaftGeo = trackGeo(new THREE.CylinderGeometry(0.01, 0.01, 0.32, 6));
-    const fletchGeo = trackGeo(new THREE.BoxGeometry(0.035, 0.08, 0.01));
+    const shaftGeo = trackGeo(new THREE.CylinderGeometry(0.009, 0.009, 0.32, 6));
+    const fletchGeo = trackGeo(new THREE.BoxGeometry(0.032, 0.075, 0.01));
     for (let q = 0; q < 4; q++) {
       const aShaft = new THREE.Mesh(shaftGeo, leatherMat);
-      aShaft.position.set((q - 1.5) * 0.022, 0.24, (q % 2) * 0.018);
+      aShaft.position.set((q - 1.5) * 0.02, 0.24, (q % 2) * 0.016);
       const aFletch = new THREE.Mesh(fletchGeo, runeGlowMat);
-      aFletch.position.set((q - 1.5) * 0.022, 0.36, (q % 2) * 0.018);
+      aFletch.position.set((q - 1.5) * 0.02, 0.35, (q % 2) * 0.016);
       quiverGroup.add(aShaft, aFletch);
     }
 
-    // Head & Hair
+    // Sculpted LOTR Ranger Head, Wavy Shoulder-Length Hair & Rugged Short Beard
     const headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.64, 0);
-    const neck = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.075, 0.085, 0.14, 10)), skinMat);
-    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.145, 16, 16)), skinMat);
-    head.position.y = 0.14;
-    const hair = new THREE.Mesh(
-      trackGeo(new THREE.SphereGeometry(0.154, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.62)),
+    headGroup.position.set(0, 0.69, -0.02);
+    const neck = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.074, 0.084, 0.14, 10)),
+      skinMat
+    );
+    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.144, 16, 16)), skinMat);
+    head.scale.set(0.95, 1.06, 0.98);
+    head.position.y = 0.145;
+
+    const nose = new THREE.Mesh(trackGeo(new THREE.ConeGeometry(0.024, 0.068, 5)), skinMat);
+    nose.rotation.x = -Math.PI * 0.42;
+    nose.position.set(0, 0.142, -0.145);
+
+    const brow = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.13, 0.02, 0.035)), hairMat);
+    brow.position.set(0, 0.178, -0.132);
+
+    // Rugged Short Beard, Jawline Stubble & Mustache
+    const jawBeard = new THREE.Mesh(
+      trackGeo(new THREE.SphereGeometry(0.146, 14, 10, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.42)),
+      beardMat
+    );
+    jawBeard.scale.set(0.96, 1.02, 1.04);
+    jawBeard.position.set(0, 0.132, -0.012);
+    const mustache = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.09, 0.022, 0.035)),
+      beardMat
+    );
+    mustache.position.set(0, 0.105, -0.144);
+    const chinGoatee = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.064, 0.054, 0.04)),
+      beardMat
+    );
+    chinGoatee.position.set(0, 0.058, -0.14);
+
+    // Wavy Shoulder-Length Dark Chestnut Hair (Center-Parted Locks, Side Waves & Back Drape)
+    const hairCrown = new THREE.Mesh(
+      trackGeo(new THREE.SphereGeometry(0.156, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.58)),
       hairMat
     );
-    hair.position.y = 0.15;
-    hair.rotation.x = -0.22;
-    const eyeGeo = trackGeo(new THREE.SphereGeometry(0.018, 8, 8));
+    hairCrown.position.set(0, 0.16, 0.008);
+    hairCrown.rotation.x = -0.18;
+
+    const frontLockGeo = trackGeo(new THREE.CylinderGeometry(0.026, 0.018, 0.17, 7));
+    const frontLockL = new THREE.Mesh(frontLockGeo, hairMat);
+    frontLockL.position.set(-0.095, 0.155, -0.105);
+    frontLockL.rotation.set(0.22, 0, 0.36);
+    const frontLockR = new THREE.Mesh(frontLockGeo, hairMat);
+    frontLockR.position.set(0.095, 0.155, -0.105);
+    frontLockR.rotation.set(0.22, 0, -0.36);
+
+    const sideWaveGeo = trackGeo(new THREE.CylinderGeometry(0.042, 0.03, 0.26, 8));
+    const hairWaveL = new THREE.Mesh(sideWaveGeo, hairMat);
+    hairWaveL.position.set(-0.132, 0.1, -0.055);
+    hairWaveL.rotation.set(0.1, 0, 0.14);
+    const hairWaveR = new THREE.Mesh(sideWaveGeo, hairMat);
+    hairWaveR.position.set(0.132, 0.1, -0.055);
+    hairWaveR.rotation.set(0.1, 0, -0.14);
+
+    const hairBackDrape = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.26, 0.27, 0.095)),
+      hairMat
+    );
+    hairBackDrape.position.set(0, 0.08, 0.11);
+    hairBackDrape.rotation.x = 0.16;
+
+    const eyeGeo = trackGeo(new THREE.SphereGeometry(0.017, 8, 8));
     const eyeMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x1e293b }));
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    leftEye.position.set(-0.048, 0.15, -0.132);
+    leftEye.position.set(-0.046, 0.155, -0.134);
     const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    rightEye.position.set(0.048, 0.15, -0.132);
-    headGroup.add(neck, head, hair, leftEye, rightEye);
+    rightEye.position.set(0.046, 0.155, -0.134);
+    headGroup.add(
+      neck,
+      head,
+      nose,
+      brow,
+      jawBeard,
+      mustache,
+      chinGoatee,
+      hairCrown,
+      frontLockL,
+      frontLockR,
+      hairWaveL,
+      hairWaveR,
+      hairBackDrape,
+      leftEye,
+      rightEye
+    );
 
-    // Left Arm + Recurve Bow
+    // Left Arm + Chainmail Shoulder + Embossed Leather Vambrace + Recurve Bow
     const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.25, 0.52, 0);
-    const uArmGeo = trackGeo(new THREE.CylinderGeometry(0.068, 0.058, 0.3, 10));
-    const fArmGeo = trackGeo(new THREE.CylinderGeometry(0.058, 0.048, 0.28, 10));
+    leftArmGroup.position.set(-0.26, 0.52, 0);
+    const chainmailShoulderGeo = trackGeo(new THREE.CylinderGeometry(0.076, 0.068, 0.18, 10));
+    const uArmGeo = trackGeo(new THREE.CylinderGeometry(0.068, 0.058, 0.28, 10));
+    const fArmGeo = trackGeo(new THREE.CylinderGeometry(0.06, 0.05, 0.28, 10));
+    const vambraceCuffGeo = trackGeo(new THREE.CylinderGeometry(0.063, 0.054, 0.04, 10));
     const handGeo = trackGeo(new THREE.SphereGeometry(0.052, 10, 10));
+
+    const lMailSleeve = new THREE.Mesh(chainmailShoulderGeo, chainmailMat);
+    lMailSleeve.position.set(0, -0.06, -0.03);
+    lMailSleeve.rotation.x = 0.45;
     const lUpper = new THREE.Mesh(uArmGeo, tunicMat);
-    lUpper.position.set(0, -0.12, -0.06);
+    lUpper.position.set(0, -0.13, -0.06);
     lUpper.rotation.x = 0.45;
     const lFore = new THREE.Mesh(fArmGeo, leatherMat);
     lFore.position.set(0, -0.26, -0.24);
     lFore.rotation.x = 1.15;
-    const lHand = new THREE.Mesh(handGeo, skinMat);
+    const lCuff = new THREE.Mesh(vambraceCuffGeo, goldMat);
+    lCuff.position.set(0, -0.3, -0.32);
+    lCuff.rotation.x = 1.15;
+    const lHand = new THREE.Mesh(handGeo, darkLeatherMat);
     lHand.position.set(0, -0.32, -0.38);
-    leftArmGroup.add(lUpper, lFore, lHand);
+    leftArmGroup.add(lMailSleeve, lUpper, lFore, lCuff, lHand);
 
     // Recurve Bow in Left Hand
     const bowGroup = new THREE.Group();
@@ -231,32 +481,43 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     bowGroup.add(riser, uLimb, lLimb, uTip, lTip, bowString, nockedArrow);
     leftArmGroup.add(bowGroup);
 
-    // Right Arm + Greatsword & Torch
+    // Right Arm + Chainmail Shoulder + Embossed Leather Vambrace + LOTR Ranger Longsword & Torch
     const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.25, 0.52, 0);
+    rightArmGroup.position.set(0.26, 0.52, 0);
+    const rMailSleeve = new THREE.Mesh(chainmailShoulderGeo, chainmailMat);
+    rMailSleeve.position.set(0, -0.06, -0.02);
     const rUpper = new THREE.Mesh(uArmGeo, tunicMat);
     rUpper.position.set(0, -0.14, -0.04);
     const rFore = new THREE.Mesh(fArmGeo, leatherMat);
     rFore.position.set(0, -0.34, -0.12);
     rFore.rotation.x = 0.55;
-    const rHand = new THREE.Mesh(handGeo, skinMat);
+    const rCuff = new THREE.Mesh(vambraceCuffGeo, goldMat);
+    rCuff.position.set(0, -0.4, -0.18);
+    rCuff.rotation.x = 0.55;
+    const rHand = new THREE.Mesh(handGeo, darkLeatherMat);
     rHand.position.set(0, -0.44, -0.22);
-    rightArmGroup.add(rUpper, rFore, rHand);
+    rightArmGroup.add(rMailSleeve, rUpper, rFore, rCuff, rHand);
 
-    // Ornate Rune Greatsword
+    // LOTR Gondor Ranger Longsword (Cruciform Crossguard, Wheel Pommel & Fullered Steel Blade)
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -0.44, -0.24);
     swordGroup.rotation.x = -0.85;
-    const grip = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.02, 0.022, 0.26, 8)), darkLeatherMat);
-    const pommel = new THREE.Mesh(trackGeo(new THREE.OctahedronGeometry(0.042, 0)), goldMat);
-    pommel.position.y = -0.15;
-    const crossguard = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.28, 0.035, 0.05)), goldMat);
-    crossguard.position.y = 0.14;
-    const blade = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.068, 0.96, 0.016)), steelMat);
-    blade.position.y = 0.64;
-    const runeStrip = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.022, 0.78, 0.02)), runeGlowMat);
-    runeStrip.position.y = 0.62;
-    swordGroup.add(grip, pommel, crossguard, blade, runeStrip);
+    const grip = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.018, 0.02, 0.24, 10)), darkLeatherMat);
+    const wheelPommel = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.038, 0.038, 0.022, 14)), steelMat);
+    wheelPommel.rotation.z = Math.PI / 2;
+    wheelPommel.position.y = -0.14;
+    const pommelBoss = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.02, 0.02, 0.028, 10)), goldMat);
+    pommelBoss.rotation.z = Math.PI / 2;
+    pommelBoss.position.y = -0.14;
+    const crossguard = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.28, 0.028, 0.042)), steelMat);
+    crossguard.position.y = 0.13;
+    const guardEcus = new THREE.Mesh(trackGeo(new THREE.OctahedronGeometry(0.028, 0)), goldMat);
+    guardEcus.position.y = 0.13;
+    const blade = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.058, 0.96, 0.014)), steelMat);
+    blade.position.y = 0.62;
+    const fullerStrip = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.016, 0.74, 0.017)), runeGlowMat);
+    fullerStrip.position.y = 0.56;
+    swordGroup.add(grip, wheelPommel, pommelBoss, crossguard, guardEcus, blade, fullerStrip);
     rightArmGroup.add(swordGroup);
 
     // Torch in Right Hand
@@ -273,38 +534,57 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     rightArmGroup.add(torchGroup);
 
     upperTorsoPivot.add(
-      pelvis,
+      chainmailSkirt,
+      leatherSkirtL,
+      leatherSkirtR,
+      skirtTrimL,
+      skirtTrimR,
       belt,
       buckle,
+      beltTongue,
+      pouchL,
+      pouchR,
+      canteen,
+      scabbardGroup,
       chest,
-      mantle,
+      collarV,
       baldric,
-      cloakBack,
+      baldricBuckle,
+      mantle,
+      hoodFold,
+      claspL,
+      claspR,
+      claspChain,
+      cloakBackGroup,
       quiverGroup,
       headGroup,
       leftArmGroup,
       rightArmGroup
     );
 
-    // Articulated Left & Right Legs
+    // Articulated Left & Right Legs with Tall Cuffed Leather Ranger Boots
     const thighGeo = trackGeo(new THREE.CylinderGeometry(0.095, 0.078, 0.44, 10));
     thighGeo.translate(0, -0.22, 0);
-    const bootGeo = trackGeo(new THREE.CylinderGeometry(0.078, 0.068, 0.44, 10));
+    const bootCuffGeo = trackGeo(new THREE.CylinderGeometry(0.092, 0.082, 0.11, 10));
+    bootCuffGeo.translate(0, -0.43, 0);
+    const bootGeo = trackGeo(new THREE.CylinderGeometry(0.08, 0.07, 0.44, 10));
     bootGeo.translate(0, -0.64, 0);
-    const footGeo = trackGeo(new THREE.BoxGeometry(0.12, 0.08, 0.24));
+    const footGeo = trackGeo(new THREE.BoxGeometry(0.125, 0.085, 0.25));
     footGeo.translate(0, -0.86, -0.04);
 
     const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.1, 0.9, 0);
+    leftLeg.position.set(-0.105, 0.9, 0);
     leftLeg.add(
       new THREE.Mesh(thighGeo, pantsMat),
+      new THREE.Mesh(bootCuffGeo, leatherMat),
       new THREE.Mesh(bootGeo, darkLeatherMat),
       new THREE.Mesh(footGeo, darkLeatherMat)
     );
     const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.1, 0.9, 0);
+    rightLeg.position.set(0.105, 0.9, 0);
     rightLeg.add(
       new THREE.Mesh(thighGeo, pantsMat),
+      new THREE.Mesh(bootCuffGeo, leatherMat),
       new THREE.Mesh(bootGeo, darkLeatherMat),
       new THREE.Mesh(footGeo, darkLeatherMat)
     );
@@ -352,16 +632,16 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
       upperTorsoPivot.position.set(0, 0.92, 0);
       upperTorsoPivot.rotation.set(0, 0, 0);
       headGroup.rotation.set(0, 0, 0);
-      leftArmGroup.position.set(-0.25, 0.52, 0);
-      leftArmGroup.rotation.set(-0.2, 0.1, 0.1);
-      rightArmGroup.position.set(0.25, 0.52, 0);
-      rightArmGroup.rotation.set(-0.2, -0.1, -0.1);
-      leftLeg.position.set(-0.1, 0.9, 0);
+      leftArmGroup.position.set(-0.26, 0.52, 0);
+      leftArmGroup.rotation.set(-0.14, 0.34, 0.24);
+      rightArmGroup.position.set(0.26, 0.52, 0);
+      rightArmGroup.rotation.set(-0.18, -0.16, -0.14);
+      leftLeg.position.set(-0.105, 0.9, 0);
       leftLeg.rotation.set(0, 0, 0);
-      rightLeg.position.set(0.1, 0.9, 0);
+      rightLeg.position.set(0.105, 0.9, 0);
       rightLeg.rotation.set(0, 0, 0);
       bowGroup.visible = true;
-      bowGroup.rotation.set(0.25, 0, -0.35);
+      bowGroup.rotation.set(0.2, 0.28, -0.22);
       nockedArrow.visible = false;
       swordGroup.visible = true;
       torchGroup.visible = false;
@@ -640,14 +920,26 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
   // 3. DWARVEN MINER (גמד כורה מממלכת הגמדים)
   // ==========================================================================
   else if (entityId === 'dwarven_miner') {
-    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe0ac8b, roughness: 0.58 }));
-    const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x8b261d, roughness: 0.72 }));
-    const beardMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x8c3b16, roughness: 0.82 }));
+    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdca482, roughness: 0.56 }));
+    const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x333629, roughness: 0.72 }));
+    const beardMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x8c3b16, roughness: 0.8 }));
     const armorMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xb8860b, roughness: 0.32, metalness: 0.78 })
+      new THREE.MeshStandardMaterial({ color: 0x9e7b42, roughness: 0.3, metalness: 0.82 })
     );
     const ironMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.35, metalness: 0.82 })
+      new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.34, metalness: 0.85 })
+    );
+    const chainmailMat = trackMat(
+      new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.36, metalness: 0.82 })
+    );
+    const leatherMat = trackMat(
+      new THREE.MeshStandardMaterial({ color: 0x472814, roughness: 0.55 })
+    );
+    const darkLeatherMat = trackMat(
+      new THREE.MeshStandardMaterial({ color: 0x2b190d, roughness: 0.62 })
+    );
+    const cloakMat = trackMat(
+      new THREE.MeshStandardMaterial({ color: 0x2d241c, roughness: 0.84, side: THREE.DoubleSide })
     );
     const lanternGlowMat = trackMat(
       new THREE.MeshStandardMaterial({
@@ -666,107 +958,315 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     );
 
     const bodyPivot = new THREE.Group();
+
+    // Lower Riveted Chainmail Skirt Hem peeking beneath the Tunic
+    const chainmailSkirt = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.285, 0.31, 0.22, 14)),
+      chainmailMat
+    );
+    chainmailSkirt.position.y = 0.36;
+
+    // Stocky Dark Olive-Charcoal Tunic with Ornate Bronze Geometric Trim
     const torso = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.25, 0.29, 0.64, 12)),
+      trackGeo(new THREE.CylinderGeometry(0.27, 0.305, 0.6, 14)),
       tunicMat
     );
     torso.position.y = 0.68;
+
+    const tunicHemTrim = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.308, 0.312, 0.045, 14)),
+      armorMat
+    );
+    tunicHemTrim.position.y = 0.4;
+
+    const tunicFrontSeam = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.055, 0.56, 0.025)),
+      armorMat
+    );
+    tunicFrontSeam.position.set(0, 0.66, 0.288);
+
+    // Wide Leather Belt + Signature Diamond (Rhombus) Buckle + Belt Pouches
     const belt = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.285, 0.285, 0.11, 12)),
+      trackGeo(new THREE.CylinderGeometry(0.298, 0.298, 0.11, 14)),
+      leatherMat
+    );
+    belt.position.y = 0.54;
+
+    const diamondBuckleGroup = new THREE.Group();
+    diamondBuckleGroup.position.set(0, 0.54, 0.298);
+    const buckleOuter = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.115, 0.115, 0.036)),
+      armorMat
+    );
+    buckleOuter.rotation.z = Math.PI / 4;
+    const buckleInner = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.068, 0.068, 0.042)),
       ironMat
     );
-    belt.position.y = 0.52;
-    const buckle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.12, 0.12, 0.05)), armorMat);
-    buckle.position.set(0, 0.52, 0.28);
+    buckleInner.rotation.z = Math.PI / 4;
+    diamondBuckleGroup.add(buckleOuter, buckleInner);
 
-    const pauldronGeo = trackGeo(new THREE.SphereGeometry(0.15, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6));
-    const pauldronL = new THREE.Mesh(pauldronGeo, armorMat);
-    pauldronL.position.set(-0.26, 0.92, 0);
-    pauldronL.rotation.z = 0.45;
-    const pauldronR = new THREE.Mesh(pauldronGeo, armorMat);
-    pauldronR.position.set(0.26, 0.92, 0);
-    pauldronR.rotation.z = -0.45;
+    const dwarfPouchGeo = trackGeo(new THREE.BoxGeometry(0.085, 0.11, 0.07));
+    const dwarfPouchL = new THREE.Mesh(dwarfPouchGeo, darkLeatherMat);
+    dwarfPouchL.position.set(-0.22, 0.5, 0.21);
+    dwarfPouchL.rotation.y = -0.55;
+    const dwarfPouchR = new THREE.Mesh(dwarfPouchGeo, darkLeatherMat);
+    dwarfPouchR.position.set(0.22, 0.5, 0.21);
+    dwarfPouchR.rotation.y = 0.55;
 
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.16, 0);
-    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.19, 14, 12)), skinMat);
-    const nose = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.048, 8, 8)), skinMat);
-    nose.position.set(0, 0, 0.19);
-    const helm = new THREE.Mesh(trackGeo(new THREE.ConeGeometry(0.22, 0.26, 12)), ironMat);
-    helm.position.y = 0.14;
-    const helmRim = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.225, 0.225, 0.045, 12)),
-      armorMat
+    // Chainmail Shoulders + Hooded Cloak Mantle + Twin Nordic Star Brooches + Back Cloak
+    const mailShoulderGeo = trackGeo(
+      new THREE.SphereGeometry(0.165, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62)
     );
-    helmRim.position.y = 0.04;
+    const mailShoulderL = new THREE.Mesh(mailShoulderGeo, chainmailMat);
+    mailShoulderL.position.set(-0.28, 0.92, 0);
+    mailShoulderL.rotation.z = 0.45;
+    const mailShoulderR = new THREE.Mesh(mailShoulderGeo, chainmailMat);
+    mailShoulderR.position.set(0.28, 0.92, 0);
+    mailShoulderR.rotation.z = -0.45;
 
-    // 3-Braided Dwarven Beard
-    const beardCenter = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.15, 0.42, 8)),
+    const cloakMantle = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.265, 0.305, 0.16, 14)),
+      cloakMat
+    );
+    cloakMantle.position.set(0, 0.94, -0.045);
+
+    const broochDiscGeo = trackGeo(new THREE.CylinderGeometry(0.048, 0.048, 0.02, 12));
+    broochDiscGeo.rotateX(Math.PI / 2);
+    const broochStarGeo = trackGeo(new THREE.OctahedronGeometry(0.036, 0));
+    const broochL = new THREE.Mesh(broochDiscGeo, ironMat);
+    broochL.position.set(-0.19, 0.89, 0.25);
+    broochL.rotation.y = -0.35;
+    const broochStarL = new THREE.Mesh(broochStarGeo, armorMat);
+    broochStarL.scale.set(1, 1, 0.35);
+    broochStarL.position.set(-0.19, 0.89, 0.262);
+    const broochR = new THREE.Mesh(broochDiscGeo, ironMat);
+    broochR.position.set(0.19, 0.89, 0.25);
+    broochR.rotation.y = 0.35;
+    const broochStarR = new THREE.Mesh(broochStarGeo, armorMat);
+    broochStarR.scale.set(1, 1, 0.35);
+    broochStarR.position.set(0.19, 0.89, 0.262);
+
+    const cloakHoodBack = new THREE.Mesh(
+      trackGeo(new THREE.ConeGeometry(0.22, 0.34, 8)),
+      cloakMat
+    );
+    cloakHoodBack.rotation.x = Math.PI * 0.78;
+    cloakHoodBack.position.set(0, 0.85, -0.26);
+
+    const cloakBack = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.56, 0.68, 0.035)),
+      cloakMat
+    );
+    cloakBack.position.set(0, 0.62, -0.29);
+    cloakBack.rotation.x = -0.06;
+
+    // Dwarven Head, Crown Braids, Back Braid Ponytail, Sweeping Mustache & 3-Braided Beard
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.15, 0.09);
+    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.195, 16, 14)), skinMat);
+    head.scale.set(1.04, 0.98, 1.0);
+
+    const browRidge = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.16, 0.032, 0.045)),
+      skinMat
+    );
+    browRidge.position.set(0, 0.055, 0.178);
+
+    const nose = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.052, 10, 10)), skinMat);
+    nose.scale.set(1.05, 0.92, 1.12);
+    nose.position.set(0, 0.01, 0.195);
+
+    const dwarfEyeGeo = trackGeo(new THREE.SphereGeometry(0.018, 8, 8));
+    const dwarfEyeMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x1e293b }));
+    const eyeL = new THREE.Mesh(dwarfEyeGeo, dwarfEyeMat);
+    eyeL.position.set(-0.055, 0.035, 0.178);
+    const eyeR = new THREE.Mesh(dwarfEyeGeo, dwarfEyeMat);
+    eyeR.position.set(0.055, 0.035, 0.178);
+
+    // Rich Auburn Hair Cap + Crown Braids + Long Braided Back Ponytail
+    const hairCap = new THREE.Mesh(
+      trackGeo(new THREE.SphereGeometry(0.206, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.58)),
       beardMat
     );
-    beardCenter.rotation.x = Math.PI;
-    beardCenter.position.set(0, -0.2, 0.13);
-    const beardSideGeo = trackGeo(new THREE.ConeGeometry(0.08, 0.34, 6));
-    beardSideGeo.rotateX(Math.PI);
-    const beardL = new THREE.Mesh(beardSideGeo, beardMat);
-    beardL.position.set(-0.1, -0.18, 0.11);
-    beardL.rotation.z = -0.2;
-    const beardR = new THREE.Mesh(beardSideGeo, beardMat);
-    beardR.position.set(0.1, -0.18, 0.11);
-    beardR.rotation.z = 0.2;
-    const beardRing = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.055, 0.055, 0.04, 8)),
+    hairCap.position.set(0, 0.02, -0.015);
+    hairCap.rotation.x = 0.24;
+
+    const templeBraidGeo = trackGeo(new THREE.CylinderGeometry(0.032, 0.028, 0.24, 8));
+    templeBraidGeo.rotateX(Math.PI / 2);
+    const crownBraidL = new THREE.Mesh(templeBraidGeo, beardMat);
+    crownBraidL.position.set(-0.14, 0.08, -0.04);
+    crownBraidL.rotation.y = 0.28;
+    const crownBraidR = new THREE.Mesh(templeBraidGeo, beardMat);
+    crownBraidR.position.set(0.14, 0.08, -0.04);
+    crownBraidR.rotation.y = -0.28;
+
+    const backHairMane = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.32, 0.34, 0.11)),
+      beardMat
+    );
+    backHairMane.position.set(0, -0.08, -0.18);
+    const backPonytailBraid = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.042, 0.024, 0.42, 8)),
+      beardMat
+    );
+    backPonytailBraid.position.set(0, -0.22, -0.24);
+    const backBraidClasp = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.034, 0.034, 0.028, 8)),
       armorMat
     );
-    beardRing.position.set(0, -0.3, 0.13);
-    headGroup.add(head, nose, helm, helmRim, beardCenter, beardL, beardR, beardRing);
+    backBraidClasp.position.set(0, -0.34, -0.24);
 
-    // Left Arm + Miner Lantern
+    // Thick Sweeping Split Mustache
+    const mustacheGeo = trackGeo(new THREE.ConeGeometry(0.052, 0.17, 6));
+    const mustacheL = new THREE.Mesh(mustacheGeo, beardMat);
+    mustacheL.position.set(-0.068, -0.048, 0.198);
+    mustacheL.rotation.set(0.2, 0, -1.12);
+    const mustacheR = new THREE.Mesh(mustacheGeo, beardMat);
+    mustacheR.position.set(0.068, -0.048, 0.198);
+    mustacheR.rotation.set(0.2, 0, 1.12);
+
+    // Long 3-Braided Auburn Beard with Multiple Bronze/Silver Clasps (hanging over front of chest)
+    const beardCenter = new THREE.Mesh(
+      trackGeo(new THREE.ConeGeometry(0.165, 0.54, 10)),
+      beardMat
+    );
+    beardCenter.rotation.x = Math.PI - 0.18;
+    beardCenter.position.set(0, -0.25, 0.245);
+
+    const longSideBraidGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.026, 0.56, 8));
+    const beardBraidL = new THREE.Mesh(longSideBraidGeo, beardMat);
+    beardBraidL.position.set(-0.128, -0.27, 0.26);
+    beardBraidL.rotation.set(-0.16, 0, -0.08);
+    const beardBraidR = new THREE.Mesh(longSideBraidGeo, beardMat);
+    beardBraidR.position.set(0.128, -0.27, 0.26);
+    beardBraidR.rotation.set(-0.16, 0, 0.08);
+
+    const claspRingGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.04, 0.034, 8));
+    const centerRing = new THREE.Mesh(
+      trackGeo(new THREE.CylinderGeometry(0.064, 0.064, 0.04, 10)),
+      armorMat
+    );
+    centerRing.position.set(0, -0.37, 0.275);
+    const sideClaspL1 = new THREE.Mesh(claspRingGeo, armorMat);
+    sideClaspL1.position.set(-0.118, -0.21, 0.245);
+    const sideClaspL2 = new THREE.Mesh(claspRingGeo, armorMat);
+    sideClaspL2.position.set(-0.134, -0.41, 0.28);
+    const sideClaspR1 = new THREE.Mesh(claspRingGeo, armorMat);
+    sideClaspR1.position.set(0.118, -0.21, 0.245);
+    const sideClaspR2 = new THREE.Mesh(claspRingGeo, armorMat);
+    sideClaspR2.position.set(0.134, -0.41, 0.28);
+
+    headGroup.add(
+      head,
+      browRidge,
+      nose,
+      eyeL,
+      eyeR,
+      hairCap,
+      crownBraidL,
+      crownBraidR,
+      backHairMane,
+      backPonytailBraid,
+      backBraidClasp,
+      mustacheL,
+      mustacheR,
+      beardCenter,
+      beardBraidL,
+      beardBraidR,
+      centerRing,
+      sideClaspL1,
+      sideClaspL2,
+      sideClaspR1,
+      sideClaspR2
+    );
+
+    // Left Arm + Chainmail Upper Sleeve + Embossed Leather Vambrace + Miner Lantern
     const leftArm = new THREE.Group();
-    leftArm.position.set(-0.29, 0.94, 0);
-    const armMeshGeo = trackGeo(new THREE.CylinderGeometry(0.075, 0.065, 0.42, 10));
-    armMeshGeo.translate(0, -0.18, 0);
-    leftArm.add(new THREE.Mesh(armMeshGeo, tunicMat));
+    leftArm.position.set(-0.31, 0.92, 0);
+    const upperSleeveGeo = trackGeo(new THREE.CylinderGeometry(0.088, 0.078, 0.22, 10));
+    upperSleeveGeo.translate(0, -0.1, 0);
+    const vambraceGeo = trackGeo(new THREE.CylinderGeometry(0.078, 0.068, 0.22, 10));
+    vambraceGeo.translate(0, -0.28, 0);
+    const vambraceTrimGeo = trackGeo(new THREE.CylinderGeometry(0.082, 0.072, 0.035, 10));
+    vambraceTrimGeo.translate(0, -0.2, 0);
+    const gauntletGeo = trackGeo(new THREE.SphereGeometry(0.062, 10, 10));
+    gauntletGeo.translate(0, -0.4, 0);
+
+    leftArm.add(
+      new THREE.Mesh(upperSleeveGeo, chainmailMat),
+      new THREE.Mesh(vambraceGeo, leatherMat),
+      new THREE.Mesh(vambraceTrimGeo, armorMat),
+      new THREE.Mesh(gauntletGeo, darkLeatherMat)
+    );
     const lantern = new THREE.Mesh(
       trackGeo(new THREE.CylinderGeometry(0.065, 0.055, 0.16, 8)),
       lanternGlowMat
     );
-    lantern.position.set(0, -0.44, 0.14);
+    lantern.position.set(0, -0.46, 0.14);
     leftArm.add(lantern);
 
-    // Right Arm + Iron Pickaxe
+    // Right Arm + Chainmail Upper Sleeve + Embossed Vambrace + Dwarven Double-Bitted Battleaxe / Pickaxe
     const rightArm = new THREE.Group();
-    rightArm.position.set(0.29, 0.94, 0);
-    rightArm.add(new THREE.Mesh(armMeshGeo, tunicMat));
+    rightArm.position.set(0.31, 0.92, 0);
+    rightArm.add(
+      new THREE.Mesh(upperSleeveGeo, chainmailMat),
+      new THREE.Mesh(vambraceGeo, leatherMat),
+      new THREE.Mesh(vambraceTrimGeo, armorMat),
+      new THREE.Mesh(gauntletGeo, darkLeatherMat)
+    );
     const pickGroup = new THREE.Group();
-    pickGroup.position.set(0, -0.36, 0.12);
+    pickGroup.position.set(0, -0.38, 0.12);
+    pickGroup.rotation.set(-0.28, -0.22, -0.15);
     const pickHandle = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.024, 0.024, 0.65, 8)),
-      beardMat
+      trackGeo(new THREE.CylinderGeometry(0.024, 0.026, 0.72, 8)),
+      leatherMat
     );
     pickHandle.rotation.x = Math.PI / 2;
-    pickHandle.position.z = 0.2;
-    const pickHead = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.055, 0.42, 6)),
-      ironMat
+    pickHandle.position.z = 0.22;
+    const axeCollar = new THREE.Mesh(
+      trackGeo(new THREE.BoxGeometry(0.065, 0.065, 0.12)),
+      armorMat
     );
-    pickHead.rotation.z = Math.PI / 2;
-    pickHead.position.set(0, 0, 0.48);
-    pickGroup.add(pickHandle, pickHead);
+    axeCollar.position.set(0, 0, 0.5);
+    const axeBladeGeo = trackGeo(new THREE.ConeGeometry(0.14, 0.24, 4));
+    axeBladeGeo.scale(0.24, 1.0, 1.15);
+    const bladeLeft = new THREE.Mesh(axeBladeGeo, ironMat);
+    bladeLeft.rotation.z = Math.PI / 2;
+    bladeLeft.position.set(-0.12, 0, 0.5);
+    const bladeRight = new THREE.Mesh(axeBladeGeo, ironMat);
+    bladeRight.rotation.z = -Math.PI / 2;
+    bladeRight.position.set(0.12, 0, 0.5);
+    const axeSpike = new THREE.Mesh(
+      trackGeo(new THREE.ConeGeometry(0.028, 0.11, 6)),
+      armorMat
+    );
+    axeSpike.rotation.x = Math.PI / 2;
+    axeSpike.position.set(0, 0, 0.6);
+    pickGroup.add(pickHandle, axeCollar, bladeLeft, bladeRight, axeSpike);
     rightArm.add(pickGroup);
 
-    // Legs & Boots
-    const legGeo = trackGeo(new THREE.CylinderGeometry(0.095, 0.085, 0.38, 10));
-    legGeo.translate(0, -0.19, 0);
-    const bootGeo = trackGeo(new THREE.BoxGeometry(0.15, 0.11, 0.24));
+    // Stocky Legs & Heavy Cuffed Dwarven Leather Boots
+    const legGeo = trackGeo(new THREE.CylinderGeometry(0.105, 0.095, 0.36, 10));
+    legGeo.translate(0, -0.18, 0);
+    const bootCuffGeo = trackGeo(new THREE.CylinderGeometry(0.112, 0.102, 0.09, 10));
+    bootCuffGeo.translate(0, -0.26, 0);
+    const bootGeo = trackGeo(new THREE.BoxGeometry(0.165, 0.12, 0.26));
     bootGeo.translate(0, -0.36, 0.04);
     const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.12, 0.4, 0);
-    leftLeg.add(new THREE.Mesh(legGeo, armorMat), new THREE.Mesh(bootGeo, ironMat));
+    leftLeg.position.set(-0.135, 0.4, 0);
+    leftLeg.add(
+      new THREE.Mesh(legGeo, darkLeatherMat),
+      new THREE.Mesh(bootCuffGeo, leatherMat),
+      new THREE.Mesh(bootGeo, darkLeatherMat)
+    );
     const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.12, 0.4, 0);
-    rightLeg.add(new THREE.Mesh(legGeo, armorMat), new THREE.Mesh(bootGeo, ironMat));
+    rightLeg.position.set(0.135, 0.4, 0);
+    rightLeg.add(
+      new THREE.Mesh(legGeo, darkLeatherMat),
+      new THREE.Mesh(bootCuffGeo, leatherMat),
+      new THREE.Mesh(bootGeo, darkLeatherMat)
+    );
 
     // Crystal Vein Prop (shown during mining animation)
     const crystalProp = new THREE.Group();
@@ -779,7 +1279,28 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     }
     crystalProp.visible = false;
 
-    bodyPivot.add(torso, belt, buckle, pauldronL, pauldronR, headGroup, leftArm, rightArm);
+    bodyPivot.add(
+      chainmailSkirt,
+      torso,
+      tunicHemTrim,
+      tunicFrontSeam,
+      belt,
+      diamondBuckleGroup,
+      dwarfPouchL,
+      dwarfPouchR,
+      mailShoulderL,
+      mailShoulderR,
+      cloakMantle,
+      broochL,
+      broochStarL,
+      broochR,
+      broochStarR,
+      cloakHoodBack,
+      cloakBack,
+      headGroup,
+      leftArm,
+      rightArm
+    );
     root.add(bodyPivot, leftLeg, rightLeg, crystalProp);
 
     editableRigTargets.weaponNodes.push(pickGroup);
@@ -803,8 +1324,8 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
       bodyPivot.position.set(0, 0, 0);
       bodyPivot.rotation.set(0, 0, 0);
       headGroup.rotation.set(0, 0, 0);
-      leftArm.rotation.set(-0.35, 0, 0);
-      rightArm.rotation.set(-0.45, 0, 0);
+      leftArm.rotation.set(-0.28, 0.18, 0.12);
+      rightArm.rotation.set(-0.28, -0.22, -0.14);
       leftLeg.rotation.set(0, 0, 0);
       rightLeg.rotation.set(0, 0, 0);
       crystalProp.visible = false;

@@ -29,6 +29,7 @@ import {
   type LabStageEnvironment,
 } from './labCatalog';
 import { CharacterLabCanvas } from './CharacterLabCanvas';
+import { SAVED_LAB_OVERRIDES } from '../config/savedLabOverrides';
 
 export interface ICharacterLabViewProps {
   readonly onClose: () => void;
@@ -62,6 +63,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   const [cameraResetNonce, setCameraResetNonce] = useState<number>(0);
   const [snapshotTriggerNonce, setSnapshotTriggerNonce] = useState<number>(0);
   const [copiedTweaksFeedback, setCopiedTweaksFeedback] = useState<boolean>(false);
+  const [saveFileStatus, setSaveFileStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const [poseOverridesByEntity, setPoseOverridesByEntity] = useState<
     Record<string, ILabPoseOverrides>
@@ -69,12 +71,13 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     try {
       const saved = window.localStorage.getItem('lab_pose_overrides_v1');
       if (saved) {
-        return JSON.parse(saved) as Record<string, ILabPoseOverrides>;
+        const parsed = JSON.parse(saved) as Record<string, ILabPoseOverrides>;
+        return { ...SAVED_LAB_OVERRIDES, ...parsed };
       }
     } catch {
       // Ignore storage errors
     }
-    return {};
+    return { ...SAVED_LAB_OVERRIDES };
   });
 
   useEffect(() => {
@@ -155,6 +158,28 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     setCopiedTweaksFeedback(true);
     window.setTimeout(() => setCopiedTweaksFeedback(false), 1800);
   }, [activeEntity.id, activeAnimation.id, activePoseOverrides]);
+
+  const handleSaveOverridesToFile = useCallback(async () => {
+    setSaveFileStatus('saving');
+    try {
+      window.localStorage.setItem(
+        'lab_pose_overrides_v1',
+        JSON.stringify(poseOverridesByEntity)
+      );
+      window.dispatchEvent(
+        new CustomEvent('lab-overrides-saved', { detail: poseOverridesByEntity })
+      );
+      await fetch('/api/save-lab-overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(poseOverridesByEntity),
+      });
+    } catch {
+      // Fallback to localStorage if offline
+    }
+    setSaveFileStatus('saved');
+    window.setTimeout(() => setSaveFileStatus('idle'), 2200);
+  }, [poseOverridesByEntity]);
 
   const filteredEntities = useMemo(
     () => filterLabEntities(LAB_ENTITIES, session.categoryFilter, session.searchQuery),
@@ -299,6 +324,25 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               );
             })}
           </div>
+
+          <button
+            type="button"
+            data-testid="lab-save-to-file-btn"
+            onClick={handleSaveOverridesToFile}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow ${
+              saveFileStatus === 'saved'
+                ? 'bg-emerald-500 text-stone-950 border border-emerald-300'
+                : 'bg-amber-400 hover:bg-amber-300 text-stone-950 border border-amber-300'
+            }`}
+          >
+            <span>
+              {saveFileStatus === 'saving'
+                ? 'שומר לקובץ...'
+                : saveFileStatus === 'saved'
+                  ? '✓ נשמר לקובץ (Saved)'
+                  : 'Save · שמור לקובץ'}
+            </span>
+          </button>
 
           <button
             type="button"
@@ -1529,17 +1573,33 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   </div>
                 </div>
 
-                {/* Copy JSON Tweaks Button */}
-                <button
-                  type="button"
-                  data-testid="lab-copy-tweaks-btn"
-                  onClick={handleCopyTweaksJson}
-                  className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700 transition-colors cursor-pointer"
-                >
-                  {copiedTweaksFeedback
-                    ? '✓ ערכי התיקון הועתקו ללוח!'
-                    : 'העתק ערכי תיקון (JSON)'}
-                </button>
+                {/* Direct Save to File & Copy JSON Tweaks Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    data-testid="lab-editor-save-btn"
+                    onClick={handleSaveOverridesToFile}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow ${
+                      saveFileStatus === 'saved'
+                        ? 'bg-emerald-400 text-stone-950'
+                        : 'bg-amber-400 hover:bg-amber-300 text-stone-950'
+                    }`}
+                  >
+                    {saveFileStatus === 'saved'
+                      ? '✓ נשמר לקובץ!'
+                      : 'Save · שמור לקובץ'}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="lab-copy-tweaks-btn"
+                    onClick={handleCopyTweaksJson}
+                    className="py-2.5 px-3 rounded-xl text-xs font-bold bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700 transition-colors cursor-pointer"
+                  >
+                    {copiedTweaksFeedback
+                      ? '✓ הועתק ללוח!'
+                      : 'העתק JSON'}
+                  </button>
+                </div>
               </div>
             ) : (
               <>

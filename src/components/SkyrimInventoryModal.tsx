@@ -32,6 +32,7 @@ export type InventoryCategoryTab =
   | 'all'
   | 'weapons'
   | 'materials'
+  | 'food'
   | 'ammo'
   | 'gear'
   | 'treasures'
@@ -89,6 +90,15 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   dwarven_warhammer: t('items.dwarven_warhammer.short'),
   dragonbone_bow: t('items.dragonbone_bow.short'),
   celestial_jin_sword: t('items.celestial_jin_sword.short'),
+  raw_game_meat: t('items.raw_game_meat.short'),
+  roasted_meat: t('items.roasted_meat.short'),
+  fresh_bread_loaf: t('items.fresh_bread_loaf.short'),
+  harbor_cheese_wheel: t('items.harbor_cheese_wheel.short'),
+  red_orchard_apples: t('items.red_orchard_apples.short'),
+  small_hide: t('items.small_hide.short'),
+  deer_hide: t('items.deer_hide.short'),
+  sheep_hide: t('items.sheep_hide.short'),
+  deer_antlers: t('items.deer_antlers.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];
@@ -120,8 +130,8 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 }) => {
   const [tradeFeedback, setTradeFeedback] = useState<string | null>(null);
   const [tradeSide, setTradeSide] = useState<'player' | 'merchant'>('merchant');
-  const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'materials'>('all');
-  const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'materials'>('all');
+  const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'materials' | 'food'>('all');
+  const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'materials' | 'food'>('all');
 
   const s: ICharacterSkillsState = skills ?? {
     archeryLevel: 1,
@@ -152,13 +162,18 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const inHarborMarket = Boolean(nearbyMarket);
 
   // Personal Inventory Mode (Outside Market): ONLY show items currently owned by the player!
-  const activePersonalTab: 'weapons' | 'materials' =
-    selectedCategory === 'materials' || selectedCategory === 'treasures'
-      ? 'materials'
-      : 'weapons';
+  const activePersonalTab: 'weapons' | 'materials' | 'food' =
+    selectedCategory === 'food'
+      ? 'food'
+      : selectedCategory === 'materials' || selectedCategory === 'treasures'
+        ? 'materials'
+        : 'weapons';
 
   const ownedPersonalItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (!isItemOwned(item.id)) return false;
+    if (activePersonalTab === 'food') {
+      return item.category === 'food';
+    }
     if (activePersonalTab === 'materials') {
       return item.category === 'materials';
     }
@@ -174,6 +189,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
     if (playerMarketCat === 'materials') {
       return item.category === 'materials';
     }
+    if (playerMarketCat === 'food') {
+      return item.category === 'food';
+    }
     return true;
   });
 
@@ -184,6 +202,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
     }
     if (merchantMarketCat === 'materials') {
       return item.category === 'materials';
+    }
+    if (merchantMarketCat === 'food') {
+      return item.category === 'food';
     }
     return true;
   });
@@ -286,17 +307,19 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             </div>
 
             {/* Category Filter for Player's Owned Items */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               {(
                 [
                   ['all', t('ui.all_filter')],
                   ['weapons', t('ui.weapons_filter')],
                   ['materials', t('ui.materials_filter')],
+                  ['food', t('ui.food_filter')],
                 ] as const
               ).map(([catKey, label]) => (
                 <button
                   key={catKey}
                   type="button"
+                  data-testid={`player-market-filter-${catKey}`}
                   onClick={() => setPlayerMarketCat(catKey)}
                   className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
                     playerMarketCat === catKey
@@ -511,17 +534,19 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             </div>
 
             {/* Category Filter for Merchant's Catalog */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               {(
                 [
                   ['all', t('ui.all_filter')],
                   ['weapons', t('ui.weapons_filter')],
                   ['materials', t('ui.materials_filter')],
+                  ['food', t('ui.food_filter')],
                 ] as const
               ).map(([catKey, label]) => (
                 <button
                   key={catKey}
                   type="button"
+                  data-testid={`merchant-market-filter-${catKey}`}
                   onClick={() => setMerchantMarketCat(catKey)}
                   className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
                     merchantMarketCat === catKey
@@ -638,6 +663,25 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
               >
                 {t('ui.materials_tab')}
               </button>
+
+              <button
+                type="button"
+                data-testid="cat-tab-food"
+                onClick={() => {
+                  onSelectCategory('food');
+                  const firstOwnedFood = Array.from(INVENTORY_ITEM_MAP.values()).find(
+                    (i) => isItemOwned(i.id) && i.category === 'food'
+                  );
+                  if (firstOwnedFood) onSelectItem(firstOwnedFood.id);
+                }}
+                className={`text-right font-display-he text-2xl sm:text-3xl font-bold transition-all cursor-pointer ${
+                  activePersonalTab === 'food'
+                    ? 'text-amber-300 translate-x-[-4px]'
+                    : 'text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                {t('ui.food_tab')}
+              </button>
             </nav>
 
             {/* Scrollable Owned Item Names List */}
@@ -645,7 +689,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
               <div className="text-xs uppercase tracking-widest text-stone-400 pb-2 mb-2 border-b border-stone-800">
                 {activePersonalTab === 'weapons'
                   ? t('ui.owned_weapons_desc')
-                  : t('ui.owned_materials_desc')}
+                  : activePersonalTab === 'food'
+                    ? t('ui.owned_food_desc')
+                    : t('ui.owned_materials_desc')}
               </div>
 
               <div

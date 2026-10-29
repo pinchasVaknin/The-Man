@@ -47,6 +47,9 @@ import {
   findNearestFortressDoor,
   findNearestMarketStall,
   findLookedAtWatchtowerLadder,
+  findNearestDeadLootableAnimal,
+  lootDeadAnimal,
+  getAnimalSpeciesNameHe,
   triggerSwordSlash,
   stepSwordSwingCombat,
   computeFirstPersonSwordAttackPose,
@@ -61,6 +64,10 @@ import { buildRealisticWorld } from '../world/proceduralModels';
 import { NatureSoundEngine } from '../world/soundEngine';
 import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRenderController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
+import {
+  SAVED_GAME_SETTINGS,
+  type IGameSettingsConfig,
+} from '../config/savedGameSettings';
 
 /**
  * Summary: High-level application mode for WorldCanvas view hierarchy.
@@ -83,6 +90,8 @@ export interface ITelemetrySnapshot {
   walkPace: WalkPaceMode;
   isFlying: boolean;
   isSwimming?: boolean;
+  isCrouching?: boolean;
+  colliderDebugVisible?: boolean;
   cameraPerspective?: CameraPerspectiveMode;
   equippedTool?: EquippedToolSlot;
   activeWeaponId?: InventoryItemId;
@@ -95,6 +104,12 @@ export interface ITelemetrySnapshot {
     id: string;
     name: string;
   } | null;
+  nearbyDeadAnimal?: {
+    id: string;
+    species: string;
+    speciesNameHe: string;
+  } | null;
+  lootNotificationHe?: string | null;
   swordSwingProgress?: number;
   dashCooldown?: number;
   bowDrawn?: boolean;
@@ -149,6 +164,7 @@ export interface IWorldCanvasProps {
   gameState: GameStateMode;
   muted: boolean;
   weatherToggle: WeatherToggleOption;
+  gameSettings?: IGameSettingsConfig;
   onTelemetryUpdate: (snapshot: ITelemetrySnapshot) => void;
   onRequestPauseToggle: () => void;
   virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
@@ -171,6 +187,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   gameState,
   muted,
   weatherToggle,
+  gameSettings = SAVED_GAME_SETTINGS,
   onTelemetryUpdate,
   onRequestPauseToggle,
   virtualMoveRef,
@@ -182,6 +199,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   const gameStateRef = useRef<GameStateMode>(gameState);
   const mutedRef = useRef<boolean>(muted);
   const weatherToggleRef = useRef<WeatherToggleOption>(weatherToggle);
+  const gameSettingsRef = useRef<IGameSettingsConfig>(gameSettings);
   const onTelemetryUpdateRef = useRef(onTelemetryUpdate);
   const onRequestPauseToggleRef = useRef(onRequestPauseToggle);
 
@@ -199,6 +217,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   useEffect(() => {
     weatherToggleRef.current = weatherToggle;
   }, [weatherToggle]);
+
+  useEffect(() => {
+    gameSettingsRef.current = gameSettings;
+  }, [gameSettings]);
 
   useEffect(() => {
     onTelemetryUpdateRef.current = onTelemetryUpdate;
@@ -303,10 +325,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     // 7. Player State, Rideable Horses, Active Arrows & Input Tracking
     const playerState = createInitialPlayerState();
+    playerState.cameraPerspective = gameSettingsRef.current.defaultCameraPerspective;
     const rideableHorses = createInitialRideableHorses();
     const activeArrows: IArrowProjectile[] = [];
     let lastArrowHitTargetName: string | null = null;
     let lastArrowHitTimer = 0;
+    let lastLootNotificationHe: string | null = null;
+    let lastLootNotificationTimer = 0;
+    let smoothCrouchOffset = 0;
 
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
@@ -462,7 +488,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       res: ReturnType<typeof triggerSwordSlash> | null
     ) {
       if (!res) return;
-      if (res.hitTarget) {
+      if (res.hitAnimal) {
+        lastArrowHitTargetName = `${getAnimalSpeciesNameHe(res.hitAnimal.species)} (ניצוד! לחץ E לאיסוף השלל)`;
+        lastArrowHitTimer = 4.0;
+        soundEngine.playArrowHit(true);
+        emitHudSnapshot();
+      } else if (res.hitTarget) {
         lastArrowHitTargetName = res.hitTarget.name;
         lastArrowHitTimer = 3.5;
         soundEngine.playArrowHit(true);
@@ -551,6 +582,21 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         },
         getCurrentAtmo: () => currentAtmo,
         getCurrentWeather: () => currentWeather,
+        toggleColliderDebug: (visible?: boolean) =>
+          worldHandles.colliderDebugHandles.toggle(visible),
+        isColliderDebugVisible: () => worldHandles.colliderDebugHandles.isVisible(),
+        triggerLootNearbyAnimal: () => {
+          const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
+          if (!dead) return { looted: false, notificationHe: null };
+          const res = lootDeadAnimal(playerState, dead);
+          if (res.addedItems.length > 0 && res.notificationHe) {
+            lastLootNotificationHe = res.notificationHe;
+            lastLootNotificationTimer = 4.5;
+            soundEngine.playFootstep('trail', 1.15);
+            emitHudSnapshot();
+          }
+          return { looted: res.addedItems.length > 0, notificationHe: res.notificationHe };
+        },
         emitHudSnapshot,
       });
     }
@@ -585,42 +631,63 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         return;
       }
 
-      // Toggle Camera Perspective between 3rd-Person Character View and 1st-Person View with [C]
-      if (e.code === 'KeyC' && !e.repeat && gameStateRef.current === 'playing') {
+      // Toggle Camera Perspective between 3rd-Person Character View and 1st-Person View
+      const kb = gameSettingsRef.current.keybindings;
+      if (e.code === kb.cameraPerspective && !e.repeat && gameStateRef.current === 'playing') {
         playerState.cameraPerspective =
           playerState.cameraPerspective === 'third_person' ? 'first_person' : 'third_person';
       }
+      // Toggle Visual Collider Wireframes Debug Mode on F3
+      if (e.code === 'F3' && !e.repeat) {
+        e.preventDefault();
+        worldHandles.colliderDebugHandles.toggle();
+        emitHudSnapshot();
+      }
       // Customizable Hotkey Slots [1], [2], [3], [4]
       if (
-        (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4') &&
+        (e.code === kb.hotbarSlot1 ||
+          e.code === kb.hotbarSlot2 ||
+          e.code === kb.hotbarSlot3 ||
+          e.code === kb.hotbarSlot4) &&
         !e.repeat &&
         gameStateRef.current === 'playing'
       ) {
         const slotIdx =
-          e.code === 'Digit1' ? 0 : e.code === 'Digit2' ? 1 : e.code === 'Digit3' ? 2 : 3;
+          e.code === kb.hotbarSlot1
+            ? 0
+            : e.code === kb.hotbarSlot2
+              ? 1
+              : e.code === kb.hotbarSlot3
+                ? 2
+                : 3;
         const boundItem = playerState.hotbarSlots?.[slotIdx];
         if (boundItem) {
           equipInventoryItem(playerState, boundItem);
           soundEngine.playFootstep('trail', 1.15);
         }
       }
-      // Cycle Arrow Element [X]: Normal Steel -> Fire Arrow -> Wind Storm Arrow
-      if (e.code === 'KeyX' && !e.repeat && gameStateRef.current === 'playing') {
+      // Cycle Arrow Element: Normal Steel -> Fire Arrow -> Wind Storm Arrow
+      if (e.code === kb.cycleArrowElement && !e.repeat && gameStateRef.current === 'playing') {
         const order: ArrowElementKind[] = ['normal', 'fire', 'wind'];
         const curr = playerState.arrowKind ?? 'normal';
         playerState.arrowKind = order[(order.indexOf(curr) + 1) % order.length];
         soundEngine.playBowDraw();
       }
-      // Ranger Dash / Water Surge [G]
-      if (e.code === 'KeyG' && !e.repeat && gameStateRef.current === 'playing') {
+      // Ranger Dash / Water Surge
+      if (e.code === kb.dash && !e.repeat && gameStateRef.current === 'playing') {
         if ((playerState.dashCooldown ?? 0) <= 0.05) {
           playerState.dashTimer = 0.42;
           playerState.dashCooldown = 1.4;
           soundEngine.playFootstep(playerState.isSwimming ? 'water' : playerState.currentBiome, 1.25);
         }
       }
-      // Start drawing bow or charging/swinging sword on [R] keydown (only when not swimming!)
-      if (e.code === 'KeyR' && !e.repeat && gameStateRef.current === 'playing' && !playerState.isSwimming) {
+      // Start drawing bow or charging/swinging sword on drawOrSlash keydown (only when not swimming!)
+      if (
+        e.code === kb.drawOrSlash &&
+        !e.repeat &&
+        gameStateRef.current === 'playing' &&
+        !playerState.isSwimming
+      ) {
         if (playerState.equippedTool === 'sword') {
           isSwordAttackHeld = true;
           swordHoldDuration = 0;
@@ -633,8 +700,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
         }
       }
-      // Detect Double-Tap Spacebar (within 500ms) to toggle Flight Mode (disabled when mounting/dismounting a ladder!)
-      if (e.code === 'Space' && !e.repeat && gameStateRef.current === 'playing') {
+      // Detect Double-Tap Jump Key (within 500ms) to toggle Flight Mode (disabled when mounting/dismounting a ladder!)
+      if (e.code === kb.jump && !e.repeat && gameStateRef.current === 'playing') {
         const onOrLookingAtLadder =
           Boolean(playerState.climbingLadderId) ||
           Boolean(
@@ -667,7 +734,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     const onKeyUp = (e: KeyboardEvent) => {
       keysPressed.delete(e.code);
-      if (e.code === 'KeyR' && gameStateRef.current === 'playing') {
+      const kb = gameSettingsRef.current.keybindings;
+      if (e.code === kb.drawOrSlash && gameStateRef.current === 'playing') {
         if (isSwordAttackHeld) {
           isSwordAttackHeld = false;
           playerState.swordChargeTime = 0;
@@ -748,16 +816,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     const onMouseMove = (e: MouseEvent) => {
       if (gameStateRef.current !== 'playing') return;
+      const sens = gameSettingsRef.current.mouseSensitivity ?? 1.0;
       if (document.pointerLockElement === renderer.domElement) {
-        accumYawDelta -= e.movementX * 0.0022;
-        accumPitchDelta -= e.movementY * 0.0022;
+        accumYawDelta -= e.movementX * 0.0022 * sens;
+        accumPitchDelta -= e.movementY * 0.0022 * sens;
       } else if (isDraggingLook) {
         const dx = e.clientX - lastPointerX;
         const dy = e.clientY - lastPointerY;
         lastPointerX = e.clientX;
         lastPointerY = e.clientY;
-        accumYawDelta -= dx * 0.0045;
-        accumPitchDelta -= dy * 0.0045;
+        accumYawDelta -= dx * 0.0045 * sens;
+        accumPitchDelta -= dy * 0.0045 * sens;
         if (Math.hypot(e.clientX - mouseDownStartX, e.clientY - mouseDownStartY) > 16) {
           mouseMovedWhileDown = true;
         }
@@ -948,31 +1017,47 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           soundEngine.playThunderRumble();
         }
 
+        const kb = gameSettingsRef.current.keybindings;
+        const spdMult = gameSettingsRef.current.walkSpeedMultiplier ?? 1.0;
         let forward = virtualMoveRef.current.forward;
         let right = virtualMoveRef.current.right;
         if (document.body.dataset.skyrimModalOpen !== 'true') {
-          if (keysPressed.has('KeyW') || keysPressed.has('ArrowUp')) forward += 1;
-          if (keysPressed.has('KeyS') || keysPressed.has('ArrowDown')) forward -= 1;
-          if (keysPressed.has('KeyD') || keysPressed.has('ArrowRight')) right += 1;
-          if (keysPressed.has('KeyA') || keysPressed.has('ArrowLeft')) right -= 1;
+          if (keysPressed.has(kb.moveForward) || keysPressed.has('ArrowUp')) forward += 1;
+          if (keysPressed.has(kb.moveBackward) || keysPressed.has('ArrowDown')) forward -= 1;
+          if (keysPressed.has(kb.moveRight) || keysPressed.has('ArrowRight')) right += 1;
+          if (keysPressed.has(kb.moveLeft) || keysPressed.has('ArrowLeft')) right -= 1;
         }
 
-        // Interactive Door Toggle when pressing [E] ONLY when looking at a Fortress Door
-        if (keysJustPressed.has('KeyE')) {
-          const nearDoor = findNearestFortressDoor(
+        // Interactive Looting of Hunted Animal OR Door Toggle when pressing interactDoor ([E])
+        if (keysJustPressed.has(kb.interactDoor)) {
+          const nearDeadAnimal = findNearestDeadLootableAnimal(
             playerState.x,
-            playerState.y,
-            playerState.z,
-            playerState.yaw,
-            playerState.pitch
+            playerState.z
           );
-          if (nearDoor) {
-            if (openDoorIds.has(nearDoor.id)) {
-              openDoorIds.delete(nearDoor.id);
-            } else {
-              openDoorIds.add(nearDoor.id);
+          if (nearDeadAnimal) {
+            const lootRes = lootDeadAnimal(playerState, nearDeadAnimal);
+            if (lootRes.addedItems.length > 0 && lootRes.notificationHe) {
+              lastLootNotificationHe = lootRes.notificationHe;
+              lastLootNotificationTimer = 4.5;
+              soundEngine.playFootstep('trail', 1.18);
+              emitHudSnapshot();
             }
-            soundEngine.playFootstep('bridge', 0.85);
+          } else {
+            const nearDoor = findNearestFortressDoor(
+              playerState.x,
+              playerState.y,
+              playerState.z,
+              playerState.yaw,
+              playerState.pitch
+            );
+            if (nearDoor) {
+              if (openDoorIds.has(nearDoor.id)) {
+                openDoorIds.delete(nearDoor.id);
+              } else {
+                openDoorIds.add(nearDoor.id);
+              }
+              soundEngine.playFootstep('bridge', 0.85);
+            }
           }
         }
 
@@ -986,7 +1071,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         // Update Bow Draw Tension Progress (0 -> 1 over 0.52s)
         if (playerState.bowDrawn) {
-          if (keysPressed.has('KeyR') || isMouseBowHeld || virtualMoveRef.current.drawBow) {
+          if (keysPressed.has(kb.drawOrSlash) || isMouseBowHeld || virtualMoveRef.current.drawBow) {
             playerState.bowDrawProgress = Math.min(1.0, playerState.bowDrawProgress + rawDt / 0.52);
           }
         } else {
@@ -1058,7 +1143,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         // Step active 3D Arrows in flight
         if (activeArrows.length > 0) {
           const arrowRes = stepArrowsPhysics(activeArrows, obstacles, rawDt);
-          if (arrowRes.hitTarget) {
+          if (arrowRes.hitAnimal) {
+            playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
+            lastArrowHitTargetName = `${getAnimalSpeciesNameHe(arrowRes.hitAnimal.species)} (ניצוד! לחץ E לאיסוף השלל)`;
+            lastArrowHitTimer = 4.0;
+            awardSkillXp(playerState, 'archery', 36);
+            soundEngine.playArrowHit(true);
+            emitHudSnapshot();
+          } else if (arrowRes.hitTarget) {
             playerState.lastArrowHitTarget = arrowRes.hitTarget.id;
             lastArrowHitTargetName = arrowRes.hitTarget.name;
             lastArrowHitTimer = 3.5;
@@ -1073,23 +1165,27 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         if (lastArrowHitTimer > 0) {
           lastArrowHitTimer = Math.max(0, lastArrowHitTimer - rawDt);
         }
+        if (lastLootNotificationTimer > 0) {
+          lastLootNotificationTimer = Math.max(0, lastLootNotificationTimer - rawDt);
+        }
 
         const sprint =
           virtualMoveRef.current.sprint ||
+          keysPressed.has(kb.sprint) ||
           keysPressed.has('ShiftLeft') ||
           keysPressed.has('ShiftRight');
 
         const relaxed =
           virtualMoveRef.current.relaxed ||
+          keysPressed.has(kb.relaxedWalk) ||
           keysPressed.has('ControlLeft') ||
-          keysPressed.has('ControlRight') ||
-          keysPressed.has('KeyC');
+          keysPressed.has('ControlRight');
 
         const jumpPressed =
-          virtualMoveRef.current.jump || keysJustPressed.has('Space');
+          virtualMoveRef.current.jump || keysJustPressed.has(kb.jump);
         const jumpHeld =
-          virtualMoveRef.current.jump || keysPressed.has('Space');
-        const toggleMountHorsePressed = keysJustPressed.has('KeyF');
+          virtualMoveRef.current.jump || keysPressed.has(kb.jump);
+        const toggleMountHorsePressed = keysJustPressed.has(kb.mountHorse);
 
         const triggerFlyToggle = pendingFlyToggle;
         pendingFlyToggle = false;
@@ -1101,11 +1197,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         let maxLandedImpact = 0;
 
         for (let s = 0; s < subSteps; s++) {
+          const prevVy = playerState.vy;
           const res = stepPlayerPhysics(
             playerState,
             {
-              forward: Math.max(-1, Math.min(1, forward)),
-              right: Math.max(-1, Math.min(1, right)),
+              forward: Math.max(-1, Math.min(1, forward)) * spdMult,
+              right: Math.max(-1, Math.min(1, right)) * spdMult,
               sprint,
               relaxed,
               jumpPressed: s === 0 ? jumpPressed : false,
@@ -1120,6 +1217,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             openDoorIds,
             rideableHorses
           );
+          if (
+            s === 0 &&
+            jumpPressed &&
+            playerState.vy > prevVy + 2.0 &&
+            (gameSettingsRef.current.jumpForceMultiplier ?? 1.0) !== 1.0
+          ) {
+            playerState.vy *= gameSettingsRef.current.jumpForceMultiplier ?? 1.0;
+          }
           if (res.steppedFoot) anySteppedFoot = true;
           if (res.landedImpact > maxLandedImpact) maxLandedImpact = res.landedImpact;
         }
@@ -1191,11 +1296,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           (targetRightZoom - smoothRightClickZoom) * (1 - Math.exp(-12 * rawDt));
         const combinedThirdPersonZoom = Math.min(1.0, smoothAimZoom * 0.7 + smoothRightClickZoom * 0.8);
 
+        const targetCrouchOffset =
+          playerState.isCrouching && !isMountedOnHorse && !playerState.isSwimming && !playerState.isFlying
+            ? -0.48
+            : 0.0;
+        smoothCrouchOffset +=
+          (targetCrouchOffset - smoothCrouchOffset) * (1 - Math.exp(-12 * rawDt));
+
         if (playerState.cameraPerspective === 'third_person') {
           // 3rd-Person Over-the-Right-Shoulder Camera so the 3D Ranger Character & Proper Recurve Bow Grip are clearly visible
           const pivotY =
             playerState.y +
             (isMountedOnHorse ? 2.22 : playerState.isSwimming ? 1.25 : 1.54) +
+            smoothCrouchOffset * 0.72 +
             bobY -
             landingDip;
           const effPitch = playerState.pitch + horsePitchSway;
@@ -1252,7 +1365,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
           camera.position.set(
             playerState.x,
-            playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + bobY - landingDip,
+            playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + smoothCrouchOffset + bobY - landingDip,
             playerState.z
           );
           _euler.set(
@@ -1381,6 +1494,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         ? findNearestRideableHorse(playerState.x, playerState.y, playerState.z, rideableHorses)
         : null;
       const nearMarket = findNearestMarketStall(playerState.x, playerState.z);
+      const nearDeadAnimal = findNearestDeadLootableAnimal(playerState.x, playerState.z);
       onTelemetryUpdateRef.current({
         x: playerState.x,
         y: playerState.y,
@@ -1392,6 +1506,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         walkPace: playerState.walkPace,
         isFlying: playerState.isFlying,
         isSwimming: playerState.isSwimming,
+        isCrouching: Boolean(playerState.isCrouching),
+        colliderDebugVisible: worldHandles.colliderDebugHandles.isVisible(),
         cameraPerspective: playerState.cameraPerspective,
         equippedTool: playerState.equippedTool,
         activeWeaponId: playerState.activeWeaponId,
@@ -1401,6 +1517,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         goldCoins: playerState.goldCoins ?? 280,
         ownedItemIds: playerState.ownedItemIds ? [...playerState.ownedItemIds] : undefined,
         nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
+        nearbyDeadAnimal: nearDeadAnimal
+          ? {
+              id: String(nearDeadAnimal.id),
+              species: nearDeadAnimal.species,
+              speciesNameHe: getAnimalSpeciesNameHe(nearDeadAnimal.species),
+            }
+          : null,
+        lootNotificationHe: lastLootNotificationTimer > 0 ? lastLootNotificationHe : null,
         swordSwingProgress: playerState.swordSwingProgress,
         dashCooldown: playerState.dashCooldown,
         bowDrawn: playerState.bowDrawn,
