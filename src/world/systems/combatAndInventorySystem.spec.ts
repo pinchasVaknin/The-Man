@@ -15,9 +15,10 @@ import {
   assignHotbarSlot,
   toggleFavoriteItem,
   triggerSwordSlash,
+  stepArrowsPhysics,
 } from './combatAndInventorySystem';
 import { createInitialPlayerState } from './playerPhysicsSystem';
-import type { IPlayerState } from '../domain/worldTypes';
+import { INVENTORY_ITEMS, INVENTORY_ITEM_MAP, type IPlayerState, type IArrowProjectile } from '../domain/worldTypes';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -34,6 +35,71 @@ function createMarketEligiblePlayer(): IPlayerState {
 
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests
+test('INVENTORY_ITEMS_WhenLoaded_ShouldCategorizeMeatAndFoodUnderFoodCategory', () => {
+  const rawMeat = INVENTORY_ITEM_MAP.get('raw_game_meat');
+  assert.ok(rawMeat);
+  assert.equal(rawMeat.category, 'food');
+  assert.equal(rawMeat.categoryLabel, 'אוכל');
+
+  const foodItems = INVENTORY_ITEMS.filter((i) => i.category === 'food');
+  assert.ok(foodItems.length >= 5, 'Expected multiple food items in food category');
+
+  const sheepWool = INVENTORY_ITEM_MAP.get('sheep_hide');
+  assert.ok(sheepWool);
+  assert.equal(sheepWool.name, 'צמר כבשים משובח');
+});
+
+test('stepArrowsPhysics_WhenArrowFliesUnderBridge_ShouldNotTeleportOntoBridgeTop', () => {
+  // Central arched bridge is at x=0, z=0 with archH = 1.65m and water/ground below at ~ -2.8m.
+  // An arrow flying at y = 1.05m (underneath the bridge arch, within the -0.85m player step-up zone)
+  // must fly cleanly under the bridge without snapping up to y = 1.70m!
+  const arrow: IArrowProjectile = {
+    id: 1,
+    x: 0,
+    y: 1.05,
+    z: -1.0,
+    vx: 0,
+    vy: 0,
+    vz: 30.0,
+    yaw: Math.PI,
+    pitch: 0,
+    arrowKind: 'wind',
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+
+  stepArrowsPhysics([arrow], [], 0.03);
+  assert.equal(arrow.stuck, false, 'Arrow flying in open space under bridge arch should not get stuck');
+  assert.ok(arrow.y < 1.35, `Arrow should remain below bridge deck (1.65m), got y=${arrow.y}`);
+});
+
+test('stepArrowsPhysics_WhenArrowShotUnderGalleonShipBowOverhang_ShouldNotHitEmptySpace', () => {
+  // Under the bow overhang (z = 231.8, y = 1.2) or below hull (y = -1.2), there is open space/water
+  const arrow: IArrowProjectile = {
+    id: 2,
+    x: 282.0,
+    y: 1.2,
+    z: 231.5,
+    vx: 25.0,
+    vy: 0,
+    vz: 0,
+    yaw: -Math.PI / 2,
+    pitch: 0,
+    arrowKind: 'wind',
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+
+  stepArrowsPhysics([arrow], [], 0.02);
+  assert.equal(arrow.stuck, false, 'Arrow under ship bow overhang at y=1.2 should not hit invisible box');
+});
+
 test('buyMarketItem_WhenAtHarborMarketWithGoldAndEligibleLevel_ShouldSucceedAndEquipWeapon', () => {
   // Arrange
   const player = createMarketEligiblePlayer();

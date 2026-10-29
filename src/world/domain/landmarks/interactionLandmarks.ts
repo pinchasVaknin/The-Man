@@ -114,13 +114,13 @@ export function getLadderById(id: string | null | undefined): IClimbableLadderIn
 export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderInfo | null {
   for (let i = 0; i < CORNER_WATCHTOWERS.length; i++) {
     const wt = CORNER_WATCHTOWERS[i];
-    if (Math.abs(x - wt.ladderX) <= 1.15 && Math.abs(z - wt.ladderZ) <= 1.15) {
+    if (Math.abs(x - wt.ladderX) <= 1.45 && Math.abs(z - wt.ladderZ) <= 1.45) {
       return getLadderById(wt.id);
     }
   }
   for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
     const hw = HILL_WATCHTOWERS[i];
-    if (Math.hypot(x - hw.ladderX, z - hw.ladderZ) <= 1.25) {
+    if (Math.hypot(x - hw.ladderX, z - hw.ladderZ) <= 1.6) {
       return getLadderById(hw.id);
     }
   }
@@ -128,7 +128,7 @@ export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderIn
     Math.hypot(
       x - SOUTHEAST_HARBOR_POS.lighthouseLadderX,
       z - SOUTHEAST_HARBOR_POS.lighthouseLadderZ
-    ) <= 1.25
+    ) <= 1.6
   ) {
     return getLadderById(SOUTHEAST_HARBOR_POS.lighthouseLadderId);
   }
@@ -136,7 +136,7 @@ export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderIn
     Math.hypot(
       x - SOUTHWEST_OASIS_POS.observatoryLadderX,
       z - SOUTHWEST_OASIS_POS.observatoryLadderZ
-    ) <= 1.25
+    ) <= 1.6
   ) {
     return getLadderById(SOUTHWEST_OASIS_POS.observatoryLadderId);
   }
@@ -162,7 +162,7 @@ export function isOnWatchtowerLadder(x: number, z: number): boolean {
  * @param z Observer eye Z.
  * @param yaw Camera yaw angle.
  * @param pitch Camera pitch angle (default 0).
- * @returns Ladder info if looking directly at one within 3.8m, or null.
+ * @returns Ladder info if looking directly at one within 4.5m, or null.
  */
 export function findLookedAtWatchtowerLadder(
   x: number,
@@ -171,7 +171,7 @@ export function findLookedAtWatchtowerLadder(
   yaw: number,
   pitch = 0
 ): IClimbableLadderInfo | null {
-  if (Math.abs(pitch) > 1.28) return null;
+  if (Math.abs(pitch) > 1.35) return null;
 
   const fwdX = -Math.sin(yaw);
   const fwdZ = -Math.cos(yaw);
@@ -179,52 +179,52 @@ export function findLookedAtWatchtowerLadder(
   for (let i = 0; i < CORNER_WATCHTOWERS.length; i++) {
     const wt = CORNER_WATCHTOWERS[i];
     if (
-      y < CHINESE_FORTRESS_POS.watchtowerFloor1Y - 0.6 ||
-      y > CHINESE_FORTRESS_POS.watchtowerFloor3Y + 1.5
+      y < CHINESE_FORTRESS_POS.watchtowerFloor1Y - 0.8 ||
+      y > CHINESE_FORTRESS_POS.watchtowerFloor3Y + 1.8
     ) {
       continue;
     }
     const dx = wt.ladderX - x;
     const dz = wt.ladderZ - z;
     const dist = Math.hypot(dx, dz);
-    if (dist > 3.6) continue;
-    if (dist < 0.45 || (dx * fwdX + dz * fwdZ) / dist >= 0.5) {
+    if (dist > 4.4) continue;
+    if (dist < 0.75 || (dx * fwdX + dz * fwdZ) / dist >= 0.42) {
       return getLadderById(wt.id);
     }
   }
 
   for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
     const hw = HILL_WATCHTOWERS[i];
-    if (y < hw.baseY - 0.6 || y > hw.deckY + 1.5) continue;
+    if (y < hw.baseY - 0.8 || y > hw.deckY + 1.8) continue;
     const dx = hw.ladderX - x;
     const dz = hw.ladderZ - z;
     const dist = Math.hypot(dx, dz);
-    if (dist > 3.8) continue;
-    if (dist < 0.45 || (dx * fwdX + dz * fwdZ) / dist >= 0.5) {
+    if (dist > 4.5) continue;
+    if (dist < 0.75 || (dx * fwdX + dz * fwdZ) / dist >= 0.42) {
       return getLadderById(hw.id);
     }
   }
 
   if (
-    y >= SOUTHEAST_HARBOR_POS.lighthouseBaseY - 0.6 &&
-    y <= SOUTHEAST_HARBOR_POS.lighthouseTopDeckY + 1.5
+    y >= SOUTHEAST_HARBOR_POS.lighthouseBaseY - 0.8 &&
+    y <= SOUTHEAST_HARBOR_POS.lighthouseTopDeckY + 1.8
   ) {
     const dx = SOUTHEAST_HARBOR_POS.lighthouseLadderX - x;
     const dz = SOUTHEAST_HARBOR_POS.lighthouseLadderZ - z;
     const dist = Math.hypot(dx, dz);
-    if (dist <= 3.8 && (dist < 0.45 || (dx * fwdX + dz * fwdZ) / dist >= 0.5)) {
+    if (dist <= 4.5 && (dist < 0.75 || (dx * fwdX + dz * fwdZ) / dist >= 0.42)) {
       return getLadderById(SOUTHEAST_HARBOR_POS.lighthouseLadderId);
     }
   }
 
   if (
-    y >= SOUTHWEST_OASIS_POS.observatoryBaseY - 0.6 &&
-    y <= SOUTHWEST_OASIS_POS.observatoryTopDeckY + 1.5
+    y >= SOUTHWEST_OASIS_POS.observatoryBaseY - 0.8 &&
+    y <= SOUTHWEST_OASIS_POS.observatoryTopDeckY + 1.8
   ) {
     const dx = SOUTHWEST_OASIS_POS.observatoryLadderX - x;
     const dz = SOUTHWEST_OASIS_POS.observatoryLadderZ - z;
     const dist = Math.hypot(dx, dz);
-    if (dist <= 3.8 && (dist < 0.45 || (dx * fwdX + dz * fwdZ) / dist >= 0.5)) {
+    if (dist <= 4.5 && (dist < 0.75 || (dx * fwdX + dz * fwdZ) / dist >= 0.42)) {
       return getLadderById(SOUTHWEST_OASIS_POS.observatoryLadderId);
     }
   }

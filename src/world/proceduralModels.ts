@@ -19,6 +19,10 @@ import type {
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
 import { buildWildlifeAndFootprintsLayer } from './builders/wildlifeAndFootprintsBuilder';
+import {
+  buildColliderDebugWireframes,
+  type IColliderDebugHandles,
+} from './builders/colliderDebugBuilder';
 import { buildTerrainAndWaterModel } from './models/terrainAndWaterModel';
 import { buildVegetationModels } from './models/vegetationModels';
 import { buildSettlementModels } from './models/settlementModels';
@@ -55,6 +59,7 @@ export interface IAnimatedWorldHandles {
   cloudMesh: THREE.Mesh;
   mistMaterials: THREE.MeshBasicMaterial[];
   playerCharacterGroup: THREE.Group;
+  colliderDebugHandles: IColliderDebugHandles;
   update: (
     elapsedTime: number,
     playerX: number,
@@ -165,6 +170,13 @@ export function buildRealisticWorld(
     disposableMaterials
   );
 
+  const colliderDebugHandles = buildColliderDebugWireframes(
+    scene,
+    obstacles,
+    disposableGeometries,
+    disposableMaterials
+  );
+
   let lastTime = 0;
 
   return {
@@ -179,6 +191,7 @@ export function buildRealisticWorld(
     cloudMesh,
     mistMaterials,
     playerCharacterGroup,
+    colliderDebugHandles,
     update: (
       elapsedTime: number,
       playerX: number,
@@ -269,13 +282,15 @@ export function buildRealisticWorld(
       lastTime = elapsedTime;
       if (playerState) {
         const daylightFactor = 1.0 - (nightFactor ?? 0);
+        const rainIntensity = weather ? (weather.rainIntensity ?? weather.wetness ?? 0) : 0;
         wildlifeAndFootprintsLayer.update(
           dt,
           elapsedTime,
           playerState,
           rideableHorses ?? [],
           daylightFactor,
-          wildlifeSoundCallbacks
+          wildlifeSoundCallbacks,
+          rainIntensity
         );
       }
 

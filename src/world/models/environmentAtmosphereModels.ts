@@ -221,7 +221,7 @@ export function buildEnvironmentAtmosphereModels(
   }
 
   const forestSquirrels: IForestSquirrel[] = [];
-  for (let i = 0; i < squirrelTrees.length; i++) {
+  for (let i = 0; i < 0; i++) {
     const root = new THREE.Group();
     const body = new THREE.Mesh(sqBodyGeo, squirrelMat);
     const head = new THREE.Mesh(sqHeadGeo, squirrelMat);
@@ -310,7 +310,7 @@ export function buildEnvironmentAtmosphereModels(
     { x: 18, z: 78, r: 8.5, speed: 0.22 },
   ];
 
-  for (let i = 0; i < deerHomeSpots.length; i++) {
+  for (let i = 0; i < 0; i++) {
     const spot = deerHomeSpots[i];
     const root = new THREE.Group();
 
@@ -619,23 +619,25 @@ export function buildEnvironmentAtmosphereModels(
   cloudMesh.position.set(0, 85, 0);
   scene.add(cloudMesh);
 
-  // 8. Pollen Particles
-  const pollenCount = 220;
+  // 8. Sanctuary Blossom Motes (Stationary in the Sakura Sanctuary grove at 165, -155)
+  const pollenCount = 120;
   const pollenGeo = new THREE.BufferGeometry();
   const pollenPos = new Float32Array(pollenCount * 3);
   for (let i = 0; i < pollenCount; i++) {
-    pollenPos[i * 3] = (hash2D(i, 1) - 0.5) * 120;
-    pollenPos[i * 3 + 1] = 0.8 + hash2D(i, 2) * 7.5;
-    pollenPos[i * 3 + 2] = (hash2D(i, 3) - 0.5) * 120;
+    const px = 165.0 + (hash2D(i, 1) - 0.5) * 42;
+    const pz = -155.0 + (hash2D(i, 3) - 0.5) * 42;
+    pollenPos[i * 3] = px;
+    pollenPos[i * 3 + 1] = Math.max(WATER_LEVEL, groundHeightAt(px, pz)) + 0.9 + hash2D(i, 2) * 5.5;
+    pollenPos[i * 3 + 2] = pz;
   }
   pollenGeo.setAttribute('position', new THREE.BufferAttribute(pollenPos, 3));
   disposableGeometries.push(pollenGeo);
 
   const pollenMat = new THREE.PointsMaterial({
     color: 0xfde047,
-    size: 0.28,
+    size: 0.22,
     transparent: true,
-    opacity: 0.48,
+    opacity: 0.42,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });

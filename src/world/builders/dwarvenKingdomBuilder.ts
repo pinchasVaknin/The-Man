@@ -440,66 +440,91 @@ export function buildDwarvenKingdomAndMiners(
     distanceCulledObjects.push({ obj: dhGroup, cx: dh.x, cz: dh.z, radius: 26 });
   }
 
-  // 3) 8 ANIMATED LOTR-STYLE DWARVEN MINERS
-  const dwarfSkinMat = new THREE.MeshStandardMaterial({ color: 0xe2b18c, roughness: 0.58 });
+  // 3) 8 ANIMATED LOTR-STYLE DWARVEN MINERS (Upgraded per LOTR Dwarf Character Sheet)
+  const dwarfSkinMat = new THREE.MeshStandardMaterial({ color: 0xdca482, roughness: 0.56 });
+  const dwarfLeatherMat = new THREE.MeshStandardMaterial({ color: 0x472814, roughness: 0.55 });
+  const dwarfDarkLeatherMat = new THREE.MeshStandardMaterial({ color: 0x2b190d, roughness: 0.62 });
+  const dwarfCloakMat = new THREE.MeshStandardMaterial({
+    color: 0x2d241c,
+    roughness: 0.84,
+    side: THREE.DoubleSide,
+  });
   const dwarfBeardMats = [
+    new THREE.MeshStandardMaterial({ color: 0x8c3b16, roughness: 0.78 }),
     new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.78 }),
-    new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.72 }),
-    new THREE.MeshStandardMaterial({ color: 0x3f230f, roughness: 0.78 }),
     new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.75 }),
+    new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.72 }),
   ];
   const dwarfTunicMats = [
-    new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.68 }),
-    new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.68 }),
-    new THREE.MeshStandardMaterial({ color: 0x365314, roughness: 0.68 }),
-    new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.68 }),
+    new THREE.MeshStandardMaterial({ color: 0x333629, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x3f3629, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x2d3a2e, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x452218, roughness: 0.72 }),
   ];
-  disposableMaterials.push(dwarfSkinMat, ...dwarfBeardMats, ...dwarfTunicMats);
+  disposableMaterials.push(
+    dwarfSkinMat,
+    dwarfLeatherMat,
+    dwarfDarkLeatherMat,
+    dwarfCloakMat,
+    ...dwarfBeardMats,
+    ...dwarfTunicMats
+  );
 
-  const dwTorsoGeo = new THREE.CylinderGeometry(0.28, 0.31, 0.58, 9);
-  dwTorsoGeo.translate(0, 0.29, 0);
-  const dwShoulderGeo = new THREE.BoxGeometry(0.72, 0.18, 0.38);
+  const dwMailSkirtGeo = new THREE.CylinderGeometry(0.285, 0.31, 0.22, 10);
+  dwMailSkirtGeo.translate(0, 0.08, 0);
+  const dwTorsoGeo = new THREE.CylinderGeometry(0.27, 0.305, 0.58, 10);
+  dwTorsoGeo.translate(0, 0.31, 0);
+  const dwHemTrimGeo = new THREE.CylinderGeometry(0.308, 0.312, 0.045, 10);
+  dwHemTrimGeo.translate(0, 0.06, 0);
+  const dwShoulderGeo = new THREE.BoxGeometry(0.74, 0.18, 0.4);
   dwShoulderGeo.translate(0, 0.52, 0);
-  const dwHeadGeo = new THREE.SphereGeometry(0.18, 12, 12);
+  const dwCloakBackGeo = new THREE.BoxGeometry(0.56, 0.64, 0.035);
+  const dwHeadGeo = new THREE.SphereGeometry(0.19, 12, 12);
   dwHeadGeo.translate(0, 0.74, 0);
-  const dwHelmGeo = new THREE.ConeGeometry(0.21, 0.30, 8);
-  dwHelmGeo.translate(0, 0.90, 0);
-  const dwHelmRimGeo = new THREE.CylinderGeometry(0.215, 0.215, 0.06, 8);
-  dwHelmRimGeo.translate(0, 0.77, 0);
-  const dwBeardMainGeo = new THREE.ConeGeometry(0.19, 0.52, 6);
+  const dwHairCapGeo = new THREE.SphereGeometry(0.202, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.58);
+  const dwBackBraidGeo = new THREE.CylinderGeometry(0.04, 0.024, 0.42, 7);
+  const dwBeardMainGeo = new THREE.ConeGeometry(0.18, 0.52, 8);
   dwBeardMainGeo.rotateX(Math.PI);
-  const dwBeardBraidGeo = new THREE.CylinderGeometry(0.045, 0.025, 0.44, 6);
-  const dwLegGeo = new THREE.CylinderGeometry(0.11, 0.095, 0.42, 8);
-  dwLegGeo.translate(0, -0.21, 0);
-  const dwBootGeo = new THREE.BoxGeometry(0.16, 0.14, 0.26);
-  dwBootGeo.translate(0, -0.40, -0.04);
+  const dwBeardBraidGeo = new THREE.CylinderGeometry(0.038, 0.022, 0.5, 7);
+  const dwMustacheGeo = new THREE.ConeGeometry(0.045, 0.15, 6);
+  const dwLegGeo = new THREE.CylinderGeometry(0.11, 0.095, 0.4, 8);
+  dwLegGeo.translate(0, -0.2, 0);
+  const dwBootGeo = new THREE.BoxGeometry(0.165, 0.14, 0.26);
+  dwBootGeo.translate(0, -0.39, -0.04);
   const dwArmGeo = new THREE.CylinderGeometry(0.085, 0.075, 0.42, 8);
   dwArmGeo.translate(0, -0.18, 0);
   const dwPickHandleGeo = new THREE.CylinderGeometry(0.022, 0.024, 0.78, 7);
-  const dwPickHeadGeo = new THREE.ConeGeometry(0.065, 0.52, 4);
-  dwPickHeadGeo.rotateZ(Math.PI / 2);
+  const dwAxeBladeGeo = new THREE.ConeGeometry(0.14, 0.24, 4);
+  dwAxeBladeGeo.scale(0.24, 1.0, 1.15);
   const dwLanternBodyGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.16, 6);
-  const dwBeltGeo = new THREE.CylinderGeometry(0.30, 0.30, 0.09, 9);
-  const dwBuckleGeo = new THREE.BoxGeometry(0.12, 0.11, 0.05);
-  const dwNoseGeo = new THREE.SphereGeometry(0.048, 8, 8);
-  const dwBeardRingGeo = new THREE.TorusGeometry(0.072, 0.016, 6, 10);
+  const dwBeltGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10);
+  const dwBuckleGeo = new THREE.BoxGeometry(0.115, 0.115, 0.04);
+  const dwBroochGeo = new THREE.CylinderGeometry(0.046, 0.046, 0.02, 10);
+  dwBroochGeo.rotateX(Math.PI / 2);
+  const dwNoseGeo = new THREE.SphereGeometry(0.05, 8, 8);
+  const dwBeardRingGeo = new THREE.TorusGeometry(0.065, 0.015, 6, 10);
 
   disposableGeometries.push(
+    dwMailSkirtGeo,
     dwTorsoGeo,
+    dwHemTrimGeo,
     dwShoulderGeo,
+    dwCloakBackGeo,
     dwHeadGeo,
-    dwHelmGeo,
-    dwHelmRimGeo,
+    dwHairCapGeo,
+    dwBackBraidGeo,
     dwBeardMainGeo,
     dwBeardBraidGeo,
+    dwMustacheGeo,
     dwLegGeo,
     dwBootGeo,
     dwArmGeo,
     dwPickHandleGeo,
-    dwPickHeadGeo,
+    dwAxeBladeGeo,
     dwLanternBodyGeo,
     dwBeltGeo,
     dwBuckleGeo,
+    dwBroochGeo,
     dwNoseGeo,
     dwBeardRingGeo
   );
@@ -514,43 +539,72 @@ export function buildDwarvenKingdomAndMiners(
     const tunicMat = dwarfTunicMats[d % dwarfTunicMats.length];
     const beardMat = dwarfBeardMats[d % dwarfBeardMats.length];
 
+    const mailSkirt = new THREE.Mesh(dwMailSkirtGeo, dwarvenScaleArmorMat);
     const torsoMesh = new THREE.Mesh(dwTorsoGeo, tunicMat);
+    const hemTrim = new THREE.Mesh(dwHemTrimGeo, dwarvenBronzeMat);
     const shoulderMesh = new THREE.Mesh(dwShoulderGeo, dwarvenScaleArmorMat);
-    const beltMesh = new THREE.Mesh(dwBeltGeo, darkIronMat);
-    beltMesh.position.y = 0.10;
-    const buckle = new THREE.Mesh(dwBuckleGeo, mineGoldOreMat);
-    buckle.position.set(0, 0.10, -0.30);
+    const cloakBack = new THREE.Mesh(dwCloakBackGeo, dwarfCloakMat);
+    cloakBack.position.set(0, 0.28, 0.24);
+    cloakBack.rotation.x = 0.08;
+
+    const broochL = new THREE.Mesh(dwBroochGeo, dwarvenBronzeMat);
+    broochL.position.set(-0.19, 0.52, -0.22);
+    const broochR = new THREE.Mesh(dwBroochGeo, dwarvenBronzeMat);
+    broochR.position.set(0.19, 0.52, -0.22);
+
+    const beltMesh = new THREE.Mesh(dwBeltGeo, dwarfLeatherMat);
+    beltMesh.position.y = 0.16;
+    const buckle = new THREE.Mesh(dwBuckleGeo, dwarvenBronzeMat);
+    buckle.position.set(0, 0.16, -0.305);
+    buckle.rotation.z = Math.PI / 4; // Signature LOTR Dwarf Diamond Buckle
+
     const headMesh = new THREE.Mesh(dwHeadGeo, dwarfSkinMat);
-    headMesh.position.z = -0.07;
-    const helmCone = new THREE.Mesh(dwHelmGeo, dwarvenScaleArmorMat);
-    helmCone.position.z = -0.07;
-    const helmRim = new THREE.Mesh(dwHelmRimGeo, dwarvenBronzeMat);
-    helmRim.position.z = -0.07;
+    headMesh.position.z = -0.085;
+    const hairCap = new THREE.Mesh(dwHairCapGeo, beardMat);
+    hairCap.position.set(0, 0.76, -0.07);
+    hairCap.rotation.x = -0.22;
+    const backBraid = new THREE.Mesh(dwBackBraidGeo, beardMat);
+    backBraid.position.set(0, 0.56, 0.16);
 
     const noseMesh = new THREE.Mesh(dwNoseGeo, dwarfSkinMat);
-    noseMesh.position.set(0, 0.72, -0.25);
+    noseMesh.position.set(0, 0.73, -0.27);
+
+    const mustacheL = new THREE.Mesh(dwMustacheGeo, beardMat);
+    mustacheL.position.set(-0.06, 0.67, -0.265);
+    mustacheL.rotation.set(-0.2, 0, -1.12);
+    const mustacheR = new THREE.Mesh(dwMustacheGeo, beardMat);
+    mustacheR.position.set(0.06, 0.67, -0.265);
+    mustacheR.rotation.set(-0.2, 0, 1.12);
 
     const beardCenter = new THREE.Mesh(dwBeardMainGeo, beardMat);
-    beardCenter.position.set(0, 0.44, -0.27);
+    beardCenter.position.set(0, 0.44, -0.305);
+    beardCenter.rotation.x = 0.12;
     const braidL = new THREE.Mesh(dwBeardBraidGeo, beardMat);
-    braidL.position.set(-0.11, 0.43, -0.28);
-    braidL.rotation.z = -0.16;
+    braidL.position.set(-0.12, 0.41, -0.32);
+    braidL.rotation.set(0.12, 0, -0.1);
     const braidR = new THREE.Mesh(dwBeardBraidGeo, beardMat);
-    braidR.position.set(0.11, 0.43, -0.28);
-    braidR.rotation.z = 0.16;
+    braidR.position.set(0.12, 0.41, -0.32);
+    braidR.rotation.set(0.12, 0, 0.1);
     const beardRing = new THREE.Mesh(dwBeardRingGeo, mineGoldOreMat);
     beardRing.rotation.x = Math.PI / 2;
-    beardRing.position.set(0, 0.33, -0.30);
+    beardRing.position.set(0, 0.32, -0.325);
 
     torsoPivot.add(
+      mailSkirt,
       torsoMesh,
+      hemTrim,
       shoulderMesh,
+      cloakBack,
+      broochL,
+      broochR,
       beltMesh,
       buckle,
       headMesh,
-      helmCone,
-      helmRim,
+      hairCap,
+      backBraid,
       noseMesh,
+      mustacheL,
+      mustacheR,
       beardCenter,
       braidL,
       braidR,
@@ -559,7 +613,7 @@ export function buildDwarvenKingdomAndMiners(
 
     const leftArm = new THREE.Group();
     leftArm.position.set(-0.34, 0.50, 0);
-    const lArmMesh = new THREE.Mesh(dwArmGeo, tunicMat);
+    const lArmMesh = new THREE.Mesh(dwArmGeo, dwarfLeatherMat);
     const lanternMesh = new THREE.Mesh(dwLanternBodyGeo, mineGoldOreMat);
     lanternMesh.position.set(0, -0.44, -0.10);
     leftArm.add(lArmMesh, lanternMesh);
@@ -567,28 +621,33 @@ export function buildDwarvenKingdomAndMiners(
 
     const rightArm = new THREE.Group();
     rightArm.position.set(0.34, 0.50, 0);
-    const rArmMesh = new THREE.Mesh(dwArmGeo, tunicMat);
+    const rArmMesh = new THREE.Mesh(dwArmGeo, dwarfLeatherMat);
     const pickGroup = new THREE.Group();
     pickGroup.position.set(0, -0.38, -0.06);
-    pickGroup.rotation.x = Math.PI / 2;
+    // Point pickaxe shaft forward toward -Z (the dwarf's facing direction)
+    pickGroup.rotation.x = -Math.PI / 2;
     const pickShaft = new THREE.Mesh(dwPickHandleGeo, timberMat);
-    const pickHead = new THREE.Mesh(dwPickHeadGeo, dwarvenScaleArmorMat);
-    pickHead.position.y = 0.34;
-    pickGroup.add(pickShaft, pickHead);
+    const bladeFront = new THREE.Mesh(dwAxeBladeGeo, dwarvenScaleArmorMat);
+    bladeFront.rotation.set(0, Math.PI / 2, Math.PI / 2);
+    bladeFront.position.set(0, 0.34, -0.12);
+    const bladeBack = new THREE.Mesh(dwAxeBladeGeo, dwarvenScaleArmorMat);
+    bladeBack.rotation.set(0, Math.PI / 2, -Math.PI / 2);
+    bladeBack.position.set(0, 0.34, 0.12);
+    pickGroup.add(pickShaft, bladeFront, bladeBack);
     rightArm.add(rArmMesh, pickGroup);
     torsoPivot.add(rightArm);
 
     const leftLeg = new THREE.Group();
     leftLeg.position.set(-0.14, 0.44, 0);
     leftLeg.add(
-      new THREE.Mesh(dwLegGeo, dwarvenScaleArmorMat),
-      new THREE.Mesh(dwBootGeo, darkIronMat)
+      new THREE.Mesh(dwLegGeo, dwarfDarkLeatherMat),
+      new THREE.Mesh(dwBootGeo, dwarfLeatherMat)
     );
     const rightLeg = new THREE.Group();
     rightLeg.position.set(0.14, 0.44, 0);
     rightLeg.add(
-      new THREE.Mesh(dwLegGeo, dwarvenScaleArmorMat),
-      new THREE.Mesh(dwBootGeo, darkIronMat)
+      new THREE.Mesh(dwLegGeo, dwarfDarkLeatherMat),
+      new THREE.Mesh(dwBootGeo, dwarfLeatherMat)
     );
 
     dwRoot.add(torsoPivot, leftLeg, rightLeg);
@@ -621,30 +680,33 @@ export function buildDwarvenKingdomAndMiners(
       dm.root.rotation.y = st.yaw;
       dm.lanternGlow.visible = st.lanternLit;
 
+      // Note: Dwarf rig faces -Z locally, so:
+      // - Leaning torso FORWARD toward -Z is NEGATIVE rotation.x
+      // - Raising arm FORWARD/UP toward -Z is POSITIVE rotation.x, and striking DOWNWARD is decreasing rotation.x!
       if (st.activity === 'caravan_to_mine' || st.activity === 'caravan_to_home') {
         const stride = Math.sin(st.walkCycle) * 0.52;
         const bob = Math.abs(Math.cos(st.walkCycle)) * 0.04;
         dm.torsoPivot.position.y = 0.44 + bob;
-        dm.torsoPivot.rotation.set(0.08, 0, Math.sin(st.walkCycle) * 0.05);
+        dm.torsoPivot.rotation.set(-0.08, 0, Math.sin(st.walkCycle) * 0.05);
         dm.leftLeg.rotation.x = stride;
         dm.rightLeg.rotation.x = -stride;
-        dm.leftArm.rotation.set(-0.45 + stride * 0.25, 0, 0);
-        dm.rightArm.rotation.set(-0.35 - stride * 0.45, 0, 0);
+        dm.leftArm.rotation.set(0.45 - stride * 0.25, 0, 0);
+        dm.rightArm.rotation.set(0.35 + stride * 0.45, 0, 0);
       } else if (st.activity === 'mining_work') {
         const strikeWave = Math.sin(st.miningSwing * Math.PI * 2);
         dm.torsoPivot.position.y = 0.44;
-        dm.torsoPivot.rotation.set(Math.max(0, strikeWave) * 0.28, 0, 0);
-        dm.leftLeg.rotation.x = -0.15;
-        dm.rightLeg.rotation.x = 0.18;
-        dm.leftArm.rotation.set(-0.35, 0, 0.12);
-        dm.rightArm.rotation.set(-1.15 + strikeWave * 0.95, 0, -0.08);
+        dm.torsoPivot.rotation.set(-Math.max(0, strikeWave) * 0.24, 0, 0);
+        dm.leftLeg.rotation.x = 0.15;
+        dm.rightLeg.rotation.x = -0.18;
+        dm.leftArm.rotation.set(0.35, 0, 0.12);
+        dm.rightArm.rotation.set(1.12 - strikeWave * 1.15, 0, -0.08);
       } else {
         dm.torsoPivot.position.y = 0.44;
         dm.torsoPivot.rotation.set(0, Math.sin(elapsedTime * 1.2 + d) * 0.12, 0);
         dm.leftLeg.rotation.x = 0;
         dm.rightLeg.rotation.x = 0;
-        dm.leftArm.rotation.set(-0.15, 0, 0.08);
-        dm.rightArm.rotation.set(-0.20, 0, -0.08);
+        dm.leftArm.rotation.set(0.15, 0, 0.08);
+        dm.rightArm.rotation.set(0.20, 0, -0.08);
       }
     }
   };

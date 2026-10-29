@@ -620,7 +620,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     { x: 24, z: 178, r: 5.0, speed: 0.15 },
     { x: 28, z: 182, r: 4.2, speed: 0.17 },
   ];
-  for (let s = 0; s < sheepSpots.length; s++) {
+  for (let s = 0; s < 0; s++) {
     const sp = sheepSpots[s];
     const sRoot = new THREE.Group();
     sRoot.position.set(sp.x, groundHeightAt(sp.x, sp.z), sp.z);

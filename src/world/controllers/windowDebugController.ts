@@ -27,6 +27,10 @@ import {
   findNearestFortressDoor,
   findNearestMarketStall,
   findNearestRideableHorse,
+  findNearestDeadLootableAnimal,
+  lootDeadAnimal,
+  getActiveWorldAnimals,
+  getAnimalSpeciesNameHe,
   getPlayerHeroLevel,
   isPositionUnderRoof,
   sellMarketItem,
@@ -61,6 +65,9 @@ export interface IWindowDebugBridgeDeps {
   setWorldHoursAndApply: (hours: number) => number;
   getCurrentAtmo: () => IDynamicAtmosphereState;
   getCurrentWeather: () => IWeatherStateSnapshot;
+  toggleColliderDebug?: (visible?: boolean) => boolean;
+  isColliderDebugVisible?: () => boolean;
+  triggerLootNearbyAnimal?: () => { looted: boolean; notificationHe: string | null };
   emitHudSnapshot?: () => void;
   readonly targetWindow?: Window | Record<string, unknown>;
 }
@@ -342,6 +349,44 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     };
   });
 
+  bind('toggleColliderDebug', (visible?: unknown) => {
+    const force = typeof visible === 'boolean' ? visible : undefined;
+    const next = deps.toggleColliderDebug ? deps.toggleColliderDebug(force) : false;
+    emitHudSnapshot?.();
+    return next;
+  });
+
+  bind('isColliderDebugVisible', () => {
+    return deps.isColliderDebugVisible ? deps.isColliderDebugVisible() : false;
+  });
+
+  bind('getAnimalsState', () => {
+    return getActiveWorldAnimals().map((a) => ({
+      id: a.id,
+      species: a.species,
+      speciesNameHe: getAnimalSpeciesNameHe(a.species),
+      x: Number(a.x.toFixed(2)),
+      z: Number(a.z.toFixed(2)),
+      isDead: Boolean(a.isDead),
+      isLooted: Boolean(a.isLooted),
+      wakeMeter: Number((a.wakeMeter ?? 0).toFixed(2)),
+      wokenUpTimer: Number((a.wokenUpTimer ?? 0).toFixed(2)),
+      isSeekingShelter: Boolean(a.isSeekingShelter),
+      isFleeing: Boolean(a.isFleeing),
+    }));
+  });
+
+  bind('lootNearbyAnimal', () => {
+    if (deps.triggerLootNearbyAnimal) {
+      return deps.triggerLootNearbyAnimal();
+    }
+    const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
+    if (!dead) return { looted: false, notificationHe: null };
+    const res = lootDeadAnimal(playerState, dead);
+    emitHudSnapshot?.();
+    return { looted: res.addedItems.length > 0, notificationHe: res.notificationHe };
+  });
+
   bind('render_game_to_text', () => {
     const worldHours = getWorldHours();
     const currentAtmo = getCurrentAtmo();
@@ -364,6 +409,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       ? findNearestRideableHorse(playerState.x, playerState.y, playerState.z, rideableHorses)
       : null;
     const nearMarket = findNearestMarketStall(playerState.x, playerState.z);
+    const nearDeadAnimal = findNearestDeadLootableAnimal(playerState.x, playerState.z);
     return JSON.stringify({
       mode: gameStateRef.current,
       x: Number(playerState.x.toFixed(2)),
@@ -374,6 +420,8 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       biome: playerState.currentBiome,
       isFlying: playerState.isFlying,
       isSwimming: playerState.isSwimming,
+      isCrouching: Boolean(playerState.isCrouching),
+      colliderDebugVisible: Boolean(deps.isColliderDebugVisible?.()),
       inWater: playerState.inWater,
       cameraPerspective: playerState.cameraPerspective,
       equippedTool: playerState.equippedTool,
@@ -385,6 +433,13 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       ownedItemIds: playerState.ownedItemIds ?? [],
       heroLevel: getPlayerHeroLevel(playerState),
       nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
+      nearbyDeadAnimal: nearDeadAnimal
+        ? {
+            id: nearDeadAnimal.id,
+            species: nearDeadAnimal.species,
+            speciesNameHe: getAnimalSpeciesNameHe(nearDeadAnimal.species),
+          }
+        : null,
       swordSwingProgress: Number((playerState.swordSwingProgress ?? 0).toFixed(2)),
       swordAttackPhase: classifySwordAttackPhase(playerState.swordSwingProgress ?? 0).phase,
       swordStrikePending: Boolean(playerState.swordStrikePending),

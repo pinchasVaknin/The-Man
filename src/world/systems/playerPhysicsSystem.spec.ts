@@ -119,4 +119,66 @@ test('stepPlayerPhysics_WhenNearHorseAndMountRequested_ShouldMountHorse', () => 
   assert.equal(state.vx, 0);
   assert.equal(state.vz, 0);
 });
+
+test('stepPlayerPhysics_WhenDoubleSpaceTogglesFlightDuringWalkOrHorseJump_ShouldCancelWalkAnimationsAndDropHorseToGround', () => {
+  // Arrange: Player is mounted on a horse in mid-air with active walk bobPhase/bobAmount
+  const state = createInitialPlayerState();
+  state.x = 12.0;
+  state.z = 22.0;
+  state.y = 8.5; // High in the air after jumping on horse
+  state.vy = 2.0;
+  state.bobPhase = 4.2;
+  state.bobAmount = 0.95;
+  state.mountedHorseId = 'horse_1';
+
+  const horses: IRideableHorseState[] = [
+    {
+      id: 'horse_1',
+      name: 'סוס',
+      x: 12.0,
+      y: 8.5,
+      z: 22.0,
+      yaw: 0,
+      speed: 7.5,
+      gaitPhase: 4.2,
+    },
+  ];
+
+  // Act 1: Trigger double-space (toggleFlyRequested)
+  stepPlayerPhysics(
+    state,
+    createDefaultPlayerInput({ toggleFlyRequested: true, forward: 1 }),
+    [],
+    0.05,
+    undefined,
+    horses
+  );
+
+  // Assert 1: Player enters flight with all walking animations cancelled, and dismounts horse
+  assert.equal(state.isFlying, true);
+  assert.equal(state.mountedHorseId, null);
+  assert.equal(state.bobAmount, 0);
+  assert.equal(state.bobPhase, 0);
+
+  // Act 2: Step several frames while player is flying so the dismounted horse falls back to ground
+  for (let i = 0; i < 40; i++) {
+    stepPlayerPhysics(
+      state,
+      createDefaultPlayerInput({ forward: 1 }),
+      [],
+      0.05,
+      undefined,
+      horses
+    );
+  }
+
+  // Assert 2: While flying, walking bob remains 0 and the unmounted horse has fallen back to ground level (< 3.0m)
+  assert.equal(state.bobAmount, 0);
+  assert.equal(state.bobPhase, 0);
+  assert.ok(
+    horses[0].y < 3.0,
+    `Expected unmounted horse to fall back to ground from 8.5m, got y=${horses[0].y}`
+  );
+  assert.equal(horses[0].vy, 0);
+});
 // #endregion

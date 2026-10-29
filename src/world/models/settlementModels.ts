@@ -129,9 +129,9 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     side: THREE.DoubleSide,
   });
   const waterfallMat = new THREE.MeshBasicMaterial({
-    color: 0xdcf4ff,
+    color: 0xe0f7ff,
     transparent: true,
-    opacity: 0.86,
+    opacity: 0.9,
     side: THREE.DoubleSide,
   });
   waterfallMat.userData.uTime = { value: 0 };
@@ -144,7 +144,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         `
         #include <begin_vertex>
         vWfUv = uv;
-        transformed.z += sin(uv.y * 18.0 + uTime * 9.0 + uv.x * 6.0) * 0.14;
+        float crest = smoothstep(0.75, 1.0, uv.y) * 0.22;
+        transformed.z += crest + sin(uv.y * 22.0 + uTime * 12.0 + uv.x * 8.0) * 0.16;
         `
       );
     shader.fragmentShader =
@@ -153,16 +154,24 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         '#include <color_fragment>',
         `
         #include <color_fragment>
-        float streak = sin(vWfUv.x * 24.0) * 0.5 + 0.5;
-        float flow = sin(vWfUv.y * 28.0 + uTime * 12.0 + streak * 3.0) * 0.5 + 0.5;
-        diffuseColor.rgb = mix(vec3(0.55, 0.84, 0.96), vec3(0.98, 0.99, 1.0), flow * 0.65 + 0.25);
+        float streakA = sin(vWfUv.x * 28.0) * 0.5 + 0.5;
+        float streakB = cos(vWfUv.x * 54.0 + 1.2) * 0.5 + 0.5;
+        float flow1 = sin(vWfUv.y * 30.0 + uTime * 14.0 + streakA * 3.5) * 0.5 + 0.5;
+        float flow2 = sin(vWfUv.y * 58.0 + uTime * 22.0 - streakB * 4.2) * 0.5 + 0.5;
+        float splashEnds = smoothstep(0.22, 0.0, vWfUv.y) * 0.65 + smoothstep(0.82, 1.0, vWfUv.y) * 0.55;
+        float edgeSoft = smoothstep(0.0, 0.12, vWfUv.x) * smoothstep(1.0, 0.88, vWfUv.x);
+        float foamFactor = clamp(flow1 * 0.52 + flow2 * 0.38 + splashEnds, 0.0, 1.0);
+        vec3 deepAqua = vec3(0.28, 0.68, 0.88);
+        vec3 brightFoam = vec3(0.96, 0.99, 1.0);
+        diffuseColor.rgb = mix(deepAqua, brightFoam, foamFactor);
+        diffuseColor.a *= (0.72 + foamFactor * 0.28) * (0.55 + 0.45 * edgeSoft);
         `
       );
   };
   const foamRingMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: 0xf0f9ff,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.68,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -210,11 +219,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   pierGroup.rotation.y = Math.atan2(-8.0, 6.0);
 
   const plankGeo = new THREE.BoxGeometry(0.36, 0.09, 2.5);
-  const beamGeo = new THREE.BoxGeometry(14.8, 0.14, 0.16);
-  const pilingGeo = new THREE.CylinderGeometry(0.13, 0.15, 2.6, 8);
+  const beamGeo = new THREE.BoxGeometry(17.2, 0.14, 0.16);
+  const pilingGeo = new THREE.CylinderGeometry(0.13, 0.15, 2.8, 8);
   disposableGeometries.push(plankGeo, beamGeo, pilingGeo);
 
-  for (let p = -5.6; p <= 8.8; p += 0.42) {
+  for (let p = -8.0; p <= 8.8; p += 0.42) {
     const plank = new THREE.Mesh(plankGeo, timberMat);
     plank.position.set(p, 0.51, 0);
     plank.castShadow = !isSoftwareGl;
@@ -223,10 +232,10 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   }
   for (const zSide of [-1.05, 1.05]) {
     const beam = new THREE.Mesh(beamGeo, timberMat);
-    beam.position.set(1.6, 0.42, zSide);
+    beam.position.set(0.4, 0.42, zSide);
     pierGroup.add(beam);
   }
-  for (let px = -5.2; px <= 8.4; px += 2.72) {
+  for (let px = -7.8; px <= 8.4; px += 2.7) {
     for (const pz of [-1.05, 1.05]) {
       const piling = new THREE.Mesh(pilingGeo, barkMat);
       piling.position.set(px, -0.35, pz);
@@ -234,7 +243,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       pierGroup.add(piling);
     }
   }
-  pierGroup.add(createLanternAssembly(-5.2, 0.55, 1.05, true));
+  pierGroup.add(createLanternAssembly(-7.6, 0.55, 1.05, true));
   pierGroup.add(createLanternAssembly(8.2, 0.55, -1.05, false));
   scene.add(pierGroup);
   distanceCulledObjects.push({ obj: pierGroup, cx: -11.5, cz: 15.5, radius: 18 });
@@ -945,7 +954,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     distanceCulledObjects.push({ obj: millGroup, cx: wm.x, cz: wm.z, radius: 22 });
   }
 
-  // Grand Waterfall
+  // Grand Multi-Tiered Mountain Waterfall (Cliff at local -Z pouring DOWN into Plunge Pool at local 0)
   const waterfallGroup = new THREE.Group();
   waterfallGroup.position.set(WATERFALL_POOL_POS.x, 0, WATERFALL_POOL_POS.z);
   waterfallGroup.rotation.y = Math.atan2(
@@ -953,45 +962,106 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     WATERFALL_POOL_POS.z - WATERFALL_CLIFF_POS.z
   );
 
-  const cascadeSheetGeo = new THREE.PlaneGeometry(5.2, 16.5, 12, 28);
-  const caveWaterTongueGeo = new THREE.PlaneGeometry(4.8, 4.5, 8, 8);
+  const cascadeSheetGeo = new THREE.PlaneGeometry(5.6, 16.4, 16, 32);
+  const sideCascadeGeo = new THREE.PlaneGeometry(2.1, 15.2, 8, 24);
+  const caveWaterTongueGeo = new THREE.PlaneGeometry(5.2, 5.2, 10, 10);
   caveWaterTongueGeo.rotateX(-Math.PI / 2);
-  const foamRingGeo = new THREE.RingGeometry(1.5, 4.0, 24);
+  const foamRingGeo = new THREE.RingGeometry(1.4, 4.4, 28);
   foamRingGeo.rotateX(-Math.PI / 2);
-  const caveInteriorGeo = new THREE.BoxGeometry(6.4, 5.2, 5.6);
-  const caveArchTopGeo = new THREE.DodecahedronGeometry(1.8, 0);
+  const outerRippleGeo = new THREE.RingGeometry(4.2, 6.8, 28);
+  outerRippleGeo.rotateX(-Math.PI / 2);
+  const caveInteriorGeo = new THREE.BoxGeometry(6.8, 5.4, 5.8);
+  const cliffBoulderGeo = new THREE.DodecahedronGeometry(2.3, 1);
+  const mistCloudGeo = new THREE.SphereGeometry(2.2, 12, 10);
+  const mistCloudMat = new THREE.MeshBasicMaterial({
+    color: 0xe0f2fe,
+    transparent: true,
+    opacity: 0.26,
+    depthWrite: false,
+  });
+  disposableMaterials.push(mistCloudMat);
   disposableGeometries.push(
     cascadeSheetGeo,
+    sideCascadeGeo,
     caveWaterTongueGeo,
     foamRingGeo,
+    outerRippleGeo,
     caveInteriorGeo,
-    caveArchTopGeo
+    cliffBoulderGeo,
+    mistCloudGeo
   );
 
   const caveChamberMesh = new THREE.Mesh(caveInteriorGeo, caveDarkMat);
-  caveChamberMesh.position.set(0, 14.4, -13.0);
+  caveChamberMesh.position.set(0, 14.2, -12.8);
   waterfallGroup.add(caveChamberMesh);
 
+  // Sculpted Craggy Cliff Framing Boulders (Top Crest Only)
+  const cliffRockPlacements: ReadonlyArray<
+    [number, number, number, number, number, number]
+  > = [
+    // Upper cave arch & spillway lip boulders at the top of the waterfall
+    [-3.9, 13.8, -10.8, 1.35, 1.65, 1.25],
+    [3.9, 13.8, -10.8, 1.35, 1.65, 1.25],
+    [0.0, 16.9, -11.4, 2.1, 0.85, 1.2],
+    [-2.4, 16.4, -11.2, 1.3, 0.9, 1.1],
+    [2.4, 16.4, -11.2, 1.3, 0.9, 1.1],
+  ];
+  for (let i = 0; i < cliffRockPlacements.length; i++) {
+    const [rx, ry, rz, sx, sy, sz] = cliffRockPlacements[i];
+    const rock = new THREE.Mesh(cliffBoulderGeo, rockMat);
+    rock.position.set(rx, ry, rz);
+    rock.scale.set(sx, sy, sz);
+    rock.rotation.set(i * 0.4, i * 0.9, i * 0.3);
+    rock.castShadow = !isSoftwareGl;
+    rock.receiveShadow = !isSoftwareGl;
+    waterfallGroup.add(rock);
+  }
+
+  // Upper cave stream tongue sloping DOWNWARD (+0.18 around X tilts +Z downward!) into the lip
   const caveWaterTongue = new THREE.Mesh(caveWaterTongueGeo, waterfallMat);
-  caveWaterTongue.position.set(0, 14.3, -11.2);
-  caveWaterTongue.rotation.x = 0.12;
+  caveWaterTongue.position.set(0, 14.35, -10.8);
+  caveWaterTongue.rotation.x = 0.18;
   waterfallGroup.add(caveWaterTongue);
 
+  // Main Cascade Sheet: NEGATIVE rotation.x (-0.44) so TOP (+Y) starts at cliff lip (z=-8.8, y=14.4)
+  // and BOTTOM (-Y) plunges forward into the pool (z=-1.6, y=0.1)!
   const waterfallMesh = new THREE.Mesh(cascadeSheetGeo, waterfallMat);
-  waterfallMesh.position.set(0, 6.8, -5.2);
-  waterfallMesh.rotation.x = 0.48;
+  waterfallMesh.position.set(0, 7.1, -5.2);
+  waterfallMesh.rotation.x = -0.44;
   waterfallGroup.add(waterfallMesh);
 
+  // Secondary Left & Right Side Cascade Ribbons for Volumetric Depth
+  for (const side of [-1, 1] as const) {
+    const sideCascade = new THREE.Mesh(sideCascadeGeo, waterfallMat);
+    sideCascade.position.set(side * 2.35, 6.8, -4.95);
+    sideCascade.rotation.set(-0.46, side * 0.16, side * -0.04);
+    waterfallGroup.add(sideCascade);
+  }
+
+  // Plunge Pool Mist Spray Billboards
+  const waterfallMistMeshes: THREE.Mesh[] = [];
+  for (let m = 0; m < 3; m++) {
+    const mist = new THREE.Mesh(mistCloudGeo, mistCloudMat);
+    mist.position.set((m - 1) * 1.9, 1.25 + (m % 2) * 0.45, -1.6 + (m % 2) * 0.5);
+    mist.scale.set(1.35, 0.78, 1.15);
+    waterfallGroup.add(mist);
+    waterfallMistMeshes.push(mist);
+  }
+
   const poolFoam = new THREE.Mesh(foamRingGeo, foamRingMat);
-  poolFoam.position.set(0, 0.14, 0);
+  poolFoam.position.set(0, WATER_LEVEL + 0.06, -1.2);
   waterfallGroup.add(poolFoam);
+
+  const poolFoamOuter = new THREE.Mesh(outerRippleGeo, foamRingMat);
+  poolFoamOuter.position.set(0, WATER_LEVEL + 0.04, -1.0);
+  waterfallGroup.add(poolFoamOuter);
 
   scene.add(waterfallGroup);
   distanceCulledObjects.push({
     obj: waterfallGroup,
     cx: WATERFALL_POOL_POS.x,
     cz: WATERFALL_POOL_POS.z,
-    radius: 35,
+    radius: 42,
   });
 
   // ============================================================================
@@ -1225,6 +1295,18 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       windmillRotors[r].rotation.z = elapsedTime * 0.75;
     }
     waterfallMat.userData.uTime.value = elapsedTime;
+    const foamPulse = 1.0 + Math.sin(elapsedTime * 3.4) * 0.08;
+    poolFoam.scale.set(foamPulse, foamPulse, 1.0);
+    poolFoam.rotation.z = elapsedTime * 0.25;
+    const outerPulse = 1.0 + Math.cos(elapsedTime * 2.6) * 0.1;
+    poolFoamOuter.scale.set(outerPulse, outerPulse, 1.0);
+    poolFoamOuter.rotation.z = -elapsedTime * 0.18;
+    for (let m = 0; m < waterfallMistMeshes.length; m++) {
+      const mist = waterfallMistMeshes[m];
+      const bob = Math.sin(elapsedTime * 2.2 + m * 1.3);
+      mist.position.y = 1.2 + bob * 0.24;
+      mist.scale.set(1.35 + bob * 0.12, 0.78 + Math.abs(bob) * 0.1, 1.15 + bob * 0.12);
+    }
 
     if (westPierGroup.visible) {
       for (let k = 0; k < swimmingKoiList.length; k++) {

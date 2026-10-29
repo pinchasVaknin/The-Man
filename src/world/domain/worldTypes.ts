@@ -83,7 +83,16 @@ export type InventoryItemId =
   | 'dwarven_gold_ore'
   | 'crystal_gem'
   | 'ancient_dwarven_horn'
-  | 'elven_cloak';
+  | 'elven_cloak'
+  | 'raw_game_meat'
+  | 'roasted_meat'
+  | 'fresh_bread_loaf'
+  | 'harbor_cheese_wheel'
+  | 'red_orchard_apples'
+  | 'small_hide'
+  | 'deer_hide'
+  | 'sheep_hide'
+  | 'deer_antlers';
 // #endregion
 
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
@@ -95,7 +104,7 @@ export type InventoryItemId =
 export interface IInventoryItemDef {
   readonly id: InventoryItemId;
   readonly name: string;
-  readonly category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures';
+  readonly category: 'weapons' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures';
   readonly categoryLabel: string;
   readonly statLabel: string;
   readonly weight: number;
@@ -111,7 +120,7 @@ export type InventoryItemDef = IInventoryItemDef;
 
 function createCatalogItem(
   id: InventoryItemId,
-  category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures',
+  category: 'weapons' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures',
   weight: number,
   valueGold: number,
   requiredLevel: number,
@@ -167,6 +176,15 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('crystal_gem', 'materials', 2, 350, 1, { starterOwned: true, rarity: 'legendary' }),
   createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
   createCatalogItem('elven_cloak', 'gear', 1.2, 190, 1, { rarity: 'refined' }),
+  createCatalogItem('raw_game_meat', 'food', 1.0, 45, 1, { rarity: 'common' }),
+  createCatalogItem('roasted_meat', 'food', 0.9, 75, 1, { rarity: 'refined' }),
+  createCatalogItem('fresh_bread_loaf', 'food', 0.6, 30, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('harbor_cheese_wheel', 'food', 1.2, 60, 1, { rarity: 'refined' }),
+  createCatalogItem('red_orchard_apples', 'food', 0.5, 25, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('small_hide', 'materials', 0.8, 55, 1, { rarity: 'common' }),
+  createCatalogItem('sheep_hide', 'materials', 1.8, 85, 1, { rarity: 'common' }),
+  createCatalogItem('deer_hide', 'materials', 2.2, 115, 1, { rarity: 'refined' }),
+  createCatalogItem('deer_antlers', 'materials', 2.5, 140, 1, { rarity: 'refined' }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
 
@@ -310,6 +328,7 @@ export interface IPlayerState {
   arrowsShotCount: number;
   nextArrowId?: number;
   lastArrowHitTarget?: string | null;
+  isCrouching?: boolean;
 }
 export type PlayerState = IPlayerState;
 
@@ -360,6 +379,7 @@ export interface IRideableHorseState {
   x: number;
   y: number;
   z: number;
+  vy?: number;
   yaw: number;
   speed: number;
   gaitPhase: number;

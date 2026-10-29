@@ -11,8 +11,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
 import { WorldCanvas, GameStateMode, IVirtualMoveState } from './components/WorldCanvas';
 import { GameShellOverlay } from './components/GameShellOverlay';
+import { GameSettingsModal } from './components/GameSettingsModal';
 import { CharacterLabView } from './lab/CharacterLabView';
 import { telemetryStore } from './core/telemetryStore';
+import {
+  loadActiveGameSettings,
+  type IGameSettingsConfig,
+} from './config/savedGameSettings';
 
 const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
   'auto',
@@ -28,6 +33,11 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
 // ======================== ROOT APPLICATION COMPONENT ======================== \\
 // #region Root Application Component
 export default function App() {
+  const [gameSettings, setGameSettings] = useState<IGameSettingsConfig>(() =>
+    loadActiveGameSettings()
+  );
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+
   const [gameState, setGameState] = useState<GameStateMode>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -48,7 +58,7 @@ export default function App() {
     return false;
   });
 
-  const [muted, setMuted] = useState<boolean>(false);
+  const [muted, setMuted] = useState<boolean>(() => loadActiveGameSettings().defaultMuted);
   const [weatherToggle, setWeatherToggle] = useState<WeatherToggleOption>('auto');
   const [gameActions, setGameActions] = useState<IGameActions | null>(null);
 
@@ -101,25 +111,25 @@ export default function App() {
     });
   }, []);
 
-  // Global keyboard shortcuts for Title Start (Enter/Space), Mute (M), and Weather Cycle (V)
+  // Global keyboard shortcuts for Title Start (Enter/Space), Mute, and Weather Cycle
   useEffect(() => {
-    if (isLabOpen) return;
+    if (isLabOpen || isSettingsOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (gameState === 'title' && (e.code === 'Enter' || e.code === 'Space')) {
         e.preventDefault();
         handleStartGame();
         return;
       }
-      if (e.code === 'KeyM') {
+      if (e.code === gameSettings.keybindings.toggleMute) {
         setMuted((prev) => !prev);
       }
-      if (e.code === 'KeyV') {
+      if (e.code === gameSettings.keybindings.cycleWeather) {
         handleCycleWeather();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [gameState, isLabOpen, handleStartGame, handleCycleWeather]);
+  }, [gameState, isLabOpen, isSettingsOpen, gameSettings.keybindings, handleStartGame, handleCycleWeather]);
 
   if (isLabOpen) {
     return <CharacterLabView onClose={() => setIsLabOpen(false)} />;
@@ -131,6 +141,7 @@ export default function App() {
         gameState={gameState}
         muted={muted}
         weatherToggle={weatherToggle}
+        gameSettings={gameSettings}
         onTelemetryUpdate={telemetryStore.setSnapshot}
         onRequestPauseToggle={handleTogglePause}
         virtualMoveRef={virtualMoveRef}
@@ -141,6 +152,7 @@ export default function App() {
         gameState={gameState}
         muted={muted}
         weatherToggle={weatherToggle}
+        gameSettings={gameSettings}
         onStartGame={handleStartGame}
         onResumeGame={handleResumeGame}
         onReturnToTitle={handleReturnToTitle}
@@ -149,8 +161,19 @@ export default function App() {
         onCycleWeather={handleCycleWeather}
         onSelectWeather={setWeatherToggle}
         onOpenLab={() => setIsLabOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         virtualMoveRef={virtualMoveRef}
         gameActions={gameActions}
+      />
+
+      <GameSettingsModal
+        isOpen={isSettingsOpen}
+        settings={gameSettings}
+        onApplySettings={(next) => {
+          setGameSettings(next);
+          setMuted(next.defaultMuted);
+        }}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );

@@ -198,8 +198,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
   // ==========================================================================
   {
     id: 'ranger_third_person',
-    nameHe: 'סייר השמורה (דמות השחקן)',
-    subtitleHe: 'דמות תלת־ממדית מפרקית מלאה בגוף שלישי',
+    nameHe: 'סייר הצפון — אראגורן (דמות השחקן)',
+    subtitleHe: 'סייר גונדור תלת־ממדי מפרקי בהשראת שר הטבעות',
     category: 'characters',
     categoryLabelHe: 'דמויות',
     worldLocationHe: 'נקודת ההתחלה וכל רחבי העולם',
@@ -207,10 +207,10 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldInstanceCount: 1,
     sourceFile: 'src/world/builders/playerAndCombatBuilder.ts',
     descriptionHe:
-      'דמות הסייר המלאה של השחקן — כוללת גלימת יער, אשפת חצים מנוצים על הגב, קשת ריקרב דינמית עם מיתר נמתח, חרב רונות דו־ידנית ולפיד בוער.',
+      'דמות הסייר המלאה של השחקן בהשראת סייר הצפון משר הטבעות — שיער גלי בגוון ערמוני כהה עד הכתפיים, זקן קצר מחוספס ושפם, גלימת יער עם צמד אבזמי ברונזה וסמל העץ הלבן של גונדור על הגב, אפוד עור חום עם שרוכי חזה מעל טוניקת יער ושריון שרשראות, חגורת כתף אלכסונית וחרב ארוכה.',
     defaultCameraDistance: 4.1,
     defaultCameraTargetY: 0.98,
-    anatomyTagsHe: ['גלימת סייר', 'אשפת חצים', 'קשת ריקרב', 'חרב רונות', 'לפיד אש', 'מפרקי ידיים ורגליים'],
+    anatomyTagsHe: ['שיער גלי וזקן סייר', 'גלימת העץ הלבן של גונדור', 'אפוד עור עם שרוכים', 'שריון שרשראות (Hauberk)', 'חרב ארוכה וקשת ריקרב', 'מגפי רכיבה עם רצועות'],
     animations: [
       {
         id: 'none',
@@ -245,8 +245,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'sword_slash',
-        nameHe: 'הנפת חרב רונות (קומבו)',
-        descriptionHe: 'שליפת חרב הרונות הדו־ידנית וביצוע חיתוך אופקי ואלכסוני עוצמתי.',
+        nameHe: 'הנפת חרב גונדור (קומבו)',
+        descriptionHe: 'שליפת החרב הארוכה וביצוע חיתוך אופקי ואלכסוני עוצמתי.',
         loopDurationSec: 1.6,
       },
       {
@@ -271,15 +271,15 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     skins: [
       {
         id: 'ranger_classic_forest',
-        nameHe: 'ירוק יער קלאסי (מקורי)',
-        subtitleHe: 'טוניקת יערן ירוקה, גלימה כהה ורצועות עור',
-        badgeColors: ['#1e4d3b', '#143829', '#5c3818'],
+        nameHe: 'סייר הצפון — גונדור (מקורי)',
+        subtitleHe: 'אפוד עור חום, טוניקת יער זית, שריון שרשראות וגלימת העץ הלבן',
+        badgeColors: ['#3b4d3b', '#2a332b', '#5c3a21'],
         palette: {
-          primaryHex: 0x1e4d3b,
-          secondaryHex: 0x143829,
-          accentHex: 0x5c3818,
-          trimHex: 0xd9a838,
-          emissiveHex: 0x38bdf8,
+          primaryHex: 0x3b4d3b,
+          secondaryHex: 0x2a332b,
+          accentHex: 0x5c3a21,
+          trimHex: 0xc5a059,
+          emissiveHex: 0xe2e8f0,
         },
       },
       {
@@ -420,37 +420,37 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'dwarven_miner',
-    nameHe: 'גמד כורה מממלכת הגמדים',
-    subtitleHe: 'כורה מזוקן עם קסדת ברונזה, שריון קשקשים, עששית ומכוש',
+    nameHe: 'לוחם וכורה גמדים — ארבור (LOTR)',
+    subtitleHe: 'גמד חסון עם זקן 3 צמות, צמות רקות, שריון שרשראות וגרזן דו־להבי',
     category: 'characters',
     categoryLabelHe: 'דמויות',
     worldLocationHe: 'ממלכת הגמדים והמכרה הדרומי',
     worldCoordinatesText: `(${SOUTHERN_MINE_POS.x}, ${SOUTHERN_MINE_POS.entranceZ})`,
     worldInstanceCount: DWARVEN_MINERS_COUNT,
-    sourceFile: 'src/world/builders/dwarvenKingdomBuilder.ts',
+    sourceFile: 'src/world/systems/dwarvenMineAndCaravanSystem.ts',
     descriptionHe:
-      'ששת הכורים החרוצים של ממלכת הגמדים (תורין, באלין, דוואלין, בופור, גלוין ואורי) — צועדים בשיירה בבוקר מבקתות האבן אל המכרה וחוצבים זהב וקריסטלים.',
+      'ששת הלוחמים והכורים של ממלכת הגמדים (תורין, באלין, דוואלין, בופור, גלוין ואורי) בהשראת גמדי שר הטבעות — ראש חשוף עם צמות כתר וצמת גב, זקן ערמוני מפואר קלוע ל־3 צמות עם חבקי מתכת, כתפיות שריון שרשראות, סיכות כוכב נורדיות, אבזם יהלום וגרזן קרב דו־להבי.',
     defaultCameraDistance: 3.4,
     defaultCameraTargetY: 0.82,
-    anatomyTagsHe: ['זקן קלוע 3 צמות', 'טבעת זקן מוזהבת', 'קסדת ברונזה', 'מכוש ברזל', 'עששית זוהרת', 'שריון קשקשים'],
+    anatomyTagsHe: ['זקן קלוע 3 צמות עם חבקים', 'צמות רקות וצמת גב', 'כתפיות שריון שרשראות', 'סיכות כוכב ואבזם יהלום', 'גרזן קרב דו־להבי', 'עששית כרייה זוהרת'],
     animations: [
       {
         id: 'none',
         nameHe: 'ללא אנימציה (עמידת מוצא)',
-        descriptionHe: 'עמידה זקופה עם המכוש והעששית ללא תנועה.',
+        descriptionHe: 'עמידה זקופה עם גרזן הקרב והעששית ללא תנועה.',
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'mining_work',
-        nameHe: 'חציבה במכוש בסלע הקריסטלים',
-        descriptionHe: 'הנפת מכוש הברזל מעלה והכאה בעוצמה בעורק הקריסטל בלוויית תנודת זקן.',
+        nameHe: 'חציבה והנפת גרזן בסלע הקריסטלים',
+        descriptionHe: 'הנפת הגרזן הדו־להבי מעלה והכאה בעוצמה בעורק הקריסטל בלוויית תנודת זקן.',
         loopDurationSec: 1.2,
       },
       {
         id: 'caravan_march',
         nameHe: 'צעידה בשיירה אל המכרה',
-        descriptionHe: 'הליכת גמדים נמרצת עם נדנוד העששית ביד שמאל והמכוש ביד ימין.',
+        descriptionHe: 'הליכת גמדים נמרצת עם נדנוד העששית ביד שמאל והגרזן ביד ימין.',
         loopDurationSec: 1.1,
       },
       {
@@ -462,21 +462,21 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       {
         id: 'celebrate_gold',
         nameHe: 'צהלת מציאת זהב!',
-        descriptionHe: 'הנפת המכוש והעששית אל על בשמחה על מציאת עורק זהב מלכותי.',
+        descriptionHe: 'הנפת הגרזן והעששית אל על בשמחה על מציאת עורק זהב מלכותי.',
         loopDurationSec: 1.5,
       },
     ],
     skins: [
       {
         id: 'dwarf_thorin_red',
-        nameHe: 'תורין — טוניקה אדומה וזקן ערמוני',
-        subtitleHe: 'מנהיג שיירת הכורים במכרה הדרומי',
-        badgeColors: ['#8b261d', '#9a3412', '#d4af37'],
+        nameHe: 'לוחם גמדי ארבור (LOTR מקורי)',
+        subtitleHe: 'טוניקת זית־פחם עם עיטורי ברונזה, שריון שרשראות וזקן ערמוני קלוע',
+        badgeColors: ['#333629', '#8c3b16', '#9e7b42'],
         palette: {
-          primaryHex: 0x8b261d,
+          primaryHex: 0x333629,
           secondaryHex: 0x8c3b16,
-          accentHex: 0xb8860b,
-          trimHex: 0xd4af37,
+          accentHex: 0x9e7b42,
+          trimHex: 0x10b981,
         },
       },
       {

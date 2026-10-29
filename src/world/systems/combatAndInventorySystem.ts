@@ -36,6 +36,11 @@ import {
   SWORD_ACTIVE_STRIKE_WINDOW_END,
   SWORD_STRIKE_CONTACT_APEX,
 } from './swordAttackAnimationSystem';
+import {
+  getActiveWorldAnimals,
+  killGroundAnimal,
+  type ISmallAnimalState,
+} from './boidsAndWildlifeSystem';
 // #endregion
 
 // ======================== CONSTANTS & LABELS ======================== \\
@@ -265,6 +270,7 @@ const arrowNormalStrategy = new ArrowEquipmentStrategy('normal');
 const arrowFireStrategy = new ArrowEquipmentStrategy('fire');
 const arrowWindStrategy = new ArrowEquipmentStrategy('wind');
 const hornStrategy = new UsableGearStrategy('exploration', 12, true);
+const meatStrategy = new UsableGearStrategy('athletics', 14, true);
 const materialStrategy = new UsableGearStrategy('exploration', 10);
 const cloakStrategy = new UsableGearStrategy('athletics', 10);
 
@@ -290,6 +296,11 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
 
   ['ancient_dwarven_horn', hornStrategy],
   ['elven_cloak', cloakStrategy],
+  ['raw_game_meat', meatStrategy],
+  ['roasted_meat', meatStrategy],
+  ['fresh_bread_loaf', meatStrategy],
+  ['harbor_cheese_wheel', meatStrategy],
+  ['red_orchard_apples', meatStrategy],
 
   ['oak_timber', materialStrategy],
   ['cut_granite_blocks', materialStrategy],
@@ -298,6 +309,10 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['marble_pillar_stone', materialStrategy],
   ['dwarven_gold_ore', materialStrategy],
   ['crystal_gem', materialStrategy],
+  ['small_hide', materialStrategy],
+  ['deer_hide', materialStrategy],
+  ['sheep_hide', materialStrategy],
+  ['deer_antlers', materialStrategy],
 ]);
 // #endregion
 
@@ -559,6 +574,7 @@ export interface ISwordSlashHitResult {
   readonly isHeavy: boolean;
   readonly hitKind: 'none' | 'target' | 'obstacle' | 'wall';
   readonly hitTarget: IArcheryTargetDef | null;
+  readonly hitAnimal?: ISmallAnimalState | null;
   readonly hitAnySurface: boolean;
 }
 export type SwordSlashHitResult = ISwordSlashHitResult;
@@ -606,6 +622,7 @@ export function evaluateSwordStrikeWindowHit(
     };
   }
 
+  const activeAnimals = getActiveWorldAnimals();
   const maxReach = isHeavy ? SWORD_HEAVY_REACH : SWORD_LIGHT_REACH;
   for (let d = 0.75; d <= maxReach; d += 0.25) {
     const sx = state.x + dirX * d;
@@ -627,12 +644,56 @@ export function evaluateSwordStrikeWindowHit(
       }
     }
 
+    for (let a = 0; a < activeAnimals.length; a++) {
+      const anim = activeAnimals[a];
+      if (anim.isDead || anim.isLooted) continue;
+      const animRad =
+        anim.species === 'deer'
+          ? 1.35
+          : anim.species === 'sheep'
+            ? 1.15
+            : 0.95;
+      const animGroundY = groundHeightAt(anim.x, anim.z);
+      const animCenterY =
+        animGroundY +
+        (anim.species === 'deer' ? 0.85 : anim.species === 'sheep' ? 0.55 : 0.25);
+      if (
+        Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
+        Math.abs(sy - animCenterY) <= 1.45
+      ) {
+        killGroundAnimal(anim);
+        state.lastSwordHitPoint = { x: sx, y: animCenterY, z: sz, age: 0, kind: 'target' };
+        state.lastArrowHitTarget = String(anim.id);
+        state.swordHitStopTimer = 0.045;
+        awardSkillXp(state, 'swordsmanship', 24);
+        return {
+          comboIndex,
+          isHeavy,
+          hitKind: 'target',
+          hitTarget: null,
+          hitAnimal: anim,
+          hitAnySurface: true,
+        };
+      }
+    }
+
     for (let o = 0; o < obstacles.length; o++) {
       const obs = obstacles[o];
       if (Math.abs(sx - obs.x) > 1.8 || Math.abs(sz - obs.z) > 1.8) continue;
       const obsGroundY = groundHeightAt(obs.x, obs.z);
-      const obsMaxH = obs.kind === 'boulder' ? obsGroundY + obs.scale * 1.6 : obsGroundY + obs.scale * 7.5;
-      if (sy >= obsGroundY && sy <= obsMaxH && Math.hypot(sx - obs.x, sz - obs.z) <= obs.radius + 0.28) {
+      const obsMaxH =
+        obs.kind === 'boulder'
+          ? obsGroundY + obs.radius * 0.95
+          : obs.kind === 'pillar'
+            ? obsGroundY + obs.scale * 3.2
+            : obsGroundY + obs.scale * 4.5;
+      const hitRad =
+        obs.kind === 'boulder'
+          ? obs.radius * 0.92
+          : obs.kind === 'pillar'
+            ? obs.radius
+            : obs.radius * 0.52;
+      if (sy >= obsGroundY && sy <= obsMaxH && Math.hypot(sx - obs.x, sz - obs.z) <= hitRad + 0.18) {
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
         state.swordHitStopTimer = 0.048;
         return { comboIndex, isHeavy, hitKind: 'obstacle', hitTarget: null, hitAnySurface: true };
@@ -835,10 +896,16 @@ export function stepArrowsPhysics(
   arrows: IArrowProjectile[],
   obstacles: readonly IObstacleCylinder[],
   rawDt: number
-): { hitTarget: IArcheryTargetDef | null; hitAnySurface: boolean } {
+): {
+  hitTarget: IArcheryTargetDef | null;
+  hitAnimal?: ISmallAnimalState | null;
+  hitAnySurface: boolean;
+} {
   const dt = Math.min(Math.max(rawDt, 0.001), 0.1);
   let hitTarget: IArcheryTargetDef | null = null;
+  let hitAnimal: ISmallAnimalState | null = null;
   let hitAnySurface = false;
+  const activeAnimals = getActiveWorldAnimals();
 
   for (let i = 0; i < arrows.length; i++) {
     const arr = arrows[i];
@@ -858,6 +925,7 @@ export function stepArrowsPhysics(
     const subSteps = 4;
     const subDt = dt / subSteps;
     for (let s = 0; s < subSteps; s++) {
+      const prevY = arr.y;
       arr.vy -= grav * subDt;
       arr.x += arr.vx * subDt;
       arr.y += arr.vy * subDt;
@@ -900,14 +968,56 @@ export function stepArrowsPhysics(
       }
       if (struck) break;
 
+      for (let a = 0; a < activeAnimals.length; a++) {
+        const anim = activeAnimals[a];
+        if (anim.isDead || anim.isLooted) continue;
+        const animRad =
+          anim.species === 'deer'
+            ? 1.05
+            : anim.species === 'sheep'
+              ? 0.85
+              : 0.58;
+        const animGroundY = groundHeightAt(anim.x, anim.z);
+        const animCenterY =
+          animGroundY +
+          (anim.species === 'deer' ? 0.88 : anim.species === 'sheep' ? 0.56 : 0.25);
+        const d3 = Math.hypot(arr.x - anim.x, arr.y - animCenterY, arr.z - anim.z);
+        if (d3 <= animRad) {
+          killGroundAnimal(anim);
+          arr.stuck = true;
+          arr.vx = 0;
+          arr.vy = 0;
+          arr.vz = 0;
+          arr.hitKind = 'target';
+          arr.hitTargetId = String(anim.id);
+          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+          hitAnimal = anim;
+          hitAnySurface = true;
+          struck = true;
+          break;
+        }
+      }
+      if (struck) break;
+
       for (let o = 0; o < obstacles.length; o++) {
         const obs = obstacles[o];
         if (Math.abs(arr.x - obs.x) > 1.8 || Math.abs(arr.z - obs.z) > 1.8) continue;
         const obsGroundY = groundHeightAt(obs.x, obs.z);
-        const obsMaxH = obs.kind === 'boulder' ? obsGroundY + obs.scale * 1.6 : obsGroundY + obs.scale * 7.5;
+        const obsMaxH =
+          obs.kind === 'boulder'
+            ? obsGroundY + obs.radius * 0.92
+            : obs.kind === 'pillar'
+              ? obsGroundY + obs.scale * 3.2
+              : obsGroundY + obs.scale * 4.2;
+        const hitRad =
+          obs.kind === 'boulder'
+            ? obs.radius * 0.88
+            : obs.kind === 'pillar'
+              ? obs.radius
+              : obs.radius * 0.45;
         if (arr.y >= obsGroundY && arr.y <= obsMaxH) {
           const d2 = Math.hypot(arr.x - obs.x, arr.z - obs.z);
-          if (d2 <= obs.radius + 0.12) {
+          if (d2 <= hitRad) {
             arr.stuck = true;
             arr.vx = 0;
             arr.vy = 0;
@@ -941,8 +1051,49 @@ export function stepArrowsPhysics(
       }
       if (struck) break;
 
-      const floorH = walkableHeightAt(arr.x, arr.z, arr.y).height;
-      if (arr.y <= floorH + 0.05) {
+      const rawGroundY = groundHeightAt(arr.x, arr.z);
+      const walkSurface = walkableHeightAt(arr.x, arr.z, prevY);
+      const floorH = walkSurface.height;
+      const isElevatedThinSpan =
+        (walkSurface.surface === 'bridge' || walkSurface.surface === 'pier') &&
+        floorH > rawGroundY + 0.35;
+
+      if (isElevatedThinSpan) {
+        // Elevated bridge/pier decks have a thin slab (~0.28m).
+        // Arrows flying in open air beneath the deck must NOT snap/teleport up onto the top of the bridge!
+        const deckBottomY = floorH - 0.28;
+        if (prevY >= deckBottomY && arr.y <= floorH + 0.05 && arr.y >= deckBottomY - 0.25) {
+          arr.y = floorH + 0.05;
+          arr.stuck = true;
+          arr.vx = 0;
+          arr.vy = 0;
+          arr.vz = 0;
+          arr.hitKind = 'ground';
+          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+          hitAnySurface = true;
+          break;
+        } else if (prevY < deckBottomY && arr.y >= deckBottomY && arr.y <= floorH + 0.05) {
+          arr.y = deckBottomY;
+          arr.stuck = true;
+          arr.vx = 0;
+          arr.vy = 0;
+          arr.vz = 0;
+          arr.hitKind = 'building';
+          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+          hitAnySurface = true;
+          break;
+        } else if (arr.y <= rawGroundY + 0.05) {
+          arr.y = rawGroundY + 0.05;
+          arr.stuck = true;
+          arr.vx = 0;
+          arr.vy = 0;
+          arr.vz = 0;
+          arr.hitKind = 'ground';
+          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+          hitAnySurface = true;
+          break;
+        }
+      } else if (arr.y <= floorH + 0.05) {
         arr.y = floorH + 0.05;
         arr.stuck = true;
         arr.vx = 0;
@@ -956,6 +1107,6 @@ export function stepArrowsPhysics(
     }
   }
 
-  return { hitTarget, hitAnySurface };
+  return { hitTarget, hitAnimal, hitAnySurface };
 }
 // #endregion

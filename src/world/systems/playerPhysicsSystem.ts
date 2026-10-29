@@ -31,6 +31,7 @@ import {
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
 import {
+  groundHeightAt,
   isChineseFortressWalkableZone,
   chineseFortressStairHeightAt,
   getWaterSurfaceHeightAt,
@@ -95,6 +96,8 @@ export function createInitialPlayerState(): IPlayerState {
       'dwarven_gold_ore',
       'crystal_gem',
       'ancient_dwarven_horn',
+      'fresh_bread_loaf',
+      'red_orchard_apples',
     ],
     hotbarSlots: ['bow', 'torch', 'sword', 'unarmed'],
     favoriteIds: ['bow', 'torch', 'sword', 'arrow_normal', 'arrow_fire', 'arrow_wind', 'unarmed'],
@@ -242,6 +245,7 @@ export function stepPlayerPhysics(
       state.mountedHorseId = null;
       if (currentHorse) {
         currentHorse.speed = 0;
+        currentHorse.vy = Math.min(0, state.vy);
         const sideX = Math.cos(currentHorse.yaw) * 0.95;
         const sideZ = -Math.sin(currentHorse.yaw) * 0.95;
         state.x = currentHorse.x + sideX;
@@ -267,6 +271,18 @@ export function stepPlayerPhysics(
   }
 
   if (input.toggleFlyRequested) {
+    // Double-space cancels all walking animations and dismounts any horse cleanly
+    state.bobAmount = 0;
+    state.bobPhase = 0;
+    state.isCrouching = false;
+    if (state.mountedHorseId && horses) {
+      const dismountedHorse = horses.find((h) => h.id === state.mountedHorseId);
+      if (dismountedHorse) {
+        dismountedHorse.speed = 0;
+        dismountedHorse.vy = Math.min(0, state.vy);
+      }
+      state.mountedHorseId = null;
+    }
     state.isFlying = !state.isFlying;
     if (state.isFlying) {
       state.mountedHorseId = null;
@@ -367,8 +383,38 @@ export function stepPlayerPhysics(
       if (state.vy < 0) state.vy = 0;
     }
     state.y = Math.min(state.y, 165.0);
-    state.bobAmount *= Math.exp(-10 * dt);
+    state.bobAmount = 0;
+    state.bobPhase = 0;
+    state.isCrouching = false;
     state.currentBiome = getSurfaceBiomeAt(state.x, state.z, state.y);
+
+    // Ensure any unmounted horses (e.g. dismounted in mid-air via double-space) fall back to the ground!
+    if (horses) {
+      for (let i = 0; i < horses.length; i++) {
+        const h = horses[i];
+        if (h.id === state.mountedHorseId) continue;
+        const horseFloorY = walkableHeightAt(h.x, h.z, h.y).height;
+        if (h.y > horseFloorY + 0.001 || (h.vy ?? 0) !== 0) {
+          const nextVy = (h.vy ?? 0) - GRAVITY * dt;
+          const nextY = h.y + nextVy * dt;
+          if (nextY <= horseFloorY) {
+            h.y = horseFloorY;
+            h.vy = 0;
+          } else {
+            h.y = nextY;
+            h.vy = nextVy;
+          }
+        } else {
+          h.y = horseFloorY;
+          h.vy = 0;
+        }
+        if (h.speed > 0.001) {
+          h.speed *= Math.exp(-8.0 * dt);
+          if (h.speed < 0.01) h.speed = 0;
+        }
+      }
+    }
+
     return { steppedFoot: false, landedImpact: 0 };
   }
 
@@ -383,14 +429,17 @@ export function stepPlayerPhysics(
   const isMountedOnHorse = Boolean(state.mountedHorseId);
   let paceMultiplier = 1.0;
   if (input.relaxed && !input.sprint) {
-    paceMultiplier = 0.55;
+    paceMultiplier = isMountedOnHorse ? 0.55 : 0.45;
     state.walkPace = 'relaxed';
+    state.isCrouching = !isMountedOnHorse && !state.isSwimming;
   } else if (input.sprint) {
     paceMultiplier = isMountedOnHorse ? 1.62 : 1.75;
     state.walkPace = 'fast';
+    state.isCrouching = false;
   } else {
     paceMultiplier = 1.0;
     state.walkPace = 'normal';
+    state.isCrouching = false;
   }
 
   const baseWalkSpeed = isMountedOnHorse ? 9.4 : 5.0;
@@ -522,6 +571,8 @@ export function stepPlayerPhysics(
   let nextZ = state.z + state.vz * dt;
 
   const playerRadius = 0.44;
+  let highestBoulderTopY = -Infinity;
+
   for (let i = 0; i < obstacles.length; i++) {
     const obs = obstacles[i];
     const dx = nextX - obs.x;
@@ -529,6 +580,19 @@ export function stepPlayerPhysics(
     if (Math.abs(dx) > 2.5 || Math.abs(dz) > 2.5) continue;
     const minDist = playerRadius + obs.radius;
     const distSq = dx * dx + dz * dz;
+
+    if (obs.kind === 'boulder') {
+      const boulderTopY = groundHeightAt(obs.x, obs.z) + Math.min(1.35, obs.radius * 0.85);
+      if (state.y >= boulderTopY - 0.58) {
+        if (distSq <= (obs.radius + 0.28) * (obs.radius + 0.28)) {
+          if (boulderTopY > highestBoulderTopY) {
+            highestBoulderTopY = boulderTopY;
+          }
+        }
+        continue;
+      }
+    }
+
     if (distSq < minDist * minDist && distSq > 1e-6) {
       const dist = Math.sqrt(distSq);
       const overlap = minDist - dist;
@@ -539,134 +603,136 @@ export function stepPlayerPhysics(
     }
   }
 
-  for (let pass = 0; pass < 2; pass++) {
-    for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
-      const box = SOLID_BUILDING_BOXES[i];
-      const expMinX = box.minX - playerRadius;
-      const expMaxX = box.maxX + playerRadius;
-      const expMinZ = box.minZ - playerRadius;
-      const expMaxZ = box.maxZ + playerRadius;
-      if (nextX <= expMinX || nextX >= expMaxX || nextZ <= expMinZ || nextZ >= expMaxZ) continue;
+  if (!onLadderVolume) {
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
+        const box = SOLID_BUILDING_BOXES[i];
+        const expMinX = box.minX - playerRadius;
+        const expMaxX = box.maxX + playerRadius;
+        const expMinZ = box.minZ - playerRadius;
+        const expMaxZ = box.maxZ + playerRadius;
+        if (nextX <= expMinX || nextX >= expMaxX || nextZ <= expMinZ || nextZ >= expMaxZ) continue;
 
-      if (box.minY !== undefined && state.y + 1.55 < box.minY) continue;
-      let effectiveMaxY = box.maxY;
-      if (
-        box.id === 'fortress-stair-rail-west-lower' ||
-        box.id === 'fortress-stair-rail-east-lower' ||
-        box.id === 'fortress-stair-rail-west-upper' ||
-        box.id === 'fortress-stair-rail-east-upper'
-      ) {
-        effectiveMaxY = chineseFortressStairHeightAt(nextZ) + 0.98;
-      } else if (
-        box.id === 'rampart-stair-side-fence-west' ||
-        box.id === 'rampart-stair-side-fence-east'
-      ) {
-        const tStair = Math.max(
-          0,
-          Math.min(
-            1,
-            (CHINESE_FORTRESS_POS.rampartStairFootZ - nextZ) /
-              (CHINESE_FORTRESS_POS.rampartStairFootZ - CHINESE_FORTRESS_POS.rampartStairTopZ)
-          )
-        );
-        const stairY =
-          CHINESE_FORTRESS_POS.summitHeight +
-          tStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
-        effectiveMaxY = stairY + 0.95;
-      }
-      if (effectiveMaxY !== undefined && state.y >= effectiveMaxY - 0.22) continue;
-
-      const penLeft = nextX - expMinX;
-      const penRight = expMaxX - nextX;
-      const penBack = nextZ - expMinZ;
-      const penFront = expMaxZ - nextZ;
-      const minPen = Math.min(penLeft, penRight, penBack, penFront);
-      if (minPen === penLeft) nextX = expMinX;
-      else if (minPen === penRight) nextX = expMaxX;
-      else if (minPen === penBack) nextZ = expMinZ;
-      else nextZ = expMaxZ;
-    }
-  }
-
-  for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
-    const hw = HILL_WATCHTOWERS[i];
-    const dx = nextX - hw.x;
-    const dz = nextZ - hw.z;
-    if (dx * dx + dz * dz > 64.0) continue;
-    const cosN = Math.cos(hw.yaw);
-    const sinN = Math.sin(hw.yaw);
-    let lx = dx * cosN - dz * sinN;
-    let lz = dx * sinN + dz * cosN;
-    const doorOpen = Boolean(openDoorIds?.has(hw.doorId));
-    const onUpperDeck = state.y >= hw.deckY - 1.2;
-
-    interface ILocalBox {
-      minX: number;
-      maxX: number;
-      minZ: number;
-      maxZ: number;
-      maxY?: number;
-    }
-    const localWalls: ILocalBox[] = [];
-    if (!onUpperDeck) {
-      localWalls.push(
-        { minX: -3.75, maxX: -3.25, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 },
-        { minX: 3.25, maxX: 3.75, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 }
-      );
-      const backZ = -hw.doorSideLocalZ * 3.5;
-      const doorZ = hw.doorSideLocalZ * 3.5;
-      localWalls.push({ minX: -3.7, maxX: 3.7, minZ: backZ - 0.25, maxZ: backZ + 0.25, maxY: hw.baseY + 5.2 });
-      localWalls.push(
-        { minX: -3.7, maxX: -1.1, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 },
-        { minX: 1.1, maxX: 3.7, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 }
-      );
-      if (!doorOpen) {
-        localWalls.push({ minX: -1.1, maxX: 1.1, minZ: doorZ - 0.22, maxZ: doorZ + 0.22, maxY: hw.baseY + 3.8 });
-      }
-    } else {
-      const pMaxY = hw.deckY + 0.96;
-      localWalls.push(
-        { minX: -3.65, maxX: -3.35, minZ: -3.6, maxZ: 3.6, maxY: pMaxY },
-        { minX: 3.35, maxX: 3.65, minZ: -3.6, maxZ: 3.6, maxY: pMaxY }
-      );
-      for (const sideZ of [-1, 1] as const) {
-        const zCenter = sideZ * 3.5;
-        if (hw.bridgeSideLocalZ === sideZ) {
-          localWalls.push(
-            { minX: -3.6, maxX: -1.65, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY },
-            { minX: 1.65, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY }
+        if (box.minY !== undefined && state.y + 1.55 < box.minY) continue;
+        let effectiveMaxY = box.maxY;
+        if (
+          box.id === 'fortress-stair-rail-west-lower' ||
+          box.id === 'fortress-stair-rail-east-lower' ||
+          box.id === 'fortress-stair-rail-west-upper' ||
+          box.id === 'fortress-stair-rail-east-upper'
+        ) {
+          effectiveMaxY = chineseFortressStairHeightAt(nextZ) + 0.98;
+        } else if (
+          box.id === 'rampart-stair-side-fence-west' ||
+          box.id === 'rampart-stair-side-fence-east'
+        ) {
+          const tStair = Math.max(
+            0,
+            Math.min(
+              1,
+              (CHINESE_FORTRESS_POS.rampartStairFootZ - nextZ) /
+                (CHINESE_FORTRESS_POS.rampartStairFootZ - CHINESE_FORTRESS_POS.rampartStairTopZ)
+            )
           );
-        } else {
-          localWalls.push({ minX: -3.6, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY });
+          const stairY =
+            CHINESE_FORTRESS_POS.summitHeight +
+            tStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
+          effectiveMaxY = stairY + 0.95;
+        }
+        if (effectiveMaxY !== undefined && state.y >= effectiveMaxY - 0.28) continue;
+
+        const penLeft = nextX - expMinX;
+        const penRight = expMaxX - nextX;
+        const penBack = nextZ - expMinZ;
+        const penFront = expMaxZ - nextZ;
+        const minPen = Math.min(penLeft, penRight, penBack, penFront);
+        if (minPen === penLeft) nextX = expMinX;
+        else if (minPen === penRight) nextX = expMaxX;
+        else if (minPen === penBack) nextZ = expMinZ;
+        else nextZ = expMaxZ;
+      }
+    }
+
+    for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
+      const hw = HILL_WATCHTOWERS[i];
+      const dx = nextX - hw.x;
+      const dz = nextZ - hw.z;
+      if (dx * dx + dz * dz > 64.0) continue;
+      const cosN = Math.cos(hw.yaw);
+      const sinN = Math.sin(hw.yaw);
+      let lx = dx * cosN - dz * sinN;
+      let lz = dx * sinN + dz * cosN;
+      const doorOpen = Boolean(openDoorIds?.has(hw.doorId));
+      const onUpperDeck = state.y >= hw.deckY - 1.2;
+
+      interface ILocalBox {
+        minX: number;
+        maxX: number;
+        minZ: number;
+        maxZ: number;
+        maxY?: number;
+      }
+      const localWalls: ILocalBox[] = [];
+      if (!onUpperDeck) {
+        localWalls.push(
+          { minX: -3.75, maxX: -3.25, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 },
+          { minX: 3.25, maxX: 3.75, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 }
+        );
+        const backZ = -hw.doorSideLocalZ * 3.5;
+        const doorZ = hw.doorSideLocalZ * 3.5;
+        localWalls.push({ minX: -3.7, maxX: 3.7, minZ: backZ - 0.25, maxZ: backZ + 0.25, maxY: hw.baseY + 5.2 });
+        localWalls.push(
+          { minX: -3.7, maxX: -1.15, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 },
+          { minX: 1.15, maxX: 3.7, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 }
+        );
+        if (!doorOpen) {
+          localWalls.push({ minX: -1.15, maxX: 1.15, minZ: doorZ - 0.22, maxZ: doorZ + 0.22, maxY: hw.baseY + 3.8 });
+        }
+      } else {
+        const pMaxY = hw.deckY + 0.96;
+        localWalls.push(
+          { minX: -3.65, maxX: -3.35, minZ: -3.6, maxZ: 3.6, maxY: pMaxY },
+          { minX: 3.35, maxX: 3.65, minZ: -3.6, maxZ: 3.6, maxY: pMaxY }
+        );
+        for (const sideZ of [-1, 1] as const) {
+          const zCenter = sideZ * 3.5;
+          if (hw.bridgeSideLocalZ === sideZ) {
+            localWalls.push(
+              { minX: -3.6, maxX: -1.65, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY },
+              { minX: 1.65, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY }
+            );
+          } else {
+            localWalls.push({ minX: -3.6, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY });
+          }
         }
       }
-    }
 
-    let modifiedLocal = false;
-    for (let w = 0; w < localWalls.length; w++) {
-      const lb = localWalls[w];
-      if (lb.maxY !== undefined && state.y >= lb.maxY - 0.22) continue;
-      const eMinX = lb.minX - playerRadius;
-      const eMaxX = lb.maxX + playerRadius;
-      const eMinZ = lb.minZ - playerRadius;
-      const eMaxZ = lb.maxZ + playerRadius;
-      if (lx <= eMinX || lx >= eMaxX || lz <= eMinZ || lz >= eMaxZ) continue;
-      const pL = lx - eMinX;
-      const pR = eMaxX - lx;
-      const pB = lz - eMinZ;
-      const pF = eMaxZ - lz;
-      const mP = Math.min(pL, pR, pB, pF);
-      if (mP === pL) lx = eMinX;
-      else if (mP === pR) lx = eMaxX;
-      else if (mP === pB) lz = eMinZ;
-      else lz = eMaxZ;
-      modifiedLocal = true;
-    }
-    if (modifiedLocal) {
-      const cosP = Math.cos(hw.yaw);
-      const sinP = Math.sin(hw.yaw);
-      nextX = hw.x + lx * cosP + lz * sinP;
-      nextZ = hw.z - lx * sinP + lz * cosP;
+      let modifiedLocal = false;
+      for (let w = 0; w < localWalls.length; w++) {
+        const lb = localWalls[w];
+        if (lb.maxY !== undefined && state.y >= lb.maxY - 0.28) continue;
+        const eMinX = lb.minX - playerRadius;
+        const eMaxX = lb.maxX + playerRadius;
+        const eMinZ = lb.minZ - playerRadius;
+        const eMaxZ = lb.maxZ + playerRadius;
+        if (lx <= eMinX || lx >= eMaxX || lz <= eMinZ || lz >= eMaxZ) continue;
+        const pL = lx - eMinX;
+        const pR = eMaxX - lx;
+        const pB = lz - eMinZ;
+        const pF = eMaxZ - lz;
+        const mP = Math.min(pL, pR, pB, pF);
+        if (mP === pL) lx = eMinX;
+        else if (mP === pR) lx = eMaxX;
+        else if (mP === pB) lz = eMinZ;
+        else lz = eMaxZ;
+        modifiedLocal = true;
+      }
+      if (modifiedLocal) {
+        const cosP = Math.cos(hw.yaw);
+        const sinP = Math.sin(hw.yaw);
+        nextX = hw.x + lx * cosP + lz * sinP;
+        nextZ = hw.z - lx * sinP + lz * cosP;
+      }
     }
   }
 
@@ -713,6 +779,26 @@ export function stepPlayerPhysics(
     }
   }
 
+  // Prevent side-collision snap-up: if stepping horizontally to (nextX, nextZ) would abruptly
+  // raise walkableHeightAt by more than a climbable step (0.56m), block that axis instead of
+  // teleporting the player on top of stairs/walls/ledges.
+  if (!state.isFlying && !onLadderVolume) {
+    const maxStepUp = 0.56;
+    const candFloor = walkableHeightAt(nextX, nextZ, state.y);
+    if (candFloor.height - state.y > maxStepUp) {
+      const tryXFloor = walkableHeightAt(nextX, state.z, state.y);
+      const tryZFloor = walkableHeightAt(state.x, nextZ, state.y);
+      if (tryXFloor.height - state.y <= maxStepUp) {
+        nextZ = state.z;
+      } else if (tryZFloor.height - state.y <= maxStepUp) {
+        nextX = state.x;
+      } else {
+        nextX = state.x;
+        nextZ = state.z;
+      }
+    }
+  }
+
   const distFromCenter = Math.hypot(nextX, nextZ);
   if (distFromCenter > PLAYABLE_RADIUS) {
     const scaleBack = PLAYABLE_RADIUS / distFromCenter;
@@ -730,12 +816,15 @@ export function stepPlayerPhysics(
 
   const wasGrounded = state.onGround;
   const walkSurface = walkableHeightAt(state.x, state.z, state.y);
+  const standingOnBoulder = highestBoulderTopY > walkSurface.height;
+  const effectiveWalkHeight = standingOnBoulder ? highestBoulderTopY : walkSurface.height;
   const waterSurfaceY = getWaterSurfaceHeightAt(state.x, state.z, state.y);
   const isDeepWater =
+    !standingOnBoulder &&
     waterSurfaceY !== null &&
     (walkSurface.surface === 'ground' ||
       (walkSurface.surface === 'bridge' && isInsideSouthernMine(state.x, state.z, state.y))) &&
-    waterSurfaceY - walkSurface.height >= 0.65;
+    waterSurfaceY - effectiveWalkHeight >= 0.65;
 
   let landedImpact = 0;
   const prevVy = state.vy;
@@ -748,7 +837,7 @@ export function stepPlayerPhysics(
     state.inWater = false;
   } else if (isDeepWater && waterSurfaceY !== null && !state.mountedHorseId) {
     const swimTargetY = waterSurfaceY - 0.95;
-    const basinFloorY = walkSurface.height + 0.15;
+    const basinFloorY = effectiveWalkHeight + 0.15;
 
     if (state.y <= waterSurfaceY - 0.25) {
       state.isSwimming = true;
@@ -764,7 +853,7 @@ export function stepPlayerPhysics(
       if (
         input.jumpPressed &&
         state.y >= swimTargetY - 0.35 &&
-        waterSurfaceY - walkSurface.height < 1.35
+        waterSurfaceY - effectiveWalkHeight < 1.35
       ) {
         state.vy = 5.4;
         state.isSwimming = false;
@@ -812,7 +901,7 @@ export function stepPlayerPhysics(
     }
   } else {
     state.isSwimming = false;
-    const effectiveFloorY = walkSurface.height;
+    const effectiveFloorY = effectiveWalkHeight;
     state.y += state.vy * dt;
 
     if (state.y <= effectiveFloorY || (wasGrounded && prevVy <= 0 && state.y - effectiveFloorY <= 0.85)) {
@@ -826,6 +915,7 @@ export function stepPlayerPhysics(
       state.onGround = false;
     }
     state.inWater =
+      !standingOnBoulder &&
       waterSurfaceY !== null &&
       walkSurface.surface === 'ground' &&
       state.y < waterSurfaceY - 0.08;
@@ -897,15 +987,38 @@ export function stepPlayerPhysics(
     }
   }
 
-  if (state.mountedHorseId && horses) {
-    const mountedHorse = horses.find((h) => h.id === state.mountedHorseId);
-    if (mountedHorse) {
-      mountedHorse.x = state.x;
-      mountedHorse.y = state.y;
-      mountedHorse.z = state.z;
-      state.mountedHorseYaw = mountedHorse.yaw;
-      mountedHorse.speed = horizSpeed;
-      mountedHorse.gaitPhase = state.bobPhase;
+  if (horses) {
+    for (let i = 0; i < horses.length; i++) {
+      const h = horses[i];
+      if (h.id === state.mountedHorseId) {
+        h.x = state.x;
+        h.y = state.y;
+        h.z = state.z;
+        h.vy = state.vy;
+        state.mountedHorseYaw = h.yaw;
+        h.speed = horizSpeed;
+        h.gaitPhase = state.bobPhase;
+      } else {
+        const horseFloorY = walkableHeightAt(h.x, h.z, h.y).height;
+        if (h.y > horseFloorY + 0.001 || (h.vy ?? 0) !== 0) {
+          const nextVy = (h.vy ?? 0) - GRAVITY * dt;
+          const nextY = h.y + nextVy * dt;
+          if (nextY <= horseFloorY) {
+            h.y = horseFloorY;
+            h.vy = 0;
+          } else {
+            h.y = nextY;
+            h.vy = nextVy;
+          }
+        } else {
+          h.y = horseFloorY;
+          h.vy = 0;
+        }
+        if (h.speed > 0.001) {
+          h.speed *= Math.exp(-8.0 * dt);
+          if (h.speed < 0.01) h.speed = 0;
+        }
+      }
     }
   }
 
