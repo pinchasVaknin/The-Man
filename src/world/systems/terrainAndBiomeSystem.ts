@@ -367,8 +367,9 @@ export function trailFactorAt(x: number, z: number): number {
   const sakuraGateEntryZ = SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * 16.5;
   const eastTrailDist = Math.min(
     distToSegment(x, z, 22, -4, 52, -18),
-    distToSegment(x, z, 52, -18, 78, -42),
-    distToSegment(x, z, 78, -42, 106, -62),
+    distToSegment(x, z, 52, -18, 84, -25),
+    distToSegment(x, z, 84, -25, 72, -45),
+    distToSegment(x, z, 72, -45, 106, -62),
     distToSegment(x, z, 106, -62, sakuraGateEntryX, sakuraGateEntryZ),
     distToSegment(x, z, 106, -62, 0, -74 + FZ),
     distToSegment(x, z, 22, 12, 54, 36),
@@ -891,43 +892,55 @@ export function walkableHeightAt(
   const localPX = dxP * cosP - dzP * sinP;
   const localPZ = dxP * sinP + dzP * cosP;
 
-  if (Math.abs(localPX) <= 5.6 && Math.abs(localPZ) <= 1.35) {
+  if (localPX >= -5.8 && localPX <= 9.0 && Math.abs(localPZ) <= 1.35) {
     const pierDeckH = 0.55;
-    if (pierDeckH >= groundH - 0.15) {
+    if (
+      pierDeckH >= groundH - 0.15 &&
+      (currentY === undefined || currentY >= pierDeckH - 0.55)
+    ) {
       return { height: pierDeckH, surface: 'pier' };
     }
   }
 
   if (
-    (x >= -127 && x <= -114 && Math.abs(z - 48.0) <= 1.4) ||
+    (x >= -127 && x <= -105.5 && Math.abs(z - 48.0) <= 1.45) ||
     (Math.abs(x - LAKESIDE_TEA_PAVILION_POS.x) <= LAKESIDE_TEA_PAVILION_POS.halfSize &&
       Math.abs(z - LAKESIDE_TEA_PAVILION_POS.z) <= LAKESIDE_TEA_PAVILION_POS.halfSize)
   ) {
     const westPierH = LAKESIDE_TEA_PAVILION_POS.deckHeight;
-    if (westPierH >= groundH - 0.15) {
+    if (
+      westPierH >= groundH - 0.15 &&
+      (currentY === undefined || currentY >= westPierH - 0.55)
+    ) {
       return { height: westPierH, surface: 'pier' };
     }
   }
 
   const bridgeDx = x - 18.0;
   const bridgeDz = z - 2.0;
-  if (Math.abs(bridgeDx) <= 1.65 && Math.abs(bridgeDz) <= 7.2) {
-    const normZ = bridgeDz / 7.2;
-    const archH = 0.65 + (1.0 - normZ * normZ) * 1.45;
-    if (archH >= groundH - 0.1) {
+  if (Math.abs(bridgeDx) <= 1.65 && Math.abs(bridgeDz) <= 11.2) {
+    const normZ = bridgeDz / 11.2;
+    const archH = 0.52 + (1.0 - normZ * normZ) * 1.58;
+    if (
+      archH >= groundH - 0.1 &&
+      (currentY === undefined || currentY >= archH - 0.65)
+    ) {
       return { height: archH, surface: 'bridge' };
     }
   }
 
   const rbx = x - 78.0;
-  const rbz = z + 42.0;
-  const rbAngle = -0.52;
-  const rbLocalX = rbx * Math.cos(-rbAngle) - rbz * Math.sin(-rbAngle);
-  const rbLocalZ = rbx * Math.sin(-rbAngle) + rbz * Math.cos(-rbAngle);
-  if (Math.abs(rbLocalX) <= 1.6 && Math.abs(rbLocalZ) <= 7.5) {
-    const norm = rbLocalZ / 7.5;
-    const deckH = 0.9 + (1.0 - norm * norm) * 0.95;
-    if (deckH >= groundH - 0.15) {
+  const rbz = z + 35.0;
+  const rbAngle = 0.54;
+  const rbLocalX = rbx * Math.cos(rbAngle) - rbz * Math.sin(rbAngle);
+  const rbLocalZ = rbx * Math.sin(rbAngle) + rbz * Math.cos(rbAngle);
+  if (Math.abs(rbLocalX) <= 1.65 && Math.abs(rbLocalZ) <= 11.6) {
+    const norm = rbLocalZ / 11.6;
+    const deckH = 0.72 + (1.0 - norm * norm) * 1.18;
+    if (
+      deckH >= groundH - 0.15 &&
+      (currentY === undefined || currentY >= deckH - 0.65)
+    ) {
       return { height: deckH, surface: 'pier' };
     }
   }
@@ -987,12 +1000,18 @@ export function walkableHeightAt(
   if (
     x >= SOUTHEAST_HARBOR_POS.pierStartX - 0.5 &&
     x <= SOUTHEAST_HARBOR_POS.pierEndX &&
-    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= SOUTHEAST_HARBOR_POS.pierHalfW
+    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= SOUTHEAST_HARBOR_POS.pierHalfW &&
+    (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.65)
   ) {
     return { height: SOUTHEAST_HARBOR_POS.pierY, surface: 'pier' };
   }
 
-  if (x >= 271.0 && x <= 276.2 && Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 2.1) {
+  if (
+    x >= 271.0 &&
+    x <= 276.2 &&
+    Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 2.1 &&
+    (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.65)
+  ) {
     const tGang = Math.max(0, Math.min(1, (x - 271.0) / 5.0));
     return {
       height:
@@ -1049,11 +1068,12 @@ export function walkableHeightAt(
   }
 
   if (
-    (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.gazeboHalfSize &&
+    ((Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.gazeboHalfSize &&
       Math.abs(z - SOUTHWEST_OASIS_POS.gazeboZ) <= SOUTHWEST_OASIS_POS.gazeboHalfSize) ||
-    (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.bridgeHalfW &&
-      z >= SOUTHWEST_OASIS_POS.bridgeMinZ &&
-      z <= SOUTHWEST_OASIS_POS.bridgeMaxZ)
+      (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.bridgeHalfW &&
+        z >= SOUTHWEST_OASIS_POS.bridgeMinZ &&
+        z <= SOUTHWEST_OASIS_POS.bridgeMaxZ)) &&
+    (currentY === undefined || currentY >= SOUTHWEST_OASIS_POS.gazeboDeckY - 0.5)
   ) {
     return { height: SOUTHWEST_OASIS_POS.gazeboDeckY, surface: 'pier' };
   }

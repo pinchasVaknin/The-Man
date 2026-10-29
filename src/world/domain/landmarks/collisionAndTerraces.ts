@@ -619,13 +619,13 @@ export const FLAT_BUILDING_TERRACES = [
 /** Summary: Spatial exclusion circles suppressing procedural tree and rock generation. */
 export const CLEAR_ZONES = [
   { x: 0, z: 32, r: 6.5 },
-  { x: -14.5, z: 19.5, r: 6.5 },
-  { x: 18.0, z: 2.0, r: 6.5 },
+  { x: -11.5, z: 16.5, r: 9.5 },
+  { x: 18.0, z: 2.0, r: 12.5 },
   { x: 30.0, z: -26.0, r: 8.0 },
   { x: -34.0, z: -16.0, r: 7.5 },
   { x: HUNTER_LODGE_POS.x, z: HUNTER_LODGE_POS.z, r: 19.5 },
-  { x: -116.0, z: 48.0, r: 6.5 },
-  { x: 78.0, z: -42.0, r: 7.5 },
+  { x: -113.0, z: 48.0, r: 12.0 },
+  { x: 78.0, z: -35.0, r: 14.0 },
   { x: RIVERSIDE_WINDMILLS[0].x, z: RIVERSIDE_WINDMILLS[0].z, r: 9.5 },
   { x: RIVERSIDE_WINDMILLS[1].x, z: RIVERSIDE_WINDMILLS[1].z, r: 9.5 },
   { x: MAGIC_STONE_CIRCLE_POS.x, z: MAGIC_STONE_CIRCLE_POS.z, r: 11.2 },

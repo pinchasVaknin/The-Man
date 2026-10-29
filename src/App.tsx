@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
 import { WorldCanvas, GameStateMode, IVirtualMoveState } from './components/WorldCanvas';
 import { GameShellOverlay } from './components/GameShellOverlay';
+import { CharacterLabView } from './lab/CharacterLabView';
 import { telemetryStore } from './core/telemetryStore';
 
 const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
@@ -18,6 +19,8 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
   'regional_rain',
   'dense_fog',
   'lightning_storm',
+  'mountain_snow',
+  'wind_sand',
   'clear_clouds',
 ];
 // #endregion

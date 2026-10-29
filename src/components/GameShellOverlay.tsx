@@ -49,6 +49,7 @@ export interface IGameShellOverlayProps {
   onToggleMute: () => void;
   onCycleWeather: () => void;
   onSelectWeather: (option: WeatherToggleOption) => void;
+  onOpenLab: () => void;
   virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
   gameActions?: IGameActions | null;
 }
@@ -65,6 +66,8 @@ const WEATHER_OPTIONS: readonly IWeatherOptionDef[] = [
   { id: 'regional_rain', label: t('weather.regional_rain'), short: t('weather.regional_rain_short') },
   { id: 'dense_fog', label: t('weather.dense_fog'), short: t('weather.dense_fog_short') },
   { id: 'lightning_storm', label: t('weather.lightning_storm'), short: t('weather.lightning_storm_short') },
+  { id: 'mountain_snow', label: t('weather.mountain_snow'), short: t('weather.mountain_snow_short') },
+  { id: 'wind_sand', label: t('weather.wind_sand'), short: t('weather.wind_sand_short') },
   { id: 'clear_clouds', label: t('weather.clear_clouds'), short: t('weather.clear_clouds_short') },
 ];
 
@@ -351,70 +354,59 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onStartGame();
               }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium text-stone-200 transition-colors cursor-pointer shrink-0"
-              style={{
-                backgroundColor: 'rgba(20, 18, 15, 0.85)',
-                border: '1px solid rgba(56, 189, 248, 0.35)',
-              }}
+              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-sky-400 stroke-2">
-                <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
-                <path d="M8 19v2M12 19v2M16 19v2" />
-              </svg>
-              <span className="whitespace-nowrap">{t('ui.weather_hud_label', { weather: activeWeatherOption.short })}</span>
-              <kbd className="px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
-                V
-              </kbd>
+              {/* Hover gradient fading toward the inner screen (left) */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
+                }}
+              />
+              {/* Right edge active indicator bar on hover */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+              />
+              <span
+                className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:-translate-x-1.5"
+                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+              >
+                התחל משחק
+              </span>
             </button>
 
-        {/* Center / Right-Third Negative-Space Title Lockup */}
-        <div className="my-auto max-w-xl flex flex-col items-start gap-6">
-          <div className="flex items-center gap-4">
-            <svg
-              viewBox="0 0 72 72"
-              className="w-16 h-16 shrink-0"
-              aria-hidden="true"
+            {/* 2. Character & Animation Lab Text Button */}
+            <button
+              type="button"
+              data-testid="open-lab-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onOpenLab();
+              }}
+              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              <circle
-                cx="36"
-                cy="36"
-                r="33"
-                fill="rgba(20, 18, 14, 0.88)"
-                stroke="#d97706"
-                strokeWidth="2"
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                }}
               />
-              <circle cx="46" cy="24" r="7" fill="#fbbf24" />
-              <path
-                d="M10 48 L26 26 L38 40 L48 30 L62 48 Z"
-                fill="#44403c"
-                stroke="#78716c"
-                strokeWidth="1"
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
-              <path
-                d="M26 17 L18 31 L22 31 L16 42 L23 42 L23 48 L29 48 L29 42 L36 42 L30 31 L34 31 Z"
-                fill="#4d7c38"
-              />
-              <path
-                d="M15 53 Q36 50 57 53 M20 58 Q36 56 52 58"
-                stroke="#38bdf8"
-                strokeWidth="2"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </svg>
-
-            <div>
-              <h1
-                className="font-display-he text-4xl md:text-6xl font-bold text-stone-100 tracking-tight hud-stroke"
-                style={{ textWrap: 'balance' }}
+              <span
+                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                {t('ui.app_title')}
-              </h1>
-              <p className="text-base md:text-lg text-amber-200/90 font-medium mt-1 hud-stroke">
-                {t('ui.app_subtitle')}
-              </p>
-            </div>
-          </div>
+                מעבדה
+              </span>
+            </button>
 
             {/* 3. Weather Cycle Text Button */}
             <button
@@ -426,7 +418,29 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               }}
               className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              {t('ui.start_walking')}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                style={{
+                  background:
+                    'linear-gradient(to left, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.1) 55%, rgba(217, 119, 6, 0) 100%)',
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+              />
+              <div
+                className="relative z-10 flex items-baseline gap-3 text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+              >
+                <span className="font-display-he text-xl sm:text-2xl font-medium tracking-wide">
+                  מזג אוויר:
+                </span>
+                <span className="text-base sm:text-lg font-medium text-amber-300/90">
+                  {activeWeatherOption.short}
+                </span>
+              </div>
             </button>
           </nav>
         </div>
@@ -482,6 +496,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 <>
                   <path d="M4 10h16M6 14h12M4 18h16" />
                 </>
+              ) : weatherToggle === 'mountain_snow' ? (
+                <>
+                  <path d="M12 2v20M4.93 4.93l14.14 14.14M2 12h20M4.93 19.07L19.07 4.93" />
+                </>
+              ) : weatherToggle === 'wind_sand' ? (
+                <>
+                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+                </>
               ) : (
                 <>
                   <circle cx="12" cy="12" r="4" />
@@ -489,7 +511,11 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 </>
               )}
             </svg>
-            <span className="whitespace-nowrap">{activeWeatherOption.short}</span>
+            <span className="whitespace-nowrap">
+              {weatherToggle === 'auto' && telemetry.weatherLabel
+                ? `${activeWeatherOption.short} · ${telemetry.weatherLabel}`
+                : activeWeatherOption.short}
+            </span>
             <kbd className="hidden sm:inline-block px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
               V
             </kbd>
@@ -693,37 +719,47 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             </div>
           </div>
 
-          {/* Decoupled Floating Prompts & Notifications Below Crosshair (Zero impact on aiming dot!) */}
+          {/* Top-Center Combat & Level-Up Toasts (Well above the center view!) */}
+          {(telemetry.lastArrowHitTargetName || telemetry.skills?.lastLevelUpTitle) && (
+            <div
+              className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
+              aria-hidden="true"
+            >
+              {telemetry.lastArrowHitTargetName && (
+                <div
+                  data-testid="archery-hit-toast"
+                  className="px-3.5 py-1 text-xs font-bold text-amber-200 whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'rgba(14, 12, 10, 0.82)',
+                    border: '1px solid rgba(251, 191, 36, 0.45)',
+                  }}
+                >
+                  {t('skills.target_hit_hud', {
+                    target: telemetry.lastArrowHitTargetName ?? '',
+                  })}
+                </div>
+              )}
+
+              {telemetry.skills?.lastLevelUpTitle && (
+                <div
+                  data-testid="skill-levelup-toast"
+                  className="px-4 py-1.5 text-xs font-bold text-stone-950 bg-amber-400 shadow-xl whitespace-nowrap"
+                >
+                  {t('skills.level_up_hud', { title: telemetry.skills.lastLevelUpTitle ?? '' })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Side/Bottom-Right Action Prompts Dock (Unobstructed center view!) */}
           <div
-            className="fixed left-1/2 top-[calc(50%+34px)] -translate-x-1/2 pointer-events-none flex flex-col items-center gap-2"
+            className="fixed right-4 bottom-36 md:right-6 md:bottom-8 z-20 pointer-events-none flex flex-col items-end gap-2"
             aria-hidden="true"
           >
-            {telemetry.lastArrowHitTargetName && (
-              <div
-                data-testid="archery-hit-toast"
-                className="px-3.5 py-1 text-xs font-bold text-amber-200 whitespace-nowrap"
-                style={{
-                  backgroundColor: 'rgba(14, 12, 10, 0.82)',
-                  border: '1px solid rgba(251, 191, 36, 0.45)',
-                }}
-              >
-                {t('skills.target_hit_hud', { target: telemetry.lastArrowHitTargetName ?? telemetry.lastArrowHitTargetName ?? '' })}
-              </div>
-            )}
-
-            {telemetry.skills?.lastLevelUpTitle && (
-              <div
-                data-testid="skill-levelup-toast"
-                className="px-4 py-1.5 text-xs font-bold text-stone-950 bg-amber-400 shadow-xl whitespace-nowrap"
-              >
-                {t('skills.level_up_hud', { title: telemetry.skills.lastLevelUpTitle ?? '' })}
-              </div>
-            )}
-
             {telemetry.nearbyMarket && (
               <div
                 data-testid="market-stall-prompt"
-                className="mt-1 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-stone-100 shadow-2xl"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
                   border: '1px solid rgba(251, 191, 36, 0.65)',
@@ -733,7 +769,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   B
                 </kbd>
                 <span className="font-semibold text-xs text-amber-100">
-                  {t('market.hud.buy_and_sell_weapons', { market: telemetry.nearbyMarket.name ?? '' })}
+                  {t('market.hud.buy_and_sell_weapons', {
+                    market: telemetry.nearbyMarket.name ?? '',
+                  })}
                 </span>
               </div>
             )}
@@ -742,7 +780,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               <div
                 data-testid="door-prompt"
                 dir="ltr"
-                className="mt-2 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-stone-100 shadow-2xl"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
                   border: '1px solid rgba(251, 191, 36, 0.55)',
@@ -761,7 +799,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               <div
                 data-testid="ladder-prompt"
                 dir="ltr"
-                className="mt-2 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-stone-100 shadow-2xl"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
                   border: '1px solid rgba(251, 191, 36, 0.55)',
@@ -782,7 +820,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 <div
                   data-testid="horse-prompt"
                   dir="ltr"
-                  className="mt-2 flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-stone-100 shadow-2xl"
+                  className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                   style={{
                     backgroundColor: 'rgba(15, 13, 10, 0.90)',
                     border: '1px solid rgba(251, 191, 36, 0.55)',
@@ -796,6 +834,32 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   </span>
                 </div>
               )}
+
+            {telemetry.isSwimming && (
+              <div
+                data-testid="swim-dive-prompt"
+                dir="ltr"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(12, 34, 48, 0.90)',
+                  border: '1px solid rgba(56, 189, 248, 0.55)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-sky-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  Ctrl / C
+                </kbd>
+                <span className="font-semibold tracking-wide text-xs text-sky-100">
+                  Dive
+                </span>
+                <span className="text-sky-400/60">·</span>
+                <kbd className="px-2 py-0.5 rounded-md bg-sky-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  Space
+                </kbd>
+                <span className="font-semibold tracking-wide text-xs text-sky-100">
+                  Surface
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Skyrim-Style Green Stamina Bar at Bottom Center when sprinting, drawing bow, or attacking */}

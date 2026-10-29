@@ -248,13 +248,21 @@ export function buildRealisticWorld(
       }
 
       // 4. Submodule simulation updates
-      updateSettlement(elapsedTime);
+      updateSettlement(elapsedTime, rideableHorses, _mountedHorseId, playerX, playerZ);
       updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
       updateFortress(elapsedTime, playerX, playerZ);
       updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
       updateHarbor(elapsedTime, playerX, playerZ);
       updateOasis(elapsedTime);
-      updateEnvironment(elapsedTime, playerX, playerZ, morningMistOpacity, nightFactor, weather);
+      updateEnvironment(
+        elapsedTime,
+        playerX,
+        playerZ,
+        morningMistOpacity,
+        nightFactor,
+        weather,
+        playerState?.y ?? 2.15
+      );
 
       // 5. Wildlife, boids and footprint trails
       const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));

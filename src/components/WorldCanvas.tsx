@@ -42,6 +42,7 @@ import {
   computeDynamicSolarCycle,
   computeWeatherState,
   walkableHeightAt,
+  getWaterSurfaceHeightAt,
   isPositionUnderRoof,
   findNearestFortressDoor,
   findNearestMarketStall,
@@ -1081,7 +1082,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const relaxed =
           virtualMoveRef.current.relaxed ||
           keysPressed.has('ControlLeft') ||
-          keysPressed.has('ControlRight');
+          keysPressed.has('ControlRight') ||
+          keysPressed.has('KeyC');
 
         const jumpPressed =
           virtualMoveRef.current.jump || keysJustPressed.has('Space');
@@ -1260,6 +1262,16 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             'YXZ'
           );
           camera.quaternion.setFromEuler(_euler);
+        }
+
+        const camWaterY = getWaterSurfaceHeightAt(
+          camera.position.x,
+          camera.position.z,
+          playerState.y
+        );
+        if (camWaterY !== null && camera.position.y < camWaterY + 0.05) {
+          fog.color.setHex(0x0c4a6e);
+          fog.density = 0.038;
         }
 
         const horizSpeed = Math.hypot(playerState.vx, playerState.vz);

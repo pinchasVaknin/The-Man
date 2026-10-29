@@ -122,8 +122,8 @@ test('buyMarketItem_WhenOutsideMarketStall_ShouldReturnFailedResultWithNotInMark
   // Assert
   assert.equal(result.isSuccess, false);
   assert.equal(result.isFailure, true);
-  assert.equal(result.reason, 'not_in_market');
-  assert.equal(result.error, 'not_in_market');
+  assert.equal(result.reason, 'NOT_IN_MARKET');
+  assert.equal(result.error, 'NOT_IN_MARKET');
 });
 
 test('buyMarketItem_WhenHeroLevelIsTooLow_ShouldReturnFailedResultWithLevelTooLow', () => {
@@ -136,8 +136,8 @@ test('buyMarketItem_WhenHeroLevelIsTooLow_ShouldReturnFailedResultWithLevelTooLo
   // Assert
   assert.equal(result.isSuccess, false);
   assert.equal(result.isFailure, true);
-  assert.equal(result.reason, 'level_too_low');
-  assert.equal(result.error, 'level_too_low');
+  assert.equal(result.reason, 'LEVEL_TOO_LOW');
+  assert.equal(result.error, 'LEVEL_TOO_LOW');
   assert.equal(player.ownedItemIds?.includes('elven_longbow') ?? false, false);
 });
 // #endregion

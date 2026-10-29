@@ -748,22 +748,49 @@ export function stepPlayerPhysics(
     state.inWater = false;
   } else if (isDeepWater && waterSurfaceY !== null && !state.mountedHorseId) {
     const swimTargetY = waterSurfaceY - 0.95;
-    const basinFloorY = Math.max(walkSurface.height, waterSurfaceY - 2.2);
+    const basinFloorY = walkSurface.height + 0.15;
 
     if (state.y <= waterSurfaceY - 0.25) {
       state.isSwimming = true;
       state.bowDrawn = false;
       state.bowDrawProgress = 0;
-      const buoyancy = (swimTargetY - state.y) * 18.0;
-      state.vy = state.vy * Math.exp(-8.5 * dt) + buoyancy * dt;
-      if (input.jumpPressed && waterSurfaceY - walkSurface.height < 1.35) {
+
+      const isPitchDiving = input.forward > 0.1 && state.pitch < -0.24;
+      const isPitchAscending =
+        input.forward > 0.1 && state.pitch > 0.24 && state.y < swimTargetY - 0.1;
+      const wantsDive = input.relaxed || isPitchDiving;
+      const wantsAscend = input.jumpHeld || isPitchAscending;
+
+      if (
+        input.jumpPressed &&
+        state.y >= swimTargetY - 0.35 &&
+        waterSurfaceY - walkSurface.height < 1.35
+      ) {
         state.vy = 5.4;
         state.isSwimming = false;
-      } else if (input.jumpHeld) {
-        state.vy = Math.max(state.vy, 1.4);
+      } else if (wantsDive) {
+        const diveRate = input.relaxed
+          ? -3.8
+          : Math.min(-1.8, Math.sin(state.pitch) * (input.sprint ? 5.2 : 3.8));
+        state.vy = state.vy * Math.exp(-8.0 * dt) + (diveRate - state.vy) * (1 - Math.exp(-10.0 * dt));
+      } else if (wantsAscend) {
+        const ascendRate = input.jumpHeld
+          ? 3.8
+          : Math.max(1.8, Math.sin(state.pitch) * (input.sprint ? 5.2 : 3.8));
+        state.vy =
+          state.vy * Math.exp(-8.0 * dt) + (ascendRate - state.vy) * (1 - Math.exp(-10.0 * dt));
+      } else if (state.y >= swimTargetY - 0.35) {
+        const buoyancy = (swimTargetY - state.y) * 18.0;
+        state.vy = state.vy * Math.exp(-8.5 * dt) + buoyancy * dt;
+      } else {
+        // Submerged underwater: maintain chosen depth with very gentle upward drift
+        const deepBuoyancy = (swimTargetY - state.y) * 0.35;
+        state.vy = state.vy * Math.exp(-7.5 * dt) + deepBuoyancy * dt;
       }
+
       state.y += state.vy * dt;
-      state.y = Math.max(basinFloorY, Math.min(waterSurfaceY - 0.38, state.y));
+      const maxSwimY = state.isSwimming ? waterSurfaceY - 0.38 : waterSurfaceY + 2.0;
+      state.y = Math.max(basinFloorY, Math.min(maxSwimY, state.y));
       state.onGround = true;
       state.coyoteTimer = 0.12;
       state.inWater = true;

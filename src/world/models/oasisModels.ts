@@ -482,7 +482,10 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandl
     lagPosAttr.setXYZ(i, ex, 0, ez);
   }
   oasisLagoonGeo.computeVertexNormals();
-  const oasisBridgeDeckGeo = new THREE.BoxGeometry(4.4, 0.28, 27.0);
+  const oasisBridgeDeckGeo = new THREE.BoxGeometry(4.4, 0.28, 30.6);
+  const oasisBridgeRampGeo = new THREE.BoxGeometry(4.4, 0.24, 2.2);
+  const oasisBridgePostGeo = new THREE.BoxGeometry(0.24, 0.92, 0.24);
+  const oasisBridgeRailGeo = new THREE.BoxGeometry(0.16, 0.14, 10.6);
   const oasisGazeboFloorGeo = new THREE.BoxGeometry(8.8, 0.32, 8.8);
   const oasisGazeboDomeGeo = new THREE.ConeGeometry(6.4, 3.6, 8);
   const amphColGeo = new THREE.CylinderGeometry(0.36, 0.42, 5.6, 12);
@@ -492,6 +495,9 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandl
   disposableGeometries.push(
     oasisLagoonGeo,
     oasisBridgeDeckGeo,
+    oasisBridgeRampGeo,
+    oasisBridgePostGeo,
+    oasisBridgeRailGeo,
     oasisGazeboFloorGeo,
     oasisGazeboDomeGeo,
     amphColGeo,
@@ -510,6 +516,36 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandl
     SOUTHWEST_OASIS_POS.gazeboDeckY - 0.14,
     SOUTHWEST_OASIS_POS.lagoonZ
   );
+  for (const dirZ of [-1, 1]) {
+    const ramp = new THREE.Mesh(oasisBridgeRampGeo, timberMat);
+    ramp.position.set(
+      SOUTHWEST_OASIS_POS.gazeboX,
+      SOUTHWEST_OASIS_POS.gazeboDeckY - 0.26,
+      SOUTHWEST_OASIS_POS.lagoonZ + dirZ * 15.6
+    );
+    ramp.rotation.x = dirZ * 0.16;
+    swOasisGroup.add(ramp);
+  }
+  for (const xSide of [-2.05, 2.05]) {
+    for (const zSpanCenter of [-9.6, 9.6]) {
+      const rail = new THREE.Mesh(oasisBridgeRailGeo, timberMat);
+      rail.position.set(
+        SOUTHWEST_OASIS_POS.gazeboX + xSide,
+        SOUTHWEST_OASIS_POS.gazeboDeckY + 0.72,
+        SOUTHWEST_OASIS_POS.lagoonZ + zSpanCenter
+      );
+      swOasisGroup.add(rail);
+    }
+    for (const zPost of [-14.8, -9.6, -4.6, 4.6, 9.6, 14.8]) {
+      const post = new THREE.Mesh(oasisBridgePostGeo, barkMat);
+      post.position.set(
+        SOUTHWEST_OASIS_POS.gazeboX + xSide,
+        SOUTHWEST_OASIS_POS.gazeboDeckY + 0.36,
+        SOUTHWEST_OASIS_POS.lagoonZ + zPost
+      );
+      swOasisGroup.add(post);
+    }
+  }
   const oasisGazeboFloor = new THREE.Mesh(oasisGazeboFloorGeo, imperialWoodFloorMat);
   oasisGazeboFloor.position.set(
     SOUTHWEST_OASIS_POS.gazeboX,

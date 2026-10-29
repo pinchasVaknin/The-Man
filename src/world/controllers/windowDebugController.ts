@@ -115,6 +115,8 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     'regional_rain',
     'dense_fog',
     'lightning_storm',
+    'mountain_snow',
+    'wind_sand',
     'clear_clouds',
   ]);
 

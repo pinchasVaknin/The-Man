@@ -100,7 +100,7 @@ test('stepPlayerPhysics_WhenNearHorseAndMountRequested_ShouldMountHorse', () => 
   const horses: IRideableHorseState[] = [
     {
       id: 'horse_1',
-      nameHe: 'סוס',
+      name: 'סוס',
       x: state.x + 0.5,
       y: state.y,
       z: state.z + 0.5,

@@ -396,65 +396,6 @@ export class MarketTransactionResult<T, E = string> extends Result<T, E> {
   }
 }
 
-export type MarketTransactionErrorCode =
-  | 'not_in_market'
-  | 'already_owned'
-  | 'level_too_low'
-  | 'not_enough_gold'
-  | 'not_found'
-  | 'not_owned'
-  | 'cannot_sell';
-
-export interface IBuyMarketItemPayload {
-  readonly goldCoins: number;
-  readonly requiredLevel: number;
-  readonly playerLevel: number;
-}
-
-export interface ISellMarketItemPayload {
-  readonly goldCoins: number;
-  readonly soldForGold: number;
-}
-
-/**
- * Summary: Extended Result container for market transactions supporting legacy and typed accessors.
- * Design: Extends core Result to satisfy errors-logging while maintaining zero-breakage backwards compatibility.
- */
-export class MarketTransactionResult<T, E = string> extends Result<T, E> {
-  public readonly goldCoins: number;
-  public readonly requiredLevel?: number;
-  public readonly playerLevel?: number;
-  public readonly soldForGold?: number;
-
-  public constructor(
-    isSuccess: boolean,
-    value: T | undefined,
-    error: E | undefined,
-    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
-  ) {
-    super(isSuccess, value, error);
-    this.goldCoins = details.goldCoins;
-    this.requiredLevel = details.requiredLevel;
-    this.playerLevel = details.playerLevel;
-    this.soldForGold = details.soldForGold;
-    Object.freeze(this);
-  }
-
-  public static success<T>(
-    value: T,
-    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
-  ): MarketTransactionResult<T, never> {
-    return new MarketTransactionResult<T, never>(true, value, undefined as never, details);
-  }
-
-  public static failure<E = string>(
-    error: E,
-    details: { goldCoins: number; requiredLevel?: number; playerLevel?: number; soldForGold?: number }
-  ): MarketTransactionResult<never, E> {
-    return new MarketTransactionResult<never, E>(false, undefined as never, error, details);
-  }
-}
-
 /**
  * Summary: Purchases an item from a market stall if within range, level-eligible, and affordable.
  * Design: Guard clauses validate proximity, item presence, prior ownership, level gating, and currency.

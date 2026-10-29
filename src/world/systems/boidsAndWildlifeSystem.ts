@@ -431,30 +431,53 @@ export function stepBoidsAndWildlife(
       a.yaw = Math.atan2(-dx, -dz);
     } else {
       a.alertLevel = 'foraging';
-      a.earPerk += (0.25 - a.earPerk) * (1 - Math.exp(-4 * dt));
-      // Gentle wander around home
+      a.earPerk += (0.28 - a.earPerk) * (1 - Math.exp(-4 * dt));
+      // Active periodic foraging hops & gentle wander around home
       const toHomeX = a.homeX - a.x;
       const toHomeZ = a.homeZ - a.z;
       const homeDist = Math.hypot(toHomeX, toHomeZ);
-      if (homeDist > 9.0) {
+      if (homeDist > 8.5) {
         a.yaw = Math.atan2(toHomeX, toHomeZ);
-        a.vx = (toHomeX / homeDist) * 1.35;
-        a.vz = (toHomeZ / homeDist) * 1.35;
+        a.vx = (toHomeX / homeDist) * 1.45;
+        a.vz = (toHomeZ / homeDist) * 1.45;
       } else {
-        a.vx *= Math.exp(-5 * dt);
-        a.vz *= Math.exp(-5 * dt);
+        const foragePulse = Math.sin(a.hopPhase * 0.65 + i * 1.9);
+        if (foragePulse > 0.25) {
+          const wanderAng = a.yaw + Math.sin(a.hopPhase + i * 2.3) * 0.65 * dt;
+          a.yaw = wanderAng;
+          const forageSpd = a.species === 'rabbit' ? 1.15 : 1.35;
+          a.vx = Math.sin(wanderAng) * forageSpd;
+          a.vz = Math.cos(wanderAng) * forageSpd;
+        } else {
+          a.vx *= Math.exp(-5 * dt);
+          a.vz *= Math.exp(-5 * dt);
+        }
       }
     }
 
     const moveSpeed = Math.hypot(a.vx, a.vz);
     if (moveSpeed > 0.08) {
-      a.x += a.vx * dt;
-      a.z += a.vz * dt;
+      let nextX = a.x + a.vx * dt;
+      let nextZ = a.z + a.vz * dt;
+      if (heightAt(nextX, nextZ) < 0.35) {
+        const toHomeX = a.homeX - a.x;
+        const toHomeZ = a.homeZ - a.z;
+        const hd = Math.max(0.1, Math.hypot(toHomeX, toHomeZ));
+        a.yaw = Math.atan2(toHomeX, toHomeZ);
+        a.vx = (toHomeX / hd) * 1.8;
+        a.vz = (toHomeZ / hd) * 1.8;
+        nextX = a.x + a.vx * dt;
+        nextZ = a.z + a.vz * dt;
+      }
+      a.x = nextX;
+      a.z = nextZ;
       const hopRate = a.species === 'rabbit' ? RABBIT_HOP_RATE : SQUIRREL_HOP_RATE;
       a.hopPhase = (a.hopPhase + dt * hopRate) % (Math.PI * 2);
-      a.hopHeight = Math.max(0, Math.sin(a.hopPhase)) * (a.species === 'rabbit' ? RABBIT_HOP_HEIGHT : SQUIRREL_HOP_HEIGHT);
+      a.hopHeight =
+        Math.max(0, Math.sin(a.hopPhase)) *
+        (a.species === 'rabbit' ? RABBIT_HOP_HEIGHT : SQUIRREL_HOP_HEIGHT);
     } else {
-      a.hopPhase = (a.hopPhase + dt * 2.5) % (Math.PI * 2);
+      a.hopPhase = (a.hopPhase + dt * 2.2) % (Math.PI * 2);
       a.hopHeight *= Math.exp(-10 * dt);
     }
 

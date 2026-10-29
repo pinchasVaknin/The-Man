@@ -540,6 +540,27 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     [246.0, 238.0, -Math.PI / 2, imperialCrimsonMat],
     [246.0, 246.0, -Math.PI / 2, sleepingBagColors[0]],
   ];
+  const merchantSkinMat = new THREE.MeshStandardMaterial({ color: 0xe0b596, roughness: 0.65 });
+  const merchantHairMat = new THREE.MeshStandardMaterial({ color: 0x241911, roughness: 0.85 });
+  const merchantRobeColors = [
+    new THREE.MeshStandardMaterial({ color: 0x8b1e24, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x1d4d4f, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x6b3fa0, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x2c4a70, roughness: 0.72 }),
+    new THREE.MeshStandardMaterial({ color: 0x3b281e, roughness: 0.78 }),
+    new THREE.MeshStandardMaterial({ color: 0x9c5a1a, roughness: 0.72 }),
+  ];
+  disposableMaterials.push(merchantSkinMat, merchantHairMat, ...merchantRobeColors);
+
+  const npcTorsoGeo = new THREE.CylinderGeometry(0.22, 0.28, 0.76, 8);
+  const npcHeadGeo = new THREE.SphereGeometry(0.16, 10, 8);
+  const npcHatGeo = new THREE.CylinderGeometry(0.18, 0.17, 0.14, 10);
+  const npcArmGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.52, 6);
+  npcArmGeo.translate(0, -0.22, 0);
+  disposableGeometries.push(npcTorsoGeo, npcHeadGeo, npcHatGeo, npcArmGeo);
+
+  const merchantArmPivots: THREE.Group[] = [];
+
   for (let s = 0; s < stallPlacements.length; s++) {
     const [sx, sz, syaw, canopyMat] = stallPlacements[s];
     const stGroup = new THREE.Group();
@@ -582,6 +603,33 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
       goldChest.position.set(1.15, 1.04, 0);
       stGroup.add(goldChest);
     }
+
+    // Harbor Bazaar Merchant / Blacksmith NPC standing behind counter
+    const npcGroup = new THREE.Group();
+    npcGroup.position.set(0, 0, -0.95);
+    const robeMat = merchantRobeColors[s % merchantRobeColors.length];
+    const npcTorso = new THREE.Mesh(npcTorsoGeo, robeMat);
+    npcTorso.position.set(0, 0.92, 0);
+    const npcSash = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.25, 0.12, 8), imperialGoldMat);
+    disposableGeometries.push(npcSash.geometry);
+    npcSash.position.set(0, 0.78, 0);
+    const npcHead = new THREE.Mesh(npcHeadGeo, merchantSkinMat);
+    npcHead.position.set(0, 1.48, 0);
+    const npcHat = new THREE.Mesh(npcHatGeo, s === 4 ? merchantHairMat : imperialGoldMat);
+    npcHat.position.set(0, 1.62, 0);
+
+    const leftArm = new THREE.Mesh(npcArmGeo, robeMat);
+    leftArm.position.set(-0.28, 1.24, 0);
+    leftArm.rotation.z = 0.18;
+
+    const rightArmPivot = new THREE.Group();
+    rightArmPivot.position.set(0.28, 1.24, 0);
+    const rightArm = new THREE.Mesh(npcArmGeo, robeMat);
+    rightArmPivot.add(rightArm);
+    merchantArmPivots.push(rightArmPivot);
+
+    npcGroup.add(npcTorso, npcSash, npcHead, npcHat, leftArm, rightArmPivot);
+    stGroup.add(npcGroup);
 
     const crate = new THREE.Mesh(supplyCrateGeo, imperialWoodFloorMat);
     crate.position.set(2.4, 0.58, -0.6);
@@ -1231,22 +1279,75 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     radius: 145,
   });
 
-  // 9) SOARING WHITE COASTAL SEAGULLS ABOVE THE HARBOR
+  // 9) SOARING WHITE COASTAL SEAGULLS ABOVE THE HARBOR (Full Sculpted 3D Anatomy)
   const harborSeagullsGroup = new THREE.Group();
-  const seagullWingGeo = new THREE.BoxGeometry(0.85, 0.04, 0.24);
-  disposableGeometries.push(seagullWingGeo);
+  const seagullMantleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.55 });
+  const seagullTipMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+  const seagullBeakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 });
+  disposableMaterials.push(seagullMantleMat, seagullTipMat, seagullBeakMat);
+
+  const gullTorsoGeo = new THREE.ConeGeometry(0.14, 0.66, 6);
+  gullTorsoGeo.rotateX(Math.PI / 2);
+  const gullBreastGeo = new THREE.SphereGeometry(0.13, 6, 5);
+  gullBreastGeo.scale(0.95, 0.85, 1.35);
+  gullBreastGeo.translate(0, -0.02, 0.12);
+  const gullHeadGeo = new THREE.SphereGeometry(0.095, 6, 5);
+  gullHeadGeo.translate(0, 0.05, 0.35);
+  const gullBeakGeo = new THREE.ConeGeometry(0.032, 0.16, 5);
+  gullBeakGeo.rotateX(Math.PI / 2);
+  gullBeakGeo.translate(0, 0.04, 0.47);
+  const gullTailGeo = new THREE.ConeGeometry(0.15, 0.30, 5);
+  gullTailGeo.rotateX(-Math.PI / 2);
+  gullTailGeo.scale(1.2, 0.22, 1.0);
+  gullTailGeo.translate(0, 0.01, -0.40);
+  const seagullWingInnerGeo = new THREE.BoxGeometry(0.48, 0.032, 0.22);
+  const seagullWingOuterGeo = new THREE.BoxGeometry(0.44, 0.024, 0.16);
+  disposableGeometries.push(
+    gullTorsoGeo,
+    gullBreastGeo,
+    gullHeadGeo,
+    gullBeakGeo,
+    gullTailGeo,
+    seagullWingInnerGeo,
+    seagullWingOuterGeo
+  );
+
   for (let g = 0; g < 10; g++) {
     const gull = new THREE.Group();
-    const lw = new THREE.Mesh(seagullWingGeo, seagullMat);
-    lw.position.x = -0.38;
-    const rw = new THREE.Mesh(seagullWingGeo, seagullMat);
-    rw.position.x = 0.38;
-    gull.add(lw, rw);
+    const torso = new THREE.Mesh(gullTorsoGeo, seagullMat);
+    const breast = new THREE.Mesh(gullBreastGeo, seagullMat);
+    const head = new THREE.Mesh(gullHeadGeo, seagullMat);
+    const beak = new THREE.Mesh(gullBeakGeo, seagullBeakMat);
+    const tail = new THREE.Mesh(gullTailGeo, seagullMat);
+
+    const leftWingPivot = new THREE.Group();
+    leftWingPivot.position.set(-0.09, 0.02, 0.04);
+    const lwInner = new THREE.Mesh(seagullWingInnerGeo, seagullMantleMat);
+    lwInner.position.set(-0.22, 0, 0);
+    const lwOuter = new THREE.Mesh(seagullWingOuterGeo, seagullTipMat);
+    lwOuter.position.set(-0.62, 0.01, -0.03);
+    lwOuter.rotation.y = 0.14;
+    lwOuter.rotation.z = 0.08;
+    leftWingPivot.add(lwInner, lwOuter);
+
+    const rightWingPivot = new THREE.Group();
+    rightWingPivot.position.set(0.09, 0.02, 0.04);
+    const rwInner = new THREE.Mesh(seagullWingInnerGeo, seagullMantleMat);
+    rwInner.position.set(0.22, 0, 0);
+    const rwOuter = new THREE.Mesh(seagullWingOuterGeo, seagullTipMat);
+    rwOuter.position.set(0.62, 0.01, -0.03);
+    rwOuter.rotation.y = -0.14;
+    rwOuter.rotation.z = -0.08;
+    rightWingPivot.add(rwInner, rwOuter);
+
+    gull.add(torso, breast, head, beak, tail, leftWingPivot, rightWingPivot);
     gull.userData = {
       orbitRadius: 18 + (g % 4) * 9,
       orbitSpeed: 0.22 + (g % 3) * 0.05,
       phase: (g / 10) * Math.PI * 2,
       altitude: 19 + (g % 4) * 3.5,
+      leftWingPivot,
+      rightWingPivot,
     };
     harborSeagullsGroup.add(gull);
   }
@@ -1255,6 +1356,11 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   const updateHarbor = (elapsedTime: number, playerX: number, playerZ: number) => {
     if (harborGroup.visible) {
       lighthouseBeaconGroup.rotation.y = elapsedTime * 0.65;
+      for (let m = 0; m < merchantArmPivots.length; m++) {
+        const armPivot = merchantArmPivots[m];
+        armPivot.rotation.x = -0.55 + Math.sin(elapsedTime * 3.2 + m * 1.3) * 0.35;
+        armPivot.rotation.z = -0.22 + Math.cos(elapsedTime * 2.4 + m) * 0.12;
+      }
     }
     const nearHarborGulls = isWithinViewDistance(272, 252, playerX, playerZ, 65, 180);
     harborSeagullsGroup.visible = nearHarborGulls;
@@ -1267,10 +1373,14 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
         const gx = 272 + Math.cos(ang) * ud.orbitRadius;
         const gz = 252 + Math.sin(ang) * ud.orbitRadius;
         gull.position.set(gx, ud.altitude + Math.sin(elapsedTime * 1.2 + ud.phase) * 1.4, gz);
-        gull.rotation.y = -ang;
-        const flap = Math.sin(elapsedTime * 6.0 + ud.phase * 2) * 0.26;
-        (gull.children[0] as THREE.Mesh).rotation.z = 0.12 + flap;
-        (gull.children[1] as THREE.Mesh).rotation.z = -0.12 - flap;
+        gull.rotation.order = 'YXZ';
+        gull.rotation.y = Math.atan2(-Math.sin(ang), Math.cos(ang));
+        gull.rotation.z = -0.16;
+        const flap = Math.sin(elapsedTime * 6.0 + ud.phase * 2) * 0.42;
+        if (ud.leftWingPivot && ud.rightWingPivot) {
+          ud.leftWingPivot.rotation.z = 0.08 + flap;
+          ud.rightWingPivot.rotation.z = -0.08 - flap;
+        }
       }
     }
   };

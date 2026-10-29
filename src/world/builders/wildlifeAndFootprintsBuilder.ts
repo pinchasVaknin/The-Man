@@ -363,21 +363,35 @@ export function buildWildlifeAndFootprintsLayer(
   const eagleGroup = new THREE.Group();
   const eagleBodyMat = new THREE.MeshStandardMaterial({ color: 0x3b2616, roughness: 0.6 });
   const eagleGoldMat = new THREE.MeshStandardMaterial({ color: 0xc8963e, roughness: 0.55 });
-  disposableMaterials?.push(eagleBodyMat, eagleGoldMat);
+  const eagleBeakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.38 });
+  disposableMaterials?.push(eagleBodyMat, eagleGoldMat, eagleBeakMat);
   const eagleBody = new THREE.Mesh(bodyGeo, eagleBodyMat);
   eagleBody.scale.set(2.2, 2.0, 2.4);
   const eagleHead = new THREE.Mesh(breastGeo, eagleGoldMat);
   eagleHead.position.set(0, 0.08, 0.55);
   eagleHead.scale.setScalar(1.5);
+  const eagleBeak = new THREE.Mesh(bodyGeo, eagleBeakMat);
+  eagleBeak.scale.set(0.65, 0.65, 0.9);
+  eagleBeak.position.set(0, 0.06, 0.82);
+  const eagleTail = new THREE.Mesh(tailGeo, eagleBodyMat);
+  eagleTail.scale.set(2.4, 1.5, 2.2);
+  eagleTail.position.set(0, 0.02, -0.78);
+
+  const eagleLeftWingPivot = new THREE.Group();
+  eagleLeftWingPivot.position.set(-0.18, 0.06, 0.05);
   const eagleLeftWing = new THREE.Mesh(wingInnerGeo, eagleBodyMat);
   eagleLeftWing.scale.set(3.4, 1.4, 2.2);
-  eagleLeftWing.position.set(-0.85, 0.06, 0);
-  eagleLeftWing.rotation.z = 0.08;
+  eagleLeftWing.position.set(-0.68, 0, 0);
+  eagleLeftWingPivot.add(eagleLeftWing);
+
+  const eagleRightWingPivot = new THREE.Group();
+  eagleRightWingPivot.position.set(0.18, 0.06, 0.05);
   const eagleRightWing = new THREE.Mesh(wingInnerGeo, eagleBodyMat);
   eagleRightWing.scale.set(3.4, 1.4, 2.2);
-  eagleRightWing.position.set(0.85, 0.06, 0);
-  eagleRightWing.rotation.z = -0.08;
-  eagleGroup.add(eagleBody, eagleHead, eagleLeftWing, eagleRightWing);
+  eagleRightWing.position.set(0.68, 0, 0);
+  eagleRightWingPivot.add(eagleRightWing);
+
+  eagleGroup.add(eagleBody, eagleHead, eagleBeak, eagleTail, eagleLeftWingPivot, eagleRightWingPivot);
   group.add(eagleGroup);
 
   let soundStartleCooldown = 0;
@@ -560,9 +574,9 @@ export function buildWildlifeAndFootprintsLayer(
       eagleGroup.rotation.order = 'YXZ';
       eagleGroup.rotation.y = Math.atan2(eagleVx, eagleVz);
       eagleGroup.rotation.z = -0.24;
-      const slowFlap = Math.sin(elapsed * 3.2) * 0.18;
-      eagleLeftWing.rotation.z = 0.08 + slowFlap;
-      eagleRightWing.rotation.z = -0.08 - slowFlap;
+      const slowFlap = Math.sin(elapsed * 3.2) * 0.24;
+      eagleLeftWingPivot.rotation.z = 0.08 + slowFlap;
+      eagleRightWingPivot.rotation.z = -0.08 - slowFlap;
     },
   };
 }

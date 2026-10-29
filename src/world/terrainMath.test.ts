@@ -1980,4 +1980,90 @@ test('footprintTrailSystem_WhenEntitiesTraverseTerrain_ShouldSpawnFadingFootprin
   }
   assert.equal(tracker.decals[0].active, false, 'Expected footprint decal to expire after 16 seconds');
 });
+
+test('riverBridgesAndUnderwaterDiving_WhenTraversingOrSwimming_ShouldSpanBankToBankPassUnderAndDiveDeep', () => {
+  // 1) Central Arched Stone Bridge at (18, 2) reaches dry land on both banks and allows walking on top OR swimming underneath
+  const centralNorthBank = groundHeightAt(18.0, 2.0 - 11.0);
+  const centralSouthBank = groundHeightAt(18.0, 2.0 + 11.0);
+  assert.ok(centralNorthBank > WATER_LEVEL, `Expected Central Bridge north end to rest on dry bank, got ${centralNorthBank}`);
+  assert.ok(centralSouthBank > WATER_LEVEL, `Expected Central Bridge south end to rest on dry bank, got ${centralSouthBank}`);
+
+  const topCentralBridge = walkableHeightAt(18.0, 2.0);
+  assert.equal(topCentralBridge.surface, 'bridge', 'Expected walking on top of Central Bridge to return bridge surface');
+  assert.ok(topCentralBridge.height > WATER_LEVEL + 1.2, `Expected Central Bridge deck > 1.2m, got ${topCentralBridge.height}`);
+
+  const underCentralBridge = walkableHeightAt(18.0, 2.0, WATER_LEVEL - 0.95);
+  assert.equal(underCentralBridge.surface, 'ground', 'Expected swimmer under Central Bridge to stay in water and not snap to bridge deck');
+  assert.ok(underCentralBridge.height < WATER_LEVEL - 0.8, `Expected river floor under Central Bridge < -0.8m, got ${underCentralBridge.height}`);
+
+  // 2) Northeastern River Timber Bridge at (78, -35) reaches dry land on both banks and allows swimming underneath
+  const rbAngle = 0.54;
+  const neBridgeSouthBank = groundHeightAt(78.0 + 11.2 * Math.sin(rbAngle), -35.0 + 11.2 * Math.cos(rbAngle));
+  const neBridgeNorthBank = groundHeightAt(78.0 - 11.2 * Math.sin(rbAngle), -35.0 - 11.2 * Math.cos(rbAngle));
+  assert.ok(neBridgeSouthBank > WATER_LEVEL, `Expected NE River Bridge SE end to rest on dry bank, got ${neBridgeSouthBank}`);
+  assert.ok(neBridgeNorthBank > WATER_LEVEL, `Expected NE River Bridge NW end to rest on dry bank, got ${neBridgeNorthBank}`);
+
+  const topNeBridge = walkableHeightAt(78.0, -35.0);
+  assert.equal(topNeBridge.surface, 'pier', 'Expected walking on top of NE River Timber Bridge to return wooden pier surface');
+  const underNeBridge = walkableHeightAt(78.0, -35.0, WATER_LEVEL - 0.95);
+  assert.equal(underNeBridge.surface, 'ground', 'Expected swimmer under NE River Bridge to stay in water and not snap to bridge deck');
+
+  // Verify a swimming player passing directly under the Central Bridge at (18, 2) stays in the water
+  const bridgeSwimmer = createInitialPlayerState();
+  bridgeSwimmer.x = 16.0;
+  bridgeSwimmer.z = 2.0;
+  bridgeSwimmer.y = WATER_LEVEL - 0.95;
+  bridgeSwimmer.yaw = -Math.PI / 2; // swimming East (+X) under the bridge at x = 18
+  for (let i = 0; i < 20; i++) {
+    stepPlayerPhysics(
+      bridgeSwimmer,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(bridgeSwimmer.x > 19.0, `Expected swimmer to pass under the bridge from x=16 to x>19, got x=${bridgeSwimmer.x}`);
+  assert.equal(bridgeSwimmer.isSwimming, true, 'Expected swimmer passing under bridge to remain swimming');
+  assert.ok(bridgeSwimmer.y < WATER_LEVEL, `Expected swimmer passing under bridge not to pop onto bridge deck, got y=${bridgeSwimmer.y}`);
+
+  // 3) 3D Underwater Diving: holding Ctrl/C (relaxed=true) or pitching down while swimming dives deep below the surface
+  const diver = createInitialPlayerState();
+  diver.x = -2.0;
+  diver.z = 1.5;
+  diver.y = WATER_LEVEL - 0.95;
+  for (let i = 0; i < 25; i++) {
+    stepPlayerPhysics(
+      diver,
+      { forward: 1, right: 0, sprint: false, relaxed: true, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.equal(diver.isSwimming, true);
+  assert.ok(diver.y < WATER_LEVEL - 2.0, `Expected diving player holding Ctrl/C to dive deep (< -2.0m), got y=${diver.y}`);
+
+  // Neutral depth hold while submerged
+  const submergedY = diver.y;
+  for (let i = 0; i < 10; i++) {
+    stepPlayerPhysics(
+      diver,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(Math.abs(diver.y - submergedY) < 0.25, `Expected submerged diver to hold depth when neutral, got ${diver.y} vs ${submergedY}`);
+
+  // Ascending back to surface with Space (jumpHeld=true)
+  for (let i = 0; i < 30; i++) {
+    stepPlayerPhysics(
+      diver,
+      { forward: 0, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: true, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(diver.y > WATER_LEVEL - 1.15, `Expected holding Space underwater to ascend back to surface, got y=${diver.y}`);
+});
 // #endregion
+

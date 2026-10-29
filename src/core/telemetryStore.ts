@@ -21,7 +21,7 @@ export const INITIAL_TELEMETRY_SNAPSHOT: TelemetrySnapshot = Object.freeze({
   biome: 'trail',
   walkPace: 'normal',
   timeString: '06:40',
-  phaseLabelHe: 'זריחה וערפל בוקר',
+  phaseLabel: 'זריחה וערפל בוקר',
   sunElevationDeg: 14,
   pointerLocked: false,
   isFlying: false,

@@ -16,7 +16,7 @@ import type {
   IWeatherStateSnapshot,
 } from '../domain/worldTypes';
 import { hash2D, fbm2D, smoothstep, lerpNum, lerpColorHex } from '../domain/noiseAndMath';
-import { northernSnowZoneFactorAt } from './terrainAndBiomeSystem';
+import { northernSnowZoneFactorAt, southwestOasisBiomeFactorAt } from './terrainAndBiomeSystem';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -324,26 +324,34 @@ export function runSeasonalWeatherCycle(
       wetness = Math.min(1.0, rainIntensity * 1.1);
     }
   } else {
-    const springMultiDayWave = Math.sin(elapsedSeconds * 0.055);
-    if (springMultiDayWave >= -0.15) {
+    const desertZone = southwestOasisBiomeFactorAt(playerX, playerZ);
+    const springMultiDayWave = Math.sin(elapsedSeconds * 0.11 - 0.85);
+    if (snowZone > 0.25) {
+      weatherKind = 'mountain_snow';
+      cloudCoverage = 0.72 + weatherWave * 0.18;
+      cloudDarkness = 0.28;
+      windStrength = 0.48 + weatherWave * 0.18;
+      snowIntensity = Math.min(1.0, snowZone * 0.88);
+    } else if (desertZone > 0.55 && weatherWave > 0.45) {
+      weatherKind = 'wind_sand';
+      cloudCoverage = 0.32 + weatherWave * 0.15;
+      cloudDarkness = 0.14;
+      windStrength = 0.72 + weatherWave * 0.22;
+      sandWindIntensity = smoothstep(0.45, 0.85, weatherWave) * desertZone * 0.75;
+    } else if (springMultiDayWave >= -0.12) {
       weatherKind = 'clear_clouds';
       cloudCoverage = 0.22 + weatherWave * 0.16;
       cloudDarkness = 0.04;
       windStrength = 0.24 + weatherWave * 0.12;
     } else {
-      const showerFactor = smoothstep(-0.15, -0.55, springMultiDayWave);
-      cloudCoverage = 0.62 + showerFactor * 0.22;
-      cloudDarkness = 0.34 * showerFactor;
-      windStrength = 0.46 + showerFactor * 0.2;
-      if (snowZone > 0.15) {
-        weatherKind = 'mountain_snow';
-        snowIntensity = snowZone * showerFactor * 0.85;
-      } else {
-        weatherKind = 'regional_rain';
-        rainIntensity = showerFactor * (0.45 + regionalRainCell * 0.42);
-        fogIntensity = rainIntensity * 0.22;
-        wetness = Math.min(1.0, rainIntensity * 1.1);
-      }
+      const showerFactor = smoothstep(-0.12, -0.52, springMultiDayWave);
+      cloudCoverage = 0.62 + showerFactor * 0.24;
+      cloudDarkness = 0.36 * showerFactor;
+      windStrength = 0.46 + showerFactor * 0.22;
+      weatherKind = 'regional_rain';
+      rainIntensity = showerFactor * (0.52 + regionalRainCell * 0.42);
+      fogIntensity = rainIntensity * 0.24;
+      wetness = Math.min(1.0, rainIntensity * 1.15);
     }
   }
 

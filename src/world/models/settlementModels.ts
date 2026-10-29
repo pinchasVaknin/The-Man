@@ -15,7 +15,12 @@ import {
   WATERFALL_POOL_POS,
   RIVERSIDE_WINDMILLS,
   LAKESIDE_TEA_PAVILION_POS,
+  RIDEABLE_HORSES,
   groundHeightAt,
+  walkableHeightAt,
+  isWithinViewDistance,
+  computeHorseBiomechanicalPose,
+  type IRideableHorseState,
 } from '../terrainMath';
 import { createBirchBarkTexture } from '../builders/shaderAndMaterialBuilders';
 import type { IWorldModelBuildContext } from './types';
@@ -29,7 +34,13 @@ import type { IWorldModelBuildContext } from './types';
  */
 export interface ISettlementModelHandles {
   readonly rowboatGroup: THREE.Group;
-  readonly updateSettlement: (elapsedTime: number) => void;
+  readonly updateSettlement: (
+    elapsedTime: number,
+    rideableHorses?: readonly IRideableHorseState[],
+    mountedHorseId?: string | null,
+    playerX?: number,
+    playerZ?: number
+  ) => void;
 }
 export type SettlementModelHandles = ISettlementModelHandles;
 // #endregion
@@ -199,11 +210,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   pierGroup.rotation.y = Math.atan2(-8.0, 6.0);
 
   const plankGeo = new THREE.BoxGeometry(0.36, 0.09, 2.5);
-  const beamGeo = new THREE.BoxGeometry(11.0, 0.14, 0.16);
+  const beamGeo = new THREE.BoxGeometry(14.8, 0.14, 0.16);
   const pilingGeo = new THREE.CylinderGeometry(0.13, 0.15, 2.6, 8);
   disposableGeometries.push(plankGeo, beamGeo, pilingGeo);
 
-  for (let p = -5.2; p <= 5.2; p += 0.42) {
+  for (let p = -5.6; p <= 8.8; p += 0.42) {
     const plank = new THREE.Mesh(plankGeo, timberMat);
     plank.position.set(p, 0.51, 0);
     plank.castShadow = !isSoftwareGl;
@@ -212,10 +223,10 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   }
   for (const zSide of [-1.05, 1.05]) {
     const beam = new THREE.Mesh(beamGeo, timberMat);
-    beam.position.set(0, 0.42, zSide);
+    beam.position.set(1.6, 0.42, zSide);
     pierGroup.add(beam);
   }
-  for (let px = -5.0; px <= 5.0; px += 2.5) {
+  for (let px = -5.2; px <= 8.4; px += 2.72) {
     for (const pz of [-1.05, 1.05]) {
       const piling = new THREE.Mesh(pilingGeo, barkMat);
       piling.position.set(px, -0.35, pz);
@@ -223,9 +234,10 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       pierGroup.add(piling);
     }
   }
-  pierGroup.add(createLanternAssembly(4.9, 0.55, 1.05, true));
+  pierGroup.add(createLanternAssembly(-5.2, 0.55, 1.05, true));
+  pierGroup.add(createLanternAssembly(8.2, 0.55, -1.05, false));
   scene.add(pierGroup);
-  distanceCulledObjects.push({ obj: pierGroup, cx: -11.5, cz: 15.5, radius: 15 });
+  distanceCulledObjects.push({ obj: pierGroup, cx: -11.5, cz: 15.5, radius: 18 });
 
   const rowboatGroup = new THREE.Group();
   rowboatGroup.position.set(-6.5, WATER_LEVEL + 0.05, 10.2);
@@ -267,18 +279,26 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   // Western Lagoon Wooden Pier at (-120.0, 48.0) + Lakeside Chinese Tea Pavilion & Koi Fish
   const westPierGroup = new THREE.Group();
   westPierGroup.position.set(-120.0, 0, 48.0);
-  for (let p = -6.0; p <= 6.0; p += 0.45) {
+  const westBeamGeo = new THREE.BoxGeometry(21.2, 0.14, 0.16);
+  disposableGeometries.push(westBeamGeo);
+  for (let p = -6.0; p <= 14.85; p += 0.45) {
     const plank = new THREE.Mesh(plankGeo, timberMat);
     plank.position.set(p, 0.51, 0);
     westPierGroup.add(plank);
   }
-  for (let px = -5.5; px <= 5.5; px += 2.75) {
+  for (const zSide of [-1.05, 1.05]) {
+    const beam = new THREE.Mesh(westBeamGeo, timberMat);
+    beam.position.set(4.4, 0.42, zSide);
+    westPierGroup.add(beam);
+  }
+  for (let px = -5.5; px <= 14.5; px += 2.85) {
     for (const pz of [-1.05, 1.05]) {
       const piling = new THREE.Mesh(pilingGeo, barkMat);
       piling.position.set(px, -0.35, pz);
       westPierGroup.add(piling);
     }
   }
+  westPierGroup.add(createLanternAssembly(14.2, 0.55, 1.05, false));
 
   const teaDeckGeo = new THREE.BoxGeometry(7.6, 0.18, 7.6);
   const teaPillarGeo = new THREE.CylinderGeometry(0.18, 0.2, 3.6, 8);
@@ -440,16 +460,24 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   const bridgeGroup = new THREE.Group();
   bridgeGroup.position.set(18.0, 0, 2.0);
 
-  const segGeo = new THREE.BoxGeometry(3.2, 0.28, 1.05);
+  const segGeo = new THREE.BoxGeometry(3.2, 0.28, 1.08);
   const postStoneGeo = new THREE.BoxGeometry(0.32, 0.85, 0.32);
   const railStoneGeo = new THREE.BoxGeometry(0.22, 0.18, 1.15);
-  disposableGeometries.push(segGeo, postStoneGeo, railStoneGeo);
+  const bridgeAbutmentGeo = new THREE.BoxGeometry(3.5, 1.4, 1.6);
+  const bridgeSupportPierGeo = new THREE.CylinderGeometry(0.38, 0.48, 3.2, 8);
+  disposableGeometries.push(
+    segGeo,
+    postStoneGeo,
+    railStoneGeo,
+    bridgeAbutmentGeo,
+    bridgeSupportPierGeo
+  );
 
-  for (let i = -7; i <= 7; i++) {
-    const zLocal = i * 0.96;
-    const normZ = zLocal / 7.2;
-    const archY = 0.52 + (1.0 - normZ * normZ) * 1.45;
-    const slopeAngle = Math.atan((2 * normZ * 1.45) / 7.2);
+  for (let i = -11; i <= 11; i++) {
+    const zLocal = i * 0.98;
+    const normZ = zLocal / 11.2;
+    const archY = 0.52 + (1.0 - normZ * normZ) * 1.58;
+    const slopeAngle = Math.atan((2 * normZ * 1.58) / 11.2);
 
     const deckSeg = new THREE.Mesh(segGeo, rockMat);
     deckSeg.position.set(0, archY, zLocal);
@@ -473,9 +501,21 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       bridgeGroup.add(rail);
     }
   }
-  bridgeGroup.add(createLanternAssembly(1.42, 2.02, 0, true));
+  for (const endZ of [-11.1, 11.1]) {
+    const abutment = new THREE.Mesh(bridgeAbutmentGeo, rockMat);
+    abutment.position.set(0, 0.05, endZ);
+    bridgeGroup.add(abutment);
+  }
+  for (const pierZ of [-5.8, 5.8]) {
+    for (const xSide of [-1.25, 1.25]) {
+      const pierCol = new THREE.Mesh(bridgeSupportPierGeo, rockMat);
+      pierCol.position.set(xSide, 0.1, pierZ);
+      bridgeGroup.add(pierCol);
+    }
+  }
+  bridgeGroup.add(createLanternAssembly(1.42, 2.12, 0, true));
   scene.add(bridgeGroup);
-  distanceCulledObjects.push({ obj: bridgeGroup, cx: 18.0, cz: 2.0, radius: 18 });
+  distanceCulledObjects.push({ obj: bridgeGroup, cx: 18.0, cz: 2.0, radius: 22 });
 
   // --- C. NORTHERN TIMBER & STONE WATCHTOWER PAVILION at (30.0, -26.0) ---
   const towerGroup = new THREE.Group();
@@ -542,16 +582,16 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   scene.add(sanctuaryGroup);
   distanceCulledObjects.push({ obj: sanctuaryGroup, cx: -34.0, cz: -16.0, radius: 14 });
 
-  // --- E. NORTHEASTERN RIVER TIMBER BRIDGE at (78.0, -42.0) ---
+  // --- E. NORTHEASTERN RIVER TIMBER BRIDGE at (78.0, -35.0) ---
   const riverBridgeGroup = new THREE.Group();
-  riverBridgeGroup.position.set(78.0, 0, -42.0);
-  riverBridgeGroup.rotation.y = -0.52;
+  riverBridgeGroup.position.set(78.0, 0, -35.0);
+  riverBridgeGroup.rotation.y = 0.54;
 
-  for (let i = -7; i <= 7; i++) {
-    const zLocal = i * 1.02;
-    const norm = zLocal / 7.5;
-    const deckY = 0.85 + (1.0 - norm * norm) * 0.95;
-    const slopeAngle = Math.atan((2 * norm * 0.95) / 7.5);
+  for (let i = -12; i <= 12; i++) {
+    const zLocal = i * 0.96;
+    const norm = zLocal / 11.6;
+    const deckY = 0.72 + (1.0 - norm * norm) * 1.18;
+    const slopeAngle = Math.atan((2 * norm * 1.18) / 11.6);
 
     const seg = new THREE.Mesh(segGeo, timberMat);
     seg.position.set(0, deckY, zLocal);
@@ -567,10 +607,29 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         riverBridgeGroup.add(post);
       }
     }
+    for (const xSide of [-1.45, 1.45]) {
+      const rail = new THREE.Mesh(railStoneGeo, timberMat);
+      rail.position.set(xSide, deckY + 0.82, zLocal);
+      rail.rotation.x = slopeAngle;
+      riverBridgeGroup.add(rail);
+    }
+    if (i === -8 || i === -4 || i === 4 || i === 8) {
+      for (const xSide of [-1.3, 1.3]) {
+        const piling = new THREE.Mesh(bridgeSupportPierGeo, barkMat);
+        piling.scale.set(0.65, 1.0, 0.65);
+        piling.position.set(xSide, deckY - 1.5, zLocal);
+        riverBridgeGroup.add(piling);
+      }
+    }
   }
-  riverBridgeGroup.add(createLanternAssembly(1.45, 1.82, 0, true));
+  for (const endZ of [-11.6, 11.6]) {
+    const abutment = new THREE.Mesh(bridgeAbutmentGeo, rockMat);
+    abutment.position.set(0, 0.2, endZ);
+    riverBridgeGroup.add(abutment);
+  }
+  riverBridgeGroup.add(createLanternAssembly(1.45, 1.92, 0, true));
   scene.add(riverBridgeGroup);
-  distanceCulledObjects.push({ obj: riverBridgeGroup, cx: 78.0, cz: -42.0, radius: 18 });
+  distanceCulledObjects.push({ obj: riverBridgeGroup, cx: 78.0, cz: -35.0, radius: 24 });
 
   // --- F. HUNTER'S LODGE & HORSE STABLE COMPOUND at (-92, 72) ---
   const lodgeBaseY = HUNTER_LODGE_POS.height;
@@ -935,7 +994,231 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 35,
   });
 
-  const updateSettlement = (elapsedTime: number) => {
+  // ============================================================================
+  // 5 ARTICULATED RIDEABLE HORSES (RIDEABLE_HORSES across Stables & Landmarks)
+  // ============================================================================
+  interface IEquineLimbRig {
+    readonly upper: THREE.Group;
+    readonly lower: THREE.Group;
+    readonly hoof: THREE.Group;
+  }
+  interface IHorseMeshRig {
+    readonly id: string;
+    readonly root: THREE.Group;
+    readonly bodyPivot: THREE.Group;
+    readonly neckPivot: THREE.Group;
+    readonly headPivot: THREE.Group;
+    readonly tailPivot: THREE.Group;
+    readonly fl: IEquineLimbRig;
+    readonly fr: IEquineLimbRig;
+    readonly bl: IEquineLimbRig;
+    readonly br: IEquineLimbRig;
+  }
+
+  const horseTorsoGeo = new THREE.CylinderGeometry(0.36, 0.38, 1.32, 14);
+  horseTorsoGeo.rotateX(Math.PI / 2);
+  const horseChestGeo = new THREE.SphereGeometry(0.38, 14, 12);
+  const horseRumpGeo = new THREE.SphereGeometry(0.37, 14, 12);
+  const horseSaddleGeo = new THREE.BoxGeometry(0.82, 0.28, 0.68);
+  const horsePommelGeo = new THREE.BoxGeometry(0.32, 0.16, 0.14);
+  const horseCantleGeo = new THREE.BoxGeometry(0.36, 0.14, 0.16);
+  const horseStirrupStrapGeo = new THREE.BoxGeometry(0.03, 0.44, 0.05);
+  const horseStirrupIronGeo = new THREE.TorusGeometry(0.06, 0.014, 6, 12);
+  const horseNeckGeo = new THREE.CylinderGeometry(0.18, 0.28, 0.78, 12);
+  const horseManeGeo = new THREE.BoxGeometry(0.08, 0.72, 0.18);
+  const horseSkullGeo = new THREE.BoxGeometry(0.26, 0.26, 0.38);
+  const horseMuzzleGeo = new THREE.BoxGeometry(0.19, 0.18, 0.36);
+  const horseBridleGeo = new THREE.BoxGeometry(0.21, 0.20, 0.06);
+  const horseReinGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.74, 6);
+  horseReinGeo.rotateX(Math.PI / 2);
+  const horseEyeGeo = new THREE.SphereGeometry(0.026, 8, 8);
+  const horseEarGeo = new THREE.ConeGeometry(0.048, 0.16, 6);
+  const horseTailGeo = new THREE.ConeGeometry(0.12, 0.78, 8);
+  const horseULimbGeo = new THREE.CylinderGeometry(0.105, 0.078, 0.56, 10);
+  horseULimbGeo.translate(0, -0.28, 0);
+  const horseLLimbGeo = new THREE.CylinderGeometry(0.072, 0.056, 0.48, 10);
+  horseLLimbGeo.translate(0, -0.24, 0);
+  const horseHoofGeo = new THREE.CylinderGeometry(0.068, 0.082, 0.14, 10);
+  horseHoofGeo.translate(0, -0.07, 0.01);
+
+  const horseHoofMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.45 });
+  const horseGoldMat = new THREE.MeshStandardMaterial({
+    color: 0xd4af37,
+    roughness: 0.25,
+    metalness: 0.85,
+  });
+  const horseEyeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+
+  disposableGeometries.push(
+    horseTorsoGeo,
+    horseChestGeo,
+    horseRumpGeo,
+    horseSaddleGeo,
+    horsePommelGeo,
+    horseCantleGeo,
+    horseStirrupStrapGeo,
+    horseStirrupIronGeo,
+    horseNeckGeo,
+    horseManeGeo,
+    horseSkullGeo,
+    horseMuzzleGeo,
+    horseBridleGeo,
+    horseReinGeo,
+    horseEyeGeo,
+    horseEarGeo,
+    horseTailGeo,
+    horseULimbGeo,
+    horseLLimbGeo,
+    horseHoofGeo
+  );
+  disposableMaterials.push(horseHoofMat, horseGoldMat, horseEyeMat);
+
+  const horseRigs: IHorseMeshRig[] = [];
+
+  for (let i = 0; i < RIDEABLE_HORSES.length; i++) {
+    const def = RIDEABLE_HORSES[i];
+    const coatMat = new THREE.MeshStandardMaterial({ color: def.coatColorHex, roughness: 0.62 });
+    const maneMat = new THREE.MeshStandardMaterial({ color: def.maneColorHex, roughness: 0.78 });
+    const saddleMat = new THREE.MeshStandardMaterial({ color: def.saddleColorHex, roughness: 0.5 });
+    disposableMaterials.push(coatMat, maneMat, saddleMat);
+
+    const root = new THREE.Group();
+    const initY = walkableHeightAt(def.homeX, def.homeZ).height;
+    root.position.set(def.homeX, initY, def.homeZ);
+    root.rotation.y = def.homeYaw;
+
+    // Facing pivot rotates +Z local horse model to face -Z (matching horseFwdX = -sin(yaw), horseFwdZ = -cos(yaw))
+    const facingPivot = new THREE.Group();
+    facingPivot.rotation.y = Math.PI;
+    root.add(facingPivot);
+
+    const bodyPivot = new THREE.Group();
+    bodyPivot.position.set(0, 1.18, 0);
+    facingPivot.add(bodyPivot);
+
+    const torso = new THREE.Mesh(horseTorsoGeo, coatMat);
+    const chestSphere = new THREE.Mesh(horseChestGeo, coatMat);
+    chestSphere.position.set(0, 0.02, 0.56);
+    const rumpSphere = new THREE.Mesh(horseRumpGeo, coatMat);
+    rumpSphere.position.set(0, 0.04, -0.56);
+
+    const saddleBlanket = new THREE.Mesh(horseSaddleGeo, saddleMat);
+    saddleBlanket.position.set(0, 0.28, 0.05);
+    const pommel = new THREE.Mesh(horsePommelGeo, horseGoldMat);
+    pommel.position.set(0, 0.44, 0.3);
+    const cantle = new THREE.Mesh(horseCantleGeo, saddleMat);
+    cantle.position.set(0, 0.43, -0.2);
+
+    for (const side of [-1, 1]) {
+      const strap = new THREE.Mesh(horseStirrupStrapGeo, saddleMat);
+      strap.position.set(side * 0.39, -0.02, 0.06);
+      const iron = new THREE.Mesh(horseStirrupIronGeo, horseGoldMat);
+      iron.position.set(side * 0.4, -0.25, 0.06);
+      iron.rotation.y = Math.PI / 2;
+      bodyPivot.add(strap, iron);
+    }
+
+    const neckPivot = new THREE.Group();
+    neckPivot.position.set(0, 0.24, 0.68);
+    neckPivot.rotation.x = 0.32;
+    const neckMesh = new THREE.Mesh(horseNeckGeo, coatMat);
+    neckMesh.position.set(0, 0.32, 0.12);
+    const maneMesh = new THREE.Mesh(horseManeGeo, maneMat);
+    maneMesh.position.set(0, 0.34, 0.0);
+
+    const headPivot = new THREE.Group();
+    headPivot.position.set(0, 0.68, 0.22);
+    headPivot.rotation.x = -0.16;
+    const skull = new THREE.Mesh(horseSkullGeo, coatMat);
+    const muzzle = new THREE.Mesh(horseMuzzleGeo, coatMat);
+    muzzle.position.set(0, -0.05, 0.28);
+    const bridle = new THREE.Mesh(horseBridleGeo, horseGoldMat);
+    bridle.position.set(0, -0.04, 0.22);
+
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(horseEyeGeo, horseEyeMat);
+      eye.position.set(side * 0.13, 0.05, 0.08);
+      const ear = new THREE.Mesh(horseEarGeo, coatMat);
+      ear.position.set(side * 0.09, 0.18, -0.04);
+      const rein = new THREE.Mesh(horseReinGeo, saddleMat);
+      rein.position.set(side * 0.11, -0.14, -0.18);
+      rein.rotation.x = 0.36;
+      headPivot.add(eye, ear, rein);
+    }
+
+    headPivot.add(skull, muzzle, bridle);
+    neckPivot.add(neckMesh, maneMesh, headPivot);
+
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.14, -0.84);
+    const tailMesh = new THREE.Mesh(horseTailGeo, maneMat);
+    tailMesh.rotation.x = Math.PI - 0.25;
+    tailMesh.position.set(0, -0.34, -0.1);
+    tailPivot.add(tailMesh);
+
+    const buildEquineLeg = (lx: number, lz: number): IEquineLimbRig => {
+      const upper = new THREE.Group();
+      upper.position.set(lx, -0.08, lz);
+      upper.add(new THREE.Mesh(horseULimbGeo, coatMat));
+      const lower = new THREE.Group();
+      lower.position.set(0, -0.54, 0);
+      lower.add(new THREE.Mesh(horseLLimbGeo, coatMat));
+      const hoof = new THREE.Group();
+      hoof.position.set(0, -0.46, 0);
+      hoof.add(new THREE.Mesh(horseHoofGeo, horseHoofMat));
+      lower.add(hoof);
+      upper.add(lower);
+      bodyPivot.add(upper);
+      return { upper, lower, hoof };
+    };
+
+    const fl = buildEquineLeg(-0.22, 0.54);
+    const fr = buildEquineLeg(0.22, 0.54);
+    const bl = buildEquineLeg(-0.22, -0.54);
+    const br = buildEquineLeg(0.22, -0.54);
+
+    bodyPivot.add(
+      torso,
+      chestSphere,
+      rumpSphere,
+      saddleBlanket,
+      pommel,
+      cantle,
+      neckPivot,
+      tailPivot
+    );
+
+    if (!isSoftwareGl) {
+      root.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+        }
+      });
+    }
+
+    scene.add(root);
+    horseRigs.push({
+      id: def.id,
+      root,
+      bodyPivot,
+      neckPivot,
+      headPivot,
+      tailPivot,
+      fl,
+      fr,
+      bl,
+      br,
+    });
+  }
+
+  const updateSettlement = (
+    elapsedTime: number,
+    rideableHorses?: readonly IRideableHorseState[],
+    mountedHorseId?: string | null,
+    playerX = 0,
+    playerZ = 0
+  ) => {
     rowboatGroup.position.y = WATER_LEVEL + 0.05 + Math.sin(elapsedTime * 1.8) * 0.04;
     rowboatGroup.rotation.z = Math.sin(elapsedTime * 1.4) * 0.03;
     for (let r = 0; r < windmillRotors.length; r++) {
@@ -953,6 +1236,50 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         koi.mesh.rotation.y = -ang + Math.PI / 2;
         (koi.mesh.children[1] as THREE.Mesh).rotation.y = Math.sin(elapsedTime * 6.5 + koi.phase) * 0.35;
       }
+    }
+
+    // Update 5 Rideable Horses (Position, Yaw, and Biomechanical Gait Pose)
+    for (let i = 0; i < horseRigs.length; i++) {
+      const rig = horseRigs[i];
+      const state = rideableHorses && rideableHorses[i] ? rideableHorses[i] : null;
+      const hx = state ? state.x : RIDEABLE_HORSES[i].homeX;
+      const hz = state ? state.z : RIDEABLE_HORSES[i].homeZ;
+      const hy = state ? state.y : walkableHeightAt(hx, hz).height;
+      const hyaw = state ? state.yaw : RIDEABLE_HORSES[i].homeYaw;
+      const hspeed = state ? state.speed : 0;
+      const hgait = state ? state.gaitPhase : 0;
+
+      const isMounted = mountedHorseId === rig.id;
+      const inView = isMounted || isWithinViewDistance(hx, hz, playerX, playerZ, 24);
+      rig.root.visible = inView;
+      if (!inView) continue;
+
+      rig.root.position.set(hx, hy, hz);
+      rig.root.rotation.y = hyaw;
+
+      const pose = computeHorseBiomechanicalPose(hspeed, hgait, elapsedTime, i);
+      rig.bodyPivot.position.y = 1.18 + pose.bodyLiftY;
+      rig.bodyPivot.rotation.x = pose.bodyPitch;
+      rig.neckPivot.rotation.x = pose.neckPitch;
+      rig.headPivot.rotation.x = pose.headPitch;
+      rig.tailPivot.rotation.x = pose.tailPitch;
+      rig.tailPivot.rotation.y = pose.tailSwayY;
+
+      rig.fl.upper.rotation.x = pose.frontLeft.upperPitch;
+      rig.fl.lower.rotation.x = pose.frontLeft.lowerPitch;
+      rig.fl.hoof.rotation.x = pose.frontLeft.hoofPitch;
+
+      rig.fr.upper.rotation.x = pose.frontRight.upperPitch;
+      rig.fr.lower.rotation.x = pose.frontRight.lowerPitch;
+      rig.fr.hoof.rotation.x = pose.frontRight.hoofPitch;
+
+      rig.bl.upper.rotation.x = pose.backLeft.upperPitch;
+      rig.bl.lower.rotation.x = pose.backLeft.lowerPitch;
+      rig.bl.hoof.rotation.x = pose.backLeft.hoofPitch;
+
+      rig.br.upper.rotation.x = pose.backRight.upperPitch;
+      rig.br.lower.rotation.x = pose.backRight.lowerPitch;
+      rig.br.hoof.rotation.x = pose.backRight.hoofPitch;
     }
   };
 

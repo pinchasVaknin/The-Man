@@ -1578,8 +1578,8 @@ export function buildPlayerAndCombatSystems(
     fpViewModelGroup.visible = false;
     rangerUpperTorsoPivot.visible = true;
     rangerBodyGroup.visible = true;
-    rangerLeftLeg.visible = !isSwim;
-    rangerRightLeg.visible = !isSwim;
+    rangerLeftLeg.visible = true;
+    rangerRightLeg.visible = true;
 
     const bowInHands = !isSwim && (isAimingBow || equippedTool === 'bow');
     bowGroup.visible = bowInHands;
@@ -1592,6 +1592,15 @@ export function buildPlayerAndCombatSystems(
       rangerRightLeg.position.set(0.22, 0.88, 0.05);
       rangerLeftLeg.rotation.set(-0.55, 0, 0.28);
       rangerRightLeg.rotation.set(-0.55, 0, -0.28);
+    } else if (isSwim) {
+      const swimKick = Math.sin(elapsedTime * 5.2) * 0.34;
+      const bodyPitch = horizSpd > 0.2 || Math.abs(playerState.vy) > 0.3
+        ? -0.72 + playerState.pitch * 0.55
+        : -0.28;
+      rangerLeftLeg.position.set(-0.10, 0.90, 0.14);
+      rangerRightLeg.position.set(0.10, 0.90, 0.14);
+      rangerLeftLeg.rotation.set(bodyPitch * 0.7 + swimKick, 0, 0);
+      rangerRightLeg.rotation.set(bodyPitch * 0.7 - swimKick, 0, 0);
     } else {
       rangerLeftLeg.position.set(-0.10, 0.90, 0);
       rangerRightLeg.position.set(0.10, 0.90, 0);
@@ -1607,21 +1616,24 @@ export function buildPlayerAndCombatSystems(
     rangerHeadGroup.rotation.y = isMounted ? mountedRelLookYaw * 0.38 : 0;
 
     if (isSwim) {
-      const swimCycle = elapsedTime * 3.8;
+      const swimCycle = elapsedTime * (horizSpd > 0.2 ? 4.4 : 2.8);
+      const swimTorsoPitch = horizSpd > 0.2 || Math.abs(playerState.vy) > 0.3
+        ? -0.68 + playerState.pitch * 0.55
+        : -0.32;
       rangerUpperTorsoPivot.position.set(0, 0.92, 0);
-      rangerUpperTorsoPivot.rotation.set(-0.35, 0, 0);
+      rangerUpperTorsoPivot.rotation.set(swimTorsoPitch, 0, 0);
       rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
-      rangerLeftArmGroup.rotation.set(Math.sin(swimCycle) * 0.45, 0.25, -0.35);
+      rangerLeftArmGroup.rotation.set(Math.sin(swimCycle) * 0.52, 0.25, -0.35);
       poseRightArmSegments(
         0.25,
         0.52,
         0,
         0.38,
         0.44,
-        -0.18 + Math.cos(swimCycle) * 0.14,
-        0.28 + Math.sin(swimCycle) * 0.18,
+        -0.18 + Math.cos(swimCycle) * 0.16,
+        0.28 + Math.sin(swimCycle) * 0.20,
         0.38,
-        -0.44 + Math.cos(swimCycle) * 0.18
+        -0.44 + Math.cos(swimCycle) * 0.20
       );
       nockedArrowGroup.visible = false;
       updateBowRigString(tpBowRig, 0, false);

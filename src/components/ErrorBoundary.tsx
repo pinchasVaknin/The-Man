@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import React, { Component, ReactNode, ErrorInfo } from 'react';
+import type { ILogger } from '../core/ILogger';
 // #endregion
 
 // ======================== INTERFACES & CONTRACTS ======================== \\
@@ -15,6 +16,7 @@ import React, { Component, ReactNode, ErrorInfo } from 'react';
 export interface IErrorBoundaryProps {
   readonly children: ReactNode;
   readonly onReset?: () => void;
+  readonly logger?: ILogger;
 }
 
 export interface IErrorBoundaryState {
@@ -58,7 +60,7 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
       componentStack: errorInfo.componentStack,
       correlationId: this.state.correlationId,
     };
-    void errorDetails;
+    this.props.logger?.error('Uncaught UI rendering exception', errorDetails);
   }
 
   private handleReload = (): void => {

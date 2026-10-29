@@ -21,7 +21,7 @@ import type { IRideableHorseState } from '../domain/worldTypes';
 function createFixtureHorse(initialYaw = 0): IRideableHorseState {
   return {
     id: 'test_horse_1',
-    nameHe: 'סוס מבחן',
+    name: 'סוס מבחן',
     x: 0,
     y: 0,
     z: 0,

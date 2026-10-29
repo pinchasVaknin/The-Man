@@ -437,7 +437,9 @@ export type WeatherToggleOption =
   | 'clear_clouds'
   | 'regional_rain'
   | 'dense_fog'
-  | 'lightning_storm';
+  | 'lightning_storm'
+  | 'mountain_snow'
+  | 'wind_sand';
 
 /**
  * Summary: Atmospheric snapshot capturing weather, precipitation, and cloud cover.

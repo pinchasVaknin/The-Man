@@ -176,7 +176,7 @@ const horseSkinsFromWorld: ILabSkinDef[] = RIDEABLE_HORSES.map((h, idx) => {
   const hexToCss = (hex: number) => `#${hex.toString(16).padStart(6, '0')}`;
   return {
     id: h.id,
-    nameHe: h.nameHe,
+    nameHe: h.name,
     subtitleHe: `אורווה #${idx + 1} (${Math.round(h.homeX)}, ${Math.round(h.homeZ)})`,
     badgeColors: [
       hexToCss(h.coatColorHex),
