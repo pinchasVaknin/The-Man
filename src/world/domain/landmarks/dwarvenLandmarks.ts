@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { DwarvenGuardianStatueDef, DwarvenStoneHouseDef } from '../worldTypes';
+import type { IDwarvenGuardianStatueDef, IDwarvenStoneHouseDef } from '../worldTypes';
+import { t } from '../../../locales';
 // #endregion
 
 // ======================== SOUTHERN DWARVEN MINE ======================== \\
@@ -40,10 +41,10 @@ export const SOUTHERN_MINE_POS = {
 // ======================== GUARDIAN STATUES ======================== \\
 // #region Guardian Statues
 /** Summary: Monumental stone statues of King Durin and King Thror guarding the mine gate. */
-export const DWARVEN_GUARDIAN_STATUES: readonly DwarvenGuardianStatueDef[] = [
+export const DWARVEN_GUARDIAN_STATUES: readonly IDwarvenGuardianStatueDef[] = [
   {
     id: 'dwarven-statue-west',
-    nameHe: 'פסל המלך הגמדי דורין (שומר המכרה המערבי)',
+    name: t('landmarks.dwarven_statue_durin'),
     x: SOUTHERN_MINE_POS.x - 7.5,
     z: SOUTHERN_MINE_POS.entranceZ - 4.2,
     baseY: SOUTHERN_MINE_POS.entranceFloorY,
@@ -54,7 +55,7 @@ export const DWARVEN_GUARDIAN_STATUES: readonly DwarvenGuardianStatueDef[] = [
   },
   {
     id: 'dwarven-statue-east',
-    nameHe: 'פסל המלך הגמדי תרור (שומר המכרה המזרחי)',
+    name: t('landmarks.dwarven_statue_thror'),
     x: SOUTHERN_MINE_POS.x + 7.5,
     z: SOUTHERN_MINE_POS.entranceZ - 4.2,
     baseY: SOUTHERN_MINE_POS.entranceFloorY,
@@ -69,11 +70,11 @@ export const DWARVEN_GUARDIAN_STATUES: readonly DwarvenGuardianStatueDef[] = [
 // ======================== STONE HOUSES ======================== \\
 // #region Stone Houses
 /** Summary: Four enterable carved granite houses of the dwarven craftsmen along the mine road. */
-export const DWARVEN_STONE_HOUSES: readonly DwarvenStoneHouseDef[] = [
+export const DWARVEN_STONE_HOUSES: readonly IDwarvenStoneHouseDef[] = [
   {
     id: 'dwarf-house-nw',
     doorId: 'dwarf-house-nw-door',
-    nameHe: 'בית האבן של חרשי הגמדים (צפון־מערב)',
+    name: t('landmarks.dwarven_house_nw'),
     x: -76.0,
     z: 368.0,
     terraceY: 2.65,
@@ -87,7 +88,7 @@ export const DWARVEN_STONE_HOUSES: readonly DwarvenStoneHouseDef[] = [
   {
     id: 'dwarf-house-ne',
     doorId: 'dwarf-house-ne-door',
-    nameHe: 'בית האבן של כורי הזהב (צפון־מזרח)',
+    name: t('landmarks.dwarven_house_ne'),
     x: -40.0,
     z: 368.0,
     terraceY: 2.65,
@@ -101,7 +102,7 @@ export const DWARVEN_STONE_HOUSES: readonly DwarvenStoneHouseDef[] = [
   {
     id: 'dwarf-house-sw',
     doorId: 'dwarf-house-sw-door',
-    nameHe: 'בית האבן של שומרי ההר (דרום־מערב)',
+    name: t('landmarks.dwarven_house_sw'),
     x: -76.0,
     z: 392.0,
     terraceY: 2.65,
@@ -115,7 +116,7 @@ export const DWARVEN_STONE_HOUSES: readonly DwarvenStoneHouseDef[] = [
   {
     id: 'dwarf-house-se',
     doorId: 'dwarf-house-se-door',
-    nameHe: 'בית האבן של אומני הרו-נות (דרום־מזרח)',
+    name: t('landmarks.dwarven_house_se'),
     x: -40.0,
     z: 392.0,
     terraceY: 2.65,

@@ -16,7 +16,7 @@ import {
 import { hash2D } from '../domain/noiseAndMath';
 import { isWithinViewDistance, VIEW_DISTANCE } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== INTERFACES & TYPES ======================== \\
@@ -34,6 +34,10 @@ interface ITaiChiMonk {
   phase: number;
 }
 
+/**
+ * Summary: Handles to hot spring steam particles and dormant mountain dragon statue.
+ * Design: Exposes particle emitters and torii shrine pivots for visual updates.
+ */
 export interface ISanctuaryAndDragonResult {
   skyDragonGroup: THREE.Group;
   sakuraSanctuaryGroup: THREE.Group;
@@ -45,10 +49,14 @@ export type SanctuaryAndDragonResult = ISanctuaryAndDragonResult;
 // ======================== FACTORY FUNCTION ======================== \\
 // #region Factory Function
 /**
+ * Summary: Build sanctuary and dragon models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the articulated flying sky dragon, the oriental Sakura Hot-Spring
  * Sanctuary, colossal seated Golden Buddha, and Tai-Chi monks.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildSanctuaryAndDragonModels.
  */
-export function buildSanctuaryAndDragonModels(ctx: WorldModelBuildContext): SanctuaryAndDragonResult {
+export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISanctuaryAndDragonResult {
   const { scene, textures, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 

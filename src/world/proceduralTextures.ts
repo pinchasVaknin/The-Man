@@ -10,6 +10,10 @@
 import * as THREE from 'three';
 import { valueNoise2D } from './terrainMath';
 
+/**
+ * Summary: Complete pack of procedural canvas textures generated for the game world.
+ * Design: Encapsulates bark, grass, stone, wood, cloth, water, and leaf textures.
+ */
 export interface IWorldTextureSet {
   terrainAlbedo: THREE.CanvasTexture;
   terrainBump: THREE.CanvasTexture;
@@ -42,7 +46,13 @@ function configureTexture(
 
 // ======================== TEXTURE GENERATORS ======================== \\
 // #region Texture Generators
-export function createWorldTextures(renderer: THREE.WebGLRenderer): WorldTextureSet {
+/**
+ * Summary: Create world textures.
+ * Design: Standard function implementing domain specifications and behavioral contracts.
+ * @param renderer Input parameter for createWorldTextures.
+ * @returns Computed result for createWorldTextures.
+ */
+export function createWorldTextures(renderer: THREE.WebGLRenderer): IWorldTextureSet {
   const maxAniso = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
 
   // 1. Terrain Albedo & Bump (Tileable 256x256 micro-detail mottled moss/grass/soil)

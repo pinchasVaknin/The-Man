@@ -9,9 +9,8 @@
 // #region Imports & Constants
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
-import { WorldCanvas, GameStateMode, VirtualMoveState } from './components/WorldCanvas';
+import { WorldCanvas, GameStateMode, IVirtualMoveState } from './components/WorldCanvas';
 import { GameShellOverlay } from './components/GameShellOverlay';
-import { CharacterLabView } from './lab/CharacterLabView';
 import { telemetryStore } from './core/telemetryStore';
 
 const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
@@ -50,7 +49,7 @@ export default function App() {
   const [weatherToggle, setWeatherToggle] = useState<WeatherToggleOption>('auto');
   const [gameActions, setGameActions] = useState<IGameActions | null>(null);
 
-  const virtualMoveRef = useRef<VirtualMoveState>({
+  const virtualMoveRef = useRef<IVirtualMoveState>({
     forward: 0,
     right: 0,
     sprint: false,

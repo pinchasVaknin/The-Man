@@ -1,3 +1,4 @@
+import { t } from '../../../locales';
 // ============================================================================
 // MODULE: World / Domain / Landmarks / Oasis & Harbor
 // DESIGN: Southwest oasis lagoon and Southeast walled coastal harbor town (SRP)
@@ -116,12 +117,12 @@ export const SOUTHEAST_HARBOR_POS = {
 // #region Harbor Market Stalls
 /** Summary: Merchant shop locations in the harbor town marketplace. */
 export const MARKET_STALL_LOCATIONS = [
-  { id: 'market-harbor-1', nameHe: 'שוק הנמל — דוכן חרבות ולהבים (הסוחר ליאנג)', x: 212.0, z: 254.0, radius: 4.5 },
-  { id: 'market-harbor-2', nameHe: 'שוק הנמל — דוכן קשתות וחצים (הסוחרת מיי)', x: 212.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-3', nameHe: 'שוק הנמל — דוכן חומרי בנייה ועץ (הסוחר דורין)', x: 224.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-4', nameHe: 'שוק הנמל — דוכן אבן ושיש (הסוחר קארים)', x: 240.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-5', nameHe: 'שוק הנמל — נפחיית הנמל ומטילי מתכת (הנפח בורין)', x: 246.0, z: 238.0, radius: 4.5 },
-  { id: 'market-harbor-6', nameHe: 'שוק הנמל — דוכן מחצבים ואוצרות (הסוחר האן)', x: 246.0, z: 246.0, radius: 4.5 },
+  { id: 'market-harbor-1', name: t('landmarks.market_harbor_swords'), x: 212.0, z: 254.0, radius: 4.5 },
+  { id: 'market-harbor-2', name: t('landmarks.market_harbor_bows'), x: 212.0, z: 263.0, radius: 4.5 },
+  { id: 'market-harbor-3', name: t('landmarks.market_harbor_timber'), x: 224.0, z: 263.0, radius: 4.5 },
+  { id: 'market-harbor-4', name: t('landmarks.market_harbor_stone'), x: 240.0, z: 263.0, radius: 4.5 },
+  { id: 'market-harbor-5', name: t('landmarks.market_harbor_smithy'), x: 246.0, z: 238.0, radius: 4.5 },
+  { id: 'market-harbor-6', name: t('landmarks.market_harbor_minerals'), x: 246.0, z: 246.0, radius: 4.5 },
 ] as const;
 
 /**

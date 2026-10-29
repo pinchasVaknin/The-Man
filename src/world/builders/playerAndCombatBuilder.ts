@@ -11,13 +11,17 @@ import * as THREE from 'three';
 import {
   ARROW_TRAIL_MAX_AGE,
   ArrowElementKind,
-  ArrowProjectile,
+  IArrowProjectile,
   LOCKED_SWORD_GRIP_TRANSFORM,
   PLAYER_EYE_HEIGHT,
-  PlayerState,
+  IPlayerState,
   computeFirstPersonSwordAttackPose,
 } from '../terrainMath';
 
+/**
+ * Summary: Construction context for player avatar, bow, sword, and projectile systems.
+ * Design: Supplies camera, scene, sound engine, and textures for character assembly.
+ */
 export interface IPlayerAndCombatBuilderContext {
   scene: THREE.Scene;
   furnitureWoodMat: THREE.Material;
@@ -27,12 +31,16 @@ export interface IPlayerAndCombatBuilderContext {
 }
 export type PlayerAndCombatBuilderContext = IPlayerAndCombatBuilderContext;
 
+/**
+ * Summary: Runtime handle exposing player visual rigs and projectile meshes.
+ * Design: Exposes update methods to synchronize 3D character pose with physical state.
+ */
 export interface IPlayerAndCombatHandle {
   playerCharacterGroup: THREE.Group;
   updatePlayerAndCombat: (
     elapsedTime: number,
-    playerState?: PlayerState,
-    activeArrows?: readonly ArrowProjectile[]
+    playerState?: IPlayerState,
+    activeArrows?: readonly IArrowProjectile[]
   ) => void;
 }
 export type PlayerAndCombatHandle = IPlayerAndCombatHandle;
@@ -48,9 +56,15 @@ export type PlayerAndCombatHandle = IPlayerAndCombatHandle;
  * - Skyrim-Style 1st-Person Viewmodel (Sculpted Gloved Hands with Signet Ring, Layered Green-and-Gold Vambraces,
  *   90° Bow Riser Grip, Nocked Arrow, Ornate Rune-Engraved Greatsword with 3-Phase Full-Viewport Cleave & Forward Crescent Air-Wave, Torch)
  */
+/**
+ * Summary: Assembles 3D ranger character, third/first person camera rigs, sword, and arrows.
+ * Design: Integrates procedural models and particle ribbons into a coherent combat controller.
+ * @param ctx Player and combat builder context.
+ * @returns IPlayerAndCombatHandle with update and synchronization methods.
+ */
 export function buildPlayerAndCombatSystems(
-  ctx: PlayerAndCombatBuilderContext
-): PlayerAndCombatHandle {
+  ctx: IPlayerAndCombatBuilderContext
+): IPlayerAndCombatHandle {
   const {
     scene,
     disposableGeometries,
@@ -1091,8 +1105,8 @@ export function buildPlayerAndCombatSystems(
 
   const updatePlayerAndCombat = (
     elapsedTime: number,
-    playerState?: PlayerState,
-    activeArrows?: readonly ArrowProjectile[]
+    playerState?: IPlayerState,
+    activeArrows?: readonly IArrowProjectile[]
   ) => {
     // 15. Update Active 3D Feathered Arrow Projectiles + Fading Gray Smoke/Air Wake Trails!
     let puffIdx = 0;

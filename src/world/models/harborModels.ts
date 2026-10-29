@@ -13,11 +13,15 @@ import {
   isWithinViewDistance,
 } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== HARBOR MODEL INTERFACES ======================== \\
 // #region Harbor Model Interfaces
+/**
+ * Summary: Interactive handles and beacon rotation pivots for coastal harbor town.
+ * Design: Exposes lighthouse beacon light pivot and galleon ship captain cabin doors.
+ */
 export interface IHarborModelHandles {
   readonly harborGroup: THREE.Group;
   readonly lighthouseBeaconGroup: THREE.Group;
@@ -30,9 +34,13 @@ export type HarborModelHandles = IHarborModelHandles;
 // ======================== BUILD HARBOR MODELS ======================== \\
 // #region Build Harbor Models
 /**
+ * Summary: Build harbor models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the grand walled coastal harbor town, galleon ship, and imperial lighthouse.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildHarborModels.
  */
-export function buildHarborModels(ctx: WorldModelBuildContext): HarborModelHandles {
+export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHandles {
   const {
     scene,
     textures,

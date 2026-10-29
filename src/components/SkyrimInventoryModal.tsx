@@ -10,14 +10,24 @@
 import React, { useState } from 'react';
 import {
   INVENTORY_ITEMS,
+  INVENTORY_ITEM_MAP,
   InventoryItemId,
-  InventoryItemDef,
-  CharacterSkillsState,
+  IInventoryItemDef,
+  ICharacterSkillsState,
   getMarketSellPrice,
+  type IBuyMarketItemPayload,
+  type ISellMarketItemPayload,
+  type MarketTransactionErrorCode,
 } from '../world/terrainMath';
+import { t } from '../locales';
+import type { Result } from '../core/Result';
 import { renderArtifactArtwork } from './itemArtworkRegistry';
 export { renderArtifactArtwork };
 
+/**
+ * Summary: Enumerated navigation tabs for the Skyrim inventory modal dialog.
+ * Design: Categorizes weapons, materials, ammunition, and marketplace interactions.
+ */
 export type InventoryCategoryTab =
   | 'all'
   | 'weapons'
@@ -28,6 +38,10 @@ export type InventoryCategoryTab =
   | 'market'
   | 'skills';
 
+/**
+ * Summary: Props contract for Skyrim-style full-screen inventory modal dialog.
+ * Design: Exposes inventory collections, equipment handlers, and market transaction dispatchers.
+ */
 export interface ISkyrimInventoryModalProps {
   selectedCategory: InventoryCategoryTab;
   onSelectCategory: (cat: InventoryCategoryTab) => void;
@@ -39,13 +53,13 @@ export interface ISkyrimInventoryModalProps {
   favoriteIds: InventoryItemId[];
   hotbarSlots: (InventoryItemId | null)[];
   onEquipItem: (id: InventoryItemId) => void;
-  onBuyItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
-  onSellItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
+  onBuyItem: (id: InventoryItemId) => Result<IBuyMarketItemPayload, MarketTransactionErrorCode>;
+  onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
   onToggleFavorite: (id: InventoryItemId) => void;
   onAssignHotbar: (slotIdx: number, id: InventoryItemId) => void;
   onClose: () => void;
-  nearbyMarket?: { id: string; nameHe: string } | null;
-  skills?: CharacterSkillsState;
+  nearbyMarket?: { id: string; name?: string } | null;
+  skills?: ICharacterSkillsState;
   stamina?: number;
   maxStamina?: number;
   distanceWalked?: number;
@@ -53,28 +67,28 @@ export interface ISkyrimInventoryModalProps {
 }
 export type SkyrimInventoryModalProps = ISkyrimInventoryModalProps;
 
-export const SHORT_NAMES_HE: Record<InventoryItemId, string> = {
-  bow: 'קשת ציידים',
-  sword: 'חרב רונות',
-  torch: 'לפיד אש',
-  unarmed: 'ידיים',
-  arrow_normal: 'חץ פלדה',
-  arrow_fire: 'חץ אש',
-  arrow_wind: 'חץ סערה',
-  oak_timber: 'קורות אלון',
-  cut_granite_blocks: 'לבני גרניט',
-  iron_ingots: 'מטילי ברזל',
-  imperial_clay_tiles: 'רעפי חרס',
-  marble_pillar_stone: 'אבן שיש',
-  dwarven_gold_ore: 'עפרת זהב',
-  crystal_gem: 'גביש אור',
-  ancient_dwarven_horn: 'קרן גמדים',
-  elven_cloak: 'גלימת סייר',
-  katana_imperial: 'להב קיסרי',
-  elven_longbow: 'קשת אלפים',
-  dwarven_warhammer: 'חרב גמדים',
-  dragonbone_bow: 'קשת דרקון',
-  celestial_jin_sword: 'חרב שמיימית',
+export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
+  bow: t('items.bow.short'),
+  sword: t('items.sword.short'),
+  torch: t('items.torch.short'),
+  unarmed: t('items.unarmed.short'),
+  arrow_normal: t('items.arrow_normal.short'),
+  arrow_fire: t('items.arrow_fire.short'),
+  arrow_wind: t('items.arrow_wind.short'),
+  oak_timber: t('items.oak_timber.short'),
+  cut_granite_blocks: t('items.cut_granite_blocks.short'),
+  iron_ingots: t('items.iron_ingots.short'),
+  imperial_clay_tiles: t('items.imperial_clay_tiles.short'),
+  marble_pillar_stone: t('items.marble_pillar_stone.short'),
+  dwarven_gold_ore: t('items.dwarven_gold_ore.short'),
+  crystal_gem: t('items.crystal_gem.short'),
+  ancient_dwarven_horn: t('items.ancient_dwarven_horn.short'),
+  elven_cloak: t('items.elven_cloak.short'),
+  katana_imperial: t('items.katana_imperial.short'),
+  elven_longbow: t('items.elven_longbow.short'),
+  dwarven_warhammer: t('items.dwarven_warhammer.short'),
+  dragonbone_bow: t('items.dragonbone_bow.short'),
+  celestial_jin_sword: t('items.celestial_jin_sword.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];
@@ -83,7 +97,11 @@ const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];
 // ======================== MODAL COMPONENT ======================== \\
 // #region Modal Component
 
-export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
+function formatMarketError(error: MarketTransactionErrorCode): string {
+  return t(`market.errors.${error}`);
+}
+
+export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   selectedCategory,
   onSelectCategory,
   selectedItemId,
@@ -100,12 +118,12 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
   nearbyMarket,
   skills,
 }) => {
-  const [tradeFeedbackHe, setTradeFeedbackHe] = useState<string | null>(null);
+  const [tradeFeedback, setTradeFeedback] = useState<string | null>(null);
   const [tradeSide, setTradeSide] = useState<'player' | 'merchant'>('merchant');
   const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'materials'>('all');
   const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'materials'>('all');
 
-  const s: CharacterSkillsState = skills ?? {
+  const s: ICharacterSkillsState = skills ?? {
     archeryLevel: 1,
     archeryXp: 0,
     archeryXpNext: 240,
@@ -139,7 +157,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
       ? 'materials'
       : 'weapons';
 
-  const ownedPersonalItems: readonly InventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
+  const ownedPersonalItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (!isItemOwned(item.id)) return false;
     if (activePersonalTab === 'materials') {
       return item.category === 'materials';
@@ -148,7 +166,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
   });
 
   // Harbor Market Mode: Left Column = Player's Owned Items | Right Column = Merchant's Items
-  const playerOwnedMarketItems: readonly InventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
+  const playerOwnedMarketItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (!isItemOwned(item.id) || item.id === 'unarmed') return false;
     if (playerMarketCat === 'weapons') {
       return item.category === 'weapons' || item.category === 'ammo' || item.id === 'torch';
@@ -159,7 +177,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
     return true;
   });
 
-  const merchantCatalogItems: readonly InventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
+  const merchantCatalogItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (item.id === 'unarmed') return false;
     if (merchantMarketCat === 'weapons') {
       return item.category === 'weapons' || item.category === 'ammo' || item.id === 'torch';
@@ -170,7 +188,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
     return true;
   });
 
-  const inspectedItem: InventoryItemDef = (() => {
+  const inspectedItem: IInventoryItemDef = (() => {
     if (!inHarborMarket) {
       return (
         ownedPersonalItems.find((i) => i.id === selectedItemId) ??
@@ -179,7 +197,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
       );
     }
     return (
-      INVENTORY_ITEMS.find((i) => i.id === selectedItemId) ??
+      INVENTORY_ITEM_MAP.get(selectedItemId) ??
       merchantCatalogItems[0] ??
       INVENTORY_ITEMS[0]
     );
@@ -200,7 +218,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="תפריט נשקים, חומרי בנייה ושוק הנמל"
+      aria-label={t('ui.inventory_aria')}
       data-testid="skyrim-inventory-modal"
       dir="rtl"
       className="fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-7 pointer-events-auto select-none overflow-hidden"
@@ -217,15 +235,15 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
       <header className="w-full max-w-7xl mx-auto flex items-center justify-between pb-3 border-b border-stone-700/60">
         <div className="flex items-center gap-6">
           <h1 className="font-display-he text-2xl sm:text-3xl font-bold text-stone-100 tracking-wide">
-            {inHarborMarket ? `שוק הנמל · ${nearbyMarket?.nameHe}` : 'ציוד הסייר האישי'}
+            {inHarborMarket ? t('market.hud.harbor_market_title', { market: nearbyMarket?.name ?? '' }) : t('ui.personal_gear_title')}
           </h1>
           <div className="flex items-center gap-4 text-sm text-stone-300">
             <span>
-              דרגת סייר: <strong className="text-amber-300 font-mono-tabular">{overallHeroLevel}</strong>
+              {t('ui.hero_level_label')}<strong className="text-amber-300 font-mono-tabular">{overallHeroLevel}</strong>
             </span>
             <span className="text-stone-600">|</span>
             <span data-testid="inventory-gold-display">
-              זהב: <strong className="text-amber-400 font-mono-tabular">{goldCoins}</strong>
+              {t('ui.gold_label')}<strong className="text-amber-400 font-mono-tabular">{goldCoins}</strong>
             </span>
           </div>
         </div>
@@ -236,7 +254,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
           onClick={onClose}
           className="text-sm font-semibold text-stone-300 hover:text-amber-300 transition-colors cursor-pointer px-3 py-1.5"
         >
-          סגור [Tab]
+          {t('ui.close_tab')}
         </button>
       </header>
 
@@ -249,7 +267,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
           data-testid="harbor-market-split-layout"
           className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 py-4 overflow-hidden items-stretch"
         >
-          {/* PHYSICAL LEFT COLUMN (בצד שמאל של המסך — מה יש לי / הציוד שלי למכירה) */}
+          {/* PHYSICAL LEFT COLUMN (Left screen - Player-owned items / available to sell) */}
           <div
             dir="rtl"
             data-testid="market-left-player-column"
@@ -258,12 +276,12 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-700/70">
               <div>
                 <h2 className="font-display-he text-xl font-bold text-amber-300">
-                  הציוד שלי (בצד שמאל)
+                  {t('ui.my_gear_left')}
                 </h2>
-                <p className="text-xs text-stone-400">לחץ על פריט שברשותך להצגה ומכירה במרכז</p>
+                <p className="text-xs text-stone-400">{t('ui.my_gear_hint')}</p>
               </div>
               <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
-                {playerOwnedMarketItems.length} פריטים
+                {t('ui.items_count', { count: playerOwnedMarketItems.length })}
               </span>
             </div>
 
@@ -271,11 +289,11 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             <div className="flex items-center gap-2 mb-3">
               {(
                 [
-                  ['all', 'הכל'],
-                  ['weapons', 'נשקים'],
-                  ['materials', 'חומרי בנייה'],
+                  ['all', t('ui.all_filter')],
+                  ['weapons', t('ui.weapons_filter')],
+                  ['materials', t('ui.materials_filter')],
                 ] as const
-              ).map(([catKey, labelHe]) => (
+              ).map(([catKey, label]) => (
                 <button
                   key={catKey}
                   type="button"
@@ -286,7 +304,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       : 'bg-stone-800/70 text-stone-300 hover:text-white'
                   }`}
                 >
-                  {labelHe}
+                  {label}
                 </button>
               ))}
             </div>
@@ -308,7 +326,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     onClick={() => {
                       setTradeSide('player');
                       onSelectItem(item.id);
-                      setTradeFeedbackHe(null);
+                      setTradeFeedback(null);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
                       isSelected
@@ -317,15 +335,15 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="truncate text-sm sm:text-base">{item.nameHe}</span>
+                      <span className="truncate text-sm sm:text-base">{item.name}</span>
                       {equipped && (
                         <span className="text-[11px] font-semibold text-amber-300 shrink-0">
-                          [מצויד]
+                          {t('interactions.equipped_label')}
                         </span>
                       )}
                     </div>
                     <span className="text-xs font-mono-tabular text-amber-300 shrink-0">
-                      מכירה: +{sellVal} זהב
+                      {t('interactions.sell_tag', { price: sellVal })}
                     </span>
                   </button>
                 );
@@ -333,7 +351,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             </div>
           </div>
 
-          {/* PHYSICAL CENTER COLUMN (במרכז המסך — פרטים מלאים ואופציית מכירה / קנייה) */}
+          {/* PHYSICAL CENTER COLUMN (Center screen - Item inspection & buy / sell actions) */}
           <div
             dir="rtl"
             data-testid="market-center-showcase"
@@ -347,8 +365,8 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
               }`}
             >
               {tradeSide === 'player'
-                ? 'נבחר מהרשימה שלך (שמאל) · מוכן למכירה או ציוד'
-                : 'נבחר מרשימת המוכר (ימין) · מוכן לקנייה'}
+                ? t('ui.selected_from_my_list')
+                : t('ui.selected_from_merchant_list')}
             </div>
 
             <div className="relative w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center mb-3">
@@ -356,37 +374,37 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             </div>
 
             <div className="text-xs font-semibold text-amber-300/90 tracking-wide mb-1">
-              {inspectedItem.categoryLabelHe} · דרגה נדרשת {inspectedReqLevel}
+              {t('ui.category_required_level', { category: inspectedItem.categoryLabel ?? '', level: inspectedReqLevel })}
             </div>
             <h2
               data-testid="inspected-item-title"
               className="font-display-he text-2xl sm:text-3xl font-bold text-white mb-2"
             >
-              {inspectedItem.nameHe}
+              {inspectedItem.name}
             </h2>
 
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-stone-300 mb-3">
-              <span className="text-amber-200 font-semibold">{inspectedItem.statLabelHe}</span>
+              <span className="text-amber-200 font-semibold">{inspectedItem.statLabel}</span>
               <span className="text-stone-600">·</span>
-              <span>משקל: {inspectedItem.weight}</span>
+              <span>{t('ui.weight_label', { weight: inspectedItem.weight })}</span>
               <span className="text-stone-600">·</span>
               <span>
                 {tradeSide === 'player'
-                  ? `תמורת מכירה: ${inspectedSellPrice} זהב`
-                  : `מחיר קנייה: ${inspectedItem.valueGold} זהב`}
+                  ? t('interactions.inspected_sell_tag', { price: inspectedSellPrice })
+                  : t('interactions.inspected_buy_tag', { price: inspectedItem.valueGold })}
               </span>
             </div>
 
             <p className="max-w-sm text-xs sm:text-sm text-stone-300/90 leading-relaxed mb-4">
-              {inspectedItem.descriptionHe}
+              {inspectedItem.description}
             </p>
 
-            {tradeFeedbackHe && (
+            {tradeFeedback && (
               <div
                 data-testid="trade-feedback-banner"
                 className="mb-3 px-4 py-1.5 text-xs font-bold text-amber-200 bg-stone-900/95 border border-amber-400/50"
               >
-                {tradeFeedbackHe}
+                {tradeFeedback}
               </div>
             )}
 
@@ -400,11 +418,13 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       data-testid="skyrim-sell-btn"
                       onClick={() => {
                         const res = onSellItem(inspectedItem.id);
-                        setTradeFeedbackHe(res.reasonHe);
+                        setTradeFeedback(
+                          res.isSuccess ? t('interactions.sold_success', { gold: res.value.soldForGold }) : formatMarketError(res.error)
+                        );
                       }}
                       className="w-full py-2.5 px-5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
                     >
-                      מכור לסוחר (+{inspectedSellPrice} מטבעות זהב)
+                      {t('interactions.sell_action', { price: inspectedSellPrice })}
                     </button>
                   )}
                   {inspectedOwned && inspectedItem.category !== 'materials' && (
@@ -414,7 +434,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       onClick={() => onEquipItem(inspectedItem.id)}
                       className="w-full py-2 px-4 text-xs font-bold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 transition-colors cursor-pointer"
                     >
-                      {inspectedEquipped ? 'מצויד כעת [E]' : 'צייד פריט [E]'}
+                      {inspectedEquipped ? t('interactions.equipped_now') : t('interactions.equip_action')}
                     </button>
                   )}
                 </>
@@ -427,7 +447,9 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       disabled={inspectedLevelLocked || goldCoins < inspectedItem.valueGold}
                       onClick={() => {
                         const res = onBuyItem(inspectedItem.id);
-                        setTradeFeedbackHe(res.reasonHe);
+                        setTradeFeedback(
+                          res.isSuccess ? t('interactions.purchased_success') : formatMarketError(res.error)
+                        );
                       }}
                       className={`w-full py-2.5 px-5 text-sm font-bold transition-colors ${
                         inspectedLevelLocked
@@ -438,15 +460,15 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       }`}
                     >
                       {inspectedLevelLocked
-                        ? `נדרשת דרגת סייר ${inspectedReqLevel}`
+                        ? t('interactions.level_insufficient', { level: inspectedReqLevel })
                         : goldCoins < inspectedItem.valueGold
-                          ? `חסר זהב (${inspectedItem.valueGold} זהב)`
-                          : `קנה מהסוחר (${inspectedItem.valueGold} מטבעות זהב)`}
+                          ? t('interactions.gold_insufficient', { price: inspectedItem.valueGold })
+                          : t('interactions.buy_action', { price: inspectedItem.valueGold })}
                     </button>
                   ) : (
                     <div className="w-full flex flex-col gap-2">
                       <div className="py-2 px-4 text-xs font-bold text-emerald-300 bg-emerald-950/50 border border-emerald-500/40">
-                        הפריט כבר נמצא ברשותך (מופיע ברשימה משמאל)
+                        {t('interactions.already_owned_notice')}
                       </div>
                       {canSellInspected && (
                         <button
@@ -454,11 +476,13 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                           data-testid="skyrim-sell-btn"
                           onClick={() => {
                             const res = onSellItem(inspectedItem.id);
-                            setTradeFeedbackHe(res.reasonHe);
+                            setTradeFeedback(
+                              res.isSuccess ? t('interactions.sold_success', { gold: res.value.soldForGold }) : formatMarketError(res.error)
+                            );
                           }}
                           className="w-full py-2 px-4 text-xs font-bold text-amber-200 bg-stone-800 hover:bg-stone-700 border border-amber-400/40 cursor-pointer"
                         >
-                          מכור לסוחר (+{inspectedSellPrice} זהב)
+                          {t('interactions.sell_short', { price: inspectedSellPrice })}
                         </button>
                       )}
                     </div>
@@ -468,7 +492,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             </div>
           </div>
 
-          {/* PHYSICAL RIGHT COLUMN (בצד ימין של המסך — מה יש למוכר / קטלוג קנייה) */}
+          {/* PHYSICAL RIGHT COLUMN (Right screen - Merchant items / catalog to buy) */}
           <div
             dir="rtl"
             data-testid="market-right-merchant-column"
@@ -477,12 +501,12 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-700/70">
               <div>
                 <h2 className="font-display-he text-xl font-bold text-emerald-300">
-                  סחורת המוכר (בצד ימין)
+                  {t('ui.merchant_goods_right')}
                 </h2>
-                <p className="text-xs text-stone-400">לחץ על פריט של המוכר להצגה וקנייה במרכז</p>
+                <p className="text-xs text-stone-400">{t('ui.merchant_goods_hint')}</p>
               </div>
               <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
-                {merchantCatalogItems.length} פריטים
+                {t('ui.items_count', { count: merchantCatalogItems.length })}
               </span>
             </div>
 
@@ -490,11 +514,11 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             <div className="flex items-center gap-2 mb-3">
               {(
                 [
-                  ['all', 'הכל'],
-                  ['weapons', 'נשקים'],
-                  ['materials', 'חומרי בנייה'],
+                  ['all', t('ui.all_filter')],
+                  ['weapons', t('ui.weapons_filter')],
+                  ['materials', t('ui.materials_filter')],
                 ] as const
-              ).map(([catKey, labelHe]) => (
+              ).map(([catKey, label]) => (
                 <button
                   key={catKey}
                   type="button"
@@ -505,7 +529,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       : 'bg-stone-800/70 text-stone-300 hover:text-white'
                   }`}
                 >
-                  {labelHe}
+                  {label}
                 </button>
               ))}
             </div>
@@ -528,7 +552,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     onClick={() => {
                       setTradeSide('merchant');
                       onSelectItem(item.id);
-                      setTradeFeedbackHe(null);
+                      setTradeFeedback(null);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
                       isSelected
@@ -537,18 +561,18 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="truncate text-sm sm:text-base">{item.nameHe}</span>
+                      <span className="truncate text-sm sm:text-base">{item.name}</span>
                       {owned && (
                         <span className="text-[11px] font-semibold text-emerald-300 shrink-0">
-                          [ברשותך]
+                          {t('interactions.owned_label')}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 text-xs font-mono-tabular">
                       {locked ? (
-                        <span className="text-rose-400">דרגה {reqLvl}</span>
+                        <span className="text-rose-400">{t('interactions.level_required_badge', { level: reqLvl })}</span>
                       ) : (
-                        <span className="text-amber-300">{item.valueGold} זהב</span>
+                        <span className="text-amber-300">{item.valueGold} 🪙</span>
                       )}
                     </div>
                   </button>
@@ -559,7 +583,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
         </div>
       ) : (
         /* =====================================================================
-           PERSONAL INVENTORY OUTSIDE MARKET (רשימת הציוד שבידי הדמות שלי בלבד!)
+           PERSONAL INVENTORY OUTSIDE MARKET (Player equipment list only)
            ===================================================================== */
         <div
           dir="ltr"
@@ -572,7 +596,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
           >
             <nav
               dir="rtl"
-              aria-label="נושאי תפריט"
+              aria-label={t('ui.menu_topics_aria')}
               className="w-40 sm:w-44 shrink-0 flex flex-col justify-center gap-6 border-r border-stone-700/60 pr-4"
             >
               <button
@@ -580,7 +604,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                 data-testid="cat-tab-weapons"
                 onClick={() => {
                   onSelectCategory('weapons');
-                  const firstOwnedWep = INVENTORY_ITEMS.find(
+                  const firstOwnedWep = Array.from(INVENTORY_ITEM_MAP.values()).find(
                     (i) =>
                       isItemOwned(i.id) &&
                       (i.category === 'weapons' || i.category === 'ammo' || i.id === 'torch')
@@ -593,7 +617,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                נשקים
+                {t('ui.weapons_tab')}
               </button>
 
               <button
@@ -601,7 +625,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                 data-testid="cat-tab-materials"
                 onClick={() => {
                   onSelectCategory('materials');
-                  const firstOwnedMat = INVENTORY_ITEMS.find(
+                  const firstOwnedMat = Array.from(INVENTORY_ITEM_MAP.values()).find(
                     (i) => isItemOwned(i.id) && i.category === 'materials'
                   );
                   if (firstOwnedMat) onSelectItem(firstOwnedMat.id);
@@ -612,7 +636,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                     : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                חומרי בנייה
+                {t('ui.materials_tab')}
               </button>
             </nav>
 
@@ -620,8 +644,8 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             <div dir="rtl" className="flex-1 flex flex-col h-full max-h-[68vh] overflow-hidden">
               <div className="text-xs uppercase tracking-widest text-stone-400 pb-2 mb-2 border-b border-stone-800">
                 {activePersonalTab === 'weapons'
-                  ? 'נשקים וציוד שברשותך כרגע'
-                  : 'חומרי בנייה ומשאבים שברשותך כרגע'}
+                  ? t('ui.owned_weapons_desc')
+                  : t('ui.owned_materials_desc')}
               </div>
 
               <div
@@ -653,10 +677,10 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="truncate text-base sm:text-lg">{item.nameHe}</span>
+                        <span className="truncate text-base sm:text-lg">{item.name}</span>
                         {equipped && (
                           <span className="text-[11px] font-semibold text-amber-300 shrink-0">
-                            [מצויד]
+                            {t('interactions.equipped_label')}
                           </span>
                         )}
                       </div>
@@ -678,25 +702,25 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
             </div>
 
             <div className="text-xs font-semibold text-amber-300/90 tracking-wide mb-1">
-              {inspectedItem.categoryLabelHe} · ברשות הדמות
+              {t('ui.category_owned_by_hero', { category: inspectedItem.categoryLabel ?? '' })}
             </div>
             <h2
               data-testid="inspected-item-title"
               className="font-display-he text-2xl sm:text-4xl font-bold text-white mb-2"
             >
-              {inspectedItem.nameHe}
+              {inspectedItem.name ?? inspectedItem.name}
             </h2>
 
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-stone-300 mb-3">
-              <span className="text-amber-200 font-semibold">{inspectedItem.statLabelHe}</span>
+              <span className="text-amber-200 font-semibold">{inspectedItem.statLabel}</span>
               <span className="text-stone-600">·</span>
-              <span>משקל: {inspectedItem.weight}</span>
+              <span>{t('ui.weight_label', { weight: inspectedItem.weight })}</span>
               <span className="text-stone-600">·</span>
-              <span>שווי מוערך: {inspectedItem.valueGold} זהב</span>
+              <span>{t('ui.estimated_value_label', { value: inspectedItem.valueGold })}</span>
             </div>
 
             <p className="max-w-md text-xs sm:text-sm text-stone-300/90 leading-relaxed mb-5">
-              {inspectedItem.descriptionHe}
+              {inspectedItem.description}
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -707,7 +731,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                   onClick={() => onEquipItem(inspectedItem.id)}
                   className="px-6 py-2.5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
                 >
-                  {inspectedEquipped ? 'מצויד כעת [E]' : 'צייד פריט [E]'}
+                  {inspectedEquipped ? t('interactions.equipped_now') : t('interactions.equip_action')}
                 </button>
               )}
 
@@ -720,7 +744,7 @@ export const SkyrimInventoryModal = React.memo<SkyrimInventoryModalProps>(({
                         key={slotIdx}
                         type="button"
                         onClick={() => onAssignHotbar(slotIdx, inspectedItem.id)}
-                        title={`שייך למקש מהיר ${slotIdx + 1}`}
+                        title={t('interactions.assign_hotbar_slot', { slot: slotIdx + 1 })}
                         className={`w-8 h-8 text-xs font-mono-tabular font-bold transition-colors cursor-pointer ${
                           isBound
                             ? 'bg-amber-400 text-stone-950'

@@ -15,11 +15,15 @@ import {
 import { attachWindSwayShader } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== OASIS MODEL INTERFACE ======================== \\
 // #region Oasis Model Interface
+/**
+ * Summary: Handles to animated features within the southwest desert oasis.
+ * Design: Encapsulates water lagoon ripple planes and desert camp visual markers.
+ */
 export interface IOasisModelHandles {
   readonly oasisGroup: THREE.Group;
   readonly updateOasis: (elapsedTime: number) => void;
@@ -30,9 +34,13 @@ export type OasisModelHandles = IOasisModelHandles;
 // ======================== BUILD OASIS MODELS ======================== \\
 // #region Build Oasis Models
 /**
+ * Summary: Build oasis models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the grand southwest desert oasis complex, celestial observatory, and palm grove.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildOasisModels.
  */
-export function buildOasisModels(ctx: WorldModelBuildContext): OasisModelHandles {
+export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandles {
   const {
     scene,
     textures,

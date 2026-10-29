@@ -21,11 +21,15 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== FARMHOUSE MODEL INTERFACES ======================== \\
 // #region Farmhouse Model Interfaces
+/**
+ * Summary: Collection of interactive door handles and windmill rotor pivots in valley farms.
+ * Design: Provides pivot references to rotate doors and spin windmill blades per frame.
+ */
 export interface IFarmhouseModelHandles {
   readonly mineGroup: THREE.Group;
   readonly updateFarmhousesAndMine: (
@@ -41,9 +45,13 @@ export type FarmhouseModelHandles = IFarmhouseModelHandles;
 // ======================== BUILD FARMHOUSE MODELS ======================== \\
 // #region Build Farmhouse Models
 /**
+ * Summary: Build farmhouse models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the valley farmhouses, wheat fields, magic circle, sheep flock, and southern mountain mine.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildFarmhouseModels.
  */
-export function buildFarmhouseModels(ctx: WorldModelBuildContext): FarmhouseModelHandles {
+export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseModelHandles {
   const {
     scene,
     textures,

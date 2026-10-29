@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { ArcheryTargetDef, CornerWatchtowerDef } from '../worldTypes';
+import { t } from '../../../locales';
+import type { IArcheryTargetDef, ICornerWatchtowerDef } from '../worldTypes';
 // #endregion
 
 // ======================== GLOBAL FORTRESS OFFSETS ======================== \\
@@ -59,11 +60,11 @@ export const CHINESE_FORTRESS_POS = {
 } as const;
 
 /** Summary: 4 Corner watchtowers defending the perimeter ramparts of the mountain fortress. */
-export const CORNER_WATCHTOWERS: readonly CornerWatchtowerDef[] = [
+export const CORNER_WATCHTOWERS: readonly ICornerWatchtowerDef[] = [
   {
     id: 'sw-watchtower',
     doorId: 'sw-watchtower-door',
-    nameHe: 'מגדל הפינה הדרום־מערבי',
+    name: t('buildings.corner_tower_sw'),
     cx: -45.5,
     cz: -128.5 + FZ,
     doorX: -45.5,
@@ -76,7 +77,7 @@ export const CORNER_WATCHTOWERS: readonly CornerWatchtowerDef[] = [
   {
     id: 'se-watchtower',
     doorId: 'se-watchtower-door',
-    nameHe: 'מגדל הפינה הדרום־מזרחי',
+    name: t('buildings.corner_tower_se'),
     cx: 45.5,
     cz: -128.5 + FZ,
     doorX: 45.5,
@@ -89,7 +90,7 @@ export const CORNER_WATCHTOWERS: readonly CornerWatchtowerDef[] = [
   {
     id: 'nw-watchtower',
     doorId: 'nw-watchtower-door',
-    nameHe: 'מגדל הפינה הצפון־מערבי',
+    name: t('buildings.corner_tower_nw'),
     cx: -45.5,
     cz: -213.5 + FZ,
     doorX: -45.5,
@@ -102,7 +103,7 @@ export const CORNER_WATCHTOWERS: readonly CornerWatchtowerDef[] = [
   {
     id: 'ne-watchtower',
     doorId: 'ne-watchtower-door',
-    nameHe: 'מגדל הפינה הצפון־מזרחי',
+    name: t('buildings.corner_tower_ne'),
     cx: 45.5,
     cz: -213.5 + FZ,
     doorX: 45.5,
@@ -115,10 +116,10 @@ export const CORNER_WATCHTOWERS: readonly CornerWatchtowerDef[] = [
 ] as const;
 
 /** Summary: Archery training targets positioned in the fortress courtyard for practice. */
-export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
+export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
   {
     id: 'target-fortress-hall-nw-outer',
-    nameHe: 'מטרת ההיכל הקיסרי — מערב חיצוני',
+    name: t('landmarks.target_hall_west_outer'),
     x: -18.0,
     z: -182.0 + FZ,
     yaw: 0.0,
@@ -126,7 +127,7 @@ export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
   },
   {
     id: 'target-fortress-hall-nw-inner',
-    nameHe: 'מטרת ההיכל הקיסרי — מערב פנימי',
+    name: t('landmarks.target_hall_west_inner'),
     x: -12.5,
     z: -182.0 + FZ,
     yaw: 0.0,
@@ -134,7 +135,7 @@ export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
   },
   {
     id: 'target-fortress-hall-ne-inner',
-    nameHe: 'מטרת ההיכל הקיסרי — מזרח פנימי',
+    name: t('landmarks.target_hall_east_inner'),
     x: 12.5,
     z: -182.0 + FZ,
     yaw: 0.0,
@@ -142,7 +143,7 @@ export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
   },
   {
     id: 'target-fortress-hall-ne-outer',
-    nameHe: 'מטרת ההיכל הקיסרי — מזרח חיצוני',
+    name: t('landmarks.target_hall_east_outer'),
     x: 18.0,
     z: -182.0 + FZ,
     yaw: 0.0,
@@ -150,7 +151,13 @@ export const ARCHERY_TARGETS: readonly ArcheryTargetDef[] = [
   },
 ] as const;
 
-/** Summary: Checks whether coordinates fall within walkable fortress courtyards or staircases. */
+/**
+ * Summary: Checks whether coordinates fall within walkable fortress courtyards or staircases.
+ * Design: Bounding check against central grand staircases, landings, and summit plaza.
+ * @param x World X coordinate.
+ * @param z World Z coordinate.
+ * @returns Boolean true if coordinate is within walkable fortress zone.
+ */
 export function isChineseFortressWalkableZone(x: number, z: number): boolean {
   const onLowerStairs =
     Math.abs(x - CHINESE_FORTRESS_POS.x) <= CHINESE_FORTRESS_POS.stairHalfWidth &&
@@ -171,7 +178,12 @@ export function isChineseFortressWalkableZone(x: number, z: number): boolean {
   return onLowerStairs || onMidLanding || onUpperStairs || onPlaza;
 }
 
-/** Summary: Calculates walkable stepped incline height along the central mountain staircase. */
+/**
+ * Summary: Calculates walkable stepped incline height along the central mountain staircase.
+ * Design: Piecewise linear interpolation across lower stairs, mid landing, and upper flights.
+ * @param z World Z coordinate.
+ * @returns Interpolated elevation along the mountain staircase.
+ */
 export function chineseFortressStairHeightAt(z: number): number {
   if (z >= CHINESE_FORTRESS_POS.stairFootZ) {
     return CHINESE_FORTRESS_POS.stairBaseHeight;

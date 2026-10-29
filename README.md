@@ -1,23 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# TheMan — 3D Living Nature & RPG World Simulator
 
-# Run and deploy your AI Studio app
+A realistic, high-performance procedural 3D open-world adventure built with Three.js, React, and TypeScript. Features procedural heightfield terrain, volumetric atmosphere, day/night cycles, dynamic weather, mounted horse riding, archery, dual combat kinematics, an economy with Skyrim-style inventory, and regional landmarks.
 
-This contains everything you need to run your app locally.
+## Overview & Architecture
 
-View your app in AI Studio: https://ai.studio/apps/84df16e3-e727-48c1-8be1-15a71afe9993
+- **World Engine**: Procedural terrain generation with analytical heightfields, multi-story structure resolution (fortress, watchtowers, farmhouses, harbor town, dwarven mines), and real-time biome classification.
+- **Atmosphere & Weather**: 24-hour dynamic solar elevation, morning mist, starry night cycles, and seasonal or turbo-test weather systems (rain, snow, dense fog, thunderstorm, and sandstorm).
+- **Kinematics & Combat**: Physics-driven first-person and third-person locomotion, swimming buoyancy, ladder climbing, ballistic arrow flight, and a 5-phase sword combat system with synchronized strike windows.
+- **Locomotion & Mounts**: Biomechanical horse simulation with gallop gaits, turning resistance, and free-look camera.
+- **Economy & UI**: Skyrim-style split-pane inventory with O(1) item lookups, equipment strategy pattern, hotbar binding, and localized Hebrew UI strings (`src/locales/`).
 
-## Run Locally
+## Getting Started
 
-**Prerequisites:**  Node.js
+### Prerequisites
 
+- Node.js (v20+ recommended)
+- npm
+
+### Installation & Run
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+
+2. Start development server:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+3. Run verification suite:
+   ```bash
+   npm run lint
+   npm test
+   npm run build
+   ```
 
 <!-- build-protocol:begin -->
 ## Engineering standards

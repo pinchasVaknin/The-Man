@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { ClimbableLadderInfo, FortressDoorDef } from '../worldTypes';
+import type { IClimbableLadderInfo, IFortressDoorDef } from '../worldTypes';
+import { t } from '../../../locales';
 import { CHINESE_FORTRESS_POS, CORNER_WATCHTOWERS, FORTRESS_Z_OFFSET } from './fortressLandmarks';
 import { HILL_WATCHTOWERS } from './highlandBridgeLandmarks';
 import { SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS } from './oasisAndHarborLandmarks';
@@ -28,14 +29,14 @@ const FZ = FORTRESS_Z_OFFSET;
  * @param id Ladder identifier string.
  * @returns Ladder definition with floor heights, or null.
  */
-export function getLadderById(id: string | null | undefined): ClimbableLadderInfo | null {
+export function getLadderById(id: string | null | undefined): IClimbableLadderInfo | null {
   if (!id) return null;
   for (let i = 0; i < CORNER_WATCHTOWERS.length; i++) {
     const wt = CORNER_WATCHTOWERS[i];
     if (wt.id === id) {
       return {
         id: wt.id,
-        nameHe: wt.nameHe,
+        name: wt.name,
         ladderX: wt.ladderX,
         ladderZ: wt.ladderZ,
         standX: wt.ladderX + (wt.isWest ? -0.42 : 0.42),
@@ -57,7 +58,7 @@ export function getLadderById(id: string | null | undefined): ClimbableLadderInf
     if (hw.id === id) {
       return {
         id: hw.id,
-        nameHe: hw.nameHe,
+        name: hw.name,
         ladderX: hw.ladderX,
         ladderZ: hw.ladderZ,
         standX: hw.standX,
@@ -73,7 +74,7 @@ export function getLadderById(id: string | null | undefined): ClimbableLadderInf
   if (id === SOUTHEAST_HARBOR_POS.lighthouseLadderId) {
     return {
       id: SOUTHEAST_HARBOR_POS.lighthouseLadderId,
-      nameHe: 'המגדלור המלכותי של נמל הדרום־מזרח',
+      name: t('landmarks.lighthouse'),
       ladderX: SOUTHEAST_HARBOR_POS.lighthouseLadderX,
       ladderZ: SOUTHEAST_HARBOR_POS.lighthouseLadderZ,
       standX: SOUTHEAST_HARBOR_POS.lighthouseStandX,
@@ -88,7 +89,7 @@ export function getLadderById(id: string | null | undefined): ClimbableLadderInf
   if (id === SOUTHWEST_OASIS_POS.observatoryLadderId) {
     return {
       id: SOUTHWEST_OASIS_POS.observatoryLadderId,
-      nameHe: 'מגדל המצפה האסטרונומי של נווה המדבר',
+      name: t('landmarks.oasis_observatory'),
       ladderX: SOUTHWEST_OASIS_POS.observatoryLadderX,
       ladderZ: SOUTHWEST_OASIS_POS.observatoryLadderZ,
       standX: SOUTHWEST_OASIS_POS.observatoryStandX,
@@ -105,11 +106,12 @@ export function getLadderById(id: string | null | undefined): ClimbableLadderInf
 
 /**
  * Summary: Identifies whether a 2D coordinate is within touching distance of a ladder base.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * @param x World X coordinate.
  * @param z World Z coordinate.
- * @returns ClimbableLadderInfo if standing in front of a ladder, or null.
+ * @returns IClimbableLadderInfo if standing in front of a ladder, or null.
  */
-export function findWatchtowerLadderAt(x: number, z: number): ClimbableLadderInfo | null {
+export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderInfo | null {
   for (let i = 0; i < CORNER_WATCHTOWERS.length; i++) {
     const wt = CORNER_WATCHTOWERS[i];
     if (Math.abs(x - wt.ladderX) <= 1.15 && Math.abs(z - wt.ladderZ) <= 1.15) {
@@ -143,6 +145,7 @@ export function findWatchtowerLadderAt(x: number, z: number): ClimbableLadderInf
 
 /**
  * Summary: Fast predicate checking if position overlaps any ladder climbing zone.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * @param x World X.
  * @param z World Z.
  * @returns True when standing within ladder grab volume.
@@ -167,7 +170,7 @@ export function findLookedAtWatchtowerLadder(
   z: number,
   yaw: number,
   pitch = 0
-): ClimbableLadderInfo | null {
+): IClimbableLadderInfo | null {
   if (Math.abs(pitch) > 1.28) return null;
 
   const fwdX = -Math.sin(yaw);
@@ -232,10 +235,10 @@ export function findLookedAtWatchtowerLadder(
 // ======================== FORTRESS DOORS ======================== \\
 // #region Fortress Doors
 /** Summary: Complete registry of interactive doors across all buildings and towers. */
-export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
+export const FORTRESS_DOORS: readonly IFortressDoorDef[] = [
   {
     id: 'main-hall-door',
-    buildingNameHe: 'היכל המצודה הקיסרי הראשי',
+    buildingName: t('buildings.fortress_main_hall'),
     x: 0,
     y: CHINESE_FORTRESS_POS.mainHallFloor1Y,
     z: -189.8 + FZ,
@@ -247,7 +250,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'west-pavilion-door',
-    buildingNameHe: 'ביתן הפגודה המערבי',
+    buildingName: t('buildings.pagoda_west'),
     x: -30.0,
     y: CHINESE_FORTRESS_POS.pavilionFloor1Y,
     z: -156.5 + FZ,
@@ -259,7 +262,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'east-pavilion-door',
-    buildingNameHe: 'ביתן הפגודה המזרחי',
+    buildingName: t('buildings.pagoda_east'),
     x: 30.0,
     y: CHINESE_FORTRESS_POS.pavilionFloor1Y,
     z: -156.5 + FZ,
@@ -271,7 +274,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'sw-watchtower-door',
-    buildingNameHe: 'מגדל הפינה הדרום־מערבי',
+    buildingName: t('buildings.corner_tower_sw'),
     x: -45.5,
     y: CHINESE_FORTRESS_POS.watchtowerFloor1Y,
     z: -134.0 + FZ,
@@ -283,7 +286,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'se-watchtower-door',
-    buildingNameHe: 'מגדל הפינה הדרום־מזרחי',
+    buildingName: t('buildings.corner_tower_se'),
     x: 45.5,
     y: CHINESE_FORTRESS_POS.watchtowerFloor1Y,
     z: -134.0 + FZ,
@@ -295,7 +298,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'nw-watchtower-door',
-    buildingNameHe: 'מגדל הפינה הצפון־מערבי',
+    buildingName: t('buildings.corner_tower_nw'),
     x: -45.5,
     y: CHINESE_FORTRESS_POS.watchtowerFloor1Y,
     z: -208.0 + FZ,
@@ -307,7 +310,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'ne-watchtower-door',
-    buildingNameHe: 'מגדל הפינה הצפון־מזרחי',
+    buildingName: t('buildings.corner_tower_ne'),
     x: 45.5,
     y: CHINESE_FORTRESS_POS.watchtowerFloor1Y,
     z: -208.0 + FZ,
@@ -319,7 +322,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'hunter-lodge-door',
-    buildingNameHe: 'בקתת הציידים והיערן',
+    buildingName: t('buildings.hunter_lodge'),
     x: HUNTER_LODGE_POS.x,
     y: HUNTER_LODGE_POS.height + 0.2,
     z: HUNTER_LODGE_POS.z + HUNTER_LODGE_POS.dirZ * 1.8,
@@ -331,7 +334,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'farm-west-door',
-    buildingNameHe: 'חוות העמק המערבית',
+    buildingName: t('buildings.farm_west'),
     x: VALLEY_FARMS[0].x,
     y: VALLEY_FARMS[0].height + 0.18,
     z: VALLEY_FARMS[0].z + VALLEY_FARMS[0].dirZ * 2.2,
@@ -343,7 +346,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'farm-south-door',
-    buildingNameHe: 'חוות שדות החיטה הדרומית',
+    buildingName: t('buildings.farm_south'),
     x: VALLEY_FARMS[1].x,
     y: VALLEY_FARMS[1].height + 0.18,
     z: VALLEY_FARMS[1].z + VALLEY_FARMS[1].dirZ * 2.2,
@@ -355,7 +358,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: 'farm-east-door',
-    buildingNameHe: 'חוות העמק המזרחית',
+    buildingName: t('buildings.farm_east'),
     x: VALLEY_FARMS[2].x,
     y: VALLEY_FARMS[2].height + 0.18,
     z: VALLEY_FARMS[2].z + VALLEY_FARMS[2].dirZ * 2.2,
@@ -367,7 +370,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   ...HILL_WATCHTOWERS.map((hw) => ({
     id: hw.doorId,
-    buildingNameHe: hw.nameHe,
+    buildingName: hw.name,
     x: hw.doorX,
     y: hw.baseY + 0.15,
     z: hw.doorZ,
@@ -379,7 +382,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   })),
   {
     id: 'harbor-tavern-door',
-    buildingNameHe: 'פונדק המלחים של נמל הדרום־מזרח',
+    buildingName: t('buildings.harbor_tavern'),
     x: SOUTHEAST_HARBOR_POS.tavernX,
     y: SOUTHEAST_HARBOR_POS.tavernFloorY,
     z: SOUTHEAST_HARBOR_POS.tavernDoorZ,
@@ -391,7 +394,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: SOUTHEAST_HARBOR_POS.lighthouseDoorId,
-    buildingNameHe: 'המגדלור המלכותי של נמל הדרום־מזרח',
+    buildingName: t('buildings.harbor_lighthouse'),
     x: SOUTHEAST_HARBOR_POS.lighthouseX,
     y: SOUTHEAST_HARBOR_POS.lighthouseBaseY + 0.15,
     z: SOUTHEAST_HARBOR_POS.lighthouseZ + 3.85,
@@ -403,7 +406,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: SOUTHEAST_HARBOR_POS.warehouseDoorId,
-    buildingNameHe: 'מחסן הסחורות הקיסרי של הנמל',
+    buildingName: t('buildings.harbor_warehouse'),
     x: SOUTHEAST_HARBOR_POS.warehouseX,
     y: SOUTHEAST_HARBOR_POS.warehouseFloorY,
     z: SOUTHEAST_HARBOR_POS.warehouseDoorZ,
@@ -415,7 +418,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: SOUTHEAST_HARBOR_POS.shipCaptainDoorId,
-    buildingNameHe: 'תא השינה והפיקוד של קפטן הגליאון',
+    buildingName: t('buildings.galleon_cabin'),
     x: SOUTHEAST_HARBOR_POS.shipX,
     y: SOUTHEAST_HARBOR_POS.shipDeckY,
     z: SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ,
@@ -427,7 +430,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: SOUTHWEST_OASIS_POS.observatoryDoorId,
-    buildingNameHe: 'מגדל המצפה האסטרונומי של נווה המדבר',
+    buildingName: t('buildings.oasis_observatory'),
     x: SOUTHWEST_OASIS_POS.observatoryX,
     y: SOUTHWEST_OASIS_POS.observatoryBaseY + 0.15,
     z: SOUTHWEST_OASIS_POS.observatoryDoorZ,
@@ -439,7 +442,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   {
     id: SOUTHWEST_OASIS_POS.pavilionDoorId,
-    buildingNameHe: 'ביתן האלכימאי ואורגי המשי (נווה המדבר)',
+    buildingName: t('buildings.oasis_silk_pavilion'),
     x: SOUTHWEST_OASIS_POS.pavilionDoorX,
     y: SOUTHWEST_OASIS_POS.pavilionFloorY,
     z: SOUTHWEST_OASIS_POS.pavilionZ,
@@ -451,7 +454,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
   },
   ...DWARVEN_STONE_HOUSES.map((dh) => ({
     id: dh.doorId,
-    buildingNameHe: dh.nameHe,
+    buildingName: dh.name,
     x: dh.doorX,
     y: dh.floorY,
     z: dh.doorZ,
@@ -471,7 +474,7 @@ export const FORTRESS_DOORS: readonly FortressDoorDef[] = [
  * @param z Observer Z.
  * @param yaw Observer gaze yaw.
  * @param pitch Observer gaze pitch (default 0).
- * @returns Nearest interactive FortressDoorDef, or null.
+ * @returns Nearest interactive IFortressDoorDef, or null.
  */
 export function findNearestFortressDoor(
   x: number,
@@ -479,8 +482,8 @@ export function findNearestFortressDoor(
   z: number,
   yaw?: number,
   pitch = 0
-): FortressDoorDef | null {
-  let best: FortressDoorDef | null = null;
+): IFortressDoorDef | null {
+  let best: IFortressDoorDef | null = null;
   let bestDist = Infinity;
   const hasGaze = yaw !== undefined;
   const fwdX = hasGaze ? -Math.sin(yaw) : 0;

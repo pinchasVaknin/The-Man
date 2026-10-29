@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { RideableHorseDef, ValleyFarmDef } from '../worldTypes';
+import { t } from '../../../locales';
+import type { IRideableHorseDef, IValleyFarmDef } from '../worldTypes';
 // #endregion
 
 // ======================== LODGES & PAVILIONS ======================== \\
@@ -53,11 +54,11 @@ export const LAKESIDE_TEA_PAVILION_POS = {
 // ======================== VALLEY FARMS ======================== \\
 // #region Valley Farms
 /** Summary: Enclosed valley farmhouses with perimeter fences and enterable doors. */
-export const VALLEY_FARMS: readonly ValleyFarmDef[] = [
+export const VALLEY_FARMS: readonly IValleyFarmDef[] = [
   {
     id: 'farm-west',
     doorId: 'farm-west-door',
-    nameHe: 'חוות העמק המערבית',
+    name: t('buildings.farm_west'),
     x: -136,
     z: 158,
     height: 2.35,
@@ -70,7 +71,7 @@ export const VALLEY_FARMS: readonly ValleyFarmDef[] = [
   {
     id: 'farm-south',
     doorId: 'farm-south-door',
-    nameHe: 'חוות שדות החיטה הדרומית',
+    name: t('buildings.farm_south'),
     x: 8,
     z: 196,
     height: 2.45,
@@ -83,7 +84,7 @@ export const VALLEY_FARMS: readonly ValleyFarmDef[] = [
   {
     id: 'farm-east',
     doorId: 'farm-east-door',
-    nameHe: 'חוות העמק המזרחית',
+    name: t('buildings.farm_east'),
     x: 112,
     z: 18,
     height: 2.55,
@@ -99,10 +100,10 @@ export const VALLEY_FARMS: readonly ValleyFarmDef[] = [
 // ======================== RIDEABLE HORSES ======================== \\
 // #region Rideable Horses
 /** Summary: Persistent mountable horse definitions and their home spawn stables. */
-export const RIDEABLE_HORSES: readonly RideableHorseDef[] = [
+export const RIDEABLE_HORSES: readonly IRideableHorseDef[] = [
   {
     id: 'horse-spawn-meadow',
-    nameHe: 'סוס רכיבה מלכותי (ערמוני)',
+    name: t('landmarks.horse_royal'),
     coatColorHex: 0x7c3f1d,
     maneColorHex: 0x26150b,
     saddleColorHex: 0x991b1b,
@@ -112,7 +113,7 @@ export const RIDEABLE_HORSES: readonly RideableHorseDef[] = [
   },
   {
     id: 'horse-hunter-stable',
-    nameHe: 'סוס ציידים שחור (אורוות הצייד)',
+    name: t('landmarks.horse_hunter'),
     coatColorHex: 0x292524,
     maneColorHex: 0x0c0a09,
     saddleColorHex: 0x78350f,
@@ -122,7 +123,7 @@ export const RIDEABLE_HORSES: readonly RideableHorseDef[] = [
   },
   {
     id: 'horse-south-farm',
-    nameHe: 'סוסת חווה לבנה (חוות החיטה)',
+    name: t('landmarks.horse_farm'),
     coatColorHex: 0xe7e5e4,
     maneColorHex: 0xd6d3d1,
     saddleColorHex: 0x92400e,
@@ -132,7 +133,7 @@ export const RIDEABLE_HORSES: readonly RideableHorseDef[] = [
   },
   {
     id: 'horse-harbor-gate',
-    nameHe: 'סוס מסע זהוב (שער נמל המזרח)',
+    name: t('landmarks.horse_travel'),
     coatColorHex: 0xc28135,
     maneColorHex: 0xfef3c7,
     saddleColorHex: 0x991b1b,
@@ -142,7 +143,7 @@ export const RIDEABLE_HORSES: readonly RideableHorseDef[] = [
   },
   {
     id: 'horse-southwest-oasis',
-    nameHe: 'סוס ערבי לבן (נווה המדבר המערבי)',
+    name: t('landmarks.horse_arabian'),
     coatColorHex: 0xfafaf9,
     maneColorHex: 0xfde68a,
     saddleColorHex: 0x1d4ed8,

@@ -13,6 +13,10 @@ import { type ILogger, NullLogger } from '../core/ILogger';
 
 // ======================== SOUND ENGINE CLASS ======================== \\
 // #region Sound Engine Class
+/**
+ * Summary: Nature sound engine.
+ * Design: Standard class implementing domain specifications and behavioral contracts.
+ */
 export class NatureSoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -23,7 +27,10 @@ export class NatureSoundEngine {
   private noiseBuffer: AudioBuffer | null = null;
   private birdTimer = 0;
 
-  public constructor(private readonly logger: ILogger = NullLogger.instance) {}
+  public constructor(
+    private readonly logger: ILogger = NullLogger.instance,
+    public readonly randomSource: () => number = Math.random
+  ) {}
 
   private _resumeContext(): void {
     if (this.ctx && this.ctx.state === 'suspended' && !this.muted) {
@@ -55,7 +62,7 @@ export class NatureSoundEngine {
       const data = this.noiseBuffer.getChannelData(0);
       let b0 = 0, b1 = 0, b2 = 0;
       for (let i = 0; i < length; i++) {
-        const white = Math.random() * 2 - 1;
+        const white = this.randomSource() * 2 - 1;
         b0 = 0.997 * b0 + white * 0.029;
         b1 = 0.985 * b1 + white * 0.032;
         b2 = 0.950 * b2 + white * 0.048;
@@ -162,7 +169,7 @@ export class NatureSoundEngine {
     if (!isNight && rainIntensity < 0.35 && !underRoof && birdProximity > 0.15) {
       this.birdTimer -= dt;
       if (this.birdTimer <= 0) {
-        this.birdTimer = 4.0 + Math.random() * 6.0;
+        this.birdTimer = 4.0 + this.randomSource() * 6.0;
         this.playBirdChirp(birdProximity);
       }
     }
@@ -192,7 +199,7 @@ export class NatureSoundEngine {
     crackSrc.connect(crackFilter);
     crackFilter.connect(crackEnv);
     crackEnv.connect(this.masterGain);
-    crackSrc.start(now, Math.random() * 0.4, 0.26);
+    crackSrc.start(now, this.randomSource() * 0.4, 0.26);
 
     // Stage 2: Deep Booming Thunderclap + Sub-Bass Shockwave (0.02s -> 2.1s)
     const boomSrc = this.ctx.createBufferSource();
@@ -256,7 +263,7 @@ export class NatureSoundEngine {
     const filter = this.ctx.createBiquadFilter();
     const env = this.ctx.createGain();
 
-    const jitter = (0.92 + Math.random() * 0.16) * pitchScale;
+    const jitter = (0.92 + this.randomSource() * 0.16) * pitchScale;
 
     if (biome === 'water' || biome === 'shore') {
       filter.type = 'bandpass';
@@ -293,7 +300,7 @@ export class NatureSoundEngine {
     src.connect(filter);
     filter.connect(env);
     env.connect(this.masterGain);
-    src.start(now, Math.random() * 1.2, 0.22);
+    src.start(now, this.randomSource() * 1.2, 0.22);
   }
 
   private playBirdChirp(proximity = 1.0) {
@@ -302,7 +309,7 @@ export class NatureSoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    const baseFreq = 2200 + Math.random() * 950;
+    const baseFreq = 2200 + this.randomSource() * 950;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(baseFreq, now);
     osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.28, now + 0.07);
@@ -377,7 +384,7 @@ export class NatureSoundEngine {
     whooshSrc.connect(whooshFilter);
     whooshFilter.connect(whooshGain);
     whooshGain.connect(this.masterGain);
-    whooshSrc.start(now, Math.random() * 0.8, 0.22);
+    whooshSrc.start(now, this.randomSource() * 0.8, 0.22);
   }
 
   public playBowRelease(drawPower = 1.0) {
@@ -408,7 +415,7 @@ export class NatureSoundEngine {
     whooshSrc.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
-    whooshSrc.start(now, Math.random() * 0.6, dur + 0.02);
+    whooshSrc.start(now, this.randomSource() * 0.6, dur + 0.02);
 
     // Subtle steel harmonic ring along the fuller (plus deep air-wave resonance on heavy cleave!)
     const ring = this.ctx.createOscillator();
@@ -507,7 +514,7 @@ export class NatureSoundEngine {
       src.connect(filter);
       filter.connect(env);
       env.connect(this.masterGain);
-      src.start(now + delay, Math.random() * 0.8, 0.09);
+      src.start(now + delay, this.randomSource() * 0.8, 0.09);
     }
 
     this.playBirdChirp(atten);
@@ -534,7 +541,7 @@ export class NatureSoundEngine {
     src.connect(filter);
     filter.connect(env);
     env.connect(this.masterGain);
-    src.start(now, Math.random() * 0.9, 0.2);
+    src.start(now, this.randomSource() * 0.9, 0.2);
   }
 
   public dispose() {

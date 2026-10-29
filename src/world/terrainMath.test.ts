@@ -5,10 +5,11 @@
 //          rope bridge, weather, horses, inventory, combat, and wildlife systems.
 // ============================================================================
 
-// ======================== IMPORTS & DEPENDENCIES ======================== \\
-// #region Imports & Dependencies
+// ======================== IMPORTS AND TEST DEPENDENCIES ======================== \\
+// #region Imports and Test Dependencies
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { IPlayerState } from './domain/worldTypes';
 import {
   WATER_LEVEL,
   PLAYABLE_RADIUS,
@@ -61,10 +62,25 @@ import {
 } from './terrainMath';
 // #endregion
 
-// ======================== INTEGRATION TEST SUITE ======================== \\
-// #region Integration Test Suite
-test('Water basins, Grand Waterfall plunge pool, and dry spawn vista are coherent', () => {
+// ======================== TEST FIXTURES AND FACTORIES ======================== \\
+// #region Test Fixtures and Factories
+/**
+ * Summary: Creates a mock player state fixture initialized to world defaults.
+ * Design: Provides isolated test setup for integration testing without shared mutation.
+ * @returns Fresh default IPlayerState instance.
+ */
+function createPlayerStateFixture(): IPlayerState {
+  return createInitialPlayerState();
+}
+// #endregion
+
+// ======================== HAPPY PATH TESTS ======================== \\
+// #region Happy Path Tests
+test('terrainAndWaterBasins_WhenEvaluatedAtSpawnAndWaterfall_ShouldMaintainCoherentElevations', () => {
+  // Arrange
+  // Act
   const centralLake = groundHeightAt(-2, 1.5);
+  // Assert
   assert.ok(centralLake < WATER_LEVEL - 2.0, `Expected central lake bottom < -2.0m, got ${centralLake}`);
 
   const westernLagoon = groundHeightAt(-138, 42);
@@ -77,11 +93,14 @@ test('Water basins, Grand Waterfall plunge pool, and dry spawn vista are coheren
   assert.ok(spawnGround > WATER_LEVEL + 1.0, `Expected dry spawn vista > 1.0m, got ${spawnGround}`);
 });
 
-test('All buildings, Sakura Hot-Spring Sanctuary, and riverside windmills sit on 100% flat leveled ground', () => {
+test('worldBuildingsAndSanctuary_WhenPlacedOnTerrain_ShouldSitOnFlatLeveledGround', () => {
+  // Arrange
   // Hunter's Lodge, Water Trough & Stable terrace
   const hCenter = groundHeightAt(HUNTER_LODGE_POS.x, HUNTER_LODGE_POS.z);
+  // Act
   const hTrough = groundHeightAt(HUNTER_LODGE_POS.x + 8, HUNTER_LODGE_POS.z + 4);
   const hStable = groundHeightAt(HUNTER_LODGE_POS.x + 11, HUNTER_LODGE_POS.z - 5);
+  // Assert
   assert.ok(Math.abs(hCenter - hTrough) < 1e-4, 'Expected flat ground between Hunter Lodge and Water Trough');
   assert.ok(Math.abs(hCenter - hStable) < 1e-4, 'Expected flat ground between Hunter Lodge and Stable');
 
@@ -102,9 +121,12 @@ test('All buildings, Sakura Hot-Spring Sanctuary, and riverside windmills sit on
   }
 });
 
-test('Northern Chinese Mountain Fortress sits atop a high mountain (zero ground hole at stair foot), has open watchtower-to-rampart passages, solid side pavilion top landings, and locked ladder climbing', () => {
+test('mountainFortress_WhenTraversedByPlayer_ShouldProvideContinuousRampartsAndElevatedFoundations', () => {
+  // Arrange
+  // Act
   const FZ = FORTRESS_Z_OFFSET;
   const FY = FORTRESS_Y_OFFSET;
+  // Assert
   assert.equal(FZ, -170, 'Expected Fortress Z offset of -170m deep into the North');
   assert.equal(FY, 16.0, 'Expected Fortress Y offset of +16.0m so it sits atop a tall mountain');
 
@@ -309,9 +331,12 @@ test('Northern Chinese Mountain Fortress sits atop a high mountain (zero ground 
   );
 });
 
-test('Regional forest transitions from dense woodland to open treeless valley and distant large Orange Birch Grove', () => {
+test('regionalForestBiomes_WhenSamplingTerrainPositions_ShouldTransitionFromWoodlandToOrangeBirchGrove', () => {
+  // Arrange
+  // Act
   const denseWest = regionalForestDensityAt(-65, -15);
   const openSouthValley = regionalForestDensityAt(20, 85);
+  // Assert
   assert.ok(denseWest > 0.8, `Expected dense west forest > 0.8, got ${denseWest}`);
   assert.ok(openSouthValley < 0.08, `Expected open treeless valley < 0.08, got ${openSouthValley}`);
 
@@ -331,44 +356,8 @@ test('Regional forest transitions from dense woodland to open treeless valley an
   assert.ok(birches.length >= 80, `Expected >= 80 birch trees in expanded Orange Forest, got ${birches.length}`);
 });
 
-test('Far-Northern region rises gradually and snow only accumulates above SNOW_LINE_ALTITUDE (16.5m)', () => {
-  const hValley = groundHeightAt(-18, -25);
-  const hFoothill = groundHeightAt(35, -75);
-  const hNorthSnowPeak = groundHeightAt(-65, -172);
-
-  assert.ok(hFoothill > hValley + 3.5, `Expected northern foothill (${hFoothill}) > valley (${hValley}) + 3.5m`);
-  assert.ok(hFoothill < SNOW_LINE_ALTITUDE, `Expected lower foothill (${hFoothill}) < SNOW_LINE_ALTITUDE (${SNOW_LINE_ALTITUDE})`);
-  assert.equal(northernSnowZoneFactorAt(35, -75), 0, 'Expected zero snow accumulation at lower mountain foothills below SNOW_LINE_ALTITUDE');
-
-  assert.ok(hNorthSnowPeak > SNOW_LINE_ALTITUDE + 12.0, `Expected northern snow peak (${hNorthSnowPeak}) well above SNOW_LINE_ALTITUDE`);
-  const snowFactorNorth = northernSnowZoneFactorAt(-65, -172);
-  const snowFactorSouth = northernSnowZoneFactorAt(0, 32);
-  assert.ok(snowFactorNorth > 0.9, `Expected high northern snow zone factor > 0.9, got ${snowFactorNorth}`);
-  assert.equal(snowFactorSouth, 0, 'Expected zero snow factor at southern spawn vista');
-
-  assert.ok(PLAYABLE_RADIUS >= 650);
-  for (const m of WALKABLE_MOUNTAINS) {
-    const peakH = groundHeightAt(m.x, m.z);
-    assert.ok(peakH > 13.0, `Expected mountain ${m.id} peak > 13m, got ${peakH}`);
-  }
-
-  const lodgePorch = walkableHeightAt(HUNTER_LODGE_POS.x, HUNTER_LODGE_POS.z);
-  assert.equal(lodgePorch.surface, 'cabin');
-
-  // New Lakeside Over-Water Chinese Tea Pavilion at (-126, 48) is walkable above the water and shelters from rain
-  const teaPavWalk = walkableHeightAt(LAKESIDE_TEA_PAVILION_POS.x, LAKESIDE_TEA_PAVILION_POS.z);
-  assert.equal(teaPavWalk.surface, 'pier');
-  assert.ok(Math.abs(teaPavWalk.height - LAKESIDE_TEA_PAVILION_POS.deckHeight) < 0.05);
-  assert.equal(isPositionUnderRoof(LAKESIDE_TEA_PAVILION_POS.x, LAKESIDE_TEA_PAVILION_POS.deckHeight, LAKESIDE_TEA_PAVILION_POS.z), true);
-
-  assert.equal(isWithinViewDistance(10, 20, 0, 0, 0, VIEW_DISTANCE), true);
-  assert.equal(isWithinViewDistance(400, 400, 0, 0, 0, VIEW_DISTANCE), false);
-  const waterRgb = sampleMinimapColorAt(-2, 1.5);
-  assert.ok(waterRgb[2] > waterRgb[0]);
-  assert.ok(trailFactorAt(0, 28.5) > 0.7);
-});
-
-test('Double-tap Space Flight Mode and Ctrl/Shift walk pace modifiers work accurately', () => {
+test('playerLocomotion_WhenFlightAndModifiersEngaged_ShouldScaleMovementSpeedsAccurately', () => {
+  // Arrange
   const obstacles = generateWorldObstacles();
   const flyState = createInitialPlayerState();
   const startY = flyState.y;
@@ -387,8 +376,10 @@ test('Double-tap Space Flight Mode and Ctrl/Shift walk pace modifiers work accur
       lookPitchDelta: 0,
     },
     obstacles,
+  // Act
     0.05
   );
+  // Assert
   assert.equal(flyState.isFlying, true, 'Expected isFlying to be true after toggleFlyRequested');
 
   for (let i = 0; i < 30; i++) {
@@ -411,7 +402,10 @@ test('Double-tap Space Flight Mode and Ctrl/Shift walk pace modifiers work accur
   assert.ok(flyState.y > startY + 8.0, `Expected flying player to ascend >8m above startY, got ${flyState.y}`);
 });
 
-test('Seasonal Weather Cycle is the default and enforces Summer clear skies, Autumn wind, and Winter altitude-based snow vs rain', () => {
+test('seasonalWeatherCycle_WhenDefaultModeActive_ShouldEnforceSeasonalSkyWindAndPrecipitationRules', () => {
+  // Arrange
+  // Act
+  // Assert
   assert.equal(DEFAULT_WEATHER_CYCLE_MODE, 'seasonal', 'Default weather cycle mode must be seasonal');
 
   // Summer (180s..360s): pure sunshine, zero rain/snow
@@ -447,11 +441,14 @@ test('Seasonal Weather Cycle is the default and enforces Summer clear skies, Aut
   assert.equal(unifiedDefault.season, 'summer');
 });
 
-test('Automatic 24-hour cycle includes Morning Mist (06:45), Clear Noon (12:30), and Starry Night (23:30)', () => {
+test('worldDayNightCycle_WhenSimulatingTwentyFourHours_ShouldProduceAtmosphericKeyframesAccurately', () => {
+  // Arrange
   const morning = computeDynamicSolarCycle(6.75);
   const midday = computeDynamicSolarCycle(12.5);
+  // Act
   const night = computeDynamicSolarCycle(23.5);
 
+  // Assert
   assert.ok(morning.morningMistOpacity > 0.85);
   assert.equal(morning.isNight, false);
 
@@ -464,8 +461,11 @@ test('Automatic 24-hour cycle includes Morning Mist (06:45), Clear Noon (12:30),
   assert.ok(night.sunIntensity < 1.0, 'Expected soft moonlight intensity at night');
 });
 
-test('Valley Farmhouses are spread far from spawn and each other, enclosed by large perimeter fences with front gates, and have enterable doors', () => {
+test('valleyFarmhouses_WhenPlacedInWorld_ShouldMaintainSpacedLayoutFencedBoundariesAndEnterableDoors', () => {
+  // Arrange
+  // Act
   const obstacles = generateWorldObstacles();
+  // Assert
   assert.equal(VALLEY_FARMS.length, 3);
 
   // Verify farms are far from each other (> 140m) and far from spawn (> 110m)
@@ -576,10 +576,13 @@ test('Valley Farmhouses are spread far from spawn and each other, enclosed by la
   }
 });
 
-test('3 Taller Enclosed-1F Hill Watchtowers, Unobstructed Ascending Rope Suspension Bridge, Deep Underground Southern Mountain Mine, and Rotated Hunter Lodge work properly', () => {
+test('worldLandmarks_WhenEvaluatingOutpostsAndSuspensionBridge_ShouldVerifyHeightsPassagesAndOrientations', () => {
+  // Arrange
   const obstacles = generateWorldObstacles();
+  // Act
 
   // 1) Hunter's Lodge is moved off the trail crossroads to (-92, 72) and rotated so its entrance faces North toward the trail!
+  // Assert
   assert.equal(HUNTER_LODGE_POS.z, 72.0);
   assert.equal(HUNTER_LODGE_POS.dirZ, -1);
   const lodgeDoorCheck = findNearestFortressDoor(
@@ -768,42 +771,15 @@ test('3 Taller Enclosed-1F Hill Watchtowers, Unobstructed Ascending Rope Suspens
   assert.ok(hillSlopeTrees.length >= 40, `Expected dense trees surrounding Stone Circle hill, got ${hillSlopeTrees.length}`);
 });
 
-test('Players can jump over the Fortress Rampart outer wall parapet and low objects', () => {
-  const state = createInitialPlayerState();
-  // Place player on the West Walkable Great-Wall Rampart top (x = -49.5, z = -170 + FORTRESS_Z_OFFSET, y = rampartHeight)
-  state.x = -49.5;
-  state.z = -170 + FORTRESS_Z_OFFSET;
-  state.y = CHINESE_FORTRESS_POS.rampartHeight;
-  state.onGround = true;
-  state.yaw = Math.PI / 2; // Facing West (-X) toward the outer rampart parapet at x = -51.4..-52.8
-
-  // Jump while running West over the outer parapet
-  for (let i = 0; i < 35; i++) {
-    stepPlayerPhysics(
-      state,
-      {
-        forward: 1,
-        right: 0,
-        sprint: true,
-        relaxed: false,
-        jumpPressed: i === 0,
-        jumpHeld: i < 12,
-        lookYawDelta: 0,
-        lookPitchDelta: 0,
-      },
-      [],
-      0.04
-    );
-  }
-  assert.ok(state.x < -53.0, `Expected player to jump cleanly over the outer rampart parapet, got x=${state.x}`);
-});
-
-test('Grand Far South-East Walled Coastal Harbor Town, Vast Open Ocean, Warehouse District, Enlarged 42m Galleon Ship (with Captain Cabin & Raised Helm), and 26m Lighthouse work properly', () => {
+test('coastalHarborAndOcean_WhenEvaluatingNavalAssetsAndLighthouse_ShouldEnforceDimensionsAndSeaLevelFoundations', () => {
+  // Arrange
   const obstacles = generateWorldObstacles();
   const hx = SOUTHEAST_HARBOR_POS.x;
   const hz = SOUTHEAST_HARBOR_POS.z;
+  // Act
 
   // 1) Harbor Quay is leveled at plazaY (3.2m) while the Vast Open Eastern Sea is carved deep below WATER_LEVEL all the way out to the horizon!
+  // Assert
   assert.ok(
     Math.abs(groundHeightAt(hx, hz) - SOUTHEAST_HARBOR_POS.plazaY) < 0.08,
     `Expected flat Harbor Quay at (${hx}, ${hz})`
@@ -909,8 +885,11 @@ test('Grand Far South-East Walled Coastal Harbor Town, Vast Open Ocean, Warehous
   );
 });
 
-test('Dynamic Weather Toggle (Rain, Dense Fog, Thunderstorm, Clear) & Wet Terrain Puddle Shader Uniforms work properly', () => {
+test('dynamicWeatherToggle_WhenWeatherConditionsChange_ShouldUpdateShaderUniformsAndRainEffects', () => {
+  // Arrange
+  // Act
   const rainState = computeWeatherState(10.0, 0, 32, 'seasonal', 'regional_rain');
+  // Assert
   assert.equal(rainState.weatherKind, 'regional_rain');
   assert.ok(rainState.rainIntensity >= 0.85, 'Expected high rain intensity when regional_rain is forced');
   assert.ok(rainState.wetness >= 0.9, 'Expected wet terrain & puddles (wetness >= 0.9) during regional_rain');
@@ -932,8 +911,11 @@ test('Dynamic Weather Toggle (Rain, Dense Fog, Thunderstorm, Clear) & Wet Terrai
   assert.equal(clearState.wetness, 0);
 });
 
-test('Rideable Horses can be detected, mounted with [F], galloped across the terrain at high speed, and dismounted', async () => {
+test('horseMounting_WhenInteractingWithMountableHorse_ShouldAllowMountingGallopingAndDismounting', async () => {
+  // Arrange
+  // Act
   const { RIDEABLE_HORSES, createInitialRideableHorses, findNearestRideableHorse } = await import('./terrainMath');
+  // Assert
   assert.equal(RIDEABLE_HORSES.length, 5);
   const horses = createInitialRideableHorses();
   const spawnHorse = horses[0];
@@ -1016,14 +998,17 @@ test('Rideable Horses can be detected, mounted with [F], galloped across the ter
   assert.equal(player.mountedHorseId, null, 'Expected pressing [F] again to dismount the horse');
 });
 
-test('Multi-Room & 5-Corridor Underground Southern Mine, Relocated Far South-West Oasis (-310, 300) & Vast Desert/Savanna Biome work properly', async () => {
+test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndDesertBiomeLayout', async () => {
+  // Arrange
   const {
     SOUTHWEST_OASIS_POS,
     southwestOasisBiomeFactorAt,
   } = await import('./terrainMath');
   const obstacles = generateWorldObstacles();
+  // Act
 
   // 1) Multi-Room & 5-Corridor Underground Southern Mine relocated far South (entranceZ = 420.0, cavernHalfW = 52.0, cavernEndZ = 530.0)
+  // Assert
   assert.equal(SOUTHERN_MINE_POS.entranceZ, 420.0);
   assert.equal(SOUTHERN_MINE_POS.cavernHalfW, 52.0);
   assert.equal(SOUTHERN_MINE_POS.cavernEndZ, 530.0);
@@ -1151,94 +1136,17 @@ test('Multi-Room & 5-Corridor Underground Southern Mine, Relocated Far South-Wes
   assert.equal(obsDoor?.id, 'sw-observatory-door');
 });
 
-test('Swimmable Water Basins (Central Lake, South-West Oasis Lagoon, Underground Mine Crystal Lake) and Buoyancy Swimming Physics work properly', async () => {
-  const {
-    SOUTHWEST_OASIS_POS,
-    getWaterSurfaceHeightAt,
-  } = await import('./terrainMath');
-
-  // 1) Central Lake water surface at 0.0m and deep basin floor < -2.0m
-  const centralWaterY = getWaterSurfaceHeightAt(-2.0, 1.5);
-  assert.equal(centralWaterY, WATER_LEVEL);
-
-  const swimmerCentral = createInitialPlayerState();
-  swimmerCentral.x = -2.0;
-  swimmerCentral.z = 1.5;
-  swimmerCentral.y = WATER_LEVEL - 1.2;
-  for (let i = 0; i < 15; i++) {
-    stepPlayerPhysics(
-      swimmerCentral,
-      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
-      [],
-      0.05
-    );
-  }
-  assert.equal(swimmerCentral.isSwimming, true, 'Expected player in Central Lake deep water to enter swimming state');
-  assert.equal(swimmerCentral.inWater, true);
-  assert.ok(
-    swimmerCentral.y > WATER_LEVEL - 1.45 && swimmerCentral.y < WATER_LEVEL - 0.35,
-    `Expected buoyancy to keep swimmer near surface in Central Lake, got y=${swimmerCentral.y}`
-  );
-
-  // 2) South-West Oasis Lagoon (away from the central gazebo bridge, e.g. x = -318, z = 326) is carved deep for swimming!
-  const lagoonX = SOUTHWEST_OASIS_POS.lagoonX - 8.5;
-  const lagoonZ = SOUTHWEST_OASIS_POS.lagoonZ;
-  const lagoonWaterY = getWaterSurfaceHeightAt(lagoonX, lagoonZ);
-  assert.equal(lagoonWaterY, SOUTHWEST_OASIS_POS.lagoonWaterY);
-  const lagoonFloor = groundHeightAt(lagoonX, lagoonZ);
-  assert.ok(
-    lagoonFloor < SOUTHWEST_OASIS_POS.lagoonWaterY - 1.5,
-    `Expected SW Oasis Lagoon basin floor (${lagoonFloor}) to be carved >1.5m below lagoonWaterY (${SOUTHWEST_OASIS_POS.lagoonWaterY})`
-  );
-
-  const swimmerOasis = createInitialPlayerState();
-  swimmerOasis.x = lagoonX;
-  swimmerOasis.z = lagoonZ;
-  swimmerOasis.y = SOUTHWEST_OASIS_POS.lagoonWaterY - 1.1;
-  for (let i = 0; i < 12; i++) {
-    stepPlayerPhysics(
-      swimmerOasis,
-      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
-      [],
-      0.05
-    );
-  }
-  assert.equal(swimmerOasis.isSwimming, true, 'Expected player in SW Oasis Lagoon to swim');
-
-  // 3) Underground Mine Room 2 Bioluminescent Crystal Lake (lx = -41.5 -> x = -99.5, lz = 63 -> z = 295) is swimmable!
-  const mineLakeX = SOUTHERN_MINE_POS.x - 41.5;
-  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 63.0;
-  const mineWaterY = getWaterSurfaceHeightAt(mineLakeX, mineLakeZ, -10.2);
-  assert.equal(mineWaterY, -9.3);
-  const mineLakeWalk = walkableHeightAt(mineLakeX, mineLakeZ, -10.2);
-  assert.ok(
-    mineLakeWalk.height < -10.5,
-    `Expected Underground Mine Crystal Lake basin floor (${mineLakeWalk.height}) to be carved deep below -9.3m water level`
-  );
-
-  const swimmerMine = createInitialPlayerState();
-  swimmerMine.x = mineLakeX;
-  swimmerMine.z = mineLakeZ;
-  swimmerMine.y = -10.35;
-  for (let i = 0; i < 12; i++) {
-    stepPlayerPhysics(
-      swimmerMine,
-      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
-      [],
-      0.05
-    );
-  }
-  assert.equal(swimmerMine.isSwimming, true, 'Expected player in Underground Mine Crystal Lake to swim');
-});
-
-test('3D Ranger Character Default Third-Person Perspective, Proper Recurve Bow Draw, and Ballistic Arrow Shooting into Bullseye Targets work properly', async () => {
+test('rangerArchery_WhenDrawingBowAndShootingArrows_ShouldSimulateBallisticTrajectoriesAndBullseyeCollisions', async () => {
+  // Arrange
   const {
     ARCHERY_TARGETS,
     spawnArrowProjectile,
     stepArrowsPhysics,
   } = await import('./terrainMath');
+  // Act
 
   const player = createInitialPlayerState();
+  // Assert
   assert.equal(player.cameraPerspective, 'third_person', 'Expected default camera perspective to be third_person');
   assert.equal(player.bowDrawn, false);
   assert.equal(player.bowDrawProgress, 0);
@@ -1279,7 +1187,248 @@ test('3D Ranger Character Default Third-Person Perspective, Proper Recurve Bow D
   assert.equal(arrow.hitTargetId, target.id);
 });
 
-test('First-Person & Skyrim Inventory Abilities: Bow auto-stows when swimming, Elemental Arrows, Fading Gray Flight Trail, and Skyrim Inventory/Hotkeys [1-4]/[Q] work properly', async () => {
+test('dwarvenKingdom_WhenEvaluatingSettlementAndCaravanSchedule_ShouldVerifyStructuresAndTemporalSchedule', async () => {
+  // Arrange
+  const {
+    DWARVEN_GUARDIAN_STATUES,
+    DWARVEN_STONE_HOUSES,
+    DWARVEN_MINERS_COUNT,
+    computeDwarvenMinerCaravanState,
+  } = await import('./terrainMath');
+  // Act
+
+  // 1) Mine is relocated far South (entranceZ = 420.0) and flanked by Twin Colossal LOTR Dwarven Guardian Statues
+  // Assert
+  assert.equal(SOUTHERN_MINE_POS.entranceZ, 420.0);
+  assert.equal(DWARVEN_GUARDIAN_STATUES.length, 2);
+  assert.ok(DWARVEN_GUARDIAN_STATUES[0].x < SOUTHERN_MINE_POS.x && DWARVEN_GUARDIAN_STATUES[1].x > SOUTHERN_MINE_POS.x);
+  assert.ok(Math.abs(DWARVEN_GUARDIAN_STATUES[0].z - 415.8) < 0.1);
+
+  // 2) 4 Dwarven Stone Houses along the Dwarven King's Road (z = 368..392) have flat terraces, walkable cabin floors, rain-blocking stone roofs, and interactive [E] doors
+  assert.equal(DWARVEN_STONE_HOUSES.length, 4);
+  for (const dh of DWARVEN_STONE_HOUSES) {
+    const gH = groundHeightAt(dh.x, dh.z);
+    assert.ok(Math.abs(gH - dh.terraceY) < 0.08, `Expected flat leveled terrace at ${dh.id}, got ${gH}`);
+    const walkH = walkableHeightAt(dh.x, dh.z, dh.floorY);
+    assert.equal(walkH.surface, 'cabin', `Expected walkable cabin floor inside ${dh.id}`);
+    assert.ok(Math.abs(walkH.height - dh.floorY) < 0.05);
+    assert.equal(isPositionUnderRoof(dh.x, dh.floorY + 0.5, dh.z), true, `Expected stone slab roof over ${dh.id}`);
+
+    const lookYaw = dh.dirX === 1 ? Math.PI / 2 : -Math.PI / 2; // Looking from road into house door
+    const detectedDoor = findNearestFortressDoor(
+      dh.doorX + dh.dirX * 1.4,
+      dh.floorY,
+      dh.doorZ,
+      lookYaw,
+      0
+    );
+    assert.equal(detectedDoor?.id, dh.doorId, `Expected findNearestFortressDoor to detect ${dh.doorId}`);
+  }
+
+  // 3) 8 LOTR Dwarven Miners follow the Sunrise Caravan -> Daytime Underground Mining -> Sunset Caravan -> Night Home Rest schedule!
+  assert.equal(DWARVEN_MINERS_COUNT, 8);
+  for (let i = 0; i < DWARVEN_MINERS_COUNT; i++) {
+    const sunriseState = computeDwarvenMinerCaravanState(6.6, i, 10.0);
+    assert.equal(sunriseState.activity, 'caravan_to_mine', `Expected Dwarf ${i} at 06:36 to march in the Sunrise Caravan toward the mine`);
+    assert.equal(sunriseState.lanternLit, true);
+
+    const dayWorkState = computeDwarvenMinerCaravanState(12.0, i, 25.0);
+    assert.equal(dayWorkState.activity, 'mining_work', `Expected Dwarf ${i} at 12:00 Noon to be working underground in the mine`);
+    assert.equal(dayWorkState.lanternLit, true);
+    assert.ok(
+      Math.abs(dayWorkState.y - SOUTHERN_MINE_POS.cavernFloorY) < 0.1,
+      `Expected Dwarf ${i} to stand on the subterranean cavern floor (${SOUTHERN_MINE_POS.cavernFloorY}), got ${dayWorkState.y}`
+    );
+    assert.ok(dayWorkState.z > SOUTHERN_MINE_POS.entranceZ + 38.0, `Expected Dwarf ${i} to work deep inside the mine chambers`);
+
+    const sunsetState = computeDwarvenMinerCaravanState(18.5, i, 40.0);
+    assert.equal(sunsetState.activity, 'caravan_to_home', `Expected Dwarf ${i} at 18:30 Sunset to march in the Caravan back to the stone houses`);
+    assert.equal(sunsetState.lanternLit, true);
+
+    const nightState = computeDwarvenMinerCaravanState(23.0, i, 50.0);
+    assert.equal(nightState.activity, 'resting_home', `Expected Dwarf ${i} at 23:00 Night to rest inside their Dwarven Stone House`);
+    assert.equal(nightState.lanternLit, false);
+  }
+});
+
+test('horsePhysicsSystem_WhenAcceleratingAndSteering_ShouldApplyDynamicTurningResistanceAndGaitAnimation', async () => {
+  // Arrange
+  const {
+    createInitialRideableHorses,
+    computeHorseTurnResistance,
+    computeHorseBiomechanicalPose,
+    MARKET_STALL_LOCATIONS,
+    findNearestMarketStall,
+  } = await import('./terrainMath');
+
+  // Act
+  // 1) Verify closer Harbor Market merchant proximity (4.5m radius)
+  for (const st of MARKET_STALL_LOCATIONS) {
+  // Assert
+    assert.equal(st.radius, 4.5, `Expected Harbor Market stall ${st.id} radius to be 4.5m`);
+  }
+  assert.equal(
+    findNearestMarketStall(212 + 8.0, 254),
+    null,
+    'Expected standing 8m away from merchant counter to be outside 4.5m trade range'
+  );
+  assert.equal(
+    findNearestMarketStall(212 + 2.8, 254)?.id,
+    'market-harbor-1',
+    'Expected standing 2.8m from merchant counter to trigger Harbor Market trade'
+  );
+
+  // 2) Verify speed-dependent turning resistance increases as horse runs faster
+  const slowTurn = computeHorseTurnResistance(1.5);
+  const mediumTurn = computeHorseTurnResistance(6.0);
+  const fastGallopTurn = computeHorseTurnResistance(13.5);
+  assert.ok(
+    fastGallopTurn.effectiveTurnRate < mediumTurn.effectiveTurnRate &&
+      mediumTurn.effectiveTurnRate < slowTurn.effectiveTurnRate,
+    'Expected effectiveTurnRate to decrease at higher speeds due to turning resistance'
+  );
+  assert.ok(
+    fastGallopTurn.turningRadiusMeters > mediumTurn.turningRadiusMeters &&
+      mediumTurn.turningRadiusMeters > slowTurn.turningRadiusMeters,
+    `Expected turning radius to be wider at gallop (${fastGallopTurn.turningRadiusMeters.toFixed(2)}m) than walk (${slowTurn.turningRadiusMeters.toFixed(2)}m)`
+  );
+
+  // 3) Verify turning the horse left/right rotates the rider's yaw along with the horse
+  const horses = createInitialRideableHorses();
+  const horse = horses[0];
+  horse.yaw = 0;
+
+  const player = createInitialPlayerState();
+  player.x = horse.x;
+  player.z = horse.z;
+  player.y = horse.y;
+  player.mountedHorseId = horse.id;
+  player.mountedHorseYaw = 0;
+  player.yaw = 0.4; // Rider looking 0.4 rad to the side
+
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 1,
+      right: 1, // Steer horse right
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05,
+    new Set(),
+    horses
+  );
+  assert.ok(horse.yaw < -0.05, `Expected horse.yaw to rotate right (< -0.05), got ${horse.yaw}`);
+  assert.ok(
+    Math.abs(player.yaw - (0.4 + horse.yaw)) < 0.001,
+    `Expected rider yaw (${player.yaw}) to rotate together with horse turn (${horse.yaw})`
+  );
+
+  // 4) Verify rational biomechanical gait poses across idle, walk, trot, and gallop
+  const idlePose = computeHorseBiomechanicalPose(0, 0, 1.0, 0);
+  const walkPose = computeHorseBiomechanicalPose(2.2, 1.2, 1.0, 0);
+  const gallopPose = computeHorseBiomechanicalPose(12.5, 2.1, 1.0, 0);
+  assert.equal(idlePose.gaitKind, 'idle');
+  assert.equal(walkPose.gaitKind, 'walk');
+  assert.equal(gallopPose.gaitKind, 'gallop');
+  assert.ok(gallopPose.frontLeft.lowerPitch >= 0, 'Expected forelimb knee flexion to be positive (backward bend)');
+});
+
+test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringAndProximityFleeing', async () => {
+  // Arrange
+  const {
+    createInitialBoidBirds,
+    createInitialSmallAnimals,
+    stepBoidsAndWildlife,
+  } = await import('./terrainMath');
+
+  // Act
+  const birds = createInitialBoidBirds();
+  const animals = createInitialSmallAnimals();
+  // Assert
+  assert.equal(birds.length, 36);
+  assert.equal(animals.length, 18);
+
+  // Place player right beneath bird flock 0 and next to critter 0
+  const targetBird = birds[0];
+  const res1 = stepBoidsAndWildlife(
+    birds,
+    animals,
+    targetBird.x,
+    targetBird.y - 6.0,
+    targetBird.z,
+    6.0,
+    0.05
+  );
+  assert.ok(res1.startledFlockCount > 0, 'Expected approaching bird flock to startle Boids birds');
+  assert.ok(targetBird.fleeTimer > 0, 'Expected startled Boid bird to enter flee ascent state');
+  assert.ok(targetBird.vy > 0, 'Expected startled Boid bird to climb upward away from player');
+
+  const targetAnimal = animals[0];
+  const res2 = stepBoidsAndWildlife(
+    birds,
+    animals,
+    targetAnimal.x + 2.0,
+    targetAnimal.y,
+    targetAnimal.z + 2.0,
+    4.0,
+    0.05
+  );
+  assert.ok(res2.scamperedCritterCount > 0, 'Expected approaching forest animal within flee radius to trigger scamper');
+  assert.equal(targetAnimal.alertLevel, 'fleeing');
+  assert.ok(Math.hypot(targetAnimal.vx, targetAnimal.vz) > 4.0, 'Expected fleeing forest animal to hop away rapidly');
+});
+// #endregion
+
+// ======================== GUARD CLAUSE AND VALIDATION TESTS ======================== \\
+// #region Guard Clause and Validation Tests
+test('farNorthernSnowLine_WhenEvaluatingElevation_ShouldAccumulateSnowExclusivelyAboveSnowLineAltitude', () => {
+  // Arrange
+  const hValley = groundHeightAt(-18, -25);
+  const hFoothill = groundHeightAt(35, -75);
+  // Act
+  const hNorthSnowPeak = groundHeightAt(-65, -172);
+
+  // Assert
+  assert.ok(hFoothill > hValley + 3.5, `Expected northern foothill (${hFoothill}) > valley (${hValley}) + 3.5m`);
+  assert.ok(hFoothill < SNOW_LINE_ALTITUDE, `Expected lower foothill (${hFoothill}) < SNOW_LINE_ALTITUDE (${SNOW_LINE_ALTITUDE})`);
+  assert.equal(northernSnowZoneFactorAt(35, -75), 0, 'Expected zero snow accumulation at lower mountain foothills below SNOW_LINE_ALTITUDE');
+
+  assert.ok(hNorthSnowPeak > SNOW_LINE_ALTITUDE + 12.0, `Expected northern snow peak (${hNorthSnowPeak}) well above SNOW_LINE_ALTITUDE`);
+  const snowFactorNorth = northernSnowZoneFactorAt(-65, -172);
+  const snowFactorSouth = northernSnowZoneFactorAt(0, 32);
+  assert.ok(snowFactorNorth > 0.9, `Expected high northern snow zone factor > 0.9, got ${snowFactorNorth}`);
+  assert.equal(snowFactorSouth, 0, 'Expected zero snow factor at southern spawn vista');
+
+  assert.ok(PLAYABLE_RADIUS >= 650);
+  for (const m of WALKABLE_MOUNTAINS) {
+    const peakH = groundHeightAt(m.x, m.z);
+    assert.ok(peakH > 13.0, `Expected mountain ${m.id} peak > 13m, got ${peakH}`);
+  }
+
+  const lodgePorch = walkableHeightAt(HUNTER_LODGE_POS.x, HUNTER_LODGE_POS.z);
+  assert.equal(lodgePorch.surface, 'cabin');
+
+  // New Lakeside Over-Water Chinese Tea Pavilion at (-126, 48) is walkable above the water and shelters from rain
+  const teaPavWalk = walkableHeightAt(LAKESIDE_TEA_PAVILION_POS.x, LAKESIDE_TEA_PAVILION_POS.z);
+  assert.equal(teaPavWalk.surface, 'pier');
+  assert.ok(Math.abs(teaPavWalk.height - LAKESIDE_TEA_PAVILION_POS.deckHeight) < 0.05);
+  assert.equal(isPositionUnderRoof(LAKESIDE_TEA_PAVILION_POS.x, LAKESIDE_TEA_PAVILION_POS.deckHeight, LAKESIDE_TEA_PAVILION_POS.z), true);
+
+  assert.equal(isWithinViewDistance(10, 20, 0, 0, 0, VIEW_DISTANCE), true);
+  assert.equal(isWithinViewDistance(400, 400, 0, 0, 0, VIEW_DISTANCE), false);
+  const waterRgb = sampleMinimapColorAt(-2, 1.5);
+  assert.ok(waterRgb[2] > waterRgb[0]);
+  assert.ok(trailFactorAt(0, 28.5) > 0.7);
+});
+
+test('firstPersonAndInventory_WhenSwimmingOrEquippingElementalArrows_ShouldAutoStowAndManageHotkeys', async () => {
+  // Arrange
   const {
     spawnArrowProjectile,
     stepArrowsPhysics,
@@ -1301,8 +1450,10 @@ test('First-Person & Skyrim Inventory Abilities: Bow auto-stows when swimming, E
     swimmer,
     { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
     [],
+  // Act
     0.05
   );
+  // Assert
   assert.equal(swimmer.isSwimming, true, 'Expected player in deep lake to enter swimming state');
   assert.equal(swimmer.bowDrawn, false, 'Expected bowDrawn to automatically cancel when swimming');
   assert.equal(swimmer.bowDrawProgress, 0, 'Expected bowDrawProgress to reset to 0 when swimming');
@@ -1379,130 +1530,8 @@ test('First-Person & Skyrim Inventory Abilities: Bow auto-stows when swimming, E
   assert.equal(heavyHit.hitTarget?.id, tgt.id);
 });
 
-test('Far-South Dwarven Kingdom Region: Relocated Mine (z=420), Twin Guardian Statues, 4 Enterable Stone Houses, and Sunrise/Sunset Dwarven Caravan Schedule work properly', async () => {
-  const {
-    DWARVEN_GUARDIAN_STATUES,
-    DWARVEN_STONE_HOUSES,
-    DWARVEN_MINERS_COUNT,
-    computeDwarvenMinerCaravanState,
-  } = await import('./terrainMath');
-
-  // 1) Mine is relocated far South (entranceZ = 420.0) and flanked by Twin Colossal LOTR Dwarven Guardian Statues
-  assert.equal(SOUTHERN_MINE_POS.entranceZ, 420.0);
-  assert.equal(DWARVEN_GUARDIAN_STATUES.length, 2);
-  assert.ok(DWARVEN_GUARDIAN_STATUES[0].x < SOUTHERN_MINE_POS.x && DWARVEN_GUARDIAN_STATUES[1].x > SOUTHERN_MINE_POS.x);
-  assert.ok(Math.abs(DWARVEN_GUARDIAN_STATUES[0].z - 415.8) < 0.1);
-
-  // 2) 4 Dwarven Stone Houses along the Dwarven King's Road (z = 368..392) have flat terraces, walkable cabin floors, rain-blocking stone roofs, and interactive [E] doors
-  assert.equal(DWARVEN_STONE_HOUSES.length, 4);
-  for (const dh of DWARVEN_STONE_HOUSES) {
-    const gH = groundHeightAt(dh.x, dh.z);
-    assert.ok(Math.abs(gH - dh.terraceY) < 0.08, `Expected flat leveled terrace at ${dh.id}, got ${gH}`);
-    const walkH = walkableHeightAt(dh.x, dh.z, dh.floorY);
-    assert.equal(walkH.surface, 'cabin', `Expected walkable cabin floor inside ${dh.id}`);
-    assert.ok(Math.abs(walkH.height - dh.floorY) < 0.05);
-    assert.equal(isPositionUnderRoof(dh.x, dh.floorY + 0.5, dh.z), true, `Expected stone slab roof over ${dh.id}`);
-
-    const lookYaw = dh.dirX === 1 ? Math.PI / 2 : -Math.PI / 2; // Looking from road into house door
-    const detectedDoor = findNearestFortressDoor(
-      dh.doorX + dh.dirX * 1.4,
-      dh.floorY,
-      dh.doorZ,
-      lookYaw,
-      0
-    );
-    assert.equal(detectedDoor?.id, dh.doorId, `Expected findNearestFortressDoor to detect ${dh.doorId}`);
-  }
-
-  // 3) 8 LOTR Dwarven Miners follow the Sunrise Caravan -> Daytime Underground Mining -> Sunset Caravan -> Night Home Rest schedule!
-  assert.equal(DWARVEN_MINERS_COUNT, 8);
-  for (let i = 0; i < DWARVEN_MINERS_COUNT; i++) {
-    const sunriseState = computeDwarvenMinerCaravanState(6.6, i, 10.0);
-    assert.equal(sunriseState.activity, 'caravan_to_mine', `Expected Dwarf ${i} at 06:36 to march in the Sunrise Caravan toward the mine`);
-    assert.equal(sunriseState.lanternLit, true);
-
-    const dayWorkState = computeDwarvenMinerCaravanState(12.0, i, 25.0);
-    assert.equal(dayWorkState.activity, 'mining_work', `Expected Dwarf ${i} at 12:00 Noon to be working underground in the mine`);
-    assert.equal(dayWorkState.lanternLit, true);
-    assert.ok(
-      Math.abs(dayWorkState.y - SOUTHERN_MINE_POS.cavernFloorY) < 0.1,
-      `Expected Dwarf ${i} to stand on the subterranean cavern floor (${SOUTHERN_MINE_POS.cavernFloorY}), got ${dayWorkState.y}`
-    );
-    assert.ok(dayWorkState.z > SOUTHERN_MINE_POS.entranceZ + 38.0, `Expected Dwarf ${i} to work deep inside the mine chambers`);
-
-    const sunsetState = computeDwarvenMinerCaravanState(18.5, i, 40.0);
-    assert.equal(sunsetState.activity, 'caravan_to_home', `Expected Dwarf ${i} at 18:30 Sunset to march in the Caravan back to the stone houses`);
-    assert.equal(sunsetState.lanternLit, true);
-
-    const nightState = computeDwarvenMinerCaravanState(23.0, i, 50.0);
-    assert.equal(nightState.activity, 'resting_home', `Expected Dwarf ${i} at 23:00 Night to rest inside their Dwarven Stone House`);
-    assert.equal(nightState.lanternLit, false);
-  }
-});
-
-test('4 Grand Hall Archery Targets Only, Slower Level 1 Progression, and Market Stall Buy/Sell Economy with Level-Gated Weapons work properly', async () => {
-  const {
-    ARCHERY_TARGETS,
-    getPlayerHeroLevel,
-    awardSkillXp,
-    buyMarketItem,
-    sellMarketItem,
-    isInventoryItemOwned,
-    findNearestMarketStall,
-  } = await import('./terrainMath');
-
-  // 1) Strictly the 4 original Archery Targets next to the Grand Hall in the Chinese Fortress exist
-  assert.equal(ARCHERY_TARGETS.length, 4, 'Expected strictly 4 archery targets next to the Grand Hall');
-  for (const tgt of ARCHERY_TARGETS) {
-    assert.equal(tgt.z, -352.0, `Expected Grand Hall target ${tgt.id} at z=-352.0`);
-  }
-
-  // 2) Player starts at Level 1 with slower XP progression (xpNext = 240) and 280 gold coins
-  const player = createInitialPlayerState();
-  assert.equal(getPlayerHeroLevel(player), 1, 'Expected player to start at Hero Level 1');
-  assert.equal(player.goldCoins, 280, 'Expected starter gold purse of 280 gold coins');
-  assert.equal(player.skills?.archeryXpNext, 240, 'Expected slower initial xpNext of 240');
-
-  // Awarding 100 XP should NOT level up immediately (since xpNext is 240)
-  const noLevelUp = awardSkillXp(player, 'archery', 100);
-  assert.equal(noLevelUp, null, 'Expected 100 XP not to level up when xpNext is 240');
-  assert.equal(player.skills?.archeryLevel, 1);
-
-  // 3) Market Shop: Buying/selling outside the Harbor Market is blocked ('not_in_market')
-  player.goldCoins = 1000;
-  assert.equal(findNearestMarketStall(10.5, 24.5), null, 'Expected Crossroads Stall to be removed so trading happens only at the Harbor Market');
-  const outsideMarketBuy = buyMarketItem(player, 'katana_imperial');
-  assert.equal(outsideMarketBuy.ok, false);
-  assert.equal(outsideMarketBuy.reason, 'not_in_market');
-
-  // Move player to the Harbor Market Stalls (212.0, 254.0)
-  player.x = 212.0;
-  player.z = 254.0;
-  const nearHarborStall = findNearestMarketStall(player.x, player.z);
-  assert.ok(nearHarborStall !== null, 'Expected market stall detection at Harbor Market Stall (212, 254)');
-
-  // Level-gated weapons above player's level (e.g. elven_longbow requires Level 2) are locked at Level 1!
-  const lockedBuy = buyMarketItem(player, 'elven_longbow');
-  assert.equal(lockedBuy.ok, false, 'Expected Level 2 weapon purchase to be blocked at Hero Level 1');
-  assert.equal(lockedBuy.reason, 'level_too_low');
-  assert.equal(isInventoryItemOwned(player, 'elven_longbow'), false);
-
-  // Buying a Level 1 Market weapon ('katana_imperial', 220 gold) at the Harbor Market succeeds and equips it!
-  const validBuy = buyMarketItem(player, 'katana_imperial');
-  assert.equal(validBuy.ok, true, 'Expected Level 1 weapon purchase at Harbor Market to succeed');
-  assert.equal(isInventoryItemOwned(player, 'katana_imperial'), true);
-  assert.equal(player.goldCoins, 780);
-  assert.equal(player.equippedTool, 'sword');
-  assert.equal(player.activeWeaponId, 'katana_imperial');
-
-  // Selling an owned material ('dwarven_gold_ore') at the Harbor Market adds gold and removes it from ownedItemIds
-  const sellRes = sellMarketItem(player, 'dwarven_gold_ore');
-  assert.equal(sellRes.ok, true, 'Expected selling dwarven_gold_ore at Harbor Market to succeed');
-  assert.equal(isInventoryItemOwned(player, 'dwarven_gold_ore'), false);
-  assert.ok((player.goldCoins ?? 0) > 780, 'Expected goldCoins to increase after selling item');
-});
-
-test('Mounted Horse Free-Look Camera allows looking ±115 degrees left/right without turning the horse body', async () => {
+test('mountedCamera_WhenFreeLookingWhileMounted_ShouldAllowIndependentYawWithinAngularBounds', async () => {
+  // Arrange
   const { createInitialRideableHorses } = await import('./terrainMath');
   const horses = createInitialRideableHorses();
   const horse = horses[0];
@@ -1532,8 +1561,10 @@ test('Mounted Horse Free-Look Camera allows looking ±115 degrees left/right wit
     [],
     0.05,
     new Set(),
+  // Act
     horses
   );
+  // Assert
   assert.equal(horse.yaw, 0, 'Expected horse body yaw to remain 0 when looking sideways with mouse');
   assert.ok(Math.abs(player.yaw - 1.57) < 0.01, 'Expected rider look yaw to rotate freely to 90 degrees');
 
@@ -1563,189 +1594,8 @@ test('Mounted Horse Free-Look Camera allows looking ±115 degrees left/right wit
   assert.equal(horse.yaw, 0, 'Expected horse body yaw to still remain 0');
 });
 
-test('Horse Physics System: turning horse rotates rider, faster speed increases turning resistance & widens turn radius, and rational biomechanical gait works', async () => {
-  const {
-    createInitialRideableHorses,
-    computeHorseTurnResistance,
-    computeHorseBiomechanicalPose,
-    MARKET_STALL_LOCATIONS,
-    findNearestMarketStall,
-  } = await import('./terrainMath');
-
-  // 1) Verify closer Harbor Market merchant proximity (4.5m radius)
-  for (const st of MARKET_STALL_LOCATIONS) {
-    assert.equal(st.radius, 4.5, `Expected Harbor Market stall ${st.id} radius to be 4.5m`);
-  }
-  assert.equal(
-    findNearestMarketStall(212 + 8.0, 254),
-    null,
-    'Expected standing 8m away from merchant counter to be outside 4.5m trade range'
-  );
-  assert.equal(
-    findNearestMarketStall(212 + 2.8, 254)?.id,
-    'market-harbor-1',
-    'Expected standing 2.8m from merchant counter to trigger Harbor Market trade'
-  );
-
-  // 2) Verify speed-dependent turning resistance increases as horse runs faster
-  const slowTurn = computeHorseTurnResistance(1.5);
-  const mediumTurn = computeHorseTurnResistance(6.0);
-  const fastGallopTurn = computeHorseTurnResistance(13.5);
-  assert.ok(
-    fastGallopTurn.effectiveTurnRate < mediumTurn.effectiveTurnRate &&
-      mediumTurn.effectiveTurnRate < slowTurn.effectiveTurnRate,
-    'Expected effectiveTurnRate to decrease at higher speeds due to turning resistance'
-  );
-  assert.ok(
-    fastGallopTurn.turningRadiusMeters > mediumTurn.turningRadiusMeters &&
-      mediumTurn.turningRadiusMeters > slowTurn.turningRadiusMeters,
-    `Expected turning radius to be wider at gallop (${fastGallopTurn.turningRadiusMeters.toFixed(2)}m) than walk (${slowTurn.turningRadiusMeters.toFixed(2)}m)`
-  );
-
-  // 3) Verify turning the horse left/right rotates the rider's yaw along with the horse
-  const horses = createInitialRideableHorses();
-  const horse = horses[0];
-  horse.yaw = 0;
-
-  const player = createInitialPlayerState();
-  player.x = horse.x;
-  player.z = horse.z;
-  player.y = horse.y;
-  player.mountedHorseId = horse.id;
-  player.mountedHorseYaw = 0;
-  player.yaw = 0.4; // Rider looking 0.4 rad to the side
-
-  stepPlayerPhysics(
-    player,
-    {
-      forward: 1,
-      right: 1, // Steer horse right
-      sprint: false,
-      relaxed: false,
-      jumpPressed: false,
-      jumpHeld: false,
-      lookYawDelta: 0,
-      lookPitchDelta: 0,
-    },
-    [],
-    0.05,
-    new Set(),
-    horses
-  );
-  assert.ok(horse.yaw < -0.05, `Expected horse.yaw to rotate right (< -0.05), got ${horse.yaw}`);
-  assert.ok(
-    Math.abs(player.yaw - (0.4 + horse.yaw)) < 0.001,
-    `Expected rider yaw (${player.yaw}) to rotate together with horse turn (${horse.yaw})`
-  );
-
-  // 4) Verify rational biomechanical gait poses across idle, walk, trot, and gallop
-  const idlePose = computeHorseBiomechanicalPose(0, 0, 1.0, 0);
-  const walkPose = computeHorseBiomechanicalPose(2.2, 1.2, 1.0, 0);
-  const gallopPose = computeHorseBiomechanicalPose(12.5, 2.1, 1.0, 0);
-  assert.equal(idlePose.gaitKind, 'idle');
-  assert.equal(walkPose.gaitKind, 'walk');
-  assert.equal(gallopPose.gaitKind, 'gallop');
-  assert.ok(gallopPose.frontLeft.lowerPitch >= 0, 'Expected forelimb knee flexion to be positive (backward bend)');
-});
-
-test('Reynolds Boids Bird Flocking & Proximity-Reactive Forest Animals react dynamically to player proximity', async () => {
-  const {
-    createInitialBoidBirds,
-    createInitialSmallAnimals,
-    stepBoidsAndWildlife,
-  } = await import('./terrainMath');
-
-  const birds = createInitialBoidBirds();
-  const animals = createInitialSmallAnimals();
-  assert.equal(birds.length, 36);
-  assert.equal(animals.length, 18);
-
-  // Place player right beneath bird flock 0 and next to critter 0
-  const targetBird = birds[0];
-  const res1 = stepBoidsAndWildlife(
-    birds,
-    animals,
-    targetBird.x,
-    targetBird.y - 6.0,
-    targetBird.z,
-    6.0,
-    0.05
-  );
-  assert.ok(res1.startledFlockCount > 0, 'Expected approaching bird flock to startle Boids birds');
-  assert.ok(targetBird.fleeTimer > 0, 'Expected startled Boid bird to enter flee ascent state');
-  assert.ok(targetBird.vy > 0, 'Expected startled Boid bird to climb upward away from player');
-
-  const targetAnimal = animals[0];
-  const res2 = stepBoidsAndWildlife(
-    birds,
-    animals,
-    targetAnimal.x + 2.0,
-    targetAnimal.y,
-    targetAnimal.z + 2.0,
-    4.0,
-    0.05
-  );
-  assert.ok(res2.scamperedCritterCount > 0, 'Expected approaching forest animal within flee radius to trigger scamper');
-  assert.equal(targetAnimal.alertLevel, 'fleeing');
-  assert.ok(Math.hypot(targetAnimal.vx, targetAnimal.vz) > 4.0, 'Expected fleeing forest animal to hop away rapidly');
-});
-
-test('Temporary Fading Footprints & Horse Hoofprints Trail System spawns prints on terrain and fades them out over time', async () => {
-  const {
-    createFootprintTrailTracker,
-    stepFootprintTrailSystem,
-  } = await import('./terrainMath');
-
-  const tracker = createFootprintTrailTracker(0, 68);
-  // Walk 1.5m forward on foot along the dirt trail
-  const step1 = stepFootprintTrailSystem(
-    tracker,
-    0,
-    walkableHeightAt(0, 66.5).height,
-    66.5,
-    0,
-    true,
-    false,
-    false,
-    false,
-    0.1
-  );
-  assert.equal(step1.spawnedCount, 1, 'Expected walking 1.5m on foot to spawn a boot footprint decal');
-  assert.equal(tracker.decals[0].kind, 'boot');
-  const initialOpacity = tracker.decals[0].opacity;
-  assert.ok(initialOpacity > 0.4);
-
-  // Walk another 1.5m while mounted on a horse
-  const step2 = stepFootprintTrailSystem(
-    tracker,
-    0,
-    walkableHeightAt(0, 65.0).height,
-    65.0,
-    0,
-    true,
-    false,
-    false,
-    true,
-    0.1
-  );
-  assert.equal(step2.spawnedCount, 1, 'Expected riding 1.5m on horseback to spawn a horse hoofprint decal');
-  assert.equal(tracker.decals[1].kind, 'hoof');
-
-  // Advance time by 8 seconds (100 steps of 0.08s) and verify footprints fade smoothly, then expire after 16s
-  for (let i = 0; i < 100; i++) {
-    stepFootprintTrailSystem(tracker, 0, walkableHeightAt(0, 65.0).height, 65.0, 0, true, false, false, true, 0.08);
-  }
-  assert.ok(
-    tracker.decals[0].opacity < initialOpacity && tracker.decals[0].opacity > 0,
-    'Expected footprint opacity to fade smoothly over time'
-  );
-  for (let i = 0; i < 110; i++) {
-    stepFootprintTrailSystem(tracker, 0, walkableHeightAt(0, 65.0).height, 65.0, 0, true, false, false, true, 0.08);
-  }
-  assert.equal(tracker.decals[0].active, false, 'Expected footprint decal to expire after 16 seconds');
-});
-
-test('5-Phase First-Person Sword Attack Kinematics (Ready -> Wind-Up -> Strike -> Follow-Through -> Recovery) & Synchronized Strike Window Combat work properly', async () => {
+test('swordKinematics_WhenAttackingThroughFivePhases_ShouldSynchronizeStrikeWindowAndDamageCalculations', async () => {
+  // Arrange
   const {
     classifySwordAttackPhase,
     computeFirstPersonSwordAttackPose,
@@ -1753,8 +1603,10 @@ test('5-Phase First-Person Sword Attack Kinematics (Ready -> Wind-Up -> Strike -
     stepSwordSwingCombat,
     ARCHERY_TARGETS,
   } = await import('./terrainMath');
+  // Act
 
   // 1) Verify all 5 distinct phases across normalized swingProgress [0, 1]
+  // Assert
   assert.equal(classifySwordAttackPhase(0).phase, 'ready');
   assert.equal(classifySwordAttackPhase(0.12).phase, 'windup');
   assert.equal(classifySwordAttackPhase(0.36).phase, 'strike');
@@ -1885,5 +1737,247 @@ test('5-Phase First-Person Sword Attack Kinematics (Ready -> Wind-Up -> Strike -
 });
 // #endregion
 
+// ======================== SECURITY TESTS ======================== \\
+// #region Security Tests
+test('fortressEconomyAndProgression_WhenTradingAtMarketStall_ShouldEnforceLevelGatesAndArcheryTargets', async () => {
+  // Arrange
+  const {
+    ARCHERY_TARGETS,
+    getPlayerHeroLevel,
+    awardSkillXp,
+    buyMarketItem,
+    sellMarketItem,
+    isInventoryItemOwned,
+    findNearestMarketStall,
+  } = await import('./terrainMath');
+  // Act
 
+  // 1) Strictly the 4 original Archery Targets next to the Grand Hall in the Chinese Fortress exist
+  // Assert
+  assert.equal(ARCHERY_TARGETS.length, 4, 'Expected strictly 4 archery targets next to the Grand Hall');
+  for (const tgt of ARCHERY_TARGETS) {
+    assert.equal(tgt.z, -352.0, `Expected Grand Hall target ${tgt.id} at z=-352.0`);
+  }
 
+  // 2) Player starts at Level 1 with slower XP progression (xpNext = 240) and 280 gold coins
+  const player = createInitialPlayerState();
+  assert.equal(getPlayerHeroLevel(player), 1, 'Expected player to start at Hero Level 1');
+  assert.equal(player.goldCoins, 280, 'Expected starter gold purse of 280 gold coins');
+  assert.equal(player.skills?.archeryXpNext, 240, 'Expected slower initial xpNext of 240');
+
+  // Awarding 100 XP should NOT level up immediately (since xpNext is 240)
+  const noLevelUp = awardSkillXp(player, 'archery', 100);
+  assert.equal(noLevelUp, null, 'Expected 100 XP not to level up when xpNext is 240');
+  assert.equal(player.skills?.archeryLevel, 1);
+
+  // 3) Market Shop: Buying/selling outside the Harbor Market is blocked ('not_in_market')
+  player.goldCoins = 1000;
+  assert.equal(findNearestMarketStall(10.5, 24.5), null, 'Expected Crossroads Stall to be removed so trading happens only at the Harbor Market');
+  const outsideMarketBuy = buyMarketItem(player, 'katana_imperial');
+  assert.equal(outsideMarketBuy.ok, false);
+  assert.equal(outsideMarketBuy.reason, 'NOT_IN_MARKET');
+
+  // Move player to the Harbor Market Stalls (212.0, 254.0)
+  player.x = 212.0;
+  player.z = 254.0;
+  const nearHarborStall = findNearestMarketStall(player.x, player.z);
+  assert.ok(nearHarborStall !== null, 'Expected market stall detection at Harbor Market Stall (212, 254)');
+
+  // Level-gated weapons above player's level (e.g. elven_longbow requires Level 2) are locked at Level 1!
+  const lockedBuy = buyMarketItem(player, 'elven_longbow');
+  assert.equal(lockedBuy.ok, false, 'Expected Level 2 weapon purchase to be blocked at Hero Level 1');
+  assert.equal(lockedBuy.reason, 'LEVEL_TOO_LOW');
+  assert.equal(isInventoryItemOwned(player, 'elven_longbow'), false);
+
+  // Buying a Level 1 Market weapon ('katana_imperial', 220 gold) at the Harbor Market succeeds and equips it!
+  const validBuy = buyMarketItem(player, 'katana_imperial');
+  assert.equal(validBuy.ok, true, 'Expected Level 1 weapon purchase at Harbor Market to succeed');
+  assert.equal(isInventoryItemOwned(player, 'katana_imperial'), true);
+  assert.equal(player.goldCoins, 780);
+  assert.equal(player.equippedTool, 'sword');
+  assert.equal(player.activeWeaponId, 'katana_imperial');
+
+  // Selling an owned material ('dwarven_gold_ore') at the Harbor Market adds gold and removes it from ownedItemIds
+  const sellRes = sellMarketItem(player, 'dwarven_gold_ore');
+  assert.equal(sellRes.ok, true, 'Expected selling dwarven_gold_ore at Harbor Market to succeed');
+  assert.equal(isInventoryItemOwned(player, 'dwarven_gold_ore'), false);
+  assert.ok((player.goldCoins ?? 0) > 780, 'Expected goldCoins to increase after selling item');
+});
+// #endregion
+
+// ======================== EDGE CASES AND INFRASTRUCTURE FAILURES ======================== \\
+// #region Edge Cases and Infrastructure Failures
+test('playerJumping_WhenApproachingLowObstaclesAndParapets_ShouldPermitTraversingWithoutBlocking', () => {
+  // Arrange
+  const state = createInitialPlayerState();
+  // Place player on the West Walkable Great-Wall Rampart top (x = -49.5, z = -170 + FORTRESS_Z_OFFSET, y = rampartHeight)
+  state.x = -49.5;
+  state.z = -170 + FORTRESS_Z_OFFSET;
+  state.y = CHINESE_FORTRESS_POS.rampartHeight;
+  state.onGround = true;
+  state.yaw = Math.PI / 2; // Facing West (-X) toward the outer rampart parapet at x = -51.4..-52.8
+
+  // Jump while running West over the outer parapet
+  for (let i = 0; i < 35; i++) {
+    stepPlayerPhysics(
+      state,
+      {
+        forward: 1,
+        right: 0,
+        sprint: true,
+        relaxed: false,
+        jumpPressed: i === 0,
+        jumpHeld: i < 12,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.04
+  // Act
+    );
+  }
+  // Assert
+  assert.ok(state.x < -53.0, `Expected player to jump cleanly over the outer rampart parapet, got x=${state.x}`);
+});
+
+test('swimmingPhysics_WhenEnteringWaterBasins_ShouldApplyBuoyancyAndWaterMovementConstraints', async () => {
+  // Arrange
+  const {
+    SOUTHWEST_OASIS_POS,
+    getWaterSurfaceHeightAt,
+  } = await import('./terrainMath');
+
+  // Act
+  // 1) Central Lake water surface at 0.0m and deep basin floor < -2.0m
+  const centralWaterY = getWaterSurfaceHeightAt(-2.0, 1.5);
+  // Assert
+  assert.equal(centralWaterY, WATER_LEVEL);
+
+  const swimmerCentral = createInitialPlayerState();
+  swimmerCentral.x = -2.0;
+  swimmerCentral.z = 1.5;
+  swimmerCentral.y = WATER_LEVEL - 1.2;
+  for (let i = 0; i < 15; i++) {
+    stepPlayerPhysics(
+      swimmerCentral,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.equal(swimmerCentral.isSwimming, true, 'Expected player in Central Lake deep water to enter swimming state');
+  assert.equal(swimmerCentral.inWater, true);
+  assert.ok(
+    swimmerCentral.y > WATER_LEVEL - 1.45 && swimmerCentral.y < WATER_LEVEL - 0.35,
+    `Expected buoyancy to keep swimmer near surface in Central Lake, got y=${swimmerCentral.y}`
+  );
+
+  // 2) South-West Oasis Lagoon (away from the central gazebo bridge, e.g. x = -318, z = 326) is carved deep for swimming!
+  const lagoonX = SOUTHWEST_OASIS_POS.lagoonX - 8.5;
+  const lagoonZ = SOUTHWEST_OASIS_POS.lagoonZ;
+  const lagoonWaterY = getWaterSurfaceHeightAt(lagoonX, lagoonZ);
+  assert.equal(lagoonWaterY, SOUTHWEST_OASIS_POS.lagoonWaterY);
+  const lagoonFloor = groundHeightAt(lagoonX, lagoonZ);
+  assert.ok(
+    lagoonFloor < SOUTHWEST_OASIS_POS.lagoonWaterY - 1.5,
+    `Expected SW Oasis Lagoon basin floor (${lagoonFloor}) to be carved >1.5m below lagoonWaterY (${SOUTHWEST_OASIS_POS.lagoonWaterY})`
+  );
+
+  const swimmerOasis = createInitialPlayerState();
+  swimmerOasis.x = lagoonX;
+  swimmerOasis.z = lagoonZ;
+  swimmerOasis.y = SOUTHWEST_OASIS_POS.lagoonWaterY - 1.1;
+  for (let i = 0; i < 12; i++) {
+    stepPlayerPhysics(
+      swimmerOasis,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.equal(swimmerOasis.isSwimming, true, 'Expected player in SW Oasis Lagoon to swim');
+
+  // 3) Underground Mine Room 2 Bioluminescent Crystal Lake (lx = -41.5 -> x = -99.5, lz = 63 -> z = 295) is swimmable!
+  const mineLakeX = SOUTHERN_MINE_POS.x - 41.5;
+  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 63.0;
+  const mineWaterY = getWaterSurfaceHeightAt(mineLakeX, mineLakeZ, -10.2);
+  assert.equal(mineWaterY, -9.3);
+  const mineLakeWalk = walkableHeightAt(mineLakeX, mineLakeZ, -10.2);
+  assert.ok(
+    mineLakeWalk.height < -10.5,
+    `Expected Underground Mine Crystal Lake basin floor (${mineLakeWalk.height}) to be carved deep below -9.3m water level`
+  );
+
+  const swimmerMine = createInitialPlayerState();
+  swimmerMine.x = mineLakeX;
+  swimmerMine.z = mineLakeZ;
+  swimmerMine.y = -10.35;
+  for (let i = 0; i < 12; i++) {
+    stepPlayerPhysics(
+      swimmerMine,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.equal(swimmerMine.isSwimming, true, 'Expected player in Underground Mine Crystal Lake to swim');
+});
+
+test('footprintTrailSystem_WhenEntitiesTraverseTerrain_ShouldSpawnFadingFootprintsWithBoundedBuffer', async () => {
+  // Arrange
+  const {
+    createFootprintTrailTracker,
+    stepFootprintTrailSystem,
+  } = await import('./terrainMath');
+
+  const tracker = createFootprintTrailTracker(0, 68);
+  // Walk 1.5m forward on foot along the dirt trail
+  const step1 = stepFootprintTrailSystem(
+    tracker,
+    0,
+    walkableHeightAt(0, 66.5).height,
+    66.5,
+    0,
+    true,
+    false,
+    false,
+    false,
+  // Act
+    0.1
+  );
+  // Assert
+  assert.equal(step1.spawnedCount, 1, 'Expected walking 1.5m on foot to spawn a boot footprint decal');
+  assert.equal(tracker.decals[0].kind, 'boot');
+  const initialOpacity = tracker.decals[0].opacity;
+  assert.ok(initialOpacity > 0.4);
+
+  // Walk another 1.5m while mounted on a horse
+  const step2 = stepFootprintTrailSystem(
+    tracker,
+    0,
+    walkableHeightAt(0, 65.0).height,
+    65.0,
+    0,
+    true,
+    false,
+    false,
+    true,
+    0.1
+  );
+  assert.equal(step2.spawnedCount, 1, 'Expected riding 1.5m on horseback to spawn a horse hoofprint decal');
+  assert.equal(tracker.decals[1].kind, 'hoof');
+
+  // Advance time by 8 seconds (100 steps of 0.08s) and verify footprints fade smoothly, then expire after 16s
+  for (let i = 0; i < 100; i++) {
+    stepFootprintTrailSystem(tracker, 0, walkableHeightAt(0, 65.0).height, 65.0, 0, true, false, false, true, 0.08);
+  }
+  assert.ok(
+    tracker.decals[0].opacity < initialOpacity && tracker.decals[0].opacity > 0,
+    'Expected footprint opacity to fade smoothly over time'
+  );
+  for (let i = 0; i < 110; i++) {
+    stepFootprintTrailSystem(tracker, 0, walkableHeightAt(0, 65.0).height, 65.0, 0, true, false, false, true, 0.08);
+  }
+  assert.equal(tracker.decals[0].active, false, 'Expected footprint decal to expire after 16 seconds');
+});
+// #endregion

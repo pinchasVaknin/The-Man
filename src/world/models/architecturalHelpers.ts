@@ -9,11 +9,15 @@
 // #region Imports & Dependencies
 import * as THREE from 'three';
 import { attachFlagHorizontalWaveShader } from '../builders/shaderAndMaterialBuilders';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== ARCHITECTURAL ASSETS INTERFACE ======================== \\
 // #region Architectural Assets Interface
+/**
+ * Summary: Reusable shared geometric buffers and materials for architectural structures.
+ * Design: Caches wall, pillar, and roof meshes to minimize WebGL state changes and allocation.
+ */
 export interface IArchitecturalSharedAssets {
   readonly imperialGoldMat: THREE.MeshStandardMaterial;
   readonly imperialDoorWoodMat: THREE.MeshStandardMaterial;
@@ -53,7 +57,14 @@ export type ArchitecturalSharedAssets = IArchitecturalSharedAssets;
 /**
  * Instantiates shared architectural materials and construction helper functions.
  */
-export function createArchitecturalSharedAssets(ctx: WorldModelBuildContext): ArchitecturalSharedAssets {
+/**
+ * Summary: Factory creating shared material and geometry assets for architectural models.
+ * Design: Allocates reusable Three.js materials parameterized by procedural world textures.
+ * @param textures Procedural world texture pack.
+ * @param ctx Input parameter ctx.
+ * @returns IArchitecturalSharedAssets container holding shared materials.
+ */
+export function createArchitecturalSharedAssets(ctx: IWorldModelBuildContext): IArchitecturalSharedAssets {
   const {
     textures,
     isSoftwareGl,

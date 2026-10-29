@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
-import type { WeatherStateSnapshot } from '../domain/worldTypes';
+import type { IWeatherStateSnapshot } from '../domain/worldTypes';
 import {
   WATER_LEVEL,
   HUNTER_LODGE_POS,
@@ -17,11 +17,15 @@ import {
   fbm2D,
   hash2D,
 } from '../terrainMath';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== TYPES & INTERFACES ======================== \\
 // #region Types & Interfaces
+/**
+ * Summary: Handle to instantiated celestial sky dome, sun mesh, and clouds.
+ * Design: Exposes update callback synchronizing sky rotation and cloud drift per frame.
+ */
 export interface IEnvironmentAtmosphereHandle {
   readonly pollenPoints: THREE.Points;
   readonly starsMaterial: THREE.PointsMaterial;
@@ -34,7 +38,7 @@ export interface IEnvironmentAtmosphereHandle {
     playerZ: number,
     morningMistOpacity: number,
     nightFactor?: number,
-    weather?: WeatherStateSnapshot
+    weather?: IWeatherStateSnapshot
   ) => void;
 }
 export type EnvironmentAtmosphereHandle = IEnvironmentAtmosphereHandle;
@@ -82,10 +86,13 @@ interface IAnimatedDeer {
 // #region Model Builder
 /**
  * Summary: Constructs environmental atmosphere layers, celestial bodies, and ambient wildlife.
+ * Design: Standard domain component following SRP and clean architectural contracts.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildEnvironmentAtmosphereModels.
  */
 export function buildEnvironmentAtmosphereModels(
-  ctx: WorldModelBuildContext
-): EnvironmentAtmosphereHandle {
+  ctx: IWorldModelBuildContext
+): IEnvironmentAtmosphereHandle {
   const { scene, isSoftwareGl, disposableGeometries, disposableMaterials, mistMaterials } = ctx;
 
   // 1. Squirrel Materials & Geometries
@@ -448,7 +455,7 @@ export function buildEnvironmentAtmosphereModels(
     playerZ: number,
     morningMistOpacity: number,
     nightFactor = 0.0,
-    weather?: WeatherStateSnapshot
+    weather?: IWeatherStateSnapshot
   ): void => {
     const dt = lastTimeEnv > 0 ? Math.min(elapsedTime - lastTimeEnv, 0.1) : 0.016;
     lastTimeEnv = elapsedTime;

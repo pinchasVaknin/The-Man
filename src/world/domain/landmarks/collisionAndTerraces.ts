@@ -8,7 +8,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { SolidBuildingBox } from '../worldTypes';
+import type { ISolidBuildingBox } from '../worldTypes';
 import {
   MAGIC_STONE_CIRCLE_POS,
   WATERFALL_CLIFF_POS,
@@ -50,7 +50,7 @@ const FY = FORTRESS_Y_OFFSET;
 // ======================== SOLID BUILDING BOXES ======================== \\
 // #region Solid Building Boxes
 /** Summary: Global collection of axis-aligned 3D obstacle bounding boxes across the entire world. */
-export const SOLID_BUILDING_BOXES: SolidBuildingBox[] = [
+export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   {
     id: 'hunter-lodge-back-wall',
     minX: HUNTER_LODGE_POS.x - 4.85,

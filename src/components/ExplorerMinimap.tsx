@@ -7,9 +7,14 @@
 
 // ======================== IMPORTS & PROPS ======================== \\
 // #region Imports & Props
+import { t } from '../locales';
 import React, { useEffect, useRef } from 'react';
 import { sampleMinimapColorAt } from '../world/terrainMath';
 
+/**
+ * Summary: Props contract for Explorer Minimap radar HUD component.
+ * Design: Consumes reactive player position and camera yaw to project 2D radar overlay.
+ */
 export interface IExplorerMinimapProps {
   playerX: number;
   playerZ: number;
@@ -26,7 +31,7 @@ const VIEW_WINDOW_M = 180; // Visible meters across the minimap diameter
 
 // ======================== EXPLORER MINIMAP COMPONENT ======================== \\
 // #region Explorer Minimap Component
-export const ExplorerMinimap = React.memo<ExplorerMinimapProps>(({
+export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   playerX,
   playerZ,
   yawDeg,
@@ -261,7 +266,7 @@ export const ExplorerMinimap = React.memo<ExplorerMinimapProps>(({
         width: '156px',
         height: '156px',
       }}
-      aria-label="מפת סביבה וכיוון"
+      aria-label={t('ui.minimap_aria')}
     >
       <div
         className="relative w-full h-full rounded-full flex items-center justify-center"

@@ -8,33 +8,37 @@
 // ======================== IMPORTS & CONTRACTS ======================== \\
 // #region Imports & Contracts
 import * as THREE from 'three';
-import type { PlayerState, RideableHorseState } from '../domain/worldTypes';
+import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
 import { isWithinViewDistance } from '../domain/landmarksRegistry';
 import { groundHeightAt as heightAt } from '../systems/terrainAndBiomeSystem';
 import {
   createInitialBoidBirds,
   createInitialSmallAnimals,
   stepBoidsAndWildlife,
-  type BoidBirdState,
-  type SmallAnimalState,
+  type IBoidBirdState,
+  type ISmallAnimalState,
 } from '../systems/boidsAndWildlifeSystem';
 import {
   createFootprintTrailTracker,
   stepFootprintTrailSystem,
   MAX_FOOTPRINT_DECALS,
-  type FootprintTrailTracker,
+  type IFootprintTrailTracker,
 } from '../systems/footprintTrailSystem';
 
+/**
+ * Summary: Runtime controller handle for bird flocks, small animals, and footprint trails.
+ * Design: Exposes update callback to advance wildlife simulation and footprint decals per frame.
+ */
 export interface IWildlifeAndFootprintsController {
   group: THREE.Group;
-  birds: BoidBirdState[];
-  animals: SmallAnimalState[];
-  footprintTracker: FootprintTrailTracker;
+  birds: IBoidBirdState[];
+  animals: ISmallAnimalState[];
+  footprintTracker: IFootprintTrailTracker;
   update: (
     dt: number,
     elapsed: number,
-    playerState: PlayerState,
-    horses: readonly RideableHorseState[],
+    playerState: IPlayerState,
+    horses: readonly IRideableHorseState[],
     daylightFactor: number,
     callbacks?: {
       onBirdFlockStartled?: (distance: number, count: number) => void;
@@ -48,11 +52,19 @@ export type WildlifeAndFootprintsController = IWildlifeAndFootprintsController;
 
 // ======================== BUILD WILDLIFE & FOOTPRINTS ======================== \\
 // #region Build Wildlife & Footprints
+/**
+ * Summary: Build wildlife and footprints layer.
+ * Design: Standard function implementing domain specifications and behavioral contracts.
+ * @param scene Input parameter for buildWildlifeAndFootprintsLayer.
+ * @param disposableGeometries Input parameter for buildWildlifeAndFootprintsLayer.
+ * @param disposableMaterials Input parameter for buildWildlifeAndFootprintsLayer.
+ * @returns Computed result for buildWildlifeAndFootprintsLayer.
+ */
 export function buildWildlifeAndFootprintsLayer(
   scene: THREE.Scene,
   disposableGeometries?: THREE.BufferGeometry[],
   disposableMaterials?: THREE.Material[]
-): WildlifeAndFootprintsController {
+): IWildlifeAndFootprintsController {
   const group = new THREE.Group();
   group.name = 'wildlife-boids-footprints-layer';
   scene.add(group);

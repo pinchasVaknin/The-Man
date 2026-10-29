@@ -12,22 +12,34 @@ import {
   WeatherToggleOption,
   INVENTORY_ITEMS,
   InventoryItemId,
-  InventoryItemDef,
+  IInventoryItemDef,
   type IGameActions,
+  type IBuyMarketItemPayload,
+  type ISellMarketItemPayload,
+  type MarketTransactionErrorCode,
+  INVENTORY_ITEM_MAP,
+  DEFAULT_STARTER_OWNED_ITEM_IDS,
+  FIRST_MARKET_CATALOG_ITEM,
 } from '../world/terrainMath';
-import { GameStateMode, TelemetrySnapshot, VirtualMoveState } from './WorldCanvas';
+import { Result } from '../core/Result';
+import { t } from '../locales';
+import { GameStateMode, ITelemetrySnapshot, IVirtualMoveState } from './WorldCanvas';
 import { ExplorerMinimap } from './ExplorerMinimap';
 import {
   SkyrimInventoryModal,
   InventoryCategoryTab,
-  SHORT_NAMES_HE,
+  ITEM_SHORT_NAMES,
 } from './SkyrimInventoryModal';
 import { renderItemSvgIcon } from './itemArtworkRegistry';
 import { useTelemetry } from '../core/telemetryStore';
 
+/**
+ * Summary: Props contract for GameShellOverlay heads-up display.
+ * Design: Aggregates health, stamina, hotbar, skills, and telemetry signals into HUD.
+ */
 export interface IGameShellOverlayProps {
   gameState: GameStateMode;
-  telemetry?: TelemetrySnapshot;
+  telemetry?: ITelemetrySnapshot;
   muted: boolean;
   weatherToggle: WeatherToggleOption;
   onStartGame: () => void;
@@ -37,42 +49,33 @@ export interface IGameShellOverlayProps {
   onToggleMute: () => void;
   onCycleWeather: () => void;
   onSelectWeather: (option: WeatherToggleOption) => void;
-  onOpenLab?: () => void;
-  virtualMoveRef: React.MutableRefObject<VirtualMoveState>;
+  virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
   gameActions?: IGameActions | null;
 }
 export type GameShellOverlayProps = IGameShellOverlayProps;
 
-const WEATHER_OPTIONS: { id: WeatherToggleOption; labelHe: string; shortHe: string }[] = [
-  { id: 'auto', labelHe: 'אוטומטי (עונות השנה)', shortHe: 'אוטומטי' },
-  { id: 'regional_rain', labelHe: 'גשם ושלוליות', shortHe: 'גשם' },
-  { id: 'dense_fog', labelHe: 'ערפל כבד', shortHe: 'ערפל' },
-  { id: 'lightning_storm', labelHe: 'סופת ברקים ורעמים', shortHe: 'סופת ברקים' },
-  { id: 'clear_clouds', labelHe: 'שמיים בהירים', shortHe: 'בהיר' },
+interface IWeatherOptionDef {
+  id: WeatherToggleOption;
+  label: string;
+  short: string;
+}
+
+const WEATHER_OPTIONS: readonly IWeatherOptionDef[] = [
+  { id: 'auto', label: t('weather.auto'), short: t('weather.auto_short') },
+  { id: 'regional_rain', label: t('weather.regional_rain'), short: t('weather.regional_rain_short') },
+  { id: 'dense_fog', label: t('weather.dense_fog'), short: t('weather.dense_fog_short') },
+  { id: 'lightning_storm', label: t('weather.lightning_storm'), short: t('weather.lightning_storm_short') },
+  { id: 'clear_clouds', label: t('weather.clear_clouds'), short: t('weather.clear_clouds_short') },
 ];
 
 type SkyrimModalMode = 'none' | 'inventory' | 'favorites';
 
-const DEFAULT_OWNED_IDS: InventoryItemId[] = [
-  'bow',
-  'sword',
-  'torch',
-  'unarmed',
-  'arrow_normal',
-  'arrow_fire',
-  'arrow_wind',
-  'oak_timber',
-  'cut_granite_blocks',
-  'iron_ingots',
-  'dwarven_gold_ore',
-  'crystal_gem',
-  'ancient_dwarven_horn',
-];
+
 // #endregion
 
 // ======================== OVERLAY COMPONENT ======================== \\
 // #region Overlay Component
-export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
+export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   gameState,
   telemetry: externalTelemetry,
   weatherToggle,
@@ -99,7 +102,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
   const activeWeaponId = telemetry.activeWeaponId ?? equippedTool;
   const arrowKind = telemetry.arrowKind ?? 'normal';
   const goldCoins = telemetry.goldCoins ?? 280;
-  const ownedItemIds = telemetry.ownedItemIds ?? DEFAULT_OWNED_IDS;
+  const ownedItemIds = telemetry.ownedItemIds ?? DEFAULT_STARTER_OWNED_ITEM_IDS;
   const hotbarSlots: (InventoryItemId | null)[] = telemetry.hotbarSlots ?? [
     'bow',
     'torch',
@@ -121,7 +124,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
 
   const isItemEquipped = (itemId: InventoryItemId): boolean => {
     if (telemetry.isSwimming) return false;
-    const def: InventoryItemDef | undefined = INVENTORY_ITEMS.find((i) => i.id === itemId);
+    const def = INVENTORY_ITEM_MAP.get(itemId);
     if (def?.weaponRole === 'bow') {
       return equippedTool === 'bow' && activeWeaponId === itemId;
     }
@@ -142,22 +145,26 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
     setUiTick((t) => t + 1);
   };
 
-  const triggerBuyItem = (itemId: InventoryItemId): { ok: boolean; reasonHe: string } => {
+  const triggerBuyItem = (
+    itemId: InventoryItemId
+  ): Result<IBuyMarketItemPayload, MarketTransactionErrorCode> => {
     if (gameActions) {
       const res = gameActions.onBuyItem(itemId);
       setUiTick((t) => t + 1);
       return res;
     }
-    return { ok: false, reasonHe: 'מערכת המסחר אינה זמינה' };
+    return Result.fail('NOT_IN_MARKET');
   };
 
-  const triggerSellItem = (itemId: InventoryItemId): { ok: boolean; reasonHe: string } => {
+  const triggerSellItem = (
+    itemId: InventoryItemId
+  ): Result<ISellMarketItemPayload, MarketTransactionErrorCode> => {
     if (gameActions) {
       const res = gameActions.onSellItem(itemId);
       setUiTick((t) => t + 1);
       return res;
     }
-    return { ok: false, reasonHe: 'מערכת המסחר אינה זמינה' };
+    return Result.fail('NOT_IN_MARKET');
   };
 
   const triggerAssignHotbar = (slotIndex: number, itemId: InventoryItemId) => {
@@ -193,8 +200,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
         if (category) {
           setSelectedCategory(category);
           if (category === 'market') {
-            const firstMarket = INVENTORY_ITEMS.find((i) => !i.starterOwned);
-            if (firstMarket) setSelectedItemId(firstMarket.id);
+            setSelectedItemId(FIRST_MARKET_CATALOG_ITEM.id);
           }
         }
         setSkyrimModal((prev) =>
@@ -230,8 +236,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
           setSkyrimModal('none');
         } else {
           setSelectedCategory('market');
-          const firstMarket = INVENTORY_ITEMS.find((i) => !i.starterOwned);
-          if (firstMarket) setSelectedItemId(firstMarket.id);
+          setSelectedItemId(FIRST_MARKET_CATALOG_ITEM.id);
           setSkyrimModal('inventory');
         }
         return;
@@ -346,57 +351,70 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onStartGame();
               }}
-              className="group relative w-80 sm:w-96 py-4 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium text-stone-200 transition-colors cursor-pointer shrink-0"
+              style={{
+                backgroundColor: 'rgba(20, 18, 15, 0.85)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+              }}
             >
-              {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
-                style={{
-                  background:
-                    'linear-gradient(to left, rgba(245, 158, 11, 0.34) 0%, rgba(28, 22, 15, 0.72) 38%, rgba(28, 22, 15, 0.22) 74%, rgba(28, 22, 15, 0) 100%)',
-                }}
-              />
-              {/* Right-Edge Illuminated Accent Bar on Hover */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
-              />
-              <span className="relative z-10 inline-block font-display-he text-2xl sm:text-3xl font-bold text-stone-100 group-hover:text-amber-300 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
-                התחל משחק
-              </span>
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-sky-400 stroke-2">
+                <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
+                <path d="M8 19v2M12 19v2M16 19v2" />
+              </svg>
+              <span className="whitespace-nowrap">{t('ui.weather_hud_label', { weather: activeWeatherOption.short })}</span>
+              <kbd className="px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
+                V
+              </kbd>
             </button>
 
-            {/* 2. Character & Animation Lab Text Button */}
-            {onOpenLab && (
-              <button
-                type="button"
-                data-testid="open-lab-btn"
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  onOpenLab();
-                }}
-                className="group relative w-80 sm:w-96 py-4 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+        {/* Center / Right-Third Negative-Space Title Lockup */}
+        <div className="my-auto max-w-xl flex flex-col items-start gap-6">
+          <div className="flex items-center gap-4">
+            <svg
+              viewBox="0 0 72 72"
+              className="w-16 h-16 shrink-0"
+              aria-hidden="true"
+            >
+              <circle
+                cx="36"
+                cy="36"
+                r="33"
+                fill="rgba(20, 18, 14, 0.88)"
+                stroke="#d97706"
+                strokeWidth="2"
+              />
+              <circle cx="46" cy="24" r="7" fill="#fbbf24" />
+              <path
+                d="M10 48 L26 26 L38 40 L48 30 L62 48 Z"
+                fill="#44403c"
+                stroke="#78716c"
+                strokeWidth="1"
+              />
+              <path
+                d="M26 17 L18 31 L22 31 L16 42 L23 42 L23 48 L29 48 L29 42 L36 42 L30 31 L34 31 Z"
+                fill="#4d7c38"
+              />
+              <path
+                d="M15 53 Q36 50 57 53 M20 58 Q36 56 52 58"
+                stroke="#38bdf8"
+                strokeWidth="2"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+
+            <div>
+              <h1
+                className="font-display-he text-4xl md:text-6xl font-bold text-stone-100 tracking-tight hud-stroke"
+                style={{ textWrap: 'balance' }}
               >
-                {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
-                  style={{
-                    background:
-                      'linear-gradient(to left, rgba(245, 158, 11, 0.3) 0%, rgba(28, 22, 15, 0.68) 38%, rgba(28, 22, 15, 0.2) 74%, rgba(28, 22, 15, 0) 100%)',
-                  }}
-                />
-                {/* Right-Edge Illuminated Accent Bar on Hover */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
-                />
-                <span className="relative z-10 inline-block font-display-he text-2xl sm:text-3xl font-bold text-stone-200 group-hover:text-amber-300 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
-                  מעבדה
-                </span>
-              </button>
-            )}
+                {t('ui.app_title')}
+              </h1>
+              <p className="text-base md:text-lg text-amber-200/90 font-medium mt-1 hud-stroke">
+                {t('ui.app_subtitle')}
+              </p>
+            </div>
+          </div>
 
             {/* 3. Weather Cycle Text Button */}
             <button
@@ -408,26 +426,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
               }}
               className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              {/* Hover Background that Fades Gradually Toward Inner Screen (Left Edge) */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300"
-                style={{
-                  background:
-                    'linear-gradient(to left, rgba(56, 189, 248, 0.26) 0%, rgba(15, 23, 34, 0.65) 38%, rgba(15, 23, 34, 0.18) 74%, rgba(15, 23, 34, 0) 100%)',
-                }}
-              />
-              {/* Right-Edge Illuminated Accent Bar on Hover */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-sky-400 opacity-0 scale-y-50 group-hover:opacity-100 group-hover:scale-y-100 group-focus-visible:opacity-100 group-focus-visible:scale-y-100 transition-all duration-300"
-              />
-              <span className="relative z-10 inline-flex items-baseline gap-2.5 text-lg sm:text-xl font-medium text-stone-300 group-hover:text-sky-200 group-hover:-translate-x-1.5 transition-all duration-300 hud-stroke">
-                <span>מזג אוויר: {activeWeatherOption.shortHe}</span>
-                <span className="text-xs font-mono-tabular text-stone-400 group-hover:text-sky-300">
-                  [V]
-                </span>
-              </span>
+              {t('ui.start_walking')}
             </button>
           </nav>
         </div>
@@ -457,8 +456,8 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
               e.currentTarget.blur();
               onCycleWeather();
             }}
-            aria-label="החלפת מזג אוויר [V]"
-            title="החלפת מזג אוויר [V]"
+            aria-label={t('ui.weather_toggle_aria')}
+            title={t('ui.weather_toggle_title')}
             className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium text-stone-200 hover:text-sky-300 transition-colors cursor-pointer shrink-0"
             style={{
               backgroundColor: 'rgba(18, 16, 13, 0.88)',
@@ -490,7 +489,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                 </>
               )}
             </svg>
-            <span className="whitespace-nowrap">{activeWeatherOption.shortHe}</span>
+            <span className="whitespace-nowrap">{activeWeatherOption.short}</span>
             <kbd className="hidden sm:inline-block px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
               V
             </kbd>
@@ -555,7 +554,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                   Q
                 </span>
                 <h2 className="font-display-he text-lg font-bold text-amber-200">
-                  מועדפים מהירים
+                  {t('ui.quick_favorites')}
                 </h2>
               </div>
               <button
@@ -563,14 +562,14 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                 onClick={() => setSkyrimModal('none')}
                 className="text-xs text-stone-400 hover:text-white cursor-pointer"
               >
-                סגור [Q]
+                {t('ui.close_q')}
               </button>
             </div>
 
             <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
               {favoriteItems.length === 0 ? (
                 <div className="p-4 text-center text-xs text-stone-400">
-                  אין פריטים במועדפים. פתח את גלגל הציוד [Tab] וסמן ★.
+                  {t('ui.empty_favorites')}
                 </div>
               ) : (
                 favoriteItems.map((item) => {
@@ -599,7 +598,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                           {renderItemSvgIcon(item.id, 'w-4 h-4')}
                         </span>
                         <span className="text-sm font-bold text-stone-100">
-                          {SHORT_NAMES_HE[item.id] ?? item.nameHe}
+                          {ITEM_SHORT_NAMES[item.id] ?? item.name}
                         </span>
                         {boundSlotIdx !== -1 && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono-tabular text-[10px] font-bold">
@@ -613,7 +612,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                           <button
                             key={slotIdx}
                             type="button"
-                            title={`שייך למקש ${slotIdx + 1}`}
+                            title={t('interactions.assign_hotbar_slot_short', { slot: slotIdx + 1 })}
                             onClick={() => triggerAssignHotbar(slotIdx, item.id)}
                             className={`w-5 h-5 rounded text-[10px] font-mono-tabular font-bold cursor-pointer ${
                               boundSlotIdx === slotIdx
@@ -642,7 +641,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             aria-hidden="true"
           >
             {/* Outer Gaming Hitmarker Ring & 4 Diagonal Hit Ticks when hitting a target */}
-            {telemetry.lastArrowHitTargetNameHe && (
+            {telemetry.lastArrowHitTargetName && (
               <svg
                 data-testid="archery-hit-reticle"
                 viewBox="0 0 48 48"
@@ -670,13 +669,13 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
               style={{
                 width: isBowDrawn ? `${Math.round(36 - bowProgress * 18)}px` : '14px',
                 height: isBowDrawn ? `${Math.round(36 - bowProgress * 18)}px` : '14px',
-                border: telemetry.lastArrowHitTargetNameHe
+                border: telemetry.lastArrowHitTargetName
                   ? '2px solid #fbbf24'
                   : isBowDrawn
                     ? `2px solid ${bowProgress >= 0.9 ? '#fbbf24' : 'rgba(251, 191, 36, 0.78)'}`
                     : '1px solid rgba(255, 251, 235, 0.35)',
                 boxShadow:
-                  isBowDrawn || telemetry.lastArrowHitTargetNameHe
+                  isBowDrawn || telemetry.lastArrowHitTargetName
                     ? '0 0 10px rgba(251, 191, 36, 0.55)'
                     : 'none',
               }}
@@ -685,7 +684,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                 className="w-1.5 h-1.5 rounded-full"
                 style={{
                   backgroundColor:
-                    isBowDrawn || telemetry.lastArrowHitTargetNameHe
+                    isBowDrawn || telemetry.lastArrowHitTargetName
                       ? '#fbbf24'
                       : 'rgba(255, 251, 235, 0.82)',
                   boxShadow: '0 0 4px rgba(0, 0, 0, 0.85)',
@@ -699,7 +698,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             className="fixed left-1/2 top-[calc(50%+34px)] -translate-x-1/2 pointer-events-none flex flex-col items-center gap-2"
             aria-hidden="true"
           >
-            {telemetry.lastArrowHitTargetNameHe && (
+            {telemetry.lastArrowHitTargetName && (
               <div
                 data-testid="archery-hit-toast"
                 className="px-3.5 py-1 text-xs font-bold text-amber-200 whitespace-nowrap"
@@ -708,16 +707,16 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                   border: '1px solid rgba(251, 191, 36, 0.45)',
                 }}
               >
-                פגיעה במטרה (+15 זהב) · {telemetry.lastArrowHitTargetNameHe}
+                {t('skills.target_hit_hud', { target: telemetry.lastArrowHitTargetName ?? telemetry.lastArrowHitTargetName ?? '' })}
               </div>
             )}
 
-            {telemetry.skills?.lastLevelUpTitleHe && (
+            {telemetry.skills?.lastLevelUpTitle && (
               <div
                 data-testid="skill-levelup-toast"
                 className="px-4 py-1.5 text-xs font-bold text-stone-950 bg-amber-400 shadow-xl whitespace-nowrap"
               >
-                עליית מיומנות! (+35 זהב) · {telemetry.skills.lastLevelUpTitleHe}
+                {t('skills.level_up_hud', { title: telemetry.skills.lastLevelUpTitle ?? '' })}
               </div>
             )}
 
@@ -734,7 +733,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                   B
                 </kbd>
                 <span className="font-semibold text-xs text-amber-100">
-                  {telemetry.nearbyMarket.nameHe} · קנייה ומכירת נשקים
+                  {t('market.hud.buy_and_sell_weapons', { market: telemetry.nearbyMarket.name ?? '' })}
                 </span>
               </div>
             )}
@@ -848,7 +847,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             <div />
             <button
               type="button"
-              aria-label="הליכה קדימה"
+              aria-label={t('ui.walk_forward_aria')}
               onTouchStart={() => { virtualMoveRef.current.forward = 1; }}
               onTouchEnd={() => { virtualMoveRef.current.forward = 0; }}
               onMouseDown={() => { virtualMoveRef.current.forward = 1; }}
@@ -860,7 +859,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             <div />
             <button
               type="button"
-              aria-label="תנועה שמאלה"
+              aria-label={t('ui.walk_left_aria')}
               onTouchStart={() => { virtualMoveRef.current.right = -1; }}
               onTouchEnd={() => { virtualMoveRef.current.right = 0; }}
               onMouseDown={() => { virtualMoveRef.current.right = -1; }}
@@ -871,7 +870,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             </button>
             <button
               type="button"
-              aria-label="הליכה אחורה"
+              aria-label={t('ui.walk_back_aria')}
               onTouchStart={() => { virtualMoveRef.current.forward = -1; }}
               onTouchEnd={() => { virtualMoveRef.current.forward = 0; }}
               onMouseDown={() => { virtualMoveRef.current.forward = -1; }}
@@ -882,7 +881,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
             </button>
             <button
               type="button"
-              aria-label="תנועה ימינה"
+              aria-label={t('ui.walk_right_aria')}
               onTouchStart={() => { virtualMoveRef.current.right = 1; }}
               onTouchEnd={() => { virtualMoveRef.current.right = 0; }}
               onMouseDown={() => { virtualMoveRef.current.right = 1; }}
@@ -916,10 +915,10 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
           >
             <div>
               <h2 id="pause-modal-title" className="font-display-he text-2xl font-bold text-stone-100">
-                הפסקת טיול בשמורה
+                {t('ui.pause_title')}
               </h2>
               <p className="text-xs text-stone-400 mt-0.5">
-                הסימולציה מושהית · זהב נוכחי: {goldCoins} 🪙
+                {t('ui.pause_subtitle', { gold: goldCoins })}
               </p>
             </div>
 
@@ -932,8 +931,8 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
               }}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-sky-300">בקרת מזג אוויר [מקש V]:</span>
-                <span className="text-[11px] text-stone-400">{telemetry.weatherLabelHe}</span>
+                <span className="font-semibold text-sky-300">{t('ui.weather_control_label')}</span>
+                <span className="text-[11px] text-stone-400">{telemetry.weatherLabel}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {WEATHER_OPTIONS.map((opt) => {
@@ -949,7 +948,7 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                           : 'bg-stone-800/90 text-stone-300 hover:bg-stone-700'
                       }`}
                     >
-                      {opt.labelHe}
+                      {opt.label}
                     </button>
                   );
                 })}
@@ -964,14 +963,14 @@ export const GameShellOverlay = React.memo<GameShellOverlayProps>(({
                 onClick={onResumeGame}
                 className="flex-1 py-3 px-5 rounded-xl text-sm font-semibold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer whitespace-nowrap"
               >
-                המשך הליכה בעולם
+                {t('ui.resume_walking')}
               </button>
               <button
                 type="button"
                 onClick={onReturnToTitle}
                 className="py-3 px-4 rounded-xl text-sm font-medium text-stone-300 hover:text-white bg-stone-800/90 hover:bg-stone-700 transition-colors cursor-pointer whitespace-nowrap"
               >
-                מסך פתיחה
+                {t('ui.intro_screen')}
               </button>
             </div>
           </div>

@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & CONTRACTS ======================== \\
 // #region Imports & Contracts
+import { t } from '../locales';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -17,13 +18,13 @@ import {
   WeatherKind,
   WeatherCycleMode,
   WeatherToggleOption,
-  WeatherStateSnapshot,
+  IWeatherStateSnapshot,
   CameraPerspectiveMode,
   EquippedToolSlot,
   ArrowElementKind,
   InventoryItemId,
-  CharacterSkillsState,
-  ArrowProjectile,
+  ICharacterSkillsState,
+  IArrowProjectile,
   ARCHERY_TARGETS,
   DEFAULT_WEATHER_CYCLE_MODE,
   PLAYER_EYE_HEIGHT,
@@ -53,14 +54,23 @@ import {
   IGameActions,
 } from '../world/terrainMath';
 import { ConsoleLogger } from '../core/ILogger';
+import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldTextures } from '../world/proceduralTextures';
 import { buildRealisticWorld } from '../world/proceduralModels';
 import { NatureSoundEngine } from '../world/soundEngine';
 import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRenderController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 
+/**
+ * Summary: High-level application mode for WorldCanvas view hierarchy.
+ * Design: Controls transition between title screen, active gameplay, and paused modal state.
+ */
 export type GameStateMode = 'title' | 'playing' | 'paused';
 
+/**
+ * Summary: Real-time telemetry snapshot published to HUD and diagnostic overlays.
+ * Design: Encapsulates fps, player coordinates, biome, time of day, and weather condition.
+ */
 export interface ITelemetrySnapshot {
   x: number;
   y: number;
@@ -82,7 +92,7 @@ export interface ITelemetrySnapshot {
   ownedItemIds?: InventoryItemId[];
   nearbyMarket?: {
     id: string;
-    nameHe: string;
+    name: string;
   } | null;
   swordSwingProgress?: number;
   dashCooldown?: number;
@@ -90,32 +100,36 @@ export interface ITelemetrySnapshot {
   bowDrawProgress?: number;
   arrowsShotCount?: number;
   lastArrowHitTarget?: string | null;
-  lastArrowHitTargetNameHe?: string | null;
+  lastArrowHitTargetName?: string | null;
   timeString: string;
-  phaseLabelHe: string;
+  phaseLabel: string;
   sunElevationDeg: number;
   pointerLocked: boolean;
   weatherKind?: WeatherKind;
-  weatherLabelHe?: string;
+  weatherLabel?: string;
   wetness?: number;
   mountedHorseId?: string | null;
   nearbyHorse?: {
     id: string;
-    nameHe: string;
+    name: string;
   } | null;
   nearbyDoor?: {
     id: string;
-    buildingNameHe: string;
+    buildingName: string;
     isOpen: boolean;
   } | null;
   nearbyLadder?: boolean;
   climbingLadder?: boolean;
   stamina?: number;
   maxStamina?: number;
-  skills?: CharacterSkillsState;
+  skills?: ICharacterSkillsState;
 }
 export type TelemetrySnapshot = ITelemetrySnapshot;
 
+/**
+ * Summary: Touch and virtual joystick state for mobile / secondary input devices.
+ * Design: Translates 2D virtual thumbstick vectors into directional walk pace signals.
+ */
 export interface IVirtualMoveState {
   forward: number;
   right: number;
@@ -126,6 +140,10 @@ export interface IVirtualMoveState {
 }
 export type VirtualMoveState = IVirtualMoveState;
 
+/**
+ * Summary: Props contract for top-level WorldCanvas Three.js viewport.
+ * Design: Injects UI callbacks and sound engine factories for isolated testing and rendering.
+ */
 export interface IWorldCanvasProps {
   gameState: GameStateMode;
   muted: boolean;
@@ -134,6 +152,7 @@ export interface IWorldCanvasProps {
   onRequestPauseToggle: () => void;
   virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
   onRegisterGameActions?: (actions: IGameActions | null) => void;
+  readonly soundEngineFactory?: () => NatureSoundEngine;
 }
 export type WorldCanvasProps = IWorldCanvasProps;
 // #endregion
@@ -147,7 +166,7 @@ const _tourLook = new THREE.Vector3();
 const _camTargetLook = new THREE.Vector3();
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
-export const WorldCanvas = React.memo<WorldCanvasProps>(({
+export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   gameState,
   muted,
   weatherToggle,
@@ -155,6 +174,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
   onRequestPauseToggle,
   virtualMoveRef,
   onRegisterGameActions,
+  soundEngineFactory = () => new NatureSoundEngine(),
 }) => {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
 
@@ -283,58 +303,42 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
     // 7. Player State, Rideable Horses, Active Arrows & Input Tracking
     const playerState = createInitialPlayerState();
     const rideableHorses = createInitialRideableHorses();
-    const activeArrows: ArrowProjectile[] = [];
-    let lastArrowHitTargetNameHe: string | null = null;
+    const activeArrows: IArrowProjectile[] = [];
+    let lastArrowHitTargetName: string | null = null;
     let lastArrowHitTimer = 0;
 
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
     let seasonTimeOffset = 0;
 
-    // Optional URL parameters ?pos=x,z,yaw & ?weather=rain|snow|storm|sand|clouds|fog & ?season=spring|summer|autumn|winter & ?weatherMode=seasonal|turbo_test & ?perspective=third_person|first_person
+    // Optional URL parameters validated via centralized core/config
     if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const posParam = searchParams.get('pos');
-      if (posParam) {
-        const parts = posParam.split(',').map((s) => parseFloat(s));
-        if (parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
-          playerState.x = parts[0];
-          playerState.z = parts[1];
-          const explicitY = parts.length >= 4 && Number.isFinite(parts[3]) ? parts[3] : undefined;
-          playerState.y =
-            explicitY !== undefined
-              ? explicitY
-              : walkableHeightAt(parts[0], parts[1]).height;
-          if (parts.length >= 3 && Number.isFinite(parts[2])) {
-            playerState.yaw = parts[2];
-          }
-          if (parts.length >= 5 && Number.isFinite(parts[4])) {
-            playerState.pitch = parts[4];
-          }
+      const overrides = parseAndValidateUrlOverrides(window.location.search);
+      if (overrides.position) {
+        playerState.x = overrides.position.x;
+        playerState.z = overrides.position.z;
+        playerState.y =
+          overrides.position.y !== undefined
+            ? overrides.position.y
+            : walkableHeightAt(overrides.position.x, overrides.position.z).height;
+        if (overrides.position.yaw !== undefined) {
+          playerState.yaw = overrides.position.yaw;
+        }
+        if (overrides.position.pitch !== undefined) {
+          playerState.pitch = overrides.position.pitch;
         }
       }
-      const perspParam = searchParams.get('perspective');
-      if (perspParam === 'first_person' || perspParam === 'third_person') {
-        playerState.cameraPerspective = perspParam;
+      if (overrides.cameraPerspective) {
+        playerState.cameraPerspective = overrides.cameraPerspective;
       }
-
-      const wParam = searchParams.get('weather');
-      if (wParam === 'rain') urlForcedWeatherKind = 'regional_rain';
-      else if (wParam === 'snow') urlForcedWeatherKind = 'mountain_snow';
-      else if (wParam === 'storm') urlForcedWeatherKind = 'lightning_storm';
-      else if (wParam === 'sand') urlForcedWeatherKind = 'wind_sand';
-      else if (wParam === 'clouds' || wParam === 'clear') urlForcedWeatherKind = 'clear_clouds';
-      else if (wParam === 'fog') urlForcedWeatherKind = 'dense_fog';
-
-      const sParam = searchParams.get('season');
-      if (sParam === 'spring') seasonTimeOffset = 20;
-      else if (sParam === 'summer') seasonTimeOffset = 180 + 20;
-      else if (sParam === 'autumn') seasonTimeOffset = 360 + 20;
-      else if (sParam === 'winter') seasonTimeOffset = 540 + 20;
-
-      const wmParam = searchParams.get('weatherMode');
-      if (wmParam === 'seasonal' || wmParam === 'turbo_test') {
-        activeWeatherMode = wmParam;
+      if (overrides.forcedWeatherKind !== undefined) {
+        urlForcedWeatherKind = overrides.forcedWeatherKind;
+      }
+      if (overrides.seasonTimeOffset !== undefined) {
+        seasonTimeOffset = overrides.seasonTimeOffset;
+      }
+      if (overrides.weatherMode) {
+        activeWeatherMode = overrides.weatherMode;
       }
     }
 
@@ -345,7 +349,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
       return urlForcedWeatherKind;
     }
 
-    const soundEngine = new NatureSoundEngine();
+    const soundEngine = soundEngineFactory();
 
     function fireArrowNow(powerOverride?: number) {
       if (playerState.isSwimming) return null;
@@ -423,7 +427,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
     })();
     let worldHours = initialHourParam !== null ? initialHourParam : 6.68;
 
-    function applyDynamicAtmosphere(hours: number, weather?: WeatherStateSnapshot) {
+    function applyDynamicAtmosphere(hours: number, weather?: IWeatherStateSnapshot) {
       return applyDynamicAtmosphereToScene(
         {
           scene,
@@ -458,7 +462,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
     ) {
       if (!res) return;
       if (res.hitTarget) {
-        lastArrowHitTargetNameHe = res.hitTarget.nameHe;
+        lastArrowHitTargetName = res.hitTarget.name;
         lastArrowHitTimer = 3.5;
         soundEngine.playArrowHit(true);
         emitHudSnapshot();
@@ -490,25 +494,19 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
       },
       onBuyItem: (itemId) => {
         const res = buyMarketItem(playerState, itemId);
-        if (res.ok) {
+        if (res.isSuccess) {
           soundEngine.playFootstep('trail', 1.22);
         }
         emitHudSnapshot();
-        return {
-          ok: res.ok,
-          reasonHe: res.ok ? 'נרכש בהצלחה' : (res.error ? String(res.error) : 'שגיאה ברכישה'),
-        };
+        return res;
       },
       onSellItem: (itemId) => {
         const res = sellMarketItem(playerState, itemId);
-        if (res.ok) {
+        if (res.isSuccess) {
           soundEngine.playFootstep('trail', 0.95);
         }
         emitHudSnapshot();
-        return {
-          ok: res.ok,
-          reasonHe: res.ok ? 'נמכר בהצלחה' : (res.error ? String(res.error) : 'שגיאה במכירה'),
-        };
+        return res;
       },
       onAssignHotbar: (slotIndex, itemId) => {
         assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId);
@@ -878,8 +876,13 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
       frameId = window.setTimeout(poll, 5);
     }
 
+    let isUnmounted = false;
+    let lastTickErrorTime = 0;
+
     function tick() {
-      const now = performance.now();
+      if (isUnmounted) return;
+      try {
+        const now = performance.now();
       const rawDt = Math.min((now - lastTime) / 1000, 0.35);
       lastTime = now;
 
@@ -1056,7 +1059,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
           const arrowRes = stepArrowsPhysics(activeArrows, obstacles, rawDt);
           if (arrowRes.hitTarget) {
             playerState.lastArrowHitTarget = arrowRes.hitTarget.id;
-            lastArrowHitTargetNameHe = arrowRes.hitTarget.nameHe;
+            lastArrowHitTargetName = arrowRes.hitTarget.name;
             lastArrowHitTimer = 3.5;
             playerState.goldCoins = (playerState.goldCoins ?? 280) + 15;
             awardSkillXp(playerState, 'archery', 32);
@@ -1326,11 +1329,23 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
       sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
 
       renderer.render(scene, camera);
-
-      if (isSoftwareGl) {
-        afterDraw(tick);
-      } else {
-        frameId = requestAnimationFrame(tick);
+      } catch (err: unknown) {
+        const now = performance.now();
+        if (now - lastTickErrorTime > 2000) {
+          lastTickErrorTime = now;
+          ConsoleLogger.instance.error('WorldCanvas tick execution error caught in frame loop', {
+            error: String(err),
+            stack: err instanceof Error ? err.stack : undefined,
+          });
+        }
+      } finally {
+        if (!isUnmounted) {
+          if (isSoftwareGl) {
+            afterDraw(tick);
+          } else {
+            frameId = requestAnimationFrame(tick);
+          }
+        }
       }
     }
 
@@ -1373,32 +1388,32 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
         favoriteIds: playerState.favoriteIds ? [...playerState.favoriteIds] : undefined,
         goldCoins: playerState.goldCoins ?? 280,
         ownedItemIds: playerState.ownedItemIds ? [...playerState.ownedItemIds] : undefined,
-        nearbyMarket: nearMarket ? { id: nearMarket.id, nameHe: nearMarket.nameHe } : null,
+        nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
         swordSwingProgress: playerState.swordSwingProgress,
         dashCooldown: playerState.dashCooldown,
         bowDrawn: playerState.bowDrawn,
         bowDrawProgress: playerState.bowDrawProgress,
         arrowsShotCount: playerState.arrowsShotCount,
         lastArrowHitTarget: playerState.lastArrowHitTarget,
-        lastArrowHitTargetNameHe: lastArrowHitTimer > 0 ? lastArrowHitTargetNameHe : null,
+        lastArrowHitTargetName: lastArrowHitTimer > 0 ? lastArrowHitTargetName : null,
         timeString: currentAtmo.timeString,
-        phaseLabelHe: currentAtmo.phaseLabelHe,
+        phaseLabel: currentAtmo.phaseLabel,
         sunElevationDeg: currentAtmo.sunElevationDeg,
         pointerLocked: document.pointerLockElement === renderer.domElement,
         weatherKind: currentWeather.weatherKind,
-        weatherLabelHe: currentWeather.weatherLabelHe,
+        weatherLabel: currentWeather.weatherLabel,
         wetness: currentWeather.wetness,
         mountedHorseId: playerState.mountedHorseId,
         nearbyHorse: nearHorse
           ? {
               id: nearHorse.id,
-              nameHe: nearHorse.nameHe,
+              name: nearHorse.name,
             }
           : null,
         nearbyDoor: nearDoor
           ? {
               id: nearDoor.id,
-              buildingNameHe: nearDoor.buildingNameHe,
+              buildingName: nearDoor.buildingName,
               isOpen: openDoorIds.has(nearDoor.id),
             }
           : null,
@@ -1413,6 +1428,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
     frameId = requestAnimationFrame(tick);
 
     return () => {
+      isUnmounted = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       window.removeEventListener('keydown', onKeyDown);
@@ -1442,7 +1458,7 @@ export const WorldCanvas = React.memo<WorldCanvasProps>(({
     <div
       ref={canvasMountRef}
       className="fixed inset-0 w-full h-full overflow-hidden bg-stone-950 cursor-grab active:cursor-grabbing"
-      aria-label="תצוגת עולם תלת ממדי בגוף ראשון"
+      aria-label={t('ui.canvas_aria')}
     />
   );
 });

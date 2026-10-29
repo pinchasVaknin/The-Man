@@ -8,13 +8,13 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
-import type { WorldTextureSet } from './proceduralTextures';
+import type { IWorldTextureSet } from './proceduralTextures';
 import type {
-  ArrowProjectile,
-  ObstacleCylinder,
-  PlayerState,
-  RideableHorseState,
-  WeatherStateSnapshot,
+  IArrowProjectile,
+  IObstacleCylinder,
+  IPlayerState,
+  IRideableHorseState,
+  IWeatherStateSnapshot,
 } from './domain/worldTypes';
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
@@ -31,14 +31,18 @@ import { buildEnvironmentAtmosphereModels } from './models/environmentAtmosphere
 import { createArchitecturalSharedAssets } from './models/architecturalHelpers';
 import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
 import type {
-  DistanceCulledObject,
-  DoorPivotHandle,
-  WorldModelBuildContext,
+  IDistanceCulledObject,
+  IDoorPivotHandle,
+  IWorldModelBuildContext,
 } from './models/types';
 // #endregion
 
 // ======================== INTERFACES & CONTRACTS ======================== \\
 // #region Interfaces & Contracts
+/**
+ * Summary: Unified registry of animated handles across all world regions and landmarks.
+ * Design: Combines doors, wind rotor pivots, beacon lights, and particle systems.
+ */
 export interface IAnimatedWorldHandles {
   waterMaterial: THREE.MeshPhysicalMaterial;
   terrainMaterial: THREE.MeshStandardMaterial;
@@ -57,12 +61,12 @@ export interface IAnimatedWorldHandles {
     playerZ: number,
     morningMistOpacity: number,
     nightFactor?: number,
-    weather?: WeatherStateSnapshot,
+    weather?: IWeatherStateSnapshot,
     openDoorIds?: ReadonlySet<string>,
-    rideableHorses?: readonly RideableHorseState[],
+    rideableHorses?: readonly IRideableHorseState[],
     mountedHorseId?: string | null,
-    playerState?: PlayerState,
-    activeArrows?: readonly ArrowProjectile[],
+    playerState?: IPlayerState,
+    activeArrows?: readonly IArrowProjectile[],
     worldHours?: number,
     wildlifeSoundCallbacks?: {
       onBirdFlockStartled?: (distance: number, count: number) => void;
@@ -78,15 +82,22 @@ export type AnimatedWorldHandles = IAnimatedWorldHandles;
 // ======================== FACADE ORCHESTRATOR ======================== \\
 // #region Facade Orchestrator
 /**
+ * Summary: Build realistic world.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Master orchestrator that constructs the entire procedurally modeled 3D world,
  * delegating discrete landmark generation to isolated sub-modules.
+ * @param scene Input parameter scene.
+ * @param textures Input parameter textures.
+ * @param obstacles Input parameter obstacles.
+ * @param isSoftwareGl Input parameter isSoftwareGl.
+ * @returns Computed result for buildRealisticWorld.
  */
 export function buildRealisticWorld(
   scene: THREE.Scene,
-  textures: WorldTextureSet,
-  obstacles: ObstacleCylinder[],
+  textures: IWorldTextureSet,
+  obstacles: IObstacleCylinder[],
   isSoftwareGl: boolean
-): AnimatedWorldHandles {
+): IAnimatedWorldHandles {
   const disposableGeometries: THREE.BufferGeometry[] = [];
   const disposableMaterials: THREE.Material[] = [];
   const disposableTextures: THREE.Texture[] = [];
@@ -94,13 +105,13 @@ export function buildRealisticWorld(
   const animatedWaterMaterials: THREE.MeshPhysicalMaterial[] = [];
   const lanternLights: THREE.PointLight[] = [];
   const mistMaterials: THREE.MeshBasicMaterial[] = [];
-  const distanceCulledObjects: DistanceCulledObject[] = [];
-  const doorPivotHandles: DoorPivotHandle[] = [];
+  const distanceCulledObjects: IDistanceCulledObject[] = [];
+  const doorPivotHandles: IDoorPivotHandle[] = [];
 
   const birchBarkTexture = createBirchBarkTexture();
   disposableTextures.push(birchBarkTexture);
 
-  const ctx: WorldModelBuildContext = {
+  const ctx: IWorldModelBuildContext = {
     scene,
     textures,
     obstacles,
@@ -174,12 +185,12 @@ export function buildRealisticWorld(
       playerZ: number,
       morningMistOpacity: number,
       nightFactor = 0,
-      weather?: WeatherStateSnapshot,
+      weather?: IWeatherStateSnapshot,
       openDoorIds?: ReadonlySet<string>,
-      rideableHorses?: readonly RideableHorseState[],
+      rideableHorses?: readonly IRideableHorseState[],
       _mountedHorseId?: string | null,
-      playerState?: PlayerState,
-      activeArrows?: readonly ArrowProjectile[],
+      playerState?: IPlayerState,
+      activeArrows?: readonly IArrowProjectile[],
       worldHours = 8.5,
       wildlifeSoundCallbacks?: {
         onBirdFlockStartled?: (distance: number, count: number) => void;

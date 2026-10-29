@@ -29,7 +29,7 @@
 ## Commands
 <!-- Exact commands, runnable from the repository root. -->
 - install: npm install
-- test: npx.cmd tsx --test src/world/terrainMath.test.ts
+- test: npx.cmd tsx --test src/**/*.spec.ts src/world/terrainMath.test.ts
 - test-one: npx.cmd tsx --test
   <!-- how to run a single test file or test name, e.g. "npx vitest run <file>" -->
 - lint: npm.cmd run lint
@@ -37,7 +37,7 @@
 - build: npm.cmd run build
 - run: npm.cmd run dev -> http://localhost:3000
   <!-- how to start the app; for a web app add the URL, e.g. "npm run dev -> http://localhost:5173" -->
-- full-check: npm.cmd run lint && npm.cmd run build && npx.cmd tsx --test src/world/terrainMath.test.ts
+- full-check: npm.cmd run lint && npm.cmd run build && npx.cmd tsx --test src/**/*.spec.ts src/world/terrainMath.test.ts
   <!-- the one command that must pass before every commit -->
 
 ## Verification

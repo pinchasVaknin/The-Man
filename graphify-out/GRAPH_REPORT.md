@@ -1,49 +1,49 @@
-# Graph Report - TheMan  (2026-10-28)
+# Graph Report - TheMan  (2026-10-29)
 
 ## Corpus Check
-- 72 files · ~117,627 words
+- 89 files · ~153,166 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 4 file(s) not represented in the graph (top: (none) 3, .css 1)
+- Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .css 1)
 
 ## Summary
-- 704 nodes · 1823 edges · 46 communities (32 shown, 14 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 28 edges (avg confidence: 0.82)
+- 860 nodes · 2276 edges · 55 communities (32 shown, 23 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `23f70385`
+- Built from commit: `8b619036`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- terrainAndWaterModel.ts
-- GameShellOverlay.tsx
-- combatAndInventorySystem.ts
+- atmosphereAndWeatherSystem.ts
+- App.tsx
+- terrainMath.test.ts
 - swordAttackAnimationSystem.ts
-- dwarvenMineAndCaravanSystem.ts
-- WorldCanvas
-- groundHeightAt
+- config.ts
+- combatAndInventorySystem.ts
+- playerPhysicsSystem.ts
 - WorldCanvas.tsx
 - Result
 - package.json
 - windowDebugController.ts
 - compilerOptions
-- ILogger
-- terrainMath.test.ts
+- NatureSoundEngine
+- collisionAndTerraces.ts
 - wildlifeAndFootprintsBuilder.ts
 - playerAndCombatBuilder.ts
 - proceduralModels.ts
 - atmosphereRenderController.ts
-- fortressModels.ts
-- registerWindowDebugBridge
-- worldTypes.ts
-- SkyrimInventoryModal.tsx
-- Run and deploy your AI Studio app
+- ExplorerMinimap.tsx
+- terrainAndBiomeSystem.ts
+- dwarvenMineAndCaravanSystem.ts
+- GameShellOverlay.tsx
+- TheMan — 3D Living Nature & RPG World Simulator
 - rules/graphify.md
 - workflows/graphify.md
 - CLAUDE.md
-- horsePhysicsSystem.ts
-- environmentAtmosphereModels.ts
+- locales/index.ts
+- WorldCanvas
 - telemetryStore.ts
 - src_world_terrainmath_computedwarvenminercaravanstate
 - src_world_terrainmath_computehorsebiomechanicalpose
@@ -51,78 +51,91 @@
 - src_world_terrainmath_dwarven_miners_count
 - src_world_terrainmath_dwarven_stone_houses
 - src_world_terrainmath_rideable_horses
-- react
+- src_world_terrainmath_arrowprojectile
 - itemArtworkRegistry.tsx
-- createArchitecturalSharedAssets
-- types.ts
-- ExplorerMinimap.tsx
-- terrainMath.ts
+- src_world_terrainmath_characterskillsstate
+- worldTypes.ts
+- src_world_terrainmath_inventoryitemdef
+- src_world_terrainmath_obstaclecylinder
 - ref_domain_worldtypes
 - src_world_domain_landmarksregistry_chinesefortressstairheightat
 - src_world_terrainmath_solaratmosphere
-- harborModels.ts
-- MockLogger
+- src_world_terrainmath_playerstate
+- src_world_terrainmath_rideablehorsestate
+- src_world_terrainmath_weatherstatesnapshot
+- labCatalog.ts
+- react
+- IPlayerState
+- ArrowElementKind
+- evaluateSwordStrikeWindowHit
+- SpatialHashGrid2D
+- UsableGearStrategy
+- src_world_terrainmath_dynamicatmospherestate
 
 ## God Nodes (most connected - your core abstractions)
-1. `WorldCanvas` - 43 edges
-2. `groundHeightAt()` - 35 edges
-3. `walkableHeightAt()` - 26 edges
-4. `NatureSoundEngine` - 25 edges
-5. `three` - 21 edges
-6. `createArchitecturalSharedAssets()` - 19 edges
-7. `isWithinViewDistance()` - 17 edges
-8. `hash2D()` - 17 edges
-9. `buildRealisticWorld()` - 17 edges
-10. `stepPlayerPhysics()` - 17 edges
+1. `groundHeightAt()` - 36 edges
+2. `t()` - 32 edges
+3. `WorldCanvas` - 31 edges
+4. `NatureSoundEngine` - 27 edges
+5. `walkableHeightAt()` - 27 edges
+6. `three` - 24 edges
+7. `IPlayerState` - 24 edges
+8. `registerWindowDebugBridge()` - 20 edges
+9. `createArchitecturalSharedAssets()` - 19 edges
+10. `computeFirstPersonSwordAttackPose()` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ExplorerMinimap` --calls--> `sampleMinimapColorAt()`  [EXTRACTED]
-  src/components/ExplorerMinimap.tsx → src/world/systems/terrainAndBiomeSystem.ts
-- `IGameShellOverlayProps` --references--> `TelemetrySnapshot`  [EXTRACTED]
-  src/components/GameShellOverlay.tsx → src/components/WorldCanvas.tsx
-- `ITelemetrySnapshot` --references--> `BiomeType`  [EXTRACTED]
-  src/components/WorldCanvas.tsx → src/world/domain/worldTypes.ts
-- `ITelemetrySnapshot` --references--> `CharacterSkillsState`  [EXTRACTED]
-  src/components/WorldCanvas.tsx → src/world/domain/worldTypes.ts
-- `ITelemetrySnapshot` --references--> `InventoryItemId`  [EXTRACTED]
-  src/components/WorldCanvas.tsx → src/world/domain/worldTypes.ts
+- `WorldCanvas` --indirect_call--> `tick()`  [INFERRED]
+  src/components/WorldCanvas.tsx → src/lab/CharacterLabCanvas.tsx
+- `createCatalogItem()` --calls--> `t()`  [EXTRACTED]
+  src/world/domain/worldTypes.ts → src/locales/index.ts
+- `getArrowKindLabel()` --calls--> `t()`  [EXTRACTED]
+  src/world/systems/combatAndInventorySystem.ts → src/locales/index.ts
+- `getEquippedToolLabel()` --calls--> `t()`  [EXTRACTED]
+  src/world/systems/combatAndInventorySystem.ts → src/locales/index.ts
+- `createMarketEligiblePlayer()` --calls--> `createInitialPlayerState()`  [EXTRACTED]
+  src/world/systems/combatAndInventorySystem.spec.ts → src/world/systems/playerPhysicsSystem.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (46 total, 14 thin omitted)
+## Communities (55 total, 23 thin omitted)
 
-### Community 0 - "terrainAndWaterModel.ts"
-Cohesion: 0.12
-Nodes (18): attachWindSwayShader(), perturbGeometryVertices(), buildFarmhouseModels(), FarmhouseModelHandles, IFarmhouseModelHandles, attachAnimatedWaterWaveShader(), ITerrainAndWaterResult, smoothstepLocal() (+10 more)
+### Community 0 - "atmosphereAndWeatherSystem.ts"
+Cohesion: 0.34
+Nodes (14): applyDynamicAtmosphereToScene(), lerpColorHex(), lerpNum(), smoothstep(), SeasonType, computeDynamicSolarCycle(), computeWeatherState(), DEFAULT_WEATHER_CYCLE_MODE (+6 more)
 
-### Community 1 - "GameShellOverlay.tsx"
-Cohesion: 0.20
-Nodes (16): WEATHER_CYCLE_ORDER, DEFAULT_OWNED_IDS, GameShellOverlay, GameShellOverlayProps, IGameShellOverlayProps, SkyrimModalMode, WEATHER_OPTIONS, renderItemSvgIcon() (+8 more)
+### Community 1 - "App.tsx"
+Cohesion: 0.23
+Nodes (11): WEATHER_CYCLE_ORDER, src_components_gameshelloverlay_gameshelloverlay, IGameShellOverlayProps, IWeatherOptionDef, GameStateMode, IVirtualMoveState, IWorldCanvasProps, IGameActions (+3 more)
 
-### Community 2 - "combatAndInventorySystem.ts"
-Cohesion: 0.13
-Nodes (15): ArcheryTargetDef, evaluateSwordStrikeWindowHit(), IBuyMarketItemPayload, ISellMarketItemPayload, ISwordSlashHitResult, MarketTransactionErrorCode, spawnArrowProjectile(), stepArrowsPhysics() (+7 more)
+### Community 2 - "terrainMath.test.ts"
+Cohesion: 0.06
+Nodes (30): src_world_terrainmath_birch_grove_center, src_world_terrainmath_birchgrovefactorat, src_world_terrainmath_chinese_fortress_pos, src_world_terrainmath_chinesefortressstairheightat, src_world_terrainmath_corner_watchtowers, src_world_terrainmath_fortress_doors, src_world_terrainmath_fortress_y_offset, src_world_terrainmath_fortress_z_offset (+22 more)
 
 ### Community 3 - "swordAttackAnimationSystem.ts"
+Cohesion: 0.07
+Nodes (40): bezier3(), clamp(), classifySwordAttackPhase(), COMBO_0_KEYFRAMES, COMBO_1_KEYFRAMES, COMBO_2_HEAVY_KEYFRAMES, computeFirstPersonSwordAttackPose(), COS_TILT (+32 more)
+
+### Community 4 - "config.ts"
+Cohesion: 0.19
+Nodes (17): clamp(), IValidatedPositionOverride, IValidatedUrlOverrides, MAX_WORLD_HOUR, MIN_WORLD_HOUR, parseAndValidateUrlOverrides(), PLAYABLE_RADIUS, URL_SEASON_OFFSETS (+9 more)
+
+### Community 5 - "combatAndInventorySystem.ts"
 Cohesion: 0.08
-Nodes (37): bezier3(), clamp(), classifySwordAttackPhase(), COMBO_0_KEYFRAMES, COMBO_1_KEYFRAMES, COMBO_2_HEAVY_KEYFRAMES, computeFirstPersonSwordAttackPose(), COS_TILT (+29 more)
+Nodes (23): DEFAULT_STARTER_OWNED_ITEM_IDS, IArcheryTargetDef, ISolidBuildingBox, ARCHERY_TARGETS_SPATIAL_GRID, arrowFireStrategy, arrowNormalStrategy, arrowWindStrategy, bowStrategy (+15 more)
 
-### Community 4 - "dwarvenMineAndCaravanSystem.ts"
-Cohesion: 0.11
-Nodes (23): buildDwarvenKingdomAndMiners(), DwarvenKingdomBuilderContext, DwarvenKingdomHandle, DwarvenMinerRig, IDwarvenKingdomBuilderContext, IDwarvenKingdomHandle, IDwarvenMinerRig, DwarvenMinerCaravanState (+15 more)
-
-### Community 6 - "groundHeightAt"
-Cohesion: 0.23
-Nodes (26): applyDynamicAtmosphereToScene(), distToSegment(), fbm2D(), hash2D(), lerpColorHex(), lerpNum(), smoothstep(), valueNoise2D() (+18 more)
+### Community 6 - "playerPhysicsSystem.ts"
+Cohesion: 0.18
+Nodes (18): t(), chineseFortressStairHeightAt(), isChineseFortressWalkableZone(), findLookedAtWatchtowerLadder(), findWatchtowerLadderAt(), getLadderById(), applySkillXpGain(), createInitialRideableHorses() (+10 more)
 
 ### Community 7 - "WorldCanvas.tsx"
-Cohesion: 0.10
-Nodes (24): ref_three_addons_environments_roomenvironment_js, _camTargetLook, _euler, ITelemetrySnapshot, IVirtualMoveState, _sunVec, _tourLook, _tourPos (+16 more)
+Cohesion: 0.08
+Nodes (26): ref_three_addons_environments_roomenvironment_js, _camTargetLook, _euler, ITelemetrySnapshot, _sunVec, _tourLook, _tourPos, VirtualMoveState (+18 more)
 
 ### Community 8 - "Result"
-Cohesion: 0.18
-Nodes (5): ref_node_test, AppException, InfrastructureCorruptedException, InvalidResultAccessException, Result
+Cohesion: 0.19
+Nodes (4): AppException, InfrastructureCorruptedException, InvalidResultAccessException, Result
 
 ### Community 9 - "package.json"
 Cohesion: 0.05
@@ -136,109 +149,105 @@ Nodes (19): WindowDebugBridgeDeps, src_world_terrainmath_assignhotbarslot, src_w
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowImportingTsExtensions, allowJs, experimentalDecorators, isolatedModules, jsx, lib, module (+10 more)
 
-### Community 12 - "ILogger"
-Cohesion: 0.16
-Nodes (5): ref_node_assert_strict, ConsoleLogger, ILogger, NullLogger, src_world_terrainmath_biometype
+### Community 12 - "NatureSoundEngine"
+Cohesion: 0.07
+Nodes (9): ref_node_assert_strict, ref_node_test, MockErrorLogger, ConsoleLogger, ILogger, NullLogger, NatureSoundEngine, MockLogger (+1 more)
 
-### Community 13 - "terrainMath.test.ts"
-Cohesion: 0.06
-Nodes (77): CLEAR_ZONES, FLAT_BUILDING_TERRACES, SOLID_BUILDING_BOXES, BIRCH_GROVE_CENTER, MAGIC_STONE_CIRCLE_POS, PLAYABLE_RADIUS, PLAYER_EYE_HEIGHT, SMALL_MEADOW_HILLS (+69 more)
+### Community 13 - "collisionAndTerraces.ts"
+Cohesion: 0.19
+Nodes (15): SOLID_BUILDING_BOXES, ARCHERY_TARGETS, CHINESE_FORTRESS_POS, FORTRESS_Y_OFFSET, FORTRESS_Z_OFFSET, FORTRESS_DOORS, isOnWatchtowerLadder(), MARKET_STALL_LOCATIONS (+7 more)
 
 ### Community 14 - "wildlifeAndFootprintsBuilder.ts"
-Cohesion: 0.11
-Nodes (28): buildWildlifeAndFootprintsLayer(), IWildlifeAndFootprintsController, WildlifeAndFootprintsController, BiomeType, PlayerState, RideableHorseState, IAnimatedWorldHandles, BIRD_FLOCK_CONFIGS (+20 more)
+Cohesion: 0.12
+Nodes (25): buildWildlifeAndFootprintsLayer(), IWildlifeAndFootprintsController, WildlifeAndFootprintsController, BiomeType, BIRD_FLOCK_CONFIGS, BirdFlockConfig, BoidBirdState, BoidsAndWildlifeStepResult (+17 more)
 
 ### Community 15 - "playerAndCombatBuilder.ts"
-Cohesion: 0.14
-Nodes (14): IPlayerAndCombatBuilderContext, IPlayerAndCombatHandle, PlayerAndCombatBuilderContext, PlayerAndCombatHandle, ArrowProjectile, ARROW_TRAIL_MAX_AGE, LOCKED_SWORD_GRIP_TRANSFORM, src_world_terrainmath_arrow_trail_max_age (+6 more)
+Cohesion: 0.15
+Nodes (12): IPlayerAndCombatBuilderContext, PlayerAndCombatBuilderContext, PlayerAndCombatHandle, ARROW_TRAIL_MAX_AGE, LOCKED_SWORD_GRIP_TRANSFORM, src_world_terrainmath_arrow_trail_max_age, src_world_terrainmath_arrowelementkind, src_world_terrainmath_computefirstpersonswordattackpose (+4 more)
 
 ### Community 16 - "proceduralModels.ts"
-Cohesion: 0.22
-Nodes (14): buildPlayerAndCombatSystems(), createBirchBarkTexture(), isWithinViewDistance(), buildEnvironmentAtmosphereModels(), buildFortressModels(), buildSanctuaryAndDragonModels(), ISanctuaryAndDragonResult, ITaiChiMonk (+6 more)
+Cohesion: 0.06
+Nodes (88): three, buildDwarvenKingdomAndMiners(), buildPlayerAndCombatSystems(), attachFlagHorizontalWaveShader(), attachWindSwayShader(), createBirchBarkTexture(), perturbGeometryVertices(), isWithinViewDistance() (+80 more)
 
 ### Community 17 - "atmosphereRenderController.ts"
 Cohesion: 0.13
-Nodes (15): ref_three_addons_objects_sky_js, AtmosphereRenderContext, _denseFogColor, IAtmosphereRenderContext, _lightningColor, _sandFogColor, _stormFogColor, IWindowDebugBridgeDeps (+7 more)
+Nodes (17): ref_three_addons_objects_sky_js, AtmosphereRenderContext, _denseFogColor, IAtmosphereRenderContext, _lightningColor, _sandFogColor, _stormFogColor, IWindowDebugBridgeDeps (+9 more)
 
-### Community 18 - "fortressModels.ts"
-Cohesion: 0.19
-Nodes (12): three, attachFlagHorizontalWaveShader(), ArchitecturalSharedAssets, FortressModelResult, IFortressModelResult, IMartialArtsMonk, IOasisModelHandles, OasisModelHandles (+4 more)
-
-### Community 19 - "registerWindowDebugBridge"
-Cohesion: 0.23
-Nodes (12): registerWindowDebugBridge(), findNearestMarketStall(), IPlayerState, assignHotbarSlot(), buyMarketItem(), equipInventoryItem(), MarketTransactionResult, sellMarketItem() (+4 more)
-
-### Community 20 - "worldTypes.ts"
-Cohesion: 0.06
-Nodes (33): ArrowTrailPoint, ClimbableLadderInfo, CornerWatchtowerDef, DwarvenGuardianStatueDef, DwarvenStoneHouseDef, FortressDoorDef, GameActions, HillWatchtowerDef (+25 more)
-
-### Community 21 - "SkyrimInventoryModal.tsx"
-Cohesion: 0.14
-Nodes (17): renderArtifactArtwork(), InventoryCategoryTab, ISkyrimInventoryModalProps, NON_SELLABLE_STARTER_IDS, SHORT_NAMES_HE, SkyrimInventoryModal, SkyrimInventoryModalProps, CharacterSkillsState (+9 more)
-
-### Community 22 - "Run and deploy your AI Studio app"
-Cohesion: 0.50
-Nodes (3): Engineering standards, Run and deploy your AI Studio app, Run Locally
-
-### Community 26 - "horsePhysicsSystem.ts"
-Cohesion: 0.21
-Nodes (11): computeHorseBiomechanicalPose(), computeHorseTurnResistance(), HorseBiomechanicalPose, HorseLimbAngles, HorseSteeringStepResult, IHorseBiomechanicalPose, IHorseLimbAngles, IHorseSteeringStepResult (+3 more)
-
-### Community 27 - "environmentAtmosphereModels.ts"
-Cohesion: 0.14
-Nodes (13): EnvironmentAtmosphereHandle, IAnimatedDeer, IForestSquirrel, SquirrelActionState, ISettlementModelHandles, SettlementModelHandles, src_world_terrainmath_fbm2d, src_world_terrainmath_hunter_lodge_pos (+5 more)
-
-### Community 28 - "telemetryStore.ts"
-Cohesion: 0.33
-Nodes (5): TelemetrySnapshot, INITIAL_TELEMETRY_SNAPSHOT, ITelemetryStore, telemetryStore, src_world_terrainmath_world_spawn
-
-### Community 35 - "react"
-Cohesion: 0.14
-Nodes (8): react, ref_react_dom_client, App(), ErrorBoundary, IErrorBoundaryProps, IErrorBoundaryState, src_index, rootElement
-
-### Community 36 - "itemArtworkRegistry.tsx"
-Cohesion: 0.15
-Nodes (4): ARTWORK_STRATEGIES, ArtworkRenderStrategy, ICON_STRATEGIES, IconRenderStrategy
-
-### Community 37 - "createArchitecturalSharedAssets"
-Cohesion: 0.36
-Nodes (8): createArchitecturalSharedAssets(), createChinesePagodaRoof(), createInteractiveDoubleDoor(), createOrnatePaifangGate(), createRedChineseLantern(), createRedImperialFlag(), buildHarborModels(), buildOasisModels()
-
-### Community 38 - "types.ts"
-Cohesion: 0.31
-Nodes (8): ObstacleCylinder, IArchitecturalSharedAssets, DistanceCulledObject, DoorPivotHandle, IDistanceCulledObject, IDoorPivotHandle, IWorldModelBuildContext, WorldTextureSet
-
-### Community 39 - "ExplorerMinimap.tsx"
+### Community 18 - "ExplorerMinimap.tsx"
 Cohesion: 0.33
 Nodes (5): ExplorerMinimap, ExplorerMinimapProps, GRID_SIZE, IExplorerMinimapProps, src_world_terrainmath_sampleminimapcolorat
 
-### Community 40 - "terrainMath.ts"
-Cohesion: 0.40
-Nodes (4): configureTexture(), createWorldTextures(), IWorldTextureSet, src_world_terrainmath_valuenoise2d
+### Community 19 - "terrainAndBiomeSystem.ts"
+Cohesion: 0.17
+Nodes (22): CLEAR_ZONES, FLAT_BUILDING_TERRACES, BIRCH_GROVE_CENTER, MAGIC_STONE_CIRCLE_POS, PLAYABLE_RADIUS, PLAYER_EYE_HEIGHT, SMALL_MEADOW_HILLS, SNOW_LINE_ALTITUDE (+14 more)
 
-### Community 44 - "harborModels.ts"
-Cohesion: 0.40
-Nodes (4): HarborModelHandles, IHarborModelHandles, src_world_terrainmath_iswithinviewdistance, src_world_terrainmath_southeast_harbor_pos
+### Community 20 - "dwarvenMineAndCaravanSystem.ts"
+Cohesion: 0.11
+Nodes (24): DwarvenKingdomBuilderContext, DwarvenKingdomHandle, DwarvenMinerRig, IDwarvenKingdomBuilderContext, IDwarvenKingdomHandle, IDwarvenMinerRig, DWARVEN_GUARDIAN_STATUES, DWARVEN_STONE_HOUSES (+16 more)
+
+### Community 21 - "GameShellOverlay.tsx"
+Cohesion: 0.11
+Nodes (31): GameShellOverlayProps, SkyrimModalMode, renderArtifactArtwork(), formatMarketError(), InventoryCategoryTab, ISkyrimInventoryModalProps, ITEM_SHORT_NAMES, NON_SELLABLE_STARTER_IDS (+23 more)
+
+### Community 22 - "TheMan — 3D Living Nature & RPG World Simulator"
+Cohesion: 0.29
+Nodes (6): Engineering standards, Getting Started, Installation & Run, Overview & Architecture, Prerequisites, TheMan — 3D Living Nature & RPG World Simulator
+
+### Community 26 - "locales/index.ts"
+Cohesion: 0.27
+Nodes (8): he, LocaleSchema, getLocaleDictionary(), src_locales_index_he, NestedKeyOf, setLocaleDictionary(), TranslationDictionary, TranslationKey
+
+### Community 27 - "WorldCanvas"
+Cohesion: 0.20
+Nodes (17): WorldCanvas, registerWindowDebugBridge(), findNearestFortressDoor(), findNearestMarketStall(), assignHotbarSlot(), buyMarketItem(), equipInventoryItem(), MarketTransactionResult (+9 more)
+
+### Community 28 - "telemetryStore.ts"
+Cohesion: 0.29
+Nodes (6): TelemetrySnapshot, INITIAL_TELEMETRY_SNAPSHOT, ITelemetryStore, telemetryStore, useTelemetry(), src_world_terrainmath_world_spawn
+
+### Community 36 - "itemArtworkRegistry.tsx"
+Cohesion: 0.14
+Nodes (5): ARTWORK_STRATEGIES, ArtworkRenderStrategy, ICON_STRATEGIES, IconRenderStrategy, renderItemSvgIcon()
+
+### Community 38 - "worldTypes.ts"
+Cohesion: 0.06
+Nodes (33): ArcheryTargetDef, ArrowTrailPoint, CharacterSkillsState, ClimbableLadderInfo, CornerWatchtowerDef, createCatalogItem(), DwarvenGuardianStatueDef, DwarvenMinerCaravanState (+25 more)
+
+### Community 47 - "labCatalog.ts"
+Cohesion: 0.08
+Nodes (50): ref_three_examples_jsm_environments_roomenvironment_js, CharacterLabCanvas(), afterDraw(), tick(), ICharacterLabCanvasProps, CAMERA_PRESETS, CharacterLabView(), ENVIRONMENT_PRESETS (+42 more)
+
+### Community 48 - "react"
+Cohesion: 0.14
+Nodes (8): react, ref_react_dom_client, App(), ErrorBoundary, IErrorBoundaryProps, IErrorBoundaryState, src_index, rootElement
+
+### Community 49 - "IPlayerState"
+Cohesion: 0.22
+Nodes (6): IPlayerAndCombatHandle, IPlayerState, BowEquipmentStrategy, IEquipmentSlotStrategy, SwordEquipmentStrategy, ToolEquipmentStrategy
+
+### Community 51 - "evaluateSwordStrikeWindowHit"
+Cohesion: 0.50
+Nodes (5): evaluateSwordStrikeWindowHit(), getNearbyArcheryTargets(), getNearbySolidBuildingBoxes(), stepArrowsPhysics(), stepSwordSwingCombat()
 
 ## Knowledge Gaps
-- **189 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+184 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 295 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **14 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **223 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+218 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 347 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `three` connect `fortressModels.ts` to `terrainAndWaterModel.ts`, `dwarvenMineAndCaravanSystem.ts`, `types.ts`, `WorldCanvas.tsx`, `terrainMath.ts`, `package.json`, `windowDebugController.ts`, `harborModels.ts`, `wildlifeAndFootprintsBuilder.ts`, `playerAndCombatBuilder.ts`, `proceduralModels.ts`, `atmosphereRenderController.ts`, `environmentAtmosphereModels.ts`?**
-  _High betweenness centrality (0.094) - this node is a cross-community bridge._
-- **Why does `react` connect `react` to `GameShellOverlay.tsx`, `itemArtworkRegistry.tsx`, `ExplorerMinimap.tsx`, `WorldCanvas.tsx`, `package.json`, `SkyrimInventoryModal.tsx`, `telemetryStore.ts`?**
+- **Why does `three` connect `proceduralModels.ts` to `config.ts`, `WorldCanvas.tsx`, `package.json`, `windowDebugController.ts`, `wildlifeAndFootprintsBuilder.ts`, `playerAndCombatBuilder.ts`, `labCatalog.ts`, `atmosphereRenderController.ts`, `dwarvenMineAndCaravanSystem.ts`?**
+  _High betweenness centrality (0.086) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `App.tsx`, `itemArtworkRegistry.tsx`, `WorldCanvas.tsx`, `package.json`, `labCatalog.ts`, `ExplorerMinimap.tsx`, `GameShellOverlay.tsx`, `telemetryStore.ts`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `NatureSoundEngine` connect `NatureSoundEngine` to `App.tsx`, `config.ts`, `WorldCanvas.tsx`, `windowDebugController.ts`, `wildlifeAndFootprintsBuilder.ts`, `atmosphereRenderController.ts`?**
   _High betweenness centrality (0.041) - this node is a cross-community bridge._
-- **Why does `WorldCanvas` connect `WorldCanvas` to `GameShellOverlay.tsx`, `combatAndInventorySystem.ts`, `swordAttackAnimationSystem.ts`, `dwarvenMineAndCaravanSystem.ts`, `groundHeightAt`, `WorldCanvas.tsx`, `terrainMath.ts`, `terrainMath.test.ts`, `proceduralModels.ts`, `registerWindowDebugBridge`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Are the 14 inferred relationships involving `WorldCanvas` (e.g. with `.dispose()` and `.init()`) actually correct?**
-  _`WorldCanvas` has 14 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `private`, `version` to the rest of the system?**
-  _189 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `terrainAndWaterModel.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected._
+  _223 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `terrainMath.test.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._
+- **Should `swordAttackAnimationSystem.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.07200929152148665 - nodes in this community are weakly interconnected._
 - **Should `combatAndInventorySystem.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.13157894736842105 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._

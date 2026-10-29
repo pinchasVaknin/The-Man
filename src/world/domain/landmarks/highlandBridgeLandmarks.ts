@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { HillWatchtowerDef } from '../worldTypes';
+import type { IHillWatchtowerDef } from '../worldTypes';
+import { t } from '../../../locales';
 // #endregion
 
 // ======================== HIGHLAND BRIDGE CONSTANTS ======================== \\
@@ -25,13 +26,13 @@ export const HILL_BRIDGE_SIN = Math.sin(HILL_BRIDGE_YAW);
 // ======================== WATCHTOWER FACTORY & DEFINITIONS ======================== \\
 // #region Watchtower Factory & Definitions
 /**
- * Summary: Helper factory constructing an immutable HillWatchtowerDef with local-to-world transform.
+ * Summary: Helper factory constructing an immutable IHillWatchtowerDef with local-to-world transform.
  * Design: Precalculates ladder, standing deck, and entrance door coordinates in world space.
  */
 function makeHillWatchtowerDef(
   id: string,
   doorId: string,
-  nameHe: string,
+  name: string,
   x: number,
   z: number,
   baseY: number,
@@ -42,7 +43,7 @@ function makeHillWatchtowerDef(
   localLadderX: number,
   localLadderZ: number,
   connectedToBridge: boolean
-): HillWatchtowerDef {
+): IHillWatchtowerDef {
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);
   const ladderX = x + localLadderX * c + localLadderZ * s;
@@ -67,7 +68,7 @@ function makeHillWatchtowerDef(
   return {
     id,
     doorId,
-    nameHe,
+    name,
     x,
     z,
     baseY,
@@ -95,11 +96,11 @@ function makeHillWatchtowerDef(
 }
 
 /** Summary: Alpine hill watchtowers guarding mountain passes and anchoring the suspension bridge. */
-export const HILL_WATCHTOWERS: readonly HillWatchtowerDef[] = [
+export const HILL_WATCHTOWERS: readonly IHillWatchtowerDef[] = [
   makeHillWatchtowerDef(
     'hill-watchtower-sw',
     'hill-watchtower-sw-door',
-    'מגדל שמירה דרום־מערבי',
+    t('landmarks.hill_watchtower_sw'),
     -65.0,
     -172.0,
     56.5,
@@ -114,7 +115,7 @@ export const HILL_WATCHTOWERS: readonly HillWatchtowerDef[] = [
   makeHillWatchtowerDef(
     'hill-watchtower-west',
     'hill-watchtower-west-door',
-    'מגדל שמירה מערבי',
+    t('landmarks.hill_watchtower_west'),
     -165.0,
     -335.0,
     67.5,
@@ -129,7 +130,7 @@ export const HILL_WATCHTOWERS: readonly HillWatchtowerDef[] = [
   makeHillWatchtowerDef(
     'hill-watchtower-east',
     'hill-watchtower-east-door',
-    'מגדל שמירה מזרחי מבודד',
+    t('landmarks.hill_watchtower_east'),
     160.0,
     -335.0,
     64.0,

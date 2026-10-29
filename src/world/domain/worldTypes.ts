@@ -8,13 +8,18 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-export { Result } from '../../core/Result';
+import { Result } from '../../core/Result';
+import { t } from '../../locales';
+export { Result };
 export { AppException, InfrastructureCorruptedException, InvalidResultAccessException } from '../../core/AppException';
 // #endregion
 
 // ======================== BIOME & LOCOMOTION TYPES ======================== \\
 // #region Biome & Locomotion Types
-/** Summary: Spatial biome classifications determining terrain texture, vegetation and sound. */
+/**
+ * Summary: Categorical landscape biome enumeration identifying regional terrain characteristics.
+ * Design: Guides ground textures, plant distribution, footstep audio, and minimap pixel tinting.
+ */
 export type BiomeType =
   | 'water'
   | 'pier'
@@ -29,19 +34,34 @@ export type BiomeType =
   | 'highland'
   | 'rock';
 
-/** Summary: Movement speed pacing options for ground navigation. */
+/**
+ * Summary: Player traversal speed gear selection controlling movement velocities.
+ * Design: Modulates stride kinematics and stamina depletion rates across relaxed, normal, and fast paces.
+ */
 export type WalkPaceMode = 'relaxed' | 'normal' | 'fast';
 
-/** Summary: Camera point-of-view modes. */
+/**
+ * Summary: Viewport perspective toggle between third-person follow camera and first-person immersion.
+ * Design: Dictates character mesh visibility, weapon rendering modes, and reticle positioning.
+ */
 export type CameraPerspectiveMode = 'third_person' | 'first_person';
 
-/** Summary: Active hand-held tool or weapon equipment slot. */
+/**
+ * Summary: Currently drawn hand-held weapon or utility tool equipment slot.
+ * Design: Dispatches attack kinematics, idle poses, and lighting effects (e.g. torch illumination).
+ */
 export type EquippedToolSlot = 'bow' | 'sword' | 'torch' | 'unarmed';
 
-/** Summary: Elemental arrow enchantment types. */
+/**
+ * Summary: Elemental infusion classification for ballistic arrow projectiles.
+ * Design: Determines particle flight trails, impact burst effects, and elemental damage modifiers.
+ */
 export type ArrowElementKind = 'normal' | 'fire' | 'wind';
 
-/** Summary: Unique inventory item catalog identifiers. */
+/**
+ * Summary: Canonical identifier union covering all collectible and craftable game items.
+ * Design: Strongly-typed catalog preventing invalid inventory references across logic and UI.
+ */
 export type InventoryItemId =
   | 'bow'
   | 'sword'
@@ -68,350 +88,109 @@ export type InventoryItemId =
 
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
 // #region Inventory & Equipment Types
-/** Summary: Definition schema for static inventory items in the world catalog. */
+/**
+ * Summary: Immutable definition metadata for a distinct inventory item archetype.
+ * Design: Specifies market price, weapon stats, category tabs, and required hero level.
+ */
 export interface IInventoryItemDef {
   readonly id: InventoryItemId;
-  readonly nameHe: string;
+  readonly name: string;
   readonly category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures';
-  readonly categoryLabelHe: string;
-  readonly statLabelHe: string;
+  readonly categoryLabel: string;
+  readonly statLabel: string;
   readonly weight: number;
   readonly valueGold: number;
   readonly requiredLevel: number;
   readonly weaponRole?: 'bow' | 'sword';
   readonly starterOwned?: boolean;
-  readonly descriptionHe: string;
-  readonly loreHe?: string;
+  readonly description: string;
+  readonly lore?: string;
   readonly rarity?: 'common' | 'refined' | 'epic' | 'legendary';
 }
 export type InventoryItemDef = IInventoryItemDef;
 
+function createCatalogItem(
+  id: InventoryItemId,
+  category: 'weapons' | 'materials' | 'ammo' | 'gear' | 'treasures',
+  weight: number,
+  valueGold: number,
+  requiredLevel: number,
+  options?: {
+    weaponRole?: 'bow' | 'sword';
+    starterOwned?: boolean;
+    rarity?: 'common' | 'refined' | 'epic' | 'legendary';
+  }
+): IInventoryItemDef {
+  const name = t(`items.${id}.name`);
+  const categoryLabel = t(`items.${id}.category`);
+  const statLabel = t(`items.${id}.stat`);
+  const description = t(`items.${id}.description`);
+  const loreVal = t(`items.${id}.lore`);
+  const lore = loreVal !== `items.${id}.lore` ? loreVal : undefined;
+
+  return {
+    id,
+    name,
+    category,
+    categoryLabel,
+    statLabel,
+    weight,
+    valueGold,
+    requiredLevel,
+    weaponRole: options?.weaponRole,
+    starterOwned: options?.starterOwned,
+    rarity: options?.rarity,
+    description,
+    lore,
+  };
+}
+
 /** Summary: Static registry of all available inventory items in the game world. */
 export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
-  {
-    id: 'bow',
-    nameHe: 'קשת ציידים מורכבת',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 28 · קשת ריקרב',
-    weight: 3,
-    valueGold: 145,
-    requiredLevel: 1,
-    weaponRole: 'bow',
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'קשת עץ מלוטשת בעיטורי קרן מוזהבים. החזק קליק שמאלי בעכבר או [R] למתיחת חץ (עם זום מיקוד), וקליק ימני לזום תצפית קרוב.',
-    loreHe: 'חושלה בידי קשתי העמק העתיק מעץ אלון מיושן וקרן יעלים, בעלת גמישות מושלמת וחדירה קטלנית.',
-  },
-  {
-    id: 'sword',
-    nameHe: 'חרב סיירים מפלדה',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 34 · להב רונות',
-    weight: 4,
-    valueGold: 180,
-    requiredLevel: 1,
-    weaponRole: 'sword',
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'חרב רונות מעוטרת בניצב זהב. לחיצה קצרה לשיסוף רוחבי מהיר, לחיצה ארוכה למכה כבדה החותכת את האוויר קדימה, וקליק ימני לחסימה.',
-    loreHe: 'להב פלדה מקושט בחריטות קסומות של אנרגיית רוח. מכה כבדה חותכת את האוויר בגל חרמש בוהק.',
-  },
-  {
-    id: 'katana_imperial',
-    nameHe: 'חרב להב קיסרית',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 48 · חיתוך אוויר חד',
-    weight: 3,
-    valueGold: 220,
-    requiredLevel: 1,
-    weaponRole: 'sword',
-    starterOwned: false,
-    rarity: 'epic',
-    descriptionHe:
-      'חרב קלה ומאוזנת מהנפחייה של שוק הנמל. מעניקה שיסוף מהיר וחד עם צריכת סיבולת מופחתת.',
-    loreHe: 'חושלה מפלדת דמשק מקופלת בידי אומני המבצר הצפוני עבור שומרי הסף הקיסריים.',
-  },
-  {
-    id: 'elven_longbow',
-    nameHe: 'קשת אלפים עתיקה',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 56 · מהירות חץ +25%',
-    weight: 2,
-    valueGold: 340,
-    requiredLevel: 2,
-    weaponRole: 'bow',
-    starterOwned: false,
-    rarity: 'epic',
-    descriptionHe:
-      'קשת ארוכה מעץ ליבנה מוזהב ומיתר משי כסוף. דורשת דרגת סייר 2 ומעניקה מעוף חץ שטוח ומהיר.',
-    loreHe: 'נוצרה בחורשת הלבנה המזרחית ומאפשרת צליפה מדויקת למרחקים עצומים ללא מאמץ.',
-  },
-  {
-    id: 'dwarven_warhammer',
-    nameHe: 'חרב מלכי הגמדים',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 74 · מכה כבדה אדירה',
-    weight: 6,
-    valueGold: 480,
-    requiredLevel: 3,
-    weaponRole: 'sword',
-    starterOwned: false,
-    rarity: 'epic',
-    descriptionHe:
-      'להב דו־ידני כבד המחושל מזהב־גמדים ופלדת מעמקים. דורש דרגת סייר 3 ומשחרר גל הדף רחב במכה כבדה.',
-    loreHe: 'חושלה בכבשני הלבה של המכרה הדרומי בידי נפחי שושלת הגמדים הקדומה.',
-  },
-  {
-    id: 'dragonbone_bow',
-    nameHe: 'קשת עצם־דרקון אגדית',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 92 · עוצמת חדירה מקסימלית',
-    weight: 5,
-    valueGold: 680,
-    requiredLevel: 4,
-    weaponRole: 'bow',
-    starterOwned: false,
-    rarity: 'legendary',
-    descriptionHe:
-      'קשת מיתולוגית מחושלת מעצמות דרקון השמיים המוזהב. דורשת דרגת סייר 4 וזמינה לרכישה בשוק הסוחרים.',
-    loreHe: 'רק צלפים ותיקים בעלי כוח זרוע עילאי מסוגלים למתוח את מיתר הקשת האגדית הזו.',
-  },
-  {
-    id: 'celestial_jin_sword',
-    nameHe: 'חרב ג׳ין שמיימית',
-    category: 'weapons',
-    categoryLabelHe: 'כלי נשק',
-    statLabelHe: 'נזק 118 · להב קיסרי אגדי',
-    weight: 4,
-    valueGold: 920,
-    requiredLevel: 5,
-    weaponRole: 'sword',
-    starterOwned: false,
-    rarity: 'legendary',
-    descriptionHe:
-      'פאר היצירה של השוק הקיסרי — להב ירקן וזהב החותך את האוויר בגל אנרגיה אדיר. דורש דרגת סייר 5.',
-    loreHe: 'חרב טקסית וקטלנית שהוענקה למצביאי המבצר הסיני על פסגת ההר הצפוני.',
-  },
-  {
-    id: 'torch',
-    nameHe: 'לפיד אש בוער',
-    category: 'gear',
-    categoryLabelHe: 'ציוד שטח',
-    statLabelHe: 'אור אש חי · רדיוס 28 מ׳',
-    weight: 1,
-    valueGold: 25,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'common',
-    descriptionHe:
-      'לפיד עץ וברזל המפיץ תאורת אש חמה בזמן אמת — מושלם לחקירת 4 אולמות המכרה התת־קרקעי, מערות ולילות חשוכים.',
-    loreHe: 'ספוג בזפת הרים עשירה הבוערת ללא הרף גם ברוחות עזות ובגשמים קלים.',
-  },
-  {
-    id: 'arrow_normal',
-    nameHe: 'חצי פלדה מחושלים',
-    category: 'ammo',
-    categoryLabelHe: 'חצים ותחמושת',
-    statLabelHe: 'נזק +10 · מעוף מאוזן',
-    weight: 0,
-    valueGold: 40,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'common',
-    descriptionHe:
-      'חצי עץ מובחרים עם חוד פלדה מושחז ונוצות ייצוב אדומות־לבנות, המותירים שובל אוויר אפור במעופם.',
-  },
-  {
-    id: 'arrow_fire',
-    nameHe: 'חצי אש בוערים',
-    category: 'ammo',
-    categoryLabelHe: 'חצים ותחמושת',
-    statLabelHe: 'נזק +18 אש · מאיר במעוף',
-    weight: 0,
-    valueGold: 95,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'חצים משוחים בשמן דליק הבוערים במעופם, מפיצים אור אש סביבם ויוצרים שובל עשן סמיך בפגיעה.',
-  },
-  {
-    id: 'arrow_wind',
-    nameHe: 'חצי סערה קלים',
-    category: 'ammo',
-    categoryLabelHe: 'חצים ותחמושת',
-    statLabelHe: 'נזק +14 · מהירות x1.42',
-    weight: 0,
-    valueGold: 85,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'חצים אווירודינמיים קלים הטסים במהירות גבוהה ובמסלול שטוח במיוחד לצליפה לטווח רחוק.',
-  },
-  {
-    id: 'oak_timber',
-    nameHe: 'קורות עץ אלון מוקצע',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'עץ בנייה מסיבי · שווי 65 מטבעות',
-    weight: 3,
-    valueGold: 65,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'common',
-    descriptionHe:
-      'קורות עץ אלון יבשות וחזקות מחורשות העמק, המשמשות להקמת גגות, עמודי תמך, גשרים וביצורים.',
-    loreHe: 'נכרתו ועובדו במנסרת העמק ומבוקשות מאוד אצל בנאי הנמל והמבצר.',
-  },
-  {
-    id: 'cut_granite_blocks',
-    nameHe: 'לבני גרניט מסותתות',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'אבן בנייה כבדה · שווי 90 מטבעות',
-    weight: 4,
-    valueGold: 90,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'גלילי ולבני גרניט אפור־מוזהב שנחצבו במורדות ההרים הדרומיים, מותאמים לבניית חומות, קשתות ובתי אבן.',
-    loreHe: 'סותתו בדיוק הנדסי על־ידי סתתי האבן של ממלכת הגמדים.',
-  },
-  {
-    id: 'iron_ingots',
-    nameHe: 'מטילי ברזל מחושלים',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'מתכת לחישול וחיזוק · שווי 130 מטבעות',
-    weight: 3,
-    valueGold: 130,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'refined',
-    descriptionHe:
-      'מטילי ברזל טהורים מכבשני ההתכה, משמשים לחישול צירי שערים, פרזול מבנים וחידוד להבים בנפחיית הנמל.',
-    loreHe: 'נוצקו מעפרת ברזל הררית ומהווים חומר גלם מרכזי בשוק הסוחרים של הנמל.',
-  },
-  {
-    id: 'imperial_clay_tiles',
-    nameHe: 'רעפי חרס קיסריים',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'חיפוי גגות מסורתי · שווי 155 מטבעות',
-    weight: 2,
-    valueGold: 155,
-    requiredLevel: 1,
-    starterOwned: false,
-    rarity: 'refined',
-    descriptionHe:
-      'רעפי חרס מזוגגים בגוון ארגמן־זהב העמידים בפני סופות גשמים ושלגים. נמכרים בדוכני שוק הנמל.',
-    loreHe: 'זהים לרעפים המעטרים את גגות ההיכל המרכזי במבצר הסיני הצפוני.',
-  },
-  {
-    id: 'marble_pillar_stone',
-    nameHe: 'אבן שיש לבנה לעמודים',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'שיש מפואר · שווי 260 מטבעות',
-    weight: 4,
-    valueGold: 260,
-    requiredLevel: 2,
-    starterOwned: false,
-    rarity: 'epic',
-    descriptionHe:
-      'גוש שיש לבן מלוטש בעל עורקים כסופים לעיטור היכלות, מרפסות ומזרקות אבן.',
-    loreHe: 'יובא בספינות הסוחר הגדולות העוגנות ברציפי הנמל הדרום־מזרחי.',
-  },
-  {
-    id: 'dwarven_gold_ore',
-    nameHe: 'עפרת זהב ממכרה הגמדים',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'מחצב נדיר · שווי 220 מטבעות',
-    weight: 2,
-    valueGold: 220,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'epic',
-    descriptionHe:
-      'גביש גולמי של עפרת זהב טהורה שנחצבה במעמקי מכרה הגמדים הדרומי. ניתן למכירה לסוחרי שוק הנמל תמורת זהב רב!',
-    loreHe: 'מחצב יקר ערך הנחצב בידי כורי הגמדים היוצאים בשיירת הזריחה ומובא למטלורגיה העתיקה.',
-  },
-  {
-    id: 'crystal_gem',
-    nameHe: 'גביש קריסטל ביולומינצנטי',
-    category: 'materials',
-    categoryLabelHe: 'חומרי בנייה',
-    statLabelHe: 'קרינת אור תכלת · שווי 350 מטבעות',
-    weight: 1,
-    valueGold: 350,
-    requiredLevel: 2,
-    starterOwned: true,
-    rarity: 'legendary',
-    descriptionHe:
-      'גביש זוהר הנאסף מאגם הקריסטלים באולם התת־קרקעי של המכרה הדרומי. זוהר בעוצמה גם במעמקים.',
-    loreHe: 'אבן קדומה שנוצרה ממי התהום העשירים במינרלים של אגם המערות, מקרינה אנרגיה קרה ושלווה.',
-  },
-  {
-    id: 'ancient_dwarven_horn',
-    nameHe: 'קרן קרב של הגמדים',
-    category: 'gear',
-    categoryLabelHe: 'ציוד שטח',
-    statLabelHe: 'הדהוד קולי בהרים · שווי 160',
-    weight: 2,
-    valueGold: 160,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'epic',
-    descriptionHe:
-      'קרן ברונזה מחושלת שעליה תבליטי פטיש ומגן. משמיעה תרועה אדירה המהדהדת ברחבי העמק והמבצר.',
-    loreHe: 'שימשה את שומרי שערי הגמדים להתרעה על סכנות או לחגיגת תחילת מסע השיירה בעת הזריחה.',
-  },
-  {
-    id: 'elven_cloak',
-    nameHe: 'גלימת סיירים מהודרת',
-    category: 'gear',
-    categoryLabelHe: 'ציוד שטח',
-    statLabelHe: 'הסוואה בטבע · שווי 190',
-    weight: 1,
-    valueGold: 190,
-    requiredLevel: 2,
-    starterOwned: false,
-    rarity: 'refined',
-    descriptionHe:
-      'גלימת בד ירוקה־מוזהבת עם אבזם עלי אלון, מעניקה בידוד מושלם מרוחות הסתיו והשלג הצפוני.',
-    loreHe: 'נארגה מחוטים גמישים שאינם משמיעים רשרוש, ומאפשרת לסיירי היער לחמוק בדממה מוחלטת.',
-  },
-  {
-    id: 'unarmed',
-    nameHe: 'ידיים חופשיות',
-    category: 'gear',
-    categoryLabelHe: 'ציוד שטח',
-    statLabelHe: 'אפסון ציוד על הגב',
-    weight: 0,
-    valueGold: 0,
-    requiredLevel: 1,
-    starterOwned: true,
-    rarity: 'common',
-    descriptionHe:
-      'מאפסן את הקשת והנשק על הגב לתנועה חופשית, תצפית נקייה ושחייה מהירה במים.',
-  },
-] as const;
+  createCatalogItem('bow', 'weapons', 3, 145, 1, { weaponRole: 'bow', starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('sword', 'weapons', 4, 180, 1, { weaponRole: 'sword', starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('katana_imperial', 'weapons', 3, 220, 1, { weaponRole: 'sword', rarity: 'refined' }),
+  createCatalogItem('elven_longbow', 'weapons', 2.8, 480, 2, { weaponRole: 'bow', rarity: 'epic' }),
+  createCatalogItem('dwarven_warhammer', 'weapons', 6.2, 720, 3, { weaponRole: 'sword', rarity: 'epic' }),
+  createCatalogItem('dragonbone_bow', 'weapons', 3.2, 980, 4, { weaponRole: 'bow', rarity: 'legendary' }),
+  createCatalogItem('celestial_jin_sword', 'weapons', 3.8, 1450, 5, { weaponRole: 'sword', rarity: 'legendary' }),
+  createCatalogItem('torch', 'gear', 1.5, 45, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('arrow_normal', 'ammo', 1, 25, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('arrow_fire', 'ammo', 1, 55, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('arrow_wind', 'ammo', 0.8, 65, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('oak_timber', 'materials', 4, 65, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('cut_granite_blocks', 'materials', 8, 90, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('iron_ingots', 'materials', 5, 130, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('imperial_clay_tiles', 'materials', 3.5, 155, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('marble_pillar_stone', 'materials', 10, 260, 1, { starterOwned: true, rarity: 'epic' }),
+  createCatalogItem('dwarven_gold_ore', 'materials', 6, 220, 1, { starterOwned: true, rarity: 'epic' }),
+  createCatalogItem('crystal_gem', 'materials', 2, 350, 1, { starterOwned: true, rarity: 'legendary' }),
+  createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
+  createCatalogItem('elven_cloak', 'gear', 1.2, 190, 1, { rarity: 'refined' }),
+  createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
+];
+
+/** Summary: Readonly Map providing O(1) item definition lookups by InventoryItemId. */
+export const INVENTORY_ITEM_MAP: ReadonlyMap<InventoryItemId, IInventoryItemDef> = new Map(
+  INVENTORY_ITEMS.map((item) => [item.id, item])
+);
+
+/** Summary: List of starter owned item IDs derived directly from catalog definitions. */
+export const DEFAULT_STARTER_OWNED_ITEM_IDS: readonly InventoryItemId[] = Object.freeze(
+  INVENTORY_ITEMS.filter((item) => Boolean(item.starterOwned)).map((item) => item.id)
+);
+
+/** Summary: First available non-starter market catalog item. */
+export const FIRST_MARKET_CATALOG_ITEM: IInventoryItemDef =
+  INVENTORY_ITEM_MAP.get('katana_imperial') ?? INVENTORY_ITEMS[0];
 // #endregion
 
 // ======================== CHARACTER SKILLS & PLAYER STATE ======================== \\
 // #region Character Skills & Player State
-/** Summary: Skill progression tracking for RPG attributes. */
+/**
+ * Summary: Player progression profile tracking experience points and mastery levels.
+ * Design: Drives unlock gates for high-tier weaponry, stamina caps, and mounted speed bonuses.
+ */
 export interface ICharacterSkillsState {
   archeryLevel: number;
   archeryXp: number;
@@ -429,12 +208,15 @@ export interface ICharacterSkillsState {
   explorationXp: number;
   explorationXpNext: number;
   lastLevelUpSkill?: string | null;
-  lastLevelUpTitleHe?: string | null;
+  lastLevelUpTitle?: string | null;
   lastLevelUpTimer?: number;
 }
 export type CharacterSkillsState = ICharacterSkillsState;
 
-/** Summary: Procedural collision cylinder definition. */
+/**
+ * Summary: Radial collision boundary representing trees, boulders, fences, or buildings.
+ * Design: Evaluated during player and horse physics steps to enforce 2D kinematic avoidance.
+ */
 export interface IObstacleCylinder {
   readonly x: number;
   readonly z: number;
@@ -445,7 +227,10 @@ export interface IObstacleCylinder {
 }
 export type ObstacleCylinder = IObstacleCylinder;
 
-/** Summary: Complete runtime simulation state for the active player character. */
+/**
+ * Summary: Complete physical and combat runtime state for the player avatar.
+ * Design: Single source of truth updated per tick by playerPhysicsSystem and combatAndInventorySystem.
+ */
 export interface IPlayerState {
   x: number;
   y: number;
@@ -470,7 +255,7 @@ export interface IPlayerState {
   walkPace: WalkPaceMode;
   stamina?: number; // 0..100
   maxStamina?: number; // 100
-  skills?: CharacterSkillsState;
+  skills?: ICharacterSkillsState;
   goldCoins?: number;
   ownedItemIds?: InventoryItemId[];
   activeWeaponId?: InventoryItemId;
@@ -523,11 +308,15 @@ export interface IPlayerState {
   bowDrawn: boolean;
   bowDrawProgress: number; // 0..1
   arrowsShotCount: number;
+  nextArrowId?: number;
   lastArrowHitTarget?: string | null;
 }
 export type PlayerState = IPlayerState;
 
-/** Summary: Processed user input intent for a single simulation tick. */
+/**
+ * Summary: Snapshot of hardware and touch input controls sampled per animation frame.
+ * Design: Decouples raw DOM keyboard/mouse/touch events from physical simulation steps.
+ */
 export interface IPlayerInput {
   forward: number; // -1 to 1
   right: number;   // -1 to 1
@@ -545,10 +334,13 @@ export type PlayerInput = IPlayerInput;
 
 // ======================== ANIMAL & HORSE ENTITY TYPES ======================== \\
 // #region Animal & Horse Entity Types
-/** Summary: Immutable definition for a persistent mountable horse in the world. */
+/**
+ * Summary: Structural definition and visual configuration for an interactive rideable horse.
+ * Design: Defines color palette, home spawn coordinates, and biome habitat affinity.
+ */
 export interface IRideableHorseDef {
   readonly id: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly coatColorHex: number;
   readonly maneColorHex: number;
   readonly saddleColorHex: number;
@@ -558,10 +350,13 @@ export interface IRideableHorseDef {
 }
 export type RideableHorseDef = IRideableHorseDef;
 
-/** Summary: Dynamic runtime state of a mountable horse. */
+/**
+ * Summary: Mutable physical simulation state for an individual mountable horse.
+ * Design: Governs locomotion speed, steering momentum, rider attachment, and gait phase.
+ */
 export interface IRideableHorseState {
   id: string;
-  nameHe: string;
+  name: string;
   x: number;
   y: number;
   z: number;
@@ -574,11 +369,14 @@ export type RideableHorseState = IRideableHorseState;
 
 // ======================== ATMOSPHERE & WEATHER STATE ======================== \\
 // #region Atmosphere & Weather State
-/** Summary: Complete atmospheric lighting and sky rendering parameters for a frame. */
+/**
+ * Summary: Solar and atmospheric lighting parameters computed dynamically per world hour.
+ * Design: Synchronizes sun direction, hemisphere light colors, fog density, and sky Rayleigh scatter.
+ */
 export interface IDynamicAtmosphereState {
   worldHours: number; // 0..24 continuous clock
   timeString: string; // e.g. "06:52"
-  phaseLabelHe: string;
+  phaseLabel: string;
   isNight: boolean;
   nightFactor: number; // 0 (day) .. 1 (full night)
   sunElevationDeg: number;
@@ -604,13 +402,18 @@ export interface IDynamicAtmosphereState {
 }
 export type DynamicAtmosphereState = IDynamicAtmosphereState;
 
-/** Summary: Alias for DynamicAtmosphereState used by atmosphere and debug controllers. */
-export type SolarAtmosphere = DynamicAtmosphereState;
+/** Summary: Alias for IDynamicAtmosphereState used by atmosphere and debug controllers. */
 
-/** Summary: Active world season category. */
+/**
+ * Summary: Seasonal cycle epoch dividing the annual calendar into 4 distinct phases.
+ * Design: Modulates temperature, vegetation tints, weather patterns, and mountain snow line.
+ */
 export type SeasonType = 'spring' | 'summer' | 'autumn' | 'winter';
 
-/** Summary: Discrete weather condition types. */
+/**
+ * Summary: Dynamic meteorological condition classification governing sky and terrain effects.
+ * Design: Controls rain particle systems, wet ground shaders, thunder flashes, and fog volume.
+ */
 export type WeatherKind =
   | 'clear_clouds'
   | 'regional_rain'
@@ -619,10 +422,16 @@ export type WeatherKind =
   | 'lightning_storm'
   | 'wind_sand';
 
-/** Summary: Weather progression cycle modes. */
+/**
+ * Summary: Execution mode for the atmospheric weather transition state machine.
+ * Design: Allows switching between fast turbo verification cycle and natural seasonal cycle.
+ */
 export type WeatherCycleMode = 'turbo_test' | 'seasonal';
 
-/** Summary: User-selectable weather override options. */
+/**
+ * Summary: User-selectable override options in the HUD for testing dynamic weather modes.
+ * Design: Enables manual weather locking or automatic progression via seasonal engine.
+ */
 export type WeatherToggleOption =
   | 'auto'
   | 'clear_clouds'
@@ -630,13 +439,16 @@ export type WeatherToggleOption =
   | 'dense_fog'
   | 'lightning_storm';
 
-/** Summary: Immutable snapshot of the dynamic weather system state. */
+/**
+ * Summary: Atmospheric snapshot capturing weather, precipitation, and cloud cover.
+ * Design: Consumed by terrain shaders, foliage wind uniforms, and sound engine emitters.
+ */
 export interface IWeatherStateSnapshot {
   mode: WeatherCycleMode;
   season: SeasonType;
-  seasonLabelHe: string;
+  seasonLabel: string;
   weatherKind: WeatherKind;
-  weatherLabelHe: string;
+  weatherLabel: string;
   cloudCoverage: number;      // 0.15 .. 1.0
   cloudDarkness: number;      // 0 (white cumulus) .. 1 (dark storm clouds)
   rainIntensity: number;      // 0 .. 1 (regional rain streaks)
@@ -655,11 +467,14 @@ export type WeatherStateSnapshot = IWeatherStateSnapshot;
 
 // ======================== WORLD STRUCTURES & LANDMARKS ======================== \\
 // #region World Structures & Landmarks
-/** Summary: Definition schema for a farm house compound. */
+/**
+ * Summary: Structural layout definition for agricultural homesteads across the valley.
+ * Design: Defines house position, fenced perimeter boundaries, front gate, and enterable doors.
+ */
 export interface IValleyFarmDef {
   readonly id: string;
   readonly doorId: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly x: number;
   readonly z: number;
   readonly height: number;
@@ -671,11 +486,14 @@ export interface IValleyFarmDef {
 }
 export type ValleyFarmDef = IValleyFarmDef;
 
-/** Summary: Definition schema for a hill watchtower structure. */
+/**
+ * Summary: Landmark definition for strategic elevated stone watchtowers.
+ * Design: Specifies base coordinate, enclosed ground floor, spiral platforms, and climbable ladders.
+ */
 export interface IHillWatchtowerDef {
   readonly id: string;
   readonly doorId: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly x: number;
   readonly z: number;
   readonly baseY: number;
@@ -702,10 +520,13 @@ export interface IHillWatchtowerDef {
 }
 export type HillWatchtowerDef = IHillWatchtowerDef;
 
-/** Summary: Definition schema for ancient dwarven kingdom guardian statues. */
+/**
+ * Summary: Monumental stone guardian statues guarding the southern mountain kingdom.
+ * Design: Represents colossal stone effigies flanking the mountain pass to the deep mines.
+ */
 export interface IDwarvenGuardianStatueDef {
   readonly id: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly x: number;
   readonly z: number;
   readonly baseY: number;
@@ -716,11 +537,14 @@ export interface IDwarvenGuardianStatueDef {
 }
 export type DwarvenGuardianStatueDef = IDwarvenGuardianStatueDef;
 
-/** Summary: Definition schema for enterable stone houses in the dwarven kingdom. */
+/**
+ * Summary: Residential stone cottage architecture in the southern dwarven kingdom.
+ * Design: Defines enterable mountain stone dwellings and door interaction triggers.
+ */
 export interface IDwarvenStoneHouseDef {
   readonly id: string;
   readonly doorId: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly x: number;
   readonly z: number;
   readonly terraceY: number;
@@ -733,10 +557,13 @@ export interface IDwarvenStoneHouseDef {
 }
 export type DwarvenStoneHouseDef = IDwarvenStoneHouseDef;
 
-/** Summary: Runtime simulation state for a travelling dwarven miner NPC. */
+/**
+ * Summary: Operational status of the automated dwarven caravan schedule.
+ * Design: Animates miners marching between village homes and deep mountain excavation sites.
+ */
 export interface IDwarvenMinerCaravanState {
   dwarfIndex: number;
-  nameHe: string;
+  name: string;
   x: number;
   y: number;
   z: number;
@@ -748,11 +575,14 @@ export interface IDwarvenMinerCaravanState {
 }
 export type DwarvenMinerCaravanState = IDwarvenMinerCaravanState;
 
-/** Summary: Definition schema for fortress corner watchtowers. */
+/**
+ * Summary: Bastion watchtowers anchoring the four corners of the northern fortress.
+ * Design: Provides elevated archery vantage points and connects to walkable rampart corridors.
+ */
 export interface ICornerWatchtowerDef {
   readonly id: string;
   readonly doorId: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly cx: number;
   readonly cz: number;
   readonly doorX: number;
@@ -764,10 +594,13 @@ export interface ICornerWatchtowerDef {
 }
 export type CornerWatchtowerDef = ICornerWatchtowerDef;
 
-/** Summary: Information required to inspect and climb a vertical ladder. */
+/**
+ * Summary: Spatial trigger volume for vertical ladder climbing interactions.
+ * Design: Engages locked vertical ladder ascension kinematics when approached by the player.
+ */
 export interface IClimbableLadderInfo {
   readonly id: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly ladderX: number;
   readonly ladderZ: number;
   readonly standX: number;
@@ -780,10 +613,13 @@ export interface IClimbableLadderInfo {
 }
 export type ClimbableLadderInfo = IClimbableLadderInfo;
 
-/** Summary: Door entry interactable zone specification. */
+/**
+ * Summary: Enterable hinged door definition for fortress pavilions and halls.
+ * Design: Tracks angular pivot orientation and proximity-based toggle state.
+ */
 export interface IFortressDoorDef {
   readonly id: string;
-  readonly buildingNameHe: string;
+  readonly buildingName: string;
   readonly x: number;
   readonly y: number;
   readonly z: number;
@@ -795,7 +631,10 @@ export interface IFortressDoorDef {
 }
 export type FortressDoorDef = IFortressDoorDef;
 
-/** Summary: Axis-aligned bounding box for solid building collision. */
+/**
+ * Summary: Axis-aligned or oriented bounding box for architectural collision solid volumes.
+ * Design: Prevents player and mount clipping into building interiors, walls, and steps.
+ */
 export interface ISolidBuildingBox {
   readonly id: string;
   readonly minX: number;
@@ -810,10 +649,13 @@ export type SolidBuildingBox = ISolidBuildingBox;
 
 // ======================== COMBAT & PROJECTILE TYPES ======================== \\
 // #region Combat & Projectile Types
-/** Summary: Stationary archery practice target definition. */
+/**
+ * Summary: Bullseye archery target landmark for marksman practice.
+ * Design: Computes radial projectile impact accuracy and awards archery skill progression.
+ */
 export interface IArcheryTargetDef {
   readonly id: string;
-  readonly nameHe: string;
+  readonly name: string;
   readonly x: number;
   readonly z: number;
   readonly yaw: number;
@@ -821,7 +663,10 @@ export interface IArcheryTargetDef {
 }
 export type ArcheryTargetDef = IArcheryTargetDef;
 
-/** Summary: Fading visual trail particle point emitted by a flying projectile. */
+/**
+ * Summary: Historical flight trajectory sample for rendering arrow smoke ribbons.
+ * Design: Maintains bounded temporal trail buffer with alpha decay for visual flight clarity.
+ */
 export interface IArrowTrailPoint {
   readonly x: number;
   readonly y: number;
@@ -830,7 +675,10 @@ export interface IArrowTrailPoint {
 }
 export type ArrowTrailPoint = IArrowTrailPoint;
 
-/** Summary: Runtime physics state for an active flying or lodged projectile arrow. */
+/**
+ * Summary: Active ballistic projectile simulated in flight.
+ * Design: Integrates gravity, velocity, drag, and collision queries against targets and terrain.
+ */
 export interface IArrowProjectile {
   id: number;
   x: number;
@@ -848,13 +696,54 @@ export interface IArrowProjectile {
   age: number;
   trail: IArrowTrailPoint[];
 }
-export type ArrowProjectile = IArrowProjectile;
 
-/** Summary: Interface for decoupled UI game action dispatches (equip, market, hotbar). */
+/**
+ * Summary: Error code enumeration returned on failed marketplace economy transactions.
+ * Design: Strongly-typed diagnostic identifiers used to display localized user error notices.
+ */
+export type MarketTransactionErrorCode =
+  | 'NOT_IN_MARKET'
+  | 'ALREADY_OWNED'
+  | 'LEVEL_TOO_LOW'
+  | 'INSUFFICIENT_GOLD'
+  | 'ITEM_NOT_FOUND'
+  | 'NOT_OWNED'
+  | 'CANNOT_SELL'
+  | 'CANNOT_SELL_STARTER_GEAR';
+
+/**
+ * Summary: Success payload generated upon successful item purchase at a market stall.
+ * Design: Returns remaining gold balance and reference to the newly acquired inventory item.
+ */
+export interface IBuyMarketItemPayload {
+  readonly goldCoins: number;
+  readonly requiredLevel: number;
+  readonly playerLevel: number;
+}
+
+/**
+ * Summary: Success payload generated upon successful item sale at a market stall.
+ * Design: Returns updated gold balance and identification of the relinquished material.
+ */
+export interface ISellMarketItemPayload {
+  readonly goldCoins: number;
+  readonly soldForGold: number;
+}
+
+/**
+ * Summary: Union of successful marketplace transaction outcomes (buy or sell).
+ * Design: Strongly-typed result payload for Result.ok returns in economy actions.
+ */
+export type IMarketTransactionSuccess = IBuyMarketItemPayload | ISellMarketItemPayload;
+
+/**
+ * Summary: Core interaction callback registry exposed to the game shell and UI overlays.
+ * Design: Bridges UI user gestures (clicks, hotkeys) to domain state mutation systems.
+ */
 export interface IGameActions {
   readonly onEquipItem: (id: InventoryItemId) => void;
-  readonly onBuyItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
-  readonly onSellItem: (id: InventoryItemId) => { ok: boolean; reasonHe: string };
+  readonly onBuyItem: (id: InventoryItemId) => Result<IBuyMarketItemPayload, MarketTransactionErrorCode>;
+  readonly onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
   readonly onAssignHotbar: (slotIndex: number, id: InventoryItemId) => void;
   readonly onToggleFavorite: (id: InventoryItemId) => void;
 }

@@ -18,7 +18,7 @@ import {
 } from '../domain/landmarksRegistry';
 import { groundHeightAt, isWithinViewDistance, chineseFortressStairHeightAt } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== INTERFACES & TYPES ======================== \\
@@ -36,6 +36,10 @@ interface IMartialArtsMonk {
   phase: number;
 }
 
+/**
+ * Summary: Structural handles and door pivots for the Northern Chinese Mountain Fortress.
+ * Design: Bundles rampart meshes, corner bastion watchtowers, and main hall entrance doors.
+ */
 export interface IFortressModelResult {
   fortressGroup: THREE.Group;
   updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => void;
@@ -46,10 +50,14 @@ export type FortressModelResult = IFortressModelResult;
 // ======================== FACTORY FUNCTION ======================== \\
 // #region Factory Function
 /**
+ * Summary: Build fortress models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the Northern Chinese Mountain Fortress, summits, hill watchtowers,
  * walkable rope bridge, and courtyard training monks.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildFortressModels.
  */
-export function buildFortressModels(ctx: WorldModelBuildContext): FortressModelResult {
+export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressModelResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 

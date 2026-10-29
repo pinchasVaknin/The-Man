@@ -1,6 +1,6 @@
 {
-  "name": "שביל הטבע — עולם תלת־ממדי חי",
-  "description": "סימולטור הליכה בגוף ראשון בעולם טבע תלת־ממדי ריאליסטי עם יערות, אגם מים, שמיים דינמיים, שמש וצללים בזמן אמת.",
+  "name": "TheMan - 3D Nature & RPG World",
+  "description": "Realistic open-world 3D procedural adventure with horse riding, archery, sword combat, dynamic weather, and Skyrim-style trading economy.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

@@ -20,6 +20,10 @@ import {
   computeDwarvenMinerCaravanState,
 } from '../systems/dwarvenMineAndCaravanSystem';
 
+/**
+ * Summary: Rig representation for an individual animated dwarven miner mesh.
+ * Design: Encapsulates Three.js group, pickaxe pivot, and temporal offset for rhythmic swings.
+ */
 export interface IDwarvenMinerRig {
   root: THREE.Group;
   leftLeg: THREE.Group;
@@ -31,6 +35,10 @@ export interface IDwarvenMinerRig {
 }
 export type DwarvenMinerRig = IDwarvenMinerRig;
 
+/**
+ * Summary: Construction context for generating the dwarven kingdom environment.
+ * Design: Supplies Three.js scene, textures, and asset factories to dwarven kingdom builder.
+ */
 export interface IDwarvenKingdomBuilderContext {
   scene: THREE.Scene;
   mineGroup: THREE.Group;
@@ -59,6 +67,10 @@ export interface IDwarvenKingdomBuilderContext {
 }
 export type DwarvenKingdomBuilderContext = IDwarvenKingdomBuilderContext;
 
+/**
+ * Summary: Runtime handle for ticking dwarven kingdom animations and caravan movements.
+ * Design: Exposes update callback invoked per frame within the main rendering loop.
+ */
 export interface IDwarvenKingdomHandle {
   dwarvenMiners: IDwarvenMinerRig[];
   updateDwarvenMiners: (
@@ -81,9 +93,15 @@ export type DwarvenKingdomHandle = IDwarvenKingdomHandle;
  * - 4 Enterable Hollow Dwarven Stone Houses (`DWARVEN_STONE_HOUSES`) with interactive [E] doors
  * - 8 Animated LOTR-Style Dwarven Miners (`dwarvenMiners`) & per-frame Caravan/Mining animator
  */
+/**
+ * Summary: Instantiates dwarven stone houses, guardian statues, mines, and miner rigs.
+ * Design: Assembles architectural models into scene and binds caravan schedule animator.
+ * @param ctx The builder context holding scene, textures, and materials.
+ * @returns IDwarvenKingdomHandle containing per-frame update loop for miner rigs.
+ */
 export function buildDwarvenKingdomAndMiners(
-  ctx: DwarvenKingdomBuilderContext
-): DwarvenKingdomHandle {
+  ctx: IDwarvenKingdomBuilderContext
+): IDwarvenKingdomHandle {
   const {
     scene,
     mineGroup,
@@ -486,7 +504,7 @@ export function buildDwarvenKingdomAndMiners(
     dwBeardRingGeo
   );
 
-  const dwarvenMiners: DwarvenMinerRig[] = [];
+  const dwarvenMiners: IDwarvenMinerRig[] = [];
 
   for (let d = 0; d < DWARVEN_MINERS_COUNT; d++) {
     const dwRoot = new THREE.Group();

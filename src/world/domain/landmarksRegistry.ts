@@ -81,7 +81,7 @@ export {
 } from './landmarks/fortressLandmarks';
 // #endregion
 
-// ======================== INTERACTIONS (LADDERS & DOORS) ======================== \\
+// ======================== INTERACTIONS LADDERS AND DOORS ======================== \\
 // #region Interactions
 export {
   getLadderById,

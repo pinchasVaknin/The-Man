@@ -7,13 +7,17 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type * as THREE from 'three';
-import type { WorldTextureSet } from '../proceduralTextures';
-import type { ObstacleCylinder } from '../domain/worldTypes';
+import type { IWorldTextureSet } from '../proceduralTextures';
+import type { IObstacleCylinder } from '../domain/worldTypes';
 import type { IArchitecturalSharedAssets } from './architecturalHelpers';
 // #endregion
 
 // ======================== SHARED BUILDER INTERFACES ======================== \\
 // #region Shared Builder Interfaces
+/**
+ * Summary: Three.js object entry registered for dynamic distance-based frustum/range culling.
+ * Design: Evaluates distance squared from camera to toggle visibility and save draw calls.
+ */
 export interface IDistanceCulledObject {
   readonly obj: THREE.Object3D;
   readonly cx: number;
@@ -22,6 +26,10 @@ export interface IDistanceCulledObject {
 }
 export type DistanceCulledObject = IDistanceCulledObject;
 
+/**
+ * Summary: Pivot handle representation for an interactive hinged door mesh.
+ * Design: Rotates door mesh about its hinge axis when opened or closed.
+ */
 export interface IDoorPivotHandle {
   readonly id: string;
   readonly leftPivot: THREE.Group;
@@ -30,10 +38,14 @@ export interface IDoorPivotHandle {
 }
 export type DoorPivotHandle = IDoorPivotHandle;
 
+/**
+ * Summary: Shared context passed down through procedural architectural model generators.
+ * Design: Bundles Three.js scene, textures, materials, and distance culling registries.
+ */
 export interface IWorldModelBuildContext {
   readonly scene: THREE.Scene;
-  readonly textures: WorldTextureSet;
-  readonly obstacles: ObstacleCylinder[];
+  readonly textures: IWorldTextureSet;
+  readonly obstacles: IObstacleCylinder[];
   readonly isSoftwareGl: boolean;
   readonly disposableGeometries: THREE.BufferGeometry[];
   readonly disposableMaterials: THREE.Material[];

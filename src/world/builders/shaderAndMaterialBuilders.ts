@@ -16,6 +16,15 @@ import { fbm2D, hash2D } from '../domain/noiseAndMath';
 /**
  * Perturbs geometry vertices organically using multi-octave 2D fractional Brownian motion.
  */
+/**
+ * Summary: Introduces organic pseudo-random noise displacement to geometry vertices.
+ * Design: Perturbs vertex normals and positions on CPU to prevent synthetic low-poly look.
+ * @param geom BufferGeometry to displace.
+ * @param scale Maximum displacement magnitude in world units.
+ * @param amount Input parameter amount.
+ * @param freq Input parameter freq.
+ * @returns Void.
+ */
 export function perturbGeometryVertices(
   geo: THREE.BufferGeometry,
   amount: number,
@@ -38,6 +47,16 @@ export function perturbGeometryVertices(
 // #region Wind & Wave Shaders
 /**
  * Injects a GPU vertex wind sway animation into Standard material shaders.
+ */
+/**
+ * Summary: Attaches vertex shader hook to simulate wind sway on foliage and vegetation.
+ * Design: Injects GLSL onBeforeCompile callback modifying vertex position along wind vector.
+ * @param mat Three.js material to augment.
+ * @param swayStrength Scalar magnitude of vertex displacement.
+ * @param strength Input parameter strength.
+ * @param frequency Input parameter frequency.
+ * @param swayMaterials Input parameter swayMaterials.
+ * @returns Void.
  */
 export function attachWindSwayShader(
   mat: THREE.MeshStandardMaterial,
@@ -74,6 +93,13 @@ export function attachWindSwayShader(
  * Horizontal flag wave shader: keeps the left edge (position.x == 0, attached to the flagpole)
  * completely stationary while the right edge (position.x == flagWidth) waves freely in the wind.
  */
+/**
+ * Summary: Attaches vertex shader hook simulating horizontal fluttering waves on cloth banners.
+ * Design: Modifies vertex X displacement as sinusoidal function of Z and time.
+ * @param mat Three.js material to augment.
+ * @param waveAmplitude Amplitude of cloth wave motion.
+ * @returns Void.
+ */
 export function attachFlagHorizontalWaveShader(
   mat: THREE.MeshStandardMaterial,
   flagWidth: number,
@@ -107,7 +133,10 @@ export function attachFlagHorizontalWaveShader(
 // ======================== PROCEDURAL TEXTURES ======================== \\
 // #region Procedural Textures
 /**
+ * Summary: Create birch bark texture.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Generates a procedural Silver Birch bark texture (pale silver-white bark with dark horizontal lenticel markings).
+ * @returns Computed result for createBirchBarkTexture.
  */
 export function createBirchBarkTexture(): THREE.CanvasTexture {
   const w = 128;

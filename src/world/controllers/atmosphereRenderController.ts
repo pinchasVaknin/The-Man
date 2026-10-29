@@ -10,8 +10,8 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import {
-  DynamicAtmosphereState,
-  WeatherStateSnapshot,
+  IDynamicAtmosphereState,
+  IWeatherStateSnapshot,
   computeDynamicSolarCycle,
 } from '../terrainMath';
 
@@ -23,6 +23,10 @@ const _lightningColor = new THREE.Color(0xdbeafe);
 
 // ======================== CONTEXT & TYPES ======================== \\
 // #region Context & Types
+/**
+ * Summary: Rendering context for dynamic atmosphere and celestial lighting updates.
+ * Design: Bundles sky dome, sun light, ambient light, fog, and water shader uniforms.
+ */
 export interface IAtmosphereRenderContext {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
@@ -43,14 +47,20 @@ export type AtmosphereRenderContext = IAtmosphereRenderContext;
 // ======================== CONTROLLER LOGIC ======================== \\
 // #region Controller Logic
 /**
+ * Summary: Apply dynamic atmosphere to scene.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Controller Pattern: Applies dynamic solar cycle and weather state to the Three.js scene,
  * Preetham sky shader, directional/hemisphere lights, exponential fog, water material, and lanterns.
+ * @param ctx Input parameter ctx.
+ * @param hours Input parameter hours.
+ * @param weather Input parameter weather.
+ * @returns Computed result for applyDynamicAtmosphereToScene.
  */
 export function applyDynamicAtmosphereToScene(
-  ctx: AtmosphereRenderContext,
+  ctx: IAtmosphereRenderContext,
   hours: number,
-  weather?: WeatherStateSnapshot
-): DynamicAtmosphereState {
+  weather?: IWeatherStateSnapshot
+): IDynamicAtmosphereState {
   const {
     scene,
     renderer,

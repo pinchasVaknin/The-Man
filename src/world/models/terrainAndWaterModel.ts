@@ -19,13 +19,20 @@ import {
   northernSnowZoneFactorAt,
   fbm2D,
 } from '../terrainMath';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== SHADER HELPERS ======================== \\
 // #region Shader Helpers
 /**
+ * Summary: Attach animated water wave shader.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Attaches a dynamic vertex wave and fragment normal ripple deformation shader to water materials.
+ * @param mat Input parameter mat.
+ * @param waveHeight Input parameter waveHeight.
+ * @param rippleStrength Input parameter rippleStrength.
+ * @param animatedWaterMaterials Input parameter animatedWaterMaterials.
+ * @returns Computed result for attachAnimatedWaterWaveShader.
  */
 export function attachAnimatedWaterWaveShader(
   mat: THREE.MeshPhysicalMaterial,
@@ -74,6 +81,10 @@ function smoothstepLocal(edge0: number, edge1: number, val: number): number {
 
 // ======================== BUILD TERRAIN & WATER ======================== \\
 // #region Build Terrain & Water
+/**
+ * Summary: Meshes and material uniforms generated for ground terrain and water planes.
+ * Design: Supplies terrain mesh, custom shader uniforms, and swimmable water surfaces.
+ */
 export interface ITerrainAndWaterResult {
   readonly waterMaterial: THREE.MeshPhysicalMaterial;
   readonly terrainMaterial: THREE.MeshStandardMaterial;
@@ -81,9 +92,13 @@ export interface ITerrainAndWaterResult {
 export type TerrainAndWaterResult = ITerrainAndWaterResult;
 
 /**
+ * Summary: Build terrain and water model.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Builds the 7x7 spatially chunked terrain grid and the animated central water surface mesh.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildTerrainAndWaterModel.
  */
-export function buildTerrainAndWaterModel(ctx: WorldModelBuildContext): TerrainAndWaterResult {
+export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrainAndWaterResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, animatedWaterMaterials, distanceCulledObjects } = ctx;
 
   textures.terrainAlbedo.repeat.set(28, 28);

@@ -18,11 +18,15 @@ import {
   groundHeightAt,
 } from '../terrainMath';
 import { createBirchBarkTexture } from '../builders/shaderAndMaterialBuilders';
-import type { WorldModelBuildContext } from './types';
+import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== SETTLEMENT MODEL INTERFACE ======================== \\
 // #region Settlement Model Interface
+/**
+ * Summary: Interactive door handles and ladder climb triggers across village settlements.
+ * Design: Exposes hunter lodge doors and hill watchtower ladder entry bounds.
+ */
 export interface ISettlementModelHandles {
   readonly rowboatGroup: THREE.Group;
   readonly updateSettlement: (elapsedTime: number) => void;
@@ -33,9 +37,13 @@ export type SettlementModelHandles = ISettlementModelHandles;
 // ======================== BUILD SETTLEMENT MODELS ======================== \\
 // #region Build Settlement Models
 /**
+ * Summary: Build settlement models.
+ * Design: Standard domain component following SRP and clean architectural contracts.
  * Constructs the rural settlement landmarks, hunter's compound, windmills, and waterfall.
+ * @param ctx Input parameter ctx.
+ * @returns Computed result for buildSettlementModels.
  */
-export function buildSettlementModels(ctx: WorldModelBuildContext): SettlementModelHandles {
+export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlementModelHandles {
   const {
     scene,
     textures,

@@ -10,15 +10,15 @@
 import * as THREE from 'three';
 import {
   ArrowElementKind,
-  ArrowProjectile,
+  IArrowProjectile,
   EquippedToolSlot,
   InventoryItemId,
-  ObstacleCylinder,
-  PlayerState,
-  RideableHorseState,
-  DynamicAtmosphereState,
+  IObstacleCylinder,
+  IPlayerState,
+  IRideableHorseState,
+  IDynamicAtmosphereState,
   WeatherCycleMode,
-  WeatherStateSnapshot,
+  IWeatherStateSnapshot,
   WeatherToggleOption,
   assignHotbarSlot,
   buyMarketItem,
@@ -36,12 +36,17 @@ import {
   walkableHeightAt,
 } from '../terrainMath';
 import { NatureSoundEngine } from '../soundEngine';
+import { clamp, validateCoordinate, validateWorldHour } from '../../core/config';
 
+/**
+ * Summary: Dependency injection contract for registering window-level debug bridge methods.
+ * Design: Injects refs, state getters, and target window to enable headless testing.
+ */
 export interface IWindowDebugBridgeDeps {
-  playerState: PlayerState;
-  obstacles: ObstacleCylinder[];
-  rideableHorses: RideableHorseState[];
-  activeArrows: ArrowProjectile[];
+  playerState: IPlayerState;
+  obstacles: IObstacleCylinder[];
+  rideableHorses: IRideableHorseState[];
+  activeArrows: IArrowProjectile[];
   openDoorIds: Set<string>;
   camera: THREE.PerspectiveCamera;
   soundEngine: NatureSoundEngine;
@@ -50,13 +55,14 @@ export interface IWindowDebugBridgeDeps {
   setActiveWeatherMode: (mode: WeatherCycleMode) => void;
   setSmoothAimZoom: (val: number) => void;
   setSmoothRightClickZoom: (val: number) => void;
-  fireArrowNow: (power: number) => ArrowProjectile | null;
+  fireArrowNow: (power: number) => IArrowProjectile | null;
   executeSwordSlash: (isHeavy?: boolean) => ReturnType<typeof triggerSwordSlash> | null;
   getWorldHours: () => number;
   setWorldHoursAndApply: (hours: number) => number;
-  getCurrentAtmo: () => DynamicAtmosphereState;
-  getCurrentWeather: () => WeatherStateSnapshot;
+  getCurrentAtmo: () => IDynamicAtmosphereState;
+  getCurrentWeather: () => IWeatherStateSnapshot;
   emitHudSnapshot?: () => void;
+  readonly targetWindow?: Window | Record<string, unknown>;
 }
 export type WindowDebugBridgeDeps = IWindowDebugBridgeDeps;
 // #endregion
@@ -67,6 +73,12 @@ export type WindowDebugBridgeDeps = IWindowDebugBridgeDeps;
  * Controller Pattern: Registers deterministic window debug/inspection hooks (`render_game_to_text`,
  * `teleportPlayer`, `drawBow`, `shootArrow`, `swingSword`, `setWorldHours`, etc.) for automated testing.
  * @returns Cleanup function that unbinds all registered properties from window.
+ */
+/**
+ * Summary: Exposes browser window debug functions for teleportation, time, and combat testing.
+ * Design: Validates and sanitizes all inputs defensively before updating game state refs.
+ * @param deps Injected state references and target window object.
+ * @returns Cleanup unbind function removing window debug hooks.
  */
 export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => void {
   const {
@@ -90,7 +102,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     emitHudSnapshot,
   } = deps;
 
-  const win = window as unknown as Record<string, unknown>;
+  const win = (deps.targetWindow ?? (typeof window !== 'undefined' ? window : (globalThis as unknown as Window))) as Record<string, unknown>;
   const registeredKeys: string[] = [];
 
   const bind = (key: string, fn: unknown) => {
@@ -98,53 +110,86 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     registeredKeys.push(key);
   };
 
-  bind('setWeatherCycleMode', (mode: WeatherCycleMode) => {
-    setActiveWeatherMode(mode);
-  });
+  const VALID_WEATHER_TOGGLES = new Set<WeatherToggleOption>([
+    'auto',
+    'regional_rain',
+    'dense_fog',
+    'lightning_storm',
+    'clear_clouds',
+  ]);
 
-  bind('setWeatherOverride', (kind: WeatherToggleOption) => {
-    weatherToggleRef.current = kind;
-  });
-
-  bind('teleportPlayer', (x?: number, z?: number, yaw?: number, y?: number, pitch?: number) => {
-    if (x !== undefined && z !== undefined) {
-      if (playerState.mountedHorseId && Math.hypot(x - playerState.x, z - playerState.z) > 12) {
-        playerState.mountedHorseId = null;
-      }
-      playerState.x = x;
-      playerState.z = z;
-    } else {
-      if (x !== undefined) playerState.x = x;
-      if (z !== undefined) playerState.z = z;
+  bind('setWeatherCycleMode', (mode: unknown) => {
+    if (mode === 'seasonal' || mode === 'turbo_test') {
+      setActiveWeatherMode(mode);
+      return true;
     }
+    return false;
+  });
+
+  bind('setWeatherOverride', (kind: unknown) => {
+    if (typeof kind === 'string' && VALID_WEATHER_TOGGLES.has(kind as WeatherToggleOption)) {
+      weatherToggleRef.current = kind as WeatherToggleOption;
+      return true;
+    }
+    return false;
+  });
+
+  bind('teleportPlayer', (x?: unknown, z?: unknown, yaw?: unknown, y?: unknown, pitch?: unknown) => {
+    if (x !== undefined && (!Number.isFinite(x) || typeof x !== 'number')) return false;
+    if (z !== undefined && (!Number.isFinite(z) || typeof z !== 'number')) return false;
+    if (y !== undefined && (!Number.isFinite(y) || typeof y !== 'number')) return false;
+    if (yaw !== undefined && (!Number.isFinite(yaw) || typeof yaw !== 'number')) return false;
+    if (pitch !== undefined && (!Number.isFinite(pitch) || typeof pitch !== 'number')) return false;
+
+    const targetX = x !== undefined ? validateCoordinate(x as number) : playerState.x;
+    const targetZ = z !== undefined ? validateCoordinate(z as number) : playerState.z;
+
+    if (playerState.mountedHorseId && Math.hypot(targetX - playerState.x, targetZ - playerState.z) > 12) {
+      playerState.mountedHorseId = null;
+    }
+    playerState.x = targetX;
+    playerState.z = targetZ;
+
     playerState.y =
-      y !== undefined ? y : walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+      y !== undefined
+        ? clamp(y as number, -100, 500)
+        : walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+
     playerState.vx = 0;
     playerState.vy = 0;
     playerState.vz = 0;
     playerState.climbingLadderId = null;
-    if (yaw !== undefined) playerState.yaw = yaw;
-    if (pitch !== undefined) playerState.pitch = pitch;
+    if (yaw !== undefined) playerState.yaw = yaw as number;
+    if (pitch !== undefined) playerState.pitch = clamp(pitch as number, -Math.PI / 2, Math.PI / 2);
     emitHudSnapshot?.();
+    return true;
   });
 
-  bind('drawBow', (progress = 1.0) => {
+  bind('drawBow', (progress: unknown = 1.0) => {
     if (playerState.isSwimming) return 0;
+    const validProgress =
+      typeof progress === 'number' && Number.isFinite(progress) ? clamp(progress, 0, 1) : 1.0;
     playerState.equippedTool = 'bow';
     playerState.bowDrawn = true;
-    playerState.bowDrawProgress = Math.max(0, Math.min(1, progress));
-    setSmoothAimZoom(playerState.bowDrawProgress > 0 ? 1.0 : 0.0);
+    playerState.bowDrawProgress = validProgress;
+    setSmoothAimZoom(validProgress > 0 ? 1.0 : 0.0);
     soundEngine.playBowDraw();
     emitHudSnapshot?.();
     return playerState.bowDrawProgress;
   });
 
-  bind('shootArrow', (power = 1.0) => {
-    return fireArrowNow(power);
+  bind('shootArrow', (power: unknown = 1.0) => {
+    const validPower =
+      typeof power === 'number' && Number.isFinite(power) ? clamp(power, 0.1, 1.0) : 1.0;
+    return fireArrowNow(validPower);
   });
 
-  bind('setEquippedTool', (tool: EquippedToolSlot) => {
-    playerState.equippedTool = tool;
+  const VALID_TOOLS = new Set<EquippedToolSlot>(['bow', 'sword', 'torch', 'unarmed']);
+  bind('setEquippedTool', (tool: unknown) => {
+    if (typeof tool !== 'string' || !VALID_TOOLS.has(tool as EquippedToolSlot)) {
+      return null;
+    }
+    playerState.equippedTool = tool as EquippedToolSlot;
     if (tool !== 'bow') {
       playerState.bowDrawn = false;
       playerState.bowDrawProgress = 0;
@@ -173,8 +218,14 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     };
   });
 
-  bind('assignHotbar', (slotIndex: number, itemId: InventoryItemId) => {
-    assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId);
+  bind('assignHotbar', (slotIndex: unknown, itemId: unknown) => {
+    if (typeof slotIndex !== 'number' || !Number.isFinite(slotIndex) || slotIndex < 0 || slotIndex > 3) {
+      return [...(playerState.hotbarSlots ?? [])];
+    }
+    if (typeof itemId !== 'string') {
+      return [...(playerState.hotbarSlots ?? [])];
+    }
+    assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId as InventoryItemId);
     emitHudSnapshot?.();
     return [...(playerState.hotbarSlots ?? [])];
   });
@@ -209,18 +260,28 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
   });
 
   bind('setSwordSwingDebugPose', (
-    progress: number | null,
-    comboIndex = 0,
-    isHeavy = false
+    progress: unknown,
+    comboIndex: unknown = 0,
+    isHeavy: unknown = false
   ) => {
+    const validProg =
+      progress === null
+        ? null
+        : typeof progress === 'number' && Number.isFinite(progress)
+          ? clamp(progress, 0, 1)
+          : 0;
+    const validCombo =
+      typeof comboIndex === 'number' && Number.isFinite(comboIndex)
+        ? clamp(Math.floor(comboIndex), 0, 2)
+        : 0;
     playerState.equippedTool = 'sword';
     playerState.bowDrawn = false;
     playerState.bowDrawProgress = 0;
-    playerState.swordComboIndex = comboIndex;
+    playerState.swordComboIndex = validCombo;
     playerState.swordHeavyAttack = Boolean(isHeavy);
-    playerState.swordDebugFreezeProgress = progress;
-    playerState.swordSwingProgress = progress ?? 0;
-    return classifySwordAttackPhase(playerState.swordSwingProgress);
+    playerState.swordDebugFreezeProgress = validProg;
+    playerState.swordSwingProgress = validProg ?? 0;
+    return classifySwordAttackPhase(playerState.swordSwingProgress ?? 0);
   });
 
   bind('setBowZoom', (active = true) => {
@@ -261,8 +322,12 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     return playerState.cameraPerspective;
   });
 
-  bind('setWorldHours', (hours: number) => {
-    return setWorldHoursAndApply(hours);
+  bind('setWorldHours', (hours: unknown) => {
+    if (typeof hours !== 'number' || !Number.isFinite(hours)) {
+      return getWorldHours();
+    }
+    const validHours = validateWorldHour(hours);
+    return setWorldHoursAndApply(validHours);
   });
 
   bind('getPlayerState', () => {
@@ -317,7 +382,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       goldCoins: playerState.goldCoins ?? 280,
       ownedItemIds: playerState.ownedItemIds ?? [],
       heroLevel: getPlayerHeroLevel(playerState),
-      nearbyMarket: nearMarket ? { id: nearMarket.id, nameHe: nearMarket.nameHe } : null,
+      nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
       swordSwingProgress: Number((playerState.swordSwingProgress ?? 0).toFixed(2)),
       swordAttackPhase: classifySwordAttackPhase(playerState.swordSwingProgress ?? 0).phase,
       swordStrikePending: Boolean(playerState.swordStrikePending),
@@ -334,22 +399,22 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       activeArrowsCount: activeArrows.length,
       walkPace: playerState.walkPace,
       mountedHorseId: playerState.mountedHorseId,
-      nearbyHorse: nearHorse ? { id: nearHorse.id, nameHe: nearHorse.nameHe } : null,
+      nearbyHorse: nearHorse ? { id: nearHorse.id, name: nearHorse.name } : null,
       worldHours: Number(worldHours.toFixed(2)),
       timeString: currentAtmo.timeString,
-      phaseLabelHe: currentAtmo.phaseLabelHe,
+      phaseLabel: currentAtmo.phaseLabel,
       isNight: currentAtmo.isNight,
       weatherMode: currentWeather.mode,
       weatherToggle: weatherToggleRef.current,
       season: currentWeather.season,
       weatherKind: currentWeather.weatherKind,
-      weatherLabelHe: currentWeather.weatherLabelHe,
+      weatherLabel: currentWeather.weatherLabel,
       wetness: Number(currentWeather.wetness.toFixed(2)),
       fogIntensity: Number(currentWeather.fogIntensity.toFixed(2)),
       nearbyDoor: nearDoor
         ? {
             id: nearDoor.id,
-            buildingNameHe: nearDoor.buildingNameHe,
+            buildingName: nearDoor.buildingName,
             isOpen: openDoorIds.has(nearDoor.id),
           }
         : null,
