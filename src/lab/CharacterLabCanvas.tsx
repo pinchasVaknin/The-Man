@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
   computeLabAnimationCycleProgress,
+  getEffectiveLabAnimationSpeed,
   type ILabAnimationDef,
   type ILabEntityDef,
   type ILabPoseOverrides,
@@ -183,18 +184,25 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
     }
   }, [animation.id]);
 
-  // Apply pose overrides immediately (e.g., sword rotation, limb tweaks, amplitude)
+  // Apply pose overrides immediately when paused or in static rest pose
   useEffect(() => {
     const s = stateRef.current;
-    const cycleProg = computeLabAnimationCycleProgress(
-      s.animation,
-      0,
-      s.playbackSpeed,
-      s.isPaused,
-      s.manualPhase
-    );
-    rigRef.current?.applyAnimation(s.animation.id, 0, cycleProg, poseOverrides);
-    sceneObjectsRef.current?.renderNow();
+    if (s.isPaused || s.animation.id === 'none') {
+      const effectiveSpeed = getEffectiveLabAnimationSpeed(
+        poseOverrides,
+        s.animation.id,
+        s.playbackSpeed
+      );
+      const cycleProg = computeLabAnimationCycleProgress(
+        s.animation,
+        0,
+        effectiveSpeed,
+        s.isPaused,
+        s.manualPhase
+      );
+      rigRef.current?.applyAnimation(s.animation.id, 0, cycleProg, poseOverrides);
+      sceneObjectsRef.current?.renderNow();
+    }
   }, [poseOverrides]);
 
   // Apply wireframe updates dynamically
@@ -581,8 +589,13 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       lastTime = now;
 
       const s = stateRef.current;
+      const effectiveSpeed = getEffectiveLabAnimationSpeed(
+        s.poseOverrides,
+        s.animation.id,
+        s.playbackSpeed
+      );
       if (!s.isPaused && s.animation.id !== 'none') {
-        elapsedSec += dt;
+        elapsedSec += dt * effectiveSpeed;
       }
 
       if (s.autoTurntable) {
@@ -593,7 +606,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       const cycleProg = computeLabAnimationCycleProgress(
         s.animation,
         elapsedSec,
-        s.playbackSpeed,
+        1.0,
         s.isPaused,
         s.manualPhase
       );

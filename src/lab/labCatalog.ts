@@ -115,6 +115,10 @@ export interface ILabPoseOverrides {
   readonly bodyRotYDeg: number;
   readonly bodyRotZDeg: number;
   readonly bodyOffsetY: number;
+  /** Persistent playback speed multiplier for this entity across all animations (0.1 to 3.0, default 1.0) */
+  readonly animationSpeedMultiplier?: number;
+  /** Persistent per-animation playback speed multipliers (animationId -> multiplier 0.1 to 3.0) */
+  readonly perAnimationSpeeds?: Readonly<Record<string, number>>;
 }
 
 export const DEFAULT_LAB_POSE_OVERRIDES: ILabPoseOverrides = {
@@ -141,6 +145,8 @@ export const DEFAULT_LAB_POSE_OVERRIDES: ILabPoseOverrides = {
   bodyRotYDeg: 0,
   bodyRotZDeg: 0,
   bodyOffsetY: 0,
+  animationSpeedMultiplier: 1.0,
+  perAnimationSpeeds: {},
 };
 
 export interface ILabSessionState {
@@ -863,12 +869,12 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocationHe: 'יערות האורנים והאחו המערבי',
     worldCoordinatesText: '5 נקודות מרעה ביער',
     worldInstanceCount: 5,
-    sourceFile: 'src/world/models/environmentAtmosphereModels.ts',
+    sourceFile: 'src/world/models/Deer.ts (public/models/Deer_Complete.ts)',
     descriptionHe:
-      'עדר האיילים של השמורה — כולל איילים זכרים בעלי קרניים מסועפות ואיילות עדינות. ביום הם צועדים ומלחכים עשב, ובלילה כורעים לישון.',
-    defaultCameraDistance: 3.5,
-    defaultCameraTargetY: 0.95,
-    anatomyTagsHe: ['קרניים מסועפות', 'צוואר וראש מתכווננים', '4 רגליים דקות', 'פרוות יער'],
+      'מודל הצבי המלא (Deer_Complete) עם שלד אוטומטי בן 27 עצמות, טקסטורה מוטמעת ו־9 אנימציות IK פרוצדורליות מלאות: עמידה, הליכה, אכילה, קריאה, שכיבה, ריצה, בריחה, דילוג ומוות.',
+    defaultCameraDistance: 3.2,
+    defaultCameraTargetY: 0.72,
+    anatomyTagsHe: ['שלד 27 עצמות', 'קרניים מסועפות', 'מפרק לסת מדויק', '9 אנימציות IK'],
     animations: [
       {
         id: 'none',
@@ -878,28 +884,58 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
         loopDurationSec: 1,
       },
       {
-        id: 'deer_walk',
-        nameHe: 'הליכה שקטה ביער',
-        descriptionHe: 'צעידה אצילית בין העצים עם תנודת צוואר עדינה.',
-        loopDurationSec: 1.5,
-      },
-      {
-        id: 'deer_graze',
-        nameHe: 'ליחוך עשב באחו',
-        descriptionHe: 'הרכנת הצוואר והראש אל העשב הטרי.',
-        loopDurationSec: 2.8,
-      },
-      {
-        id: 'deer_sleep',
-        nameHe: 'שינת לילה על הקרקע',
-        descriptionHe: 'קיפול רגליים, הנמכת הגוף אל הקרקע ונשימת שינה שלווה.',
+        id: 'idle',
+        nameHe: 'עמידה דרוכה ונשימה (Idle)',
+        descriptionHe: 'עמידה טבעית ביער עם נשימה עדינה, מצמוץ אוזניים, תנועת זנב והפניית ראש.',
         loopDurationSec: 4.0,
       },
       {
-        id: 'deer_leap',
-        nameHe: 'ניתור יער (Stag Bound)',
-        descriptionHe: 'קפיצה קשתית חיננית מעל מכשולים בשביל.',
-        loopDurationSec: 1.2,
+        id: 'walk',
+        nameHe: 'הליכה מרובעת ביער (Walk)',
+        descriptionHe: 'צעידה אצילית במחזור מרובע מלא עם כיפוף ברכיים וקרסוליים ותנודת צוואר.',
+        loopDurationSec: 1.5,
+      },
+      {
+        id: 'eat',
+        nameHe: 'אכילה וליחוך עשב (Eat)',
+        descriptionHe: 'הרכנת הצוואר והראש אל העשב הטרי עם תנועת לעיסה של הלסת התחתונה.',
+        loopDurationSec: 3.2,
+      },
+      {
+        id: 'call',
+        nameHe: 'קריאת אייל / שאגה (Call)',
+        descriptionHe: 'הרמת החזה והצוואר מעלה, פתיחת הלסת התחתונה ושאגת אייל מרשימה.',
+        loopDurationSec: 3.0,
+      },
+      {
+        id: 'lie',
+        nameHe: 'שכיבה ומנוחה על הקרקע (Lie)',
+        descriptionHe: 'קיפול רגליים הדרגתי, הנמכת האגן אל הקרקע ונשימת מנוחה שלווה.',
+        loopDurationSec: 4.0,
+      },
+      {
+        id: 'run',
+        nameHe: 'ריצה ודהירה מהירה (Run)',
+        descriptionHe: 'דהירה דינמית במחזור Rotary Gallop עם השענת צוואר קדימה וניתור מלא.',
+        loopDurationSec: 0.9,
+      },
+      {
+        id: 'flee',
+        nameHe: 'בריחה מהירה וזיגזג (Flee)',
+        descriptionHe: 'מילוט מהיר מסכנה עם זנב מורם לאזהרה, אוזניים משוכות לאחור ופניות חדות.',
+        loopDurationSec: 0.8,
+      },
+      {
+        id: 'skip',
+        nameHe: 'דילוג וניתור יער (Skip / Pronking)',
+        descriptionHe: 'ניתור קשתי חינני (Stotting) עם דחיפת 4 הרגליים וריחוף באוויר.',
+        loopDurationSec: 1.1,
+      },
+      {
+        id: 'death',
+        nameHe: 'מוות וקריסה על הקרקע (Death)',
+        descriptionHe: 'קריסה דרמטית של הרגליים ונפילה על הצד אל הקרקע.',
+        loopDurationSec: 3.5,
       },
     ],
     skins: [
@@ -949,6 +985,284 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
           secondaryHex: 0xa8a29e,
           accentHex: 0x1c1917,
           hasAntlers: true,
+        },
+      },
+    ],
+  },
+
+  {
+    id: 'forest_bear',
+    nameHe: 'דוב היער החום',
+    subtitleHe: 'דוב גריזלי אדיר החי ביערות העבותים ובמורדות ההרים',
+    category: 'animals',
+    categoryLabelHe: 'חיות',
+    worldLocationHe: 'יער האורנים הצפוני ובקתת הצייד',
+    worldCoordinatesText: '3 דובים ביערות ובהרים',
+    worldInstanceCount: 3,
+    sourceFile: 'src/world/models/Bear.ts (public/models/Bear_Complete.ts)',
+    descriptionHe:
+      'מודל הדוב המלא (Bear_Complete) עם שלד 37 מפרקים, 4,664 קודקודים, טקסטורה מוטמעת ו־13 אנימציות: עמידה, הליכה, אכילה, קריאה, שכיבה, ישיבה, ריצה קלה, ריצה, בריחה, דילוג, שאגה, תקיפה ומוות.',
+    defaultCameraDistance: 3.4,
+    defaultCameraTargetY: 0.68,
+    anatomyTagsHe: ['שלד 37 עצמות', 'טופרים ולסת מפרקיים', '13 אנימציות מלאות', 'טקסטורת פרווה מלאה'],
+    animations: [
+      {
+        id: 'none',
+        nameHe: 'ללא אנימציה (עמידת מוצא)',
+        descriptionHe: 'עמידת מוצא יציבה על ארבע כפות ללא תנועה.',
+        isStaticDefault: true,
+        loopDurationSec: 1,
+      },
+      {
+        id: 'idle',
+        nameHe: 'עמידה רגועה ונשימה (Idle)',
+        descriptionHe: 'עמידה כבדה עם נשימה עמוקה, תנודת ראש ורחרחנות קלה.',
+        loopDurationSec: 4.2,
+      },
+      {
+        id: 'walk',
+        nameHe: 'הליכה כבדה ביער (Walk)',
+        descriptionHe: 'צעידה מרובעת כבדה עם העברת משקל מצד לצד.',
+        loopDurationSec: 1.67,
+      },
+      {
+        id: 'eat',
+        nameHe: 'אכילה וליקוט ביער (Eat)',
+        descriptionHe: 'הרכנת הראש והצוואר לאכילת פירות יער ודבש עם תנועת לסתות.',
+        loopDurationSec: 7.33,
+      },
+      {
+        id: 'call',
+        nameHe: 'קריאת דוב / נהימה (Call)',
+        descriptionHe: 'הרמת הראש ופתיחת הלוע לנהימת אזהרה עמוקה.',
+        loopDurationSec: 4.0,
+      },
+      {
+        id: 'lie',
+        nameHe: 'שכיבה ומנוחה (Lie)',
+        descriptionHe: 'רביצה נינוחה על הבטן והכפות על קרקע היער.',
+        loopDurationSec: 4.17,
+      },
+      {
+        id: 'sit',
+        nameHe: 'ישיבה זקופה (Sit)',
+        descriptionHe: 'ישיבה על הרגליים האחוריות והתבוננות בסביבה.',
+        loopDurationSec: 5.0,
+      },
+      {
+        id: 'trot',
+        nameHe: 'ריצה קלה (Trot)',
+        descriptionHe: 'ריצה קלה אלכסונית ומהירה בשבילי היער.',
+        loopDurationSec: 0.67,
+      },
+      {
+        id: 'run',
+        nameHe: 'דהירה מהירה (Run)',
+        descriptionHe: 'ריצה עוצמתית מלאה עם כיפוף עמוד השדרה וניתור קדימה.',
+        loopDurationSec: 0.53,
+      },
+      {
+        id: 'flee',
+        nameHe: 'בריחה ודהירת מילוט (Flee)',
+        descriptionHe: 'דהירה מהירה ביותר בעת מילוט מסכנה.',
+        loopDurationSec: 0.47,
+      },
+      {
+        id: 'skip',
+        nameHe: 'דילוג וקפיצה (Skip)',
+        descriptionHe: 'ניתור כבד ודילוג קשתי מעל מכשולים ביער.',
+        loopDurationSec: 1.83,
+      },
+      {
+        id: 'roar',
+        nameHe: 'שאגת אימים (Roar)',
+        descriptionHe: 'התרוממות ושאגת דוב אדירה בפה פעור.',
+        loopDurationSec: 5.0,
+      },
+      {
+        id: 'attack',
+        nameHe: 'תקיפת טופרים ונשיכה (Attack)',
+        descriptionHe: 'הסתערות קדימה, הנפת כפות קדמיות ומכת טופרים עוצמתית.',
+        loopDurationSec: 2.4,
+      },
+      {
+        id: 'death',
+        nameHe: 'מוות וקריסה על הקרקע (Death)',
+        descriptionHe: 'קריסה כבדה של הדוב ונפילה על הקרקע.',
+        loopDurationSec: 1.8,
+      },
+    ],
+    skins: [
+      {
+        id: 'bear_grizzly_classic',
+        nameHe: 'דוב גריזלי חום (מקורי)',
+        subtitleHe: 'פרווה חומה עמוקה של יערות הצפון',
+        badgeColors: ['#6b4226', '#9c6b43', '#2a1810'],
+        palette: {
+          primaryHex: 0xffffff,
+          secondaryHex: 0x9c6b43,
+          accentHex: 0x2a1810,
+        },
+      },
+      {
+        id: 'bear_black_mountain',
+        nameHe: 'דוב שחור הררי',
+        subtitleHe: 'פרווה כהה של מצוקי הגמדים והרכסים',
+        badgeColors: ['#292524', '#57534e', '#0c0a09'],
+        palette: {
+          primaryHex: 0x57534e,
+          secondaryHex: 0x78716c,
+          accentHex: 0x1c1917,
+        },
+      },
+      {
+        id: 'bear_polar_frost',
+        nameHe: 'דוב שלגים לבן',
+        subtitleHe: 'פרווה בהירה המותאמת לפסגות המושלגות',
+        badgeColors: ['#f8fafc', '#e2e8f0', '#64748b'],
+        palette: {
+          primaryHex: 0xf8fafc,
+          secondaryHex: 0xe2e8f0,
+          accentHex: 0x475569,
+        },
+      },
+    ],
+  },
+
+  {
+    id: 'river_crocodile',
+    nameHe: 'תנין הנילוס והביצה',
+    subtitleHe: 'טורף שריוני שוכן גדות נהר, אגם ונווה מדבר',
+    category: 'animals',
+    categoryLabelHe: 'חיות',
+    worldLocationHe: 'גדות האגם המרכזי, הנהר ונווה המדבר',
+    worldCoordinatesText: '3 תנינים לאורך גדות המים',
+    worldInstanceCount: 3,
+    sourceFile: 'src/world/models/Crocodile.ts (public/models/Crocodile_Complete.ts)',
+    descriptionHe:
+      'מודל התנין המלא (Crocodile_Complete) עם שלד 49 מפרקים, 12,800 קודקודים, קשקשים משוריינים ו־13 אנימציות כולל רביצת שמש בפה פעור וגלגול מוות 720° (Death Roll) בתקיפה.',
+    defaultCameraDistance: 3.7,
+    defaultCameraTargetY: 0.35,
+    anatomyTagsHe: ['שלד 49 עצמות', 'מלתעות 60+ שיניים', 'גלגול מוות 720°', 'זנב שריוני מפרקי'],
+    animations: [
+      {
+        id: 'none',
+        nameHe: 'ללא אנימציה (עמידת מוצא)',
+        descriptionHe: 'עמידת מוצא שטוחה על ארבע רגליים וזנב ישר.',
+        isStaticDefault: true,
+        loopDurationSec: 1,
+      },
+      {
+        id: 'idle',
+        nameHe: 'רביצת גדה ונשימה (Idle)',
+        descriptionHe: 'עמידה נמוכה על הגדה עם תנועת נשימה בגרון ותנודת זנב איטית.',
+        loopDurationSec: 3.6,
+      },
+      {
+        id: 'walk',
+        nameHe: 'זחילה והליכה גלית (Walk)',
+        descriptionHe: 'הליכת תנין אופיינית עם פיתול S של הגוף והזנב.',
+        loopDurationSec: 1.8,
+      },
+      {
+        id: 'eat',
+        nameHe: 'אכילה וטריפה (Eat)',
+        descriptionHe: 'פתיחה וסגירה של המלתעות עם טלטול ראש לבליעת טרף.',
+        loopDurationSec: 3.2,
+      },
+      {
+        id: 'call',
+        nameHe: 'רביצה בפה פעור / לחישה (Call)',
+        descriptionHe: 'פתיחת לוע רחבה על הגדה לקירור תרמי ולחישת אזהרה.',
+        loopDurationSec: 3.0,
+      },
+      {
+        id: 'lie',
+        nameHe: 'רביצת שמש שטוחה (Lie)',
+        descriptionHe: 'השתטחות מלאה על חול הגדה ברגליים פרושות לצדדים.',
+        loopDurationSec: 4.0,
+      },
+      {
+        id: 'sit',
+        nameHe: 'התרוממות דרוכה על הגדה (Sit)',
+        descriptionHe: 'הרמת החזה והראש בזווית גבוהה לתצפית על המים.',
+        loopDurationSec: 3.8,
+      },
+      {
+        id: 'trot',
+        nameHe: 'הליכה גבוהה מהירה (High Walk / Trot)',
+        descriptionHe: 'הרמת הבטן מהקרקע ותנועה מהירה על ארבע רגליים.',
+        loopDurationSec: 1.6,
+      },
+      {
+        id: 'run',
+        nameHe: 'ריצת הסתערות (Gallop / Run)',
+        descriptionHe: 'דהירת תנין מהירה עם הצלפות זנב חזקות.',
+        loopDurationSec: 0.9,
+      },
+      {
+        id: 'flee',
+        nameHe: 'גלישת מילוט למים (Flee)',
+        descriptionHe: 'זינוק ופיתול גוף מהיר ביותר לעבר המים.',
+        loopDurationSec: 0.72,
+      },
+      {
+        id: 'skip',
+        nameHe: 'ניתור מים וזינוק (Skip / Lunge)',
+        descriptionHe: 'זינוק קשתי קדימה מתוך המים בדחיפת הזנב.',
+        loopDurationSec: 1.1,
+      },
+      {
+        id: 'roar',
+        nameHe: 'שאגת תנין והצלפת זנב (Roar)',
+        descriptionHe: 'קימור הגב, פתיחת מלתעות מקסימלית ורעידת שאגה.',
+        loopDurationSec: 3.0,
+      },
+      {
+        id: 'attack',
+        nameHe: 'תקיפת נשיכה וגלגול מוות 720° (Death Roll)',
+        descriptionHe: 'זינוק נשיכה עוצמתי וביצוע גלגול מוות כפול (720 מעלות) סביב ציר הגוף!',
+        loopDurationSec: 2.6,
+      },
+      {
+        id: 'death',
+        nameHe: 'מוות והתהפכות (Death)',
+        descriptionHe: 'קריסת רגליים, התהפכות ורפיון מלתעות על הקרקע.',
+        loopDurationSec: 2.2,
+      },
+    ],
+    skins: [
+      {
+        id: 'croc_nile_classic',
+        nameHe: 'תנין נילוס ירוק־זית (מקורי)',
+        subtitleHe: 'קשקשים משוריינים בגווני ירוק־זית ובוץ גדות',
+        badgeColors: ['#4d5d3b', '#8c8253', '#27321c'],
+        palette: {
+          primaryHex: 0xffffff,
+          secondaryHex: 0x8c8253,
+          accentHex: 0x27321c,
+        },
+      },
+      {
+        id: 'croc_swamp_shadow',
+        nameHe: 'תנין ביצות כהה',
+        subtitleHe: 'שריון קשקשים כהה להסוואה במים עמוקים',
+        badgeColors: ['#27382b', '#4b5563', '#0f172a'],
+        palette: {
+          primaryHex: 0x5c6f5e,
+          secondaryHex: 0x4b5563,
+          accentHex: 0x0f172a,
+        },
+      },
+      {
+        id: 'croc_oasis_golden',
+        nameHe: 'תנין נווה המדבר הזהוב',
+        subtitleHe: 'גווני חול זהוב ושנהב של נווה המדבר הדרומי',
+        badgeColors: ['#d4a359', '#fef08a', '#78350f'],
+        palette: {
+          primaryHex: 0xe5c07b,
+          secondaryHex: 0xfef08a,
+          accentHex: 0x78350f,
         },
       },
     ],
@@ -2014,12 +2328,39 @@ export function computeLabAnimationCycleProgress(
 }
 
 /**
+ * Summary: Returns the effective playback speed multiplier for a given entity's pose overrides and animation.
+ *          Prioritizes perAnimationSpeeds[animationId], then animationSpeedMultiplier, then fallbackSpeed.
+ */
+export function getEffectiveLabAnimationSpeed(
+  overrides: ILabPoseOverrides | undefined,
+  animationId: string,
+  fallbackSpeed = 1.0
+): number {
+  if (!overrides) return fallbackSpeed;
+  const perAnim = overrides.perAnimationSpeeds?.[animationId];
+  if (typeof perAnim === 'number' && Number.isFinite(perAnim) && perAnim > 0) {
+    return Math.max(0.1, Math.min(3.0, perAnim));
+  }
+  const entitySpeed = overrides.animationSpeedMultiplier;
+  if (typeof entitySpeed === 'number' && Number.isFinite(entitySpeed) && entitySpeed > 0) {
+    return Math.max(0.1, Math.min(3.0, entitySpeed));
+  }
+  return fallbackSpeed;
+}
+
+/**
  * Summary: Counts how many fine-tuning fields in ILabPoseOverrides differ from their default values.
  */
 export function countActivePoseOverrides(overrides: ILabPoseOverrides): number {
   let count = 0;
   if (overrides.equipmentVisibilityMode && overrides.equipmentVisibilityMode !== 'auto') count++;
   if (Math.abs(overrides.amplitudeMultiplier - 1.0) > 0.001) count++;
+  if (Math.abs((overrides.animationSpeedMultiplier ?? 1.0) - 1.0) > 0.001) count++;
+  if (overrides.perAnimationSpeeds) {
+    for (const spd of Object.values(overrides.perAnimationSpeeds)) {
+      if (typeof spd === 'number' && Math.abs(spd - 1.0) > 0.001) count++;
+    }
+  }
   if (Math.abs(overrides.weaponRotXDeg) > 0.1) count++;
   if (Math.abs(overrides.weaponRotYDeg) > 0.1) count++;
   if (Math.abs(overrides.weaponRotZDeg) > 0.1) count++;
@@ -2146,6 +2487,22 @@ export function getEntityEditorLabelsHe(entityId: string): {
         rightLimbTitleHe: 'רגליים ימניות',
         leftLimbTitleHe: 'רגליים שמאליות',
         headTitleHe: 'ראש וצוואר',
+      };
+    case 'forest_bear':
+      return {
+        weaponGroupTitleHe: 'כפה וטופרים ימניים',
+        leftWeaponGroupTitleHe: 'לסת תחתונה ושיניים',
+        rightLimbTitleHe: 'רגליים ימניות של הדוב',
+        leftLimbTitleHe: 'רגליים שמאליות של הדוב',
+        headTitleHe: 'ראש וצוואר הדוב',
+      };
+    case 'river_crocodile':
+      return {
+        weaponGroupTitleHe: 'מלתעות ולסת תחתונה',
+        leftWeaponGroupTitleHe: 'זנב שריוני מפרקי',
+        rightLimbTitleHe: 'רגליים ימניות של התנין',
+        leftLimbTitleHe: 'רגליים שמאליות של התנין',
+        headTitleHe: 'ראש וחרטום התנין',
       };
     default:
       return {

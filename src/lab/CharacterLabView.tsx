@@ -16,6 +16,7 @@ import {
   createInitialLabSessionState,
   filterLabEntities,
   getEntityEditorLabelsHe,
+  getEffectiveLabAnimationSpeed,
   getLabAnimationForEntity,
   getLabEntityById,
   getLabSkinForEntity,
@@ -35,7 +36,7 @@ export interface ICharacterLabViewProps {
   readonly onClose: () => void;
 }
 
-const SPEED_OPTIONS: readonly number[] = [0.25, 0.5, 1.0, 1.5, 2.0];
+const SPEED_OPTIONS: readonly number[] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const CAMERA_PRESETS: readonly { id: LabCameraPreset; labelHe: string }[] = [
   { id: 'angle', labelHe: 'תלת־ממד' },
@@ -72,13 +73,51 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       const saved = window.localStorage.getItem('lab_pose_overrides_v1');
       if (saved) {
         const parsed = JSON.parse(saved) as Record<string, ILabPoseOverrides>;
-        return { ...SAVED_LAB_OVERRIDES, ...parsed };
+        const merged: Record<string, ILabPoseOverrides> = { ...SAVED_LAB_OVERRIDES };
+        for (const [entityId, localOv] of Object.entries(parsed)) {
+          const codeOv = SAVED_LAB_OVERRIDES[entityId];
+          merged[entityId] = {
+            ...DEFAULT_LAB_POSE_OVERRIDES,
+            ...(codeOv ?? {}),
+            ...localOv,
+            perAnimationSpeeds: {
+              ...(codeOv?.perAnimationSpeeds ?? {}),
+              ...(localOv?.perAnimationSpeeds ?? {}),
+            },
+          };
+        }
+        return merged;
       }
     } catch {
       // Ignore storage errors
     }
     return { ...SAVED_LAB_OVERRIDES };
   });
+
+  const persistOverridesToCodebase = useCallback(
+    async (overridesMap: Record<string, ILabPoseOverrides>) => {
+      setSaveFileStatus('saving');
+      try {
+        window.localStorage.setItem(
+          'lab_pose_overrides_v1',
+          JSON.stringify(overridesMap)
+        );
+        window.dispatchEvent(
+          new CustomEvent('lab-overrides-saved', { detail: overridesMap })
+        );
+        await fetch('/api/save-lab-overrides', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(overridesMap),
+        });
+      } catch {
+        // Fallback to localStorage if offline
+      }
+      setSaveFileStatus('saved');
+      window.setTimeout(() => setSaveFileStatus('idle'), 1800);
+    },
+    []
+  );
 
   useEffect(() => {
     try {
@@ -114,6 +153,16 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     [poseOverridesByEntity, activeEntity.id]
   );
 
+  const effectiveAnimSpeed = useMemo(
+    () =>
+      getEffectiveLabAnimationSpeed(
+        activePoseOverrides,
+        activeAnimation.id,
+        session.playbackSpeed
+      ),
+    [activePoseOverrides, activeAnimation.id, session.playbackSpeed]
+  );
+
   const activeOverrideCount = useMemo(
     () => countActivePoseOverrides(activePoseOverrides),
     [activePoseOverrides]
@@ -128,25 +177,60 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     (patch: Partial<ILabPoseOverrides>) => {
       setPoseOverridesByEntity((prev) => {
         const current = prev[activeEntity.id] ?? DEFAULT_LAB_POSE_OVERRIDES;
-        return {
+        const nextMap: Record<string, ILabPoseOverrides> = {
           ...prev,
           [activeEntity.id]: {
             ...current,
             ...patch,
           },
         };
+        void persistOverridesToCodebase(nextMap);
+        return nextMap;
       });
     },
-    [activeEntity.id]
+    [activeEntity.id, persistOverridesToCodebase]
+  );
+
+  const handleChangeAnimationSpeed = useCallback(
+    (rawSpeed: number, applyToEntireEntity = false) => {
+      const clamped = Math.round(Math.max(0.1, Math.min(3.0, rawSpeed)) * 100) / 100;
+      setSession((prev) => ({
+        ...prev,
+        playbackSpeed: clamped,
+      }));
+      setPoseOverridesByEntity((prev) => {
+        const current = prev[activeEntity.id] ?? DEFAULT_LAB_POSE_OVERRIDES;
+        const currentPerAnim = { ...(current.perAnimationSpeeds ?? {}) };
+        if (activeAnimation.id !== 'none' && !applyToEntireEntity) {
+          currentPerAnim[activeAnimation.id] = clamped;
+        }
+        const nextEntityOverrides: ILabPoseOverrides = {
+          ...current,
+          animationSpeedMultiplier: applyToEntireEntity
+            ? clamped
+            : (current.animationSpeedMultiplier ?? 1.0),
+          perAnimationSpeeds: currentPerAnim,
+        };
+        const nextMap: Record<string, ILabPoseOverrides> = {
+          ...prev,
+          [activeEntity.id]: nextEntityOverrides,
+        };
+        void persistOverridesToCodebase(nextMap);
+        return nextMap;
+      });
+    },
+    [activeEntity.id, activeAnimation.id, persistOverridesToCodebase]
   );
 
   const resetEntityPoseOverrides = useCallback(() => {
     setPoseOverridesByEntity((prev) => {
       const next = { ...prev };
       delete next[activeEntity.id];
+      void persistOverridesToCodebase(next);
       return next;
     });
-  }, [activeEntity.id]);
+    setSession((prev) => ({ ...prev, playbackSpeed: 1.0 }));
+  }, [activeEntity.id, persistOverridesToCodebase]);
 
   const handleCopyTweaksJson = useCallback(() => {
     const payload = {
@@ -160,26 +244,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   }, [activeEntity.id, activeAnimation.id, activePoseOverrides]);
 
   const handleSaveOverridesToFile = useCallback(async () => {
-    setSaveFileStatus('saving');
-    try {
-      window.localStorage.setItem(
-        'lab_pose_overrides_v1',
-        JSON.stringify(poseOverridesByEntity)
-      );
-      window.dispatchEvent(
-        new CustomEvent('lab-overrides-saved', { detail: poseOverridesByEntity })
-      );
-      await fetch('/api/save-lab-overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(poseOverridesByEntity),
-      });
-    } catch {
-      // Fallback to localStorage if offline
-    }
-    setSaveFileStatus('saved');
-    window.setTimeout(() => setSaveFileStatus('idle'), 2200);
-  }, [poseOverridesByEntity]);
+    await persistOverridesToCodebase(poseOverridesByEntity);
+  }, [persistOverridesToCodebase, poseOverridesByEntity]);
 
   const filteredEntities = useMemo(
     () => filterLabEntities(LAB_ENTITIES, session.categoryFilter, session.searchQuery),
@@ -204,29 +270,40 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
   const handleStepFrame = useCallback(
     (deltaPhase: number) => {
-      const base = session.isPaused ? session.manualPhase : livePhase;
-      const next = (((base + deltaPhase) % 1) + 1) % 1;
-      setLivePhase(next);
-      setSession((prev) => ({
-        ...prev,
-        isPaused: true,
-        manualPhase: next,
-      }));
+      setSession((prev) => {
+        const base = prev.isPaused ? prev.manualPhase : livePhase;
+        const next = (((base + deltaPhase) % 1) + 1) % 1;
+        setLivePhase(next);
+        return {
+          ...prev,
+          isPaused: true,
+          manualPhase: next,
+        };
+      });
     },
-    [session.isPaused, session.manualPhase, livePhase]
+    [livePhase]
   );
 
-  const handleSelectAnimation = useCallback((animationId: string) => {
-    setSession((prev) => ({
-      ...prev,
-      selectedAnimationId: animationId,
-      isPaused: false,
-      manualPhase: 0,
-    }));
-    if (animationId === 'none') {
-      setLivePhase(0);
-    }
-  }, []);
+  const handleSelectAnimation = useCallback(
+    (animationId: string) => {
+      const savedSpeed = getEffectiveLabAnimationSpeed(
+        activePoseOverrides,
+        animationId,
+        1.0
+      );
+      setSession((prev) => ({
+        ...prev,
+        selectedAnimationId: animationId,
+        playbackSpeed: savedSpeed,
+        isPaused: false,
+        manualPhase: 0,
+      }));
+      if (animationId === 'none') {
+        setLivePhase(0);
+      }
+    },
+    [activePoseOverrides]
+  );
 
   const handleSelectSkin = useCallback((skinId: string) => {
     setSession((prev) => ({
@@ -529,7 +606,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             animation={activeAnimation}
             skin={activeSkin}
             poseOverrides={activePoseOverrides}
-            playbackSpeed={session.playbackSpeed}
+            playbackSpeed={effectiveAnimSpeed}
             isPaused={session.isPaused}
             manualPhase={session.manualPhase}
             autoTurntable={session.autoTurntable}
@@ -774,20 +851,69 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   </div>
                 )}
 
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-stone-400 ml-1">מהירות:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[11px] text-stone-400 ml-1">
+                    מהירות (נשמר בקוד):
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="lab-speed-step-down"
+                    disabled={isStaticNone}
+                    title="האט אנימציה (-0.1x)"
+                    onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed - 0.1)}
+                    className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
+                      isStaticNone
+                        ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
+                        : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
+                    }`}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="range"
+                    data-testid="lab-speed-slider"
+                    disabled={isStaticNone}
+                    min={0.1}
+                    max={3.0}
+                    step={0.05}
+                    value={effectiveAnimSpeed}
+                    onChange={(e) =>
+                      handleChangeAnimationSpeed(parseFloat(e.target.value))
+                    }
+                    className="w-20 accent-amber-400 cursor-pointer"
+                  />
+                  <button
+                    type="button"
+                    data-testid="lab-speed-step-up"
+                    disabled={isStaticNone}
+                    title="האץ אנימציה (+0.1x)"
+                    onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed + 0.1)}
+                    className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
+                      isStaticNone
+                        ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
+                        : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
+                    }`}
+                  >
+                    +
+                  </button>
+                  <span
+                    data-testid="lab-effective-speed-value"
+                    dir="ltr"
+                    className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[11px] font-mono-tabular text-amber-300 font-bold min-w-[44px] text-center"
+                  >
+                    {effectiveAnimSpeed.toFixed(2)}x
+                  </span>
                   {SPEED_OPTIONS.map((spd) => (
                     <button
                       key={spd}
                       type="button"
+                      data-testid={`lab-speed-preset-${spd}`}
                       disabled={isStaticNone}
-                      onClick={() =>
-                        setSession((prev) => ({ ...prev, playbackSpeed: spd }))
-                      }
+                      onClick={() => handleChangeAnimationSpeed(spd)}
                       className={`px-2 py-0.5 rounded text-[11px] font-mono-tabular transition-colors ${
                         isStaticNone
                           ? 'opacity-40 cursor-not-allowed text-stone-500'
-                          : session.playbackSpeed === spd
+                          : Math.abs(effectiveAnimSpeed - spd) < 0.01
                             ? 'bg-amber-400 text-stone-950 font-semibold cursor-pointer'
                             : 'bg-stone-800 text-stone-300 hover:bg-stone-700 cursor-pointer'
                       }`}
@@ -908,9 +1034,86 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   </button>
                 </div>
 
+                {/* Persistent Animation Speed Control Card in Animations Tab */}
+                <div
+                  data-testid="lab-animations-speed-card"
+                  className="p-3 rounded-xl bg-stone-900/90 border border-amber-500/35 space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span className="text-xs font-bold text-amber-200">
+                        מהירות אנימציה קבועה בקוד
+                      </span>
+                    </div>
+                    <span
+                      dir="ltr"
+                      data-testid="lab-panel-speed-readout"
+                      className="px-2 py-0.5 rounded bg-amber-400/20 border border-amber-400/40 text-xs font-mono-tabular font-bold text-amber-300"
+                    >
+                      {effectiveAnimSpeed.toFixed(2)}x
+                    </span>
+                  </div>
+
+                  <input
+                    type="range"
+                    data-testid="lab-panel-speed-slider"
+                    disabled={isStaticNone}
+                    min={0.1}
+                    max={3.0}
+                    step={0.05}
+                    value={effectiveAnimSpeed}
+                    onChange={(e) =>
+                      handleChangeAnimationSpeed(parseFloat(e.target.value))
+                    }
+                    className="w-full accent-amber-400 cursor-pointer"
+                  />
+
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    {SPEED_OPTIONS.map((spd) => (
+                      <button
+                        key={spd}
+                        type="button"
+                        disabled={isStaticNone}
+                        onClick={() => handleChangeAnimationSpeed(spd)}
+                        className={`px-2 py-1 rounded-md text-[10px] font-mono-tabular transition-colors ${
+                          isStaticNone
+                            ? 'opacity-40 cursor-not-allowed bg-stone-800 text-stone-500'
+                            : Math.abs(effectiveAnimSpeed - spd) < 0.01
+                              ? 'bg-amber-400 text-stone-950 font-bold cursor-pointer'
+                              : 'bg-stone-800 text-stone-300 hover:bg-stone-700 cursor-pointer'
+                        }`}
+                      >
+                        {spd}x
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-800/80 text-[10px] text-stone-400">
+                    <span>
+                      {isStaticNone
+                        ? 'בחר אנימציה כדי לכייל ולשמור את מהירותה בקוד'
+                        : `נשמר אוטומטית בקוד עבור "${activeAnimation.nameHe}"`}
+                    </span>
+                    {!isStaticNone && (
+                      <button
+                        type="button"
+                        data-testid="lab-apply-speed-all-anims-btn"
+                        onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed, true)}
+                        className="text-amber-300 hover:text-amber-200 font-semibold cursor-pointer shrink-0 mr-1"
+                      >
+                        החל על כל האנימציות
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {activeEntity.animations.map((anim, idx) => {
                   const isSelected = anim.id === activeAnimation.id;
                   const isNone = anim.id === 'none';
+                  const savedAnimSpeed = !isNone
+                    ? getEffectiveLabAnimationSpeed(activePoseOverrides, anim.id, 1.0)
+                    : 1.0;
                   return (
                     <button
                       key={anim.id}
@@ -952,9 +1155,19 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         </div>
 
                         {!isNone && (
-                          <span className="text-[10px] font-mono-tabular text-stone-400 bg-stone-900 px-1.5 py-0.5 rounded">
-                            {anim.loopDurationSec}s
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {Math.abs(savedAnimSpeed - 1.0) > 0.005 && (
+                              <span
+                                dir="ltr"
+                                className="text-[10px] font-mono-tabular text-amber-300 bg-amber-500/15 border border-amber-400/30 px-1.5 py-0.5 rounded font-semibold"
+                              >
+                                {savedAnimSpeed.toFixed(2)}x
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono-tabular text-stone-400 bg-stone-900 px-1.5 py-0.5 rounded">
+                              {anim.loopDurationSec}s
+                            </span>
+                          </div>
                         )}
                       </div>
 

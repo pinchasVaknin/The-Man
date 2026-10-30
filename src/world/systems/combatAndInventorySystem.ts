@@ -649,17 +649,17 @@ export function evaluateSwordStrikeWindowHit(
       if (anim.isDead || anim.isLooted) continue;
       const animRad =
         anim.species === 'deer'
-          ? 1.35
+          ? 1.55
           : anim.species === 'sheep'
             ? 1.15
             : 0.95;
       const animGroundY = groundHeightAt(anim.x, anim.z);
       const animCenterY =
         animGroundY +
-        (anim.species === 'deer' ? 0.85 : anim.species === 'sheep' ? 0.55 : 0.25);
+        (anim.species === 'deer' ? 1.15 : anim.species === 'sheep' ? 0.55 : 0.25);
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
-        Math.abs(sy - animCenterY) <= 1.45
+        Math.abs(sy - animCenterY) <= (anim.species === 'deer' ? 1.55 : 1.45)
       ) {
         killGroundAnimal(anim);
         state.lastSwordHitPoint = { x: sx, y: animCenterY, z: sz, age: 0, kind: 'target' };
@@ -973,16 +973,16 @@ export function stepArrowsPhysics(
         if (anim.isDead || anim.isLooted) continue;
         const animRad =
           anim.species === 'deer'
-            ? 1.05
+            ? 1.42
             : anim.species === 'sheep'
-              ? 0.85
-              : 0.58;
+              ? 0.92
+              : 0.62;
         const animGroundY = groundHeightAt(anim.x, anim.z);
-        const animCenterY =
+        const animMaxY =
           animGroundY +
-          (anim.species === 'deer' ? 0.88 : anim.species === 'sheep' ? 0.56 : 0.25);
-        const d3 = Math.hypot(arr.x - anim.x, arr.y - animCenterY, arr.z - anim.z);
-        if (d3 <= animRad) {
+          (anim.species === 'deer' ? 2.45 : anim.species === 'sheep' ? 1.25 : 0.75);
+        const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
+        if (horizDist <= animRad && arr.y >= animGroundY - 0.15 && arr.y <= animMaxY) {
           killGroundAnimal(anim);
           arr.stuck = true;
           arr.vx = 0;

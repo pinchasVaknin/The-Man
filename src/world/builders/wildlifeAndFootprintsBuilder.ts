@@ -20,6 +20,14 @@ import {
   MAX_FOOTPRINT_DECALS,
 } from '../systems/footprintTrailSystem';
 import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
+import { attachDeerGlbModel } from '../models/deerGlbLoader';
+import { createReadyBear, type BearState } from '../models/Bear';
+import { createReadyCrocodile, type CrocodileState } from '../models/Crocodile';
+import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
+import {
+  getEffectiveLabAnimationSpeed,
+  type ILabPoseOverrides,
+} from '../../lab/labCatalog';
 
 export interface IWildlifeSoundCallbacks {
   onBirdFlockStartled?: (distance: number, count: number) => void;
@@ -106,18 +114,6 @@ export function buildWildlifeAndFootprintsLayer(
     color: 0xb45309,
     roughness: 0.85,
   });
-  const deerCoatMat = new THREE.MeshStandardMaterial({
-    color: 0x8b5a2b,
-    roughness: 0.82,
-  });
-  const deerBellyMat = new THREE.MeshStandardMaterial({
-    color: 0xd6c3a5,
-    roughness: 0.88,
-  });
-  const deerAntlerMat = new THREE.MeshStandardMaterial({
-    color: 0xe7d8c1,
-    roughness: 0.65,
-  });
   const sheepWoolMat = new THREE.MeshStandardMaterial({
     color: 0xf3f4f6,
     roughness: 0.95,
@@ -129,9 +125,6 @@ export function buildWildlifeAndFootprintsLayer(
   disposableMaterials.push(
     rabbitFurMat,
     squirrelFurMat,
-    deerCoatMat,
-    deerBellyMat,
-    deerAntlerMat,
     sheepWoolMat,
     sheepDarkMat
   );
@@ -142,16 +135,6 @@ export function buildWildlifeAndFootprintsLayer(
   const rabbitEarGeo = new THREE.BoxGeometry(0.035, 0.16, 0.045);
   const squirrelTailGeo = new THREE.SphereGeometry(0.12, 6, 6);
   squirrelTailGeo.scale(0.65, 1.45, 0.9);
-
-  // Deer geometries
-  const deerTorsoGeo = new THREE.CylinderGeometry(0.28, 0.31, 1.15, 8);
-  deerTorsoGeo.rotateX(Math.PI / 2);
-  const deerNeckGeo = new THREE.CylinderGeometry(0.13, 0.18, 0.56, 7);
-  const deerHeadGeo = new THREE.BoxGeometry(0.20, 0.20, 0.36);
-  const deerLegGeo = new THREE.CylinderGeometry(0.055, 0.04, 0.76, 6);
-  deerLegGeo.translate(0, -0.38, 0);
-  const deerAntlerBranchGeo = new THREE.CylinderGeometry(0.018, 0.028, 0.38, 5);
-  const deerAntlerTineGeo = new THREE.CylinderGeometry(0.012, 0.018, 0.22, 5);
 
   // Sheep geometries
   const sheepBodyGeo = new THREE.SphereGeometry(0.42, 8, 8);
@@ -166,22 +149,42 @@ export function buildWildlifeAndFootprintsLayer(
     critterHeadGeo,
     rabbitEarGeo,
     squirrelTailGeo,
-    deerTorsoGeo,
-    deerNeckGeo,
-    deerHeadGeo,
-    deerLegGeo,
-    deerAntlerBranchGeo,
-    deerAntlerTineGeo,
     sheepBodyGeo,
     sheepHeadGeo,
     sheepLegGeo
   );
+
+  let liveLabOverrides: Record<string, ILabPoseOverrides> = {
+    ...SAVED_LAB_OVERRIDES,
+  };
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem('lab_pose_overrides_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, ILabPoseOverrides>;
+        liveLabOverrides = { ...SAVED_LAB_OVERRIDES, ...parsed };
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    window.addEventListener('lab-overrides-saved', (ev: Event) => {
+      const customEv = ev as CustomEvent<Record<string, ILabPoseOverrides>>;
+      if (customEv.detail) {
+        liveLabOverrides = { ...SAVED_LAB_OVERRIDES, ...customEv.detail };
+      }
+    });
+  }
 
   interface IAnimalMeshRig {
     root: THREE.Group;
     posePivot: THREE.Group;
     headPivot?: THREE.Group;
     legs?: THREE.Mesh[];
+    deerGlbCtrl?: ReturnType<typeof attachDeerGlbModel>;
+    bearCtrl?: ReturnType<typeof createReadyBear>;
+    crocodileCtrl?: ReturnType<typeof createReadyCrocodile>;
+    smoothHeadDip: number;
+    smoothLegAmp: number;
   }
   const animalMeshes: IAnimalMeshRig[] = [];
 
@@ -192,52 +195,68 @@ export function buildWildlifeAndFootprintsLayer(
     root.add(posePivot);
 
     if (a.species === 'deer') {
-      const torso = new THREE.Mesh(deerTorsoGeo, deerCoatMat);
-      torso.position.y = 0.86;
-      const belly = new THREE.Mesh(deerTorsoGeo, deerBellyMat);
-      belly.scale.set(0.92, 0.55, 0.96);
-      belly.position.y = 0.78;
-      posePivot.add(torso, belly);
-
-      const headPivot = new THREE.Group();
-      headPivot.position.set(0, 1.04, 0.48);
-      const neck = new THREE.Mesh(deerNeckGeo, deerCoatMat);
-      neck.position.set(0, 0.20, 0.08);
-      neck.rotation.x = 0.35;
-      const head = new THREE.Mesh(deerHeadGeo, deerCoatMat);
-      head.position.set(0, 0.44, 0.22);
-
-      // Antlers on every deer so hunting deer visibly rewards antlers!
-      for (const side of [-1, 1]) {
-        const antlerBeam = new THREE.Mesh(deerAntlerBranchGeo, deerAntlerMat);
-        antlerBeam.position.set(side * 0.11, 0.68, 0.14);
-        antlerBeam.rotation.set(-0.25, 0, side * -0.42);
-        const tine1 = new THREE.Mesh(deerAntlerTineGeo, deerAntlerMat);
-        tine1.position.set(side * 0.16, 0.74, 0.22);
-        tine1.rotation.set(0.45, 0, side * -0.28);
-        const tine2 = new THREE.Mesh(deerAntlerTineGeo, deerAntlerMat);
-        tine2.position.set(side * 0.20, 0.82, 0.08);
-        tine2.rotation.set(-0.35, 0, side * -0.55);
-        headPivot.add(antlerBeam, tine1, tine2);
-      }
-
-      headPivot.add(neck, head);
-      posePivot.add(headPivot);
-
-      const fl = new THREE.Mesh(deerLegGeo, deerCoatMat);
-      fl.position.set(-0.16, 0.76, 0.38);
-      const fr = new THREE.Mesh(deerLegGeo, deerCoatMat);
-      fr.position.set(0.16, 0.76, 0.38);
-      const bl = new THREE.Mesh(deerLegGeo, deerCoatMat);
-      bl.position.set(-0.16, 0.76, -0.38);
-      const br = new THREE.Mesh(deerLegGeo, deerCoatMat);
-      br.position.set(0.16, 0.76, -0.38);
-      posePivot.add(fl, fr, bl, br);
+      const deerGlbCtrl = attachDeerGlbModel(posePivot, {
+        disposableMaterials,
+      });
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
       layerGroup.add(root);
-      animalMeshes.push({ root, posePivot, headPivot, legs: [fl, fr, bl, br] });
+      animalMeshes.push({
+        root,
+        posePivot,
+        deerGlbCtrl,
+        smoothHeadDip: 0.85,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'bear') {
+      const bearCtrl = createReadyBear({
+        castShadow: true,
+        receiveShadow: true,
+      });
+      posePivot.add(bearCtrl.object);
+      const bearMat = bearCtrl.mesh.material;
+      if (Array.isArray(bearMat)) {
+        for (const m of bearMat) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(bearMat);
+      }
+      disposableGeometries.push(bearCtrl.mesh.geometry);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        bearCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'crocodile') {
+      const crocodileCtrl = createReadyCrocodile({
+        castShadow: true,
+        receiveShadow: true,
+      });
+      posePivot.add(crocodileCtrl.object);
+      const crocMat = crocodileCtrl.mesh.material;
+      if (Array.isArray(crocMat)) {
+        for (const m of crocMat) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(crocMat);
+      }
+      disposableGeometries.push(crocodileCtrl.mesh.geometry);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        crocodileCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
     } else if (a.species === 'sheep') {
       const body = new THREE.Mesh(sheepBodyGeo, sheepWoolMat);
       body.position.y = 0.58;
@@ -262,7 +281,14 @@ export function buildWildlifeAndFootprintsLayer(
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
       layerGroup.add(root);
-      animalMeshes.push({ root, posePivot, headPivot, legs: [sfl, sfr, sbl, sbr] });
+      animalMeshes.push({
+        root,
+        posePivot,
+        headPivot,
+        legs: [sfl, sfr, sbl, sbr],
+        smoothHeadDip: 0.5,
+        smoothLegAmp: 0,
+      });
     } else {
       const mat = a.species === 'rabbit' ? rabbitFurMat : squirrelFurMat;
       const body = new THREE.Mesh(critterBodyGeo, mat);
@@ -289,7 +315,7 @@ export function buildWildlifeAndFootprintsLayer(
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
       layerGroup.add(root);
-      animalMeshes.push({ root, posePivot });
+      animalMeshes.push({ root, posePivot, smoothHeadDip: 0, smoothLegAmp: 0 });
     }
   }
 
@@ -444,14 +470,48 @@ export function buildWildlifeAndFootprintsLayer(
         rig.root.visible = true;
 
         if (a.isDead) {
-          // Hunted animal: lies motionless on its side on top of the ground until looted with [E]
+          // Hunted animal: collapses and lies motionless on top of the ground until looted with [E]
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(0, a.yaw, 0);
-          // Rotating posePivot +90 deg around Z maps local +Y (where torso/body sits) onto local -X.
-          // Offset posePivot by (+bodyLocalY, +bodyRadius, 0) so the corpse stays centered at (a.x, a.z)
-          // and rests cleanly on top of the ground without sinking underground!
+          if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_deer'],
+              'death',
+              1.0
+            );
+            rig.deerGlbCtrl.setState('death');
+            rig.deerGlbCtrl.update(dt * spd, 0);
+            continue;
+          }
+          if (a.species === 'bear' && rig.bearCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_bear'],
+              'death',
+              1.0
+            );
+            rig.bearCtrl.setState('death');
+            rig.bearCtrl.update(dt * spd);
+            continue;
+          }
+          if (a.species === 'crocodile' && rig.crocodileCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['river_crocodile'],
+              'death',
+              1.0
+            );
+            rig.crocodileCtrl.setState('death');
+            rig.crocodileCtrl.update(dt * spd);
+            continue;
+          }
+          // Fallback procedural corpse pose
           if (a.species === 'deer') {
-            rig.posePivot.position.set(0.82, 0.28, 0);
+            rig.posePivot.position.set(1.05, 0.32, 0);
           } else if (a.species === 'sheep') {
             rig.posePivot.position.set(0.56, 0.38, 0);
           } else {
@@ -469,37 +529,194 @@ export function buildWildlifeAndFootprintsLayer(
         const moveSpd = Math.hypot(a.vx, a.vz);
         if (a.isResting) {
           // Sleeping at night or huddled under tree canopy during rain
-          const sleepDrop = a.species === 'deer' ? -0.38 : a.species === 'sheep' ? -0.22 : -0.05;
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(0, a.yaw, 0);
-          rig.posePivot.position.set(0, sleepDrop, 0);
-          rig.posePivot.rotation.set(0, 0, 0);
-          if (rig.headPivot) {
-            rig.headPivot.rotation.x = 0.42 + Math.sin(elapsedTime * 1.4 + i) * 0.04;
-          }
-          if (rig.legs) {
-            for (let l = 0; l < rig.legs.length; l++) {
-              rig.legs[l].rotation.x = l < 2 ? 1.15 : -1.15;
+          if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_deer'],
+              'lie',
+              1.0
+            );
+            rig.deerGlbCtrl.setState('lie');
+            rig.deerGlbCtrl.update(dt * spd, 0);
+          } else if (a.species === 'bear' && rig.bearCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_bear'],
+              'lie',
+              1.0
+            );
+            rig.bearCtrl.setState('lie');
+            rig.bearCtrl.update(dt * spd);
+          } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['river_crocodile'],
+              'lie',
+              1.0
+            );
+            rig.crocodileCtrl.setState('lie');
+            rig.crocodileCtrl.update(dt * spd);
+          } else {
+            const sleepDrop = a.species === 'deer' ? -0.46 : a.species === 'sheep' ? -0.22 : -0.05;
+            rig.posePivot.position.set(0, sleepDrop, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            if (rig.headPivot) {
+              rig.headPivot.rotation.x = 0.42 + Math.sin(elapsedTime * 1.4 + i) * 0.04;
+            }
+            if (rig.legs) {
+              for (let l = 0; l < rig.legs.length; l++) {
+                rig.legs[l].rotation.x = l < 2 ? 1.15 : -1.15;
+              }
             }
           }
-        } else if (a.species === 'deer' || a.species === 'sheep') {
+        } else if (a.species === 'bear' && rig.bearCtrl) {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(0, a.yaw, 0);
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const strideAmp = moveSpd > 0.2 ? Math.min(0.55, moveSpd * 0.12) : 0;
-          const stride = Math.sin(a.hopPhase) * strideAmp;
-          if (rig.legs && rig.legs.length === 4) {
-            rig.legs[0].rotation.x = stride;
-            rig.legs[1].rotation.x = -stride;
-            rig.legs[2].rotation.x = -stride;
-            rig.legs[3].rotation.x = stride;
-          }
-          if (rig.headPivot) {
-            rig.headPivot.rotation.x =
+          const cycleSlot = (elapsedTime * 0.18 + i * 1.41) % 1;
+          const bearState: BearState =
+            a.alertLevel === 'fleeing'
+              ? moveSpd > 3.8
+                ? 'flee'
+                : 'run'
+              : moveSpd > 2.8
+                ? 'run'
+                : moveSpd > 1.3
+                  ? 'trot'
+                  : moveSpd > 0.16
+                    ? 'walk'
+                    : a.alertLevel === 'curious'
+                      ? cycleSlot > 0.65
+                        ? 'roar'
+                        : cycleSlot > 0.35
+                          ? 'attack'
+                          : 'call'
+                      : cycleSlot < 0.35
+                        ? 'eat'
+                        : cycleSlot < 0.62
+                          ? 'idle'
+                          : cycleSlot < 0.82
+                            ? 'sit'
+                            : 'call';
+          const spd = getEffectiveLabAnimationSpeed(
+            liveLabOverrides['forest_bear'],
+            bearState,
+            1.0
+          );
+          rig.bearCtrl.setState(bearState);
+          rig.bearCtrl.update(dt * spd);
+        } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0);
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const cycleSlot = (elapsedTime * 0.16 + i * 1.91) % 1;
+          const crocState: CrocodileState =
+            a.alertLevel === 'fleeing'
+              ? moveSpd > 3.6
+                ? 'flee'
+                : 'run'
+              : moveSpd > 2.6
+                ? 'run'
+                : moveSpd > 1.2
+                  ? 'trot'
+                  : moveSpd > 0.14
+                    ? 'walk'
+                    : a.alertLevel === 'curious'
+                      ? cycleSlot > 0.62
+                        ? 'roar'
+                        : cycleSlot > 0.3
+                          ? 'attack'
+                          : 'call'
+                      : cycleSlot < 0.38
+                        ? 'sit'
+                        : cycleSlot < 0.68
+                          ? 'idle'
+                          : cycleSlot < 0.86
+                            ? 'eat'
+                            : 'lie';
+          const spd = getEffectiveLabAnimationSpeed(
+            liveLabOverrides['river_crocodile'],
+            crocState,
+            1.0
+          );
+          rig.crocodileCtrl.setState(crocState);
+          rig.crocodileCtrl.update(dt * spd);
+        } else if (a.species === 'deer' || a.species === 'sheep') {
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0);
+
+          if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const cycleSlot = (elapsedTime * 0.22 + i * 1.73) % 1;
+            const deerState =
               a.alertLevel === 'fleeing'
-                ? -0.15
-                : Math.sin(elapsedTime * 1.2 + i) * 0.14 + 0.12;
+                ? i % 3 === 0 && moveSpd > 3.8
+                  ? 'skip'
+                  : 'flee'
+                : moveSpd > 3.2
+                  ? 'run'
+                  : moveSpd > 0.16
+                    ? 'walk'
+                    : a.alertLevel === 'curious'
+                      ? cycleSlot > 0.72
+                        ? 'call'
+                        : 'idle'
+                      : cycleSlot < 0.58
+                        ? 'eat'
+                        : cycleSlot < 0.86
+                          ? 'idle'
+                          : 'call';
+            const turnHint =
+              a.alertLevel === 'curious'
+                ? Math.sin(elapsedTime * 1.6 + i) * 0.35
+                : moveSpd > 0.2
+                  ? Math.sin(elapsedTime * 1.1 + i * 2.1) * 0.22
+                  : 0;
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_deer'],
+              deerState,
+              1.0
+            );
+            rig.deerGlbCtrl.setState(deerState);
+            rig.deerGlbCtrl.update(dt * spd, turnHint);
+          } else {
+            const targetStrideAmp =
+              moveSpd > 0.14 ? Math.min(0.62, 0.24 + moveSpd * 0.065) : 0;
+            const legBlend = Math.min(1, dt * 10.0);
+            rig.smoothLegAmp += (targetStrideAmp - rig.smoothLegAmp) * legBlend;
+
+            const stride = Math.sin(a.hopPhase) * rig.smoothLegAmp;
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            if (rig.legs && rig.legs.length === 4) {
+              rig.legs[0].rotation.x = stride;
+              rig.legs[1].rotation.x = -stride;
+              rig.legs[2].rotation.x = -stride;
+              rig.legs[3].rotation.x = stride;
+            }
+
+            const targetHeadDip =
+              a.alertLevel === 'fleeing'
+                ? -0.18
+                : a.alertLevel === 'curious'
+                  ? -0.06
+                  : moveSpd < 0.16
+                    ? 0.94
+                    : 0.06 + Math.sin(a.hopPhase * 2.0) * 0.04;
+            const dipBlend = Math.min(1, dt * 5.2);
+            rig.smoothHeadDip += (targetHeadDip - rig.smoothHeadDip) * dipBlend;
+
+            if (rig.headPivot) {
+              rig.headPivot.rotation.x = rig.smoothHeadDip * 0.75;
+            }
           }
         } else {
           const hopHeight =

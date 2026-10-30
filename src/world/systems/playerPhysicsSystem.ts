@@ -44,6 +44,7 @@ import { stepMountedHorseSteering } from './horsePhysicsSystem';
 // ======================== INITIALIZERS & LEVEL QUERIES ======================== \\
 // #region Initializers & Level Queries
 const FZ = FORTRESS_Z_OFFSET;
+const GRAVITY = 14.8;
 
 /**
  * Summary: Creates and initializes default player state at the designated world spawn coordinates.
@@ -562,8 +563,7 @@ export function stepPlayerPhysics(
     }
 
     if (!state.isSwimming) {
-      const gravity = -14.8;
-      state.vy += gravity * dt;
+      state.vy -= GRAVITY * dt;
     }
   }
 
