@@ -77,9 +77,13 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInValidBiomes
         a.species === 'rabbit' ||
         a.species === 'squirrel' ||
         a.species === 'deer' ||
-        a.species === 'sheep'
+        a.species === 'sheep' ||
+        a.species === 'bear' ||
+        a.species === 'crocodile'
     )
   );
+  assert.ok(animals.some((a) => a.species === 'bear'), 'Expected bears in world animals');
+  assert.ok(animals.some((a) => a.species === 'crocodile'), 'Expected crocodiles in world animals');
 });
 
 test('stepBoidsAndWildlife_WhenSteppedWithPlayerProximity_ShouldUpdateCreaturesAndTriggerFleeing', () => {

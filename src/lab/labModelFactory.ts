@@ -13,6 +13,9 @@ import {
   LOCKED_SWORD_GRIP_TRANSFORM,
 } from '../world/systems/swordAttackAnimationSystem';
 import type { ILabPoseOverrides, ILabSkinDef } from './labCatalog';
+import { attachDeerGlbModel } from '../world/models/deerGlbLoader';
+import { createReadyBear, type BearState } from '../world/models/Bear';
+import { createReadyCrocodile, type CrocodileState } from '../world/models/Crocodile';
 
 export interface ILabEntityRig {
   readonly entityId: string;
@@ -1817,126 +1820,263 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
   // 8. FOREST DEER / STAG & DOE (אייל היער המלכותי)
   // ==========================================================================
   else if (entityId === 'forest_deer') {
-    const coatMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x8c583a, roughness: 0.75 }));
-    const antlerMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xd8c8b4, roughness: 0.6 }));
-    const noseMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.5 }));
-
     const deerRoot = new THREE.Group();
-    const body = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.28, 0.32, 1.15, 12)),
-      coatMat
-    );
-    body.rotation.x = Math.PI / 2;
-    body.position.y = 0.95;
-
-    const tail = new THREE.Mesh(trackGeo(new THREE.ConeGeometry(0.08, 0.22, 6)), antlerMat);
-    tail.position.set(0, 1.02, -0.58);
-    tail.rotation.x = -0.5;
-
-    const neckPivot = new THREE.Group();
-    neckPivot.position.set(0, 1.12, 0.48);
-    const neck = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.12, 0.18, 0.55, 10)),
-      coatMat
-    );
-    neck.position.set(0, 0.22, 0.1);
-    neck.rotation.x = 0.35;
-    const head = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.22, 0.22, 0.42)), coatMat);
-    head.position.set(0, 0.46, 0.25);
-    const nose = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.045, 8, 8)), noseMat);
-    nose.position.set(0, 0.46, 0.46);
-
-    const antlersGroup = new THREE.Group();
-    const buildAntlerBranch = (side: -1 | 1) => {
-      const b = new THREE.Group();
-      const mainBeam = new THREE.Mesh(
-        trackGeo(new THREE.CylinderGeometry(0.02, 0.032, 0.52, 6)),
-        antlerMat
-      );
-      mainBeam.position.set(side * 0.14, 0.72, 0.18);
-      mainBeam.rotation.z = -side * 0.38;
-      mainBeam.rotation.x = -0.2;
-      const tine1 = new THREE.Mesh(
-        trackGeo(new THREE.ConeGeometry(0.022, 0.26, 6)),
-        antlerMat
-      );
-      tine1.position.set(side * 0.22, 0.82, 0.28);
-      tine1.rotation.x = 0.45;
-      const tine2 = new THREE.Mesh(
-        trackGeo(new THREE.ConeGeometry(0.022, 0.28, 6)),
-        antlerMat
-      );
-      tine2.position.set(side * 0.28, 0.94, 0.12);
-      tine2.rotation.z = -side * 0.55;
-      b.add(mainBeam, tine1, tine2);
-      return b;
-    };
-    antlersGroup.add(buildAntlerBranch(-1), buildAntlerBranch(1));
-    neckPivot.add(neck, head, nose, antlersGroup);
-
-    const legGeo = trackGeo(new THREE.CylinderGeometry(0.055, 0.04, 0.82, 8));
-    legGeo.translate(0, -0.41, 0);
-    const fl = new THREE.Mesh(legGeo, coatMat);
-    fl.position.set(-0.2, 0.82, 0.42);
-    const fr = new THREE.Mesh(legGeo, coatMat);
-    fr.position.set(0.2, 0.82, 0.42);
-    const bl = new THREE.Mesh(legGeo, coatMat);
-    bl.position.set(-0.2, 0.82, -0.42);
-    const br = new THREE.Mesh(legGeo, coatMat);
-    br.position.set(0.2, 0.82, -0.42);
-
-    deerRoot.add(body, tail, neckPivot, fl, fr, bl, br);
     root.add(deerRoot);
 
-    editableRigTargets.weaponNodes.push(antlersGroup);
-    editableRigTargets.leftWeaponNodes.push(tail);
-    editableRigTargets.rightLimbNodes.push(fr, br);
-    editableRigTargets.leftLimbNodes.push(fl, bl);
-    editableRigTargets.headNodes.push(neckPivot);
+    const deerGlbCtrl = attachDeerGlbModel(deerRoot, {
+      disposableMaterials,
+    });
+    deerGlbCtrl.deer.animator.loopDeath = true;
+    const bones = deerGlbCtrl.deer.rig.bones;
+
+    editableRigTargets.weaponNodes.push(bones.earR);
+    editableRigTargets.leftWeaponNodes.push(bones.earL, bones.tail1);
+    editableRigTargets.rightLimbNodes.push(bones.upperArmR, bones.thighR);
+    editableRigTargets.leftLimbNodes.push(bones.upperArmL, bones.thighL);
+    editableRigTargets.headNodes.push(bones.head);
     editableRigTargets.bodyNodes.push(deerRoot);
 
     customApplySkin = (skin) => {
-      coatMat.color.setHex(skin.palette.primaryHex);
-      antlerMat.color.setHex(skin.palette.secondaryHex);
-      antlersGroup.visible = skin.palette.hasAntlers !== false;
+      const tintHex =
+        skin.id === 'deer_stag_classic' ? 0xffffff : skin.palette.primaryHex;
+      deerGlbCtrl.setTint(tintHex);
     };
 
-    customApplyAnimation = (animId, _t, p) => {
+    let lastLabAnimTime = 0;
+    let lastAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastLabAnimTime ? t - lastLabAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastLabAnimTime = t;
+
       deerRoot.position.set(0, 0, 0);
       deerRoot.rotation.set(0, 0, 0);
-      body.position.y = 0.95;
-      neckPivot.position.set(0, 1.12, 0.48);
-      neckPivot.rotation.set(0, 0, 0);
-      for (const l of [fl, fr, bl, br]) {
-        l.visible = true;
-        l.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastAnimId !== 'none') {
+          deerGlbCtrl.deer.rig.resetPose();
+          deerGlbCtrl.setState('idle');
+          deerGlbCtrl.update(0, 0);
+          lastAnimId = 'none';
+        }
+        return;
       }
 
-      if (animId === 'none') return;
-      const phase = p * Math.PI * 2;
+      const mappedState =
+        animId === 'walk' || animId === 'deer_walk'
+          ? 'walk'
+          : animId === 'eat' || animId === 'deer_graze'
+            ? 'eat'
+            : animId === 'call'
+              ? 'call'
+              : animId === 'lie' || animId === 'deer_sleep'
+                ? 'lie'
+                : animId === 'run'
+                  ? 'run'
+                  : animId === 'flee'
+                    ? 'flee'
+                    : animId === 'skip' || animId === 'deer_leap'
+                      ? 'skip'
+                      : animId === 'death'
+                        ? 'death'
+                        : 'idle';
 
-      if (animId === 'deer_walk') {
-        const swing = Math.sin(phase) * 0.36;
-        fl.rotation.x = swing;
-        br.rotation.x = swing;
-        fr.rotation.x = -swing;
-        bl.rotation.x = -swing;
-        neckPivot.rotation.x = Math.sin(phase * 2) * 0.08;
-      } else if (animId === 'deer_graze') {
-        neckPivot.rotation.x = 0.65 + Math.sin(phase * 2) * 0.12;
-      } else if (animId === 'deer_sleep') {
-        body.position.y = 0.38 + Math.sin(phase) * 0.015;
-        neckPivot.position.y = 0.55;
-        neckPivot.rotation.x = 0.35;
-        for (const l of [fl, fr, bl, br]) l.visible = false;
-      } else if (animId === 'deer_leap') {
-        const arc = Math.sin(p * Math.PI);
-        deerRoot.position.y = arc * 0.55;
-        deerRoot.rotation.x = -Math.cos(p * Math.PI) * 0.32;
-        fl.rotation.x = -arc * 0.65;
-        fr.rotation.x = -arc * 0.65;
-        bl.rotation.x = arc * 0.65;
-        br.rotation.x = arc * 0.65;
+      if (lastAnimId !== animId) {
+        if (mappedState === 'death' || lastAnimId === 'death') {
+          deerGlbCtrl.deer.rig.resetPose();
+        }
+        if (mappedState === 'death') {
+          deerGlbCtrl.deer.animator.restartState('death');
+        } else {
+          deerGlbCtrl.setState(mappedState);
+        }
+        lastAnimId = animId;
+      }
+
+      if (dt > 0) {
+        deerGlbCtrl.update(dt, 0);
+      } else {
+        deerGlbCtrl.deer.animator.setNormalizedPhase(p, 3.5);
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 8B. FOREST BEAR (דוב היער החום — מודל שלד 37 עצמות מלא + 13 אנימציות)
+  // ==========================================================================
+  else if (entityId === 'forest_bear') {
+    const bearRoot = new THREE.Group();
+    root.add(bearRoot);
+
+    const bear = createReadyBear({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    bear.animator.loopDeath = true;
+    bearRoot.add(bear.object);
+
+    const bearMat = bear.mesh.material;
+    if (Array.isArray(bearMat)) {
+      for (const m of bearMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(bearMat);
+    }
+    disposableGeometries.push(bear.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(bearRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'bear_grizzly_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = bear.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastBearAnimTime = 0;
+    let lastBearAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastBearAnimTime ? t - lastBearAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastBearAnimTime = t;
+
+      bearRoot.position.set(0, 0, 0);
+      bearRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastBearAnimId !== 'none') {
+          bear.rig.resetToRest();
+          bear.object.position.set(0, 0, 0);
+          bear.object.rotation.set(0, 0, 0);
+          bear.setState('idle');
+          lastBearAnimId = 'none';
+        }
+        return;
+      }
+
+      const validBearStates: ReadonlySet<BearState> = new Set<BearState>([
+        'idle',
+        'walk',
+        'eat',
+        'call',
+        'lie',
+        'sit',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'roar',
+        'attack',
+        'death',
+      ]);
+      const mappedState: BearState = validBearStates.has(animId as BearState)
+        ? (animId as BearState)
+        : 'idle';
+
+      if (lastBearAnimId !== animId) {
+        if (mappedState === 'death') {
+          bear.animator.restartState('death');
+        } else {
+          bear.setState(mappedState);
+        }
+        lastBearAnimId = animId;
+      }
+
+      if (dt > 0) {
+        bear.update(dt);
+      } else {
+        bear.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 8C. RIVER CROCODILE (תנין הנילוס והביצה — מודל שלד 49 עצמות מלא + 13 אנימציות)
+  // ==========================================================================
+  else if (entityId === 'river_crocodile') {
+    const crocRoot = new THREE.Group();
+    root.add(crocRoot);
+
+    const crocodile = createReadyCrocodile({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    crocodile.animator.loopDeath = true;
+    crocRoot.add(crocodile.object);
+
+    const crocMat = crocodile.mesh.material;
+    if (Array.isArray(crocMat)) {
+      for (const m of crocMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(crocMat);
+    }
+    disposableGeometries.push(crocodile.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(crocRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'crocodile_nile_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = crocodile.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastCrocAnimTime = 0;
+    let lastCrocAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastCrocAnimTime ? t - lastCrocAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastCrocAnimTime = t;
+
+      crocRoot.position.set(0, 0, 0);
+      crocRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastCrocAnimId !== 'none') {
+          crocodile.rig.resetToRest();
+          crocodile.object.position.set(0, 0, 0);
+          crocodile.object.rotation.set(0, 0, 0);
+          crocodile.setState('idle');
+          lastCrocAnimId = 'none';
+        }
+        return;
+      }
+
+      const validCrocStates: ReadonlySet<CrocodileState> = new Set<CrocodileState>([
+        'idle',
+        'walk',
+        'eat',
+        'call',
+        'lie',
+        'sit',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'roar',
+        'attack',
+        'death',
+      ]);
+      const mappedState: CrocodileState = validCrocStates.has(animId as CrocodileState)
+        ? (animId as CrocodileState)
+        : 'idle';
+
+      if (lastCrocAnimId !== animId) {
+        if (mappedState === 'death') {
+          crocodile.animator.restartState('death');
+        } else {
+          crocodile.setState(mappedState);
+        }
+        lastCrocAnimId = animId;
+      }
+
+      if (dt > 0) {
+        crocodile.update(dt);
+      } else {
+        crocodile.animator.setNormalizedPhase(p);
       }
     };
   }
@@ -3082,7 +3222,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
 
   const neutralSnapshots: INodeTransformSnapshot[] = [];
   root.traverse((obj) => {
-    if (obj !== root) {
+    if (obj !== root && !(obj instanceof THREE.Bone)) {
       neutralSnapshots.push({
         obj,
         posX: obj.position.x,

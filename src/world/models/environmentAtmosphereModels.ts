@@ -19,6 +19,7 @@ import {
   hash2D,
 } from '../terrainMath';
 import type { IWorldModelBuildContext } from './types';
+import { attachDeerGlbModel } from './deerGlbLoader';
 // #endregion
 
 // ======================== TYPES & INTERFACES ======================== \\
@@ -72,9 +73,11 @@ interface IForestSquirrel {
 
 interface IAnimatedDeer {
   root: THREE.Group;
+  posePivot: THREE.Group;
   bodyMesh: THREE.Mesh;
   neckPivot: THREE.Group;
   legs: [THREE.Mesh, THREE.Mesh, THREE.Mesh, THREE.Mesh];
+  deerGlbCtrl: ReturnType<typeof attachDeerGlbModel>;
   homeX: number;
   homeZ: number;
   orbitRadius: number;
@@ -221,7 +224,7 @@ export function buildEnvironmentAtmosphereModels(
   }
 
   const forestSquirrels: IForestSquirrel[] = [];
-  for (let i = 0; i < 0; i++) {
+  for (let i = 0; i < Math.min(8, squirrelTrees.length); i++) {
     const root = new THREE.Group();
     const body = new THREE.Mesh(sqBodyGeo, squirrelMat);
     const head = new THREE.Mesh(sqHeadGeo, squirrelMat);
@@ -301,28 +304,24 @@ export function buildEnvironmentAtmosphereModels(
   );
 
   const deerHerd: IAnimatedDeer[] = [];
-  const deerHomeSpots = [
-    { x: -25, z: 26, r: 5.5, speed: 0.22 },
-    { x: 28, z: 22, r: 6.0, speed: 0.24 },
-    { x: -42, z: -10, r: 6.0, speed: 0.20 },
-    { x: HUNTER_LODGE_POS.x - 12.5, z: HUNTER_LODGE_POS.z - 1.5, r: 1.8, speed: 0.12 },
-    { x: 52, z: -22, r: 6.5, speed: 0.23 },
-    { x: 18, z: 78, r: 8.5, speed: 0.22 },
-  ];
+  // All world deer are spawned via boidsAndWildlifeSystem.ts so every deer has full AI and is huntable/killable
+  const deerHomeSpots: Array<{ x: number; z: number; r: number; speed: number }> = [];
 
-  for (let i = 0; i < 0; i++) {
+  for (let i = 0; i < deerHomeSpots.length; i++) {
     const spot = deerHomeSpots[i];
     const root = new THREE.Group();
+    const posePivot = new THREE.Group();
+    root.add(posePivot);
 
     const body = new THREE.Mesh(deerBodyGeo, deerCoatMat);
     body.position.set(0, 1.02, 0);
     body.castShadow = !isSoftwareGl;
-    root.add(body);
+    posePivot.add(body);
 
     const deerTail = new THREE.Mesh(deerTailGeo, antlerMat);
     deerTail.position.set(0, 1.12, -0.66);
     deerTail.rotation.x = -0.65;
-    root.add(deerTail);
+    posePivot.add(deerTail);
 
     const neckPivot = new THREE.Group();
     neckPivot.position.set(0, 1.12, 0.52);
@@ -346,7 +345,7 @@ export function buildEnvironmentAtmosphereModels(
       antlerR.rotation.z = 0.25;
       neckPivot.add(antlerL, antlerR);
     }
-    root.add(neckPivot);
+    posePivot.add(neckPivot);
 
     const flLeg = new THREE.Mesh(deerLegGeo, deerCoatMat);
     flLeg.position.set(-0.2, 0.82, 0.42);
@@ -356,14 +355,22 @@ export function buildEnvironmentAtmosphereModels(
     blLeg.position.set(-0.2, 0.82, -0.42);
     const brLeg = new THREE.Mesh(deerLegGeo, deerCoatMat);
     brLeg.position.set(0.2, 0.82, -0.42);
-    root.add(flLeg, frLeg, blLeg, brLeg);
+    posePivot.add(flLeg, frLeg, blLeg, brLeg);
+
+    const deerGlbCtrl = attachDeerGlbModel(posePivot, {
+      castShadow: !isSoftwareGl,
+      receiveShadow: !isSoftwareGl,
+      disposableMaterials,
+    });
 
     scene.add(root);
     deerHerd.push({
       root,
+      posePivot,
       bodyMesh: body,
       neckPivot,
       legs: [flLeg, frLeg, blLeg, brLeg],
+      deerGlbCtrl,
       homeX: spot.x,
       homeZ: spot.z,
       orbitRadius: spot.r,
@@ -1233,35 +1240,19 @@ export function buildEnvironmentAtmosphereModels(
       d.root.rotation.y = Math.atan2(-Math.sin(d.walkAngle), Math.cos(d.walkAngle));
 
       if (animalsSleepingAtNight) {
-        d.bodyMesh.position.y = 0.42;
-        d.neckPivot.position.set(0, 0.52, 0.52);
-        d.neckPivot.rotation.x = 0.92 + Math.sin(elapsedTime * 0.8 + i) * 0.03;
-        for (const leg of d.legs) {
-          leg.position.y = 0.25;
-          leg.rotation.x = Math.PI / 2;
-        }
+        d.posePivot.position.y = 0;
+        d.deerGlbCtrl.setState('lie');
+        d.deerGlbCtrl.update(dt);
         continue;
       }
 
-      d.bodyMesh.position.y = 1.02;
-      d.neckPivot.position.set(0, 1.12, 0.52);
-      for (const leg of d.legs) {
-        leg.position.y = 0.82;
-      }
-
+      d.posePivot.position.y = 0;
       if (isGrazing) {
-        d.neckPivot.rotation.x = 0.85 + Math.sin(elapsedTime * 3.2 + i) * 0.08;
-        for (const leg of d.legs) leg.rotation.x = 0;
+        d.deerGlbCtrl.setState('eat');
+        d.deerGlbCtrl.update(dt);
       } else {
-        d.neckPivot.rotation.x =
-          (isAlertToPlayer ? -0.05 : 0.1) + Math.sin(elapsedTime * 2.4 + i) * 0.05;
-        const swingFreq = isAlertToPlayer ? 7.2 : 4.8;
-        const swingAmp = isAlertToPlayer ? 0.48 : 0.36;
-        const swing = Math.sin(elapsedTime * swingFreq + i) * swingAmp;
-        d.legs[0].rotation.x = swing;
-        d.legs[3].rotation.x = swing;
-        d.legs[1].rotation.x = -swing;
-        d.legs[2].rotation.x = -swing;
+        d.deerGlbCtrl.setState(isAlertToPlayer ? 'run' : 'walk');
+        d.deerGlbCtrl.update(dt);
       }
     }
 

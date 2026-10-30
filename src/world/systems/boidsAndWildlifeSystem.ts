@@ -20,7 +20,13 @@ import type {
   IRideableHorseState,
 } from '../domain/worldTypes';
 
-export type GroundAnimalSpecies = 'rabbit' | 'squirrel' | 'deer' | 'sheep';
+export type GroundAnimalSpecies =
+  | 'rabbit'
+  | 'squirrel'
+  | 'deer'
+  | 'sheep'
+  | 'bear'
+  | 'crocodile';
 
 export interface IBirdFlockConfig {
   readonly id: number;
@@ -149,6 +155,10 @@ export function getAnimalSpeciesNameHe(species: GroundAnimalSpecies): string {
       return 'אייל';
     case 'sheep':
       return 'כבשה';
+    case 'bear':
+      return 'דוב';
+    case 'crocodile':
+      return 'תנין';
   }
 }
 
@@ -185,6 +195,18 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
         itemIds: ['raw_game_meat', 'deer_hide', 'deer_antlers'],
         itemLabelsHe: ['בשר', 'עור אייל', 'קרניים'],
         notificationHe: 'נאסף שלל ציד (אייל): בשר + עור אייל + קרניים',
+      };
+    case 'bear':
+      return {
+        itemIds: ['raw_game_meat', 'deer_hide'],
+        itemLabelsHe: ['בשר ציד עשיר', 'פרוות דוב עבה'],
+        notificationHe: 'נאסף שלל ציד (דוב): בשר ציד + פרוות דוב עבה',
+      };
+    case 'crocodile':
+      return {
+        itemIds: ['raw_game_meat', 'deer_hide'],
+        itemLabelsHe: ['בשר ציד', 'עור קשקשים משוריין'],
+        notificationHe: 'נאסף שלל ציד (תנין): בשר ציד + עור קשקשים משוריין',
       };
   }
 }
@@ -352,7 +374,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: 74, z: -48, species: 'squirrel' },
     // Forest Deer herd (6)
     { x: -48, z: 18, species: 'deer' },
-    { x: -54, z: 24, species: 'deer' },
+    { x: -8, z: 52, species: 'deer' },
     { x: 42, z: -48, species: 'deer' },
     { x: 48, z: -42, species: 'deer' },
     { x: -25, z: 45, species: 'deer' },
@@ -364,6 +386,14 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: 24, z: 178, species: 'sheep' },
     { x: 28, z: 182, species: 'sheep' },
     { x: 132, z: 108, species: 'sheep' },
+    // Forest & Mountain Foothills Brown Bears (3)
+    { x: -64, z: -42, species: 'bear' },
+    { x: 78, z: -58, species: 'bear' },
+    { x: -82, z: 28, species: 'bear' },
+    // Lake, River & Oasis Shore Crocodiles (3)
+    { x: 18, z: -16, species: 'crocodile' },
+    { x: -14, z: -26, species: 'crocodile' },
+    { x: 148, z: -136, species: 'crocodile' },
   ];
 
   for (let i = 0; i < spawnCandidates.length; i++) {
@@ -577,8 +607,15 @@ export function stepSmallAnimals(
     }
 
     // Daytime / Awakened threat detection (respecting Ctrl stealth crouch!)
-    const fleeRadius = isPlayerSneaking ? 2.6 : a.species === 'deer' ? 13.5 : 10.5;
-    const curiousRadius = isPlayerSneaking ? 6.5 : 18.0;
+    const fleeRadius = isPlayerSneaking ? 2.5 : a.species === 'deer' ? 10.2 : 10.5;
+    const isGrazingHerbivore = a.species === 'deer' || a.species === 'sheep';
+    const curiousRadius = isGrazingHerbivore
+      ? isPlayerSneaking || playerSpeed < 0.8
+        ? fleeRadius
+        : fleeRadius + 2.2
+      : isPlayerSneaking
+        ? 6.5
+        : 18.0;
 
     if (
       minThreatDist < fleeRadius &&
@@ -653,29 +690,48 @@ export function stepSmallAnimals(
     } else if (a.alertLevel === 'curious') {
       a.isSeekingShelter = false;
       a.isResting = false;
-      a.vx *= 0.8;
-      a.vz *= 0.8;
-      a.yaw = Math.atan2(playerX - a.x, playerZ - a.z);
-      a.hopPhase += safeDt * 3.0;
+      a.vx *= Math.exp(-10 * safeDt);
+      a.vz *= Math.exp(-10 * safeDt);
+      if (Math.hypot(a.vx, a.vz) < 0.08) {
+        a.vx = 0;
+        a.vz = 0;
+      }
+      const targetYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+      let diffYaw = targetYaw - a.yaw;
+      while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
+      while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
+      a.yaw += diffYaw * Math.min(1, safeDt * 3.5);
     } else {
       a.isSeekingShelter = false;
       a.isResting = false;
-      const wanderSeed = hash2D(a.id * 13.7, Math.floor(elapsedTime * 0.45));
-      const pauseMove = wanderSeed > 0.55;
+      const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
+      const wanderSeed = hash2D(a.id * 13.7, timeWindow);
+      const pauseThreshold = a.species === 'deer' || a.species === 'sheep' ? 0.42 : 0.55;
+      const pauseMove = wanderSeed > pauseThreshold;
       if (pauseMove) {
-        a.vx *= 0.82;
-        a.vz *= 0.82;
-        a.hopPhase += safeDt * 2.0;
+        a.vx *= Math.exp(-10 * safeDt);
+        a.vz *= Math.exp(-10 * safeDt);
+        if (Math.hypot(a.vx, a.vz) < 0.08) {
+          a.vx = 0;
+          a.vz = 0;
+        }
       } else {
-        const targetAngle = wanderSeed * Math.PI * 2;
-        const homePullX = (a.homeX - a.x) * 0.15;
-        const homePullZ = (a.homeZ - a.z) * 0.15;
+        const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
+        const homePullX = (a.homeX - a.x) * 0.14;
+        const homePullZ = (a.homeZ - a.z) * 0.14;
         const grazeSpeed =
-          a.species === 'deer' ? 1.85 : a.species === 'sheep' ? 1.35 : 1.75;
-        a.vx = Math.cos(targetAngle) * grazeSpeed + homePullX;
-        a.vz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
-        a.yaw = Math.atan2(a.vx, a.vz);
-        a.hopPhase += safeDt * 8.5;
+          a.species === 'deer' ? 1.55 : a.species === 'sheep' ? 1.25 : 1.75;
+        const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
+        const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
+        const blend = Math.min(1, safeDt * 4.5);
+        a.vx += (desiredVx - a.vx) * blend;
+        a.vz += (desiredVz - a.vz) * blend;
+        const targetYaw = Math.atan2(a.vx, a.vz);
+        let diffYaw = targetYaw - a.yaw;
+        while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
+        while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
+        a.yaw += diffYaw * Math.min(1, safeDt * 5.0);
+        a.hopPhase += safeDt * (a.species === 'deer' ? 6.2 : 8.5);
       }
     }
 
