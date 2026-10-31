@@ -11,4 +11,5 @@ export {
   BEAR_EMBEDDED_PACK_B64,
   BEAR_EMBEDDED_TEXTURE_URI,
   createReadyBear,
-} from '../../../public/models/Bear_Complete';
+} from '../../../public/models/animals/Bear_Complete';
+

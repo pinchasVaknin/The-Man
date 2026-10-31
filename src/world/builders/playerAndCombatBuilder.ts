@@ -15,6 +15,9 @@ import {
   LOCKED_SWORD_GRIP_TRANSFORM,
   PLAYER_EYE_HEIGHT,
   IPlayerState,
+  walkableHeightAt,
+  getSurfaceNormalAt,
+  computeSlopePitchAndRoll,
   computeFirstPersonSwordAttackPose,
 } from '../terrainMath';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
@@ -1384,7 +1387,24 @@ export function buildPlayerAndCombatSystems(
       : 0;
 
     playerCharacterGroup.position.set(playerState.x, playerState.y + mountLift, playerState.z);
+    playerCharacterGroup.rotation.order = 'YXZ';
     playerCharacterGroup.rotation.y = horseBaseYaw;
+
+    const onGroundSlope =
+      playerState.onGround &&
+      !isSwim &&
+      !playerState.isFlying &&
+      !playerState.isClimbingLadder &&
+      walkableHeightAt(playerState.x, playerState.z, playerState.y).surface === 'ground';
+    if (onGroundSlope) {
+      const n = getSurfaceNormalAt(playerState.x, playerState.z);
+      const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, horseBaseYaw, 0.38);
+      playerCharacterGroup.rotation.x += (slope.pitch - playerCharacterGroup.rotation.x) * 0.25;
+      playerCharacterGroup.rotation.z += (slope.roll - playerCharacterGroup.rotation.z) * 0.25;
+    } else {
+      playerCharacterGroup.rotation.x *= 0.78;
+      playerCharacterGroup.rotation.z *= 0.78;
+    }
 
     swimRippleMesh.visible = isSwim;
     if (isSwim) {
