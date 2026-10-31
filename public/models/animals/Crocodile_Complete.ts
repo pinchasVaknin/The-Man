@@ -246,12 +246,18 @@ export class CrocodileAnimator {
   state: CrocodileState = 'idle';
   prevState: CrocodileState = 'idle';
   blend = 1.0;
-  blendDuration = 0.25;
+  blendDuration = 0.44;
   time = 0;
   prevTime = 0;
   moveSpeed = 0.0;
   turn = 0;
   loopDeath = false;
+
+  private fromPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private lastPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private fromRootPos = new THREE.Vector3();
+  private lastRootPos = new THREE.Vector3();
+  private hasPoseSnapshot = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -263,6 +269,25 @@ export class CrocodileAnimator {
   private turnAxis = new THREE.Vector3(0, 1, 0);
   private rollAxis = new THREE.Vector3(0, 0, 1);
 
+  private static isLocomotionState(s: CrocodileState): boolean {
+    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'skip' || s === 'swim' || s === 'swimFast';
+  }
+
+  private computeBlendDuration(from: CrocodileState, to: CrocodileState): number {
+    if (to === 'attack' || to === 'swimAttack') return 0.34;
+    if (to === 'death') return 0.38;
+    const fromWater = from === 'swim' || from === 'swimIdle' || from === 'swimFast' || from === 'swimAttack';
+    const toWater = to === 'swim' || to === 'swimIdle' || to === 'swimFast' || to === 'swimAttack';
+    if (fromWater !== toWater) return 0.56;
+    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit' || from === 'roar' || to === 'roar' || from === 'call' || to === 'call' || from === 'eat' || to === 'eat') {
+      return 0.52;
+    }
+    if (CrocodileAnimator.isLocomotionState(from) && CrocodileAnimator.isLocomotionState(to)) {
+      return 0.42;
+    }
+    return 0.45;
+  }
+
   constructor(rig: CrocodileRig, data: CrocodileUnpackedData) {
     this.rig = rig;
     this.data = data;
@@ -271,14 +296,39 @@ export class CrocodileAnimator {
 
   setState(next: CrocodileState): void {
     if (next === this.state) return;
-    this.prevState = this.state;
+
+    if (this.hasPoseSnapshot) {
+      this.fromPoseQuats.set(this.lastPoseQuats);
+      this.fromRootPos.copy(this.lastRootPos);
+    } else {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        const q = this.rig.bones[j].quaternion;
+        this.fromPoseQuats[j * 4 + 0] = q.x;
+        this.fromPoseQuats[j * 4 + 1] = q.y;
+        this.fromPoseQuats[j * 4 + 2] = q.z;
+        this.fromPoseQuats[j * 4 + 3] = q.w;
+      }
+      this.fromRootPos.copy(this.rig.bones[1].position);
+      this.hasPoseSnapshot = true;
+    }
+
+    const prev = this.state;
+    this.prevState = prev;
     this.prevTime = this.time;
+    this.blendDuration = this.computeBlendDuration(prev, next);
+
+    if (CrocodileAnimator.isLocomotionState(prev) && CrocodileAnimator.isLocomotionState(next)) {
+      const oldDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(prev)]);
+      const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
+      const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
+      this.time = normPhase * newDur;
+    } else if (next === 'call' || next === 'roar' || next === 'attack' || next === 'swimAttack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
+      this.time = 0.0;
+    }
+
     this.state = next;
     this.blend = 0.0;
     this.moveSpeed = CROCODILE_GAITS[next] ? CROCODILE_GAITS[next].speed : 0.0;
-    if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death') {
-      this.time = 0.0;
-    }
   }
 
   restartState(next: CrocodileState): void {
@@ -339,22 +389,12 @@ export class CrocodileAnimator {
 
   private applyClipPose(clipIdx: number, t: number, blendAlpha: number, hasPrev: boolean): void {
     const cur = this.sampleClipFrame(clipIdx, t, this.state);
-    const prevClipIdx = this.getClipIndex(this.prevState);
-    const prv = hasPrev ? this.sampleClipFrame(prevClipIdx, this.prevTime, this.prevState) : cur;
 
     this.readRootPos(clipIdx, cur.f0, cur.f1, cur.frac, this.vA);
-    if (hasPrev && blendAlpha < 1.0) {
-      this.readRootPos(prevClipIdx, prv.f0, prv.f1, prv.frac, this.vPrev);
-      this.vA.lerpVectors(this.vPrev, this.vA, blendAlpha);
-    }
     this.rig.bones[1].position.copy(this.vA);
 
     for (let j = 0; j < NUM_JOINTS; j++) {
       this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
-      if (hasPrev && blendAlpha < 1.0) {
-        this.readJointQuat(prevClipIdx, prv.f0, prv.f1, prv.frac, j, this.qPrev);
-        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
-      }
     }
 
     // Continuous 720-degree (2x 360°) Death Roll around longitudinal Z-axis during 'attack'
@@ -379,6 +419,31 @@ export class CrocodileAnimator {
         this.rig.bones[jIdx].quaternion.multiply(this.qTurn);
       }
     }
+
+    // Unified pose-snapshot crossfade
+    if (hasPrev && blendAlpha < 1.0 && this.hasPoseSnapshot) {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        this.qPrev.set(
+          this.fromPoseQuats[j * 4 + 0],
+          this.fromPoseQuats[j * 4 + 1],
+          this.fromPoseQuats[j * 4 + 2],
+          this.fromPoseQuats[j * 4 + 3],
+        );
+        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+      }
+      this.vPrev.copy(this.fromRootPos).lerp(this.rig.bones[1].position, blendAlpha);
+      this.rig.bones[1].position.copy(this.vPrev);
+    }
+
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const q = this.rig.bones[j].quaternion;
+      this.lastPoseQuats[j * 4 + 0] = q.x;
+      this.lastPoseQuats[j * 4 + 1] = q.y;
+      this.lastPoseQuats[j * 4 + 2] = q.z;
+      this.lastPoseQuats[j * 4 + 3] = q.w;
+    }
+    this.lastRootPos.copy(this.rig.bones[1].position);
+    this.hasPoseSnapshot = true;
   }
 
   update(dt: number): void {
@@ -392,8 +457,9 @@ export class CrocodileAnimator {
     let alpha = 1.0;
     let hasPrev = false;
     if (this.blend < 1.0) {
-      this.blend = Math.min(1.0, this.blend + clamped / this.blendDuration);
-      alpha = this.blend * this.blend * (3.0 - 2.0 * this.blend);
+      this.blend = Math.min(1.0, this.blend + clamped / Math.max(0.001, this.blendDuration));
+      const b = this.blend;
+      alpha = b * b * b * (b * (b * 6.0 - 15.0) + 10.0);
       hasPrev = true;
     }
 
@@ -410,7 +476,7 @@ export class Crocodile {
   readonly animator: CrocodileAnimator;
 
   constructor(data: CrocodileUnpackedData, texture: THREE.Texture, options: CrocodileOptions = {}) {
-    const scale = options.scale ?? 0.30;
+    const scale = options.scale ?? 0.50;
     const castShadow = options.castShadow ?? true;
     const receiveShadow = options.receiveShadow ?? true;
 

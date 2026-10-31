@@ -36,14 +36,17 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     const animals = LAB_ENTITIES.filter((e) => e.category === 'animals');
 
     assert.equal(characters.length, 8, 'Should include all 8 characters');
-    assert.equal(animals.length, 13, 'Should include all 13 animals (including forest_bear and river_crocodile)');
+    assert.equal(animals.length, 16, 'Should include all 16 animals (including forest_bear, river_crocodile, jungle_jaguar, forest_wolf, and savanna_rhino)');
 
-    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, and Crocodile are standalone entries
+    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, Crocodile, Jaguar, Wolf, and Rhino are standalone entries
     assert.ok(animals.some((a) => a.id === 'koi_fish'), 'Koi fish must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'meadow_butterfly'), 'Meadow butterfly must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'harbor_seagull'), 'Harbor seagull must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'forest_bear'), 'Forest bear must be included in animals');
     assert.ok(animals.some((a) => a.id === 'river_crocodile'), 'River crocodile must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'jungle_jaguar'), 'Jungle jaguar must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'forest_wolf'), 'Forest wolf must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'savanna_rhino'), 'Savanna rhino must be included in animals');
     assert.ok(!LAB_ENTITIES.some((e) => e.id === 'koi_and_butterfly'), 'Combined koi_and_butterfly entry must not exist');
   });
 
@@ -84,19 +87,23 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     assert.ok(onlyCharacters.every((e) => e.category === 'characters'));
 
     const onlyAnimals = filterLabEntities(LAB_ENTITIES, 'animals', '');
-    assert.equal(onlyAnimals.length, 13);
+    assert.equal(onlyAnimals.length, 16);
     assert.ok(onlyAnimals.every((e) => e.category === 'animals'));
 
     const allCombined = filterLabEntities(LAB_ENTITIES, 'all', '');
-    assert.equal(allCombined.length, 21, 'Dropdown "all" option must return all 21 entities');
+    assert.equal(allCombined.length, 24, 'Dropdown "all" option must return all 24 entities');
 
     const koiSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'קוי');
     assert.equal(koiSearch.length, 1);
     assert.equal(koiSearch[0].id, 'koi_fish');
 
-    const butterflySearch = filterLabEntities(LAB_ENTITIES, 'animals', 'פרפר');
-    assert.equal(butterflySearch.length, 1);
-    assert.equal(butterflySearch[0].id, 'meadow_butterfly');
+    const wolfSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'זאב');
+    assert.equal(wolfSearch.length, 1);
+    assert.equal(wolfSearch[0].id, 'forest_wolf');
+
+    const rhinoSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'קרנף');
+    assert.equal(rhinoSearch.length, 1);
+    assert.equal(rhinoSearch[0].id, 'savanna_rhino');
   });
 
   it('computes animation cycle progress as 0 for "none" and wraps [0, 1) for active animations', () => {
@@ -142,7 +149,7 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     assert.ok(eagleLabels.rightLimbTitleHe.includes('כנף'));
   });
 
-  it('wires Deer_Complete.ts with all 9 procedural IK animations into forest_deer and createReadyDeer', async () => {
+  it('wires Deer_Complete.ts with all procedural IK animations into forest_deer and createReadyDeer', async () => {
     const { DEER_STATES, createReadyDeer } = await import('../world/models/Deer');
     const { buildLabEntityRig } = await import('./labModelFactory');
 
@@ -182,9 +189,12 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     deer.dispose();
   });
 
-  it('wires Bear_Complete.ts and Crocodile_Complete.ts with all 13 animations and supports persistent speed overrides', async () => {
+  it('wires Bear_Complete.ts (including stomp), Crocodile_Complete.ts, Jaguar_Complete.ts, and Wolf_Complete.ts', async () => {
     const { BEAR_STATES, createReadyBear } = await import('../world/models/Bear');
     const { CROCODILE_STATES, createReadyCrocodile } = await import('../world/models/Crocodile');
+    const { JAGUAR_STATES, createReadyJaguar } = await import('../world/models/Jaguar');
+    const { WOLF_STATES, createReadyWolf } = await import('../world/models/Wolf');
+    const { RHINO_STATES, createReadyRhino } = await import('../world/models/Rhino');
     const { buildLabEntityRig } = await import('./labModelFactory');
 
     const bearEntity = getLabEntityById('forest_bear');
@@ -202,6 +212,7 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     const bearLabRig = buildLabEntityRig('forest_bear', bearEntity.skins[0]);
     assert.ok(bearLabRig.stats.triangleCount > 7000, 'Bear mesh should have >7k triangles');
     bearLabRig.applyAnimation('roar', 0.2, 0.1);
+    bearLabRig.applyAnimation('stomp', 0.35, 0.2);
     bearLabRig.applyAnimation('death', 0.5, 0.2);
     bearLabRig.dispose();
     bear.dispose();
@@ -225,6 +236,104 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     crocLabRig.dispose();
     croc.dispose();
 
+    // Verify Jaguar_Complete.ts: 'sit' is upright seated observation (stationary), 'stalk' is stealth prowl,
+    // and calling setState('attack') or setState('death') every frame advances animation time without freezing!
+    const jaguar = createReadyJaguar();
+    assert.equal(jaguar.rig.bones.length, 42, 'JaguarRig must have 42 bones');
+    jaguar.setState('sit');
+    jaguar.update(0.5);
+    const sitHeadWorldPos = jaguar.rig.bones[10].getWorldPosition(jaguar.rig.bones[0].position.clone());
+    const sitHeadY = sitHeadWorldPos.y;
+    assert.equal(jaguar.moveSpeed, 0.0, 'Jaguar sit state must be stationary');
+
+    jaguar.setState('stalk');
+    jaguar.update(0.5);
+    const stalkHeadWorldPos = jaguar.rig.bones[10].getWorldPosition(jaguar.rig.bones[0].position.clone());
+    const stalkHeadY = stalkHeadWorldPos.y;
+    assert.ok(jaguar.moveSpeed > 0.5, 'Jaguar stalk state must advance stealthily');
+    assert.ok(
+      sitHeadY > stalkHeadY + 0.15,
+      `Jaguar upright sit head elevation (${sitHeadY.toFixed(2)}) must be higher than low stealth stalk (${stalkHeadY.toFixed(2)})`
+    );
+
+    jaguar.animator.restartState('attack');
+    const startAttackZ = jaguar.rig.bones[2].position.z;
+    for (let f = 0; f < 10; f++) {
+      jaguar.setState('attack');
+      jaguar.update(0.05);
+    }
+    assert.ok(
+      jaguar.rig.bones[2].position.z > startAttackZ + 0.25,
+      'Jaguar attack must advance time and lunge forward when setState("attack") is called every frame'
+    );
+
+    jaguar.animator.restartState('death');
+    for (let f = 0; f < 35; f++) {
+      jaguar.setState('death');
+      jaguar.update(0.05);
+    }
+    assert.ok(
+      jaguar.rig.bones[2].position.y < 0.35,
+      'Jaguar death must advance time and collapse to the ground when setState("death") is called every frame'
+    );
+    for (const st of JAGUAR_STATES) {
+      jaguar.setState(st);
+      jaguar.update(0.05);
+    }
+    jaguar.dispose();
+
+    // Verify Wolf_Complete.ts (59-joint GLB) and forest_wolf Lab rig
+    const wolfEntity = getLabEntityById('forest_wolf');
+    const wolf = createReadyWolf();
+    assert.equal(wolf.rig.bones.length, 59, 'WolfRig must have 59 bones');
+    for (const st of WOLF_STATES) {
+      wolf.setState(st);
+      wolf.update(0.1);
+      assert.equal(wolf.state, st);
+    }
+    wolf.animator.restartState('death');
+    for (let f = 0; f < 25; f++) {
+      wolf.setState('death');
+      wolf.update(0.05);
+    }
+    assert.ok(
+      wolf.rig.bones[0].position.y < -0.1,
+      'Wolf death animation must advance time and collapse to the ground'
+    );
+    const wolfLabRig = buildLabEntityRig('forest_wolf', wolfEntity.skins[0]);
+    assert.ok(wolfLabRig.stats.triangleCount > 5000, 'Wolf GLB mesh should have ~10.8k triangles');
+    wolfLabRig.applyAnimation('howl', 0.2, 0.2);
+    wolfLabRig.applyAnimation('attack', 0.4, 0.4);
+    wolfLabRig.applyAnimation('death', 0.6, 0.5);
+    wolfLabRig.dispose();
+    wolf.dispose();
+
+    // Verify Rhino_Complete.ts (47-joint GLB) and savanna_rhino Lab rig
+    const rhinoEntity = getLabEntityById('savanna_rhino');
+    const rhino = createReadyRhino();
+    assert.equal(rhino.rig.bones.length, 47, 'RhinoRig must have 47 bones');
+    for (const st of RHINO_STATES) {
+      rhino.setState(st);
+      rhino.update(0.1);
+      assert.equal(rhino.state, st);
+    }
+    rhino.animator.restartState('death');
+    for (let f = 0; f < 25; f++) {
+      rhino.setState('death');
+      rhino.update(0.05);
+    }
+    assert.ok(
+      rhino.rig.bones[1].position.y < 14.0,
+      'Rhino death animation must advance time and collapse onto its side'
+    );
+    const rhinoLabRig = buildLabEntityRig('savanna_rhino', rhinoEntity.skins[0]);
+    assert.ok(rhinoLabRig.stats.triangleCount > 9000, 'Rhino GLB mesh should have ~9.8k triangles');
+    rhinoLabRig.applyAnimation('roar', 0.2, 0.2);
+    rhinoLabRig.applyAnimation('attack', 0.4, 0.4);
+    rhinoLabRig.applyAnimation('death', 0.6, 0.5);
+    rhinoLabRig.dispose();
+    rhino.dispose();
+
     // Verify persistent per-animation and entity-wide speed resolution
     const customSpeedOverrides = {
       ...DEFAULT_LAB_POSE_OVERRIDES,
@@ -232,7 +341,7 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
       perAnimationSpeeds: { walk: 0.75, death: 1.25 },
     };
     assert.equal(getEffectiveLabAnimationSpeed(customSpeedOverrides, 'walk', 1.0), 0.75);
-    assert.equal(getEffectiveLabAnimationSpeed(customSpeedOverrides, 'death', 1.0), 1.25);
+    assert.equal(getEffectiveLabAnimationSpeed(customSpeedOverrides, 'death', 1.25), 1.25);
     assert.equal(getEffectiveLabAnimationSpeed(customSpeedOverrides, 'run', 1.0), 1.5);
     assert.ok(countActivePoseOverrides(customSpeedOverrides) >= 3);
   });

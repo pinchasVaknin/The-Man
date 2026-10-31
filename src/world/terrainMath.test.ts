@@ -1352,7 +1352,7 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const animals = createInitialSmallAnimals();
   // Assert
   assert.equal(birds.length, 36);
-  assert.equal(animals.length, 40);
+  assert.equal(animals.length, 48);
 
   // Place player right beneath bird flock 0 and next to critter 0
   const targetBird = birds[0];

@@ -5,6 +5,7 @@ export type BearState =
   | 'walk'
   | 'eat'
   | 'call'
+  | 'stomp'
   | 'lie'
   | 'sit'
   | 'trot'
@@ -44,6 +45,7 @@ export const BEAR_GAITS: Record<BearState, { speed: number }> = {
   walk:   { speed: 1.45 },
   eat:    { speed: 0.0 },
   call:   { speed: 0.0 },
+  stomp:  { speed: 0.0 },
   lie:    { speed: 0.0 },
   sit:    { speed: 0.0 },
   trot:   { speed: 3.2 },
@@ -51,7 +53,7 @@ export const BEAR_GAITS: Record<BearState, { speed: number }> = {
   flee:   { speed: 8.9 },
   skip:   { speed: 5.2 },
   roar:   { speed: 0.0 },
-  attack: { speed: 0.0 },
+  attack: { speed: 1.35 },
   death:  { speed: 0.0 },
 };
 
@@ -67,11 +69,26 @@ export const BEAR_STATES: BearState[] = [
   'flee',
   'skip',
   'roar',
+  'stomp',
   'attack',
   'death',
 ];
 
-const CLIP_ORDER: BearState[] = BEAR_STATES;
+const CLIP_ORDER: BearState[] = [
+  'idle',
+  'walk',
+  'eat',
+  'call',
+  'lie',
+  'sit',
+  'trot',
+  'run',
+  'flee',
+  'skip',
+  'roar',
+  'attack',
+  'death',
+];
 
 const NUM_VERTS = 4664;
 const NUM_INDICES = 22884;
@@ -246,12 +263,18 @@ export class BearAnimator {
   state: BearState = 'walk';
   prevState: BearState = 'walk';
   blend = 1.0;
-  blendDuration = 0.26;
+  blendDuration = 0.44;
   time = 0;
   prevTime = 0;
   moveSpeed = 1.45;
   turn = 0;
   loopDeath = false;
+
+  private fromPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private lastPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private fromRootPos = new THREE.Vector3();
+  private lastRootPos = new THREE.Vector3();
+  private hasPoseSnapshot = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -261,6 +284,35 @@ export class BearAnimator {
   private vPrev = new THREE.Vector3();
   private turnAxis = new THREE.Vector3(0, 0, 1);
 
+  private qEuler = new THREE.Euler();
+  private qMod = new THREE.Quaternion();
+
+  private addLocalRot(jointIdx: number, rx: number, ry: number, rz: number): void {
+    const b = this.rig.bones[jointIdx];
+    if (!b) return;
+    this.qEuler.set(rx, ry, rz, 'XYZ');
+    this.qMod.setFromEuler(this.qEuler);
+    b.quaternion.multiply(this.qMod);
+  }
+
+  private static isLocomotionState(s: BearState): boolean {
+    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'skip';
+  }
+
+  private static isPostureChangeState(s: BearState): boolean {
+    return s === 'lie' || s === 'sit' || s === 'roar' || s === 'call' || s === 'stomp' || s === 'eat';
+  }
+
+  private computeBlendDuration(from: BearState, to: BearState): number {
+    if (to === 'attack') return 0.34;
+    if (to === 'death') return 0.38;
+    if (from === 'roar' || to === 'roar') return 0.56;
+    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.58;
+    if (from === 'stomp' || to === 'stomp' || from === 'call' || to === 'call' || from === 'eat' || to === 'eat') return 0.48;
+    if (BearAnimator.isLocomotionState(from) && BearAnimator.isLocomotionState(to)) return 0.42;
+    return 0.45;
+  }
+
   constructor(rig: BearRig, data: BearUnpackedData) {
     this.rig = rig;
     this.data = data;
@@ -269,14 +321,39 @@ export class BearAnimator {
 
   setState(next: BearState): void {
     if (next === this.state) return;
-    this.prevState = this.state;
+
+    if (this.hasPoseSnapshot) {
+      this.fromPoseQuats.set(this.lastPoseQuats);
+      this.fromRootPos.copy(this.lastRootPos);
+    } else {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        const q = this.rig.bones[j].quaternion;
+        this.fromPoseQuats[j * 4 + 0] = q.x;
+        this.fromPoseQuats[j * 4 + 1] = q.y;
+        this.fromPoseQuats[j * 4 + 2] = q.z;
+        this.fromPoseQuats[j * 4 + 3] = q.w;
+      }
+      this.fromRootPos.copy(this.rig.bones[2].position);
+      this.hasPoseSnapshot = true;
+    }
+
+    const prev = this.state;
+    this.prevState = prev;
     this.prevTime = this.time;
+    this.blendDuration = this.computeBlendDuration(prev, next);
+
+    if (BearAnimator.isLocomotionState(prev) && BearAnimator.isLocomotionState(next)) {
+      const oldDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(prev)]);
+      const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
+      const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
+      this.time = normPhase * newDur;
+    } else if (next === 'call' || next === 'stomp' || next === 'roar' || next === 'attack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
+      this.time = 0.0;
+    }
+
     this.state = next;
     this.blend = 0.0;
     this.moveSpeed = BEAR_GAITS[next] ? BEAR_GAITS[next].speed : 0.0;
-    if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death') {
-      this.time = 0.0;
-    }
   }
 
   restartState(next: BearState): void {
@@ -300,6 +377,7 @@ export class BearAnimator {
   }
 
   private getClipIndex(st: BearState): number {
+    if (st === 'stomp') return 3; // Clip 3 ('call') is the 4-legged ground-stomp & growl intimidation clip
     const idx = CLIP_ORDER.indexOf(st);
     return idx >= 0 ? idx : 0;
   }
@@ -337,22 +415,37 @@ export class BearAnimator {
 
   private applyClipPose(clipIdx: number, t: number, blendAlpha: number, hasPrev: boolean): void {
     const cur = this.sampleClipFrame(clipIdx, t, this.state);
-    const prevClipIdx = this.getClipIndex(this.prevState);
-    const prv = hasPrev ? this.sampleClipFrame(prevClipIdx, this.prevTime, this.prevState) : cur;
 
     this.readPelvis(clipIdx, cur.f0, cur.f1, cur.frac, this.vA);
-    if (hasPrev && blendAlpha < 1.0) {
-      this.readPelvis(prevClipIdx, prv.f0, prv.f1, prv.frac, this.vPrev);
-      this.vA.lerpVectors(this.vPrev, this.vA, blendAlpha);
-    }
     this.rig.bones[2].position.copy(this.vA);
 
     for (let j = 0; j < NUM_JOINTS; j++) {
       this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
-      if (hasPrev && blendAlpha < 1.0) {
-        this.readJointQuat(prevClipIdx, prv.f0, prv.f1, prv.frac, j, this.qPrev);
-        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+    }
+
+    if (this.state === 'stomp' || this.state === 'call') {
+      // Heavy 4-legged intimidation ground-stomp: alternate front paw lift & heavy ground slam with shoulder drop
+      const stompPhase = (t * 1.65) % 1.0;
+      const slam = Math.pow(Math.max(0, Math.sin(stompPhase * Math.PI * 2)), 2);
+      const lift = Math.max(0, -Math.sin(stompPhase * Math.PI * 2));
+      const leftTurn = Math.sin(t * 0.825 * Math.PI * 2) >= 0;
+      this.rig.bones[2].position.y -= slam * 0.08;
+      this.addLocalRot(11, slam * 0.14 - lift * 0.08, 0, (leftTurn ? -1 : 1) * (slam * 0.09 - lift * 0.06));
+      this.addLocalRot(19, slam * 0.16, 0, 0);
+      this.addLocalRot(23, 0.32 + slam * 0.24, 0, 0);
+      if (leftTurn) {
+        this.addLocalRot(14, -lift * 0.42 + slam * 0.18, 0, 0);
+        this.addLocalRot(15, lift * 0.55 - slam * 0.15, 0, 0);
+      } else {
+        this.addLocalRot(26, -lift * 0.42 + slam * 0.18, 0, 0);
+        this.addLocalRot(27, lift * 0.55 - slam * 0.15, 0, 0);
       }
+    } else if (this.state === 'attack') {
+      // Forward lunge on bear attack so the strike reaches forward powerfully without overshooting
+      const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 1.6);
+      const u = ((t % dur) + dur) % dur / dur;
+      const lunge = Math.sin(u * Math.PI);
+      this.rig.bones[2].position.z += 0.14 * lunge;
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
@@ -364,6 +457,35 @@ export class BearAnimator {
         this.rig.bones[jIdx].quaternion.multiply(this.qTurn);
       }
     }
+
+    // Unified pose-snapshot crossfade + intermediate weight-shift arc
+    if (hasPrev && blendAlpha < 1.0 && this.hasPoseSnapshot) {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        this.qPrev.set(
+          this.fromPoseQuats[j * 4 + 0],
+          this.fromPoseQuats[j * 4 + 1],
+          this.fromPoseQuats[j * 4 + 2],
+          this.fromPoseQuats[j * 4 + 3],
+        );
+        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+      }
+      this.vPrev.copy(this.fromRootPos).lerp(this.rig.bones[2].position, blendAlpha);
+      if (BearAnimator.isPostureChangeState(this.prevState) || BearAnimator.isPostureChangeState(this.state)) {
+        const transitionArc = Math.sin(blendAlpha * Math.PI);
+        this.vPrev.y -= 0.042 * transitionArc;
+      }
+      this.rig.bones[2].position.copy(this.vPrev);
+    }
+
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const q = this.rig.bones[j].quaternion;
+      this.lastPoseQuats[j * 4 + 0] = q.x;
+      this.lastPoseQuats[j * 4 + 1] = q.y;
+      this.lastPoseQuats[j * 4 + 2] = q.z;
+      this.lastPoseQuats[j * 4 + 3] = q.w;
+    }
+    this.lastRootPos.copy(this.rig.bones[2].position);
+    this.hasPoseSnapshot = true;
   }
 
   update(dt: number): void {
@@ -377,8 +499,9 @@ export class BearAnimator {
     let alpha = 1.0;
     let hasPrev = false;
     if (this.blend < 1.0) {
-      this.blend = Math.min(1.0, this.blend + clamped / this.blendDuration);
-      alpha = this.blend * this.blend * (3.0 - 2.0 * this.blend);
+      this.blend = Math.min(1.0, this.blend + clamped / Math.max(0.001, this.blendDuration));
+      const b = this.blend;
+      alpha = b * b * b * (b * (b * 6.0 - 15.0) + 10.0);
       hasPrev = true;
     }
 
@@ -395,7 +518,7 @@ export class Bear {
   readonly animator: BearAnimator;
 
   constructor(data: BearUnpackedData, texture: THREE.Texture, options: BearOptions = {}) {
-    const scale = options.scale ?? 0.78;
+    const scale = options.scale ?? 1.18;
     const castShadow = options.castShadow ?? true;
     const receiveShadow = options.receiveShadow ?? true;
 

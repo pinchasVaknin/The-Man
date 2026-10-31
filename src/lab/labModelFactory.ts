@@ -17,6 +17,8 @@ import { attachDeerGlbModel } from '../world/models/deerGlbLoader';
 import { createReadyBear, type BearState } from '../world/models/Bear';
 import { createReadyCrocodile, type CrocodileState } from '../world/models/Crocodile';
 import { createReadyJaguar, type JaguarState } from '../world/models/Jaguar';
+import { createReadyWolf, type WolfState } from '../world/models/Wolf';
+import { createReadyRhino, type RhinoState } from '../world/models/Rhino';
 
 export interface ILabEntityRig {
   readonly entityId: string;
@@ -1968,6 +1970,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         'flee',
         'skip',
         'roar',
+        'stomp',
         'attack',
         'death',
       ]);
@@ -2169,6 +2172,188 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         jaguar.update(dt);
       } else {
         jaguar.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 8E. FOREST WOLF (זאב היער הצפוני — מודל שלד 59 עצמות מלא + 15 אנימציות)
+  // ==========================================================================
+  else if (entityId === 'forest_wolf') {
+    const wolfRoot = new THREE.Group();
+    root.add(wolfRoot);
+
+    const wolf = createReadyWolf({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    wolf.animator.loopDeath = true;
+    wolfRoot.add(wolf.object);
+
+    const wolfMat = wolf.mesh.material;
+    if (Array.isArray(wolfMat)) {
+      for (const m of wolfMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(wolfMat);
+    }
+    disposableGeometries.push(wolf.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(wolfRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'wolf_timber_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = wolf.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastWolfAnimTime = 0;
+    let lastWolfAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastWolfAnimTime ? t - lastWolfAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastWolfAnimTime = t;
+
+      wolfRoot.position.set(0, 0, 0);
+      wolfRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastWolfAnimId !== 'none') {
+          wolf.rig.resetToRest();
+          wolf.object.position.set(0, 0, 0);
+          wolf.object.rotation.set(0, 0, 0);
+          wolf.setState('idle');
+          lastWolfAnimId = 'none';
+        }
+        return;
+      }
+
+      const validWolfStates: ReadonlySet<WolfState> = new Set<WolfState>([
+        'idle',
+        'walk',
+        'trot',
+        'stalk',
+        'run',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'howl',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: WolfState = validWolfStates.has(animId as WolfState)
+        ? (animId as WolfState)
+        : 'idle';
+
+      if (lastWolfAnimId !== animId) {
+        if (mappedState === 'death') {
+          wolf.animator.restartState('death');
+        } else {
+          wolf.setState(mappedState);
+        }
+        lastWolfAnimId = animId;
+      }
+
+      if (dt > 0) {
+        wolf.update(dt);
+      } else {
+        wolf.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 8F. SAVANNA RHINO (קרנף הסוואנה המשוריין — מודל שלד 47 עצמות מלא + 13 אנימציות)
+  // ==========================================================================
+  else if (entityId === 'savanna_rhino') {
+    const rhinoRoot = new THREE.Group();
+    root.add(rhinoRoot);
+
+    const rhino = createReadyRhino({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    rhino.animator.loopDeath = true;
+    rhinoRoot.add(rhino.object);
+
+    const rhinoMat = rhino.mesh.material;
+    if (Array.isArray(rhinoMat)) {
+      for (const m of rhinoMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(rhinoMat);
+    }
+    disposableGeometries.push(rhino.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(rhinoRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'rhino_savanna_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = rhino.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastRhinoAnimTime = 0;
+    let lastRhinoAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastRhinoAnimTime ? t - lastRhinoAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastRhinoAnimTime = t;
+
+      rhinoRoot.position.set(0, 0, 0);
+      rhinoRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastRhinoAnimId !== 'none') {
+          rhino.rig.resetToRest();
+          rhino.object.position.set(0, 0, 0);
+          rhino.object.rotation.set(0, 0, 0);
+          rhino.setState('idle');
+          lastRhinoAnimId = 'none';
+        }
+        return;
+      }
+
+      const validRhinoStates: ReadonlySet<RhinoState> = new Set<RhinoState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: RhinoState = validRhinoStates.has(animId as RhinoState)
+        ? (animId as RhinoState)
+        : 'idle';
+
+      if (lastRhinoAnimId !== animId) {
+        if (mappedState === 'death') {
+          rhino.animator.restartState('death');
+        } else {
+          rhino.setState(mappedState);
+        }
+        lastRhinoAnimId = animId;
+      }
+
+      if (dt > 0) {
+        rhino.update(dt);
+      } else {
+        rhino.animator.setNormalizedPhase(p);
       }
     };
   }

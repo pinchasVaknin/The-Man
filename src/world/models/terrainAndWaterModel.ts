@@ -141,15 +141,29 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.25 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 13.5).toFixed(1)} && vTerrainWorldPos.y < 7.05) {
             discard;
           }
-          // Carve real mountain bear cave openings ("חור בהר") so coarse terrain triangles never clip into the chambers
-          if (abs(vTerrainWorldPos.x - (-85.0)) < 5.8 && vTerrainWorldPos.z > -83.0 && vTerrainWorldPos.z < -70.0 && vTerrainWorldPos.y > 4.65 && vTerrainWorldPos.y < 11.2) {
-            discard;
-          }
-          if (vTerrainWorldPos.x > -193.0 && vTerrainWorldPos.x < -180.0 && abs(vTerrainWorldPos.z - (-45.0)) < 5.8 && vTerrainWorldPos.y > 4.95 && vTerrainWorldPos.y < 11.5) {
-            discard;
-          }
-          if (abs(vTerrainWorldPos.x - (-135.0)) < 5.8 && vTerrainWorldPos.z > 190.0 && vTerrainWorldPos.z < 203.0 && vTerrainWorldPos.y > 4.85 && vTerrainWorldPos.y < 11.4) {
-            discard;
+          // Carve arched tunnel portal openings at the 3 Mountain Bear Caves while keeping the mountain peak solid above the tunnel & cavern
+          {
+            // Cave 0: (-85, -76), facingYaw = 0 (+Z entrance)
+            float c0x = vTerrainWorldPos.x - (-85.0);
+            float c0z = vTerrainWorldPos.z - (-76.0);
+            float c0y = vTerrainWorldPos.y - 4.2;
+            if (c0z > -6.5 && c0z < 6.8 && c0y > -0.8 && ((c0x * c0x) / 20.25 + ((c0y - 0.6) * (c0y - 0.6)) / 24.5) < 1.0) {
+              discard;
+            }
+            // Cave 1: (-186, -45), facingYaw = PI/2 (+X entrance)
+            float c1x = -(vTerrainWorldPos.z - (-45.0));
+            float c1z = vTerrainWorldPos.x - (-186.0);
+            float c1y = vTerrainWorldPos.y - 4.5;
+            if (c1z > -6.5 && c1z < 6.8 && c1y > -0.8 && ((c1x * c1x) / 20.25 + ((c1y - 0.6) * (c1y - 0.6)) / 24.5) < 1.0) {
+              discard;
+            }
+            // Cave 2: (-135, 196), facingYaw = PI (-Z entrance)
+            float c2x = -(vTerrainWorldPos.x - (-135.0));
+            float c2z = -(vTerrainWorldPos.z - 196.0);
+            float c2y = vTerrainWorldPos.y - 4.6;
+            if (c2z > -6.5 && c2z < 6.8 && c2y > -0.8 && ((c2x * c2x) / 20.25 + ((c2y - 0.6) * (c2y - 0.6)) / 24.5) < 1.0) {
+              discard;
+            }
           }
           float pWave1 = sin(vTerrainWorldPos.x * 0.24 + cos(vTerrainWorldPos.z * 0.21) * 1.6);
           float pWave2 = cos(vTerrainWorldPos.z * 0.31 - sin(vTerrainWorldPos.x * 0.27) * 1.4);
