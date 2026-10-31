@@ -20,6 +20,11 @@ export {
   MAGIC_STONE_CIRCLE_POS,
   WALKABLE_MOUNTAINS,
   SMALL_MEADOW_HILLS,
+  BEAR_MOUNTAIN_CAVES,
+  SOUTHERN_RIVER_WAYPOINTS,
+  SOUTHERN_RIVER_BRIDGE_POS,
+  CROCODILE_RIVER_BEND_POS,
+  southernRiverBridgeHeightAt,
   isWithinViewDistance,
 } from './landmarks/coreLandmarks';
 // #endregion

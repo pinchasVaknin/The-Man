@@ -16,6 +16,7 @@ import type { ILabPoseOverrides, ILabSkinDef } from './labCatalog';
 import { attachDeerGlbModel } from '../world/models/deerGlbLoader';
 import { createReadyBear, type BearState } from '../world/models/Bear';
 import { createReadyCrocodile, type CrocodileState } from '../world/models/Crocodile';
+import { createReadyJaguar, type JaguarState } from '../world/models/Jaguar';
 
 export interface ILabEntityRig {
   readonly entityId: string;
@@ -2077,6 +2078,97 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         crocodile.update(dt);
       } else {
         crocodile.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // ==========================================================================
+  // 8D. JUNGLE JAGUAR (יגואר היער והג׳ונגל — מודל שלד 43 עצמות מלא + 14 אנימציות)
+  // ==========================================================================
+  else if (entityId === 'jungle_jaguar') {
+    const jagRoot = new THREE.Group();
+    root.add(jagRoot);
+
+    const jaguar = createReadyJaguar({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    jaguar.animator.loopDeath = true;
+    jagRoot.add(jaguar.object);
+
+    const jagMat = jaguar.mesh.material;
+    if (Array.isArray(jagMat)) {
+      for (const m of jagMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(jagMat);
+    }
+    disposableGeometries.push(jaguar.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(jagRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'jaguar_rosette_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = jaguar.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastJagAnimTime = 0;
+    let lastJagAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastJagAnimTime ? t - lastJagAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastJagAnimTime = t;
+
+      jagRoot.position.set(0, 0, 0);
+      jagRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastJagAnimId !== 'none') {
+          jaguar.rig.resetToRest();
+          jaguar.object.position.set(0, 0, 0);
+          jaguar.object.rotation.set(0, 0, 0);
+          jaguar.setState('idle');
+          lastJagAnimId = 'none';
+        }
+        return;
+      }
+
+      const validJagStates: ReadonlySet<JaguarState> = new Set<JaguarState>([
+        'idle',
+        'walk',
+        'stalk',
+        'eat',
+        'call',
+        'lie',
+        'sit',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'roar',
+        'attack',
+        'death',
+      ]);
+      const mappedState: JaguarState = validJagStates.has(animId as JaguarState)
+        ? (animId as JaguarState)
+        : 'idle';
+
+      if (lastJagAnimId !== animId) {
+        if (mappedState === 'death') {
+          jaguar.animator.restartState('death');
+        } else {
+          jaguar.setState(mappedState);
+        }
+        lastJagAnimId = animId;
+      }
+
+      if (dt > 0) {
+        jaguar.update(dt);
+      } else {
+        jaguar.animator.setNormalizedPhase(p);
       }
     };
   }

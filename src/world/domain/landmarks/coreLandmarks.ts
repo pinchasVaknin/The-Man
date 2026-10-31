@@ -14,7 +14,7 @@ export const WATER_LEVEL = 0.0;
 export const PLAYER_EYE_HEIGHT = 1.72;
 
 /** Summary: Playable terrain boundary radius from world origin. */
-export const PLAYABLE_RADIUS = 680;
+export const PLAYABLE_RADIUS = 760;
 
 /** Summary: Maximum visible distance for terrain chunk culling and entity activation. */
 export const VIEW_DISTANCE = 225;
@@ -75,6 +75,85 @@ export const SMALL_MEADOW_HILLS = [
   { x: -155, z: 115, r: 26, h: 4.2 },
   { x: 162, z: -18, r: 22, h: 3.5 },
 ] as const;
+
+/** Summary: Mountain forest caves carved directly into mountain flanks ("חור בהר") serving as bear dens. */
+export const BEAR_MOUNTAIN_CAVES = [
+  {
+    id: 'cave-nw-forest',
+    x: -85,
+    z: -76,
+    entranceX: -85,
+    entranceZ: -64,
+    floorY: 4.2,
+    radius: 7.5,
+    roofHeight: 5.2,
+    facingYaw: 0,
+  },
+  {
+    id: 'cave-west-ridge',
+    x: -186,
+    z: -45,
+    entranceX: -174,
+    entranceZ: -45,
+    floorY: 4.5,
+    radius: 7.5,
+    roofHeight: 5.2,
+    facingYaw: Math.PI / 2,
+  },
+  {
+    id: 'cave-south-forest',
+    x: -135,
+    z: 196,
+    entranceX: -135,
+    entranceZ: 184,
+    floorY: 4.6,
+    radius: 7.5,
+    roofHeight: 5.2,
+    facingYaw: Math.PI,
+  },
+] as const;
+
+/** Summary: Centerline waypoints for the Southern River flowing from the Sea south-southwest across the expanded southern wilderness. */
+export const SOUTHERN_RIVER_WAYPOINTS = [
+  { x: 256.0, z: 330.0 },
+  { x: 178.0, z: 352.0 },
+  { x: 178.0, z: 404.0 },
+  { x: 132.0, z: 475.0 },
+  { x: 104.0, z: 548.0 },
+] as const;
+
+/** Summary: Grand 3-Arch Stone & Timber Bridge spanning East-West across the Southern River. */
+export const SOUTHERN_RIVER_BRIDGE_POS = {
+  x: 178.0,
+  z: 378.0,
+  minX: 154.0,
+  maxX: 202.0,
+  halfSpanX: 24.0,
+  halfWidthZ: 3.1,
+  baseY: 1.85,
+  crownLift: 2.95,
+} as const;
+
+/** Summary: Remote southern river bend & basking lagoon where crocodiles live away from settlements. */
+export const CROCODILE_RIVER_BEND_POS = {
+  x: 132.0,
+  z: 475.0,
+  radius: 28.0,
+} as const;
+
+/**
+ * Summary: Computes the walkable arched deck elevation along the Grand Southern River Bridge.
+ */
+export function southernRiverBridgeHeightAt(x: number): number {
+  const normX = Math.max(
+    -1,
+    Math.min(1, (x - SOUTHERN_RIVER_BRIDGE_POS.x) / SOUTHERN_RIVER_BRIDGE_POS.halfSpanX)
+  );
+  return (
+    SOUTHERN_RIVER_BRIDGE_POS.baseY +
+    (1.0 - normX * normX) * SOUTHERN_RIVER_BRIDGE_POS.crownLift
+  );
+}
 // #endregion
 
 // ======================== SPATIAL UTILITIES ======================== \\

@@ -38,7 +38,7 @@ import {
 } from './swordAttackAnimationSystem';
 import {
   getActiveWorldAnimals,
-  killGroundAnimal,
+  damageGroundAnimal,
   type ISmallAnimalState,
 } from './boidsAndWildlifeSystem';
 // #endregion
@@ -575,6 +575,7 @@ export interface ISwordSlashHitResult {
   readonly hitKind: 'none' | 'target' | 'obstacle' | 'wall';
   readonly hitTarget: IArcheryTargetDef | null;
   readonly hitAnimal?: ISmallAnimalState | null;
+  readonly killedAnimal?: boolean;
   readonly hitAnySurface: boolean;
 }
 export type SwordSlashHitResult = ISwordSlashHitResult;
@@ -648,30 +649,49 @@ export function evaluateSwordStrikeWindowHit(
       const anim = activeAnimals[a];
       if (anim.isDead || anim.isLooted) continue;
       const animRad =
-        anim.species === 'deer'
-          ? 1.55
-          : anim.species === 'sheep'
-            ? 1.15
-            : 0.95;
+        anim.species === 'bear'
+          ? 1.85
+          : anim.species === 'crocodile'
+            ? 1.75
+            : anim.species === 'deer'
+              ? 1.55
+              : anim.species === 'jaguar'
+                ? 1.45
+                : anim.species === 'sheep'
+                  ? 1.15
+                  : 0.95;
       const animGroundY = groundHeightAt(anim.x, anim.z);
       const animCenterY =
         animGroundY +
-        (anim.species === 'deer' ? 1.15 : anim.species === 'sheep' ? 0.55 : 0.25);
+        (anim.species === 'bear'
+          ? 1.25
+          : anim.species === 'deer'
+            ? 1.15
+            : anim.species === 'jaguar'
+              ? 0.85
+              : anim.species === 'sheep'
+                ? 0.55
+                : anim.species === 'crocodile'
+                  ? 0.45
+                  : 0.25);
+      const animHalfH =
+        anim.species === 'bear' ? 1.85 : anim.species === 'deer' ? 1.55 : 1.45;
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
-        Math.abs(sy - animCenterY) <= (anim.species === 'deer' ? 1.55 : 1.45)
+        Math.abs(sy - animCenterY) <= animHalfH
       ) {
-        killGroundAnimal(anim);
+        const dmgRes = damageGroundAnimal(anim, isHeavy ? 2 : 1, state.x, state.z);
         state.lastSwordHitPoint = { x: sx, y: animCenterY, z: sz, age: 0, kind: 'target' };
         state.lastArrowHitTarget = String(anim.id);
         state.swordHitStopTimer = 0.045;
-        awardSkillXp(state, 'swordsmanship', 24);
+        awardSkillXp(state, 'swordsmanship', dmgRes.killed ? 28 : 14);
         return {
           comboIndex,
           isHeavy,
           hitKind: 'target',
           hitTarget: null,
           hitAnimal: anim,
+          killedAnimal: dmgRes.killed,
           hitAnySurface: true,
         };
       }
@@ -899,11 +919,13 @@ export function stepArrowsPhysics(
 ): {
   hitTarget: IArcheryTargetDef | null;
   hitAnimal?: ISmallAnimalState | null;
+  killedAnimal?: boolean;
   hitAnySurface: boolean;
 } {
   const dt = Math.min(Math.max(rawDt, 0.001), 0.1);
   let hitTarget: IArcheryTargetDef | null = null;
   let hitAnimal: ISmallAnimalState | null = null;
+  let killedAnimal = false;
   let hitAnySurface = false;
   const activeAnimals = getActiveWorldAnimals();
 
@@ -972,18 +994,39 @@ export function stepArrowsPhysics(
         const anim = activeAnimals[a];
         if (anim.isDead || anim.isLooted) continue;
         const animRad =
-          anim.species === 'deer'
-            ? 1.42
-            : anim.species === 'sheep'
-              ? 0.92
-              : 0.62;
+          anim.species === 'bear'
+            ? 1.75
+            : anim.species === 'crocodile'
+              ? 1.65
+              : anim.species === 'deer'
+                ? 1.42
+                : anim.species === 'jaguar'
+                  ? 1.38
+                  : anim.species === 'sheep'
+                    ? 0.92
+                    : 0.62;
         const animGroundY = groundHeightAt(anim.x, anim.z);
         const animMaxY =
           animGroundY +
-          (anim.species === 'deer' ? 2.45 : anim.species === 'sheep' ? 1.25 : 0.75);
+          (anim.species === 'bear'
+            ? 2.65
+            : anim.species === 'deer'
+              ? 2.45
+              : anim.species === 'jaguar'
+                ? 1.65
+                : anim.species === 'sheep'
+                  ? 1.25
+                  : anim.species === 'crocodile'
+                    ? 1.15
+                    : 0.75);
         const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
         if (horizDist <= animRad && arr.y >= animGroundY - 0.15 && arr.y <= animMaxY) {
-          killGroundAnimal(anim);
+          const dmgRes = damageGroundAnimal(
+            anim,
+            1,
+            arr.x - arr.vx * 0.25,
+            arr.z - arr.vz * 0.25
+          );
           arr.stuck = true;
           arr.vx = 0;
           arr.vy = 0;
@@ -992,6 +1035,7 @@ export function stepArrowsPhysics(
           arr.hitTargetId = String(anim.id);
           arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
           hitAnimal = anim;
+          killedAnimal = dmgRes.killed;
           hitAnySurface = true;
           struck = true;
           break;
@@ -1107,6 +1151,6 @@ export function stepArrowsPhysics(
     }
   }
 
-  return { hitTarget, hitAnimal, hitAnySurface };
+  return { hitTarget, hitAnimal, killedAnimal, hitAnySurface };
 }
 // #endregion

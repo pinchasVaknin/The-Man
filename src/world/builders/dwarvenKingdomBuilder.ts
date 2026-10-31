@@ -19,6 +19,11 @@ import {
   DWARVEN_MINERS_COUNT,
   computeDwarvenMinerCaravanState,
 } from '../systems/dwarvenMineAndCaravanSystem';
+import {
+  walkableHeightAt,
+  getSurfaceNormalAt,
+  computeSlopePitchAndRoll,
+} from '../systems/terrainAndBiomeSystem';
 
 /**
  * Summary: Rig representation for an individual animated dwarven miner mesh.
@@ -677,7 +682,18 @@ export function buildDwarvenKingdomAndMiners(
       if (!vis) continue;
 
       dm.root.position.set(st.x, st.y, st.z);
+      dm.root.rotation.order = 'YXZ';
       dm.root.rotation.y = st.yaw;
+      const dwSurf = walkableHeightAt(st.x, st.z, st.y);
+      if (dwSurf.surface === 'ground') {
+        const n = getSurfaceNormalAt(st.x, st.z);
+        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, st.yaw, 0.42);
+        dm.root.rotation.x += (slope.pitch - dm.root.rotation.x) * 0.25;
+        dm.root.rotation.z += (slope.roll - dm.root.rotation.z) * 0.25;
+      } else {
+        dm.root.rotation.x *= 0.8;
+        dm.root.rotation.z *= 0.8;
+      }
       dm.lanternGlow.visible = st.lanternLit;
 
       // Note: Dwarf rig faces -Z locally, so:

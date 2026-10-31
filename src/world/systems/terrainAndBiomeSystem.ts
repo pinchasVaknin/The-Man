@@ -40,6 +40,11 @@ import {
   SNOW_LINE_ALTITUDE,
   WALKABLE_MOUNTAINS,
   SMALL_MEADOW_HILLS,
+  BEAR_MOUNTAIN_CAVES,
+  SOUTHERN_RIVER_WAYPOINTS,
+  SOUTHERN_RIVER_BRIDGE_POS,
+  CROCODILE_RIVER_BEND_POS,
+  southernRiverBridgeHeightAt,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
 } from '../domain/landmarksRegistry';
@@ -98,33 +103,75 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
 
 /**
  * Summary: Calculates composite regional density of forest trees across the landscape.
- * Design: Standard domain component following SRP and clean architectural contracts.
+ * Design: Contrasts the open pastoral farming valley against deep unbuilt northern, western, and southern forests.
  * @param x Input parameter x.
  * @param z Input parameter z.
  * @returns Computed result for regionalForestDensityAt.
  */
 export function regionalForestDensityAt(x: number, z: number): number {
-  const westForestDist = Math.hypot((x + 65) * 0.85, (z + 15) * 0.95);
-  const westDense = 1.0 - smoothstep(35, 135, westForestDist);
+  const westForestDist = Math.hypot((x + 95) * 0.72, (z + 10) * 0.82);
+  const westDense = 1.0 - smoothstep(48, 148, westForestDist);
+
+  const southWestForestDist = Math.hypot((x + 112) * 0.68, (z - 218) * 0.72);
+  const southWestDense = (1.0 - smoothstep(46, 126, southWestForestDist)) * 0.96;
+
+  const southEastForestDist = Math.hypot((x - 82) * 0.74, (z - 208) * 0.78);
+  const southEastDense = (1.0 - smoothstep(46, 118, southEastForestDist)) * 0.95;
+
+  const deepSouthRiverForestDist = Math.hypot((x - 65) * 0.45, (z - 395) * 0.55);
+  const deepSouthDense = (1.0 - smoothstep(65, 185, deepSouthRiverForestDist)) * 0.94;
 
   const eastBirch = birchGroveFactorAt(x, z);
 
   const northBeltDist = Math.hypot((x - 10) * 0.7, (z + 75) * 1.1);
-  const northBelt = (1.0 - smoothstep(30, 110, northBeltDist)) * 0.85;
+  const northBelt = (1.0 - smoothstep(30, 110, northBeltDist)) * 0.88;
 
-  const openValleyDist = Math.hypot((x - 20) * 0.85, (z - 85) * 1.0);
-  let openValleySuppress = 1.0 - smoothstep(28, 78, openValleyDist);
+  // Keep the rural agricultural valley pastoral and open around the farms & central meadow corridor
+  const openValleyDist = Math.hypot((x - 4) * 0.95, (z - 115) * 0.65);
+  let openValleySuppress = 1.0 - smoothstep(28, 64, openValleyDist);
   for (let i = 0; i < VALLEY_FARMS.length; i++) {
     const f = VALLEY_FARMS[i];
     const fd = Math.hypot(x - f.x, z - f.z);
     if (fd < f.clearRadius + 8) {
-      openValleySuppress = Math.max(openValleySuppress, 1.0 - smoothstep(f.clearRadius - 4, f.clearRadius + 8, fd));
+      openValleySuppress = Math.max(
+        openValleySuppress,
+        1.0 - smoothstep(f.clearRadius - 6, f.clearRadius + 8, fd)
+      );
     }
   }
 
+  // Keep Southern Mine entrance plaza clear of dense forest
+  const mineEntranceDist = Math.hypot(x - SOUTHERN_MINE_POS.x, z - (SOUTHERN_MINE_POS.entranceZ - 8));
+  if (mineEntranceDist < 34) {
+    openValleySuppress = Math.max(openValleySuppress, 1.0 - smoothstep(18, 34, mineEntranceDist));
+  }
+
   const macroPatch = fbm2D(x * 0.012 + 3.1, z * 0.012 - 5.2, 2) * 0.5 + 0.5;
-  const baseRegional = Math.max(westDense, eastBirch, northBelt, macroPatch * 0.45);
+  const baseRegional = Math.max(
+    westDense,
+    southWestDense,
+    southEastDense,
+    deepSouthDense,
+    eastBirch,
+    northBelt,
+    macroPatch * 0.45
+  );
   return Math.max(0, Math.min(1, baseRegional * (1.0 - openValleySuppress * 0.98)));
+}
+
+/**
+ * Summary: Computes minimum distance from (x, z) to the Southern River centerline segments.
+ */
+export function southernRiverDistanceAt(x: number, z: number): number {
+  if (x < 60 || x > 280 || z < 310 || z > 575) return 999;
+  let minD = 999;
+  for (let i = 0; i < SOUTHERN_RIVER_WAYPOINTS.length - 1; i++) {
+    const a = SOUTHERN_RIVER_WAYPOINTS[i];
+    const b = SOUTHERN_RIVER_WAYPOINTS[i + 1];
+    const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
+    if (d < minD) minD = d;
+  }
+  return minD;
 }
 
 // #endregion
@@ -139,6 +186,12 @@ export function regionalForestDensityAt(x: number, z: number): number {
  * @returns Computed result for getRoofHeightAt.
  */
 export function getRoofHeightAt(x: number, z: number): number | null {
+  for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
+    const cave = BEAR_MOUNTAIN_CAVES[i];
+    if (Math.hypot(x - cave.x, z - cave.z) <= cave.radius) {
+      return groundHeightAt(cave.x, cave.z) + cave.roofHeight;
+    }
+  }
   if (Math.abs(x) <= 23.2 && z >= -216.5 + FZ && z <= -188.8 + FZ) {
     return CHINESE_FORTRESS_POS.mainHallFloor2Y + 5.2;
   }
@@ -355,7 +408,11 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, DWARVEN_STONE_HOUSES[0].doorX, DWARVEN_STONE_HOUSES[0].doorZ, SOUTHERN_MINE_POS.x, DWARVEN_STONE_HOUSES[0].doorZ),
     distToSegment(x, z, DWARVEN_STONE_HOUSES[1].doorX, DWARVEN_STONE_HOUSES[1].doorZ, SOUTHERN_MINE_POS.x, DWARVEN_STONE_HOUSES[1].doorZ),
     distToSegment(x, z, DWARVEN_STONE_HOUSES[2].doorX, DWARVEN_STONE_HOUSES[2].doorZ, SOUTHERN_MINE_POS.x, DWARVEN_STONE_HOUSES[2].doorZ),
-    distToSegment(x, z, DWARVEN_STONE_HOUSES[3].doorX, DWARVEN_STONE_HOUSES[3].doorZ, SOUTHERN_MINE_POS.x, DWARVEN_STONE_HOUSES[3].doorZ)
+    distToSegment(x, z, DWARVEN_STONE_HOUSES[3].doorX, DWARVEN_STONE_HOUSES[3].doorZ, SOUTHERN_MINE_POS.x, DWARVEN_STONE_HOUSES[3].doorZ),
+    distToSegment(x, z, 185, 228, 196, 336),
+    distToSegment(x, z, 196, 336, 204, 378),
+    distToSegment(x, z, 204, 378, 152, 378),
+    distToSegment(x, z, 152, 378, 96, 428)
   );
 
   let bridgeTrailDist = 999;
@@ -480,15 +537,53 @@ export function groundHeightAt(x: number, z: number): number {
   const streamDist = distToSegment(x, z, WATERFALL_POOL_POS.x, WATERFALL_POOL_POS.z, -16, -8);
   const streamDepth = (1.0 - smoothstep(1.8, 5.2, streamDist)) * 2.6;
 
+  // Southern River flowing from the Sea at (256, 330) south-southwest through the Grand Bridge (178, 378)
+  // and into the Crocodile River Bend Lagoon at (132, 475)
+  let southRiverDepth = 0;
+  if (x >= 65 && x <= 275 && z >= 315 && z <= 568) {
+    const sDist = southernRiverDistanceAt(x, z);
+    const bridgeKeepStraight =
+      Math.abs(z - SOUTHERN_RIVER_BRIDGE_POS.z) < 22.0
+        ? smoothstep(22.0, 8.0, Math.abs(z - SOUTHERN_RIVER_BRIDGE_POS.z))
+        : 0;
+    const meander = Math.sin(z * 0.055 + x * 0.03) * 2.4 * (1.0 - bridgeKeepStraight);
+    const effSouthDist = Math.abs(sDist + meander * 0.4);
+    southRiverDepth = (1.0 - smoothstep(5.2, 12.4, effSouthDist)) * 5.2;
+
+    // Crocodile River Bend Lagoon & Basking Mudbanks at (132, 475)
+    const bendDist = Math.hypot(
+      x - CROCODILE_RIVER_BEND_POS.x,
+      z - CROCODILE_RIVER_BEND_POS.z
+    );
+    if (bendDist < CROCODILE_RIVER_BEND_POS.radius + 8.0) {
+      const lagoonCarve = (1.0 - smoothstep(14.0, CROCODILE_RIVER_BEND_POS.radius + 4.0, bendDist)) * 3.4;
+      southRiverDepth = Math.max(southRiverDepth, lagoonCarve);
+    }
+  }
+
   const totalWaterCarve = Math.max(
     lakeDepthMain,
     channelDepth,
     riverDepth,
     westLagoonDepth,
     poolDepth,
-    streamDepth
+    streamDepth,
+    southRiverDepth
   );
   h -= totalWaterCarve;
+
+  // Sculpt low basking mudbanks/sandbars inside the Crocodile River Bend so crocodiles can bask just above water
+  if (x >= 96 && x <= 168 && z >= 442 && z <= 508) {
+    const bank1Dist = Math.hypot((x - 122.0) * 0.9, (z - 468.0) * 1.1);
+    const bank2Dist = Math.hypot((x - 141.0) * 1.0, (z - 480.0) * 0.9);
+    const bankW = Math.max(
+      1.0 - smoothstep(3.8, 9.2, bank1Dist),
+      1.0 - smoothstep(3.8, 9.2, bank2Dist)
+    );
+    if (bankW > 0.01) {
+      h = h * (1.0 - bankW) + 0.24 * bankW;
+    }
+  }
 
   if (totalWaterCarve < 0.15 && h < 0.65) {
     h = 0.65;
@@ -567,10 +662,45 @@ export function groundHeightAt(x: number, z: number): number {
     h += mtnAdd;
   }
 
-  if (r > 645 && !(x > 225 && z > 80)) {
-    const rimT = smoothstep(645, 740, r);
+  if (r > 705 && !(x > 225 && z > 80)) {
+    const rimT = smoothstep(705, 790, r);
     const ridgeNoise = Math.abs(fbm2D(x * 0.022, z * 0.022, 3));
     h += rimT * (30.0 + ridgeNoise * 38.0);
+  }
+
+  // Carved Mountain Bear Caves ("חור בהר"): wide flat front glade + flat cave chamber floor + steep mountain cliff behind & around the cave
+  for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
+    const cave = BEAR_MOUNTAIN_CAVES[i];
+    const dx = x - cave.x;
+    const dz = z - cave.z;
+    if (Math.abs(dx) > 30.0 || Math.abs(dz) > 30.0) continue;
+    const sinY = Math.sin(cave.facingYaw);
+    const cosY = Math.cos(cave.facingYaw);
+    const lx = dx * cosY - dz * sinY;
+    const lz = dx * sinY + dz * cosY;
+
+    // 1) Flatten a natural forest clearing in front of the cave and under the cave chamber
+    const gladeDist = Math.hypot(lx * 0.88, (lz - 7.5) * 0.92);
+    if (gladeDist < 17.5) {
+      const wGlade = 1.0 - smoothstep(9.5, 17.5, gladeDist);
+      h = h * (1.0 - wGlade) + cave.floorY * wGlade;
+    }
+
+    // 2) Raise the mountain massif behind the cave entrance line (lz < 3.8) wrapping the sides and back
+    const mtnDist = Math.hypot(lx * 0.82, (lz + 5.0) * 0.85);
+    if (mtnDist < 19.5 && lz < 3.8) {
+      const mtnRise = (1.0 - smoothstep(7.0, 19.5, mtnDist)) * smoothstep(3.8, -1.5, lz);
+      h = Math.max(h, cave.floorY + mtnRise * 14.5);
+    }
+
+    // 3) Keep the recessed cave chamber floor and entrance threshold strictly flat at cave.floorY
+    if (Math.abs(lx) < 6.4 && lz >= -7.2 && lz <= 8.5) {
+      const wLat = 1.0 - smoothstep(4.6, 6.4, Math.abs(lx));
+      const wBack = smoothstep(-7.2, -5.6, lz);
+      const wFront = 1.0 - smoothstep(6.5, 8.5, lz);
+      const wFloor = wLat * wBack * wFront;
+      h = h * (1.0 - wFloor) + cave.floorY * wFloor;
+    }
   }
 
   for (let i = 0; i < FLAT_BUILDING_TERRACES.length; i++) {
@@ -956,6 +1086,18 @@ export function walkableHeightAt(
     }
   }
 
+  // Grand Southern River Bridge (3-Arch Stone & Timber Viaduct at (178, 378))
+  if (
+    x >= SOUTHERN_RIVER_BRIDGE_POS.minX - 0.5 &&
+    x <= SOUTHERN_RIVER_BRIDGE_POS.maxX + 0.5 &&
+    Math.abs(z - SOUTHERN_RIVER_BRIDGE_POS.z) <= SOUTHERN_RIVER_BRIDGE_POS.halfWidthZ
+  ) {
+    const sBridgeH = Math.max(groundH, southernRiverBridgeHeightAt(x));
+    if (currentY === undefined || currentY >= sBridgeH - 0.85) {
+      return { height: sBridgeH, surface: 'bridge' };
+    }
+  }
+
   const towerCenterH = 6.4;
   if (Math.abs(x - 30.0) <= 3.1 && Math.abs(z + 26.0) <= 3.1) {
     return { height: towerCenterH + 0.55, surface: 'tower' };
@@ -1148,6 +1290,37 @@ export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: numb
   };
 }
 
+/**
+ * Summary: Computes Euler ('YXZ') pitch and roll angles that align an entity's local +Y up axis
+ *          with the terrain surface normal (nx, ny, nz) for a given heading yaw.
+ * Design: Pure mathematical projection onto heading-local +Z and +X axes, clamped for stability.
+ * @param nx Surface normal X component.
+ * @param ny Surface normal Y component.
+ * @param nz Surface normal Z component.
+ * @param yaw Entity Y-axis rotation in radians.
+ * @param maxTilt Maximum allowed pitch/roll tilt in radians (default 0.52).
+ * @returns Pitch (rotation.x) and roll (rotation.z) in radians for rotation.order = 'YXZ'.
+ */
+export function computeSlopePitchAndRoll(
+  nx: number,
+  ny: number,
+  nz: number,
+  yaw: number,
+  maxTilt = 0.52
+): { pitch: number; roll: number } {
+  const sinY = Math.sin(yaw);
+  const cosY = Math.cos(yaw);
+  const nLocalZ = nx * sinY + nz * cosY;
+  const nLocalX = nx * cosY - nz * sinY;
+  const safeNy = Math.max(0.25, ny);
+  const rawPitch = Math.atan2(nLocalZ, safeNy);
+  const rawRoll = -Math.atan2(nLocalX, Math.hypot(safeNy, nLocalZ));
+  return {
+    pitch: Math.max(-maxTilt, Math.min(maxTilt, rawPitch)),
+    roll: Math.max(-maxTilt * 0.85, Math.min(maxTilt * 0.85, rawRoll)),
+  };
+}
+
 // #endregion
 
 // ======================== SURFACE BIOME CLASSIFICATION ======================== \\
@@ -1226,6 +1399,12 @@ export function getWalkPaceLabel(pace: WalkPaceMode): string {
  * @returns Computed result for sampleMinimapColorAt.
  */
 export function sampleMinimapColorAt(x: number, z: number): [number, number, number] {
+  for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
+    const cave = BEAR_MOUNTAIN_CAVES[i];
+    if (Math.hypot(x - cave.x, z - cave.z) <= cave.radius) {
+      return [88, 82, 74];
+    }
+  }
   if (isChineseFortressWalkableZone(x, z)) {
     if (
       (Math.abs(x) <= 22.0 && z >= -216.0 + FZ && z <= -189.5 + FZ) ||
@@ -1430,6 +1609,19 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
 export function generateWorldObstacles(): IObstacleCylinder[] {
   const obstacles: IObstacleCylinder[] = [];
 
+  const isInsideBearCaveExclusion = (x: number, z: number): boolean => {
+    for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
+      const cave = BEAR_MOUNTAIN_CAVES[i];
+      if (
+        Math.hypot(x - cave.x, z - cave.z) < cave.radius + 7.5 ||
+        Math.hypot(x - cave.entranceX, z - cave.entranceZ) < 10.5
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   const towerCorners = [
     [-2.6, -2.6],
     [2.6, -2.6],
@@ -1555,7 +1747,7 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
           break;
         }
       }
-      if (inBirchClearZone) continue;
+      if (inBirchClearZone || isInsideBearCaveExclusion(x, z)) continue;
       const h = groundHeightAt(x, z);
       if (h < WATER_LEVEL + 0.6) continue;
 
@@ -1573,25 +1765,26 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
     }
   }
 
-  const step = 8.2;
-  for (let gx = -540; gx <= 540; gx += step) {
-    for (let gz = -540; gz <= 540; gz += step) {
+  const step = 7.4;
+  for (let gx = -580; gx <= 580; gx += step) {
+    for (let gz = -580; gz <= 580; gz += step) {
       const distGrid = Math.hypot(gx, gz);
-      if (distGrid > 560) continue;
+      if (distGrid > 650) continue;
 
       const ix = Math.round(gx * 10);
       const iz = Math.round(gz * 10);
       const r1 = hash2D(ix, iz);
-      if (distGrid > 330 && r1 < 0.48) continue;
+      if (distGrid > 380 && r1 < 0.42) continue;
 
       const r2 = hash2D(ix + 17, iz - 31);
       const r3 = hash2D(ix - 53, iz + 89);
 
-      const x = gx + (r1 - 0.5) * 5.8;
-      const z = gz + (r2 - 0.5) * 5.8;
+      const x = gx + (r1 - 0.5) * 5.2;
+      const z = gz + (r2 - 0.5) * 5.2;
 
       if (birchGroveFactorAt(x, z) > 0.35) continue;
       if (Math.hypot(x - SAKURA_SANCTUARY_POS.x, z - SAKURA_SANCTUARY_POS.z) < 34) continue;
+      if (isInsideBearCaveExclusion(x, z)) continue;
 
       let inClearZone = false;
       for (let c = 0; c < CLEAR_ZONES.length; c++) {
@@ -1602,7 +1795,8 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
         }
       }
       if (inClearZone) continue;
-      if (x >= 195 && z >= 85) continue;
+      if (x >= 195 && z >= 85 && z <= 325) continue;
+      if (x >= 245 && z > 325) continue;
 
       const walk = walkableHeightAt(x, z);
       if (walk.surface !== 'ground') continue;
@@ -1671,10 +1865,10 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
         continue;
       }
 
-      const spawnChance = regDensity * 0.78;
+      const spawnChance = regDensity * 0.84;
       if (r3 < spawnChance) {
-        const scale = 0.95 + r1 * 0.42;
-        const isOak = (x < -10 && r2 > 0.35 && h < 8.5) || (r2 > 0.72 && h < 7.0);
+        const scale = 0.95 + r1 * 0.48;
+        const isOak = (x < -10 && r2 > 0.35 && h < 8.5) || (z > 135 && r2 > 0.38) || (r2 > 0.72 && h < 7.0);
         obstacles.push({
           x,
           z,
@@ -1696,7 +1890,20 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
     }
   }
 
+  cachedWorldObstacles = obstacles;
   return obstacles;
+}
+
+let cachedWorldObstacles: IObstacleCylinder[] | null = null;
+
+/**
+ * Summary: Returns cached world obstacle cylinders (trees, boulders, stones) for fast wildlife collision queries.
+ */
+export function getWorldObstacles(): readonly IObstacleCylinder[] {
+  if (!cachedWorldObstacles) {
+    cachedWorldObstacles = generateWorldObstacles();
+  }
+  return cachedWorldObstacles;
 }
 
 // #endregion

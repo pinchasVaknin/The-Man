@@ -630,6 +630,35 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       },
     ];
   }),
+  // Grand Southern River Bridge North & South Stone Parapet Guardrails
+  {
+    id: 'southern-river-bridge-rail-north',
+    minX: 154.0,
+    maxX: 202.0,
+    minZ: 374.55,
+    maxZ: 375.0,
+    minY: 1.8,
+    maxY: 6.2,
+  },
+  {
+    id: 'southern-river-bridge-rail-south',
+    minX: 154.0,
+    maxX: 202.0,
+    minZ: 381.0,
+    maxZ: 381.45,
+    minY: 1.8,
+    maxY: 6.2,
+  },
+  // Carved Mountain Bear Caves ("חור בהר") Solid Side & Back Cliff Walls (7.8m front opening is unobstructed!)
+  { id: 'cave-nw-forest-wall-west', minX: -91.8, maxX: -88.9, minZ: -82.5, maxZ: -71.5, maxY: 14.0 },
+  { id: 'cave-nw-forest-wall-east', minX: -81.1, maxX: -78.2, minZ: -82.5, maxZ: -71.5, maxY: 14.0 },
+  { id: 'cave-nw-forest-wall-back', minX: -91.8, maxX: -78.2, minZ: -84.2, maxZ: -81.6, maxY: 14.0 },
+  { id: 'cave-west-ridge-wall-south', minX: -192.5, maxX: -181.5, minZ: -41.1, maxZ: -38.2, maxY: 14.5 },
+  { id: 'cave-west-ridge-wall-north', minX: -192.5, maxX: -181.5, minZ: -51.8, maxZ: -48.9, maxY: 14.5 },
+  { id: 'cave-west-ridge-wall-back', minX: -194.2, maxX: -191.6, minZ: -51.8, maxZ: -38.2, maxY: 14.5 },
+  { id: 'cave-south-forest-wall-west', minX: -141.8, maxX: -138.9, minZ: 191.5, maxZ: 202.5, maxY: 14.5 },
+  { id: 'cave-south-forest-wall-east', minX: -131.1, maxX: -128.2, minZ: 191.5, maxZ: 202.5, maxY: 14.5 },
+  { id: 'cave-south-forest-wall-back', minX: -141.8, maxX: -128.2, minZ: 201.6, maxZ: 204.2, maxY: 14.5 },
 ];
 // #endregion
 
@@ -660,6 +689,8 @@ export const FLAT_BUILDING_TERRACES = [
   { x: VALLEY_FARMS[2].x, z: VALLEY_FARMS[2].z, innerR: 25.0, outerR: 36.0, targetH: VALLEY_FARMS[2].height },
   { x: SOUTHEAST_HARBOR_POS.lighthouseX, z: SOUTHEAST_HARBOR_POS.lighthouseZ, innerR: 8.5, outerR: 18.0, targetH: SOUTHEAST_HARBOR_POS.lighthouseBaseY },
   { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, innerR: 46.0, outerR: 66.0, targetH: SOUTHWEST_OASIS_POS.terraceY },
+  { x: 152.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
+  { x: 204.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
 ] as const;
 // #endregion
 
@@ -697,5 +728,15 @@ export const CLEAR_ZONES = [
   { x: 232.0, z: 262.0, r: 68.0 },
   { x: SOUTHEAST_HARBOR_POS.lighthouseX, z: SOUTHEAST_HARBOR_POS.lighthouseZ, r: 22.0 },
   { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, r: SOUTHWEST_OASIS_POS.clearRadius },
+  { x: 154.0, z: 378.0, r: 14.0 },
+  { x: 178.0, z: 378.0, r: 26.0 },
+  { x: 202.0, z: 378.0, r: 14.0 },
+  { x: 132.0, z: 475.0, r: 30.0 },
+  { x: -85.0, z: -76.0, r: 14.0 },
+  { x: -85.0, z: -60.0, r: 12.0 },
+  { x: -186.0, z: -45.0, r: 14.0 },
+  { x: -170.0, z: -45.0, r: 12.0 },
+  { x: -135.0, z: 196.0, r: 14.0 },
+  { x: -135.0, z: 180.0, r: 12.0 },
 ];
 // #endregion

@@ -15,6 +15,7 @@ import {
   getSurfaceNormalAt,
   trailFactorAt,
   birchGroveFactorAt,
+  regionalForestDensityAt,
   southwestOasisBiomeFactorAt,
   northernSnowZoneFactorAt,
   fbm2D,
@@ -140,6 +141,16 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.25 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 13.5).toFixed(1)} && vTerrainWorldPos.y < 7.05) {
             discard;
           }
+          // Carve real mountain bear cave openings ("חור בהר") so coarse terrain triangles never clip into the chambers
+          if (abs(vTerrainWorldPos.x - (-85.0)) < 5.8 && vTerrainWorldPos.z > -83.0 && vTerrainWorldPos.z < -70.0 && vTerrainWorldPos.y > 4.65 && vTerrainWorldPos.y < 11.2) {
+            discard;
+          }
+          if (vTerrainWorldPos.x > -193.0 && vTerrainWorldPos.x < -180.0 && abs(vTerrainWorldPos.z - (-45.0)) < 5.8 && vTerrainWorldPos.y > 4.95 && vTerrainWorldPos.y < 11.5) {
+            discard;
+          }
+          if (abs(vTerrainWorldPos.x - (-135.0)) < 5.8 && vTerrainWorldPos.z > 190.0 && vTerrainWorldPos.z < 203.0 && vTerrainWorldPos.y > 4.85 && vTerrainWorldPos.y < 11.4) {
+            discard;
+          }
           float pWave1 = sin(vTerrainWorldPos.x * 0.24 + cos(vTerrainWorldPos.z * 0.21) * 1.6);
           float pWave2 = cos(vTerrainWorldPos.z * 0.31 - sin(vTerrainWorldPos.x * 0.27) * 1.4);
           float pWave3 = sin((vTerrainWorldPos.x + vTerrainWorldPos.z) * 0.52);
@@ -252,10 +263,12 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           tmpColor.copy(cSand).lerp(cMeadow, shoreT * shoreT);
         } else {
           tmpColor.copy(cMeadow).lerp(cLush, macroNoise);
+          const forestDensity = regionalForestDensityAt(wx, wz);
           if (bf > 0.05) {
             tmpColor.lerp(cBirchFloor, bf * 0.72);
-          } else if (wx < -25 && swDesert < 0.25) {
-            tmpColor.lerp(cForest, 0.45 * (1.0 - swDesert * 4.0));
+          } else if (forestDensity > 0.35 && swDesert < 0.25) {
+            const forestFloorWeight = smoothstepLocal(0.35, 0.85, forestDensity) * 0.68 * (1.0 - swDesert * 4.0);
+            tmpColor.lerp(cForest, forestFloorWeight);
           }
           // Vast South-West Savanna Dirt, Terracotta Canyon Soil & Golden Desert Sands
           if (swDesert > 0.02) {
@@ -328,6 +341,17 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   waterMesh.position.set(0, WATER_LEVEL, 0);
   waterMesh.receiveShadow = !isSoftwareGl;
   scene.add(waterMesh);
+
+  // Southern River & Crocodile Lagoon water surface (flowing from Sea at z=330 down to z=555)
+  const southRiverWaterSegs = isSoftwareGl ? 36 : 64;
+  const southRiverWaterGeo = new THREE.PlaneGeometry(250, 290, southRiverWaterSegs, southRiverWaterSegs);
+  southRiverWaterGeo.rotateX(-Math.PI / 2);
+  disposableGeometries.push(southRiverWaterGeo);
+
+  const southRiverWaterMesh = new THREE.Mesh(southRiverWaterGeo, waterMat);
+  southRiverWaterMesh.position.set(170, WATER_LEVEL, 445);
+  southRiverWaterMesh.receiveShadow = !isSoftwareGl;
+  scene.add(southRiverWaterMesh);
 
   return { waterMaterial: waterMat, terrainMaterial: terrainMat };
 }

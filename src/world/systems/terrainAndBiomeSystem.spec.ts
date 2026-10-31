@@ -119,4 +119,20 @@ test('walkableHeightAt_WhenQueriedAtExtremeBoundaryCoordinates_ShouldReturnFinit
   assert.ok(Number.isFinite(surfaceInfo.height), 'Extreme map coordinates must evaluate to finite walkable height');
   assert.ok(typeof surfaceInfo.surface === 'string');
 });
+
+test('southernRiverAndCarvedBearCaves_WhenEvaluated_ShouldProvideWalkableBridgeLagoonWaterAndCarvedCaveChamber', () => {
+  // 1. Grand Southern River Bridge at (178, 378)
+  const bridgeMid = walkableHeightAt(178, 378);
+  assert.equal(bridgeMid.surface, 'bridge');
+  assert.ok(bridgeMid.height > 4.5, `Expected arched bridge crown > 4.5m, got ${bridgeMid.height}`);
+
+  // 2. Riverbed beneath the bridge is submerged below WATER_LEVEL (0)
+  const riverUnderBridge = groundHeightAt(178, 378);
+  assert.ok(riverUnderBridge < -1.0, `Expected carved river channel under bridge, got ${riverUnderBridge}`);
+
+  // 3. Carved Mountain Bear Cave ("חור בהר") at (-85, -76) has recessed flat floor (4.2m) while mountain hood above is high
+  const caveFloor = groundHeightAt(-85, -76);
+  assert.ok(Math.abs(caveFloor - 4.2) < 0.25, `Expected flat carved cave floor ~4.2m, got ${caveFloor}`);
+  assert.equal(isPositionUnderRoof(-85, 4.2, -76), true, 'Inside carved mountain cave must be under roof');
+});
 // #endregion

@@ -1,7 +1,7 @@
 /**
  * Re-exports the complete self-contained deer model, rig, skinning,
  * 9-state procedural IK animator, and embedded geometry/texture factory
- * from /public/models/Deer_Complete.ts.
+ * from /public/models/animals/Deer_Complete.ts.
  */
 export {
   type DeerBoneName,
@@ -15,4 +15,5 @@ export {
   DEER_EMBEDDED_PACK_B64,
   DEER_EMBEDDED_TEXTURE_URI,
   createReadyDeer,
-} from '../../../public/models/Deer_Complete';
+} from '../../../public/models/animals/Deer_Complete';
+

@@ -1269,6 +1269,151 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
   },
 
   {
+    id: 'jungle_jaguar',
+    nameHe: 'יגואר היער והג׳ונגל (Panthera onca)',
+    subtitleHe: 'טורף־על חמקמק של היער הדרומי והמערבי — שלד 43 עצמות מלא ו־14 אנימציות',
+    category: 'animals',
+    categoryLabelHe: 'חיות',
+    worldLocationHe: 'היער הדרומי הסבוך ומעבה היער המערבי',
+    worldCoordinatesText: '(-148, 168), (-64, 198), (-142, 56)',
+    worldInstanceCount: 3,
+    sourceFile: 'public/models/animals/Jaguar_Complete.ts',
+    descriptionHe:
+      'יגואר היער המלכותי — בעל פרוות רוזטות מנומרת, לסתות עוצמתיות, זנב מאזן ארוך ומערכת AI של התגנבות חרישית (Stalk), הסתערות, זינוק טריפה ונסיגה מול דובים גדולים ממנו.',
+    defaultCameraDistance: 3.1,
+    defaultCameraTargetY: 0.55,
+    anatomyTagsHe: ['שלד 43 עצמות מלא', 'פרוות רוזטות מנומרת', 'הליכת התגנבות (Stalk)', 'זינוק טריפה ושאגה'],
+    animations: [
+      {
+        id: 'none',
+        nameHe: 'ללא אנימציה (עמידת מוצא)',
+        descriptionHe: 'עמידת מוצא יציבה על ארבע רגליים.',
+        isStaticDefault: true,
+        loopDurationSec: 1,
+      },
+      {
+        id: 'idle',
+        nameHe: 'עמידה דרוכה ונשימה (Idle)',
+        descriptionHe: 'עמידה שקטה עם נשימה בחזה, סריקת ראש ותנועת קצה הזנב.',
+        loopDurationSec: 3.2,
+      },
+      {
+        id: 'walk',
+        nameHe: 'הליכת סיור גמישה (Walk)',
+        descriptionHe: 'הליכה חתולית חלקה עם תנועת כתפיים אלגנטית.',
+        loopDurationSec: 1.3,
+      },
+      {
+        id: 'stalk',
+        nameHe: 'התגנבות ציד שפופה (Stalk)',
+        descriptionHe: 'הנמכת הגוף לקרקע, צעדים איטיים ושקטים ומבט נעול קדימה על הטרף.',
+        loopDurationSec: 2.0,
+      },
+      {
+        id: 'eat',
+        nameHe: 'אכילה וליקוק (Eat)',
+        descriptionHe: 'הרכנת הראש והכתפיים לאכילה ולעיסה.',
+        loopDurationSec: 3.4,
+      },
+      {
+        id: 'call',
+        nameHe: 'נהמת קריאה (Call / Growl)',
+        descriptionHe: 'פתיחת לסתות ונהמה טריטוריאלית עמוקה.',
+        loopDurationSec: 2.8,
+      },
+      {
+        id: 'lie',
+        nameHe: 'שכיבה ומנוחה (Lie / Sleep)',
+        descriptionHe: 'שכיבה חתולית נינוחה על הקרקע עם כפות קדמיות שלוחות.',
+        loopDurationSec: 4.0,
+      },
+      {
+        id: 'sit',
+        nameHe: 'ישיבת תצפית זקופה (Sit)',
+        descriptionHe: 'ישיבה על הרגליים האחוריות בחזה זקוף וזנב מעוגל.',
+        loopDurationSec: 3.6,
+      },
+      {
+        id: 'trot',
+        nameHe: 'ריצה קלה (Trot)',
+        descriptionHe: 'תנועה קצבית ומהירה בין עצי היער.',
+        loopDurationSec: 0.78,
+      },
+      {
+        id: 'run',
+        nameHe: 'דהירת הסתערות (Run / Sprint)',
+        descriptionHe: 'ריצת מרדף מלאה עם מתיחה וכיווץ של עמוד השדרה.',
+        loopDurationSec: 0.52,
+      },
+      {
+        id: 'flee',
+        nameHe: 'מילוט מהיר (Flee)',
+        descriptionHe: 'נסיגה מהירה באוזניים משוכות לאחור מפני איום גדול יותר.',
+        loopDurationSec: 0.44,
+      },
+      {
+        id: 'skip',
+        nameHe: 'זינוק קשתי גבוה (Skip / Pounce Leap)',
+        descriptionHe: 'ניתור חתולי ארוך וגבוה מעל מכשולים.',
+        loopDurationSec: 0.85,
+      },
+      {
+        id: 'roar',
+        nameHe: 'שאגת יגואר מאיימת (Roar)',
+        descriptionHe: 'פתיחת לוע מקסימלית, חשיפת ניבים ושאגה מרעידה.',
+        loopDurationSec: 2.8,
+      },
+      {
+        id: 'attack',
+        nameHe: 'זינוק תקיפה ומכת טופרים (Attack)',
+        descriptionHe: 'זינוק קדימה בשתי כפות שלוחות וביס עוצמתי.',
+        loopDurationSec: 1.35,
+      },
+      {
+        id: 'death',
+        nameHe: 'מוות וקריסה (Death)',
+        descriptionHe: 'קריסה הצידה על קרקע היער.',
+        loopDurationSec: 1.8,
+      },
+    ],
+    skins: [
+      {
+        id: 'jaguar_rosette_classic',
+        nameHe: 'יגואר רוזטות זהוב (מקורי)',
+        subtitleHe: 'פרווה זהובה־כתומה עטורת רוזטות שחורות קלאסיות',
+        badgeColors: ['#d97706', '#1c1917', '#fef3c7'],
+        palette: {
+          primaryHex: 0xffffff,
+          secondaryHex: 0x1c1917,
+          accentHex: 0xfef3c7,
+        },
+      },
+      {
+        id: 'jaguar_black_panther',
+        nameHe: 'פנתר שחור (מלניסטי)',
+        subtitleHe: 'פרוות צללים כהה של מעבה הג׳ונגל בלילה',
+        badgeColors: ['#27272a', '#09090b', '#eab308'],
+        palette: {
+          primaryHex: 0x3f3f46,
+          secondaryHex: 0x09090b,
+          accentHex: 0xeab308,
+        },
+      },
+      {
+        id: 'jaguar_sunlit_amber',
+        nameHe: 'יגואר ענבר בהיר',
+        subtitleHe: 'גווני זהב־שמש חמים של שולי נווה המדבר',
+        badgeColors: ['#f59e0b', '#78350f', '#fffbeb'],
+        palette: {
+          primaryHex: 0xfde68a,
+          secondaryHex: 0x78350f,
+          accentHex: 0xfffbeb,
+        },
+      },
+    ],
+  },
+
+  {
     id: 'grazing_sheep',
     nameHe: 'כבשה רועה בחווה',
     subtitleHe: 'כבשים צמריריות הרועות סביב חוות העמק ושדות החיטה',
@@ -2503,6 +2648,14 @@ export function getEntityEditorLabelsHe(entityId: string): {
         rightLimbTitleHe: 'רגליים ימניות של התנין',
         leftLimbTitleHe: 'רגליים שמאליות של התנין',
         headTitleHe: 'ראש וחרטום התנין',
+      };
+    case 'jungle_jaguar':
+      return {
+        weaponGroupTitleHe: 'כפות קדמיות וטופרים',
+        leftWeaponGroupTitleHe: 'זנב היגואר ולסת תחתונה',
+        rightLimbTitleHe: 'רגליים ימניות של היגואר',
+        leftLimbTitleHe: 'רגליים שמאליות של היגואר',
+        headTitleHe: 'ראש וצוואר היגואר',
       };
     default:
       return {

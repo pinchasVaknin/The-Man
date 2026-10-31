@@ -16,8 +16,14 @@ import {
   RIVERSIDE_WINDMILLS,
   LAKESIDE_TEA_PAVILION_POS,
   RIDEABLE_HORSES,
+  BEAR_MOUNTAIN_CAVES,
+  SOUTHERN_RIVER_BRIDGE_POS,
+  CROCODILE_RIVER_BEND_POS,
+  southernRiverBridgeHeightAt,
   groundHeightAt,
   walkableHeightAt,
+  getSurfaceNormalAt,
+  computeSlopePitchAndRoll,
   isWithinViewDistance,
   computeHorseBiomechanicalPose,
   type IRideableHorseState,
@@ -1065,6 +1071,339 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   });
 
   // ============================================================================
+  // MOUNTAIN FOREST BEAR CAVES (Carved Mountain Cliff Hollows — "חור בהר")
+  // ============================================================================
+  const caveTunnelVaultGeo = new THREE.CylinderGeometry(
+    4.2,
+    4.2,
+    11.4,
+    18,
+    1,
+    true,
+    Math.PI * 0.5,
+    Math.PI
+  );
+  caveTunnelVaultGeo.rotateX(Math.PI / 2);
+  const caveBackAbyssGeo = new THREE.CircleGeometry(4.3, 18, 0, Math.PI);
+  const caveFloorPadGeo = new THREE.PlaneGeometry(8.8, 13.6);
+  caveFloorPadGeo.rotateX(-Math.PI / 2);
+  const caveSideCliffSlabGeo = new THREE.BoxGeometry(2.8, 6.2, 11.6);
+  const caveBackCliffSlabGeo = new THREE.BoxGeometry(12.8, 6.8, 3.2);
+  const caveRoofBrowSlabGeo = new THREE.BoxGeometry(12.6, 3.2, 11.6);
+  const caveUpperCrownSlabGeo = new THREE.BoxGeometry(9.6, 2.8, 9.2);
+  const cavePortalJambGeo = new THREE.BoxGeometry(2.2, 5.2, 2.4);
+  const caveStalactiteGeo = new THREE.ConeGeometry(0.24, 1.15, 7);
+  caveStalactiteGeo.rotateX(Math.PI);
+  const caveMossGeo = new THREE.DodecahedronGeometry(1.2, 1);
+
+  const caveInnerWallMat = new THREE.MeshStandardMaterial({
+    color: 0x524c45,
+    map: textures.rockAlbedo,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+  });
+  const caveFloorMat = new THREE.MeshStandardMaterial({
+    color: 0x2a231d,
+    roughness: 0.96,
+  });
+  const caveMossMat = new THREE.MeshStandardMaterial({
+    color: 0x365327,
+    roughness: 0.92,
+  });
+  disposableGeometries.push(
+    caveTunnelVaultGeo,
+    caveBackAbyssGeo,
+    caveFloorPadGeo,
+    caveSideCliffSlabGeo,
+    caveBackCliffSlabGeo,
+    caveRoofBrowSlabGeo,
+    caveUpperCrownSlabGeo,
+    cavePortalJambGeo,
+    caveStalactiteGeo,
+    caveMossGeo
+  );
+  disposableMaterials.push(caveInnerWallMat, caveFloorMat, caveMossMat);
+
+  for (let cIdx = 0; cIdx < BEAR_MOUNTAIN_CAVES.length; cIdx++) {
+    const cave = BEAR_MOUNTAIN_CAVES[cIdx];
+    const caveGroup = new THREE.Group();
+    caveGroup.position.set(cave.x, cave.floorY, cave.z);
+    caveGroup.rotation.y = cave.facingYaw;
+
+    // 1. Flat dry compacted earth floor stretching from deep chamber (z=-5.6) out to the entrance threshold (z=+6.6)
+    const floorPad = new THREE.Mesh(caveFloorPadGeo, caveFloorMat);
+    floorPad.position.set(0, 0.04, 0.4);
+    floorPad.receiveShadow = !isSoftwareGl;
+    caveGroup.add(floorPad);
+
+    // 2. Hollow vaulted stone tunnel ceiling & inner walls (wide 8.4m x 4.2m overhead arch along Z)
+    const tunnelVault = new THREE.Mesh(caveTunnelVaultGeo, caveInnerWallMat);
+    tunnelVault.position.set(0, 0.05, -0.3);
+    tunnelVault.castShadow = !isSoftwareGl;
+    tunnelVault.receiveShadow = !isSoftwareGl;
+    caveGroup.add(tunnelVault);
+
+    // 3. Deep pitch-black mountain recess wall at the back of the cave (z = -4.85, in front of backCliffWall at -5.0)
+    const backAbyss = new THREE.Mesh(caveBackAbyssGeo, caveDarkMat);
+    backAbyss.position.set(0, 0.05, -4.85);
+    caveGroup.add(backAbyss);
+
+    // 4. Stratified cliff walls framing the left (-X), right (+X), back (-Z), and mountain brow (+Y)
+    // Matches the exact SOLID_BUILDING_BOXES colliders so neither player nor bear ever clips!
+    const leftCliffWall = new THREE.Mesh(caveSideCliffSlabGeo, rockMat);
+    leftCliffWall.position.set(-5.2, 3.0, -0.3);
+    leftCliffWall.castShadow = !isSoftwareGl;
+    leftCliffWall.receiveShadow = !isSoftwareGl;
+    caveGroup.add(leftCliffWall);
+
+    const rightCliffWall = new THREE.Mesh(caveSideCliffSlabGeo, rockMat);
+    rightCliffWall.position.set(5.2, 3.0, -0.3);
+    rightCliffWall.castShadow = !isSoftwareGl;
+    rightCliffWall.receiveShadow = !isSoftwareGl;
+    caveGroup.add(rightCliffWall);
+
+    const backCliffWall = new THREE.Mesh(caveBackCliffSlabGeo, rockMat);
+    backCliffWall.position.set(0, 3.3, -6.6);
+    backCliffWall.castShadow = !isSoftwareGl;
+    backCliffWall.receiveShadow = !isSoftwareGl;
+    caveGroup.add(backCliffWall);
+
+    // Stepped stone cliff jambs on the outer left/right portal edges (x = ±4.9, leaving [-3.8, +3.8] 100% open)
+    for (const side of [-1, 1] as const) {
+      const jamb = new THREE.Mesh(cavePortalJambGeo, rockMat);
+      jamb.position.set(side * 4.95, 2.5, 4.4);
+      jamb.rotation.y = side * 0.14;
+      jamb.castShadow = !isSoftwareGl;
+      jamb.receiveShadow = !isSoftwareGl;
+      caveGroup.add(jamb);
+    }
+
+    const roofBrowSlab = new THREE.Mesh(caveRoofBrowSlabGeo, rockMat);
+    roofBrowSlab.position.set(0, 6.0, -0.2);
+    roofBrowSlab.castShadow = !isSoftwareGl;
+    roofBrowSlab.receiveShadow = !isSoftwareGl;
+    caveGroup.add(roofBrowSlab);
+
+    const upperCrownSlab = new THREE.Mesh(caveUpperCrownSlabGeo, rockMat);
+    upperCrownSlab.position.set(0, 8.2, -1.2);
+    upperCrownSlab.castShadow = !isSoftwareGl;
+    upperCrownSlab.receiveShadow = !isSoftwareGl;
+    caveGroup.add(upperCrownSlab);
+
+    // 5. Hanging stone stalactites along the upper cave arch brow (high overhead at y = 3.85..4.15)
+    for (const sx of [-2.4, -1.1, 0.3, 1.6, 2.6]) {
+      const archY = Math.sqrt(Math.max(0.5, 4.15 * 4.15 - sx * sx));
+      const stalactite = new THREE.Mesh(caveStalactiteGeo, caveInnerWallMat);
+      stalactite.position.set(sx, archY - 0.15, 4.6 - Math.abs(sx) * 0.15);
+      stalactite.scale.set(1.0, 0.75 + ((Math.abs(sx * 3) + cIdx) % 0.4), 1.0);
+      caveGroup.add(stalactite);
+    }
+
+    // 6. Lush mountain moss cushions crowning the upper cliff brow
+    for (const side of [-1, 0, 1] as const) {
+      const moss = new THREE.Mesh(caveMossGeo, caveMossMat);
+      moss.position.set(side * 3.2, 7.35, 3.9 - Math.abs(side) * 0.5);
+      moss.scale.set(1.8, 0.42, 1.25);
+      caveGroup.add(moss);
+    }
+
+    scene.add(caveGroup);
+    distanceCulledObjects.push({
+      obj: caveGroup,
+      cx: cave.x,
+      cz: cave.z,
+      radius: 34,
+    });
+  }
+
+  // ============================================================================
+  // GRAND SOUTHERN RIVER 3-ARCH STONE & TIMBER BRIDGE (גשר הקשתות הדרומי)
+  // Spans East-West across the Southern River at (178, 378), x: 154..202
+  // ============================================================================
+  const grandBridgeGroup = new THREE.Group();
+  const gbX = SOUTHERN_RIVER_BRIDGE_POS.x;
+  const gbZ = SOUTHERN_RIVER_BRIDGE_POS.z;
+  const gbSpan = SOUTHERN_RIVER_BRIDGE_POS.halfSpanX * 2; // 48m
+  const gbWidth = SOUTHERN_RIVER_BRIDGE_POS.halfWidthZ * 2; // 6.2m
+
+  const bridgeGraniteMat = new THREE.MeshStandardMaterial({
+    color: 0x8d887f,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.08,
+    roughness: 0.78,
+    metalness: 0.05,
+  });
+  const bridgeTrimStoneMat = new THREE.MeshStandardMaterial({
+    color: 0xa8a196,
+    map: textures.rockAlbedo,
+    roughness: 0.7,
+    metalness: 0.06,
+  });
+  disposableMaterials.push(bridgeGraniteMat, bridgeTrimStoneMat);
+
+  // 1. Segmented Arched Stone Roadway Deck & Timber Runner Planks following southernRiverBridgeHeightAt(x)
+  const deckSegments = 24;
+  const segLen = gbSpan / deckSegments;
+  const segDeckGeo = new THREE.BoxGeometry(segLen + 0.14, 0.48, gbWidth);
+  const segPlankGeo = new THREE.BoxGeometry(segLen * 0.88, 0.09, gbWidth - 1.3);
+  const parapetWallSegGeo = new THREE.BoxGeometry(segLen + 0.12, 0.92, 0.46);
+  const parapetCapSegGeo = new THREE.BoxGeometry(segLen + 0.16, 0.18, 0.58);
+  disposableGeometries.push(segDeckGeo, segPlankGeo, parapetWallSegGeo, parapetCapSegGeo);
+
+  for (let i = 0; i < deckSegments; i++) {
+    const x0 = SOUTHERN_RIVER_BRIDGE_POS.minX + i * segLen;
+    const x1 = x0 + segLen;
+    const xm = (x0 + x1) * 0.5;
+    const y0 = southernRiverBridgeHeightAt(x0);
+    const y1 = southernRiverBridgeHeightAt(x1);
+    const ym = southernRiverBridgeHeightAt(xm);
+    const slopeAngle = Math.atan2(y1 - y0, segLen);
+
+    const deckSeg = new THREE.Mesh(segDeckGeo, bridgeGraniteMat);
+    deckSeg.position.set(xm, ym - 0.24, gbZ);
+    deckSeg.rotation.z = slopeAngle;
+    deckSeg.castShadow = !isSoftwareGl;
+    deckSeg.receiveShadow = !isSoftwareGl;
+    grandBridgeGroup.add(deckSeg);
+
+    const plankSeg = new THREE.Mesh(segPlankGeo, timberMat);
+    plankSeg.position.set(xm, ym + 0.02, gbZ);
+    plankSeg.rotation.z = slopeAngle;
+    plankSeg.receiveShadow = !isSoftwareGl;
+    grandBridgeGroup.add(plankSeg);
+
+    // North & South Stone Parapet Guardrails (matching SOLID_BUILDING_BOXES at z = gbZ ± 2.95)
+    for (const side of [-1, 1] as const) {
+      const railZ = gbZ + side * 2.95;
+      const wallSeg = new THREE.Mesh(parapetWallSegGeo, bridgeGraniteMat);
+      wallSeg.position.set(xm, ym + 0.44, railZ);
+      wallSeg.rotation.z = slopeAngle;
+      wallSeg.castShadow = !isSoftwareGl;
+      wallSeg.receiveShadow = !isSoftwareGl;
+      grandBridgeGroup.add(wallSeg);
+
+      const capSeg = new THREE.Mesh(parapetCapSegGeo, bridgeTrimStoneMat);
+      capSeg.position.set(xm, ym + 0.95, railZ);
+      capSeg.rotation.z = slopeAngle;
+      capSeg.castShadow = !isSoftwareGl;
+      grandBridgeGroup.add(capSeg);
+    }
+  }
+
+  // 2. Four Massive Cut-Stone River Piers with Cutwater Prows & 3 Vaulted Stone Under-Arches
+  const pierPositionsX = [160.0, 172.0, 184.0, 196.0];
+  const pierBodyGeo = new THREE.BoxGeometry(2.8, 7.2, gbWidth + 1.2);
+  const pierCutwaterGeo = new THREE.CylinderGeometry(1.35, 1.65, 6.8, 6);
+  const archRibGeo = new THREE.TorusGeometry(5.2, 0.55, 8, 20, Math.PI);
+  const lanternPostGeo = new THREE.CylinderGeometry(0.11, 0.14, 2.35, 8);
+  const lanternHousingGeo = new THREE.BoxGeometry(0.42, 0.52, 0.42);
+  const gatePillarGeo = new THREE.BoxGeometry(1.35, 3.4, 1.35);
+  const gatePillarCapGeo = new THREE.ConeGeometry(1.05, 0.85, 4);
+  gatePillarCapGeo.rotateY(Math.PI / 4);
+  disposableGeometries.push(
+    pierBodyGeo,
+    pierCutwaterGeo,
+    archRibGeo,
+    lanternPostGeo,
+    lanternHousingGeo,
+    gatePillarGeo,
+    gatePillarCapGeo
+  );
+
+  for (let p = 0; p < pierPositionsX.length; p++) {
+    const px = pierPositionsX[p];
+    const pyTop = southernRiverBridgeHeightAt(px);
+    const pierMesh = new THREE.Mesh(pierBodyGeo, bridgeGraniteMat);
+    pierMesh.position.set(px, pyTop - 3.7, gbZ);
+    pierMesh.castShadow = !isSoftwareGl;
+    pierMesh.receiveShadow = !isSoftwareGl;
+    grandBridgeGroup.add(pierMesh);
+
+    for (const side of [-1, 1] as const) {
+      const cutwater = new THREE.Mesh(pierCutwaterGeo, bridgeTrimStoneMat);
+      cutwater.position.set(px, pyTop - 3.8, gbZ + side * (gbWidth * 0.5 + 0.55));
+      grandBridgeGroup.add(cutwater);
+
+      // Ornate iron & warm amber lanterns atop each pier bastion
+      const lPost = new THREE.Mesh(lanternPostGeo, darkIronMat);
+      lPost.position.set(px, pyTop + 2.1, gbZ + side * 2.95);
+      grandBridgeGroup.add(lPost);
+
+      const lGlow = new THREE.Mesh(lanternHousingGeo, warmLanternMat);
+      lGlow.position.set(px, pyTop + 3.35, gbZ + side * 2.95);
+      grandBridgeGroup.add(lGlow);
+    }
+  }
+
+  // Three vaulted stone arches spanning between the piers
+  const archCentersX = [166.0, 178.0, 190.0];
+  for (let a = 0; a < archCentersX.length; a++) {
+    const ax = archCentersX[a];
+    const ayTop = southernRiverBridgeHeightAt(ax);
+    for (const side of [-1, 1] as const) {
+      const archRib = new THREE.Mesh(archRibGeo, bridgeTrimStoneMat);
+      archRib.position.set(ax, ayTop - 4.7, gbZ + side * (gbWidth * 0.5 - 0.35));
+      archRib.scale.set(1.08, 0.78, 1.0);
+      grandBridgeGroup.add(archRib);
+    }
+  }
+
+  // Twin Stone Entrance Gate Pillars at the West (x=154.5) and East (x=201.5) bridgeheads
+  for (const endX of [SOUTHERN_RIVER_BRIDGE_POS.minX + 0.5, SOUTHERN_RIVER_BRIDGE_POS.maxX - 0.5]) {
+    const endY = southernRiverBridgeHeightAt(endX);
+    for (const side of [-1, 1] as const) {
+      const pillar = new THREE.Mesh(gatePillarGeo, bridgeTrimStoneMat);
+      pillar.position.set(endX, endY + 1.5, gbZ + side * 3.05);
+      pillar.castShadow = !isSoftwareGl;
+      grandBridgeGroup.add(pillar);
+
+      const cap = new THREE.Mesh(gatePillarCapGeo, rockMat);
+      cap.position.set(endX, endY + 3.55, gbZ + side * 3.05);
+      grandBridgeGroup.add(cap);
+    }
+  }
+
+  scene.add(grandBridgeGroup);
+  distanceCulledObjects.push({
+    obj: grandBridgeGroup,
+    cx: gbX,
+    cz: gbZ,
+    radius: 56,
+  });
+
+  // ============================================================================
+  // CROCODILE RIVER BEND SCENERY (Basking Driftwood Logs & Riverbank Reeds at (132, 475))
+  // ============================================================================
+  const crocBendGroup = new THREE.Group();
+  const driftLogGeo = new THREE.CylinderGeometry(0.32, 0.42, 6.2, 9);
+  driftLogGeo.rotateZ(Math.PI / 2);
+  disposableGeometries.push(driftLogGeo);
+
+  const crocBaskingLogs: ReadonlyArray<[number, number, number]> = [
+    [120.5, 465.2, 0.42],
+    [143.2, 482.5, -0.58],
+    [126.0, 487.5, 1.15],
+  ];
+  for (let l = 0; l < crocBaskingLogs.length; l++) {
+    const [lx, lz, lyaw] = crocBaskingLogs[l];
+    const ly = groundHeightAt(lx, lz);
+    const logMesh = new THREE.Mesh(driftLogGeo, barkMat);
+    logMesh.position.set(lx, ly + 0.22, lz);
+    logMesh.rotation.set(0.06, lyaw, -0.04);
+    logMesh.castShadow = !isSoftwareGl;
+    logMesh.receiveShadow = !isSoftwareGl;
+    crocBendGroup.add(logMesh);
+  }
+  scene.add(crocBendGroup);
+  distanceCulledObjects.push({
+    obj: crocBendGroup,
+    cx: CROCODILE_RIVER_BEND_POS.x,
+    cz: CROCODILE_RIVER_BEND_POS.z,
+    radius: 44,
+  });
+
+  // ============================================================================
   // 5 ARTICULATED RIDEABLE HORSES (RIDEABLE_HORSES across Stables & Landmarks)
   // ============================================================================
   interface IEquineLimbRig {
@@ -1153,6 +1492,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     disposableMaterials.push(coatMat, maneMat, saddleMat);
 
     const root = new THREE.Group();
+    root.rotation.order = 'YXZ';
     const initY = walkableHeightAt(def.homeX, def.homeZ).height;
     root.position.set(def.homeX, initY, def.homeZ);
     root.rotation.y = def.homeYaw;
@@ -1320,13 +1660,14 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       }
     }
 
-    // Update 5 Rideable Horses (Position, Yaw, and Biomechanical Gait Pose)
+    // Update 5 Rideable Horses (Position, Yaw, Terrain Slope Alignment, and Biomechanical Gait Pose)
     for (let i = 0; i < horseRigs.length; i++) {
       const rig = horseRigs[i];
       const state = rideableHorses && rideableHorses[i] ? rideableHorses[i] : null;
       const hx = state ? state.x : RIDEABLE_HORSES[i].homeX;
       const hz = state ? state.z : RIDEABLE_HORSES[i].homeZ;
-      const hy = state ? state.y : walkableHeightAt(hx, hz).height;
+      const walkSurf = walkableHeightAt(hx, hz);
+      const hy = state ? state.y : walkSurf.height;
       const hyaw = state ? state.yaw : RIDEABLE_HORSES[i].homeYaw;
       const hspeed = state ? state.speed : 0;
       const hgait = state ? state.gaitPhase : 0;
@@ -1338,6 +1679,18 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
       rig.root.position.set(hx, hy, hz);
       rig.root.rotation.y = hyaw;
+
+      // Align horse pitch & roll to mountain/hill slope when on ground
+      const onGround = !state || !state.isJumping;
+      if (onGround && walkSurf.surface === 'ground') {
+        const n = getSurfaceNormalAt(hx, hz);
+        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, hyaw, 0.45);
+        rig.root.rotation.x += (slope.pitch - rig.root.rotation.x) * 0.25;
+        rig.root.rotation.z += (slope.roll - rig.root.rotation.z) * 0.25;
+      } else {
+        rig.root.rotation.x *= 0.8;
+        rig.root.rotation.z *= 0.8;
+      }
 
       const pose = computeHorseBiomechanicalPose(hspeed, hgait, elapsedTime, i);
       rig.bodyPivot.position.y = 1.18 + pose.bodyLiftY;

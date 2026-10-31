@@ -489,8 +489,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     ) {
       if (!res) return;
       if (res.hitAnimal) {
-        lastArrowHitTargetName = `${getAnimalSpeciesNameHe(res.hitAnimal.species)} (ניצוד! לחץ E לאיסוף השלל)`;
-        lastArrowHitTimer = 4.0;
+        const spName = getAnimalSpeciesNameHe(res.hitAnimal.species);
+        lastArrowHitTargetName = res.killedAnimal
+          ? `${spName} (ניצוד! לחץ E לאיסוף השלל)`
+          : `${spName} (נפגע!)`;
+        lastArrowHitTimer = res.killedAnimal ? 4.0 : 2.5;
         soundEngine.playArrowHit(true);
         emitHudSnapshot();
       } else if (res.hitTarget) {
@@ -1144,10 +1147,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         if (activeArrows.length > 0) {
           const arrowRes = stepArrowsPhysics(activeArrows, obstacles, rawDt);
           if (arrowRes.hitAnimal) {
+            const spName = getAnimalSpeciesNameHe(arrowRes.hitAnimal.species);
             playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
-            lastArrowHitTargetName = `${getAnimalSpeciesNameHe(arrowRes.hitAnimal.species)} (ניצוד! לחץ E לאיסוף השלל)`;
-            lastArrowHitTimer = 4.0;
-            awardSkillXp(playerState, 'archery', 36);
+            lastArrowHitTargetName = arrowRes.killedAnimal
+              ? `${spName} (ניצוד! לחץ E לאיסוף השלל)`
+              : `${spName} (נפגע!)`;
+            lastArrowHitTimer = arrowRes.killedAnimal ? 4.0 : 2.5;
+            awardSkillXp(playerState, 'archery', arrowRes.killedAnimal ? 36 : 18);
             soundEngine.playArrowHit(true);
             emitHudSnapshot();
           } else if (arrowRes.hitTarget) {
