@@ -185,12 +185,65 @@ export function southernRiverDistanceAt(x: number, z: number): number {
  * @param z Input parameter z.
  * @returns Computed result for getRoofHeightAt.
  */
-export function getRoofHeightAt(x: number, z: number): number | null {
+/**
+ * Summary: Checks if world coordinates (x, z, currentY) are inside a Bear Mountain Cave's
+ *          entrance tunnel (lz: -6.2..+5.8, |lx| <= 4.4) or spacious subterranean cavern
+ *          (lz: -25.0..-5.0, width 20.4m).
+ */
+export function isInsideBearCave(
+  x: number,
+  z: number,
+  currentY?: number
+): {
+  cave: (typeof BEAR_MOUNTAIN_CAVES)[number];
+  floorY: number;
+  ceilingY: number;
+  inTunnel: boolean;
+  inCavern: boolean;
+  lx: number;
+  lz: number;
+} | null {
   for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
     const cave = BEAR_MOUNTAIN_CAVES[i];
-    if (Math.hypot(x - cave.x, z - cave.z) <= cave.radius) {
-      return groundHeightAt(cave.x, cave.z) + cave.roofHeight;
+    const dx = x - cave.x;
+    const dz = z - cave.z;
+    if (Math.abs(dx) > 32.0 || Math.abs(dz) > 32.0) continue;
+
+    const sinY = Math.sin(cave.facingYaw);
+    const cosY = Math.cos(cave.facingYaw);
+    const lx = dx * cosY - dz * sinY;
+    const lz = dx * sinY + dz * cosY; // +lz points out of tunnel mouth, -lz goes deep into the mountain
+
+    // 1. Large Entrance Tunnel: lz in [-6.2, +5.8], width 8.8m (|lx| <= 4.4), arched ceiling 5.4m high
+    const inTunnel = lz >= -6.2 && lz <= 5.8 && Math.abs(lx) <= 4.4;
+    // 2. Spacious Subterranean Cavern inside the mountain: centered at (lx=0, lz=-15.0), rx=10.2m, rz=9.8m
+    const cavNormSq = (lx / 10.2) * (lx / 10.2) + ((lz + 15.0) / 9.8) * ((lz + 15.0) / 9.8);
+    const inCavern = lz <= -5.0 && lz >= -24.8 && cavNormSq <= 1.0;
+
+    if (inTunnel || inCavern) {
+      const tunnelCeiling = cave.floorY + 5.4 - 0.05 * lx * lx;
+      const cavernCeiling = cave.floorY + 8.2 - 2.0 * Math.min(1.0, cavNormSq);
+      const ceilingY =
+        inCavern && !inTunnel
+          ? cavernCeiling
+          : inTunnel && !inCavern
+            ? tunnelCeiling
+            : Math.max(tunnelCeiling, cavernCeiling);
+
+      // Entities high above the cave ceiling are walking on the exterior mountain peak above the cave
+      if (currentY !== undefined && currentY > ceilingY + 2.2) {
+        return null;
+      }
+      return { cave, floorY: cave.floorY, ceilingY, inTunnel, inCavern, lx, lz };
     }
+  }
+  return null;
+}
+
+export function getRoofHeightAt(x: number, z: number): number | null {
+  const bearCave = isInsideBearCave(x, z);
+  if (bearCave) {
+    return bearCave.ceilingY;
   }
   if (Math.abs(x) <= 23.2 && z >= -216.5 + FZ && z <= -188.8 + FZ) {
     return CHINESE_FORTRESS_POS.mainHallFloor2Y + 5.2;
@@ -668,38 +721,50 @@ export function groundHeightAt(x: number, z: number): number {
     h += rimT * (30.0 + ridgeNoise * 38.0);
   }
 
-  // Carved Mountain Bear Caves ("חור בהר"): wide flat front glade + flat cave chamber floor + steep mountain cliff behind & around the cave
+  // Mountain Bear Caves: tall natural mountain peak rising over the subterranean tunnel & cavern,
+  // with a flat forest clearing outside the tunnel portal mouth (lz >= 4.2) and craggy cliff shoulders
   for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
     const cave = BEAR_MOUNTAIN_CAVES[i];
     const dx = x - cave.x;
     const dz = z - cave.z;
-    if (Math.abs(dx) > 30.0 || Math.abs(dz) > 30.0) continue;
+    if (Math.abs(dx) > 62.0 || Math.abs(dz) > 62.0) continue;
     const sinY = Math.sin(cave.facingYaw);
     const cosY = Math.cos(cave.facingYaw);
     const lx = dx * cosY - dz * sinY;
     const lz = dx * sinY + dz * cosY;
 
-    // 1) Flatten a natural forest clearing in front of the cave and under the cave chamber
-    const gladeDist = Math.hypot(lx * 0.88, (lz - 7.5) * 0.92);
-    if (gladeDist < 17.5) {
-      const wGlade = 1.0 - smoothstep(9.5, 17.5, gladeDist);
-      h = h * (1.0 - wGlade) + cave.floorY * wGlade;
+    // 1) Flatten the natural approach clearing outside the tunnel mouth (lz: +3.8 .. +21.0)
+    if (lz >= 3.6 && lz <= 21.0 && Math.abs(lx) < 15.0) {
+      const gladeDist = Math.hypot(lx * 0.85, (lz - 11.0) * 0.95);
+      if (gladeDist < 13.5) {
+        const wGlade = (1.0 - smoothstep(6.2, 13.5, gladeDist)) * smoothstep(3.6, 5.2, lz);
+        h = h * (1.0 - wGlade) + cave.floorY * wGlade;
+      }
     }
 
-    // 2) Raise the mountain massif behind the cave entrance line (lz < 3.8) wrapping the sides and back
-    const mtnDist = Math.hypot(lx * 0.82, (lz + 5.0) * 0.85);
-    if (mtnDist < 19.5 && lz < 3.8) {
-      const mtnRise = (1.0 - smoothstep(7.0, 19.5, mtnDist)) * smoothstep(3.8, -1.5, lz);
-      h = Math.max(h, cave.floorY + mtnRise * 14.5);
+    // 2) Raise a massive, craggy mountain massif over the tunnel & subterranean cavern (lz < 6.8)
+    //    Uses a wide inner plateau (15.5m) so the subterranean chamber ceiling is always deeply buried inside solid mountain rock
+    const mtnDist = Math.hypot(lx * 0.82, (lz + 13.5) * 0.78);
+    if (mtnDist < 43.0 && lz < 6.8) {
+      const radialWeight = 1.0 - smoothstep(14.5, 43.0, mtnDist);
+      const frontCliffRamp = smoothstep(6.8, 2.4, lz);
+      const mtnRise = radialWeight * frontCliffRamp;
+      const crag =
+        fbm2D(x * 0.065 + i * 3.1, z * 0.065 - i * 2.3, 2) * 2.8 +
+        Math.sin(x * 0.14 + z * 0.11) * 1.1;
+      const targetMtnH = cave.floorY + mtnRise * (27.5 + crag);
+      h = Math.max(h, targetMtnH);
     }
 
-    // 3) Keep the recessed cave chamber floor and entrance threshold strictly flat at cave.floorY
-    if (Math.abs(lx) < 6.4 && lz >= -7.2 && lz <= 8.5) {
-      const wLat = 1.0 - smoothstep(4.6, 6.4, Math.abs(lx));
-      const wBack = smoothstep(-7.2, -5.6, lz);
-      const wFront = 1.0 - smoothstep(6.5, 8.5, lz);
-      const wFloor = wLat * wBack * wFront;
-      h = h * (1.0 - wFloor) + cave.floorY * wFloor;
+    // 3) Natural flanking rock cliff shoulders framing the portal clearing (|lx| in 5.2..18.5, lz in 1.5..12.5)
+    const absLx = Math.abs(lx);
+    if (absLx > 4.8 && absLx < 19.0 && lz >= 1.0 && lz <= 12.5) {
+      const sideShoulderW =
+        smoothstep(4.8, 7.6, absLx) *
+        (1.0 - smoothstep(12.0, 19.0, absLx)) *
+        (1.0 - smoothstep(4.2, 12.5, lz));
+      const shoulderH = cave.floorY + sideShoulderW * 11.5;
+      h = Math.max(h, shoulderH);
     }
   }
 
@@ -1016,6 +1081,11 @@ export function walkableHeightAt(
 
   if (isInsideSouthernMine(x, z, currentY)) {
     return { height: southernMineWalkableHeightAt(x, z, currentY), surface: 'bridge' };
+  }
+
+  const bearCave = isInsideBearCave(x, z, currentY);
+  if (bearCave) {
+    return { height: bearCave.floorY, surface: 'cabin' };
   }
 
   const groundH = groundHeightAt(x, z);

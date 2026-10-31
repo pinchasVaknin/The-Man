@@ -85,8 +85,8 @@ export const BEAR_MOUNTAIN_CAVES = [
     entranceX: -85,
     entranceZ: -64,
     floorY: 4.2,
-    radius: 7.5,
-    roofHeight: 5.2,
+    radius: 11.5,
+    roofHeight: 8.2,
     facingYaw: 0,
   },
   {
@@ -96,8 +96,8 @@ export const BEAR_MOUNTAIN_CAVES = [
     entranceX: -174,
     entranceZ: -45,
     floorY: 4.5,
-    radius: 7.5,
-    roofHeight: 5.2,
+    radius: 11.5,
+    roofHeight: 8.2,
     facingYaw: Math.PI / 2,
   },
   {
@@ -107,8 +107,8 @@ export const BEAR_MOUNTAIN_CAVES = [
     entranceX: -135,
     entranceZ: 184,
     floorY: 4.6,
-    radius: 7.5,
-    roofHeight: 5.2,
+    radius: 11.5,
+    roofHeight: 8.2,
     facingYaw: Math.PI,
   },
 ] as const;

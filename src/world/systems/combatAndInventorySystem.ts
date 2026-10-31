@@ -650,32 +650,40 @@ export function evaluateSwordStrikeWindowHit(
       if (anim.isDead || anim.isLooted) continue;
       const animRad =
         anim.species === 'bear'
-          ? 1.85
+          ? 2.35
           : anim.species === 'crocodile'
-            ? 1.75
-            : anim.species === 'deer'
-              ? 1.55
-              : anim.species === 'jaguar'
-                ? 1.45
-                : anim.species === 'sheep'
-                  ? 1.15
-                  : 0.95;
+            ? 2.65
+            : anim.species === 'rhino'
+              ? 2.45
+              : anim.species === 'deer'
+                ? 1.55
+                : anim.species === 'jaguar' || anim.species === 'wolf'
+                  ? 1.45
+                  : anim.species === 'sheep'
+                    ? 1.15
+                    : 0.95;
       const animGroundY = groundHeightAt(anim.x, anim.z);
       const animCenterY =
         animGroundY +
         (anim.species === 'bear'
-          ? 1.25
-          : anim.species === 'deer'
-            ? 1.15
-            : anim.species === 'jaguar'
-              ? 0.85
-              : anim.species === 'sheep'
-                ? 0.55
-                : anim.species === 'crocodile'
-                  ? 0.45
-                  : 0.25);
+          ? 1.45
+          : anim.species === 'rhino'
+            ? 1.25
+            : anim.species === 'deer'
+              ? 1.15
+              : anim.species === 'jaguar' || anim.species === 'wolf'
+                ? 0.85
+                : anim.species === 'sheep'
+                  ? 0.55
+                  : anim.species === 'crocodile'
+                    ? 0.65
+                    : 0.25);
       const animHalfH =
-        anim.species === 'bear' ? 1.85 : anim.species === 'deer' ? 1.55 : 1.45;
+        anim.species === 'bear' || anim.species === 'rhino'
+          ? 2.15
+          : anim.species === 'deer'
+            ? 1.55
+            : 1.45;
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
         Math.abs(sy - animCenterY) <= animHalfH
@@ -995,30 +1003,34 @@ export function stepArrowsPhysics(
         if (anim.isDead || anim.isLooted) continue;
         const animRad =
           anim.species === 'bear'
-            ? 1.75
+            ? 2.35
             : anim.species === 'crocodile'
-              ? 1.65
-              : anim.species === 'deer'
-                ? 1.42
-                : anim.species === 'jaguar'
-                  ? 1.38
-                  : anim.species === 'sheep'
-                    ? 0.92
-                    : 0.62;
+              ? 2.65
+              : anim.species === 'rhino'
+                ? 2.45
+                : anim.species === 'deer'
+                  ? 1.42
+                  : anim.species === 'jaguar' || anim.species === 'wolf'
+                    ? 1.38
+                    : anim.species === 'sheep'
+                      ? 0.92
+                      : 0.62;
         const animGroundY = groundHeightAt(anim.x, anim.z);
         const animMaxY =
           animGroundY +
           (anim.species === 'bear'
-            ? 2.65
-            : anim.species === 'deer'
+            ? 2.95
+            : anim.species === 'rhino'
               ? 2.45
-              : anim.species === 'jaguar'
-                ? 1.65
-                : anim.species === 'sheep'
-                  ? 1.25
-                  : anim.species === 'crocodile'
-                    ? 1.15
-                    : 0.75);
+              : anim.species === 'deer'
+                ? 2.45
+                : anim.species === 'jaguar' || anim.species === 'wolf'
+                  ? 1.65
+                  : anim.species === 'sheep'
+                    ? 1.25
+                    : anim.species === 'crocodile'
+                      ? 1.55
+                      : 0.75);
         const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
         if (horizDist <= animRad && arr.y >= animGroundY - 0.15 && arr.y <= animMaxY) {
           const dmgRes = damageGroundAnimal(

@@ -1071,58 +1071,273 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   });
 
   // ============================================================================
-  // MOUNTAIN FOREST BEAR CAVES (Carved Mountain Cliff Hollows — "חור בהר")
+  // MOUNTAIN FOREST BEAR CAVES (Continuous Sculpted Cliff Portal, Ribbed Tunnel & Vaulted Cavern)
   // ============================================================================
-  const caveTunnelVaultGeo = new THREE.CylinderGeometry(
-    4.2,
-    4.2,
-    11.4,
-    18,
-    1,
-    true,
-    Math.PI * 0.5,
-    Math.PI
-  );
-  caveTunnelVaultGeo.rotateX(Math.PI / 2);
-  const caveBackAbyssGeo = new THREE.CircleGeometry(4.3, 18, 0, Math.PI);
-  const caveFloorPadGeo = new THREE.PlaneGeometry(8.8, 13.6);
-  caveFloorPadGeo.rotateX(-Math.PI / 2);
-  const caveSideCliffSlabGeo = new THREE.BoxGeometry(2.8, 6.2, 11.6);
-  const caveBackCliffSlabGeo = new THREE.BoxGeometry(12.8, 6.8, 3.2);
-  const caveRoofBrowSlabGeo = new THREE.BoxGeometry(12.6, 3.2, 11.6);
-  const caveUpperCrownSlabGeo = new THREE.BoxGeometry(9.6, 2.8, 9.2);
-  const cavePortalJambGeo = new THREE.BoxGeometry(2.2, 5.2, 2.4);
-  const caveStalactiteGeo = new THREE.ConeGeometry(0.24, 1.15, 7);
-  caveStalactiteGeo.rotateX(Math.PI);
-  const caveMossGeo = new THREE.DodecahedronGeometry(1.2, 1);
+  const rockNoise3D = (x: number, y: number, z: number): number => {
+    const n1 = Math.sin(x * 0.37 + y * 0.53) * Math.cos(z * 0.41 - y * 0.29);
+    const n2 = Math.sin(x * 0.83 - z * 0.71 + y * 0.61) * 0.5;
+    const n3 = Math.cos(x * 1.65 + z * 1.43 - y * 1.19) * 0.25;
+    // Stratified horizontal rock bedding planes
+    const strata = Math.sin(y * 2.35 + Math.sin(x * 0.45 + z * 0.45) * 0.8) * 0.22;
+    return n1 + n2 + n3 + strata;
+  };
 
-  const caveInnerWallMat = new THREE.MeshStandardMaterial({
-    color: 0x524c45,
+  // 1) Continuous Ribbed Subterranean Rock Tunnel Shell (lz: -6.4 .. +6.4, clear width ~9.0m, arch height ~5.5m)
+  const buildSculptedTunnelShellGeo = (wallThicknessOffset: number, inwardNormals: boolean): THREE.BufferGeometry => {
+    const uSegs = 40; // Around arch from left floor (0) -> crown (PI/2) -> right floor (PI)
+    const vSegs = 28; // Along tunnel length lz from -6.4 to +6.4
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    for (let iv = 0; iv <= vSegs; iv++) {
+      const v = iv / vSegs;
+      const lz = -6.4 + v * 12.8;
+      // Flare outward slightly at the portal mouth (lz > 3.2) and cavern throat (lz < -3.5)
+      const mouthFlare = lz > 3.0 ? Math.pow((lz - 3.0) / 3.4, 1.5) * 1.35 : 0;
+      const throatFlare = lz < -3.2 ? Math.pow((-3.2 - lz) / 3.2, 1.4) * 1.65 : 0;
+
+      for (let iu = 0; iu <= uSegs; iu++) {
+        const u = iu / uSegs;
+        const theta = u * Math.PI; // 0 (right) to PI (left)
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+
+        // Natural horseshoe / gothic cavern arch profile
+        const baseRx = 4.65 + mouthFlare + throatFlare + wallThicknessOffset;
+        const baseRy = 5.45 + mouthFlare * 0.45 + throatFlare * 0.55 + wallThicknessOffset * 0.85;
+        const archShape = Math.pow(sinT, 0.86);
+
+        let x = -cosT * baseRx;
+        let y = -0.35 + archShape * baseRy;
+        let z = lz;
+
+        // Keep floor anchoring clean near u=0 and u=1 while displacing rock walls & ceiling
+        const pinFloor = Math.sin(theta);
+        const crag = rockNoise3D(x * 0.9, y * 0.9, z * 0.9);
+        const ribWave = Math.sin(z * 1.35 + Math.cos(theta * 3.0) * 0.6) * 0.28;
+        const radialDisp = (crag * 0.46 + ribWave) * (0.25 + 0.75 * pinFloor);
+
+        x += -cosT * radialDisp;
+        y += sinT * radialDisp * 0.75;
+        z += Math.sin(theta * 2.0 + lz * 0.5) * 0.18 * pinFloor;
+
+        positions.push(x, y, z);
+        uvs.push(u * 4.0, v * 4.0);
+      }
+    }
+
+    const row = uSegs + 1;
+    for (let iv = 0; iv < vSegs; iv++) {
+      for (let iu = 0; iu < uSegs; iu++) {
+        const a = iv * row + iu;
+        const b = a + 1;
+        const c = (iv + 1) * row + iu;
+        const d = c + 1;
+        if (inwardNormals) {
+          indices.push(a, b, d, a, d, c);
+        } else {
+          indices.push(a, d, b, a, c, d);
+        }
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  };
+
+  // 2) Continuous Vaulted Subterranean Cavern Dome (centered at lz = -15.0, rx = 11.8m, rz = 10.4m, height = 8.9m)
+  //    Leaves an open arched throat on the +Z side (lz > -6.1, |x| < 4.8) where the tunnel connects seamlessly
+  const buildSculptedCavernDomeGeo = (): THREE.BufferGeometry => {
+    const azSegs = 56;
+    const elSegs = 24;
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    const cavCenterZ = -15.0;
+    const rx = 11.8;
+    const rz = 10.4;
+    const ry = 8.9;
+
+    for (let ie = 0; ie <= elSegs; ie++) {
+      const v = ie / elSegs;
+      const phi = v * (Math.PI * 0.5); // 0 at floor perimeter -> PI/2 at dome apex
+      const cosP = Math.cos(phi);
+      const sinP = Math.sin(phi);
+
+      for (let ia = 0; ia <= azSegs; ia++) {
+        const u = ia / azSegs;
+        const ang = u * Math.PI * 2; // 0 is +Z (toward tunnel throat)
+        const sinA = Math.sin(ang);
+        const cosA = Math.cos(ang);
+
+        // 3-lobed organic chamber contour (wider at side alcoves and rear den)
+        const alcoveBulge = 1.0 + 0.12 * Math.cos(ang * 3.0 - Math.PI) * cosP;
+        let x = sinA * rx * cosP * alcoveBulge;
+        let y = -0.35 + Math.pow(sinP, 0.82) * ry;
+        let z = cavCenterZ + cosA * rz * cosP * alcoveBulge;
+
+        const crag = rockNoise3D(x * 0.72, y * 0.78, z * 0.72);
+        const disp = crag * 0.68 * (0.2 + 0.8 * Math.sin(phi * 1.4));
+        x += sinA * disp;
+        y += sinP * disp * 0.65;
+        z += cosA * disp;
+
+        positions.push(x, y, z);
+        uvs.push(u * 6.0, v * 3.0);
+      }
+    }
+
+    const row = azSegs + 1;
+    for (let ie = 0; ie < elSegs; ie++) {
+      for (let ia = 0; ia < azSegs; ia++) {
+        const a = ie * row + ia;
+        const b = a + 1;
+        const c = (ie + 1) * row + ia;
+        const d = c + 1;
+
+        // Check if triangle center lies inside the tunnel throat opening (+Z side, z > -6.3, |x| < 4.5, y < 5.3)
+        const ax = positions[a * 3];
+        const ay = positions[a * 3 + 1];
+        const az = positions[a * 3 + 2];
+        const dx = positions[d * 3];
+        const dy = positions[d * 3 + 1];
+        const dz = positions[d * 3 + 2];
+        const mx = (ax + dx) * 0.5;
+        const my = (ay + dy) * 0.5;
+        const mz = (az + dz) * 0.5;
+
+        if (mz > -6.8 && Math.abs(mx) < 4.55 && my < 5.35) {
+          continue;
+        }
+        indices.push(a, b, d, a, d, c);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    return geo;
+  };
+
+  // 3) Sculpted Craggy Rock Boulder & Cliff Buttress Geometry (high-detail displaced icosahedron)
+  const buildCraggyRockGeo = (): THREE.BufferGeometry => {
+    const geo = new THREE.IcosahedronGeometry(1.0, 2);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
+      const n =
+        Math.sin(vx * 3.1 + vy * 2.7) * Math.cos(vz * 2.9 - vy * 1.8) * 0.16 +
+        Math.cos(vx * 5.7 - vz * 4.9) * 0.07;
+      // Slightly flatten bottom & step horizontal rock strata
+      const strata = Math.sin(vy * 4.2) * 0.05;
+      const scale = 1.0 + n + strata;
+      pos.setXYZ(i, vx * scale, vy * (vy < 0 ? scale * 0.88 : scale), vz * scale);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  };
+
+  const caveTunnelInnerGeo = buildSculptedTunnelShellGeo(0.0, true);
+  const caveTunnelOuterGeo = buildSculptedTunnelShellGeo(1.15, false);
+  const caveCavernDomeGeo = buildSculptedCavernDomeGeo();
+  const caveBoulderGeo = buildCraggyRockGeo();
+  const caveTunnelFloorGeo = new THREE.BoxGeometry(11.6, 0.8, 14.2);
+  const caveCavernFloorGeo = new THREE.CylinderGeometry(12.2, 12.6, 0.8, 28);
+  const caveStalactiteGeo = new THREE.ConeGeometry(1.0, 1.0, 9);
+  caveStalactiteGeo.rotateX(Math.PI);
+  const caveStalagmiteGeo = new THREE.ConeGeometry(1.0, 1.0, 9);
+  const caveNestGeo = new THREE.CylinderGeometry(2.7, 3.2, 0.24, 16);
+  const caveLedgeGeo = new THREE.CylinderGeometry(3.4, 4.1, 0.55, 12);
+  const caveBoneGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.82, 6);
+  const caveCrystalGeo = new THREE.OctahedronGeometry(0.45, 0);
+
+  const caveOuterRockMat = new THREE.MeshStandardMaterial({
+    color: 0x5c564e,
     map: textures.rockAlbedo,
-    roughness: 0.9,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.16,
+    roughness: 0.93,
+    metalness: 0.04,
+    side: THREE.DoubleSide,
+  });
+  const caveInnerWallMat = new THREE.MeshStandardMaterial({
+    color: 0x38322c,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.18,
+    roughness: 0.95,
+    metalness: 0.04,
+    side: THREE.DoubleSide,
+  });
+  const caveDeepVaultMat = new THREE.MeshStandardMaterial({
+    color: 0x2b2621,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.20,
+    roughness: 0.96,
+    metalness: 0.05,
     side: THREE.DoubleSide,
   });
   const caveFloorMat = new THREE.MeshStandardMaterial({
-    color: 0x2a231d,
+    color: 0x2a241e,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.10,
     roughness: 0.96,
   });
   const caveMossMat = new THREE.MeshStandardMaterial({
     color: 0x365327,
     roughness: 0.92,
   });
+  const caveNestMat = new THREE.MeshStandardMaterial({
+    color: 0x4f3d25,
+    roughness: 0.95,
+  });
+  const caveBoneMat = new THREE.MeshStandardMaterial({
+    color: 0xdcd3c0,
+    roughness: 0.72,
+  });
+  const caveCrystalMat = new THREE.MeshStandardMaterial({
+    color: 0x67b7dc,
+    emissive: 0x266485,
+    emissiveIntensity: 0.85,
+    roughness: 0.3,
+  });
+
   disposableGeometries.push(
-    caveTunnelVaultGeo,
-    caveBackAbyssGeo,
-    caveFloorPadGeo,
-    caveSideCliffSlabGeo,
-    caveBackCliffSlabGeo,
-    caveRoofBrowSlabGeo,
-    caveUpperCrownSlabGeo,
-    cavePortalJambGeo,
+    caveTunnelInnerGeo,
+    caveTunnelOuterGeo,
+    caveCavernDomeGeo,
+    caveBoulderGeo,
+    caveTunnelFloorGeo,
+    caveCavernFloorGeo,
     caveStalactiteGeo,
-    caveMossGeo
+    caveStalagmiteGeo,
+    caveNestGeo,
+    caveLedgeGeo,
+    caveBoneGeo,
+    caveCrystalGeo
   );
-  disposableMaterials.push(caveInnerWallMat, caveFloorMat, caveMossMat);
+  disposableMaterials.push(
+    caveOuterRockMat,
+    caveInnerWallMat,
+    caveDeepVaultMat,
+    caveFloorMat,
+    caveMossMat,
+    caveNestMat,
+    caveBoneMat,
+    caveCrystalMat
+  );
 
   for (let cIdx = 0; cIdx < BEAR_MOUNTAIN_CAVES.length; cIdx++) {
     const cave = BEAR_MOUNTAIN_CAVES[cIdx];
@@ -1130,81 +1345,192 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     caveGroup.position.set(cave.x, cave.floorY, cave.z);
     caveGroup.rotation.y = cave.facingYaw;
 
-    // 1. Flat dry compacted earth floor stretching from deep chamber (z=-5.6) out to the entrance threshold (z=+6.6)
-    const floorPad = new THREE.Mesh(caveFloorPadGeo, caveFloorMat);
-    floorPad.position.set(0, 0.04, 0.4);
-    floorPad.receiveShadow = !isSoftwareGl;
-    caveGroup.add(floorPad);
+    // 1. Subterranean Rock Floor spanning the 12.8m entrance tunnel (lz: -6.4..+6.4)
+    //    and the spacious 23m-wide interior cavern (lz: -25.4..-4.8)
+    const tunnelFloor = new THREE.Mesh(caveTunnelFloorGeo, caveFloorMat);
+    tunnelFloor.position.set(0, -0.36, 0.2);
+    tunnelFloor.receiveShadow = !isSoftwareGl;
+    caveGroup.add(tunnelFloor);
 
-    // 2. Hollow vaulted stone tunnel ceiling & inner walls (wide 8.4m x 4.2m overhead arch along Z)
-    const tunnelVault = new THREE.Mesh(caveTunnelVaultGeo, caveInnerWallMat);
-    tunnelVault.position.set(0, 0.05, -0.3);
-    tunnelVault.castShadow = !isSoftwareGl;
-    tunnelVault.receiveShadow = !isSoftwareGl;
-    caveGroup.add(tunnelVault);
+    const cavernFloor = new THREE.Mesh(caveCavernFloorGeo, caveFloorMat);
+    cavernFloor.scale.set(1.02, 1.0, 0.96);
+    cavernFloor.position.set(0, -0.38, -15.0);
+    cavernFloor.receiveShadow = !isSoftwareGl;
+    caveGroup.add(cavernFloor);
 
-    // 3. Deep pitch-black mountain recess wall at the back of the cave (z = -4.85, in front of backCliffWall at -5.0)
-    const backAbyss = new THREE.Mesh(caveBackAbyssGeo, caveDarkMat);
-    backAbyss.position.set(0, 0.05, -4.85);
-    caveGroup.add(backAbyss);
+    // 2. Continuous Sculpted Subterranean Rock Tunnel (inner & outer rock shells)
+    const tunnelInnerMesh = new THREE.Mesh(caveTunnelInnerGeo, caveInnerWallMat);
+    tunnelInnerMesh.castShadow = !isSoftwareGl;
+    tunnelInnerMesh.receiveShadow = !isSoftwareGl;
+    caveGroup.add(tunnelInnerMesh);
 
-    // 4. Stratified cliff walls framing the left (-X), right (+X), back (-Z), and mountain brow (+Y)
-    // Matches the exact SOLID_BUILDING_BOXES colliders so neither player nor bear ever clips!
-    const leftCliffWall = new THREE.Mesh(caveSideCliffSlabGeo, rockMat);
-    leftCliffWall.position.set(-5.2, 3.0, -0.3);
-    leftCliffWall.castShadow = !isSoftwareGl;
-    leftCliffWall.receiveShadow = !isSoftwareGl;
-    caveGroup.add(leftCliffWall);
+    const tunnelOuterMesh = new THREE.Mesh(caveTunnelOuterGeo, caveOuterRockMat);
+    tunnelOuterMesh.castShadow = !isSoftwareGl;
+    tunnelOuterMesh.receiveShadow = !isSoftwareGl;
+    caveGroup.add(tunnelOuterMesh);
 
-    const rightCliffWall = new THREE.Mesh(caveSideCliffSlabGeo, rockMat);
-    rightCliffWall.position.set(5.2, 3.0, -0.3);
-    rightCliffWall.castShadow = !isSoftwareGl;
-    rightCliffWall.receiveShadow = !isSoftwareGl;
-    caveGroup.add(rightCliffWall);
+    // 3. Continuous Vaulted Subterranean Cavern Dome
+    const cavernDomeMesh = new THREE.Mesh(caveCavernDomeGeo, caveDeepVaultMat);
+    cavernDomeMesh.castShadow = !isSoftwareGl;
+    cavernDomeMesh.receiveShadow = !isSoftwareGl;
+    caveGroup.add(cavernDomeMesh);
 
-    const backCliffWall = new THREE.Mesh(caveBackCliffSlabGeo, rockMat);
-    backCliffWall.position.set(0, 3.3, -6.6);
-    backCliffWall.castShadow = !isSoftwareGl;
-    backCliffWall.receiveShadow = !isSoftwareGl;
-    caveGroup.add(backCliffWall);
-
-    // Stepped stone cliff jambs on the outer left/right portal edges (x = ±4.9, leaving [-3.8, +3.8] 100% open)
-    for (const side of [-1, 1] as const) {
-      const jamb = new THREE.Mesh(cavePortalJambGeo, rockMat);
-      jamb.position.set(side * 4.95, 2.5, 4.4);
-      jamb.rotation.y = side * 0.14;
-      jamb.castShadow = !isSoftwareGl;
-      jamb.receiveShadow = !isSoftwareGl;
-      caveGroup.add(jamb);
+    // 4. Dramatic Craggy Mountain Cliff Facade & Overhanging Portal Hood (lz: +2.8 .. +7.4)
+    //    Seamlessly embeds the tunnel mouth into the mountain cliff face with layered rock strata
+    const cliffButtresses: ReadonlyArray<[number, number, number, number, number, number]> = [
+      // Massive flanking cliff face slabs blending into the mountain slope
+      [-7.4, 2.8, 5.2, 3.8, 3.8, 3.4],
+      [-9.8, 4.2, 3.6, 4.6, 5.4, 4.2],
+      [-6.2, 5.6, 4.4, 3.4, 3.2, 3.2],
+      [7.4, 2.8, 5.2, 3.8, 3.8, 3.4],
+      [9.8, 4.2, 3.6, 4.6, 5.4, 4.2],
+      [6.2, 5.6, 4.4, 3.4, 3.2, 3.2],
+      // Overhanging craggy rock brow & lintel ledges above the portal mouth (leaves y < 5.3m clear)
+      [-3.8, 6.7, 5.4, 3.4, 1.85, 3.1],
+      [0.0, 7.1, 5.6, 4.2, 1.95, 3.3],
+      [3.8, 6.7, 5.4, 3.4, 1.85, 3.1],
+      [-2.4, 9.2, 3.2, 5.2, 3.0, 4.2],
+      [2.4, 9.2, 3.2, 5.2, 3.0, 4.2],
+      [0.0, 11.4, 1.2, 6.8, 3.4, 4.8],
+      // Natural talus / scree boulders flanking the forest approach apron
+      [-6.6, 0.85, 7.8, 2.4, 1.35, 2.2],
+      [6.8, 0.90, 7.6, 2.5, 1.40, 2.3],
+      [-8.8, 1.35, 7.2, 2.9, 1.95, 2.6],
+      [8.9, 1.40, 7.0, 3.0, 2.05, 2.6],
+    ];
+    for (let i = 0; i < cliffButtresses.length; i++) {
+      const [bx, by, bz, sx, sy, sz] = cliffButtresses[i];
+      const rock = new THREE.Mesh(caveBoulderGeo, caveOuterRockMat);
+      rock.position.set(bx, by, bz);
+      rock.scale.set(sx, sy, sz);
+      rock.rotation.set(
+        Math.sin(cIdx + i * 1.7) * 0.22,
+        Math.cos(cIdx + i * 2.3) * 0.35,
+        Math.sin(cIdx + i * 0.9) * 0.18
+      );
+      rock.castShadow = !isSoftwareGl;
+      rock.receiveShadow = !isSoftwareGl;
+      caveGroup.add(rock);
     }
 
-    const roofBrowSlab = new THREE.Mesh(caveRoofBrowSlabGeo, rockMat);
-    roofBrowSlab.position.set(0, 6.0, -0.2);
-    roofBrowSlab.castShadow = !isSoftwareGl;
-    roofBrowSlab.receiveShadow = !isSoftwareGl;
-    caveGroup.add(roofBrowSlab);
-
-    const upperCrownSlab = new THREE.Mesh(caveUpperCrownSlabGeo, rockMat);
-    upperCrownSlab.position.set(0, 8.2, -1.2);
-    upperCrownSlab.castShadow = !isSoftwareGl;
-    upperCrownSlab.receiveShadow = !isSoftwareGl;
-    caveGroup.add(upperCrownSlab);
-
-    // 5. Hanging stone stalactites along the upper cave arch brow (high overhead at y = 3.85..4.15)
-    for (const sx of [-2.4, -1.1, 0.3, 1.6, 2.6]) {
-      const archY = Math.sqrt(Math.max(0.5, 4.15 * 4.15 - sx * sx));
-      const stalactite = new THREE.Mesh(caveStalactiteGeo, caveInnerWallMat);
-      stalactite.position.set(sx, archY - 0.15, 4.6 - Math.abs(sx) * 0.15);
-      stalactite.scale.set(1.0, 0.75 + ((Math.abs(sx * 3) + cIdx) % 0.4), 1.0);
-      caveGroup.add(stalactite);
-    }
-
-    // 6. Lush mountain moss cushions crowning the upper cliff brow
-    for (const side of [-1, 0, 1] as const) {
-      const moss = new THREE.Mesh(caveMossGeo, caveMossMat);
-      moss.position.set(side * 3.2, 7.35, 3.9 - Math.abs(side) * 0.5);
-      moss.scale.set(1.8, 0.42, 1.25);
+    // Lush forest moss shelves on the outer portal talus & brow
+    const mossPlacements: ReadonlyArray<[number, number, number, number, number, number]> = [
+      [-6.4, 1.55, 7.5, 2.2, 0.36, 1.8],
+      [6.6, 1.62, 7.3, 2.3, 0.36, 1.9],
+      [-3.5, 7.75, 5.2, 2.6, 0.42, 2.0],
+      [3.5, 7.75, 5.2, 2.6, 0.42, 2.0],
+      [0.0, 8.25, 5.3, 3.1, 0.45, 2.1],
+    ];
+    for (let m = 0; m < mossPlacements.length; m++) {
+      const [mx, my, mz, sx, sy, sz] = mossPlacements[m];
+      const moss = new THREE.Mesh(caveBoulderGeo, caveMossMat);
+      moss.position.set(mx, my, mz);
+      moss.scale.set(sx, sy, sz);
       caveGroup.add(moss);
+    }
+
+    // 5. Interior Structural Rock Ribs & Throat Columns (framing transition from tunnel into grand cavern)
+    for (const side of [-1, 1] as const) {
+      const throatPillar = new THREE.Mesh(caveBoulderGeo, caveInnerWallMat);
+      throatPillar.position.set(side * 5.3, 2.8, -5.8);
+      throatPillar.scale.set(1.55, 3.8, 1.85);
+      throatPillar.rotation.y = side * 0.35;
+      throatPillar.castShadow = !isSoftwareGl;
+      throatPillar.receiveShadow = !isSoftwareGl;
+      caveGroup.add(throatPillar);
+    }
+
+    // 6. Hanging Stalactites & Rising Stalagmites inside the tunnel and cavern
+    const stalactites: ReadonlyArray<[number, number, number, number, number]> = [
+      [-2.1, 5.2, 2.4, 0.28, 1.25],
+      [2.3, 5.1, 0.2, 0.32, 1.35],
+      [-2.4, 5.2, -2.8, 0.30, 1.40],
+      [-5.6, 7.6, -10.5, 0.48, 2.35],
+      [5.8, 7.5, -11.2, 0.46, 2.15],
+      [-3.0, 8.4, -14.4, 0.56, 2.75],
+      [3.4, 8.4, -15.6, 0.58, 2.85],
+      [0.2, 8.6, -17.8, 0.50, 2.50],
+      [-6.2, 7.4, -18.4, 0.44, 2.10],
+      [6.0, 7.4, -18.8, 0.46, 2.25],
+      [-1.8, 7.9, -21.2, 0.42, 1.95],
+      [2.1, 7.8, -21.5, 0.44, 2.05],
+    ];
+    for (let i = 0; i < stalactites.length; i++) {
+      const [sx, sy, sz, sr, sh] = stalactites[i];
+      const st = new THREE.Mesh(caveStalactiteGeo, caveInnerWallMat);
+      st.position.set(sx, sy - sh * 0.5, sz);
+      st.scale.set(sr, sh, sr);
+      caveGroup.add(st);
+    }
+
+    const stalagmites: ReadonlyArray<[number, number, number, number]> = [
+      [-8.8, -9.2, 0.55, 1.85],
+      [8.8, -9.5, 0.60, 2.15],
+      [-9.2, -18.8, 0.65, 2.35],
+      [9.1, -19.0, 0.58, 1.95],
+      [-4.2, -22.6, 0.52, 1.75],
+      [4.4, -22.4, 0.56, 1.90],
+    ];
+    for (let i = 0; i < stalagmites.length; i++) {
+      const [gx, gz, gr, gh] = stalagmites[i];
+      const sg = new THREE.Mesh(caveStalagmiteGeo, caveInnerWallMat);
+      sg.position.set(gx, gh * 0.5, gz);
+      sg.scale.set(gr, gh, gr);
+      sg.castShadow = !isSoftwareGl;
+      sg.receiveShadow = !isSoftwareGl;
+      caveGroup.add(sg);
+    }
+
+    // 7. Glowing Mineral Crystal Veins & Subtle Cavern Illumination
+    for (const [cx, cy, cz, ry] of [
+      [-8.2, 3.2, -11.5, 0.4],
+      [8.2, 3.4, -12.4, -0.5],
+      [-7.4, 3.6, -19.2, 0.8],
+      [7.4, 3.5, -19.6, -0.7],
+      [0.0, 4.2, -22.8, 0.0],
+    ] as const) {
+      for (let k = -1; k <= 1; k++) {
+        const crystal = new THREE.Mesh(caveCrystalGeo, caveCrystalMat);
+        crystal.scale.set(0.55 + Math.abs(k) * 0.15, 1.45 + (1 - Math.abs(k)) * 0.45, 0.55);
+        crystal.position.set(cx + k * 0.38, cy + (1 - Math.abs(k)) * 0.22, cz + k * 0.25);
+        crystal.rotation.set(k * 0.28, ry + k * 0.4, k * 0.22);
+        caveGroup.add(crystal);
+      }
+    }
+
+    if (!isSoftwareGl) {
+      const cavernGlowLight = new THREE.PointLight(0x5fa8d3, 1.35, 26.0, 1.6);
+      cavernGlowLight.position.set(0, 5.2, -15.0);
+      caveGroup.add(cavernGlowLight);
+    }
+
+    // 8. Three Natural Bear Den Alcoves inside the Cavern (West Alcove, East Alcove, Rear Alpha Den)
+    const alcoves: ReadonlyArray<[number, number]> = [
+      [-6.2, -14.2], // West side alcove
+      [6.2, -15.0],  // East side alcove
+      [0.0, -19.5],  // Deep rear den
+    ];
+    for (let a = 0; a < alcoves.length; a++) {
+      const [ax, az] = alcoves[a];
+      const rockShelf = new THREE.Mesh(caveLedgeGeo, caveInnerWallMat);
+      rockShelf.scale.set(1.15, 0.45, 0.92);
+      rockShelf.position.set(ax, -0.12, az);
+      rockShelf.receiveShadow = !isSoftwareGl;
+      caveGroup.add(rockShelf);
+
+      const nest = new THREE.Mesh(caveNestGeo, caveNestMat);
+      nest.scale.set(1.12, 1.0, 0.88);
+      nest.position.set(ax, 0.08, az);
+      nest.receiveShadow = !isSoftwareGl;
+      caveGroup.add(nest);
+
+      for (let b = 0; b < 3; b++) {
+        const ang = (b / 3) * Math.PI * 2 + a;
+        const bone = new THREE.Mesh(caveBoneGeo, caveBoneMat);
+        bone.position.set(ax + Math.cos(ang) * 2.1, 0.12, az + Math.sin(ang) * 1.9);
+        bone.rotation.set(Math.PI * 0.47, ang * 1.3, 0.2);
+        caveGroup.add(bone);
+      }
     }
 
     scene.add(caveGroup);
@@ -1212,7 +1538,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       obj: caveGroup,
       cx: cave.x,
       cz: cave.z,
-      radius: 34,
+      radius: 54,
     });
   }
 

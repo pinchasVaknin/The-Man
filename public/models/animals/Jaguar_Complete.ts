@@ -44,7 +44,7 @@ export const JAGUAR_GAITS: Record<JaguarState, { speed: number }> = {
   eat:    { speed: 0.0 },
   call:   { speed: 0.0 },
   lie:    { speed: 0.0 },
-  sit:    { speed: 0.85 },
+  sit:    { speed: 0.0 },
   stalk:  { speed: 0.85 },
   trot:   { speed: 3.6 },
   run:    { speed: 7.4 },
@@ -245,12 +245,18 @@ export class JaguarAnimator {
   state: JaguarState = 'walk';
   prevState: JaguarState = 'walk';
   blend = 1.0;
-  blendDuration = 0.24;
+  blendDuration = 0.42;
   time = 0;
   prevTime = 0;
   moveSpeed = 1.55;
   turn = 0;
   loopDeath = false;
+
+  private fromPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private lastPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private fromRootPos = new THREE.Vector3();
+  private lastRootPos = new THREE.Vector3();
+  private hasPoseSnapshot = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -260,6 +266,38 @@ export class JaguarAnimator {
   private vPrev = new THREE.Vector3();
   private turnAxis = new THREE.Vector3(0, 0, 1);
 
+  private qEuler = new THREE.Euler();
+  private qMod = new THREE.Quaternion();
+
+  private addLocalRot(jointIdx: number, rx: number, ry: number, rz: number): void {
+    const b = this.rig.bones[jointIdx];
+    if (!b) return;
+    this.qEuler.set(rx, ry, rz, 'XYZ');
+    this.qMod.setFromEuler(this.qEuler);
+    b.quaternion.multiply(this.qMod);
+  }
+
+  private static isLocomotionState(s: JaguarState): boolean {
+    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'stalk' || s === 'skip';
+  }
+
+  private static isPostureChangeState(s: JaguarState): boolean {
+    return s === 'lie' || s === 'sit' || s === 'stalk' || s === 'eat' || s === 'roar' || s === 'call';
+  }
+
+  private computeBlendDuration(from: JaguarState, to: JaguarState): number {
+    if (to === 'attack') return 0.32;
+    if (to === 'death') return 0.38;
+    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.56;
+    if (from === 'stalk' || to === 'stalk' || from === 'eat' || to === 'eat' || from === 'roar' || to === 'roar' || from === 'call' || to === 'call') {
+      return 0.48;
+    }
+    if (JaguarAnimator.isLocomotionState(from) && JaguarAnimator.isLocomotionState(to)) {
+      return 0.40;
+    }
+    return 0.44;
+  }
+
   constructor(rig: JaguarRig, data: JaguarUnpackedData) {
     this.rig = rig;
     this.data = data;
@@ -267,15 +305,40 @@ export class JaguarAnimator {
   }
 
   setState(next: JaguarState): void {
-    if (next === this.state && next !== 'attack' && next !== 'death') return;
-    this.prevState = this.state;
+    if (next === this.state) return;
+
+    if (this.hasPoseSnapshot) {
+      this.fromPoseQuats.set(this.lastPoseQuats);
+      this.fromRootPos.copy(this.lastRootPos);
+    } else {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        const q = this.rig.bones[j].quaternion;
+        this.fromPoseQuats[j * 4 + 0] = q.x;
+        this.fromPoseQuats[j * 4 + 1] = q.y;
+        this.fromPoseQuats[j * 4 + 2] = q.z;
+        this.fromPoseQuats[j * 4 + 3] = q.w;
+      }
+      this.fromRootPos.copy(this.rig.bones[2].position);
+      this.hasPoseSnapshot = true;
+    }
+
+    const prev = this.state;
+    this.prevState = prev;
     this.prevTime = this.time;
+    this.blendDuration = this.computeBlendDuration(prev, next);
+
+    if (JaguarAnimator.isLocomotionState(prev) && JaguarAnimator.isLocomotionState(next)) {
+      const oldDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(prev)]);
+      const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
+      const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
+      this.time = normPhase * newDur;
+    } else if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
+      this.time = 0.0;
+    }
+
     this.state = next;
     this.blend = 0.0;
     this.moveSpeed = JAGUAR_GAITS[next] ? JAGUAR_GAITS[next].speed : 0.0;
-    if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death') {
-      this.time = 0.0;
-    }
   }
 
   restartState(next: JaguarState): void {
@@ -299,7 +362,8 @@ export class JaguarAnimator {
   }
 
   private getClipIndex(st: JaguarState): number {
-    if (st === 'stalk') return 5;
+    if (st === 'sit' || st === 'eat') return 0; // Upright sit & crouched feeding layered over base idle (Clip 0)
+    if (st === 'stalk') return 5;               // Clip 5 is the low stealth prowl (stalk)
     const idx = CLIP_ORDER.indexOf(st);
     return idx >= 0 ? idx : 0;
   }
@@ -337,22 +401,112 @@ export class JaguarAnimator {
 
   private applyClipPose(clipIdx: number, t: number, blendAlpha: number, hasPrev: boolean): void {
     const cur = this.sampleClipFrame(clipIdx, t, this.state);
-    const prevClipIdx = this.getClipIndex(this.prevState);
-    const prv = hasPrev ? this.sampleClipFrame(prevClipIdx, this.prevTime, this.prevState) : cur;
 
     this.readRootPos(clipIdx, cur.f0, cur.f1, cur.frac, this.vA);
-    if (hasPrev && blendAlpha < 1.0) {
-      this.readRootPos(prevClipIdx, prv.f0, prv.f1, prv.frac, this.vPrev);
-      this.vA.lerpVectors(this.vPrev, this.vA, blendAlpha);
-    }
     this.rig.bones[2].position.copy(this.vA);
 
     for (let j = 0; j < NUM_JOINTS; j++) {
       this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
-      if (hasPrev && blendAlpha < 1.0) {
-        this.readJointQuat(prevClipIdx, prv.f0, prv.f1, prv.frac, j, this.qPrev);
-        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+    }
+
+    // Apply state-specific posture & articulation refinements
+    const bones = this.rig.bones;
+    if (this.state === 'sit') {
+      // Upright feline seated observation posture (ישיבת תצפית זקופה):
+      const breath = Math.sin(t * 1.8) * 0.012;
+      const scanYaw = Math.sin(t * 0.55) * 0.14;
+      bones[2].position.y = 0.54 + breath * 0.4;
+      bones[2].position.z = -0.34;
+      this.addLocalRot(2, 0, 0, -0.46);
+      this.addLocalRot(3, -0.08 + breath, 0, 0);
+      this.addLocalRot(4, -0.08, 0, 0);
+      this.addLocalRot(5, -0.06, 0, 0);
+      this.addLocalRot(6, 0.68 + breath, 0, 0);
+      this.addLocalRot(7, -0.18, scanYaw * 0.4, 0);
+      this.addLocalRot(8, -0.10, scanYaw * 0.4, 0);
+      this.addLocalRot(9, -0.06, 0, 0);
+      this.addLocalRot(10, 0, scanYaw * 0.6, 0.16);
+
+      this.addLocalRot(24, 0.72, 0, 0);
+      this.addLocalRot(25, -1.25, 0, 0);
+      this.addLocalRot(26, 0.85, 0, 0);
+      this.addLocalRot(27, -0.30, 0, 0);
+      this.addLocalRot(28, -0.72, 0, 0);
+      this.addLocalRot(29, 1.25, 0, 0);
+      this.addLocalRot(30, -0.85, 0, 0);
+      this.addLocalRot(31, 0.30, 0, 0);
+
+      this.addLocalRot(32, -0.32, 0, 0);
+      this.addLocalRot(33, -0.22, Math.sin(t * 1.4) * 0.08, 0);
+      for (let ti = 34; ti <= 41; ti++) {
+        this.addLocalRot(ti, 0.06, Math.sin(t * 1.8 - (ti - 34) * 0.35) * 0.09, 0);
       }
+    } else if (this.state === 'stalk') {
+      // Predatory low stealth prowl (התגנבות): Clip 5 + deep shoulder crouch, lowered head, intense forward stare
+      bones[2].position.y -= 0.10;
+      this.addLocalRot(2, 0, 0, 0.10);
+      this.addLocalRot(3, 0.12, 0, 0);
+      this.addLocalRot(6, 0.16, 0, 0);
+      this.addLocalRot(7, 0.28, 0, 0);
+      this.addLocalRot(8, 0.18, 0, 0);
+      this.addLocalRot(10, 0, 0, -0.38);
+      this.addLocalRot(11, 0.18 + Math.sin(t * 3.0) * 0.04, 0, 0);
+      this.addLocalRot(12, -0.35, 0, 0.22);
+      this.addLocalRot(13, -0.35, 0, -0.22);
+    } else if (this.state === 'eat') {
+      // Crouched feeding posture: lowered forequarters, neck & head dipped down to the prey, rhythmic jaw chewing
+      const tear = Math.sin(t * 3.2) * 0.08;
+      const chew = Math.sin(t * 6.8) * 0.5 + 0.5;
+      bones[2].position.y -= 0.14;
+      this.addLocalRot(2, 0, 0, 0.18);
+      this.addLocalRot(3, 0.16, 0, 0);
+      this.addLocalRot(5, 0.22, 0, 0);
+      this.addLocalRot(6, 0.28, 0, 0);
+      this.addLocalRot(7, 0.42 + tear, Math.sin(t * 1.7) * 0.07, 0);
+      this.addLocalRot(8, 0.36 - tear * 0.5, 0, 0);
+      this.addLocalRot(9, 0.28, 0, 0);
+      this.addLocalRot(10, 0, 0, 0.22 + tear * 0.6);
+      this.addLocalRot(11, 0.14 + chew * 0.36, 0, 0);
+      this.addLocalRot(15, -0.28, 0, 0);
+      this.addLocalRot(16, 0.48, 0, 0);
+      this.addLocalRot(20, -0.28, 0, 0);
+      this.addLocalRot(21, 0.48, 0, 0);
+    } else if (this.state === 'roar' || this.state === 'call') {
+      // Ferocious jaguar roar: wide open jaws showing fangs, ears pinned back, chest heaving, tail lashing
+      const isRoar = this.state === 'roar';
+      const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 3.43);
+      const u = ((t % dur) + dur) % dur / dur;
+      const env = Math.sin(Math.min(1, u * 1.15) * Math.PI);
+      const vib = Math.sin(t * (isRoar ? 28 : 18)) * 0.025 * env;
+      this.addLocalRot(6, (isRoar ? -0.14 : -0.06) * env + vib, 0, 0);
+      this.addLocalRot(7, (isRoar ? -0.18 : -0.08) * env, 0, 0);
+      this.addLocalRot(10, 0, Math.sin(t * 4.5) * 0.06 * env, (isRoar ? -0.22 : -0.10) * env + vib);
+      this.addLocalRot(11, (isRoar ? 0.58 : 0.40) * env + Math.sin(t * 12) * 0.07 * env, 0, 0);
+      this.addLocalRot(12, -0.48 * env, 0, 0.28 * env);
+      this.addLocalRot(13, -0.48 * env, 0, -0.28 * env);
+      for (let ti = 33; ti <= 40; ti++) {
+        this.addLocalRot(ti, 0, Math.sin(t * 6.5 - (ti - 33) * 0.4) * 0.14 * env, 0);
+      }
+    } else if (this.state === 'attack') {
+      // Aggressive pounce & claw/bite strike: controlled forward lunge + wide snapping jaws + front paw swipe
+      const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 1.25);
+      const u = ((t % dur) + dur) % dur / dur;
+      const lunge = Math.sin(u * Math.PI);
+      const biteOpen = u < 0.65 ? Math.sin((u / 0.65) * Math.PI) : 0;
+      const swipeL = Math.sin(Math.min(1, u * 1.4) * Math.PI);
+      const swipeR = Math.sin(Math.max(0, Math.min(1, (u - 0.15) * 1.4)) * Math.PI);
+      bones[2].position.z += 0.12 * lunge;
+      bones[2].position.y += 0.06 * lunge;
+      this.addLocalRot(6, -0.14 * lunge, 0, 0);
+      this.addLocalRot(7, -0.16 * lunge, 0, 0);
+      this.addLocalRot(10, 0, 0, -0.20 * lunge);
+      this.addLocalRot(11, 0.65 * biteOpen, 0, 0);
+      this.addLocalRot(12, -0.50 * lunge, 0, 0.30 * lunge);
+      this.addLocalRot(13, -0.50 * lunge, 0, -0.30 * lunge);
+      this.addLocalRot(15, 0.42 * swipeL, 0, -0.14 * swipeL);
+      this.addLocalRot(16, -0.28 * swipeL, 0, 0);
+      this.addLocalRot(20, 0.38 * swipeR, 0, 0.14 * swipeR);
+      this.addLocalRot(21, -0.25 * swipeR, 0, 0);
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
@@ -364,6 +518,36 @@ export class JaguarAnimator {
         this.rig.bones[jIdx].quaternion.multiply(this.qTurn);
       }
     }
+
+    // Unified pose-snapshot crossfade + intermediate weight-shift arc
+    // Executed AFTER all procedural posture layers so transitions into/out of sit/stalk/eat/roar/attack never snap
+    if (hasPrev && blendAlpha < 1.0 && this.hasPoseSnapshot) {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        this.qPrev.set(
+          this.fromPoseQuats[j * 4 + 0],
+          this.fromPoseQuats[j * 4 + 1],
+          this.fromPoseQuats[j * 4 + 2],
+          this.fromPoseQuats[j * 4 + 3],
+        );
+        bones[j].quaternion.slerpQuaternions(this.qPrev, bones[j].quaternion, blendAlpha);
+      }
+      this.vPrev.copy(this.fromRootPos).lerp(bones[2].position, blendAlpha);
+      if (JaguarAnimator.isPostureChangeState(this.prevState) || JaguarAnimator.isPostureChangeState(this.state)) {
+        const transitionArc = Math.sin(blendAlpha * Math.PI);
+        this.vPrev.y -= 0.036 * transitionArc;
+      }
+      bones[2].position.copy(this.vPrev);
+    }
+
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const q = bones[j].quaternion;
+      this.lastPoseQuats[j * 4 + 0] = q.x;
+      this.lastPoseQuats[j * 4 + 1] = q.y;
+      this.lastPoseQuats[j * 4 + 2] = q.z;
+      this.lastPoseQuats[j * 4 + 3] = q.w;
+    }
+    this.lastRootPos.copy(bones[2].position);
+    this.hasPoseSnapshot = true;
   }
 
   update(dt: number): void {
@@ -377,8 +561,9 @@ export class JaguarAnimator {
     let alpha = 1.0;
     let hasPrev = false;
     if (this.blend < 1.0) {
-      this.blend = Math.min(1.0, this.blend + clamped / this.blendDuration);
-      alpha = this.blend * this.blend * (3.0 - 2.0 * this.blend);
+      this.blend = Math.min(1.0, this.blend + clamped / Math.max(0.001, this.blendDuration));
+      const b = this.blend;
+      alpha = b * b * b * (b * (b * 6.0 - 15.0) + 10.0);
       hasPrev = true;
     }
 
@@ -437,7 +622,6 @@ export class Jaguar {
       map: texture,
       roughness: 0.76,
       metalness: 0.04,
-      skinning: true,
       side: THREE.DoubleSide,
     });
 
@@ -453,8 +637,20 @@ export class Jaguar {
     this.animator = new JaguarAnimator(this.rig, data);
   }
 
+  get state(): JaguarState {
+    return this.animator.state;
+  }
+
   setState(state: JaguarState): void {
     this.animator.setState(state);
+  }
+
+  restartState(state: JaguarState): void {
+    this.animator.restartState(state);
+  }
+
+  setNormalizedPhase(normalizedPhase: number): void {
+    this.animator.setNormalizedPhase(normalizedPhase);
   }
 
   getState(): JaguarState {

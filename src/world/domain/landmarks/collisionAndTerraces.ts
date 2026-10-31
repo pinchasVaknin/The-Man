@@ -649,16 +649,34 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 1.8,
     maxY: 6.2,
   },
-  // Carved Mountain Bear Caves ("חור בהר") Solid Side & Back Cliff Walls (7.8m front opening is unobstructed!)
-  { id: 'cave-nw-forest-wall-west', minX: -91.8, maxX: -88.9, minZ: -82.5, maxZ: -71.5, maxY: 14.0 },
-  { id: 'cave-nw-forest-wall-east', minX: -81.1, maxX: -78.2, minZ: -82.5, maxZ: -71.5, maxY: 14.0 },
-  { id: 'cave-nw-forest-wall-back', minX: -91.8, maxX: -78.2, minZ: -84.2, maxZ: -81.6, maxY: 14.0 },
-  { id: 'cave-west-ridge-wall-south', minX: -192.5, maxX: -181.5, minZ: -41.1, maxZ: -38.2, maxY: 14.5 },
-  { id: 'cave-west-ridge-wall-north', minX: -192.5, maxX: -181.5, minZ: -51.8, maxZ: -48.9, maxY: 14.5 },
-  { id: 'cave-west-ridge-wall-back', minX: -194.2, maxX: -191.6, minZ: -51.8, maxZ: -38.2, maxY: 14.5 },
-  { id: 'cave-south-forest-wall-west', minX: -141.8, maxX: -138.9, minZ: 191.5, maxZ: 202.5, maxY: 14.5 },
-  { id: 'cave-south-forest-wall-east', minX: -131.1, maxX: -128.2, minZ: 191.5, maxZ: 202.5, maxY: 14.5 },
-  { id: 'cave-south-forest-wall-back', minX: -141.8, maxX: -128.2, minZ: 201.6, maxZ: 204.2, maxY: 14.5 },
+  // Subterranean Mountain Bear Caves: Entrance Tunnel walls (lz: -5.5..+5.5, |lx|=4.4..6.2)
+  // and wide Subterranean Cavern walls (lz: -24.5..-5.5, |lx|=10.0..12.2)
+  // 1) Cave NW Forest (cx=-85, cz=-76, yaw=0: lx = x - (-85), lz = z - (-76))
+  { id: 'cave-nw-tunnel-west', minX: -91.2, maxX: -89.4, minZ: -81.5, maxZ: -70.5, maxY: 10.5 },
+  { id: 'cave-nw-tunnel-east', minX: -80.6, maxX: -78.8, minZ: -81.5, maxZ: -70.5, maxY: 10.5 },
+  { id: 'cave-nw-shoulder-west', minX: -96.5, maxX: -89.4, minZ: -82.5, maxZ: -80.8, maxY: 13.0 },
+  { id: 'cave-nw-shoulder-east', minX: -80.6, maxX: -73.5, minZ: -82.5, maxZ: -80.8, maxY: 13.0 },
+  { id: 'cave-nw-cavern-west', minX: -97.2, maxX: -95.0, minZ: -100.5, maxZ: -81.5, maxY: 13.0 },
+  { id: 'cave-nw-cavern-east', minX: -75.0, maxX: -72.8, minZ: -100.5, maxZ: -81.5, maxY: 13.0 },
+  { id: 'cave-nw-cavern-back', minX: -96.5, maxX: -73.5, minZ: -102.2, maxZ: -100.0, maxY: 13.0 },
+
+  // 2) Cave West Ridge (cx=-186, cz=-45, yaw=PI/2: lx = -(z - (-45)), lz = x - (-186))
+  { id: 'cave-west-tunnel-south', minX: -191.5, maxX: -180.5, minZ: -40.6, maxZ: -38.8, maxY: 10.8 },
+  { id: 'cave-west-tunnel-north', minX: -191.5, maxX: -180.5, minZ: -51.2, maxZ: -49.4, maxY: 10.8 },
+  { id: 'cave-west-shoulder-south', minX: -192.5, maxX: -190.8, minZ: -40.6, maxZ: -33.5, maxY: 13.5 },
+  { id: 'cave-west-shoulder-north', minX: -192.5, maxX: -190.8, minZ: -56.5, maxZ: -49.4, maxY: 13.5 },
+  { id: 'cave-west-cavern-south', minX: -210.5, maxX: -191.5, minZ: -35.0, maxZ: -32.8, maxY: 13.5 },
+  { id: 'cave-west-cavern-north', minX: -210.5, maxX: -191.5, minZ: -57.2, maxZ: -55.0, maxY: 13.5 },
+  { id: 'cave-west-cavern-back', minX: -212.2, maxX: -210.0, minZ: -56.5, maxZ: -33.5, maxY: 13.5 },
+
+  // 3) Cave South Forest (cx=-135, cz=196, yaw=PI: lx = -(x - (-135)), lz = -(z - 196))
+  { id: 'cave-south-tunnel-west', minX: -141.2, maxX: -139.4, minZ: 190.5, maxZ: 201.5, maxY: 10.8 },
+  { id: 'cave-south-tunnel-east', minX: -130.6, maxX: -128.8, minZ: 190.5, maxZ: 201.5, maxY: 10.8 },
+  { id: 'cave-south-shoulder-west', minX: -146.5, maxX: -139.4, minZ: 200.8, maxZ: 202.5, maxY: 13.5 },
+  { id: 'cave-south-shoulder-east', minX: -130.6, maxX: -123.5, minZ: 200.8, maxZ: 202.5, maxY: 13.5 },
+  { id: 'cave-south-cavern-west', minX: -147.2, maxX: -145.0, minZ: 201.5, maxZ: 220.5, maxY: 13.5 },
+  { id: 'cave-south-cavern-east', minX: -125.0, maxX: -122.8, minZ: 201.5, maxZ: 220.5, maxY: 13.5 },
+  { id: 'cave-south-cavern-back', minX: -146.5, maxX: -123.5, minZ: 220.0, maxZ: 222.2, maxY: 13.5 },
 ];
 // #endregion
 

@@ -24,6 +24,8 @@ import { attachDeerGlbModel } from '../models/deerGlbLoader';
 import { createReadyBear, type BearState } from '../models/Bear';
 import { createReadyCrocodile, type CrocodileState } from '../models/Crocodile';
 import { createReadyJaguar, type JaguarState } from '../models/Jaguar';
+import { createReadyWolf, type WolfState } from '../models/Wolf';
+import { createReadyRhino, type RhinoState } from '../models/Rhino';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
@@ -189,10 +191,37 @@ export function buildWildlifeAndFootprintsLayer(
     bearCtrl?: ReturnType<typeof createReadyBear>;
     crocodileCtrl?: ReturnType<typeof createReadyCrocodile>;
     jaguarCtrl?: ReturnType<typeof createReadyJaguar>;
+    wolfCtrl?: ReturnType<typeof createReadyWolf>;
+    rhinoCtrl?: ReturnType<typeof createReadyRhino>;
     smoothHeadDip: number;
     smoothLegAmp: number;
+    lastAnimState?: string;
+    stateHoldTimer?: number;
   }
   const animalMeshes: IAnimalMeshRig[] = [];
+
+  const selectStabilizedState = <T extends string>(
+    rig: IAnimalMeshRig,
+    desiredState: T,
+    dt: number,
+    isUrgent: boolean
+  ): T => {
+    rig.stateHoldTimer = Math.max(0, (rig.stateHoldTimer ?? 0) - dt);
+    if (!rig.lastAnimState) {
+      rig.lastAnimState = desiredState;
+      rig.stateHoldTimer = 0.36;
+      return desiredState;
+    }
+    if (desiredState === rig.lastAnimState) {
+      return desiredState;
+    }
+    if (isUrgent || (rig.stateHoldTimer ?? 0) <= 0) {
+      rig.lastAnimState = desiredState;
+      rig.stateHoldTimer = isUrgent ? 0.24 : 0.42;
+      return desiredState;
+    }
+    return rig.lastAnimState as T;
+  };
 
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
@@ -285,6 +314,54 @@ export function buildWildlifeAndFootprintsLayer(
         root,
         posePivot,
         jaguarCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'wolf') {
+      const wolfCtrl = createReadyWolf({
+        castShadow: true,
+        receiveShadow: true,
+      });
+      posePivot.add(wolfCtrl.object);
+      const wolfMat = wolfCtrl.mesh.material;
+      if (Array.isArray(wolfMat)) {
+        for (const m of wolfMat) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(wolfMat);
+      }
+      disposableGeometries.push(wolfCtrl.mesh.geometry);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        wolfCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'rhino') {
+      const rhinoCtrl = createReadyRhino({
+        castShadow: true,
+        receiveShadow: true,
+      });
+      posePivot.add(rhinoCtrl.object);
+      const rhinoMat = rhinoCtrl.mesh.material;
+      if (Array.isArray(rhinoMat)) {
+        for (const m of rhinoMat) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(rhinoMat);
+      }
+      disposableGeometries.push(rhinoCtrl.mesh.geometry);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        rhinoCtrl,
         smoothHeadDip: 0,
         smoothLegAmp: 0,
       });
@@ -489,7 +566,7 @@ export function buildWildlifeAndFootprintsLayer(
         m.rightWing.rotation.z = -flap;
       }
 
-      // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep, Bears, Crocodiles, Jaguars)
+      // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep, Bears, Crocodiles, Jaguars, Wolves)
       for (let i = 0; i < animals.length; i++) {
         const a = animals[i];
         const rig = animalMeshes[i];
@@ -556,6 +633,30 @@ export function buildWildlifeAndFootprintsLayer(
             rig.jaguarCtrl.update(dt * spd);
             continue;
           }
+          if (a.species === 'wolf' && rig.wolfCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_wolf'],
+              'death',
+              1.0
+            );
+            rig.wolfCtrl.setState('death');
+            rig.wolfCtrl.update(dt * spd);
+            continue;
+          }
+          if (a.species === 'rhino' && rig.rhinoCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['savanna_rhino'],
+              'death',
+              1.0
+            );
+            rig.rhinoCtrl.setState('death');
+            rig.rhinoCtrl.update(dt * spd);
+            continue;
+          }
           // Fallback procedural corpse pose
           if (a.species === 'deer') {
             rig.posePivot.position.set(1.05, 0.32, 0);
@@ -620,6 +721,26 @@ export function buildWildlifeAndFootprintsLayer(
             );
             rig.jaguarCtrl.setState('lie');
             rig.jaguarCtrl.update(dt * spd);
+          } else if (a.species === 'wolf' && rig.wolfCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['forest_wolf'],
+              'lie',
+              1.0
+            );
+            rig.wolfCtrl.setState('lie');
+            rig.wolfCtrl.update(dt * spd);
+          } else if (a.species === 'rhino' && rig.rhinoCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['savanna_rhino'],
+              'lie',
+              1.0
+            );
+            rig.rhinoCtrl.setState('lie');
+            rig.rhinoCtrl.update(dt * spd);
           } else {
             const sleepDrop = a.species === 'deer' ? -0.46 : a.species === 'sheep' ? -0.22 : -0.05;
             rig.posePivot.position.set(0, sleepDrop, 0);
@@ -638,29 +759,38 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.18 + i * 1.41) % 1;
-          const bearState: BearState =
+          const cycleSlot = (elapsedTime * 0.14 + i * 1.41) % 1;
+          const desiredBearState: BearState =
             ai === 'fleeing' || a.alertLevel === 'fleeing'
               ? 'flee'
               : ai === 'attacking'
                 ? 'attack'
                 : ai === 'roaring'
                   ? 'roar'
-                  : ai === 'charging' || moveSpd > 3.6
-                    ? 'run'
-                    : ai === 'stalking' || ai === 'seeking_shelter' || moveSpd > 2.0
-                      ? 'trot'
-                      : moveSpd > 0.16
-                        ? 'walk'
-                        : ai === 'sitting'
-                          ? 'sit'
-                          : ai === 'grazing'
-                            ? cycleSlot < 0.72
-                              ? 'eat'
-                              : 'idle'
-                            : cycleSlot < 0.55
-                              ? 'idle'
-                              : 'call';
+                  : ai === 'stomping'
+                    ? 'stomp'
+                    : ai === 'charging' || moveSpd > 3.6
+                      ? 'run'
+                      : a.inWater || ai === 'stalking' || ai === 'seeking_shelter' || moveSpd > 2.0
+                        ? 'trot'
+                        : moveSpd > 0.16
+                          ? 'walk'
+                          : ai === 'sitting'
+                            ? 'sit'
+                            : ai === 'grazing'
+                              ? cycleSlot < 0.72
+                                ? 'eat'
+                                : 'idle'
+                              : cycleSlot < 0.55
+                                ? 'idle'
+                                : 'call';
+          const isUrgent =
+            desiredBearState === 'attack' ||
+            desiredBearState === 'roar' ||
+            desiredBearState === 'stomp' ||
+            desiredBearState === 'flee' ||
+            desiredBearState === 'run';
+          const bearState = selectStabilizedState(rig, desiredBearState, dt, isUrgent);
           const spd = getEffectiveLabAnimationSpeed(
             liveLabOverrides['forest_bear'],
             bearState,
@@ -673,8 +803,8 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.16 + i * 1.91) % 1;
-          const crocState: CrocodileState =
+          const cycleSlot = (elapsedTime * 0.13 + i * 1.91) % 1;
+          const desiredCrocState: CrocodileState =
             ai === 'fleeing' || a.alertLevel === 'fleeing'
               ? 'flee'
               : ai === 'attacking'
@@ -694,6 +824,12 @@ export function buildWildlifeAndFootprintsLayer(
                               ? 'eat'
                               : 'call'
                             : 'idle';
+          const isUrgent =
+            desiredCrocState === 'attack' ||
+            desiredCrocState === 'roar' ||
+            desiredCrocState === 'flee' ||
+            desiredCrocState === 'run';
+          const crocState = selectStabilizedState(rig, desiredCrocState, dt, isUrgent);
           const spd = getEffectiveLabAnimationSpeed(
             liveLabOverrides['river_crocodile'],
             crocState,
@@ -706,8 +842,8 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.2 + i * 1.57) % 1;
-          const jaguarState: JaguarState =
+          const cycleSlot = (elapsedTime * 0.15 + i * 1.57) % 1;
+          const desiredJaguarState: JaguarState =
             ai === 'fleeing' || a.alertLevel === 'fleeing'
               ? 'flee'
               : ai === 'attacking'
@@ -718,7 +854,7 @@ export function buildWildlifeAndFootprintsLayer(
                     ? 'run'
                     : ai === 'stalking'
                       ? 'stalk'
-                      : moveSpd > 2.2
+                      : a.inWater || moveSpd > 2.2
                         ? 'trot'
                         : moveSpd > 0.16
                           ? 'walk'
@@ -731,6 +867,12 @@ export function buildWildlifeAndFootprintsLayer(
                               : cycleSlot < 0.65
                                 ? 'idle'
                                 : 'call';
+          const isUrgent =
+            desiredJaguarState === 'attack' ||
+            desiredJaguarState === 'roar' ||
+            desiredJaguarState === 'flee' ||
+            desiredJaguarState === 'run';
+          const jaguarState = selectStabilizedState(rig, desiredJaguarState, dt, isUrgent);
           const spd = getEffectiveLabAnimationSpeed(
             liveLabOverrides['jungle_jaguar'],
             jaguarState,
@@ -738,6 +880,93 @@ export function buildWildlifeAndFootprintsLayer(
           );
           rig.jaguarCtrl.setState(jaguarState);
           rig.jaguarCtrl.update(dt * spd);
+        } else if (a.species === 'wolf' && rig.wolfCtrl) {
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const cycleSlot = (elapsedTime * 0.15 + i * 1.49) % 1;
+          const desiredWolfState: WolfState =
+            ai === 'fleeing' || a.alertLevel === 'fleeing'
+              ? 'flee'
+              : ai === 'attacking'
+                ? 'attack'
+                : ai === 'roaring'
+                  ? i % 2 === 0
+                    ? 'howl'
+                    : 'roar'
+                  : ai === 'charging' || moveSpd > 3.8
+                    ? 'run'
+                    : ai === 'stalking'
+                      ? 'stalk'
+                      : a.inWater || moveSpd > 2.0
+                        ? 'trot'
+                        : moveSpd > 0.16
+                          ? 'walk'
+                          : ai === 'sitting'
+                            ? 'sit'
+                            : ai === 'grazing'
+                              ? cycleSlot < 0.65
+                                ? 'eat'
+                                : 'idle'
+                              : cycleSlot < 0.72
+                                ? 'idle'
+                                : 'howl';
+          const isUrgent =
+            desiredWolfState === 'attack' ||
+            desiredWolfState === 'roar' ||
+            desiredWolfState === 'howl' ||
+            desiredWolfState === 'flee' ||
+            desiredWolfState === 'run';
+          const wolfState = selectStabilizedState(rig, desiredWolfState, dt, isUrgent);
+          const spd = getEffectiveLabAnimationSpeed(
+            liveLabOverrides['forest_wolf'],
+            wolfState,
+            1.0
+          );
+          rig.wolfCtrl.setState(wolfState);
+          rig.wolfCtrl.update(dt * spd);
+        } else if (a.species === 'rhino' && rig.rhinoCtrl) {
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const cycleSlot = (elapsedTime * 0.14 + i * 1.63) % 1;
+          const desiredRhinoState: RhinoState =
+            ai === 'fleeing' || a.alertLevel === 'fleeing'
+              ? 'flee'
+              : ai === 'attacking'
+                ? 'attack'
+                : ai === 'roaring'
+                  ? 'roar'
+                  : ai === 'charging' || moveSpd > 3.4
+                    ? 'run'
+                    : a.inWater || ai === 'stalking' || moveSpd > 1.8
+                      ? 'trot'
+                      : moveSpd > 0.16
+                        ? 'walk'
+                        : ai === 'sitting'
+                          ? 'sit'
+                          : ai === 'grazing'
+                            ? cycleSlot < 0.68
+                              ? 'eat'
+                              : 'idle'
+                            : cycleSlot < 0.72
+                              ? 'idle'
+                              : 'call';
+          const isUrgent =
+            desiredRhinoState === 'attack' ||
+            desiredRhinoState === 'roar' ||
+            desiredRhinoState === 'flee' ||
+            desiredRhinoState === 'run';
+          const rhinoState = selectStabilizedState(rig, desiredRhinoState, dt, isUrgent);
+          const spd = getEffectiveLabAnimationSpeed(
+            liveLabOverrides['savanna_rhino'],
+            rhinoState,
+            1.0
+          );
+          rig.rhinoCtrl.setState(rhinoState);
+          rig.rhinoCtrl.update(dt * spd);
         } else if (a.species === 'deer' || a.species === 'sheep') {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
