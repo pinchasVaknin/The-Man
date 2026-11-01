@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1793258160.5802946,
-    "seen": 1793260582.91888,
-    "ast_hash": "8773b5e8b3d8731ab08dd00a669754cf",
+    "mtime": 1793539889.0487418,
+    "seen": 1793539995.94083,
+    "ast_hash": "9e57c85610c94748ce991e5d19520aaf",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793539773.0393977,
-    "seen": 1793539862.215029,
-    "ast_hash": "8db381462149ab556583fe7229445de8",
+    "mtime": 1793539950.479092,
+    "seen": 1793539995.9408753,
+    "ast_hash": "d6f333875a14de25d3ba5947bffcc79a",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -444,15 +444,15 @@
     "semantic_hash": ""
   },
   "src/core/config.spec.ts": {
-    "mtime": 1793258427.7413802,
-    "seen": 1793260582.9189098,
-    "ast_hash": "b97071abd348add64062eaf5a58cf211",
+    "mtime": 1793539925.889359,
+    "seen": 1793539995.940893,
+    "ast_hash": "de025451a8b1888ae14ae8e3dccd65d1",
     "semantic_hash": ""
   },
   "src/core/config.ts": {
-    "mtime": 1793258427.7426393,
-    "seen": 1793260582.918911,
-    "ast_hash": "aa1ee8c6bfd020f4fccadf6a2df5fa4f",
+    "mtime": 1793539931.3185787,
+    "seen": 1793539995.9408944,
+    "ast_hash": "721bdf32e984c0519ad8e74de3a44629",
     "semantic_hash": ""
   },
   "src/lab/CharacterLabCanvas.tsx": {

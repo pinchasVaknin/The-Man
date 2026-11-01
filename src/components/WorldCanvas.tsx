@@ -192,6 +192,8 @@ export type WorldCanvasProps = IWorldCanvasProps;
 // ======================== WORLD CANVAS COMPONENT ======================== \\
 // #region World Canvas Component
 // Reusable scratch vectors outside render loop (Zero GC)
+/** World clock hour the session starts at when no ?hour= override is given (06:40, sunrise mist). */
+const DEFAULT_START_WORLD_HOUR = 6.68;
 const _sunVec = new THREE.Vector3();
 const _tourPos = new THREE.Vector3();
 const _tourLook = new THREE.Vector3();
@@ -352,6 +354,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
     let seasonTimeOffset = 0;
+    let urlWorldHour: number | null = null;
 
     // Optional URL parameters validated via centralized core/config
     if (typeof window !== 'undefined') {
@@ -381,6 +384,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       }
       if (overrides.weatherMode) {
         activeWeatherMode = overrides.weatherMode;
+      }
+      if (overrides.worldHour !== undefined) {
+        urlWorldHour = overrides.worldHour;
       }
     }
 
@@ -466,14 +472,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let swordHoldDuration = 0;
     let swordHeavyTriggeredDuringHold = false;
 
-    const initialHourParam = (() => {
-      if (typeof window === 'undefined') return null;
-      const p = new URLSearchParams(window.location.search).get('hour');
-      if (!p) return null;
-      const num = parseFloat(p);
-      return Number.isFinite(num) ? num : null;
-    })();
-    let worldHours = initialHourParam !== null ? initialHourParam : 6.68;
+    let worldHours = urlWorldHour ?? DEFAULT_START_WORLD_HOUR;
     let forcedSeason: SeasonType | 'auto' = 'auto';
     let isSleepingInBed = false;
     let activeSleepingBed: { x: number; y: number; z: number; yaw?: number } | null = null;
