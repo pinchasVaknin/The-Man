@@ -560,11 +560,6 @@ export const en = {
     "highland": "Highland Ridge",
     "rock": "Mountain Peaks"
   },
-  "pace": {
-    "relaxed": "Sneak (Ctrl)",
-    "fast": "Sprint (Shift)",
-    "normal": "Normal"
-  },
   "combat": {
     "tools": {
       "bow": "Bow",

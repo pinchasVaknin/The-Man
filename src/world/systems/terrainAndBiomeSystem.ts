@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { t } from '../../locales';
-import type { BiomeType, WalkPaceMode, IObstacleCylinder } from '../domain/worldTypes';
+import type { BiomeType, IObstacleCylinder } from '../domain/worldTypes';
 import { hash2D, fbm2D, smoothstep, distToSegment } from '../domain/noiseAndMath';
 import {
   WATER_LEVEL,
@@ -1465,17 +1465,6 @@ export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): Biom
 export function getBiomeLabel(biome: BiomeType): string {
   return t(`biomes.${biome}`);
 }
-
-
-/**
- * Summary: Returns the localized display label for a walking pace mode.
- * @param pace Walk pace mode.
- * @returns Localized pace name.
- */
-export function getWalkPaceLabel(pace: WalkPaceMode): string {
-  return t(`pace.${pace}`);
-}
-
 
 /**
  * Summary: Samples RGB color representation of terrain and structures for the explorer minimap.
