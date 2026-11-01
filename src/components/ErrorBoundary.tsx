@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import React, { Component, ReactNode, ErrorInfo } from 'react';
-import type { ILogger } from '../core/ILogger';
+import { ConsoleLogger, type ILogger } from '../core/ILogger';
 import { t } from '../locales';
 // #endregion
 
@@ -61,7 +61,8 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
       componentStack: errorInfo.componentStack,
       correlationId: this.state.correlationId,
     };
-    this.props.logger?.error('Uncaught UI rendering exception', errorDetails);
+    const logger = this.props.logger ?? ConsoleLogger.instance;
+    logger.error('Uncaught UI rendering exception', errorDetails);
   }
 
   private handleReload = (): void => {

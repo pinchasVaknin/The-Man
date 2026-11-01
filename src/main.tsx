@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { InfrastructureCorruptedException } from './core/AppException';
+import { ConsoleLogger } from './core/ILogger';
 import './index.css';
 // #endregion
 
@@ -21,7 +22,7 @@ if (!rootElement) {
 }
 
 createRoot(rootElement).render(
-    <ErrorBoundary>
+    <ErrorBoundary logger={ConsoleLogger.instance}>
         <App />
     </ErrorBoundary>,
 );
