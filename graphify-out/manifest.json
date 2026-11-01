@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1793539889.0487418,
-    "seen": 1793539995.94083,
-    "ast_hash": "9e57c85610c94748ce991e5d19520aaf",
+    "mtime": 1793540529.0908217,
+    "seen": 1793540601.7421734,
+    "ast_hash": "b49007cc9ae5a01b74dacfed4559581f",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "vite.config.ts": {
-    "mtime": 1793478752.741766,
-    "seen": 1793537725.9240446,
-    "ast_hash": "28d5ec158d3fde7602b1762df1fc0dba",
+    "mtime": 1793540529.0743144,
+    "seen": 1793540601.7422974,
+    "ast_hash": "8832c79900d034b3b5ac6ee5fb8ef1bf",
     "semantic_hash": ""
   },
   "src/core/AppException.ts": {
@@ -723,6 +723,18 @@
     "mtime": 1793540093.2398548,
     "seen": 1793540152.5881023,
     "ast_hash": "f95ae1b0518679f49f89d126aaecfa7d",
+    "semantic_hash": ""
+  },
+  "src/config/persistedSettingsValidation.spec.ts": {
+    "mtime": 1793540451.2946239,
+    "seen": 1793540601.7422032,
+    "ast_hash": "0aea03a39ad21733d4d81062eeeb2537",
+    "semantic_hash": ""
+  },
+  "src/config/persistedSettingsValidation.ts": {
+    "mtime": 1793540490.0126352,
+    "seen": 1793540601.7422042,
+    "ast_hash": "c52fbb3128bc61b975802b690fa129d1",
     "semantic_hash": ""
   }
 }
