@@ -33,11 +33,9 @@ export interface IOasisModelHandles {
 // ======================== BUILD OASIS MODELS ======================== \\
 // #region Build Oasis Models
 /**
- * Summary: Build oasis models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the grand southwest desert oasis complex, celestial observatory, and palm grove.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildOasisModels.
+ * Summary: Constructs the grand southwest desert oasis complex, celestial observatory, and palm grove.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Handles for animating the oasis each frame.
  */
 export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandles {
   const {

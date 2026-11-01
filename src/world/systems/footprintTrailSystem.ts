@@ -71,11 +71,10 @@ const GROUND_Y_OFFSET = 0.022;
 // #region Factory & Surface Queries
 /**
  * Summary: Creates and initializes an empty circular decal ring buffer for footprint tracking.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param initialX Input parameter initialX.
- * @param initialZ Input parameter initialZ.
- * @param maxDecals Input parameter maxDecals.
- * @returns Computed result for createFootprintTrailTracker.
+ * @param initialX Start X of the trail in meters.
+ * @param initialZ Start Z of the trail in meters.
+ * @param maxDecals Ring-buffer capacity.
+ * @returns An empty tracker ready for stepFootprintTrailSystem.
  */
 export function createFootprintTrailTracker(
   initialX = 0,
@@ -113,10 +112,9 @@ export function createFootprintTrailTracker(
 
 /**
  * Summary: Determines whether the ground surface supports visible footprints or hoofprints.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param biome Input parameter biome.
- * @param inWater Input parameter inWater.
- * @returns Computed result for isImprintableBiomeSurface.
+ * @param biome Surface biome.
+ * @param inWater True when standing in water.
+ * @returns True when the surface shows footprints.
  */
 export function isImprintableBiomeSurface(biome: BiomeType, inWater: boolean): boolean {
   if (inWater) {
@@ -139,12 +137,11 @@ export function isImprintableBiomeSurface(biome: BiomeType, inWater: boolean): b
 // #region Simulation Step
 /**
  * Summary: Advances the footprint trail simulation and stamps decals on stride.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] In-place mutation of the preallocated decal ring buffer within 60FPS tick.
  * Relaxed Rule: Rule 1 (in-place state mutation instead of immutable reconstruction).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.03ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @returns Computed result for stepFootprintTrailSystem.
+ * @returns Whether a print was stamped this step.
  */
 export function stepFootprintTrailSystem(
   tracker: IFootprintTrailTracker,

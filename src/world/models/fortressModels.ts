@@ -49,12 +49,10 @@ export interface IFortressModelResult {
 // ======================== FACTORY FUNCTION ======================== \\
 // #region Factory Function
 /**
- * Summary: Build fortress models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the Northern Chinese Mountain Fortress, summits, hill watchtowers,
+ * Summary: Constructs the Northern Chinese Mountain Fortress, summits, hill watchtowers,
  * walkable rope bridge, and courtyard training monks.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildFortressModels.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Fortress handles: animated parts and interactive door pivots.
  */
 export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressModelResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;

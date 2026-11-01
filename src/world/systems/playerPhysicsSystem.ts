@@ -48,8 +48,7 @@ const GRAVITY = 14.8;
 
 /**
  * Summary: Creates and initializes default player state at the designated world spawn coordinates.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @returns Computed result for createInitialPlayerState.
+ * @returns A fresh player at the world spawn.
  */
 export function createInitialPlayerState(): IPlayerState {
   const ground = walkableHeightAt(WORLD_SPAWN.x, WORLD_SPAWN.z);
@@ -148,9 +147,8 @@ export function createInitialPlayerState(): IPlayerState {
 
 /**
  * Summary: Calculates the composite RPG Hero Level based on individual skill levels.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @returns Computed result for getPlayerHeroLevel.
+ * @param state Player state (read only).
+ * @returns Hero level derived from the skill levels.
  */
 export function getPlayerHeroLevel(state: IPlayerState): number {
   const s = state.skills;
@@ -167,8 +165,7 @@ export function getPlayerHeroLevel(state: IPlayerState): number {
 
 /**
  * Summary: Creates initial instances of rideable horses located at their respective home spawns.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @returns Computed result for createInitialRideableHorses.
+ * @returns The rideable horses at their home spawns.
  */
 export function createInitialRideableHorses(): IRideableHorseState[] {
   return RIDEABLE_HORSES.map((def) => {
@@ -191,8 +188,7 @@ export function createInitialRideableHorses(): IRideableHorseState[] {
 // #region Horse Search & Mounting
 /**
  * Summary: Finds the nearest rideable horse within interaction proximity of the player.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @returns Computed result for findNearestRideableHorse.
+ * @returns The closest horse within maxDist, or null.
  */
 export function findNearestRideableHorse(
   px: number,
@@ -220,12 +216,11 @@ export function findNearestRideableHorse(
 // #region Kinematic Simulation Step
 /**
  * Summary: Steps player movement physics, collision handling, jumping, climbing, and swimming.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated each frame at 60FPS; mutates player velocity and position in place.
  * Relaxed Rule: Rule 1 (in-place state mutation instead of immutable reconstruction).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.12ms per physics substep.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @returns Computed result for stepPlayerPhysics.
+ * @returns Whether a footstep landed and the landing impact (0 when none).
  */
 export function stepPlayerPhysics(
   state: IPlayerState,
@@ -1103,11 +1098,10 @@ export interface ISkillProgressionResult {
 
 /**
  * Summary: Core reusable helper applying XP gain and computing level-ups for RPG attributes.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param skillName Input parameter skillName.
- * @param amount Input parameter amount.
- * @returns Computed result for applySkillXpGain.
+ * @param state Player state; updated in place.
+ * @param skillName Skill to award.
+ * @param amount Experience points to add.
+ * @returns Level-up details when the skill leveled up, otherwise null.
  */
 export function applySkillXpGain(
   state: IPlayerState,
@@ -1149,11 +1143,10 @@ export function applySkillXpGain(
 
 /**
  * Summary: Awards RPG skill experience points and handles level-up thresholds and stat bonuses.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param skillName Input parameter skillName.
- * @param amount Input parameter amount.
- * @returns Computed result for awardSkillXp.
+ * @param state Player state; updated in place.
+ * @param skillName Skill to award.
+ * @param amount Experience points to add.
+ * @returns Level-up details when the skill leveled up, otherwise null.
  */
 export function awardSkillXp(
   state: IPlayerState,

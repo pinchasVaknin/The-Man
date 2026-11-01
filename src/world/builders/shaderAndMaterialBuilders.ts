@@ -21,8 +21,8 @@ import { fbm2D, hash2D } from '../domain/noiseAndMath';
  * Design: Perturbs vertex normals and positions on CPU to prevent synthetic low-poly look.
  * @param geom BufferGeometry to displace.
  * @param scale Maximum displacement magnitude in world units.
- * @param amount Input parameter amount.
- * @param freq Input parameter freq.
+ * @param amount Experience points to add.
+ * @param freq Noise frequency (cycles per meter).
  * @returns Void.
  */
 export function perturbGeometryVertices(
@@ -53,9 +53,9 @@ export function perturbGeometryVertices(
  * Design: Injects GLSL onBeforeCompile callback modifying vertex position along wind vector.
  * @param mat Three.js material to augment.
  * @param swayStrength Scalar magnitude of vertex displacement.
- * @param strength Input parameter strength.
- * @param frequency Input parameter frequency.
- * @param swayMaterials Input parameter swayMaterials.
+ * @param strength Sway amplitude.
+ * @param frequency Sway speed.
+ * @param swayMaterials List that collects the material for per-frame time updates.
  * @returns Void.
  */
 export function attachWindSwayShader(
@@ -133,10 +133,8 @@ export function attachFlagHorizontalWaveShader(
 // ======================== PROCEDURAL TEXTURES ======================== \\
 // #region Procedural Textures
 /**
- * Summary: Create birch bark texture.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Generates a procedural Silver Birch bark texture (pale silver-white bark with dark horizontal lenticel markings).
- * @returns Computed result for createBirchBarkTexture.
+ * Summary: Generates a procedural Silver Birch bark texture (pale silver-white bark with dark horizontal lenticel markings).
+ * @returns Canvas texture with procedurally drawn birch bark.
  */
 export function createBirchBarkTexture(): THREE.CanvasTexture {
   const w = 128;

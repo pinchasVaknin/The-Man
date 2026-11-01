@@ -88,9 +88,8 @@ const SPEED_THRESHOLD_GALLOP = 6.8;
 // #region Steering & Resistance
 /**
  * Summary: Computes speed-dependent turning resistanceFactor in (0, 1].
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param speed Input parameter speed.
- * @returns Computed result for computeHorseTurnResistance.
+ * @param speed Horse speed in m/s.
+ * @returns Turn resistance factors for that speed.
  */
 export function computeHorseTurnResistance(speed: number): {
   resistanceFactor: number;
@@ -112,12 +111,11 @@ export function computeHorseTurnResistance(speed: number): {
 
 /**
  * Summary: Steps horse steering physics & rider yaw synchronization.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Modifies horse.yaw in-place within the 60FPS game loop for performance.
  * Relaxed Rule: Rule 1 (in-place state mutation instead of immutable reconstruction).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.02ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @returns Computed result for stepMountedHorseSteering.
+ * @returns New horse speed and heading after the step.
  */
 export function stepMountedHorseSteering(
   horse: IRideableHorseState,
@@ -198,13 +196,12 @@ function solveHindlimb(p: number, strideAmp: number, hockFlexAmp: number): IHors
 
 /**
  * Summary: Computes rational, biomechanically accurate equine limb kinematics.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated continuously in the rendering/animation tick.
- * @param speed Input parameter speed.
- * @param gaitPhase Input parameter gaitPhase.
- * @param elapsedTime Input parameter elapsedTime.
- * @param seedIndex Input parameter seedIndex.
- * @returns Computed result for computeHorseBiomechanicalPose.
+ * @param speed Horse speed in m/s.
+ * @param gaitPhase Gait cycle phase in radians.
+ * @param elapsedTime Simulation time in seconds.
+ * @param seedIndex Per-horse variation seed.
+ * @returns Leg, neck and body angles for that gait moment.
  */
 export function computeHorseBiomechanicalPose(
   speed: number,

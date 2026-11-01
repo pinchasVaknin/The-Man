@@ -33,11 +33,9 @@ export interface IHarborModelHandles {
 // ======================== BUILD HARBOR MODELS ======================== \\
 // #region Build Harbor Models
 /**
- * Summary: Build harbor models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the grand walled coastal harbor town, galleon ship, and imperial lighthouse.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildHarborModels.
+ * Summary: Constructs the grand walled coastal harbor town, galleon ship, and imperial lighthouse.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Handles for animating the harbor each frame.
  */
 export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHandles {
   const {

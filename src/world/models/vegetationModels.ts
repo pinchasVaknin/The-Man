@@ -27,11 +27,8 @@ import type { IWorldModelBuildContext } from './types';
 // ======================== BUILD VEGETATION MODELS ======================== \\
 // #region Build Vegetation Models
 /**
- * Summary: Build vegetation models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs instanced forest trees, boulders, palms, acacias, and swaying ground grass.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildVegetationModels.
+ * Summary: Constructs instanced forest trees, boulders, palms, acacias, and swaying ground grass.
+ * @param ctx Shared build context (scene, textures, disposal lists).
  */
 export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   const {

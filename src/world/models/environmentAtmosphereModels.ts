@@ -89,9 +89,8 @@ interface IAnimatedDeer {
 // #region Model Builder
 /**
  * Summary: Constructs environmental atmosphere layers, celestial bodies, and ambient wildlife.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildEnvironmentAtmosphereModels.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Handles for animating the atmosphere layers each frame.
  */
 export function buildEnvironmentAtmosphereModels(
   ctx: IWorldModelBuildContext

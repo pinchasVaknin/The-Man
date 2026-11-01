@@ -272,9 +272,8 @@ function solveRightHandEulerFromBladeAndEdge(
 
 /**
  * Summary: Classifies normalized swingProgress into discrete attack phase and local progress.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param swingProgress Input parameter swingProgress.
- * @returns Computed result for classifySwordAttackPhase.
+ * @param swingProgress Swing progress, 0-1.
+ * @returns The phase and the progress within that phase (0..1).
  */
 export function classifySwordAttackPhase(swingProgress: number): {
   phase: SwordAttackPhase;
@@ -447,14 +446,13 @@ const COMBO_2_HEAVY_KEYFRAMES: IAttackTrajectoryKeyframes = {
 // #region Pose Evaluation & Integration
 /**
  * Summary: Computes the complete 5-phase first-person sword, wrist, forearm, off-hand,
- * Design: Standard domain component following SRP and clean architectural contracts.
  *          and synchronized camera response pose.
  * Note: [HOT-PATH EXCEPTION] Evaluated continuously during attack swings in 60FPS render loop.
  * Relaxed Rule: Rule 1 (in-place state evaluation instead of deep object allocations).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.03ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param input Input parameter input.
- * @returns Computed result for computeFirstPersonSwordAttackPose.
+ * @param input Movement and look input for this step.
+ * @returns Sword, arm and camera-impulse pose for that moment.
  */
 export function computeFirstPersonSwordAttackPose(
   input: IFirstPersonSwordPoseInput

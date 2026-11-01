@@ -54,11 +54,9 @@ export interface ISettlementModelHandles {
 // ======================== BUILD SETTLEMENT MODELS ======================== \\
 // #region Build Settlement Models
 /**
- * Summary: Build settlement models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the rural settlement landmarks, hunter's compound, windmills, and waterfall.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildSettlementModels.
+ * Summary: Constructs the rural settlement landmarks, hunter's compound, windmills, and waterfall.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Handles for animating the settlement each frame.
  */
 export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlementModelHandles {
   const {
@@ -1070,9 +1068,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 42,
   });
 
-  // ============================================================================
   // MOUNTAIN FOREST BEAR CAVES (Continuous Sculpted Cliff Portal, Ribbed Tunnel & Vaulted Cavern)
-  // ============================================================================
   const rockNoise3D = (x: number, y: number, z: number): number => {
     const n1 = Math.sin(x * 0.37 + y * 0.53) * Math.cos(z * 0.41 - y * 0.29);
     const n2 = Math.sin(x * 0.83 - z * 0.71 + y * 0.61) * 0.5;
@@ -1548,10 +1544,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     });
   }
 
-  // ============================================================================
   // GRAND SOUTHERN RIVER 3-ARCH STONE & TIMBER BRIDGE
   // Spans East-West across the Southern River at (178, 378), x: 154..202
-  // ============================================================================
   const grandBridgeGroup = new THREE.Group();
   const gbX = SOUTHERN_RIVER_BRIDGE_POS.x;
   const gbZ = SOUTHERN_RIVER_BRIDGE_POS.z;
@@ -1704,9 +1698,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 56,
   });
 
-  // ============================================================================
   // CROCODILE RIVER BEND SCENERY (Basking Driftwood Logs & Riverbank Reeds at (132, 475))
-  // ============================================================================
   const crocBendGroup = new THREE.Group();
   const driftLogGeo = new THREE.CylinderGeometry(0.32, 0.42, 6.2, 9);
   driftLogGeo.rotateZ(Math.PI / 2);
@@ -1735,10 +1727,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 44,
   });
 
-  // ============================================================================
   // SOUTHERN PASS VALLEY GLADE, TRAVELER'S REFUGE SHELTER & WORLD SLEEPING BEDS
   // Beyond the Southern Mountain Gorge Pass at (105, 715) + Spawn Camp Bedroll & Lodge Bed
-  // ============================================================================
   const bedFrameGeo = new THREE.BoxGeometry(1.35, 0.36, 2.15);
   const bedMattressGeo = new THREE.BoxGeometry(1.22, 0.22, 1.96);
   const bedPillowGeo = new THREE.BoxGeometry(0.92, 0.16, 0.42);
@@ -1840,9 +1830,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 190,
   });
 
-  // ============================================================================
   // 5 ARTICULATED RIDEABLE HORSES (RIDEABLE_HORSES across Stables & Landmarks)
-  // ============================================================================
   interface IEquineLimbRig {
     readonly upper: THREE.Group;
     readonly lower: THREE.Group;
