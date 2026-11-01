@@ -1345,6 +1345,7 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const {
     createInitialBoidBirds,
     createInitialSmallAnimals,
+    isSafeAnimalSpawnPosition,
     stepBoidsAndWildlife,
   } = await import('./terrainMath');
 
@@ -1353,7 +1354,11 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const animals = createInitialSmallAnimals();
   // Assert
   assert.equal(birds.length, 36);
-  assert.equal(animals.length, 51);
+  // Species coverage instead of a fixed head count, so adding animals never breaks this test.
+  const spawnedSpecies = new Set(animals.map((animal) => animal.species));
+  const requiredSpecies = ['rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino'] as const;
+  assert.deepEqual(requiredSpecies.filter((species) => !spawnedSpecies.has(species)), []);
+  assert.deepEqual(animals.filter((animal) => !isSafeAnimalSpawnPosition(animal.x, animal.z)).map((animal) => animal.id), []);
 
   // Place player right beneath bird flock 0 and next to critter 0
   const targetBird = birds[0];
@@ -2209,8 +2214,8 @@ test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_Sh
   // 4) Hunting & Corpse Looting ([E]): killing an animal stops it in place; looting gives species-specific drops
   assert.deepEqual(getAnimalLootDrops('rabbit').itemIds, ['raw_game_meat', 'small_hide']);
   assert.deepEqual(getAnimalLootDrops('squirrel').itemIds, ['raw_game_meat', 'small_hide']);
-  assert.deepEqual(getAnimalLootDrops('sheep').itemIds, ['raw_game_meat', 'sheep_hide']);
-  assert.deepEqual(getAnimalLootDrops('deer').itemIds, ['raw_game_meat', 'deer_hide', 'deer_antlers']);
+  assert.deepEqual(getAnimalLootDrops('sheep').itemIds, ['raw_game_meat', 'sheep_hide', 'animal_bone']);
+  assert.deepEqual(getAnimalLootDrops('deer').itemIds, ['deer_meat', 'deer_hide', 'deer_antlers', 'animal_bone']);
 
   killGroundAnimal(testDeer);
   assert.equal(testDeer.isDead, true, 'Expected hunted deer to be marked dead');
@@ -2226,14 +2231,14 @@ test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_Sh
   const lootPlayer = createInitialPlayerState();
   const lootResult = lootDeadAnimal(lootPlayer, testDeer);
   assert.equal(testDeer.isLooted, true, 'Expected deer to be marked looted after pressing E');
-  assert.ok(lootPlayer.ownedItemIds?.includes('raw_game_meat'), 'Expected deer loot to add raw_game_meat');
+  assert.ok(lootPlayer.ownedItemIds?.includes('deer_meat'), 'Expected deer loot to add deer_meat');
   assert.ok(lootPlayer.ownedItemIds?.includes('deer_hide'), 'Expected deer loot to add deer_hide');
   assert.ok(lootPlayer.ownedItemIds?.includes('deer_antlers'), 'Expected deer loot to add deer_antlers');
   assert.ok(
-    lootResult.notificationHe.includes('בשר') &&
-      lootResult.notificationHe.includes('עור אייל') &&
-      lootResult.notificationHe.includes('קרניים'),
-    `Expected Hebrew loot notification to list meat, deer hide, and antlers, got: ${lootResult.notificationHe}`
+    lootResult.notificationHe.includes('Deer Meat') &&
+      lootResult.notificationHe.includes('Deer Hide') &&
+      lootResult.notificationHe.includes('Deer Antlers'),
+    `Expected loot notification to list meat, deer hide, and antlers, got: ${lootResult.notificationHe}`
   );
 
   // 5) Bear Mountain Cave Entrance Walkthrough: player can walk straight from outside clearing (lz = +14)
