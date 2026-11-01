@@ -1,0 +1,151 @@
+{
+ "attributes": {
+  "normal": {
+   "absSum": 13988.36377,
+   "count": 29112,
+   "sum": 116.118805
+  },
+  "position": {
+   "absSum": 14711.708997,
+   "count": 29112,
+   "sum": 11041.187747
+  },
+  "skinIndex": {
+   "absSum": 151200,
+   "count": 38816,
+   "sum": 151200
+  },
+  "skinWeight": {
+   "absSum": 9703.999997,
+   "count": 38816,
+   "sum": 9703.999997
+  },
+  "uv": {
+   "absSum": 10600.238452,
+   "count": 19408,
+   "sum": 10600.238452
+  }
+ },
+ "boneInverses": {
+  "absSum": 156.843,
+  "count": 496,
+  "sum": 102.573
+ },
+ "bones": [
+  "root",
+  "pelvis",
+  "spine1",
+  "spine2",
+  "chest",
+  "neck1",
+  "neck2",
+  "head",
+  "jaw",
+  "earL",
+  "earR",
+  "tail1",
+  "tail2",
+  "scapulaL",
+  "upperArmL",
+  "foreArmL",
+  "metacarpusL",
+  "frontPawL",
+  "thighL",
+  "shinL",
+  "metatarsusL",
+  "hindPawL",
+  "scapulaR",
+  "upperArmR",
+  "foreArmR",
+  "metacarpusR",
+  "frontPawR",
+  "thighR",
+  "shinR",
+  "metatarsusR",
+  "hindPawR"
+ ],
+ "index": {
+  "absSum": 237541670,
+  "count": 49470,
+  "sum": 237541670
+ },
+ "restPose": {
+  "absSum": 40.048296,
+  "count": 217,
+  "sum": 29.803798
+ },
+ "statePoses": [
+  {
+   "pose": {
+    "absSum": 40.017417,
+    "count": 217,
+    "sum": 29.890851
+   },
+   "state": "idle"
+  },
+  {
+   "pose": {
+    "absSum": 41.648721,
+    "count": 217,
+    "sum": 25.809433
+   },
+   "state": "walk"
+  },
+  {
+   "pose": {
+    "absSum": 42.380192,
+    "count": 217,
+    "sum": 29.138811
+   },
+   "state": "eat"
+  },
+  {
+   "pose": {
+    "absSum": 41.486934,
+    "count": 217,
+    "sum": 30.061822
+   },
+   "state": "call"
+  },
+  {
+   "pose": {
+    "absSum": 43.382029,
+    "count": 217,
+    "sum": 29.238762
+   },
+   "state": "lie"
+  },
+  {
+   "pose": {
+    "absSum": 42.389084,
+    "count": 217,
+    "sum": 25.756602
+   },
+   "state": "run"
+  },
+  {
+   "pose": {
+    "absSum": 43.782192,
+    "count": 217,
+    "sum": 29.272856
+   },
+   "state": "flee"
+  },
+  {
+   "pose": {
+    "absSum": 44.141045,
+    "count": 217,
+    "sum": 28.462271
+   },
+   "state": "skip"
+  },
+  {
+   "pose": {
+    "absSum": 43.025199,
+    "count": 217,
+    "sum": 29.339636
+   },
+   "state": "death"
+  }
+ ]
+}

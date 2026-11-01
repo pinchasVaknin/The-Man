@@ -1,0 +1,272 @@
+{
+ "attributes": {
+  "normal": {
+   "absSum": 17824.795278,
+   "count": 36801,
+   "sum": 477.708658
+  },
+  "position": {
+   "absSum": 175.998626,
+   "count": 36801,
+   "sum": 114.653125
+  },
+  "skinIndex": {
+   "absSum": 1131434,
+   "count": 49068,
+   "sum": 1131434
+  },
+  "skinWeight": {
+   "absSum": 12267.000114,
+   "count": 49068,
+   "sum": 12267.000114
+  },
+  "uv": {
+   "absSum": 14252.964003,
+   "count": 24534,
+   "sum": 14252.964003
+  }
+ },
+ "boneInverses": {
+  "absSum": 43526.120145,
+  "count": 1920,
+  "sum": 6502.780693
+ },
+ "bones": [
+  "DemonDragonJoint_0",
+  "DemonDragonJoint_1",
+  "DemonDragonJoint_2",
+  "DemonDragonJoint_3",
+  "DemonDragonJoint_4",
+  "DemonDragonJoint_5",
+  "DemonDragonJoint_6",
+  "DemonDragonJoint_7",
+  "DemonDragonJoint_8",
+  "DemonDragonJoint_9",
+  "DemonDragonJoint_10",
+  "DemonDragonJoint_11",
+  "DemonDragonJoint_12",
+  "DemonDragonJoint_13",
+  "DemonDragonJoint_14",
+  "DemonDragonJoint_15",
+  "DemonDragonJoint_16",
+  "DemonDragonJoint_17",
+  "DemonDragonJoint_18",
+  "DemonDragonJoint_19",
+  "DemonDragonJoint_20",
+  "DemonDragonJoint_21",
+  "DemonDragonJoint_22",
+  "DemonDragonJoint_23",
+  "DemonDragonJoint_24",
+  "DemonDragonJoint_25",
+  "DemonDragonJoint_26",
+  "DemonDragonJoint_27",
+  "DemonDragonJoint_28",
+  "DemonDragonJoint_29",
+  "DemonDragonJoint_30",
+  "DemonDragonJoint_31",
+  "DemonDragonJoint_32",
+  "DemonDragonJoint_33",
+  "DemonDragonJoint_34",
+  "DemonDragonJoint_35",
+  "DemonDragonJoint_36",
+  "DemonDragonJoint_37",
+  "DemonDragonJoint_38",
+  "DemonDragonJoint_39",
+  "DemonDragonJoint_40",
+  "DemonDragonJoint_41",
+  "DemonDragonJoint_42",
+  "DemonDragonJoint_43",
+  "DemonDragonJoint_44",
+  "DemonDragonJoint_45",
+  "DemonDragonJoint_46",
+  "DemonDragonJoint_47",
+  "DemonDragonJoint_48",
+  "DemonDragonJoint_49",
+  "DemonDragonJoint_50",
+  "DemonDragonJoint_51",
+  "DemonDragonJoint_52",
+  "DemonDragonJoint_53",
+  "DemonDragonJoint_54",
+  "DemonDragonJoint_55",
+  "DemonDragonJoint_56",
+  "DemonDragonJoint_57",
+  "DemonDragonJoint_58",
+  "DemonDragonJoint_59",
+  "DemonDragonJoint_60",
+  "DemonDragonJoint_61",
+  "DemonDragonJoint_62",
+  "DemonDragonJoint_63",
+  "DemonDragonJoint_64",
+  "DemonDragonJoint_65",
+  "DemonDragonJoint_66",
+  "DemonDragonJoint_67",
+  "DemonDragonJoint_68",
+  "DemonDragonJoint_69",
+  "DemonDragonJoint_70",
+  "DemonDragonJoint_71",
+  "DemonDragonJoint_72",
+  "DemonDragonJoint_73",
+  "DemonDragonJoint_74",
+  "DemonDragonJoint_75",
+  "DemonDragonJoint_76",
+  "DemonDragonJoint_77",
+  "DemonDragonJoint_78",
+  "DemonDragonJoint_79",
+  "DemonDragonJoint_80",
+  "DemonDragonJoint_81",
+  "DemonDragonJoint_82",
+  "DemonDragonJoint_83",
+  "DemonDragonJoint_84",
+  "DemonDragonJoint_85",
+  "DemonDragonJoint_86",
+  "DemonDragonJoint_87",
+  "DemonDragonJoint_88",
+  "DemonDragonJoint_89",
+  "DemonDragonJoint_90",
+  "DemonDragonJoint_91",
+  "DemonDragonJoint_92",
+  "DemonDragonJoint_93",
+  "DemonDragonJoint_94",
+  "DemonDragonJoint_95",
+  "DemonDragonJoint_96",
+  "DemonDragonJoint_97",
+  "DemonDragonJoint_98",
+  "DemonDragonJoint_99",
+  "DemonDragonJoint_100",
+  "DemonDragonJoint_101",
+  "DemonDragonJoint_102",
+  "DemonDragonJoint_103",
+  "DemonDragonJoint_104",
+  "DemonDragonJoint_105",
+  "DemonDragonJoint_106",
+  "DemonDragonJoint_107",
+  "DemonDragonJoint_108",
+  "DemonDragonJoint_109",
+  "DemonDragonJoint_110",
+  "DemonDragonJoint_111",
+  "DemonDragonJoint_112",
+  "DemonDragonJoint_113",
+  "DemonDragonJoint_114",
+  "DemonDragonJoint_115",
+  "DemonDragonJoint_116",
+  "DemonDragonJoint_117",
+  "DemonDragonJoint_118",
+  "DemonDragonJoint_119"
+ ],
+ "index": {
+  "absSum": 370351608,
+  "count": 58626,
+  "sum": 370351608
+ },
+ "restPose": {
+  "absSum": 171.286371,
+  "count": 840,
+  "sum": 120.63952
+ },
+ "statePoses": [
+  {
+   "pose": {
+    "absSum": 176.381868,
+    "count": 840,
+    "sum": 122.856443
+   },
+   "state": "idle"
+  },
+  {
+   "pose": {
+    "absSum": 173.379596,
+    "count": 840,
+    "sum": 121.721496
+   },
+   "state": "walk"
+  },
+  {
+   "pose": {
+    "absSum": 171.74194,
+    "count": 840,
+    "sum": 121.298964
+   },
+   "state": "trot"
+  },
+  {
+   "pose": {
+    "absSum": 173.285933,
+    "count": 840,
+    "sum": 122.031344
+   },
+   "state": "run"
+  },
+  {
+   "pose": {
+    "absSum": 167.00456,
+    "count": 840,
+    "sum": 119.961883
+   },
+   "state": "fly"
+  },
+  {
+   "pose": {
+    "absSum": 173.583803,
+    "count": 840,
+    "sum": 118.216782
+   },
+   "state": "stalk"
+  },
+  {
+   "pose": {
+    "absSum": 175.742695,
+    "count": 840,
+    "sum": 122.63944
+   },
+   "state": "roar"
+  },
+  {
+   "pose": {
+    "absSum": 175.66765,
+    "count": 840,
+    "sum": 122.485071
+   },
+   "state": "call"
+  },
+  {
+   "pose": {
+    "absSum": 175.992004,
+    "count": 840,
+    "sum": 123.421139
+   },
+   "state": "attack"
+  },
+  {
+   "pose": {
+    "absSum": 173.880506,
+    "count": 840,
+    "sum": 121.373068
+   },
+   "state": "sit"
+  },
+  {
+   "pose": {
+    "absSum": 174.209224,
+    "count": 840,
+    "sum": 122.454076
+   },
+   "state": "lie"
+  },
+  {
+   "pose": {
+    "absSum": 174.137445,
+    "count": 840,
+    "sum": 124.203068
+   },
+   "state": "sleep"
+  },
+  {
+   "pose": {
+    "absSum": 172.964852,
+    "count": 840,
+    "sum": 122.92829
+   },
+   "state": "death"
+  }
+ ]
+}

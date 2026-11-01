@@ -1,0 +1,227 @@
+{
+ "attributes": {
+  "normal": {
+   "absSum": 13973.259848,
+   "count": 28689,
+   "sum": 636.283466
+  },
+  "position": {
+   "absSum": 14616.300125,
+   "count": 28689,
+   "sum": 11703.315375
+  },
+  "skinIndex": {
+   "absSum": 532451,
+   "count": 38252,
+   "sum": 532451
+  },
+  "skinWeight": {
+   "absSum": 9563.000131,
+   "count": 38252,
+   "sum": 9563.000131
+  },
+  "uv": {
+   "absSum": 9997.500236,
+   "count": 19126,
+   "sum": 9997.500236
+  }
+ },
+ "boneInverses": {
+  "absSum": 366.596764,
+  "count": 944,
+  "sum": 76.065212
+ },
+ "bones": [
+  "WolfJoint_0",
+  "WolfJoint_1",
+  "WolfJoint_2",
+  "WolfJoint_3",
+  "WolfJoint_4",
+  "WolfJoint_5",
+  "WolfJoint_6",
+  "WolfJoint_7",
+  "WolfJoint_8",
+  "WolfJoint_9",
+  "WolfJoint_10",
+  "WolfJoint_11",
+  "WolfJoint_12",
+  "WolfJoint_13",
+  "WolfJoint_14",
+  "WolfJoint_15",
+  "WolfJoint_16",
+  "WolfJoint_17",
+  "WolfJoint_18",
+  "WolfJoint_19",
+  "WolfJoint_20",
+  "WolfJoint_21",
+  "WolfJoint_22",
+  "WolfJoint_23",
+  "WolfJoint_24",
+  "WolfJoint_25",
+  "WolfJoint_26",
+  "WolfJoint_27",
+  "WolfJoint_28",
+  "WolfJoint_29",
+  "WolfJoint_30",
+  "WolfJoint_31",
+  "WolfJoint_32",
+  "WolfJoint_33",
+  "WolfJoint_34",
+  "WolfJoint_35",
+  "WolfJoint_36",
+  "WolfJoint_37",
+  "WolfJoint_38",
+  "WolfJoint_39",
+  "WolfJoint_40",
+  "WolfJoint_41",
+  "WolfJoint_42",
+  "WolfJoint_43",
+  "WolfJoint_44",
+  "WolfJoint_45",
+  "WolfJoint_46",
+  "WolfJoint_47",
+  "WolfJoint_48",
+  "WolfJoint_49",
+  "WolfJoint_50",
+  "WolfJoint_51",
+  "WolfJoint_52",
+  "WolfJoint_53",
+  "WolfJoint_54",
+  "WolfJoint_55",
+  "WolfJoint_56",
+  "WolfJoint_57",
+  "WolfJoint_58"
+ ],
+ "index": {
+  "absSum": 224263469,
+  "count": 48786,
+  "sum": 224263469
+ },
+ "restPose": {
+  "absSum": 94.182373,
+  "count": 413,
+  "sum": 67.857136
+ },
+ "statePoses": [
+  {
+   "pose": {
+    "absSum": 94.612368,
+    "count": 413,
+    "sum": 67.943804
+   },
+   "state": "idle"
+  },
+  {
+   "pose": {
+    "absSum": 94.552756,
+    "count": 413,
+    "sum": 67.347163
+   },
+   "state": "walk"
+  },
+  {
+   "pose": {
+    "absSum": 94.547443,
+    "count": 413,
+    "sum": 67.37019
+   },
+   "state": "eat"
+  },
+  {
+   "pose": {
+    "absSum": 94.535873,
+    "count": 413,
+    "sum": 67.343906
+   },
+   "state": "call"
+  },
+  {
+   "pose": {
+    "absSum": 94.535806,
+    "count": 413,
+    "sum": 67.343755
+   },
+   "state": "howl"
+  },
+  {
+   "pose": {
+    "absSum": 94.23565,
+    "count": 413,
+    "sum": 67.043274
+   },
+   "state": "lie"
+  },
+  {
+   "pose": {
+    "absSum": 95.051965,
+    "count": 413,
+    "sum": 67.325252
+   },
+   "state": "sit"
+  },
+  {
+   "pose": {
+    "absSum": 94.517721,
+    "count": 413,
+    "sum": 67.246243
+   },
+   "state": "stalk"
+  },
+  {
+   "pose": {
+    "absSum": 94.56787,
+    "count": 413,
+    "sum": 67.390583
+   },
+   "state": "trot"
+  },
+  {
+   "pose": {
+    "absSum": 94.942599,
+    "count": 413,
+    "sum": 67.182837
+   },
+   "state": "run"
+  },
+  {
+   "pose": {
+    "absSum": 95.06171,
+    "count": 413,
+    "sum": 67.035827
+   },
+   "state": "flee"
+  },
+  {
+   "pose": {
+    "absSum": 94.706253,
+    "count": 413,
+    "sum": 67.562918
+   },
+   "state": "skip"
+  },
+  {
+   "pose": {
+    "absSum": 94.695852,
+    "count": 413,
+    "sum": 67.536742
+   },
+   "state": "roar"
+  },
+  {
+   "pose": {
+    "absSum": 94.737707,
+    "count": 413,
+    "sum": 67.64049
+   },
+   "state": "attack"
+  },
+  {
+   "pose": {
+    "absSum": 95.498284,
+    "count": 413,
+    "sum": 66.002927
+   },
+   "state": "death"
+  }
+ ]
+}
