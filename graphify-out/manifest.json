@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "src/world/builders/wildlifeAndFootprintsBuilder.ts": {
-    "mtime": 1793532546.3121798,
-    "seen": 1793537725.9239857,
-    "ast_hash": "46dc5fee8ae52fce3074499553ab443e",
+    "mtime": 1793540185.373304,
+    "seen": 1793540381.8075426,
+    "ast_hash": "7b7b38d7689470d636842dc407a6e378",
     "semantic_hash": ""
   },
   "src/world/controllers/atmosphereRenderController.ts": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/world/proceduralModels.ts": {
-    "mtime": 1793478752.7352314,
-    "seen": 1793537725.9240198,
-    "ast_hash": "70441f95fc5b4da6a40fe29dbf17996a",
+    "mtime": 1793540185.4066868,
+    "seen": 1793540381.8075752,
+    "ast_hash": "a5bcab565b33554d6ad9e34687d363e6",
     "semantic_hash": ""
   },
   "src/world/proceduralTextures.ts": {
@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "src/lab/CharacterLabView.tsx": {
-    "mtime": 1793539803.6221538,
-    "seen": 1793539862.2150478,
-    "ast_hash": "85dabb162780e7c9e5ce43dfb0bec618",
+    "mtime": 1793540220.9901361,
+    "seen": 1793540381.8075302,
+    "ast_hash": "bc44628d97bacbea38ae97b2bc5afc92",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.test.ts": {
@@ -612,9 +612,9 @@
     "semantic_hash": ""
   },
   "src/components/GameSettingsModal.tsx": {
-    "mtime": 1793538779.8698962,
-    "seen": 1793538954.979507,
-    "ast_hash": "2d2b09ce9f69ab595cdb769df9d63969",
+    "mtime": 1793540220.9570823,
+    "seen": 1793540381.807509,
+    "ast_hash": "edc7ba0a7cb51fdb71a2fc0283e8cc05",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.ts": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793539613.9893074,
-    "seen": 1793539737.3356407,
-    "ast_hash": "5bb8dd1303f9d79aa0568c26070d7b38",
+    "mtime": 1793540221.0567908,
+    "seen": 1793540381.8075342,
+    "ast_hash": "86f0652727d9d254dc766c5d37ddb638",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {

@@ -298,6 +298,7 @@ export function buildRealisticWorld(
       updatePlayerAndCombat(elapsedTime, playerState, activeArrows);
     },
     dispose: () => {
+      wildlifeAndFootprintsLayer.dispose();
       for (let i = 0; i < disposableGeometries.length; i++) disposableGeometries[i].dispose();
       for (let i = 0; i < disposableMaterials.length; i++) disposableMaterials[i].dispose();
       for (let i = 0; i < disposableTextures.length; i++) disposableTextures[i].dispose();
