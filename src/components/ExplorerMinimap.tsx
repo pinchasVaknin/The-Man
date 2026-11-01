@@ -290,7 +290,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
             border: '1px solid rgba(217, 119, 6, 0.45)',
           }}
         >
-          N
+          {t('ui.compass_north')}
         </div>
       </div>
     </div>
