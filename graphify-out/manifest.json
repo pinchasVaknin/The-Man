@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793555819.7163343,
-    "seen": 1793556223.0694458,
-    "ast_hash": "f34b577d217be322a153a1101eb9daf5",
+    "mtime": 1793556350.6846354,
+    "seen": 1793556419.223556,
+    "ast_hash": "f6abc1c3f84da880f2a77eff199672ba",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -819,6 +819,24 @@
     "mtime": 1793555819.7496974,
     "seen": 1793556223.0695,
     "ast_hash": "ea9ce8e6fb9b34cf3c6f5abf66021a00",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/__golden__/hud-telemetry.json": {
+    "mtime": 1793556373.3679948,
+    "seen": 1793556419.223604,
+    "ast_hash": "fe636715f06e7d20ee57737846296ae8",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/hudTelemetryBuilder.spec.ts": {
+    "mtime": 1793556365.917761,
+    "seen": 1793556419.223607,
+    "ast_hash": "4566ee2e762c448a07e86cbd713181b6",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/hudTelemetryBuilder.ts": {
+    "mtime": 1793556323.7506766,
+    "seen": 1793556419.2236078,
+    "ast_hash": "4b6e8909aed28f97635f9fa87bd7ffa0",
     "semantic_hash": ""
   }
 }
