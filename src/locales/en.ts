@@ -813,6 +813,1612 @@ export const en = {
     "captain": "Captain's Bed",
     "stone_house": "Stone House Bed",
     "sleeping_bag": "Sleeping Bag"
+  },
+  "lab": {
+    "categories": {
+      "characters": {
+        "label": "Characters",
+        "subtitle": "People, warriors, merchants and guards"
+      },
+      "animals": {
+        "label": "Animals",
+        "subtitle": "Mammals, birds, fish, insects and a dragon"
+      }
+    },
+    "entities": {
+      "ranger_third_person": {
+        "name": "Ranger of the North — Aragorn (player character)",
+        "subtitle": "Articulated 3D ranger of Gondor inspired by The Lord of the Rings",
+        "category_label": "Characters",
+        "world_location": "Spawn point and the whole world",
+        "description": "The player's full ranger character, inspired by the Ranger of the North from The Lord of the Rings — shoulder-length wavy dark auburn hair, a short rugged beard and moustache, a forest cloak with twin bronze clasps and the White Tree of Gondor on the back, a laced brown leather vest over a forest tunic and chainmail, a diagonal baldric and a longsword.",
+        "anatomy_tags": {
+          "0": "Wavy hair and ranger beard",
+          "1": "White Tree of Gondor cloak",
+          "2": "Laced leather vest",
+          "3": "Chainmail (Hauberk)",
+          "4": "Longsword and recurve bow",
+          "5": "Strapped riding boots"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Neutral base pose without motion, for inspecting the model and its proportions."
+          },
+          "idle": {
+            "name": "Natural stance and breathing",
+            "description": "Light chest breathing with a gentle sway of the cloak and bow."
+          },
+          "walk": {
+            "name": "Trail patrol walk",
+            "description": "Balanced walk cycle with synchronized leg and arm swing."
+          },
+          "sprint": {
+            "name": "Fast forest run",
+            "description": "Forward lean, long strides and fast arm swing."
+          },
+          "bow_draw": {
+            "name": "Draw bow and aim",
+            "description": "Raise the recurve bow in the left hand, nock a fletched arrow and pull the string back."
+          },
+          "sword_slash": {
+            "name": "Gondor sword swing (combo)",
+            "description": "Draw the longsword and deliver powerful horizontal and diagonal cuts."
+          },
+          "torch_carry": {
+            "name": "Carry a burning torch in a cave",
+            "description": "Raise the fire torch in the right hand to light mine tunnels and the night."
+          },
+          "swim": {
+            "name": "Swimming in the lake",
+            "description": "Upper body tilts forward with wide paddling strokes and ripples."
+          },
+          "horse_mount_pose": {
+            "name": "Riding seat on a horse",
+            "description": "Legs straddle the saddle with a steady grip on the reins."
+          }
+        },
+        "skins": {
+          "ranger_classic_forest": {
+            "name": "Ranger of the North — Gondor (original)",
+            "subtitle": "Brown leather vest, olive forest tunic, chainmail and the White Tree cloak"
+          },
+          "ranger_imperial_guard": {
+            "name": "Imperial fortress guard",
+            "subtitle": "Royal crimson armor, gold trim and a fire-rune blade"
+          },
+          "ranger_shadow_stalker": {
+            "name": "Night shadow hunter",
+            "subtitle": "Raven-black leather armor, night cloak and violet runes"
+          },
+          "ranger_oasis_nomad": {
+            "name": "Oasis ranger",
+            "subtitle": "Desert linen, blue lapis and antique gold"
+          }
+        }
+      },
+      "ranger_first_person": {
+        "name": "First-person hands and weapons (Viewmodel)",
+        "subtitle": "Detailed hands with fingers, a signet ring, bracers and weapons",
+        "category_label": "Characters",
+        "world_location": "First-person camera view (Skyrim viewmodel)",
+        "world_coordinates": "Player camera [V / C]",
+        "description": "The first-person hand rig — half-open leather gloves, 5 articulated fingers per hand, a gilded signet ring, elven bracers, a rune sword, a recurve bow and a torch.",
+        "anatomy_tags": {
+          "0": "10 articulated fingers",
+          "1": "Gilded signet ring",
+          "2": "Elven bracers",
+          "3": "Rune sword",
+          "4": "Recurve bow"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base grip)",
+            "description": "Both hands and weapons shown in a clear, static base pose."
+          },
+          "fp_sword_combo": {
+            "name": "3-stage sword combo (Skyrim Slash)",
+            "description": "Right-to-left cut, a return cut left-to-right and a diagonal downward strike with a light trail."
+          },
+          "fp_sword_heavy": {
+            "name": "Heavy power attack + air wave",
+            "description": "Charge the rune sword and launch a vertical strike that releases a forward slicing air wave."
+          },
+          "fp_sword_block": {
+            "name": "Horizontal blade block (Parry Guard)",
+            "description": "Raise the sword diagonally before the face and grip the hilt with both hands to defend."
+          },
+          "fp_bow_aim": {
+            "name": "First-person bow draw and shot",
+            "description": "Rotate the bow, nock an arrow on the string and draw fully toward the target."
+          },
+          "fp_torch_hold": {
+            "name": "Burning torch with guarding left hand",
+            "description": "Hold the fire torch in the right hand with a flickering flame."
+          }
+        },
+        "skins": {
+          "fp_elven_emerald": {
+            "name": "Elven bracers (green and gold)",
+            "subtitle": "Gold filigree on emerald-green plates"
+          },
+          "fp_imperial_crimson": {
+            "name": "Imperial crimson blade",
+            "subtitle": "Gilded red bracers and orange flame runes"
+          },
+          "fp_dwarven_mithril": {
+            "name": "Silver dwarven mithril",
+            "subtitle": "Gleaming silver steel with blue sapphire runes"
+          }
+        }
+      },
+      "dwarven_miner": {
+        "name": "Dwarf warrior and miner — Erebor (LOTR)",
+        "subtitle": "Stout dwarf with a 3-braid beard, temple braids, chainmail and a double-bladed axe",
+        "category_label": "Characters",
+        "world_location": "Dwarven kingdom and the southern mine",
+        "description": "The six warriors and miners of the dwarven kingdom (Thorin, Balin, Dwalin, Bofur, Glóin and Ori), inspired by the dwarves of The Lord of the Rings — bare head with crown braids and a back braid, a magnificent auburn beard woven into 3 braids with metal clasps, chainmail pauldrons, Nordic star brooches, a diamond buckle and a double-bladed battle axe.",
+        "anatomy_tags": {
+          "0": "Beard woven into 3 braids with clasps",
+          "1": "Temple braids and back braid",
+          "2": "Chainmail pauldrons",
+          "3": "Star brooches and diamond buckle",
+          "4": "Double-bladed battle axe",
+          "5": "Glowing mining lantern"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Upright stance with the battle axe and lantern, without motion."
+          },
+          "mining_work": {
+            "name": "Hewing and swinging the axe at crystal rock",
+            "description": "Raise the double-bladed axe and strike the crystal vein hard while the beard sways."
+          },
+          "caravan_march": {
+            "name": "Marching in the caravan to the mine",
+            "description": "Brisk dwarven walk with the lantern swinging in the left hand and the axe in the right."
+          },
+          "miner_idle": {
+            "name": "Resting and looking around",
+            "description": "Quiet breathing, a slight head turn and a check of the lantern."
+          },
+          "celebrate_gold": {
+            "name": "Gold strike cheer!",
+            "description": "Raise the axe and lantern high in joy at finding a royal gold vein."
+          }
+        },
+        "skins": {
+          "dwarf_thorin_red": {
+            "name": "Erebor dwarf warrior (LOTR original)",
+            "subtitle": "Olive-charcoal tunic with bronze trim, chainmail and a braided auburn beard"
+          },
+          "dwarf_balin_blue": {
+            "name": "Balin — blue tunic and silver beard",
+            "subtitle": "Clan elder and keeper of the stone library"
+          },
+          "dwarf_dwalin_green": {
+            "name": "Dwalin — green tunic and black beard",
+            "subtitle": "Emerald cutter of the western hall"
+          },
+          "dwarf_bofur_amber": {
+            "name": "Bofur — brown tunic and golden beard",
+            "subtitle": "Master of the smelting furnace and gold ingots"
+          }
+        }
+      },
+      "shaolin_monk": {
+        "name": "Shaolin monk — fortress warrior",
+        "subtitle": "Kung fu monk in a saffron robe with a gilded fighting staff (Bo Staff)",
+        "category_label": "Characters",
+        "world_location": "Training courtyard of the northern imperial fortress",
+        "description": "The eight Shaolin monks training in the imperial fortress courtyard — dressed in traditional saffron robes, a crimson sash and white leg wraps, holding a gilded kung fu staff.",
+        "anatomy_tags": {
+          "0": "Shaolin robe",
+          "1": "Crimson sash",
+          "2": "Gilded fighting staff",
+          "3": "White cloth leg wraps",
+          "4": "Kung fu shoes"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Upright base stance with the fighting staff in the right hand."
+          },
+          "kung_fu_form": {
+            "name": "Kung fu kata and staff practice",
+            "description": "The original fortress animation: hip rotation, golden staff swings and dynamic stance steps."
+          },
+          "staff_whirlwind": {
+            "name": "Spinning staff storm (Bo Spin)",
+            "description": "Fast spin of the golden staff around the body, combining defense and attack."
+          },
+          "horse_stance_strike": {
+            "name": "Low horse stance (Ma Bu) and thrust",
+            "description": "Drop into a low combat stance and launch a focused forward staff strike."
+          },
+          "shaolin_salute": {
+            "name": "Shaolin order salute bow",
+            "description": "Fist pressed to palm and the traditional martial artists' bow."
+          }
+        },
+        "skins": {
+          "monk_saffron_classic": {
+            "name": "Orange Shaolin robe (original)",
+            "subtitle": "Traditional saffron orange with a crimson sash and golden staff"
+          },
+          "monk_grandmaster_crimson": {
+            "name": "Grandmaster of the imperial hall",
+            "subtitle": "Royal crimson robe with a pure gold sash"
+          },
+          "monk_jade_guardian": {
+            "name": "Jade temple guardian",
+            "subtitle": "Deep jade-green robe with an antique bronze staff"
+          },
+          "monk_mountain_slate": {
+            "name": "Misty peaks monk",
+            "subtitle": "Grey-blue robe of the northern mountain monastery"
+          }
+        }
+      },
+      "tai_chi_monk": {
+        "name": "Tai chi monk — Sakura Temple",
+        "subtitle": "Tai chi and meditation master at the hot springs of the Cherry Blossom Temple",
+        "category_label": "Characters",
+        "world_location": "Sakura Temple and the hot springs",
+        "description": "The four tai chi monks practicing harmonious flow and balance under blossoming cherry trees at the foot of the golden Buddha statue.",
+        "anatomy_tags": {
+          "0": "Unarmed movement",
+          "1": "Meditation robe",
+          "2": "Silk sash",
+          "3": "White shin wraps"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Quiet, steady zen stance without motion."
+          },
+          "tai_chi_flow": {
+            "name": "Harmonious tai chi flow",
+            "description": "Slow circular hand movements and calm side-to-side weight shifts."
+          },
+          "cloud_hands": {
+            "name": "Cloud hands in the wind (Cloud Hands)",
+            "description": "Wave-like movement of both arms at chest height, synchronized with hip rotation."
+          },
+          "crane_balance": {
+            "name": "Lotus crane balance",
+            "description": "Lift one leg and open both arms like crane wings above the springs."
+          }
+        },
+        "skins": {
+          "taichi_sakura_blossom": {
+            "name": "Sakura blossom (pink and white)",
+            "subtitle": "Light silk robe inspired by the Cherry Blossom Temple petals"
+          },
+          "taichi_sunrise_orange": {
+            "name": "Sunrise orange (original)",
+            "subtitle": "Traditional temple robe with a crimson sash"
+          },
+          "taichi_zen_white": {
+            "name": "Pure white — zen master",
+            "subtitle": "White linen robe with a delicate gold sash"
+          }
+        }
+      },
+      "harbor_merchant": {
+        "name": "Harbor market merchants and blacksmith",
+        "subtitle": "The six stall owners of the south-east harbor (Liang, Mei, Durin, Karim, Borin and Han)",
+        "category_label": "Characters",
+        "world_location": "Merchant market of the south-east harbor",
+        "description": "The harbor merchants running the six trading stalls: swords and blades (Liang), bows and arrows (Mei), timber and building (Durin), stone and marble (Karim), the harbor smithy (Borin) and treasures (Han).",
+        "anatomy_tags": {
+          "0": "Embroidered merchant robe",
+          "1": "Merchant hat",
+          "2": "Ledger scroll / smith's hammer",
+          "3": "Gold coin belt"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Steady stance at the market stall without motion."
+          },
+          "merchant_welcome": {
+            "name": "Merchant greeting and showing wares",
+            "description": "Wide open hands, a slight bow and inviting the player to browse the stall."
+          },
+          "blacksmith_forge": {
+            "name": "Hammering (Borin the smith)",
+            "description": "Swing the heavy smith's hammer in rhythm on a glowing steel blade."
+          },
+          "market_call": {
+            "name": "Calling to passers-by at the harbor",
+            "description": "Enthusiastic waving toward the ship and the pier."
+          }
+        },
+        "skins": {
+          "merchant_liang_crimson": {
+            "name": "Liang the merchant — swords and blades stall",
+            "subtitle": "Imperial crimson and gold silk robe"
+          },
+          "merchant_mei_emerald": {
+            "name": "Mei the merchant — bows and arrows stall",
+            "subtitle": "Green forester tunic embroidered with gold"
+          },
+          "merchant_borin_blacksmith": {
+            "name": "Borin the smith — harbor smithy",
+            "subtitle": "Heavy leather apron, blackened steel and embers"
+          },
+          "merchant_karim_lapis": {
+            "name": "Karim the merchant — stone, marble and treasures",
+            "subtitle": "Blue lapis lazuli robe from the oasis"
+          }
+        }
+      },
+      "rideable_horse": {
+        "name": "Noble riding horse",
+        "subtitle": "Fully articulated horse with saddle, stirrups, reins and 4 biomechanical gaits",
+        "category_label": "Animals",
+        "world_location": "World stables (meadow, hunter's lodge, farm, harbor and oasis)",
+        "world_coordinates": "5 stables across the map",
+        "description": "The world's riding horses — built with real biomechanical kinematics (front and hind legs with 3 joints: shoulder/hip, knee and hoof), neck, mane, tail and a full saddle.",
+        "anatomy_tags": {
+          "0": "4 three-jointed legs",
+          "1": "Saddle and stirrups",
+          "2": "Flowing mane and tail",
+          "3": "Harness and reins"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Symmetrical stance on four hooves without motion."
+          },
+          "horse_idle": {
+            "name": "Calm stance and breathing (Idle Gait)",
+            "description": "Gentle breathing, a slight neck tilt and a tail flick."
+          },
+          "horse_walk": {
+            "name": "Four-beat walk (4-Beat Walk)",
+            "description": "Calm 4-beat walking rhythm with precise knee and hoof lift."
+          },
+          "horse_trot": {
+            "name": "Light diagonal trot (2-Beat Diagonal Trot)",
+            "description": "Synchronized movement of diagonal leg pairs with a springy torso."
+          },
+          "horse_gallop": {
+            "name": "Fast gallop (4-Beat Rotary Gallop)",
+            "description": "Full gallop with a suspension phase, neck stretched forward and a flowing tail."
+          },
+          "horse_rear": {
+            "name": "Majestic rear (Heroic Rear)",
+            "description": "Dramatic rise on the hind legs while the forelegs paddle in the air."
+          }
+        }
+      },
+      "forest_deer": {
+        "name": "Royal forest deer",
+        "subtitle": "Stags and does living in herds in the forests and at the lake edge",
+        "category_label": "Animals",
+        "world_location": "Pine forests and the western meadow",
+        "world_coordinates": "5 grazing spots in the forest",
+        "description": "The full deer model (Deer_Complete) with an automatic 27-bone skeleton, an embedded texture and 9 full procedural IK animations: idle, walk, eat, call, lie, run, flee, skip and death.",
+        "anatomy_tags": {
+          "0": "27-bone skeleton",
+          "1": "Branching antlers",
+          "2": "Precise jaw joint",
+          "3": "9 IK animations"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Upright, alert stance without motion."
+          },
+          "idle": {
+            "name": "Alert stance and breathing (Idle)",
+            "description": "Natural forest stance with gentle breathing, ear flicks, tail movement and head turns."
+          },
+          "walk": {
+            "name": "Four-beat forest walk (Walk)",
+            "description": "Noble stride in a full four-beat cycle with knee and ankle flexion and neck sway."
+          },
+          "eat": {
+            "name": "Eating and grazing grass (Eat)",
+            "description": "Lower the neck and head to the fresh grass with a chewing motion of the lower jaw."
+          },
+          "call": {
+            "name": "Stag call / bellow (Call)",
+            "description": "Raise the chest and neck, open the lower jaw and let out an impressive stag bellow."
+          },
+          "lie": {
+            "name": "Lying and resting on the ground (Lie)",
+            "description": "Gradually fold the legs, lower the hips to the ground and breathe calmly at rest."
+          },
+          "run": {
+            "name": "Fast run and gallop (Run)",
+            "description": "Dynamic rotary gallop with the neck leaning forward and full leaps."
+          },
+          "flee": {
+            "name": "Fast zigzag flight (Flee)",
+            "description": "Rapid escape from danger with a raised warning tail, ears pinned back and sharp turns."
+          },
+          "skip": {
+            "name": "Forest skip and leap (Skip / Pronking)",
+            "description": "Graceful arching leap (stotting) pushing off with all 4 legs and floating in the air."
+          },
+          "death": {
+            "name": "Death and collapse to the ground (Death)",
+            "description": "Dramatic collapse of the legs and a fall onto the side."
+          }
+        },
+        "skins": {
+          "deer_stag_classic": {
+            "name": "Brown forest stag with antlers (original)",
+            "subtitle": "Reddish-brown fur and pale antlers"
+          },
+          "deer_doe_gentle": {
+            "name": "Forest doe (no antlers)",
+            "subtitle": "Soft golden-brown fur without antlers"
+          },
+          "deer_white_hart": {
+            "name": "White dawn stag (legendary)",
+            "subtitle": "Snow-white fur and royal golden antlers"
+          },
+          "deer_highland_dark": {
+            "name": "Northern peaks stag",
+            "subtitle": "Thick dark fur adapted to the mountain cold"
+          }
+        }
+      },
+      "forest_bear": {
+        "name": "Brown forest bear",
+        "subtitle": "Mighty grizzly bear living in dense forests and on mountain slopes",
+        "category_label": "Animals",
+        "world_location": "Northern and western mountain caves and the pine forest",
+        "world_coordinates": "7 bears in mountain caves and forests",
+        "description": "The full bear model (Bear_Complete) with a 37-joint skeleton, 4,664 vertices, an embedded texture and 14 animations: idle, walk, eat, call, lie, sit, trot, run, flee, skip, standing roar on the hind legs, a front-leg intimidation stomp (Stomp), attack and death.",
+        "anatomy_tags": {
+          "0": "37-bone skeleton",
+          "1": "Articulated claws and jaw",
+          "2": "14 full animations",
+          "3": "Full fur texture"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Steady base stance on four paws without motion."
+          },
+          "idle": {
+            "name": "Calm stance and breathing (Idle)",
+            "description": "Heavy stance with deep breathing, head sway and light sniffing."
+          },
+          "walk": {
+            "name": "Heavy forest walk (Walk)",
+            "description": "Heavy four-beat stride shifting weight from side to side."
+          },
+          "eat": {
+            "name": "Eating and foraging in the forest (Eat)",
+            "description": "Lower the head and neck to eat berries and honey with jaw movement."
+          },
+          "call": {
+            "name": "Bear call / growl (Call)",
+            "description": "Raise the head and open the jaws for a deep warning growl."
+          },
+          "lie": {
+            "name": "Lying and resting (Lie)",
+            "description": "Relaxed lying on the belly with paws on the forest floor."
+          },
+          "sit": {
+            "name": "Upright sitting (Sit)",
+            "description": "Sit on the hind legs and watch the surroundings."
+          },
+          "trot": {
+            "name": "Light trot (Trot)",
+            "description": "Fast, light diagonal trot along the forest trails."
+          },
+          "run": {
+            "name": "Fast gallop (Run)",
+            "description": "Full powerful run with a flexing spine and forward bounds."
+          },
+          "flee": {
+            "name": "Escape gallop (Flee)",
+            "description": "Fastest gallop when escaping danger."
+          },
+          "skip": {
+            "name": "Skip and jump (Skip)",
+            "description": "Heavy bound and arching leap over forest obstacles."
+          },
+          "roar": {
+            "name": "Standing on two legs and terrifying roar (Roar)",
+            "description": "Rise fully on the hind legs and let out a mighty open-mouthed bear roar."
+          },
+          "stomp": {
+            "name": "Front-leg stomp and intimidation (Stomp)",
+            "description": "Stand on all fours and stomp heavily with the forelegs as a deterrent before charging."
+          },
+          "attack": {
+            "name": "Claw strike and bite (Attack)",
+            "description": "Charge forward, raise the front paws and deliver a powerful claw strike."
+          },
+          "death": {
+            "name": "Death and collapse to the ground (Death)",
+            "description": "The bear collapses heavily and falls to the ground."
+          }
+        },
+        "skins": {
+          "bear_grizzly_classic": {
+            "name": "Brown grizzly bear (original)",
+            "subtitle": "Deep brown fur of the northern forests"
+          },
+          "bear_black_mountain": {
+            "name": "Black mountain bear",
+            "subtitle": "Dark fur of the dwarven cliffs and ridges"
+          },
+          "bear_polar_frost": {
+            "name": "White snow bear",
+            "subtitle": "Light fur adapted to the snowy peaks"
+          }
+        }
+      },
+      "river_crocodile": {
+        "name": "Nile and swamp crocodile",
+        "subtitle": "Armored predator living on river, lake and oasis banks",
+        "category_label": "Animals",
+        "world_location": "Banks of the central lake, the river and the oasis",
+        "world_coordinates": "5 crocodiles at the southern river bend",
+        "description": "The full crocodile model (Crocodile_Complete) with a 49-joint skeleton, 12,800 vertices, armored scales and 13 animations, including open-mouthed sunbathing and a 720° death roll when attacking.",
+        "anatomy_tags": {
+          "0": "49-bone skeleton",
+          "1": "Jaws with 60+ teeth",
+          "2": "720° death roll",
+          "3": "Articulated armored tail"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Flat base stance on four legs with a straight tail."
+          },
+          "idle": {
+            "name": "Bank basking and breathing (Idle)",
+            "description": "Low stance on the bank with throat breathing and a slow tail sway."
+          },
+          "walk": {
+            "name": "Crawl and wave-like walk (Walk)",
+            "description": "Typical crocodile walk with an S-curve of the body and tail."
+          },
+          "eat": {
+            "name": "Eating and feeding (Eat)",
+            "description": "Open and close the jaws with head shakes to swallow prey."
+          },
+          "call": {
+            "name": "Open-mouthed basking / hiss (Call)",
+            "description": "Wide open jaws on the bank for cooling and a warning hiss."
+          },
+          "lie": {
+            "name": "Flat sunbathing (Lie)",
+            "description": "Lie fully flat on the bank sand with legs spread to the sides."
+          },
+          "sit": {
+            "name": "Alert rise on the bank (Sit)",
+            "description": "Raise the chest and head at a steep angle to watch the water."
+          },
+          "trot": {
+            "name": "Fast high walk (High Walk / Trot)",
+            "description": "Lift the belly off the ground and move fast on four legs."
+          },
+          "run": {
+            "name": "Charging run (Gallop / Run)",
+            "description": "Fast crocodile gallop with strong tail lashes."
+          },
+          "flee": {
+            "name": "Escape slide into the water (Flee)",
+            "description": "Fastest lunge and body twist toward the water."
+          },
+          "skip": {
+            "name": "Water leap and lunge (Skip / Lunge)",
+            "description": "Arching forward lunge out of the water, pushed by the tail."
+          },
+          "roar": {
+            "name": "Crocodile roar and tail lash (Roar)",
+            "description": "Arch the back, open the jaws fully and give a trembling roar."
+          },
+          "attack": {
+            "name": "Bite attack and 720° death roll (Death Roll)",
+            "description": "Powerful biting lunge followed by a double death roll (720 degrees) around the body axis!"
+          },
+          "death": {
+            "name": "Death and rollover (Death)",
+            "description": "Legs collapse, the body rolls over and the jaws go slack on the ground."
+          }
+        },
+        "skins": {
+          "croc_nile_classic": {
+            "name": "Olive-green Nile crocodile (original)",
+            "subtitle": "Armored scales in olive-green and riverbank mud tones"
+          },
+          "croc_swamp_shadow": {
+            "name": "Dark swamp crocodile",
+            "subtitle": "Dark scale armor for camouflage in deep water"
+          },
+          "croc_oasis_golden": {
+            "name": "Golden oasis crocodile",
+            "subtitle": "Golden sand and ivory tones of the southern oasis"
+          }
+        }
+      },
+      "jungle_jaguar": {
+        "name": "Forest and jungle jaguar (Panthera onca)",
+        "subtitle": "Elusive apex predator of the southern and western forests — full 43-bone skeleton and 14 animations",
+        "category_label": "Animals",
+        "world_location": "The dense southern forest and the western thicket",
+        "description": "The royal forest jaguar — rosette-spotted fur, powerful jaws, a long balancing tail and an AI system with silent stalking (Stalk), upright watch sitting (Sit), a pounce attack (Attack) and retreat from bears larger than itself.",
+        "anatomy_tags": {
+          "0": "Full 43-bone skeleton",
+          "1": "Rosette-spotted fur",
+          "2": "Stalking walk (Stalk)",
+          "3": "Pounce and roar"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Steady base stance on four legs."
+          },
+          "idle": {
+            "name": "Alert stance and breathing (Idle)",
+            "description": "Quiet stance with chest breathing, head scanning and tail-tip movement."
+          },
+          "walk": {
+            "name": "Supple patrol walk (Walk)",
+            "description": "Smooth feline walk with elegant shoulder movement."
+          },
+          "stalk": {
+            "name": "Crouched hunting stalk (Stalk)",
+            "description": "Body lowered to the ground, slow silent steps and a gaze locked on the prey."
+          },
+          "eat": {
+            "name": "Eating and licking (Eat)",
+            "description": "Lower the head and shoulders to eat and chew."
+          },
+          "call": {
+            "name": "Calling growl (Call / Growl)",
+            "description": "Open the jaws and give a deep territorial growl."
+          },
+          "lie": {
+            "name": "Lying and resting (Lie / Sleep)",
+            "description": "Relaxed feline lying on the ground with front paws stretched out."
+          },
+          "sit": {
+            "name": "Upright watch sitting (Sit)",
+            "description": "Sit on the hind legs with an upright chest and a curled tail."
+          },
+          "trot": {
+            "name": "Light trot (Trot)",
+            "description": "Fast rhythmic movement between the forest trees."
+          },
+          "run": {
+            "name": "Charging gallop (Run / Sprint)",
+            "description": "Full chase run with the spine stretching and contracting."
+          },
+          "flee": {
+            "name": "Fast escape (Flee)",
+            "description": "Fast retreat with ears pinned back from a larger threat."
+          },
+          "skip": {
+            "name": "High arching leap (Skip / Pounce Leap)",
+            "description": "Long, high feline bound over obstacles."
+          },
+          "roar": {
+            "name": "Threatening jaguar roar (Roar)",
+            "description": "Open the jaws fully, bare the fangs and give a trembling roar."
+          },
+          "attack": {
+            "name": "Attack pounce and claw strike (Attack)",
+            "description": "Leap forward with both paws outstretched and a powerful bite."
+          },
+          "death": {
+            "name": "Death and collapse (Death)",
+            "description": "Collapse sideways onto the forest floor."
+          }
+        },
+        "skins": {
+          "jaguar_rosette_classic": {
+            "name": "Golden rosette jaguar (original)",
+            "subtitle": "Golden-orange fur adorned with classic black rosettes"
+          },
+          "jaguar_black_panther": {
+            "name": "Black panther (melanistic)",
+            "subtitle": "Dark shadow fur of the jungle thicket at night"
+          },
+          "jaguar_sunlit_amber": {
+            "name": "Light amber jaguar",
+            "subtitle": "Warm sun-gold tones of the oasis edge"
+          }
+        }
+      },
+      "forest_wolf": {
+        "name": "Northern forest wolf (Canis lupus)",
+        "subtitle": "Agile pack predator of the pine forests and hills — full 59-bone skeleton and 15 animations",
+        "category_label": "Animals",
+        "world_location": "The western pine forest and the northern hills",
+        "description": "The full 3D wolf model (Wolf_Complete) with a 59-joint skeleton, 6,411 vertices, an embedded fur texture and 15 full animations with smooth transitions: idle, walk, trot, stalk, gallop, flee, leap, eat, sit, lie, howl at the moon (Howl), threat snarl (Roar), biting lunge (Attack) and death.",
+        "anatomy_tags": {
+          "0": "Full 59-bone skeleton",
+          "1": "Wolf howl (Howl)",
+          "2": "Biting lunge (Attack)",
+          "3": "Embedded fur texture"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Steady base stance on four paws."
+          },
+          "idle": {
+            "name": "Alert stance and breathing (Idle)",
+            "description": "Alert stance with chest breathing, ear and tail movement."
+          },
+          "walk": {
+            "name": "Pack walk in the forest (Walk)",
+            "description": "Balanced four-beat stride along the forest trails."
+          },
+          "trot": {
+            "name": "Light diagonal trot (Trot)",
+            "description": "Fast, rhythmic patrol run of a wolf in the wild."
+          },
+          "stalk": {
+            "name": "Low hunting stalk (Stalk)",
+            "description": "Shoulders and head lowered while advancing silently toward the prey."
+          },
+          "run": {
+            "name": "Fast chase gallop (Run)",
+            "description": "Full charging run with the pack."
+          },
+          "flee": {
+            "name": "Fast escape (Flee)",
+            "description": "Fast escape from a bear or heavy threat."
+          },
+          "skip": {
+            "name": "Leap and skip (Skip / Leap)",
+            "description": "High arching leap over rocks and bushes."
+          },
+          "eat": {
+            "name": "Eating and feeding (Eat)",
+            "description": "Lower the head and neck with jaw movement."
+          },
+          "sit": {
+            "name": "Wolf watch sitting (Sit)",
+            "description": "Sit on the hind legs with an upright chest."
+          },
+          "lie": {
+            "name": "Lying and resting (Lie)",
+            "description": "Calm lying on the forest floor."
+          },
+          "howl": {
+            "name": "Wolf howl at the moon (Howl)",
+            "description": "Raise the muzzle and neck in a long pack howl."
+          },
+          "roar": {
+            "name": "Bared fangs and threat snarl (Roar / Snarl)",
+            "description": "Lowered chest, ears pinned back and a menacing open mouth."
+          },
+          "attack": {
+            "name": "Attack lunge and bite (Attack)",
+            "description": "Sharp forward lunge and a powerful snap of the jaws."
+          },
+          "death": {
+            "name": "Death and collapse to the ground (Death)",
+            "description": "Legs collapse and the body falls onto its side."
+          }
+        },
+        "skins": {
+          "wolf_timber_classic": {
+            "name": "Grey-brown forest wolf (original)",
+            "subtitle": "Northern wolf fur in grey, brown and black"
+          },
+          "wolf_arctic_white": {
+            "name": "White snow wolf (arctic)",
+            "subtitle": "Gleaming silver-white fur of the northern peaks"
+          },
+          "wolf_shadow_alpha": {
+            "name": "Black alpha wolf",
+            "subtitle": "Pack leader with dark night fur"
+          }
+        }
+      },
+      "savanna_rhino": {
+        "name": "Armored savanna rhino (Rhinoceros)",
+        "subtitle": "Double-horned armored giant of the southern plains and the oasis — full 47-bone skeleton and 13 animations",
+        "category_label": "Animals",
+        "world_location": "Southern savanna plains and the oasis edge",
+        "description": "The full 3D rhino model (Rhino_Complete) with a 47-joint skeleton, 6,161 vertices, an armored folded-skin texture and 13 full animations with smooth transitions: idle, walk, trot, gallop, flee, skip, eat, call and paw, threat roar, sit, lie, horn charge (Attack) and death.",
+        "anatomy_tags": {
+          "0": "Full 47-bone skeleton",
+          "1": "Double horn and armored skin",
+          "2": "Charging gore (Attack)",
+          "3": "Smooth animation transitions"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Steady base stance on four legs."
+          },
+          "idle": {
+            "name": "Heavy stance and breathing (Idle)",
+            "description": "Steady stance with deep breathing, ear movement and a slight head toss."
+          },
+          "walk": {
+            "name": "Heavy stride on the plain (Walk)",
+            "description": "Heavy four-beat walk shifting weight through the shoulders."
+          },
+          "trot": {
+            "name": "Rhythmic trot (Trot)",
+            "description": "Fast diagonal trot across the savanna plains."
+          },
+          "run": {
+            "name": "Armored charging gallop (Run / Charge)",
+            "description": "Full powerful gallop with the horn thrust forward."
+          },
+          "flee": {
+            "name": "Escape gallop (Flee)",
+            "description": "Fast run when retreating from danger."
+          },
+          "skip": {
+            "name": "Heavy bound (Skip / Bound)",
+            "description": "Heavy arching bound over obstacles."
+          },
+          "eat": {
+            "name": "Eating and grazing grass (Eat)",
+            "description": "Lower the head and neck to the ground to graze grass and shrubs."
+          },
+          "call": {
+            "name": "Warning snort and ground pawing (Call)",
+            "description": "Raise the horn and paw the ground with a foreleg as a territorial warning."
+          },
+          "roar": {
+            "name": "Rhino roar and horn toss (Roar)",
+            "description": "Toss the head and horn upward with a powerful threatening snort."
+          },
+          "sit": {
+            "name": "Resting sit (Sit)",
+            "description": "Lower the hips and hind legs into an upright sit."
+          },
+          "lie": {
+            "name": "Lying and resting on the ground (Lie)",
+            "description": "Heavy, relaxed lying on the ground."
+          },
+          "attack": {
+            "name": "Horn gore and upward toss (Attack / Horn Gore)",
+            "description": "Lower the horn, charge forward and toss the horn upward with great force!"
+          },
+          "death": {
+            "name": "Death and collapse onto the side (Death)",
+            "description": "Heavy collapse of the legs and a fall onto the side."
+          }
+        },
+        "skins": {
+          "rhino_savanna_classic": {
+            "name": "Armored grey savanna rhino (original)",
+            "subtitle": "Thick folded skin in basalt grey and savanna dust tones"
+          },
+          "rhino_desert_sand": {
+            "name": "Dusty oasis rhino",
+            "subtitle": "Sandstone and clay tones of the south-western desert"
+          },
+          "rhino_obsidian_iron": {
+            "name": "Dark basalt rhino",
+            "subtitle": "Hard, dark rock armor of the mountain slopes"
+          }
+        }
+      },
+      "grazing_sheep": {
+        "name": "Grazing farm sheep",
+        "subtitle": "Woolly sheep grazing around the valley farm and the wheat fields",
+        "category_label": "Animals",
+        "world_location": "The western valley farm and the wheat field farm",
+        "description": "The valley farm's flock — round woolly bodies, a dark head and 4 small legs, wandering in calm circles around the wheat fields.",
+        "anatomy_tags": {
+          "0": "Round woolly body",
+          "1": "Head and ears",
+          "2": "4 legs",
+          "3": "Grazing movement"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static pose for inspecting the woolly body and head."
+          },
+          "sheep_graze_walk": {
+            "name": "Walking and grazing on the farm",
+            "description": "Slow rhythmic walk with a nodding head to graze."
+          },
+          "sheep_nibble": {
+            "name": "Grazing hay and wheat",
+            "description": "Lower the head and peck quickly at the grass."
+          },
+          "sheep_joy_hop": {
+            "name": "Happy skip in the meadow",
+            "description": "Small, light jumps of joy in the field."
+          }
+        },
+        "skins": {
+          "sheep_white_classic": {
+            "name": "Classic white wool (original)",
+            "subtitle": "Soft cream-white wool and a dark face"
+          },
+          "sheep_black_highland": {
+            "name": "Black mountain sheep",
+            "subtitle": "Deep charcoal wool"
+          },
+          "sheep_golden_fleece": {
+            "name": "Golden fleece of the valley",
+            "subtitle": "Wool in a warm cream-gold tone"
+          }
+        }
+      },
+      "forest_rabbit": {
+        "name": "Wild rabbit",
+        "subtitle": "Agile rabbit with long upright ears and a white pom-pom tail",
+        "category_label": "Animals",
+        "world_location": "Forest clearings and stream banks",
+        "world_coordinates": "Scattered across the forest",
+        "description": "The reserve's wild rabbits — darting between the bushes, pricking their ears alertly when approached and bounding quickly to cover.",
+        "anatomy_tags": {
+          "0": "Pair of long ears",
+          "1": "White pom-pom tail",
+          "2": "Muscular haunches for leaping",
+          "3": "Shiny black eyes"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Quiet sitting in the base pose without motion."
+          },
+          "rabbit_sniff": {
+            "name": "Sniffing and moving ears",
+            "description": "Quick head movements and a gentle ear flutter."
+          },
+          "rabbit_alert": {
+            "name": "Alert with ears pricked (Alert)",
+            "description": "Raise the head and prick the ears at a sharp angle on spotting movement."
+          },
+          "rabbit_hop": {
+            "name": "Fast hop and escape (Scamper Hop)",
+            "description": "Fast arching hops with the body and ears tilted back."
+          }
+        },
+        "skins": {
+          "rabbit_wild_brown": {
+            "name": "Forest grey-brown (original)",
+            "subtitle": "Natural camouflage fur and a white tail"
+          },
+          "rabbit_snow_white": {
+            "name": "White snow rabbit",
+            "subtitle": "Pure white fur and pinkish ears"
+          },
+          "rabbit_russet_fox": {
+            "name": "Golden-chestnut rabbit",
+            "subtitle": "Warm orange-brown fur of the wheat fields"
+          }
+        }
+      },
+      "woodland_squirrel": {
+        "name": "Tree squirrel",
+        "subtitle": "Red squirrel with a magnificent tail, scurrying and climbing pine trunks",
+        "category_label": "Animals",
+        "world_location": "Pine and oak trees across the forest",
+        "world_coordinates": "14 main trees in the forest",
+        "description": "The busy forest squirrels — driven by a 4-stage state machine: sitting in the treetops, spiralling down the trunk, searching for acorns on the ground and climbing back up to the next tree.",
+        "anatomy_tags": {
+          "0": "Large curled furry tail",
+          "1": "Pointed ears",
+          "2": "Compact, agile body"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static sitting with the furry tail upright."
+          },
+          "squirrel_tail_flick": {
+            "name": "Sitting on a branch and flicking the tail",
+            "description": "Fast rhythmic tail movements while watching from a tree branch."
+          },
+          "squirrel_forage_hop": {
+            "name": "Hopping and searching for acorns on the ground",
+            "description": "Small, quick hops between the tree roots."
+          },
+          "squirrel_spiral_climb": {
+            "name": "Spiral climb up a tree trunk",
+            "description": "Fast circular upward movement, as if on a pine trunk."
+          }
+        },
+        "skins": {
+          "squirrel_red_classic": {
+            "name": "Classic red squirrel (original)",
+            "subtitle": "Rich reddish-brown fur"
+          },
+          "squirrel_silver_gray": {
+            "name": "Silver-grey squirrel",
+            "subtitle": "Grey fur with white tail tips"
+          },
+          "squirrel_dark_pine": {
+            "name": "Dark pine squirrel",
+            "subtitle": "Brown-black fur of the northern forests"
+          }
+        }
+      },
+      "mountain_eagle": {
+        "name": "Golden mountain eagle",
+        "subtitle": "Majestic eagle with a wide wingspan soaring over the waterfall and cliffs",
+        "category_label": "Animals",
+        "world_location": "The northern cliffs and the great waterfall",
+        "world_coordinates": "(-15, -85) at 46 m altitude",
+        "description": "The golden mountain eagle circling widely above the northern waterfall and the fortress cliffs — with a golden head, a hooked beak, a fan tail and an impressive wingspan.",
+        "anatomy_tags": {
+          "0": "Wide wingspan",
+          "1": "Golden head and nape",
+          "2": "Raptor beak",
+          "3": "Fan tail"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (wings spread)",
+            "description": "Static gliding pose for inspecting the wingspan and feathers."
+          },
+          "eagle_soar": {
+            "name": "Gliding and flapping over the cliffs",
+            "description": "Slow, noble wing beats in the warm air currents."
+          },
+          "eagle_dive": {
+            "name": "Fast hunting dive (Hunting Swoop)",
+            "description": "Wings swept back and the body tilted into a steep dive."
+          },
+          "eagle_power_flap": {
+            "name": "Powerful climb to the peak",
+            "description": "Deep, fast wing beats to gain altitude."
+          }
+        },
+        "skins": {
+          "eagle_golden_classic": {
+            "name": "Golden mountain eagle (original)",
+            "subtitle": "Dark brown feathers and a golden head"
+          },
+          "eagle_bald_white": {
+            "name": "White-headed sea eagle",
+            "subtitle": "Black-brown body with a gleaming white head and tail"
+          },
+          "eagle_desert_hawk": {
+            "name": "Pale desert eagle",
+            "subtitle": "Sand and gold feathers of the oasis"
+          }
+        }
+      },
+      "flock_bird": {
+        "name": "Songbird — forest flock",
+        "subtitle": "Songbirds flying in smart flocks (Boids) over the valley and forests",
+        "category_label": "Animals",
+        "world_location": "Skies over the valley, the lake and the pine forests",
+        "world_coordinates": "36 flock birds + 16 gliding birds",
+        "description": "The reserve's songbirds flying in smart flocks (Boids with separation, alignment and cohesion) over the treetops and the lake, startling at nearby sounds.",
+        "anatomy_tags": {
+          "0": "Two-jointed wings",
+          "1": "Spreading fan tail",
+          "2": "Pointed songbird beak",
+          "3": "Light breast feathers"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (wings spread)",
+            "description": "Level flight pose without motion."
+          },
+          "bird_cruise": {
+            "name": "Calm flock flight (Boids Cruise)",
+            "description": "Rhythmic wing beats with harmonious wingtip motion."
+          },
+          "bird_startled": {
+            "name": "Startled burst and fast escape (Startled Burst)",
+            "description": "Fan the tail open with very fast wing beats."
+          },
+          "bird_glide_bank": {
+            "name": "Gliding and turning over the valley",
+            "description": "Bank the body sideways (Bank Roll) and glide on the wind."
+          }
+        },
+        "skins": {
+          "bird_forest_swallow": {
+            "name": "Blue-grey forest swallow (original)",
+            "subtitle": "Blue-grey back and a light breast"
+          },
+          "bird_robin_redbreast": {
+            "name": "Reserve valley robin",
+            "subtitle": "Striking orange-red breast and brown wings"
+          },
+          "bird_azure_kingfisher": {
+            "name": "Turquoise lake kingfisher",
+            "subtitle": "Gleaming turquoise feathers and an amber belly"
+          }
+        }
+      },
+      "harbor_seagull": {
+        "name": "White harbor gull",
+        "subtitle": "Coastal gulls circling over the lighthouse, the pier and the galleon in the south-east harbor",
+        "category_label": "Animals",
+        "world_location": "The south-east harbor and the lighthouse",
+        "description": "The ten white seagulls circling over the wooden piers, the lighthouse and the merchant ship in the south-east harbor — with long dark-tipped wings and a hooked sea beak.",
+        "anatomy_tags": {
+          "0": "Long sea-gliding wings",
+          "1": "Black wingtips",
+          "2": "Hooked yellow beak",
+          "3": "Orange shore legs"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (wings spread)",
+            "description": "Static sea-gliding pose for inspecting the wingspan and beak."
+          },
+          "seagull_harbor_soar": {
+            "name": "Gliding in the sea wind over the lighthouse",
+            "description": "Moderate wing beats mixed with gliding on the coastal breeze."
+          },
+          "seagull_wave_skim": {
+            "name": "Low glide over the harbor waves",
+            "description": "Sharp side-to-side wing banking at water level."
+          },
+          "seagull_fish_dive": {
+            "name": "Diving to catch a fish in the bay",
+            "description": "Wings folded back in a fast dive toward the water."
+          }
+        },
+        "skins": {
+          "seagull_coastal_classic": {
+            "name": "White-grey shore gull (original)",
+            "subtitle": "Pure white body, silver-grey back and dark wingtips"
+          },
+          "seagull_black_backed": {
+            "name": "Black-backed sea gull",
+            "subtitle": "Dark slate-toned wings and a gleaming white belly"
+          },
+          "seagull_golden_sunset": {
+            "name": "Golden bay gull",
+            "subtitle": "Warm white feathers in sunset tones and a coral beak"
+          }
+        }
+      },
+      "koi_fish": {
+        "name": "Royal koi fish",
+        "subtitle": "Japanese koi swimming among the lotus flowers in the tea house pond",
+        "category_label": "Animals",
+        "world_location": "The lotus pond at the lakeside tea house",
+        "description": "The twelve royal koi swimming in circular paths among the water lilies and lotus flowers around the lake's tea house — with a tapered body, a dorsal fin, a pair of pectoral fins, barbels and a flexible fan tail.",
+        "anatomy_tags": {
+          "0": "Sculpted koi body",
+          "1": "Upper dorsal fin",
+          "2": "Moving pectoral fins",
+          "3": "Two-lobed fan tail",
+          "4": "Front barbels"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose in the water)",
+            "description": "The koi aligned in a static base pose for inspecting its fins and pattern."
+          },
+          "koi_pond_swim": {
+            "name": "Wave-like swimming in the lotus pond",
+            "description": "Smooth sinusoidal body and tail movement in the water with side fins fanning."
+          },
+          "koi_fast_dart": {
+            "name": "Fast dart and turn in the water",
+            "description": "Fast tail movements and body tilt while accelerating between the lily pads."
+          },
+          "koi_surface_feed": {
+            "name": "Rising to the surface and making ripples",
+            "description": "Lift the snout toward the pond surface and open the pectoral fins."
+          }
+        },
+        "skins": {
+          "koi_imperial_gold": {
+            "name": "Imperial orange-gold koi (original)",
+            "subtitle": "Gleaming orange scales with gold fins and ivory spots"
+          },
+          "koi_kohaku_crimson": {
+            "name": "Kohaku koi (Japanese white and crimson)",
+            "subtitle": "Pearl-white body with royal crimson patches on the back"
+          },
+          "koi_sapphire_asagi": {
+            "name": "Asagi koi — sapphire and silver",
+            "subtitle": "Sapphire-blue back with light-blue silver fins"
+          },
+          "koi_ogon_platinum": {
+            "name": "Ogon koi — pure gold",
+            "subtitle": "Gleaming golden koi of the Sakura Temple"
+          }
+        }
+      },
+      "meadow_butterfly": {
+        "name": "Glowing meadow butterfly",
+        "subtitle": "Colorful butterflies fluttering over the flower fields and lake banks",
+        "category_label": "Animals",
+        "world_location": "The western meadow, the flower fields and the Sakura Temple",
+        "world_coordinates": "18 butterflies across the meadow",
+        "description": "The eighteen meadow butterflies flying over the carpets of flowers — built with a segmented body (head, thorax and abdomen), a pair of curved antennae and 4 shaped wings (fore and hind wings) with glowing patterns.",
+        "anatomy_tags": {
+          "0": "Pair of forewings",
+          "1": "Pair of hindwings",
+          "2": "Curved antennae",
+          "3": "Glowing wing patterns"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (wings spread)",
+            "description": "The butterfly rests on a flower with wings spread to show the full pattern."
+          },
+          "butterfly_meadow_flutter": {
+            "name": "Fluttering over the meadow flowers",
+            "description": "Gentle rhythmic wing movement combined with a light vertical hover."
+          },
+          "butterfly_flower_bask": {
+            "name": "Resting and folding wings on a flower",
+            "description": "Slowly opening and closing the wings in the morning sun."
+          },
+          "butterfly_spiral_dance": {
+            "name": "Spiral dance in the spring wind",
+            "description": "Playful circular flight with fast wing flutters."
+          }
+        },
+        "skins": {
+          "butterfly_morpho_cyan": {
+            "name": "Glowing turquoise morpho (original)",
+            "subtitle": "Gleaming turquoise wings with a dark border and points of light"
+          },
+          "butterfly_monarch_amber": {
+            "name": "Royal monarch (orange and gold)",
+            "subtitle": "Orange-gold wings with black veins"
+          },
+          "butterfly_sakura_pink": {
+            "name": "Sakura blossom butterfly",
+            "subtitle": "Wings in cherry pink and glowing magenta"
+          },
+          "butterfly_swallowtail_gold": {
+            "name": "Royal swallowtail (yellow-emerald)",
+            "subtitle": "Glowing yellow-green wings of the spring valley"
+          }
+        }
+      },
+      "imperial_sky_dragon": {
+        "name": "Imperial sky dragon",
+        "subtitle": "Mighty 22-segment eastern dragon flying in the skies above the northern fortress",
+        "category_label": "Animals",
+        "world_location": "Skies above the imperial fortress and the Sakura Temple",
+        "world_coordinates": "(22, -265) at 72 m altitude",
+        "description": "The imperial sky dragon, built from a sculpted head with marble horns, glowing red eyes, a flowing golden moustache, 22 tapered body segments with crimson dorsal fins and 4 clawed legs.",
+        "anatomy_tags": {
+          "0": "22 flexible body segments",
+          "1": "Marble horns and golden moustache",
+          "2": "Glowing eyes",
+          "3": "Crimson dorsal fins",
+          "4": "4 clawed legs"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (stretched out in the air)",
+            "description": "All 22 dragon segments aligned in a base pose for inspecting the full structure."
+          },
+          "dragon_sky_flight": {
+            "name": "Wave flight in the sky (Sky Serpent Flight)",
+            "description": "3D sinusoidal wave motion along all 22 body segments and the head."
+          },
+          "dragon_coiled_hover": {
+            "name": "Spiral hover around the pagoda",
+            "description": "Tight circular coiling of the dragon's body with majestic head movement."
+          },
+          "dragon_roar_surge": {
+            "name": "Imperial dragon roar",
+            "description": "Raise the head, open the jaw and send a fast energy wave from head to tail tip."
+          }
+        },
+        "skins": {
+          "dragon_imperial_gold": {
+            "name": "Imperial gold and crimson (original)",
+            "subtitle": "Gleaming gold scales and crimson dorsal fins"
+          },
+          "dragon_celestial_jade": {
+            "name": "Celestial jade dragon",
+            "subtitle": "Green jade scales, gold fins and glowing turquoise eyes"
+          },
+          "dragon_obsidian_amethyst": {
+            "name": "Night and amethyst dragon",
+            "subtitle": "Dark basalt scales and purple amethyst crystals from the mine"
+          }
+        }
+      },
+      "dwarven_king_statue": {
+        "name": "Giant dwarf king guardian",
+        "subtitle": "The mighty monolith guardian standing at the gate of the dwarven kingdom with a double-bladed axe and lantern",
+        "category_label": "Characters",
+        "world_location": "Entrance gate of the dwarven kingdom",
+        "description": "The pair of giant guardians standing at the dwarven kingdom gate — carved from granite and antique bronze, with gleaming golden eyes, a braided stone beard, a double-bladed battle axe and a hanging fire lantern.",
+        "anatomy_tags": {
+          "0": "Carved granite plinth",
+          "1": "Bronze pauldrons",
+          "2": "3-braid stone beard",
+          "3": "Double-bladed battle axe",
+          "4": "Hanging lantern"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (guard stance)",
+            "description": "The original monumental guard pose at the mine gate."
+          },
+          "statue_lantern_pulse": {
+            "name": "Flickering golden eyes and swinging lantern",
+            "description": "A pulse of light in the king's eyes and the hanging lantern swaying in the mountain wind."
+          },
+          "statue_awakened_guard": {
+            "name": "The mine guardian awakens (axe swing)",
+            "description": "The guardian comes to life, swings the double-bladed battle axe and strikes the ground."
+          }
+        },
+        "skins": {
+          "statue_granite_bronze": {
+            "name": "Granite and antique bronze (original)",
+            "subtitle": "Grey mountain stone with bronze and gold armor"
+          },
+          "statue_solid_gold": {
+            "name": "Cast royal gold",
+            "subtitle": "Guardian of the king's treasure in pure gold and red ruby"
+          },
+          "statue_basalt_emerald": {
+            "name": "Deep basalt and emerald",
+            "subtitle": "Black basalt stone inlaid with green emerald crystals"
+          }
+        }
+      },
+      "golden_buddha": {
+        "name": "Golden Buddha on the lotus throne",
+        "subtitle": "The monumental Buddha figure at the heart of the Sakura Temple with a halo and silk lanterns",
+        "category_label": "Characters",
+        "world_location": "The eastern Sakura Temple",
+        "description": "The golden Buddha figure seated on a three-tier marble and crimson lotus throne at the heart of the Sakura Temple, surrounded by a golden halo and a pair of red Chinese lanterns.",
+        "anatomy_tags": {
+          "0": "3-tier lotus throne",
+          "1": "Golden back halo",
+          "2": "Pair of Chinese lanterns",
+          "3": "Meditation seat"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (quiet lotus seat)",
+            "description": "The quiet golden meditation pose on the lotus throne."
+          },
+          "buddha_halo_spin": {
+            "name": "Rotating halo glow and temple lanterns",
+            "description": "The golden halo rotates behind the head while the silk lanterns sway."
+          },
+          "buddha_levitation": {
+            "name": "Meditative levitation above the lotus throne",
+            "description": "Serene rise into the air above the lotus petals with a pulse of light."
+          }
+        },
+        "skins": {
+          "buddha_imperial_gold": {
+            "name": "Gleaming imperial gold (original)",
+            "subtitle": "Polished gold on a marble and crimson throne"
+          },
+          "buddha_sacred_jade": {
+            "name": "Sacred jade (Sacred Jade)",
+            "subtitle": "Translucent green jade with a golden throne"
+          },
+          "buddha_white_marble": {
+            "name": "Pure white marble and sapphire halo",
+            "subtitle": "White marble sculpture with a glowing light-blue halo"
+          }
+        }
+      }
+    },
+    "editor": {
+      "ranger_third_person": {
+        "weapon_group_title": "Right-hand weapon — rune sword / torch",
+        "left_weapon_group_title": "Left-hand weapon — recurve bow",
+        "right_limb_title": "Right arm and hand (sword grip)",
+        "left_limb_title": "Left arm and hand (bow grip)",
+        "head_title": "Head and gaze"
+      },
+      "dwarven_miner": {
+        "weapon_group_title": "Right-hand tool — iron pickaxe",
+        "left_weapon_group_title": "Left-hand tool — miner's lantern",
+        "right_limb_title": "Right arm (pickaxe swing)",
+        "left_limb_title": "Left arm (carrying lantern)",
+        "head_title": "Head, helmet and beard"
+      },
+      "shaolin_monk": {
+        "weapon_group_title": "Right-hand weapon — gilded fighting staff (Staff)",
+        "left_weapon_group_title": "Silk sash and secondary gear",
+        "right_limb_title": "Right arm (staff grip)",
+        "left_limb_title": "Left arm",
+        "head_title": "Head and neck"
+      },
+      "tai_chi_monk": {
+        "weapon_group_title": "Silk sash and main accessory",
+        "left_weapon_group_title": "Left sleeve and secondary accessory",
+        "right_limb_title": "Right arm (tai chi)",
+        "left_limb_title": "Left arm (tai chi)",
+        "head_title": "Head and neck"
+      },
+      "harbor_merchant": {
+        "weapon_group_title": "Right-hand tool — smith's hammer",
+        "left_weapon_group_title": "Left-hand accessory — merchant scroll",
+        "right_limb_title": "Right arm (hammer)",
+        "left_limb_title": "Left arm (scroll)",
+        "head_title": "Head and merchant hat"
+      },
+      "dwarven_king_statue": {
+        "weapon_group_title": "Right-hand weapon — double-bladed battle axe",
+        "left_weapon_group_title": "Left-hand accessory — gate lantern",
+        "right_limb_title": "Right axe arm",
+        "left_limb_title": "Left lantern arm",
+        "head_title": "Crowned head and beard"
+      },
+      "golden_buddha": {
+        "weapon_group_title": "Golden halo",
+        "left_weapon_group_title": "Upper lotus throne",
+        "right_limb_title": "Right shoulder and side",
+        "left_limb_title": "Left shoulder and side",
+        "head_title": "Buddha head"
+      },
+      "mountain_eagle": {
+        "weapon_group_title": "Fan tail (flight steering)",
+        "left_weapon_group_title": "Front beak",
+        "right_limb_title": "Right wing",
+        "left_limb_title": "Left wing",
+        "head_title": "Head and neck"
+      },
+      "meadow_butterfly": {
+        "weapon_group_title": "Right antenna",
+        "left_weapon_group_title": "Left antenna",
+        "right_limb_title": "Right wing (fore + hind)",
+        "left_limb_title": "Left wing (fore + hind)",
+        "head_title": "Head and thorax"
+      },
+      "koi_fish": {
+        "weapon_group_title": "Two-lobed tail fin (thrust)",
+        "left_weapon_group_title": "Upper dorsal fin",
+        "right_limb_title": "Right pectoral fin",
+        "left_limb_title": "Left pectoral fin",
+        "head_title": "Head and barbels"
+      },
+      "forest_deer": {
+        "weapon_group_title": "Branching antler crown",
+        "left_weapon_group_title": "Deer tail",
+        "right_limb_title": "Right legs",
+        "left_limb_title": "Left legs",
+        "head_title": "Head and neck"
+      },
+      "forest_bear": {
+        "weapon_group_title": "Right paw and claws",
+        "left_weapon_group_title": "Lower jaw and teeth",
+        "right_limb_title": "Bear's right legs",
+        "left_limb_title": "Bear's left legs",
+        "head_title": "Bear's head and neck"
+      },
+      "river_crocodile": {
+        "weapon_group_title": "Jaws and lower jaw",
+        "left_weapon_group_title": "Articulated armored tail",
+        "right_limb_title": "Crocodile's right legs",
+        "left_limb_title": "Crocodile's left legs",
+        "head_title": "Crocodile's head and snout"
+      },
+      "jungle_jaguar": {
+        "weapon_group_title": "Front paws and claws",
+        "left_weapon_group_title": "Jaguar tail and lower jaw",
+        "right_limb_title": "Jaguar's right legs",
+        "left_limb_title": "Jaguar's left legs",
+        "head_title": "Jaguar's head and neck"
+      },
+      "default": {
+        "weapon_group_title": "Tail / main accessory",
+        "left_weapon_group_title": "Saddle / ears / secondary accessory",
+        "right_limb_title": "Right legs",
+        "left_limb_title": "Left legs",
+        "head_title": "Head and neck"
+      }
+    },
+    "horse_stable_subtitle": "Stable #{n} ({x}, {z})",
+    "view": {
+      "camera_angle": "3D",
+      "camera_front": "Front",
+      "camera_side": "Side",
+      "camera_back": "Back",
+      "camera_closeup": "Close-up",
+      "env_studio_day": "Studio day",
+      "env_golden_sunset": "Golden sunset",
+      "env_moonlit_night": "Moonlit night",
+      "title": "Character & Animation Lab",
+      "category_counts": "{characters} characters · {animals} animals",
+      "subtitle": "Interactive inspection of every character and animal in the world, with their animations and skins",
+      "saving": "Saving to file...",
+      "saved": "✓ Saved to file",
+      "save": "Save to file",
+      "back_to_menu": "Back to main menu",
+      "view_category": "View category",
+      "items_count": "{count} items",
+      "all_categories": "All categories ({count})",
+      "search_characters": "Search characters (ranger, dwarf, monk, merchant...)",
+      "search_animals": "Search animals (horse, deer, koi, butterfly...)",
+      "search_all": "Search every character and animal in the world...",
+      "entity_counts": "{animations} animations · {skins} skins",
+      "location_count": "{location} · Count: {count}",
+      "parts_count": "Parts: {count}",
+      "triangles_count": "Triangles: {count}",
+      "skin_label": "Skin: {name}",
+      "previous_entity": "Previous entity",
+      "previous": "◀ Previous",
+      "next_entity": "Next entity",
+      "next": "Next ▶",
+      "turntable": "Turntable",
+      "height_ruler": "Height ruler (m)",
+      "wireframe": "Polygon wireframe",
+      "floor_grid": "Floor grid",
+      "snapshot_title": "Save a PNG image of the character",
+      "snapshot": "PNG snapshot",
+      "camera_angle_label": "Camera angle:",
+      "hint_drag": "Mouse drag: free 360° rotation",
+      "hint_wheel": "Wheel: zoom in/out",
+      "static_mode": "Static: no animation",
+      "playing": "Playing: {name}",
+      "resume": "Resume",
+      "pause": "Pause",
+      "reset_pose": "Reset to base pose",
+      "step_back": "Step back (-5%)",
+      "step_forward": "Step forward (+5%)",
+      "speed_label": "Speed (saved in code):",
+      "slow_down": "Slow down animation (-0.1x)",
+      "speed_up": "Speed up animation (+0.1x)",
+      "tab_animations": "Animations",
+      "tab_editor": "Editing & fixes",
+      "tab_skins": "Skins",
+      "animations_of": "Animations of {name}",
+      "fix_sword_angle": "Fix sword angle / rotation ✦",
+      "speed_fixed_title": "Animation speed fixed in code",
+      "select_animation_hint": "Select an animation to calibrate and save its speed in code",
+      "autosaved_for": "Auto-saved in code for \"{name}\"",
+      "apply_all": "Apply to all animations",
+      "editor_title": "Animation editing & limb calibration",
+      "live_fixes_for": "Live fixes for {name} (saved automatically)",
+      "reset_all": "Reset all ({count})",
+      "equipment_display": "Weapon / accessory display in hand (right and left separately):",
+      "equip_auto": "Auto",
+      "equip_both": "Both",
+      "equip_right_only": "Right only",
+      "equip_left_only": "Left only",
+      "equip_none": "None",
+      "reset_right_hand": "Reset right hand",
+      "rotate_plus_45": "Rotate +45°",
+      "rotate_minus_45": "Rotate -45°",
+      "rotate_blade_90": "Rotate blade 90°",
+      "flip_180": "Flip 180°",
+      "angle_x": "X angle (tilt forward/back)",
+      "angle_y_grip": "Y angle (rotate around the grip)",
+      "angle_z": "Z angle (tilt sideways)",
+      "scale_right": "Size / scale (right hand)",
+      "reset_left_hand": "Reset left hand",
+      "rotate_90": "Rotate 90°",
+      "angle_y_axis": "Y angle (rotate around the axis)",
+      "scale_left": "Size / scale (left hand)",
+      "motion_strength": "Animation motion strength",
+      "motion_strength_hint": "Reduce or boost the motion amplitude of the active animation (100% = original)",
+      "reset": "Reset",
+      "axis_x": "X axis (raise/lower)",
+      "axis_y": "Y axis (rotate in/out)",
+      "axis_z": "Z axis (open sideways)",
+      "head_body_height": "{head} · Body & height",
+      "head_turn": "Head turn right/left (Y)",
+      "head_tilt": "Head tilt up/down (X)",
+      "body_tilt": "Body tilt forward/back (X)",
+      "body_rotation": "Body rotation around the axis (Y)",
+      "hover_height": "Hover height / vertical position (Y)",
+      "saved_short": "✓ Saved to file!",
+      "copied": "✓ Copied to clipboard!",
+      "copy_json": "Copy JSON",
+      "skins_of": "Variants and skins of {name}",
+      "structure_title": "Entity structure and parts"
+    }
   }
 } as const;
 
