@@ -238,7 +238,6 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
 
   return (
     <div
-      dir="ltr"
       role="dialog"
       aria-modal="true"
       data-testid="game-settings-modal"
@@ -505,7 +504,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   <span className="text-sm font-bold text-stone-100">
                     Mouse Sensitivity
                   </span>
-                  <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
+                  <span className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.mouseSensitivity.toFixed(2)}x
                   </span>
                 </div>
@@ -531,7 +530,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   <span className="text-sm font-bold text-stone-100">
                     Movement Speed
                   </span>
-                  <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
+                  <span className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.walkSpeedMultiplier.toFixed(2)}x
                   </span>
                 </div>
@@ -557,7 +556,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   <span className="text-sm font-bold text-stone-100">
                     Jump Force
                   </span>
-                  <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
+                  <span className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.jumpForceMultiplier.toFixed(2)}x
                   </span>
                 </div>
