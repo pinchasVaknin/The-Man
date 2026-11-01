@@ -1,0 +1,318 @@
+[
+ {
+  "asleep": {
+   "hearingRadius": 10,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 18,
+   "visionRange": 14
+  },
+  "isPredator": false,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "small_hide"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Small Hide"
+   ],
+   "notification": "Looted Rabbit: Game Meat, Small Hide"
+  },
+  "maxHp": 1,
+  "name": "Rabbit",
+  "sizeRank": 1,
+  "species": "rabbit",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 10,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 18,
+   "visionRange": 14
+  },
+  "isPredator": false,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "small_hide"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Small Hide"
+   ],
+   "notification": "Looted Squirrel: Game Meat, Small Hide"
+  },
+  "maxHp": 1,
+  "name": "Squirrel",
+  "sizeRank": 1,
+  "species": "squirrel",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 11.5,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 23,
+   "visionRange": 20
+  },
+  "isPredator": false,
+  "loot": {
+   "itemIds": [
+    "deer_meat",
+    "deer_hide",
+    "deer_antlers",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Deer Meat",
+    "Deer Hide",
+    "Deer Antlers",
+    "Animal Bone"
+   ],
+   "notification": "Looted Deer: Deer Meat, Deer Hide, Deer Antlers, Animal Bone"
+  },
+  "maxHp": 3,
+  "name": "Deer",
+  "sizeRank": 2,
+  "species": "deer",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 10,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 17,
+   "visionRange": 14
+  },
+  "isPredator": false,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "sheep_hide",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Wool",
+    "Animal Bone"
+   ],
+   "notification": "Looted Sheep: Game Meat, Wool, Animal Bone"
+  },
+  "maxHp": 2,
+  "name": "Sheep",
+  "sizeRank": 2,
+  "species": "sheep",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 10.5,
+   "visionRange": 0
+  },
+  "attackTrigger": 3.1,
+  "awake": {
+   "hearingRadius": 24,
+   "visionRange": 22.5
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "bear_meat",
+    "bear_hide",
+    "bear_claws",
+    "animal_fat",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Bear Meat",
+    "Bear Hide",
+    "Bear Claws",
+    "Animal Fat",
+    "Animal Bone"
+   ],
+   "notification": "Looted Bear: Bear Meat, Bear Hide, Bear Claws, Animal Fat, Animal Bone"
+  },
+  "maxHp": 8,
+  "name": "Bear",
+  "sizeRank": 4,
+  "species": "bear",
+  "standoff": 2.45
+ },
+ {
+  "asleep": {
+   "hearingRadius": 9.5,
+   "visionRange": 0
+  },
+  "attackTrigger": 4.35,
+  "awake": {
+   "hearingRadius": 16,
+   "visionRange": 15
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "crocodile_hide",
+    "crocodile_teeth",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Crocodile Hide",
+    "Crocodile Teeth",
+    "Animal Bone"
+   ],
+   "notification": "Looted Crocodile: Game Meat, Crocodile Hide, Crocodile Teeth, Animal Bone"
+  },
+  "maxHp": 6,
+  "name": "Crocodile",
+  "sizeRank": 3.5,
+  "species": "crocodile",
+  "standoff": 2.65
+ },
+ {
+  "asleep": {
+   "hearingRadius": 12,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.45,
+  "awake": {
+   "hearingRadius": 24,
+   "visionRange": 22
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "jaguar_hide",
+    "wolf_fang",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Jaguar Hide",
+    "Wolf Fang",
+    "Animal Bone"
+   ],
+   "notification": "Looted Jaguar: Game Meat, Jaguar Hide, Wolf Fang, Animal Bone"
+  },
+  "maxHp": 4,
+  "name": "Jaguar",
+  "sizeRank": 3,
+  "species": "jaguar",
+  "standoff": 1.8
+ },
+ {
+  "asleep": {
+   "hearingRadius": 12,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 24,
+   "visionRange": 21
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "wolf_hide",
+    "wolf_fang",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Wolf Hide",
+    "Wolf Fang",
+    "Animal Bone"
+   ],
+   "notification": "Looted Wolf: Game Meat, Wolf Hide, Wolf Fang, Animal Bone"
+  },
+  "maxHp": 3,
+  "name": "Wolf",
+  "sizeRank": 2.5,
+  "species": "wolf",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 11,
+   "visionRange": 0
+  },
+  "attackTrigger": 3.05,
+  "awake": {
+   "hearingRadius": 22,
+   "visionRange": 19.5
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "rhino_hide",
+    "rhino_horn",
+    "animal_fat",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Rhino Hide",
+    "Rhino Horn",
+    "Animal Fat",
+    "Animal Bone"
+   ],
+   "notification": "Looted Rhino: Game Meat, Rhino Hide, Rhino Horn, Animal Fat, Animal Bone"
+  },
+  "maxHp": 7,
+  "name": "Rhino",
+  "sizeRank": 4,
+  "species": "rhino",
+  "standoff": 2.4
+ },
+ {
+  "asleep": {
+   "hearingRadius": 10,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 18,
+   "visionRange": 14
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "dragon_meat",
+    "dragon_scales",
+    "dragon_horn",
+    "dragon_claws",
+    "dragon_bone"
+   ],
+   "itemLabels": [
+    "Dragon Meat",
+    "Dragon Scales",
+    "Dragon Horn",
+    "Dragon Claws",
+    "Dragon Bone"
+   ],
+   "notification": "Looted Dragon: Dragon Meat, Dragon Scales, Dragon Horn, Dragon Claws, Dragon Bone"
+  },
+  "maxHp": 250,
+  "name": "Dragon",
+  "sizeRank": 10,
+  "species": "dragon",
+  "standoff": 1.75
+ }
+]

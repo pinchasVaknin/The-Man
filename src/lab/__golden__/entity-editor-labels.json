@@ -1,0 +1,252 @@
+[
+ {
+  "entityId": "ranger_third_person",
+  "labels": {
+   "headTitle": "Head and gaze",
+   "leftLimbTitle": "Left arm and hand (bow grip)",
+   "leftWeaponGroupTitle": "Left-hand weapon — recurve bow",
+   "rightLimbTitle": "Right arm and hand (sword grip)",
+   "weaponGroupTitle": "Right-hand weapon — rune sword / torch"
+  }
+ },
+ {
+  "entityId": "ranger_first_person",
+  "labels": {
+   "headTitle": "Head and gaze",
+   "leftLimbTitle": "Left arm and hand (bow grip)",
+   "leftWeaponGroupTitle": "Left-hand weapon — recurve bow",
+   "rightLimbTitle": "Right arm and hand (sword grip)",
+   "weaponGroupTitle": "Right-hand weapon — rune sword / torch"
+  }
+ },
+ {
+  "entityId": "dwarven_miner",
+  "labels": {
+   "headTitle": "Head, helmet and beard",
+   "leftLimbTitle": "Left arm (carrying lantern)",
+   "leftWeaponGroupTitle": "Left-hand tool — miner's lantern",
+   "rightLimbTitle": "Right arm (pickaxe swing)",
+   "weaponGroupTitle": "Right-hand tool — iron pickaxe"
+  }
+ },
+ {
+  "entityId": "shaolin_monk",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left arm",
+   "leftWeaponGroupTitle": "Silk sash and secondary gear",
+   "rightLimbTitle": "Right arm (staff grip)",
+   "weaponGroupTitle": "Right-hand weapon — gilded fighting staff (Staff)"
+  }
+ },
+ {
+  "entityId": "tai_chi_monk",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left arm (tai chi)",
+   "leftWeaponGroupTitle": "Left sleeve and secondary accessory",
+   "rightLimbTitle": "Right arm (tai chi)",
+   "weaponGroupTitle": "Silk sash and main accessory"
+  }
+ },
+ {
+  "entityId": "harbor_merchant",
+  "labels": {
+   "headTitle": "Head and merchant hat",
+   "leftLimbTitle": "Left arm (scroll)",
+   "leftWeaponGroupTitle": "Left-hand accessory — merchant scroll",
+   "rightLimbTitle": "Right arm (hammer)",
+   "weaponGroupTitle": "Right-hand tool — smith's hammer"
+  }
+ },
+ {
+  "entityId": "rideable_horse",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "forest_deer",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Deer tail",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Branching antler crown"
+  }
+ },
+ {
+  "entityId": "forest_bear",
+  "labels": {
+   "headTitle": "Bear's head and neck",
+   "leftLimbTitle": "Bear's left legs",
+   "leftWeaponGroupTitle": "Lower jaw and teeth",
+   "rightLimbTitle": "Bear's right legs",
+   "weaponGroupTitle": "Right paw and claws"
+  }
+ },
+ {
+  "entityId": "river_crocodile",
+  "labels": {
+   "headTitle": "Crocodile's head and snout",
+   "leftLimbTitle": "Crocodile's left legs",
+   "leftWeaponGroupTitle": "Articulated armored tail",
+   "rightLimbTitle": "Crocodile's right legs",
+   "weaponGroupTitle": "Jaws and lower jaw"
+  }
+ },
+ {
+  "entityId": "jungle_jaguar",
+  "labels": {
+   "headTitle": "Jaguar's head and neck",
+   "leftLimbTitle": "Jaguar's left legs",
+   "leftWeaponGroupTitle": "Jaguar tail and lower jaw",
+   "rightLimbTitle": "Jaguar's right legs",
+   "weaponGroupTitle": "Front paws and claws"
+  }
+ },
+ {
+  "entityId": "forest_wolf",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "savanna_rhino",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "grazing_sheep",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "forest_rabbit",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "woodland_squirrel",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "mountain_eagle",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left wing",
+   "leftWeaponGroupTitle": "Front beak",
+   "rightLimbTitle": "Right wing",
+   "weaponGroupTitle": "Fan tail (flight steering)"
+  }
+ },
+ {
+  "entityId": "flock_bird",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left wing",
+   "leftWeaponGroupTitle": "Front beak",
+   "rightLimbTitle": "Right wing",
+   "weaponGroupTitle": "Fan tail (flight steering)"
+  }
+ },
+ {
+  "entityId": "harbor_seagull",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left wing",
+   "leftWeaponGroupTitle": "Front beak",
+   "rightLimbTitle": "Right wing",
+   "weaponGroupTitle": "Fan tail (flight steering)"
+  }
+ },
+ {
+  "entityId": "koi_fish",
+  "labels": {
+   "headTitle": "Head and barbels",
+   "leftLimbTitle": "Left pectoral fin",
+   "leftWeaponGroupTitle": "Upper dorsal fin",
+   "rightLimbTitle": "Right pectoral fin",
+   "weaponGroupTitle": "Two-lobed tail fin (thrust)"
+  }
+ },
+ {
+  "entityId": "meadow_butterfly",
+  "labels": {
+   "headTitle": "Head and thorax",
+   "leftLimbTitle": "Left wing (fore + hind)",
+   "leftWeaponGroupTitle": "Left antenna",
+   "rightLimbTitle": "Right wing (fore + hind)",
+   "weaponGroupTitle": "Right antenna"
+  }
+ },
+ {
+  "entityId": "imperial_sky_dragon",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "dwarven_king_statue",
+  "labels": {
+   "headTitle": "Crowned head and beard",
+   "leftLimbTitle": "Left lantern arm",
+   "leftWeaponGroupTitle": "Left-hand accessory — gate lantern",
+   "rightLimbTitle": "Right axe arm",
+   "weaponGroupTitle": "Right-hand weapon — double-bladed battle axe"
+  }
+ },
+ {
+  "entityId": "golden_buddha",
+  "labels": {
+   "headTitle": "Buddha head",
+   "leftLimbTitle": "Left shoulder and side",
+   "leftWeaponGroupTitle": "Upper lotus throne",
+   "rightLimbTitle": "Right shoulder and side",
+   "weaponGroupTitle": "Golden halo"
+  }
+ },
+ {
+  "entityId": "unknown_entity",
+  "labels": {
+   "headTitle": "Head and neck",
+   "leftLimbTitle": "Left legs",
+   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
+   "rightLimbTitle": "Right legs",
+   "weaponGroupTitle": "Tail / main accessory"
+  }
+ }
+]

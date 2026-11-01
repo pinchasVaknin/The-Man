@@ -724,5 +724,77 @@
     "seen": 1793553970.2513876,
     "ast_hash": "05c0bc55a5355734de5adb4fb39fe162",
     "semantic_hash": ""
+  },
+  "src/lab/__golden__/entity-editor-labels.json": {
+    "mtime": 1793555023.615085,
+    "seen": 1793555073.2617273,
+    "ast_hash": "5b57da1f7dd3a85114dc75ffc66f8e5d",
+    "semantic_hash": ""
+  },
+  "src/lab/labCatalog.characterization.spec.ts": {
+    "mtime": 1793554960.0114632,
+    "seen": 1793555073.2617283,
+    "ast_hash": "89c107c6926f0d9e873b5abf6f0ce9d3",
+    "semantic_hash": ""
+  },
+  "src/testSupport/goldenMaster.spec.ts": {
+    "mtime": 1793554928.4361455,
+    "seen": 1793555073.2617383,
+    "ast_hash": "9310cef253aa70ee334097b35d4c8701",
+    "semantic_hash": ""
+  },
+  "src/testSupport/goldenMaster.ts": {
+    "mtime": 1793554928.4145613,
+    "seen": 1793555073.2617393,
+    "ast_hash": "11258c5def14e01da91a001b4948277d",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/arrow-flight.json": {
+    "mtime": 1793555006.4473712,
+    "seen": 1793555073.2617908,
+    "ast_hash": "d11872ac34b9b2956ee5a31b1e74008f",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/atmosphere.json": {
+    "mtime": 1793555006.4143915,
+    "seen": 1793555073.261792,
+    "ast_hash": "bb9164a022d388c217de91680f46f18c",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/player-physics.json": {
+    "mtime": 1793555006.3821294,
+    "seen": 1793555073.2617931,
+    "ast_hash": "21b75ef9b9b10442ef00e599b3af953a",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/species-rules.json": {
+    "mtime": 1793555006.281124,
+    "seen": 1793555073.261794,
+    "ast_hash": "8f9914ec04809d245ecaa7356b29600a",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/sword-swing.json": {
+    "mtime": 1793555006.4650054,
+    "seen": 1793555073.2617948,
+    "ast_hash": "dcdb2a2f2b2d33cddbe289b280a7c577",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/wildlife-day.json": {
+    "mtime": 1793555006.3144348,
+    "seen": 1793555073.2617955,
+    "ast_hash": "ed95321835e50dea7310963091ae3ea3",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/wildlife-rainy-night.json": {
+    "mtime": 1793555006.3650503,
+    "seen": 1793555073.2617962,
+    "ast_hash": "88b8c7bef30db2fcb0ef2a620b93ba42",
+    "semantic_hash": ""
+  },
+  "src/world/systems/worldBehavior.characterization.spec.ts": {
+    "mtime": 1793554987.6145413,
+    "seen": 1793555073.2618198,
+    "ast_hash": "05f1f743b1b107b24f457428a1729cc4",
+    "semantic_hash": ""
   }
 }
