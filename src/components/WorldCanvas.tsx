@@ -13,18 +13,12 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import {
-  BiomeType,
-  WalkPaceMode,
   WeatherKind,
   WeatherCycleMode,
   WeatherToggleOption,
   SeasonType,
   IWeatherStateSnapshot,
-  CameraPerspectiveMode,
-  EquippedToolSlot,
   ArrowElementKind,
-  InventoryItemId,
-  ICharacterSkillsState,
   IArrowProjectile,
   DEFAULT_WEATHER_CYCLE_MODE,
   PLAYER_EYE_HEIGHT,
@@ -35,7 +29,6 @@ import {
   assignHotbarSlot,
   toggleFavoriteItem,
   createInitialRideableHorses,
-  findNearestRideableHorse,
   stepPlayerPhysics,
   awardSkillXp,
   spawnArrowProjectile,
@@ -46,7 +39,6 @@ import {
   isPositionUnderRoof,
   findNearestFortressDoor,
   findNearestBed,
-  findNearestMarketStall,
   findLookedAtWatchtowerLadder,
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
@@ -78,6 +70,7 @@ import {
   createAnimationFrameScheduler,
   createGpuFencePacedScheduler,
 } from '../world/controllers/frameSchedulers';
+import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
 import { isBindingHeld, matchesKeyBinding } from '../config/keyBindingMatch';
 import {
   SAVED_GAME_SETTINGS,
@@ -1527,102 +1520,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     function emitHudSnapshot() {
-      const normYaw = ((((playerState.yaw * 180) / Math.PI) % 360) + 360) % 360;
-      const nearDoor = findNearestFortressDoor(
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        playerState.yaw,
-        playerState.pitch
+      onTelemetryUpdateRef.current(
+        buildTelemetrySnapshot({
+          player: playerState,
+          horses: rideableHorses,
+          openDoorIds,
+          atmosphere: currentAtmo,
+          weather: currentWeather,
+          colliderDebugVisible: worldHandles.colliderDebugHandles.isVisible(),
+          pointerLocked: document.pointerLockElement === renderer.domElement,
+          lootNotification: lastLootNotificationTimer > 0 ? lastLootNotification : null,
+          arrowHitTargetName: lastArrowHitTimer > 0 ? lastArrowHitTargetName : null,
+          isSleepingInBed,
+          worldHours,
+          forcedSeason,
+        })
       );
-      const nearLadder = findLookedAtWatchtowerLadder(
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        playerState.yaw,
-        playerState.pitch
-      );
-      const nearHorse = !playerState.mountedHorseId
-        ? findNearestRideableHorse(playerState.x, playerState.y, playerState.z, rideableHorses)
-        : null;
-      const nearMarket = findNearestMarketStall(playerState.x, playerState.z);
-      const nearDeadAnimal = findNearestDeadLootableAnimal(playerState.x, playerState.z);
-      const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
-      onTelemetryUpdateRef.current({
-        x: playerState.x,
-        y: playerState.y,
-        z: playerState.z,
-        yawDeg: normYaw,
-        distanceWalked: playerState.distanceWalked,
-        stepCount: playerState.stepCount,
-        biome: playerState.currentBiome,
-        walkPace: playerState.walkPace,
-        isFlying: playerState.isFlying,
-        isSwimming: playerState.isSwimming,
-        isCrouching: Boolean(playerState.isCrouching),
-        colliderDebugVisible: worldHandles.colliderDebugHandles.isVisible(),
-        cameraPerspective: playerState.cameraPerspective,
-        equippedTool: playerState.equippedTool,
-        activeWeaponId: playerState.activeWeaponId,
-        arrowKind: playerState.arrowKind,
-        hotbarSlots: playerState.hotbarSlots ? [...playerState.hotbarSlots] : undefined,
-        favoriteIds: playerState.favoriteIds ? [...playerState.favoriteIds] : undefined,
-        goldCoins: playerState.goldCoins ?? 280,
-        ownedItemIds: playerState.ownedItemIds ? [...playerState.ownedItemIds] : undefined,
-        nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
-        nearbyDeadAnimal: nearDeadAnimal
-          ? {
-              id: String(nearDeadAnimal.id),
-              species: nearDeadAnimal.species,
-              speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
-            }
-          : null,
-        lootNotification: lastLootNotificationTimer > 0 ? lastLootNotification : null,
-        swordSwingProgress: playerState.swordSwingProgress,
-        dashCooldown: playerState.dashCooldown,
-        bowDrawn: playerState.bowDrawn,
-        bowDrawProgress: playerState.bowDrawProgress,
-        arrowsShotCount: playerState.arrowsShotCount,
-        lastArrowHitTarget: playerState.lastArrowHitTarget,
-        lastArrowHitTargetName: lastArrowHitTimer > 0 ? lastArrowHitTargetName : null,
-        timeString: currentAtmo.timeString,
-        phaseLabel: currentAtmo.phaseLabel,
-        sunElevationDeg: currentAtmo.sunElevationDeg,
-        pointerLocked: document.pointerLockElement === renderer.domElement,
-        weatherKind: currentWeather.weatherKind,
-        weatherLabel: currentWeather.weatherLabel,
-        wetness: currentWeather.wetness,
-        mountedHorseId: playerState.mountedHorseId,
-        nearbyHorse: nearHorse
-          ? {
-              id: nearHorse.id,
-              name: nearHorse.name,
-            }
-          : null,
-        nearbyDoor: nearDoor
-          ? {
-              id: nearDoor.id,
-              buildingName: nearDoor.buildingName,
-              isOpen: openDoorIds.has(nearDoor.id),
-            }
-          : null,
-        nearbyBed: nearBed
-          ? {
-              id: nearBed.id,
-              name: nearBed.name,
-            }
-          : null,
-        isSleepingInBed,
-        worldHours,
-        season: currentWeather.season,
-        seasonLabel: currentWeather.seasonLabel,
-        forcedSeason,
-        nearbyLadder: Boolean(nearLadder),
-        climbingLadder: Boolean(playerState.climbingLadderId),
-        stamina: playerState.stamina,
-        maxStamina: playerState.maxStamina,
-        skills: playerState.skills ? { ...playerState.skills } : undefined,
-      });
     }
 
     const gameLoop = new GameLoop({
