@@ -44,7 +44,6 @@ export interface IFortressModelResult {
   fortressGroup: THREE.Group;
   updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
-export type FortressModelResult = IFortressModelResult;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\

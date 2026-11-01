@@ -92,7 +92,6 @@ export interface IBoidBirdState {
   homeX: number;
   homeZ: number;
 }
-export type BoidBirdState = IBoidBirdState;
 
 /**
  * Summary: Autonomous ground animal state across rural, forest, birch, shore, and mountain biomes.
@@ -145,7 +144,6 @@ export interface ISmallAnimalState {
   isDead?: boolean; // true when hunted/killed after hp reaches 0
   isLooted?: boolean; // true after player collects loot with [E]
 }
-export type SmallAnimalState = ISmallAnimalState;
 // #endregion
 
 // ======================== SHELTER TREE CANOPIES ======================== \\
@@ -186,12 +184,6 @@ export function getActiveWorldAnimals(): ISmallAnimalState[] {
   return activeWorldAnimalsRegistry;
 }
 
-/**
- * Summary: Sets the active live world ground animals registry.
- */
-export function setActiveWorldAnimals(animals: ISmallAnimalState[]): void {
-  activeWorldAnimalsRegistry = animals;
-}
 // #endregion
 
 // ======================== SENSORY & PREDATOR PROFILES ======================== \\

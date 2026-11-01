@@ -7,7 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { ConsoleLogger, type ILogger } from '../core/ILogger';
 import { t } from '../locales';
 // #endregion

@@ -28,7 +28,6 @@ export interface IOasisModelHandles {
   readonly oasisGroup: THREE.Group;
   readonly updateOasis: (elapsedTime: number) => void;
 }
-export type OasisModelHandles = IOasisModelHandles;
 // #endregion
 
 // ======================== BUILD OASIS MODELS ======================== \\

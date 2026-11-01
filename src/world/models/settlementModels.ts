@@ -49,7 +49,6 @@ export interface ISettlementModelHandles {
     playerZ?: number
   ) => void;
 }
-export type SettlementModelHandles = ISettlementModelHandles;
 // #endregion
 
 // ======================== BUILD SETTLEMENT MODELS ======================== \\

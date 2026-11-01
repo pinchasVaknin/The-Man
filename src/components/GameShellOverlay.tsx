@@ -13,7 +13,6 @@ import {
   SeasonType,
   INVENTORY_ITEMS,
   InventoryItemId,
-  IInventoryItemDef,
   type IGameActions,
   type IBuyMarketItemPayload,
   type ISellMarketItemPayload,
@@ -61,7 +60,6 @@ export interface IGameShellOverlayProps {
   virtualMoveRef: React.MutableRefObject<IVirtualMoveState>;
   gameActions?: IGameActions | null;
 }
-export type GameShellOverlayProps = IGameShellOverlayProps;
 
 interface IWeatherOptionDef {
   id: WeatherToggleOption;

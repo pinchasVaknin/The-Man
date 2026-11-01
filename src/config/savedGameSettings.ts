@@ -150,7 +150,6 @@ export async function saveGameSettingsToFile(
   if (typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      window.dispatchEvent(new CustomEvent('game-settings-updated', { detail: settings }));
     } catch (err: unknown) {
       // Storage can be full or disabled; the file save below can still succeed.
       ConsoleLogger.instance.warn('Game settings could not be stored in localStorage', {

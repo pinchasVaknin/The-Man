@@ -29,18 +29,6 @@ export const MIN_WORLD_HOUR = 0;
 export const MAX_WORLD_HOUR = 24;
 
 /**
- * Summary: Valid weather kind tokens accepted by the dynamic weather simulation.
- */
-export const VALID_WEATHER_KINDS: readonly WeatherKind[] = [
-  'clear_clouds',
-  'regional_rain',
-  'dense_fog',
-  'lightning_storm',
-  'mountain_snow',
-  'wind_sand',
-] as const;
-
-/**
  * Summary: Mapping from short URL query parameter names to domain WeatherKind tokens.
  */
 export const URL_WEATHER_MAP: Record<string, WeatherKind> = {

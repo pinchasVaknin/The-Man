@@ -30,7 +30,6 @@ export interface IHorseSteeringStepResult {
   /** Summary: Instantaneous turning circle radius (meters). */
   readonly turningRadiusMeters: number;
 }
-export type HorseSteeringStepResult = IHorseSteeringStepResult;
 
 /**
  * Summary: I horse limb angles.
@@ -44,7 +43,6 @@ export interface IHorseLimbAngles {
   /** Summary: Hoof/fetlock pitch angle in radians. */
   readonly hoofPitch: number;
 }
-export type HorseLimbAngles = IHorseLimbAngles;
 
 /**
  * Summary: I horse biomechanical pose.
@@ -63,7 +61,6 @@ export interface IHorseBiomechanicalPose {
   readonly tailPitch: number;
   readonly tailSwayY: number;
 }
-export type HorseBiomechanicalPose = IHorseBiomechanicalPose;
 
 /** Summary: Maximum free-look angle for rider relative to horse heading (115 degrees in radians). */
 const MAX_RIDER_FREE_LOOK_RAD = (115 * Math.PI) / 180;

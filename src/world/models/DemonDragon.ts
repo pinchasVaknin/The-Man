@@ -9,15 +9,3 @@ export type {
   ReadyDemonDragonController,
 } from '../../../public/models/animals/DemonDragon_Complete';
 
-export const DEMON_DRAGON_STATES = [
-  'idle',
-  'walk',
-  'trot',
-  'fly',
-  'skip',
-  'roar',
-  'attack',
-  'lie',
-  'sleep',
-  'death',
-] as const;

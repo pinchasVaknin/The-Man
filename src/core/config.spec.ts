@@ -21,34 +21,34 @@ import {
 test('clamp_WhenValueWithinRange_ShouldReturnSameValue', () => {
   // Arrange
   const input = 5;
+
   // Act
   const result = clamp(input, 0, 10);
-  const res = clamp(15, 0, 100);
 
   // Assert
-  assert.equal(res, 15);
+  assert.equal(result, 5);
 });
 
 test('validateCoordinate_WhenWithinPlayableRadius_ShouldPreserveCoordinate', () => {
   // Arrange
-  const coord = 200;
+  const coord = 350;
+
   // Act
   const result = validateCoordinate(coord);
-  const res = validateCoordinate(350);
 
   // Assert
-  assert.equal(res, 350);
+  assert.equal(result, 350);
 });
 
 test('validateWorldHour_WhenValidHourInRange_ShouldPreserveHour', () => {
   // Arrange
   const hour = 14.5;
+
   // Act
   const result = validateWorldHour(hour);
-  const res = validateWorldHour(14.5);
 
   // Assert
-  assert.equal(res, 14.5);
+  assert.equal(result, 14.5);
 });
 
 test('parseAndValidateUrlOverrides_WhenValidQueryParametersProvided_ShouldParseAllFields', () => {

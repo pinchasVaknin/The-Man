@@ -43,7 +43,6 @@ export interface IWildlifeSoundCallbacks {
   onCritterScampered?: (distance: number, species: 'rabbit' | 'squirrel') => void;
   onAmbientWildlifeProximity?: (nearestBirdDist: number, nearestCritterDist: number) => void;
 }
-export type WildlifeSoundCallbacks = IWildlifeSoundCallbacks;
 
 export interface IWildlifeAndFootprintsHandles {
   readonly birds: IBoidBirdState[];
@@ -60,7 +59,6 @@ export interface IWildlifeAndFootprintsHandles {
   /** Removes the window listeners this layer registered; call when the world is torn down. */
   readonly dispose: () => void;
 }
-export type WildlifeAndFootprintsHandles = IWildlifeAndFootprintsHandles;
 // #endregion
 
 // ======================== BUILDER IMPLEMENTATION ======================== \\

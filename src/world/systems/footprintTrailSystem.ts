@@ -32,7 +32,6 @@ export interface IFootprintDecalState {
   maxAge: number;
   opacity: number;
 }
-export type FootprintDecalState = IFootprintDecalState;
 
 /**
  * Summary: I footprint trail tracker.
@@ -46,7 +45,6 @@ export interface IFootprintTrailTracker {
   stepAlternator: boolean;
   accumulatedDistance: number;
 }
-export type FootprintTrailTracker = IFootprintTrailTracker;
 
 export const MAX_FOOTPRINT_DECALS = 96;
 export const FOOTPRINT_MAX_AGE_SECONDS = 16.0;

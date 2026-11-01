@@ -11,7 +11,6 @@ import * as THREE from 'three';
 import {
   DWARVEN_GUARDIAN_STATUES,
   DWARVEN_STONE_HOUSES,
-  SOUTHERN_MINE_POS,
   VIEW_DISTANCE,
   isWithinViewDistance,
 } from '../domain/landmarksRegistry';
@@ -38,7 +37,6 @@ export interface IDwarvenMinerRig {
   torsoPivot: THREE.Group;
   lanternGlow: THREE.Mesh;
 }
-export type DwarvenMinerRig = IDwarvenMinerRig;
 
 /**
  * Summary: Construction context for generating the dwarven kingdom environment.
@@ -70,7 +68,6 @@ export interface IDwarvenKingdomBuilderContext {
     currentAngle: number;
   }[];
 }
-export type DwarvenKingdomBuilderContext = IDwarvenKingdomBuilderContext;
 
 /**
  * Summary: Runtime handle for ticking dwarven kingdom animations and caravan movements.
@@ -85,7 +82,6 @@ export interface IDwarvenKingdomHandle {
     playerZ: number
   ) => void;
 }
-export type DwarvenKingdomHandle = IDwarvenKingdomHandle;
 // #endregion
 
 // ======================== BUILD DWARVEN KINGDOM ======================== \\

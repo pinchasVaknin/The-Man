@@ -26,7 +26,6 @@ export interface IWorldTextureSet {
   contactShadow: THREE.CanvasTexture;
   dispose: () => void;
 }
-export type WorldTextureSet = IWorldTextureSet;
 
 function configureTexture(
   tex: THREE.CanvasTexture,

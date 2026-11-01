@@ -34,7 +34,6 @@ export interface IPlayerAndCombatBuilderContext {
   disposableMaterials: THREE.Material[];
   distanceCulledObjects: { obj: THREE.Object3D; cx: number; cz: number; radius: number }[];
 }
-export type PlayerAndCombatBuilderContext = IPlayerAndCombatBuilderContext;
 
 /**
  * Summary: Runtime handle exposing player visual rigs and projectile meshes.
@@ -48,7 +47,6 @@ export interface IPlayerAndCombatHandle {
     activeArrows?: readonly IArrowProjectile[]
   ) => void;
 }
-export type PlayerAndCombatHandle = IPlayerAndCombatHandle;
 // #endregion
 
 // ======================== BUILD PLAYER & COMBAT ======================== \\

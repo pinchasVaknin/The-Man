@@ -33,7 +33,6 @@ export interface IVec3Tuple {
   y: number;
   z: number;
 }
-export type Vec3Tuple = IVec3Tuple;
 
 /**
  * Summary: I first person arm pose.
@@ -51,7 +50,6 @@ export interface IFirstPersonArmPose {
   readonly handRz: number;
   readonly fingerCurl: number;
 }
-export type FirstPersonArmPose = IFirstPersonArmPose;
 
 /**
  * Summary: I first person sword grip transform.
@@ -65,7 +63,6 @@ export interface IFirstPersonSwordGripTransform {
   readonly rotY: number;
   readonly rotZ: number;
 }
-export type FirstPersonSwordGripTransform = IFirstPersonSwordGripTransform;
 
 /**
  * Summary: I first person slash ribbon pose.
@@ -82,7 +79,6 @@ export interface IFirstPersonSlashRibbonPose {
   readonly rotZ: number;
   readonly scale: number;
 }
-export type FirstPersonSlashRibbonPose = IFirstPersonSlashRibbonPose;
 
 /**
  * Summary: I first person sword camera impulse.
@@ -93,7 +89,6 @@ export interface IFirstPersonSwordCameraImpulse {
   readonly yawOffset: number;
   readonly rollOffset: number;
 }
-export type FirstPersonSwordCameraImpulse = IFirstPersonSwordCameraImpulse;
 
 /**
  * Summary: I first person sword attack pose result.
@@ -114,7 +109,6 @@ export interface IFirstPersonSwordAttackPoseResult {
   readonly slashRibbon: IFirstPersonSlashRibbonPose;
   readonly cameraImpulse: IFirstPersonSwordCameraImpulse;
 }
-export type FirstPersonSwordAttackPoseResult = IFirstPersonSwordAttackPoseResult;
 
 /**
  * Summary: I first person sword pose input.
@@ -133,7 +127,6 @@ export interface IFirstPersonSwordPoseInput {
   readonly impactKind?: SwordImpactKind;
   readonly impactAge?: number;
 }
-export type FirstPersonSwordPoseInput = IFirstPersonSwordPoseInput;
 
 /** Summary: Phase boundary thresholds across normalized swingProgress p in [0, 1]. */
 export const SWORD_PHASE_WINDUP_END = 0.24;

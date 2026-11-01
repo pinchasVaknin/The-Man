@@ -90,7 +90,6 @@ export interface ITerrainAndWaterResult {
   readonly waterMaterial: THREE.MeshPhysicalMaterial;
   readonly terrainMaterial: THREE.MeshStandardMaterial;
 }
-export type TerrainAndWaterResult = ITerrainAndWaterResult;
 
 /**
  * Summary: Build terrain and water model.

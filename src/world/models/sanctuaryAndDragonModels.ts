@@ -51,7 +51,6 @@ export interface ISanctuaryAndDragonResult {
   sakuraSanctuaryGroup: THREE.Group;
   updateSanctuaryAndDragon: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
-export type SanctuaryAndDragonResult = ISanctuaryAndDragonResult;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\
