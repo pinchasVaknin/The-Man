@@ -1,3 +1,11 @@
+// ============================================================================
+// MODULE: World / Models / Animals / Bear (embedded model bundle)
+// DESIGN: Self-contained asset module: geometry, rig, skinning and animator with
+//         embedded data; generated outside this codebase and kept as-is
+// SUMMARY: Builds and animates the Bear model. Imported only through the
+//          ../Bear.ts facade; gameplay and AI live in the wildlife system.
+// ============================================================================
+
 import * as THREE from 'three';
 
 export type BearState =

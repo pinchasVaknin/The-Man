@@ -1,3 +1,11 @@
+// ============================================================================
+// MODULE: World / Models / Animals / Deer (embedded model bundle)
+// DESIGN: Self-contained asset module: geometry, rig, skinning and animator with
+//         embedded data; generated outside this codebase and kept as-is
+// SUMMARY: Builds and animates the Deer model. Imported only through the
+//          ../Deer.ts facade; gameplay and AI live in the wildlife system.
+// ============================================================================
+
 /**
  * Deer.ts — Auto-rigged & animated GLB Deer (Stag) for three.js (r128–r186).
  *
@@ -6,15 +14,15 @@
  * keeps the belly 100% isolated from limb bones, keeps the antlers rigid on the skull bone, and drives
  * full procedural animations with foot IK (`solveLeg2`):
  *
- *   - 'idle'  (עמידה)   : alert standing, breathing, ear twitches, calm head look
- *   - 'walk'  (הליכה)   : 4-beat lateral walk with planted hooves (no foot sliding)
- *   - 'eat'   (אכילה)   : lowers neck & head to graze grass, opens cut mouth to chew, periodic look-up
- *   - 'call'  (קריאה)   : stag bugle/bellow — braced stance, arched neck, head tilted back, open mouth
- *   - 'lie'   (שכיבה)   : bedded-down rest pose with all four legs folded cleanly underneath the body
- *   - 'run'   (ריצה)    : fast rotary gallop with spine flexion and antler balance
- *   - 'flee'  (בריחה)   : high-speed evasive sprint, alarm tail flagged upright, darting weave & head checks
- *   - 'skip'  (דילוג)   : classic cervid pronking/stotting — springy 4-legged leaps high into the air
- *   - 'death' (מוות)    : agony cry, buckling legs, and lateral collapse onto the ground
+ *   - 'idle'    : alert standing, breathing, ear twitches, calm head look
+ *   - 'walk'    : 4-beat lateral walk with planted hooves (no foot sliding)
+ *   - 'eat'     : lowers neck & head to graze grass, opens cut mouth to chew, periodic look-up
+ *   - 'call'    : stag bugle/bellow — braced stance, arched neck, head tilted back, open mouth
+ *   - 'lie'     : bedded-down rest pose with all four legs folded cleanly underneath the body
+ *   - 'run'      : fast rotary gallop with spine flexion and antler balance
+ *   - 'flee'    : high-speed evasive sprint, alarm tail flagged upright, darting weave & head checks
+ *   - 'skip'    : classic cervid pronking/stotting — springy 4-legged leaps high into the air
+ *   - 'death'    : agony cry, buckling legs, and lateral collapse onto the ground
  *
  * Sections: 1. Rig (skeleton)  2. Auto-Skinning & GLB Binding  3. Animator  4. Deer (public API)
  */
@@ -795,7 +803,7 @@ export class DeerAnimator {
   }
 
   /**
-   * מוות ('death') — Dramatic stag collapse: initial rear-back & open-mouth cry, buckling knees,
+   * Death ('death') — Dramatic stag collapse: initial rear-back & open-mouth cry, buckling knees,
    * and lateral roll onto the ground (clamped at completion so the deer remains fallen on the ground).
    */
   private poseDeath() {
