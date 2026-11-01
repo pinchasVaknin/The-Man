@@ -42,9 +42,9 @@
     "semantic_hash": ""
   },
   "src/main.tsx": {
-    "mtime": 1793258160.595629,
-    "seen": 1793260582.9189272,
-    "ast_hash": "c4ddc498492dff0a63072d9c0ac5866c",
+    "mtime": 1793540019.7562225,
+    "seen": 1793540055.223993,
+    "ast_hash": "8ffbb83e62195f5f5d054830d9332487",
     "semantic_hash": ""
   },
   "src/world/builders/dwarvenKingdomBuilder.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.tsx": {
-    "mtime": 1793538455.4299712,
-    "seen": 1793538954.9795043,
-    "ast_hash": "74755a634eb254e8ed6671451c2a0511",
+    "mtime": 1793540019.7392797,
+    "seen": 1793540055.2239628,
+    "ast_hash": "f312e094a07d5a59f5288724b3c5bc66",
     "semantic_hash": ""
   },
   "src/components/itemArtworkRegistry.tsx": {
@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.spec.ts": {
-    "mtime": 1793258427.7398117,
-    "seen": 1793260582.918886,
-    "ast_hash": "b7ad995d7dd5168dd2229fa5b1550156",
+    "mtime": 1793540011.8731215,
+    "seen": 1793540055.2239616,
+    "ast_hash": "be4016ce24b1203eaa0f33f89cee4cda",
     "semantic_hash": ""
   },
   "src/core/config.spec.ts": {
