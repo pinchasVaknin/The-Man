@@ -6,6 +6,8 @@
 // ============================================================================
 
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
+import { ConsoleLogger } from '../core/ILogger';
+import { validateGameSettings } from './persistedSettingsValidation';
 
 export type FirefliesMode = 'sanctuary_only' | 'off';
 
@@ -115,7 +117,7 @@ export function loadActiveGameSettings(): IGameSettingsConfig {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return SAVED_GAME_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<IGameSettingsConfig>;
-    return {
+    const merged = validateGameSettings({
       ...SAVED_GAME_SETTINGS,
       ...parsed,
       keybindings: {
@@ -123,8 +125,18 @@ export function loadActiveGameSettings(): IGameSettingsConfig {
         ...SAVED_GAME_SETTINGS.keybindings,
         ...(parsed.keybindings ?? {}),
       },
-    };
-  } catch {
+    });
+    if (merged.isFailure) {
+      ConsoleLogger.instance.warn('Stored game settings are invalid; using saved defaults', {
+        errorCode: merged.error,
+      });
+      return SAVED_GAME_SETTINGS;
+    }
+    return merged.value;
+  } catch (err: unknown) {
+    ConsoleLogger.instance.warn('Stored game settings could not be read; using saved defaults', {
+      error: String(err),
+    });
     return SAVED_GAME_SETTINGS;
   }
 }
@@ -139,8 +151,11 @@ export async function saveGameSettingsToFile(
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       window.dispatchEvent(new CustomEvent('game-settings-updated', { detail: settings }));
-    } catch {
-      // Ignore storage errors
+    } catch (err: unknown) {
+      // Storage can be full or disabled; the file save below can still succeed.
+      ConsoleLogger.instance.warn('Game settings could not be stored in localStorage', {
+        error: String(err),
+      });
     }
   }
   try {

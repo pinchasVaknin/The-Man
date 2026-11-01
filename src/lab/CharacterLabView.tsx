@@ -32,6 +32,8 @@ import {
 import { CharacterLabCanvas } from './CharacterLabCanvas';
 import { SAVED_LAB_OVERRIDES } from '../config/savedLabOverrides';
 import { t } from '../locales';
+import { ConsoleLogger } from '../core/ILogger';
+import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from './labOverridesStorage';
 
 export interface ICharacterLabViewProps {
   readonly onClose: () => void;
@@ -70,29 +72,20 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   const [poseOverridesByEntity, setPoseOverridesByEntity] = useState<
     Record<string, ILabPoseOverrides>
   >(() => {
+    let stored: string | null = null;
     try {
-      const saved = window.localStorage.getItem('lab_pose_overrides_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved) as Record<string, ILabPoseOverrides>;
-        const merged: Record<string, ILabPoseOverrides> = { ...SAVED_LAB_OVERRIDES };
-        for (const [entityId, localOv] of Object.entries(parsed)) {
-          const codeOv = SAVED_LAB_OVERRIDES[entityId];
-          merged[entityId] = {
-            ...DEFAULT_LAB_POSE_OVERRIDES,
-            ...(codeOv ?? {}),
-            ...localOv,
-            perAnimationSpeeds: {
-              ...(codeOv?.perAnimationSpeeds ?? {}),
-              ...(localOv?.perAnimationSpeeds ?? {}),
-            },
-          };
-        }
-        return merged;
-      }
-    } catch {
-      // Ignore storage errors
+      stored = window.localStorage.getItem(LAB_POSE_OVERRIDES_STORAGE_KEY);
+    } catch (err: unknown) {
+      ConsoleLogger.instance.warn('Lab overrides could not be read from localStorage', { error: String(err) });
     }
-    return { ...SAVED_LAB_OVERRIDES };
+    const merged = mergeStoredLabOverrides(stored, SAVED_LAB_OVERRIDES);
+    if (merged.isFailure) {
+      ConsoleLogger.instance.warn('Stored lab overrides are invalid; using code-saved values', {
+        errorCode: merged.error,
+      });
+      return { ...SAVED_LAB_OVERRIDES };
+    }
+    return merged.value;
   });
 
   const persistOverridesToCodebase = useCallback(
@@ -100,10 +93,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       setSaveFileStatus('saving');
       let isSavedToFile = false;
       try {
-        window.localStorage.setItem(
-          'lab_pose_overrides_v1',
-          JSON.stringify(overridesMap)
-        );
+        window.localStorage.setItem(LAB_POSE_OVERRIDES_STORAGE_KEY, JSON.stringify(overridesMap));
         window.dispatchEvent(
           new CustomEvent('lab-overrides-saved', { detail: overridesMap })
         );
@@ -125,12 +115,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(
-        'lab_pose_overrides_v1',
-        JSON.stringify(poseOverridesByEntity)
-      );
-    } catch {
-      // Ignore storage errors
+      window.localStorage.setItem(LAB_POSE_OVERRIDES_STORAGE_KEY, JSON.stringify(poseOverridesByEntity));
+    } catch (err: unknown) {
+      ConsoleLogger.instance.warn('Lab overrides could not be stored in localStorage', { error: String(err) });
     }
   }, [poseOverridesByEntity]);
 
@@ -242,7 +229,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       animationId: activeAnimation.id,
       overrides: activePoseOverrides,
     };
-    navigator.clipboard?.writeText(JSON.stringify(payload, null, 2)).catch(() => {});
+    navigator.clipboard?.writeText(JSON.stringify(payload, null, 2)).catch((err: unknown) => {
+      ConsoleLogger.instance.warn('Lab tweaks could not be copied to the clipboard', { error: String(err) });
+    });
     setCopiedTweaksFeedback(true);
     window.setTimeout(() => setCopiedTweaksFeedback(false), 1800);
   }, [activeEntity.id, activeAnimation.id, activePoseOverrides]);
