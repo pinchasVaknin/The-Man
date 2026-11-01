@@ -113,6 +113,11 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   wolf_fang: t('items.wolf_fang.short'),
   crocodile_teeth: t('items.crocodile_teeth.short'),
   rhino_horn: t('items.rhino_horn.short'),
+  dragon_meat: t('items.dragon_meat.short'),
+  dragon_scales: t('items.dragon_scales.short'),
+  dragon_horn: t('items.dragon_horn.short'),
+  dragon_claws: t('items.dragon_claws.short'),
+  dragon_bone: t('items.dragon_bone.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];

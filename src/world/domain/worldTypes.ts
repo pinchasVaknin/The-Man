@@ -106,7 +106,12 @@ export type InventoryItemId =
   | 'bear_claws'
   | 'wolf_fang'
   | 'crocodile_teeth'
-  | 'rhino_horn';
+  | 'rhino_horn'
+  | 'dragon_meat'
+  | 'dragon_scales'
+  | 'dragon_horn'
+  | 'dragon_claws'
+  | 'dragon_bone';
 // #endregion
 
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
@@ -213,6 +218,11 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('wolf_fang', 'materials', 0.7, 95, 1, { rarity: 'refined' }),
   createCatalogItem('crocodile_teeth', 'materials', 1.1, 125, 1, { rarity: 'refined' }),
   createCatalogItem('rhino_horn', 'materials', 2.8, 195, 1, { rarity: 'epic' }),
+  createCatalogItem('dragon_meat', 'food', 2.0, 160, 1, { rarity: 'epic' }),
+  createCatalogItem('dragon_scales', 'materials', 4.5, 420, 1, { rarity: 'legendary' }),
+  createCatalogItem('dragon_horn', 'materials', 3.2, 380, 1, { rarity: 'legendary' }),
+  createCatalogItem('dragon_claws', 'materials', 1.8, 300, 1, { rarity: 'epic' }),
+  createCatalogItem('dragon_bone', 'materials', 3.0, 260, 1, { rarity: 'epic' }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
 

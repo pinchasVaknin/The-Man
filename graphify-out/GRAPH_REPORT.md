@@ -1,7 +1,7 @@
 # Graph Report - TheMan  (2026-11-01)
 
 ## Corpus Check
-- 116 files · ~440,034 words
+- 116 files · ~440,631 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5ea5f63a`
+- Built from commit: `1faa8bf8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -333,7 +333,7 @@ Nodes (3): מבנה תיקיות מומלץ (אופציונלי, או ישירו
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `three` connect `three` to `terrainMath.test.ts`, `config.ts`, `WorldCanvas.tsx`, `package.json`, `Deer_Complete.ts`, `wildlifeAndFootprintsBuilder.ts`, `playerAndCombatBuilder.ts`, `atmosphereRenderController.ts`, `boidsAndWildlifeSystem.ts`, `dwarvenMineAndCaravanSystem.ts`, `Deer_Complete_3ce1524f.ts`, `Deer_36e45a72.ts`, `labCatalog.ts`, `JaguarAnimator`, `Rhino.ts`, `DemonDragon_Complete.ts`, `ForestDragon_Complete.ts`, `Bear_Complete_c2863232.ts`, `Crocodile_Complete_9a40f875.ts`, `Bear_447e38ff.ts`, `Bear.ts`, `Crocodile.ts`, `farmhouseModels.ts`, `proceduralModels.ts`, `groundHeightAt`, `colliderDebugBuilder.ts`, `environmentAtmosphereModels.ts`, `terrainMath.ts`?**
-  _High betweenness centrality (0.476) - this node is a cross-community bridge._
+  _High betweenness centrality (0.468) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
   _316 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App.tsx` be split into smaller, more focused modules?**

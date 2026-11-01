@@ -330,6 +330,11 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['wolf_fang', materialStrategy],
   ['crocodile_teeth', materialStrategy],
   ['rhino_horn', materialStrategy],
+  ['dragon_meat', meatStrategy],
+  ['dragon_scales', materialStrategy],
+  ['dragon_horn', materialStrategy],
+  ['dragon_claws', materialStrategy],
+  ['dragon_bone', materialStrategy],
 ]);
 // #endregion
 

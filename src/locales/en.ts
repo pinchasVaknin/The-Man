@@ -353,6 +353,46 @@ export const en = {
       "stat": "Loot · 195 Gold",
       "description": "Rhino horn.",
       "lore": "Rhino horn."
+    },
+    "dragon_meat": {
+      "name": "Dragon Meat",
+      "short": "Dragon Meat",
+      "category": "Food",
+      "stat": "Food \u00b7 Restores Stamina \u00b7 160 Gold",
+      "description": "Dragon meat.",
+      "lore": "Smoky meat from a slain dragon."
+    },
+    "dragon_scales": {
+      "name": "Dragon Scales",
+      "short": "Scales",
+      "category": "Materials",
+      "stat": "Loot \u00b7 420 Gold",
+      "description": "Dragon scales.",
+      "lore": "Hard, heat-proof dragon scales."
+    },
+    "dragon_horn": {
+      "name": "Dragon Horn",
+      "short": "Dragon Horn",
+      "category": "Materials",
+      "stat": "Loot \u00b7 380 Gold",
+      "description": "Dragon horn.",
+      "lore": "A curved horn from a dragon."
+    },
+    "dragon_claws": {
+      "name": "Dragon Claws",
+      "short": "Dragon Claws",
+      "category": "Materials",
+      "stat": "Loot \u00b7 300 Gold",
+      "description": "Dragon claws.",
+      "lore": "Sharp claws from a dragon."
+    },
+    "dragon_bone": {
+      "name": "Dragon Bone",
+      "short": "Dragon Bone",
+      "category": "Materials",
+      "stat": "Loot \u00b7 260 Gold",
+      "description": "Dragon bone.",
+      "lore": "A heavy bone from a dragon."
     }
   },
   "categories": {

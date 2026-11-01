@@ -410,9 +410,9 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
       };
     case 'dragon':
       return {
-        itemIds: ['bear_meat', 'rhino_hide', 'rhino_horn', 'bear_claws', 'animal_bone'],
+        itemIds: ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'],
         itemLabelsHe: ['Dragon Meat', 'Dragon Scales', 'Dragon Horn', 'Dragon Claws', 'Dragon Bone'],
-        notificationHe: 'Looted Dragon: Dragon Scales, Dragon Horn, Dragon Claws, Dragon Bone',
+        notificationHe: 'Looted Dragon: Dragon Meat, Dragon Scales, Dragon Horn, Dragon Claws, Dragon Bone',
       };
   }
 }
