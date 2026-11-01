@@ -18,15 +18,15 @@
     "semantic_hash": ""
   },
   "src/components/ExplorerMinimap.tsx": {
-    "mtime": 1793540806.041619,
-    "seen": 1793540926.9006336,
-    "ast_hash": "bbad5f962b4cc9023a4ea88ec0ad4535",
+    "mtime": 1793553801.7615597,
+    "seen": 1793553970.2513797,
+    "ast_hash": "2be9c594cccfd3b5777cafc5df8dff38",
     "semantic_hash": ""
   },
   "src/components/GameShellOverlay.tsx": {
-    "mtime": 1793540858.3747063,
-    "seen": 1793540926.900636,
-    "ast_hash": "520c2989e7a202c8ac0b3a5829cd0d94",
+    "mtime": 1793553765.9609997,
+    "seen": 1793553970.2513824,
+    "ast_hash": "37f4a48a4d583f92effec1d4df8d2168",
     "semantic_hash": ""
   },
   "src/components/SkyrimInventoryModal.tsx": {
@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793553243.2263627,
-    "seen": 1793553287.3554044,
-    "ast_hash": "07d2497b31690139d49ae69bb1d40c33",
+    "mtime": 1793553780.1614711,
+    "seen": 1793553970.251384,
+    "ast_hash": "1d205f665ef5d36c13021aeb5e550763",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -534,15 +534,15 @@
     "semantic_hash": ""
   },
   "src/components/GameSettingsModal.tsx": {
-    "mtime": 1793541101.5419457,
-    "seen": 1793553287.3554008,
-    "ast_hash": "3c3571268f0fb3fe0acf5b21d4806e08",
+    "mtime": 1793553746.0608768,
+    "seen": 1793553970.2513812,
+    "ast_hash": "164396a6140ef10bb09c1731f9aef609",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.ts": {
-    "mtime": 1793541101.558933,
-    "seen": 1793553287.35541,
-    "ast_hash": "6f9367ecdf2ad58209499bdfddd7f285",
+    "mtime": 1793553745.9944956,
+    "seen": 1793553970.2513928,
+    "ast_hash": "6d4d49e63f3a849bd86c6ba930368a35",
     "semantic_hash": ""
   },
   "src/config/savedLabOverrides.ts": {
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793553346.5270784,
-    "seen": 1793553683.6113665,
-    "ast_hash": "1fe22dc9239ad112200815774e36df93",
+    "mtime": 1793553801.8308666,
+    "seen": 1793553970.2514157,
+    "ast_hash": "071c9399468486ab6fe71504b25b2f7a",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {
@@ -642,9 +642,9 @@
     "semantic_hash": ""
   },
   "src/config/persistedSettingsValidation.ts": {
-    "mtime": 1793540490.0126352,
-    "seen": 1793540601.7422042,
-    "ast_hash": "c52fbb3128bc61b975802b690fa129d1",
+    "mtime": 1793553746.0279198,
+    "seen": 1793553970.2513905,
+    "ast_hash": "a68b09611aab7c125e1f446a4d5186e1",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.spec.ts": {
@@ -711,6 +711,18 @@
     "mtime": 1793541180.558745,
     "seen": 1793553287.3554707,
     "ast_hash": "64c6916bcf9e811f3ed3a5ce199b6a65",
+    "semantic_hash": ""
+  },
+  "src/config/keyBindingMatch.spec.ts": {
+    "mtime": 1793553724.4626443,
+    "seen": 1793553970.2513866,
+    "ast_hash": "ad00fee0884187b6b549098c7c9491f3",
+    "semantic_hash": ""
+  },
+  "src/config/keyBindingMatch.ts": {
+    "mtime": 1793553734.5789347,
+    "seen": 1793553970.2513876,
+    "ast_hash": "05c0bc55a5355734de5adb4fb39fe162",
     "semantic_hash": ""
   }
 }

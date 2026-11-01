@@ -741,6 +741,14 @@ export const en = {
       "toggleMute": {
         "label": "Mute / Unmute Audio",
         "description": "Toggle nature and sound effects"
+      },
+      "pauseGame": {
+        "label": "Pause / Resume",
+        "description": "Pause the game or resume it (Esc also works)"
+      },
+      "toggleFavorite": {
+        "label": "Mark as Favorite",
+        "description": "Add or remove the selected inventory item from favorites"
       }
     },
     "footer_note": "Saving updates the active session and writes to",

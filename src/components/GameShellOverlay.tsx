@@ -287,7 +287,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           triggerAssignHotbar(slotIdx, selectedItemId);
           return;
         }
-        if (e.code === 'KeyF' && !e.repeat) {
+        if (e.code === kb.toggleFavorite && !e.repeat) {
           e.preventDefault();
           triggerToggleFavorite(selectedItemId);
           return;

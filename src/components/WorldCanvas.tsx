@@ -69,6 +69,7 @@ import { buildRealisticWorld } from '../world/proceduralModels';
 import { NatureSoundEngine } from '../world/soundEngine';
 import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRenderController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
+import { isBindingHeld, matchesKeyBinding } from '../config/keyBindingMatch';
 import {
   SAVED_GAME_SETTINGS,
   formatKeyCodeLabel,
@@ -661,22 +662,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     // Event Listeners
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyP' || e.code === 'Escape') {
+      const kb = gameSettingsRef.current.keybindings;
+      // Escape always pauses as a universal fallback, next to the configurable pause key.
+      if (matchesKeyBinding(e.code, kb.pauseGame) || e.code === 'Escape') {
         if (gameStateRef.current === 'playing' || gameStateRef.current === 'paused') {
           onRequestPauseToggleRef.current();
         }
       }
-      if (
-        gameStateRef.current === 'playing' &&
-        (e.ctrlKey || e.code === 'ControlLeft' || e.code === 'ControlRight')
-      ) {
-        if (
-          e.code === 'KeyS' ||
-          e.code === 'KeyA' ||
-          e.code === 'KeyD' ||
-          e.code === 'KeyW' ||
-          e.code === 'Space'
-        ) {
+      // While Ctrl is held (e.g. sneaking), stop Ctrl+<movement key> from firing browser shortcuts.
+      if (gameStateRef.current === 'playing' && e.ctrlKey) {
+        const movementKeys = [kb.moveForward, kb.moveBackward, kb.moveLeft, kb.moveRight, kb.jump];
+        if (movementKeys.some((bound) => matchesKeyBinding(e.code, bound))) {
           e.preventDefault();
         }
       }
@@ -686,7 +682,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       }
 
       // Toggle Camera Perspective between 3rd-Person Character View and 1st-Person View
-      const kb = gameSettingsRef.current.keybindings;
       if (e.code === kb.cameraPerspective && !e.repeat && gameStateRef.current === 'playing') {
         playerState.cameraPerspective =
           playerState.cameraPerspective === 'third_person' ? 'first_person' : 'third_person';
@@ -927,7 +922,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           (isLocked || !mouseMovedWhileDown || playerState.bowDrawProgress >= 0.35)
         ) {
           fireArrowNow();
-        } else if (!keysPressed.has('KeyR')) {
+        } else if (!isBindingHeld(keysPressed, gameSettingsRef.current.keybindings.drawOrSlash)) {
           playerState.bowDrawn = false;
           playerState.bowDrawProgress = 0;
         }
@@ -1333,15 +1328,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         const sprint =
           virtualMoveRef.current.sprint ||
-          keysPressed.has(kb.sprint) ||
-          keysPressed.has('ShiftLeft') ||
-          keysPressed.has('ShiftRight');
+          isBindingHeld(keysPressed, kb.sprint);
 
         const relaxed =
           virtualMoveRef.current.relaxed ||
-          keysPressed.has(kb.relaxedWalk) ||
-          keysPressed.has('ControlLeft') ||
-          keysPressed.has('ControlRight');
+          isBindingHeld(keysPressed, kb.relaxedWalk);
 
         const jumpPressed =
           virtualMoveRef.current.jump || keysJustPressed.has(kb.jump);

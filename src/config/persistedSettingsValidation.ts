@@ -23,7 +23,7 @@ const KEYBINDING_NAMES: readonly (keyof IGameKeybindings)[] = [
   'moveForward', 'moveBackward', 'moveLeft', 'moveRight', 'sprint', 'relaxedWalk', 'jump',
   'interactDoor', 'mountHorse', 'drawOrSlash', 'dash', 'cycleArrowElement', 'cameraPerspective',
   'inventoryModal', 'favoritesModal', 'marketModal', 'hotbarSlot1', 'hotbarSlot2', 'hotbarSlot3',
-  'hotbarSlot4', 'cycleWeather', 'toggleMute',
+  'hotbarSlot4', 'cycleWeather', 'toggleMute', 'pauseGame', 'toggleFavorite',
 ];
 /** KeyboardEvent.code values are short alphanumeric identifiers such as "KeyW" or "ShiftLeft". */
 const KEY_CODE_PATTERN = /^[A-Za-z0-9]{1,32}$/;
