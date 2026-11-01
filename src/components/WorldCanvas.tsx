@@ -8,7 +8,7 @@
 // ======================== IMPORTS & CONTRACTS ======================== \\
 // #region Imports & Contracts
 import { t } from '../locales';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Sky } from 'three/addons/objects/Sky.js';
@@ -63,6 +63,7 @@ import {
   IGameActions,
 } from '../world/terrainMath';
 import { ConsoleLogger } from '../core/ILogger';
+import { createTickErrorGuard } from '../core/tickErrorGuard';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldTextures } from '../world/proceduralTextures';
 import { buildRealisticWorld } from '../world/proceduralModels';
@@ -192,6 +193,12 @@ export type WorldCanvasProps = IWorldCanvasProps;
 // ======================== WORLD CANVAS COMPONENT ======================== \\
 // #region World Canvas Component
 // Reusable scratch vectors outside render loop (Zero GC)
+/**
+ * Consecutive failed frames (about 1 s at 60 FPS) after which the frame loop stops and the
+ * error is handed to the error boundary instead of failing silently every frame.
+ */
+const MAX_CONSECUTIVE_TICK_FAILURES = 60;
+
 /** World clock hour the session starts at when no ?hour= override is given (06:40, sunrise mist). */
 const DEFAULT_START_WORLD_HOUR = 6.68;
 const _sunVec = new THREE.Vector3();
@@ -212,6 +219,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   soundEngineFactory = () => new NatureSoundEngine(),
 }) => {
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
+  const [fatalTickError, setFatalTickError] = useState<Error | null>(null);
 
   const gameStateRef = useRef<GameStateMode>(gameState);
   const mutedRef = useRef<boolean>(muted);
@@ -1010,7 +1018,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     let isUnmounted = false;
+    let isLoopHalted = false;
     let lastTickErrorTime = 0;
+    const tickErrorGuard = createTickErrorGuard(MAX_CONSECUTIVE_TICK_FAILURES);
 
     function tick() {
       if (isUnmounted) return;
@@ -1635,6 +1645,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
 
       renderer.render(scene, camera);
+      tickErrorGuard.recordSuccess();
       } catch (err: unknown) {
         const now = performance.now();
         if (now - lastTickErrorTime > 2000) {
@@ -1644,8 +1655,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             stack: err instanceof Error ? err.stack : undefined,
           });
         }
+        if (tickErrorGuard.recordFailure() === 'halt') {
+          // A frame that keeps failing means corrupted state: stop the loop and surface it.
+          isLoopHalted = true;
+          setFatalTickError(err instanceof Error ? err : new Error(String(err)));
+        }
       } finally {
-        if (!isUnmounted) {
+        if (!isUnmounted && !isLoopHalted) {
           if (isSoftwareGl) {
             afterDraw(tick);
           } else {
@@ -1783,6 +1799,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.dispose();
     };
   }, [virtualMoveRef]);
+
+  if (fatalTickError) {
+    // Rethrow during render so the root ErrorBoundary logs it and shows the recovery screen.
+    throw fatalTickError;
+  }
 
   return (
     <div
