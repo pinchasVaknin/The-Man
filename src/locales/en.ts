@@ -1,10 +1,10 @@
 // ============================================================================
-// MODULE: Locales / English Dictionary (exported as `he` for schema compatibility)
+// MODULE: Locales / English Dictionary
 // DESIGN: Concise English strings across inventory, HUD, landmarks, weather & market
 // SUMMARY: Plain, direct item names and UI strings in English.
 // ============================================================================
 
-export const he = {
+export const en = {
   "items": {
     "bow": {
       "name": "Hunting Bow",
@@ -587,4 +587,4 @@ export const he = {
 /**
  * Summary: Strongly-typed schema definition inferred from canonical localization dictionary.
  */
-export type LocaleSchema = typeof he;
+export type LocaleSchema = typeof en;

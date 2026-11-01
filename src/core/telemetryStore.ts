@@ -10,6 +10,7 @@
 import { useSyncExternalStore } from 'react';
 import { WORLD_SPAWN } from '../world/terrainMath';
 import type { ITelemetrySnapshot, TelemetrySnapshot } from '../components/WorldCanvas';
+import { t } from '../locales';
 
 export const INITIAL_TELEMETRY_SNAPSHOT: TelemetrySnapshot = Object.freeze({
   x: WORLD_SPAWN.x,
@@ -21,7 +22,7 @@ export const INITIAL_TELEMETRY_SNAPSHOT: TelemetrySnapshot = Object.freeze({
   biome: 'trail',
   walkPace: 'normal',
   timeString: '06:40',
-  phaseLabel: 'זריחה וערפל בוקר',
+  phaseLabel: t('time.sunrise_mist'),
   sunElevationDeg: 14,
   pointerLocked: false,
   isFlying: false,
