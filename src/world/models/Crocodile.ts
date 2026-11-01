@@ -11,5 +11,5 @@ export {
   CROC_EMBEDDED_PACK_B64,
   CROC_EMBEDDED_TEXTURE_URI,
   createReadyCrocodile,
-} from '../../../public/models/animals/Crocodile_Complete';
+} from './animals/Crocodile_Complete';
 

@@ -2,12 +2,12 @@ export {
   createReadyForestDragon,
   ForestDragon,
   FOREST_DRAGON_GAITS,
-} from '../../../public/models/animals/ForestDragon_Complete';
+} from './animals/ForestDragon_Complete';
 export type {
   ForestDragonState,
   ForestDragonOptions,
   ReadyForestDragonController,
-} from '../../../public/models/animals/ForestDragon_Complete';
+} from './animals/ForestDragon_Complete';
 
 export const FOREST_DRAGON_STATES = [
   'idle',

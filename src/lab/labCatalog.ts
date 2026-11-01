@@ -873,7 +873,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.forest_deer.world_location'),
     worldCoordinatesText: t('lab.entities.forest_deer.world_coordinates'),
     worldInstanceCount: 5,
-    sourceFile: 'src/world/models/Deer.ts (public/models/Deer_Complete.ts)',
+    sourceFile: 'src/world/models/Deer.ts (src/world/models/animals/Deer_Complete.ts)',
     description:
       t('lab.entities.forest_deer.description'),
     defaultCameraDistance: 3.2,
@@ -1003,7 +1003,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.forest_bear.world_location'),
     worldCoordinatesText: t('lab.entities.forest_bear.world_coordinates'),
     worldInstanceCount: 7,
-    sourceFile: 'src/world/models/Bear.ts (public/models/animals/Bear_Complete.ts)',
+    sourceFile: 'src/world/models/Bear.ts (src/world/models/animals/Bear_Complete.ts)',
     description:
       t('lab.entities.forest_bear.description'),
     defaultCameraDistance: 3.4,
@@ -1148,7 +1148,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.river_crocodile.world_location'),
     worldCoordinatesText: t('lab.entities.river_crocodile.world_coordinates'),
     worldInstanceCount: 5,
-    sourceFile: 'src/world/models/Crocodile.ts (public/models/animals/Crocodile_Complete.ts)',
+    sourceFile: 'src/world/models/Crocodile.ts (src/world/models/animals/Crocodile_Complete.ts)',
     description:
       t('lab.entities.river_crocodile.description'),
     defaultCameraDistance: 3.7,
@@ -1287,7 +1287,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.jungle_jaguar.world_location'),
     worldCoordinatesText: '(-238, 236), (-268, 336), (-148, 228), (-84, 246)',
     worldInstanceCount: 4,
-    sourceFile: 'src/world/models/Jaguar.ts (public/models/animals/Jaguar_Complete.ts)',
+    sourceFile: 'src/world/models/Jaguar.ts (src/world/models/animals/Jaguar_Complete.ts)',
     description:
       t('lab.entities.jungle_jaguar.description'),
     defaultCameraDistance: 3.1,
@@ -1432,7 +1432,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.forest_wolf.world_location'),
     worldCoordinatesText: '(-142, -88), (-158, -112), (-118, 86), (136, -118)',
     worldInstanceCount: 4,
-    sourceFile: 'src/world/models/Wolf.ts (public/models/animals/Wolf_Complete.ts)',
+    sourceFile: 'src/world/models/Wolf.ts (src/world/models/animals/Wolf_Complete.ts)',
     description:
       t('lab.entities.forest_wolf.description'),
     defaultCameraDistance: 2.9,
@@ -1577,7 +1577,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.savanna_rhino.world_location'),
     worldCoordinatesText: '(-195, 215), (-224, 262), (146, 168)',
     worldInstanceCount: 3,
-    sourceFile: 'src/world/models/Rhino.ts (public/models/animals/Rhino_Complete.ts)',
+    sourceFile: 'src/world/models/Rhino.ts (src/world/models/animals/Rhino_Complete.ts)',
     description:
       t('lab.entities.savanna_rhino.description'),
     defaultCameraDistance: 3.8,

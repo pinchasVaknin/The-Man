@@ -11,6 +11,6 @@ export {
   type WolfState,
   type WolfOptions,
   type WolfUnpackedData,
-} from '../../../public/models/animals/Wolf_Complete';
-export { Wolf as default } from '../../../public/models/animals/Wolf_Complete';
+} from './animals/Wolf_Complete';
+export { Wolf as default } from './animals/Wolf_Complete';
 
