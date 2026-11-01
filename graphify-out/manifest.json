@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793539950.479092,
-    "seen": 1793539995.9408753,
-    "ast_hash": "d6f333875a14de25d3ba5947bffcc79a",
+    "mtime": 1793540111.8028917,
+    "seen": 1793540152.5880756,
+    "ast_hash": "48503262fa67c6980c9ef02e6fb41e1f",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -711,6 +711,18 @@
     "mtime": 1793478752.6903322,
     "seen": 1793537725.9240522,
     "ast_hash": "7a7dd602b7666a3c0b20246e53087d98",
+    "semantic_hash": ""
+  },
+  "src/core/tickErrorGuard.spec.ts": {
+    "mtime": 1793540077.5060222,
+    "seen": 1793540152.588101,
+    "ast_hash": "360f36905c06565fe559f9561b0cc455",
+    "semantic_hash": ""
+  },
+  "src/core/tickErrorGuard.ts": {
+    "mtime": 1793540093.2398548,
+    "seen": 1793540152.5881023,
+    "ast_hash": "f95ae1b0518679f49f89d126aaecfa7d",
     "semantic_hash": ""
   }
 }
