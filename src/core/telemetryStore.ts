@@ -9,7 +9,7 @@
 // #region Imports & Types
 import { useSyncExternalStore } from 'react';
 import { WORLD_SPAWN } from '../world/terrainMath';
-import type { TelemetrySnapshot } from '../components/WorldCanvas';
+import type { TelemetrySnapshot } from '../world/domain/gameShellTypes';
 import { t } from '../locales';
 
 export const INITIAL_TELEMETRY_SNAPSHOT: TelemetrySnapshot = Object.freeze({

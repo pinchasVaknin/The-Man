@@ -9,7 +9,8 @@
 // #region Imports & Constants
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
-import { WorldCanvas, GameStateMode, IVirtualMoveState } from './components/WorldCanvas';
+import { WorldCanvas } from './components/WorldCanvas';
+import type { GameStateMode, IVirtualMoveState } from './world/domain/gameShellTypes';
 import { GameShellOverlay } from './components/GameShellOverlay';
 import { GameSettingsModal } from './components/GameSettingsModal';
 import { CharacterLabView } from './lab/CharacterLabView';

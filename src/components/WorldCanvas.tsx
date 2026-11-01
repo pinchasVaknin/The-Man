@@ -62,6 +62,11 @@ import {
   IGameActions,
 } from '../world/terrainMath';
 import { ConsoleLogger } from '../core/ILogger';
+import type {
+  GameStateMode,
+  ITelemetrySnapshot,
+  IVirtualMoveState,
+} from '../world/domain/gameShellTypes';
 import { GameLoop } from '../core/gameLoop';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldTextures } from '../world/proceduralTextures';
@@ -79,101 +84,6 @@ import {
   formatKeyCodeLabel,
   type IGameSettingsConfig,
 } from '../config/savedGameSettings';
-
-/**
- * Summary: High-level application mode for WorldCanvas view hierarchy.
- * Design: Controls transition between title screen, active gameplay, and paused modal state.
- */
-export type GameStateMode = 'title' | 'playing' | 'paused';
-
-/**
- * Summary: Real-time telemetry snapshot published to HUD and diagnostic overlays.
- * Design: Encapsulates fps, player coordinates, biome, time of day, and weather condition.
- */
-export interface ITelemetrySnapshot {
-  x: number;
-  y: number;
-  z: number;
-  yawDeg: number;
-  distanceWalked: number;
-  stepCount: number;
-  biome: BiomeType;
-  walkPace: WalkPaceMode;
-  isFlying: boolean;
-  isSwimming?: boolean;
-  isCrouching?: boolean;
-  colliderDebugVisible?: boolean;
-  cameraPerspective?: CameraPerspectiveMode;
-  equippedTool?: EquippedToolSlot;
-  activeWeaponId?: InventoryItemId;
-  arrowKind?: ArrowElementKind;
-  hotbarSlots?: (InventoryItemId | null)[];
-  favoriteIds?: InventoryItemId[];
-  goldCoins?: number;
-  ownedItemIds?: InventoryItemId[];
-  nearbyMarket?: {
-    id: string;
-    name: string;
-  } | null;
-  nearbyDeadAnimal?: {
-    id: string;
-    species: string;
-    speciesName: string;
-  } | null;
-  lootNotification?: string | null;
-  swordSwingProgress?: number;
-  dashCooldown?: number;
-  bowDrawn?: boolean;
-  bowDrawProgress?: number;
-  arrowsShotCount?: number;
-  lastArrowHitTarget?: string | null;
-  lastArrowHitTargetName?: string | null;
-  timeString: string;
-  phaseLabel: string;
-  sunElevationDeg: number;
-  pointerLocked: boolean;
-  weatherKind?: WeatherKind;
-  weatherLabel?: string;
-  wetness?: number;
-  mountedHorseId?: string | null;
-  nearbyHorse?: {
-    id: string;
-    name: string;
-  } | null;
-  nearbyDoor?: {
-    id: string;
-    buildingName: string;
-    isOpen: boolean;
-  } | null;
-  nearbyBed?: {
-    id: string;
-    name: string;
-  } | null;
-  isSleepingInBed?: boolean;
-  worldHours?: number;
-  season?: SeasonType;
-  seasonLabel?: string;
-  forcedSeason?: SeasonType | 'auto';
-  nearbyLadder?: boolean;
-  climbingLadder?: boolean;
-  stamina?: number;
-  maxStamina?: number;
-  skills?: ICharacterSkillsState;
-}
-export type TelemetrySnapshot = ITelemetrySnapshot;
-
-/**
- * Summary: Touch and virtual joystick state for mobile / secondary input devices.
- * Design: Translates 2D virtual thumbstick vectors into directional walk pace signals.
- */
-export interface IVirtualMoveState {
-  forward: number;
-  right: number;
-  sprint: boolean;
-  relaxed: boolean;
-  jump: boolean;
-  drawBow?: boolean;
-}
 
 /**
  * Summary: Props contract for top-level WorldCanvas Three.js viewport.

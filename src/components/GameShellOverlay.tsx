@@ -23,7 +23,7 @@ import {
 } from '../world/terrainMath';
 import { Result } from '../core/Result';
 import { t } from '../locales';
-import { GameStateMode, ITelemetrySnapshot, IVirtualMoveState } from './WorldCanvas';
+import type { GameStateMode, ITelemetrySnapshot, IVirtualMoveState } from '../world/domain/gameShellTypes';
 import { ExplorerMinimap } from './ExplorerMinimap';
 import {
   SkyrimInventoryModal,

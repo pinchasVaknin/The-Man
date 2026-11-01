@@ -10,7 +10,7 @@ import {
   telemetryStore,
   INITIAL_TELEMETRY_SNAPSHOT,
 } from './telemetryStore';
-import type { TelemetrySnapshot } from '../components/WorldCanvas';
+import type { TelemetrySnapshot } from '../world/domain/gameShellTypes';
 
 test('getSnapshot_WhenInitialized_ShouldReturnInitialSnapshot', () => {
   // Arrange & Act
