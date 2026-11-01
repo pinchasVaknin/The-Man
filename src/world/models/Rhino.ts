@@ -11,5 +11,5 @@ export {
   type RhinoState,
   type RhinoOptions,
   type RhinoUnpackedData,
-} from '../../../public/models/animals/Rhino_Complete';
-export { Rhino as default } from '../../../public/models/animals/Rhino_Complete';
+} from './animals/Rhino_Complete';
+export { Rhino as default } from './animals/Rhino_Complete';
