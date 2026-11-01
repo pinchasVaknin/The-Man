@@ -316,7 +316,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   if (gameState === 'title') {
     return (
       <main
-        dir="ltr"
         data-testid="title-screen-overlay"
         className="fixed inset-0 z-20 flex flex-col justify-center items-start pl-8 sm:pl-14 md:pl-20 pr-6 pointer-events-none select-none"
         style={{
@@ -341,7 +340,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             <div className="flex items-center gap-2.5 mb-2.5">
               <span className="inline-block w-2 h-2 rotate-45 bg-amber-400/90" />
               <span
-                dir="ltr"
                 className="text-[11px] font-mono uppercase tracking-[0.42em] text-amber-300/85"
               >
                 OPEN WORLD EDITION
@@ -349,7 +347,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             </div>
 
             <h1
-              dir="ltr"
               data-testid="game-main-title"
               className="font-display-he text-5xl sm:text-6xl md:text-7xl font-bold tracking-[0.14em] lowercase text-stone-100 leading-none whitespace-nowrap"
               style={{
@@ -401,7 +398,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                dir="ltr"
                 className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
@@ -432,7 +428,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                dir="ltr"
                 className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
@@ -463,7 +458,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                dir="ltr"
                 className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
@@ -494,7 +488,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <div
-                dir="ltr"
                 className="relative z-10 flex items-baseline justify-start gap-3 text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
@@ -526,7 +519,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
       {/* Top Row: Developer Time, Season & Weather Controls */}
       <div className="flex items-start justify-end w-full">
         <div
-          dir="ltr"
           className="flex flex-wrap items-center justify-end gap-2 pointer-events-auto shrink-0"
         >
           {/* Developer Time of Day Control */}
@@ -887,7 +879,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               {telemetry.lootNotificationHe && (
                 <div
                   data-testid="hunting-loot-toast"
-                  dir="rtl"
                   className="px-4 py-1.5 rounded-lg text-xs font-bold text-emerald-200 whitespace-nowrap shadow-xl"
                   style={{
                     backgroundColor: 'rgba(6, 28, 20, 0.92)',
@@ -932,7 +923,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.isCrouching && !telemetry.isSwimming && (
               <div
                 data-testid="stealth-crouch-badge"
-                dir="ltr"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-emerald-200 shadow-xl"
                 style={{
                   backgroundColor: 'rgba(10, 22, 18, 0.88)',
@@ -947,7 +937,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.nearbyDeadAnimal && (
               <div
                 data-testid="loot-animal-prompt"
-                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(12, 26, 18, 0.92)',
@@ -955,7 +944,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <kbd
-                  dir="ltr"
                   className="px-2 py-0.5 rounded-md bg-emerald-400 text-stone-950 font-mono-tabular font-bold text-xs shadow"
                 >
                   {formatKeyCodeLabel(kb.interactDoor)}
@@ -969,7 +957,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.nearbyBed && !telemetry.nearbyDeadAnimal && (
               <div
                 data-testid="bed-sleep-prompt"
-                dir="ltr"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -988,7 +975,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.nearbyMarket && (
               <div
                 data-testid="market-stall-prompt"
-                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -1012,7 +998,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               !telemetry.nearbyLadder && (
               <div
                 data-testid="door-prompt"
-                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -1031,7 +1016,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {(telemetry.climbingLadder || telemetry.nearbyLadder) && (
               <div
                 data-testid="ladder-prompt"
-                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -1052,7 +1036,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               !telemetry.nearbyLadder && (
                 <div
                   data-testid="horse-prompt"
-                  dir="ltr"
                   className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                   style={{
                     backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -1071,7 +1054,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.isSwimming && (
               <div
                 data-testid="swim-dive-prompt"
-                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(12, 34, 48, 0.90)',
@@ -1134,7 +1116,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
       {gameState === 'playing' && (
         <div className="md:hidden fixed bottom-4 right-3 flex items-end gap-2 pointer-events-none z-20">
           <div
-            dir="ltr"
             className="grid grid-cols-3 gap-1 p-1.5 rounded-2xl pointer-events-auto"
             style={{
               backgroundColor: 'rgba(18, 16, 13, 0.86)',

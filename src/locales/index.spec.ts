@@ -8,7 +8,7 @@
 // #region Imports & Test Suite
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { t, setLocaleDictionary, getLocaleDictionary, he } from './index';
+import { t, setLocaleDictionary, getLocaleDictionary } from './index';
 
 test('t_WhenValidDirectKeyProvided_ShouldReturnTranslatedString', () => {
   // Arrange
@@ -18,7 +18,7 @@ test('t_WhenValidDirectKeyProvided_ShouldReturnTranslatedString', () => {
   const result = t(key);
 
   // Assert
-  assert.equal(result, 'שמיים בהירים ועננים קלים');
+  assert.equal(result, 'Clear Sky');
 });
 
 test('t_WhenNestedItemKeyProvided_ShouldReturnCorrectItemProperty', () => {
@@ -29,7 +29,7 @@ test('t_WhenNestedItemKeyProvided_ShouldReturnCorrectItemProperty', () => {
   const result = t(key);
 
   // Assert
-  assert.equal(result, 'קשת ציידים מורכבת');
+  assert.equal(result, 'Hunting Bow');
 });
 
 test('t_WhenInterpolationParamsProvided_ShouldReplaceVariablesProperly', () => {
@@ -41,7 +41,7 @@ test('t_WhenInterpolationParamsProvided_ShouldReplaceVariablesProperly', () => {
   const result = t(key, params);
 
   // Assert
-  assert.equal(result, '8 פריטים');
+  assert.equal(result, '8 Items');
 });
 
 test('t_WhenNonExistentKeyRequested_ShouldFallbackToKeyString', () => {

@@ -7,7 +7,7 @@
 
 // ======================== IMPORTS & TYPES ======================== \\
 // #region Imports & Types
-import { he, type LocaleSchema } from './he';
+import { en, type LocaleSchema } from './en';
 
 /**
  * Summary: Type contract representing a complete application localization dictionary.
@@ -33,7 +33,7 @@ export type NestedKeyOf<T> = T extends object
  */
 export type TranslationKey = NestedKeyOf<TranslationDictionary>;
 
-let currentDictionary: TranslationDictionary = he;
+let currentDictionary: TranslationDictionary = en;
 // #endregion
 
 // ======================== TRANSLATION FUNCTIONS ======================== \\
@@ -91,4 +91,4 @@ export function t(key: string, params?: Record<string, string | number>): string
 }
 // #endregion
 
-export { he };
+export { en };
