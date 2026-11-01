@@ -21,6 +21,7 @@ import {
   damageGroundAnimal,
   killGroundAnimal,
   isSafeAnimalSpawnPosition,
+  ensureSafeOffscreenAnimalSpawns,
   getPredatorMeleeStandoffDist,
   getPredatorAttackTriggerDist,
   evaluateSouthernDragonTarget,
@@ -755,6 +756,27 @@ test('BIRD_FLOCK_CONFIGS_WhenLoaded_ShouldContainFlockCentersAndSpecies', () => 
 
 // ======================== EDGE CASES AND INFRASTRUCTURE FAILURES ======================== \\
 // #region Edge Cases and Infrastructure Failures
+test('ensureSafeOffscreenAnimalSpawns_WhenPlayerStartsAmongAnimals_ShouldMoveEveryAnimalOutOfSight', () => {
+  // Arrange
+  const playerSpawns = [
+    { x: 68, z: 26, yaw: 0 },
+    { x: 148, z: 112, yaw: 1.2 },
+    { x: -64, z: -24, yaw: 3 },
+  ] as const;
+
+  // Act
+  const unsafeSpeciesPerSpawn = playerSpawns.map((spawn) => {
+    const animals = createInitialSmallAnimals();
+    ensureSafeOffscreenAnimalSpawns(animals, spawn.x, spawn.z, spawn.yaw);
+    return animals
+      .filter((animal) => !isSafeAnimalSpawnPosition(animal.x, animal.z, spawn.x, spawn.z, spawn.yaw))
+      .map((animal) => animal.species);
+  });
+
+  // Assert
+  assert.deepEqual(unsafeSpeciesPerSpawn, [[], [], []]);
+});
+
 test('stepBoidsAndWildlife_WhenZeroDtProvided_ShouldNotProduceNanPositions', () => {
   const birds = createInitialBoidBirds();
   const animals = createInitialSmallAnimals();

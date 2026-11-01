@@ -52,6 +52,7 @@ import {
   lootDeadAnimal,
   getAnimalSpeciesName,
   getActiveWorldAnimals,
+  ensureSafeOffscreenAnimalSpawns,
   isPredatorSpecies,
   triggerSwordSlash,
   stepSwordSwingCombat,
@@ -376,6 +377,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         if (overrides.position.pitch !== undefined) {
           playerState.pitch = overrides.position.pitch;
         }
+        // Animals were placed for the default spawn; keep them out of sight of the custom start.
+        ensureSafeOffscreenAnimalSpawns(getActiveWorldAnimals(), playerState.x, playerState.z, playerState.yaw);
       }
       if (overrides.cameraPerspective) {
         playerState.cameraPerspective = overrides.cameraPerspective;

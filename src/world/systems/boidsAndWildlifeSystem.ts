@@ -802,6 +802,9 @@ export function isSafeAnimalSpawnPosition(
   return true;
 }
 
+/** Candidate spots tried per animal before giving up on relocating it (runs once at spawn). */
+const SAFE_RELOCATION_MAX_ATTEMPTS = 40;
+
 /**
  * Summary: Ensures no animal spawns within the player's safe radius or direct line of sight
  *          (e.g., when loading a custom URL `?pos=` camera/player position).
@@ -817,18 +820,27 @@ export function ensureSafeOffscreenAnimalSpawns(
     if (isSafeAnimalSpawnPosition(a.x, a.z, playerX, playerZ, playerYaw)) {
       continue;
     }
-    // Relocate along the opposite/flanking direction from the player's view while staying in valid terrain
-    const baseAngle = playerYaw + Math.PI + ((i % 5) - 2) * 0.38;
-    const safeDist = 68 + (i % 4) * 14;
-    const nx = playerX + Math.sin(baseAngle) * safeDist;
-    const nz = playerZ + Math.cos(baseAngle) * safeDist;
-    const gy = walkableHeightAt(nx, nz).height;
-    if (gy > WATER_LEVEL + 0.25 && Math.hypot(nx, nz) < PLAYABLE_RADIUS - 25) {
-      a.x = nx;
-      a.z = nz;
-      a.homeX = nx;
-      a.homeZ = nz;
-      a.y = gy;
+    // Relocate behind or beside the player's view; try wider fans and distances until a dry,
+    // in-bounds spot that is also out of sight is found.
+    for (let attempt = 0; attempt < SAFE_RELOCATION_MAX_ATTEMPTS; attempt++) {
+      const fanOffset = (((i + attempt) % 5) - 2) * 0.38 + Math.floor(attempt / 5) * 0.21;
+      const baseAngle = playerYaw + Math.PI + fanOffset;
+      const safeDist = 68 + ((i + attempt) % 4) * 14 + Math.floor(attempt / 5) * 9;
+      const nx = playerX + Math.sin(baseAngle) * safeDist;
+      const nz = playerZ + Math.cos(baseAngle) * safeDist;
+      const gy = walkableHeightAt(nx, nz).height;
+      if (
+        gy > WATER_LEVEL + 0.25 &&
+        Math.hypot(nx, nz) < PLAYABLE_RADIUS - 25 &&
+        isSafeAnimalSpawnPosition(nx, nz, playerX, playerZ, playerYaw)
+      ) {
+        a.x = nx;
+        a.z = nz;
+        a.homeX = nx;
+        a.homeZ = nz;
+        a.y = gy;
+        break;
+      }
     }
   }
 }
