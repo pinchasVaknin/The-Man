@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "src/world/builders/wildlifeAndFootprintsBuilder.ts": {
-    "mtime": 1793540185.373304,
-    "seen": 1793540381.8075426,
-    "ast_hash": "7b7b38d7689470d636842dc407a6e378",
+    "mtime": 1793540695.8991506,
+    "seen": 1793540751.265035,
+    "ast_hash": "1dced0e4164113e888adae632926eece",
     "semantic_hash": ""
   },
   "src/world/controllers/atmosphereRenderController.ts": {
@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "src/lab/CharacterLabView.tsx": {
-    "mtime": 1793540220.9901361,
-    "seen": 1793540381.8075302,
-    "ast_hash": "bc44628d97bacbea38ae97b2bc5afc92",
+    "mtime": 1793540691.124825,
+    "seen": 1793540751.26502,
+    "ast_hash": "fe829c79f31196dd8e94a2d9fb5a6563",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.test.ts": {
@@ -618,9 +618,9 @@
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.ts": {
-    "mtime": 1793478752.716959,
-    "seen": 1793537725.9239585,
-    "ast_hash": "bc6f5bfff3b51103b4011c4884def18a",
+    "mtime": 1793540636.457986,
+    "seen": 1793540751.2650032,
+    "ast_hash": "716c5be5e42ad13fd2d0f4ea1b2d8286",
     "semantic_hash": ""
   },
   "src/config/savedLabOverrides.ts": {
@@ -735,6 +735,24 @@
     "mtime": 1793540490.0126352,
     "seen": 1793540601.7422042,
     "ast_hash": "c52fbb3128bc61b975802b690fa129d1",
+    "semantic_hash": ""
+  },
+  "src/config/savedGameSettings.spec.ts": {
+    "mtime": 1793540624.8539991,
+    "seen": 1793540751.2650018,
+    "ast_hash": "f3aa140c73e4875f5af8a13eef938e34",
+    "semantic_hash": ""
+  },
+  "src/lab/labOverridesStorage.spec.ts": {
+    "mtime": 1793540671.1935644,
+    "seen": 1793540751.2650242,
+    "ast_hash": "f0352bb956c0697c00658a3e6fde80e1",
+    "semantic_hash": ""
+  },
+  "src/lab/labOverridesStorage.ts": {
+    "mtime": 1793540675.2914402,
+    "seen": 1793540751.2650254,
+    "ast_hash": "64eb9c36697e6457b40e2e0d06fdfa0c",
     "semantic_hash": ""
   }
 }

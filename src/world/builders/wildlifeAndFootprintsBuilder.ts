@@ -31,6 +31,8 @@ import {
   computeSlopePitchAndRoll,
 } from '../systems/terrainAndBiomeSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
+import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
+import { ConsoleLogger } from '../../core/ILogger';
 import {
   getEffectiveLabAnimationSpeed,
   type ILabPoseOverrides,
@@ -167,14 +169,19 @@ export function buildWildlifeAndFootprintsLayer(
     ...SAVED_LAB_OVERRIDES,
   };
   if (typeof window !== 'undefined') {
+    let stored: string | null = null;
     try {
-      const raw = window.localStorage.getItem('lab_pose_overrides_v1');
-      if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, ILabPoseOverrides>;
-        liveLabOverrides = { ...SAVED_LAB_OVERRIDES, ...parsed };
-      }
-    } catch {
-      // Ignore storage errors
+      stored = window.localStorage.getItem(LAB_POSE_OVERRIDES_STORAGE_KEY);
+    } catch (err: unknown) {
+      ConsoleLogger.instance.warn('Lab overrides could not be read from localStorage', { error: String(err) });
+    }
+    const merged = mergeStoredLabOverrides(stored, SAVED_LAB_OVERRIDES);
+    if (merged.isSuccess) {
+      liveLabOverrides = merged.value;
+    } else {
+      ConsoleLogger.instance.warn('Stored lab overrides are invalid; using code-saved values', {
+        errorCode: merged.error,
+      });
     }
   }
   const onLabOverridesSaved = (ev: Event): void => {
