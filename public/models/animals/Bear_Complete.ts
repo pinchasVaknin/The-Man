@@ -440,12 +440,39 @@ export class BearAnimator {
         this.addLocalRot(26, -lift * 0.42 + slam * 0.18, 0, 0);
         this.addLocalRot(27, lift * 0.55 - slam * 0.15, 0, 0);
       }
+    } else if (this.state === 'roar') {
+      // Powerful chest expansion, head thrash, and wide roaring jaw so 'roar' never looks static
+      const roarWave = Math.sin(t * 5.2);
+      const roarSwell = 0.5 + 0.5 * Math.sin(t * 3.4);
+      this.rig.bones[2].position.y += roarSwell * 0.045;
+      this.addLocalRot(11, -0.14 * roarSwell, roarWave * 0.11, 0);
+      this.addLocalRot(19, -0.18 * roarSwell, roarWave * 0.16, 0);
+      this.addLocalRot(21, -0.12 * roarSwell, -roarWave * 0.14, roarWave * 0.08);
+      this.addLocalRot(23, 0.42 + roarSwell * 0.28, 0, 0);
     } else if (this.state === 'attack') {
-      // Forward lunge on bear attack so the strike reaches forward powerfully without overshooting
+      // Forward lunge & heavy dual-paw maul sweep on bear attack so the strike never stalls
       const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 1.6);
       const u = ((t % dur) + dur) % dur / dur;
       const lunge = Math.sin(u * Math.PI);
+      const swipe = Math.sin(u * Math.PI * 2);
       this.rig.bones[2].position.z += 0.14 * lunge;
+      this.addLocalRot(11, lunge * 0.16, swipe * 0.10, 0);
+      this.addLocalRot(19, -lunge * 0.12, swipe * 0.12, 0);
+      this.addLocalRot(23, 0.28 + lunge * 0.30, 0, 0);
+      this.addLocalRot(14, -lunge * 0.38 + swipe * 0.24, 0, 0);
+      this.addLocalRot(26, -lunge * 0.38 - swipe * 0.24, 0, 0);
+    } else if (this.state === 'idle' || this.state === 'sit' || this.state === 'eat' || this.state === 'lie') {
+      // Continuous natural breathing, weight shift, and head scanning so stationary bears never freeze
+      const breath = Math.sin(t * 2.4);
+      const lookYaw = Math.sin(t * 1.15) * 0.18 + Math.cos(t * 0.65) * 0.09;
+      const lookPitch = Math.sin(t * 1.7) * 0.09;
+      this.rig.bones[2].position.y += breath * 0.016;
+      this.addLocalRot(11, breath * 0.035, lookYaw * 0.35, Math.sin(t * 1.2) * 0.025);
+      this.addLocalRot(19, lookPitch + (this.state === 'eat' ? 0.22 + Math.abs(Math.sin(t * 4.2)) * 0.16 : 0), lookYaw * 0.65, 0);
+      this.addLocalRot(21, lookPitch * 0.8, lookYaw * 0.5, Math.cos(t * 1.5) * 0.04);
+      if (this.state === 'eat') {
+        this.addLocalRot(23, 0.18 + Math.abs(Math.sin(t * 6.5)) * 0.22, 0, 0);
+      }
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
@@ -518,7 +545,7 @@ export class Bear {
   readonly animator: BearAnimator;
 
   constructor(data: BearUnpackedData, texture: THREE.Texture, options: BearOptions = {}) {
-    const scale = options.scale ?? 1.18;
+    const scale = options.scale ?? 1.58;
     const castShadow = options.castShadow ?? true;
     const receiveShadow = options.receiveShadow ?? true;
 

@@ -130,9 +130,25 @@ test('southernRiverAndCarvedBearCaves_WhenEvaluated_ShouldProvideWalkableBridgeL
   const riverUnderBridge = groundHeightAt(178, 378);
   assert.ok(riverUnderBridge < -1.0, `Expected carved river channel under bridge, got ${riverUnderBridge}`);
 
-  // 3. Carved Mountain Bear Cave ("חור בהר") at (-85, -76) has recessed flat floor (4.2m) while mountain hood above is high
-  const caveFloor = groundHeightAt(-85, -76);
-  assert.ok(Math.abs(caveFloor - 4.2) < 0.25, `Expected flat carved cave floor ~4.2m, got ${caveFloor}`);
-  assert.equal(isPositionUnderRoof(-85, 4.2, -76), true, 'Inside carved mountain cave must be under roof');
+  // 3. Extended Southern River flows south through the Mountain Gorge Pass (118, 600) and out to the Sea (258, 785)
+  const gorgeRiverChannel = groundHeightAt(118, 600);
+  assert.ok(gorgeRiverChannel < -1.0, `Expected deep river channel in Mountain Gorge Pass, got ${gorgeRiverChannel}`);
+  const gorgeFootpath = walkableHeightAt(99.5, 600);
+  assert.ok(
+    gorgeFootpath.height > 1.0 && gorgeFootpath.height < 3.5,
+    `Expected accessible narrow riverside pass at (99.5, 600), got ${gorgeFootpath.height}`
+  );
+  const valleyBeyondMountains = walkableHeightAt(105, 715);
+  assert.ok(
+    Math.abs(valleyBeyondMountains.height - 2.15) < 0.35,
+    `Expected post-mountain valley glade at (105, 715) ~2.15m, got ${valleyBeyondMountains.height}`
+  );
+
+  // 4. Ground-level Mountain Bear Cave at (-85, -66 entrance / -85, -76 chamber) has ground-level walkable floor (2.2m) and overhead mountain roof
+  const caveEntranceFloor = groundHeightAt(-85, -66);
+  assert.ok(Math.abs(caveEntranceFloor - 2.2) < 0.35, `Expected ground-level cave entrance floor ~2.2m, got ${caveEntranceFloor}`);
+  const caveChamberWalkable = walkableHeightAt(-85, -76);
+  assert.ok(Math.abs(caveChamberWalkable.height - 2.2) < 0.1, `Expected flat cave chamber floor 2.2m, got ${caveChamberWalkable.height}`);
+  assert.equal(isPositionUnderRoof(-85, 2.2, -76), true, 'Inside carved mountain cave must be under roof');
 });
 // #endregion

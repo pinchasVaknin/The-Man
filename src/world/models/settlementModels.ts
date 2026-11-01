@@ -19,6 +19,7 @@ import {
   BEAR_MOUNTAIN_CAVES,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
+  SOUTHERN_PASS_VALLEY_POS,
   southernRiverBridgeHeightAt,
   groundHeightAt,
   walkableHeightAt,
@@ -1103,9 +1104,9 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         const cosT = Math.cos(theta);
         const sinT = Math.sin(theta);
 
-        // Natural horseshoe / gothic cavern arch profile
-        const baseRx = 4.65 + mouthFlare + throatFlare + wallThicknessOffset;
-        const baseRy = 5.45 + mouthFlare * 0.45 + throatFlare * 0.55 + wallThicknessOffset * 0.85;
+        // Sheltered low-slung horseshoe cavern arch profile (ground-level entrance, narrower & lower so interior is dark and private)
+        const baseRx = 3.45 + mouthFlare * 0.65 + throatFlare * 0.75 + wallThicknessOffset;
+        const baseRy = 4.35 + mouthFlare * 0.35 + throatFlare * 0.45 + wallThicknessOffset * 0.85;
         const archShape = Math.pow(sinT, 0.86);
 
         let x = -cosT * baseRx;
@@ -1212,7 +1213,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         const my = (ay + dy) * 0.5;
         const mz = (az + dz) * 0.5;
 
-        if (mz > -6.8 && Math.abs(mx) < 4.55 && my < 5.35) {
+        if (mz > -6.8 && Math.abs(mx) < 3.45 && my < 4.35) {
           continue;
         }
         indices.push(a, b, d, a, d, c);
@@ -1251,7 +1252,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   const caveTunnelOuterGeo = buildSculptedTunnelShellGeo(1.15, false);
   const caveCavernDomeGeo = buildSculptedCavernDomeGeo();
   const caveBoulderGeo = buildCraggyRockGeo();
-  const caveTunnelFloorGeo = new THREE.BoxGeometry(11.6, 0.8, 14.2);
+  const caveTunnelFloorGeo = new THREE.BoxGeometry(12.2, 0.8, 16.4);
   const caveCavernFloorGeo = new THREE.CylinderGeometry(12.2, 12.6, 0.8, 28);
   const caveStalactiteGeo = new THREE.ConeGeometry(1.0, 1.0, 9);
   caveStalactiteGeo.rotateX(Math.PI);
@@ -1348,7 +1349,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     // 1. Subterranean Rock Floor spanning the 12.8m entrance tunnel (lz: -6.4..+6.4)
     //    and the spacious 23m-wide interior cavern (lz: -25.4..-4.8)
     const tunnelFloor = new THREE.Mesh(caveTunnelFloorGeo, caveFloorMat);
-    tunnelFloor.position.set(0, -0.36, 0.2);
+    tunnelFloor.position.set(0, -0.38, 1.0);
     tunnelFloor.receiveShadow = !isSoftwareGl;
     caveGroup.add(tunnelFloor);
 
@@ -1377,26 +1378,32 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
     // 4. Dramatic Craggy Mountain Cliff Facade & Overhanging Portal Hood (lz: +2.8 .. +7.4)
     //    Seamlessly embeds the tunnel mouth into the mountain cliff face with layered rock strata
+    //    (All outer boulders stay strictly outside the tunnel/cavern walls and above the ceiling so zero non-colliding rocks block the interior view!)
     const cliffButtresses: ReadonlyArray<[number, number, number, number, number, number]> = [
-      // Massive flanking cliff face slabs blending into the mountain slope
-      [-7.4, 2.8, 5.2, 3.8, 3.8, 3.4],
-      [-9.8, 4.2, 3.6, 4.6, 5.4, 4.2],
-      [-6.2, 5.6, 4.4, 3.4, 3.2, 3.2],
-      [7.4, 2.8, 5.2, 3.8, 3.8, 3.4],
-      [9.8, 4.2, 3.6, 4.6, 5.4, 4.2],
-      [6.2, 5.6, 4.4, 3.4, 3.2, 3.2],
-      // Overhanging craggy rock brow & lintel ledges above the portal mouth (leaves y < 5.3m clear)
-      [-3.8, 6.7, 5.4, 3.4, 1.85, 3.1],
-      [0.0, 7.1, 5.6, 4.2, 1.95, 3.3],
-      [3.8, 6.7, 5.4, 3.4, 1.85, 3.1],
-      [-2.4, 9.2, 3.2, 5.2, 3.0, 4.2],
-      [2.4, 9.2, 3.2, 5.2, 3.0, 4.2],
-      [0.0, 11.4, 1.2, 6.8, 3.4, 4.8],
-      // Natural talus / scree boulders flanking the forest approach apron
-      [-6.6, 0.85, 7.8, 2.4, 1.35, 2.2],
-      [6.8, 0.90, 7.6, 2.5, 1.40, 2.3],
-      [-8.8, 1.35, 7.2, 2.9, 1.95, 2.6],
-      [8.9, 1.40, 7.0, 3.0, 2.05, 2.6],
+      // Massive flanking cliff face slabs blending into the mountain slope (outside |x| >= 4.6)
+      [-7.8, 2.8, 5.2, 3.2, 3.8, 3.4],
+      [-9.8, 4.2, 3.6, 4.2, 5.4, 4.2],
+      [-6.8, 5.6, 4.4, 2.8, 3.2, 3.2],
+      [7.8, 2.8, 5.2, 3.2, 3.8, 3.4],
+      [9.8, 4.2, 3.6, 4.2, 5.4, 4.2],
+      [6.8, 5.6, 4.4, 2.8, 3.2, 3.2],
+      // Overhanging craggy rock brow & lintel ledges high above the 4.5m portal mouth (bottom stays >= 4.7m)
+      [-3.4, 6.2, 5.4, 3.4, 1.35, 2.8],
+      [0.0, 6.4, 5.6, 4.0, 1.4, 2.9],
+      [3.4, 6.2, 5.4, 3.4, 1.35, 2.8],
+      [-2.4, 8.2, 3.2, 5.2, 2.4, 4.2],
+      [2.4, 8.2, 3.2, 5.2, 2.4, 4.2],
+      [0.0, 10.2, 1.2, 7.0, 2.8, 5.2],
+      // High exterior rock crown above the 6.8m cavern dome ceiling (bottom stays >= 7.2m, never enters the cavern!)
+      [0.0, 9.8, -14.8, 12.2, 2.4, 10.8],
+      [-13.4, 4.2, -14.5, 3.2, 4.8, 8.2],
+      [13.4, 4.2, -14.5, 3.2, 4.8, 8.2],
+      [0.0, 4.6, -28.2, 9.2, 5.0, 3.2],
+      // Natural talus / scree boulders flanking the forest approach apron (outside |x| >= 5.8)
+      [-6.4, 0.85, 7.6, 2.0, 1.35, 2.0],
+      [6.4, 0.90, 7.4, 2.0, 1.40, 2.0],
+      [-8.6, 1.35, 7.0, 2.6, 1.95, 2.4],
+      [8.6, 1.40, 6.8, 2.6, 2.05, 2.4],
     ];
     for (let i = 0; i < cliffButtresses.length; i++) {
       const [bx, by, bz, sx, sy, sz] = cliffButtresses[i];
@@ -1404,9 +1411,9 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       rock.position.set(bx, by, bz);
       rock.scale.set(sx, sy, sz);
       rock.rotation.set(
-        Math.sin(cIdx + i * 1.7) * 0.22,
-        Math.cos(cIdx + i * 2.3) * 0.35,
-        Math.sin(cIdx + i * 0.9) * 0.18
+        Math.sin(cIdx + i * 1.7) * 0.1,
+        Math.cos(cIdx + i * 2.3) * 0.14,
+        Math.sin(cIdx + i * 0.9) * 0.08
       );
       rock.castShadow = !isSoftwareGl;
       rock.receiveShadow = !isSoftwareGl;
@@ -1415,11 +1422,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
     // Lush forest moss shelves on the outer portal talus & brow
     const mossPlacements: ReadonlyArray<[number, number, number, number, number, number]> = [
-      [-6.4, 1.55, 7.5, 2.2, 0.36, 1.8],
-      [6.6, 1.62, 7.3, 2.3, 0.36, 1.9],
-      [-3.5, 7.75, 5.2, 2.6, 0.42, 2.0],
-      [3.5, 7.75, 5.2, 2.6, 0.42, 2.0],
-      [0.0, 8.25, 5.3, 3.1, 0.45, 2.1],
+      [-6.4, 1.55, 7.3, 1.9, 0.36, 1.7],
+      [6.4, 1.62, 7.1, 1.9, 0.36, 1.7],
+      [-3.2, 7.25, 5.2, 2.6, 0.42, 2.0],
+      [3.2, 7.25, 5.2, 2.6, 0.42, 2.0],
+      [0.0, 7.55, 5.3, 3.1, 0.45, 2.1],
     ];
     for (let m = 0; m < mossPlacements.length; m++) {
       const [mx, my, mz, sx, sy, sz] = mossPlacements[m];
@@ -1429,12 +1436,12 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       caveGroup.add(moss);
     }
 
-    // 5. Interior Structural Rock Ribs & Throat Columns (framing transition from tunnel into grand cavern)
+    // 5. Interior Structural Rock Ribs & Throat Columns (placed wide at |x| = 5.2m so the 7.6m central passage is 100% unobstructed for bears!)
     for (const side of [-1, 1] as const) {
       const throatPillar = new THREE.Mesh(caveBoulderGeo, caveInnerWallMat);
-      throatPillar.position.set(side * 5.3, 2.8, -5.8);
-      throatPillar.scale.set(1.55, 3.8, 1.85);
-      throatPillar.rotation.y = side * 0.35;
+      throatPillar.position.set(side * 5.2, 2.6, -5.6);
+      throatPillar.scale.set(1.15, 3.6, 1.35);
+      throatPillar.rotation.y = side * 0.12;
       throatPillar.castShadow = !isSoftwareGl;
       throatPillar.receiveShadow = !isSoftwareGl;
       caveGroup.add(throatPillar);
@@ -1727,6 +1734,111 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     cx: CROCODILE_RIVER_BEND_POS.x,
     cz: CROCODILE_RIVER_BEND_POS.z,
     radius: 44,
+  });
+
+  // ============================================================================
+  // SOUTHERN PASS VALLEY GLADE, TRAVELER'S REFUGE SHELTER & WORLD SLEEPING BEDS
+  // Beyond the Southern Mountain Gorge Pass at (105, 715) + Spawn Camp Bedroll & Lodge Bed
+  // ============================================================================
+  const bedFrameGeo = new THREE.BoxGeometry(1.35, 0.36, 2.15);
+  const bedMattressGeo = new THREE.BoxGeometry(1.22, 0.22, 1.96);
+  const bedPillowGeo = new THREE.BoxGeometry(0.92, 0.16, 0.42);
+  const bedBlanketGeo = new THREE.BoxGeometry(1.25, 0.24, 1.32);
+  const bedPillowMat = new THREE.MeshStandardMaterial({ color: 0xf4eee1, roughness: 0.82 });
+  const bedBlanketMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.88 });
+  disposableGeometries.push(bedFrameGeo, bedMattressGeo, bedPillowGeo, bedBlanketGeo);
+  disposableMaterials.push(bedPillowMat, bedBlanketMat);
+
+  const createBedProp = (bx: number, by: number, bz: number, yaw = 0): THREE.Group => {
+    const g = new THREE.Group();
+    g.position.set(bx, by, bz);
+    g.rotation.y = yaw;
+    const frame = new THREE.Mesh(bedFrameGeo, furnitureWoodMat);
+    frame.position.y = 0.18;
+    const mattress = new THREE.Mesh(bedMattressGeo, sailClothMat);
+    mattress.position.y = 0.40;
+    const blanket = new THREE.Mesh(bedBlanketGeo, bedBlanketMat);
+    blanket.position.set(0, 0.42, 0.28);
+    const pillow = new THREE.Mesh(bedPillowGeo, bedPillowMat);
+    pillow.position.set(0, 0.52, -0.68);
+    g.add(frame, mattress, blanket, pillow);
+    return g;
+  };
+
+  // 1) Hunter's Lodge Bed + Sleeping Bag (Spawn Camp forest bed removed — sleep is inside cabins/lodges only)
+  scene.add(createBedProp(HUNTER_LODGE_POS.x - 3.2, HUNTER_LODGE_POS.height + 0.2, HUNTER_LODGE_POS.z + 2.4, 0));
+
+  const sleepingBagPadGeo = new THREE.BoxGeometry(0.95, 0.08, 1.92);
+  const sleepingBagQuiltGeo = new THREE.BoxGeometry(0.88, 0.12, 1.38);
+  const sleepingBagRollGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.78, 10);
+  sleepingBagRollGeo.rotateZ(Math.PI / 2);
+  const sleepingBagMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.86 });
+  disposableGeometries.push(sleepingBagPadGeo, sleepingBagQuiltGeo, sleepingBagRollGeo);
+  disposableMaterials.push(sleepingBagMat);
+
+  const lodgeBagGroup = new THREE.Group();
+  lodgeBagGroup.position.set(HUNTER_LODGE_POS.x + 2.8, HUNTER_LODGE_POS.height + 0.2, HUNTER_LODGE_POS.z + 2.2);
+  const sbPad = new THREE.Mesh(sleepingBagPadGeo, barkMat);
+  sbPad.position.y = 0.04;
+  const sbQuilt = new THREE.Mesh(sleepingBagQuiltGeo, sleepingBagMat);
+  sbQuilt.position.set(0, 0.1, 0.22);
+  const sbPillow = new THREE.Mesh(sleepingBagRollGeo, bedPillowMat);
+  sbPillow.position.set(0, 0.14, -0.68);
+  lodgeBagGroup.add(sbPad, sbQuilt, sbPillow);
+  scene.add(lodgeBagGroup);
+
+  // 2) Southern Pass Valley Glade & Traveler's Refuge at (105, 715) after the Mountain Gorge Pass
+  const southPassGroup = new THREE.Group();
+  const spX = SOUTHERN_PASS_VALLEY_POS.x;
+  const spZ = SOUTHERN_PASS_VALLEY_POS.z;
+  const spY = SOUTHERN_PASS_VALLEY_POS.floorY;
+
+  const shelterPostGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.1, 8);
+  const shelterRoofGeo = new THREE.ConeGeometry(4.6, 2.2, 4);
+  shelterRoofGeo.rotateY(Math.PI / 4);
+  const campStoneRingGeo = new THREE.TorusGeometry(0.85, 0.18, 8, 14);
+  campStoneRingGeo.rotateX(Math.PI / 2);
+  disposableGeometries.push(shelterPostGeo, shelterRoofGeo, campStoneRingGeo);
+
+  for (const [px, pz] of [
+    [-2.4, -2.4],
+    [2.4, -2.4],
+    [-2.4, 2.4],
+    [2.4, 2.4],
+  ] as const) {
+    const post = new THREE.Mesh(shelterPostGeo, timberMat);
+    post.position.set(spX + px, spY + 1.55, spZ + pz);
+    post.castShadow = !isSoftwareGl;
+    southPassGroup.add(post);
+  }
+  const shelterRoof = new THREE.Mesh(shelterRoofGeo, barkMat);
+  shelterRoof.position.set(spX, spY + 4.1, spZ);
+  shelterRoof.castShadow = !isSoftwareGl;
+  southPassGroup.add(shelterRoof);
+
+  // Warm Campfire & Lantern outside the refuge at (110.5, 711.5)
+  const fireRing = new THREE.Mesh(campStoneRingGeo, rockMat);
+  fireRing.position.set(spX + 5.5, spY + 0.12, spZ - 3.5);
+  const fireEmber = new THREE.Mesh(lanternHousingGeo, warmLanternMat);
+  fireEmber.position.set(spX + 5.5, spY + 0.28, spZ - 3.5);
+  southPassGroup.add(fireRing, fireEmber);
+
+  // Gorge Guide Cairn Lanterns along the narrow Mountain Pass footpath (x ≈ 97.5, z = 540, 600, 660)
+  for (const gz of [540, 600, 660]) {
+    const gy = groundHeightAt(97.5, gz);
+    const lPost = new THREE.Mesh(lanternPostGeo, darkIronMat);
+    lPost.position.set(97.5, gy + 1.15, gz);
+    const lGlow = new THREE.Mesh(lanternHousingGeo, warmLanternMat);
+    lGlow.position.set(97.5, gy + 2.35, gz);
+    southPassGroup.add(lPost, lGlow);
+  }
+
+  scene.add(southPassGroup);
+  distanceCulledObjects.push({
+    obj: southPassGroup,
+    cx: spX,
+    cz: spZ,
+    radius: 190,
   });
 
   // ============================================================================

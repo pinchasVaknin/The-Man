@@ -14,7 +14,7 @@ export const WATER_LEVEL = 0.0;
 export const PLAYER_EYE_HEIGHT = 1.72;
 
 /** Summary: Playable terrain boundary radius from world origin. */
-export const PLAYABLE_RADIUS = 760;
+export const PLAYABLE_RADIUS = 960;
 
 /** Summary: Maximum visible distance for terrain chunk culling and entity activation. */
 export const VIEW_DISTANCE = 225;
@@ -63,7 +63,9 @@ export const WALKABLE_MOUNTAINS = [
   { id: 'north-snow-alpine-east', x: 160, z: -335, radius: 90, height: 33.0 },
   { id: 'ne-summit', x: 212, z: -148, radius: 92, height: 34.0 },
   { id: 'west-ridge', x: -245, z: -45, radius: 92, height: 33.0 },
-  { id: 'south-distant-peak', x: -135, z: 245, radius: 88, height: 29.0 },
+  { id: 'south-distant-peak', x: 38, z: 328, radius: 78, height: 29.0 },
+  { id: 'south-gorge-west-peak', x: 54, z: 600, radius: 54, height: 31.5 },
+  { id: 'south-gorge-east-peak', x: 182, z: 600, radius: 54, height: 30.5 },
 ] as const;
 
 /** Summary: Subtle rolling hill mounds dotting the central spawn meadow. */
@@ -76,7 +78,7 @@ export const SMALL_MEADOW_HILLS = [
   { x: 162, z: -18, r: 22, h: 3.5 },
 ] as const;
 
-/** Summary: Mountain forest caves carved directly into mountain flanks ("חור בהר") serving as bear dens. */
+/** Summary: Mountain forest caves carved directly into remote unpopulated hills with ground-level entrances. */
 export const BEAR_MOUNTAIN_CAVES = [
   {
     id: 'cave-nw-forest',
@@ -84,9 +86,9 @@ export const BEAR_MOUNTAIN_CAVES = [
     z: -76,
     entranceX: -85,
     entranceZ: -64,
-    floorY: 4.2,
+    floorY: 2.2,
     radius: 11.5,
-    roofHeight: 8.2,
+    roofHeight: 6.4,
     facingYaw: 0,
   },
   {
@@ -95,32 +97,52 @@ export const BEAR_MOUNTAIN_CAVES = [
     z: -45,
     entranceX: -174,
     entranceZ: -45,
-    floorY: 4.5,
+    floorY: 2.25,
     radius: 11.5,
-    roofHeight: 8.2,
+    roofHeight: 6.4,
     facingYaw: Math.PI / 2,
   },
   {
     id: 'cave-south-forest',
-    x: -135,
-    z: 196,
-    entranceX: -135,
-    entranceZ: 184,
-    floorY: 4.6,
+    x: 38,
+    z: 294,
+    entranceX: 38,
+    entranceZ: 282,
+    floorY: 2.25,
     radius: 11.5,
-    roofHeight: 8.2,
+    roofHeight: 6.4,
     facingYaw: Math.PI,
   },
 ] as const;
 
-/** Summary: Centerline waypoints for the Southern River flowing from the Sea south-southwest across the expanded southern wilderness. */
+/** Summary: Centerline waypoints for the Southern River flowing from the Sea south-southwest, through the Mountain Gorge Pass, and back to the Sea. */
 export const SOUTHERN_RIVER_WAYPOINTS = [
   { x: 256.0, z: 330.0 },
   { x: 178.0, z: 352.0 },
   { x: 178.0, z: 404.0 },
   { x: 132.0, z: 475.0 },
-  { x: 104.0, z: 548.0 },
+  { x: 118.0, z: 545.0 },
+  { x: 118.0, z: 655.0 },
+  { x: 168.0, z: 735.0 },
+  { x: 258.0, z: 785.0 },
 ] as const;
+
+/** Summary: Secluded valley glade & traveler camp south of the Mountain Gorge Pass. */
+export const SOUTHERN_PASS_VALLEY_POS = {
+  x: 105.0,
+  z: 715.0,
+  height: 2.15,
+  floorY: 2.15,
+  radius: 36.0,
+} as const;
+
+/** Summary: Ancient Mossy Temple Ruins south of the river in the Southern Valley, home to the Forest Dragon. */
+export const SOUTHERN_DRAGON_RUINS_POS = {
+  x: 56.0,
+  z: 716.0,
+  height: 2.15,
+  radius: 58.0,
+} as const;
 
 /** Summary: Grand 3-Arch Stone & Timber Bridge spanning East-West across the Southern River. */
 export const SOUTHERN_RIVER_BRIDGE_POS = {

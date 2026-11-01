@@ -515,4 +515,141 @@ export function findNearestFortressDoor(
   }
   return best;
 }
+
+export interface IWorldBedDef {
+  readonly id: string;
+  readonly name: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly yaw?: number;
+  readonly interactRadius: number;
+}
+
+/** Summary: Registry of sleepable beds across farmhouses, lodges, cabins, and camps (no bed at forest spawn). */
+export const WORLD_BEDS: readonly IWorldBedDef[] = [
+  {
+    id: 'bed-hunter-lodge',
+    name: "Hunter's Lodge Bed",
+    x: HUNTER_LODGE_POS.x - 3.2,
+    y: HUNTER_LODGE_POS.height + 0.2,
+    z: HUNTER_LODGE_POS.z + 2.4,
+    yaw: 0,
+    interactRadius: 3.4,
+  },
+  {
+    id: 'bed-farm-west',
+    name: 'West Farmhouse Bed',
+    x: VALLEY_FARMS[0].x + 3.4 * VALLEY_FARMS[0].dirZ,
+    y: VALLEY_FARMS[0].height + 0.18,
+    z: VALLEY_FARMS[0].z - 5.1 * VALLEY_FARMS[0].dirZ,
+    yaw: VALLEY_FARMS[0].dirZ === 1 ? 0 : Math.PI,
+    interactRadius: 3.4,
+  },
+  {
+    id: 'bed-farm-south',
+    name: 'South Farmhouse Bed',
+    x: VALLEY_FARMS[1].x + 3.4 * VALLEY_FARMS[1].dirZ,
+    y: VALLEY_FARMS[1].height + 0.18,
+    z: VALLEY_FARMS[1].z - 5.1 * VALLEY_FARMS[1].dirZ,
+    yaw: VALLEY_FARMS[1].dirZ === 1 ? 0 : Math.PI,
+    interactRadius: 3.4,
+  },
+  {
+    id: 'bed-farm-east',
+    name: 'East Farmhouse Bed',
+    x: VALLEY_FARMS[2].x + 3.4 * VALLEY_FARMS[2].dirZ,
+    y: VALLEY_FARMS[2].height + 0.18,
+    z: VALLEY_FARMS[2].z - 5.1 * VALLEY_FARMS[2].dirZ,
+    yaw: VALLEY_FARMS[2].dirZ === 1 ? 0 : Math.PI,
+    interactRadius: 3.4,
+  },
+  {
+    id: 'bed-galleon-cabin',
+    name: "Captain's Bed",
+    x: 285.8,
+    y: 3.6,
+    z: 268.8,
+    yaw: 0,
+    interactRadius: 3.4,
+  },
+  ...DWARVEN_STONE_HOUSES.map((dh) => ({
+    id: `bed-${dh.id}`,
+    name: 'Stone House Bed',
+    x: dh.x - dh.dirX * 3.1,
+    y: dh.floorY,
+    z: dh.z + 2.4,
+    yaw: dh.dirX === 1 ? Math.PI * 0.5 : -Math.PI * 0.5,
+    interactRadius: 3.4,
+  })),
+  {
+    id: 'sleeping-bag-hunter-lodge',
+    name: 'Sleeping Bag',
+    x: HUNTER_LODGE_POS.x + 2.8,
+    y: HUNTER_LODGE_POS.height + 0.2,
+    z: HUNTER_LODGE_POS.z + 2.2,
+    yaw: 0,
+    interactRadius: 3.2,
+  },
+  ...HILL_WATCHTOWERS.map((hw) => ({
+    id: `sleeping-bag-${hw.id}`,
+    name: 'Sleeping Bag',
+    x: hw.x + 1.85,
+    y: hw.baseY + 0.22,
+    z: hw.z - hw.doorSideLocalZ * 1.65,
+    yaw: hw.doorSideLocalZ === 1 ? 0 : Math.PI,
+    interactRadius: 3.2,
+  })),
+  ...[-30.0, 30.0].flatMap((px) => {
+    const isWest = px < 0;
+    const sideKey = isWest ? 'west' : 'east';
+    const innerDir = isWest ? 1 : -1;
+    const pavFloor2Y = CHINESE_FORTRESS_POS.pavilionFloor2Y;
+    const pavCenterZ = -164.0 + FZ;
+    const pavBackZ = -171.5 + FZ;
+    const backRow = [0, 1, 2, 3, 4].map((r) => ({
+      id: `sleeping-bag-${sideKey}-pav-back-${r}`,
+      name: 'Sleeping Bag',
+      x: px + innerDir * (-2.6 + r * 2.1),
+      y: pavFloor2Y,
+      z: pavBackZ + 1.32,
+      yaw: 0,
+      interactRadius: 2.8,
+    }));
+    const sideRow = [0, 1, 2, 3].map((r) => ({
+      id: `sleeping-bag-${sideKey}-pav-side-${r}`,
+      name: 'Sleeping Bag',
+      x: px + innerDir * 7.62,
+      y: pavFloor2Y,
+      z: pavCenterZ - 2.6 + r * 1.95,
+      yaw: isWest ? -Math.PI * 0.5 : Math.PI * 0.5,
+      interactRadius: 2.8,
+    }));
+    return [...backRow, ...sideRow];
+  }),
+] as const;
+
+/**
+ * Summary: Finds the nearest sleepable bed within interaction range of the player.
+ */
+export function findNearestBed(
+  x: number,
+  y: number,
+  z: number,
+  maxDistOverride?: number
+): IWorldBedDef | null {
+  let best: IWorldBedDef | null = null;
+  let bestDist = Infinity;
+  for (let i = 0; i < WORLD_BEDS.length; i++) {
+    const b = WORLD_BEDS[i];
+    if (Math.abs(y - b.y) > 3.5) continue;
+    const d = Math.hypot(x - b.x, z - b.z);
+    const maxR = maxDistOverride ?? b.interactRadius;
+    if (d <= maxR && d < bestDist) {
+      bestDist = d;
+      best = b;
+    }
+  }
+  return best;
+}
 // #endregion

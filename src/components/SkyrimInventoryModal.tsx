@@ -98,7 +98,21 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   small_hide: t('items.small_hide.short'),
   deer_hide: t('items.deer_hide.short'),
   sheep_hide: t('items.sheep_hide.short'),
+  wolf_hide: t('items.wolf_hide.short'),
+  jaguar_hide: t('items.jaguar_hide.short'),
+  crocodile_hide: t('items.crocodile_hide.short'),
+  bear_hide: t('items.bear_hide.short'),
+  rhino_hide: t('items.rhino_hide.short'),
   deer_antlers: t('items.deer_antlers.short'),
+  deer_meat: t('items.deer_meat.short'),
+  bear_meat: t('items.bear_meat.short'),
+  rotten_meat: t('items.rotten_meat.short'),
+  animal_bone: t('items.animal_bone.short'),
+  animal_fat: t('items.animal_fat.short'),
+  bear_claws: t('items.bear_claws.short'),
+  wolf_fang: t('items.wolf_fang.short'),
+  crocodile_teeth: t('items.crocodile_teeth.short'),
+  rhino_horn: t('items.rhino_horn.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];

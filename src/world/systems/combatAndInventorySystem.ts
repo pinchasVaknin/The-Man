@@ -49,6 +49,9 @@ export { SWORD_ACTIVE_STRIKE_WINDOW_START, SWORD_ACTIVE_STRIKE_WINDOW_END, SWORD
 
 export const ARROW_TRAIL_MAX_AGE = 0.85;
 
+/** Summary: Minimum bow draw progress required before releasing fires an arrow. */
+export const MIN_BOW_DRAW_TO_SHOOT = 0.22;
+
 /** Summary: Market resell value ratio (70% of buy price, minimum 5 gold). */
 const MARKET_SELL_RATIO = 0.7;
 const MARKET_MIN_SELL_PRICE = 5;
@@ -297,6 +300,9 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['ancient_dwarven_horn', hornStrategy],
   ['elven_cloak', cloakStrategy],
   ['raw_game_meat', meatStrategy],
+  ['deer_meat', meatStrategy],
+  ['bear_meat', meatStrategy],
+  ['rotten_meat', meatStrategy],
   ['roasted_meat', meatStrategy],
   ['fresh_bread_loaf', meatStrategy],
   ['harbor_cheese_wheel', meatStrategy],
@@ -312,7 +318,18 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['small_hide', materialStrategy],
   ['deer_hide', materialStrategy],
   ['sheep_hide', materialStrategy],
+  ['wolf_hide', materialStrategy],
+  ['jaguar_hide', materialStrategy],
+  ['crocodile_hide', materialStrategy],
+  ['bear_hide', materialStrategy],
+  ['rhino_hide', materialStrategy],
   ['deer_antlers', materialStrategy],
+  ['animal_bone', materialStrategy],
+  ['animal_fat', materialStrategy],
+  ['bear_claws', materialStrategy],
+  ['wolf_fang', materialStrategy],
+  ['crocodile_teeth', materialStrategy],
+  ['rhino_horn', materialStrategy],
 ]);
 // #endregion
 
@@ -649,41 +666,48 @@ export function evaluateSwordStrikeWindowHit(
       const anim = activeAnimals[a];
       if (anim.isDead || anim.isLooted) continue;
       const animRad =
-        anim.species === 'bear'
-          ? 2.35
-          : anim.species === 'crocodile'
-            ? 2.65
-            : anim.species === 'rhino'
-              ? 2.45
-              : anim.species === 'deer'
-                ? 1.55
-                : anim.species === 'jaguar' || anim.species === 'wolf'
-                  ? 1.45
-                  : anim.species === 'sheep'
-                    ? 1.15
-                    : 0.95;
-      const animGroundY = groundHeightAt(anim.x, anim.z);
+        anim.species === 'dragon'
+          ? 5.2
+          : anim.species === 'bear'
+            ? 2.35
+            : anim.species === 'crocodile'
+              ? 2.65
+              : anim.species === 'rhino'
+                ? 2.45
+                : anim.species === 'deer'
+                  ? 1.55
+                  : anim.species === 'jaguar' || anim.species === 'wolf'
+                    ? 1.45
+                    : anim.species === 'sheep'
+                      ? 1.15
+                      : 0.95;
+      // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
+      const animGroundY = anim.y ?? walkableHeightAt(anim.x, anim.z).height;
       const animCenterY =
         animGroundY +
-        (anim.species === 'bear'
-          ? 1.45
-          : anim.species === 'rhino'
-            ? 1.25
-            : anim.species === 'deer'
-              ? 1.15
-              : anim.species === 'jaguar' || anim.species === 'wolf'
-                ? 0.85
-                : anim.species === 'sheep'
-                  ? 0.55
-                  : anim.species === 'crocodile'
-                    ? 0.65
-                    : 0.25);
+        (anim.species === 'dragon'
+          ? 2.85
+          : anim.species === 'bear'
+            ? 1.45
+            : anim.species === 'rhino'
+              ? 1.25
+              : anim.species === 'deer'
+                ? 1.15
+                : anim.species === 'jaguar' || anim.species === 'wolf'
+                  ? 0.85
+                  : anim.species === 'sheep'
+                    ? 0.55
+                    : anim.species === 'crocodile'
+                      ? 0.65
+                      : 0.25);
       const animHalfH =
-        anim.species === 'bear' || anim.species === 'rhino'
-          ? 2.15
-          : anim.species === 'deer'
-            ? 1.55
-            : 1.45;
+        anim.species === 'dragon'
+          ? 4.2
+          : anim.species === 'bear' || anim.species === 'rhino'
+            ? 2.15
+            : anim.species === 'deer'
+              ? 1.55
+              : 1.45;
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
         Math.abs(sy - animCenterY) <= animHalfH
@@ -861,7 +885,8 @@ export function spawnArrowProjectile(
   nextIdGenerator?: () => number
 ): IArrowProjectile {
   awardSkillXp(state, 'archery', Math.round(5 + drawPower * 4));
-  const clampedPower = Math.max(0.28, Math.min(1.0, drawPower));
+  const clampedPower = Math.max(MIN_BOW_DRAW_TO_SHOOT, Math.min(1.0, drawPower));
+  const drawNorm = Math.max(0, Math.min(1, (clampedPower - MIN_BOW_DRAW_TO_SHOOT) / (1.0 - MIN_BOW_DRAW_TO_SHOOT)));
   const kind: ArrowElementKind = state.arrowKind ?? 'normal';
   const activeBowBonus =
     state.activeWeaponId === 'dragonbone_bow'
@@ -869,7 +894,8 @@ export function spawnArrowProjectile(
       : state.activeWeaponId === 'elven_longbow'
         ? 1.2
         : 1.0;
-  const baseSpeed = (24.0 + clampedPower * 34.0) * activeBowBonus;
+  // Stronger bow draw flies much further: 16 m/s at minimum draw up to 62 m/s at full draw
+  const baseSpeed = (16.0 + Math.pow(drawNorm, 1.12) * 46.0) * activeBowBonus;
   const speed = kind === 'wind' ? baseSpeed * 1.42 : baseSpeed;
   const cosP = Math.cos(state.pitch);
   const sinP = Math.sin(state.pitch);
@@ -949,7 +975,40 @@ export function stepArrowsPhysics(
       }
     }
 
-    if (arr.stuck) continue;
+    if (arr.stuck) {
+      // Keep arrows embedded in animals moving with the animal (whether running or lying dead on the ground!)
+      if (arr.hitKind === 'animal' && arr.attachedAnimalId !== undefined) {
+        let hostAnim: ISmallAnimalState | undefined;
+        for (let a = 0; a < activeAnimals.length; a++) {
+          if (activeAnimals[a].id === arr.attachedAnimalId) {
+            hostAnim = activeAnimals[a];
+            break;
+          }
+        }
+        if (hostAnim) {
+          const cosY = Math.cos(hostAnim.yaw);
+          const sinY = Math.sin(hostAnim.yaw);
+          const lox = arr.localOffsetX ?? 0;
+          const loz = arr.localOffsetZ ?? 0;
+          const loy = arr.localOffsetY ?? 0.65;
+          const baseAnimY =
+            (hostAnim.y ?? walkableHeightAt(hostAnim.x, hostAnim.z).height) +
+            (hostAnim.pounceHeight ?? 0);
+          if (hostAnim.isDead) {
+            // When the animal falls dead on its side (roll = PI/2), transform local offset so the arrow stays stuck in the fallen body
+            arr.x = hostAnim.x + lox * 0.45 * cosY + loz * sinY;
+            arr.z = hostAnim.z - lox * 0.45 * sinY + loz * cosY;
+            arr.y = baseAnimY + Math.max(0.18, loy * 0.38);
+          } else {
+            arr.x = hostAnim.x + lox * cosY + loz * sinY;
+            arr.z = hostAnim.z - lox * sinY + loz * cosY;
+            arr.y = baseAnimY + loy;
+          }
+          arr.yaw = hostAnim.yaw + (arr.localYawOffset ?? 0);
+        }
+      }
+      continue;
+    }
 
     const grav = arr.arrowKind === 'wind' ? 2.6 : 9.8;
     const subSteps = 4;
@@ -1002,37 +1061,43 @@ export function stepArrowsPhysics(
         const anim = activeAnimals[a];
         if (anim.isDead || anim.isLooted) continue;
         const animRad =
-          anim.species === 'bear'
-            ? 2.35
-            : anim.species === 'crocodile'
-              ? 2.65
+          anim.species === 'dragon'
+            ? 5.2
+            : anim.species === 'bear'
+              ? 2.45
+              : anim.species === 'crocodile'
+                ? 2.65
+                : anim.species === 'rhino'
+                  ? 2.45
+                  : anim.species === 'deer'
+                    ? 1.42
+                    : anim.species === 'jaguar' || anim.species === 'wolf'
+                      ? 1.38
+                      : anim.species === 'sheep'
+                        ? 0.92
+                        : 0.62;
+        // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
+        const animGroundY =
+          (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);
+        const animHeightSpan =
+          anim.species === 'dragon'
+            ? 6.5
+            : anim.species === 'bear'
+              ? 3.05
               : anim.species === 'rhino'
                 ? 2.45
                 : anim.species === 'deer'
-                  ? 1.42
+                  ? 2.45
                   : anim.species === 'jaguar' || anim.species === 'wolf'
-                    ? 1.38
+                    ? 1.65
                     : anim.species === 'sheep'
-                      ? 0.92
-                      : 0.62;
-        const animGroundY = groundHeightAt(anim.x, anim.z);
-        const animMaxY =
-          animGroundY +
-          (anim.species === 'bear'
-            ? 2.95
-            : anim.species === 'rhino'
-              ? 2.45
-              : anim.species === 'deer'
-                ? 2.45
-                : anim.species === 'jaguar' || anim.species === 'wolf'
-                  ? 1.65
-                  : anim.species === 'sheep'
-                    ? 1.25
-                    : anim.species === 'crocodile'
-                      ? 1.55
-                      : 0.75);
+                      ? 1.25
+                      : anim.species === 'crocodile'
+                        ? 1.55
+                        : 0.75;
+        const animMaxY = animGroundY + animHeightSpan;
         const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
-        if (horizDist <= animRad && arr.y >= animGroundY - 0.15 && arr.y <= animMaxY) {
+        if (horizDist <= animRad && arr.y >= animGroundY - 0.2 && arr.y <= animMaxY) {
           const dmgRes = damageGroundAnimal(
             anim,
             1,
@@ -1043,8 +1108,21 @@ export function stepArrowsPhysics(
           arr.vx = 0;
           arr.vy = 0;
           arr.vz = 0;
-          arr.hitKind = 'target';
+          arr.hitKind = 'animal';
           arr.hitTargetId = String(anim.id);
+          arr.attachedAnimalId = anim.id;
+          // Embed arrow slightly inside animal body in animal-local coordinates so it moves with running/falling animal
+          const cosY = Math.cos(anim.yaw);
+          const sinY = Math.sin(anim.yaw);
+          const dx = (arr.x - anim.x) * 0.52;
+          const dz = (arr.z - anim.z) * 0.52;
+          arr.localOffsetX = dx * cosY - dz * sinY;
+          arr.localOffsetZ = dx * sinY + dz * cosY;
+          arr.localOffsetY = Math.max(
+            0.25,
+            Math.min(animHeightSpan * 0.78, arr.y - animGroundY)
+          );
+          arr.localYawOffset = arr.yaw - anim.yaw;
           arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
           hitAnimal = anim;
           killedAnimal = dmgRes.killed;

@@ -1386,6 +1386,42 @@ export function buildPlayerAndCombatSystems(
         )
       : 0;
 
+    if (playerState.isSleeping) {
+      // Lying horizontally on the bed mattress on back (head on pillow at -Z, feet stretched toward +Z)
+      const footOffsetX = Math.sin(horseBaseYaw) * 0.78;
+      const footOffsetZ = Math.cos(horseBaseYaw) * 0.78;
+      playerCharacterGroup.position.set(
+        playerState.x + footOffsetX,
+        playerState.y + 0.14,
+        playerState.z + footOffsetZ
+      );
+      playerCharacterGroup.rotation.order = 'YXZ';
+      playerCharacterGroup.rotation.set(-Math.PI / 2, horseBaseYaw, 0);
+      swimRippleMesh.visible = false;
+      fpViewModelGroup.visible = false;
+      rangerUpperTorsoPivot.visible = true;
+      rangerBodyGroup.visible = true;
+      rangerLeftLeg.visible = true;
+      rangerRightLeg.visible = true;
+      bowGroup.visible = false;
+      stowedBackBowGroup.visible = false;
+      thirdPersonTorchGroup.visible = false;
+      thirdPersonSwordGroup.visible = false;
+
+      const sleepBreath = Math.sin(elapsedTime * 1.6) * 0.025;
+      rangerUpperTorsoPivot.position.set(0, 0.92, 0);
+      rangerUpperTorsoPivot.rotation.set(sleepBreath, 0, 0);
+      rangerHeadGroup.rotation.set(0.08 + sleepBreath * 0.5, 0, 0);
+      rangerLeftLeg.position.set(-0.11, 0.90, 0);
+      rangerRightLeg.position.set(0.11, 0.90, 0);
+      rangerLeftLeg.rotation.set(0, 0, 0.04);
+      rangerRightLeg.rotation.set(0, 0, -0.04);
+      rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
+      rangerLeftArmGroup.rotation.set(0.12, 0, 0.18);
+      poseRightArmSegments(0.25, 0.52, 0, 0.12, 0, -0.18, 0.25, 0, 0);
+      return;
+    }
+
     playerCharacterGroup.position.set(playerState.x, playerState.y + mountLift, playerState.z);
     playerCharacterGroup.rotation.order = 'YXZ';
     playerCharacterGroup.rotation.y = horseBaseYaw;

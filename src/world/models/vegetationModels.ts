@@ -12,6 +12,7 @@ import {
   WATER_LEVEL,
   SOUTHERN_MINE_POS,
   groundHeightAt,
+  isInsideBearCave,
   trailFactorAt,
   hash2D,
 } from '../terrainMath';
@@ -611,6 +612,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     const gy = groundHeightAt(gx, gz);
     if (gy < WATER_LEVEL + 0.12 || gy > 13.0) continue;
     if (trailFactorAt(gx, gz) > 0.28) continue;
+    if (isInsideBearCave(gx, gz) !== null) continue;
     if (
       Math.abs(gx - SOUTHERN_MINE_POS.x) < 10.5 &&
       gz > SOUTHERN_MINE_POS.entranceZ - 8.0 &&

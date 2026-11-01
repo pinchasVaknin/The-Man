@@ -26,142 +26,142 @@ export interface IGameSettingsModalProps {
 interface IKeybindRowMeta {
   readonly key: keyof IGameKeybindings;
   readonly labelHe: string;
-  readonly categoryHe: 'תנועה וניווט' | 'קרב ואינטראקציה' | 'ממשק ומצלמה';
+  readonly categoryHe: 'Movement & Navigation' | 'Combat & Interaction' | 'Interface & Camera';
   readonly descriptionHe: string;
 }
 
 const KEYBIND_ROWS: readonly IKeybindRowMeta[] = [
   {
     key: 'moveForward',
-    labelHe: 'הליכה קדימה',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'תנועה קדימה בעולם (או טיפוס בסולם)',
+    labelHe: 'Move Forward',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Move forward in the world (or climb ladder)',
   },
   {
     key: 'moveBackward',
-    labelHe: 'הליכה אחורה',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'נסיגה / הליכה לאחור',
+    labelHe: 'Move Backward',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Walk backward / retreat',
   },
   {
     key: 'moveLeft',
-    labelHe: 'תנועה שמאלה',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'תנועה צידית שמאלה (Strafe Left)',
+    labelHe: 'Strafe Left',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Move sideways left',
   },
   {
     key: 'moveRight',
-    labelHe: 'תנועה ימינה',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'תנועה צידית ימינה (Strafe Right)',
+    labelHe: 'Strafe Right',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Move sideways right',
   },
   {
     key: 'sprint',
-    labelHe: 'ריצה מהירה (Sprint)',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'החזקה לריצה מהירה או דהירה על סוס',
+    labelHe: 'Sprint',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Hold to sprint or gallop on horseback',
   },
   {
     key: 'relaxedWalk',
-    labelHe: 'הליכה רגועה / צלילה במים',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'הליכה איטית ביבשה או צלילה לעומק בשחייה',
+    labelHe: 'Relaxed Walk / Dive',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Slow walk on land or dive underwater',
   },
   {
     key: 'jump',
-    labelHe: 'קפיצה / טיפוס / תעופה (לחיצה כפולה)',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'קפיצה, עלייה בסולם או לחיצה כפולה למצב תעופה',
+    labelHe: 'Jump / Climb / Fly (Double Tap)',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Jump, climb ladder, or double-tap for flight mode',
   },
   {
     key: 'dash',
-    labelHe: 'זינוק מהיר (Ranger Dash)',
-    categoryHe: 'תנועה וניווט',
-    descriptionHe: 'זינוק קרבי קדימה או תנופה במים',
+    labelHe: 'Ranger Dash',
+    categoryHe: 'Movement & Navigation',
+    descriptionHe: 'Quick forward combat dash or water surge',
   },
   {
     key: 'interactDoor',
-    labelHe: 'פתיחת / סגירת דלתות',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'פתיחה וסגירה של דלתות ושערים בעולם',
+    labelHe: 'Interact / Loot / Sleep / Door',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Open doors, loot hunted animals, or sleep in bed',
   },
   {
     key: 'mountHorse',
-    labelHe: 'רכיבה / ירידה מסוס',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'עלייה על סוס קרוב או ירידה ממנו',
+    labelHe: 'Mount / Dismount Horse',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Mount a nearby horse or dismount',
   },
   {
     key: 'drawOrSlash',
-    labelHe: 'מתקפת חרב / דריכת קשת',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'הנפת חרב או דריכת קשת (בנוסף ללחיצת עכבר שמאלית)',
+    labelHe: 'Sword Slash / Draw Bow',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Swing sword or draw bow (in addition to Left Click)',
   },
   {
     key: 'cycleArrowElement',
-    labelHe: 'החלפת סוג חץ (רגיל / אש / סופה)',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'מעבר בין חצי פלדה, חצי אש וחצי רוח',
+    labelHe: 'Cycle Arrow Type (Steel / Fire / Wind)',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Switch between steel, fire, and wind arrows',
   },
   {
     key: 'hotbarSlot1',
-    labelHe: 'משבצת נשק מהירה 1',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'ציוד מיידי של פריט במשבצת 1 (קשת כברירת מחדל)',
+    labelHe: 'Quick Slot 1',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Equip item bound to slot 1 (Bow by default)',
   },
   {
     key: 'hotbarSlot2',
-    labelHe: 'משבצת נשק מהירה 2',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'ציוד מיידי של פריט במשבצת 2 (לפיד כברירת מחדל)',
+    labelHe: 'Quick Slot 2',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Equip item bound to slot 2 (Torch by default)',
   },
   {
     key: 'hotbarSlot3',
-    labelHe: 'משבצת נשק מהירה 3',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'ציוד מיידי של פריט במשבצת 3 (חרב כברירת מחדל)',
+    labelHe: 'Quick Slot 3',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Equip item bound to slot 3 (Sword by default)',
   },
   {
     key: 'hotbarSlot4',
-    labelHe: 'משבצת נשק מהירה 4',
-    categoryHe: 'קרב ואינטראקציה',
-    descriptionHe: 'ציוד מיידי של פריט במשבצת 4 (ידיים חשופות כברירת מחדל)',
+    labelHe: 'Quick Slot 4',
+    categoryHe: 'Combat & Interaction',
+    descriptionHe: 'Equip item bound to slot 4 (Unarmed by default)',
   },
   {
     key: 'cameraPerspective',
-    labelHe: 'החלפת זווית מצלמה (גוף שלישי / ראשון)',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'מעבר בין תצוגת הדמות בגוף שלישי לבין גוף ראשון',
+    labelHe: 'Toggle Camera (3rd / 1st Person)',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Switch between 3rd-person and 1st-person view',
   },
   {
     key: 'inventoryModal',
-    labelHe: 'פתיחת תיק ציוד ומיומנויות',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'פתיחת מסך הציוד, הכישורים והשוק',
+    labelHe: 'Open Inventory & Gear',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Open inventory, skills, and market window',
   },
   {
     key: 'favoritesModal',
-    labelHe: 'תפריט מועדפים מהיר',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'גישה מהירה לנשקים ופריטים מועדפים',
+    labelHe: 'Quick Favorites Menu',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Fast access to favorite weapons and items',
   },
   {
     key: 'marketModal',
-    labelHe: 'מסחר בדוכן שוק',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'פתיחת חנות נשקים כאשר עומדים ליד דוכן שוק',
+    labelHe: 'Trade at Market Stall',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Open merchant trade window near a market stall',
   },
   {
     key: 'cycleWeather',
-    labelHe: 'החלפת מזג אוויר',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'מעבר בין מצבי מזג אוויר (אוטומטי, גשם, ערפל, סופה, שלג)',
+    labelHe: 'Cycle Weather',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Cycle weather modes (Auto, Rain, Fog, Storm, Snow)',
   },
   {
     key: 'toggleMute',
-    labelHe: 'השתקת / הפעלת שמע',
-    categoryHe: 'ממשק ומצלמה',
-    descriptionHe: 'כיבוי או הדלקה של צלילי הטבע והאפקטים',
+    labelHe: 'Mute / Unmute Audio',
+    categoryHe: 'Interface & Camera',
+    descriptionHe: 'Toggle nature and sound effects',
   },
 ];
 
@@ -230,15 +230,15 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const categories: Array<'תנועה וניווט' | 'קרב ואינטראקציה' | 'ממשק ומצלמה'> = [
-    'תנועה וניווט',
-    'קרב ואינטראקציה',
-    'ממשק ומצלמה',
+  const categories: Array<'Movement & Navigation' | 'Combat & Interaction' | 'Interface & Camera'> = [
+    'Movement & Navigation',
+    'Combat & Interaction',
+    'Interface & Camera',
   ];
 
   return (
     <div
-      dir="rtl"
+      dir="ltr"
       role="dialog"
       aria-modal="true"
       data-testid="game-settings-modal"
@@ -264,11 +264,11 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             <div className="flex items-center gap-2.5">
               <span className="inline-block w-2.5 h-2.5 rotate-45 bg-amber-400" />
               <h2 className="font-display-he text-2xl font-bold text-stone-100">
-                הגדרות משחק ומקשים (Settings)
+                Game Settings & Keybindings
               </h2>
             </div>
             <p className="text-xs text-stone-400 mt-0.5">
-              הגדר כל מקש או ברירת מחדל ולחץ על Save כדי לשמור ישירות לקובץ ההגדרות בפרויקט
+              Customize keybindings or gameplay defaults and click Save to persist settings
             </p>
           </div>
 
@@ -284,10 +284,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               }`}
             >
               {saveStatus === 'saving'
-                ? 'שומר לקובץ...'
+                ? 'Saving...'
                 : saveStatus === 'saved'
-                  ? '✓ נשמר לקובץ (Saved)!'
-                  : 'Save · שמור לקובץ'}
+                  ? '✓ Saved!'
+                  : 'Save Settings'}
             </button>
 
             <button
@@ -296,7 +296,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               onClick={onClose}
               className="px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-300 hover:text-white bg-stone-800 hover:bg-stone-700 border border-stone-700 cursor-pointer"
             >
-              סגור ✕
+              Close ✕
             </button>
           </div>
         </div>
@@ -314,7 +314,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   : 'bg-stone-900 text-stone-300 hover:text-stone-100 border border-stone-800'
               }`}
             >
-              מקשים וכפתורי שליטה ({KEYBIND_ROWS.length})
+              Keybindings ({KEYBIND_ROWS.length})
             </button>
             <button
               type="button"
@@ -326,7 +326,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   : 'bg-stone-900 text-stone-300 hover:text-stone-100 border border-stone-800'
               }`}
             >
-              ברירות מחדל משחק, מצלמה ועולם
+              Gameplay & Camera Defaults
             </button>
           </div>
 
@@ -336,7 +336,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             onClick={handleResetToFactory}
             className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-400 hover:text-amber-300 bg-stone-900 hover:bg-stone-800 border border-stone-800 cursor-pointer"
           >
-            איפוס לברירת מחדל
+            Reset Defaults
           </button>
         </div>
 
@@ -347,16 +347,16 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               {listeningKey && (
                 <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 text-xs font-bold flex items-center justify-between">
                   <span>
-                    לחץ כעת על המקש החדש במקלדת עבור &quot;
+                    Press a key for &quot;
                     {KEYBIND_ROWS.find((r) => r.key === listeningKey)?.labelHe}
-                    &quot; (או ESC לביטול)...
+                    &quot; (or ESC to cancel)...
                   </span>
                   <button
                     type="button"
                     onClick={() => setListeningKey(null)}
                     className="px-2.5 py-1 rounded bg-stone-900 text-stone-200 text-[11px] cursor-pointer"
                   >
-                    ביטול
+                    Cancel
                   </button>
                 </div>
               )}
@@ -403,7 +403,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                               }`}
                             >
                               {isListening
-                                ? 'לחץ מקש...'
+                                ? 'Press Key...'
                                 : formatKeyCodeLabel(currentCode)}
                             </button>
                           </div>
@@ -420,17 +420,17 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-bold text-stone-100">
-                    זווית מצלמה התחלתית (Default Camera)
+                    Default Camera Perspective
                   </div>
                   <div className="text-xs text-stone-400 mt-0.5">
-                    בחר אם המשחק יתחיל בגוף שלישי (רואים את הסייר) או בגוף ראשון
+                    Choose whether the game starts in 3rd-person or 1st-person view
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {(
                     [
-                      { id: 'third_person', label: 'גוף שלישי (3rd Person)' },
-                      { id: 'first_person', label: 'גוף ראשון (1st Person)' },
+                      { id: 'third_person', label: '3rd Person' },
+                      { id: 'first_person', label: '1st Person' },
                     ] as const
                   ).map((opt) => {
                     const active = draft.defaultCameraPerspective === opt.id;
@@ -461,17 +461,17 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-bold text-stone-100">
-                    גחליליות יער (Fireflies)
+                    Forest Fireflies
                   </div>
                   <div className="text-xs text-stone-400 mt-0.5">
-                    מיקום קבוע במקדש הסאקורה ובחורשת הליבנה בלבד (ללא תזוזה עם השחקן) או כיבוי מלא
+                    Show fireflies around the Sakura Sanctuary and Birch Grove or turn off
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {(
                     [
-                      { id: 'sanctuary_only', label: 'באזור המקדש בלבד' },
-                      { id: 'off', label: 'כבוי לגמרי' },
+                      { id: 'sanctuary_only', label: 'Sanctuary Only' },
+                      { id: 'off', label: 'Off' },
                     ] as const
                   ).map((opt) => {
                     const active = draft.firefliesMode === opt.id;
@@ -503,7 +503,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    רגישות עכבר ומבט (Mouse Sensitivity)
+                    Mouse Sensitivity
                   </span>
                   <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.mouseSensitivity.toFixed(2)}x
@@ -529,7 +529,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    מהירות תנועה והליכה (Movement Speed)
+                    Movement Speed
                   </span>
                   <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.walkSpeedMultiplier.toFixed(2)}x
@@ -555,7 +555,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    עוצמת קפיצה (Jump Force)
+                    Jump Force
                   </span>
                   <span dir="ltr" className="font-mono-tabular text-xs font-bold text-amber-300">
                     {draft.jumpForceMultiplier.toFixed(2)}x
@@ -583,7 +583,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
         {/* Bottom Footer with Save CTA */}
         <div className="px-6 py-3.5 border-t border-stone-800 bg-[#191613] flex items-center justify-between gap-4">
           <span className="text-xs text-stone-400">
-            שמירה מעדכנת מיד את המשחק החי וכותבת לקובץ{' '}
+            Saving updates the active session and writes to{' '}
             <code className="text-amber-300 font-mono">src/config/savedGameSettings.ts</code>
           </span>
           <div className="flex items-center gap-2.5">
@@ -592,7 +592,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               onClick={handleSaveToFile}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer shadow"
             >
-              {saveStatus === 'saved' ? '✓ נשמר לקובץ!' : 'Save · שמור לקובץ'}
+              {saveStatus === 'saved' ? '✓ Saved!' : 'Save Settings'}
             </button>
           </div>
         </div>
@@ -600,3 +600,4 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
     </div>
   );
 };
+

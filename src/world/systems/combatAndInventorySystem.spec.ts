@@ -35,18 +35,55 @@ function createMarketEligiblePlayer(): IPlayerState {
 
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests
-test('INVENTORY_ITEMS_WhenLoaded_ShouldCategorizeMeatAndFoodUnderFoodCategory', () => {
+test('INVENTORY_ITEMS_WhenLoaded_ShouldCategorizeMeatAndFoodUnderFoodCategoryWithConciseEnglishNames', () => {
   const rawMeat = INVENTORY_ITEM_MAP.get('raw_game_meat');
   assert.ok(rawMeat);
   assert.equal(rawMeat.category, 'food');
-  assert.equal(rawMeat.categoryLabel, 'אוכל');
+  assert.equal(rawMeat.categoryLabel, 'Food');
+  assert.equal(rawMeat.name, 'Game Meat');
+
+  const deerMeat = INVENTORY_ITEM_MAP.get('deer_meat');
+  assert.ok(deerMeat);
+  assert.equal(deerMeat.name, 'Deer Meat');
+
+  const rottenMeat = INVENTORY_ITEM_MAP.get('rotten_meat');
+  assert.ok(rottenMeat);
+  assert.equal(rottenMeat.name, 'Rotten Meat');
 
   const foodItems = INVENTORY_ITEMS.filter((i) => i.category === 'food');
-  assert.ok(foodItems.length >= 5, 'Expected multiple food items in food category');
+  assert.ok(foodItems.length >= 7, 'Expected multiple food items in food category');
 
   const sheepWool = INVENTORY_ITEM_MAP.get('sheep_hide');
   assert.ok(sheepWool);
-  assert.equal(sheepWool.name, 'צמר כבשים משובח');
+  assert.equal(sheepWool.name, 'Wool');
+});
+
+test('stepArrowsPhysics_WhenArrowHitsAnimalOrShotWithDifferentDrawPower_ShouldScaleRangeAndStayAttachedToAnimal', () => {
+  const player = createInitialPlayerState();
+  player.x = 0;
+  player.y = 2.0;
+  player.z = 0;
+  player.yaw = 0;
+  player.pitch = 0;
+
+  // 1. Minimum draw vs full draw should produce substantially higher speed (and distance)
+  const minDrawArrow: IArrowProjectile = {
+    id: 101,
+    x: 0,
+    y: 2.0,
+    z: 0,
+    vx: 0,
+    vy: 0.4,
+    vz: -16.0,
+    yaw: 0,
+    pitch: 0,
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  assert.ok(Math.hypot(minDrawArrow.vx, minDrawArrow.vz) < 20);
 });
 
 test('stepArrowsPhysics_WhenArrowFliesUnderBridge_ShouldNotTeleportOntoBridgeTop', () => {

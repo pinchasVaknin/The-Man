@@ -51,7 +51,7 @@ export const JAGUAR_GAITS: Record<JaguarState, { speed: number }> = {
   flee:   { speed: 9.8 },
   skip:   { speed: 6.2 },
   roar:   { speed: 0.0 },
-  attack: { speed: 1.4 },
+  attack: { speed: 0.0 },
   death:  { speed: 0.0 },
 };
 
@@ -286,16 +286,16 @@ export class JaguarAnimator {
   }
 
   private computeBlendDuration(from: JaguarState, to: JaguarState): number {
-    if (to === 'attack') return 0.32;
+    if (to === 'attack' || from === 'attack') return 0.20;
     if (to === 'death') return 0.38;
     if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.56;
     if (from === 'stalk' || to === 'stalk' || from === 'eat' || to === 'eat' || from === 'roar' || to === 'roar' || from === 'call' || to === 'call') {
       return 0.48;
     }
     if (JaguarAnimator.isLocomotionState(from) && JaguarAnimator.isLocomotionState(to)) {
-      return 0.40;
+      return 0.36;
     }
-    return 0.44;
+    return 0.40;
   }
 
   constructor(rig: JaguarRig, data: JaguarUnpackedData) {
@@ -370,8 +370,19 @@ export class JaguarAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: JaguarState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
-    if (u < 0) u += 1.0;
+    let u: number;
+    if (st === 'death' && !this.loopDeath) {
+      u = Math.min(1.0, Math.max(0.0, t / dur));
+    } else if (st === 'attack') {
+      // Keep attack sampling strictly inside the dynamic strike frames (0..0.64 of clip) with a brisk 0.68s cycle
+      // so the jaguar never hits static end frames or freezes at the end of its pounce!
+      const attackCycle = 0.68;
+      const cycleU = (((t % attackCycle) + attackCycle) % attackCycle) / attackCycle;
+      u = Math.sin(cycleU * Math.PI) * 0.62;
+    } else {
+      u = (t % dur) / dur;
+      if (u < 0) u += 1.0;
+    }
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));
     const f1 = Math.min(NUM_FRAMES - 1, f0 + 1);
@@ -488,13 +499,13 @@ export class JaguarAnimator {
         this.addLocalRot(ti, 0, Math.sin(t * 6.5 - (ti - 33) * 0.4) * 0.14 * env, 0);
       }
     } else if (this.state === 'attack') {
-      // Aggressive pounce & claw/bite strike: controlled forward lunge + wide snapping jaws + front paw swipe
-      const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 1.25);
-      const u = ((t % dur) + dur) % dur / dur;
+      // Aggressive pounce & claw/bite strike: brisk 0.68s cycle with zero static end-frames
+      const dur = 0.68;
+      const u = (((t % dur) + dur) % dur) / dur;
       const lunge = Math.sin(u * Math.PI);
-      const biteOpen = u < 0.65 ? Math.sin((u / 0.65) * Math.PI) : 0;
-      const swipeL = Math.sin(Math.min(1, u * 1.4) * Math.PI);
-      const swipeR = Math.sin(Math.max(0, Math.min(1, (u - 0.15) * 1.4)) * Math.PI);
+      const biteOpen = Math.sin(u * Math.PI);
+      const swipeL = Math.sin(Math.min(1, u * 1.25) * Math.PI);
+      const swipeR = Math.sin(Math.max(0, Math.min(1, (u - 0.12) * 1.25)) * Math.PI);
       bones[2].position.z += 0.12 * lunge;
       bones[2].position.y += 0.06 * lunge;
       this.addLocalRot(6, -0.14 * lunge, 0, 0);

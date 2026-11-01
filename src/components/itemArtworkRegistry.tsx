@@ -251,6 +251,11 @@ const createHideArtwork = (fillHex: string, strokeHex: string): ArtworkRenderStr
 );
 ARTWORK_STRATEGIES.set('small_hide', createHideArtwork('#a8a29e', '#fde68a'));
 ARTWORK_STRATEGIES.set('deer_hide', createHideArtwork('#92400e', '#fbbf24'));
+ARTWORK_STRATEGIES.set('wolf_hide', createHideArtwork('#475569', '#cbd5e1'));
+ARTWORK_STRATEGIES.set('jaguar_hide', createHideArtwork('#d97706', '#fef08a'));
+ARTWORK_STRATEGIES.set('crocodile_hide', createHideArtwork('#166534', '#86efac'));
+ARTWORK_STRATEGIES.set('bear_hide', createHideArtwork('#451a03', '#f59e0b'));
+ARTWORK_STRATEGIES.set('rhino_hide', createHideArtwork('#57534e', '#d6d3d1'));
 ARTWORK_STRATEGIES.set('sheep_hide', (sizeClass) => (
   <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
     <circle cx="80" cy="80" r="64" fill="#f8fafc" fillOpacity="0.18" />
@@ -270,6 +275,52 @@ ARTWORK_STRATEGIES.set('deer_antlers', (sizeClass) => (
       strokeWidth="5.5"
       strokeLinecap="round"
     />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('deer_meat', ARTWORK_STRATEGIES.get('raw_game_meat')!);
+ARTWORK_STRATEGIES.set('bear_meat', ARTWORK_STRATEGIES.get('raw_game_meat')!);
+ARTWORK_STRATEGIES.set('rotten_meat', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#65a30d" fillOpacity="0.2" />
+    <ellipse cx="76" cy="82" rx="44" ry="30" fill="#3f6212" stroke="#a3e635" strokeWidth="3.5" />
+    <ellipse cx="64" cy="78" rx="14" ry="11" fill="#bef264" stroke="#365314" strokeWidth="2.5" />
+    <path d="M114 76 L136 68 M114 86 L136 94" stroke="#d9f99d" strokeWidth="5" strokeLinecap="round" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('animal_bone', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#e7e5e4" fillOpacity="0.16" />
+    <line x1="42" y1="118" x2="118" y2="42" stroke="#f5f5f4" strokeWidth="14" strokeLinecap="round" />
+    <circle cx="38" cy="112" r="10" fill="#f5f5f4" />
+    <circle cx="48" cy="122" r="10" fill="#f5f5f4" />
+    <circle cx="112" cy="38" r="10" fill="#f5f5f4" />
+    <circle cx="122" cy="48" r="10" fill="#f5f5f4" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('animal_fat', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fde047" fillOpacity="0.18" />
+    <ellipse cx="80" cy="86" rx="42" ry="28" fill="#fef08a" stroke="#facc15" strokeWidth="3.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('bear_claws', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#a8a29e" fillOpacity="0.18" />
+    <path d="M46 116 Q56 64 76 38 M72 122 Q82 68 102 42 M98 124 Q108 74 126 48" stroke="#e7e5e4" strokeWidth="6" strokeLinecap="round" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('wolf_fang', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f5f5f4" fillOpacity="0.18" />
+    <path d="M64 38 Q96 74 82 128 Q58 84 64 38 Z" fill="#fafaf9" stroke="#d6d3d1" strokeWidth="3.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('crocodile_teeth', ARTWORK_STRATEGIES.get('wolf_fang')!);
+ARTWORK_STRATEGIES.set('rhino_horn', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#d6d3d1" fillOpacity="0.18" />
+    <path d="M48 124 Q62 72 114 34 Q96 92 78 126 Z" fill="#a8a29e" stroke="#f5f5f4" strokeWidth="3.5" />
   </svg>
 ));
 // #endregion

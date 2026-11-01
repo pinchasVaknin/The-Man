@@ -1,479 +1,590 @@
 // ============================================================================
-// MODULE: Locales / Hebrew (he)
-// DESIGN: Canonical Hebrew dictionary conforming to profile.md (ui-strings)
-// SUMMARY: Strongly-typed localized strings for items, landmarks, weather, UI & market.
+// MODULE: Locales / English Dictionary (exported as `he` for schema compatibility)
+// DESIGN: Concise English strings across inventory, HUD, landmarks, weather & market
+// SUMMARY: Plain, direct item names and UI strings in English.
 // ============================================================================
 
 export const he = {
   "items": {
     "bow": {
-      "name": "קשת ציידים מורכבת",
-      "short": "קשת ציידים",
-      "category": "כלי נשק",
-      "stat": "נזק 28 · קשת ריקרב",
-      "description": "קשת עץ מלוטשת בעיטורי קרן מוזהבים. החזק קליק שמאלי בעכבר או [R] למתיחת חץ (עם זום מיקוד), וקליק ימני לזום תצפית קרוב.",
-      "lore": "חושלה בידי קשתי העמק העתיק מעץ אלון מיושן וקרן יעלים, בעלת גמישות מושלמת וחדירה קטלנית."
+      "name": "Hunting Bow",
+      "short": "Bow",
+      "category": "Weapons",
+      "stat": "Damage 28 · Recurve Bow",
+      "description": "Hunting bow.",
+      "lore": "Recurve bow."
     },
     "sword": {
-      "name": "חרב סיירים מפלדה",
-      "short": "חרב רונות",
-      "category": "כלי נשק",
-      "stat": "נזק 34 · להב רונות",
-      "description": "חרב רונות מעוטרת בניצב זהב. לחיצה קצרה לשיסוף רוחבי מהיר, לחיצה ארוכה למכה כבדה החותכת את האוויר קדימה, וקליק ימני לחסימה.",
-      "lore": "להב פלדה מקושט בחריטות קסומות של אנרגיית רוח. מכה כבדה חותכת את האוויר בגל חרמש בוהק."
+      "name": "Steel Sword",
+      "short": "Sword",
+      "category": "Weapons",
+      "stat": "Damage 34 · Steel Blade",
+      "description": "Steel sword.",
+      "lore": "Steel blade."
     },
     "katana_imperial": {
-      "name": "חרב להב קיסרית",
-      "short": "להב קיסרי",
-      "category": "כלי נשק",
-      "stat": "נזק 48 · חיתוך אוויר חד",
-      "description": "חרב קלה ומאוזנת מהנפחייה של שוק הנמל. מעניקה שיסוף מהיר וחד עם צריכת סיבולת מופחתת.",
-      "lore": "חושלה מפלדת דמשק מקופלת בידי אומני המבצר הצפוני עבור שומרי הסף הקיסריים."
+      "name": "Katana",
+      "short": "Katana",
+      "category": "Weapons",
+      "stat": "Damage 48 · Fast Blade",
+      "description": "Katana.",
+      "lore": "Curved steel blade."
     },
     "elven_longbow": {
-      "name": "קשת אלפים עתיקה",
-      "short": "קשת אלפים",
-      "category": "כלי נשק",
-      "stat": "נזק 56 · מהירות חץ +25%",
-      "description": "קשת ארוכה מעץ ליבנה מוזהב ומיתר משי כסוף. דורשת דרגת סייר 2 ומעניקה מעוף חץ שטוח ומהיר.",
-      "lore": "נוצרה בחורשת הלבנה המזרחית ומאפשרת צליפה מדויקת למרחקים עצומים ללא מאמץ."
+      "name": "Longbow",
+      "short": "Longbow",
+      "category": "Weapons",
+      "stat": "Damage 56 · Arrow Speed +25%",
+      "description": "Longbow.",
+      "lore": "Long-range bow."
     },
     "dwarven_warhammer": {
-      "name": "חרב מלכי הגמדים",
-      "short": "חרב גמדים",
-      "category": "כלי נשק",
-      "stat": "נזק 74 · מכה כבדה אדירה",
-      "description": "להב דו־ידני כבד המחושל מזהב־גמדים ופלדת מעמקים. דורש דרגת סייר 3 ומשחרר גל הדף רחב במכה כבדה.",
-      "lore": "חושלה בכבשני הלבה של המכרה הדרומי בידי נפחי שושלת הגמדים הקדומה."
+      "name": "Warhammer",
+      "short": "Warhammer",
+      "category": "Weapons",
+      "stat": "Damage 74 · Heavy Weapon",
+      "description": "Warhammer.",
+      "lore": "Heavy warhammer."
     },
     "dragonbone_bow": {
-      "name": "קשת עצם־דרקון אגדית",
-      "short": "קשת דרקון",
-      "category": "כלי נשק",
-      "stat": "נזק 92 · עוצמת חדירה מקסימלית",
-      "description": "קשת מיתולוגית מחושלת מעצמות דרקון השמיים המוזהב. דורשת דרגת סייר 4 וזמינה לרכישה בשוק הסוחרים.",
-      "lore": "רק צלפים ותיקים בעלי כוח זרוע עילאי מסוגלים למתוח את מיתר הקשת האגדית הזו."
+      "name": "Dragonbone Bow",
+      "short": "Dragon Bow",
+      "category": "Weapons",
+      "stat": "Damage 92 · Heavy Bow",
+      "description": "Dragonbone bow.",
+      "lore": "Dragonbone bow."
     },
     "celestial_jin_sword": {
-      "name": "חרב ג׳ין שמיימית",
-      "short": "חרב שמיימית",
-      "category": "כלי נשק",
-      "stat": "נזק 118 · להב קיסרי אגדי",
-      "description": "פאר היצירה של השוק הקיסרי — להב ירקן וזהב החותך את האוויר בגל אנרגיה אדיר. דורש דרגת סייר 5.",
-      "lore": "חרב טקסית וקטלנית שהוענקה למצביאי המבצר הסיני על פסגת ההר הצפוני."
+      "name": "Jin Sword",
+      "short": "Jin Sword",
+      "category": "Weapons",
+      "stat": "Damage 118 · Heavy Blade",
+      "description": "Jin sword.",
+      "lore": "Jin sword."
     },
     "torch": {
-      "name": "לפיד אש בוער",
-      "short": "לפיד אש",
-      "category": "ציוד שטח",
-      "stat": "אור אש חי · רדיוס 28 מ׳",
-      "description": "לפיד עץ וברזל המפיץ תאורת אש חמה בזמן אמת — מושלם לחקירת 4 אולמות המכרה התת־קרקעי, מערות ולילות חשוכים.",
-      "lore": "ספוג בזפת הרים עשירה הבוערת ללא הרף גם ברוחות עזות ובגשמים קלים."
+      "name": "Torch",
+      "short": "Torch",
+      "category": "Gear",
+      "stat": "Light · 28m Radius",
+      "description": "Torch.",
+      "lore": "Torch."
     },
     "arrow_normal": {
-      "name": "חצי פלדה מחושלים",
-      "short": "חץ פלדה",
-      "category": "חצים ותחמושת",
-      "stat": "נזק +10 · מעוף מאוזן",
-      "description": "חצי עץ מובחרים עם חוד פלדה מושחז ונוצות ייצוב אדומות־לבנות, המותירים שובל אוויר אפור במעופם."
+      "name": "Steel Arrows",
+      "short": "Steel Arrow",
+      "category": "Ammo",
+      "stat": "Damage +10",
+      "description": "Steel arrows."
     },
     "arrow_fire": {
-      "name": "חצי אש בוערים",
-      "short": "חץ אש",
-      "category": "חצים ותחמושת",
-      "stat": "נזק +18 אש · מאיר במעוף",
-      "description": "חצים משוחים בשמן דליק הבוערים במעופם, מפיצים אור אש סביבם ויוצרים שובל עשן סמיך בפגיעה."
+      "name": "Fire Arrows",
+      "short": "Fire Arrow",
+      "category": "Ammo",
+      "stat": "Damage +18 Fire",
+      "description": "Fire arrows."
     },
     "arrow_wind": {
-      "name": "חצי סערה קלים",
-      "short": "חץ סערה",
-      "category": "חצים ותחמושת",
-      "stat": "נזק +14 · מהירות x1.42",
-      "description": "חצים אווירודינמיים קלים הטסים במהירות גבוהה ובמסלול שטוח במיוחד לצליפה לטווח רחוק."
+      "name": "Wind Arrows",
+      "short": "Wind Arrow",
+      "category": "Ammo",
+      "stat": "Damage +14 · Speed x1.42",
+      "description": "Wind arrows."
     },
     "oak_timber": {
-      "name": "קורות עץ אלון מוקצע",
-      "short": "קורות אלון",
-      "category": "חומרי בנייה",
-      "stat": "עץ בנייה מסיבי · שווי 65 מטבעות",
-      "description": "קורות עץ אלון יבשות וחזקות מחורשות העמק, המשמשות להקמת גגות, עמודי תמך, גשרים וביצורים.",
-      "lore": "נכרתו ועובדו במנסרת העמק ומבוקשות מאוד אצל בנאי הנמל והמבצר."
+      "name": "Oak Wood",
+      "short": "Oak Wood",
+      "category": "Materials",
+      "stat": "Material · 65 Gold",
+      "description": "Oak wood.",
+      "lore": "Oak wood."
     },
     "cut_granite_blocks": {
-      "name": "לבני גרניט מסותתות",
-      "short": "לבני גרניט",
-      "category": "חומרי בנייה",
-      "stat": "אבן בנייה כבדה · שווי 90 מטבעות",
-      "description": "גלילי ולבני גרניט אפור־מוזהב שנחצבו במורדות ההרים הדרומיים, מותאמים לבניית חומות, קשתות ובתי אבן.",
-      "lore": "סותתו בדיוק הנדסי על־ידי סתתי האבן של ממלכת הגמדים."
+      "name": "Granite Blocks",
+      "short": "Granite",
+      "category": "Materials",
+      "stat": "Material · 90 Gold",
+      "description": "Granite blocks.",
+      "lore": "Granite blocks."
     },
     "iron_ingots": {
-      "name": "מטילי ברזל מחושלים",
-      "short": "מטילי ברזל",
-      "category": "חומרי בנייה",
-      "stat": "מתכת לחישול וחיזוק · שווי 130 מטבעות",
-      "description": "מטילי ברזל טהורים מכבשני ההתכה, משמשים לחישול צירי שערים, פרזול מבנים וחידוד להבים בנפחיית הנמל.",
-      "lore": "נוצקו מעפרת ברזל הררית ומהווים חומר גלם מרכזי בשוק הסוחרים של הנמל."
+      "name": "Iron Ingot",
+      "short": "Iron Ingot",
+      "category": "Materials",
+      "stat": "Material · 130 Gold",
+      "description": "Iron ingot.",
+      "lore": "Iron ingot."
     },
     "imperial_clay_tiles": {
-      "name": "רעפי חרס קיסריים",
-      "short": "רעפי חרס",
-      "category": "חומרי בנייה",
-      "stat": "חיפוי גגות מסורתי · שווי 155 מטבעות",
-      "description": "רעפי חרס מזוגגים בגוון ארגמן־זהב העמידים בפני סופות גשמים ושלגים. נמכרים בדוכני שוק הנמל.",
-      "lore": "זהים לרעפים המעטרים את גגות ההיכל המרכזי במבצר הסיני הצפוני."
+      "name": "Clay Tiles",
+      "short": "Clay Tiles",
+      "category": "Materials",
+      "stat": "Material · 155 Gold",
+      "description": "Clay tiles.",
+      "lore": "Clay tiles."
     },
     "marble_pillar_stone": {
-      "name": "אבן שיש לבנה לעמודים",
-      "short": "אבן שיש",
-      "category": "חומרי בנייה",
-      "stat": "שיש מפואר · שווי 260 מטבעות",
-      "description": "גוש שיש לבן מלוטש בעל עורקים כסופים לעיטור היכלות, מרפסות ומזרקות אבן.",
-      "lore": "יובא בספינות הסוחר הגדולות העוגנות ברציפי הנמל הדרום־מזרחי."
+      "name": "Marble Stone",
+      "short": "Marble",
+      "category": "Materials",
+      "stat": "Material · 260 Gold",
+      "description": "Marble stone.",
+      "lore": "Marble stone."
     },
     "dwarven_gold_ore": {
-      "name": "עפרת זהב ממכרה הגמדים",
-      "short": "עפרת זהב",
-      "category": "חומרי בנייה",
-      "stat": "מחצב נדיר · שווי 220 מטבעות",
-      "description": "גביש גולמי של עפרת זהב טהורה שנחצבה במעמקי מכרה הגמדים הדרומי. ניתן למכירה לסוחרי שוק הנמל תמורת זהב רב!",
-      "lore": "מחצב יקר ערך הנחצב בידי כורי הגמדים היוצאים בשיירת הזריחה ומובא למטלורגיה העתיקה."
+      "name": "Gold Ore",
+      "short": "Gold Ore",
+      "category": "Materials",
+      "stat": "Ore · 220 Gold",
+      "description": "Gold ore.",
+      "lore": "Gold ore."
     },
     "crystal_gem": {
-      "name": "גביש קריסטל ביולומינצנטי",
-      "short": "גביש אור",
-      "category": "חומרי בנייה",
-      "stat": "קרינת אור תכלת · שווי 350 מטבעות",
-      "description": "גביש זוהר הנאסף מאגם הקריסטלים באולם התת־קרקעי של המכרה הדרומי. זוהר בעוצמה גם במעמקים.",
-      "lore": "אבן קדומה שנוצרה ממי התהום העשירים במינרלים של אגם המערות, מקרינה אנרגיה קרה ושלווה."
+      "name": "Crystal",
+      "short": "Crystal",
+      "category": "Materials",
+      "stat": "Crystal · 350 Gold",
+      "description": "Crystal.",
+      "lore": "Crystal."
     },
     "ancient_dwarven_horn": {
-      "name": "קרן קרב של הגמדים",
-      "short": "קרן גמדים",
-      "category": "ציוד שטח",
-      "stat": "הדהוד קולי בהרים · שווי 160",
-      "description": "קרן ברונזה מחושלת שעליה תבליטי פטיש ומגן. משמיעה תרועה אדירה המהדהדת ברחבי העמק והמבצר.",
-      "lore": "שימשה את שומרי שערי הגמדים להתרעה על סכנות או לחגיגת תחילת מסע השיירה בעת הזריחה."
+      "name": "War Horn",
+      "short": "War Horn",
+      "category": "Gear",
+      "stat": "Gear · 160 Gold",
+      "description": "War horn.",
+      "lore": "War horn."
     },
     "elven_cloak": {
-      "name": "גלימת סיירים מהודרת",
-      "short": "גלימת סייר",
-      "category": "ציוד שטח",
-      "stat": "הסוואה בטבע · שווי 190",
-      "description": "גלימת בד ירוקה־מוזהבת עם אבזם עלי אלון, מעניקה בידוד מושלם מרוחות הסתיו והשלג הצפוני.",
-      "lore": "נארגה מחוטים גמישים שאינם משמיעים רשרוש, ומאפשרת לסיירי היער לחמוק בדממה מוחלטת."
+      "name": "Cloak",
+      "short": "Cloak",
+      "category": "Gear",
+      "stat": "Gear · 190 Gold",
+      "description": "Cloak.",
+      "lore": "Cloak."
     },
     "unarmed": {
-      "name": "ידיים חופשיות",
-      "short": "ידיים",
-      "category": "ציוד שטח",
-      "stat": "אפסון ציוד על הגב",
-      "description": "מאפסן את הקשת והנשק על הגב לתנועה חופשית, תצפית נקייה ושחייה מהירה במים."
+      "name": "Unarmed",
+      "short": "Unarmed",
+      "category": "Gear",
+      "stat": "Holster Weapons",
+      "description": "Unarmed."
     },
     "raw_game_meat": {
-      "name": "בשר ציד משובח",
-      "short": "בשר",
-      "category": "אוכל",
-      "stat": "אוכל וצידה · משיב סיבולת · שווי 45 מטבעות",
-      "description": "נתח בשר ציד טרי שנאסף מציד בשמורה או נרכש בדוכן האוכל של הנמל. משיב סיבולת מלאה בעת אכילה או ניתן למכירה בשוק.",
-      "lore": "מזון משביע ומזין לציידים וסיירים במסעות ארוכים בין העמק למבצר הצפוני."
+      "name": "Game Meat",
+      "short": "Game Meat",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 45 Gold",
+      "description": "Game meat.",
+      "lore": "Game meat."
+    },
+    "deer_meat": {
+      "name": "Deer Meat",
+      "short": "Deer Meat",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 55 Gold",
+      "description": "Deer meat.",
+      "lore": "Deer meat."
+    },
+    "bear_meat": {
+      "name": "Bear Meat",
+      "short": "Bear Meat",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 70 Gold",
+      "description": "Bear meat.",
+      "lore": "Bear meat."
+    },
+    "rotten_meat": {
+      "name": "Rotten Meat",
+      "short": "Rotten Meat",
+      "category": "Food",
+      "stat": "Spoiled Food · 5 Gold",
+      "description": "Rotten meat.",
+      "lore": "Rotten meat."
     },
     "roasted_meat": {
-      "name": "צלי בשר ציד על האש",
-      "short": "צלי בשר",
-      "category": "אוכל",
-      "stat": "אוכל חם · סיבולת מלאה + אתלטיקה · שווי 75 מטבעות",
-      "description": "נתח בשר ציד עסיסי שנצלה על גחלים רוחשות עם עשבי תיבול מהעמק. משיב סיבולת מלאה ומחזק את הגוף.",
-      "lore": "מוגש חם בפונדק המלחים ובדוכן האוכל של שוק הנמל."
+      "name": "Roasted Meat",
+      "short": "Roasted Meat",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 75 Gold",
+      "description": "Roasted meat.",
+      "lore": "Roasted meat."
     },
     "fresh_bread_loaf": {
-      "name": "כיכר לחם כפרי חם",
-      "short": "לחם כפרי",
-      "category": "אוכל",
-      "stat": "אוכל וצידה · משיב סיבולת · שווי 30 מטבעות",
-      "description": "כיכר לחם חיטה זהובה ופריכה שנאפתה מקמח טחנות הרוח של העמק. משיבה סיבולת לסייר בדרכים.",
-      "lore": "נאפה מדי בוקר בחוות שדות החיטה הדרומית ומסופק לשוק הנמל."
+      "name": "Bread",
+      "short": "Bread",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 30 Gold",
+      "description": "Bread.",
+      "lore": "Bread."
     },
     "harbor_cheese_wheel": {
-      "name": "גלגל גבינת עמק מיושנת",
-      "short": "גבינת עמק",
-      "category": "אוכל",
-      "stat": "אוכל משובח · משיב סיבולת · שווי 60 מטבעות",
-      "description": "גלגל גבינה עשירה מחלב כבשי העמק, מיושנת במרתפי האבן הקרירים. מזון עמיד ומשביע למסעות ארוכים.",
-      "lore": "מתוצרת החוות החקלאיות של העמק, מבוקשת מאוד בקרב מלחי הגליאון והסוחרים."
+      "name": "Cheese",
+      "short": "Cheese",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 60 Gold",
+      "description": "Cheese.",
+      "lore": "Cheese."
     },
     "red_orchard_apples": {
-      "name": "תפוחי מטע אדומים",
-      "short": "תפוחים",
-      "category": "אוכל",
-      "stat": "אוכל טרי · משיב סיבולת · שווי 25 מטבעות",
-      "description": "תפוחים אדומים מתוקים ומרעננים שנקטפו מעצי הפרי של העמק. מעניקים אנרגיה מיידית ורעננות.",
-      "lore": "פרי עסיסי האהוב על סיירים וגם על סוסי הרכיבה של העמק."
+      "name": "Apple",
+      "short": "Apple",
+      "category": "Food",
+      "stat": "Food · Restores Stamina · 25 Gold",
+      "description": "Apple.",
+      "lore": "Apple."
     },
     "small_hide": {
-      "name": "עור קטן (ארנב / סנאי)",
-      "short": "עור קטן",
-      "category": "חומרי בנייה",
-      "stat": "שלל ציד · שווי 55 מטבעות",
-      "description": "פרווה רכה ועור קטן שנאספו מציד ארנבים או סנאים ביערות העמק. משמש לתפירת נרתיקים, כפפות וביטנות מעילים.",
-      "lore": "מבוקש מאוד אצל סוחרי שוק הנמל וחייטי המבצר בשל רכותו ומשקלו הקל."
+      "name": "Small Hide",
+      "short": "Small Hide",
+      "category": "Materials",
+      "stat": "Loot · 55 Gold",
+      "description": "Small hide.",
+      "lore": "Small hide."
     },
     "deer_hide": {
-      "name": "עור אייל משובח",
-      "short": "עור אייל",
-      "category": "חומרי בנייה",
-      "stat": "שלל ציד · שווי 115 מטבעות",
-      "description": "עור אייל עבה, גמיש ועמיד במיוחד שנאסף מציד איילים ביער. משמש להכנת שריון עור סיירים, מגפיים ואוכפים.",
-      "lore": "חומר גלם משובח לעיבוד עורות ולמסחר בדוכני הנמל."
+      "name": "Deer Hide",
+      "short": "Deer Hide",
+      "category": "Materials",
+      "stat": "Loot · 115 Gold",
+      "description": "Deer hide.",
+      "lore": "Deer hide."
     },
     "sheep_hide": {
-      "name": "צמר כבשים משובח",
-      "short": "צמר",
-      "category": "חומרי בנייה",
-      "stat": "שלל ציד · שווי 85 מטבעות",
-      "description": "צמר כבשים לבן, חם ורך ממרעי העמק. מעולה לאריגת שמיכות, גלימות חורף ובדים משובחים בשוק הנמל.",
-      "lore": "צמר העמק ידוע בחומו הרב בלילות הקרים של רכס ההרים."
+      "name": "Wool",
+      "short": "Wool",
+      "category": "Materials",
+      "stat": "Loot · 85 Gold",
+      "description": "Wool.",
+      "lore": "Wool."
+    },
+    "wolf_hide": {
+      "name": "Wolf Hide",
+      "short": "Wolf Hide",
+      "category": "Materials",
+      "stat": "Loot · 145 Gold",
+      "description": "Wolf hide.",
+      "lore": "Wolf hide."
+    },
+    "jaguar_hide": {
+      "name": "Jaguar Hide",
+      "short": "Jaguar Hide",
+      "category": "Materials",
+      "stat": "Loot · 175 Gold",
+      "description": "Jaguar hide.",
+      "lore": "Jaguar hide."
+    },
+    "crocodile_hide": {
+      "name": "Crocodile Hide",
+      "short": "Croc Hide",
+      "category": "Materials",
+      "stat": "Loot · 190 Gold",
+      "description": "Crocodile hide.",
+      "lore": "Crocodile hide."
+    },
+    "bear_hide": {
+      "name": "Bear Hide",
+      "short": "Bear Hide",
+      "category": "Materials",
+      "stat": "Loot · 220 Gold",
+      "description": "Bear hide.",
+      "lore": "Bear hide."
+    },
+    "rhino_hide": {
+      "name": "Rhino Hide",
+      "short": "Rhino Hide",
+      "category": "Materials",
+      "stat": "Loot · 250 Gold",
+      "description": "Rhino hide.",
+      "lore": "Rhino hide."
     },
     "deer_antlers": {
-      "name": "קרניים של אייל היער",
-      "short": "קרניים",
-      "category": "חומרי בנייה",
-      "stat": "שלל ציד נדיר · שווי 140 מטבעות",
-      "description": "קרני אייל מסועפות וחזקות שנאספו מציד איילים. משמשות לעיטור קשתות מורכבות, ניצבי חרבות וחפצי אומנות.",
-      "lore": "אומני הקשתות של העמק משלבים קרני אייל בקצות הקשת להגברת עוצמת המתיחה."
+      "name": "Deer Antlers",
+      "short": "Antlers",
+      "category": "Materials",
+      "stat": "Loot · 140 Gold",
+      "description": "Deer antlers.",
+      "lore": "Deer antlers."
+    },
+    "animal_bone": {
+      "name": "Animal Bone",
+      "short": "Bone",
+      "category": "Materials",
+      "stat": "Loot · 35 Gold",
+      "description": "Animal bone.",
+      "lore": "Animal bone."
+    },
+    "animal_fat": {
+      "name": "Animal Fat",
+      "short": "Animal Fat",
+      "category": "Materials",
+      "stat": "Loot · 50 Gold",
+      "description": "Animal fat.",
+      "lore": "Animal fat."
+    },
+    "bear_claws": {
+      "name": "Bear Claws",
+      "short": "Bear Claws",
+      "category": "Materials",
+      "stat": "Loot · 135 Gold",
+      "description": "Bear claws.",
+      "lore": "Bear claws."
+    },
+    "wolf_fang": {
+      "name": "Wolf Fang",
+      "short": "Wolf Fang",
+      "category": "Materials",
+      "stat": "Loot · 95 Gold",
+      "description": "Wolf fang.",
+      "lore": "Wolf fang."
+    },
+    "crocodile_teeth": {
+      "name": "Crocodile Teeth",
+      "short": "Croc Teeth",
+      "category": "Materials",
+      "stat": "Loot · 125 Gold",
+      "description": "Crocodile teeth.",
+      "lore": "Crocodile teeth."
+    },
+    "rhino_horn": {
+      "name": "Rhino Horn",
+      "short": "Rhino Horn",
+      "category": "Materials",
+      "stat": "Loot · 195 Gold",
+      "description": "Rhino horn.",
+      "lore": "Rhino horn."
     }
   },
   "categories": {
-    "all": "הכל",
-    "weapons": "כלי נשק",
-    "materials": "חומרי בנייה",
-    "food": "אוכל",
-    "ammo": "חצים ותחמושת",
-    "gear": "ציוד שטח",
-    "treasures": "אוצרות ומחצבים"
+    "all": "All",
+    "weapons": "Weapons",
+    "materials": "Materials",
+    "food": "Food",
+    "ammo": "Ammo",
+    "gear": "Gear",
+    "treasures": "Treasures"
   },
   "buildings": {
-    "fortress_main_hall": "היכל המצודה הקיסרי הראשי",
-    "pagoda_west": "ביתן הפגודה המערבי",
-    "pagoda_east": "ביתן הפגודה המזרחי",
-    "corner_tower_sw": "מגדל הפינה הדרום־מערבי",
-    "corner_tower_se": "מגדל הפינה הדרום־מזרחי",
-    "corner_tower_nw": "מגדל הפינה הצפון־מערבי",
-    "corner_tower_ne": "מגדל הפינה הצפון־מזרחי",
-    "hunter_lodge": "בקתת הציידים והיערן",
-    "farm_west": "חוות העמק המערבית",
-    "farm_south": "חוות שדות החיטה הדרומית",
-    "farm_east": "חוות העמק המזרחית",
-    "harbor_tavern": "פונדק המלחים של נמל הדרום־מזרח",
-    "harbor_lighthouse": "המגדלור המלכותי של נמל הדרום־מזרח",
-    "harbor_warehouse": "מחסן הסחורות הקיסרי של הנמל",
-    "galleon_cabin": "תא השינה והפיקוד של קפטן הגליאון",
-    "oasis_observatory": "מגדל המצפה האסטרונומי של נווה המדבר",
-    "oasis_silk_pavilion": "ביתן האלכימאי ואורגי המשי (נווה המדבר)"
+    "fortress_main_hall": "Fortress Main Hall",
+    "pagoda_west": "West Pagoda",
+    "pagoda_east": "East Pagoda",
+    "corner_tower_sw": "Southwest Watchtower",
+    "corner_tower_se": "Southeast Watchtower",
+    "corner_tower_nw": "Northwest Watchtower",
+    "corner_tower_ne": "Northeast Watchtower",
+    "hunter_lodge": "Hunter's Lodge",
+    "farm_west": "West Farm",
+    "farm_south": "South Wheat Farm",
+    "farm_east": "East Farm",
+    "harbor_tavern": "Harbor Tavern",
+    "harbor_lighthouse": "Harbor Lighthouse",
+    "harbor_warehouse": "Harbor Warehouse",
+    "galleon_cabin": "Galleon Captain's Cabin",
+    "oasis_observatory": "Oasis Observatory",
+    "oasis_silk_pavilion": "Oasis Pavilion"
   },
   "weather": {
-    "clear_clouds": "שמיים בהירים ועננים קלים",
-    "clear_clouds_short": "בהיר",
-    "regional_rain": "גשם ושלוליות מים",
-    "regional_rain_short": "גשם",
-    "dense_fog": "ערפל כבד ומיסטי",
-    "dense_fog_short": "ערפל",
-    "mountain_snow": "שלג בפסגות ההרים הגבוהים",
-    "mountain_snow_short": "שלג",
-    "lightning_storm": "סופת ברקים ורעמים",
-    "lightning_storm_short": "סופת ברקים",
-    "wind_sand": "רוח סתווית חזקה",
-    "wind_sand_short": "רוח",
-    "auto": "אוטומטי (עונות השנה)",
-    "auto_short": "אוטומטי"
+    "clear_clouds": "Clear Sky",
+    "clear_clouds_short": "Clear",
+    "regional_rain": "Rain",
+    "regional_rain_short": "Rain",
+    "dense_fog": "Dense Fog",
+    "dense_fog_short": "Fog",
+    "mountain_snow": "Mountain Snow",
+    "mountain_snow_short": "Snow",
+    "lightning_storm": "Thunderstorm",
+    "lightning_storm_short": "Storm",
+    "wind_sand": "Strong Wind",
+    "wind_sand_short": "Wind",
+    "auto": "Auto (Seasons)",
+    "auto_short": "Auto"
   },
   "seasons": {
-    "spring": "אביב",
-    "summer": "קיץ",
-    "autumn": "סתיו",
-    "winter": "חורף"
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "winter": "Winter"
   },
   "time": {
-    "clear_noon": "צהריים בהירים",
-    "moonlit_night": "לילה ואור ירח",
-    "sunrise_mist": "זריחה וערפל בוקר",
-    "clear_morning": "בוקר צלול",
-    "golden_hour": "שעת הזהב",
-    "warm_sunset": "שקיעה חמה"
+    "clear_noon": "Noon",
+    "moonlit_night": "Night",
+    "sunrise_mist": "Sunrise",
+    "clear_morning": "Morning",
+    "golden_hour": "Golden Hour",
+    "warm_sunset": "Sunset"
   },
   "landmarks": {
-    "lighthouse": "המגדלור המלכותי של נמל הדרום־מזרח",
-    "oasis_observatory": "מגדל המצפה האסטרונומי של נווה המדבר",
-    "hill_watchtower_sw": "מגדל שמירה דרום־מערבי",
-    "hill_watchtower_west": "מגדל שמירה מערבי",
-    "hill_watchtower_east": "מגדל שמירה מזרחי מבודד",
-    "target_hall_west_outer": "מטרת ההיכל הקיסרי — מערב חיצוני",
-    "target_hall_west_inner": "מטרת ההיכל הקיסרי — מערב פנימי",
-    "target_hall_east_inner": "מטרת ההיכל הקיסרי — מזרח פנימי",
-    "target_hall_east_outer": "מטרת ההיכל הקיסרי — מזרח חיצוני",
-    "dwarven_statue_durin": "פסל המלך הגמדי דורין (שומר המכרה המערבי)",
-    "dwarven_statue_thror": "פסל המלך הגמדי תרור (שומר המכרה המזרחי)",
-    "dwarven_house_nw": "בית האבן של חרשי הגמדים (צפון־מערב)",
-    "dwarven_house_ne": "בית האבן של כורי הזהב (צפון־מזרח)",
-    "dwarven_house_sw": "בית האבן של שומרי ההר (דרום־מערב)",
-    "dwarven_house_se": "בית האבן של אומני הרו-נות (דרום־מזרח)",
-    "market_harbor_swords": "שוק הנמל — דוכן חרבות ולהבים (הסוחר ליאנג)",
-    "market_harbor_bows": "שוק הנמל — דוכן קשתות וחצים (הסוחרת מיי)",
-    "market_harbor_timber": "שוק הנמל — דוכן חומרי בנייה ועץ (הסוחר דורין)",
-    "market_harbor_stone": "שוק הנמל — דוכן אבן ושיש (הסוחר קארים)",
-    "market_harbor_smithy": "שוק הנמל — נפחיית הנמל ומטילי מתכת (הנפח בורין)",
-    "market_harbor_minerals": "שוק הנמל — דוכן אוכל, בשר וצידה (הסוחר האן)",
-    "horse_royal": "סוס רכיבה מלכותי (ערמוני)",
-    "horse_hunter": "סוס ציידים שחור (אורוות הצייד)",
-    "horse_farm": "סוסת חווה לבנה (חוות החיטה)",
-    "horse_travel": "סוס מסע זהוב (שער נמל המזרח)",
-    "horse_arabian": "סוס ערבי לבן (נווה המדבר המערבי)"
+    "lighthouse": "Harbor Lighthouse",
+    "oasis_observatory": "Oasis Observatory",
+    "hill_watchtower_sw": "Southwest Watchtower",
+    "hill_watchtower_west": "West Watchtower",
+    "hill_watchtower_east": "East Watchtower",
+    "target_hall_west_outer": "Fortress Target — West Outer",
+    "target_hall_west_inner": "Fortress Target — West Inner",
+    "target_hall_east_inner": "Fortress Target — East Inner",
+    "target_hall_east_outer": "Fortress Target — East Outer",
+    "dwarven_statue_durin": "Dwarven King Durin Statue",
+    "dwarven_statue_thror": "Dwarven King Thror Statue",
+    "dwarven_house_nw": "Dwarven Stone House (NW)",
+    "dwarven_house_ne": "Dwarven Stone House (NE)",
+    "dwarven_house_sw": "Dwarven Stone House (SW)",
+    "dwarven_house_se": "Dwarven Stone House (SE)",
+    "market_harbor_swords": "Harbor Market — Swords (Merchant Liang)",
+    "market_harbor_bows": "Harbor Market — Bows & Arrows (Merchant Mei)",
+    "market_harbor_timber": "Harbor Market — Wood & Materials (Merchant Durin)",
+    "market_harbor_stone": "Harbor Market — Stone & Marble (Merchant Karim)",
+    "market_harbor_smithy": "Harbor Market — Smithy & Iron (Blacksmith Borin)",
+    "market_harbor_minerals": "Harbor Market — Food & Provisions (Merchant Han)",
+    "horse_royal": "Chestnut Horse",
+    "horse_hunter": "Black Horse (Hunter's Stable)",
+    "horse_farm": "White Horse (Wheat Farm)",
+    "horse_travel": "Golden Horse (Harbor Gate)",
+    "horse_arabian": "Arabian Horse (Oasis)"
   },
   "interactions": {
-    "equipped_label": "[מצויד]",
-    "owned_label": "[ברשותך]",
-    "equip_action": "צייד פריט [E]",
-    "equipped_now": "מצויד כעת [E]",
-    "buy_action": "קנה מהסוחר ({price} מטבעות זהב)",
-    "sell_action": "מכור לסוחר (+{price} מטבעות זהב)",
-    "sell_short": "מכור לסוחר (+{price} זהב)",
-    "sell_tag": "מכירה: +{price} זהב",
-    "inspected_sell_tag": "תמורת מכירה: {price} זהב",
-    "inspected_buy_tag": "מחיר קנייה: {price} זהב",
-    "level_required": "דרגה נדרשת {level}",
-    "level_required_badge": "דרגה {level}",
-    "level_insufficient": "נדרשת דרגת סייר {level}",
-    "gold_insufficient": "חסר זהב ({price} זהב)",
-    "already_owned_notice": "הפריט כבר נמצא ברשותך (מופיע ברשימה משמאל)",
-    "purchased_success": "נרכש בהצלחה",
-    "sold_success": "נמכר בהצלחה (+{gold} זהב)",
-    "assign_hotbar_slot": "שייך למקש מהיר {slot}",
-    "assign_hotbar_slot_short": "שייך למקש {slot}"
+    "equipped_label": "[Equipped]",
+    "owned_label": "[Owned]",
+    "equip_action": "Equip [E]",
+    "equipped_now": "Equipped [E]",
+    "buy_action": "Buy ({price} Gold)",
+    "sell_action": "Sell (+{price} Gold)",
+    "sell_short": "Sell (+{price} Gold)",
+    "sell_tag": "Sell: +{price} Gold",
+    "inspected_sell_tag": "Sell Value: {price} Gold",
+    "inspected_buy_tag": "Buy Price: {price} Gold",
+    "level_required": "Required Level {level}",
+    "level_required_badge": "Lv {level}",
+    "level_insufficient": "Requires Ranger Level {level}",
+    "gold_insufficient": "Not Enough Gold ({price} Gold)",
+    "already_owned_notice": "Already owned",
+    "purchased_success": "Purchased",
+    "sold_success": "Sold (+{gold} Gold)",
+    "assign_hotbar_slot": "Assign Hotbar Slot {slot}",
+    "assign_hotbar_slot_short": "Slot {slot}"
   },
   "market": {
     "errors": {
-      "NOT_IN_MARKET": "עליך להיות ליד דוכן מסחר כדי לסחור",
-      "ALREADY_OWNED": "הפריט כבר נמצא ברשותך",
-      "LEVEL_TOO_LOW": "דרגת הסייר שלך נמוכה מדי לרכישת פריט זה",
-      "INSUFFICIENT_GOLD": "אין לך מספיק מטבעות זהב לרכישה",
-      "ITEM_NOT_FOUND": "הפריט לא נמצא בקטלוג",
-      "NOT_OWNED": "אינך מחזיק בפריט זה למכירה",
-      "CANNOT_SELL": "לא ניתן למכור פריט זה",
-      "CANNOT_SELL_STARTER_GEAR": "לא ניתן למכור ציוד התחלתי",
-      "GENERIC_ERROR": "שגיאה בעסקת המסחר"
+      "NOT_IN_MARKET": "Move closer to a market stall to trade",
+      "ALREADY_OWNED": "Item already owned",
+      "LEVEL_TOO_LOW": "Ranger level too low for this item",
+      "INSUFFICIENT_GOLD": "Not enough gold coins",
+      "ITEM_NOT_FOUND": "Item not found",
+      "NOT_OWNED": "Item not owned",
+      "CANNOT_SELL": "Cannot sell this item",
+      "CANNOT_SELL_STARTER_GEAR": "Cannot sell starter gear",
+      "GENERIC_ERROR": "Trade error"
     },
     "hud": {
-      "buy_and_sell_weapons": "{market} · קנייה ומכירת נשקים, חומרי בנייה ואוכל",
-      "harbor_market_title": "שוק הנמל · {market}"
+      "buy_and_sell_weapons": "{market} · Buy & Sell Weapons, Materials & Food",
+      "harbor_market_title": "Harbor Market · {market}"
     }
   },
   "skills": {
-    "archery": "קשתות וצליפה",
-    "swordsmanship": "לחימה בחרב רונות",
-    "horsemanship": "רכיבה ואילוף סוסים",
-    "athletics": "אתלטיקה וסיבולת",
-    "exploration": "חקר עולם וכריית מעמקים",
-    "level_up_title": "{title} · דרגה {level}",
-    "level_up_hud": "עליית מיומנות! (+35 זהב) · {title}",
-    "target_hit_hud": "פגיעה במטרה (+15 זהב) · {target}"
+    "archery": "Archery",
+    "swordsmanship": "Swordsmanship",
+    "horsemanship": "Horsemanship",
+    "athletics": "Athletics",
+    "exploration": "Exploration",
+    "level_up_title": "{title} · Level {level}",
+    "level_up_hud": "Skill Up! (+35 Gold) · {title}",
+    "target_hit_hud": "Target Hit (+15 Gold) · {target}"
   },
   "dwarven": {
     "miners": {
-      "durin": "דורין חוצב הסלע",
-      "balin": "באלין זקן־הברזל",
-      "dwalin": "דואלין מקבת־הגרניט",
-      "gloin": "גלוין להב־הזהב",
-      "oin": "אואין חרש־הלהבה",
-      "bifur": "ביפור כורה־העומק",
-      "bofur": "בופור שומר־האוצר",
-      "bombur": "בומבור פטיש־האבן"
+      "durin": "Durin",
+      "balin": "Balin",
+      "dwalin": "Dwalin",
+      "gloin": "Gloin",
+      "oin": "Oin",
+      "bifur": "Bifur",
+      "bofur": "Bofur",
+      "bombur": "Bombur"
     }
   },
   "biomes": {
-    "water": "מי האגם והנחל (שחייה)",
-    "pier": "גשר ומזח עץ",
-    "bridge": "גשר ומדרגות אבן",
-    "cabin": "מבנה עץ והיכל",
-    "trail": "שביל הליכה כבוש",
-    "shore": "גדת המים וחלוקי נחל",
-    "meadow": "עמק פתוח וגבעות ירוקות",
-    "forest": "יער עצי ענק מוצל",
-    "birch_grove": "חורשת עצי הלבנה והסנאים",
-    "desert": "מדבר סוואנה ונווה מדבר",
-    "highland": "רכס התצפית הגבוה",
-    "rock": "הרים ומצוקי גרניט"
+    "water": "Water",
+    "pier": "Wooden Pier",
+    "bridge": "Stone Bridge",
+    "cabin": "Cabin",
+    "trail": "Trail",
+    "shore": "Shoreline",
+    "meadow": "Valley Meadow",
+    "forest": "Deep Forest",
+    "birch_grove": "Birch Grove",
+    "desert": "Desert & Oasis",
+    "highland": "Highland Ridge",
+    "rock": "Mountain Peaks"
   },
   "pace": {
-    "relaxed": "התגנבות שקטה (Ctrl)",
-    "fast": "ריצה מהירה (Shift)",
-    "normal": "רגיל"
+    "relaxed": "Sneak (Ctrl)",
+    "fast": "Sprint (Shift)",
+    "normal": "Normal"
   },
   "combat": {
     "tools": {
-      "bow": "קשת ציידים",
-      "sword": "חרב סיירים",
-      "torch": "לפיד אש בוער",
-      "unarmed": "ידיים חופשיות"
+      "bow": "Bow",
+      "sword": "Sword",
+      "torch": "Torch",
+      "unarmed": "Unarmed"
     },
     "arrows": {
-      "normal": "חץ פלדה",
-      "fire": "חץ אש בוער",
-      "wind": "חץ סערה מהיר"
+      "normal": "Steel Arrow",
+      "fire": "Fire Arrow",
+      "wind": "Wind Arrow"
     }
   },
   "ui": {
-    "minimap_aria": "מפת סביבה וכיוון",
-    "canvas_aria": "תצוגת עולם תלת ממדי בגוף ראשון",
-    "inventory_aria": "תפריט נשקים, חומרי בנייה ושוק הנמל",
-    "menu_topics_aria": "נושאי תפריט",
-    "walk_forward_aria": "הליכה קדימה",
-    "walk_left_aria": "תנועה שמאלה",
-    "walk_back_aria": "הליכה אחורה",
-    "walk_right_aria": "תנועה ימינה",
-    "weather_toggle_aria": "החלפת מזג אוויר [V]",
-    "weather_toggle_title": "החלפת מזג אוויר [V]",
-    "app_title": "שביל הטבע",
-    "app_subtitle": "עולם פתוח וחי של טבע, מבצר קיסרי, שוק סוחרים וממלכת גמדים",
-    "start_walking": "התחל הליכה בעולם",
-    "resume_walking": "המשך הליכה בעולם",
-    "intro_screen": "מסך פתיחה",
-    "weather_control_label": "בקרת מזג אוויר [מקש V]:",
-    "weather_hud_label": "מזג אוויר: {weather}",
-    "pause_title": "הפסקת טיול בשמורה",
-    "pause_subtitle": "הסימולציה מושהית · זהב נוכחי: {gold} 🪙",
-    "quick_favorites": "מועדפים מהירים",
-    "close_q": "סגור [Q]",
-    "close_tab": "סגור [Tab]",
-    "empty_favorites": "אין פריטים במועדפים. פתח את גלגל הציוד [Tab] וסמן ★.",
-    "personal_gear_title": "ציוד הסייר האישי",
-    "hero_level_label": "דרגת סייר: ",
-    "gold_label": "זהב: ",
-    "my_gear_left": "הציוד שלי (בצד שמאל)",
-    "my_gear_hint": "לחץ על פריט שברשותך להצגה ומכירה במרכז",
-    "items_count": "{count} פריטים",
-    "all_filter": "הכל",
-    "weapons_filter": "נשקים",
-    "materials_filter": "חומרי בנייה",
-    "food_filter": "אוכל",
-    "selected_from_my_list": "נבחר מהרשימה שלך (שמאל) · מוכן למכירה או ציוד",
-    "selected_from_merchant_list": "נבחר מרשימת המוכר (ימין) · מוכן לקנייה",
-    "weight_label": "משקל: {weight}",
-    "estimated_value_label": "שווי מוערך: {value} זהב",
-    "merchant_goods_right": "סחורת המוכר (בצד ימין)",
-    "merchant_goods_hint": "לחץ על פריט של המוכר להצגה וקנייה במרכז",
-    "weapons_tab": "נשקים",
-    "materials_tab": "חומרי בנייה",
-    "food_tab": "אוכל",
-    "owned_weapons_desc": "נשקים וציוד שברשותך כרגע",
-    "owned_materials_desc": "חומרי בנייה ומשאבים שברשותך כרגע",
-    "owned_food_desc": "אוכל, בשר וצידה שברשותך כרגע",
-    "category_owned_by_hero": "{category} · ברשות הדמות",
-    "category_required_level": "{category} · דרגה נדרשת {level}"
+    "minimap_aria": "Minimap",
+    "canvas_aria": "3D World View",
+    "inventory_aria": "Inventory & Market",
+    "menu_topics_aria": "Menu",
+    "walk_forward_aria": "Move Forward",
+    "walk_left_aria": "Move Left",
+    "walk_back_aria": "Move Back",
+    "walk_right_aria": "Move Right",
+    "weather_toggle_aria": "Weather [V]",
+    "weather_toggle_title": "Weather [V]",
+    "app_title": "Nature Trail",
+    "app_subtitle": "Open World Exploration, Hunting, Fortress, Harbor Market & Mountain Pass",
+    "start_walking": "Enter World",
+    "resume_walking": "Resume Game",
+    "intro_screen": "Start Screen",
+    "weather_control_label": "Weather [V]:",
+    "weather_hud_label": "Weather: {weather}",
+    "pause_title": "Game Paused",
+    "pause_subtitle": "Paused · Gold: {gold} 🪙",
+    "quick_favorites": "Favorites",
+    "close_q": "Close [Q]",
+    "close_tab": "Close [Tab]",
+    "empty_favorites": "No favorites yet. Open Inventory [Tab] and mark items with ★.",
+    "personal_gear_title": "Inventory",
+    "hero_level_label": "Level: ",
+    "gold_label": "Gold: ",
+    "my_gear_left": "Inventory",
+    "my_gear_hint": "Select an item to equip, eat, or sell",
+    "items_count": "{count} Items",
+    "all_filter": "All",
+    "weapons_filter": "Weapons",
+    "materials_filter": "Materials",
+    "food_filter": "Food",
+    "selected_from_my_list": "Inventory Item · Equip or Sell",
+    "selected_from_merchant_list": "Merchant Item · Ready to Buy",
+    "weight_label": "Weight: {weight}",
+    "estimated_value_label": "Value: {value} Gold",
+    "merchant_goods_right": "Merchant Goods",
+    "merchant_goods_hint": "Select an item to buy",
+    "weapons_tab": "Weapons",
+    "materials_tab": "Materials",
+    "food_tab": "Food",
+    "owned_weapons_desc": "Owned weapons & gear",
+    "owned_materials_desc": "Owned materials & hunting loot",
+    "owned_food_desc": "Owned food & meat",
+    "category_owned_by_hero": "{category} · Owned",
+    "category_required_level": "{category} · Required Level {level}"
   }
 } as const;
 
 /**
- * Summary: Strongly-typed schema definition inferred from canonical Hebrew localization dictionary.
- * Design: Serves as the single source of truth for nested translation keys across the application.
+ * Summary: Strongly-typed schema definition inferred from canonical localization dictionary.
  */
 export type LocaleSchema = typeof he;

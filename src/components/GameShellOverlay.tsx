@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   WeatherToggleOption,
+  SeasonType,
   INVENTORY_ITEMS,
   InventoryItemId,
   IInventoryItemDef,
@@ -76,6 +77,14 @@ const WEATHER_OPTIONS: readonly IWeatherOptionDef[] = [
   { id: 'mountain_snow', label: t('weather.mountain_snow'), short: t('weather.mountain_snow_short') },
   { id: 'wind_sand', label: t('weather.wind_sand'), short: t('weather.wind_sand_short') },
   { id: 'clear_clouds', label: t('weather.clear_clouds'), short: t('weather.clear_clouds_short') },
+];
+
+const SEASON_OPTIONS: readonly { id: SeasonType | 'auto'; label: string }[] = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'spring', label: 'Spring' },
+  { id: 'summer', label: 'Summer' },
+  { id: 'autumn', label: 'Autumn' },
+  { id: 'winter', label: 'Winter' },
 ];
 
 type SkyrimModalMode = 'none' | 'inventory' | 'favorites';
@@ -302,33 +311,33 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket, kb]);
 
   // ============================================================================
-  // 1. TITLE SCREEN OVERLAY ("the man" — Right-Aligned Typographic Menu)
+  // 1. TITLE SCREEN OVERLAY ("the man" — Left-Aligned Typographic Menu)
   // ============================================================================
   if (gameState === 'title') {
     return (
       <main
-        dir="rtl"
+        dir="ltr"
         data-testid="title-screen-overlay"
-        className="fixed inset-0 z-20 flex flex-col justify-center items-start pr-8 sm:pr-14 md:pr-20 pl-6 pointer-events-none select-none"
+        className="fixed inset-0 z-20 flex flex-col justify-center items-start pl-8 sm:pl-14 md:pl-20 pr-6 pointer-events-none select-none"
         style={{
           background:
-            'linear-gradient(to left, rgba(9, 8, 7, 0.88) 0%, rgba(12, 10, 9, 0.56) 26%, rgba(12, 10, 9, 0.14) 50%, rgba(12, 10, 9, 0) 72%)',
+            'linear-gradient(to right, rgba(9, 8, 7, 0.88) 0%, rgba(12, 10, 9, 0.56) 26%, rgba(12, 10, 9, 0.14) 50%, rgba(12, 10, 9, 0) 72%)',
         }}
       >
-        {/* Subtle Architectural Right-Margin Vertical Hairline */}
+        {/* Subtle Architectural Left-Margin Vertical Hairline */}
         <div
           aria-hidden="true"
-          className="fixed top-12 bottom-12 right-5 sm:right-8 md:right-11 w-px pointer-events-none"
+          className="fixed top-12 bottom-12 left-5 sm:left-8 md:left-11 w-px pointer-events-none"
           style={{
             background:
               'linear-gradient(to bottom, rgba(251, 191, 36, 0) 0%, rgba(251, 191, 36, 0.38) 30%, rgba(251, 191, 36, 0.38) 70%, rgba(251, 191, 36, 0) 100%)',
           }}
         />
 
-        {/* Right-Docked Title & Pure Text Menu Stack (Raised higher in viewport) */}
-        <div className="flex flex-col items-start text-right w-full max-w-lg -mt-20 sm:-mt-28 md:-mt-32">
+        {/* Left-Docked Title & Pure Text Menu Stack (Raised higher in viewport) */}
+        <div className="flex flex-col items-start text-left w-full max-w-lg -mt-20 sm:-mt-28 md:-mt-32">
           {/* Sculptural Game Title Lockup — "the man" (No description text) */}
-          <div className="mb-8 sm:mb-9 pr-5 flex flex-col items-start">
+          <div className="mb-8 sm:mb-9 pl-5 flex flex-col items-start">
             <div className="flex items-center gap-2.5 mb-2.5">
               <span className="inline-block w-2 h-2 rotate-45 bg-amber-400/90" />
               <span
@@ -357,14 +366,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               className="mt-5 h-[2px] w-72 sm:w-88"
               style={{
                 background:
-                  'linear-gradient(to left, rgba(251, 191, 36, 0.95) 0%, rgba(217, 119, 6, 0.45) 52%, rgba(217, 119, 6, 0) 100%)',
+                  'linear-gradient(to right, rgba(251, 191, 36, 0.95) 0%, rgba(217, 119, 6, 0.45) 52%, rgba(217, 119, 6, 0) 100%)',
               }}
             />
           </div>
 
-          {/* Right-Aligned Pure Text Menu Buttons with Inner-Screen Fading Hover Background */}
+          {/* Left-Aligned Pure Text Menu Buttons with Inner-Screen Fading Hover Background */}
           <nav
-            aria-label="תפריט ראשי"
+            aria-label="Main Menu"
             className="flex flex-col items-start w-full gap-1.5 pointer-events-auto"
           >
             {/* 1. Start Game Text Button */}
@@ -375,27 +384,28 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onStartGame();
               }}
-              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
-              {/* Hover gradient fading toward the inner screen (left) */}
+              {/* Hover gradient fading toward the inner screen (right) */}
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
                 style={{
                   background:
-                    'linear-gradient(to left, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
+                    'linear-gradient(to right, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
                 }}
               />
-              {/* Right edge active indicator bar on hover */}
+              {/* Left edge active indicator bar on hover */}
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:-translate-x-1.5"
+                dir="ltr"
+                className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                התחל משחק
+                Start Game
               </span>
             </button>
 
@@ -407,25 +417,26 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onOpenLab();
               }}
-              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
                 style={{
                   background:
-                    'linear-gradient(to left, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                    'linear-gradient(to right, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
                 }}
               />
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                dir="ltr"
+                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                מעבדה
+                Animation Lab
               </span>
             </button>
 
@@ -437,25 +448,26 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onOpenSettings?.();
               }}
-              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
                 style={{
                   background:
-                    'linear-gradient(to left, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                    'linear-gradient(to right, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
                 }}
               />
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <span
-                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                dir="ltr"
+                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                הגדרות (Settings)
+                Settings
               </span>
             </button>
 
@@ -467,26 +479,27 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 e.currentTarget.blur();
                 onCycleWeather();
               }}
-              className="group relative w-80 sm:w-96 py-3.5 pr-5 pl-12 text-right bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
             >
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
                 style={{
                   background:
-                    'linear-gradient(to left, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.1) 55%, rgba(217, 119, 6, 0) 100%)',
+                    'linear-gradient(to right, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.1) 55%, rgba(217, 119, 6, 0) 100%)',
                 }}
               />
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
               />
               <div
-                className="relative z-10 flex items-baseline gap-3 text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:-translate-x-1.5"
+                dir="ltr"
+                className="relative z-10 flex items-baseline justify-start gap-3 text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
                 <span className="font-display-he text-xl sm:text-2xl font-medium tracking-wide">
-                  מזג אוויר:
+                  Weather:
                 </span>
                 <span className="text-base sm:text-lg font-medium text-amber-300/90">
                   {activeWeatherOption.short}
@@ -510,9 +523,102 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   // ============================================================================
   return (
     <div className="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-4 md:p-5">
-      {/* Top Row: ONLY Weather [V] Button */}
+      {/* Top Row: Developer Time, Season & Weather Controls */}
       <div className="flex items-start justify-end w-full">
-        <div className="flex items-center justify-end pointer-events-auto shrink-0">
+        <div
+          dir="ltr"
+          className="flex flex-wrap items-center justify-end gap-2 pointer-events-auto shrink-0"
+        >
+          {/* Developer Time of Day Control */}
+          <div
+            data-testid="dev-time-control"
+            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-2 text-xs font-medium text-stone-200 shrink-0"
+            style={{
+              backgroundColor: 'rgba(18, 16, 13, 0.88)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+            }}
+          >
+            <span className="font-mono-tabular text-amber-300 font-semibold">
+              {telemetry.timeString || '06:40'}
+            </span>
+            <input
+              type="range"
+              aria-label="Time of Day"
+              data-testid="dev-time-slider"
+              min={0}
+              max={23.95}
+              step={0.1}
+              value={telemetry.worldHours ?? 6.68}
+              onChange={(e) => {
+                gameActions?.onSetWorldHours?.(parseFloat(e.target.value));
+              }}
+              className="w-16 sm:w-20 accent-amber-400 cursor-pointer"
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              data-testid="dev-time-day-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                gameActions?.onSetWorldHours?.(9.0);
+              }}
+              className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-amber-200 cursor-pointer"
+              title="Set Morning (09:00)"
+            >
+              Day
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              data-testid="dev-time-night-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                gameActions?.onSetWorldHours?.(22.0);
+              }}
+              className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-sky-300 cursor-pointer"
+              title="Set Night (22:00)"
+            >
+              Night
+            </button>
+          </div>
+
+          {/* Developer Season Selector */}
+          <div
+            data-testid="dev-season-control"
+            className="h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-medium text-stone-200 shrink-0"
+            style={{
+              backgroundColor: 'rgba(18, 16, 13, 0.88)',
+              border:
+                telemetry.forcedSeason && telemetry.forcedSeason !== 'auto'
+                  ? '1px solid rgba(251, 191, 36, 0.55)'
+                  : '1px solid rgba(255, 255, 255, 0.14)',
+            }}
+          >
+            <span className="text-[11px] text-stone-400 hidden md:inline mr-0.5">Season:</span>
+            {SEASON_OPTIONS.map((sOpt) => {
+              const active = (telemetry.forcedSeason ?? 'auto') === sOpt.id;
+              return (
+                <button
+                  key={sOpt.id}
+                  type="button"
+                  tabIndex={-1}
+                  data-testid={`dev-season-${sOpt.id}`}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    gameActions?.onSetSeason?.(sOpt.id);
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[11px] transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-amber-400 text-stone-950 font-bold'
+                      : 'text-stone-300 hover:text-white hover:bg-stone-800'
+                  }`}
+                >
+                  {sOpt.label}
+                </button>
+              );
+            })}
+          </div>
+
           <button
             type="button"
             tabIndex={-1}
@@ -826,7 +932,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             {telemetry.isCrouching && !telemetry.isSwimming && (
               <div
                 data-testid="stealth-crouch-badge"
-                dir="rtl"
+                dir="ltr"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-emerald-200 shadow-xl"
                 style={{
                   backgroundColor: 'rgba(10, 22, 18, 0.88)',
@@ -834,14 +940,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-semibold text-xs">מצב התגנבות · שקט</span>
+                <span className="font-semibold text-xs">Stealth · Quiet</span>
               </div>
             )}
 
             {telemetry.nearbyDeadAnimal && (
               <div
                 data-testid="loot-animal-prompt"
-                dir="rtl"
+                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(12, 26, 18, 0.92)',
@@ -855,13 +961,34 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold text-xs text-emerald-100">
-                  אסוף שלל ציד ({telemetry.nearbyDeadAnimal.speciesNameHe})
+                  Loot ({telemetry.nearbyDeadAnimal.speciesNameHe})
                 </span>
               </div>
             )}
+
+            {telemetry.nearbyBed && !telemetry.nearbyDeadAnimal && (
+              <div
+                data-testid="bed-sleep-prompt"
+                dir="ltr"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(15, 13, 10, 0.90)',
+                  border: '1px solid rgba(251, 191, 36, 0.55)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-amber-100">
+                  Sleep
+                </span>
+              </div>
+            )}
+
             {telemetry.nearbyMarket && (
               <div
                 data-testid="market-stall-prompt"
+                dir="ltr"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
                 style={{
                   backgroundColor: 'rgba(15, 13, 10, 0.90)',
@@ -879,7 +1006,10 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
-            {telemetry.nearbyDoor && !telemetry.climbingLadder && !telemetry.nearbyLadder && (
+            {telemetry.nearbyDoor &&
+              !telemetry.nearbyBed &&
+              !telemetry.climbingLadder &&
+              !telemetry.nearbyLadder && (
               <div
                 data-testid="door-prompt"
                 dir="ltr"
@@ -1134,10 +1264,10 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             >
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-amber-200">
-                  מצב דיבאג התנגשויות (Collider Wireframes)
+                  Collider Wireframes Debug
                 </span>
                 <span className="text-[11px] text-stone-400">
-                  מציג קווי מתאר תלת-ממדיים של קירות, מדרגות, מעקות ועצמים (קיצור: F3)
+                  Shows 3D collision wireframes for walls, stairs, railings, and obstacles (F3)
                 </span>
               </div>
               <button
@@ -1155,7 +1285,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
                 }`}
               >
-                {telemetry.colliderDebugVisible ? 'פעיל (F3)' : 'כבוי (F3)'}
+                {telemetry.colliderDebugVisible ? 'On (F3)' : 'Off (F3)'}
               </button>
             </div>
 
@@ -1175,7 +1305,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 onClick={() => onOpenSettings?.()}
                 className="py-3 px-4 rounded-xl text-sm font-medium text-amber-200 hover:text-white bg-stone-800 hover:bg-stone-700 border border-amber-500/35 transition-colors cursor-pointer whitespace-nowrap"
               >
-                הגדרות (Settings)
+                Settings
               </button>
               <button
                 type="button"
