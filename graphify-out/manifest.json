@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793556350.6846354,
-    "seen": 1793556419.223556,
-    "ast_hash": "f6abc1c3f84da880f2a77eff199672ba",
+    "mtime": 1793556563.0846412,
+    "seen": 1793557131.9032679,
+    "ast_hash": "4f522df99f584d3cbbcf1f87d1aadc48",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -837,6 +837,24 @@
     "mtime": 1793556323.7506766,
     "seen": 1793556419.2236078,
     "ast_hash": "4b6e8909aed28f97635f9fa87bd7ffa0",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/camera-rig.json": {
+    "mtime": 1793556588.9183354,
+    "seen": 1793557131.9033718,
+    "ast_hash": "48129ef7cec15ee8dae940b2c49f6ce8",
+    "semantic_hash": ""
+  },
+  "src/world/systems/cameraRigSystem.spec.ts": {
+    "mtime": 1793556581.4022305,
+    "seen": 1793557131.903383,
+    "ast_hash": "2be990a07a6fa3b46012be6fc8cfdfcc",
+    "semantic_hash": ""
+  },
+  "src/world/systems/cameraRigSystem.ts": {
+    "mtime": 1793556491.6186578,
+    "seen": 1793557131.903384,
+    "ast_hash": "406e3ceedaa147d6fb6d6e7f47c4903d",
     "semantic_hash": ""
   }
 }
