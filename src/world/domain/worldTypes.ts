@@ -134,6 +134,8 @@ export interface IInventoryItemDef {
   readonly description: string;
   readonly lore?: string;
   readonly rarity?: 'common' | 'refined' | 'epic' | 'legendary';
+  /** True when the item can only be obtained as loot and is never sold by merchants. */
+  readonly lootOnly?: boolean;
 }
 export type InventoryItemDef = IInventoryItemDef;
 
@@ -147,6 +149,7 @@ function createCatalogItem(
     weaponRole?: 'bow' | 'sword';
     starterOwned?: boolean;
     rarity?: 'common' | 'refined' | 'epic' | 'legendary';
+    lootOnly?: boolean;
   }
 ): IInventoryItemDef {
   const name = t(`items.${id}.name`);
@@ -168,6 +171,7 @@ function createCatalogItem(
     weaponRole: options?.weaponRole,
     starterOwned: options?.starterOwned,
     rarity: options?.rarity,
+    lootOnly: options?.lootOnly,
     description,
     lore,
   };
@@ -218,11 +222,11 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('wolf_fang', 'materials', 0.7, 95, 1, { rarity: 'refined' }),
   createCatalogItem('crocodile_teeth', 'materials', 1.1, 125, 1, { rarity: 'refined' }),
   createCatalogItem('rhino_horn', 'materials', 2.8, 195, 1, { rarity: 'epic' }),
-  createCatalogItem('dragon_meat', 'food', 2.0, 160, 1, { rarity: 'epic' }),
-  createCatalogItem('dragon_scales', 'materials', 4.5, 420, 1, { rarity: 'legendary' }),
-  createCatalogItem('dragon_horn', 'materials', 3.2, 380, 1, { rarity: 'legendary' }),
-  createCatalogItem('dragon_claws', 'materials', 1.8, 300, 1, { rarity: 'epic' }),
-  createCatalogItem('dragon_bone', 'materials', 3.0, 260, 1, { rarity: 'epic' }),
+  createCatalogItem('dragon_meat', 'food', 2.0, 160, 1, { rarity: 'epic', lootOnly: true }),
+  createCatalogItem('dragon_scales', 'materials', 4.5, 420, 1, { rarity: 'legendary', lootOnly: true }),
+  createCatalogItem('dragon_horn', 'materials', 3.2, 380, 1, { rarity: 'legendary', lootOnly: true }),
+  createCatalogItem('dragon_claws', 'materials', 1.8, 300, 1, { rarity: 'epic', lootOnly: true }),
+  createCatalogItem('dragon_bone', 'materials', 3.0, 260, 1, { rarity: 'epic', lootOnly: true }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
 
@@ -776,7 +780,8 @@ export type MarketTransactionErrorCode =
   | 'ITEM_NOT_FOUND'
   | 'NOT_OWNED'
   | 'CANNOT_SELL'
-  | 'CANNOT_SELL_STARTER_GEAR';
+  | 'CANNOT_SELL_STARTER_GEAR'
+  | 'NOT_SOLD_BY_MERCHANTS';
 
 /**
  * Summary: Success payload generated upon successful item purchase at a market stall.

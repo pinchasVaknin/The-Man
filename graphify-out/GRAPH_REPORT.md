@@ -1,7 +1,7 @@
 # Graph Report - TheMan  (2026-11-01)
 
 ## Corpus Check
-- 116 files · ~440,724 words
+- 116 files · ~440,841 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1a254a88`
+- Built from commit: `88b88646`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -280,9 +280,7 @@ Nodes (3): מבנה תיקיות מומלץ (אופציונלי, או ישירו
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `three` connect `proceduralModels.ts` to `WorldCanvas.tsx`, `package.json`, `Deer_Complete.ts`, `settlementModels.ts`, `playerAndCombatBuilder.ts`, `atmosphereRenderController.ts`, `WolfAnimator`, `dwarvenMineAndCaravanSystem.ts`, `Deer_Complete_3ce1524f.ts`, `Deer_36e45a72.ts`, `labCatalog.ts`, `JaguarAnimator`, `Rhino.ts`, `DemonDragon_Complete.ts`, `ForestDragon_Complete.ts`, `Bear_Complete_c2863232.ts`, `Crocodile_Complete_9a40f875.ts`, `Bear_447e38ff.ts`, `BearAnimator`, `wildlifeAndFootprintsBuilder.ts`?**
-  _High betweenness centrality (0.472) - this node is a cross-community bridge._
-- **Why does `t()` connect `t` to `boidsAndWildlifeSystem.ts`, `App.tsx`, `itemArtworkRegistry.tsx`, `combatAndInventorySystem.ts`, `playerPhysicsSystem.ts`, `WorldCanvas.tsx`, `worldTypes.ts`, `NatureSoundEngine`, `labCatalog.ts`, `proceduralModels.ts`, `terrainAndBiomeSystem.ts`, `dwarvenMineAndCaravanSystem.ts`, `GameShellOverlay.tsx`, `WorldCanvas`, `telemetryStore.ts`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+  _High betweenness centrality (0.474) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
   _319 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `boidsAndWildlifeSystem.ts` be split into smaller, more focused modules?**
@@ -293,3 +291,5 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.058823529411764705 - nodes in this community are weakly interconnected._
 - **Should `swordAttackAnimationSystem.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07200929152148665 - nodes in this community are weakly interconnected._
+- **Should `combatAndInventorySystem.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.08870967741935484 - nodes in this community are weakly interconnected._
