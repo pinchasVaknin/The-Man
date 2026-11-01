@@ -1,6 +1,7 @@
 // ============================================================================
 // MODULE: Core / Game Loop
-// DESIGN: Game Loop pattern with an injected frame scheduler, clock and logger (DIP)
+// DESIGN: Game Loop pattern with an injected frame scheduler, clock and logger (DIP);
+//         optional fixed-timestep accumulator with render interpolation
 // SUMMARY: Drives one callback per frame with a clamped variable delta time. A thrown
 //          frame is logged (throttled) and counted by the tick error guard; a run of
 //          failures halts the loop and reports a fatal error to the owner.
@@ -25,6 +26,20 @@ export interface IFrameScheduler {
   cancel(): void;
 }
 
+/**
+ * Summary: Fixed-timestep simulation settings ("Fix Your Timestep", Glenn Fiedler).
+ * Design: The simulation always advances in equal steps; leftover time carries to the
+ *         next frame and is reported to rendering as an interpolation factor.
+ */
+export interface IFixedStepOptions {
+  /** Length of one simulation step in seconds. */
+  readonly stepSeconds: number;
+  /** Steps allowed per rendered frame; extra backlog is dropped to avoid a spiral of death. */
+  readonly maxStepsPerFrame: number;
+  /** Advances the simulation by exactly `stepSeconds`. */
+  readonly onStep: (stepSeconds: number) => void;
+}
+
 /** Summary: Construction options for {@link GameLoop}. */
 export interface IGameLoopOptions {
   readonly scheduler: IFrameScheduler;
@@ -37,8 +52,13 @@ export interface IGameLoopOptions {
   readonly maxFrameSeconds: number;
   /** Minimum gap between two logged frame errors. */
   readonly errorLogIntervalMs: number;
-  /** Runs one frame of simulation and rendering. */
-  readonly onFrame: (deltaSeconds: number, nowMs: number) => void;
+  /** Optional fixed-timestep simulation; without it onFrame receives the variable delta only. */
+  readonly fixedStep?: IFixedStepOptions;
+  /**
+   * Runs once per rendered frame. With fixedStep, `interpolationAlpha` (0..1) is how far the
+   * current moment lies between the previous and the latest simulation step; otherwise 1.
+   */
+  readonly onFrame: (deltaSeconds: number, nowMs: number, interpolationAlpha: number) => void;
   /** Receives the error that halted the loop. */
   readonly onFatalError: (error: Error) => void;
 }
@@ -53,6 +73,7 @@ export interface IGameLoopOptions {
 export class GameLoop {
   private readonly errorGuard: ITickErrorGuard;
   private lastFrameMs = 0;
+  private stepAccumulatorSeconds = 0;
   private lastErrorLogMs = -Infinity;
   private isRunning = false;
   private isHalted = false;
@@ -80,7 +101,8 @@ export class GameLoop {
       const nowMs = this.options.now();
       const deltaSeconds = Math.min((nowMs - this.lastFrameMs) / 1000, this.options.maxFrameSeconds);
       this.lastFrameMs = nowMs;
-      this.options.onFrame(deltaSeconds, nowMs);
+      const interpolationAlpha = this.runFixedSteps(deltaSeconds);
+      this.options.onFrame(deltaSeconds, nowMs, interpolationAlpha);
       this.errorGuard.recordSuccess();
     } catch (err: unknown) {
       this.handleFrameError(err);
@@ -90,6 +112,27 @@ export class GameLoop {
       }
     }
   };
+
+  /**
+   * Summary: Consumes whole simulation steps from the accumulated frame time.
+   * @returns The interpolation factor for rendering (1 when no fixed step is configured).
+   */
+  private runFixedSteps(deltaSeconds: number): number {
+    const fixedStep = this.options.fixedStep;
+    if (!fixedStep) return 1;
+    this.stepAccumulatorSeconds += deltaSeconds;
+    let steps = 0;
+    while (this.stepAccumulatorSeconds >= fixedStep.stepSeconds && steps < fixedStep.maxStepsPerFrame) {
+      fixedStep.onStep(fixedStep.stepSeconds);
+      this.stepAccumulatorSeconds -= fixedStep.stepSeconds;
+      steps++;
+    }
+    if (this.stepAccumulatorSeconds >= fixedStep.stepSeconds) {
+      // Over budget: drop the backlog so a slow device slows the game down instead of freezing.
+      this.stepAccumulatorSeconds %= fixedStep.stepSeconds;
+    }
+    return this.stepAccumulatorSeconds / fixedStep.stepSeconds;
+  }
 
   private handleFrameError(err: unknown): void {
     const nowMs = this.options.now();

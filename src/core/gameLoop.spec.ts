@@ -174,3 +174,68 @@ test('stop_WhenCalledBeforePendingFrame_ShouldCancelAndNeverRunAgain', () => {
   assert.equal(scheduler.pending, null);
 });
 // #endregion
+
+// ======================== FIXED TIMESTEP TESTS ======================== \\
+// #region Fixed Timestep Tests
+function createFixedHarness(maxFixedStepsPerFrame = 15) {
+  const scheduler = new FakeScheduler();
+  const clock = { nowMs: 1000 };
+  const steps: number[] = [];
+  const frames: Array<{ dt: number; alpha: number }> = [];
+  const loop = new GameLoop({
+    scheduler,
+    now: () => clock.nowMs,
+    logger: new RecordingLogger(),
+    maxConsecutiveFailures: 3,
+    maxFrameSeconds: 0.25,
+    errorLogIntervalMs: 2000,
+    fixedStep: { stepSeconds: 0.01, maxStepsPerFrame: maxFixedStepsPerFrame, onStep: (dt) => steps.push(dt) },
+    onFrame: (dt, _nowMs, alpha) => frames.push({ dt, alpha }),
+    onFatalError: () => {},
+  });
+  loop.start();
+  return { scheduler, clock, steps, frames };
+}
+
+test('runFrame_WhenFixedStepConfigured_ShouldRunWholeStepsAndCarryRemainder', () => {
+  // Arrange
+  const { scheduler, clock, steps, frames } = createFixedHarness();
+
+  // Act
+  clock.nowMs += 25;
+  scheduler.runNext();
+  clock.nowMs += 6;
+  scheduler.runNext();
+
+  // Assert
+  assert.deepEqual(steps, [0.01, 0.01, 0.01]);
+  assert.ok(Math.abs(frames[0].alpha - 0.5) < 1e-9);
+  assert.ok(Math.abs(frames[1].alpha - 0.1) < 1e-9);
+});
+
+test('runFrame_WhenFrameIsShorterThanStep_ShouldRenderWithoutStepping', () => {
+  // Arrange
+  const { scheduler, clock, steps, frames } = createFixedHarness();
+
+  // Act
+  clock.nowMs += 4;
+  scheduler.runNext();
+
+  // Assert
+  assert.equal(steps.length, 0);
+  assert.equal(frames.length, 1);
+});
+
+test('runFrame_WhenStepBudgetIsExceeded_ShouldDropBacklogInsteadOfSpiraling', () => {
+  // Arrange
+  const { scheduler, clock, steps, frames } = createFixedHarness(4);
+
+  // Act
+  clock.nowMs += 200;
+  scheduler.runNext();
+
+  // Assert
+  assert.equal(steps.length, 4);
+  assert.ok(frames[0].alpha >= 0 && frames[0].alpha < 1);
+});
+// #endregion
