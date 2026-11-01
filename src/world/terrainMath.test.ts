@@ -2235,10 +2235,10 @@ test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_Sh
   assert.ok(lootPlayer.ownedItemIds?.includes('deer_hide'), 'Expected deer loot to add deer_hide');
   assert.ok(lootPlayer.ownedItemIds?.includes('deer_antlers'), 'Expected deer loot to add deer_antlers');
   assert.ok(
-    lootResult.notificationHe.includes('Deer Meat') &&
-      lootResult.notificationHe.includes('Deer Hide') &&
-      lootResult.notificationHe.includes('Deer Antlers'),
-    `Expected loot notification to list meat, deer hide, and antlers, got: ${lootResult.notificationHe}`
+    lootResult.notification.includes('Deer Meat') &&
+      lootResult.notification.includes('Deer Hide') &&
+      lootResult.notification.includes('Deer Antlers'),
+    `Expected loot notification to list meat, deer hide, and antlers, got: ${lootResult.notification}`
   );
 
   // 5) Bear Mountain Cave Entrance Walkthrough: player can walk straight from outside clearing (lz = +14)

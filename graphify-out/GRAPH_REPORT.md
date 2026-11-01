@@ -1,17 +1,17 @@
 # Graph Report - TheMan  (2026-11-01)
 
 ## Corpus Check
-- 116 files · ~444,715 words
+- 116 files · ~444,583 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .css 1)
 
 ## Summary
-- 1525 nodes · 3827 edges · 63 communities (43 shown, 20 thin omitted)
+- 1526 nodes · 3827 edges · 64 communities (43 shown, 21 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 20 edges (avg confidence: 0.84)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `334ca096`
+- Built from commit: `e11c57b8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -77,6 +77,7 @@
 - Bear_447e38ff.ts
 - BearAnimator
 - wildlifeAndFootprintsBuilder.ts
+- src_world_terrainmath_getanimalspeciesnamehe
 - תיקיית מודלים תלת-ממדיים (`public/models`)
 - src_locales_index_he
 
@@ -107,7 +108,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (63 total, 20 thin omitted)
+## Communities (64 total, 21 thin omitted)
 
 ### Community 0 - "boidsAndWildlifeSystem.ts"
 Cohesion: 0.11
@@ -207,7 +208,7 @@ Nodes (13): en, LocaleSchema, getLocaleDictionary(), NestedKeyOf, setLocaleDicti
 
 ### Community 27 - "WorldCanvas"
 Cohesion: 0.17
-Nodes (22): WorldCanvas, registerWindowDebugBridge(), findNearestFortressDoor(), findNearestMarketStall(), findNearestDeadLootableAnimal(), getAnimalLootDrops(), getAnimalSpeciesNameHe(), lootDeadAnimal() (+14 more)
+Nodes (22): WorldCanvas, registerWindowDebugBridge(), findNearestFortressDoor(), findNearestMarketStall(), findNearestDeadLootableAnimal(), getAnimalLootDrops(), getAnimalSpeciesName(), lootDeadAnimal() (+14 more)
 
 ### Community 28 - "telemetryStore.ts"
 Cohesion: 0.33
@@ -283,16 +284,16 @@ Nodes (3): מבנה תיקיות מומלץ (אופציונלי, או ישירו
 
 ## Knowledge Gaps
 - **318 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+313 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 559 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **20 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 560 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **21 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `three` connect `proceduralModels.ts` to `WorldCanvas.tsx`, `package.json`, `Deer_Complete.ts`, `settlementModels.ts`, `atmosphereRenderController.ts`, `WolfAnimator`, `dwarvenMineAndCaravanSystem.ts`, `Deer_Complete_3ce1524f.ts`, `Deer_36e45a72.ts`, `labCatalog.ts`, `JaguarAnimator`, `Rhino.ts`, `DemonDragon_Complete.ts`, `ForestDragon_Complete.ts`, `Bear_Complete_c2863232.ts`, `Crocodile_Complete_9a40f875.ts`, `Bear_447e38ff.ts`, `BearAnimator`, `wildlifeAndFootprintsBuilder.ts`?**
-  _High betweenness centrality (0.474) - this node is a cross-community bridge._
+  _High betweenness centrality (0.473) - this node is a cross-community bridge._
 - **Why does `t()` connect `t` to `boidsAndWildlifeSystem.ts`, `App.tsx`, `itemArtworkRegistry.tsx`, `combatAndInventorySystem.ts`, `playerPhysicsSystem.ts`, `WorldCanvas.tsx`, `worldTypes.ts`, `NatureSoundEngine`, `react`, `labCatalog.ts`, `proceduralModels.ts`, `terrainAndBiomeSystem.ts`, `dwarvenMineAndCaravanSystem.ts`, `GameShellOverlay.tsx`, `WorldCanvas`, `telemetryStore.ts`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
   _318 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `boidsAndWildlifeSystem.ts` be split into smaller, more focused modules?**

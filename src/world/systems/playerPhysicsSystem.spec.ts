@@ -100,7 +100,7 @@ test('stepPlayerPhysics_WhenNearHorseAndMountRequested_ShouldMountHorse', () => 
   const horses: IRideableHorseState[] = [
     {
       id: 'horse_1',
-      name: 'סוס',
+      name: 'Horse',
       x: state.x + 0.5,
       y: state.y,
       z: state.z + 0.5,
@@ -134,7 +134,7 @@ test('stepPlayerPhysics_WhenDoubleSpaceTogglesFlightDuringWalkOrHorseJump_Should
   const horses: IRideableHorseState[] = [
     {
       id: 'horse_1',
-      name: 'סוס',
+      name: 'Horse',
       x: 12.0,
       y: 8.5,
       z: 22.0,

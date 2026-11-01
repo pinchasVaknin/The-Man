@@ -83,7 +83,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   skyDragonGroup.add(demonDragonCtrl.object);
   scene.add(skyDragonGroup);
 
-  // Ancient Southern Ruins (חורבות עתיקות מדרום לנהר) at SOUTHERN_DRAGON_RUINS_POS (x: 56, z: 716, y: 2.15)
+  // Ancient Southern Ruins at SOUTHERN_DRAGON_RUINS_POS (x: 56, z: 716, y: 2.15)
   const ruinsBaseX = SOUTHERN_DRAGON_RUINS_POS.x;
   const ruinsBaseZ = SOUTHERN_DRAGON_RUINS_POS.z;
   const ruinsBaseY = SOUTHERN_DRAGON_RUINS_POS.height;

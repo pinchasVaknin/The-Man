@@ -649,7 +649,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     }
 
     if (s === 0) {
-      // Stall 0: Swords & Blades (דוכן חרבות ולהבים)
+      // Stall 0: Swords & Blades
       const displayRack = new THREE.Mesh(weaponRackBarGeo, imperialGoldMat);
       displayRack.scale.set(0.85, 1, 1);
       displayRack.position.set(-0.65, 1.18, -0.15);
@@ -669,7 +669,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
       warhammerHead.position.set(1.05, 1.02, 0.05);
       stGroup.add(warhammerHead);
     } else if (s === 1) {
-      // Stall 1: Bows & Arrows (דוכן קשתות וחצים)
+      // Stall 1: Bows & Arrows
       for (let b = 0; b < 3; b++) {
         const bowArc = new THREE.Mesh(
           displayBowArcGeo,
@@ -688,7 +688,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
       quiverTube.rotation.z = -0.22;
       stGroup.add(quiverTube);
     } else if (s === 2) {
-      // Stall 2: Timber & Building Materials (דוכן חומרי בנייה ועץ)
+      // Stall 2: Timber & Building Materials
       for (let row = 0; row < 2; row++) {
         for (let col = 0; col < 3 - row; col++) {
           const logMesh = new THREE.Mesh(displayLogGeo, barkMat);
@@ -703,7 +703,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
         stGroup.add(clayTile);
       }
     } else if (s === 3) {
-      // Stall 3: Cut Stone & White Marble (דוכן אבן ושיש)
+      // Stall 3: Cut Stone & White Marble
       for (let b = 0; b < 3; b++) {
         const granite = new THREE.Mesh(displayStoneBlockGeo, fortressStoneMat);
         granite.position.set(-1.05 + b * 0.48, 1.0, 0.06);
@@ -719,7 +719,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
         stGroup.add(marbleCol);
       }
     } else if (s === 4) {
-      // Stall 4: Smithy, Iron Ingots & Gold Ore (נפחיית הנמל ומטילי מתכת)
+      // Stall 4: Smithy, Iron Ingots & Gold Ore
       for (let i = 0; i < 6; i++) {
         const ingot = new THREE.Mesh(
           displayIngotGeo,
@@ -737,7 +737,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
       swordBlade.rotation.y = 0.4;
       stGroup.add(swordBlade);
     } else {
-      // Stall 5: Food, Roast Game Meat & Harbor Provisions (דוכן אוכל וצידה)
+      // Stall 5: Food, Roast Game Meat & Harbor Provisions
       for (let p = 0; p < 3; p++) {
         const platter = new THREE.Mesh(displayPlatterGeo, furnitureWoodMat);
         platter.position.set(-1.05 + p * 0.72, 0.90, 0.04);

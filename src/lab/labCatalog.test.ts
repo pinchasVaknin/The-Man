@@ -16,7 +16,7 @@ import {
   selectLabCategory,
   selectLabEntity,
   filterLabEntities,
-  getEntityEditorLabelsHe,
+  getEntityEditorLabels,
   getEffectiveLabAnimationSpeed,
   getLabEntityById,
   getLabAnimationForEntity,
@@ -141,12 +141,12 @@ describe('Character & Animation Lab Catalog', () => {
     };
     assert.equal(countActivePoseOverrides(tweakedLeftAndVis), 3);
 
-    const rangerLabels = getEntityEditorLabelsHe('ranger_third_person');
-    assert.ok(rangerLabels.weaponGroupTitleHe.toLowerCase().includes('sword'), 'Right hand label should mention sword');
-    assert.ok(rangerLabels.leftWeaponGroupTitleHe.toLowerCase().includes('bow'), 'Left hand label should mention bow');
+    const rangerLabels = getEntityEditorLabels('ranger_third_person');
+    assert.ok(rangerLabels.weaponGroupTitle.toLowerCase().includes('sword'), 'Right hand label should mention sword');
+    assert.ok(rangerLabels.leftWeaponGroupTitle.toLowerCase().includes('bow'), 'Left hand label should mention bow');
 
-    const eagleLabels = getEntityEditorLabelsHe('mountain_eagle');
-    assert.ok(eagleLabels.rightLimbTitleHe.toLowerCase().includes('wing'));
+    const eagleLabels = getEntityEditorLabels('mountain_eagle');
+    assert.ok(eagleLabels.rightLimbTitle.toLowerCase().includes('wing'));
   });
 
   it('wires Deer_Complete.ts with all procedural IK animations into forest_deer and createReadyDeer', async () => {

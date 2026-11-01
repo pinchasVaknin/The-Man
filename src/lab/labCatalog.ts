@@ -33,8 +33,8 @@ export type LabEquipmentVisibilityMode = 'auto' | 'both' | 'right_only' | 'left_
 
 export interface ILabAnimationDef {
   readonly id: string;
-  readonly nameHe: string;
-  readonly descriptionHe: string;
+  readonly name: string;
+  readonly description: string;
   readonly isStaticDefault?: boolean;
   readonly loopDurationSec: number;
 }
@@ -50,26 +50,26 @@ export interface ILabSkinPalette {
 
 export interface ILabSkinDef {
   readonly id: string;
-  readonly nameHe: string;
-  readonly subtitleHe: string;
+  readonly name: string;
+  readonly subtitle: string;
   readonly badgeColors: readonly [string, string, string];
   readonly palette: ILabSkinPalette;
 }
 
 export interface ILabEntityDef {
   readonly id: string;
-  readonly nameHe: string;
-  readonly subtitleHe: string;
+  readonly name: string;
+  readonly subtitle: string;
   readonly category: LabCategoryId;
-  readonly categoryLabelHe: string;
-  readonly worldLocationHe: string;
+  readonly categoryLabel: string;
+  readonly worldLocation: string;
   readonly worldCoordinatesText: string;
   readonly worldInstanceCount: number;
   readonly sourceFile: string;
-  readonly descriptionHe: string;
+  readonly description: string;
   readonly defaultCameraDistance: number;
   readonly defaultCameraTargetY: number;
-  readonly anatomyTagsHe: readonly string[];
+  readonly anatomyTags: readonly string[];
   readonly animations: readonly ILabAnimationDef[];
   readonly skins: readonly ILabSkinDef[];
 }
@@ -171,9 +171,9 @@ export interface ILabSessionState {
 
 // ======================== CATEGORY METADATA ======================== \\
 // #region Category Metadata
-export const LAB_CATEGORIES: readonly { id: LabCategoryId; labelHe: string; subtitleHe: string }[] = [
-  { id: 'characters', labelHe: t('lab.categories.characters.label'), subtitleHe: t('lab.categories.characters.subtitle') },
-  { id: 'animals', labelHe: t('lab.categories.animals.label'), subtitleHe: t('lab.categories.animals.subtitle') },
+export const LAB_CATEGORIES: readonly { id: LabCategoryId; label: string; subtitle: string }[] = [
+  { id: 'characters', label: t('lab.categories.characters.label'), subtitle: t('lab.categories.characters.subtitle') },
+  { id: 'animals', label: t('lab.categories.animals.label'), subtitle: t('lab.categories.animals.subtitle') },
 ] as const;
 // #endregion
 
@@ -183,8 +183,8 @@ const horseSkinsFromWorld: ILabSkinDef[] = RIDEABLE_HORSES.map((h, idx) => {
   const hexToCss = (hex: number) => `#${hex.toString(16).padStart(6, '0')}`;
   return {
     id: h.id,
-    nameHe: h.name,
-    subtitleHe: t('lab.horse_stable_subtitle', {
+    name: h.name,
+    subtitle: t('lab.horse_stable_subtitle', {
       n: idx + 1,
       x: Math.round(h.homeX),
       z: Math.round(h.homeZ),
@@ -205,85 +205,85 @@ const horseSkinsFromWorld: ILabSkinDef[] = RIDEABLE_HORSES.map((h, idx) => {
 
 export const LAB_ENTITIES: readonly ILabEntityDef[] = [
   // ==========================================================================
-  // 1. HUMANS & CHARACTERS (אנשים ודמויות)
+  // 1. HUMANS & CHARACTERS
   // ==========================================================================
   {
     id: 'ranger_third_person',
-    nameHe: t('lab.entities.ranger_third_person.name'),
-    subtitleHe: t('lab.entities.ranger_third_person.subtitle'),
+    name: t('lab.entities.ranger_third_person.name'),
+    subtitle: t('lab.entities.ranger_third_person.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.ranger_third_person.category_label'),
-    worldLocationHe: t('lab.entities.ranger_third_person.world_location'),
+    categoryLabel: t('lab.entities.ranger_third_person.category_label'),
+    worldLocation: t('lab.entities.ranger_third_person.world_location'),
     worldCoordinatesText: '(0, 22)',
     worldInstanceCount: 1,
     sourceFile: 'src/world/builders/playerAndCombatBuilder.ts',
-    descriptionHe:
+    description:
       t('lab.entities.ranger_third_person.description'),
     defaultCameraDistance: 4.1,
     defaultCameraTargetY: 0.98,
-    anatomyTagsHe: [t('lab.entities.ranger_third_person.anatomy_tags.0'), t('lab.entities.ranger_third_person.anatomy_tags.1'), t('lab.entities.ranger_third_person.anatomy_tags.2'), t('lab.entities.ranger_third_person.anatomy_tags.3'), t('lab.entities.ranger_third_person.anatomy_tags.4'), t('lab.entities.ranger_third_person.anatomy_tags.5')],
+    anatomyTags: [t('lab.entities.ranger_third_person.anatomy_tags.0'), t('lab.entities.ranger_third_person.anatomy_tags.1'), t('lab.entities.ranger_third_person.anatomy_tags.2'), t('lab.entities.ranger_third_person.anatomy_tags.3'), t('lab.entities.ranger_third_person.anatomy_tags.4'), t('lab.entities.ranger_third_person.anatomy_tags.5')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.ranger_third_person.animations.none.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.none.description'),
+        name: t('lab.entities.ranger_third_person.animations.none.name'),
+        description: t('lab.entities.ranger_third_person.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.ranger_third_person.animations.idle.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.idle.description'),
+        name: t('lab.entities.ranger_third_person.animations.idle.name'),
+        description: t('lab.entities.ranger_third_person.animations.idle.description'),
         loopDurationSec: 3.8,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.ranger_third_person.animations.walk.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.walk.description'),
+        name: t('lab.entities.ranger_third_person.animations.walk.name'),
+        description: t('lab.entities.ranger_third_person.animations.walk.description'),
         loopDurationSec: 1.4,
       },
       {
         id: 'sprint',
-        nameHe: t('lab.entities.ranger_third_person.animations.sprint.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.sprint.description'),
+        name: t('lab.entities.ranger_third_person.animations.sprint.name'),
+        description: t('lab.entities.ranger_third_person.animations.sprint.description'),
         loopDurationSec: 0.85,
       },
       {
         id: 'bow_draw',
-        nameHe: t('lab.entities.ranger_third_person.animations.bow_draw.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.bow_draw.description'),
+        name: t('lab.entities.ranger_third_person.animations.bow_draw.name'),
+        description: t('lab.entities.ranger_third_person.animations.bow_draw.description'),
         loopDurationSec: 2.2,
       },
       {
         id: 'sword_slash',
-        nameHe: t('lab.entities.ranger_third_person.animations.sword_slash.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.sword_slash.description'),
+        name: t('lab.entities.ranger_third_person.animations.sword_slash.name'),
+        description: t('lab.entities.ranger_third_person.animations.sword_slash.description'),
         loopDurationSec: 1.6,
       },
       {
         id: 'torch_carry',
-        nameHe: t('lab.entities.ranger_third_person.animations.torch_carry.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.torch_carry.description'),
+        name: t('lab.entities.ranger_third_person.animations.torch_carry.name'),
+        description: t('lab.entities.ranger_third_person.animations.torch_carry.description'),
         loopDurationSec: 2.4,
       },
       {
         id: 'swim',
-        nameHe: t('lab.entities.ranger_third_person.animations.swim.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.swim.description'),
+        name: t('lab.entities.ranger_third_person.animations.swim.name'),
+        description: t('lab.entities.ranger_third_person.animations.swim.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'horse_mount_pose',
-        nameHe: t('lab.entities.ranger_third_person.animations.horse_mount_pose.name'),
-        descriptionHe: t('lab.entities.ranger_third_person.animations.horse_mount_pose.description'),
+        name: t('lab.entities.ranger_third_person.animations.horse_mount_pose.name'),
+        description: t('lab.entities.ranger_third_person.animations.horse_mount_pose.description'),
         loopDurationSec: 1.6,
       },
     ],
     skins: [
       {
         id: 'ranger_classic_forest',
-        nameHe: t('lab.entities.ranger_third_person.skins.ranger_classic_forest.name'),
-        subtitleHe: t('lab.entities.ranger_third_person.skins.ranger_classic_forest.subtitle'),
+        name: t('lab.entities.ranger_third_person.skins.ranger_classic_forest.name'),
+        subtitle: t('lab.entities.ranger_third_person.skins.ranger_classic_forest.subtitle'),
         badgeColors: ['#3b4d3b', '#2a332b', '#5c3a21'],
         palette: {
           primaryHex: 0x3b4d3b,
@@ -295,8 +295,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'ranger_imperial_guard',
-        nameHe: t('lab.entities.ranger_third_person.skins.ranger_imperial_guard.name'),
-        subtitleHe: t('lab.entities.ranger_third_person.skins.ranger_imperial_guard.subtitle'),
+        name: t('lab.entities.ranger_third_person.skins.ranger_imperial_guard.name'),
+        subtitle: t('lab.entities.ranger_third_person.skins.ranger_imperial_guard.subtitle'),
         badgeColors: ['#991b1b', '#7f1d1d', '#d4af37'],
         palette: {
           primaryHex: 0x991b1b,
@@ -308,8 +308,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'ranger_shadow_stalker',
-        nameHe: t('lab.entities.ranger_third_person.skins.ranger_shadow_stalker.name'),
-        subtitleHe: t('lab.entities.ranger_third_person.skins.ranger_shadow_stalker.subtitle'),
+        name: t('lab.entities.ranger_third_person.skins.ranger_shadow_stalker.name'),
+        subtitle: t('lab.entities.ranger_third_person.skins.ranger_shadow_stalker.subtitle'),
         badgeColors: ['#1e293b', '#0f172a', '#a855f7'],
         palette: {
           primaryHex: 0x1e293b,
@@ -321,8 +321,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'ranger_oasis_nomad',
-        nameHe: t('lab.entities.ranger_third_person.skins.ranger_oasis_nomad.name'),
-        subtitleHe: t('lab.entities.ranger_third_person.skins.ranger_oasis_nomad.subtitle'),
+        name: t('lab.entities.ranger_third_person.skins.ranger_oasis_nomad.name'),
+        subtitle: t('lab.entities.ranger_third_person.skins.ranger_oasis_nomad.subtitle'),
         badgeColors: ['#d97706', '#1d4ed8', '#fef3c7'],
         palette: {
           primaryHex: 0xb45309,
@@ -337,63 +337,63 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'ranger_first_person',
-    nameHe: t('lab.entities.ranger_first_person.name'),
-    subtitleHe: t('lab.entities.ranger_first_person.subtitle'),
+    name: t('lab.entities.ranger_first_person.name'),
+    subtitle: t('lab.entities.ranger_first_person.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.ranger_first_person.category_label'),
-    worldLocationHe: t('lab.entities.ranger_first_person.world_location'),
+    categoryLabel: t('lab.entities.ranger_first_person.category_label'),
+    worldLocation: t('lab.entities.ranger_first_person.world_location'),
     worldCoordinatesText: t('lab.entities.ranger_first_person.world_coordinates'),
     worldInstanceCount: 1,
     sourceFile: 'src/world/systems/swordAttackAnimationSystem.ts',
-    descriptionHe:
+    description:
       t('lab.entities.ranger_first_person.description'),
     defaultCameraDistance: 1.85,
     defaultCameraTargetY: 1.15,
-    anatomyTagsHe: [t('lab.entities.ranger_first_person.anatomy_tags.0'), t('lab.entities.ranger_first_person.anatomy_tags.1'), t('lab.entities.ranger_first_person.anatomy_tags.2'), t('lab.entities.ranger_first_person.anatomy_tags.3'), t('lab.entities.ranger_first_person.anatomy_tags.4')],
+    anatomyTags: [t('lab.entities.ranger_first_person.anatomy_tags.0'), t('lab.entities.ranger_first_person.anatomy_tags.1'), t('lab.entities.ranger_first_person.anatomy_tags.2'), t('lab.entities.ranger_first_person.anatomy_tags.3'), t('lab.entities.ranger_first_person.anatomy_tags.4')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.ranger_first_person.animations.none.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.none.description'),
+        name: t('lab.entities.ranger_first_person.animations.none.name'),
+        description: t('lab.entities.ranger_first_person.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'fp_sword_combo',
-        nameHe: t('lab.entities.ranger_first_person.animations.fp_sword_combo.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.fp_sword_combo.description'),
+        name: t('lab.entities.ranger_first_person.animations.fp_sword_combo.name'),
+        description: t('lab.entities.ranger_first_person.animations.fp_sword_combo.description'),
         loopDurationSec: 2.4,
       },
       {
         id: 'fp_sword_heavy',
-        nameHe: t('lab.entities.ranger_first_person.animations.fp_sword_heavy.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.fp_sword_heavy.description'),
+        name: t('lab.entities.ranger_first_person.animations.fp_sword_heavy.name'),
+        description: t('lab.entities.ranger_first_person.animations.fp_sword_heavy.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'fp_sword_block',
-        nameHe: t('lab.entities.ranger_first_person.animations.fp_sword_block.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.fp_sword_block.description'),
+        name: t('lab.entities.ranger_first_person.animations.fp_sword_block.name'),
+        description: t('lab.entities.ranger_first_person.animations.fp_sword_block.description'),
         loopDurationSec: 2.0,
       },
       {
         id: 'fp_bow_aim',
-        nameHe: t('lab.entities.ranger_first_person.animations.fp_bow_aim.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.fp_bow_aim.description'),
+        name: t('lab.entities.ranger_first_person.animations.fp_bow_aim.name'),
+        description: t('lab.entities.ranger_first_person.animations.fp_bow_aim.description'),
         loopDurationSec: 2.2,
       },
       {
         id: 'fp_torch_hold',
-        nameHe: t('lab.entities.ranger_first_person.animations.fp_torch_hold.name'),
-        descriptionHe: t('lab.entities.ranger_first_person.animations.fp_torch_hold.description'),
+        name: t('lab.entities.ranger_first_person.animations.fp_torch_hold.name'),
+        description: t('lab.entities.ranger_first_person.animations.fp_torch_hold.description'),
         loopDurationSec: 2.0,
       },
     ],
     skins: [
       {
         id: 'fp_elven_emerald',
-        nameHe: t('lab.entities.ranger_first_person.skins.fp_elven_emerald.name'),
-        subtitleHe: t('lab.entities.ranger_first_person.skins.fp_elven_emerald.subtitle'),
+        name: t('lab.entities.ranger_first_person.skins.fp_elven_emerald.name'),
+        subtitle: t('lab.entities.ranger_first_person.skins.fp_elven_emerald.subtitle'),
         badgeColors: ['#1b4d3e', '#d4af37', '#36200d'],
         palette: {
           primaryHex: 0x1b4d3e,
@@ -404,8 +404,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'fp_imperial_crimson',
-        nameHe: t('lab.entities.ranger_first_person.skins.fp_imperial_crimson.name'),
-        subtitleHe: t('lab.entities.ranger_first_person.skins.fp_imperial_crimson.subtitle'),
+        name: t('lab.entities.ranger_first_person.skins.fp_imperial_crimson.name'),
+        subtitle: t('lab.entities.ranger_first_person.skins.fp_imperial_crimson.subtitle'),
         badgeColors: ['#991b1b', '#fbbf24', '#f97316'],
         palette: {
           primaryHex: 0x991b1b,
@@ -416,8 +416,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'fp_dwarven_mithril',
-        nameHe: t('lab.entities.ranger_first_person.skins.fp_dwarven_mithril.name'),
-        subtitleHe: t('lab.entities.ranger_first_person.skins.fp_dwarven_mithril.subtitle'),
+        name: t('lab.entities.ranger_first_person.skins.fp_dwarven_mithril.name'),
+        subtitle: t('lab.entities.ranger_first_person.skins.fp_dwarven_mithril.subtitle'),
         badgeColors: ['#cbd5e1', '#38bdf8', '#1e293b'],
         palette: {
           primaryHex: 0x475569,
@@ -431,57 +431,57 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'dwarven_miner',
-    nameHe: t('lab.entities.dwarven_miner.name'),
-    subtitleHe: t('lab.entities.dwarven_miner.subtitle'),
+    name: t('lab.entities.dwarven_miner.name'),
+    subtitle: t('lab.entities.dwarven_miner.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.dwarven_miner.category_label'),
-    worldLocationHe: t('lab.entities.dwarven_miner.world_location'),
+    categoryLabel: t('lab.entities.dwarven_miner.category_label'),
+    worldLocation: t('lab.entities.dwarven_miner.world_location'),
     worldCoordinatesText: `(${SOUTHERN_MINE_POS.x}, ${SOUTHERN_MINE_POS.entranceZ})`,
     worldInstanceCount: DWARVEN_MINERS_COUNT,
     sourceFile: 'src/world/systems/dwarvenMineAndCaravanSystem.ts',
-    descriptionHe:
+    description:
       t('lab.entities.dwarven_miner.description'),
     defaultCameraDistance: 3.4,
     defaultCameraTargetY: 0.82,
-    anatomyTagsHe: [t('lab.entities.dwarven_miner.anatomy_tags.0'), t('lab.entities.dwarven_miner.anatomy_tags.1'), t('lab.entities.dwarven_miner.anatomy_tags.2'), t('lab.entities.dwarven_miner.anatomy_tags.3'), t('lab.entities.dwarven_miner.anatomy_tags.4'), t('lab.entities.dwarven_miner.anatomy_tags.5')],
+    anatomyTags: [t('lab.entities.dwarven_miner.anatomy_tags.0'), t('lab.entities.dwarven_miner.anatomy_tags.1'), t('lab.entities.dwarven_miner.anatomy_tags.2'), t('lab.entities.dwarven_miner.anatomy_tags.3'), t('lab.entities.dwarven_miner.anatomy_tags.4'), t('lab.entities.dwarven_miner.anatomy_tags.5')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.dwarven_miner.animations.none.name'),
-        descriptionHe: t('lab.entities.dwarven_miner.animations.none.description'),
+        name: t('lab.entities.dwarven_miner.animations.none.name'),
+        description: t('lab.entities.dwarven_miner.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'mining_work',
-        nameHe: t('lab.entities.dwarven_miner.animations.mining_work.name'),
-        descriptionHe: t('lab.entities.dwarven_miner.animations.mining_work.description'),
+        name: t('lab.entities.dwarven_miner.animations.mining_work.name'),
+        description: t('lab.entities.dwarven_miner.animations.mining_work.description'),
         loopDurationSec: 1.2,
       },
       {
         id: 'caravan_march',
-        nameHe: t('lab.entities.dwarven_miner.animations.caravan_march.name'),
-        descriptionHe: t('lab.entities.dwarven_miner.animations.caravan_march.description'),
+        name: t('lab.entities.dwarven_miner.animations.caravan_march.name'),
+        description: t('lab.entities.dwarven_miner.animations.caravan_march.description'),
         loopDurationSec: 1.1,
       },
       {
         id: 'miner_idle',
-        nameHe: t('lab.entities.dwarven_miner.animations.miner_idle.name'),
-        descriptionHe: t('lab.entities.dwarven_miner.animations.miner_idle.description'),
+        name: t('lab.entities.dwarven_miner.animations.miner_idle.name'),
+        description: t('lab.entities.dwarven_miner.animations.miner_idle.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'celebrate_gold',
-        nameHe: t('lab.entities.dwarven_miner.animations.celebrate_gold.name'),
-        descriptionHe: t('lab.entities.dwarven_miner.animations.celebrate_gold.description'),
+        name: t('lab.entities.dwarven_miner.animations.celebrate_gold.name'),
+        description: t('lab.entities.dwarven_miner.animations.celebrate_gold.description'),
         loopDurationSec: 1.5,
       },
     ],
     skins: [
       {
         id: 'dwarf_thorin_red',
-        nameHe: t('lab.entities.dwarven_miner.skins.dwarf_thorin_red.name'),
-        subtitleHe: t('lab.entities.dwarven_miner.skins.dwarf_thorin_red.subtitle'),
+        name: t('lab.entities.dwarven_miner.skins.dwarf_thorin_red.name'),
+        subtitle: t('lab.entities.dwarven_miner.skins.dwarf_thorin_red.subtitle'),
         badgeColors: ['#333629', '#8c3b16', '#9e7b42'],
         palette: {
           primaryHex: 0x333629,
@@ -492,8 +492,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'dwarf_balin_blue',
-        nameHe: t('lab.entities.dwarven_miner.skins.dwarf_balin_blue.name'),
-        subtitleHe: t('lab.entities.dwarven_miner.skins.dwarf_balin_blue.subtitle'),
+        name: t('lab.entities.dwarven_miner.skins.dwarf_balin_blue.name'),
+        subtitle: t('lab.entities.dwarven_miner.skins.dwarf_balin_blue.subtitle'),
         badgeColors: ['#1e3a5f', '#cbd5e1', '#d4af37'],
         palette: {
           primaryHex: 0x1e3a5f,
@@ -504,8 +504,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'dwarf_dwalin_green',
-        nameHe: t('lab.entities.dwarven_miner.skins.dwarf_dwalin_green.name'),
-        subtitleHe: t('lab.entities.dwarven_miner.skins.dwarf_dwalin_green.subtitle'),
+        name: t('lab.entities.dwarven_miner.skins.dwarf_dwalin_green.name'),
+        subtitle: t('lab.entities.dwarven_miner.skins.dwarf_dwalin_green.subtitle'),
         badgeColors: ['#2d4c2b', '#1c1917', '#10b981'],
         palette: {
           primaryHex: 0x2d4c2b,
@@ -516,8 +516,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'dwarf_bofur_amber',
-        nameHe: t('lab.entities.dwarven_miner.skins.dwarf_bofur_amber.name'),
-        subtitleHe: t('lab.entities.dwarven_miner.skins.dwarf_bofur_amber.subtitle'),
+        name: t('lab.entities.dwarven_miner.skins.dwarf_bofur_amber.name'),
+        subtitle: t('lab.entities.dwarven_miner.skins.dwarf_bofur_amber.subtitle'),
         badgeColors: ['#5c3a21', '#d97706', '#fbbf24'],
         palette: {
           primaryHex: 0x5c3a21,
@@ -531,57 +531,57 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'shaolin_monk',
-    nameHe: t('lab.entities.shaolin_monk.name'),
-    subtitleHe: t('lab.entities.shaolin_monk.subtitle'),
+    name: t('lab.entities.shaolin_monk.name'),
+    subtitle: t('lab.entities.shaolin_monk.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.shaolin_monk.category_label'),
-    worldLocationHe: t('lab.entities.shaolin_monk.world_location'),
+    categoryLabel: t('lab.entities.shaolin_monk.category_label'),
+    worldLocation: t('lab.entities.shaolin_monk.world_location'),
     worldCoordinatesText: `(${CHINESE_FORTRESS_POS.x}, ${CHINESE_FORTRESS_POS.z})`,
     worldInstanceCount: 8,
     sourceFile: 'src/world/models/fortressModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.shaolin_monk.description'),
     defaultCameraDistance: 3.9,
     defaultCameraTargetY: 0.95,
-    anatomyTagsHe: [t('lab.entities.shaolin_monk.anatomy_tags.0'), t('lab.entities.shaolin_monk.anatomy_tags.1'), t('lab.entities.shaolin_monk.anatomy_tags.2'), t('lab.entities.shaolin_monk.anatomy_tags.3'), t('lab.entities.shaolin_monk.anatomy_tags.4')],
+    anatomyTags: [t('lab.entities.shaolin_monk.anatomy_tags.0'), t('lab.entities.shaolin_monk.anatomy_tags.1'), t('lab.entities.shaolin_monk.anatomy_tags.2'), t('lab.entities.shaolin_monk.anatomy_tags.3'), t('lab.entities.shaolin_monk.anatomy_tags.4')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.shaolin_monk.animations.none.name'),
-        descriptionHe: t('lab.entities.shaolin_monk.animations.none.description'),
+        name: t('lab.entities.shaolin_monk.animations.none.name'),
+        description: t('lab.entities.shaolin_monk.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'kung_fu_form',
-        nameHe: t('lab.entities.shaolin_monk.animations.kung_fu_form.name'),
-        descriptionHe: t('lab.entities.shaolin_monk.animations.kung_fu_form.description'),
+        name: t('lab.entities.shaolin_monk.animations.kung_fu_form.name'),
+        description: t('lab.entities.shaolin_monk.animations.kung_fu_form.description'),
         loopDurationSec: 3.4,
       },
       {
         id: 'staff_whirlwind',
-        nameHe: t('lab.entities.shaolin_monk.animations.staff_whirlwind.name'),
-        descriptionHe: t('lab.entities.shaolin_monk.animations.staff_whirlwind.description'),
+        name: t('lab.entities.shaolin_monk.animations.staff_whirlwind.name'),
+        description: t('lab.entities.shaolin_monk.animations.staff_whirlwind.description'),
         loopDurationSec: 1.4,
       },
       {
         id: 'horse_stance_strike',
-        nameHe: t('lab.entities.shaolin_monk.animations.horse_stance_strike.name'),
-        descriptionHe: t('lab.entities.shaolin_monk.animations.horse_stance_strike.description'),
+        name: t('lab.entities.shaolin_monk.animations.horse_stance_strike.name'),
+        description: t('lab.entities.shaolin_monk.animations.horse_stance_strike.description'),
         loopDurationSec: 2.0,
       },
       {
         id: 'shaolin_salute',
-        nameHe: t('lab.entities.shaolin_monk.animations.shaolin_salute.name'),
-        descriptionHe: t('lab.entities.shaolin_monk.animations.shaolin_salute.description'),
+        name: t('lab.entities.shaolin_monk.animations.shaolin_salute.name'),
+        description: t('lab.entities.shaolin_monk.animations.shaolin_salute.description'),
         loopDurationSec: 2.6,
       },
     ],
     skins: [
       {
         id: 'monk_saffron_classic',
-        nameHe: t('lab.entities.shaolin_monk.skins.monk_saffron_classic.name'),
-        subtitleHe: t('lab.entities.shaolin_monk.skins.monk_saffron_classic.subtitle'),
+        name: t('lab.entities.shaolin_monk.skins.monk_saffron_classic.name'),
+        subtitle: t('lab.entities.shaolin_monk.skins.monk_saffron_classic.subtitle'),
         badgeColors: ['#d96b27', '#991b1b', '#d4af37'],
         palette: {
           primaryHex: 0xd96b27,
@@ -592,8 +592,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'monk_grandmaster_crimson',
-        nameHe: t('lab.entities.shaolin_monk.skins.monk_grandmaster_crimson.name'),
-        subtitleHe: t('lab.entities.shaolin_monk.skins.monk_grandmaster_crimson.subtitle'),
+        name: t('lab.entities.shaolin_monk.skins.monk_grandmaster_crimson.name'),
+        subtitle: t('lab.entities.shaolin_monk.skins.monk_grandmaster_crimson.subtitle'),
         badgeColors: ['#991b1b', '#fbbf24', '#1c1917'],
         palette: {
           primaryHex: 0x991b1b,
@@ -604,8 +604,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'monk_jade_guardian',
-        nameHe: t('lab.entities.shaolin_monk.skins.monk_jade_guardian.name'),
-        subtitleHe: t('lab.entities.shaolin_monk.skins.monk_jade_guardian.subtitle'),
+        name: t('lab.entities.shaolin_monk.skins.monk_jade_guardian.name'),
+        subtitle: t('lab.entities.shaolin_monk.skins.monk_jade_guardian.subtitle'),
         badgeColors: ['#047857', '#064e3b', '#f59e0b'],
         palette: {
           primaryHex: 0x047857,
@@ -616,8 +616,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'monk_mountain_slate',
-        nameHe: t('lab.entities.shaolin_monk.skins.monk_mountain_slate.name'),
-        subtitleHe: t('lab.entities.shaolin_monk.skins.monk_mountain_slate.subtitle'),
+        name: t('lab.entities.shaolin_monk.skins.monk_mountain_slate.name'),
+        subtitle: t('lab.entities.shaolin_monk.skins.monk_mountain_slate.subtitle'),
         badgeColors: ['#475569', '#1e293b', '#38bdf8'],
         palette: {
           primaryHex: 0x475569,
@@ -631,51 +631,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'tai_chi_monk',
-    nameHe: t('lab.entities.tai_chi_monk.name'),
-    subtitleHe: t('lab.entities.tai_chi_monk.subtitle'),
+    name: t('lab.entities.tai_chi_monk.name'),
+    subtitle: t('lab.entities.tai_chi_monk.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.tai_chi_monk.category_label'),
-    worldLocationHe: t('lab.entities.tai_chi_monk.world_location'),
+    categoryLabel: t('lab.entities.tai_chi_monk.category_label'),
+    worldLocation: t('lab.entities.tai_chi_monk.world_location'),
     worldCoordinatesText: `(${SAKURA_SANCTUARY_POS.x}, ${SAKURA_SANCTUARY_POS.z})`,
     worldInstanceCount: 4,
     sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.tai_chi_monk.description'),
     defaultCameraDistance: 3.8,
     defaultCameraTargetY: 0.95,
-    anatomyTagsHe: [t('lab.entities.tai_chi_monk.anatomy_tags.0'), t('lab.entities.tai_chi_monk.anatomy_tags.1'), t('lab.entities.tai_chi_monk.anatomy_tags.2'), t('lab.entities.tai_chi_monk.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.tai_chi_monk.anatomy_tags.0'), t('lab.entities.tai_chi_monk.anatomy_tags.1'), t('lab.entities.tai_chi_monk.anatomy_tags.2'), t('lab.entities.tai_chi_monk.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.tai_chi_monk.animations.none.name'),
-        descriptionHe: t('lab.entities.tai_chi_monk.animations.none.description'),
+        name: t('lab.entities.tai_chi_monk.animations.none.name'),
+        description: t('lab.entities.tai_chi_monk.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'tai_chi_flow',
-        nameHe: t('lab.entities.tai_chi_monk.animations.tai_chi_flow.name'),
-        descriptionHe: t('lab.entities.tai_chi_monk.animations.tai_chi_flow.description'),
+        name: t('lab.entities.tai_chi_monk.animations.tai_chi_flow.name'),
+        description: t('lab.entities.tai_chi_monk.animations.tai_chi_flow.description'),
         loopDurationSec: 4.2,
       },
       {
         id: 'cloud_hands',
-        nameHe: t('lab.entities.tai_chi_monk.animations.cloud_hands.name'),
-        descriptionHe: t('lab.entities.tai_chi_monk.animations.cloud_hands.description'),
+        name: t('lab.entities.tai_chi_monk.animations.cloud_hands.name'),
+        description: t('lab.entities.tai_chi_monk.animations.cloud_hands.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'crane_balance',
-        nameHe: t('lab.entities.tai_chi_monk.animations.crane_balance.name'),
-        descriptionHe: t('lab.entities.tai_chi_monk.animations.crane_balance.description'),
+        name: t('lab.entities.tai_chi_monk.animations.crane_balance.name'),
+        description: t('lab.entities.tai_chi_monk.animations.crane_balance.description'),
         loopDurationSec: 3.2,
       },
     ],
     skins: [
       {
         id: 'taichi_sakura_blossom',
-        nameHe: t('lab.entities.tai_chi_monk.skins.taichi_sakura_blossom.name'),
-        subtitleHe: t('lab.entities.tai_chi_monk.skins.taichi_sakura_blossom.subtitle'),
+        name: t('lab.entities.tai_chi_monk.skins.taichi_sakura_blossom.name'),
+        subtitle: t('lab.entities.tai_chi_monk.skins.taichi_sakura_blossom.subtitle'),
         badgeColors: ['#f472b6', '#fdf2f8', '#9d174d'],
         palette: {
           primaryHex: 0xfbcfe8,
@@ -686,8 +686,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'taichi_sunrise_orange',
-        nameHe: t('lab.entities.tai_chi_monk.skins.taichi_sunrise_orange.name'),
-        subtitleHe: t('lab.entities.tai_chi_monk.skins.taichi_sunrise_orange.subtitle'),
+        name: t('lab.entities.tai_chi_monk.skins.taichi_sunrise_orange.name'),
+        subtitle: t('lab.entities.tai_chi_monk.skins.taichi_sunrise_orange.subtitle'),
         badgeColors: ['#d96b27', '#991b1b', '#f5f0e6'],
         palette: {
           primaryHex: 0xd96b27,
@@ -698,8 +698,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'taichi_zen_white',
-        nameHe: t('lab.entities.tai_chi_monk.skins.taichi_zen_white.name'),
-        subtitleHe: t('lab.entities.tai_chi_monk.skins.taichi_zen_white.subtitle'),
+        name: t('lab.entities.tai_chi_monk.skins.taichi_zen_white.name'),
+        subtitle: t('lab.entities.tai_chi_monk.skins.taichi_zen_white.subtitle'),
         badgeColors: ['#f8fafc', '#cbd5e1', '#d4af37'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -713,51 +713,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'harbor_merchant',
-    nameHe: t('lab.entities.harbor_merchant.name'),
-    subtitleHe: t('lab.entities.harbor_merchant.subtitle'),
+    name: t('lab.entities.harbor_merchant.name'),
+    subtitle: t('lab.entities.harbor_merchant.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.harbor_merchant.category_label'),
-    worldLocationHe: t('lab.entities.harbor_merchant.world_location'),
+    categoryLabel: t('lab.entities.harbor_merchant.category_label'),
+    worldLocation: t('lab.entities.harbor_merchant.world_location'),
     worldCoordinatesText: `(${SOUTHEAST_HARBOR_POS.x}, ${SOUTHEAST_HARBOR_POS.z})`,
     worldInstanceCount: MARKET_STALL_LOCATIONS.length,
     sourceFile: 'src/world/domain/landmarks/oasisAndHarborLandmarks.ts',
-    descriptionHe:
+    description:
       t('lab.entities.harbor_merchant.description'),
     defaultCameraDistance: 3.8,
     defaultCameraTargetY: 0.95,
-    anatomyTagsHe: [t('lab.entities.harbor_merchant.anatomy_tags.0'), t('lab.entities.harbor_merchant.anatomy_tags.1'), t('lab.entities.harbor_merchant.anatomy_tags.2'), t('lab.entities.harbor_merchant.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.harbor_merchant.anatomy_tags.0'), t('lab.entities.harbor_merchant.anatomy_tags.1'), t('lab.entities.harbor_merchant.anatomy_tags.2'), t('lab.entities.harbor_merchant.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.harbor_merchant.animations.none.name'),
-        descriptionHe: t('lab.entities.harbor_merchant.animations.none.description'),
+        name: t('lab.entities.harbor_merchant.animations.none.name'),
+        description: t('lab.entities.harbor_merchant.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'merchant_welcome',
-        nameHe: t('lab.entities.harbor_merchant.animations.merchant_welcome.name'),
-        descriptionHe: t('lab.entities.harbor_merchant.animations.merchant_welcome.description'),
+        name: t('lab.entities.harbor_merchant.animations.merchant_welcome.name'),
+        description: t('lab.entities.harbor_merchant.animations.merchant_welcome.description'),
         loopDurationSec: 2.8,
       },
       {
         id: 'blacksmith_forge',
-        nameHe: t('lab.entities.harbor_merchant.animations.blacksmith_forge.name'),
-        descriptionHe: t('lab.entities.harbor_merchant.animations.blacksmith_forge.description'),
+        name: t('lab.entities.harbor_merchant.animations.blacksmith_forge.name'),
+        description: t('lab.entities.harbor_merchant.animations.blacksmith_forge.description'),
         loopDurationSec: 1.3,
       },
       {
         id: 'market_call',
-        nameHe: t('lab.entities.harbor_merchant.animations.market_call.name'),
-        descriptionHe: t('lab.entities.harbor_merchant.animations.market_call.description'),
+        name: t('lab.entities.harbor_merchant.animations.market_call.name'),
+        description: t('lab.entities.harbor_merchant.animations.market_call.description'),
         loopDurationSec: 2.2,
       },
     ],
     skins: [
       {
         id: 'merchant_liang_crimson',
-        nameHe: t('lab.entities.harbor_merchant.skins.merchant_liang_crimson.name'),
-        subtitleHe: t('lab.entities.harbor_merchant.skins.merchant_liang_crimson.subtitle'),
+        name: t('lab.entities.harbor_merchant.skins.merchant_liang_crimson.name'),
+        subtitle: t('lab.entities.harbor_merchant.skins.merchant_liang_crimson.subtitle'),
         badgeColors: ['#991b1b', '#d4af37', '#1e293b'],
         palette: {
           primaryHex: 0x991b1b,
@@ -768,8 +768,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'merchant_mei_emerald',
-        nameHe: t('lab.entities.harbor_merchant.skins.merchant_mei_emerald.name'),
-        subtitleHe: t('lab.entities.harbor_merchant.skins.merchant_mei_emerald.subtitle'),
+        name: t('lab.entities.harbor_merchant.skins.merchant_mei_emerald.name'),
+        subtitle: t('lab.entities.harbor_merchant.skins.merchant_mei_emerald.subtitle'),
         badgeColors: ['#065f46', '#10b981', '#d97706'],
         palette: {
           primaryHex: 0x065f46,
@@ -780,8 +780,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'merchant_borin_blacksmith',
-        nameHe: t('lab.entities.harbor_merchant.skins.merchant_borin_blacksmith.name'),
-        subtitleHe: t('lab.entities.harbor_merchant.skins.merchant_borin_blacksmith.subtitle'),
+        name: t('lab.entities.harbor_merchant.skins.merchant_borin_blacksmith.name'),
+        subtitle: t('lab.entities.harbor_merchant.skins.merchant_borin_blacksmith.subtitle'),
         badgeColors: ['#451a03', '#78350f', '#f97316'],
         palette: {
           primaryHex: 0x451a03,
@@ -792,8 +792,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'merchant_karim_lapis',
-        nameHe: t('lab.entities.harbor_merchant.skins.merchant_karim_lapis.name'),
-        subtitleHe: t('lab.entities.harbor_merchant.skins.merchant_karim_lapis.subtitle'),
+        name: t('lab.entities.harbor_merchant.skins.merchant_karim_lapis.name'),
+        subtitle: t('lab.entities.harbor_merchant.skins.merchant_karim_lapis.subtitle'),
         badgeColors: ['#1d4ed8', '#dbeafe', '#d4af37'],
         palette: {
           primaryHex: 0x1d4ed8,
@@ -806,59 +806,59 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
   },
 
   // ==========================================================================
-  // 2. ANIMALS & WILDLIFE (חיות בר ורכיבה)
+  // 2. ANIMALS & WILDLIFE
   // ==========================================================================
   {
     id: 'rideable_horse',
-    nameHe: t('lab.entities.rideable_horse.name'),
-    subtitleHe: t('lab.entities.rideable_horse.subtitle'),
+    name: t('lab.entities.rideable_horse.name'),
+    subtitle: t('lab.entities.rideable_horse.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.rideable_horse.category_label'),
-    worldLocationHe: t('lab.entities.rideable_horse.world_location'),
+    categoryLabel: t('lab.entities.rideable_horse.category_label'),
+    worldLocation: t('lab.entities.rideable_horse.world_location'),
     worldCoordinatesText: t('lab.entities.rideable_horse.world_coordinates'),
     worldInstanceCount: RIDEABLE_HORSES.length,
     sourceFile: 'src/world/systems/horsePhysicsSystem.ts',
-    descriptionHe:
+    description:
       t('lab.entities.rideable_horse.description'),
     defaultCameraDistance: 4.1,
     defaultCameraTargetY: 1.15,
-    anatomyTagsHe: [t('lab.entities.rideable_horse.anatomy_tags.0'), t('lab.entities.rideable_horse.anatomy_tags.1'), t('lab.entities.rideable_horse.anatomy_tags.2'), t('lab.entities.rideable_horse.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.rideable_horse.anatomy_tags.0'), t('lab.entities.rideable_horse.anatomy_tags.1'), t('lab.entities.rideable_horse.anatomy_tags.2'), t('lab.entities.rideable_horse.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.rideable_horse.animations.none.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.none.description'),
+        name: t('lab.entities.rideable_horse.animations.none.name'),
+        description: t('lab.entities.rideable_horse.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'horse_idle',
-        nameHe: t('lab.entities.rideable_horse.animations.horse_idle.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.horse_idle.description'),
+        name: t('lab.entities.rideable_horse.animations.horse_idle.name'),
+        description: t('lab.entities.rideable_horse.animations.horse_idle.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'horse_walk',
-        nameHe: t('lab.entities.rideable_horse.animations.horse_walk.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.horse_walk.description'),
+        name: t('lab.entities.rideable_horse.animations.horse_walk.name'),
+        description: t('lab.entities.rideable_horse.animations.horse_walk.description'),
         loopDurationSec: 1.6,
       },
       {
         id: 'horse_trot',
-        nameHe: t('lab.entities.rideable_horse.animations.horse_trot.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.horse_trot.description'),
+        name: t('lab.entities.rideable_horse.animations.horse_trot.name'),
+        description: t('lab.entities.rideable_horse.animations.horse_trot.description'),
         loopDurationSec: 1.1,
       },
       {
         id: 'horse_gallop',
-        nameHe: t('lab.entities.rideable_horse.animations.horse_gallop.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.horse_gallop.description'),
+        name: t('lab.entities.rideable_horse.animations.horse_gallop.name'),
+        description: t('lab.entities.rideable_horse.animations.horse_gallop.description'),
         loopDurationSec: 0.78,
       },
       {
         id: 'horse_rear',
-        nameHe: t('lab.entities.rideable_horse.animations.horse_rear.name'),
-        descriptionHe: t('lab.entities.rideable_horse.animations.horse_rear.description'),
+        name: t('lab.entities.rideable_horse.animations.horse_rear.name'),
+        description: t('lab.entities.rideable_horse.animations.horse_rear.description'),
         loopDurationSec: 2.2,
       },
     ],
@@ -867,87 +867,87 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'forest_deer',
-    nameHe: t('lab.entities.forest_deer.name'),
-    subtitleHe: t('lab.entities.forest_deer.subtitle'),
+    name: t('lab.entities.forest_deer.name'),
+    subtitle: t('lab.entities.forest_deer.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.forest_deer.category_label'),
-    worldLocationHe: t('lab.entities.forest_deer.world_location'),
+    categoryLabel: t('lab.entities.forest_deer.category_label'),
+    worldLocation: t('lab.entities.forest_deer.world_location'),
     worldCoordinatesText: t('lab.entities.forest_deer.world_coordinates'),
     worldInstanceCount: 5,
     sourceFile: 'src/world/models/Deer.ts (public/models/Deer_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.forest_deer.description'),
     defaultCameraDistance: 3.2,
     defaultCameraTargetY: 0.72,
-    anatomyTagsHe: [t('lab.entities.forest_deer.anatomy_tags.0'), t('lab.entities.forest_deer.anatomy_tags.1'), t('lab.entities.forest_deer.anatomy_tags.2'), t('lab.entities.forest_deer.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.forest_deer.anatomy_tags.0'), t('lab.entities.forest_deer.anatomy_tags.1'), t('lab.entities.forest_deer.anatomy_tags.2'), t('lab.entities.forest_deer.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.forest_deer.animations.none.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.none.description'),
+        name: t('lab.entities.forest_deer.animations.none.name'),
+        description: t('lab.entities.forest_deer.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.forest_deer.animations.idle.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.idle.description'),
+        name: t('lab.entities.forest_deer.animations.idle.name'),
+        description: t('lab.entities.forest_deer.animations.idle.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.forest_deer.animations.walk.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.walk.description'),
+        name: t('lab.entities.forest_deer.animations.walk.name'),
+        description: t('lab.entities.forest_deer.animations.walk.description'),
         loopDurationSec: 1.5,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.forest_deer.animations.eat.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.eat.description'),
+        name: t('lab.entities.forest_deer.animations.eat.name'),
+        description: t('lab.entities.forest_deer.animations.eat.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'call',
-        nameHe: t('lab.entities.forest_deer.animations.call.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.call.description'),
+        name: t('lab.entities.forest_deer.animations.call.name'),
+        description: t('lab.entities.forest_deer.animations.call.description'),
         loopDurationSec: 3.0,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.forest_deer.animations.lie.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.lie.description'),
+        name: t('lab.entities.forest_deer.animations.lie.name'),
+        description: t('lab.entities.forest_deer.animations.lie.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.forest_deer.animations.run.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.run.description'),
+        name: t('lab.entities.forest_deer.animations.run.name'),
+        description: t('lab.entities.forest_deer.animations.run.description'),
         loopDurationSec: 0.9,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.forest_deer.animations.flee.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.flee.description'),
+        name: t('lab.entities.forest_deer.animations.flee.name'),
+        description: t('lab.entities.forest_deer.animations.flee.description'),
         loopDurationSec: 0.8,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.forest_deer.animations.skip.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.skip.description'),
+        name: t('lab.entities.forest_deer.animations.skip.name'),
+        description: t('lab.entities.forest_deer.animations.skip.description'),
         loopDurationSec: 1.1,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.forest_deer.animations.death.name'),
-        descriptionHe: t('lab.entities.forest_deer.animations.death.description'),
+        name: t('lab.entities.forest_deer.animations.death.name'),
+        description: t('lab.entities.forest_deer.animations.death.description'),
         loopDurationSec: 3.5,
       },
     ],
     skins: [
       {
         id: 'deer_stag_classic',
-        nameHe: t('lab.entities.forest_deer.skins.deer_stag_classic.name'),
-        subtitleHe: t('lab.entities.forest_deer.skins.deer_stag_classic.subtitle'),
+        name: t('lab.entities.forest_deer.skins.deer_stag_classic.name'),
+        subtitle: t('lab.entities.forest_deer.skins.deer_stag_classic.subtitle'),
         badgeColors: ['#8c583a', '#d8c8b4', '#3b2314'],
         palette: {
           primaryHex: 0x8c583a,
@@ -958,8 +958,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'deer_doe_gentle',
-        nameHe: t('lab.entities.forest_deer.skins.deer_doe_gentle.name'),
-        subtitleHe: t('lab.entities.forest_deer.skins.deer_doe_gentle.subtitle'),
+        name: t('lab.entities.forest_deer.skins.deer_doe_gentle.name'),
+        subtitle: t('lab.entities.forest_deer.skins.deer_doe_gentle.subtitle'),
         badgeColors: ['#a16237', '#fde68a', '#451a03'],
         palette: {
           primaryHex: 0xa16237,
@@ -970,8 +970,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'deer_white_hart',
-        nameHe: t('lab.entities.forest_deer.skins.deer_white_hart.name'),
-        subtitleHe: t('lab.entities.forest_deer.skins.deer_white_hart.subtitle'),
+        name: t('lab.entities.forest_deer.skins.deer_white_hart.name'),
+        subtitle: t('lab.entities.forest_deer.skins.deer_white_hart.subtitle'),
         badgeColors: ['#f8fafc', '#fbbf24', '#cbd5e1'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -982,8 +982,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'deer_highland_dark',
-        nameHe: t('lab.entities.forest_deer.skins.deer_highland_dark.name'),
-        subtitleHe: t('lab.entities.forest_deer.skins.deer_highland_dark.subtitle'),
+        name: t('lab.entities.forest_deer.skins.deer_highland_dark.name'),
+        subtitle: t('lab.entities.forest_deer.skins.deer_highland_dark.subtitle'),
         badgeColors: ['#44403c', '#a8a29e', '#1c1917'],
         palette: {
           primaryHex: 0x44403c,
@@ -997,117 +997,117 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'forest_bear',
-    nameHe: t('lab.entities.forest_bear.name'),
-    subtitleHe: t('lab.entities.forest_bear.subtitle'),
+    name: t('lab.entities.forest_bear.name'),
+    subtitle: t('lab.entities.forest_bear.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.forest_bear.category_label'),
-    worldLocationHe: t('lab.entities.forest_bear.world_location'),
+    categoryLabel: t('lab.entities.forest_bear.category_label'),
+    worldLocation: t('lab.entities.forest_bear.world_location'),
     worldCoordinatesText: t('lab.entities.forest_bear.world_coordinates'),
     worldInstanceCount: 7,
     sourceFile: 'src/world/models/Bear.ts (public/models/animals/Bear_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.forest_bear.description'),
     defaultCameraDistance: 3.4,
     defaultCameraTargetY: 0.68,
-    anatomyTagsHe: [t('lab.entities.forest_bear.anatomy_tags.0'), t('lab.entities.forest_bear.anatomy_tags.1'), t('lab.entities.forest_bear.anatomy_tags.2'), t('lab.entities.forest_bear.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.forest_bear.anatomy_tags.0'), t('lab.entities.forest_bear.anatomy_tags.1'), t('lab.entities.forest_bear.anatomy_tags.2'), t('lab.entities.forest_bear.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.forest_bear.animations.none.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.none.description'),
+        name: t('lab.entities.forest_bear.animations.none.name'),
+        description: t('lab.entities.forest_bear.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.forest_bear.animations.idle.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.idle.description'),
+        name: t('lab.entities.forest_bear.animations.idle.name'),
+        description: t('lab.entities.forest_bear.animations.idle.description'),
         loopDurationSec: 4.2,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.forest_bear.animations.walk.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.walk.description'),
+        name: t('lab.entities.forest_bear.animations.walk.name'),
+        description: t('lab.entities.forest_bear.animations.walk.description'),
         loopDurationSec: 1.67,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.forest_bear.animations.eat.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.eat.description'),
+        name: t('lab.entities.forest_bear.animations.eat.name'),
+        description: t('lab.entities.forest_bear.animations.eat.description'),
         loopDurationSec: 7.33,
       },
       {
         id: 'call',
-        nameHe: t('lab.entities.forest_bear.animations.call.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.call.description'),
+        name: t('lab.entities.forest_bear.animations.call.name'),
+        description: t('lab.entities.forest_bear.animations.call.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.forest_bear.animations.lie.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.lie.description'),
+        name: t('lab.entities.forest_bear.animations.lie.name'),
+        description: t('lab.entities.forest_bear.animations.lie.description'),
         loopDurationSec: 4.17,
       },
       {
         id: 'sit',
-        nameHe: t('lab.entities.forest_bear.animations.sit.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.sit.description'),
+        name: t('lab.entities.forest_bear.animations.sit.name'),
+        description: t('lab.entities.forest_bear.animations.sit.description'),
         loopDurationSec: 5.0,
       },
       {
         id: 'trot',
-        nameHe: t('lab.entities.forest_bear.animations.trot.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.trot.description'),
+        name: t('lab.entities.forest_bear.animations.trot.name'),
+        description: t('lab.entities.forest_bear.animations.trot.description'),
         loopDurationSec: 0.67,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.forest_bear.animations.run.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.run.description'),
+        name: t('lab.entities.forest_bear.animations.run.name'),
+        description: t('lab.entities.forest_bear.animations.run.description'),
         loopDurationSec: 0.53,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.forest_bear.animations.flee.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.flee.description'),
+        name: t('lab.entities.forest_bear.animations.flee.name'),
+        description: t('lab.entities.forest_bear.animations.flee.description'),
         loopDurationSec: 0.47,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.forest_bear.animations.skip.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.skip.description'),
+        name: t('lab.entities.forest_bear.animations.skip.name'),
+        description: t('lab.entities.forest_bear.animations.skip.description'),
         loopDurationSec: 1.83,
       },
       {
         id: 'roar',
-        nameHe: t('lab.entities.forest_bear.animations.roar.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.roar.description'),
+        name: t('lab.entities.forest_bear.animations.roar.name'),
+        description: t('lab.entities.forest_bear.animations.roar.description'),
         loopDurationSec: 5.0,
       },
       {
         id: 'stomp',
-        nameHe: t('lab.entities.forest_bear.animations.stomp.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.stomp.description'),
+        name: t('lab.entities.forest_bear.animations.stomp.name'),
+        description: t('lab.entities.forest_bear.animations.stomp.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'attack',
-        nameHe: t('lab.entities.forest_bear.animations.attack.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.attack.description'),
+        name: t('lab.entities.forest_bear.animations.attack.name'),
+        description: t('lab.entities.forest_bear.animations.attack.description'),
         loopDurationSec: 2.4,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.forest_bear.animations.death.name'),
-        descriptionHe: t('lab.entities.forest_bear.animations.death.description'),
+        name: t('lab.entities.forest_bear.animations.death.name'),
+        description: t('lab.entities.forest_bear.animations.death.description'),
         loopDurationSec: 1.8,
       },
     ],
     skins: [
       {
         id: 'bear_grizzly_classic',
-        nameHe: t('lab.entities.forest_bear.skins.bear_grizzly_classic.name'),
-        subtitleHe: t('lab.entities.forest_bear.skins.bear_grizzly_classic.subtitle'),
+        name: t('lab.entities.forest_bear.skins.bear_grizzly_classic.name'),
+        subtitle: t('lab.entities.forest_bear.skins.bear_grizzly_classic.subtitle'),
         badgeColors: ['#6b4226', '#9c6b43', '#2a1810'],
         palette: {
           primaryHex: 0xffffff,
@@ -1117,8 +1117,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'bear_black_mountain',
-        nameHe: t('lab.entities.forest_bear.skins.bear_black_mountain.name'),
-        subtitleHe: t('lab.entities.forest_bear.skins.bear_black_mountain.subtitle'),
+        name: t('lab.entities.forest_bear.skins.bear_black_mountain.name'),
+        subtitle: t('lab.entities.forest_bear.skins.bear_black_mountain.subtitle'),
         badgeColors: ['#292524', '#57534e', '#0c0a09'],
         palette: {
           primaryHex: 0x57534e,
@@ -1128,8 +1128,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'bear_polar_frost',
-        nameHe: t('lab.entities.forest_bear.skins.bear_polar_frost.name'),
-        subtitleHe: t('lab.entities.forest_bear.skins.bear_polar_frost.subtitle'),
+        name: t('lab.entities.forest_bear.skins.bear_polar_frost.name'),
+        subtitle: t('lab.entities.forest_bear.skins.bear_polar_frost.subtitle'),
         badgeColors: ['#f8fafc', '#e2e8f0', '#64748b'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -1142,111 +1142,111 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'river_crocodile',
-    nameHe: t('lab.entities.river_crocodile.name'),
-    subtitleHe: t('lab.entities.river_crocodile.subtitle'),
+    name: t('lab.entities.river_crocodile.name'),
+    subtitle: t('lab.entities.river_crocodile.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.river_crocodile.category_label'),
-    worldLocationHe: t('lab.entities.river_crocodile.world_location'),
+    categoryLabel: t('lab.entities.river_crocodile.category_label'),
+    worldLocation: t('lab.entities.river_crocodile.world_location'),
     worldCoordinatesText: t('lab.entities.river_crocodile.world_coordinates'),
     worldInstanceCount: 5,
     sourceFile: 'src/world/models/Crocodile.ts (public/models/animals/Crocodile_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.river_crocodile.description'),
     defaultCameraDistance: 3.7,
     defaultCameraTargetY: 0.35,
-    anatomyTagsHe: [t('lab.entities.river_crocodile.anatomy_tags.0'), t('lab.entities.river_crocodile.anatomy_tags.1'), t('lab.entities.river_crocodile.anatomy_tags.2'), t('lab.entities.river_crocodile.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.river_crocodile.anatomy_tags.0'), t('lab.entities.river_crocodile.anatomy_tags.1'), t('lab.entities.river_crocodile.anatomy_tags.2'), t('lab.entities.river_crocodile.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.river_crocodile.animations.none.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.none.description'),
+        name: t('lab.entities.river_crocodile.animations.none.name'),
+        description: t('lab.entities.river_crocodile.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.river_crocodile.animations.idle.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.idle.description'),
+        name: t('lab.entities.river_crocodile.animations.idle.name'),
+        description: t('lab.entities.river_crocodile.animations.idle.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.river_crocodile.animations.walk.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.walk.description'),
+        name: t('lab.entities.river_crocodile.animations.walk.name'),
+        description: t('lab.entities.river_crocodile.animations.walk.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.river_crocodile.animations.eat.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.eat.description'),
+        name: t('lab.entities.river_crocodile.animations.eat.name'),
+        description: t('lab.entities.river_crocodile.animations.eat.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'call',
-        nameHe: t('lab.entities.river_crocodile.animations.call.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.call.description'),
+        name: t('lab.entities.river_crocodile.animations.call.name'),
+        description: t('lab.entities.river_crocodile.animations.call.description'),
         loopDurationSec: 3.0,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.river_crocodile.animations.lie.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.lie.description'),
+        name: t('lab.entities.river_crocodile.animations.lie.name'),
+        description: t('lab.entities.river_crocodile.animations.lie.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'sit',
-        nameHe: t('lab.entities.river_crocodile.animations.sit.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.sit.description'),
+        name: t('lab.entities.river_crocodile.animations.sit.name'),
+        description: t('lab.entities.river_crocodile.animations.sit.description'),
         loopDurationSec: 3.8,
       },
       {
         id: 'trot',
-        nameHe: t('lab.entities.river_crocodile.animations.trot.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.trot.description'),
+        name: t('lab.entities.river_crocodile.animations.trot.name'),
+        description: t('lab.entities.river_crocodile.animations.trot.description'),
         loopDurationSec: 1.6,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.river_crocodile.animations.run.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.run.description'),
+        name: t('lab.entities.river_crocodile.animations.run.name'),
+        description: t('lab.entities.river_crocodile.animations.run.description'),
         loopDurationSec: 0.9,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.river_crocodile.animations.flee.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.flee.description'),
+        name: t('lab.entities.river_crocodile.animations.flee.name'),
+        description: t('lab.entities.river_crocodile.animations.flee.description'),
         loopDurationSec: 0.72,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.river_crocodile.animations.skip.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.skip.description'),
+        name: t('lab.entities.river_crocodile.animations.skip.name'),
+        description: t('lab.entities.river_crocodile.animations.skip.description'),
         loopDurationSec: 1.1,
       },
       {
         id: 'roar',
-        nameHe: t('lab.entities.river_crocodile.animations.roar.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.roar.description'),
+        name: t('lab.entities.river_crocodile.animations.roar.name'),
+        description: t('lab.entities.river_crocodile.animations.roar.description'),
         loopDurationSec: 3.0,
       },
       {
         id: 'attack',
-        nameHe: t('lab.entities.river_crocodile.animations.attack.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.attack.description'),
+        name: t('lab.entities.river_crocodile.animations.attack.name'),
+        description: t('lab.entities.river_crocodile.animations.attack.description'),
         loopDurationSec: 2.6,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.river_crocodile.animations.death.name'),
-        descriptionHe: t('lab.entities.river_crocodile.animations.death.description'),
+        name: t('lab.entities.river_crocodile.animations.death.name'),
+        description: t('lab.entities.river_crocodile.animations.death.description'),
         loopDurationSec: 2.2,
       },
     ],
     skins: [
       {
         id: 'croc_nile_classic',
-        nameHe: t('lab.entities.river_crocodile.skins.croc_nile_classic.name'),
-        subtitleHe: t('lab.entities.river_crocodile.skins.croc_nile_classic.subtitle'),
+        name: t('lab.entities.river_crocodile.skins.croc_nile_classic.name'),
+        subtitle: t('lab.entities.river_crocodile.skins.croc_nile_classic.subtitle'),
         badgeColors: ['#4d5d3b', '#8c8253', '#27321c'],
         palette: {
           primaryHex: 0xffffff,
@@ -1256,8 +1256,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'croc_swamp_shadow',
-        nameHe: t('lab.entities.river_crocodile.skins.croc_swamp_shadow.name'),
-        subtitleHe: t('lab.entities.river_crocodile.skins.croc_swamp_shadow.subtitle'),
+        name: t('lab.entities.river_crocodile.skins.croc_swamp_shadow.name'),
+        subtitle: t('lab.entities.river_crocodile.skins.croc_swamp_shadow.subtitle'),
         badgeColors: ['#27382b', '#4b5563', '#0f172a'],
         palette: {
           primaryHex: 0x5c6f5e,
@@ -1267,8 +1267,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'croc_oasis_golden',
-        nameHe: t('lab.entities.river_crocodile.skins.croc_oasis_golden.name'),
-        subtitleHe: t('lab.entities.river_crocodile.skins.croc_oasis_golden.subtitle'),
+        name: t('lab.entities.river_crocodile.skins.croc_oasis_golden.name'),
+        subtitle: t('lab.entities.river_crocodile.skins.croc_oasis_golden.subtitle'),
         badgeColors: ['#d4a359', '#fef08a', '#78350f'],
         palette: {
           primaryHex: 0xe5c07b,
@@ -1281,117 +1281,117 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'jungle_jaguar',
-    nameHe: t('lab.entities.jungle_jaguar.name'),
-    subtitleHe: t('lab.entities.jungle_jaguar.subtitle'),
+    name: t('lab.entities.jungle_jaguar.name'),
+    subtitle: t('lab.entities.jungle_jaguar.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.jungle_jaguar.category_label'),
-    worldLocationHe: t('lab.entities.jungle_jaguar.world_location'),
+    categoryLabel: t('lab.entities.jungle_jaguar.category_label'),
+    worldLocation: t('lab.entities.jungle_jaguar.world_location'),
     worldCoordinatesText: '(-238, 236), (-268, 336), (-148, 228), (-84, 246)',
     worldInstanceCount: 4,
     sourceFile: 'src/world/models/Jaguar.ts (public/models/animals/Jaguar_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.jungle_jaguar.description'),
     defaultCameraDistance: 3.1,
     defaultCameraTargetY: 0.55,
-    anatomyTagsHe: [t('lab.entities.jungle_jaguar.anatomy_tags.0'), t('lab.entities.jungle_jaguar.anatomy_tags.1'), t('lab.entities.jungle_jaguar.anatomy_tags.2'), t('lab.entities.jungle_jaguar.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.jungle_jaguar.anatomy_tags.0'), t('lab.entities.jungle_jaguar.anatomy_tags.1'), t('lab.entities.jungle_jaguar.anatomy_tags.2'), t('lab.entities.jungle_jaguar.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.jungle_jaguar.animations.none.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.none.description'),
+        name: t('lab.entities.jungle_jaguar.animations.none.name'),
+        description: t('lab.entities.jungle_jaguar.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.jungle_jaguar.animations.idle.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.idle.description'),
+        name: t('lab.entities.jungle_jaguar.animations.idle.name'),
+        description: t('lab.entities.jungle_jaguar.animations.idle.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.jungle_jaguar.animations.walk.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.walk.description'),
+        name: t('lab.entities.jungle_jaguar.animations.walk.name'),
+        description: t('lab.entities.jungle_jaguar.animations.walk.description'),
         loopDurationSec: 1.3,
       },
       {
         id: 'stalk',
-        nameHe: t('lab.entities.jungle_jaguar.animations.stalk.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.stalk.description'),
+        name: t('lab.entities.jungle_jaguar.animations.stalk.name'),
+        description: t('lab.entities.jungle_jaguar.animations.stalk.description'),
         loopDurationSec: 2.0,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.jungle_jaguar.animations.eat.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.eat.description'),
+        name: t('lab.entities.jungle_jaguar.animations.eat.name'),
+        description: t('lab.entities.jungle_jaguar.animations.eat.description'),
         loopDurationSec: 3.4,
       },
       {
         id: 'call',
-        nameHe: t('lab.entities.jungle_jaguar.animations.call.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.call.description'),
+        name: t('lab.entities.jungle_jaguar.animations.call.name'),
+        description: t('lab.entities.jungle_jaguar.animations.call.description'),
         loopDurationSec: 2.8,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.jungle_jaguar.animations.lie.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.lie.description'),
+        name: t('lab.entities.jungle_jaguar.animations.lie.name'),
+        description: t('lab.entities.jungle_jaguar.animations.lie.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'sit',
-        nameHe: t('lab.entities.jungle_jaguar.animations.sit.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.sit.description'),
+        name: t('lab.entities.jungle_jaguar.animations.sit.name'),
+        description: t('lab.entities.jungle_jaguar.animations.sit.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'trot',
-        nameHe: t('lab.entities.jungle_jaguar.animations.trot.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.trot.description'),
+        name: t('lab.entities.jungle_jaguar.animations.trot.name'),
+        description: t('lab.entities.jungle_jaguar.animations.trot.description'),
         loopDurationSec: 0.78,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.jungle_jaguar.animations.run.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.run.description'),
+        name: t('lab.entities.jungle_jaguar.animations.run.name'),
+        description: t('lab.entities.jungle_jaguar.animations.run.description'),
         loopDurationSec: 0.52,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.jungle_jaguar.animations.flee.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.flee.description'),
+        name: t('lab.entities.jungle_jaguar.animations.flee.name'),
+        description: t('lab.entities.jungle_jaguar.animations.flee.description'),
         loopDurationSec: 0.44,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.jungle_jaguar.animations.skip.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.skip.description'),
+        name: t('lab.entities.jungle_jaguar.animations.skip.name'),
+        description: t('lab.entities.jungle_jaguar.animations.skip.description'),
         loopDurationSec: 0.85,
       },
       {
         id: 'roar',
-        nameHe: t('lab.entities.jungle_jaguar.animations.roar.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.roar.description'),
+        name: t('lab.entities.jungle_jaguar.animations.roar.name'),
+        description: t('lab.entities.jungle_jaguar.animations.roar.description'),
         loopDurationSec: 2.8,
       },
       {
         id: 'attack',
-        nameHe: t('lab.entities.jungle_jaguar.animations.attack.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.attack.description'),
+        name: t('lab.entities.jungle_jaguar.animations.attack.name'),
+        description: t('lab.entities.jungle_jaguar.animations.attack.description'),
         loopDurationSec: 1.35,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.jungle_jaguar.animations.death.name'),
-        descriptionHe: t('lab.entities.jungle_jaguar.animations.death.description'),
+        name: t('lab.entities.jungle_jaguar.animations.death.name'),
+        description: t('lab.entities.jungle_jaguar.animations.death.description'),
         loopDurationSec: 1.8,
       },
     ],
     skins: [
       {
         id: 'jaguar_rosette_classic',
-        nameHe: t('lab.entities.jungle_jaguar.skins.jaguar_rosette_classic.name'),
-        subtitleHe: t('lab.entities.jungle_jaguar.skins.jaguar_rosette_classic.subtitle'),
+        name: t('lab.entities.jungle_jaguar.skins.jaguar_rosette_classic.name'),
+        subtitle: t('lab.entities.jungle_jaguar.skins.jaguar_rosette_classic.subtitle'),
         badgeColors: ['#d97706', '#1c1917', '#fef3c7'],
         palette: {
           primaryHex: 0xffffff,
@@ -1401,8 +1401,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'jaguar_black_panther',
-        nameHe: t('lab.entities.jungle_jaguar.skins.jaguar_black_panther.name'),
-        subtitleHe: t('lab.entities.jungle_jaguar.skins.jaguar_black_panther.subtitle'),
+        name: t('lab.entities.jungle_jaguar.skins.jaguar_black_panther.name'),
+        subtitle: t('lab.entities.jungle_jaguar.skins.jaguar_black_panther.subtitle'),
         badgeColors: ['#27272a', '#09090b', '#eab308'],
         palette: {
           primaryHex: 0x3f3f46,
@@ -1412,8 +1412,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'jaguar_sunlit_amber',
-        nameHe: t('lab.entities.jungle_jaguar.skins.jaguar_sunlit_amber.name'),
-        subtitleHe: t('lab.entities.jungle_jaguar.skins.jaguar_sunlit_amber.subtitle'),
+        name: t('lab.entities.jungle_jaguar.skins.jaguar_sunlit_amber.name'),
+        subtitle: t('lab.entities.jungle_jaguar.skins.jaguar_sunlit_amber.subtitle'),
         badgeColors: ['#f59e0b', '#78350f', '#fffbeb'],
         palette: {
           primaryHex: 0xfde68a,
@@ -1426,117 +1426,117 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'forest_wolf',
-    nameHe: t('lab.entities.forest_wolf.name'),
-    subtitleHe: t('lab.entities.forest_wolf.subtitle'),
+    name: t('lab.entities.forest_wolf.name'),
+    subtitle: t('lab.entities.forest_wolf.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.forest_wolf.category_label'),
-    worldLocationHe: t('lab.entities.forest_wolf.world_location'),
+    categoryLabel: t('lab.entities.forest_wolf.category_label'),
+    worldLocation: t('lab.entities.forest_wolf.world_location'),
     worldCoordinatesText: '(-142, -88), (-158, -112), (-118, 86), (136, -118)',
     worldInstanceCount: 4,
     sourceFile: 'src/world/models/Wolf.ts (public/models/animals/Wolf_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.forest_wolf.description'),
     defaultCameraDistance: 2.9,
     defaultCameraTargetY: 0.58,
-    anatomyTagsHe: [t('lab.entities.forest_wolf.anatomy_tags.0'), t('lab.entities.forest_wolf.anatomy_tags.1'), t('lab.entities.forest_wolf.anatomy_tags.2'), t('lab.entities.forest_wolf.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.forest_wolf.anatomy_tags.0'), t('lab.entities.forest_wolf.anatomy_tags.1'), t('lab.entities.forest_wolf.anatomy_tags.2'), t('lab.entities.forest_wolf.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.forest_wolf.animations.none.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.none.description'),
+        name: t('lab.entities.forest_wolf.animations.none.name'),
+        description: t('lab.entities.forest_wolf.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.forest_wolf.animations.idle.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.idle.description'),
+        name: t('lab.entities.forest_wolf.animations.idle.name'),
+        description: t('lab.entities.forest_wolf.animations.idle.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.forest_wolf.animations.walk.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.walk.description'),
+        name: t('lab.entities.forest_wolf.animations.walk.name'),
+        description: t('lab.entities.forest_wolf.animations.walk.description'),
         loopDurationSec: 1.4,
       },
       {
         id: 'trot',
-        nameHe: t('lab.entities.forest_wolf.animations.trot.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.trot.description'),
+        name: t('lab.entities.forest_wolf.animations.trot.name'),
+        description: t('lab.entities.forest_wolf.animations.trot.description'),
         loopDurationSec: 0.9,
       },
       {
         id: 'stalk',
-        nameHe: t('lab.entities.forest_wolf.animations.stalk.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.stalk.description'),
+        name: t('lab.entities.forest_wolf.animations.stalk.name'),
+        description: t('lab.entities.forest_wolf.animations.stalk.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.forest_wolf.animations.run.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.run.description'),
+        name: t('lab.entities.forest_wolf.animations.run.name'),
+        description: t('lab.entities.forest_wolf.animations.run.description'),
         loopDurationSec: 0.65,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.forest_wolf.animations.flee.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.flee.description'),
+        name: t('lab.entities.forest_wolf.animations.flee.name'),
+        description: t('lab.entities.forest_wolf.animations.flee.description'),
         loopDurationSec: 0.58,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.forest_wolf.animations.skip.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.skip.description'),
+        name: t('lab.entities.forest_wolf.animations.skip.name'),
+        description: t('lab.entities.forest_wolf.animations.skip.description'),
         loopDurationSec: 0.95,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.forest_wolf.animations.eat.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.eat.description'),
+        name: t('lab.entities.forest_wolf.animations.eat.name'),
+        description: t('lab.entities.forest_wolf.animations.eat.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'sit',
-        nameHe: t('lab.entities.forest_wolf.animations.sit.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.sit.description'),
+        name: t('lab.entities.forest_wolf.animations.sit.name'),
+        description: t('lab.entities.forest_wolf.animations.sit.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.forest_wolf.animations.lie.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.lie.description'),
+        name: t('lab.entities.forest_wolf.animations.lie.name'),
+        description: t('lab.entities.forest_wolf.animations.lie.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'howl',
-        nameHe: t('lab.entities.forest_wolf.animations.howl.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.howl.description'),
+        name: t('lab.entities.forest_wolf.animations.howl.name'),
+        description: t('lab.entities.forest_wolf.animations.howl.description'),
         loopDurationSec: 3.4,
       },
       {
         id: 'roar',
-        nameHe: t('lab.entities.forest_wolf.animations.roar.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.roar.description'),
+        name: t('lab.entities.forest_wolf.animations.roar.name'),
+        description: t('lab.entities.forest_wolf.animations.roar.description'),
         loopDurationSec: 2.8,
       },
       {
         id: 'attack',
-        nameHe: t('lab.entities.forest_wolf.animations.attack.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.attack.description'),
+        name: t('lab.entities.forest_wolf.animations.attack.name'),
+        description: t('lab.entities.forest_wolf.animations.attack.description'),
         loopDurationSec: 1.25,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.forest_wolf.animations.death.name'),
-        descriptionHe: t('lab.entities.forest_wolf.animations.death.description'),
+        name: t('lab.entities.forest_wolf.animations.death.name'),
+        description: t('lab.entities.forest_wolf.animations.death.description'),
         loopDurationSec: 2.5,
       },
     ],
     skins: [
       {
         id: 'wolf_timber_classic',
-        nameHe: t('lab.entities.forest_wolf.skins.wolf_timber_classic.name'),
-        subtitleHe: t('lab.entities.forest_wolf.skins.wolf_timber_classic.subtitle'),
+        name: t('lab.entities.forest_wolf.skins.wolf_timber_classic.name'),
+        subtitle: t('lab.entities.forest_wolf.skins.wolf_timber_classic.subtitle'),
         badgeColors: ['#78716c', '#44403c', '#d6d3d1'],
         palette: {
           primaryHex: 0xffffff,
@@ -1546,8 +1546,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'wolf_arctic_white',
-        nameHe: t('lab.entities.forest_wolf.skins.wolf_arctic_white.name'),
-        subtitleHe: t('lab.entities.forest_wolf.skins.wolf_arctic_white.subtitle'),
+        name: t('lab.entities.forest_wolf.skins.wolf_arctic_white.name'),
+        subtitle: t('lab.entities.forest_wolf.skins.wolf_arctic_white.subtitle'),
         badgeColors: ['#f8fafc', '#cbd5e1', '#64748b'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -1557,8 +1557,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'wolf_shadow_alpha',
-        nameHe: t('lab.entities.forest_wolf.skins.wolf_shadow_alpha.name'),
-        subtitleHe: t('lab.entities.forest_wolf.skins.wolf_shadow_alpha.subtitle'),
+        name: t('lab.entities.forest_wolf.skins.wolf_shadow_alpha.name'),
+        subtitle: t('lab.entities.forest_wolf.skins.wolf_shadow_alpha.subtitle'),
         badgeColors: ['#27272a', '#18181b', '#f59e0b'],
         palette: {
           primaryHex: 0x52525b,
@@ -1571,111 +1571,111 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'savanna_rhino',
-    nameHe: t('lab.entities.savanna_rhino.name'),
-    subtitleHe: t('lab.entities.savanna_rhino.subtitle'),
+    name: t('lab.entities.savanna_rhino.name'),
+    subtitle: t('lab.entities.savanna_rhino.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.savanna_rhino.category_label'),
-    worldLocationHe: t('lab.entities.savanna_rhino.world_location'),
+    categoryLabel: t('lab.entities.savanna_rhino.category_label'),
+    worldLocation: t('lab.entities.savanna_rhino.world_location'),
     worldCoordinatesText: '(-195, 215), (-224, 262), (146, 168)',
     worldInstanceCount: 3,
     sourceFile: 'src/world/models/Rhino.ts (public/models/animals/Rhino_Complete.ts)',
-    descriptionHe:
+    description:
       t('lab.entities.savanna_rhino.description'),
     defaultCameraDistance: 3.8,
     defaultCameraTargetY: 0.85,
-    anatomyTagsHe: [t('lab.entities.savanna_rhino.anatomy_tags.0'), t('lab.entities.savanna_rhino.anatomy_tags.1'), t('lab.entities.savanna_rhino.anatomy_tags.2'), t('lab.entities.savanna_rhino.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.savanna_rhino.anatomy_tags.0'), t('lab.entities.savanna_rhino.anatomy_tags.1'), t('lab.entities.savanna_rhino.anatomy_tags.2'), t('lab.entities.savanna_rhino.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.savanna_rhino.animations.none.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.none.description'),
+        name: t('lab.entities.savanna_rhino.animations.none.name'),
+        description: t('lab.entities.savanna_rhino.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'idle',
-        nameHe: t('lab.entities.savanna_rhino.animations.idle.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.idle.description'),
+        name: t('lab.entities.savanna_rhino.animations.idle.name'),
+        description: t('lab.entities.savanna_rhino.animations.idle.description'),
         loopDurationSec: 3.8,
       },
       {
         id: 'walk',
-        nameHe: t('lab.entities.savanna_rhino.animations.walk.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.walk.description'),
+        name: t('lab.entities.savanna_rhino.animations.walk.name'),
+        description: t('lab.entities.savanna_rhino.animations.walk.description'),
         loopDurationSec: 1.5,
       },
       {
         id: 'trot',
-        nameHe: t('lab.entities.savanna_rhino.animations.trot.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.trot.description'),
+        name: t('lab.entities.savanna_rhino.animations.trot.name'),
+        description: t('lab.entities.savanna_rhino.animations.trot.description'),
         loopDurationSec: 0.85,
       },
       {
         id: 'run',
-        nameHe: t('lab.entities.savanna_rhino.animations.run.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.run.description'),
+        name: t('lab.entities.savanna_rhino.animations.run.name'),
+        description: t('lab.entities.savanna_rhino.animations.run.description'),
         loopDurationSec: 0.65,
       },
       {
         id: 'flee',
-        nameHe: t('lab.entities.savanna_rhino.animations.flee.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.flee.description'),
+        name: t('lab.entities.savanna_rhino.animations.flee.name'),
+        description: t('lab.entities.savanna_rhino.animations.flee.description'),
         loopDurationSec: 0.58,
       },
       {
         id: 'skip',
-        nameHe: t('lab.entities.savanna_rhino.animations.skip.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.skip.description'),
+        name: t('lab.entities.savanna_rhino.animations.skip.name'),
+        description: t('lab.entities.savanna_rhino.animations.skip.description'),
         loopDurationSec: 1.1,
       },
       {
         id: 'eat',
-        nameHe: t('lab.entities.savanna_rhino.animations.eat.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.eat.description'),
+        name: t('lab.entities.savanna_rhino.animations.eat.name'),
+        description: t('lab.entities.savanna_rhino.animations.eat.description'),
         loopDurationSec: 3.6,
       },
       {
         id: 'call',
-        nameHe: t('lab.entities.savanna_rhino.animations.call.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.call.description'),
+        name: t('lab.entities.savanna_rhino.animations.call.name'),
+        description: t('lab.entities.savanna_rhino.animations.call.description'),
         loopDurationSec: 3.0,
       },
       {
         id: 'roar',
-        nameHe: t('lab.entities.savanna_rhino.animations.roar.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.roar.description'),
+        name: t('lab.entities.savanna_rhino.animations.roar.name'),
+        description: t('lab.entities.savanna_rhino.animations.roar.description'),
         loopDurationSec: 2.8,
       },
       {
         id: 'sit',
-        nameHe: t('lab.entities.savanna_rhino.animations.sit.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.sit.description'),
+        name: t('lab.entities.savanna_rhino.animations.sit.name'),
+        description: t('lab.entities.savanna_rhino.animations.sit.description'),
         loopDurationSec: 3.8,
       },
       {
         id: 'lie',
-        nameHe: t('lab.entities.savanna_rhino.animations.lie.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.lie.description'),
+        name: t('lab.entities.savanna_rhino.animations.lie.name'),
+        description: t('lab.entities.savanna_rhino.animations.lie.description'),
         loopDurationSec: 4.2,
       },
       {
         id: 'attack',
-        nameHe: t('lab.entities.savanna_rhino.animations.attack.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.attack.description'),
+        name: t('lab.entities.savanna_rhino.animations.attack.name'),
+        description: t('lab.entities.savanna_rhino.animations.attack.description'),
         loopDurationSec: 1.4,
       },
       {
         id: 'death',
-        nameHe: t('lab.entities.savanna_rhino.animations.death.name'),
-        descriptionHe: t('lab.entities.savanna_rhino.animations.death.description'),
+        name: t('lab.entities.savanna_rhino.animations.death.name'),
+        description: t('lab.entities.savanna_rhino.animations.death.description'),
         loopDurationSec: 2.4,
       },
     ],
     skins: [
       {
         id: 'rhino_savanna_classic',
-        nameHe: t('lab.entities.savanna_rhino.skins.rhino_savanna_classic.name'),
-        subtitleHe: t('lab.entities.savanna_rhino.skins.rhino_savanna_classic.subtitle'),
+        name: t('lab.entities.savanna_rhino.skins.rhino_savanna_classic.name'),
+        subtitle: t('lab.entities.savanna_rhino.skins.rhino_savanna_classic.subtitle'),
         badgeColors: ['#78716c', '#57534e', '#d6d3d1'],
         palette: {
           primaryHex: 0xffffff,
@@ -1685,8 +1685,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'rhino_desert_sand',
-        nameHe: t('lab.entities.savanna_rhino.skins.rhino_desert_sand.name'),
-        subtitleHe: t('lab.entities.savanna_rhino.skins.rhino_desert_sand.subtitle'),
+        name: t('lab.entities.savanna_rhino.skins.rhino_desert_sand.name'),
+        subtitle: t('lab.entities.savanna_rhino.skins.rhino_desert_sand.subtitle'),
         badgeColors: ['#a8a29e', '#78350f', '#fde68a'],
         palette: {
           primaryHex: 0xd6c7b2,
@@ -1696,8 +1696,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'rhino_obsidian_iron',
-        nameHe: t('lab.entities.savanna_rhino.skins.rhino_obsidian_iron.name'),
-        subtitleHe: t('lab.entities.savanna_rhino.skins.rhino_obsidian_iron.subtitle'),
+        name: t('lab.entities.savanna_rhino.skins.rhino_obsidian_iron.name'),
+        subtitle: t('lab.entities.savanna_rhino.skins.rhino_obsidian_iron.subtitle'),
         badgeColors: ['#3f3f46', '#18181b', '#a1a1aa'],
         palette: {
           primaryHex: 0x71717a,
@@ -1710,51 +1710,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'grazing_sheep',
-    nameHe: t('lab.entities.grazing_sheep.name'),
-    subtitleHe: t('lab.entities.grazing_sheep.subtitle'),
+    name: t('lab.entities.grazing_sheep.name'),
+    subtitle: t('lab.entities.grazing_sheep.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.grazing_sheep.category_label'),
-    worldLocationHe: t('lab.entities.grazing_sheep.world_location'),
+    categoryLabel: t('lab.entities.grazing_sheep.category_label'),
+    worldLocation: t('lab.entities.grazing_sheep.world_location'),
     worldCoordinatesText: `(${VALLEY_FARMS[0].x}, ${VALLEY_FARMS[0].z})`,
     worldInstanceCount: 5,
     sourceFile: 'src/world/models/farmhouseModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.grazing_sheep.description'),
     defaultCameraDistance: 2.5,
     defaultCameraTargetY: 0.55,
-    anatomyTagsHe: [t('lab.entities.grazing_sheep.anatomy_tags.0'), t('lab.entities.grazing_sheep.anatomy_tags.1'), t('lab.entities.grazing_sheep.anatomy_tags.2'), t('lab.entities.grazing_sheep.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.grazing_sheep.anatomy_tags.0'), t('lab.entities.grazing_sheep.anatomy_tags.1'), t('lab.entities.grazing_sheep.anatomy_tags.2'), t('lab.entities.grazing_sheep.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.grazing_sheep.animations.none.name'),
-        descriptionHe: t('lab.entities.grazing_sheep.animations.none.description'),
+        name: t('lab.entities.grazing_sheep.animations.none.name'),
+        description: t('lab.entities.grazing_sheep.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'sheep_graze_walk',
-        nameHe: t('lab.entities.grazing_sheep.animations.sheep_graze_walk.name'),
-        descriptionHe: t('lab.entities.grazing_sheep.animations.sheep_graze_walk.description'),
+        name: t('lab.entities.grazing_sheep.animations.sheep_graze_walk.name'),
+        description: t('lab.entities.grazing_sheep.animations.sheep_graze_walk.description'),
         loopDurationSec: 1.6,
       },
       {
         id: 'sheep_nibble',
-        nameHe: t('lab.entities.grazing_sheep.animations.sheep_nibble.name'),
-        descriptionHe: t('lab.entities.grazing_sheep.animations.sheep_nibble.description'),
+        name: t('lab.entities.grazing_sheep.animations.sheep_nibble.name'),
+        description: t('lab.entities.grazing_sheep.animations.sheep_nibble.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'sheep_joy_hop',
-        nameHe: t('lab.entities.grazing_sheep.animations.sheep_joy_hop.name'),
-        descriptionHe: t('lab.entities.grazing_sheep.animations.sheep_joy_hop.description'),
+        name: t('lab.entities.grazing_sheep.animations.sheep_joy_hop.name'),
+        description: t('lab.entities.grazing_sheep.animations.sheep_joy_hop.description'),
         loopDurationSec: 1.1,
       },
     ],
     skins: [
       {
         id: 'sheep_white_classic',
-        nameHe: t('lab.entities.grazing_sheep.skins.sheep_white_classic.name'),
-        subtitleHe: t('lab.entities.grazing_sheep.skins.sheep_white_classic.subtitle'),
+        name: t('lab.entities.grazing_sheep.skins.sheep_white_classic.name'),
+        subtitle: t('lab.entities.grazing_sheep.skins.sheep_white_classic.subtitle'),
         badgeColors: ['#f4f1ea', '#3a322c', '#d6d3d1'],
         palette: {
           primaryHex: 0xf4f1ea,
@@ -1764,8 +1764,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'sheep_black_highland',
-        nameHe: t('lab.entities.grazing_sheep.skins.sheep_black_highland.name'),
-        subtitleHe: t('lab.entities.grazing_sheep.skins.sheep_black_highland.subtitle'),
+        name: t('lab.entities.grazing_sheep.skins.sheep_black_highland.name'),
+        subtitle: t('lab.entities.grazing_sheep.skins.sheep_black_highland.subtitle'),
         badgeColors: ['#292524', '#1c1917', '#57534e'],
         palette: {
           primaryHex: 0x292524,
@@ -1775,8 +1775,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'sheep_golden_fleece',
-        nameHe: t('lab.entities.grazing_sheep.skins.sheep_golden_fleece.name'),
-        subtitleHe: t('lab.entities.grazing_sheep.skins.sheep_golden_fleece.subtitle'),
+        name: t('lab.entities.grazing_sheep.skins.sheep_golden_fleece.name'),
+        subtitle: t('lab.entities.grazing_sheep.skins.sheep_golden_fleece.subtitle'),
         badgeColors: ['#fef3c7', '#78350f', '#fbbf24'],
         palette: {
           primaryHex: 0xfde68a,
@@ -1789,51 +1789,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'forest_rabbit',
-    nameHe: t('lab.entities.forest_rabbit.name'),
-    subtitleHe: t('lab.entities.forest_rabbit.subtitle'),
+    name: t('lab.entities.forest_rabbit.name'),
+    subtitle: t('lab.entities.forest_rabbit.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.forest_rabbit.category_label'),
-    worldLocationHe: t('lab.entities.forest_rabbit.world_location'),
+    categoryLabel: t('lab.entities.forest_rabbit.category_label'),
+    worldLocation: t('lab.entities.forest_rabbit.world_location'),
     worldCoordinatesText: t('lab.entities.forest_rabbit.world_coordinates'),
     worldInstanceCount: 8,
     sourceFile: 'src/world/builders/wildlifeAndFootprintsBuilder.ts',
-    descriptionHe:
+    description:
       t('lab.entities.forest_rabbit.description'),
     defaultCameraDistance: 1.9,
     defaultCameraTargetY: 0.32,
-    anatomyTagsHe: [t('lab.entities.forest_rabbit.anatomy_tags.0'), t('lab.entities.forest_rabbit.anatomy_tags.1'), t('lab.entities.forest_rabbit.anatomy_tags.2'), t('lab.entities.forest_rabbit.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.forest_rabbit.anatomy_tags.0'), t('lab.entities.forest_rabbit.anatomy_tags.1'), t('lab.entities.forest_rabbit.anatomy_tags.2'), t('lab.entities.forest_rabbit.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.forest_rabbit.animations.none.name'),
-        descriptionHe: t('lab.entities.forest_rabbit.animations.none.description'),
+        name: t('lab.entities.forest_rabbit.animations.none.name'),
+        description: t('lab.entities.forest_rabbit.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'rabbit_sniff',
-        nameHe: t('lab.entities.forest_rabbit.animations.rabbit_sniff.name'),
-        descriptionHe: t('lab.entities.forest_rabbit.animations.rabbit_sniff.description'),
+        name: t('lab.entities.forest_rabbit.animations.rabbit_sniff.name'),
+        description: t('lab.entities.forest_rabbit.animations.rabbit_sniff.description'),
         loopDurationSec: 2.0,
       },
       {
         id: 'rabbit_alert',
-        nameHe: t('lab.entities.forest_rabbit.animations.rabbit_alert.name'),
-        descriptionHe: t('lab.entities.forest_rabbit.animations.rabbit_alert.description'),
+        name: t('lab.entities.forest_rabbit.animations.rabbit_alert.name'),
+        description: t('lab.entities.forest_rabbit.animations.rabbit_alert.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'rabbit_hop',
-        nameHe: t('lab.entities.forest_rabbit.animations.rabbit_hop.name'),
-        descriptionHe: t('lab.entities.forest_rabbit.animations.rabbit_hop.description'),
+        name: t('lab.entities.forest_rabbit.animations.rabbit_hop.name'),
+        description: t('lab.entities.forest_rabbit.animations.rabbit_hop.description'),
         loopDurationSec: 0.75,
       },
     ],
     skins: [
       {
         id: 'rabbit_wild_brown',
-        nameHe: t('lab.entities.forest_rabbit.skins.rabbit_wild_brown.name'),
-        subtitleHe: t('lab.entities.forest_rabbit.skins.rabbit_wild_brown.subtitle'),
+        name: t('lab.entities.forest_rabbit.skins.rabbit_wild_brown.name'),
+        subtitle: t('lab.entities.forest_rabbit.skins.rabbit_wild_brown.subtitle'),
         badgeColors: ['#8d7966', '#f7f4ef', '#4a3c31'],
         palette: {
           primaryHex: 0x8d7966,
@@ -1843,8 +1843,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'rabbit_snow_white',
-        nameHe: t('lab.entities.forest_rabbit.skins.rabbit_snow_white.name'),
-        subtitleHe: t('lab.entities.forest_rabbit.skins.rabbit_snow_white.subtitle'),
+        name: t('lab.entities.forest_rabbit.skins.rabbit_snow_white.name'),
+        subtitle: t('lab.entities.forest_rabbit.skins.rabbit_snow_white.subtitle'),
         badgeColors: ['#f8fafc', '#fda4af', '#e2e8f0'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -1854,8 +1854,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'rabbit_russet_fox',
-        nameHe: t('lab.entities.forest_rabbit.skins.rabbit_russet_fox.name'),
-        subtitleHe: t('lab.entities.forest_rabbit.skins.rabbit_russet_fox.subtitle'),
+        name: t('lab.entities.forest_rabbit.skins.rabbit_russet_fox.name'),
+        subtitle: t('lab.entities.forest_rabbit.skins.rabbit_russet_fox.subtitle'),
         badgeColors: ['#b45309', '#fef3c7', '#78350f'],
         palette: {
           primaryHex: 0xb45309,
@@ -1868,51 +1868,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'woodland_squirrel',
-    nameHe: t('lab.entities.woodland_squirrel.name'),
-    subtitleHe: t('lab.entities.woodland_squirrel.subtitle'),
+    name: t('lab.entities.woodland_squirrel.name'),
+    subtitle: t('lab.entities.woodland_squirrel.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.woodland_squirrel.category_label'),
-    worldLocationHe: t('lab.entities.woodland_squirrel.world_location'),
+    categoryLabel: t('lab.entities.woodland_squirrel.category_label'),
+    worldLocation: t('lab.entities.woodland_squirrel.world_location'),
     worldCoordinatesText: t('lab.entities.woodland_squirrel.world_coordinates'),
     worldInstanceCount: 14,
     sourceFile: 'src/world/models/environmentAtmosphereModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.woodland_squirrel.description'),
     defaultCameraDistance: 1.85,
     defaultCameraTargetY: 0.32,
-    anatomyTagsHe: [t('lab.entities.woodland_squirrel.anatomy_tags.0'), t('lab.entities.woodland_squirrel.anatomy_tags.1'), t('lab.entities.woodland_squirrel.anatomy_tags.2')],
+    anatomyTags: [t('lab.entities.woodland_squirrel.anatomy_tags.0'), t('lab.entities.woodland_squirrel.anatomy_tags.1'), t('lab.entities.woodland_squirrel.anatomy_tags.2')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.woodland_squirrel.animations.none.name'),
-        descriptionHe: t('lab.entities.woodland_squirrel.animations.none.description'),
+        name: t('lab.entities.woodland_squirrel.animations.none.name'),
+        description: t('lab.entities.woodland_squirrel.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'squirrel_tail_flick',
-        nameHe: t('lab.entities.woodland_squirrel.animations.squirrel_tail_flick.name'),
-        descriptionHe: t('lab.entities.woodland_squirrel.animations.squirrel_tail_flick.description'),
+        name: t('lab.entities.woodland_squirrel.animations.squirrel_tail_flick.name'),
+        description: t('lab.entities.woodland_squirrel.animations.squirrel_tail_flick.description'),
         loopDurationSec: 1.4,
       },
       {
         id: 'squirrel_forage_hop',
-        nameHe: t('lab.entities.woodland_squirrel.animations.squirrel_forage_hop.name'),
-        descriptionHe: t('lab.entities.woodland_squirrel.animations.squirrel_forage_hop.description'),
+        name: t('lab.entities.woodland_squirrel.animations.squirrel_forage_hop.name'),
+        description: t('lab.entities.woodland_squirrel.animations.squirrel_forage_hop.description'),
         loopDurationSec: 0.9,
       },
       {
         id: 'squirrel_spiral_climb',
-        nameHe: t('lab.entities.woodland_squirrel.animations.squirrel_spiral_climb.name'),
-        descriptionHe: t('lab.entities.woodland_squirrel.animations.squirrel_spiral_climb.description'),
+        name: t('lab.entities.woodland_squirrel.animations.squirrel_spiral_climb.name'),
+        description: t('lab.entities.woodland_squirrel.animations.squirrel_spiral_climb.description'),
         loopDurationSec: 1.8,
       },
     ],
     skins: [
       {
         id: 'squirrel_red_classic',
-        nameHe: t('lab.entities.woodland_squirrel.skins.squirrel_red_classic.name'),
-        subtitleHe: t('lab.entities.woodland_squirrel.skins.squirrel_red_classic.subtitle'),
+        name: t('lab.entities.woodland_squirrel.skins.squirrel_red_classic.name'),
+        subtitle: t('lab.entities.woodland_squirrel.skins.squirrel_red_classic.subtitle'),
         badgeColors: ['#8c4a27', '#7c2d12', '#d97706'],
         palette: {
           primaryHex: 0x8c4a27,
@@ -1922,8 +1922,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'squirrel_silver_gray',
-        nameHe: t('lab.entities.woodland_squirrel.skins.squirrel_silver_gray.name'),
-        subtitleHe: t('lab.entities.woodland_squirrel.skins.squirrel_silver_gray.subtitle'),
+        name: t('lab.entities.woodland_squirrel.skins.squirrel_silver_gray.name'),
+        subtitle: t('lab.entities.woodland_squirrel.skins.squirrel_silver_gray.subtitle'),
         badgeColors: ['#64748b', '#cbd5e1', '#334155'],
         palette: {
           primaryHex: 0x64748b,
@@ -1933,8 +1933,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'squirrel_dark_pine',
-        nameHe: t('lab.entities.woodland_squirrel.skins.squirrel_dark_pine.name'),
-        subtitleHe: t('lab.entities.woodland_squirrel.skins.squirrel_dark_pine.subtitle'),
+        name: t('lab.entities.woodland_squirrel.skins.squirrel_dark_pine.name'),
+        subtitle: t('lab.entities.woodland_squirrel.skins.squirrel_dark_pine.subtitle'),
         badgeColors: ['#3f2e21', '#1c1917', '#78350f'],
         palette: {
           primaryHex: 0x3f2e21,
@@ -1947,51 +1947,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'mountain_eagle',
-    nameHe: t('lab.entities.mountain_eagle.name'),
-    subtitleHe: t('lab.entities.mountain_eagle.subtitle'),
+    name: t('lab.entities.mountain_eagle.name'),
+    subtitle: t('lab.entities.mountain_eagle.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.mountain_eagle.category_label'),
-    worldLocationHe: t('lab.entities.mountain_eagle.world_location'),
+    categoryLabel: t('lab.entities.mountain_eagle.category_label'),
+    worldLocation: t('lab.entities.mountain_eagle.world_location'),
     worldCoordinatesText: t('lab.entities.mountain_eagle.world_coordinates'),
     worldInstanceCount: 1,
     sourceFile: 'src/world/builders/wildlifeAndFootprintsBuilder.ts',
-    descriptionHe:
+    description:
       t('lab.entities.mountain_eagle.description'),
     defaultCameraDistance: 3.6,
     defaultCameraTargetY: 0.85,
-    anatomyTagsHe: [t('lab.entities.mountain_eagle.anatomy_tags.0'), t('lab.entities.mountain_eagle.anatomy_tags.1'), t('lab.entities.mountain_eagle.anatomy_tags.2'), t('lab.entities.mountain_eagle.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.mountain_eagle.anatomy_tags.0'), t('lab.entities.mountain_eagle.anatomy_tags.1'), t('lab.entities.mountain_eagle.anatomy_tags.2'), t('lab.entities.mountain_eagle.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.mountain_eagle.animations.none.name'),
-        descriptionHe: t('lab.entities.mountain_eagle.animations.none.description'),
+        name: t('lab.entities.mountain_eagle.animations.none.name'),
+        description: t('lab.entities.mountain_eagle.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'eagle_soar',
-        nameHe: t('lab.entities.mountain_eagle.animations.eagle_soar.name'),
-        descriptionHe: t('lab.entities.mountain_eagle.animations.eagle_soar.description'),
+        name: t('lab.entities.mountain_eagle.animations.eagle_soar.name'),
+        description: t('lab.entities.mountain_eagle.animations.eagle_soar.description'),
         loopDurationSec: 2.2,
       },
       {
         id: 'eagle_dive',
-        nameHe: t('lab.entities.mountain_eagle.animations.eagle_dive.name'),
-        descriptionHe: t('lab.entities.mountain_eagle.animations.eagle_dive.description'),
+        name: t('lab.entities.mountain_eagle.animations.eagle_dive.name'),
+        description: t('lab.entities.mountain_eagle.animations.eagle_dive.description'),
         loopDurationSec: 1.6,
       },
       {
         id: 'eagle_power_flap',
-        nameHe: t('lab.entities.mountain_eagle.animations.eagle_power_flap.name'),
-        descriptionHe: t('lab.entities.mountain_eagle.animations.eagle_power_flap.description'),
+        name: t('lab.entities.mountain_eagle.animations.eagle_power_flap.name'),
+        description: t('lab.entities.mountain_eagle.animations.eagle_power_flap.description'),
         loopDurationSec: 1.1,
       },
     ],
     skins: [
       {
         id: 'eagle_golden_classic',
-        nameHe: t('lab.entities.mountain_eagle.skins.eagle_golden_classic.name'),
-        subtitleHe: t('lab.entities.mountain_eagle.skins.eagle_golden_classic.subtitle'),
+        name: t('lab.entities.mountain_eagle.skins.eagle_golden_classic.name'),
+        subtitle: t('lab.entities.mountain_eagle.skins.eagle_golden_classic.subtitle'),
         badgeColors: ['#3b2616', '#c8963e', '#eab308'],
         palette: {
           primaryHex: 0x3b2616,
@@ -2001,8 +2001,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'eagle_bald_white',
-        nameHe: t('lab.entities.mountain_eagle.skins.eagle_bald_white.name'),
-        subtitleHe: t('lab.entities.mountain_eagle.skins.eagle_bald_white.subtitle'),
+        name: t('lab.entities.mountain_eagle.skins.eagle_bald_white.name'),
+        subtitle: t('lab.entities.mountain_eagle.skins.eagle_bald_white.subtitle'),
         badgeColors: ['#27272a', '#f8fafc', '#f59e0b'],
         palette: {
           primaryHex: 0x27272a,
@@ -2012,8 +2012,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'eagle_desert_hawk',
-        nameHe: t('lab.entities.mountain_eagle.skins.eagle_desert_hawk.name'),
-        subtitleHe: t('lab.entities.mountain_eagle.skins.eagle_desert_hawk.subtitle'),
+        name: t('lab.entities.mountain_eagle.skins.eagle_desert_hawk.name'),
+        subtitle: t('lab.entities.mountain_eagle.skins.eagle_desert_hawk.subtitle'),
         badgeColors: ['#92400e', '#fcd34d', '#451a03'],
         palette: {
           primaryHex: 0x92400e,
@@ -2026,51 +2026,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'flock_bird',
-    nameHe: t('lab.entities.flock_bird.name'),
-    subtitleHe: t('lab.entities.flock_bird.subtitle'),
+    name: t('lab.entities.flock_bird.name'),
+    subtitle: t('lab.entities.flock_bird.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.flock_bird.category_label'),
-    worldLocationHe: t('lab.entities.flock_bird.world_location'),
+    categoryLabel: t('lab.entities.flock_bird.category_label'),
+    worldLocation: t('lab.entities.flock_bird.world_location'),
     worldCoordinatesText: t('lab.entities.flock_bird.world_coordinates'),
     worldInstanceCount: 52,
     sourceFile: 'src/world/systems/boidsAndWildlifeSystem.ts',
-    descriptionHe:
+    description:
       t('lab.entities.flock_bird.description'),
     defaultCameraDistance: 2.1,
     defaultCameraTargetY: 0.65,
-    anatomyTagsHe: [t('lab.entities.flock_bird.anatomy_tags.0'), t('lab.entities.flock_bird.anatomy_tags.1'), t('lab.entities.flock_bird.anatomy_tags.2'), t('lab.entities.flock_bird.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.flock_bird.anatomy_tags.0'), t('lab.entities.flock_bird.anatomy_tags.1'), t('lab.entities.flock_bird.anatomy_tags.2'), t('lab.entities.flock_bird.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.flock_bird.animations.none.name'),
-        descriptionHe: t('lab.entities.flock_bird.animations.none.description'),
+        name: t('lab.entities.flock_bird.animations.none.name'),
+        description: t('lab.entities.flock_bird.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'bird_cruise',
-        nameHe: t('lab.entities.flock_bird.animations.bird_cruise.name'),
-        descriptionHe: t('lab.entities.flock_bird.animations.bird_cruise.description'),
+        name: t('lab.entities.flock_bird.animations.bird_cruise.name'),
+        description: t('lab.entities.flock_bird.animations.bird_cruise.description'),
         loopDurationSec: 1.0,
       },
       {
         id: 'bird_startled',
-        nameHe: t('lab.entities.flock_bird.animations.bird_startled.name'),
-        descriptionHe: t('lab.entities.flock_bird.animations.bird_startled.description'),
+        name: t('lab.entities.flock_bird.animations.bird_startled.name'),
+        description: t('lab.entities.flock_bird.animations.bird_startled.description'),
         loopDurationSec: 0.55,
       },
       {
         id: 'bird_glide_bank',
-        nameHe: t('lab.entities.flock_bird.animations.bird_glide_bank.name'),
-        descriptionHe: t('lab.entities.flock_bird.animations.bird_glide_bank.description'),
+        name: t('lab.entities.flock_bird.animations.bird_glide_bank.name'),
+        description: t('lab.entities.flock_bird.animations.bird_glide_bank.description'),
         loopDurationSec: 2.4,
       },
     ],
     skins: [
       {
         id: 'bird_forest_swallow',
-        nameHe: t('lab.entities.flock_bird.skins.bird_forest_swallow.name'),
-        subtitleHe: t('lab.entities.flock_bird.skins.bird_forest_swallow.subtitle'),
+        name: t('lab.entities.flock_bird.skins.bird_forest_swallow.name'),
+        subtitle: t('lab.entities.flock_bird.skins.bird_forest_swallow.subtitle'),
         badgeColors: ['#3a4450', '#c8beae', '#d49b35'],
         palette: {
           primaryHex: 0x3a4450,
@@ -2080,8 +2080,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'bird_robin_redbreast',
-        nameHe: t('lab.entities.flock_bird.skins.bird_robin_redbreast.name'),
-        subtitleHe: t('lab.entities.flock_bird.skins.bird_robin_redbreast.subtitle'),
+        name: t('lab.entities.flock_bird.skins.bird_robin_redbreast.name'),
+        subtitle: t('lab.entities.flock_bird.skins.bird_robin_redbreast.subtitle'),
         badgeColors: ['#57534e', '#ea580c', '#fbbf24'],
         palette: {
           primaryHex: 0x57534e,
@@ -2091,8 +2091,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'bird_azure_kingfisher',
-        nameHe: t('lab.entities.flock_bird.skins.bird_azure_kingfisher.name'),
-        subtitleHe: t('lab.entities.flock_bird.skins.bird_azure_kingfisher.subtitle'),
+        name: t('lab.entities.flock_bird.skins.bird_azure_kingfisher.name'),
+        subtitle: t('lab.entities.flock_bird.skins.bird_azure_kingfisher.subtitle'),
         badgeColors: ['#0284c7', '#f59e0b', '#e0f2fe'],
         palette: {
           primaryHex: 0x0284c7,
@@ -2105,51 +2105,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'harbor_seagull',
-    nameHe: t('lab.entities.harbor_seagull.name'),
-    subtitleHe: t('lab.entities.harbor_seagull.subtitle'),
+    name: t('lab.entities.harbor_seagull.name'),
+    subtitle: t('lab.entities.harbor_seagull.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.harbor_seagull.category_label'),
-    worldLocationHe: t('lab.entities.harbor_seagull.world_location'),
+    categoryLabel: t('lab.entities.harbor_seagull.category_label'),
+    worldLocation: t('lab.entities.harbor_seagull.world_location'),
     worldCoordinatesText: `(${SOUTHEAST_HARBOR_POS.x}, ${SOUTHEAST_HARBOR_POS.z})`,
     worldInstanceCount: 10,
     sourceFile: 'src/world/models/harborModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.harbor_seagull.description'),
     defaultCameraDistance: 2.75,
     defaultCameraTargetY: 0.68,
-    anatomyTagsHe: [t('lab.entities.harbor_seagull.anatomy_tags.0'), t('lab.entities.harbor_seagull.anatomy_tags.1'), t('lab.entities.harbor_seagull.anatomy_tags.2'), t('lab.entities.harbor_seagull.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.harbor_seagull.anatomy_tags.0'), t('lab.entities.harbor_seagull.anatomy_tags.1'), t('lab.entities.harbor_seagull.anatomy_tags.2'), t('lab.entities.harbor_seagull.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.harbor_seagull.animations.none.name'),
-        descriptionHe: t('lab.entities.harbor_seagull.animations.none.description'),
+        name: t('lab.entities.harbor_seagull.animations.none.name'),
+        description: t('lab.entities.harbor_seagull.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'seagull_harbor_soar',
-        nameHe: t('lab.entities.harbor_seagull.animations.seagull_harbor_soar.name'),
-        descriptionHe: t('lab.entities.harbor_seagull.animations.seagull_harbor_soar.description'),
+        name: t('lab.entities.harbor_seagull.animations.seagull_harbor_soar.name'),
+        description: t('lab.entities.harbor_seagull.animations.seagull_harbor_soar.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'seagull_wave_skim',
-        nameHe: t('lab.entities.harbor_seagull.animations.seagull_wave_skim.name'),
-        descriptionHe: t('lab.entities.harbor_seagull.animations.seagull_wave_skim.description'),
+        name: t('lab.entities.harbor_seagull.animations.seagull_wave_skim.name'),
+        description: t('lab.entities.harbor_seagull.animations.seagull_wave_skim.description'),
         loopDurationSec: 2.2,
       },
       {
         id: 'seagull_fish_dive',
-        nameHe: t('lab.entities.harbor_seagull.animations.seagull_fish_dive.name'),
-        descriptionHe: t('lab.entities.harbor_seagull.animations.seagull_fish_dive.description'),
+        name: t('lab.entities.harbor_seagull.animations.seagull_fish_dive.name'),
+        description: t('lab.entities.harbor_seagull.animations.seagull_fish_dive.description'),
         loopDurationSec: 1.4,
       },
     ],
     skins: [
       {
         id: 'seagull_coastal_classic',
-        nameHe: t('lab.entities.harbor_seagull.skins.seagull_coastal_classic.name'),
-        subtitleHe: t('lab.entities.harbor_seagull.skins.seagull_coastal_classic.subtitle'),
+        name: t('lab.entities.harbor_seagull.skins.seagull_coastal_classic.name'),
+        subtitle: t('lab.entities.harbor_seagull.skins.seagull_coastal_classic.subtitle'),
         badgeColors: ['#f8fafc', '#94a3b8', '#eab308'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -2160,8 +2160,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'seagull_black_backed',
-        nameHe: t('lab.entities.harbor_seagull.skins.seagull_black_backed.name'),
-        subtitleHe: t('lab.entities.harbor_seagull.skins.seagull_black_backed.subtitle'),
+        name: t('lab.entities.harbor_seagull.skins.seagull_black_backed.name'),
+        subtitle: t('lab.entities.harbor_seagull.skins.seagull_black_backed.subtitle'),
         badgeColors: ['#334155', '#f8fafc', '#f59e0b'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -2172,8 +2172,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'seagull_golden_sunset',
-        nameHe: t('lab.entities.harbor_seagull.skins.seagull_golden_sunset.name'),
-        subtitleHe: t('lab.entities.harbor_seagull.skins.seagull_golden_sunset.subtitle'),
+        name: t('lab.entities.harbor_seagull.skins.seagull_golden_sunset.name'),
+        subtitle: t('lab.entities.harbor_seagull.skins.seagull_golden_sunset.subtitle'),
         badgeColors: ['#fef3c7', '#cbd5e1', '#ea580c'],
         palette: {
           primaryHex: 0xfef3c7,
@@ -2187,51 +2187,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'koi_fish',
-    nameHe: t('lab.entities.koi_fish.name'),
-    subtitleHe: t('lab.entities.koi_fish.subtitle'),
+    name: t('lab.entities.koi_fish.name'),
+    subtitle: t('lab.entities.koi_fish.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.koi_fish.category_label'),
-    worldLocationHe: t('lab.entities.koi_fish.world_location'),
+    categoryLabel: t('lab.entities.koi_fish.category_label'),
+    worldLocation: t('lab.entities.koi_fish.world_location'),
     worldCoordinatesText: `(${LAKESIDE_TEA_PAVILION_POS.x}, ${LAKESIDE_TEA_PAVILION_POS.z})`,
     worldInstanceCount: 12,
     sourceFile: 'src/world/models/settlementModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.koi_fish.description'),
     defaultCameraDistance: 2.65,
     defaultCameraTargetY: 0.42,
-    anatomyTagsHe: [t('lab.entities.koi_fish.anatomy_tags.0'), t('lab.entities.koi_fish.anatomy_tags.1'), t('lab.entities.koi_fish.anatomy_tags.2'), t('lab.entities.koi_fish.anatomy_tags.3'), t('lab.entities.koi_fish.anatomy_tags.4')],
+    anatomyTags: [t('lab.entities.koi_fish.anatomy_tags.0'), t('lab.entities.koi_fish.anatomy_tags.1'), t('lab.entities.koi_fish.anatomy_tags.2'), t('lab.entities.koi_fish.anatomy_tags.3'), t('lab.entities.koi_fish.anatomy_tags.4')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.koi_fish.animations.none.name'),
-        descriptionHe: t('lab.entities.koi_fish.animations.none.description'),
+        name: t('lab.entities.koi_fish.animations.none.name'),
+        description: t('lab.entities.koi_fish.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'koi_pond_swim',
-        nameHe: t('lab.entities.koi_fish.animations.koi_pond_swim.name'),
-        descriptionHe: t('lab.entities.koi_fish.animations.koi_pond_swim.description'),
+        name: t('lab.entities.koi_fish.animations.koi_pond_swim.name'),
+        description: t('lab.entities.koi_fish.animations.koi_pond_swim.description'),
         loopDurationSec: 1.8,
       },
       {
         id: 'koi_fast_dart',
-        nameHe: t('lab.entities.koi_fish.animations.koi_fast_dart.name'),
-        descriptionHe: t('lab.entities.koi_fish.animations.koi_fast_dart.description'),
+        name: t('lab.entities.koi_fish.animations.koi_fast_dart.name'),
+        description: t('lab.entities.koi_fish.animations.koi_fast_dart.description'),
         loopDurationSec: 0.9,
       },
       {
         id: 'koi_surface_feed',
-        nameHe: t('lab.entities.koi_fish.animations.koi_surface_feed.name'),
-        descriptionHe: t('lab.entities.koi_fish.animations.koi_surface_feed.description'),
+        name: t('lab.entities.koi_fish.animations.koi_surface_feed.name'),
+        description: t('lab.entities.koi_fish.animations.koi_surface_feed.description'),
         loopDurationSec: 2.2,
       },
     ],
     skins: [
       {
         id: 'koi_imperial_gold',
-        nameHe: t('lab.entities.koi_fish.skins.koi_imperial_gold.name'),
-        subtitleHe: t('lab.entities.koi_fish.skins.koi_imperial_gold.subtitle'),
+        name: t('lab.entities.koi_fish.skins.koi_imperial_gold.name'),
+        subtitle: t('lab.entities.koi_fish.skins.koi_imperial_gold.subtitle'),
         badgeColors: ['#ff6b2b', '#fbbf24', '#fffbeb'],
         palette: {
           primaryHex: 0xff6b2b,
@@ -2241,8 +2241,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'koi_kohaku_crimson',
-        nameHe: t('lab.entities.koi_fish.skins.koi_kohaku_crimson.name'),
-        subtitleHe: t('lab.entities.koi_fish.skins.koi_kohaku_crimson.subtitle'),
+        name: t('lab.entities.koi_fish.skins.koi_kohaku_crimson.name'),
+        subtitle: t('lab.entities.koi_fish.skins.koi_kohaku_crimson.subtitle'),
         badgeColors: ['#f8fafc', '#dc2626', '#fca5a5'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -2252,8 +2252,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'koi_sapphire_asagi',
-        nameHe: t('lab.entities.koi_fish.skins.koi_sapphire_asagi.name'),
-        subtitleHe: t('lab.entities.koi_fish.skins.koi_sapphire_asagi.subtitle'),
+        name: t('lab.entities.koi_fish.skins.koi_sapphire_asagi.name'),
+        subtitle: t('lab.entities.koi_fish.skins.koi_sapphire_asagi.subtitle'),
         badgeColors: ['#0284c7', '#e0f2fe', '#38bdf8'],
         palette: {
           primaryHex: 0x0284c7,
@@ -2263,8 +2263,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'koi_ogon_platinum',
-        nameHe: t('lab.entities.koi_fish.skins.koi_ogon_platinum.name'),
-        subtitleHe: t('lab.entities.koi_fish.skins.koi_ogon_platinum.subtitle'),
+        name: t('lab.entities.koi_fish.skins.koi_ogon_platinum.name'),
+        subtitle: t('lab.entities.koi_fish.skins.koi_ogon_platinum.subtitle'),
         badgeColors: ['#facc15', '#fef08a', '#d97706'],
         palette: {
           primaryHex: 0xfacc15,
@@ -2277,51 +2277,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'meadow_butterfly',
-    nameHe: t('lab.entities.meadow_butterfly.name'),
-    subtitleHe: t('lab.entities.meadow_butterfly.subtitle'),
+    name: t('lab.entities.meadow_butterfly.name'),
+    subtitle: t('lab.entities.meadow_butterfly.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.meadow_butterfly.category_label'),
-    worldLocationHe: t('lab.entities.meadow_butterfly.world_location'),
+    categoryLabel: t('lab.entities.meadow_butterfly.category_label'),
+    worldLocation: t('lab.entities.meadow_butterfly.world_location'),
     worldCoordinatesText: t('lab.entities.meadow_butterfly.world_coordinates'),
     worldInstanceCount: 18,
     sourceFile: 'src/world/models/environmentAtmosphereModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.meadow_butterfly.description'),
     defaultCameraDistance: 2.45,
     defaultCameraTargetY: 0.52,
-    anatomyTagsHe: [t('lab.entities.meadow_butterfly.anatomy_tags.0'), t('lab.entities.meadow_butterfly.anatomy_tags.1'), t('lab.entities.meadow_butterfly.anatomy_tags.2'), t('lab.entities.meadow_butterfly.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.meadow_butterfly.anatomy_tags.0'), t('lab.entities.meadow_butterfly.anatomy_tags.1'), t('lab.entities.meadow_butterfly.anatomy_tags.2'), t('lab.entities.meadow_butterfly.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.meadow_butterfly.animations.none.name'),
-        descriptionHe: t('lab.entities.meadow_butterfly.animations.none.description'),
+        name: t('lab.entities.meadow_butterfly.animations.none.name'),
+        description: t('lab.entities.meadow_butterfly.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'butterfly_meadow_flutter',
-        nameHe: t('lab.entities.meadow_butterfly.animations.butterfly_meadow_flutter.name'),
-        descriptionHe: t('lab.entities.meadow_butterfly.animations.butterfly_meadow_flutter.description'),
+        name: t('lab.entities.meadow_butterfly.animations.butterfly_meadow_flutter.name'),
+        description: t('lab.entities.meadow_butterfly.animations.butterfly_meadow_flutter.description'),
         loopDurationSec: 1.2,
       },
       {
         id: 'butterfly_flower_bask',
-        nameHe: t('lab.entities.meadow_butterfly.animations.butterfly_flower_bask.name'),
-        descriptionHe: t('lab.entities.meadow_butterfly.animations.butterfly_flower_bask.description'),
+        name: t('lab.entities.meadow_butterfly.animations.butterfly_flower_bask.name'),
+        description: t('lab.entities.meadow_butterfly.animations.butterfly_flower_bask.description'),
         loopDurationSec: 2.6,
       },
       {
         id: 'butterfly_spiral_dance',
-        nameHe: t('lab.entities.meadow_butterfly.animations.butterfly_spiral_dance.name'),
-        descriptionHe: t('lab.entities.meadow_butterfly.animations.butterfly_spiral_dance.description'),
+        name: t('lab.entities.meadow_butterfly.animations.butterfly_spiral_dance.name'),
+        description: t('lab.entities.meadow_butterfly.animations.butterfly_spiral_dance.description'),
         loopDurationSec: 1.8,
       },
     ],
     skins: [
       {
         id: 'butterfly_morpho_cyan',
-        nameHe: t('lab.entities.meadow_butterfly.skins.butterfly_morpho_cyan.name'),
-        subtitleHe: t('lab.entities.meadow_butterfly.skins.butterfly_morpho_cyan.subtitle'),
+        name: t('lab.entities.meadow_butterfly.skins.butterfly_morpho_cyan.name'),
+        subtitle: t('lab.entities.meadow_butterfly.skins.butterfly_morpho_cyan.subtitle'),
         badgeColors: ['#06b6d4', '#67e8f9', '#0f172a'],
         palette: {
           primaryHex: 0x06b6d4,
@@ -2332,8 +2332,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'butterfly_monarch_amber',
-        nameHe: t('lab.entities.meadow_butterfly.skins.butterfly_monarch_amber.name'),
-        subtitleHe: t('lab.entities.meadow_butterfly.skins.butterfly_monarch_amber.subtitle'),
+        name: t('lab.entities.meadow_butterfly.skins.butterfly_monarch_amber.name'),
+        subtitle: t('lab.entities.meadow_butterfly.skins.butterfly_monarch_amber.subtitle'),
         badgeColors: ['#f97316', '#fbbf24', '#1c1917'],
         palette: {
           primaryHex: 0xf97316,
@@ -2344,8 +2344,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'butterfly_sakura_pink',
-        nameHe: t('lab.entities.meadow_butterfly.skins.butterfly_sakura_pink.name'),
-        subtitleHe: t('lab.entities.meadow_butterfly.skins.butterfly_sakura_pink.subtitle'),
+        name: t('lab.entities.meadow_butterfly.skins.butterfly_sakura_pink.name'),
+        subtitle: t('lab.entities.meadow_butterfly.skins.butterfly_sakura_pink.subtitle'),
         badgeColors: ['#ec4899', '#fbcfe8', '#500724'],
         palette: {
           primaryHex: 0xec4899,
@@ -2356,8 +2356,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'butterfly_swallowtail_gold',
-        nameHe: t('lab.entities.meadow_butterfly.skins.butterfly_swallowtail_gold.name'),
-        subtitleHe: t('lab.entities.meadow_butterfly.skins.butterfly_swallowtail_gold.subtitle'),
+        name: t('lab.entities.meadow_butterfly.skins.butterfly_swallowtail_gold.name'),
+        subtitle: t('lab.entities.meadow_butterfly.skins.butterfly_swallowtail_gold.subtitle'),
         badgeColors: ['#eab308', '#34d399', '#1e293b'],
         palette: {
           primaryHex: 0xeab308,
@@ -2371,51 +2371,51 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'imperial_sky_dragon',
-    nameHe: t('lab.entities.imperial_sky_dragon.name'),
-    subtitleHe: t('lab.entities.imperial_sky_dragon.subtitle'),
+    name: t('lab.entities.imperial_sky_dragon.name'),
+    subtitle: t('lab.entities.imperial_sky_dragon.subtitle'),
     category: 'animals',
-    categoryLabelHe: t('lab.entities.imperial_sky_dragon.category_label'),
-    worldLocationHe: t('lab.entities.imperial_sky_dragon.world_location'),
+    categoryLabel: t('lab.entities.imperial_sky_dragon.category_label'),
+    worldLocation: t('lab.entities.imperial_sky_dragon.world_location'),
     worldCoordinatesText: t('lab.entities.imperial_sky_dragon.world_coordinates'),
     worldInstanceCount: 1,
     sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.imperial_sky_dragon.description'),
     defaultCameraDistance: 6.2,
     defaultCameraTargetY: 1.2,
-    anatomyTagsHe: [t('lab.entities.imperial_sky_dragon.anatomy_tags.0'), t('lab.entities.imperial_sky_dragon.anatomy_tags.1'), t('lab.entities.imperial_sky_dragon.anatomy_tags.2'), t('lab.entities.imperial_sky_dragon.anatomy_tags.3'), t('lab.entities.imperial_sky_dragon.anatomy_tags.4')],
+    anatomyTags: [t('lab.entities.imperial_sky_dragon.anatomy_tags.0'), t('lab.entities.imperial_sky_dragon.anatomy_tags.1'), t('lab.entities.imperial_sky_dragon.anatomy_tags.2'), t('lab.entities.imperial_sky_dragon.anatomy_tags.3'), t('lab.entities.imperial_sky_dragon.anatomy_tags.4')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.imperial_sky_dragon.animations.none.name'),
-        descriptionHe: t('lab.entities.imperial_sky_dragon.animations.none.description'),
+        name: t('lab.entities.imperial_sky_dragon.animations.none.name'),
+        description: t('lab.entities.imperial_sky_dragon.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'dragon_sky_flight',
-        nameHe: t('lab.entities.imperial_sky_dragon.animations.dragon_sky_flight.name'),
-        descriptionHe: t('lab.entities.imperial_sky_dragon.animations.dragon_sky_flight.description'),
+        name: t('lab.entities.imperial_sky_dragon.animations.dragon_sky_flight.name'),
+        description: t('lab.entities.imperial_sky_dragon.animations.dragon_sky_flight.description'),
         loopDurationSec: 2.6,
       },
       {
         id: 'dragon_coiled_hover',
-        nameHe: t('lab.entities.imperial_sky_dragon.animations.dragon_coiled_hover.name'),
-        descriptionHe: t('lab.entities.imperial_sky_dragon.animations.dragon_coiled_hover.description'),
+        name: t('lab.entities.imperial_sky_dragon.animations.dragon_coiled_hover.name'),
+        description: t('lab.entities.imperial_sky_dragon.animations.dragon_coiled_hover.description'),
         loopDurationSec: 3.2,
       },
       {
         id: 'dragon_roar_surge',
-        nameHe: t('lab.entities.imperial_sky_dragon.animations.dragon_roar_surge.name'),
-        descriptionHe: t('lab.entities.imperial_sky_dragon.animations.dragon_roar_surge.description'),
+        name: t('lab.entities.imperial_sky_dragon.animations.dragon_roar_surge.name'),
+        description: t('lab.entities.imperial_sky_dragon.animations.dragon_roar_surge.description'),
         loopDurationSec: 1.8,
       },
     ],
     skins: [
       {
         id: 'dragon_imperial_gold',
-        nameHe: t('lab.entities.imperial_sky_dragon.skins.dragon_imperial_gold.name'),
-        subtitleHe: t('lab.entities.imperial_sky_dragon.skins.dragon_imperial_gold.subtitle'),
+        name: t('lab.entities.imperial_sky_dragon.skins.dragon_imperial_gold.name'),
+        subtitle: t('lab.entities.imperial_sky_dragon.skins.dragon_imperial_gold.subtitle'),
         badgeColors: ['#d4af37', '#991b1b', '#ff3311'],
         palette: {
           primaryHex: 0xd4af37,
@@ -2426,8 +2426,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'dragon_celestial_jade',
-        nameHe: t('lab.entities.imperial_sky_dragon.skins.dragon_celestial_jade.name'),
-        subtitleHe: t('lab.entities.imperial_sky_dragon.skins.dragon_celestial_jade.subtitle'),
+        name: t('lab.entities.imperial_sky_dragon.skins.dragon_celestial_jade.name'),
+        subtitle: t('lab.entities.imperial_sky_dragon.skins.dragon_celestial_jade.subtitle'),
         badgeColors: ['#10b981', '#047857', '#fbbf24'],
         palette: {
           primaryHex: 0x10b981,
@@ -2438,8 +2438,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'dragon_obsidian_amethyst',
-        nameHe: t('lab.entities.imperial_sky_dragon.skins.dragon_obsidian_amethyst.name'),
-        subtitleHe: t('lab.entities.imperial_sky_dragon.skins.dragon_obsidian_amethyst.subtitle'),
+        name: t('lab.entities.imperial_sky_dragon.skins.dragon_obsidian_amethyst.name'),
+        subtitle: t('lab.entities.imperial_sky_dragon.skins.dragon_obsidian_amethyst.subtitle'),
         badgeColors: ['#1e1b4b', '#a855f7', '#e879f9'],
         palette: {
           primaryHex: 0x312e81,
@@ -2452,49 +2452,49 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
   },
 
   // ==========================================================================
-  // GUARDIAN CHARACTERS & MONUMENTS (דמויות שומרים ופסלים)
+  // GUARDIAN CHARACTERS & MONUMENTS
   // ==========================================================================
   {
     id: 'dwarven_king_statue',
-    nameHe: t('lab.entities.dwarven_king_statue.name'),
-    subtitleHe: t('lab.entities.dwarven_king_statue.subtitle'),
+    name: t('lab.entities.dwarven_king_statue.name'),
+    subtitle: t('lab.entities.dwarven_king_statue.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.dwarven_king_statue.category_label'),
-    worldLocationHe: t('lab.entities.dwarven_king_statue.world_location'),
+    categoryLabel: t('lab.entities.dwarven_king_statue.category_label'),
+    worldLocation: t('lab.entities.dwarven_king_statue.world_location'),
     worldCoordinatesText: `(${SOUTHERN_MINE_POS.x}, ${SOUTHERN_MINE_POS.entranceZ - 14})`,
     worldInstanceCount: DWARVEN_GUARDIAN_STATUES.length,
     sourceFile: 'src/world/builders/dwarvenKingdomBuilder.ts',
-    descriptionHe:
+    description:
       t('lab.entities.dwarven_king_statue.description'),
     defaultCameraDistance: 4.8,
     defaultCameraTargetY: 1.35,
-    anatomyTagsHe: [t('lab.entities.dwarven_king_statue.anatomy_tags.0'), t('lab.entities.dwarven_king_statue.anatomy_tags.1'), t('lab.entities.dwarven_king_statue.anatomy_tags.2'), t('lab.entities.dwarven_king_statue.anatomy_tags.3'), t('lab.entities.dwarven_king_statue.anatomy_tags.4')],
+    anatomyTags: [t('lab.entities.dwarven_king_statue.anatomy_tags.0'), t('lab.entities.dwarven_king_statue.anatomy_tags.1'), t('lab.entities.dwarven_king_statue.anatomy_tags.2'), t('lab.entities.dwarven_king_statue.anatomy_tags.3'), t('lab.entities.dwarven_king_statue.anatomy_tags.4')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.dwarven_king_statue.animations.none.name'),
-        descriptionHe: t('lab.entities.dwarven_king_statue.animations.none.description'),
+        name: t('lab.entities.dwarven_king_statue.animations.none.name'),
+        description: t('lab.entities.dwarven_king_statue.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'statue_lantern_pulse',
-        nameHe: t('lab.entities.dwarven_king_statue.animations.statue_lantern_pulse.name'),
-        descriptionHe: t('lab.entities.dwarven_king_statue.animations.statue_lantern_pulse.description'),
+        name: t('lab.entities.dwarven_king_statue.animations.statue_lantern_pulse.name'),
+        description: t('lab.entities.dwarven_king_statue.animations.statue_lantern_pulse.description'),
         loopDurationSec: 3.0,
       },
       {
         id: 'statue_awakened_guard',
-        nameHe: t('lab.entities.dwarven_king_statue.animations.statue_awakened_guard.name'),
-        descriptionHe: t('lab.entities.dwarven_king_statue.animations.statue_awakened_guard.description'),
+        name: t('lab.entities.dwarven_king_statue.animations.statue_awakened_guard.name'),
+        description: t('lab.entities.dwarven_king_statue.animations.statue_awakened_guard.description'),
         loopDurationSec: 2.6,
       },
     ],
     skins: [
       {
         id: 'statue_granite_bronze',
-        nameHe: t('lab.entities.dwarven_king_statue.skins.statue_granite_bronze.name'),
-        subtitleHe: t('lab.entities.dwarven_king_statue.skins.statue_granite_bronze.subtitle'),
+        name: t('lab.entities.dwarven_king_statue.skins.statue_granite_bronze.name'),
+        subtitle: t('lab.entities.dwarven_king_statue.skins.statue_granite_bronze.subtitle'),
         badgeColors: ['#6e6a64', '#9c6631', '#d4af37'],
         palette: {
           primaryHex: 0x6e6a64,
@@ -2505,8 +2505,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'statue_solid_gold',
-        nameHe: t('lab.entities.dwarven_king_statue.skins.statue_solid_gold.name'),
-        subtitleHe: t('lab.entities.dwarven_king_statue.skins.statue_solid_gold.subtitle'),
+        name: t('lab.entities.dwarven_king_statue.skins.statue_solid_gold.name'),
+        subtitle: t('lab.entities.dwarven_king_statue.skins.statue_solid_gold.subtitle'),
         badgeColors: ['#d4af37', '#b45309', '#ef4444'],
         palette: {
           primaryHex: 0xd4af37,
@@ -2517,8 +2517,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'statue_basalt_emerald',
-        nameHe: t('lab.entities.dwarven_king_statue.skins.statue_basalt_emerald.name'),
-        subtitleHe: t('lab.entities.dwarven_king_statue.skins.statue_basalt_emerald.subtitle'),
+        name: t('lab.entities.dwarven_king_statue.skins.statue_basalt_emerald.name'),
+        subtitle: t('lab.entities.dwarven_king_statue.skins.statue_basalt_emerald.subtitle'),
         badgeColors: ['#1e293b', '#0f172a', '#10b981'],
         palette: {
           primaryHex: 0x1e293b,
@@ -2532,45 +2532,45 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
 
   {
     id: 'golden_buddha',
-    nameHe: t('lab.entities.golden_buddha.name'),
-    subtitleHe: t('lab.entities.golden_buddha.subtitle'),
+    name: t('lab.entities.golden_buddha.name'),
+    subtitle: t('lab.entities.golden_buddha.subtitle'),
     category: 'characters',
-    categoryLabelHe: t('lab.entities.golden_buddha.category_label'),
-    worldLocationHe: t('lab.entities.golden_buddha.world_location'),
+    categoryLabel: t('lab.entities.golden_buddha.category_label'),
+    worldLocation: t('lab.entities.golden_buddha.world_location'),
     worldCoordinatesText: `(${SAKURA_SANCTUARY_POS.x}, ${SAKURA_SANCTUARY_POS.z})`,
     worldInstanceCount: 1,
     sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
-    descriptionHe:
+    description:
       t('lab.entities.golden_buddha.description'),
     defaultCameraDistance: 4.8,
     defaultCameraTargetY: 1.3,
-    anatomyTagsHe: [t('lab.entities.golden_buddha.anatomy_tags.0'), t('lab.entities.golden_buddha.anatomy_tags.1'), t('lab.entities.golden_buddha.anatomy_tags.2'), t('lab.entities.golden_buddha.anatomy_tags.3')],
+    anatomyTags: [t('lab.entities.golden_buddha.anatomy_tags.0'), t('lab.entities.golden_buddha.anatomy_tags.1'), t('lab.entities.golden_buddha.anatomy_tags.2'), t('lab.entities.golden_buddha.anatomy_tags.3')],
     animations: [
       {
         id: 'none',
-        nameHe: t('lab.entities.golden_buddha.animations.none.name'),
-        descriptionHe: t('lab.entities.golden_buddha.animations.none.description'),
+        name: t('lab.entities.golden_buddha.animations.none.name'),
+        description: t('lab.entities.golden_buddha.animations.none.description'),
         isStaticDefault: true,
         loopDurationSec: 1,
       },
       {
         id: 'buddha_halo_spin',
-        nameHe: t('lab.entities.golden_buddha.animations.buddha_halo_spin.name'),
-        descriptionHe: t('lab.entities.golden_buddha.animations.buddha_halo_spin.description'),
+        name: t('lab.entities.golden_buddha.animations.buddha_halo_spin.name'),
+        description: t('lab.entities.golden_buddha.animations.buddha_halo_spin.description'),
         loopDurationSec: 4.0,
       },
       {
         id: 'buddha_levitation',
-        nameHe: t('lab.entities.golden_buddha.animations.buddha_levitation.name'),
-        descriptionHe: t('lab.entities.golden_buddha.animations.buddha_levitation.description'),
+        name: t('lab.entities.golden_buddha.animations.buddha_levitation.name'),
+        description: t('lab.entities.golden_buddha.animations.buddha_levitation.description'),
         loopDurationSec: 3.6,
       },
     ],
     skins: [
       {
         id: 'buddha_imperial_gold',
-        nameHe: t('lab.entities.golden_buddha.skins.buddha_imperial_gold.name'),
-        subtitleHe: t('lab.entities.golden_buddha.skins.buddha_imperial_gold.subtitle'),
+        name: t('lab.entities.golden_buddha.skins.buddha_imperial_gold.name'),
+        subtitle: t('lab.entities.golden_buddha.skins.buddha_imperial_gold.subtitle'),
         badgeColors: ['#d4af37', '#991b1b', '#f8fafc'],
         palette: {
           primaryHex: 0xd4af37,
@@ -2581,8 +2581,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'buddha_sacred_jade',
-        nameHe: t('lab.entities.golden_buddha.skins.buddha_sacred_jade.name'),
-        subtitleHe: t('lab.entities.golden_buddha.skins.buddha_sacred_jade.subtitle'),
+        name: t('lab.entities.golden_buddha.skins.buddha_sacred_jade.name'),
+        subtitle: t('lab.entities.golden_buddha.skins.buddha_sacred_jade.subtitle'),
         badgeColors: ['#059669', '#d4af37', '#ecfdf5'],
         palette: {
           primaryHex: 0x059669,
@@ -2593,8 +2593,8 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
       },
       {
         id: 'buddha_white_marble',
-        nameHe: t('lab.entities.golden_buddha.skins.buddha_white_marble.name'),
-        subtitleHe: t('lab.entities.golden_buddha.skins.buddha_white_marble.subtitle'),
+        name: t('lab.entities.golden_buddha.skins.buddha_white_marble.name'),
+        subtitle: t('lab.entities.golden_buddha.skins.buddha_white_marble.subtitle'),
         badgeColors: ['#f8fafc', '#38bdf8', '#1e3a8a'],
         palette: {
           primaryHex: 0xf8fafc,
@@ -2643,7 +2643,7 @@ export function getLabSkinForEntity(
 }
 
 /**
- * Summary: Filters entities by category ('all' | 'characters' | 'animals') and Hebrew/English search query.
+ * Summary: Filters entities by category ('all' | 'characters' | 'animals') and a search query.
  */
 export function filterLabEntities(
   entities: readonly ILabEntityDef[],
@@ -2657,10 +2657,10 @@ export function filterLabEntities(
     }
     if (!q) return true;
     return (
-      entity.nameHe.toLowerCase().includes(q) ||
-      entity.subtitleHe.toLowerCase().includes(q) ||
-      entity.worldLocationHe.toLowerCase().includes(q) ||
-      entity.anatomyTagsHe.some((t) => t.toLowerCase().includes(q)) ||
+      entity.name.toLowerCase().includes(q) ||
+      entity.subtitle.toLowerCase().includes(q) ||
+      entity.worldLocation.toLowerCase().includes(q) ||
+      entity.anatomyTags.some((t) => t.toLowerCase().includes(q)) ||
       entity.id.toLowerCase().includes(q)
     );
   });
@@ -2711,7 +2711,7 @@ export function selectLabEntity(
 }
 
 /**
- * Summary: Switches between 'all', 'characters' (דמויות), and 'animals' (חיות) categories,
+ * Summary: Switches between 'all', 'characters', and 'animals' categories,
  *          automatically selecting the first entity of that category in static 'none' pose
  *          if the currently active entity belongs to another category.
  */
@@ -2826,139 +2826,139 @@ export function countActivePoseOverrides(overrides: ILabPoseOverrides): number {
 }
 
 /**
- * Summary: Returns context-aware Hebrew labels for the entity's editable right-hand weapon,
+ * Summary: Returns context-aware labels for the entity's editable right-hand weapon,
  *          left-hand weapon, and limbs.
  */
-export function getEntityEditorLabelsHe(entityId: string): {
-  readonly weaponGroupTitleHe: string;
-  readonly leftWeaponGroupTitleHe: string;
-  readonly rightLimbTitleHe: string;
-  readonly leftLimbTitleHe: string;
-  readonly headTitleHe: string;
+export function getEntityEditorLabels(entityId: string): {
+  readonly weaponGroupTitle: string;
+  readonly leftWeaponGroupTitle: string;
+  readonly rightLimbTitle: string;
+  readonly leftLimbTitle: string;
+  readonly headTitle: string;
 } {
   switch (entityId) {
     case 'ranger_third_person':
     case 'ranger_first_person':
       return {
-        weaponGroupTitleHe: t('lab.editor.ranger_third_person.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.ranger_third_person.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.ranger_third_person.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.ranger_third_person.left_limb_title'),
-        headTitleHe: t('lab.editor.ranger_third_person.head_title'),
+        weaponGroupTitle: t('lab.editor.ranger_third_person.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.ranger_third_person.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.ranger_third_person.right_limb_title'),
+        leftLimbTitle: t('lab.editor.ranger_third_person.left_limb_title'),
+        headTitle: t('lab.editor.ranger_third_person.head_title'),
       };
     case 'dwarven_miner':
       return {
-        weaponGroupTitleHe: t('lab.editor.dwarven_miner.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.dwarven_miner.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.dwarven_miner.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.dwarven_miner.left_limb_title'),
-        headTitleHe: t('lab.editor.dwarven_miner.head_title'),
+        weaponGroupTitle: t('lab.editor.dwarven_miner.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.dwarven_miner.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.dwarven_miner.right_limb_title'),
+        leftLimbTitle: t('lab.editor.dwarven_miner.left_limb_title'),
+        headTitle: t('lab.editor.dwarven_miner.head_title'),
       };
     case 'shaolin_monk':
       return {
-        weaponGroupTitleHe: t('lab.editor.shaolin_monk.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.shaolin_monk.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.shaolin_monk.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.shaolin_monk.left_limb_title'),
-        headTitleHe: t('lab.editor.shaolin_monk.head_title'),
+        weaponGroupTitle: t('lab.editor.shaolin_monk.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.shaolin_monk.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.shaolin_monk.right_limb_title'),
+        leftLimbTitle: t('lab.editor.shaolin_monk.left_limb_title'),
+        headTitle: t('lab.editor.shaolin_monk.head_title'),
       };
     case 'tai_chi_monk':
       return {
-        weaponGroupTitleHe: t('lab.editor.tai_chi_monk.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.tai_chi_monk.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.tai_chi_monk.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.tai_chi_monk.left_limb_title'),
-        headTitleHe: t('lab.editor.tai_chi_monk.head_title'),
+        weaponGroupTitle: t('lab.editor.tai_chi_monk.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.tai_chi_monk.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.tai_chi_monk.right_limb_title'),
+        leftLimbTitle: t('lab.editor.tai_chi_monk.left_limb_title'),
+        headTitle: t('lab.editor.tai_chi_monk.head_title'),
       };
     case 'harbor_merchant':
       return {
-        weaponGroupTitleHe: t('lab.editor.harbor_merchant.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.harbor_merchant.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.harbor_merchant.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.harbor_merchant.left_limb_title'),
-        headTitleHe: t('lab.editor.harbor_merchant.head_title'),
+        weaponGroupTitle: t('lab.editor.harbor_merchant.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.harbor_merchant.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.harbor_merchant.right_limb_title'),
+        leftLimbTitle: t('lab.editor.harbor_merchant.left_limb_title'),
+        headTitle: t('lab.editor.harbor_merchant.head_title'),
       };
     case 'dwarven_king_statue':
       return {
-        weaponGroupTitleHe: t('lab.editor.dwarven_king_statue.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.dwarven_king_statue.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.dwarven_king_statue.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.dwarven_king_statue.left_limb_title'),
-        headTitleHe: t('lab.editor.dwarven_king_statue.head_title'),
+        weaponGroupTitle: t('lab.editor.dwarven_king_statue.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.dwarven_king_statue.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.dwarven_king_statue.right_limb_title'),
+        leftLimbTitle: t('lab.editor.dwarven_king_statue.left_limb_title'),
+        headTitle: t('lab.editor.dwarven_king_statue.head_title'),
       };
     case 'golden_buddha':
       return {
-        weaponGroupTitleHe: t('lab.editor.golden_buddha.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.golden_buddha.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.golden_buddha.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.golden_buddha.left_limb_title'),
-        headTitleHe: t('lab.editor.golden_buddha.head_title'),
+        weaponGroupTitle: t('lab.editor.golden_buddha.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.golden_buddha.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.golden_buddha.right_limb_title'),
+        leftLimbTitle: t('lab.editor.golden_buddha.left_limb_title'),
+        headTitle: t('lab.editor.golden_buddha.head_title'),
       };
     case 'mountain_eagle':
     case 'flock_bird':
     case 'harbor_seagull':
       return {
-        weaponGroupTitleHe: t('lab.editor.mountain_eagle.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.mountain_eagle.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.mountain_eagle.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.mountain_eagle.left_limb_title'),
-        headTitleHe: t('lab.editor.mountain_eagle.head_title'),
+        weaponGroupTitle: t('lab.editor.mountain_eagle.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.mountain_eagle.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.mountain_eagle.right_limb_title'),
+        leftLimbTitle: t('lab.editor.mountain_eagle.left_limb_title'),
+        headTitle: t('lab.editor.mountain_eagle.head_title'),
       };
     case 'meadow_butterfly':
       return {
-        weaponGroupTitleHe: t('lab.editor.meadow_butterfly.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.meadow_butterfly.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.meadow_butterfly.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.meadow_butterfly.left_limb_title'),
-        headTitleHe: t('lab.editor.meadow_butterfly.head_title'),
+        weaponGroupTitle: t('lab.editor.meadow_butterfly.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.meadow_butterfly.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.meadow_butterfly.right_limb_title'),
+        leftLimbTitle: t('lab.editor.meadow_butterfly.left_limb_title'),
+        headTitle: t('lab.editor.meadow_butterfly.head_title'),
       };
     case 'koi_fish':
       return {
-        weaponGroupTitleHe: t('lab.editor.koi_fish.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.koi_fish.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.koi_fish.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.koi_fish.left_limb_title'),
-        headTitleHe: t('lab.editor.koi_fish.head_title'),
+        weaponGroupTitle: t('lab.editor.koi_fish.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.koi_fish.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.koi_fish.right_limb_title'),
+        leftLimbTitle: t('lab.editor.koi_fish.left_limb_title'),
+        headTitle: t('lab.editor.koi_fish.head_title'),
       };
     case 'forest_deer':
       return {
-        weaponGroupTitleHe: t('lab.editor.forest_deer.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.forest_deer.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.forest_deer.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.forest_deer.left_limb_title'),
-        headTitleHe: t('lab.editor.forest_deer.head_title'),
+        weaponGroupTitle: t('lab.editor.forest_deer.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.forest_deer.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.forest_deer.right_limb_title'),
+        leftLimbTitle: t('lab.editor.forest_deer.left_limb_title'),
+        headTitle: t('lab.editor.forest_deer.head_title'),
       };
     case 'forest_bear':
       return {
-        weaponGroupTitleHe: t('lab.editor.forest_bear.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.forest_bear.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.forest_bear.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.forest_bear.left_limb_title'),
-        headTitleHe: t('lab.editor.forest_bear.head_title'),
+        weaponGroupTitle: t('lab.editor.forest_bear.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.forest_bear.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.forest_bear.right_limb_title'),
+        leftLimbTitle: t('lab.editor.forest_bear.left_limb_title'),
+        headTitle: t('lab.editor.forest_bear.head_title'),
       };
     case 'river_crocodile':
       return {
-        weaponGroupTitleHe: t('lab.editor.river_crocodile.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.river_crocodile.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.river_crocodile.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.river_crocodile.left_limb_title'),
-        headTitleHe: t('lab.editor.river_crocodile.head_title'),
+        weaponGroupTitle: t('lab.editor.river_crocodile.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.river_crocodile.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.river_crocodile.right_limb_title'),
+        leftLimbTitle: t('lab.editor.river_crocodile.left_limb_title'),
+        headTitle: t('lab.editor.river_crocodile.head_title'),
       };
     case 'jungle_jaguar':
       return {
-        weaponGroupTitleHe: t('lab.editor.jungle_jaguar.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.jungle_jaguar.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.jungle_jaguar.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.jungle_jaguar.left_limb_title'),
-        headTitleHe: t('lab.editor.jungle_jaguar.head_title'),
+        weaponGroupTitle: t('lab.editor.jungle_jaguar.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.jungle_jaguar.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.jungle_jaguar.right_limb_title'),
+        leftLimbTitle: t('lab.editor.jungle_jaguar.left_limb_title'),
+        headTitle: t('lab.editor.jungle_jaguar.head_title'),
       };
     default:
       return {
-        weaponGroupTitleHe: t('lab.editor.default.weapon_group_title'),
-        leftWeaponGroupTitleHe: t('lab.editor.default.left_weapon_group_title'),
-        rightLimbTitleHe: t('lab.editor.default.right_limb_title'),
-        leftLimbTitleHe: t('lab.editor.default.left_limb_title'),
-        headTitleHe: t('lab.editor.default.head_title'),
+        weaponGroupTitle: t('lab.editor.default.weapon_group_title'),
+        leftWeaponGroupTitle: t('lab.editor.default.left_weapon_group_title'),
+        rightLimbTitle: t('lab.editor.default.right_limb_title'),
+        leftLimbTitle: t('lab.editor.default.left_limb_title'),
+        headTitle: t('lab.editor.default.head_title'),
       };
   }
 }

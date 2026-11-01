@@ -30,7 +30,7 @@ import {
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
   getActiveWorldAnimals,
-  getAnimalSpeciesNameHe,
+  getAnimalSpeciesName,
   getPlayerHeroLevel,
   isPositionUnderRoof,
   sellMarketItem,
@@ -67,7 +67,7 @@ export interface IWindowDebugBridgeDeps {
   getCurrentWeather: () => IWeatherStateSnapshot;
   toggleColliderDebug?: (visible?: boolean) => boolean;
   isColliderDebugVisible?: () => boolean;
-  triggerLootNearbyAnimal?: () => { looted: boolean; notificationHe: string | null };
+  triggerLootNearbyAnimal?: () => { looted: boolean; notification: string | null };
   emitHudSnapshot?: () => void;
   readonly targetWindow?: Window | Record<string, unknown>;
 }
@@ -364,7 +364,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     return getActiveWorldAnimals().map((a) => ({
       id: a.id,
       species: a.species,
-      speciesNameHe: getAnimalSpeciesNameHe(a.species),
+      speciesName: getAnimalSpeciesName(a.species),
       x: Number(a.x.toFixed(2)),
       z: Number(a.z.toFixed(2)),
       isDead: Boolean(a.isDead),
@@ -381,10 +381,10 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       return deps.triggerLootNearbyAnimal();
     }
     const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
-    if (!dead) return { looted: false, notificationHe: null };
+    if (!dead) return { looted: false, notification: null };
     const res = lootDeadAnimal(playerState, dead);
     emitHudSnapshot?.();
-    return { looted: res.addedItems.length > 0, notificationHe: res.notificationHe };
+    return { looted: res.addedItems.length > 0, notification: res.notification };
   });
 
   bind('render_game_to_text', () => {
@@ -437,7 +437,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
         ? {
             id: nearDeadAnimal.id,
             species: nearDeadAnimal.species,
-            speciesNameHe: getAnimalSpeciesNameHe(nearDeadAnimal.species),
+            speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
           }
         : null,
       swordSwingProgress: Number((playerState.swordSwingProgress ?? 0).toFixed(2)),

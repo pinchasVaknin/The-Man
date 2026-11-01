@@ -7194,14 +7194,14 @@
       "source_location": "L349"
     },
     {
-      "id": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
-      "label": "getAnimalSpeciesNameHe()",
+      "id": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
+      "label": "getAnimalSpeciesName()",
       "_callable": true,
       "_origin": "ast",
       "community": 27,
       "community_name": "WorldCanvas",
       "file_type": "code",
-      "norm_label": "getanimalspeciesnamehe()",
+      "norm_label": "getanimalspeciesname()",
       "source_file": "src/world/systems/boidsAndWildlifeSystem.ts",
       "source_location": "L340"
     },
@@ -9018,14 +9018,14 @@
       "source_location": "L2774"
     },
     {
-      "id": "src_lab_labcatalog_getentityeditorlabelshe",
-      "label": "getEntityEditorLabelsHe()",
+      "id": "src_lab_labcatalog_getentityeditorlabels",
+      "label": "getEntityEditorLabels()",
       "_callable": true,
       "_origin": "ast",
       "community": 47,
       "community_name": "labCatalog.ts",
       "file_type": "code",
-      "norm_label": "getentityeditorlabelshe()",
+      "norm_label": "getentityeditorlabels()",
       "source_file": "src/lab/labCatalog.ts",
       "source_location": "L2832"
     },
@@ -17762,6 +17762,18 @@
       "type": "external"
     },
     {
+      "id": "src_world_terrainmath_getanimalspeciesnamehe",
+      "label": "src_world_terrainmath_getanimalspeciesnamehe",
+      "_origin": "semantic",
+      "community": 61,
+      "community_name": "src_world_terrainmath_getanimalspeciesnamehe",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "src_world_terrainmath_getanimalspeciesnamehe",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ref_three_addons_environments_roomenvironment_js",
       "label": "ref_three_addons_environments_roomenvironment_js",
       "_origin": "semantic",
@@ -17962,18 +17974,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "src_world_terrainmath_getactiveworldanimals",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "src_world_terrainmath_getanimalspeciesnamehe",
-      "label": "src_world_terrainmath_getanimalspeciesnamehe",
-      "_origin": "semantic",
-      "community": 7,
-      "community_name": "WorldCanvas.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "src_world_terrainmath_getanimalspeciesnamehe",
       "source_file": "",
       "type": "external"
     },
@@ -18262,6 +18262,17 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_path",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "src_world_terrainmath_getanimalspeciesname",
+      "label": "src_world_terrainmath_getanimalspeciesname",
+      "community": 7,
+      "community_name": "WorldCanvas.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "src_world_terrainmath_getanimalspeciesname",
       "source_file": "",
       "type": "external"
     }
@@ -23621,7 +23632,7 @@
     },
     {
       "source": "src_components_worldcanvas_worldcanvas",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -24065,7 +24076,7 @@
     },
     {
       "source": "src_lab_characterlabview_characterlabview",
-      "target": "src_lab_labcatalog_getentityeditorlabelshe",
+      "target": "src_lab_labcatalog_getentityeditorlabels",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -24148,7 +24159,7 @@
       "weight": 1.0
     },
     {
-      "source": "src_lab_labcatalog_getentityeditorlabelshe",
+      "source": "src_lab_labcatalog_getentityeditorlabels",
       "target": "src_locales_index_t",
       "relation": "calls",
       "_origin": "ast",
@@ -24761,7 +24772,7 @@
     },
     {
       "source": "src_world_controllers_windowdebugcontroller_registerwindowdebugbridge",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -26753,7 +26764,7 @@
     },
     {
       "source": "src_world_systems_boidsandwildlifesystem_getanimallootdrops",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -26764,7 +26775,7 @@
       "weight": 1.0
     },
     {
-      "source": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "source": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "target": "src_locales_index_t",
       "relation": "calls",
       "_origin": "ast",
@@ -31912,7 +31923,7 @@
     },
     {
       "source": "src_components_worldcanvas",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -32464,7 +32475,7 @@
     },
     {
       "source": "src_components_worldcanvas",
-      "target": "src_world_terrainmath_getanimalspeciesnamehe",
+      "target": "src_world_terrainmath_getanimalspeciesname",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33400,7 +33411,7 @@
     },
     {
       "source": "src_lab_characterlabview",
-      "target": "src_lab_labcatalog_getentityeditorlabelshe",
+      "target": "src_lab_labcatalog_getentityeditorlabels",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -33820,7 +33831,7 @@
     },
     {
       "source": "src_lab_labcatalog_test",
-      "target": "src_lab_labcatalog_getentityeditorlabelshe",
+      "target": "src_lab_labcatalog_getentityeditorlabels",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -35368,7 +35379,7 @@
     },
     {
       "source": "src_world_controllers_windowdebugcontroller",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -35668,7 +35679,7 @@
     },
     {
       "source": "src_world_controllers_windowdebugcontroller",
-      "target": "src_world_terrainmath_getanimalspeciesnamehe",
+      "target": "src_world_terrainmath_getanimalspeciesname",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -53402,7 +53413,7 @@
     },
     {
       "source": "src_lab_labcatalog",
-      "target": "src_lab_labcatalog_getentityeditorlabelshe",
+      "target": "src_lab_labcatalog_getentityeditorlabels",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -56361,7 +56372,7 @@
     },
     {
       "source": "src_world_systems_boidsandwildlifesystem",
-      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesnamehe",
+      "target": "src_world_systems_boidsandwildlifesystem_getanimalspeciesname",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -63036,5 +63047,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "334ca096665969828ee31362250eb54e7848371b"
+  "built_at_commit": "e11c57b8be288c4aa8d9610ae23a8466a23fa515"
 }
