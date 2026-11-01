@@ -19,6 +19,7 @@ import type {
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
 import { buildWildlifeAndFootprintsLayer } from './builders/wildlifeAndFootprintsBuilder';
+import type { ILogger } from '../core/ILogger';
 import {
   buildColliderDebugWireframes,
   type IColliderDebugHandles,
@@ -100,7 +101,8 @@ export function buildRealisticWorld(
   scene: THREE.Scene,
   textures: IWorldTextureSet,
   obstacles: IObstacleCylinder[],
-  isSoftwareGl: boolean
+  isSoftwareGl: boolean,
+  logger: ILogger
 ): IAnimatedWorldHandles {
   const disposableGeometries: THREE.BufferGeometry[] = [];
   const disposableMaterials: THREE.Material[] = [];
@@ -166,7 +168,8 @@ export function buildRealisticWorld(
   const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(
     scene,
     disposableGeometries,
-    disposableMaterials
+    disposableMaterials,
+    logger
   );
 
   const colliderDebugHandles = buildColliderDebugWireframes(

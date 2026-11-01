@@ -14,6 +14,7 @@ import type { GameStateMode, IVirtualMoveState } from './world/domain/gameShellT
 import { GameShellOverlay } from './components/GameShellOverlay';
 import { GameSettingsModal } from './components/GameSettingsModal';
 import { CharacterLabView } from './lab/CharacterLabView';
+import { useAppServices } from './app/AppServicesContext';
 import { telemetryStore } from './core/telemetryStore';
 import {
   loadActiveGameSettings,
@@ -34,8 +35,9 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
 // ======================== ROOT APPLICATION COMPONENT ======================== \\
 // #region Root Application Component
 export default function App() {
+  const { logger } = useAppServices();
   const [gameSettings, setGameSettings] = useState<IGameSettingsConfig>(() =>
-    loadActiveGameSettings()
+    loadActiveGameSettings(logger)
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
@@ -59,7 +61,7 @@ export default function App() {
     return false;
   });
 
-  const [muted, setMuted] = useState<boolean>(() => loadActiveGameSettings().defaultMuted);
+  const [muted, setMuted] = useState<boolean>(() => loadActiveGameSettings(logger).defaultMuted);
   const [weatherToggle, setWeatherToggle] = useState<WeatherToggleOption>('auto');
   const [gameActions, setGameActions] = useState<IGameActions | null>(null);
 

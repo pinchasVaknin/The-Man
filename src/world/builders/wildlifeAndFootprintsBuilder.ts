@@ -32,7 +32,7 @@ import {
 } from '../systems/terrainAndBiomeSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
-import { ConsoleLogger } from '../../core/ILogger';
+import type { ILogger } from '../../core/ILogger';
 import {
   getEffectiveLabAnimationSpeed,
   type ILabPoseOverrides,
@@ -66,7 +66,8 @@ export interface IWildlifeAndFootprintsHandles {
 export function buildWildlifeAndFootprintsLayer(
   scene: THREE.Scene,
   disposableGeometries: THREE.BufferGeometry[],
-  disposableMaterials: THREE.Material[]
+  disposableMaterials: THREE.Material[],
+  logger: ILogger
 ): IWildlifeAndFootprintsHandles {
   const { birds, animals } = createInitialWildlifeState();
   const footprintState = createFootprintTrailTracker();
@@ -171,13 +172,13 @@ export function buildWildlifeAndFootprintsLayer(
     try {
       stored = window.localStorage.getItem(LAB_POSE_OVERRIDES_STORAGE_KEY);
     } catch (err: unknown) {
-      ConsoleLogger.instance.warn('Lab overrides could not be read from localStorage', { error: String(err) });
+      logger.warn('Lab overrides could not be read from localStorage', { error: String(err) });
     }
     const merged = mergeStoredLabOverrides(stored, SAVED_LAB_OVERRIDES);
     if (merged.isSuccess) {
       liveLabOverrides = merged.value;
     } else {
-      ConsoleLogger.instance.warn('Stored lab overrides are invalid; using code-saved values', {
+      logger.warn('Stored lab overrides are invalid; using code-saved values', {
         errorCode: merged.error,
       });
     }

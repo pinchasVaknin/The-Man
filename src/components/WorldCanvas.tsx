@@ -48,7 +48,7 @@ import {
   sellMarketItem,
   IGameActions,
 } from '../world/terrainMath';
-import { ConsoleLogger } from '../core/ILogger';
+import { useAppServices } from '../app/AppServicesContext';
 import type {
   GameStateMode,
   ITelemetrySnapshot,
@@ -135,8 +135,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   onRequestPauseToggle,
   virtualMoveRef,
   onRegisterGameActions,
-  soundEngineFactory = () => new NatureSoundEngine(),
+  soundEngineFactory,
 }) => {
+  const appServices = useAppServices();
+  const { logger } = appServices;
+  const createSoundEngine = soundEngineFactory ?? appServices.createSoundEngine;
   const canvasMountRef = useRef<HTMLDivElement | null>(null);
   const [fatalTickError, setFatalTickError] = useState<Error | null>(null);
 
@@ -175,7 +178,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     const container = canvasMountRef.current;
     if (!container) return;
 
-    const worldScene = createWorldScene(container);
+    const worldScene = createWorldScene(container, logger);
     const {
       isSoftwareGl,
       renderer,
@@ -250,7 +253,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       return urlForcedWeatherKind;
     }
 
-    const soundEngine = soundEngineFactory();
+    const soundEngine = createSoundEngine();
 
     function fireArrowNow(powerOverride?: number) {
       if (playerState.isSwimming) return null;
@@ -1301,7 +1304,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         ? createGpuFencePacedScheduler(renderer.getContext() as WebGL2RenderingContext)
         : createAnimationFrameScheduler(),
       now: () => performance.now(),
-      logger: ConsoleLogger.instance,
+      logger,
       maxConsecutiveFailures: MAX_CONSECUTIVE_TICK_FAILURES,
       maxFrameSeconds: MAX_FRAME_SECONDS,
       errorLogIntervalMs: TICK_ERROR_LOG_INTERVAL_MS,

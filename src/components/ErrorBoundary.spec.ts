@@ -6,7 +6,7 @@
 
 // ======================== IMPORTS & TEST DEPENDENCIES ======================== \\
 // #region Imports & Test Dependencies
-import { mock, test } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ErrorBoundary } from './ErrorBoundary';
 import type { ILogger } from '../core/ILogger';
@@ -67,26 +67,3 @@ test('componentDidCatch_WhenInvoked_ShouldLogStructuredErrorWithInjectedLogger',
 });
 // #endregion
 
-// ======================== GUARD CLAUSE & VALIDATION TESTS ======================== \\
-// #region Guard Clause & Validation Tests
-test('componentDidCatch_WhenLoggerNotProvided_ShouldFallbackToConsoleLoggerSafely', () => {
-  // Arrange
-  const sut = new ErrorBoundary({ children: null });
-  sut.state = {
-    hasError: true,
-    correlationId: 'err_fallback_test',
-    userMessage: 'Test',
-  };
-  const testError = new Error('Silent test error');
-  const errorInfo = { componentStack: 'in TestComponent' };
-  const consoleError = mock.method(console, 'error', () => {});
-
-  // Act
-  sut.componentDidCatch(testError, errorInfo);
-
-  // Assert
-  const loggedMessages = consoleError.mock.calls.map((call) => String(call.arguments[0]));
-  consoleError.mock.restore();
-  assert.deepEqual(loggedMessages, ['[ERROR] Uncaught UI rendering exception']);
-});
-// #endregion

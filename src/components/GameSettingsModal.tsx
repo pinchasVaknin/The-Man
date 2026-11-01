@@ -18,6 +18,7 @@ import {
 } from '../config/savedGameSettings';
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
 import { t } from '../locales';
+import { useAppServices } from '../app/AppServicesContext';
 
 // #endregion
 
@@ -76,6 +77,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   onApplySettings,
   onClose,
 }) => {
+  const { logger } = useAppServices();
   const [draft, setDraft] = useState<IGameSettingsConfig>(settings);
   const [listeningKey, setListeningKey] = useState<keyof IGameKeybindings | null>(null);
   const [activeTab, setActiveTab] = useState<'keybindings' | 'gameplay'>('keybindings');
@@ -115,7 +117,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   const handleSaveToFile = useCallback(async () => {
     setSaveStatus('saving');
     onApplySettings(draft);
-    const { savedToFile } = await saveGameSettingsToFile(draft);
+    const { savedToFile } = await saveGameSettingsToFile(draft, logger);
     setSaveStatus(savedToFile ? 'saved' : 'saved_local');
     window.setTimeout(() => setSaveStatus('idle'), 2200);
   }, [draft, onApplySettings]);

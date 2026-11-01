@@ -14,6 +14,7 @@ import { Sky } from 'three/addons/objects/Sky.js';
 import { createWorldTextures } from '../proceduralTextures';
 import { buildRealisticWorld } from '../proceduralModels';
 import { generateWorldObstacles } from '../terrainMath';
+import type { ILogger } from '../../core/ILogger';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -45,7 +46,7 @@ export interface IWorldScene {
  * Summary: Builds the world scene and mounts the renderer canvas into `container`.
  * Design: Replaces the container's children with the canvas (one canvas per mount).
  */
-export function createWorldScene(container: HTMLElement): IWorldScene {
+export function createWorldScene(container: HTMLElement, logger: ILogger): IWorldScene {
   // 1. Software WebGL detection from GPU renderer string
   const isSoftwareGl = (() => {
     const gl = document.createElement('canvas').getContext('webgl2');
@@ -136,7 +137,7 @@ export function createWorldScene(container: HTMLElement): IWorldScene {
   // 6. Build Procedural Textures, Obstacles, and Composite 3D World
   const textures = createWorldTextures(renderer);
   const obstacles = generateWorldObstacles();
-  const worldHandles = buildRealisticWorld(scene, textures, obstacles, isSoftwareGl);
+  const worldHandles = buildRealisticWorld(scene, textures, obstacles, isSoftwareGl, logger);
 
   return {
     isSoftwareGl,

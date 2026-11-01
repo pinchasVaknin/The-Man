@@ -32,7 +32,7 @@ import {
 import { CharacterLabCanvas } from './CharacterLabCanvas';
 import { SAVED_LAB_OVERRIDES } from '../config/savedLabOverrides';
 import { t } from '../locales';
-import { ConsoleLogger } from '../core/ILogger';
+import { useAppServices } from '../app/AppServicesContext';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from './labOverridesStorage';
 
 export interface ICharacterLabViewProps {
@@ -56,6 +56,7 @@ const ENVIRONMENT_PRESETS: readonly { id: LabStageEnvironment; label: string }[]
 ];
 
 export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) => {
+  const { logger } = useAppServices();
   const [session, setSession] = useState<ILabSessionState>(() =>
     createInitialLabSessionState()
   );
@@ -76,11 +77,11 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     try {
       stored = window.localStorage.getItem(LAB_POSE_OVERRIDES_STORAGE_KEY);
     } catch (err: unknown) {
-      ConsoleLogger.instance.warn('Lab overrides could not be read from localStorage', { error: String(err) });
+      logger.warn('Lab overrides could not be read from localStorage', { error: String(err) });
     }
     const merged = mergeStoredLabOverrides(stored, SAVED_LAB_OVERRIDES);
     if (merged.isFailure) {
-      ConsoleLogger.instance.warn('Stored lab overrides are invalid; using code-saved values', {
+      logger.warn('Stored lab overrides are invalid; using code-saved values', {
         errorCode: merged.error,
       });
       return { ...SAVED_LAB_OVERRIDES };
@@ -117,7 +118,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     try {
       window.localStorage.setItem(LAB_POSE_OVERRIDES_STORAGE_KEY, JSON.stringify(poseOverridesByEntity));
     } catch (err: unknown) {
-      ConsoleLogger.instance.warn('Lab overrides could not be stored in localStorage', { error: String(err) });
+      logger.warn('Lab overrides could not be stored in localStorage', { error: String(err) });
     }
   }, [poseOverridesByEntity]);
 
@@ -230,7 +231,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       overrides: activePoseOverrides,
     };
     navigator.clipboard?.writeText(JSON.stringify(payload, null, 2)).catch((err: unknown) => {
-      ConsoleLogger.instance.warn('Lab tweaks could not be copied to the clipboard', { error: String(err) });
+      logger.warn('Lab tweaks could not be copied to the clipboard', { error: String(err) });
     });
     setCopiedTweaksFeedback(true);
     window.setTimeout(() => setCopiedTweaksFeedback(false), 1800);
