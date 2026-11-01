@@ -5,6 +5,8 @@
 //          are cataloged with static 'none' default animations and valid skins.
 // ============================================================================
 
+// ======================== IMPORTS & TEST DEPENDENCIES ======================== \\
+// #region Imports & Test Dependencies
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -24,6 +26,10 @@ import {
   computeLabAnimationCycleProgress,
 } from './labCatalog';
 
+// #endregion
+
+// ======================== HAPPY PATH TESTS ======================== \\
+// #region Happy Path Tests
 describe('Character & Animation Lab Catalog', () => {
   it('organizes all world entities into 2 distinct categories: characters and animals', () => {
     assert.equal(LAB_CATEGORIES.length, 2);
@@ -357,5 +363,4 @@ describe('Character & Animation Lab Catalog', () => {
     assert.ok(countActivePoseOverrides(customSpeedOverrides) >= 3);
   });
 });
-
-
+// #endregion

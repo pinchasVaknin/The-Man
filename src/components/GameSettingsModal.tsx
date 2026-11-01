@@ -5,6 +5,8 @@
 //          setting and save them directly to src/config/savedGameSettings.ts.
 // ============================================================================
 
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   DEFAULT_GAME_KEYBINDINGS,
@@ -17,6 +19,10 @@ import {
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
 import { t } from '../locales';
 
+// #endregion
+
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export interface IGameSettingsModalProps {
   readonly isOpen: boolean;
   readonly settings: IGameSettingsConfig;
@@ -58,6 +64,10 @@ const KEYBIND_ROWS: readonly IKeybindRowMeta[] = [
   { key: 'toggleMute', category: 'interface' },
 ];
 
+// #endregion
+
+// ======================== SETTINGS MODAL COMPONENT ======================== \\
+// #region Game Settings Modal
 export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   isOpen,
   settings,
@@ -492,4 +502,4 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
     </div>
   );
 };
-
+// #endregion

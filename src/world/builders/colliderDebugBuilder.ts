@@ -5,6 +5,8 @@
 //          stair corridors, ship walls, building boxes, and obstacle cylinders.
 // ============================================================================
 
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import * as THREE from 'three';
 import {
   SOLID_BUILDING_BOXES,
@@ -17,6 +19,10 @@ import {
 } from '../terrainMath';
 import type { IObstacleCylinder } from '../domain/worldTypes';
 
+// #endregion
+
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export interface IColliderDebugHandles {
   readonly group: THREE.Group;
   readonly setVisible: (visible: boolean) => boolean;
@@ -28,6 +34,10 @@ export interface IColliderDebugHandles {
 /**
  * Summary: Builds a toggleable 3D wireframe group visualizing all physics colliders and stair ramps.
  */
+// #endregion
+
+// ======================== PUBLIC BUILDER ======================== \\
+// #region Build Collider Debug Wireframes
 export function buildColliderDebugWireframes(
   scene: THREE.Scene,
   obstacles: readonly IObstacleCylinder[],
@@ -233,3 +243,4 @@ export function buildColliderDebugWireframes(
     isVisible: () => group.visible,
   };
 }
+// #endregion

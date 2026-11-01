@@ -5,10 +5,16 @@
 //          be customized in the main screen Settings modal and saved to disk.
 // ============================================================================
 
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
 import { ConsoleLogger } from '../core/ILogger';
 import { validateGameSettings } from './persistedSettingsValidation';
 
+// #endregion
+
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export type FirefliesMode = 'sanctuary_only' | 'off';
 
 export interface IGameKeybindings {
@@ -105,6 +111,10 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
 };
 
 const STORAGE_KEY = 'the_man_game_settings_v1';
+// #endregion
+
+// ======================== PUBLIC SETTINGS PERSISTENCE ======================== \\
+// #region Load, Save & Format Settings
 
 /**
  * Summary: Loads active game settings by merging SAVED_GAME_SETTINGS with localStorage.
@@ -200,3 +210,4 @@ export function formatKeyCodeLabel(code: string): string {
       return code;
   }
 }
+// #endregion
