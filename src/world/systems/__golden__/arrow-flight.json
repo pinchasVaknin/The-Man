@@ -1,0 +1,338 @@
+[
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 0,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 15,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 30,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 45,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 60,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 75,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 90,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 105,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 120,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 135,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 150,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ },
+ {
+  "arrows": [
+   {
+    "age": 3,
+    "arrowKind": "normal",
+    "hitKind": "ground",
+    "hitTargetId": null,
+    "id": 1,
+    "pitch": -0.124582,
+    "stuck": true,
+    "trail": [],
+    "vx": 0,
+    "vy": 0,
+    "vz": 0,
+    "x": -1.727687,
+    "y": 0.395264,
+    "yaw": 0.04,
+    "z": -14.670083
+   }
+  ],
+  "frame": 165,
+  "result": {
+   "hitAnimal": null,
+   "hitAnySurface": false,
+   "hitTarget": null,
+   "killedAnimal": false
+  }
+ }
+]
