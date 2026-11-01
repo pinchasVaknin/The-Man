@@ -509,7 +509,10 @@ export class WolfAnimator {
     this.hasPoseSnapshot = true;
   }
 
-  update(dt: number): void {
+  update(dt: number, turn?: number): void {
+    if (typeof turn === 'number') {
+      this.turn = turn;
+    }
     const clamped = Math.min(dt, 0.1);
     const targetSpeed = WOLF_GAITS[this.state] ? WOLF_GAITS[this.state].speed : 0.0;
     this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
@@ -609,8 +612,8 @@ export class Wolf {
     return this.animator.turn;
   }
 
-  update(dt: number): void {
-    this.animator.update(dt);
+  update(dt: number, turn?: number): void {
+    this.animator.update(dt, turn);
   }
 
   dispose(): void {

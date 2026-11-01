@@ -1430,7 +1430,7 @@ export function buildPlayerAndCombatSystems(
       playerState.onGround &&
       !isSwim &&
       !playerState.isFlying &&
-      !playerState.isClimbingLadder &&
+      !playerState.climbingLadderId &&
       walkableHeightAt(playerState.x, playerState.z, playerState.y).surface === 'ground';
     if (onGroundSlope) {
       const n = getSurfaceNormalAt(playerState.x, playerState.z);

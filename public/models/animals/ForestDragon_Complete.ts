@@ -15,7 +15,10 @@ export type ForestDragonState =
   | 'fly'
   | 'roar'
   | 'attack'
+  | 'sleep'
   | 'death';
+
+export type ReadyForestDragonController = ForestDragon;
 
 export interface ForestDragonOptions {
   scale?: number;
@@ -54,6 +57,7 @@ export const FOREST_DRAGON_GAITS: Record<ForestDragonState, { speed: number }> =
   fly:    { speed: 8.5 },
   roar:   { speed: 0.0 },
   attack: { speed: 1.45 },
+  sleep:  { speed: 0.0 },
   death:  { speed: 0.0 },
 };
 
@@ -259,6 +263,7 @@ export class ForestDragonAnimator {
   private getClipIndex(st: ForestDragonState): number {
     if (st === 'stalk') return 5;
     if (st === 'fly') return 9;
+    if (st === 'sleep') return 4;
     const idx = CLIP_ORDER.indexOf(st);
     return idx >= 0 ? idx : 0;
   }
@@ -325,7 +330,10 @@ export class ForestDragonAnimator {
     }
   }
 
-  update(dt: number): void {
+  update(dt: number, turn?: number): void {
+    if (typeof turn === 'number') {
+      this.turn = turn;
+    }
     const clamped = Math.min(dt, 0.1);
     const targetSpeed = FOREST_DRAGON_GAITS[this.state] ? FOREST_DRAGON_GAITS[this.state].speed : 0.0;
     this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
@@ -379,7 +387,6 @@ export class ForestDragon {
       map: texture,
       roughness: 0.80,
       metalness: 0.04,
-      skinning: true,
       side: THREE.DoubleSide,
     });
 
@@ -393,6 +400,10 @@ export class ForestDragon {
 
     this.object.scale.setScalar(scale);
     this.animator = new ForestDragonAnimator(this.rig, data);
+  }
+
+  get state(): ForestDragonState {
+    return this.animator.state;
   }
 
   setState(state: ForestDragonState): void {
@@ -419,8 +430,8 @@ export class ForestDragon {
     return this.animator.turn;
   }
 
-  update(dt: number): void {
-    this.animator.update(dt);
+  update(dt: number, turn?: number): void {
+    this.animator.update(dt, turn);
   }
 
   dispose(): void {

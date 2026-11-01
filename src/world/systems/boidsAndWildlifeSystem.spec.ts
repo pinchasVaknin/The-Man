@@ -317,7 +317,7 @@ test('stepSmallAnimals_WhenDeerDetectsMediumStimulus_ShouldStandAndListenThenRet
     stepSmallAnimals(singleDeer, 0.05, 20.1 + s * 0.05, deer.x + 14.0, deer.z, [], 1.0, undefined, 0, false, false, 0);
   }
   assert.equal(deer.alertLevel, 'grazing');
-  assert.ok(deer.aiBehavior === 'grazing' || deer.aiBehavior === 'wandering');
+  assert.ok((deer.aiBehavior as string) === 'grazing' || (deer.aiBehavior as string) === 'wandering');
 
   // 3. Now trigger listening again, and while listening, player sprints loudly -> Deer flees!
   deer.listenCooldown = 0;
@@ -436,7 +436,7 @@ test('stepSmallAnimals_WhenPredatorAttacksStationaryOrStrafingPlayer_ShouldMaint
   for (let f = 0; f < 40; f++) {
     const prevYaw = jaguar.yaw;
     stepSmallAnimals(singleJag, 0.05, 80 + f * 0.05, playerX, playerZ, [], 1.0, undefined, 0, false, false, 0);
-    if (jaguar.aiBehavior === 'attacking') sawAttacking = true;
+    if ((jaguar.aiBehavior as string) === 'attacking') sawAttacking = true;
     const dist = Math.hypot(playerX - jaguar.x, playerZ - jaguar.z);
     assert.ok(
       jaguar.x < playerX - 1.2,
@@ -451,7 +451,7 @@ test('stepSmallAnimals_WhenPredatorAttacksStationaryOrStrafingPlayer_ShouldMaint
   const finalStationaryDist = Math.hypot(playerX - jaguar.x, playerZ - jaguar.z);
   assert.equal(sawAttacking, true, 'Jaguar must trigger attacking within melee range');
   assert.ok(
-    jaguar.aiBehavior === 'attacking' || jaguar.aiBehavior === 'charging',
+    (jaguar.aiBehavior as string) === 'attacking' || (jaguar.aiBehavior as string) === 'charging',
     `Expected attacking or charging, got ${jaguar.aiBehavior}`
   );
   assert.ok(
@@ -658,11 +658,11 @@ test('stepSmallAnimals_WhenPredatorDetectsPreyOrLargerThreat_ShouldHuntPreyAndFl
   rabbit.x = jaguar.x + 7.0;
   rabbit.z = jaguar.z;
   stepSmallAnimals([jaguar, rabbit], 0.05, 41, 500, 500, [], 1.0, undefined, 0, false, false, 0);
-  assert.ok(jaguar.aiBehavior === 'roaring' || jaguar.aiBehavior === 'charging');
+  assert.ok((jaguar.aiBehavior as string) === 'roaring' || (jaguar.aiBehavior as string) === 'charging');
   for (let s = 0; s < 15; s++) {
     stepSmallAnimals([jaguar, rabbit], 0.05, 41.1 + s * 0.05, 500, 500, [], 1.0, undefined, 0, false, false, 0);
   }
-  assert.ok(jaguar.aiBehavior === 'charging' || jaguar.aiBehavior === 'attacking');
+  assert.ok((jaguar.aiBehavior as string) === 'charging' || (jaguar.aiBehavior as string) === 'attacking');
 
   // 3. Place larger Bear 8m from Jaguar -> Jaguar feels threatened by larger predator and flees!
   bear.x = jaguar.x - 8.0;
