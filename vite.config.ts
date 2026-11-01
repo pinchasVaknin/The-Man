@@ -173,15 +173,24 @@ export default defineConfig(() => {
       },
     },
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules/three')) {
-              return 'vendor-three';
-            }
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-              return 'vendor-react';
-            }
+          // Vite 8 / Rolldown: codeSplitting.groups replaces the deprecated manualChunks.
+          codeSplitting: {
+            groups: [
+              { name: 'vendor-three', test: /[\\/]node_modules[\\/]three[\\/]/, priority: 30 },
+              { name: 'vendor-react', test: /[\\/]node_modules[\\/]react/, priority: 30 },
+              {
+                // One long-cached chunk per generated animal model (each embeds its mesh and texture).
+                name: (moduleId: string) => {
+                  const match = /[\\/]animals[\\/](\w+)_Complete\.ts$/.exec(moduleId);
+                  return match ? `model-${match[1].toLowerCase()}` : null;
+                },
+                debugName: 'animal-models',
+                test: /[\\/]src[\\/]world[\\/]models[\\/]animals[\\/]/,
+                priority: 20,
+              },
+            ],
           },
         },
       },
