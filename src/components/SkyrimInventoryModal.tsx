@@ -260,7 +260,6 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
       aria-modal="true"
       aria-label={t('ui.inventory_aria')}
       data-testid="skyrim-inventory-modal"
-      dir="rtl"
       className="fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-7 pointer-events-auto select-none overflow-hidden"
       style={{
         background:
@@ -300,16 +299,14 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
       {inHarborMarket ? (
         /* =====================================================================
-           HARBOR MARKET SPLIT 3-COLUMN LAYOUT (dir="ltr" so Left = Player, Center = Showcase, Right = Merchant)
+           HARBOR MARKET SPLIT 3-COLUMN LAYOUT (Left = Player, Center = Showcase, Right = Merchant)
            ===================================================================== */
         <div
-          dir="ltr"
           data-testid="harbor-market-split-layout"
           className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 py-4 overflow-hidden items-stretch"
         >
           {/* PHYSICAL LEFT COLUMN (Left screen - Player-owned items / available to sell) */}
           <div
-            dir="rtl"
             data-testid="market-left-player-column"
             className="md:col-span-4 flex flex-col h-full max-h-[75vh] bg-stone-900/55 border border-stone-700/60 p-4 overflow-hidden"
           >
@@ -395,7 +392,6 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
           {/* PHYSICAL CENTER COLUMN (Center screen - Item inspection & buy / sell actions) */}
           <div
-            dir="rtl"
             data-testid="market-center-showcase"
             className="md:col-span-4 flex flex-col items-center justify-center text-center bg-stone-950/65 border border-stone-700/70 p-5 overflow-y-auto"
           >
@@ -536,7 +532,6 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
           {/* PHYSICAL RIGHT COLUMN (Right screen - Merchant items / catalog to buy) */}
           <div
-            dir="rtl"
             data-testid="market-right-merchant-column"
             className="md:col-span-4 flex flex-col h-full max-h-[75vh] bg-stone-900/55 border border-stone-700/60 p-4 overflow-hidden"
           >
@@ -630,16 +625,13 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
            PERSONAL INVENTORY OUTSIDE MARKET (Player equipment list only)
            ===================================================================== */
         <div
-          dir="ltr"
           className="w-full max-w-6xl mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 gap-8 py-6 overflow-hidden items-center"
         >
           {/* LEFT SIDE: Far-Left Text Category Headings + Scrollable Owned Item Names List */}
           <div
-            dir="ltr"
             className="md:col-span-6 h-full flex flex-row gap-6 sm:gap-10 overflow-hidden items-stretch"
           >
             <nav
-              dir="rtl"
               aria-label={t('ui.menu_topics_aria')}
               className="w-40 sm:w-44 shrink-0 flex flex-col justify-center gap-6 border-r border-stone-700/60 pr-4"
             >
@@ -704,7 +696,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             </nav>
 
             {/* Scrollable Owned Item Names List */}
-            <div dir="rtl" className="flex-1 flex flex-col h-full max-h-[68vh] overflow-hidden">
+            <div className="flex-1 flex flex-col h-full max-h-[68vh] overflow-hidden">
               <div className="text-xs uppercase tracking-widest text-stone-400 pb-2 mb-2 border-b border-stone-800">
                 {activePersonalTab === 'weapons'
                   ? t('ui.owned_weapons_desc')
@@ -758,7 +750,6 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
           {/* RIGHT SIDE OF SCREEN: Large Showcase Image & Owned Item Details */}
           <div
-            dir="rtl"
             data-testid="inventory-right-showcase"
             className="md:col-span-6 flex flex-col items-center justify-center text-center px-4 sm:px-8"
           >
