@@ -62,13 +62,17 @@ import {
   IGameActions,
 } from '../world/terrainMath';
 import { ConsoleLogger } from '../core/ILogger';
-import { createTickErrorGuard } from '../core/tickErrorGuard';
+import { GameLoop } from '../core/gameLoop';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldTextures } from '../world/proceduralTextures';
 import { buildRealisticWorld } from '../world/proceduralModels';
 import { NatureSoundEngine } from '../world/soundEngine';
 import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRenderController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
+import {
+  createAnimationFrameScheduler,
+  createGpuFencePacedScheduler,
+} from '../world/controllers/frameSchedulers';
 import { isBindingHeld, matchesKeyBinding } from '../config/keyBindingMatch';
 import {
   SAVED_GAME_SETTINGS,
@@ -196,6 +200,10 @@ export interface IWorldCanvasProps {
  * error is handed to the error boundary instead of failing silently every frame.
  */
 const MAX_CONSECUTIVE_TICK_FAILURES = 60;
+/** Longest frame delta fed to the simulation (seconds). */
+const MAX_FRAME_SECONDS = 0.35;
+/** Minimum gap between two logged frame errors (ms). */
+const TICK_ERROR_LOG_INTERVAL_MS = 2000;
 
 /** World clock hour the session starts at when no ?hour= override is given (06:40, sunrise mist). */
 const DEFAULT_START_WORLD_HOUR = 6.68;
@@ -990,39 +998,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: true });
 
     // 8. Main Animation Loop with Software-WebGL Pacing Guard
-    let frameId = 0;
-    let lastTime = performance.now();
     let elapsedTotal = 0;
     let lastHudEmitTime = 0;
 
-    function afterDraw(cb: () => void) {
-      const gl = renderer.getContext() as WebGL2RenderingContext;
-      const sync = gl.fenceSync ? gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) : null;
-      gl.flush();
-      const poll = () => {
-        const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
-        if (state === gl.UNSIGNALED) {
-          frameId = window.setTimeout(poll, 5);
-        } else {
-          if (sync) gl.deleteSync(sync);
-          frameId = window.setTimeout(cb, 80);
-        }
-      };
-      frameId = window.setTimeout(poll, 5);
-    }
-
-    let isUnmounted = false;
-    let isLoopHalted = false;
-    let lastTickErrorTime = 0;
-    const tickErrorGuard = createTickErrorGuard(MAX_CONSECUTIVE_TICK_FAILURES);
-
-    function tick() {
-      if (isUnmounted) return;
-      try {
-        const now = performance.now();
-      const rawDt = Math.min((now - lastTime) / 1000, 0.35);
-      lastTime = now;
-
+    function runFrame(rawDt: number, now: number) {
       soundEngine.setMuted(mutedRef.current);
       soundEngine.setPaused(gameStateRef.current !== 'playing');
 
@@ -1635,30 +1614,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
 
       renderer.render(scene, camera);
-      tickErrorGuard.recordSuccess();
-      } catch (err: unknown) {
-        const now = performance.now();
-        if (now - lastTickErrorTime > 2000) {
-          lastTickErrorTime = now;
-          ConsoleLogger.instance.error('WorldCanvas tick execution error caught in frame loop', {
-            error: String(err),
-            stack: err instanceof Error ? err.stack : undefined,
-          });
-        }
-        if (tickErrorGuard.recordFailure() === 'halt') {
-          // A frame that keeps failing means corrupted state: stop the loop and surface it.
-          isLoopHalted = true;
-          setFatalTickError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!isUnmounted && !isLoopHalted) {
-          if (isSoftwareGl) {
-            afterDraw(tick);
-          } else {
-            frameId = requestAnimationFrame(tick);
-          }
-        }
-      }
     }
 
     function emitHudSnapshot() {
@@ -1760,12 +1715,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       });
     }
 
-    frameId = requestAnimationFrame(tick);
+    const gameLoop = new GameLoop({
+      scheduler: isSoftwareGl
+        ? createGpuFencePacedScheduler(renderer.getContext() as WebGL2RenderingContext)
+        : createAnimationFrameScheduler(),
+      now: () => performance.now(),
+      logger: ConsoleLogger.instance,
+      maxConsecutiveFailures: MAX_CONSECUTIVE_TICK_FAILURES,
+      maxFrameSeconds: MAX_FRAME_SECONDS,
+      errorLogIntervalMs: TICK_ERROR_LOG_INTERVAL_MS,
+      onFrame: runFrame,
+      onFatalError: setFatalTickError,
+    });
+    gameLoop.start();
 
     return () => {
-      isUnmounted = true;
-      cancelAnimationFrame(frameId);
-      clearTimeout(frameId);
+      gameLoop.stop();
       document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);

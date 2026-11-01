@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793478752.713392,
-    "seen": 1793537725.9239478,
-    "ast_hash": "35f9af33c6c635f096d343df49932c79",
+    "mtime": 1793555825.9497213,
+    "seen": 1793556223.0694354,
+    "ast_hash": "acc42e02f096f5c3bb743388275ad70b",
     "semantic_hash": ""
   },
   "src/components/ExplorerMinimap.tsx": {
@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "src/components/GameShellOverlay.tsx": {
-    "mtime": 1793553765.9609997,
-    "seen": 1793553970.2513824,
-    "ast_hash": "37f4a48a4d583f92effec1d4df8d2168",
+    "mtime": 1793555825.983806,
+    "seen": 1793556223.0694432,
+    "ast_hash": "bd31045ca978df181e5f541f48c93684",
     "semantic_hash": ""
   },
   "src/components/SkyrimInventoryModal.tsx": {
@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793553780.1614711,
-    "seen": 1793553970.251384,
-    "ast_hash": "1d205f665ef5d36c13021aeb5e550763",
+    "mtime": 1793555819.7163343,
+    "seen": 1793556223.0694458,
+    "ast_hash": "f34b577d217be322a153a1101eb9daf5",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -426,15 +426,15 @@
     "semantic_hash": ""
   },
   "src/core/telemetryStore.spec.ts": {
-    "mtime": 1793258160.5888505,
-    "seen": 1793260582.9189146,
-    "ast_hash": "e6b205b131e039b6162edda4203a2423",
+    "mtime": 1793555826.0337176,
+    "seen": 1793556223.069469,
+    "ast_hash": "ed2c96b042acc17108e552984bc75acb",
     "semantic_hash": ""
   },
   "src/core/telemetryStore.ts": {
-    "mtime": 1793540858.8582807,
-    "seen": 1793540926.9006546,
-    "ast_hash": "fc8f600a91f7bc9615f2b8f3717fc82d",
+    "mtime": 1793555826.000911,
+    "seen": 1793556223.06947,
+    "ast_hash": "015b5df7c49ad6b68ccc77f99fd3e791",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.spec.ts": {
@@ -795,6 +795,30 @@
     "mtime": 1793554987.6145413,
     "seen": 1793555073.2618198,
     "ast_hash": "05f1f743b1b107b24f457428a1729cc4",
+    "semantic_hash": ""
+  },
+  "src/core/gameLoop.spec.ts": {
+    "mtime": 1793555138.948009,
+    "seen": 1793556223.0694659,
+    "ast_hash": "dd599f319a8f7879098f2e20fe7f2940",
+    "semantic_hash": ""
+  },
+  "src/core/gameLoop.ts": {
+    "mtime": 1793555155.5183837,
+    "seen": 1793556223.0694668,
+    "ast_hash": "a4154d61f4ac9dda68b0f5e42fad6367",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/frameSchedulers.ts": {
+    "mtime": 1793555183.4313972,
+    "seen": 1793556223.0694969,
+    "ast_hash": "29213a8151918a2049ff7657d7876aa3",
+    "semantic_hash": ""
+  },
+  "src/world/domain/gameShellTypes.ts": {
+    "mtime": 1793555819.7496974,
+    "seen": 1793556223.0695,
+    "ast_hash": "ea9ce8e6fb9b34cf3c6f5abf66021a00",
     "semantic_hash": ""
   }
 }
