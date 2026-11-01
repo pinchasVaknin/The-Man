@@ -60,7 +60,7 @@ export interface IArchitecturalSharedAssets {
  * Summary: Factory creating shared material and geometry assets for architectural models.
  * Design: Allocates reusable Three.js materials parameterized by procedural world textures.
  * @param textures Procedural world texture pack.
- * @param ctx Input parameter ctx.
+ * @param ctx Shared build context (scene, textures, disposal lists).
  * @returns IArchitecturalSharedAssets container holding shared materials.
  */
 export function createArchitecturalSharedAssets(ctx: IWorldModelBuildContext): IArchitecturalSharedAssets {

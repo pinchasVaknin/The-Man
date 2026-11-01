@@ -159,15 +159,14 @@ const PRECOMPUTED_CARAVAN_TO_HOME: readonly CaravanPath[] = Object.freeze(
 
 /**
  * Summary: Pure deterministic scheduler for the 8 LOTR-style Dwarven Miners.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated in 60FPS simulation loop for all 8 miners.
  * Relaxed Rule: Rule 1 (in-place state evaluation instead of deep allocations per frame).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.02ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param worldHours Input parameter worldHours.
- * @param dwarfIndex Input parameter dwarfIndex.
- * @param animTimeSec Input parameter animTimeSec.
- * @returns Computed result for computeDwarvenMinerCaravanState.
+ * @param worldHours Hour of day, 0-24.
+ * @param dwarfIndex Miner index, 0-7.
+ * @param animTimeSec Animation time in seconds.
+ * @returns Position, heading and activity of that miner at that hour.
  */
 export function computeDwarvenMinerCaravanState(
   worldHours: number,
@@ -270,9 +269,8 @@ export function computeDwarvenMinerCaravanState(
 // #region Mine Height Queries
 /**
  * Summary: Computes the sloping tunnel floor elevation at a given world Z coordinate.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param z Input parameter z.
- * @returns Computed result for southernMineFloorHeightAt.
+ * @param z World Z in meters.
+ * @returns Tunnel floor height in meters.
  */
 export function southernMineFloorHeightAt(z: number): number {
   if (z <= SOUTHERN_MINE_POS.shaftStartZ) {
@@ -292,11 +290,10 @@ export function southernMineFloorHeightAt(z: number): number {
 
 /**
  * Summary: Queries the complex walkable subterranean surface height inside the mine.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param currentY Input parameter currentY.
- * @returns Computed result for southernMineWalkableHeightAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param currentY Height of the asker, to choose between stacked floors (optional).
+ * @returns Walkable height inside the mine in meters.
  */
 export function southernMineWalkableHeightAt(
   x: number,
@@ -356,11 +353,10 @@ export function southernMineWalkableHeightAt(
 // #region Mine Boundary Queries
 /**
  * Summary: Determines whether a given 3D coordinate falls within the subterranean volumes of the Southern Dwarven Mine.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param currentY Input parameter currentY.
- * @returns Computed result for isInsideSouthernMine.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param currentY Height of the asker, to choose between stacked floors (optional).
+ * @returns True inside the mine tunnels or halls.
  */
 export function isInsideSouthernMine(x: number, z: number, currentY?: number): boolean {
   const mineFloorY = southernMineFloorHeightAt(z);

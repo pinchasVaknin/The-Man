@@ -62,10 +62,9 @@ const FY = FORTRESS_Y_OFFSET;
 // #region Regional Biome Factors
 /**
  * Summary: Evaluates radial falloff factor for the Orange Birch Grove landmark.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for birchGroveFactorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 1 inside the birch grove, fading to 0 at its edge.
  */
 export function birchGroveFactorAt(x: number, z: number): number {
   const d = Math.hypot(x - BIRCH_GROVE_CENTER.x, z - BIRCH_GROVE_CENTER.z);
@@ -74,10 +73,9 @@ export function birchGroveFactorAt(x: number, z: number): number {
 
 /**
  * Summary: Evaluates non-linear procedural transition into the Southwest Desert and Oasis.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for southwestOasisBiomeFactorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 0 outside the desert, rising to 1 deep in it.
  */
 export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   if (x > -105 || z < 130) return 0;
@@ -104,9 +102,9 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
 /**
  * Summary: Calculates composite regional density of forest trees across the landscape.
  * Design: Contrasts the open pastoral farming valley against deep unbuilt northern, western, and southern forests.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for regionalForestDensityAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Relative tree density at the point (0 = no forest).
  */
 export function regionalForestDensityAt(x: number, z: number): number {
   const westForestDist = Math.hypot((x + 95) * 0.72, (z + 10) * 0.82);
@@ -179,13 +177,6 @@ export function southernRiverDistanceAt(x: number, z: number): number {
 // ======================== ROOF & SHELTER QUERIES ======================== \\
 // #region Roof & Shelter Queries
 /**
- * Summary: Queries the elevation of overhead roofs and ceilings at the given coordinate.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for getRoofHeightAt.
- */
-/**
  * Summary: Checks if world coordinates (x, z, currentY) are inside a Bear Mountain Cave's
  *          entrance tunnel (lz: -6.2..+5.8, |lx| <= 4.4) or spacious subterranean cavern
  *          (lz: -25.0..-5.0, width 20.4m).
@@ -240,6 +231,12 @@ export function isInsideBearCave(
   return null;
 }
 
+/**
+ * Summary: Queries the elevation of overhead roofs and ceilings at the given coordinate.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Height of the roof above the point in meters, or null in the open.
+ */
 export function getRoofHeightAt(x: number, z: number): number | null {
   const bearCave = isInsideBearCave(x, z);
   if (bearCave && bearCave.lz <= 6.2) {
@@ -374,11 +371,10 @@ export function getRoofHeightAt(x: number, z: number): number | null {
 
 /**
  * Summary: Determines whether a 3D coordinate is sheltered beneath an overhead roof.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param y Input parameter y.
- * @param z Input parameter z.
- * @returns Computed result for isPositionUnderRoof.
+ * @param x World X in meters.
+ * @param y World Y (height) in meters.
+ * @param z World Z in meters.
+ * @returns True under a roof or ceiling.
  */
 export function isPositionUnderRoof(x: number, y: number, z: number): boolean {
   const roofH = getRoofHeightAt(x, z);
@@ -391,10 +387,9 @@ export function isPositionUnderRoof(x: number, y: number, z: number): boolean {
 // #region Trail & Footpath Network
 /**
  * Summary: Computes proximity factor to the interconnected dirt trail and road network.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for trailFactorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 1 on a trail centre line, fading to 0 away from it.
  */
 export function trailFactorAt(x: number, z: number): number {
   for (let i = 0; i < VALLEY_FARMS.length; i++) {
@@ -531,10 +526,9 @@ export { isChineseFortressWalkableZone, chineseFortressStairHeightAt };
 // #region Ground Heightfield Math
 /**
  * Summary: Pure analytical heightfield function evaluating continuous terrain elevation.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for groundHeightAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Terrain height in meters.
  */
 export function groundHeightAt(x: number, z: number): number {
   const r = Math.hypot(x, z);
@@ -892,11 +886,10 @@ export function groundHeightAt(x: number, z: number): number {
 // #region Water & Snow Zone Queries
 /**
  * Summary: Queries the local water plane elevation for oceans, lakes, pools, and oasis lagoons.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param currentY Input parameter currentY.
- * @returns Computed result for getWaterSurfaceHeightAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param currentY Height of the asker, to choose between stacked floors (optional).
+ * @returns Water surface height in meters, or null where there is no water.
  */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
   if (currentY !== undefined && currentY < -3.5) {
@@ -924,10 +917,9 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
 
 /**
  * Summary: Calculates snow accumulation factor based on terrain altitude above the snowline.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for northernSnowZoneFactorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Snow cover from 0 (none) to 1 (full).
  */
 export function northernSnowZoneFactorAt(x: number, z: number): number {
   if (isChineseFortressWalkableZone(x, z)) {
@@ -947,15 +939,14 @@ export function northernSnowZoneFactorAt(x: number, z: number): number {
 // #region Walkable Surface Resolution
 /**
  * Summary: Resolves complex multi-story walkable surface heights (ground, bridges, decks, cabins).
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated at 60FPS for entity positioning and camera collision.
  * Relaxed Rule: Rule 1 (fast analytical evaluation bypassing heavy mesh raycasts).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.05ms per query.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param currentY Input parameter currentY.
- * @returns Computed result for walkableHeightAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param currentY Height of the asker, to choose between stacked floors (optional).
+ * @returns The walkable height and the surface kind at that point.
  */
 export function walkableHeightAt(
   x: number,
@@ -1363,14 +1354,13 @@ export function walkableHeightAt(
 
 /**
  * Summary: Calculates analytical surface normal unit vector via central finite differences.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Sampled in real-time for player alignment and slopes.
  * Relaxed Rule: Rule 1 (fast analytical finite difference evaluation).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.01ms per query.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for getSurfaceNormalAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Unit surface normal (nx, ny, nz).
  */
 export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: number; nz: number } {
   const eps = 0.4;
@@ -1426,15 +1416,14 @@ export function computeSlopePitchAndRoll(
 // #region Surface Biome Classification
 /**
  * Summary: Classifies the dominant surface biome type at given spatial coordinates.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Queried continuously for footsteps, shaders, and audio cues.
  * Relaxed Rule: Rule 1 (fast analytical classification).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.01ms per query.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param currentY Input parameter currentY.
- * @returns Computed result for getSurfaceBiomeAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param currentY Height of the asker, to choose between stacked floors (optional).
+ * @returns The surface biome at that point.
  */
 export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): BiomeType {
   const walk = walkableHeightAt(x, z, currentY);
@@ -1470,9 +1459,8 @@ export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): Biom
 
 /**
  * Summary: Returns the localized display label for a world biome.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param biome Input parameter biome.
- * @returns Computed result for getBiomeLabel.
+ * @param biome Surface biome.
+ * @returns Localized biome name.
  */
 export function getBiomeLabel(biome: BiomeType): string {
   return t(`biomes.${biome}`);
@@ -1481,9 +1469,8 @@ export function getBiomeLabel(biome: BiomeType): string {
 
 /**
  * Summary: Returns the localized display label for a walking pace mode.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param pace Input parameter pace.
- * @returns Computed result for getWalkPaceLabel.
+ * @param pace Walk pace mode.
+ * @returns Localized pace name.
  */
 export function getWalkPaceLabel(pace: WalkPaceMode): string {
   return t(`pace.${pace}`);
@@ -1492,10 +1479,9 @@ export function getWalkPaceLabel(pace: WalkPaceMode): string {
 
 /**
  * Summary: Samples RGB color representation of terrain and structures for the explorer minimap.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @returns Computed result for sampleMinimapColorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns RGB color (0-255 each) for the minimap pixel.
  */
 export function sampleMinimapColorAt(x: number, z: number): [number, number, number] {
   for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
@@ -1702,8 +1688,7 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
 // #region World Obstacle Generator
 /**
  * Summary: Generates procedural static collision cylinders for trees, boulders, and flora.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @returns Computed result for generateWorldObstacles.
+ * @returns Collision cylinders for trees, rocks and props.
  */
 export function generateWorldObstacles(): IObstacleCylinder[] {
   const obstacles: IObstacleCylinder[] = [];

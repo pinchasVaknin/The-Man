@@ -56,13 +56,11 @@ export interface ISanctuaryAndDragonResult {
 // ======================== FACTORY FUNCTION ======================== \\
 // #region Factory Function
 /**
- * Summary: Build sanctuary and dragon models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the flying Ice Dragon (DemonDragon) above the Chinese Fortress,
+ * Summary: Constructs the flying Ice Dragon (DemonDragon) above the Chinese Fortress,
  * the Ancient Southern Ruins and grounded Forest Dragon (ForestDragon) south of the river,
  * and the oriental Sakura Hot-Spring Sanctuary with Golden Buddha and Tai-Chi monks.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildSanctuaryAndDragonModels.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Sanctuary and dragon handles for per-frame updates.
  */
 export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISanctuaryAndDragonResult {
   const { scene, textures, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;

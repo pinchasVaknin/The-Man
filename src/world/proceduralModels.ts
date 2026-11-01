@@ -99,15 +99,13 @@ export interface IAnimatedWorldHandles {
 // ======================== FACADE ORCHESTRATOR ======================== \\
 // #region Facade Orchestrator
 /**
- * Summary: Build realistic world.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Master orchestrator that constructs the entire procedurally modeled 3D world,
+ * Summary: Master orchestrator that constructs the entire procedurally modeled 3D world,
  * delegating discrete landmark generation to isolated sub-modules.
- * @param scene Input parameter scene.
- * @param textures Input parameter textures.
- * @param obstacles Input parameter obstacles.
- * @param isSoftwareGl Input parameter isSoftwareGl.
- * @returns Computed result for buildRealisticWorld.
+ * @param scene Scene to add the world to.
+ * @param textures Shared procedural textures.
+ * @param obstacles Static collision cylinders.
+ * @param isSoftwareGl True on software WebGL; lowers detail.
+ * @returns Handles to update (per frame), simulate wildlife and dispose the world.
  */
 export function buildRealisticWorld(
   scene: THREE.Scene,

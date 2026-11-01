@@ -65,9 +65,8 @@ const SWORD_HEAVY_REACH = 4.25;
 
 /**
  * Summary: Returns the localized display label for an equipped tool slot.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param tool Input parameter tool.
- * @returns Computed result for getEquippedToolLabel.
+ * @param tool Equipped tool slot.
+ * @returns Localized tool name.
  */
 export function getEquippedToolLabel(tool: EquippedToolSlot = 'bow'): string {
   return t(`combat.tools.${tool}`);
@@ -76,9 +75,8 @@ export function getEquippedToolLabel(tool: EquippedToolSlot = 'bow'): string {
 
 /**
  * Summary: Returns the localized display label for an arrow element type.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param kind Input parameter kind.
- * @returns Computed result for getArrowKindLabel.
+ * @param kind The weather or arrow kind.
+ * @returns Localized arrow name.
  */
 export function getArrowKindLabel(kind: ArrowElementKind = 'normal'): string {
   return t(`combat.arrows.${kind}`);
@@ -87,9 +85,8 @@ export function getArrowKindLabel(kind: ArrowElementKind = 'normal'): string {
 
 /**
  * Summary: Calculates the gold payout for selling an inventory item at market stalls.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param item Input parameter item.
- * @returns Computed result for getMarketSellPrice.
+ * @param item Item definition.
+ * @returns Gold paid by a merchant for the item.
  */
 export function getMarketSellPrice(item: IInventoryItemDef): number {
   return Math.max(MARKET_MIN_SELL_PRICE, Math.round(item.valueGold * MARKET_SELL_RATIO));
@@ -112,8 +109,8 @@ export function requiresSellConfirmation(itemId: InventoryItemId): boolean {
 // #region Spatial Indexing Broad-Phase
 /**
  * Summary: 2D Spatial Hash Grid partitioning objects on the X/Z horizontal plane.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Provides O(1) candidate box/target queries for collision detection broad-phase.
+ * Design: Objects are bucketed per cell; a query returns the objects of the cells it
+ *         touches, giving O(1) candidate lookups for the collision broad phase.
  */
 export class SpatialHashGrid2D<T> {
   private readonly cellSize: number;
@@ -169,9 +166,9 @@ for (const tgt of ARCHERY_TARGETS) {
 /**
  * Summary: Get nearby solid building boxes.
  * Design: Standard function implementing domain specifications and behavioral contracts.
- * @param x Input parameter for getNearbySolidBuildingBoxes.
- * @param z Input parameter for getNearbySolidBuildingBoxes.
- * @returns Computed result for getNearbySolidBuildingBoxes.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Building collision boxes close to the point.
  */
 export function getNearbySolidBuildingBoxes(x: number, z: number): readonly ISolidBuildingBox[] {
   return SOLID_BUILDING_SPATIAL_GRID.query(x, z);
@@ -180,9 +177,9 @@ export function getNearbySolidBuildingBoxes(x: number, z: number): readonly ISol
 /**
  * Summary: Get nearby archery targets.
  * Design: Standard function implementing domain specifications and behavioral contracts.
- * @param x Input parameter for getNearbyArcheryTargets.
- * @param z Input parameter for getNearbyArcheryTargets.
- * @returns Computed result for getNearbyArcheryTargets.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns Archery targets close to the point.
  */
 export function getNearbyArcheryTargets(x: number, z: number): readonly IArcheryTargetDef[] {
   return ARCHERY_TARGETS_SPATIAL_GRID.query(x, z);
@@ -193,7 +190,8 @@ export function getNearbyArcheryTargets(x: number, z: number): readonly IArchery
 // #region Equipment Strategy Pattern
 /**
  * Summary: Strategy interface for item equipment checks and activation dispatch.
- * Design: Standard domain component following SRP and clean architectural contracts.
+ * Design: One strategy per slot kind, looked up in EQUIPMENT_STRATEGY_MAP by item id,
+ *         instead of a switch over item kinds.
  */
 export interface IEquipmentSlotStrategy {
   isEquipped(state: IPlayerState, itemId: InventoryItemId): boolean;
@@ -352,10 +350,9 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
 // #region Inventory & Market Operations
 /**
  * Summary: Checks whether the player owns a specified inventory item.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param itemId Input parameter itemId.
- * @returns Computed result for isInventoryItemOwned.
+ * @param state Player state (read only).
+ * @param itemId Inventory item id.
+ * @returns True when the item is in the player's inventory.
  */
 export function isInventoryItemOwned(state: IPlayerState, itemId: InventoryItemId): boolean {
   if (!state.ownedItemIds) {
@@ -367,11 +364,10 @@ export function isInventoryItemOwned(state: IPlayerState, itemId: InventoryItemI
 
 /**
  * Summary: Checks whether the player currently has an inventory item actively equipped.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: Dispatches via O(1) Strategy Map lookup.
- * @param state Input parameter state.
- * @param itemId Input parameter itemId.
- * @returns Computed result for isInventoryItemEquipped.
+ * @param state Player state (read only).
+ * @param itemId Inventory item id.
+ * @returns True when the item is the active weapon or arrow.
  */
 export function isInventoryItemEquipped(state: IPlayerState, itemId: InventoryItemId): boolean {
   const strategy = EQUIPMENT_STRATEGY_MAP.get(itemId);
@@ -380,11 +376,9 @@ export function isInventoryItemEquipped(state: IPlayerState, itemId: InventoryIt
 
 /**
  * Summary: Equips an inventory item to the appropriate active weapon or arrow slot.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: Dispatches via O(1) Strategy Map lookup.
- * @param state Input parameter state.
- * @param itemId Input parameter itemId.
- * @returns Computed result for equipInventoryItem.
+ * @param state Player state; updated in place.
+ * @param itemId Inventory item id.
  */
 export function equipInventoryItem(state: IPlayerState, itemId: InventoryItemId): void {
   const strategy = EQUIPMENT_STRATEGY_MAP.get(itemId);
@@ -555,11 +549,9 @@ export function sellMarketItem(
 
 /**
  * Summary: Assigns an inventory item to one of the 4 hotbar quick slots.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param slotIndex Input parameter slotIndex.
- * @param itemId Input parameter itemId.
- * @returns Computed result for assignHotbarSlot.
+ * @param state Player state; updated in place.
+ * @param slotIndex Hotbar slot, 0-3.
+ * @param itemId Inventory item id.
  */
 export function assignHotbarSlot(
   state: IPlayerState,
@@ -579,10 +571,9 @@ export function assignHotbarSlot(
 
 /**
  * Summary: Toggles the favorite status of an inventory item for quick-menu filtering.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param itemId Input parameter itemId.
- * @returns Computed result for toggleFavoriteItem.
+ * @param state Player state; updated in place.
+ * @param itemId Inventory item id.
+ * @returns True when the item is a favorite after the toggle.
  */
 export function toggleFavoriteItem(state: IPlayerState, itemId: InventoryItemId): boolean {
   if (!state.favoriteIds) {
@@ -616,14 +607,13 @@ export interface ISwordSlashHitResult {
 
 /**
  * Summary: Evaluates melee hit detection during the Phase C Active Strike Window.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Ray-marches and mutates combat state directly.
  * Relaxed Rule: Rule 1 (in-place state mutation instead of immutable reconstruction).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.04ms per swing frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param state Input parameter state.
- * @param obstacles Input parameter obstacles.
- * @returns Computed result for evaluateSwordStrikeWindowHit.
+ * @param state Player state; updated in place.
+ * @param obstacles Static collision cylinders.
+ * @returns What the strike hit, if anything (target, obstacle, wall or animal).
  */
 export function evaluateSwordStrikeWindowHit(
   state: IPlayerState,
@@ -787,12 +777,11 @@ export function evaluateSwordStrikeWindowHit(
 
 /**
  * Summary: Initiates a sword attack swing, advances combo chain, and consumes stamina.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param obstacles Input parameter obstacles.
- * @param isHeavy Input parameter isHeavy.
- * @param deferHitToStrikeWindow Input parameter deferHitToStrikeWindow.
- * @returns Computed result for triggerSwordSlash.
+ * @param state Player state; updated in place.
+ * @param obstacles Static collision cylinders.
+ * @param isHeavy True for a heavy (charged) attack.
+ * @param deferHitToStrikeWindow True to check hits later, in the strike window, instead of now.
+ * @returns Hit result of an immediate strike (empty when the hit is deferred to the strike window).
  */
 export function triggerSwordSlash(
   state: IPlayerState,
@@ -834,12 +823,11 @@ export function triggerSwordSlash(
 
 /**
  * Summary: Steps the 5-phase sword attack progress over time and executes hit checks in the strike window.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated in 60FPS combat simulation tick.
- * @param state Input parameter state.
- * @param obstacles Input parameter obstacles.
- * @param dt Input parameter dt.
- * @returns Computed result for stepSwordSwingCombat.
+ * @param state Player state; updated in place.
+ * @param obstacles Static collision cylinders.
+ * @param dt Step length in seconds.
+ * @returns Hit result when the strike window connected this step, otherwise null.
  */
 export function stepSwordSwingCombat(
   state: IPlayerState,
@@ -890,11 +878,10 @@ export function stepSwordSwingCombat(
 // #region Arrow Ballistic Projectiles
 /**
  * Summary: Instantiates a ballistic arrow projectile based on player aim and bow power.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param state Input parameter state.
- * @param drawPower Input parameter drawPower.
- * @param nextIdGenerator Input parameter nextIdGenerator.
- * @returns Computed result for spawnArrowProjectile.
+ * @param state Player state; updated in place.
+ * @param drawPower Bow draw, 0-1.
+ * @param nextIdGenerator Id source for the arrow (tests pass a fixed one).
+ * @returns The new arrow in flight.
  */
 export function spawnArrowProjectile(
   state: IPlayerState,
@@ -956,12 +943,11 @@ export function spawnArrowProjectile(
 
 /**
  * Summary: Steps physics integration, gravity, and collision detection for all flying arrows.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] 60FPS arrow sub-step integration loop with in-place mutation.
- * @param arrows Input parameter arrows.
- * @param obstacles Input parameter obstacles.
- * @param rawDt Input parameter rawDt.
- * @returns Computed result for stepArrowsPhysics.
+ * @param arrows Arrows in flight; updated in place.
+ * @param obstacles Static collision cylinders.
+ * @param rawDt Step length in seconds (clamped inside).
+ * @returns What the arrows hit this step (target, animal or any surface).
  */
 export function stepArrowsPhysics(
   arrows: IArrowProjectile[],

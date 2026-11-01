@@ -26,14 +26,11 @@ import type { IWorldModelBuildContext } from './types';
 // ======================== SHADER HELPERS ======================== \\
 // #region Shader Helpers
 /**
- * Summary: Attach animated water wave shader.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Attaches a dynamic vertex wave and fragment normal ripple deformation shader to water materials.
- * @param mat Input parameter mat.
- * @param waveHeight Input parameter waveHeight.
- * @param rippleStrength Input parameter rippleStrength.
- * @param animatedWaterMaterials Input parameter animatedWaterMaterials.
- * @returns Computed result for attachAnimatedWaterWaveShader.
+ * Summary: Attaches a dynamic vertex wave and fragment normal ripple deformation shader to water materials.
+ * @param mat Material to patch in place.
+ * @param waveHeight Wave amplitude in meters.
+ * @param rippleStrength Normal ripple strength.
+ * @param animatedWaterMaterials List that collects the material for per-frame time updates.
  */
 export function attachAnimatedWaterWaveShader(
   mat: THREE.MeshPhysicalMaterial,
@@ -92,11 +89,9 @@ export interface ITerrainAndWaterResult {
 }
 
 /**
- * Summary: Build terrain and water model.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Builds the 7x7 spatially chunked terrain grid and the animated central water surface mesh.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildTerrainAndWaterModel.
+ * Summary: Builds the 7x7 spatially chunked terrain grid and the animated central water surface mesh.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Terrain material and water meshes for later updates.
  */
 export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrainAndWaterResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, animatedWaterMaterials, distanceCulledObjects } = ctx;

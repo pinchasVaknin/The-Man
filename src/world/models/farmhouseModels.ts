@@ -44,11 +44,9 @@ export interface IFarmhouseModelHandles {
 // ======================== BUILD FARMHOUSE MODELS ======================== \\
 // #region Build Farmhouse Models
 /**
- * Summary: Build farmhouse models.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Constructs the valley farmhouses, wheat fields, magic circle, sheep flock, and southern mountain mine.
- * @param ctx Input parameter ctx.
- * @returns Computed result for buildFarmhouseModels.
+ * Summary: Constructs the valley farmhouses, wheat fields, magic circle, sheep flock, and southern mountain mine.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @returns Handles for animating the farmhouse area each frame.
  */
 export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseModelHandles {
   const {

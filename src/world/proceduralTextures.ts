@@ -46,10 +46,9 @@ function configureTexture(
 // ======================== TEXTURE GENERATORS ======================== \\
 // #region Texture Generators
 /**
- * Summary: Create world textures.
- * Design: Standard function implementing domain specifications and behavioral contracts.
- * @param renderer Input parameter for createWorldTextures.
- * @returns Computed result for createWorldTextures.
+ * Summary: Design: Standard function implementing domain specifications and behavioral contracts.
+ * @param renderer Renderer, used for the anisotropy limit.
+ * @returns The shared procedural texture set (dispose with the world).
  */
 export function createWorldTextures(renderer: THREE.WebGLRenderer): IWorldTextureSet {
   const maxAniso = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);

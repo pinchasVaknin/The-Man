@@ -46,14 +46,12 @@ export interface IAtmosphereRenderContext {
 // ======================== CONTROLLER LOGIC ======================== \\
 // #region Controller Logic
 /**
- * Summary: Apply dynamic atmosphere to scene.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * Controller Pattern: Applies dynamic solar cycle and weather state to the Three.js scene,
+ * Summary: Controller Pattern: Applies dynamic solar cycle and weather state to the Three.js scene,
  * Preetham sky shader, directional/hemisphere lights, exponential fog, water material, and lanterns.
- * @param ctx Input parameter ctx.
- * @param hours Input parameter hours.
- * @param weather Input parameter weather.
- * @returns Computed result for applyDynamicAtmosphereToScene.
+ * @param ctx Shared build context (scene, textures, disposal lists).
+ * @param hours Hour of day, 0-24.
+ * @param weather Current weather snapshot (optional).
+ * @returns The atmosphere state that was applied (sun, sky and fog values).
  */
 export function applyDynamicAtmosphereToScene(
   ctx: IAtmosphereRenderContext,

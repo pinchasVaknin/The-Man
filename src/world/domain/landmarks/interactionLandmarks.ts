@@ -106,7 +106,6 @@ export function getLadderById(id: string | null | undefined): IClimbableLadderIn
 
 /**
  * Summary: Identifies whether a 2D coordinate is within touching distance of a ladder base.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * @param x World X coordinate.
  * @param z World Z coordinate.
  * @returns IClimbableLadderInfo if standing in front of a ladder, or null.
@@ -145,7 +144,6 @@ export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderIn
 
 /**
  * Summary: Fast predicate checking if position overlaps any ladder climbing zone.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * @param x World X.
  * @param z World Z.
  * @returns True when standing within ladder grab volume.

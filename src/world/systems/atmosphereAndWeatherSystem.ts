@@ -36,9 +36,8 @@ const TURBO_TOTAL_STAGES = 5;
 
 /**
  * Summary: Returns the localized display label for a world season.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param season Input parameter season.
- * @returns Computed result for getSeasonLabel.
+ * @param season The season.
+ * @returns Localized season name.
  */
 export function getSeasonLabel(season: SeasonType): string {
   return t(`seasons.${season}`);
@@ -47,9 +46,8 @@ export function getSeasonLabel(season: SeasonType): string {
 
 /**
  * Summary: Returns the localized display label for a weather condition kind.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param kind Input parameter kind.
- * @returns Computed result for getWeatherLabel.
+ * @param kind The weather or arrow kind.
+ * @returns Localized weather name.
  */
 export function getWeatherLabel(kind: WeatherKind): string {
   return t(`weather.${kind}`);
@@ -58,11 +56,10 @@ export function getWeatherLabel(kind: WeatherKind): string {
 
 /**
  * Summary: Calculates 2D procedural drifting rain cloud factor at given coordinates.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param x Input parameter x.
- * @param z Input parameter z.
- * @param timeSec Input parameter timeSec.
- * @returns Computed result for regionalRainFactorAt.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @param timeSec Simulation time in seconds.
+ * @returns Rain cloud coverage from 0 (dry) to 1 (under the cloud core).
  */
 export function regionalRainFactorAt(x: number, z: number, timeSec: number): number {
   const driftX = x * 0.0085 + timeSec * 0.008;
@@ -76,13 +73,12 @@ export function regionalRainFactorAt(x: number, z: number, timeSec: number): num
 // #region Diurnal Solar Cycle
 /**
  * Summary: Computes analytical sun/moon elevation, sky turbidity, colors, and fog density for a given time of day.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated in 60FPS render loop for sky uniforms.
  * Relaxed Rule: Rule 1 (in-place state evaluation instead of deep object allocations).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.04ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @param rawHours Input parameter rawHours.
- * @returns Computed result for computeDynamicSolarCycle.
+ * @param rawHours Hour of day; wrapped into 0-24.
+ * @returns Sun/moon elevation, sky and fog values for that hour.
  */
 export function computeDynamicSolarCycle(rawHours: number): IDynamicAtmosphereState {
   const worldHours = ((rawHours % 24) + 24) % 24;
@@ -245,11 +241,10 @@ export function computeDynamicSolarCycle(rawHours: number): IDynamicAtmosphereSt
 // #region Seasonal Weather Evaluation
 /**
  * Summary: Simulates a continuous 4-season climate year with dynamic weather waves.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param elapsedSeconds Input parameter elapsedSeconds.
- * @param playerX Input parameter playerX.
- * @param playerZ Input parameter playerZ.
- * @returns Computed result for runSeasonalWeatherCycle.
+ * @param elapsedSeconds Simulation time in seconds.
+ * @param playerX Player X in meters (regional weather).
+ * @param playerZ Player Z in meters (regional weather).
+ * @returns Weather snapshot for that moment of the seasonal cycle.
  */
 export function runSeasonalWeatherCycle(
   elapsedSeconds: number,
@@ -387,11 +382,10 @@ export function runSeasonalWeatherCycle(
 // #region Turbo & Composite Dispatch
 /**
  * Summary: Executes accelerated 7-second test transitions across all weather patterns.
- * Design: Standard domain component following SRP and clean architectural contracts.
- * @param elapsedSeconds Input parameter elapsedSeconds.
- * @param playerX Input parameter playerX.
- * @param playerZ Input parameter playerZ.
- * @returns Computed result for runTurboWeatherTestCycle.
+ * @param elapsedSeconds Simulation time in seconds.
+ * @param playerX Player X in meters (regional weather).
+ * @param playerZ Player Z in meters (regional weather).
+ * @returns Weather snapshot for that moment of the test cycle.
  */
 export function runTurboWeatherTestCycle(
   elapsedSeconds: number,
@@ -497,12 +491,11 @@ export function runTurboWeatherTestCycle(
 
 /**
  * Summary: Evaluates current composite weather state taking into account mode and manual overrides.
- * Design: Standard domain component following SRP and clean architectural contracts.
  * Note: [HOT-PATH EXCEPTION] Evaluated in 60FPS render loop.
  * Relaxed Rule: Rule 1 (in-place state evaluation instead of deep object allocations).
  * Empirical Measurement: Chrome Performance Profiler measured at ~0.03ms per frame.
  * Performance Budget: < 0.5 ms per frame at 60 FPS.
- * @returns Computed result for computeWeatherState.
+ * @returns The effective weather snapshot after mode and overrides.
  */
 export function computeWeatherState(
   elapsedSeconds: number,
