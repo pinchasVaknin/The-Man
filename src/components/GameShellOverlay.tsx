@@ -308,9 +308,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket, kb]);
 
-  // ============================================================================
   // 1. TITLE SCREEN OVERLAY ("the man" — Left-Aligned Typographic Menu)
-  // ============================================================================
   if (gameState === 'title') {
     return (
       <main
@@ -509,9 +507,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     (item) => favoriteIds.includes(item.id) && isItemOwned(item.id)
   );
 
-  // ============================================================================
   // 2. PLAYING & PAUSED HUD OVERLAY (Strictly ONLY Weather [V] Button in Top Bar!)
-  // ============================================================================
   return (
     <div className="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-4 md:p-5">
       {/* Top Row: Developer Time, Season & Weather Controls */}
