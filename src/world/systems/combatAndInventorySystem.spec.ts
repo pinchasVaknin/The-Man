@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buyMarketItem,
+  requiresSellConfirmation,
   sellMarketItem,
   assignHotbarSlot,
   toggleFavoriteItem,
@@ -226,6 +227,17 @@ test('buyMarketItem_WhenOutsideMarketStall_ShouldReturnFailedResultWithNotInMark
   assert.equal(result.isFailure, true);
   assert.equal(result.reason, 'NOT_IN_MARKET');
   assert.equal(result.error, 'NOT_IN_MARKET');
+});
+
+test('requiresSellConfirmation_WhenItemIsLootOnlyOrRegular_ShouldOnlyGuardLootOnlyItems', () => {
+  // Arrange
+  const itemIds = ['dragon_scales', 'dragon_meat', 'crystal_gem', 'katana_imperial'] as const;
+
+  // Act
+  const needsConfirmation = itemIds.map((itemId) => requiresSellConfirmation(itemId));
+
+  // Assert
+  assert.deepEqual(needsConfirmation, [true, true, false, false]);
 });
 
 test('buyMarketItem_WhenItemIsLootOnly_ShouldReturnFailedResultWithNotSoldByMerchants', () => {

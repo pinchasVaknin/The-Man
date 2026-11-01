@@ -15,6 +15,7 @@ import {
   IInventoryItemDef,
   ICharacterSkillsState,
   getMarketSellPrice,
+  requiresSellConfirmation,
   type IBuyMarketItemPayload,
   type ISellMarketItemPayload,
   type MarketTransactionErrorCode,
@@ -153,6 +154,24 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   skills,
 }) => {
   const [tradeFeedback, setTradeFeedback] = useState<string | null>(null);
+  const [pendingRareSaleId, setPendingRareSaleId] = useState<InventoryItemId | null>(null);
+
+  const performSell = (itemId: InventoryItemId): void => {
+    const res = onSellItem(itemId);
+    setTradeFeedback(
+      res.isSuccess ? t('interactions.sold_success', { gold: res.value.soldForGold }) : formatMarketError(res.error)
+    );
+  };
+
+  const requestSell = (itemId: InventoryItemId): void => {
+    if (requiresSellConfirmation(itemId)) {
+      setPendingRareSaleId(itemId);
+      return;
+    }
+    performSell(itemId);
+  };
+
+  const pendingRareSaleItem = pendingRareSaleId ? INVENTORY_ITEM_MAP.get(pendingRareSaleId) : undefined;
   const [tradeSide, setTradeSide] = useState<'player' | 'merchant'>('merchant');
   const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'materials' | 'food'>('all');
   const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'materials' | 'food'>('all');
@@ -459,12 +478,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                     <button
                       type="button"
                       data-testid="skyrim-sell-btn"
-                      onClick={() => {
-                        const res = onSellItem(inspectedItem.id);
-                        setTradeFeedback(
-                          res.isSuccess ? t('interactions.sold_success', { gold: res.value.soldForGold }) : formatMarketError(res.error)
-                        );
-                      }}
+                      onClick={() => requestSell(inspectedItem.id)}
                       className="w-full py-2.5 px-5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
                     >
                       {t('interactions.sell_action', { price: inspectedSellPrice })}
@@ -519,12 +533,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                         <button
                           type="button"
                           data-testid="skyrim-sell-btn"
-                          onClick={() => {
-                            const res = onSellItem(inspectedItem.id);
-                            setTradeFeedback(
-                              res.isSuccess ? t('interactions.sold_success', { gold: res.value.soldForGold }) : formatMarketError(res.error)
-                            );
-                          }}
+                          onClick={() => requestSell(inspectedItem.id)}
                           className="w-full py-2 px-4 text-xs font-bold text-amber-200 bg-stone-800 hover:bg-stone-700 border border-amber-400/40 cursor-pointer"
                         >
                           {t('interactions.sell_short', { price: inspectedSellPrice })}
@@ -822,6 +831,56 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingRareSaleItem && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.target === e.currentTarget) setPendingRareSaleId(null);
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="rare-sale-title"
+            aria-describedby="rare-sale-body"
+            data-testid="rare-sale-confirm-dialog"
+            className="w-full max-w-sm p-5 rounded-2xl bg-stone-900 border border-amber-500/60 shadow-2xl text-left"
+          >
+            <h3 id="rare-sale-title" className="font-display-he text-lg font-bold text-amber-300">
+              {t('interactions.rare_sale_title')}
+            </h3>
+            <p id="rare-sale-body" className="mt-2 text-sm text-stone-300 leading-relaxed">
+              {t('interactions.rare_sale_body', {
+                item: pendingRareSaleItem.name,
+                price: getMarketSellPrice(pendingRareSaleItem),
+              })}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                autoFocus
+                data-testid="rare-sale-cancel-btn"
+                onClick={() => setPendingRareSaleId(null)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 cursor-pointer"
+              >
+                {t('interactions.rare_sale_cancel')}
+              </button>
+              <button
+                type="button"
+                data-testid="rare-sale-confirm-btn"
+                onClick={() => {
+                  performSell(pendingRareSaleItem.id);
+                  setPendingRareSaleId(null);
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-stone-950 bg-red-400 hover:bg-red-300 cursor-pointer"
+              >
+                {t('interactions.rare_sale_confirm')}
+              </button>
             </div>
           </div>
         </div>
