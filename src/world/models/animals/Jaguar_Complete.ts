@@ -1,3 +1,11 @@
+// ============================================================================
+// MODULE: World / Models / Animals / Jaguar (embedded model bundle)
+// DESIGN: Self-contained asset module: geometry, rig, skinning and animator with
+//         embedded data; generated outside this codebase and kept as-is
+// SUMMARY: Builds and animates the Jaguar model. Imported only through the
+//          ../Jaguar.ts facade; gameplay and AI live in the wildlife system.
+// ============================================================================
+
 import * as THREE from 'three';
 
 export type JaguarState =
@@ -423,7 +431,7 @@ export class JaguarAnimator {
     // Apply state-specific posture & articulation refinements
     const bones = this.rig.bones;
     if (this.state === 'sit') {
-      // Upright feline seated observation posture (ישיבת תצפית זקופה):
+      // Upright feline seated observation posture:
       const breath = Math.sin(t * 1.8) * 0.012;
       const scanYaw = Math.sin(t * 0.55) * 0.14;
       bones[2].position.y = 0.54 + breath * 0.4;
@@ -453,7 +461,7 @@ export class JaguarAnimator {
         this.addLocalRot(ti, 0.06, Math.sin(t * 1.8 - (ti - 34) * 0.35) * 0.09, 0);
       }
     } else if (this.state === 'stalk') {
-      // Predatory low stealth prowl (התגנבות): Clip 5 + deep shoulder crouch, lowered head, intense forward stare
+      // Predatory low stealth prowl: Clip 5 + deep shoulder crouch, lowered head, intense forward stare
       bones[2].position.y -= 0.10;
       this.addLocalRot(2, 0, 0, 0.10);
       this.addLocalRot(3, 0.12, 0, 0);

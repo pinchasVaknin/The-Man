@@ -1,3 +1,11 @@
+// ============================================================================
+// MODULE: World / Models / Animals / Rhino (embedded model bundle)
+// DESIGN: Self-contained asset module: geometry, rig, skinning and animator with
+//         embedded data; generated outside this codebase and kept as-is
+// SUMMARY: Builds and animates the Rhino model. Imported only through the
+//          ../Rhino.ts facade; gameplay and AI live in the wildlife system.
+// ============================================================================
+
 import * as THREE from 'three';
 
 export type RhinoState =
