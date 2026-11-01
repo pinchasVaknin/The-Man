@@ -337,7 +337,7 @@ const LOOT_TABLE: Readonly<Record<GroundAnimalSpecies, readonly InventoryItemId[
 /**
  * Summary: Returns the localized species name for HUD prompts.
  */
-export function getAnimalSpeciesNameHe(species: GroundAnimalSpecies): string {
+export function getAnimalSpeciesName(species: GroundAnimalSpecies): string {
   return t(`wildlife.species.${species}`);
 }
 
@@ -348,17 +348,17 @@ export function getAnimalSpeciesNameHe(species: GroundAnimalSpecies): string {
  */
 export function getAnimalLootDrops(species: GroundAnimalSpecies): {
   readonly itemIds: readonly InventoryItemId[];
-  readonly itemLabelsHe: readonly string[];
-  readonly notificationHe: string;
+  readonly itemLabels: readonly string[];
+  readonly notification: string;
 } {
   const itemIds = LOOT_TABLE[species];
-  const itemLabelsHe = itemIds.map((itemId) => t(`items.${itemId}.name`));
+  const itemLabels = itemIds.map((itemId) => t(`items.${itemId}.name`));
   return {
     itemIds,
-    itemLabelsHe,
-    notificationHe: t('wildlife.loot_toast', {
-      species: getAnimalSpeciesNameHe(species),
-      items: itemLabelsHe.join(', '),
+    itemLabels,
+    notification: t('wildlife.loot_toast', {
+      species: getAnimalSpeciesName(species),
+      items: itemLabels.join(', '),
     }),
   };
 }
@@ -615,7 +615,7 @@ export function lootDeadAnimal(
   readonly species: GroundAnimalSpecies;
   readonly addedItemIds: readonly InventoryItemId[];
   readonly addedItems: readonly InventoryItemId[];
-  readonly notificationHe: string;
+  readonly notification: string;
 } {
   if (!animal.isDead || animal.isLooted) {
     return {
@@ -623,7 +623,7 @@ export function lootDeadAnimal(
       species: animal.species,
       addedItemIds: [],
       addedItems: [],
-      notificationHe: '',
+      notification: '',
     };
   }
   animal.isLooted = true;
@@ -641,7 +641,7 @@ export function lootDeadAnimal(
     species: animal.species,
     addedItemIds: drops.itemIds,
     addedItems: drops.itemIds,
-    notificationHe: drops.notificationHe,
+    notification: drops.notification,
   };
 }
 // #endregion
@@ -885,7 +885,7 @@ export function createInitialBoidBirds(): IBoidBirdState[] {
  *          - Birch grove & eastern woodland: Squirrels
  *          - Deep western & southern forests: Deer & Wolves
  *          - Southwest Desert & Deep Southern Forest: Jaguars (4)
- *          - Forested mountain caves ("מערות דובים בהרים"): Multiple Bears inside the cavern side alcoves & outside tunnel mouths
+ *          - Forested mountain caves: Multiple Bears inside the cavern side alcoves & outside tunnel mouths
  *          - Dedicated Southern River Bend (`CROCODILE_RIVER_BEND_POS`): Crocodiles (5, far from populated areas)
  */
 export function createInitialSmallAnimals(): ISmallAnimalState[] {

@@ -58,31 +58,31 @@ import { INVENTORY_ITEM_MAP } from '../domain/worldTypes';
 test('getAnimalLootDrops_WhenSheepJaguarOrWolfHunted_ShouldYieldSpeciesSpecificHidesWithDistinctGoldValues', () => {
   const sheepDrops = getAnimalLootDrops('sheep');
   assert.deepEqual(sheepDrops.itemIds, ['raw_game_meat', 'sheep_hide', 'animal_bone']);
-  assert.deepEqual(sheepDrops.itemLabelsHe, ['Game Meat', 'Wool', 'Animal Bone']);
-  assert.ok(sheepDrops.notificationHe.includes('Sheep'));
+  assert.deepEqual(sheepDrops.itemLabels, ['Game Meat', 'Wool', 'Animal Bone']);
+  assert.ok(sheepDrops.notification.includes('Sheep'));
 
   const deerDrops = getAnimalLootDrops('deer');
   assert.deepEqual(deerDrops.itemIds, ['deer_meat', 'deer_hide', 'deer_antlers', 'animal_bone']);
 
   const jaguarDrops = getAnimalLootDrops('jaguar');
   assert.deepEqual(jaguarDrops.itemIds, ['raw_game_meat', 'jaguar_hide', 'wolf_fang', 'animal_bone']);
-  assert.ok(jaguarDrops.notificationHe.includes('Jaguar'));
+  assert.ok(jaguarDrops.notification.includes('Jaguar'));
 
   const wolfDrops = getAnimalLootDrops('wolf');
   assert.deepEqual(wolfDrops.itemIds, ['raw_game_meat', 'wolf_hide', 'wolf_fang', 'animal_bone']);
-  assert.ok(wolfDrops.notificationHe.includes('Wolf'));
+  assert.ok(wolfDrops.notification.includes('Wolf'));
 
   const crocDrops = getAnimalLootDrops('crocodile');
   assert.deepEqual(crocDrops.itemIds, ['raw_game_meat', 'crocodile_hide', 'crocodile_teeth', 'animal_bone']);
-  assert.ok(crocDrops.notificationHe.includes('Crocodile'));
+  assert.ok(crocDrops.notification.includes('Crocodile'));
 
   const bearDrops = getAnimalLootDrops('bear');
   assert.deepEqual(bearDrops.itemIds, ['bear_meat', 'bear_hide', 'bear_claws', 'animal_fat', 'animal_bone']);
-  assert.ok(bearDrops.notificationHe.includes('Bear'));
+  assert.ok(bearDrops.notification.includes('Bear'));
 
   const rhinoDrops = getAnimalLootDrops('rhino');
   assert.deepEqual(rhinoDrops.itemIds, ['raw_game_meat', 'rhino_hide', 'rhino_horn', 'animal_fat', 'animal_bone']);
-  assert.ok(rhinoDrops.notificationHe.includes('Rhino'));
+  assert.ok(rhinoDrops.notification.includes('Rhino'));
 
   // Verify each species hide has a distinct market value in gold
   const deerHideGold = INVENTORY_ITEM_MAP.get('deer_hide')?.valueGold ?? 0;

@@ -1550,7 +1550,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   }
 
   // ============================================================================
-  // GRAND SOUTHERN RIVER 3-ARCH STONE & TIMBER BRIDGE (גשר הקשתות הדרומי)
+  // GRAND SOUTHERN RIVER 3-ARCH STONE & TIMBER BRIDGE
   // Spans East-West across the Southern River at (178, 378), x: 154..202
   // ============================================================================
   const grandBridgeGroup = new THREE.Group();

@@ -1469,7 +1469,7 @@ export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): Biom
 }
 
 /**
- * Summary: Returns the localized Hebrew display label for a world biome.
+ * Summary: Returns the localized display label for a world biome.
  * Design: Standard domain component following SRP and clean architectural contracts.
  * @param biome Input parameter biome.
  * @returns Computed result for getBiomeLabel.
@@ -1480,7 +1480,7 @@ export function getBiomeLabel(biome: BiomeType): string {
 
 
 /**
- * Summary: Returns the localized Hebrew display label for a walking pace mode.
+ * Summary: Returns the localized display label for a walking pace mode.
  * Design: Standard domain component following SRP and clean architectural contracts.
  * @param pace Input parameter pace.
  * @returns Computed result for getWalkPaceLabel.

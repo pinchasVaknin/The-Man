@@ -872,13 +872,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
           {/* Top-Center Combat, Hunting Loot & Level-Up Toasts (Well above the center view!) */}
           {(telemetry.lastArrowHitTargetName ||
-            telemetry.lootNotificationHe ||
+            telemetry.lootNotification ||
             telemetry.skills?.lastLevelUpTitle) && (
             <div
               className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
               aria-hidden="true"
             >
-              {telemetry.lootNotificationHe && (
+              {telemetry.lootNotification && (
                 <div
                   data-testid="hunting-loot-toast"
                   className="px-4 py-1.5 rounded-lg text-xs font-bold text-emerald-200 whitespace-nowrap shadow-xl"
@@ -887,7 +887,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     border: '1px solid rgba(52, 211, 153, 0.65)',
                   }}
                 >
-                  {telemetry.lootNotificationHe}
+                  {telemetry.lootNotification}
                 </div>
               )}
 
@@ -951,7 +951,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold text-xs text-emerald-100">
-                  {t('hud.loot_prompt', { species: telemetry.nearbyDeadAnimal.speciesNameHe })}
+                  {t('hud.loot_prompt', { species: telemetry.nearbyDeadAnimal.speciesName })}
                 </span>
               </div>
             )}

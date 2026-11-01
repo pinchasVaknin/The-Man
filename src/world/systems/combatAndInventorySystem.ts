@@ -65,7 +65,7 @@ const SWORD_LIGHT_REACH = 2.55;
 const SWORD_HEAVY_REACH = 4.25;
 
 /**
- * Summary: Returns the localized Hebrew display label for an equipped tool slot.
+ * Summary: Returns the localized display label for an equipped tool slot.
  * Design: Standard domain component following SRP and clean architectural contracts.
  * @param tool Input parameter tool.
  * @returns Computed result for getEquippedToolLabel.
@@ -76,7 +76,7 @@ export function getEquippedToolLabel(tool: EquippedToolSlot = 'bow'): string {
 
 
 /**
- * Summary: Returns the localized Hebrew display label for an arrow element type.
+ * Summary: Returns the localized display label for an arrow element type.
  * Design: Standard domain component following SRP and clean architectural contracts.
  * @param kind Input parameter kind.
  * @returns Computed result for getArrowKindLabel.

@@ -15,7 +15,7 @@ import {
   countActivePoseOverrides,
   createInitialLabSessionState,
   filterLabEntities,
-  getEntityEditorLabelsHe,
+  getEntityEditorLabels,
   getEffectiveLabAnimationSpeed,
   getLabAnimationForEntity,
   getLabEntityById,
@@ -39,18 +39,18 @@ export interface ICharacterLabViewProps {
 
 const SPEED_OPTIONS: readonly number[] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
-const CAMERA_PRESETS: readonly { id: LabCameraPreset; labelHe: string }[] = [
-  { id: 'angle', labelHe: t('lab.view.camera_angle') },
-  { id: 'front', labelHe: t('lab.view.camera_front') },
-  { id: 'side', labelHe: t('lab.view.camera_side') },
-  { id: 'back', labelHe: t('lab.view.camera_back') },
-  { id: 'closeup', labelHe: t('lab.view.camera_closeup') },
+const CAMERA_PRESETS: readonly { id: LabCameraPreset; label: string }[] = [
+  { id: 'angle', label: t('lab.view.camera_angle') },
+  { id: 'front', label: t('lab.view.camera_front') },
+  { id: 'side', label: t('lab.view.camera_side') },
+  { id: 'back', label: t('lab.view.camera_back') },
+  { id: 'closeup', label: t('lab.view.camera_closeup') },
 ];
 
-const ENVIRONMENT_PRESETS: readonly { id: LabStageEnvironment; labelHe: string }[] = [
-  { id: 'studio_day', labelHe: t('lab.view.env_studio_day') },
-  { id: 'golden_sunset', labelHe: t('lab.view.env_golden_sunset') },
-  { id: 'moonlit_night', labelHe: t('lab.view.env_moonlit_night') },
+const ENVIRONMENT_PRESETS: readonly { id: LabStageEnvironment; label: string }[] = [
+  { id: 'studio_day', label: t('lab.view.env_studio_day') },
+  { id: 'golden_sunset', label: t('lab.view.env_golden_sunset') },
+  { id: 'moonlit_night', label: t('lab.view.env_moonlit_night') },
 ];
 
 export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) => {
@@ -170,7 +170,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   );
 
   const editorLabels = useMemo(
-    () => getEntityEditorLabelsHe(activeEntity.id),
+    () => getEntityEditorLabels(activeEntity.id),
     [activeEntity.id]
   );
 
@@ -396,7 +396,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       : 'text-stone-300 hover:text-stone-100'
                   }`}
                 >
-                  {env.labelHe}
+                  {env.label}
                 </button>
               );
             })}
@@ -440,7 +440,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       {/* ==================================================================== */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* ================================================================== */}
-        {/* 1. PHYSICAL LEFT PANEL (בצד שמאל: מעבר נוח בין דמויות וחיות + רשימה) */}
+        {/* 1. PHYSICAL LEFT PANEL (left side: switch between characters and animals + list) */}
         {/* ================================================================== */}
         <aside
           data-testid="lab-left-panel"
@@ -483,7 +483,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         value={cat.id}
                         className="bg-stone-900 text-stone-100 py-1"
                       >
-                        {cat.labelHe} — {cat.subtitleHe} ({count})
+                        {cat.label} — {cat.subtitle} ({count})
                       </option>
                     );
                   })}
@@ -559,15 +559,15 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                           isSelected ? 'text-amber-300' : 'text-stone-100'
                         }`}
                       >
-                        {item.nameHe}
+                        {item.name}
                       </span>
                     </div>
                     <p className="text-[11px] text-stone-400 truncate mt-0.5">
-                      {item.subtitleHe}
+                      {item.subtitle}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="px-1.5 py-0.5 rounded text-[10px] bg-stone-800 text-stone-300">
-                        {item.categoryLabelHe}
+                        {item.categoryLabel}
                       </span>
                       <span className="text-[10px] text-stone-400">
                         {t('lab.view.entity_counts', { animations: item.animations.length - 1, skins: item.skins.length })}
@@ -592,7 +592,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         </aside>
 
         {/* ================================================================== */}
-        {/* 2. CENTER VIEWPORT STAGE (במרכז: התצוגה התלת־ממדית של הדמות/החיה) */}
+        {/* 2. CENTER VIEWPORT STAGE (center: 3D view of the character/animal) */}
         {/* ================================================================== */}
         <section
           data-testid="lab-center-stage"
@@ -625,22 +625,22 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             <div className="px-3 py-2 rounded-xl bg-[#11151e]/92 border border-stone-700/75 pointer-events-auto max-w-[330px]">
               <div className="flex items-center gap-1.5">
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  {activeEntity.categoryLabelHe}
+                  {activeEntity.categoryLabel}
                 </span>
                 <span className="text-[10px] text-stone-400 truncate">
-                  {t('lab.view.location_count', { location: activeEntity.worldLocationHe, count: activeEntity.worldInstanceCount })}
+                  {t('lab.view.location_count', { location: activeEntity.worldLocation, count: activeEntity.worldInstanceCount })}
                 </span>
               </div>
               <h2
                 data-testid="lab-active-entity-title"
                 className="text-sm font-bold text-stone-100 mt-0.5 truncate"
               >
-                {activeEntity.nameHe}
+                {activeEntity.name}
               </h2>
               <div className="flex items-center gap-2.5 mt-1 text-[10px] text-stone-400 font-mono-tabular">
                 <span>{t('lab.view.parts_count', { count: rigStats.meshCount })}</span>
                 <span>{t('lab.view.triangles_count', { count: rigStats.triangleCount })}</span>
-                <span className="truncate">{t('lab.view.skin_label', { name: activeSkin.nameHe })}</span>
+                <span className="truncate">{t('lab.view.skin_label', { name: activeSkin.name })}</span>
               </div>
             </div>
 
@@ -751,7 +751,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                           : 'text-stone-300 hover:bg-stone-800'
                       }`}
                     >
-                      {preset.labelHe}
+                      {preset.label}
                     </button>
                   );
                 })}
@@ -775,7 +775,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                   }`}
                 >
-                  {isStaticNone ? t('lab.view.static_mode') : t('lab.view.playing', { name: activeAnimation.nameHe })}
+                  {isStaticNone ? t('lab.view.static_mode') : t('lab.view.playing', { name: activeAnimation.name })}
                 </span>
 
                 {!isStaticNone && (
@@ -925,13 +925,13 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         </section>
 
         {/* ================================================================== */}
-        {/* 3. PHYSICAL RIGHT PANEL (בצד ימין: אנימציות | עריכה ותיקונים | סקינים) */}
+        {/* 3. PHYSICAL RIGHT PANEL (right side: animations | editing & fixes | skins) */}
         {/* ================================================================== */}
         <aside
           data-testid="lab-right-panel"
           className="w-84 lg:w-92 h-full flex flex-col border-l border-stone-800/90 bg-[#121620] shrink-0"
         >
-          {/* Right Panel Top Label / 3-Tab Switcher (אנימציות | עריכה ותיקונים | סקינים) */}
+          {/* Right Panel Top Label / 3-Tab Switcher (animations | editing & fixes | skins) */}
           <div className="p-3 border-b border-stone-800/80">
             <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-stone-900 border border-stone-800">
               <button
@@ -1016,7 +1016,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               <>
                 <div className="px-1 pb-1 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-stone-300 truncate">
-                    {t('lab.view.animations_of', { name: activeEntity.nameHe })}
+                    {t('lab.view.animations_of', { name: activeEntity.name })}
                   </span>
                   <button
                     type="button"
@@ -1088,7 +1088,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     <span>
                       {isStaticNone
                         ? t('lab.view.select_animation_hint')
-                        : t('lab.view.autosaved_for', { name: activeAnimation.nameHe })}
+                        : t('lab.view.autosaved_for', { name: activeAnimation.name })}
                     </span>
                     {!isStaticNone && (
                       <button
@@ -1145,7 +1145,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                                 : 'text-stone-100'
                             }`}
                           >
-                            {anim.nameHe}
+                            {anim.name}
                           </span>
                         </div>
 
@@ -1166,7 +1166,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       </div>
 
                       <p className="text-[11px] text-stone-400 mt-1.5 leading-relaxed">
-                        {anim.descriptionHe}
+                        {anim.description}
                       </p>
                     </button>
                   );
@@ -1182,7 +1182,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         {t('lab.view.editor_title')}
                       </h3>
                       <p className="text-[11px] text-stone-400 mt-0.5">
-                        {t('lab.view.live_fixes_for', { name: activeEntity.nameHe })}
+                        {t('lab.view.live_fixes_for', { name: activeEntity.name })}
                       </p>
                     </div>
                     {activeOverrideCount > 0 && (
@@ -1247,7 +1247,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
                       <span className="text-xs font-bold text-amber-200 truncate">
-                        {editorLabels.weaponGroupTitleHe}
+                        {editorLabels.weaponGroupTitle}
                       </span>
                     </div>
                     <button
@@ -1410,7 +1410,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
                       <span className="text-xs font-bold text-sky-200 truncate">
-                        {editorLabels.leftWeaponGroupTitleHe}
+                        {editorLabels.leftWeaponGroupTitle}
                       </span>
                     </div>
                     <button
@@ -1599,7 +1599,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 <div className="p-3 rounded-xl bg-stone-900/75 border border-stone-800/90 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-100">
-                      {editorLabels.rightLimbTitleHe}
+                      {editorLabels.rightLimbTitle}
                     </span>
                     <button
                       type="button"
@@ -1650,7 +1650,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 <div className="p-3 rounded-xl bg-stone-900/75 border border-stone-800/90 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-100">
-                      {editorLabels.leftLimbTitleHe}
+                      {editorLabels.leftLimbTitle}
                     </span>
                     <button
                       type="button"
@@ -1701,7 +1701,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 <div className="p-3 rounded-xl bg-stone-900/75 border border-stone-800/90 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-100">
-                      {t('lab.view.head_body_height', { head: editorLabels.headTitleHe })}
+                      {t('lab.view.head_body_height', { head: editorLabels.headTitle })}
                     </span>
                     <button
                       type="button"
@@ -1807,7 +1807,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               <>
                 <div className="px-1 pb-1 flex items-center justify-between">
                   <span className="text-xs font-semibold text-stone-300">
-                    {t('lab.view.skins_of', { name: activeEntity.nameHe })}
+                    {t('lab.view.skins_of', { name: activeEntity.name })}
                   </span>
                 </div>
 
@@ -1832,11 +1832,11 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                               isSelected ? 'text-amber-300' : 'text-stone-100'
                             }`}
                           >
-                            {sk.nameHe}
+                            {sk.name}
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-400 mt-1">
-                          {sk.subtitleHe}
+                          {sk.subtitle}
                         </p>
                       </div>
 
@@ -1866,10 +1866,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               </span>
             </div>
             <p className="text-[11px] text-stone-400 leading-relaxed">
-              {activeEntity.descriptionHe}
+              {activeEntity.description}
             </p>
             <div className="flex flex-wrap gap-1 pt-1">
-              {activeEntity.anatomyTagsHe.map((tag) => (
+              {activeEntity.anatomyTags.map((tag) => (
                 <span
                   key={tag}
                   className="px-2 py-0.5 rounded-md text-[10px] bg-stone-800/90 text-stone-300 border border-stone-700/60"

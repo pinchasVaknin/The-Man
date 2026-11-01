@@ -52,7 +52,7 @@ import {
   findLookedAtWatchtowerLadder,
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
-  getAnimalSpeciesNameHe,
+  getAnimalSpeciesName,
   getActiveWorldAnimals,
   isPredatorSpecies,
   triggerSwordSlash,
@@ -113,9 +113,9 @@ export interface ITelemetrySnapshot {
   nearbyDeadAnimal?: {
     id: string;
     species: string;
-    speciesNameHe: string;
+    speciesName: string;
   } | null;
-  lootNotificationHe?: string | null;
+  lootNotification?: string | null;
   swordSwingProgress?: number;
   dashCooldown?: number;
   bowDrawn?: boolean;
@@ -345,7 +345,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     const activeArrows: IArrowProjectile[] = [];
     let lastArrowHitTargetName: string | null = null;
     let lastArrowHitTimer = 0;
-    let lastLootNotificationHe: string | null = null;
+    let lastLootNotification: string | null = null;
     let lastLootNotificationTimer = 0;
     let smoothCrouchOffset = 0;
 
@@ -515,7 +515,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     ) {
       if (!res) return;
       if (res.hitAnimal) {
-        const spName = getAnimalSpeciesNameHe(res.hitAnimal.species);
+        const spName = getAnimalSpeciesName(res.hitAnimal.species);
         lastArrowHitTargetName = res.killedAnimal
           ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
           : t('notifications.animal_hit', { species: spName, hp: res.hitAnimal.hp ?? 0, maxHp: res.hitAnimal.maxHp ?? 0 });
@@ -635,15 +635,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         isColliderDebugVisible: () => worldHandles.colliderDebugHandles.isVisible(),
         triggerLootNearbyAnimal: () => {
           const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
-          if (!dead) return { looted: false, notificationHe: null };
+          if (!dead) return { looted: false, notification: null };
           const res = lootDeadAnimal(playerState, dead);
-          if (res.addedItems.length > 0 && res.notificationHe) {
-            lastLootNotificationHe = res.notificationHe;
+          if (res.addedItems.length > 0 && res.notification) {
+            lastLootNotification = res.notification;
             lastLootNotificationTimer = 4.5;
             soundEngine.playFootstep('trail', 1.15);
             emitHudSnapshot();
           }
-          return { looted: res.addedItems.length > 0, notificationHe: res.notificationHe };
+          return { looted: res.addedItems.length > 0, notification: res.notification };
         },
         emitHudSnapshot,
       });
@@ -1089,7 +1089,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             activeSleepingBed = null;
             preSleepPlayerPos = null;
             playerState.stamina = playerState.maxStamina ?? 100;
-            lastLootNotificationHe = t('notifications.awoke');
+            lastLootNotification = t('notifications.awoke');
             lastLootNotificationTimer = 3.5;
             emitHudSnapshot();
           } else {
@@ -1147,8 +1147,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           );
           if (nearDeadAnimal) {
             const lootRes = lootDeadAnimal(playerState, nearDeadAnimal);
-            if (lootRes.addedItems.length > 0 && lootRes.notificationHe) {
-              lastLootNotificationHe = lootRes.notificationHe;
+            if (lootRes.addedItems.length > 0 && lootRes.notification) {
+              lastLootNotification = lootRes.notification;
               lastLootNotificationTimer = 4.5;
               soundEngine.playFootstep('trail', 1.18);
               emitHudSnapshot();
@@ -1164,11 +1164,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               );
               const isNightTime = worldHours >= 18.5 || worldHours < 5.8;
               if (dangerNearby) {
-                lastLootNotificationHe = t('notifications.sleep_danger');
+                lastLootNotification = t('notifications.sleep_danger');
                 lastLootNotificationTimer = 3.2;
                 emitHudSnapshot();
               } else if (!isNightTime) {
-                lastLootNotificationHe = t('notifications.sleep_day_only');
+                lastLootNotification = t('notifications.sleep_day_only');
                 lastLootNotificationTimer = 3.2;
                 emitHudSnapshot();
               } else {
@@ -1187,7 +1187,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 }
                 // Lying on back on the bed / sleeping bag looking straight up at the ceiling!
                 playerState.pitch = 1.42;
-                lastLootNotificationHe = t('notifications.sleeping');
+                lastLootNotification = t('notifications.sleeping');
                 lastLootNotificationTimer = 3.5;
                 soundEngine.playFootstep('cabin', 0.8);
                 emitHudSnapshot();
@@ -1295,7 +1295,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         if (activeArrows.length > 0) {
           const arrowRes = stepArrowsPhysics(activeArrows, obstacles, rawDt);
           if (arrowRes.hitAnimal) {
-            const spName = getAnimalSpeciesNameHe(arrowRes.hitAnimal.species);
+            const spName = getAnimalSpeciesName(arrowRes.hitAnimal.species);
             playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
             lastArrowHitTargetName = arrowRes.killedAnimal
               ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
@@ -1704,10 +1704,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           ? {
               id: String(nearDeadAnimal.id),
               species: nearDeadAnimal.species,
-              speciesNameHe: getAnimalSpeciesNameHe(nearDeadAnimal.species),
+              speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
             }
           : null,
-        lootNotificationHe: lastLootNotificationTimer > 0 ? lastLootNotificationHe : null,
+        lootNotification: lastLootNotificationTimer > 0 ? lastLootNotification : null,
         swordSwingProgress: playerState.swordSwingProgress,
         dashCooldown: playerState.dashCooldown,
         bowDrawn: playerState.bowDrawn,
