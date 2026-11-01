@@ -141,27 +141,27 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.25 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 13.5).toFixed(1)} && vTerrainWorldPos.y < 7.05) {
             discard;
           }
-          // Carve arched tunnel portal openings at the 3 Mountain Bear Caves while keeping the mountain peak solid above the tunnel & cavern
+          // Carve arched ground-level tunnel portal openings at the 3 Mountain Bear Caves while keeping the mountain peak solid above the tunnel & cavern
           {
-            // Cave 0: (-85, -76), facingYaw = 0 (+Z entrance)
+            // Cave 0: (-85, -76), facingYaw = 0 (+Z entrance), floorY = 2.2
             float c0x = vTerrainWorldPos.x - (-85.0);
             float c0z = vTerrainWorldPos.z - (-76.0);
-            float c0y = vTerrainWorldPos.y - 4.2;
-            if (c0z > -6.5 && c0z < 6.8 && c0y > -0.8 && ((c0x * c0x) / 20.25 + ((c0y - 0.6) * (c0y - 0.6)) / 24.5) < 1.0) {
+            float c0y = vTerrainWorldPos.y - 2.2;
+            if (c0z > -6.5 && c0z < 7.8 && c0y > -0.6 && ((c0x * c0x) / 11.8 + ((c0y - 0.5) * (c0y - 0.5)) / 17.5) < 1.0) {
               discard;
             }
-            // Cave 1: (-186, -45), facingYaw = PI/2 (+X entrance)
+            // Cave 1: (-186, -45), facingYaw = PI/2 (+X entrance), floorY = 2.25
             float c1x = -(vTerrainWorldPos.z - (-45.0));
             float c1z = vTerrainWorldPos.x - (-186.0);
-            float c1y = vTerrainWorldPos.y - 4.5;
-            if (c1z > -6.5 && c1z < 6.8 && c1y > -0.8 && ((c1x * c1x) / 20.25 + ((c1y - 0.6) * (c1y - 0.6)) / 24.5) < 1.0) {
+            float c1y = vTerrainWorldPos.y - 2.25;
+            if (c1z > -6.5 && c1z < 7.8 && c1y > -0.6 && ((c1x * c1x) / 11.8 + ((c1y - 0.5) * (c1y - 0.5)) / 17.5) < 1.0) {
               discard;
             }
-            // Cave 2: (-135, 196), facingYaw = PI (-Z entrance)
-            float c2x = -(vTerrainWorldPos.x - (-135.0));
-            float c2z = -(vTerrainWorldPos.z - 196.0);
-            float c2y = vTerrainWorldPos.y - 4.6;
-            if (c2z > -6.5 && c2z < 6.8 && c2y > -0.8 && ((c2x * c2x) / 20.25 + ((c2y - 0.6) * (c2y - 0.6)) / 24.5) < 1.0) {
+            // Cave 2: (38, 294), facingYaw = PI (-Z entrance), floorY = 2.25 (unpopulated deep Southern Forest hill)
+            float c2x = -(vTerrainWorldPos.x - 38.0);
+            float c2z = -(vTerrainWorldPos.z - 294.0);
+            float c2y = vTerrainWorldPos.y - 2.25;
+            if (c2z > -6.5 && c2z < 7.8 && c2y > -0.6 && ((c2x * c2x) / 11.8 + ((c2y - 0.5) * (c2y - 0.5)) / 17.5) < 1.0) {
               discard;
             }
           }
@@ -244,7 +244,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const gridRadius = 3;
 
   for (let gx = -gridRadius; gx <= gridRadius; gx++) {
-    for (let gz = -gridRadius; gz <= gridRadius; gz++) {
+    for (let gz = -gridRadius; gz <= gridRadius + 1; gz++) {
       const cx = gx * chunkSize;
       const cz = gz * chunkSize;
 
@@ -356,14 +356,14 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   waterMesh.receiveShadow = !isSoftwareGl;
   scene.add(waterMesh);
 
-  // Southern River & Crocodile Lagoon water surface (flowing from Sea at z=330 down to z=555)
-  const southRiverWaterSegs = isSoftwareGl ? 36 : 64;
-  const southRiverWaterGeo = new THREE.PlaneGeometry(250, 290, southRiverWaterSegs, southRiverWaterSegs);
+  // Southern River, Crocodile Lagoon & Mountain Gorge Pass water surface (flowing from Sea at z=330 through Gorge down to z=805)
+  const southRiverWaterSegs = isSoftwareGl ? 44 : 78;
+  const southRiverWaterGeo = new THREE.PlaneGeometry(290, 520, southRiverWaterSegs, southRiverWaterSegs);
   southRiverWaterGeo.rotateX(-Math.PI / 2);
   disposableGeometries.push(southRiverWaterGeo);
 
   const southRiverWaterMesh = new THREE.Mesh(southRiverWaterGeo, waterMat);
-  southRiverWaterMesh.position.set(170, WATER_LEVEL, 445);
+  southRiverWaterMesh.position.set(172, WATER_LEVEL, 565);
   southRiverWaterMesh.receiveShadow = !isSoftwareGl;
   scene.add(southRiverWaterMesh);
 

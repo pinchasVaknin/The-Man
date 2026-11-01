@@ -22,6 +22,8 @@ export {
   SMALL_MEADOW_HILLS,
   BEAR_MOUNTAIN_CAVES,
   SOUTHERN_RIVER_WAYPOINTS,
+  SOUTHERN_PASS_VALLEY_POS,
+  SOUTHERN_DRAGON_RUINS_POS,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
   southernRiverBridgeHeightAt,
@@ -95,6 +97,9 @@ export {
   findLookedAtWatchtowerLadder,
   FORTRESS_DOORS,
   findNearestFortressDoor,
+  WORLD_BEDS,
+  findNearestBed,
+  type IWorldBedDef,
 } from './landmarks/interactionLandmarks';
 // #endregion
 

@@ -195,10 +195,18 @@ export function buildWildlifeAndFootprintsLayer(
     rhinoCtrl?: ReturnType<typeof createReadyRhino>;
     smoothHeadDip: number;
     smoothLegAmp: number;
+    smoothPitch?: number;
+    smoothRoll?: number;
+    prevYaw?: number;
     lastAnimState?: string;
     stateHoldTimer?: number;
   }
   const animalMeshes: IAnimalMeshRig[] = [];
+
+  const isStationaryActionClip = (st: string): boolean =>
+    st === 'attack' || st === 'roar' || st === 'stomp' || st === 'howl';
+  const isLocomotionClip = (st: string): boolean =>
+    st === 'walk' || st === 'trot' || st === 'run' || st === 'flee' || st === 'stalk' || st === 'skip';
 
   const selectStabilizedState = <T extends string>(
     rig: IAnimalMeshRig,
@@ -215,9 +223,16 @@ export function buildWildlifeAndFootprintsLayer(
     if (desiredState === rig.lastAnimState) {
       return desiredState;
     }
-    if (isUrgent || (rig.stateHoldTimer ?? 0) <= 0) {
+    // Always transition immediately when entering or leaving an attack/roar/stomp clip,
+    // or when transitioning between stationary and locomotion clips so animals never slide!
+    const urgentTransition =
+      isUrgent ||
+      isStationaryActionClip(rig.lastAnimState) ||
+      isStationaryActionClip(desiredState) ||
+      isLocomotionClip(desiredState) !== isLocomotionClip(rig.lastAnimState);
+    if (urgentTransition || (rig.stateHoldTimer ?? 0) <= 0) {
       rig.lastAnimState = desiredState;
-      rig.stateHoldTimer = isUrgent ? 0.24 : 0.42;
+      rig.stateHoldTimer = urgentTransition ? 0.18 : 0.42;
       return desiredState;
     }
     return rig.lastAnimState as T;
@@ -397,6 +412,14 @@ export function buildWildlifeAndFootprintsLayer(
         smoothHeadDip: 0.5,
         smoothLegAmp: 0,
       });
+    } else if (a.species === 'dragon') {
+      // Southern Dragon 3D model is built and animated in sanctuaryAndDragonModels.ts
+      animalMeshes.push({
+        root,
+        posePivot,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
     } else {
       const mat = a.species === 'rabbit' ? rabbitFurMat : squirrelFurMat;
       const body = new THREE.Mesh(critterBodyGeo, mat);
@@ -570,6 +593,7 @@ export function buildWildlifeAndFootprintsLayer(
       for (let i = 0; i < animals.length; i++) {
         const a = animals[i];
         const rig = animalMeshes[i];
+        if (a.species === 'dragon') continue;
 
         if (a.isLooted) {
           rig.root.visible = false;
@@ -577,9 +601,26 @@ export function buildWildlifeAndFootprintsLayer(
         }
         rig.root.visible = true;
 
-        // Compute terrain slope alignment (pitch & roll) for mountain/hill walking
+        // Compute terrain slope alignment (pitch & roll) for mountain/hill walking with smooth damping
         const n = getSurfaceNormalAt(a.x, a.z);
-        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, a.yaw, 0.48);
+        const rawSlope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, a.yaw, 0.48);
+        const slopeBlend = Math.min(1, Math.max(0.05, dt * 8.5));
+        rig.smoothPitch =
+          rig.smoothPitch === undefined
+            ? rawSlope.pitch
+            : rig.smoothPitch + (rawSlope.pitch - rig.smoothPitch) * slopeBlend;
+        rig.smoothRoll =
+          rig.smoothRoll === undefined
+            ? rawSlope.roll
+            : rig.smoothRoll + (rawSlope.roll - rig.smoothRoll) * slopeBlend;
+        const slope = { pitch: rig.smoothPitch, roll: rig.smoothRoll };
+
+        const yawDelta =
+          rig.prevYaw === undefined
+            ? 0
+            : Math.atan2(Math.sin(a.yaw - rig.prevYaw), Math.cos(a.yaw - rig.prevYaw));
+        rig.prevYaw = a.yaw;
+        const turnAmount = Math.max(-1, Math.min(1, (yawDelta / Math.max(dt, 0.016)) * 0.28));
 
         if (a.isDead) {
           // Hunted animal: collapses and lies motionless on top of the ground until looted with [E]
@@ -653,6 +694,7 @@ export function buildWildlifeAndFootprintsLayer(
               'death',
               1.0
             );
+            rig.rhinoCtrl.moveSpeed = 0;
             rig.rhinoCtrl.setState('death');
             rig.rhinoCtrl.update(dt * spd);
             continue;
@@ -700,7 +742,7 @@ export function buildWildlifeAndFootprintsLayer(
               1.0
             );
             rig.bearCtrl.setState('lie');
-            rig.bearCtrl.update(dt * spd);
+            rig.bearCtrl.update(dt * spd, 0);
           } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -710,7 +752,7 @@ export function buildWildlifeAndFootprintsLayer(
               1.0
             );
             rig.crocodileCtrl.setState('lie');
-            rig.crocodileCtrl.update(dt * spd);
+            rig.crocodileCtrl.update(dt * spd, 0);
           } else if (a.species === 'jaguar' && rig.jaguarCtrl) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -720,7 +762,7 @@ export function buildWildlifeAndFootprintsLayer(
               1.0
             );
             rig.jaguarCtrl.setState('lie');
-            rig.jaguarCtrl.update(dt * spd);
+            rig.jaguarCtrl.update(dt * spd, 0);
           } else if (a.species === 'wolf' && rig.wolfCtrl) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -730,7 +772,7 @@ export function buildWildlifeAndFootprintsLayer(
               1.0
             );
             rig.wolfCtrl.setState('lie');
-            rig.wolfCtrl.update(dt * spd);
+            rig.wolfCtrl.update(dt * spd, 0);
           } else if (a.species === 'rhino' && rig.rhinoCtrl) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -739,8 +781,9 @@ export function buildWildlifeAndFootprintsLayer(
               'lie',
               1.0
             );
+            rig.rhinoCtrl.moveSpeed = 0;
             rig.rhinoCtrl.setState('lie');
-            rig.rhinoCtrl.update(dt * spd);
+            rig.rhinoCtrl.update(dt * spd, 0);
           } else {
             const sleepDrop = a.species === 'deer' ? -0.46 : a.species === 'sheep' ? -0.22 : -0.05;
             rig.posePivot.position.set(0, sleepDrop, 0);
@@ -773,7 +816,7 @@ export function buildWildlifeAndFootprintsLayer(
                       ? 'run'
                       : a.inWater || ai === 'stalking' || ai === 'seeking_shelter' || moveSpd > 2.0
                         ? 'trot'
-                        : moveSpd > 0.16
+                        : ai === 'wandering' || moveSpd > 0.14
                           ? 'walk'
                           : ai === 'sitting'
                             ? 'sit'
@@ -797,7 +840,7 @@ export function buildWildlifeAndFootprintsLayer(
             1.0
           );
           rig.bearCtrl.setState(bearState);
-          rig.bearCtrl.update(dt * spd);
+          rig.bearCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
@@ -836,10 +879,12 @@ export function buildWildlifeAndFootprintsLayer(
             1.0
           );
           rig.crocodileCtrl.setState(crocState);
-          rig.crocodileCtrl.update(dt * spd);
+          rig.crocodileCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'jaguar' && rig.jaguarCtrl) {
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          const pounceY = a.pounceHeight ?? 0;
+          const pouncePitch = pounceY > 0.02 ? -0.18 * (pounceY / 0.56) : 0;
+          rig.root.position.set(a.x, a.y + pounceY, a.z);
+          rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.15 + i * 1.57) % 1;
@@ -879,10 +924,12 @@ export function buildWildlifeAndFootprintsLayer(
             1.0
           );
           rig.jaguarCtrl.setState(jaguarState);
-          rig.jaguarCtrl.update(dt * spd);
+          rig.jaguarCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'wolf' && rig.wolfCtrl) {
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          const pounceY = a.pounceHeight ?? 0;
+          const pouncePitch = pounceY > 0.02 ? -0.18 * (pounceY / 0.56) : 0;
+          rig.root.position.set(a.x, a.y + pounceY, a.z);
+          rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.15 + i * 1.49) % 1;
@@ -925,7 +972,7 @@ export function buildWildlifeAndFootprintsLayer(
             1.0
           );
           rig.wolfCtrl.setState(wolfState);
-          rig.wolfCtrl.update(dt * spd);
+          rig.wolfCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'rhino' && rig.rhinoCtrl) {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
@@ -965,8 +1012,9 @@ export function buildWildlifeAndFootprintsLayer(
             rhinoState,
             1.0
           );
+          rig.rhinoCtrl.moveSpeed = moveSpd;
           rig.rhinoCtrl.setState(rhinoState);
-          rig.rhinoCtrl.update(dt * spd);
+          rig.rhinoCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'deer' || a.species === 'sheep') {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
@@ -975,7 +1023,7 @@ export function buildWildlifeAndFootprintsLayer(
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
             const cycleSlot = (elapsedTime * 0.22 + i * 1.73) % 1;
-            const deerState =
+            const desiredDeerState =
               ai === 'fleeing' || a.alertLevel === 'fleeing'
                 ? i % 3 === 0 && moveSpd > 3.8
                   ? 'skip'
@@ -995,11 +1043,16 @@ export function buildWildlifeAndFootprintsLayer(
                           : cycleSlot < 0.90
                             ? 'idle'
                             : 'call';
+            const isUrgentDeer =
+              desiredDeerState === 'flee' ||
+              desiredDeerState === 'skip' ||
+              desiredDeerState === 'run';
+            const deerState = selectStabilizedState(rig, desiredDeerState, dt, isUrgentDeer);
             const turnHint =
               ai === 'listening' || a.alertLevel === 'curious'
                 ? Math.sin(elapsedTime * 2.2 + i) * 0.42
                 : moveSpd > 0.2
-                  ? Math.sin(elapsedTime * 1.1 + i * 2.1) * 0.22
+                  ? turnAmount || Math.sin(elapsedTime * 1.1 + i * 2.1) * 0.22
                   : 0;
             const spd = getEffectiveLabAnimationSpeed(
               liveLabOverrides['forest_deer'],

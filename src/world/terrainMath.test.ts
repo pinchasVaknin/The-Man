@@ -35,6 +35,7 @@ import {
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
   FORTRESS_DOORS,
+  BEAR_MOUNTAIN_CAVES,
   SNOW_LINE_ALTITUDE,
   DEFAULT_WEATHER_CYCLE_MODE,
   groundHeightAt,
@@ -1352,7 +1353,7 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const animals = createInitialSmallAnimals();
   // Assert
   assert.equal(birds.length, 36);
-  assert.equal(animals.length, 48);
+  assert.equal(animals.length, 51);
 
   // Place player right beneath bird flock 0 and next to critter 0
   const targetBird = birds[0];
@@ -2234,7 +2235,48 @@ test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_Sh
       lootResult.notificationHe.includes('קרניים'),
     `Expected Hebrew loot notification to list meat, deer hide, and antlers, got: ${lootResult.notificationHe}`
   );
+
+  // 5) Bear Mountain Cave Entrance Walkthrough: player can walk straight from outside clearing (lz = +14)
+  //    through the tunnel mouth (lz = +6) into the deep cavern (lz = -14) without any step-height block!
+  for (const cave of BEAR_MOUNTAIN_CAVES) {
+    const cosY = Math.cos(cave.facingYaw);
+    const sinY = Math.sin(cave.facingYaw);
+    const cavePlayer = createInitialPlayerState();
+    // Start 14m in front of the cave center along its open +Z approach axis
+    cavePlayer.x = cave.x + 14.0 * sinY;
+    cavePlayer.z = cave.z + 14.0 * cosY;
+    cavePlayer.y = walkableHeightAt(cavePlayer.x, cavePlayer.z).height;
+    // Face directly into the cave (-lz direction corresponds to yaw = cave.facingYaw since fwd = (-sin(yaw), -cos(yaw)))
+    cavePlayer.yaw = cave.facingYaw;
+
+    for (let step = 0; step < 85; step++) {
+      stepPlayerPhysics(
+        cavePlayer,
+        {
+          forward: 1,
+          right: 0,
+          sprint: true,
+          relaxed: false,
+          jumpPressed: false,
+          jumpHeld: false,
+          lookYawDelta: 0,
+          lookPitchDelta: 0,
+        },
+        [],
+        0.05
+      );
+    }
+
+    const dxAfter = cavePlayer.x - cave.x;
+    const dzAfter = cavePlayer.z - cave.z;
+    const lzAfter = dxAfter * sinY + dzAfter * cosY;
+    assert.ok(
+      lzAfter < -8.0,
+      `Expected player to walk smoothly through ${cave.id} entrance into deep cavern (lz < -8.0), but got stuck at lz=${lzAfter.toFixed(2)}`
+    );
+  }
 });
 // #endregion
+
 
 

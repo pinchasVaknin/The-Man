@@ -254,12 +254,13 @@ export function computeDynamicSolarCycle(rawHours: number): IDynamicAtmosphereSt
 export function runSeasonalWeatherCycle(
   elapsedSeconds: number,
   playerX: number,
-  playerZ: number
+  playerZ: number,
+  forcedSeasonOverride: SeasonType | null = null
 ): IWeatherStateSnapshot {
   const yearTime = ((elapsedSeconds % (SEASON_DURATION_SECONDS * 4)) + SEASON_DURATION_SECONDS * 4) % (SEASON_DURATION_SECONDS * 4);
   const seasonIdx = Math.floor(yearTime / SEASON_DURATION_SECONDS);
   const seasons: SeasonType[] = ['spring', 'summer', 'autumn', 'winter'];
-  const season = seasons[seasonIdx];
+  const season: SeasonType = forcedSeasonOverride ?? seasons[seasonIdx];
 
   const regionalRainCell = regionalRainFactorAt(playerX, playerZ, elapsedSeconds);
   const snowZone = northernSnowZoneFactorAt(playerX, playerZ);
@@ -508,7 +509,8 @@ export function computeWeatherState(
   playerX: number,
   playerZ: number,
   mode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE,
-  forcedKindOverride: WeatherKind | null = null
+  forcedKindOverride: WeatherKind | null = null,
+  forcedSeasonOverride: SeasonType | null = null
 ): IWeatherStateSnapshot {
   if (forcedKindOverride) {
     const snap = runTurboWeatherTestCycle(elapsedSeconds, playerX, playerZ);
@@ -572,18 +574,24 @@ export function computeWeatherState(
       snap.thunderTriggered = false;
     }
     snap.season =
-      forcedKindOverride === 'mountain_snow' || forcedKindOverride === 'lightning_storm'
+      forcedSeasonOverride ??
+      (forcedKindOverride === 'mountain_snow' || forcedKindOverride === 'lightning_storm'
         ? 'winter'
         : forcedKindOverride === 'wind_sand' || forcedKindOverride === 'dense_fog'
           ? 'autumn'
-          : 'summer';
+          : 'summer');
     snap.seasonLabel = getSeasonLabel(snap.season);
     return snap;
   }
 
   if (mode === 'seasonal') {
-    return runSeasonalWeatherCycle(elapsedSeconds, playerX, playerZ);
+    return runSeasonalWeatherCycle(elapsedSeconds, playerX, playerZ, forcedSeasonOverride);
   }
-  return runTurboWeatherTestCycle(elapsedSeconds, playerX, playerZ);
+  const snap = runTurboWeatherTestCycle(elapsedSeconds, playerX, playerZ);
+  if (forcedSeasonOverride) {
+    snap.season = forcedSeasonOverride;
+    snap.seasonLabel = getSeasonLabel(forcedSeasonOverride);
+  }
+  return snap;
 }
 // #endregion

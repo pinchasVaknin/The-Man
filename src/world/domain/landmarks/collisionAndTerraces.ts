@@ -649,34 +649,51 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 1.8,
     maxY: 6.2,
   },
-  // Subterranean Mountain Bear Caves: Entrance Tunnel walls (lz: -5.5..+5.5, |lx|=4.4..6.2)
-  // and wide Subterranean Cavern walls (lz: -24.5..-5.5, |lx|=10.0..12.2)
+  // Subterranean Mountain Bear Caves: Entrance Tunnel walls (lz: -5.5..+5.5, |lx|=3.8..5.4)
+  // and wide Subterranean Cavern walls (lz: -24.5..-5.5, |lx|=10.0..12.2).
+  // Baffle rock pillars removed and throat widened to 7.6m so large bears can exit freely!
   // 1) Cave NW Forest (cx=-85, cz=-76, yaw=0: lx = x - (-85), lz = z - (-76))
-  { id: 'cave-nw-tunnel-west', minX: -91.2, maxX: -89.4, minZ: -81.5, maxZ: -70.5, maxY: 10.5 },
-  { id: 'cave-nw-tunnel-east', minX: -80.6, maxX: -78.8, minZ: -81.5, maxZ: -70.5, maxY: 10.5 },
-  { id: 'cave-nw-shoulder-west', minX: -96.5, maxX: -89.4, minZ: -82.5, maxZ: -80.8, maxY: 13.0 },
-  { id: 'cave-nw-shoulder-east', minX: -80.6, maxX: -73.5, minZ: -82.5, maxZ: -80.8, maxY: 13.0 },
-  { id: 'cave-nw-cavern-west', minX: -97.2, maxX: -95.0, minZ: -100.5, maxZ: -81.5, maxY: 13.0 },
-  { id: 'cave-nw-cavern-east', minX: -75.0, maxX: -72.8, minZ: -100.5, maxZ: -81.5, maxY: 13.0 },
-  { id: 'cave-nw-cavern-back', minX: -96.5, maxX: -73.5, minZ: -102.2, maxZ: -100.0, maxY: 13.0 },
+  { id: 'cave-nw-tunnel-west', minX: -90.6, maxX: -88.8, minZ: -81.5, maxZ: -70.5, maxY: 8.6 },
+  { id: 'cave-nw-tunnel-east', minX: -81.2, maxX: -79.4, minZ: -81.5, maxZ: -70.5, maxY: 8.6 },
+  { id: 'cave-nw-shoulder-west', minX: -96.5, maxX: -88.8, minZ: -82.5, maxZ: -80.8, maxY: 11.0 },
+  { id: 'cave-nw-shoulder-east', minX: -81.2, maxX: -73.5, minZ: -82.5, maxZ: -80.8, maxY: 11.0 },
+  { id: 'cave-nw-cavern-west', minX: -97.2, maxX: -95.0, minZ: -100.5, maxZ: -81.5, maxY: 11.0 },
+  { id: 'cave-nw-cavern-east', minX: -75.0, maxX: -72.8, minZ: -100.5, maxZ: -81.5, maxY: 11.0 },
+  { id: 'cave-nw-cavern-back', minX: -96.5, maxX: -73.5, minZ: -102.2, maxZ: -100.0, maxY: 11.0 },
 
   // 2) Cave West Ridge (cx=-186, cz=-45, yaw=PI/2: lx = -(z - (-45)), lz = x - (-186))
-  { id: 'cave-west-tunnel-south', minX: -191.5, maxX: -180.5, minZ: -40.6, maxZ: -38.8, maxY: 10.8 },
-  { id: 'cave-west-tunnel-north', minX: -191.5, maxX: -180.5, minZ: -51.2, maxZ: -49.4, maxY: 10.8 },
-  { id: 'cave-west-shoulder-south', minX: -192.5, maxX: -190.8, minZ: -40.6, maxZ: -33.5, maxY: 13.5 },
-  { id: 'cave-west-shoulder-north', minX: -192.5, maxX: -190.8, minZ: -56.5, maxZ: -49.4, maxY: 13.5 },
-  { id: 'cave-west-cavern-south', minX: -210.5, maxX: -191.5, minZ: -35.0, maxZ: -32.8, maxY: 13.5 },
-  { id: 'cave-west-cavern-north', minX: -210.5, maxX: -191.5, minZ: -57.2, maxZ: -55.0, maxY: 13.5 },
-  { id: 'cave-west-cavern-back', minX: -212.2, maxX: -210.0, minZ: -56.5, maxZ: -33.5, maxY: 13.5 },
+  { id: 'cave-west-tunnel-south', minX: -191.5, maxX: -180.5, minZ: -41.2, maxZ: -39.4, maxY: 8.8 },
+  { id: 'cave-west-tunnel-north', minX: -191.5, maxX: -180.5, minZ: -50.6, maxZ: -48.8, maxY: 8.8 },
+  { id: 'cave-west-shoulder-south', minX: -192.5, maxX: -190.8, minZ: -41.2, maxZ: -33.5, maxY: 11.5 },
+  { id: 'cave-west-shoulder-north', minX: -192.5, maxX: -190.8, minZ: -56.5, maxZ: -48.8, maxY: 11.5 },
+  { id: 'cave-west-cavern-south', minX: -210.5, maxX: -191.5, minZ: -35.0, maxZ: -32.8, maxY: 11.5 },
+  { id: 'cave-west-cavern-north', minX: -210.5, maxX: -191.5, minZ: -57.2, maxZ: -55.0, maxY: 11.5 },
+  { id: 'cave-west-cavern-back', minX: -212.2, maxX: -210.0, minZ: -56.5, maxZ: -33.5, maxY: 11.5 },
 
-  // 3) Cave South Forest (cx=-135, cz=196, yaw=PI: lx = -(x - (-135)), lz = -(z - 196))
-  { id: 'cave-south-tunnel-west', minX: -141.2, maxX: -139.4, minZ: 190.5, maxZ: 201.5, maxY: 10.8 },
-  { id: 'cave-south-tunnel-east', minX: -130.6, maxX: -128.8, minZ: 190.5, maxZ: 201.5, maxY: 10.8 },
-  { id: 'cave-south-shoulder-west', minX: -146.5, maxX: -139.4, minZ: 200.8, maxZ: 202.5, maxY: 13.5 },
-  { id: 'cave-south-shoulder-east', minX: -130.6, maxX: -123.5, minZ: 200.8, maxZ: 202.5, maxY: 13.5 },
-  { id: 'cave-south-cavern-west', minX: -147.2, maxX: -145.0, minZ: 201.5, maxZ: 220.5, maxY: 13.5 },
-  { id: 'cave-south-cavern-east', minX: -125.0, maxX: -122.8, minZ: 201.5, maxZ: 220.5, maxY: 13.5 },
-  { id: 'cave-south-cavern-back', minX: -146.5, maxX: -123.5, minZ: 220.0, maxZ: 222.2, maxY: 13.5 },
+  // 3) Cave South Forest (cx=38, cz=294, yaw=PI: lx = -(x - 38), lz = -(z - 294))
+  { id: 'cave-south-tunnel-west', minX: 32.4, maxX: 34.2, minZ: 288.5, maxZ: 299.5, maxY: 8.8 },
+  { id: 'cave-south-tunnel-east', minX: 41.8, maxX: 43.6, minZ: 288.5, maxZ: 299.5, maxY: 8.8 },
+  { id: 'cave-south-shoulder-west', minX: 26.5, maxX: 34.2, minZ: 298.8, maxZ: 300.5, maxY: 11.5 },
+  { id: 'cave-south-shoulder-east', minX: 41.8, maxX: 49.5, minZ: 298.8, maxZ: 300.5, maxY: 11.5 },
+  { id: 'cave-south-cavern-west', minX: 25.8, maxX: 28.0, minZ: 299.5, maxZ: 318.5, maxY: 11.5 },
+  { id: 'cave-south-cavern-east', minX: 48.0, maxX: 50.2, minZ: 299.5, maxZ: 318.5, maxY: 11.5 },
+  { id: 'cave-south-cavern-back', minX: 26.5, maxX: 49.5, minZ: 318.0, maxZ: 320.2, maxY: 11.5 },
+
+  // Southern Ancient Dragon Citadel Ruins (x=56, z=716) — Moved-out shattered curtain walls (+/-37m) with wide breach gaps, gateways & altar
+  { id: 'south-ruins-arch-west', minX: 49.8, maxX: 52.8, minZ: 677.5, maxZ: 680.5, maxY: 11.2 },
+  { id: 'south-ruins-arch-east', minX: 59.2, maxX: 62.2, minZ: 677.5, maxZ: 680.5, maxY: 11.2 },
+  { id: 'south-ruins-wall-nw-outer', minX: 21.0, maxX: 31.5, minZ: 677.6, maxZ: 680.4, maxY: 9.2 },
+  { id: 'south-ruins-wall-nw-inner', minX: 38.5, maxX: 48.5, minZ: 677.6, maxZ: 680.4, maxY: 8.6 },
+  { id: 'south-ruins-wall-ne-inner', minX: 63.5, maxX: 73.5, minZ: 677.6, maxZ: 680.4, maxY: 8.6 },
+  { id: 'south-ruins-wall-ne-outer', minX: 80.5, maxX: 91.0, minZ: 677.6, maxZ: 680.4, maxY: 9.2 },
+  { id: 'south-ruins-wall-west-n', minX: 17.6, maxX: 20.4, minZ: 681.0, maxZ: 696.0, maxY: 9.5 },
+  { id: 'south-ruins-wall-west-mid', minX: 17.6, maxX: 20.4, minZ: 703.5, maxZ: 713.5, maxY: 8.2 },
+  { id: 'south-ruins-wall-west-s', minX: 17.6, maxX: 20.4, minZ: 735.0, maxZ: 750.5, maxY: 9.5 },
+  { id: 'south-ruins-wall-east-n', minX: 91.6, maxX: 94.4, minZ: 681.0, maxZ: 696.0, maxY: 9.5 },
+  { id: 'south-ruins-wall-east-s', minX: 91.6, maxX: 94.4, minZ: 735.0, maxZ: 750.5, maxY: 9.5 },
+  { id: 'south-ruins-wall-south-w', minX: 21.0, maxX: 36.0, minZ: 751.6, maxZ: 754.4, maxY: 9.8 },
+  { id: 'south-ruins-wall-south-e', minX: 76.0, maxX: 91.0, minZ: 751.6, maxZ: 754.4, maxY: 9.8 },
+  { id: 'south-ruins-altar', minX: 52.4, maxX: 59.6, minZ: 733.5, maxZ: 738.5, maxY: 4.8 },
 ];
 // #endregion
 
@@ -709,6 +726,8 @@ export const FLAT_BUILDING_TERRACES = [
   { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, innerR: 46.0, outerR: 66.0, targetH: SOUTHWEST_OASIS_POS.terraceY },
   { x: 152.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
   { x: 204.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
+  { x: 105.0, z: 715.0, innerR: 26.0, outerR: 42.0, targetH: 2.15 },
+  { x: 56.0, z: 716.0, innerR: 54.0, outerR: 68.0, targetH: 2.15 },
 ] as const;
 // #endregion
 
@@ -717,6 +736,7 @@ export const FLAT_BUILDING_TERRACES = [
 /** Summary: Spatial exclusion circles suppressing procedural tree and rock generation. */
 export const CLEAR_ZONES = [
   { x: 0, z: 32, r: 6.5 },
+  { x: -5.5, z: 29.5, r: 5.5 },
   { x: -11.5, z: 16.5, r: 9.5 },
   { x: 18.0, z: 2.0, r: 12.5 },
   { x: 30.0, z: -26.0, r: 8.0 },
@@ -750,11 +770,20 @@ export const CLEAR_ZONES = [
   { x: 178.0, z: 378.0, r: 26.0 },
   { x: 202.0, z: 378.0, r: 14.0 },
   { x: 132.0, z: 475.0, r: 30.0 },
-  { x: -85.0, z: -76.0, r: 14.0 },
-  { x: -85.0, z: -60.0, r: 12.0 },
-  { x: -186.0, z: -45.0, r: 14.0 },
-  { x: -170.0, z: -45.0, r: 12.0 },
-  { x: -135.0, z: 196.0, r: 14.0 },
-  { x: -135.0, z: 180.0, r: 12.0 },
+  { x: 100.0, z: 545.0, r: 14.0 },
+  { x: 100.0, z: 580.0, r: 14.0 },
+  { x: 100.0, z: 615.0, r: 14.0 },
+  { x: 100.0, z: 650.0, r: 14.0 },
+  { x: 105.0, z: 715.0, r: 22.0 },
+  { x: 56.0, z: 716.0, r: 62.0 },
+  { x: -85.0, z: -76.0, r: 16.0 },
+  { x: -85.0, z: -90.0, r: 18.0 },
+  { x: -85.0, z: -60.0, r: 14.0 },
+  { x: -186.0, z: -45.0, r: 16.0 },
+  { x: -200.0, z: -45.0, r: 18.0 },
+  { x: -170.0, z: -45.0, r: 14.0 },
+  { x: 38.0, z: 294.0, r: 16.0 },
+  { x: 38.0, z: 308.0, r: 18.0 },
+  { x: 38.0, z: 278.0, r: 14.0 },
 ];
 // #endregion

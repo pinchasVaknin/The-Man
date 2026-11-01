@@ -92,7 +92,21 @@ export type InventoryItemId =
   | 'small_hide'
   | 'deer_hide'
   | 'sheep_hide'
-  | 'deer_antlers';
+  | 'wolf_hide'
+  | 'jaguar_hide'
+  | 'crocodile_hide'
+  | 'bear_hide'
+  | 'rhino_hide'
+  | 'deer_antlers'
+  | 'deer_meat'
+  | 'bear_meat'
+  | 'rotten_meat'
+  | 'animal_bone'
+  | 'animal_fat'
+  | 'bear_claws'
+  | 'wolf_fang'
+  | 'crocodile_teeth'
+  | 'rhino_horn';
 // #endregion
 
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
@@ -177,6 +191,9 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
   createCatalogItem('elven_cloak', 'gear', 1.2, 190, 1, { rarity: 'refined' }),
   createCatalogItem('raw_game_meat', 'food', 1.0, 45, 1, { rarity: 'common' }),
+  createCatalogItem('deer_meat', 'food', 1.2, 55, 1, { rarity: 'common' }),
+  createCatalogItem('bear_meat', 'food', 1.5, 70, 1, { rarity: 'refined' }),
+  createCatalogItem('rotten_meat', 'food', 0.8, 5, 1, { rarity: 'common' }),
   createCatalogItem('roasted_meat', 'food', 0.9, 75, 1, { rarity: 'refined' }),
   createCatalogItem('fresh_bread_loaf', 'food', 0.6, 30, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('harbor_cheese_wheel', 'food', 1.2, 60, 1, { rarity: 'refined' }),
@@ -184,7 +201,18 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('small_hide', 'materials', 0.8, 55, 1, { rarity: 'common' }),
   createCatalogItem('sheep_hide', 'materials', 1.8, 85, 1, { rarity: 'common' }),
   createCatalogItem('deer_hide', 'materials', 2.2, 115, 1, { rarity: 'refined' }),
+  createCatalogItem('wolf_hide', 'materials', 2.4, 145, 1, { rarity: 'refined' }),
+  createCatalogItem('jaguar_hide', 'materials', 2.6, 175, 1, { rarity: 'epic' }),
+  createCatalogItem('crocodile_hide', 'materials', 3.4, 190, 1, { rarity: 'epic' }),
+  createCatalogItem('bear_hide', 'materials', 4.2, 220, 1, { rarity: 'epic' }),
+  createCatalogItem('rhino_hide', 'materials', 5.0, 250, 1, { rarity: 'legendary' }),
   createCatalogItem('deer_antlers', 'materials', 2.5, 140, 1, { rarity: 'refined' }),
+  createCatalogItem('animal_bone', 'materials', 1.2, 35, 1, { rarity: 'common' }),
+  createCatalogItem('animal_fat', 'materials', 0.9, 50, 1, { rarity: 'common' }),
+  createCatalogItem('bear_claws', 'materials', 1.4, 135, 1, { rarity: 'refined' }),
+  createCatalogItem('wolf_fang', 'materials', 0.7, 95, 1, { rarity: 'refined' }),
+  createCatalogItem('crocodile_teeth', 'materials', 1.1, 125, 1, { rarity: 'refined' }),
+  createCatalogItem('rhino_horn', 'materials', 2.8, 195, 1, { rarity: 'epic' }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
 
@@ -329,6 +357,7 @@ export interface IPlayerState {
   nextArrowId?: number;
   lastArrowHitTarget?: string | null;
   isCrouching?: boolean;
+  isSleeping?: boolean;
 }
 export type PlayerState = IPlayerState;
 
@@ -713,8 +742,13 @@ export interface IArrowProjectile {
   pitch: number;
   arrowKind?: ArrowElementKind;
   stuck: boolean;
-  hitKind: 'none' | 'target' | 'obstacle' | 'building' | 'ground';
+  hitKind: 'none' | 'target' | 'obstacle' | 'building' | 'ground' | 'animal';
   hitTargetId: string | null;
+  attachedAnimalId?: number;
+  localOffsetX?: number;
+  localOffsetY?: number;
+  localOffsetZ?: number;
+  localYawOffset?: number;
   age: number;
   trail: IArrowTrailPoint[];
 }
@@ -768,6 +802,8 @@ export interface IGameActions {
   readonly onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
   readonly onAssignHotbar: (slotIndex: number, id: InventoryItemId) => void;
   readonly onToggleFavorite: (id: InventoryItemId) => void;
+  readonly onSetWorldHours?: (hours: number) => void;
+  readonly onSetSeason?: (season: SeasonType | 'auto') => void;
 }
 export type GameActions = IGameActions;
 // #endregion

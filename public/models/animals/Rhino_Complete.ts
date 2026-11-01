@@ -19,6 +19,8 @@ export interface RhinoOptions {
   scale?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
+  tintHex?: number;
+  wireframe?: boolean;
 }
 
 export interface RhinoUnpackedData {
@@ -49,7 +51,7 @@ export const RHINO_GAITS: Record<RhinoState, { speed: number }> = {
   flee:   { speed: 8.4 },
   skip:   { speed: 4.6 },
   roar:   { speed: 0.0 },
-  attack: { speed: 2.4 },
+  attack: { speed: 0.0 },
   death:  { speed: 0.0 },
 };
 
@@ -68,6 +70,22 @@ const CLIP_ORDER: RhinoState[] = [
   'attack',
   'death',
 ];
+
+export const RHINO_STATES: readonly RhinoState[] = [
+  'idle',
+  'walk',
+  'eat',
+  'call',
+  'lie',
+  'sit',
+  'trot',
+  'run',
+  'flee',
+  'skip',
+  'roar',
+  'attack',
+  'death',
+] as const;
 
 const NUM_VERTS = 3032;
 const NUM_INDICES = 14538;
@@ -173,8 +191,13 @@ export class RhinoRig {
   readonly bones: THREE.Bone[] = [];
   readonly boneInverses: THREE.Matrix4[] = [];
   readonly skeleton: THREE.Skeleton;
+  private readonly restTranslations: Float32Array;
+  private readonly restRotations: Float32Array;
 
   constructor(data: RhinoUnpackedData) {
+    this.restTranslations = data.restTranslations;
+    this.restRotations = data.restRotations;
+
     for (let j = 0; j < NUM_JOINTS; j++) {
       const b = new THREE.Bone();
       b.name = 'RhinoJoint_' + j;
@@ -208,6 +231,29 @@ export class RhinoRig {
     this.root.updateMatrixWorld(true);
     this.skeleton = new THREE.Skeleton(this.bones, this.boneInverses);
   }
+
+  resetToRest(): void {
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const b = this.bones[j];
+      b.position.set(
+        this.restTranslations[j * 3],
+        this.restTranslations[j * 3 + 1],
+        this.restTranslations[j * 3 + 2],
+      );
+      b.quaternion.set(
+        this.restRotations[j * 4],
+        this.restRotations[j * 4 + 1],
+        this.restRotations[j * 4 + 2],
+        this.restRotations[j * 4 + 3],
+      );
+      b.scale.set(1, 1, 1);
+    }
+    this.root.updateMatrixWorld(true);
+  }
+
+  resetPose(): void {
+    this.resetToRest();
+  }
 }
 
 export class RhinoAnimator {
@@ -216,11 +262,18 @@ export class RhinoAnimator {
   state: RhinoState = 'walk';
   prevState: RhinoState = 'walk';
   blend = 1.0;
-  blendDuration = 0.25;
+  blendDuration = 0.44;
   time = 0;
   prevTime = 0;
   moveSpeed = 1.35;
   turn = 0;
+  loopDeath = false;
+
+  private fromPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private lastPoseQuats = new Float32Array(NUM_JOINTS * 4);
+  private fromRootPos = new THREE.Vector3();
+  private lastRootPos = new THREE.Vector3();
+  private hasPoseSnapshot = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -230,6 +283,27 @@ export class RhinoAnimator {
   private vPrev = new THREE.Vector3();
   private turnAxis = new THREE.Vector3(0, 1, 0);
 
+  private static isLocomotionState(s: RhinoState): boolean {
+    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'skip';
+  }
+
+  private static isUpperBodyAttackJoint(j: number): boolean {
+    return j >= 8 && j <= 19;
+  }
+
+  private computeBlendDuration(from: RhinoState, to: RhinoState): number {
+    if (to === 'attack') return 0.28;
+    if (to === 'death') return 0.36;
+    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.56;
+    if (from === 'roar' || to === 'roar' || from === 'call' || to === 'call' || from === 'eat' || to === 'eat') {
+      return 0.48;
+    }
+    if (RhinoAnimator.isLocomotionState(from) && RhinoAnimator.isLocomotionState(to)) {
+      return 0.42;
+    }
+    return 0.44;
+  }
+
   constructor(rig: RhinoRig, data: RhinoUnpackedData) {
     this.rig = rig;
     this.data = data;
@@ -237,15 +311,62 @@ export class RhinoAnimator {
   }
 
   setState(next: RhinoState): void {
-    if (next === this.state && next !== 'attack' && next !== 'death') return;
-    this.prevState = this.state;
+    if (next === this.state) return;
+
+    if (this.hasPoseSnapshot) {
+      this.fromPoseQuats.set(this.lastPoseQuats);
+      this.fromRootPos.copy(this.lastRootPos);
+    } else {
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        const q = this.rig.bones[j].quaternion;
+        this.fromPoseQuats[j * 4 + 0] = q.x;
+        this.fromPoseQuats[j * 4 + 1] = q.y;
+        this.fromPoseQuats[j * 4 + 2] = q.z;
+        this.fromPoseQuats[j * 4 + 3] = q.w;
+      }
+      this.fromRootPos.copy(this.rig.bones[4].position);
+      this.hasPoseSnapshot = true;
+    }
+
+    const prev = this.state;
+    this.prevState = prev;
     this.prevTime = this.time;
-    this.state = next;
-    this.blend = 0.0;
-    this.moveSpeed = RHINO_GAITS[next] ? RHINO_GAITS[next].speed : 0.0;
-    if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death') {
+    this.blendDuration = this.computeBlendDuration(prev, next);
+
+    if (RhinoAnimator.isLocomotionState(prev) && RhinoAnimator.isLocomotionState(next)) {
+      const oldDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(prev)]);
+      const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
+      const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
+      this.time = normPhase * newDur;
+    } else if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
       this.time = 0.0;
     }
+
+    this.state = next;
+    this.blend = 0.0;
+    if (next !== 'attack') {
+      this.moveSpeed = RHINO_GAITS[next] ? RHINO_GAITS[next].speed : 0.0;
+    }
+  }
+
+  restartState(next: RhinoState): void {
+    this.prevState = next;
+    this.state = next;
+    this.time = 0.0;
+    this.blend = 1.0;
+    this.moveSpeed = RHINO_GAITS[next] ? RHINO_GAITS[next].speed : 0.0;
+    this.applyClipPose(this.getClipIndex(next), 0, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
+  }
+
+  setNormalizedPhase(uNorm: number): void {
+    const clipIdx = this.getClipIndex(this.state);
+    const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
+    const u = ((uNorm % 1) + 1) % 1;
+    this.time = u * dur;
+    this.blend = 1.0;
+    this.applyClipPose(clipIdx, this.time, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
   }
 
   private getClipIndex(st: RhinoState): number {
@@ -255,7 +376,7 @@ export class RhinoAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: RhinoState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
+    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
     if (u < 0) u += 1.0;
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));
@@ -286,26 +407,27 @@ export class RhinoAnimator {
 
   private applyClipPose(clipIdx: number, t: number, blendAlpha: number, hasPrev: boolean): void {
     const cur = this.sampleClipFrame(clipIdx, t, this.state);
-    const prevClipIdx = this.getClipIndex(this.prevState);
-    const prv = hasPrev ? this.sampleClipFrame(prevClipIdx, this.prevTime, this.prevState) : cur;
+    const isRunningAttack = this.state === 'attack' && this.moveSpeed > 1.25;
+    const runClipIdx = this.getClipIndex('run');
+    const runSample = isRunningAttack ? this.sampleClipFrame(runClipIdx, t * 1.15, 'run') : cur;
 
-    this.readRootPos(clipIdx, cur.f0, cur.f1, cur.frac, this.vA);
-    if (hasPrev && blendAlpha < 1.0) {
-      this.readRootPos(prevClipIdx, prv.f0, prv.f1, prv.frac, this.vPrev);
-      this.vA.lerpVectors(this.vPrev, this.vA, blendAlpha);
+    if (isRunningAttack) {
+      this.readRootPos(runClipIdx, runSample.f0, runSample.f1, runSample.frac, this.vA);
+    } else {
+      this.readRootPos(clipIdx, cur.f0, cur.f1, cur.frac, this.vA);
     }
     this.rig.bones[4].position.copy(this.vA);
 
     for (let j = 0; j < NUM_JOINTS; j++) {
-      this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
-      if (hasPrev && blendAlpha < 1.0) {
-        this.readJointQuat(prevClipIdx, prv.f0, prv.f1, prv.frac, j, this.qPrev);
-        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+      if (isRunningAttack && !RhinoAnimator.isUpperBodyAttackJoint(j)) {
+        this.readJointQuat(runClipIdx, runSample.f0, runSample.f1, runSample.frac, j, this.rig.bones[j].quaternion);
+      } else {
+        this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
       }
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
-      const bend = THREE.MathUtils.clamp(this.turn, -1, 1) * 0.14;
+      const bend = THREE.MathUtils.clamp(this.turn, -1, 1) * 0.16;
       const bendJoints = [6, 7, 8, 9, 10];
       for (let k = 0; k < bendJoints.length; k++) {
         const jIdx = bendJoints[k];
@@ -313,12 +435,37 @@ export class RhinoAnimator {
         this.rig.bones[jIdx].quaternion.multiply(this.qTurn);
       }
     }
+
+    if (hasPrev && blendAlpha < 1.0 && this.hasPoseSnapshot) {
+      this.rig.bones[4].position.lerpVectors(this.fromRootPos, this.rig.bones[4].position, blendAlpha);
+      for (let j = 0; j < NUM_JOINTS; j++) {
+        this.qPrev.set(
+          this.fromPoseQuats[j * 4 + 0],
+          this.fromPoseQuats[j * 4 + 1],
+          this.fromPoseQuats[j * 4 + 2],
+          this.fromPoseQuats[j * 4 + 3]
+        );
+        this.rig.bones[j].quaternion.slerpQuaternions(this.qPrev, this.rig.bones[j].quaternion, blendAlpha);
+      }
+    }
+
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const q = this.rig.bones[j].quaternion;
+      this.lastPoseQuats[j * 4 + 0] = q.x;
+      this.lastPoseQuats[j * 4 + 1] = q.y;
+      this.lastPoseQuats[j * 4 + 2] = q.z;
+      this.lastPoseQuats[j * 4 + 3] = q.w;
+    }
+    this.lastRootPos.copy(this.rig.bones[4].position);
+    this.hasPoseSnapshot = true;
   }
 
   update(dt: number): void {
     const clamped = Math.min(dt, 0.1);
-    const targetSpeed = RHINO_GAITS[this.state] ? RHINO_GAITS[this.state].speed : 0.0;
-    this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
+    if (this.state !== 'attack') {
+      const targetSpeed = RHINO_GAITS[this.state] ? RHINO_GAITS[this.state].speed : 0.0;
+      this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
+    }
 
     this.time += clamped;
     this.prevTime += clamped;
@@ -369,9 +516,10 @@ export class Rhino {
 
     const mat = new THREE.MeshStandardMaterial({
       map: texture,
+      color: options.tintHex ?? 0xffffff,
       roughness: 0.82,
       metalness: 0.05,
-      skinning: true,
+      wireframe: options.wireframe ?? false,
       side: THREE.DoubleSide,
     });
 
@@ -387,8 +535,20 @@ export class Rhino {
     this.animator = new RhinoAnimator(this.rig, data);
   }
 
+  get state(): RhinoState {
+    return this.animator.state;
+  }
+
   setState(state: RhinoState): void {
     this.animator.setState(state);
+  }
+
+  restartState(state: RhinoState): void {
+    this.animator.restartState(state);
+  }
+
+  setNormalizedPhase(normalizedPhase: number): void {
+    this.animator.setNormalizedPhase(normalizedPhase);
   }
 
   getState(): RhinoState {

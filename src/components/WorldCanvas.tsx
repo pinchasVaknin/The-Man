@@ -18,6 +18,7 @@ import {
   WeatherKind,
   WeatherCycleMode,
   WeatherToggleOption,
+  SeasonType,
   IWeatherStateSnapshot,
   CameraPerspectiveMode,
   EquippedToolSlot,
@@ -28,6 +29,7 @@ import {
   ARCHERY_TARGETS,
   DEFAULT_WEATHER_CYCLE_MODE,
   PLAYER_EYE_HEIGHT,
+  MIN_BOW_DRAW_TO_SHOOT,
   generateWorldObstacles,
   createInitialPlayerState,
   equipInventoryItem,
@@ -45,11 +47,14 @@ import {
   getWaterSurfaceHeightAt,
   isPositionUnderRoof,
   findNearestFortressDoor,
+  findNearestBed,
   findNearestMarketStall,
   findLookedAtWatchtowerLadder,
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
   getAnimalSpeciesNameHe,
+  getActiveWorldAnimals,
+  isPredatorSpecies,
   triggerSwordSlash,
   stepSwordSwingCombat,
   computeFirstPersonSwordAttackPose,
@@ -134,6 +139,15 @@ export interface ITelemetrySnapshot {
     buildingName: string;
     isOpen: boolean;
   } | null;
+  nearbyBed?: {
+    id: string;
+    name: string;
+  } | null;
+  isSleepingInBed?: boolean;
+  worldHours?: number;
+  season?: SeasonType;
+  seasonLabel?: string;
+  forcedSeason?: SeasonType | 'auto';
   nearbyLadder?: boolean;
   climbingLadder?: boolean;
   stamina?: number;
@@ -380,11 +394,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     function fireArrowNow(powerOverride?: number) {
       if (playerState.isSwimming) return null;
+      const currentDraw = playerState.bowDrawProgress ?? 0;
+      if (powerOverride === undefined && currentDraw < MIN_BOW_DRAW_TO_SHOOT) {
+        playerState.bowDrawn = false;
+        playerState.bowDrawProgress = 0;
+        return null;
+      }
       playerState.equippedTool = 'bow';
       const pwr =
         powerOverride !== undefined
-          ? Math.max(0.28, Math.min(1.0, powerOverride))
-          : Math.max(0.35, playerState.bowDrawProgress ?? 0);
+          ? Math.max(MIN_BOW_DRAW_TO_SHOOT, Math.min(1.0, powerOverride))
+          : Math.max(MIN_BOW_DRAW_TO_SHOOT, Math.min(1.0, currentDraw));
       const arrow = spawnArrowProjectile(playerState, pwr);
       activeArrows.push(arrow);
       if (activeArrows.length > 28) {
@@ -453,6 +473,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       return Number.isFinite(num) ? num : null;
     })();
     let worldHours = initialHourParam !== null ? initialHourParam : 6.68;
+    let forcedSeason: SeasonType | 'auto' = 'auto';
+    let isSleepingInBed = false;
+    let activeSleepingBed: { x: number; y: number; z: number; yaw?: number } | null = null;
+    let preSleepPlayerPos: { x: number; y: number; z: number } | null = null;
 
     function applyDynamicAtmosphere(hours: number, weather?: IWeatherStateSnapshot) {
       return applyDynamicAtmosphereToScene(
@@ -480,7 +504,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       playerState.x,
       playerState.z,
       activeWeatherMode,
-      getEffectiveForcedWeather()
+      getEffectiveForcedWeather(),
+      forcedSeason === 'auto' ? null : forcedSeason
     );
     let currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
 
@@ -491,8 +516,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (res.hitAnimal) {
         const spName = getAnimalSpeciesNameHe(res.hitAnimal.species);
         lastArrowHitTargetName = res.killedAnimal
-          ? `${spName} (ניצוד! לחץ E לאיסוף השלל)`
-          : `${spName} (נפגע!)`;
+          ? `${spName} (Hunted! Press E to loot)`
+          : `${spName} (${res.hitAnimal.hp}/${res.hitAnimal.maxHp} HP)`;
         lastArrowHitTimer = res.killedAnimal ? 4.0 : 2.5;
         soundEngine.playArrowHit(true);
         emitHudSnapshot();
@@ -549,6 +574,25 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       },
       onToggleFavorite: (itemId) => {
         toggleFavoriteItem(playerState, itemId);
+        emitHudSnapshot();
+      },
+      onSetWorldHours: (hours) => {
+        isSleepingInBed = false;
+        worldHours = ((Number(hours) % 24) + 24) % 24;
+        currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
+        emitHudSnapshot();
+      },
+      onSetSeason: (season) => {
+        forcedSeason = season;
+        currentWeather = computeWeatherState(
+          elapsedTotal + seasonTimeOffset,
+          playerState.x,
+          playerState.z,
+          activeWeatherMode,
+          getEffectiveForcedWeather(),
+          forcedSeason === 'auto' ? null : forcedSeason
+        );
+        currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         emitHudSnapshot();
       },
     };
@@ -760,6 +804,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       playerState.bowZoomHeld = false;
     };
 
+    let lastPointerLockExitTimeMs = -Infinity;
+    const onPointerLockChange = () => {
+      if (!document.pointerLockElement) {
+        lastPointerLockExitTimeMs = performance.now();
+      }
+    };
+
     const onContextMenu = (e: MouseEvent) => {
       if (gameStateRef.current === 'playing') {
         e.preventDefault();
@@ -804,14 +855,21 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             soundEngine.playBowDraw();
           }
         }
-        if (document.pointerLockElement !== renderer.domElement) {
+        if (
+          document.pointerLockElement !== renderer.domElement &&
+          performance.now() - lastPointerLockExitTimeMs > 1500
+        ) {
           try {
-            renderer.domElement.requestPointerLock?.();
-          } catch (err: unknown) {
-            ConsoleLogger.instance.warn(
-              'PointerLock request rejected by browser security policy or unsupported',
-              { error: String(err) }
-            );
+            const lockPromise = renderer.domElement.requestPointerLock?.() as
+              | Promise<void>
+              | undefined;
+            if (lockPromise && typeof lockPromise.catch === 'function') {
+              lockPromise.catch(() => {
+                // Ignore browser SecurityError cooldown when user recently exited pointer lock
+              });
+            }
+          } catch {
+            // Ignore synchronous PointerLock rejection if unsupported or blocked
           }
         }
       }
@@ -858,6 +916,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const isLocked = document.pointerLockElement === renderer.domElement;
         if (
           playerState.bowDrawn &&
+          (playerState.bowDrawProgress ?? 0) >= MIN_BOW_DRAW_TO_SHOOT &&
           (isLocked || !mouseMovedWhileDown || playerState.bowDrawProgress >= 0.35)
         ) {
           fireArrowNow();
@@ -915,6 +974,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.setSize(w, h);
     };
 
+    document.addEventListener('pointerlockchange', onPointerLockChange);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlurOrHide);
@@ -1001,14 +1061,50 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       } else if (gameStateRef.current === 'playing') {
         elapsedTotal += rawDt;
 
-        // Slow, natural continuous 24h day & night solar/lunar cycle + Seasonal Weather cycle
-        worldHours = (worldHours + rawDt * 0.028) % 24;
+        if (isSleepingInBed) {
+          if (activeSleepingBed) {
+            playerState.x = activeSleepingBed.x;
+            playerState.z = activeSleepingBed.z;
+            playerState.y = activeSleepingBed.y + 0.45;
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.vz = 0;
+          }
+          const prevH = worldHours;
+          const stepH = rawDt * 7.5;
+          const nextH = (prevH + stepH) % 24;
+          const crossedMorning =
+            (prevH < 6.5 && prevH + stepH >= 6.5) ||
+            (prevH >= 18.0 && prevH + stepH >= 24 + 6.5);
+          if (crossedMorning) {
+            worldHours = 6.5;
+            isSleepingInBed = false;
+            playerState.pitch = 0;
+            if (preSleepPlayerPos) {
+              playerState.x = preSleepPlayerPos.x;
+              playerState.z = preSleepPlayerPos.z;
+              playerState.y = walkableHeightAt(preSleepPlayerPos.x, preSleepPlayerPos.z, preSleepPlayerPos.y).height;
+            }
+            activeSleepingBed = null;
+            preSleepPlayerPos = null;
+            playerState.stamina = playerState.maxStamina ?? 100;
+            lastLootNotificationHe = 'Awoke refreshed at morning';
+            lastLootNotificationTimer = 3.5;
+            emitHudSnapshot();
+          } else {
+            worldHours = nextH;
+          }
+        } else {
+          // Slow, natural continuous 24h day & night solar/lunar cycle + Seasonal Weather cycle
+          worldHours = (worldHours + rawDt * 0.028) % 24;
+        }
         currentWeather = computeWeatherState(
           elapsedTotal + seasonTimeOffset,
           playerState.x,
           playerState.z,
           activeWeatherMode,
-          getEffectiveForcedWeather()
+          getEffectiveForcedWeather(),
+          forcedSeason === 'auto' ? null : forcedSeason
         );
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
 
@@ -1030,8 +1126,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           if (keysPressed.has(kb.moveRight) || keysPressed.has('ArrowRight')) right += 1;
           if (keysPressed.has(kb.moveLeft) || keysPressed.has('ArrowLeft')) right -= 1;
         }
+        if (isSleepingInBed && (Math.abs(forward) > 0.1 || Math.abs(right) > 0.1)) {
+          isSleepingInBed = false;
+          playerState.pitch = 0;
+          if (preSleepPlayerPos) {
+            playerState.x = preSleepPlayerPos.x;
+            playerState.z = preSleepPlayerPos.z;
+            playerState.y = walkableHeightAt(preSleepPlayerPos.x, preSleepPlayerPos.z, preSleepPlayerPos.y).height;
+          }
+          activeSleepingBed = null;
+          preSleepPlayerPos = null;
+        }
 
-        // Interactive Looting of Hunted Animal OR Door Toggle when pressing interactDoor ([E])
+        // Interactive Looting of Hunted Animal, Sleeping in Bed, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
           const nearDeadAnimal = findNearestDeadLootableAnimal(
             playerState.x,
@@ -1046,20 +1153,60 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               emitHudSnapshot();
             }
           } else {
-            const nearDoor = findNearestFortressDoor(
-              playerState.x,
-              playerState.y,
-              playerState.z,
-              playerState.yaw,
-              playerState.pitch
-            );
-            if (nearDoor) {
-              if (openDoorIds.has(nearDoor.id)) {
-                openDoorIds.delete(nearDoor.id);
+            const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
+            if (nearBed) {
+              const dangerNearby = getActiveWorldAnimals().some(
+                (a) =>
+                  !a.isDead &&
+                  isPredatorSpecies(a.species) &&
+                  Math.hypot(a.x - playerState.x, a.z - playerState.z) < 24.0
+              );
+              const isNightTime = worldHours >= 18.5 || worldHours < 5.8;
+              if (dangerNearby) {
+                lastLootNotificationHe = 'Cannot sleep while danger is nearby';
+                lastLootNotificationTimer = 3.2;
+                emitHudSnapshot();
+              } else if (!isNightTime) {
+                lastLootNotificationHe = 'You can only sleep at night';
+                lastLootNotificationTimer = 3.2;
+                emitHudSnapshot();
               } else {
-                openDoorIds.add(nearDoor.id);
+                preSleepPlayerPos = { x: playerState.x, y: playerState.y, z: playerState.z };
+                activeSleepingBed = nearBed;
+                isSleepingInBed = true;
+                // Place player directly onto the bed mattress while sleeping!
+                playerState.x = nearBed.x;
+                playerState.z = nearBed.z;
+                playerState.y = nearBed.y + 0.45;
+                playerState.vx = 0;
+                playerState.vy = 0;
+                playerState.vz = 0;
+                if (nearBed.yaw !== undefined) {
+                  playerState.yaw = nearBed.yaw;
+                }
+                // Lying on back on the bed / sleeping bag looking straight up at the ceiling!
+                playerState.pitch = 1.42;
+                lastLootNotificationHe = 'Sleeping until morning...';
+                lastLootNotificationTimer = 3.5;
+                soundEngine.playFootstep('cabin', 0.8);
+                emitHudSnapshot();
               }
-              soundEngine.playFootstep('bridge', 0.85);
+            } else {
+              const nearDoor = findNearestFortressDoor(
+                playerState.x,
+                playerState.y,
+                playerState.z,
+                playerState.yaw,
+                playerState.pitch
+              );
+              if (nearDoor) {
+                if (openDoorIds.has(nearDoor.id)) {
+                  openDoorIds.delete(nearDoor.id);
+                } else {
+                  openDoorIds.add(nearDoor.id);
+                }
+                soundEngine.playFootstep('bridge', 0.85);
+              }
             }
           }
         }
@@ -1150,8 +1297,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             const spName = getAnimalSpeciesNameHe(arrowRes.hitAnimal.species);
             playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
             lastArrowHitTargetName = arrowRes.killedAnimal
-              ? `${spName} (ניצוד! לחץ E לאיסוף השלל)`
-              : `${spName} (נפגע!)`;
+              ? `${spName} (Hunted! Press E to loot)`
+              : `${spName} (${arrowRes.hitAnimal.hp}/${arrowRes.hitAnimal.maxHp} HP)`;
             lastArrowHitTimer = arrowRes.killedAnimal ? 4.0 : 2.5;
             awardSkillXp(playerState, 'archery', arrowRes.killedAnimal ? 36 : 18);
             soundEngine.playArrowHit(true);
@@ -1202,37 +1349,49 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         let anySteppedFoot = false;
         let maxLandedImpact = 0;
 
-        for (let s = 0; s < subSteps; s++) {
-          const prevVy = playerState.vy;
-          const res = stepPlayerPhysics(
-            playerState,
-            {
-              forward: Math.max(-1, Math.min(1, forward)) * spdMult,
-              right: Math.max(-1, Math.min(1, right)) * spdMult,
-              sprint,
-              relaxed,
-              jumpPressed: s === 0 ? jumpPressed : false,
-              jumpHeld,
-              toggleFlyRequested: s === 0 ? triggerFlyToggle : false,
-              toggleMountHorseRequested: s === 0 ? toggleMountHorsePressed : false,
-              lookYawDelta: s === 0 ? accumYawDelta : 0,
-              lookPitchDelta: s === 0 ? accumPitchDelta : 0,
-            },
-            obstacles,
-            subDt,
-            openDoorIds,
-            rideableHorses
-          );
-          if (
-            s === 0 &&
-            jumpPressed &&
-            playerState.vy > prevVy + 2.0 &&
-            (gameSettingsRef.current.jumpForceMultiplier ?? 1.0) !== 1.0
-          ) {
-            playerState.vy *= gameSettingsRef.current.jumpForceMultiplier ?? 1.0;
+        playerState.isSleeping = isSleepingInBed;
+        if (isSleepingInBed && activeSleepingBed) {
+          playerState.x = activeSleepingBed.x;
+          playerState.z = activeSleepingBed.z;
+          playerState.y = activeSleepingBed.y + 0.45;
+          playerState.vx = 0;
+          playerState.vy = 0;
+          playerState.vz = 0;
+          playerState.yaw += accumYawDelta;
+          playerState.pitch = Math.max(1.05, Math.min(1.53, playerState.pitch + accumPitchDelta));
+        } else {
+          for (let s = 0; s < subSteps; s++) {
+            const prevVy = playerState.vy;
+            const res = stepPlayerPhysics(
+              playerState,
+              {
+                forward: Math.max(-1, Math.min(1, forward)) * spdMult,
+                right: Math.max(-1, Math.min(1, right)) * spdMult,
+                sprint,
+                relaxed,
+                jumpPressed: s === 0 ? jumpPressed : false,
+                jumpHeld,
+                toggleFlyRequested: s === 0 ? triggerFlyToggle : false,
+                toggleMountHorseRequested: s === 0 ? toggleMountHorsePressed : false,
+                lookYawDelta: s === 0 ? accumYawDelta : 0,
+                lookPitchDelta: s === 0 ? accumPitchDelta : 0,
+              },
+              obstacles,
+              subDt,
+              openDoorIds,
+              rideableHorses
+            );
+            if (
+              s === 0 &&
+              jumpPressed &&
+              playerState.vy > prevVy + 2.0 &&
+              (gameSettingsRef.current.jumpForceMultiplier ?? 1.0) !== 1.0
+            ) {
+              playerState.vy *= gameSettingsRef.current.jumpForceMultiplier ?? 1.0;
+            }
+            if (res.steppedFoot) anySteppedFoot = true;
+            if (res.landedImpact > maxLandedImpact) maxLandedImpact = res.landedImpact;
           }
-          if (res.steppedFoot) anySteppedFoot = true;
-          if (res.landedImpact > maxLandedImpact) maxLandedImpact = res.landedImpact;
         }
         accumYawDelta = 0;
         accumPitchDelta = 0;
@@ -1309,8 +1468,24 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         smoothCrouchOffset +=
           (targetCrouchOffset - smoothCrouchOffset) * (1 - Math.exp(-12 * rawDt));
 
-        if (playerState.cameraPerspective === 'third_person') {
-          // 3rd-Person Over-the-Right-Shoulder Camera so the 3D Ranger Character & Proper Recurve Bow Grip are clearly visible
+        if (isSleepingInBed) {
+          // Lying on back on the bed / sleeping bag pillow (+0.22m above mattress), looking straight up at the ceiling!
+          const sleepHeadOffsetX = Math.sin(playerState.yaw) * 0.58;
+          const sleepHeadOffsetZ = Math.cos(playerState.yaw) * 0.58;
+          camera.position.set(
+            playerState.x - sleepHeadOffsetX,
+            playerState.y + 0.22 + Math.sin(elapsedTime * 1.6) * 0.008,
+            playerState.z - sleepHeadOffsetZ
+          );
+          _euler.set(
+            Math.max(1.05, Math.min(1.53, playerState.pitch)),
+            playerState.yaw + Math.PI,
+            Math.sin(elapsedTime * 0.9) * 0.012,
+            'YXZ'
+          );
+          camera.quaternion.setFromEuler(_euler);
+        } else if (playerState.cameraPerspective === 'third_person') {
+          // 3rd-Person Over-the-Right-Shoulder Camera
           const pivotY =
             playerState.y +
             (isMountedOnHorse ? 2.22 : playerState.isSwimming ? 1.25 : 1.54) +
@@ -1501,6 +1676,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         : null;
       const nearMarket = findNearestMarketStall(playerState.x, playerState.z);
       const nearDeadAnimal = findNearestDeadLootableAnimal(playerState.x, playerState.z);
+      const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
       onTelemetryUpdateRef.current({
         x: playerState.x,
         y: playerState.y,
@@ -1559,6 +1735,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               isOpen: openDoorIds.has(nearDoor.id),
             }
           : null,
+        nearbyBed: nearBed
+          ? {
+              id: nearBed.id,
+              name: nearBed.name,
+            }
+          : null,
+        isSleepingInBed,
+        worldHours,
+        season: currentWeather.season,
+        seasonLabel: currentWeather.seasonLabel,
+        forcedSeason,
         nearbyLadder: Boolean(nearLadder),
         climbingLadder: Boolean(playerState.climbingLadderId),
         stamina: playerState.stamina,
@@ -1573,6 +1760,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       isUnmounted = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlurOrHide);

@@ -51,7 +51,7 @@ export const CROCODILE_GAITS: Record<CrocodileState, { speed: number }> = {
   flee:   { speed: 7.8 },
   skip:   { speed: 4.2 },
   roar:   { speed: 0.0 },
-  attack: { speed: 1.8 },
+  attack: { speed: 0.0 },
   death:  { speed: 0.0 },
 };
 
@@ -263,22 +263,17 @@ export class CrocodileAnimator {
   private qB = new THREE.Quaternion();
   private qPrev = new THREE.Quaternion();
   private qTurn = new THREE.Quaternion();
-  private qRoll = new THREE.Quaternion();
   private vA = new THREE.Vector3();
   private vPrev = new THREE.Vector3();
   private turnAxis = new THREE.Vector3(0, 1, 0);
-  private rollAxis = new THREE.Vector3(0, 0, 1);
 
   private static isLocomotionState(s: CrocodileState): boolean {
-    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'skip' || s === 'swim' || s === 'swimFast';
+    return s === 'walk' || s === 'trot' || s === 'run' || s === 'flee' || s === 'skip';
   }
 
   private computeBlendDuration(from: CrocodileState, to: CrocodileState): number {
-    if (to === 'attack' || to === 'swimAttack') return 0.34;
+    if (to === 'attack' || from === 'attack') return 0.24;
     if (to === 'death') return 0.38;
-    const fromWater = from === 'swim' || from === 'swimIdle' || from === 'swimFast' || from === 'swimAttack';
-    const toWater = to === 'swim' || to === 'swimIdle' || to === 'swimFast' || to === 'swimAttack';
-    if (fromWater !== toWater) return 0.56;
     if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit' || from === 'roar' || to === 'roar' || from === 'call' || to === 'call' || from === 'eat' || to === 'eat') {
       return 0.52;
     }
@@ -322,7 +317,7 @@ export class CrocodileAnimator {
       const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
       const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
       this.time = normPhase * newDur;
-    } else if (next === 'call' || next === 'roar' || next === 'attack' || next === 'swimAttack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
+    } else if (next === 'call' || next === 'roar' || next === 'attack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
       this.time = 0.0;
     }
 
@@ -397,17 +392,21 @@ export class CrocodileAnimator {
       this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
     }
 
-    // Continuous 720-degree (2x 360°) Death Roll around longitudinal Z-axis during 'attack'
-    if (this.state === 'attack' && cur.u >= 0.22 && cur.u <= 0.86) {
-      const s = (cur.u - 0.22) / (0.86 - 0.22);
-      const smooth = s * s * (3.0 - 2.0 * s);
-      const rollRad = smooth * Math.PI * 4.0 * blendAlpha;
-      this.qRoll.setFromAxisAngle(this.rollAxis, rollRad);
-      this.rig.bones[1].quaternion.premultiply(this.qRoll);
-      const cy = 0.58;
-      const dy = this.rig.bones[1].position.y - cy;
-      this.rig.bones[1].position.x = -dy * Math.sin(rollRad);
-      this.rig.bones[1].position.y = cy + dy * Math.cos(rollRad);
+    // Upright snapping bite & tail whip during 'attack' (no upside-down barrel roll)
+    if (this.state === 'attack') {
+      const snapEnv = Math.sin(cur.u * Math.PI);
+      const headThrash = Math.sin(cur.u * Math.PI * 2.0) * 0.16 * snapEnv * blendAlpha;
+      const tailWhip = -Math.sin(cur.u * Math.PI * 2.0) * 0.18 * snapEnv * blendAlpha;
+      const headJoints = [26, 27];
+      for (let k = 0; k < headJoints.length; k++) {
+        this.qTurn.setFromAxisAngle(this.turnAxis, headThrash);
+        this.rig.bones[headJoints[k]].quaternion.multiply(this.qTurn);
+      }
+      const tailJoints = [7, 10, 13];
+      for (let k = 0; k < tailJoints.length; k++) {
+        this.qTurn.setFromAxisAngle(this.turnAxis, tailWhip);
+        this.rig.bones[tailJoints[k]].quaternion.multiply(this.qTurn);
+      }
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
@@ -476,7 +475,7 @@ export class Crocodile {
   readonly animator: CrocodileAnimator;
 
   constructor(data: CrocodileUnpackedData, texture: THREE.Texture, options: CrocodileOptions = {}) {
-    const scale = options.scale ?? 0.50;
+    const scale = options.scale ?? 0.78;
     const castShadow = options.castShadow ?? true;
     const receiveShadow = options.receiveShadow ?? true;
 
