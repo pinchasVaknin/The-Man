@@ -39,7 +39,6 @@ export interface IFarmhouseModelHandles {
     playerZ?: number
   ) => void;
 }
-export type FarmhouseModelHandles = IFarmhouseModelHandles;
 // #endregion
 
 // ======================== BUILD FARMHOUSE MODELS ======================== \\

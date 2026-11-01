@@ -9,7 +9,6 @@
 // #region Imports and Test Dependencies
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { IPlayerState } from './domain/worldTypes';
 import {
   WATER_LEVEL,
   PLAYABLE_RADIUS,
@@ -34,7 +33,6 @@ import {
   MAGIC_STONE_CIRCLE_POS,
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
-  FORTRESS_DOORS,
   BEAR_MOUNTAIN_CAVES,
   SNOW_LINE_ALTITUDE,
   DEFAULT_WEATHER_CYCLE_MODE,
@@ -48,7 +46,6 @@ import {
   isChineseFortressWalkableZone,
   chineseFortressStairHeightAt,
   findNearestFortressDoor,
-  findLookedAtWatchtowerLadder,
   isOnWatchtowerLadder,
   regionalForestDensityAt,
   isWithinViewDistance,
@@ -65,14 +62,6 @@ import {
 
 // ======================== TEST FIXTURES AND FACTORIES ======================== \\
 // #region Test Fixtures and Factories
-/**
- * Summary: Creates a mock player state fixture initialized to world defaults.
- * Design: Provides isolated test setup for integration testing without shared mutation.
- * @returns Fresh default IPlayerState instance.
- */
-function createPlayerStateFixture(): IPlayerState {
-  return createInitialPlayerState();
-}
 // #endregion
 
 // ======================== HAPPY PATH TESTS ======================== \\

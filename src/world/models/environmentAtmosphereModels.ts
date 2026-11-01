@@ -11,7 +11,6 @@ import * as THREE from 'three';
 import type { IWeatherStateSnapshot } from '../domain/worldTypes';
 import {
   WATER_LEVEL,
-  HUNTER_LODGE_POS,
   groundHeightAt,
   getRoofHeightAt,
   isWithinViewDistance,
@@ -44,7 +43,6 @@ export interface IEnvironmentAtmosphereHandle {
     playerY?: number
   ) => void;
 }
-export type EnvironmentAtmosphereHandle = IEnvironmentAtmosphereHandle;
 
 type SquirrelActionState =
   | 'perched'

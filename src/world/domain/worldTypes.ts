@@ -137,7 +137,6 @@ export interface IInventoryItemDef {
   /** True when the item can only be obtained as loot and is never sold by merchants. */
   readonly lootOnly?: boolean;
 }
-export type InventoryItemDef = IInventoryItemDef;
 
 function createCatalogItem(
   id: InventoryItemId,
@@ -271,7 +270,6 @@ export interface ICharacterSkillsState {
   lastLevelUpTitle?: string | null;
   lastLevelUpTimer?: number;
 }
-export type CharacterSkillsState = ICharacterSkillsState;
 
 /**
  * Summary: Radial collision boundary representing trees, boulders, fences, or buildings.
@@ -285,7 +283,6 @@ export interface IObstacleCylinder {
   readonly scale: number;
   readonly seed: number;
 }
-export type ObstacleCylinder = IObstacleCylinder;
 
 /**
  * Summary: Complete physical and combat runtime state for the player avatar.
@@ -373,7 +370,6 @@ export interface IPlayerState {
   isCrouching?: boolean;
   isSleeping?: boolean;
 }
-export type PlayerState = IPlayerState;
 
 /**
  * Summary: Snapshot of hardware and touch input controls sampled per animation frame.
@@ -391,7 +387,6 @@ export interface IPlayerInput {
   lookYawDelta: number;
   lookPitchDelta: number;
 }
-export type PlayerInput = IPlayerInput;
 // #endregion
 
 // ======================== ANIMAL & HORSE ENTITY TYPES ======================== \\
@@ -410,7 +405,6 @@ export interface IRideableHorseDef {
   readonly homeZ: number;
   readonly homeYaw: number;
 }
-export type RideableHorseDef = IRideableHorseDef;
 
 /**
  * Summary: Mutable physical simulation state for an individual mountable horse.
@@ -428,7 +422,6 @@ export interface IRideableHorseState {
   gaitPhase: number;
   isJumping?: boolean;
 }
-export type RideableHorseState = IRideableHorseState;
 // #endregion
 
 // ======================== ATMOSPHERE & WEATHER STATE ======================== \\
@@ -464,7 +457,6 @@ export interface IDynamicAtmosphereState {
   mieDirectionalG: number;
   exposure: number;
 }
-export type DynamicAtmosphereState = IDynamicAtmosphereState;
 
 /** Summary: Alias for IDynamicAtmosphereState used by atmosphere and debug controllers. */
 
@@ -528,7 +520,6 @@ export interface IWeatherStateSnapshot {
   boltOriginX: number;
   boltOriginZ: number;
 }
-export type WeatherStateSnapshot = IWeatherStateSnapshot;
 // #endregion
 
 // ======================== WORLD STRUCTURES & LANDMARKS ======================== \\
@@ -550,7 +541,6 @@ export interface IValleyFarmDef {
   readonly gateHalfW: number;
   readonly dirZ: 1 | -1;
 }
-export type ValleyFarmDef = IValleyFarmDef;
 
 /**
  * Summary: Landmark definition for strategic elevated stone watchtowers.
@@ -584,7 +574,6 @@ export interface IHillWatchtowerDef {
   readonly isSouth: boolean;
   readonly connectedToBridge: boolean;
 }
-export type HillWatchtowerDef = IHillWatchtowerDef;
 
 /**
  * Summary: Monumental stone guardian statues guarding the southern mountain kingdom.
@@ -601,7 +590,6 @@ export interface IDwarvenGuardianStatueDef {
   readonly yaw: number;
   readonly side: 'west' | 'east';
 }
-export type DwarvenGuardianStatueDef = IDwarvenGuardianStatueDef;
 
 /**
  * Summary: Residential stone cottage architecture in the southern dwarven kingdom.
@@ -621,7 +609,6 @@ export interface IDwarvenStoneHouseDef {
   readonly doorX: number;
   readonly doorZ: number;
 }
-export type DwarvenStoneHouseDef = IDwarvenStoneHouseDef;
 
 /**
  * Summary: Operational status of the automated dwarven caravan schedule.
@@ -639,7 +626,6 @@ export interface IDwarvenMinerCaravanState {
   miningSwing: number;
   lanternLit: boolean;
 }
-export type DwarvenMinerCaravanState = IDwarvenMinerCaravanState;
 
 /**
  * Summary: Bastion watchtowers anchoring the four corners of the northern fortress.
@@ -658,7 +644,6 @@ export interface ICornerWatchtowerDef {
   readonly isWest: boolean;
   readonly isSouth: boolean;
 }
-export type CornerWatchtowerDef = ICornerWatchtowerDef;
 
 /**
  * Summary: Spatial trigger volume for vertical ladder climbing interactions.
@@ -677,7 +662,6 @@ export interface IClimbableLadderInfo {
   readonly maxY: number;
   readonly floors: readonly number[];
 }
-export type ClimbableLadderInfo = IClimbableLadderInfo;
 
 /**
  * Summary: Enterable hinged door definition for fortress pavilions and halls.
@@ -695,7 +679,6 @@ export interface IFortressDoorDef {
   readonly maxZ: number;
   readonly interactRadius: number;
 }
-export type FortressDoorDef = IFortressDoorDef;
 
 /**
  * Summary: Axis-aligned or oriented bounding box for architectural collision solid volumes.
@@ -710,7 +693,6 @@ export interface ISolidBuildingBox {
   readonly minY?: number;
   readonly maxY?: number;
 }
-export type SolidBuildingBox = ISolidBuildingBox;
 // #endregion
 
 // ======================== COMBAT & PROJECTILE TYPES ======================== \\
@@ -727,7 +709,6 @@ export interface IArcheryTargetDef {
   readonly yaw: number;
   readonly bullseyeRadius: number;
 }
-export type ArcheryTargetDef = IArcheryTargetDef;
 
 /**
  * Summary: Historical flight trajectory sample for rendering arrow smoke ribbons.
@@ -739,7 +720,6 @@ export interface IArrowTrailPoint {
   readonly z: number;
   age: number;
 }
-export type ArrowTrailPoint = IArrowTrailPoint;
 
 /**
  * Summary: Active ballistic projectile simulated in flight.
@@ -803,12 +783,6 @@ export interface ISellMarketItemPayload {
 }
 
 /**
- * Summary: Union of successful marketplace transaction outcomes (buy or sell).
- * Design: Strongly-typed result payload for Result.ok returns in economy actions.
- */
-export type IMarketTransactionSuccess = IBuyMarketItemPayload | ISellMarketItemPayload;
-
-/**
  * Summary: Core interaction callback registry exposed to the game shell and UI overlays.
  * Design: Bridges UI user gestures (clicks, hotkeys) to domain state mutation systems.
  */
@@ -821,6 +795,5 @@ export interface IGameActions {
   readonly onSetWorldHours?: (hours: number) => void;
   readonly onSetSeason?: (season: SeasonType | 'auto') => void;
 }
-export type GameActions = IGameActions;
 // #endregion
 // #endregion

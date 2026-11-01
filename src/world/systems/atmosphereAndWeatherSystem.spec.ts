@@ -15,7 +15,6 @@ import {
   runTurboWeatherTestCycle,
   regionalRainFactorAt,
   getSeasonLabel,
-  getWeatherLabel,
 } from './atmosphereAndWeatherSystem';
 // #endregion
 

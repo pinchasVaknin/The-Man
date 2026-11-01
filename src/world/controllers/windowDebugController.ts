@@ -71,7 +71,6 @@ export interface IWindowDebugBridgeDeps {
   emitHudSnapshot?: () => void;
   readonly targetWindow?: Window | Record<string, unknown>;
 }
-export type WindowDebugBridgeDeps = IWindowDebugBridgeDeps;
 // #endregion
 
 // ======================== CONTROLLER IMPLEMENTATION ======================== \\

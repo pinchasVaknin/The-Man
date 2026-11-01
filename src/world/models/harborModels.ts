@@ -28,7 +28,6 @@ export interface IHarborModelHandles {
   readonly harborSeagullsGroup: THREE.Group;
   readonly updateHarbor: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
-export type HarborModelHandles = IHarborModelHandles;
 // #endregion
 
 // ======================== BUILD HARBOR MODELS ======================== \\
@@ -54,7 +53,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   const {
     imperialGoldMat,
     imperialCrimsonMat,
-    imperialDoorWoodMat,
     pagodaTileMat,
     warmLanternMat,
     mineGoldOreMat,

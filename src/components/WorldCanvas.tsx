@@ -26,7 +26,6 @@ import {
   InventoryItemId,
   ICharacterSkillsState,
   IArrowProjectile,
-  ARCHERY_TARGETS,
   DEFAULT_WEATHER_CYCLE_MODE,
   PLAYER_EYE_HEIGHT,
   MIN_BOW_DRAW_TO_SHOOT,
@@ -41,7 +40,6 @@ import {
   awardSkillXp,
   spawnArrowProjectile,
   stepArrowsPhysics,
-  computeDynamicSolarCycle,
   computeWeatherState,
   walkableHeightAt,
   getWaterSurfaceHeightAt,
@@ -170,7 +168,6 @@ export interface IVirtualMoveState {
   jump: boolean;
   drawBow?: boolean;
 }
-export type VirtualMoveState = IVirtualMoveState;
 
 /**
  * Summary: Props contract for top-level WorldCanvas Three.js viewport.
@@ -187,7 +184,6 @@ export interface IWorldCanvasProps {
   onRegisterGameActions?: (actions: IGameActions | null) => void;
   readonly soundEngineFactory?: () => NatureSoundEngine;
 }
-export type WorldCanvasProps = IWorldCanvasProps;
 // #endregion
 
 // ======================== WORLD CANVAS COMPONENT ======================== \\

@@ -10,7 +10,6 @@
 import { t } from '../../locales';
 import { Result } from '../../core/Result';
 import {
-  INVENTORY_ITEMS,
   INVENTORY_ITEM_MAP,
   DEFAULT_STARTER_OWNED_ITEM_IDS,
   type IPlayerState,
@@ -603,7 +602,6 @@ export interface ISwordSlashHitResult {
   readonly killedAnimal?: boolean;
   readonly hitAnySurface: boolean;
 }
-export type SwordSlashHitResult = ISwordSlashHitResult;
 
 /**
  * Summary: Evaluates melee hit detection during the Phase C Active Strike Window.

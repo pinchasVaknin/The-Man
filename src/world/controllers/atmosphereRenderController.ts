@@ -41,7 +41,6 @@ export interface IAtmosphereRenderContext {
   waterMaterial: THREE.MeshPhysicalMaterial;
   lanternLights: THREE.PointLight[];
 }
-export type AtmosphereRenderContext = IAtmosphereRenderContext;
 // #endregion
 
 // ======================== CONTROLLER LOGIC ======================== \\

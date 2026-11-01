@@ -24,7 +24,6 @@ export interface IDistanceCulledObject {
   readonly cz: number;
   readonly radius: number;
 }
-export type DistanceCulledObject = IDistanceCulledObject;
 
 /**
  * Summary: Pivot handle representation for an interactive hinged door mesh.
@@ -36,7 +35,6 @@ export interface IDoorPivotHandle {
   readonly rightPivot: THREE.Group;
   currentAngle: number;
 }
-export type DoorPivotHandle = IDoorPivotHandle;
 
 /**
  * Summary: Shared context passed down through procedural architectural model generators.
@@ -59,5 +57,4 @@ export interface IWorldModelBuildContext {
   archAssets?: IArchitecturalSharedAssets;
   birchBarkTexture?: THREE.CanvasTexture;
 }
-export type WorldModelBuildContext = IWorldModelBuildContext;
 // #endregion

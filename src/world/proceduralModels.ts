@@ -81,7 +81,6 @@ export interface IAnimatedWorldHandles {
   ) => void;
   dispose: () => void;
 }
-export type AnimatedWorldHandles = IAnimatedWorldHandles;
 // #endregion
 
 // ======================== FACADE ORCHESTRATOR ======================== \\

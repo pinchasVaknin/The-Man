@@ -20,7 +20,6 @@ export interface IExplorerMinimapProps {
   playerZ: number;
   yawDeg: number;
 }
-export type ExplorerMinimapProps = IExplorerMinimapProps;
 
 const MAP_WORLD_HALF = 680; // -680m .. +680m
 const METERS_PER_CELL = 2;  // 2m per pixel cell -> 680 x 680 offscreen map

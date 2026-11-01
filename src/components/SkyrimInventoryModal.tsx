@@ -70,7 +70,6 @@ export interface ISkyrimInventoryModalProps {
   distanceWalked?: number;
   arrowsShotCount?: number;
 }
-export type SkyrimInventoryModalProps = ISkyrimInventoryModalProps;
 
 export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   bow: t('items.bow.short'),

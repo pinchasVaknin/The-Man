@@ -49,7 +49,6 @@ export interface IArchitecturalSharedAssets {
   createAngledWatchtowerFlag: (px: number, py: number, pz: number, outwardYaw: number) => THREE.Group;
   createOrnatePaifangGate: (gateZ: number, gateY: number) => THREE.Group;
 }
-export type ArchitecturalSharedAssets = IArchitecturalSharedAssets;
 // #endregion
 
 // ======================== FACTORY FUNCTION ======================== \\

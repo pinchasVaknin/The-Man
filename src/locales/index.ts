@@ -15,24 +15,6 @@ import { en, type LocaleSchema } from './en';
  */
 export type TranslationDictionary = LocaleSchema;
 
-/**
- * Summary: Recursive type utility calculating dot-notated path keys for nested dictionaries.
- * Design: Provides compile-time autocomplete and type safety for translation key paths.
- */
-export type NestedKeyOf<T> = T extends object
-  ? {
-      [K in keyof T & (string | number)]: T[K] extends object
-        ? `${K}` | `${K}.${NestedKeyOf<T[K]>}`
-        : `${K}`;
-    }[keyof T & (string | number)]
-  : never;
-
-/**
- * Summary: Union type of all valid dot-notated translation keys in the dictionary.
- * Design: Restricts translation retrieval to known keys, preventing runtime lookup errors.
- */
-export type TranslationKey = NestedKeyOf<TranslationDictionary>;
-
 let currentDictionary: TranslationDictionary = en;
 // #endregion
 

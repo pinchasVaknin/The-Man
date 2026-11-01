@@ -11,7 +11,6 @@ import assert from 'node:assert/strict';
 import {
   buyMarketItem,
   sellMarketItem,
-  equipInventoryItem,
   assignHotbarSlot,
   toggleFavoriteItem,
   triggerSwordSlash,
