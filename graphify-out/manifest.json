@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793557254.8462124,
-    "seen": 1793557326.4394803,
-    "ast_hash": "4aa6b624446afe96a7ce6ec3e2830448",
+    "mtime": 1793557389.7195032,
+    "seen": 1793557699.7679517,
+    "ast_hash": "2a8f1f249a01f4cd46d41c8b3d94c9bf",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.ts": {
-    "mtime": 1793553236.411195,
-    "seen": 1793553287.3554912,
-    "ast_hash": "18202a9c39c8e9592dcd72ae6f0cdfaf",
+    "mtime": 1793557497.0374734,
+    "seen": 1793557699.7681935,
+    "ast_hash": "ad653fc16f5db050999a3ef8421d2b49",
     "semantic_hash": ""
   },
   "src/world/systems/combatAndInventorySystem.ts": {
@@ -792,9 +792,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/worldBehavior.characterization.spec.ts": {
-    "mtime": 1793554987.6145413,
-    "seen": 1793555073.2618198,
-    "ast_hash": "05f1f743b1b107b24f457428a1729cc4",
+    "mtime": 1793557547.9195373,
+    "seen": 1793557699.7682312,
+    "ast_hash": "b0a052a9057e58815fb48c9573129d64",
     "semantic_hash": ""
   },
   "src/core/gameLoop.spec.ts": {
@@ -897,6 +897,24 @@
     "mtime": 1793557190.3541942,
     "seen": 1793557326.4397252,
     "ast_hash": "88b9f85819446ae069aa5beb99a3d1f7",
+    "semantic_hash": ""
+  },
+  "src/world/builders/worldSceneBuilder.ts": {
+    "mtime": 1793557378.103882,
+    "seen": 1793557699.7680402,
+    "ast_hash": "175c6d6ea4349441ec08f5dbbf9e49c8",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/wildlife-confrontations.json": {
+    "mtime": 1793557576.2049222,
+    "seen": 1793557699.7681813,
+    "ast_hash": "c20b445f9e7879a45fd76c080ee1de69",
+    "semantic_hash": ""
+  },
+  "src/world/systems/wildlifeSpeciesProfiles.ts": {
+    "mtime": 1793557475.170654,
+    "seen": 1793557699.7682295,
+    "ast_hash": "7a7346b06e13cd4d23bb6289c0eaa2ca",
     "semantic_hash": ""
   }
 }

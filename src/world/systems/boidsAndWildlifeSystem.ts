@@ -24,6 +24,7 @@ import {
   walkableHeightAt,
   getWorldObstacles,
 } from './terrainAndBiomeSystem';
+import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
 import type {
   InventoryItemId,
   IPlayerState,
@@ -197,79 +198,19 @@ export function getAnimalSensoryProfile(
   species: GroundAnimalSpecies,
   isSleeping: boolean
 ): { readonly visionRange: number; readonly hearingRadius: number } {
-  if (isSleeping) {
-    switch (species) {
-      case 'deer':
-        return { visionRange: 0, hearingRadius: 11.5 };
-      case 'bear':
-        return { visionRange: 0, hearingRadius: 10.5 };
-      case 'jaguar':
-        return { visionRange: 0, hearingRadius: 12.0 };
-      case 'wolf':
-        return { visionRange: 0, hearingRadius: 12.0 };
-      case 'rhino':
-        return { visionRange: 0, hearingRadius: 11.0 };
-      case 'crocodile':
-        return { visionRange: 0, hearingRadius: 9.5 };
-      default:
-        return { visionRange: 0, hearingRadius: 10.0 };
-    }
-  }
-  switch (species) {
-    case 'deer':
-      return { visionRange: 20.0, hearingRadius: 23.0 };
-    case 'bear':
-      return { visionRange: 22.5, hearingRadius: 24.0 };
-    case 'jaguar':
-      return { visionRange: 22.0, hearingRadius: 24.0 };
-    case 'wolf':
-      return { visionRange: 21.0, hearingRadius: 24.0 };
-    case 'rhino':
-      return { visionRange: 19.5, hearingRadius: 22.0 };
-    case 'crocodile':
-      return { visionRange: 15.0, hearingRadius: 16.0 };
-    case 'sheep':
-      return { visionRange: 14.0, hearingRadius: 17.0 };
-    default:
-      return { visionRange: 14.0, hearingRadius: 18.0 };
-  }
+  const profile = SPECIES_PROFILES[species];
+  return isSleeping ? profile.sensesAsleep : profile.sensesAwake;
 }
 
 /**
  * Summary: Returns relative size/dominance rank for predator vs. predator/threat intimidation checks.
  */
 export function getAnimalSizeRank(species: GroundAnimalSpecies): number {
-  switch (species) {
-    case 'dragon':
-      return 10;
-    case 'bear':
-      return 4;
-    case 'rhino':
-      return 4;
-    case 'jaguar':
-      return 3;
-    case 'crocodile':
-      return 3.5;
-    case 'wolf':
-      return 2.5;
-    case 'deer':
-      return 2;
-    case 'sheep':
-      return 2;
-    default:
-      return 1;
-  }
+  return SPECIES_PROFILES[species].sizeRank;
 }
 
 export function isPredatorSpecies(species: GroundAnimalSpecies): boolean {
-  return (
-    species === 'bear' ||
-    species === 'jaguar' ||
-    species === 'crocodile' ||
-    species === 'wolf' ||
-    species === 'rhino' ||
-    species === 'dragon'
-  );
+  return SPECIES_PROFILES[species].isPredator;
 }
 
 /**
@@ -279,52 +220,19 @@ export function isPredatorSpecies(species: GroundAnimalSpecies): boolean {
  *          overshooting past the player.
  */
 export function getPredatorMeleeStandoffDist(species: GroundAnimalSpecies): number {
-  switch (species) {
-    case 'bear':
-      return 2.45;
-    case 'crocodile':
-      return 2.65;
-    case 'rhino':
-      return 2.40;
-    case 'jaguar':
-      return 1.80;
-    case 'wolf':
-      return 1.75;
-    default:
-      return 1.75;
-  }
+  return SPECIES_PROFILES[species].meleeStandoff;
 }
 
 /**
  * Summary: Distance (in meters) at which a charging predator transitions into its active melee attack swing.
  */
 export function getPredatorAttackTriggerDist(species: GroundAnimalSpecies): number {
-  if (species === 'crocodile') {
-    // Crocodile attempts a forward lunge strike when it thinks it is close enough (~4.35m)
-    return getPredatorMeleeStandoffDist(species) + 1.7;
-  }
-  return getPredatorMeleeStandoffDist(species) + 0.65;
+  return getPredatorMeleeStandoffDist(species) + SPECIES_PROFILES[species].attackReachBonus;
 }
 // #endregion
 
 // ======================== HUNTING & LOOTING HELPERS ======================== \\
 // #region Hunting & Looting Helpers
-/**
- * Summary: Static loot table: the inventory items each species drops when looted, in display order.
- * Design: Keyed map instead of a per-species switch, so a new species only adds one entry.
- */
-const LOOT_TABLE: Readonly<Record<GroundAnimalSpecies, readonly InventoryItemId[]>> = {
-  rabbit: ['raw_game_meat', 'small_hide'],
-  squirrel: ['raw_game_meat', 'small_hide'],
-  sheep: ['raw_game_meat', 'sheep_hide', 'animal_bone'],
-  deer: ['deer_meat', 'deer_hide', 'deer_antlers', 'animal_bone'],
-  bear: ['bear_meat', 'bear_hide', 'bear_claws', 'animal_fat', 'animal_bone'],
-  crocodile: ['raw_game_meat', 'crocodile_hide', 'crocodile_teeth', 'animal_bone'],
-  jaguar: ['raw_game_meat', 'jaguar_hide', 'wolf_fang', 'animal_bone'],
-  wolf: ['raw_game_meat', 'wolf_hide', 'wolf_fang', 'animal_bone'],
-  rhino: ['raw_game_meat', 'rhino_hide', 'rhino_horn', 'animal_fat', 'animal_bone'],
-  dragon: ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'],
-};
 
 /**
  * Summary: Returns the localized species name for HUD prompts.
@@ -343,7 +251,7 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
   readonly itemLabels: readonly string[];
   readonly notification: string;
 } {
-  const itemIds = LOOT_TABLE[species];
+  const itemIds = SPECIES_PROFILES[species].loot;
   const itemLabels = itemIds.map((itemId) => t(`items.${itemId}.name`));
   return {
     itemIds,
@@ -361,28 +269,7 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
  *         crocodiles (6), jaguars (4), wolves (3), deer (3), sheep (2), and small critters (1).
  */
 export function getAnimalMaxHp(species: GroundAnimalSpecies): number {
-  switch (species) {
-    case 'dragon':
-      return 250;
-    case 'bear':
-      return 8;
-    case 'rhino':
-      return 7;
-    case 'crocodile':
-      return 6;
-    case 'jaguar':
-      return 4;
-    case 'wolf':
-      return 3;
-    case 'deer':
-      return 3;
-    case 'sheep':
-      return 2;
-    case 'rabbit':
-    case 'squirrel':
-    default:
-      return 1;
-  }
+  return SPECIES_PROFILES[species].maxHp;
 }
 
 /**
@@ -474,8 +361,7 @@ export function damageGroundAnimal(
   // Wounded but still alive: wake immediately and react to the attacker
   animal.isResting = false;
   animal.isSeekingShelter = false;
-  animal.wokenUpTimer =
-    animal.species === 'dragon' ? 18.0 : animal.species === 'crocodile' ? 14.0 : 8.0;
+  animal.wokenUpTimer = SPECIES_PROFILES[animal.species].woundedAlertSeconds;
   if (attackerX !== undefined && attackerZ !== undefined) {
     animal.stimulusX = attackerX;
     animal.stimulusZ = attackerZ;
@@ -1497,16 +1383,7 @@ export function stepSmallAnimals(
         const awayX = a.x - tx;
         const awayZ = a.z - tz;
         const len = Math.hypot(awayX, awayZ) || 1;
-        const fleeSpd =
-          a.species === 'jaguar'
-            ? 8.8
-            : a.species === 'wolf'
-              ? 8.2
-              : a.species === 'rhino'
-                ? 8.0
-                : a.species === 'bear'
-                  ? 6.8
-                  : 5.2;
+        const fleeSpd = SPECIES_PROFILES[a.species].predatorFleeSpeed;
         a.vx = (awayX / len) * fleeSpd;
         a.vz = (awayZ / len) * fleeSpd;
         a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
@@ -1574,17 +1451,10 @@ export function stepSmallAnimals(
           (a.wokenUpTimer ?? 0) > 0 &&
           ((a.hp ?? a.maxHp ?? 1) < (a.maxHp ?? 1) || a.species === 'crocodile');
         const alreadyChasingPlayer = a.alertLevel === 'curious';
-        const basePlayerDetectRange =
-          a.species === 'bear'
-            ? 22.0
-            : a.species === 'rhino'
-              ? 19.5
-              : a.species === 'crocodile'
-                ? alreadyChasingPlayer
-                  ? 32.0
-                  : 18.0
-                : 16.5;
-        const maxProvokedRange = a.species === 'crocodile' ? 60.0 : 42.0;
+        const basePlayerDetectRange = alreadyChasingPlayer
+          ? SPECIES_PROFILES[a.species].playerDetectRangeWhileChasing
+          : SPECIES_PROFILES[a.species].playerDetectRange;
+        const maxProvokedRange = SPECIES_PROFILES[a.species].provokedDetectRange;
         const playerDetectRange = provokedByShot
           ? maxProvokedRange
           : isPlayerSneaking
@@ -1751,21 +1621,14 @@ export function stepSmallAnimals(
             //      it is 100% committed until actionTimer reaches 0 (even if prey backs away).
             //    - Crocodile pushes/lunges itself forward during its bite strike when it thinks it is close enough!
             // -----------------------------------------------------------------
-            const chargeSpd =
-              a.species === 'jaguar'
-                ? 8.2
-                : a.species === 'wolf'
-                  ? 7.6
-                  : a.species === 'bear'
-                    ? 6.6
-                    : 5.6;
+            const chargeSpd = SPECIES_PROFILES[a.species].chargeSpeed;
 
             const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0;
             const isCommittedStationaryWarning =
               (a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping') && (a.actionTimer ?? 0) > 0;
 
             if (isCommittedAttack || (!isCommittedStationaryWarning && bestPreyDist <= attackTriggerDist)) {
-              const isPouncer = a.species === 'jaguar' || a.species === 'wolf';
+              const isPouncer = SPECIES_PROFILES[a.species].pouncesOnPrey;
 
               if (isPouncer) {
                 // WOLF & JAGUAR FORWARD POUNCE LEAP (0.68s active cycle — no post-attack freeze!):
@@ -1980,14 +1843,7 @@ export function stepSmallAnimals(
               // Outer detection ring -> stealthy stalk / approach
               a.pounceHeight = 0;
               a.aiBehavior = 'stalking';
-              const stalkSpd =
-                a.species === 'jaguar'
-                  ? 2.6
-                  : a.species === 'wolf'
-                    ? 2.5
-                    : a.species === 'bear'
-                      ? 2.4
-                      : 1.9;
+              const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
               a.vx = (toPreyX / len) * stalkSpd;
               a.vz = (toPreyZ / len) * stalkSpd;
               a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.0, safeDt);
@@ -2061,16 +1917,7 @@ export function stepSmallAnimals(
 
       const rawNextX = a.x + a.vx * safeDt;
       const rawNextZ = a.z + a.vz * safeDt;
-      const bodyRadius =
-        a.species === 'bear'
-          ? 1.45
-          : a.species === 'rhino'
-            ? 1.40
-            : a.species === 'crocodile'
-              ? 1.25
-              : a.species === 'jaguar'
-                ? 0.8
-                : 0.72;
+      const bodyRadius = SPECIES_PROFILES[a.species].predatorBodyRadius;
       const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
       advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
       continue;
@@ -2225,14 +2072,7 @@ export function stepSmallAnimals(
       const awayX = a.x - nearestThreatX;
       const awayZ = a.z - nearestThreatZ;
       const len = Math.hypot(awayX, awayZ) || 1;
-      const fleeSpeed =
-        a.species === 'deer'
-          ? 9.2
-          : a.species === 'squirrel'
-            ? 7.8
-            : a.species === 'rabbit'
-              ? 6.8
-              : 5.4;
+      const fleeSpeed = SPECIES_PROFILES[a.species].preyFleeSpeed;
       a.vx = (awayX / len) * fleeSpeed;
       a.vz = (awayZ / len) * fleeSpeed;
       a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 8.0, safeDt);
@@ -2254,7 +2094,7 @@ export function stepSmallAnimals(
       const distSh = Math.hypot(toShX, toShZ);
       if (distSh > 1.15) {
         a.isResting = false;
-        const shelterMoveSpd = a.species === 'deer' ? 4.2 : a.species === 'sheep' ? 2.8 : 3.6;
+        const shelterMoveSpd = SPECIES_PROFILES[a.species].shelterSpeed;
         a.vx = (toShX / distSh) * shelterMoveSpd;
         a.vz = (toShZ / distSh) * shelterMoveSpd;
         a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
@@ -2281,7 +2121,7 @@ export function stepSmallAnimals(
       a.isResting = false;
       const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
       const wanderSeed = hash2D(a.id * 13.7, timeWindow);
-      const pauseThreshold = a.species === 'deer' || a.species === 'sheep' ? 0.42 : 0.55;
+      const pauseThreshold = SPECIES_PROFILES[a.species].grazePauseThreshold;
       const pauseMove = wanderSeed > pauseThreshold;
       if (pauseMove) {
         a.aiBehavior = 'grazing';
@@ -2292,21 +2132,20 @@ export function stepSmallAnimals(
         const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
         const homePullX = (a.homeX - a.x) * 0.14;
         const homePullZ = (a.homeZ - a.z) * 0.14;
-        const grazeSpeed =
-          a.species === 'deer' ? 1.55 : a.species === 'sheep' ? 1.25 : 1.75;
+        const grazeSpeed = SPECIES_PROFILES[a.species].grazeSpeed;
         const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
         const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
         const blend = Math.min(1, safeDt * 4.5);
         a.vx += (desiredVx - a.vx) * blend;
         a.vz += (desiredVz - a.vz) * blend;
         a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-        a.hopPhase += safeDt * (a.species === 'deer' ? 6.2 : 8.5);
+        a.hopPhase += safeDt * SPECIES_PROFILES[a.species].grazeHopRate;
       }
     }
 
     const rawNextX = a.x + a.vx * safeDt;
     const rawNextZ = a.z + a.vz * safeDt;
-    const bodyRadius = a.species === 'deer' ? 0.72 : a.species === 'sheep' ? 0.65 : 0.38;
+    const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
     const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
     advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
   }
