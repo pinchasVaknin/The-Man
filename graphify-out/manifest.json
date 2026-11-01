@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/terrainAndBiomeSystem.ts": {
-    "mtime": 1793559572.7090878,
-    "seen": 1793559749.2547245,
-    "ast_hash": "0554a157e449fd5e86fc196f4156820b",
+    "mtime": 1793559814.1267989,
+    "seen": 1793559851.8304188,
+    "ast_hash": "6261c2fc6e90c3f8ad4ede9a5c388550",
     "semantic_hash": ""
   },
   "src/world/terrainMath.test.ts": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/terrainAndBiomeSystem.spec.ts": {
-    "mtime": 1793532546.321835,
-    "seen": 1793537725.92404,
-    "ast_hash": "8cf739f0f8dfdf93eac42930c7b3fa9c",
+    "mtime": 1793559778.1091387,
+    "seen": 1793559851.8304176,
+    "ast_hash": "991ab4d87a88f57813065fdb2fbb5be5",
     "semantic_hash": ""
   },
   "src/components/GameSettingsModal.tsx": {
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793553801.8308666,
-    "seen": 1793553970.2514157,
-    "ast_hash": "071c9399468486ab6fe71504b25b2f7a",
+    "mtime": 1793559778.0416198,
+    "seen": 1793559851.8303165,
+    "ast_hash": "a73d1cfe1d057141333db66a3effc780",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {

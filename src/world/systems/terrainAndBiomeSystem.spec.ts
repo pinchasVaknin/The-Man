@@ -14,7 +14,6 @@ import {
   isPositionUnderRoof,
   getSurfaceBiomeAt,
   getBiomeLabel,
-  getWalkPaceLabel,
   generateWorldObstacles,
 } from './terrainAndBiomeSystem';
 import { WORLD_SPAWN } from '../domain/landmarksRegistry';
@@ -75,20 +74,6 @@ test('getBiomeLabel_WhenGivenValidBiomeKind_ShouldReturnLocalizedTranslationKey'
   // Assert
   assert.ok(typeof meadowLabel === 'string' && meadowLabel.length > 0);
   assert.ok(typeof desertLabel === 'string' && desertLabel.length > 0);
-});
-
-test('getWalkPaceLabel_WhenGivenValidPaceModes_ShouldReturnLocalizedTranslationKey', () => {
-  // Arrange
-  const normalPace = 'normal';
-  const fastPace = 'fast';
-
-  // Act
-  const normalLabel = getWalkPaceLabel(normalPace);
-  const fastLabel = getWalkPaceLabel(fastPace);
-
-  // Assert
-  assert.ok(typeof normalLabel === 'string' && normalLabel.length > 0);
-  assert.ok(typeof fastLabel === 'string' && fastLabel.length > 0);
 });
 
 test('isPositionUnderRoof_WhenEvaluatedFarInOpenField_ShouldReturnFalse', () => {
