@@ -101,6 +101,23 @@ test('getAnimalLootDrops_WhenSheepJaguarOrWolfHunted_ShouldYieldSpeciesSpecificH
   );
 });
 
+test('getAnimalLootDrops_WhenSmallGameHunted_ShouldNotYieldAnimalBone', () => {
+  // Arrange
+  const smallGameSpecies = ['rabbit', 'squirrel'] as const;
+
+  // Act
+  const lootBySpecies = smallGameSpecies.map((species) => getAnimalLootDrops(species));
+
+  // Assert
+  assert.deepEqual(
+    lootBySpecies.map((loot) => loot.itemIds),
+    [
+      ['raw_game_meat', 'small_hide'],
+      ['raw_game_meat', 'small_hide'],
+    ]
+  );
+});
+
 test('damageGroundAnimal_WhenStruckWithArrows_ShouldRequireMultipleHitsForBearJaguarWolfDeerAndOneForRabbit', () => {
   const animals = createInitialSmallAnimals();
   const bear = animals.find((a) => a.species === 'bear')!;
