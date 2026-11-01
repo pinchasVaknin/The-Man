@@ -7,7 +7,7 @@
     "dev": "vite --port=3000",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true }); try { fs.unlinkSync('server.js'); } catch {}\"",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
     "test": "tsx --test \"src/**/*.spec.ts\" \"src/**/*.test.ts\""
   },
