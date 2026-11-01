@@ -1,3 +1,10 @@
+// ============================================================================
+// MODULE: World / Models / Deer Instance Loader
+// DESIGN: Thin adapter around createReadyDeer returning a small controller (SRP)
+// SUMMARY: Instantiates the embedded deer model into a target container and exposes
+//          state, scale and update controls. Does not decide deer behavior; the wildlife AI does.
+// ============================================================================
+
 import * as THREE from 'three';
 import {
   Deer,

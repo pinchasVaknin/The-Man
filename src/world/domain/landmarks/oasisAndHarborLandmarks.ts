@@ -1,10 +1,11 @@
-import { t } from '../../../locales';
 // ============================================================================
 // MODULE: World / Domain / Landmarks / Oasis & Harbor
 // DESIGN: Southwest oasis lagoon and Southeast walled coastal harbor town (SRP)
 // SUMMARY: Exposes locations, dimensions, and shop queries for the southwest oasis,
 //          walled port city, market stalls, tall ship galleon, and lighthouse.
 // ============================================================================
+
+import { t } from '../../../locales';
 
 // ======================== SOUTHWEST OASIS ======================== \\
 // #region Southwest Oasis

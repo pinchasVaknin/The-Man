@@ -1,3 +1,10 @@
+// ============================================================================
+// MODULE: World / Models / Deer
+// DESIGN: Re-export facade over the generated model module (no logic of its own)
+// SUMMARY: Single import point for the self-contained deer model, rig and animator
+//          in ./animals/Deer_Complete.ts. Does not build or animate anything itself.
+// ============================================================================
+
 /**
  * Re-exports the complete self-contained deer model, rig, skinning,
  * 9-state procedural IK animator, and embedded geometry/texture factory

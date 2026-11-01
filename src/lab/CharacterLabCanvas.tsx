@@ -6,6 +6,8 @@
 //          real-time animation playback.
 // ============================================================================
 
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -21,6 +23,10 @@ import {
 } from './labCatalog';
 import { buildLabEntityRig, type ILabEntityRig } from './labModelFactory';
 
+// #endregion
+
+// ======================== CONSTANTS & TYPES ======================== \\
+// #region Constants & Types
 export interface ICharacterLabCanvasProps {
   readonly entity: ILabEntityDef;
   readonly animation: ILabAnimationDef;
@@ -41,6 +47,10 @@ export interface ICharacterLabCanvasProps {
   readonly onLivePhaseUpdate?: (phase: number) => void;
 }
 
+// #endregion
+
+// ======================== LAB CANVAS COMPONENT ======================== \\
+// #region Character Lab Canvas
 export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
   entity,
   animation,
@@ -664,3 +674,4 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
     />
   );
 };
+// #endregion
