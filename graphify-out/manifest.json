@@ -474,9 +474,9 @@
     "semantic_hash": ""
   },
   "src/lab/labCatalog.ts": {
-    "mtime": 1793540951.9415596,
-    "seen": 1793541034.88857,
-    "ast_hash": "985c78d706d6bbae5c32953501631b19",
+    "mtime": 1793558081.0267916,
+    "seen": 1793558123.212348,
+    "ast_hash": "94590cd982afdf04757a786e98315d8f",
     "semantic_hash": ""
   },
   "src/lab/labModelFactory.ts": {
