@@ -14176,7 +14176,7 @@
       "file_type": "code",
       "norm_label": "worldcanvas",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L201"
+      "source_location": "L203"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_spec",
@@ -15914,7 +15914,7 @@
       "file_type": "code",
       "norm_label": "_camtargetlook",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L198"
+      "source_location": "L200"
     },
     {
       "id": "src_components_worldcanvas_euler",
@@ -15925,7 +15925,7 @@
       "file_type": "code",
       "norm_label": "_euler",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L199"
+      "source_location": "L201"
     },
     {
       "id": "src_components_worldcanvas_sunvec",
@@ -15936,7 +15936,7 @@
       "file_type": "code",
       "norm_label": "_sunvec",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L195"
+      "source_location": "L197"
     },
     {
       "id": "src_components_worldcanvas_tourlook",
@@ -15947,7 +15947,7 @@
       "file_type": "code",
       "norm_label": "_tourlook",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L197"
+      "source_location": "L199"
     },
     {
       "id": "src_components_worldcanvas_tourpos",
@@ -15958,7 +15958,7 @@
       "file_type": "code",
       "norm_label": "_tourpos",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L196"
+      "source_location": "L198"
     },
     {
       "id": "src_world_controllers_windowdebugcontroller",
@@ -17978,6 +17978,18 @@
       "type": "external"
     },
     {
+      "id": "src_world_terrainmath_getanimalspeciesname",
+      "label": "src_world_terrainmath_getanimalspeciesname",
+      "_origin": "semantic",
+      "community": 7,
+      "community_name": "WorldCanvas.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "src_world_terrainmath_getanimalspeciesname",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "src_world_terrainmath_getplayerherolevel",
       "label": "src_world_terrainmath_getplayerherolevel",
       "_origin": "semantic",
@@ -18262,17 +18274,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_path",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "src_world_terrainmath_getanimalspeciesname",
-      "label": "src_world_terrainmath_getanimalspeciesname",
-      "community": 7,
-      "community_name": "WorldCanvas.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "src_world_terrainmath_getanimalspeciesname",
       "source_file": "",
       "type": "external"
     }
@@ -23363,7 +23364,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1157",
+      "source_location": "L1156",
       "weight": 1.0
     },
     {
@@ -23375,7 +23376,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1159",
+      "source_location": "L1158",
       "weight": 1.0
     },
     {
@@ -23387,7 +23388,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1162",
+      "source_location": "L1161",
       "weight": 1.0
     },
     {
@@ -23399,7 +23400,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1196",
+      "source_location": "L1195",
       "weight": 1.0
     },
     {
@@ -23411,7 +23412,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1253",
+      "source_location": "L1252",
       "weight": 1.0
     },
     {
@@ -23423,7 +23424,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1296",
+      "source_location": "L1295",
       "weight": 1.0
     },
     {
@@ -23435,7 +23436,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1304",
+      "source_location": "L1303",
       "weight": 1.0
     },
     {
@@ -23447,7 +23448,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1366",
+      "source_location": "L1365",
       "weight": 1.0
     },
     {
@@ -23459,7 +23460,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1425",
+      "source_location": "L1424",
       "weight": 1.0
     },
     {
@@ -23471,7 +23472,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1531",
+      "source_location": "L1530",
       "weight": 1.0
     },
     {
@@ -23483,7 +23484,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1562",
+      "source_location": "L1561",
       "weight": 1.0
     },
     {
@@ -23495,7 +23496,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1676",
+      "source_location": "L1675",
       "weight": 1.0
     },
     {
@@ -23507,7 +23508,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1678",
+      "source_location": "L1677",
       "weight": 1.0
     },
     {
@@ -23519,7 +23520,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L337",
+      "source_location": "L339",
       "weight": 1.0
     },
     {
@@ -23531,7 +23532,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L338",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -23543,7 +23544,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L339",
+      "source_location": "L341",
       "weight": 1.0
     },
     {
@@ -23555,7 +23556,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L342",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -23567,7 +23568,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L344",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -23579,7 +23580,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L358",
+      "source_location": "L361",
       "weight": 1.0
     },
     {
@@ -23591,7 +23592,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L365",
+      "source_location": "L368",
       "weight": 1.0
     },
     {
@@ -23603,7 +23604,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L409",
+      "source_location": "L415",
       "weight": 1.0
     },
     {
@@ -23615,7 +23616,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L483",
+      "source_location": "L482",
       "weight": 1.0
     },
     {
@@ -23627,7 +23628,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L503",
+      "source_location": "L502",
       "weight": 1.0
     },
     {
@@ -23639,7 +23640,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L518",
+      "source_location": "L517",
       "weight": 1.0
     },
     {
@@ -23651,7 +23652,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L520",
+      "source_location": "L519",
       "weight": 1.0
     },
     {
@@ -23663,7 +23664,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L520",
+      "source_location": "L519",
       "weight": 1.0
     },
     {
@@ -23675,7 +23676,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L537",
+      "source_location": "L536",
       "weight": 1.0
     },
     {
@@ -23687,7 +23688,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L552",
+      "source_location": "L551",
       "weight": 1.0
     },
     {
@@ -23699,7 +23700,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L557",
+      "source_location": "L556",
       "weight": 1.0
     },
     {
@@ -23711,7 +23712,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L565",
+      "source_location": "L564",
       "weight": 1.0
     },
     {
@@ -23723,7 +23724,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L573",
+      "source_location": "L572",
       "weight": 1.0
     },
     {
@@ -23735,7 +23736,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L577",
+      "source_location": "L576",
       "weight": 1.0
     },
     {
@@ -23747,7 +23748,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L604",
+      "source_location": "L603",
       "weight": 1.0
     },
     {
@@ -23759,7 +23760,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L637",
+      "source_location": "L636",
       "weight": 1.0
     },
     {
@@ -23771,7 +23772,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L639",
+      "source_location": "L638",
       "weight": 1.0
     },
     {
@@ -23783,7 +23784,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L756",
+      "source_location": "L755",
       "weight": 1.0
     },
     {
@@ -52726,7 +52727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L195",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -52737,7 +52738,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L196",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -52748,7 +52749,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L197",
+      "source_location": "L199",
       "weight": 1.0
     },
     {
@@ -52759,7 +52760,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L198",
+      "source_location": "L200",
       "weight": 1.0
     },
     {
@@ -52770,7 +52771,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L199",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -52781,7 +52782,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L201",
+      "source_location": "L203",
       "weight": 1.0
     },
     {
@@ -62934,7 +62935,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/components/WorldCanvas.tsx",
-      "source_location": "L1651",
+      "source_location": "L1650",
       "weight": 1.0
     },
     {
@@ -63047,5 +63048,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "e11c57b8be288c4aa8d9610ae23a8466a23fa515"
+  "built_at_commit": "6ba91f8d922339642d0d2e41a885b11312ab033b"
 }
