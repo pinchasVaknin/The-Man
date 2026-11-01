@@ -59,6 +59,10 @@ export interface ISkyrimInventoryModalProps {
   onToggleFavorite: (id: InventoryItemId) => void;
   onAssignHotbar: (slotIdx: number, id: InventoryItemId) => void;
   onClose: () => void;
+  /** Display label of the key that closes the inventory (e.g. "Tab"). */
+  closeKeyLabel: string;
+  /** Display label of the key that equips or buys the selected item (e.g. "E"). */
+  interactKeyLabel: string;
   nearbyMarket?: { id: string; name?: string } | null;
   skills?: ICharacterSkillsState;
   stamina?: number;
@@ -144,6 +148,8 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   onSellItem,
   onAssignHotbar,
   onClose,
+  closeKeyLabel,
+  interactKeyLabel,
   nearbyMarket,
   skills,
 }) => {
@@ -293,7 +299,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
           onClick={onClose}
           className="text-sm font-semibold text-stone-300 hover:text-amber-300 transition-colors cursor-pointer px-3 py-1.5"
         >
-          {t('ui.close_tab')}
+          {t('ui.close_inventory', { key: closeKeyLabel })}
         </button>
       </header>
 
@@ -472,7 +478,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                       onClick={() => onEquipItem(inspectedItem.id)}
                       className="w-full py-2 px-4 text-xs font-bold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 transition-colors cursor-pointer"
                     >
-                      {inspectedEquipped ? t('interactions.equipped_now') : t('interactions.equip_action')}
+                      {inspectedEquipped
+                        ? t('interactions.equipped_now', { key: interactKeyLabel })
+                        : t('interactions.equip_action', { key: interactKeyLabel })}
                     </button>
                   )}
                 </>
@@ -787,7 +795,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   onClick={() => onEquipItem(inspectedItem.id)}
                   className="px-6 py-2.5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
                 >
-                  {inspectedEquipped ? t('interactions.equipped_now') : t('interactions.equip_action')}
+                  {inspectedEquipped
+                    ? t('interactions.equipped_now', { key: interactKeyLabel })
+                    : t('interactions.equip_action', { key: interactKeyLabel })}
                 </button>
               )}
 

@@ -18,6 +18,7 @@ import {
   SOLID_BUILDING_BOXES,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
+import { t } from '../../locales';
 import {
   groundHeightAt,
   walkableHeightAt,
@@ -317,104 +318,49 @@ export function getPredatorAttackTriggerDist(species: GroundAnimalSpecies): numb
 // ======================== HUNTING & LOOTING HELPERS ======================== \\
 // #region Hunting & Looting Helpers
 /**
- * Summary: Returns English species name for HUD prompts.
+ * Summary: Static loot table: the inventory items each species drops when looted, in display order.
+ * Design: Keyed map instead of a per-species switch, so a new species only adds one entry.
+ */
+const LOOT_TABLE: Readonly<Record<GroundAnimalSpecies, readonly InventoryItemId[]>> = {
+  rabbit: ['raw_game_meat', 'small_hide'],
+  squirrel: ['raw_game_meat', 'small_hide'],
+  sheep: ['raw_game_meat', 'sheep_hide', 'animal_bone'],
+  deer: ['deer_meat', 'deer_hide', 'deer_antlers', 'animal_bone'],
+  bear: ['bear_meat', 'bear_hide', 'bear_claws', 'animal_fat', 'animal_bone'],
+  crocodile: ['raw_game_meat', 'crocodile_hide', 'crocodile_teeth', 'animal_bone'],
+  jaguar: ['raw_game_meat', 'jaguar_hide', 'wolf_fang', 'animal_bone'],
+  wolf: ['raw_game_meat', 'wolf_hide', 'wolf_fang', 'animal_bone'],
+  rhino: ['raw_game_meat', 'rhino_hide', 'rhino_horn', 'animal_fat', 'animal_bone'],
+  dragon: ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'],
+};
+
+/**
+ * Summary: Returns the localized species name for HUD prompts.
  */
 export function getAnimalSpeciesNameHe(species: GroundAnimalSpecies): string {
-  switch (species) {
-    case 'rabbit':
-      return 'Rabbit';
-    case 'squirrel':
-      return 'Squirrel';
-    case 'deer':
-      return 'Deer';
-    case 'sheep':
-      return 'Sheep';
-    case 'bear':
-      return 'Bear';
-    case 'crocodile':
-      return 'Crocodile';
-    case 'jaguar':
-      return 'Jaguar';
-    case 'wolf':
-      return 'Wolf';
-    case 'rhino':
-      return 'Rhino';
-    case 'dragon':
-      return 'Dragon';
-  }
+  return t(`wildlife.species.${species}`);
 }
 
 /**
- * Summary: Returns the deterministic loot drops and English HUD notification message for a hunted animal.
- * Design: Every animal yields meat + hide/wool + authentic parts (antlers, claws, fangs, teeth, horn, bone, fat) with concise plain names.
+ * Summary: Returns the deterministic loot drops and localized HUD notification for a hunted animal.
+ * Design: Item labels come from the item catalog strings, so the toast always names exactly
+ *         the items the player receives.
  */
 export function getAnimalLootDrops(species: GroundAnimalSpecies): {
   readonly itemIds: readonly InventoryItemId[];
   readonly itemLabelsHe: readonly string[];
   readonly notificationHe: string;
 } {
-  switch (species) {
-    case 'rabbit':
-      return {
-        itemIds: ['raw_game_meat', 'small_hide'],
-        itemLabelsHe: ['Game Meat', 'Small Hide'],
-        notificationHe: 'Looted Rabbit: Game Meat, Small Hide',
-      };
-    case 'squirrel':
-      return {
-        itemIds: ['raw_game_meat', 'small_hide'],
-        itemLabelsHe: ['Game Meat', 'Small Hide'],
-        notificationHe: 'Looted Squirrel: Game Meat, Small Hide',
-      };
-    case 'sheep':
-      return {
-        itemIds: ['raw_game_meat', 'sheep_hide', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Wool', 'Animal Bone'],
-        notificationHe: 'Looted Sheep: Wool, Game Meat, Animal Bone',
-      };
-    case 'deer':
-      return {
-        itemIds: ['deer_meat', 'deer_hide', 'deer_antlers', 'animal_bone'],
-        itemLabelsHe: ['Deer Meat', 'Deer Hide', 'Deer Antlers', 'Animal Bone'],
-        notificationHe: 'Looted Deer: Deer Meat, Deer Hide, Deer Antlers, Animal Bone',
-      };
-    case 'bear':
-      return {
-        itemIds: ['bear_meat', 'bear_hide', 'bear_claws', 'animal_fat', 'animal_bone'],
-        itemLabelsHe: ['Bear Meat', 'Bear Hide', 'Bear Claws', 'Animal Fat', 'Animal Bone'],
-        notificationHe: 'Looted Bear: Bear Meat, Bear Hide, Bear Claws, Animal Fat, Animal Bone',
-      };
-    case 'crocodile':
-      return {
-        itemIds: ['raw_game_meat', 'crocodile_hide', 'crocodile_teeth', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Crocodile Hide', 'Crocodile Teeth', 'Animal Bone'],
-        notificationHe: 'Looted Crocodile: Game Meat, Crocodile Hide, Crocodile Teeth, Animal Bone',
-      };
-    case 'jaguar':
-      return {
-        itemIds: ['raw_game_meat', 'jaguar_hide', 'wolf_fang', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Jaguar Hide', 'Wolf Fang', 'Animal Bone'],
-        notificationHe: 'Looted Jaguar: Game Meat, Jaguar Hide, Wolf Fang, Animal Bone',
-      };
-    case 'wolf':
-      return {
-        itemIds: ['raw_game_meat', 'wolf_hide', 'wolf_fang', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Wolf Hide', 'Wolf Fang', 'Animal Bone'],
-        notificationHe: 'Looted Wolf: Game Meat, Wolf Hide, Wolf Fang, Animal Bone',
-      };
-    case 'rhino':
-      return {
-        itemIds: ['raw_game_meat', 'rhino_hide', 'rhino_horn', 'animal_fat', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Rhino Hide', 'Rhino Horn', 'Animal Fat', 'Animal Bone'],
-        notificationHe: 'Looted Rhino: Game Meat, Rhino Hide, Rhino Horn, Animal Fat, Animal Bone',
-      };
-    case 'dragon':
-      return {
-        itemIds: ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'],
-        itemLabelsHe: ['Dragon Meat', 'Dragon Scales', 'Dragon Horn', 'Dragon Claws', 'Dragon Bone'],
-        notificationHe: 'Looted Dragon: Dragon Meat, Dragon Scales, Dragon Horn, Dragon Claws, Dragon Bone',
-      };
-  }
+  const itemIds = LOOT_TABLE[species];
+  const itemLabelsHe = itemIds.map((itemId) => t(`items.${itemId}.name`));
+  return {
+    itemIds,
+    itemLabelsHe,
+    notificationHe: t('wildlife.loot_toast', {
+      species: getAnimalSpeciesNameHe(species),
+      items: itemLabelsHe.join(', '),
+    }),
+  };
 }
 
 /**

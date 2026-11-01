@@ -24,21 +24,21 @@
     "semantic_hash": ""
   },
   "src/components/GameShellOverlay.tsx": {
-    "mtime": 1793536585.814142,
-    "seen": 1793537725.9239542,
-    "ast_hash": "10d78116225bb1f434982dd09bfc4858",
+    "mtime": 1793538546.9522932,
+    "seen": 1793538954.9795082,
+    "ast_hash": "4d70299fe42816f5c5f631a30d14f448",
     "semantic_hash": ""
   },
   "src/components/SkyrimInventoryModal.tsx": {
-    "mtime": 1793538297.818413,
-    "seen": 1793538367.5484793,
-    "ast_hash": "d7cded68981a788675d3dfb6a8388c06",
+    "mtime": 1793538929.6664565,
+    "seen": 1793538954.9795094,
+    "ast_hash": "0361a10268efae0d458509452b3e6ed2",
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793532546.3071563,
-    "seen": 1793537725.9239566,
-    "ast_hash": "ae627c23b8126ccb654b6dd6d7eb601a",
+    "mtime": 1793538624.3835366,
+    "seen": 1793538954.97951,
+    "ast_hash": "4148454d844d1940c25af46fa632719d",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.ts": {
-    "mtime": 1793538297.9183269,
-    "seen": 1793538367.5485525,
-    "ast_hash": "f74d0cb9359cdf575cb0d21f785fb794",
+    "mtime": 1793538583.1058774,
+    "seen": 1793538954.979581,
+    "ast_hash": "84c1d37bdd83297a822c26ed1a75b1c1",
     "semantic_hash": ""
   },
   "src/world/systems/combatAndInventorySystem.ts": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/interactionLandmarks.ts": {
-    "mtime": 1793532546.314962,
-    "seen": 1793537725.9239957,
-    "ast_hash": "a549cf13ea2cf3aa584941084a632485",
+    "mtime": 1793538597.7023578,
+    "seen": 1793538954.9795485,
+    "ast_hash": "02d8aa1736bd1004c7f6fbb4ad2e8a7b",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/oasisAndHarborLandmarks.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.tsx": {
-    "mtime": 1793478752.7139084,
-    "seen": 1793537725.9239511,
-    "ast_hash": "678c97301eb4068e3a1ddfa03967250a",
+    "mtime": 1793538455.4299712,
+    "seen": 1793538954.9795043,
+    "ast_hash": "74755a634eb254e8ed6671451c2a0511",
     "semantic_hash": ""
   },
   "src/components/itemArtworkRegistry.tsx": {
@@ -612,9 +612,9 @@
     "semantic_hash": ""
   },
   "src/components/GameSettingsModal.tsx": {
-    "mtime": 1793532546.3071563,
-    "seen": 1793537725.923953,
-    "ast_hash": "ac6ed19c65f994c81ccf919d6ed2d20b",
+    "mtime": 1793538779.8698962,
+    "seen": 1793538954.979507,
+    "ast_hash": "2d2b09ce9f69ab595cdb769df9d63969",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.ts": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793538297.7850406,
-    "seen": 1793538367.5485015,
-    "ast_hash": "1b251be70bc73d242db0d7fc88b0da16",
+    "mtime": 1793538612.919442,
+    "seen": 1793538954.9795308,
+    "ast_hash": "000c3593a8f86ea4635db56435b91936",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {
