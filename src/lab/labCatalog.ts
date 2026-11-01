@@ -2824,6 +2824,36 @@ export function countActivePoseOverrides(overrides: ILabPoseOverrides): number {
   return count;
 }
 
+/** Summary: Lab entity id -> editor label set. Entities not listed use the 'default' set. */
+const EDITOR_LABEL_SETS: Readonly<Record<string, string>> = {
+  ranger_third_person: 'ranger_third_person',
+  ranger_first_person: 'ranger_third_person',
+  dwarven_miner: 'dwarven_miner',
+  shaolin_monk: 'shaolin_monk',
+  tai_chi_monk: 'tai_chi_monk',
+  harbor_merchant: 'harbor_merchant',
+  dwarven_king_statue: 'dwarven_king_statue',
+  golden_buddha: 'golden_buddha',
+  mountain_eagle: 'mountain_eagle',
+  flock_bird: 'mountain_eagle',
+  harbor_seagull: 'mountain_eagle',
+  meadow_butterfly: 'meadow_butterfly',
+  koi_fish: 'koi_fish',
+  forest_deer: 'forest_deer',
+  forest_bear: 'forest_bear',
+  river_crocodile: 'river_crocodile',
+  jungle_jaguar: 'jungle_jaguar',
+};
+
+/** Summary: The five label fields every editor label set provides. */
+const EDITOR_LABEL_FIELDS = {
+  weaponGroupTitle: 'weapon_group_title',
+  leftWeaponGroupTitle: 'left_weapon_group_title',
+  rightLimbTitle: 'right_limb_title',
+  leftLimbTitle: 'left_limb_title',
+  headTitle: 'head_title',
+} as const;
+
 /**
  * Summary: Returns context-aware labels for the entity's editable right-hand weapon,
  *          left-hand weapon, and limbs.
@@ -2835,130 +2865,14 @@ export function getEntityEditorLabels(entityId: string): {
   readonly leftLimbTitle: string;
   readonly headTitle: string;
 } {
-  switch (entityId) {
-    case 'ranger_third_person':
-    case 'ranger_first_person':
-      return {
-        weaponGroupTitle: t('lab.editor.ranger_third_person.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.ranger_third_person.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.ranger_third_person.right_limb_title'),
-        leftLimbTitle: t('lab.editor.ranger_third_person.left_limb_title'),
-        headTitle: t('lab.editor.ranger_third_person.head_title'),
-      };
-    case 'dwarven_miner':
-      return {
-        weaponGroupTitle: t('lab.editor.dwarven_miner.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.dwarven_miner.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.dwarven_miner.right_limb_title'),
-        leftLimbTitle: t('lab.editor.dwarven_miner.left_limb_title'),
-        headTitle: t('lab.editor.dwarven_miner.head_title'),
-      };
-    case 'shaolin_monk':
-      return {
-        weaponGroupTitle: t('lab.editor.shaolin_monk.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.shaolin_monk.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.shaolin_monk.right_limb_title'),
-        leftLimbTitle: t('lab.editor.shaolin_monk.left_limb_title'),
-        headTitle: t('lab.editor.shaolin_monk.head_title'),
-      };
-    case 'tai_chi_monk':
-      return {
-        weaponGroupTitle: t('lab.editor.tai_chi_monk.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.tai_chi_monk.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.tai_chi_monk.right_limb_title'),
-        leftLimbTitle: t('lab.editor.tai_chi_monk.left_limb_title'),
-        headTitle: t('lab.editor.tai_chi_monk.head_title'),
-      };
-    case 'harbor_merchant':
-      return {
-        weaponGroupTitle: t('lab.editor.harbor_merchant.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.harbor_merchant.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.harbor_merchant.right_limb_title'),
-        leftLimbTitle: t('lab.editor.harbor_merchant.left_limb_title'),
-        headTitle: t('lab.editor.harbor_merchant.head_title'),
-      };
-    case 'dwarven_king_statue':
-      return {
-        weaponGroupTitle: t('lab.editor.dwarven_king_statue.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.dwarven_king_statue.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.dwarven_king_statue.right_limb_title'),
-        leftLimbTitle: t('lab.editor.dwarven_king_statue.left_limb_title'),
-        headTitle: t('lab.editor.dwarven_king_statue.head_title'),
-      };
-    case 'golden_buddha':
-      return {
-        weaponGroupTitle: t('lab.editor.golden_buddha.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.golden_buddha.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.golden_buddha.right_limb_title'),
-        leftLimbTitle: t('lab.editor.golden_buddha.left_limb_title'),
-        headTitle: t('lab.editor.golden_buddha.head_title'),
-      };
-    case 'mountain_eagle':
-    case 'flock_bird':
-    case 'harbor_seagull':
-      return {
-        weaponGroupTitle: t('lab.editor.mountain_eagle.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.mountain_eagle.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.mountain_eagle.right_limb_title'),
-        leftLimbTitle: t('lab.editor.mountain_eagle.left_limb_title'),
-        headTitle: t('lab.editor.mountain_eagle.head_title'),
-      };
-    case 'meadow_butterfly':
-      return {
-        weaponGroupTitle: t('lab.editor.meadow_butterfly.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.meadow_butterfly.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.meadow_butterfly.right_limb_title'),
-        leftLimbTitle: t('lab.editor.meadow_butterfly.left_limb_title'),
-        headTitle: t('lab.editor.meadow_butterfly.head_title'),
-      };
-    case 'koi_fish':
-      return {
-        weaponGroupTitle: t('lab.editor.koi_fish.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.koi_fish.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.koi_fish.right_limb_title'),
-        leftLimbTitle: t('lab.editor.koi_fish.left_limb_title'),
-        headTitle: t('lab.editor.koi_fish.head_title'),
-      };
-    case 'forest_deer':
-      return {
-        weaponGroupTitle: t('lab.editor.forest_deer.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.forest_deer.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.forest_deer.right_limb_title'),
-        leftLimbTitle: t('lab.editor.forest_deer.left_limb_title'),
-        headTitle: t('lab.editor.forest_deer.head_title'),
-      };
-    case 'forest_bear':
-      return {
-        weaponGroupTitle: t('lab.editor.forest_bear.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.forest_bear.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.forest_bear.right_limb_title'),
-        leftLimbTitle: t('lab.editor.forest_bear.left_limb_title'),
-        headTitle: t('lab.editor.forest_bear.head_title'),
-      };
-    case 'river_crocodile':
-      return {
-        weaponGroupTitle: t('lab.editor.river_crocodile.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.river_crocodile.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.river_crocodile.right_limb_title'),
-        leftLimbTitle: t('lab.editor.river_crocodile.left_limb_title'),
-        headTitle: t('lab.editor.river_crocodile.head_title'),
-      };
-    case 'jungle_jaguar':
-      return {
-        weaponGroupTitle: t('lab.editor.jungle_jaguar.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.jungle_jaguar.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.jungle_jaguar.right_limb_title'),
-        leftLimbTitle: t('lab.editor.jungle_jaguar.left_limb_title'),
-        headTitle: t('lab.editor.jungle_jaguar.head_title'),
-      };
-    default:
-      return {
-        weaponGroupTitle: t('lab.editor.default.weapon_group_title'),
-        leftWeaponGroupTitle: t('lab.editor.default.left_weapon_group_title'),
-        rightLimbTitle: t('lab.editor.default.right_limb_title'),
-        leftLimbTitle: t('lab.editor.default.left_limb_title'),
-        headTitle: t('lab.editor.default.head_title'),
-      };
-  }
+  const labelSet = Object.hasOwn(EDITOR_LABEL_SETS, entityId) ? EDITOR_LABEL_SETS[entityId] : 'default';
+  const label = (field: keyof typeof EDITOR_LABEL_FIELDS) => t(`lab.editor.${labelSet}.${EDITOR_LABEL_FIELDS[field]}`);
+  return {
+    weaponGroupTitle: label('weaponGroupTitle'),
+    leftWeaponGroupTitle: label('leftWeaponGroupTitle'),
+    rightLimbTitle: label('rightLimbTitle'),
+    leftLimbTitle: label('leftLimbTitle'),
+    headTitle: label('headTitle'),
+  };
 }
 // #endregion
