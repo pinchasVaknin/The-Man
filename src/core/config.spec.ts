@@ -137,6 +137,17 @@ test('parseAndValidateUrlOverrides_WhenUnknownWeatherOrPerspective_ShouldIgnoreI
   assert.equal(result.worldHour, 24.0);
 });
 
+test('parseAndValidateUrlOverrides_WhenWeatherOrSeasonIsObjectPrototypeKey_ShouldIgnoreThem', () => {
+  // Arrange
+  const search = '?weather=constructor&season=toString';
+
+  // Act
+  const result = parseAndValidateUrlOverrides(search);
+
+  // Assert
+  assert.deepEqual(result, {});
+});
+
 test('parseAndValidateUrlOverrides_WhenEmptyQuery_ShouldReturnEmptyOverrides', () => {
   // Arrange
   const emptyQuery = '';

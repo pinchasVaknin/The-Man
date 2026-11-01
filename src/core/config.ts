@@ -181,12 +181,12 @@ export function parseAndValidateUrlOverrides(search: string): IValidatedUrlOverr
   }
 
   const wParam = params.get('weather');
-  if (wParam && wParam in URL_WEATHER_MAP) {
+  if (wParam && Object.hasOwn(URL_WEATHER_MAP, wParam)) {
     result.forcedWeatherKind = URL_WEATHER_MAP[wParam];
   }
 
   const sParam = params.get('season');
-  if (sParam && sParam in URL_SEASON_OFFSETS) {
+  if (sParam && Object.hasOwn(URL_SEASON_OFFSETS, sParam)) {
     result.seasonTimeOffset = URL_SEASON_OFFSETS[sParam];
   }
 
