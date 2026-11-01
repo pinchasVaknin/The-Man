@@ -356,15 +356,15 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
   switch (species) {
     case 'rabbit':
       return {
-        itemIds: ['raw_game_meat', 'small_hide', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Small Hide', 'Animal Bone'],
-        notificationHe: 'Looted Rabbit: Game Meat, Small Hide, Animal Bone',
+        itemIds: ['raw_game_meat', 'small_hide'],
+        itemLabelsHe: ['Game Meat', 'Small Hide'],
+        notificationHe: 'Looted Rabbit: Game Meat, Small Hide',
       };
     case 'squirrel':
       return {
-        itemIds: ['raw_game_meat', 'small_hide', 'animal_bone'],
-        itemLabelsHe: ['Game Meat', 'Small Hide', 'Animal Bone'],
-        notificationHe: 'Looted Squirrel: Game Meat, Small Hide, Animal Bone',
+        itemIds: ['raw_game_meat', 'small_hide'],
+        itemLabelsHe: ['Game Meat', 'Small Hide'],
+        notificationHe: 'Looted Squirrel: Game Meat, Small Hide',
       };
     case 'sheep':
       return {
