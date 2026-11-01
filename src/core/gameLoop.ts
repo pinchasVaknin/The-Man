@@ -1,10 +1,8 @@
 // ============================================================================
 // MODULE: Core / Game Loop
-// DESIGN: Game Loop pattern with an injected frame scheduler, clock and logger (DIP);
-//         optional fixed-timestep accumulator with render interpolation
-// SUMMARY: Drives one callback per frame with a clamped variable delta time. A thrown
-//          frame is logged (throttled) and counted by the tick error guard; a run of
-//          failures halts the loop and reports a fatal error to the owner.
+// DESIGN: Game Loop pattern; scheduler, clock and logger are injected (DIP)
+// SUMMARY: Runs fixed simulation steps (optional) and one render callback per frame. A thrown
+//          frame is logged (throttled); repeated failures halt the loop and report a fatal error.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\

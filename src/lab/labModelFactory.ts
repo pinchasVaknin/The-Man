@@ -6,6 +6,8 @@
 //          real-time animations.
 // ============================================================================
 
+// ======================== IMPORTS & DEPENDENCIES ======================== \\
+// #region Imports & Dependencies
 import * as THREE from 'three';
 import { computeHorseBiomechanicalPose } from '../world/systems/horsePhysicsSystem';
 import {
@@ -19,7 +21,14 @@ import { createReadyCrocodile, type CrocodileState } from '../world/models/Croco
 import { createReadyJaguar, type JaguarState } from '../world/models/Jaguar';
 import { createReadyWolf, type WolfState } from '../world/models/Wolf';
 import { createReadyRhino, type RhinoState } from '../world/models/Rhino';
+// #endregion
 
+// ======================== RIG CONTRACT ======================== \\
+// #region Rig Contract
+/**
+ * Summary: A lab-built model with its skin, animation, wireframe and disposal controls.
+ * Design: The lab view drives every entity through this one contract, whatever its rig.
+ */
 export interface ILabEntityRig {
   readonly entityId: string;
   readonly root: THREE.Group;
@@ -37,7 +46,10 @@ export interface ILabEntityRig {
     readonly triangleCount: number;
   };
 }
+// #endregion
 
+// ======================== RIG FACTORY ======================== \\
+// #region Rig Factory
 /**
  * Summary: Helper to count meshes and triangles inside a constructed Three.js Group.
  */
@@ -97,9 +109,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     bodyNodes: [],
   };
 
-  // ==========================================================================
   // 1. RANGER THIRD-PERSON CHARACTER
-  // ==========================================================================
   if (entityId === 'ranger_third_person') {
     const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdfb18b, roughness: 0.55 }));
     const hairMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x2c1b10, roughness: 0.78 }));
@@ -730,9 +740,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 2. FIRST-PERSON HANDS & WEAPONS VIEWMODEL
-  // ==========================================================================
   else if (entityId === 'ranger_first_person') {
     const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe8be9e, roughness: 0.52 }));
     const vambraceMat = trackMat(
@@ -922,9 +930,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 3. DWARVEN MINER
-  // ==========================================================================
   else if (entityId === 'dwarven_miner') {
     const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdca482, roughness: 0.56 }));
     const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x333629, roughness: 0.72 }));
@@ -1367,9 +1373,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 4 & 5. SHAOLIN MONK & TAI-CHI MONK
-  // ==========================================================================
   else if (entityId === 'shaolin_monk' || entityId === 'tai_chi_monk') {
     const hasStaff = entityId === 'shaolin_monk';
     const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe2b897, roughness: 0.6 }));
@@ -1513,9 +1517,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 6. HARBOR MARKET MERCHANT & BLACKSMITH
-  // ==========================================================================
   else if (entityId === 'harbor_merchant') {
     const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe5b895, roughness: 0.58 }));
     const robeMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.65 }));
@@ -1631,9 +1633,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 7. RIDEABLE HORSE (kinematics from horsePhysicsSystem)
-  // ==========================================================================
   else if (entityId === 'rideable_horse') {
     const coatMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x7c3f1d, roughness: 0.62 }));
     const maneMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x26150b, roughness: 0.78 }));
@@ -1819,9 +1819,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8. FOREST DEER / STAG & DOE
-  // ==========================================================================
   else if (entityId === 'forest_deer') {
     const deerRoot = new THREE.Group();
     root.add(deerRoot);
@@ -1904,9 +1902,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8B. FOREST BEAR (full 37-bone skeleton + 13 animations)
-  // ==========================================================================
   else if (entityId === 'forest_bear') {
     const bearRoot = new THREE.Group();
     root.add(bearRoot);
@@ -1995,9 +1991,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8C. RIVER CROCODILE (full 49-bone skeleton + 13 animations)
-  // ==========================================================================
   else if (entityId === 'river_crocodile') {
     const crocRoot = new THREE.Group();
     root.add(crocRoot);
@@ -2085,9 +2079,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8D. JUNGLE JAGUAR (full 43-bone skeleton + 14 animations)
-  // ==========================================================================
   else if (entityId === 'jungle_jaguar') {
     const jagRoot = new THREE.Group();
     root.add(jagRoot);
@@ -2176,9 +2168,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8E. FOREST WOLF (full 59-bone skeleton + 15 animations)
-  // ==========================================================================
   else if (entityId === 'forest_wolf') {
     const wolfRoot = new THREE.Group();
     root.add(wolfRoot);
@@ -2268,9 +2258,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 8F. SAVANNA RHINO (full 47-bone skeleton + 13 animations)
-  // ==========================================================================
   else if (entityId === 'savanna_rhino') {
     const rhinoRoot = new THREE.Group();
     root.add(rhinoRoot);
@@ -2358,9 +2346,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 9. GRAZING SHEEP
-  // ==========================================================================
   else if (entityId === 'grazing_sheep') {
     const woolMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.92 }));
     const darkMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x3a322c, roughness: 0.85 }));
@@ -2438,9 +2424,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 10 & 11. FOREST RABBIT & WOODLAND SQUIRREL
-  // ==========================================================================
   else if (entityId === 'forest_rabbit' || entityId === 'woodland_squirrel') {
     const isRabbit = entityId === 'forest_rabbit';
     const furMat = trackMat(
@@ -2553,9 +2537,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 12 & 13. GOLDEN MOUNTAIN EAGLE & FLOCK BIRD
-  // ==========================================================================
   else if (entityId === 'mountain_eagle' || entityId === 'flock_bird') {
     const isEagle = entityId === 'mountain_eagle';
     const bodyMat = trackMat(
@@ -2651,9 +2633,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 14. HARBOR SEAGULL
-  // ==========================================================================
   else if (entityId === 'harbor_seagull') {
     const plumageMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 }));
     const mantleMat = trackMat(
@@ -2779,9 +2759,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 15. LAKESIDE KOI FISH — STANDALONE
-  // ==========================================================================
   else if (entityId === 'koi_fish') {
     const koiBodyMat = trackMat(
       new THREE.MeshStandardMaterial({ color: 0xff6b2b, roughness: 0.22, metalness: 0.12 })
@@ -2944,9 +2922,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 16. MEADOW BUTTERFLY — STANDALONE
-  // ==========================================================================
   else if (entityId === 'meadow_butterfly') {
     const forewingMat = trackMat(
       new THREE.MeshStandardMaterial({
@@ -3107,9 +3083,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 15. IMPERIAL SKY DRAGON — 22 SEGMENTS
-  // ==========================================================================
   else if (entityId === 'imperial_sky_dragon') {
     const scaleMat = trackMat(
       new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 })
@@ -3245,9 +3219,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 16. COLOSSAL DWARVEN KING GUARDIAN STATUE
-  // ==========================================================================
   else if (entityId === 'dwarven_king_statue') {
     const stoneMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x6e6a64, roughness: 0.75 }));
     const bronzeMat = trackMat(
@@ -3378,9 +3350,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // ==========================================================================
   // 17. SEATED GOLDEN BUDDHA ON LOTUS THRONE
-  // ==========================================================================
   else {
     const goldMat = trackMat(
       new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.22, metalness: 0.88 })
@@ -3673,3 +3643,4 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     stats,
   };
 }
+// #endregion

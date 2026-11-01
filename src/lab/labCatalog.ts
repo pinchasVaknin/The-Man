@@ -203,9 +203,7 @@ const horseSkinsFromWorld: ILabSkinDef[] = RIDEABLE_HORSES.map((h, idx) => {
 });
 
 export const LAB_ENTITIES: readonly ILabEntityDef[] = [
-  // ==========================================================================
   // 1. HUMANS & CHARACTERS
-  // ==========================================================================
   {
     id: 'ranger_third_person',
     name: t('lab.entities.ranger_third_person.name'),
@@ -804,9 +802,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     ],
   },
 
-  // ==========================================================================
   // 2. ANIMALS & WILDLIFE
-  // ==========================================================================
   {
     id: 'rideable_horse',
     name: t('lab.entities.rideable_horse.name'),
@@ -2450,9 +2446,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     ],
   },
 
-  // ==========================================================================
   // GUARDIAN CHARACTERS & MONUMENTS
-  // ==========================================================================
   {
     id: 'dwarven_king_statue',
     name: t('lab.entities.dwarven_king_statue.name'),
