@@ -21,7 +21,6 @@ import {
   ArrowElementKind,
   IArrowProjectile,
   DEFAULT_WEATHER_CYCLE_MODE,
-  PLAYER_EYE_HEIGHT,
   MIN_BOW_DRAW_TO_SHOOT,
   generateWorldObstacles,
   createInitialPlayerState,
@@ -48,7 +47,6 @@ import {
   isPredatorSpecies,
   triggerSwordSlash,
   stepSwordSwingCombat,
-  computeFirstPersonSwordAttackPose,
   buyMarketItem,
   sellMarketItem,
   IGameActions,
@@ -71,6 +69,15 @@ import {
   createGpuFencePacedScheduler,
 } from '../world/controllers/frameSchedulers';
 import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
+import {
+  computeTargetFov,
+  createCameraPose,
+  createCameraRigState,
+  easeFovToward,
+  stepCameraRig,
+  writeTitleOrbitPose,
+  type ICameraPose,
+} from '../world/systems/cameraRigSystem';
 import { isBindingHeld, matchesKeyBinding } from '../config/keyBindingMatch';
 import {
   SAVED_GAME_SETTINGS,
@@ -111,8 +118,6 @@ const TICK_ERROR_LOG_INTERVAL_MS = 2000;
 /** World clock hour the session starts at when no ?hour= override is given (06:40, sunrise mist). */
 const DEFAULT_START_WORLD_HOUR = 6.68;
 const _sunVec = new THREE.Vector3();
-const _tourPos = new THREE.Vector3();
-const _tourLook = new THREE.Vector3();
 const _camTargetLook = new THREE.Vector3();
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -266,7 +271,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let lastArrowHitTimer = 0;
     let lastLootNotification: string | null = null;
     let lastLootNotificationTimer = 0;
-    let smoothCrouchOffset = 0;
 
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
@@ -385,8 +389,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let lastPointerY = 0;
     let landingDip = 0;
     let lastThunderTime = -10;
-    let smoothAimZoom = 0;
-    let smoothRightClickZoom = 0;
+    const cameraRig = createCameraRigState();
+    const cameraPose = createCameraPose();
     let isSwordAttackHeld = false;
     let swordHoldDuration = 0;
     let swordHeavyTriggeredDuringHold = false;
@@ -533,10 +537,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           activeWeatherMode = mode;
         },
         setSmoothAimZoom: (val) => {
-          smoothAimZoom = val;
+          cameraRig.smoothAimZoom = val;
         },
         setSmoothRightClickZoom: (val) => {
-          smoothRightClickZoom = val;
+          cameraRig.smoothRightClickZoom = val;
         },
         fireArrowNow,
         executeSwordSlash,
@@ -904,6 +908,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let elapsedTotal = 0;
     let lastHudEmitTime = 0;
 
+    /** Copies a computed camera pose onto the three.js camera. */
+    function applyCameraPose(pose: ICameraPose) {
+      camera.position.set(pose.x, pose.y, pose.z);
+      if (pose.mode === 'euler') {
+        _euler.set(pose.pitch, pose.yaw, pose.roll, 'YXZ');
+        camera.quaternion.setFromEuler(_euler);
+      } else {
+        _camTargetLook.set(pose.lookX, pose.lookY, pose.lookZ);
+        camera.lookAt(_camTargetLook);
+      }
+    }
+
     function runFrame(rawDt: number, now: number) {
       soundEngine.setMuted(mutedRef.current);
       soundEngine.setPaused(gameStateRef.current !== 'playing');
@@ -920,16 +936,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         );
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
 
-        const tourAngle = elapsedTotal * 0.09 - 0.65;
-        const tourRadius = 34;
-        _tourPos.set(
-          Math.sin(tourAngle) * tourRadius,
-          8.5 + Math.sin(elapsedTotal * 0.25) * 1.4,
-          Math.cos(tourAngle) * tourRadius + 6
-        );
-        _tourLook.set(4, 1.8, -4);
-        camera.position.copy(_tourPos);
-        camera.lookAt(_tourLook);
+        writeTitleOrbitPose(elapsedTotal, cameraPose);
+        applyCameraPose(cameraPose);
         worldHandles.update(
           elapsedTotal,
           camera.position.x,
@@ -1319,126 +1327,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           birdProximity
         );
 
-        const isMountedOnHorse = Boolean(playerState.mountedHorseId);
-        const saddleHeightBonus = isMountedOnHorse ? 0.68 : 0;
-        const bobScale = isMountedOnHorse ? 0.022 : playerState.isSwimming ? 0.045 : 0.055;
-        const bobY = isMountedOnHorse
-          ? Math.sin(playerState.bobPhase) * bobScale * playerState.bobAmount
-          : Math.sin(playerState.bobPhase * 2) * bobScale * playerState.bobAmount;
-        const bobRoll =
-          Math.cos(playerState.bobPhase) * (isMountedOnHorse ? 0.0045 : 0.008) * playerState.bobAmount;
-        const horsePitchSway = isMountedOnHorse
-          ? Math.sin(playerState.bobPhase) * 0.011 * playerState.bobAmount
-          : 0;
-
-        const targetAimZoom = playerState.bowDrawn ? 1.0 : 0.0;
-        smoothAimZoom += (targetAimZoom - smoothAimZoom) * (1 - Math.exp(-10 * rawDt));
-        const targetRightZoom =
-          !playerState.isSwimming &&
-          (playerState.equippedTool ?? 'bow') === 'bow' &&
-          Boolean(playerState.bowZoomHeld)
-            ? 1.0
-            : 0.0;
-        smoothRightClickZoom +=
-          (targetRightZoom - smoothRightClickZoom) * (1 - Math.exp(-12 * rawDt));
-        const combinedThirdPersonZoom = Math.min(1.0, smoothAimZoom * 0.7 + smoothRightClickZoom * 0.8);
-
-        const targetCrouchOffset =
-          playerState.isCrouching && !isMountedOnHorse && !playerState.isSwimming && !playerState.isFlying
-            ? -0.48
-            : 0.0;
-        smoothCrouchOffset +=
-          (targetCrouchOffset - smoothCrouchOffset) * (1 - Math.exp(-12 * rawDt));
-
-        if (isSleepingInBed) {
-          // Lying on back on the bed / sleeping bag pillow (+0.22m above mattress), looking straight up at the ceiling!
-          const sleepHeadOffsetX = Math.sin(playerState.yaw) * 0.58;
-          const sleepHeadOffsetZ = Math.cos(playerState.yaw) * 0.58;
-          camera.position.set(
-            playerState.x - sleepHeadOffsetX,
-            playerState.y + 0.22 + Math.sin(elapsedTotal * 1.6) * 0.008,
-            playerState.z - sleepHeadOffsetZ
-          );
-          _euler.set(
-            Math.max(1.05, Math.min(1.53, playerState.pitch)),
-            playerState.yaw + Math.PI,
-            Math.sin(elapsedTotal * 0.9) * 0.012,
-            'YXZ'
-          );
-          camera.quaternion.setFromEuler(_euler);
-        } else if (playerState.cameraPerspective === 'third_person') {
-          // 3rd-Person Over-the-Right-Shoulder Camera
-          const pivotY =
-            playerState.y +
-            (isMountedOnHorse ? 2.22 : playerState.isSwimming ? 1.25 : 1.54) +
-            smoothCrouchOffset * 0.72 +
-            bobY -
-            landingDip;
-          const effPitch = playerState.pitch + horsePitchSway;
-          const cosP = Math.cos(effPitch);
-          const sinP = Math.sin(effPitch);
-          const fwdX = -Math.sin(playerState.yaw) * cosP;
-          const fwdY = sinP;
-          const fwdZ = -Math.cos(playerState.yaw) * cosP;
-          const rightX = Math.cos(playerState.yaw);
-          const rightZ = -Math.sin(playerState.yaw);
-
-          const baseDist = isMountedOnHorse ? 4.15 : 2.95;
-          const aimDist = isMountedOnHorse ? 2.55 : 1.78;
-          const camDist = baseDist + (aimDist - baseDist) * combinedThirdPersonZoom;
-          const shoulderSide = 0.44 - 0.86 * combinedThirdPersonZoom;
-          const shoulderUp = 0.28 - 0.12 * combinedThirdPersonZoom;
-
-          const camX = playerState.x - fwdX * camDist + rightX * shoulderSide;
-          const camZ = playerState.z - fwdZ * camDist + rightZ * shoulderSide;
-          const minCamFloorY = walkableHeightAt(camX, camZ, playerState.y).height + 0.45;
-          const camY = Math.max(minCamFloorY, pivotY - fwdY * camDist + shoulderUp);
-
-          const lookSideOffset = 0.16 * (1.0 - combinedThirdPersonZoom);
-          camera.position.set(camX, camY, camZ);
-          _camTargetLook.set(
-            playerState.x + fwdX * 32.0 + rightX * lookSideOffset,
-            pivotY + fwdY * 32.0,
-            playerState.z + fwdZ * 32.0 + rightZ * lookSideOffset
-          );
-          camera.lookAt(_camTargetLook);
-        } else {
-          // Restrained, phase-synchronized first-person camera impulse (Wind-Up -> Strike -> Impact/Follow-Through -> Recovery)
-          const swProg = playerState.swordSwingProgress ?? 0;
-          let combatCamPitch = 0;
-          let combatCamYaw = 0;
-          let combatCamRoll = 0;
-          if (swProg > 0.0001) {
-            const camPose = computeFirstPersonSwordAttackPose({
-              swingProgress: swProg,
-              comboIndex: playerState.swordComboIndex ?? 0,
-              isHeavy: Boolean(playerState.swordHeavyAttack),
-              chargeProgress: playerState.swordChargeTime ?? 0,
-              blockProgress: playerState.swordBlockProgress ?? 0,
-              swayX: 0,
-              swayY: 0,
-              breathY: 0,
-              sprintCarry: 0,
-              impactKind: playerState.lastSwordHitPoint?.kind ?? 'none',
-              impactAge: playerState.lastSwordHitPoint?.age ?? 99,
-            });
-            combatCamPitch = camPose.cameraImpulse.pitchOffset;
-            combatCamYaw = camPose.cameraImpulse.yawOffset;
-            combatCamRoll = camPose.cameraImpulse.rollOffset;
-          }
-          camera.position.set(
-            playerState.x,
-            playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + smoothCrouchOffset + bobY - landingDip,
-            playerState.z
-          );
-          _euler.set(
-            playerState.pitch + combatCamPitch + horsePitchSway,
-            playerState.yaw + combatCamYaw,
-            bobRoll + combatCamRoll,
-            'YXZ'
-          );
-          camera.quaternion.setFromEuler(_euler);
-        }
+        stepCameraRig(
+          cameraRig,
+          { player: playerState, dt: rawDt, elapsedSeconds: elapsedTotal, landingDip, isSleepingInBed },
+          cameraPose
+        );
+        applyCameraPose(cameraPose);
 
         const camWaterY = getWaterSurfaceHeightAt(
           camera.position.x,
@@ -1450,31 +1344,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           fog.density = 0.038;
         }
 
-        const horizSpeed = Math.hypot(playerState.vx, playerState.vz);
-        const baseFov = playerState.isFlying
-          ? 76
-          : isMountedOnHorse && horizSpeed > 11.0
-            ? 77.5
-            : isMountedOnHorse && horizSpeed > 4.0
-              ? 72.5
-              : playerState.walkPace === 'fast' && horizSpeed > 5.2
-                ? 73.5
-                : playerState.walkPace === 'relaxed' && horizSpeed > 0.5
-                  ? 65.5
-                  : 68;
-        // Bow Draw Zoom (6.5° subtle zoom when drawing arrow) + Bow Right-Click Closer Zoom (11.5° zoom without drawing arrow) + Sword Block Zoom (4.5°)!
-        const drawZoomDrop = 6.5;
-        const rightClickZoomDrop = 11.5;
-        const blockZoomDrop = (playerState.swordBlockProgress ?? 0) * 4.5;
-        const dashFovBoost = (playerState.dashTimer ?? 0) > 0 ? 6.5 : 0.0;
-        const targetFov =
-          baseFov +
-          dashFovBoost -
-          smoothAimZoom * drawZoomDrop -
-          smoothRightClickZoom * rightClickZoomDrop -
-          blockZoomDrop;
-        if (Math.abs(camera.fov - targetFov) > 0.05) {
-          camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-9 * rawDt));
+        const easedFov = easeFovToward(camera.fov, computeTargetFov(cameraRig, playerState), rawDt);
+        if (easedFov !== null) {
+          camera.fov = easedFov;
           camera.updateProjectionMatrix();
         }
 

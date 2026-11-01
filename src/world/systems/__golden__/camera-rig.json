@@ -1,0 +1,2316 @@
+[
+ {
+  "fov": 68,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724898,
+   "lookY": 11.95185,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088225,
+   "y": 2.909587,
+   "yaw": 0,
+   "z": 34.519878
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 68,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.478596,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710866,
+   "y": 2.774318,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 68,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.806198,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.516563,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 68,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 19.082163,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.300369,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 68,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 68,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724898,
+   "lookY": 11.95185,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088225,
+   "y": 2.909587,
+   "yaw": 0,
+   "z": 34.519878
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 68,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.478596,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710866,
+   "y": 2.774318,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 68,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.806198,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.516563,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 68,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 19.082163,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.300369,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 68,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 75.276035,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.705211,
+   "lookY": 12.883498,
+   "lookZ": 3.028186,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.482242,
+   "y": 3.289798,
+   "yaw": 0,
+   "z": 35.599292
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 76.997776,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.928658,
+   "lookY": 14.901107,
+   "lookZ": 9.836616,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.486467,
+   "y": 3.041303,
+   "yaw": 0,
+   "z": 34.560249
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.390596,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.129624,
+   "lookY": 17.588194,
+   "lookZ": 19.996711,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.915802,
+   "y": 2.65211,
+   "yaw": 0,
+   "z": 33.136121
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.455252,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.803478,
+   "lookY": 19.800345,
+   "lookZ": 31.259592,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.728314,
+   "y": 2.402511,
+   "yaw": 0,
+   "z": 31.635371
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.455252,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.956974,
+   "lookY": 21.725501,
+   "lookZ": 41.733011,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.953078,
+   "y": 2.103664,
+   "yaw": 0,
+   "z": 30.309732
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 70.21349,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724898,
+   "lookY": 11.667951,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088225,
+   "y": 2.625688,
+   "yaw": 0,
+   "z": 34.519878
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.499859,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.185712,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710866,
+   "y": 2.481433,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.108889,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.509592,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.268491,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.044537,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 18.793892,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.208119,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.044537,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 20.892465,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 64.875372,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.809148,
+   "lookY": 11.656113,
+   "lookZ": 3.005007,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 4.418646,
+   "y": 2.721517,
+   "yaw": 0,
+   "z": 34.091423
+  },
+  "rig": {
+   "smoothAimZoom": 0.800778,
+   "smoothCrouchOffset": -0.410746,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 62.623438,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.951765,
+   "lookY": 14.139853,
+   "lookZ": 9.969856,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.782768,
+   "y": 2.624903,
+   "yaw": 0,
+   "z": 33.580941
+  },
+  "rig": {
+   "smoothAimZoom": 0.961867,
+   "smoothCrouchOffset": -0.470476,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.812789,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.229549,
+   "lookY": 16.461497,
+   "lookZ": 20.073835,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.008344,
+   "y": 2.427474,
+   "yaw": 0,
+   "z": 32.937389
+  },
+  "rig": {
+   "smoothAimZoom": 0.992987,
+   "smoothCrouchOffset": -0.478752,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.586151,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.820784,
+   "lookY": 18.736693,
+   "lookZ": 31.3711,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.957064,
+   "y": 2.270274,
+   "yaw": 0,
+   "z": 32.199819
+  },
+  "rig": {
+   "smoothAimZoom": 0.998603,
+   "smoothCrouchOffset": -0.47982,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.544863,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.818913,
+   "lookY": 20.829974,
+   "lookZ": 41.798528,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.60502,
+   "y": 2.212161,
+   "yaw": 0,
+   "z": 31.494783
+  },
+  "rig": {
+   "smoothAimZoom": 0.999733,
+   "smoothCrouchOffset": -0.479975,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 58.580778,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.848744,
+   "lookY": 11.90199,
+   "lookZ": 3.019461,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 4.10395,
+   "y": 3.017995,
+   "yaw": 0,
+   "z": 33.890053
+  },
+  "rig": {
+   "smoothAimZoom": 0.199169,
+   "smoothCrouchOffset": -0.069251,
+   "smoothRightClickZoom": 0.85572
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.996141,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.967863,
+   "lookY": 14.47174,
+   "lookZ": 9.984853,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.593226,
+   "y": 2.995454,
+   "yaw": 0,
+   "z": 33.550969
+  },
+  "rig": {
+   "smoothAimZoom": 0.038123,
+   "smoothCrouchOffset": -0.009523,
+   "smoothRightClickZoom": 0.980159
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.592298,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.23659,
+   "lookY": 16.805299,
+   "lookZ": 20.089569,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.865915,
+   "y": 2.810895,
+   "yaw": 0,
+   "z": 32.975157
+  },
+  "rig": {
+   "smoothAimZoom": 0.007011,
+   "smoothCrouchOffset": -0.001248,
+   "smoothRightClickZoom": 0.997399
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.539875,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.821122,
+   "lookY": 19.082034,
+   "lookZ": 31.387361,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.851466,
+   "y": 2.661479,
+   "yaw": 0,
+   "z": 32.285066
+  },
+  "rig": {
+   "smoothAimZoom": 0.001397,
+   "smoothCrouchOffset": -0.00018,
+   "smoothRightClickZoom": 0.999625
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.539875,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.81297,
+   "lookY": 21.175539,
+   "lookZ": 41.813441,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.546347,
+   "y": 2.435552,
+   "yaw": 0,
+   "z": 31.611048
+  },
+  "rig": {
+   "smoothAimZoom": 0.000267,
+   "smoothCrouchOffset": -0.000025,
+   "smoothRightClickZoom": 0.999948
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 62.574255,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.742251,
+   "lookY": 11.951848,
+   "lookZ": 2.980588,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 4.950312,
+   "y": 2.93176,
+   "yaw": 0,
+   "z": 34.431629
+  },
+  "rig": {
+   "smoothAimZoom": 0.000053,
+   "smoothCrouchOffset": -0.000004,
+   "smoothRightClickZoom": 0.144272
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 66.387307,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.8748,
+   "lookY": 14.478596,
+   "lookZ": 9.898156,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.688978,
+   "y": 2.778783,
+   "yaw": 0,
+   "z": 33.724237
+  },
+  "rig": {
+   "smoothAimZoom": 0.00001,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.01984
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.596415,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184255,
+   "lookY": 16.806198,
+   "lookZ": 19.972627,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.924512,
+   "y": 2.517329,
+   "yaw": 0,
+   "z": 32.694452
+  },
+  "rig": {
+   "smoothAimZoom": 0.000002,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.0026
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.898385,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818459,
+   "lookY": 19.082163,
+   "lookZ": 31.259328,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.682877,
+   "y": 2.300504,
+   "yaw": 0,
+   "z": 31.613885
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000375
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.952227,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.86036,
+   "lookY": 21.175556,
+   "lookZ": 41.694519,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014232,
+   "y": 2.168542,
+   "yaw": 0,
+   "z": 30.683891
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000052
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 77.179455,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724899,
+   "lookY": 11.95185,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088218,
+   "y": 2.909588,
+   "yaw": 0,
+   "z": 34.519874
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000007
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.363034,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.478596,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710865,
+   "y": 2.774318,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000001
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.861241,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.806198,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.516563,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.954544,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 19.082163,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.300369,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.954544,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 76.925765,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724898,
+   "lookY": 11.95185,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088225,
+   "y": 2.909587,
+   "yaw": 0,
+   "z": 34.519878
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.20906,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.478596,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710866,
+   "y": 2.774318,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.806198,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.516563,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 19.082163,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.300369,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 65.900803,
+  "frame": 7,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -6.724898,
+   "lookY": 11.95185,
+   "lookZ": 2.974254,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 5.088225,
+   "y": 2.909587,
+   "yaw": 0,
+   "z": 34.519878
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 63.500235,
+  "frame": 15,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -15.872941,
+   "lookY": 14.478596,
+   "lookZ": 9.896424,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 6.710866,
+   "y": 2.774318,
+   "yaw": 0,
+   "z": 33.727698
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.952538,
+  "frame": 23,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.184119,
+   "lookY": 16.806198,
+   "lookZ": 19.972323,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 7.927264,
+   "y": 2.516563,
+   "yaw": 0,
+   "z": 32.693722
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.84997,
+  "frame": 31,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -21.818458,
+   "lookY": 19.082163,
+   "lookZ": 31.25928,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 8.683189,
+   "y": 2.300369,
+   "yaw": 0,
+   "z": 31.613633
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.84997,
+  "frame": 39,
+  "isSleepingInBed": false,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "lookAt",
+   "pitch": 0,
+   "roll": 0,
+   "x": 9.014256,
+   "y": 2.168539,
+   "yaw": 0,
+   "z": 30.683843
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 66.79437,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 67.72774,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 67.940691,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 67.957617,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 67.957617,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 0
+ },
+ {
+  "fov": 67.957617,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 67.957617,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 67.957617,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 67.957617,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 67.957617,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 1
+ },
+ {
+  "fov": 75.266113,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 76.995535,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.390108,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.455052,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 77.455052,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 2
+ },
+ {
+  "fov": 70.213443,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.499848,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.108886,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.044536,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 68.044536,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 3
+ },
+ {
+  "fov": 64.875372,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0.800778,
+   "smoothCrouchOffset": -0.410746,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 62.623438,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0.961867,
+   "smoothCrouchOffset": -0.470476,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.812789,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0.992987,
+   "smoothCrouchOffset": -0.478752,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.586151,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0.998603,
+   "smoothCrouchOffset": -0.47982,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 61.544863,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0.999733,
+   "smoothCrouchOffset": -0.479975,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 4
+ },
+ {
+  "fov": 58.580778,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0.199169,
+   "smoothCrouchOffset": -0.069251,
+   "smoothRightClickZoom": 0.85572
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.996141,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0.038123,
+   "smoothCrouchOffset": -0.009523,
+   "smoothRightClickZoom": 0.980159
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.592298,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0.007011,
+   "smoothCrouchOffset": -0.001248,
+   "smoothRightClickZoom": 0.997399
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.539875,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0.001397,
+   "smoothCrouchOffset": -0.00018,
+   "smoothRightClickZoom": 0.999625
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 56.539875,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0.000267,
+   "smoothCrouchOffset": -0.000025,
+   "smoothRightClickZoom": 0.999948
+  },
+  "variantIndex": 5
+ },
+ {
+  "fov": 62.574255,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0.000053,
+   "smoothCrouchOffset": -0.000004,
+   "smoothRightClickZoom": 0.144272
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 66.387307,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0.00001,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.01984
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.596415,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0.000002,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.0026
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.898385,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000375
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 67.952227,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000052
+  },
+  "variantIndex": 6
+ },
+ {
+  "fov": 77.179455,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000007
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.363034,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0.000001
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.861241,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.954544,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 79.954544,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 7
+ },
+ {
+  "fov": 76.925765,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.20906,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 76.045541,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 8
+ },
+ {
+  "fov": 65.900803,
+  "frame": 7,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.00707,
+   "x": 3.501119,
+   "y": 2.177201,
+   "yaw": 3.491593,
+   "z": 31.455164
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 63.500235,
+  "frame": 15,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.011709,
+   "x": 4.10465,
+   "y": 2.175404,
+   "yaw": 3.891593,
+   "z": 31.57562
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.952538,
+  "frame": 23,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.010536,
+   "x": 4.770597,
+   "y": 2.165898,
+   "yaw": 4.291593,
+   "z": 31.763077
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.84997,
+  "frame": 31,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": 0.004133,
+   "x": 5.520125,
+   "y": 2.162244,
+   "yaw": 4.691593,
+   "z": 31.987939
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "fov": 62.84997,
+  "frame": 39,
+  "isSleepingInBed": true,
+  "pose": {
+   "lookX": -17.860362,
+   "lookY": 21.175556,
+   "lookZ": 41.694512,
+   "mode": "euler",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 6.361203,
+   "y": 2.169655,
+   "yaw": 5.091593,
+   "z": 32.214705
+  },
+  "rig": {
+   "smoothAimZoom": 0,
+   "smoothCrouchOffset": 0,
+   "smoothRightClickZoom": 0
+  },
+  "variantIndex": 9
+ },
+ {
+  "titleOrbit": {
+   "lookX": 4,
+   "lookY": 1.8,
+   "lookZ": -4,
+   "mode": "lookAt",
+   "pitch": 1.05,
+   "roll": -0.004322,
+   "x": 15.00277,
+   "y": 8.593161,
+   "yaw": 5.091593,
+   "z": 36.51093
+  }
+ }
+]
