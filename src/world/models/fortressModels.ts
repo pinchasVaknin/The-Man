@@ -1541,6 +1541,15 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const hwLadderRungGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.74, 6);
   hwLadderRungGeo.rotateZ(Math.PI / 2);
 
+  const matRollGeo = new THREE.BoxGeometry(1.1, 0.08, 2.0);
+  const blanketGeo = new THREE.BoxGeometry(1.06, 0.08, 1.45);
+  const pillowRollGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.78, 8);
+  pillowRollGeo.rotateZ(Math.PI / 2);
+  const bedMatFabric = new THREE.MeshStandardMaterial({ color: 0x5c4632, roughness: 0.9 });
+  const blanketFabric = new THREE.MeshStandardMaterial({ color: 0x8f2922, roughness: 0.85 });
+  const pillowFabric = pillowClothMat;
+  disposableMaterials.push(bedMatFabric, blanketFabric);
+
   disposableGeometries.push(
     hwBasePlinthGeo,
     hwGroundFloorWoodGeo,
@@ -1556,7 +1565,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     hwRailBridgeFlankGeo,
     hwBridgeGatePostGeo,
     hwLadderRailGeo,
-    hwLadderRungGeo
+    hwLadderRungGeo,
+    matRollGeo,
+    blanketGeo,
+    pillowRollGeo
   );
 
   for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {

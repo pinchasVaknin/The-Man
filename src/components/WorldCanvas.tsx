@@ -1474,13 +1474,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           const sleepHeadOffsetZ = Math.cos(playerState.yaw) * 0.58;
           camera.position.set(
             playerState.x - sleepHeadOffsetX,
-            playerState.y + 0.22 + Math.sin(elapsedTime * 1.6) * 0.008,
+            playerState.y + 0.22 + Math.sin(elapsedTotal * 1.6) * 0.008,
             playerState.z - sleepHeadOffsetZ
           );
           _euler.set(
             Math.max(1.05, Math.min(1.53, playerState.pitch)),
             playerState.yaw + Math.PI,
-            Math.sin(elapsedTime * 0.9) * 0.012,
+            Math.sin(elapsedTotal * 0.9) * 0.012,
             'YXZ'
           );
           camera.quaternion.setFromEuler(_euler);

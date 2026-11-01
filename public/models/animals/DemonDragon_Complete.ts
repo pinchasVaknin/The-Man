@@ -15,7 +15,10 @@ export type DemonDragonState =
   | 'fly'
   | 'roar'
   | 'attack'
+  | 'sleep'
   | 'death';
+
+export type ReadyDemonDragonController = DemonDragon;
 
 export interface DemonDragonOptions {
   scale?: number;
@@ -54,6 +57,7 @@ export const DEMON_DRAGON_GAITS: Record<DemonDragonState, { speed: number }> = {
   fly:    { speed: 8.5 },
   roar:   { speed: 0.0 },
   attack: { speed: 1.45 },
+  sleep:  { speed: 0.0 },
   death:  { speed: 0.0 },
 };
 
@@ -259,6 +263,7 @@ export class DemonDragonAnimator {
   private getClipIndex(st: DemonDragonState): number {
     if (st === 'stalk') return 5;
     if (st === 'fly') return 9;
+    if (st === 'sleep') return 4;
     const idx = CLIP_ORDER.indexOf(st);
     return idx >= 0 ? idx : 0;
   }
@@ -325,7 +330,10 @@ export class DemonDragonAnimator {
     }
   }
 
-  update(dt: number): void {
+  update(dt: number, turn?: number): void {
+    if (typeof turn === 'number') {
+      this.turn = turn;
+    }
     const clamped = Math.min(dt, 0.1);
     const targetSpeed = DEMON_DRAGON_GAITS[this.state] ? DEMON_DRAGON_GAITS[this.state].speed : 0.0;
     this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
@@ -379,7 +387,6 @@ export class DemonDragon {
       map: texture,
       roughness: 0.80,
       metalness: 0.04,
-      skinning: true,
       side: THREE.DoubleSide,
     });
 
@@ -393,6 +400,10 @@ export class DemonDragon {
 
     this.object.scale.setScalar(scale);
     this.animator = new DemonDragonAnimator(this.rig, data);
+  }
+
+  get state(): DemonDragonState {
+    return this.animator.state;
   }
 
   setState(state: DemonDragonState): void {
@@ -419,8 +430,8 @@ export class DemonDragon {
     return this.animator.turn;
   }
 
-  update(dt: number): void {
-    this.animator.update(dt);
+  update(dt: number, turn?: number): void {
+    this.animator.update(dt, turn);
   }
 
   dispose(): void {
@@ -440,10 +451,16 @@ export const DEMON_DRAGON_EMBEDDED_TEXTURE_URI = "data:image/jpeg;base64,/9j/4AA
 
 export function createReadyDemonDragon(options: DemonDragonOptions = {}): DemonDragon {
   const data = unpackDemonDragonBundle(DEMON_DRAGON_EMBEDDED_PACK_B64);
-  const img = new Image();
-  img.src = DEMON_DRAGON_EMBEDDED_TEXTURE_URI;
-  const tex = new THREE.Texture(img);
-  tex.flipY = false;
-  img.onload = () => { tex.needsUpdate = true; };
+  let tex: THREE.Texture;
+  if (typeof Image !== 'undefined') {
+    const img = new Image();
+    img.src = DEMON_DRAGON_EMBEDDED_TEXTURE_URI;
+    tex = new THREE.Texture(img);
+    tex.flipY = false;
+    img.onload = () => { tex.needsUpdate = true; };
+  } else {
+    tex = new THREE.Texture();
+    tex.flipY = false;
+  }
   return new DemonDragon(data, tex, options);
 }

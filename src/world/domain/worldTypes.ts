@@ -412,6 +412,7 @@ export interface IRideableHorseState {
   yaw: number;
   speed: number;
   gaitPhase: number;
+  isJumping?: boolean;
 }
 export type RideableHorseState = IRideableHorseState;
 // #endregion

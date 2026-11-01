@@ -720,7 +720,7 @@ function findNearestShelterPoint(
 ): { x: number; z: number } {
   if (species === 'bear') {
     let targetCaveIndex = 0;
-    let targetCave = BEAR_MOUNTAIN_CAVES[0];
+    let targetCave: (typeof BEAR_MOUNTAIN_CAVES)[number] = BEAR_MOUNTAIN_CAVES[0];
     if (caveIndex !== undefined && BEAR_MOUNTAIN_CAVES[caveIndex]) {
       targetCaveIndex = caveIndex;
       targetCave = BEAR_MOUNTAIN_CAVES[caveIndex];
@@ -841,11 +841,11 @@ function steerBearThroughCavePortal(
 export function isSafeAnimalSpawnPosition(
   x: number,
   z: number,
-  playerX = WORLD_SPAWN.x,
-  playerZ = WORLD_SPAWN.z,
-  playerYaw = WORLD_SPAWN.yaw,
-  minSafeRadius = 56,
-  frontConeDist = 115
+  playerX: number = WORLD_SPAWN.x,
+  playerZ: number = WORLD_SPAWN.z,
+  playerYaw: number = WORLD_SPAWN.yaw,
+  minSafeRadius: number = 56,
+  frontConeDist: number = 115
 ): boolean {
   const dx = x - playerX;
   const dz = z - playerZ;

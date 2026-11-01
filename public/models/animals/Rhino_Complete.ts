@@ -460,7 +460,10 @@ export class RhinoAnimator {
     this.hasPoseSnapshot = true;
   }
 
-  update(dt: number): void {
+  update(dt: number, turn?: number): void {
+    if (typeof turn === 'number') {
+      this.turn = turn;
+    }
     const clamped = Math.min(dt, 0.1);
     if (this.state !== 'attack') {
       const targetSpeed = RHINO_GAITS[this.state] ? RHINO_GAITS[this.state].speed : 0.0;
@@ -571,8 +574,8 @@ export class Rhino {
     return this.animator.turn;
   }
 
-  update(dt: number): void {
-    this.animator.update(dt);
+  update(dt: number, turn?: number): void {
+    this.animator.update(dt, turn);
   }
 
   dispose(): void {
