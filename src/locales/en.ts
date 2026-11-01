@@ -521,7 +521,7 @@ export const en = {
     },
     "hud": {
       "buy_and_sell_weapons": "{market} · Buy & Sell Weapons, Materials & Food",
-      "harbor_market_title": "Harbor Market · {market}"
+      "harbor_market_title": "{market}"
     }
   },
   "skills": {
@@ -580,6 +580,7 @@ export const en = {
   },
   "ui": {
     "minimap_aria": "Minimap",
+    "compass_north": "N",
     "canvas_aria": "3D World View",
     "inventory_aria": "Inventory & Market",
     "menu_topics_aria": "Menu",
