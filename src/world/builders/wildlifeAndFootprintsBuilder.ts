@@ -55,6 +55,8 @@ export interface IWildlifeAndFootprintsHandles {
     soundCallbacks?: IWildlifeSoundCallbacks,
     rainIntensity?: number
   ) => void;
+  /** Removes the window listeners this layer registered; call when the world is torn down. */
+  readonly dispose: () => void;
 }
 export type WildlifeAndFootprintsHandles = IWildlifeAndFootprintsHandles;
 // #endregion
@@ -174,12 +176,15 @@ export function buildWildlifeAndFootprintsLayer(
     } catch {
       // Ignore storage errors
     }
-    window.addEventListener('lab-overrides-saved', (ev: Event) => {
-      const customEv = ev as CustomEvent<Record<string, ILabPoseOverrides>>;
-      if (customEv.detail) {
-        liveLabOverrides = { ...SAVED_LAB_OVERRIDES, ...customEv.detail };
-      }
-    });
+  }
+  const onLabOverridesSaved = (ev: Event): void => {
+    const customEv = ev as CustomEvent<Record<string, ILabPoseOverrides>>;
+    if (customEv.detail) {
+      liveLabOverrides = { ...SAVED_LAB_OVERRIDES, ...customEv.detail };
+    }
+  };
+  if (typeof window !== 'undefined') {
+    window.addEventListener('lab-overrides-saved', onLabOverridesSaved);
   }
 
   interface IAnimalMeshRig {
@@ -479,6 +484,11 @@ export function buildWildlifeAndFootprintsLayer(
   return {
     birds,
     animals,
+    dispose: () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('lab-overrides-saved', onLabOverridesSaved);
+      }
+    },
     update: (
       dt: number,
       elapsedTime: number,
