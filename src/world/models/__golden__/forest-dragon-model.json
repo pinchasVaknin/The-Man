@@ -1,0 +1,226 @@
+{
+ "attributes": {
+  "normal": {
+   "absSum": 7301.283468,
+   "count": 14991,
+   "sum": -11.551181
+  },
+  "position": {
+   "absSum": 8291.378125,
+   "count": 14991,
+   "sum": 4551.604875
+  },
+  "skinIndex": {
+   "absSum": 704129,
+   "count": 19988,
+   "sum": 704129
+  },
+  "skinWeight": {
+   "absSum": 4997.000063,
+   "count": 19988,
+   "sum": 4997.000063
+  },
+  "uv": {
+   "absSum": 4943.907913,
+   "count": 9994,
+   "sum": 4943.907913
+  }
+ },
+ "boneInverses": {
+  "absSum": 334.510135,
+  "count": 1184,
+  "sum": 50.181803
+ },
+ "bones": [
+  "ForestDragonJoint_0",
+  "ForestDragonJoint_1",
+  "ForestDragonJoint_2",
+  "ForestDragonJoint_3",
+  "ForestDragonJoint_4",
+  "ForestDragonJoint_5",
+  "ForestDragonJoint_6",
+  "ForestDragonJoint_7",
+  "ForestDragonJoint_8",
+  "ForestDragonJoint_9",
+  "ForestDragonJoint_10",
+  "ForestDragonJoint_11",
+  "ForestDragonJoint_12",
+  "ForestDragonJoint_13",
+  "ForestDragonJoint_14",
+  "ForestDragonJoint_15",
+  "ForestDragonJoint_16",
+  "ForestDragonJoint_17",
+  "ForestDragonJoint_18",
+  "ForestDragonJoint_19",
+  "ForestDragonJoint_20",
+  "ForestDragonJoint_21",
+  "ForestDragonJoint_22",
+  "ForestDragonJoint_23",
+  "ForestDragonJoint_24",
+  "ForestDragonJoint_25",
+  "ForestDragonJoint_26",
+  "ForestDragonJoint_27",
+  "ForestDragonJoint_28",
+  "ForestDragonJoint_29",
+  "ForestDragonJoint_30",
+  "ForestDragonJoint_31",
+  "ForestDragonJoint_32",
+  "ForestDragonJoint_33",
+  "ForestDragonJoint_34",
+  "ForestDragonJoint_35",
+  "ForestDragonJoint_36",
+  "ForestDragonJoint_37",
+  "ForestDragonJoint_38",
+  "ForestDragonJoint_39",
+  "ForestDragonJoint_40",
+  "ForestDragonJoint_41",
+  "ForestDragonJoint_42",
+  "ForestDragonJoint_43",
+  "ForestDragonJoint_44",
+  "ForestDragonJoint_45",
+  "ForestDragonJoint_46",
+  "ForestDragonJoint_47",
+  "ForestDragonJoint_48",
+  "ForestDragonJoint_49",
+  "ForestDragonJoint_50",
+  "ForestDragonJoint_51",
+  "ForestDragonJoint_52",
+  "ForestDragonJoint_53",
+  "ForestDragonJoint_54",
+  "ForestDragonJoint_55",
+  "ForestDragonJoint_56",
+  "ForestDragonJoint_57",
+  "ForestDragonJoint_58",
+  "ForestDragonJoint_59",
+  "ForestDragonJoint_60",
+  "ForestDragonJoint_61",
+  "ForestDragonJoint_62",
+  "ForestDragonJoint_63",
+  "ForestDragonJoint_64",
+  "ForestDragonJoint_65",
+  "ForestDragonJoint_66",
+  "ForestDragonJoint_67",
+  "ForestDragonJoint_68",
+  "ForestDragonJoint_69",
+  "ForestDragonJoint_70",
+  "ForestDragonJoint_71",
+  "ForestDragonJoint_72",
+  "ForestDragonJoint_73"
+ ],
+ "index": {
+  "absSum": 60734150,
+  "count": 24120,
+  "sum": 60734150
+ },
+ "restPose": {
+  "absSum": 115.648665,
+  "count": 518,
+  "sum": 78.247719
+ },
+ "statePoses": [
+  {
+   "pose": {
+    "absSum": 116.389603,
+    "count": 518,
+    "sum": 74.082538
+   },
+   "state": "idle"
+  },
+  {
+   "pose": {
+    "absSum": 115.411301,
+    "count": 518,
+    "sum": 78.217298
+   },
+   "state": "walk"
+  },
+  {
+   "pose": {
+    "absSum": 115.603108,
+    "count": 518,
+    "sum": 77.984875
+   },
+   "state": "trot"
+  },
+  {
+   "pose": {
+    "absSum": 114.965584,
+    "count": 518,
+    "sum": 77.806701
+   },
+   "state": "run"
+  },
+  {
+   "pose": {
+    "absSum": 118.213745,
+    "count": 518,
+    "sum": 76.708981
+   },
+   "state": "fly"
+  },
+  {
+   "pose": {
+    "absSum": 115.592392,
+    "count": 518,
+    "sum": 75.539221
+   },
+   "state": "stalk"
+  },
+  {
+   "pose": {
+    "absSum": 118.052367,
+    "count": 518,
+    "sum": 75.797187
+   },
+   "state": "roar"
+  },
+  {
+   "pose": {
+    "absSum": 116.97082,
+    "count": 518,
+    "sum": 73.157902
+   },
+   "state": "call"
+  },
+  {
+   "pose": {
+    "absSum": 119.517702,
+    "count": 518,
+    "sum": 82.044794
+   },
+   "state": "attack"
+  },
+  {
+   "pose": {
+    "absSum": 115.982885,
+    "count": 518,
+    "sum": 78.605031
+   },
+   "state": "sit"
+  },
+  {
+   "pose": {
+    "absSum": 118.847755,
+    "count": 518,
+    "sum": 75.169209
+   },
+   "state": "lie"
+  },
+  {
+   "pose": {
+    "absSum": 119.066927,
+    "count": 518,
+    "sum": 75.348498
+   },
+   "state": "sleep"
+  },
+  {
+   "pose": {
+    "absSum": 120.408868,
+    "count": 518,
+    "sum": 71.804809
+   },
+   "state": "death"
+  }
+ ]
+}

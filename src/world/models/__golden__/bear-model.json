@@ -1,0 +1,197 @@
+{
+ "attributes": {
+  "normal": {
+   "absSum": 6737.968512,
+   "count": 13992,
+   "sum": 117.055117
+  },
+  "position": {
+   "absSum": 8114.342584,
+   "count": 13992,
+   "sum": 5411.267842
+  },
+  "skinIndex": {
+   "absSum": 386372,
+   "count": 18656,
+   "sum": 386372
+  },
+  "skinWeight": {
+   "absSum": 4664.000051,
+   "count": 18656,
+   "sum": 4664.000051
+  },
+  "uv": {
+   "absSum": 4323.874787,
+   "count": 9328,
+   "sum": 4323.874787
+  }
+ },
+ "boneInverses": {
+  "absSum": 16295.296285,
+  "count": 592,
+  "sum": 2390.856479
+ },
+ "bones": [
+  "BearJoint_0",
+  "BearJoint_1",
+  "BearJoint_2",
+  "BearJoint_3",
+  "BearJoint_4",
+  "BearJoint_5",
+  "BearJoint_6",
+  "BearJoint_7",
+  "BearJoint_8",
+  "BearJoint_9",
+  "BearJoint_10",
+  "BearJoint_11",
+  "BearJoint_12",
+  "BearJoint_13",
+  "BearJoint_14",
+  "BearJoint_15",
+  "BearJoint_16",
+  "BearJoint_17",
+  "BearJoint_18",
+  "BearJoint_19",
+  "BearJoint_20",
+  "BearJoint_21",
+  "BearJoint_22",
+  "BearJoint_23",
+  "BearJoint_24",
+  "BearJoint_25",
+  "BearJoint_26",
+  "BearJoint_27",
+  "BearJoint_28",
+  "BearJoint_29",
+  "BearJoint_30",
+  "BearJoint_31",
+  "BearJoint_32",
+  "BearJoint_33",
+  "BearJoint_34",
+  "BearJoint_35",
+  "BearJoint_36"
+ ],
+ "index": {
+  "absSum": 52592173,
+  "count": 22884,
+  "sum": 52592173
+ },
+ "restPose": {
+  "absSum": 1218.04166,
+  "count": 259,
+  "sum": 929.703973
+ },
+ "statePoses": [
+  {
+   "pose": {
+    "absSum": 1217.955687,
+    "count": 259,
+    "sum": 929.618
+   },
+   "state": "idle"
+  },
+  {
+   "pose": {
+    "absSum": 1217.535584,
+    "count": 259,
+    "sum": 922.551012
+   },
+   "state": "walk"
+  },
+  {
+   "pose": {
+    "absSum": 1216.690159,
+    "count": 259,
+    "sum": 928.245775
+   },
+   "state": "eat"
+  },
+  {
+   "pose": {
+    "absSum": 1218.791127,
+    "count": 259,
+    "sum": 930.406359
+   },
+   "state": "call"
+  },
+  {
+   "pose": {
+    "absSum": 1194.753192,
+    "count": 259,
+    "sum": 841.980388
+   },
+   "state": "lie"
+  },
+  {
+   "pose": {
+    "absSum": 1111.138911,
+    "count": 259,
+    "sum": 814.254445
+   },
+   "state": "sit"
+  },
+  {
+   "pose": {
+    "absSum": 1204.8225,
+    "count": 259,
+    "sum": 916.451199
+   },
+   "state": "trot"
+  },
+  {
+   "pose": {
+    "absSum": 1207.067972,
+    "count": 259,
+    "sum": 919.414844
+   },
+   "state": "run"
+  },
+  {
+   "pose": {
+    "absSum": 1208.940187,
+    "count": 259,
+    "sum": 919.26668
+   },
+   "state": "flee"
+  },
+  {
+   "pose": {
+    "absSum": 1215.731315,
+    "count": 259,
+    "sum": 920.673584
+   },
+   "state": "skip"
+  },
+  {
+   "pose": {
+    "absSum": 1181.164892,
+    "count": 259,
+    "sum": 887.623224
+   },
+   "state": "roar"
+  },
+  {
+   "pose": {
+    "absSum": 1216.0704,
+    "count": 259,
+    "sum": 924.089182
+   },
+   "state": "stomp"
+  },
+  {
+   "pose": {
+    "absSum": 1198.837549,
+    "count": 259,
+    "sum": 897.012814
+   },
+   "state": "attack"
+  },
+  {
+   "pose": {
+    "absSum": 1199.191658,
+    "count": 259,
+    "sum": 885.742371
+   },
+   "state": "death"
+  }
+ ]
+}
