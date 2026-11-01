@@ -7,13 +7,12 @@
 
 // ======================== IMPORTS & CONSTANTS ======================== \\
 // #region Imports & Constants
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
 import { WorldCanvas } from './components/WorldCanvas';
 import type { GameStateMode, IVirtualMoveState } from './world/domain/gameShellTypes';
 import { GameShellOverlay } from './components/GameShellOverlay';
 import { GameSettingsModal } from './components/GameSettingsModal';
-import { CharacterLabView } from './lab/CharacterLabView';
 import { useAppServices } from './app/AppServicesContext';
 import { telemetryStore } from './core/telemetryStore';
 import {
@@ -30,6 +29,13 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
   'wind_sand',
   'clear_clouds',
 ];
+
+/**
+ * Summary: The Character Lab is a developer tool; it loads as its own chunk on first open.
+ */
+const CharacterLabView = lazy(() =>
+  import('./lab/CharacterLabView').then((module) => ({ default: module.CharacterLabView }))
+);
 // #endregion
 
 // ======================== ROOT APPLICATION COMPONENT ======================== \\
@@ -135,7 +141,11 @@ export default function App() {
   }, [gameState, isLabOpen, isSettingsOpen, gameSettings.keybindings, handleStartGame, handleCycleWeather]);
 
   if (isLabOpen) {
-    return <CharacterLabView onClose={() => setIsLabOpen(false)} />;
+    return (
+      <Suspense fallback={<div className="fixed inset-0 bg-stone-950" aria-busy="true" />}>
+        <CharacterLabView onClose={() => setIsLabOpen(false)} />
+      </Suspense>
+    );
   }
 
   return (

@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793558212.0059185,
-    "seen": 1793558463.821279,
-    "ast_hash": "c062fcdf1167fedc40d8717dc799402b",
+    "mtime": 1793558595.6067708,
+    "seen": 1793558771.9484825,
+    "ast_hash": "7d85283b089b27b314e49f43838ea25b",
     "semantic_hash": ""
   },
   "src/components/ExplorerMinimap.tsx": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "vite.config.ts": {
-    "mtime": 1793540529.0743144,
-    "seen": 1793540601.7422974,
-    "ast_hash": "8832c79900d034b3b5ac6ee5fb8ef1bf",
+    "mtime": 1793558576.8733377,
+    "seen": 1793558771.9487112,
+    "ast_hash": "2adb050dcb309834b36811897671243b",
     "semantic_hash": ""
   },
   "src/core/AppException.ts": {
