@@ -67,7 +67,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   const [draft, setDraft] = useState<IGameSettingsConfig>(settings);
   const [listeningKey, setListeningKey] = useState<keyof IGameKeybindings | null>(null);
   const [activeTab, setActiveTab] = useState<'keybindings' | 'gameplay'>('keybindings');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'saved_local'>('idle');
 
   useEffect(() => {
     if (isOpen) {
@@ -103,8 +103,8 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   const handleSaveToFile = useCallback(async () => {
     setSaveStatus('saving');
     onApplySettings(draft);
-    await saveGameSettingsToFile(draft);
-    setSaveStatus('saved');
+    const { savedToFile } = await saveGameSettingsToFile(draft);
+    setSaveStatus(savedToFile ? 'saved' : 'saved_local');
     window.setTimeout(() => setSaveStatus('idle'), 2200);
   }, [draft, onApplySettings]);
 
@@ -173,7 +173,9 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                 ? t('settings.saving')
                 : saveStatus === 'saved'
                   ? t('settings.saved')
-                  : t('settings.save')}
+                  : saveStatus === 'saved_local'
+                    ? t('settings.saved_local')
+                    : t('settings.save')}
             </button>
 
             <button
@@ -478,7 +480,11 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               onClick={handleSaveToFile}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer shadow"
             >
-              {saveStatus === 'saved' ? t('settings.saved') : t('settings.save')}
+              {saveStatus === 'saved'
+                ? t('settings.saved')
+                : saveStatus === 'saved_local'
+                  ? t('settings.saved_local')
+                  : t('settings.save')}
             </button>
           </div>
         </div>

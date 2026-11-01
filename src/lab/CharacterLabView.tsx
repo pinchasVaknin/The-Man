@@ -65,7 +65,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   const [cameraResetNonce, setCameraResetNonce] = useState<number>(0);
   const [snapshotTriggerNonce, setSnapshotTriggerNonce] = useState<number>(0);
   const [copiedTweaksFeedback, setCopiedTweaksFeedback] = useState<boolean>(false);
-  const [saveFileStatus, setSaveFileStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveFileStatus, setSaveFileStatus] = useState<'idle' | 'saving' | 'saved' | 'saved_local'>('idle');
 
   const [poseOverridesByEntity, setPoseOverridesByEntity] = useState<
     Record<string, ILabPoseOverrides>
@@ -98,6 +98,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   const persistOverridesToCodebase = useCallback(
     async (overridesMap: Record<string, ILabPoseOverrides>) => {
       setSaveFileStatus('saving');
+      let isSavedToFile = false;
       try {
         window.localStorage.setItem(
           'lab_pose_overrides_v1',
@@ -106,15 +107,17 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         window.dispatchEvent(
           new CustomEvent('lab-overrides-saved', { detail: overridesMap })
         );
-        await fetch('/api/save-lab-overrides', {
+        const response = await fetch('/api/save-lab-overrides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(overridesMap),
         });
+        isSavedToFile = response.ok;
       } catch {
-        // Fallback to localStorage if offline
+        // Offline or no dev server: the overrides stay in localStorage only.
+        isSavedToFile = false;
       }
-      setSaveFileStatus('saved');
+      setSaveFileStatus(isSavedToFile ? 'saved' : 'saved_local');
       window.setTimeout(() => setSaveFileStatus('idle'), 1800);
     },
     []
@@ -417,7 +420,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 ? t('lab.view.saving')
                 : saveFileStatus === 'saved'
                   ? t('lab.view.saved')
-                  : t('lab.view.save')}
+                  : saveFileStatus === 'saved_local'
+                    ? t('lab.view.saved_local')
+                    : t('lab.view.save')}
             </span>
           </button>
 
@@ -1789,7 +1794,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   >
                     {saveFileStatus === 'saved'
                       ? t('lab.view.saved_short')
-                      : t('lab.view.save')}
+                      : saveFileStatus === 'saved_local'
+                        ? t('lab.view.saved_local')
+                        : t('lab.view.save')}
                   </button>
                   <button
                     type="button"
