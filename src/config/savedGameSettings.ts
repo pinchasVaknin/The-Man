@@ -40,6 +40,8 @@ export interface IGameKeybindings {
   hotbarSlot4: string;
   cycleWeather: string;
   toggleMute: string;
+  pauseGame: string;
+  toggleFavorite: string;
 }
 
 export interface IGameSettingsConfig {
@@ -75,6 +77,8 @@ export const DEFAULT_GAME_KEYBINDINGS: IGameKeybindings = {
   hotbarSlot4: 'Digit4',
   cycleWeather: 'KeyV',
   toggleMute: 'KeyM',
+  pauseGame: 'KeyP',
+  toggleFavorite: 'KeyF',
 };
 
 export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
@@ -100,7 +104,9 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
     "hotbarSlot3": "Digit3",
     "hotbarSlot4": "Digit4",
     "cycleWeather": "KeyV",
-    "toggleMute": "KeyM"
+    "toggleMute": "KeyM",
+    "pauseGame": "KeyP",
+    "toggleFavorite": "KeyF"
   },
   "defaultCameraPerspective": "third_person",
   "mouseSensitivity": 1,

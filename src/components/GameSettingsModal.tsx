@@ -62,6 +62,8 @@ const KEYBIND_ROWS: readonly IKeybindRowMeta[] = [
   { key: 'marketModal', category: 'interface' },
   { key: 'cycleWeather', category: 'interface' },
   { key: 'toggleMute', category: 'interface' },
+  { key: 'pauseGame', category: 'interface' },
+  { key: 'toggleFavorite', category: 'interface' },
 ];
 
 // #endregion
