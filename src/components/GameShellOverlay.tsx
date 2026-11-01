@@ -80,11 +80,11 @@ const WEATHER_OPTIONS: readonly IWeatherOptionDef[] = [
 ];
 
 const SEASON_OPTIONS: readonly { id: SeasonType | 'auto'; label: string }[] = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'spring', label: 'Spring' },
-  { id: 'summer', label: 'Summer' },
-  { id: 'autumn', label: 'Autumn' },
-  { id: 'winter', label: 'Winter' },
+  { id: 'auto', label: t('hud.season_auto') },
+  { id: 'spring', label: t('seasons.spring') },
+  { id: 'summer', label: t('seasons.summer') },
+  { id: 'autumn', label: t('seasons.autumn') },
+  { id: 'winter', label: t('seasons.winter') },
 ];
 
 type SkyrimModalMode = 'none' | 'inventory' | 'favorites';
@@ -342,7 +342,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               <span
                 className="text-[11px] font-mono uppercase tracking-[0.42em] text-amber-300/85"
               >
-                OPEN WORLD EDITION
+                {t('title.edition_tag')}
               </span>
             </div>
 
@@ -354,7 +354,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   '0 10px 36px rgba(0, 0, 0, 0.92), 0 2px 8px rgba(0, 0, 0, 0.85)',
               }}
             >
-              the man
+              {t('title.game_title')}
             </h1>
 
             {/* Ornamental Gold Tapered Rule (Fades toward inner screen) */}
@@ -370,7 +370,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
           {/* Left-Aligned Pure Text Menu Buttons with Inner-Screen Fading Hover Background */}
           <nav
-            aria-label="Main Menu"
+            aria-label={t('title.main_menu_aria')}
             className="flex flex-col items-start w-full gap-1.5 pointer-events-auto"
           >
             {/* 1. Start Game Text Button */}
@@ -401,7 +401,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                Start Game
+                {t('title.start_game')}
               </span>
             </button>
 
@@ -431,7 +431,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                Animation Lab
+                {t('title.animation_lab')}
               </span>
             </button>
 
@@ -461,7 +461,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
-                Settings
+                {t('title.settings')}
               </span>
             </button>
 
@@ -492,7 +492,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
                 <span className="font-display-he text-xl sm:text-2xl font-medium tracking-wide">
-                  Weather:
+                  {t('title.weather_label')}
                 </span>
                 <span className="text-base sm:text-lg font-medium text-amber-300/90">
                   {activeWeatherOption.short}
@@ -535,7 +535,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             </span>
             <input
               type="range"
-              aria-label="Time of Day"
+              aria-label={t('hud.time_of_day_aria')}
               data-testid="dev-time-slider"
               min={0}
               max={23.95}
@@ -555,9 +555,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 gameActions?.onSetWorldHours?.(9.0);
               }}
               className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-amber-200 cursor-pointer"
-              title="Set Morning (09:00)"
+              title={t('hud.set_morning_title')}
             >
-              Day
+              {t('hud.day')}
             </button>
             <button
               type="button"
@@ -568,9 +568,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 gameActions?.onSetWorldHours?.(22.0);
               }}
               className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-sky-300 cursor-pointer"
-              title="Set Night (22:00)"
+              title={t('hud.set_night_title')}
             >
-              Night
+              {t('hud.night')}
             </button>
           </div>
 
@@ -586,7 +586,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   : '1px solid rgba(255, 255, 255, 0.14)',
             }}
           >
-            <span className="text-[11px] text-stone-400 hidden md:inline mr-0.5">Season:</span>
+            <span className="text-[11px] text-stone-400 hidden md:inline mr-0.5">{t('hud.season_label')}</span>
             {SEASON_OPTIONS.map((sOpt) => {
               const active = (telemetry.forcedSeason ?? 'auto') === sOpt.id;
               return (
@@ -619,8 +619,8 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               e.currentTarget.blur();
               onCycleWeather();
             }}
-            aria-label={t('ui.weather_toggle_aria')}
-            title={t('ui.weather_toggle_title')}
+            aria-label={t('ui.weather_toggle_aria', { key: formatKeyCodeLabel(kb.cycleWeather) })}
+            title={t('ui.weather_toggle_title', { key: formatKeyCodeLabel(kb.cycleWeather) })}
             className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium text-stone-200 hover:text-sky-300 transition-colors cursor-pointer shrink-0"
             style={{
               backgroundColor: 'rgba(18, 16, 13, 0.88)',
@@ -666,7 +666,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 : activeWeatherOption.short}
             </span>
             <kbd className="hidden sm:inline-block px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
-              V
+              {formatKeyCodeLabel(kb.cycleWeather)}
             </kbd>
           </button>
         </div>
@@ -692,6 +692,8 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           onToggleFavorite={triggerToggleFavorite}
           onAssignHotbar={triggerAssignHotbar}
           onClose={() => setSkyrimModal('none')}
+          closeKeyLabel={formatKeyCodeLabel(kb.inventoryModal)}
+          interactKeyLabel={formatKeyCodeLabel(kb.interactDoor)}
           nearbyMarket={telemetry.nearbyMarket}
           skills={telemetry.skills}
           stamina={telemetry.stamina}
@@ -726,7 +728,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             <div className="flex items-center justify-between border-b border-stone-800 pb-2.5">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-amber-400 text-stone-950 font-mono-tabular text-xs font-bold">
-                  Q
+                  {formatKeyCodeLabel(kb.favoritesModal)}
                 </span>
                 <h2 className="font-display-he text-lg font-bold text-amber-200">
                   {t('ui.quick_favorites')}
@@ -737,14 +739,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 onClick={() => setSkyrimModal('none')}
                 className="text-xs text-stone-400 hover:text-white cursor-pointer"
               >
-                {t('ui.close_q')}
+                {t('ui.close_favorites', { key: formatKeyCodeLabel(kb.favoritesModal) })}
               </button>
             </div>
 
             <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
               {favoriteItems.length === 0 ? (
                 <div className="p-4 text-center text-xs text-stone-400">
-                  {t('ui.empty_favorites')}
+                  {t('ui.empty_favorites', { key: formatKeyCodeLabel(kb.inventoryModal) })}
                 </div>
               ) : (
                 favoriteItems.map((item) => {
@@ -930,7 +932,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-semibold text-xs">Stealth · Quiet</span>
+                <span className="font-semibold text-xs">{t('hud.stealth_badge')}</span>
               </div>
             )}
 
@@ -949,7 +951,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold text-xs text-emerald-100">
-                  Loot ({telemetry.nearbyDeadAnimal.speciesNameHe})
+                  {t('hud.loot_prompt', { species: telemetry.nearbyDeadAnimal.speciesNameHe })}
                 </span>
               </div>
             )}
@@ -967,7 +969,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-sm text-amber-100">
-                  Sleep
+                  {t('hud.sleep')}
                 </span>
               </div>
             )}
@@ -1008,7 +1010,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.interactDoor)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-sm text-amber-100">
-                  {telemetry.nearbyDoor.isOpen ? 'Close' : 'Open'}
+                  {telemetry.nearbyDoor.isOpen ? t('hud.door_close') : t('hud.door_open')}
                 </span>
               </div>
             )}
@@ -1026,7 +1028,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   {formatKeyCodeLabel(kb.jump)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-sm text-amber-100">
-                  Climb
+                  {t('hud.climb')}
                 </span>
               </div>
             )}
@@ -1046,7 +1048,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     {formatKeyCodeLabel(kb.mountHorse)}
                   </kbd>
                   <span className="font-semibold tracking-wide text-sm text-amber-100">
-                    {telemetry.mountedHorseId ? 'Dismount' : 'Ride Horse'}
+                    {telemetry.mountedHorseId ? t('hud.dismount') : t('hud.ride_horse')}
                   </span>
                 </div>
               )}
@@ -1061,17 +1063,17 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 }}
               >
                 <kbd className="px-2 py-0.5 rounded-md bg-sky-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
-                  Ctrl / C
+                  {formatKeyCodeLabel(kb.relaxedWalk)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-xs text-sky-100">
-                  Dive
+                  {t('hud.dive')}
                 </span>
                 <span className="text-sky-400/60">·</span>
                 <kbd className="px-2 py-0.5 rounded-md bg-sky-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
-                  Space
+                  {formatKeyCodeLabel(kb.jump)}
                 </kbd>
                 <span className="font-semibold tracking-wide text-xs text-sky-100">
-                  Surface
+                  {t('hud.surface')}
                 </span>
               </div>
             )}
@@ -1209,7 +1211,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               }}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-sky-300">{t('ui.weather_control_label')}</span>
+                <span className="font-semibold text-sky-300">{t('ui.weather_control_label', { key: formatKeyCodeLabel(kb.cycleWeather) })}</span>
                 <span className="text-[11px] text-stone-400">{telemetry.weatherLabel}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -1245,10 +1247,10 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             >
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-amber-200">
-                  Collider Wireframes Debug
+                  {t('hud.collider_debug_title')}
                 </span>
                 <span className="text-[11px] text-stone-400">
-                  Shows 3D collision wireframes for walls, stairs, railings, and obstacles (F3)
+                  {t('hud.collider_debug_hint')}
                 </span>
               </div>
               <button
@@ -1266,7 +1268,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
                 }`}
               >
-                {telemetry.colliderDebugVisible ? 'On (F3)' : 'Off (F3)'}
+                {telemetry.colliderDebugVisible ? t('hud.toggle_on') : t('hud.toggle_off')}
               </button>
             </div>
 
@@ -1286,7 +1288,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 onClick={() => onOpenSettings?.()}
                 className="py-3 px-4 rounded-xl text-sm font-medium text-amber-200 hover:text-white bg-stone-800 hover:bg-stone-700 border border-amber-500/35 transition-colors cursor-pointer whitespace-nowrap"
               >
-                Settings
+                {t('title.settings')}
               </button>
               <button
                 type="button"

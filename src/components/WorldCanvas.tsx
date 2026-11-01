@@ -71,6 +71,7 @@ import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRe
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
   SAVED_GAME_SETTINGS,
+  formatKeyCodeLabel,
   type IGameSettingsConfig,
 } from '../config/savedGameSettings';
 
@@ -516,8 +517,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (res.hitAnimal) {
         const spName = getAnimalSpeciesNameHe(res.hitAnimal.species);
         lastArrowHitTargetName = res.killedAnimal
-          ? `${spName} (Hunted! Press E to loot)`
-          : `${spName} (${res.hitAnimal.hp}/${res.hitAnimal.maxHp} HP)`;
+          ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
+          : t('notifications.animal_hit', { species: spName, hp: res.hitAnimal.hp ?? 0, maxHp: res.hitAnimal.maxHp ?? 0 });
         lastArrowHitTimer = res.killedAnimal ? 4.0 : 2.5;
         soundEngine.playArrowHit(true);
         emitHudSnapshot();
@@ -1088,7 +1089,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             activeSleepingBed = null;
             preSleepPlayerPos = null;
             playerState.stamina = playerState.maxStamina ?? 100;
-            lastLootNotificationHe = 'Awoke refreshed at morning';
+            lastLootNotificationHe = t('notifications.awoke');
             lastLootNotificationTimer = 3.5;
             emitHudSnapshot();
           } else {
@@ -1163,11 +1164,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               );
               const isNightTime = worldHours >= 18.5 || worldHours < 5.8;
               if (dangerNearby) {
-                lastLootNotificationHe = 'Cannot sleep while danger is nearby';
+                lastLootNotificationHe = t('notifications.sleep_danger');
                 lastLootNotificationTimer = 3.2;
                 emitHudSnapshot();
               } else if (!isNightTime) {
-                lastLootNotificationHe = 'You can only sleep at night';
+                lastLootNotificationHe = t('notifications.sleep_day_only');
                 lastLootNotificationTimer = 3.2;
                 emitHudSnapshot();
               } else {
@@ -1186,7 +1187,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 }
                 // Lying on back on the bed / sleeping bag looking straight up at the ceiling!
                 playerState.pitch = 1.42;
-                lastLootNotificationHe = 'Sleeping until morning...';
+                lastLootNotificationHe = t('notifications.sleeping');
                 lastLootNotificationTimer = 3.5;
                 soundEngine.playFootstep('cabin', 0.8);
                 emitHudSnapshot();
@@ -1297,8 +1298,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             const spName = getAnimalSpeciesNameHe(arrowRes.hitAnimal.species);
             playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
             lastArrowHitTargetName = arrowRes.killedAnimal
-              ? `${spName} (Hunted! Press E to loot)`
-              : `${spName} (${arrowRes.hitAnimal.hp}/${arrowRes.hitAnimal.maxHp} HP)`;
+              ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
+              : t('notifications.animal_hit', { species: spName, hp: arrowRes.hitAnimal.hp ?? 0, maxHp: arrowRes.hitAnimal.maxHp ?? 0 });
             lastArrowHitTimer = arrowRes.killedAnimal ? 4.0 : 2.5;
             awardSkillXp(playerState, 'archery', arrowRes.killedAnimal ? 36 : 18);
             soundEngine.playArrowHit(true);

@@ -15,6 +15,7 @@ import {
   type IGameSettingsConfig,
 } from '../config/savedGameSettings';
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
+import { t } from '../locales';
 
 export interface IGameSettingsModalProps {
   readonly isOpen: boolean;
@@ -23,146 +24,38 @@ export interface IGameSettingsModalProps {
   readonly onClose: () => void;
 }
 
+type KeybindCategory = 'movement' | 'combat' | 'interface';
+
 interface IKeybindRowMeta {
   readonly key: keyof IGameKeybindings;
-  readonly labelHe: string;
-  readonly categoryHe: 'Movement & Navigation' | 'Combat & Interaction' | 'Interface & Camera';
-  readonly descriptionHe: string;
+  readonly category: KeybindCategory;
 }
 
+const KEYBIND_CATEGORIES: readonly KeybindCategory[] = ['movement', 'combat', 'interface'];
+
 const KEYBIND_ROWS: readonly IKeybindRowMeta[] = [
-  {
-    key: 'moveForward',
-    labelHe: 'Move Forward',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Move forward in the world (or climb ladder)',
-  },
-  {
-    key: 'moveBackward',
-    labelHe: 'Move Backward',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Walk backward / retreat',
-  },
-  {
-    key: 'moveLeft',
-    labelHe: 'Strafe Left',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Move sideways left',
-  },
-  {
-    key: 'moveRight',
-    labelHe: 'Strafe Right',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Move sideways right',
-  },
-  {
-    key: 'sprint',
-    labelHe: 'Sprint',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Hold to sprint or gallop on horseback',
-  },
-  {
-    key: 'relaxedWalk',
-    labelHe: 'Relaxed Walk / Dive',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Slow walk on land or dive underwater',
-  },
-  {
-    key: 'jump',
-    labelHe: 'Jump / Climb / Fly (Double Tap)',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Jump, climb ladder, or double-tap for flight mode',
-  },
-  {
-    key: 'dash',
-    labelHe: 'Ranger Dash',
-    categoryHe: 'Movement & Navigation',
-    descriptionHe: 'Quick forward combat dash or water surge',
-  },
-  {
-    key: 'interactDoor',
-    labelHe: 'Interact / Loot / Sleep / Door',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Open doors, loot hunted animals, or sleep in bed',
-  },
-  {
-    key: 'mountHorse',
-    labelHe: 'Mount / Dismount Horse',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Mount a nearby horse or dismount',
-  },
-  {
-    key: 'drawOrSlash',
-    labelHe: 'Sword Slash / Draw Bow',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Swing sword or draw bow (in addition to Left Click)',
-  },
-  {
-    key: 'cycleArrowElement',
-    labelHe: 'Cycle Arrow Type (Steel / Fire / Wind)',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Switch between steel, fire, and wind arrows',
-  },
-  {
-    key: 'hotbarSlot1',
-    labelHe: 'Quick Slot 1',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Equip item bound to slot 1 (Bow by default)',
-  },
-  {
-    key: 'hotbarSlot2',
-    labelHe: 'Quick Slot 2',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Equip item bound to slot 2 (Torch by default)',
-  },
-  {
-    key: 'hotbarSlot3',
-    labelHe: 'Quick Slot 3',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Equip item bound to slot 3 (Sword by default)',
-  },
-  {
-    key: 'hotbarSlot4',
-    labelHe: 'Quick Slot 4',
-    categoryHe: 'Combat & Interaction',
-    descriptionHe: 'Equip item bound to slot 4 (Unarmed by default)',
-  },
-  {
-    key: 'cameraPerspective',
-    labelHe: 'Toggle Camera (3rd / 1st Person)',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Switch between 3rd-person and 1st-person view',
-  },
-  {
-    key: 'inventoryModal',
-    labelHe: 'Open Inventory & Gear',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Open inventory, skills, and market window',
-  },
-  {
-    key: 'favoritesModal',
-    labelHe: 'Quick Favorites Menu',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Fast access to favorite weapons and items',
-  },
-  {
-    key: 'marketModal',
-    labelHe: 'Trade at Market Stall',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Open merchant trade window near a market stall',
-  },
-  {
-    key: 'cycleWeather',
-    labelHe: 'Cycle Weather',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Cycle weather modes (Auto, Rain, Fog, Storm, Snow)',
-  },
-  {
-    key: 'toggleMute',
-    labelHe: 'Mute / Unmute Audio',
-    categoryHe: 'Interface & Camera',
-    descriptionHe: 'Toggle nature and sound effects',
-  },
+  { key: 'moveForward', category: 'movement' },
+  { key: 'moveBackward', category: 'movement' },
+  { key: 'moveLeft', category: 'movement' },
+  { key: 'moveRight', category: 'movement' },
+  { key: 'sprint', category: 'movement' },
+  { key: 'relaxedWalk', category: 'movement' },
+  { key: 'jump', category: 'movement' },
+  { key: 'dash', category: 'movement' },
+  { key: 'interactDoor', category: 'combat' },
+  { key: 'mountHorse', category: 'combat' },
+  { key: 'drawOrSlash', category: 'combat' },
+  { key: 'cycleArrowElement', category: 'combat' },
+  { key: 'hotbarSlot1', category: 'combat' },
+  { key: 'hotbarSlot2', category: 'combat' },
+  { key: 'hotbarSlot3', category: 'combat' },
+  { key: 'hotbarSlot4', category: 'combat' },
+  { key: 'cameraPerspective', category: 'interface' },
+  { key: 'inventoryModal', category: 'interface' },
+  { key: 'favoritesModal', category: 'interface' },
+  { key: 'marketModal', category: 'interface' },
+  { key: 'cycleWeather', category: 'interface' },
+  { key: 'toggleMute', category: 'interface' },
 ];
 
 export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
@@ -230,12 +123,6 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const categories: Array<'Movement & Navigation' | 'Combat & Interaction' | 'Interface & Camera'> = [
-    'Movement & Navigation',
-    'Combat & Interaction',
-    'Interface & Camera',
-  ];
-
   return (
     <div
       role="dialog"
@@ -263,11 +150,11 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             <div className="flex items-center gap-2.5">
               <span className="inline-block w-2.5 h-2.5 rotate-45 bg-amber-400" />
               <h2 className="font-display-he text-2xl font-bold text-stone-100">
-                Game Settings & Keybindings
+                {t('settings.title')}
               </h2>
             </div>
             <p className="text-xs text-stone-400 mt-0.5">
-              Customize keybindings or gameplay defaults and click Save to persist settings
+              {t('settings.subtitle')}
             </p>
           </div>
 
@@ -283,10 +170,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               }`}
             >
               {saveStatus === 'saving'
-                ? 'Saving...'
+                ? t('settings.saving')
                 : saveStatus === 'saved'
-                  ? '✓ Saved!'
-                  : 'Save Settings'}
+                  ? t('settings.saved')
+                  : t('settings.save')}
             </button>
 
             <button
@@ -295,7 +182,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               onClick={onClose}
               className="px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-300 hover:text-white bg-stone-800 hover:bg-stone-700 border border-stone-700 cursor-pointer"
             >
-              Close ✕
+              {t('settings.close')}
             </button>
           </div>
         </div>
@@ -313,7 +200,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   : 'bg-stone-900 text-stone-300 hover:text-stone-100 border border-stone-800'
               }`}
             >
-              Keybindings ({KEYBIND_ROWS.length})
+              {t('settings.tab_keybindings', { count: KEYBIND_ROWS.length })}
             </button>
             <button
               type="button"
@@ -325,7 +212,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                   : 'bg-stone-900 text-stone-300 hover:text-stone-100 border border-stone-800'
               }`}
             >
-              Gameplay & Camera Defaults
+              {t('settings.tab_gameplay')}
             </button>
           </div>
 
@@ -335,7 +222,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             onClick={handleResetToFactory}
             className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-400 hover:text-amber-300 bg-stone-900 hover:bg-stone-800 border border-stone-800 cursor-pointer"
           >
-            Reset Defaults
+            {t('settings.reset_defaults')}
           </button>
         </div>
 
@@ -346,26 +233,26 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               {listeningKey && (
                 <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400 text-amber-200 text-xs font-bold flex items-center justify-between">
                   <span>
-                    Press a key for &quot;
-                    {KEYBIND_ROWS.find((r) => r.key === listeningKey)?.labelHe}
-                    &quot; (or ESC to cancel)...
+                    {t('settings.listening_prompt', {
+                      action: t(`settings.bindings.${listeningKey}.label`),
+                    })}
                   </span>
                   <button
                     type="button"
                     onClick={() => setListeningKey(null)}
                     className="px-2.5 py-1 rounded bg-stone-900 text-stone-200 text-[11px] cursor-pointer"
                   >
-                    Cancel
+                    {t('settings.cancel')}
                   </button>
                 </div>
               )}
 
-              {categories.map((cat) => {
-                const rows = KEYBIND_ROWS.filter((r) => r.categoryHe === cat);
+              {KEYBIND_CATEGORIES.map((cat) => {
+                const rows = KEYBIND_ROWS.filter((r) => r.category === cat);
                 return (
                   <div key={cat} className="space-y-2">
                     <h3 className="text-xs font-bold text-amber-300 tracking-wide border-b border-stone-800 pb-1.5">
-                      {cat}
+                      {t(`settings.categories.${cat}`)}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {rows.map((row) => {
@@ -382,10 +269,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                           >
                             <div className="min-w-0 flex-1">
                               <div className="text-xs font-bold text-stone-100 truncate">
-                                {row.labelHe}
+                                {t(`settings.bindings.${row.key}.label`)}
                               </div>
                               <div className="text-[11px] text-stone-400 truncate mt-0.5">
-                                {row.descriptionHe}
+                                {t(`settings.bindings.${row.key}.description`)}
                               </div>
                             </div>
 
@@ -402,7 +289,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                               }`}
                             >
                               {isListening
-                                ? 'Press Key...'
+                                ? t('settings.press_key')
                                 : formatKeyCodeLabel(currentCode)}
                             </button>
                           </div>
@@ -419,17 +306,17 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-bold text-stone-100">
-                    Default Camera Perspective
+                    {t('settings.camera_title')}
                   </div>
                   <div className="text-xs text-stone-400 mt-0.5">
-                    Choose whether the game starts in 3rd-person or 1st-person view
+                    {t('settings.camera_hint')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {(
                     [
-                      { id: 'third_person', label: '3rd Person' },
-                      { id: 'first_person', label: '1st Person' },
+                      { id: 'third_person', label: t('settings.camera_third_person') },
+                      { id: 'first_person', label: t('settings.camera_first_person') },
                     ] as const
                   ).map((opt) => {
                     const active = draft.defaultCameraPerspective === opt.id;
@@ -460,17 +347,17 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-bold text-stone-100">
-                    Forest Fireflies
+                    {t('settings.fireflies_title')}
                   </div>
                   <div className="text-xs text-stone-400 mt-0.5">
-                    Show fireflies around the Sakura Sanctuary and Birch Grove or turn off
+                    {t('settings.fireflies_hint')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {(
                     [
-                      { id: 'sanctuary_only', label: 'Sanctuary Only' },
-                      { id: 'off', label: 'Off' },
+                      { id: 'sanctuary_only', label: t('settings.fireflies_sanctuary_only') },
+                      { id: 'off', label: t('settings.fireflies_off') },
                     ] as const
                   ).map((opt) => {
                     const active = draft.firefliesMode === opt.id;
@@ -502,10 +389,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    Mouse Sensitivity
+                    {t('settings.mouse_sensitivity')}
                   </span>
                   <span className="font-mono-tabular text-xs font-bold text-amber-300">
-                    {draft.mouseSensitivity.toFixed(2)}x
+                    {t('settings.multiplier', { value: draft.mouseSensitivity.toFixed(2) })}
                   </span>
                 </div>
                 <input
@@ -528,10 +415,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    Movement Speed
+                    {t('settings.movement_speed')}
                   </span>
                   <span className="font-mono-tabular text-xs font-bold text-amber-300">
-                    {draft.walkSpeedMultiplier.toFixed(2)}x
+                    {t('settings.multiplier', { value: draft.walkSpeedMultiplier.toFixed(2) })}
                   </span>
                 </div>
                 <input
@@ -554,10 +441,10 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-stone-100">
-                    Jump Force
+                    {t('settings.jump_force')}
                   </span>
                   <span className="font-mono-tabular text-xs font-bold text-amber-300">
-                    {draft.jumpForceMultiplier.toFixed(2)}x
+                    {t('settings.multiplier', { value: draft.jumpForceMultiplier.toFixed(2) })}
                   </span>
                 </div>
                 <input
@@ -582,7 +469,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
         {/* Bottom Footer with Save CTA */}
         <div className="px-6 py-3.5 border-t border-stone-800 bg-[#191613] flex items-center justify-between gap-4">
           <span className="text-xs text-stone-400">
-            Saving updates the active session and writes to{' '}
+            {t('settings.footer_note')}{' '}
             <code className="text-amber-300 font-mono">src/config/savedGameSettings.ts</code>
           </span>
           <div className="flex items-center gap-2.5">
@@ -591,7 +478,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
               onClick={handleSaveToFile}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer shadow"
             >
-              {saveStatus === 'saved' ? '✓ Saved!' : 'Save Settings'}
+              {saveStatus === 'saved' ? t('settings.saved') : t('settings.save')}
             </button>
           </div>
         </div>

@@ -358,7 +358,7 @@ export const en = {
       "name": "Dragon Meat",
       "short": "Dragon Meat",
       "category": "Food",
-      "stat": "Food \u00b7 Restores Stamina \u00b7 160 Gold",
+      "stat": "Food · Restores Stamina · 160 Gold",
       "description": "Dragon meat.",
       "lore": "Smoky meat from a slain dragon."
     },
@@ -366,7 +366,7 @@ export const en = {
       "name": "Dragon Scales",
       "short": "Scales",
       "category": "Materials",
-      "stat": "Loot \u00b7 420 Gold",
+      "stat": "Loot · 420 Gold",
       "description": "Dragon scales.",
       "lore": "Hard, heat-proof dragon scales."
     },
@@ -374,7 +374,7 @@ export const en = {
       "name": "Dragon Horn",
       "short": "Dragon Horn",
       "category": "Materials",
-      "stat": "Loot \u00b7 380 Gold",
+      "stat": "Loot · 380 Gold",
       "description": "Dragon horn.",
       "lore": "A curved horn from a dragon."
     },
@@ -382,7 +382,7 @@ export const en = {
       "name": "Dragon Claws",
       "short": "Dragon Claws",
       "category": "Materials",
-      "stat": "Loot \u00b7 300 Gold",
+      "stat": "Loot · 300 Gold",
       "description": "Dragon claws.",
       "lore": "Sharp claws from a dragon."
     },
@@ -390,7 +390,7 @@ export const en = {
       "name": "Dragon Bone",
       "short": "Dragon Bone",
       "category": "Materials",
-      "stat": "Loot \u00b7 260 Gold",
+      "stat": "Loot · 260 Gold",
       "description": "Dragon bone.",
       "lore": "A heavy bone from a dragon."
     }
@@ -484,8 +484,8 @@ export const en = {
   "interactions": {
     "equipped_label": "[Equipped]",
     "owned_label": "[Owned]",
-    "equip_action": "Equip [E]",
-    "equipped_now": "Equipped [E]",
+    "equip_action": "Equip [{key}]",
+    "equipped_now": "Equipped [{key}]",
     "buy_action": "Buy ({price} Gold)",
     "sell_action": "Sell (+{price} Gold)",
     "sell_short": "Sell (+{price} Gold)",
@@ -582,21 +582,17 @@ export const en = {
     "walk_left_aria": "Move Left",
     "walk_back_aria": "Move Back",
     "walk_right_aria": "Move Right",
-    "weather_toggle_aria": "Weather [V]",
-    "weather_toggle_title": "Weather [V]",
-    "app_title": "Nature Trail",
-    "app_subtitle": "Open World Exploration, Hunting, Fortress, Harbor Market & Mountain Pass",
-    "start_walking": "Enter World",
+    "weather_toggle_aria": "Weather [{key}]",
+    "weather_toggle_title": "Weather [{key}]",
     "resume_walking": "Resume Game",
     "intro_screen": "Start Screen",
-    "weather_control_label": "Weather [V]:",
-    "weather_hud_label": "Weather: {weather}",
+    "weather_control_label": "Weather [{key}]:",
     "pause_title": "Game Paused",
     "pause_subtitle": "Paused · Gold: {gold} 🪙",
     "quick_favorites": "Favorites",
-    "close_q": "Close [Q]",
-    "close_tab": "Close [Tab]",
-    "empty_favorites": "No favorites yet. Open Inventory [Tab] and mark items with ★.",
+    "close_favorites": "Close [{key}]",
+    "close_inventory": "Close [{key}]",
+    "empty_favorites": "No favorites yet. Open Inventory [{key}] and mark items with ★.",
     "personal_gear_title": "Inventory",
     "hero_level_label": "Level: ",
     "gold_label": "Gold: ",
@@ -621,6 +617,201 @@ export const en = {
     "owned_food_desc": "Owned food & meat",
     "category_owned_by_hero": "{category} · Owned",
     "category_required_level": "{category} · Required Level {level}"
+  },
+  "settings": {
+    "title": "Game Settings & Keybindings",
+    "subtitle": "Customize keybindings or gameplay defaults and click Save to persist settings",
+    "saving": "Saving...",
+    "saved": "✓ Saved!",
+    "save": "Save Settings",
+    "close": "Close ✕",
+    "tab_keybindings": "Keybindings ({count})",
+    "tab_gameplay": "Gameplay & Camera Defaults",
+    "reset_defaults": "Reset Defaults",
+    "cancel": "Cancel",
+    "press_key": "Press Key...",
+    "camera_title": "Default Camera Perspective",
+    "camera_hint": "Choose whether the game starts in 3rd-person or 1st-person view",
+    "camera_third_person": "3rd Person",
+    "camera_first_person": "1st Person",
+    "fireflies_title": "Forest Fireflies",
+    "fireflies_hint": "Show fireflies around the Sakura Sanctuary and Birch Grove or turn off",
+    "fireflies_sanctuary_only": "Sanctuary Only",
+    "fireflies_off": "Off",
+    "mouse_sensitivity": "Mouse Sensitivity",
+    "movement_speed": "Movement Speed",
+    "jump_force": "Jump Force",
+    "multiplier": "{value}x",
+    "categories": {
+      "movement": "Movement & Navigation",
+      "combat": "Combat & Interaction",
+      "interface": "Interface & Camera"
+    },
+    "bindings": {
+      "moveForward": {
+        "label": "Move Forward",
+        "description": "Move forward in the world (or climb ladder)"
+      },
+      "moveBackward": {
+        "label": "Move Backward",
+        "description": "Walk backward / retreat"
+      },
+      "moveLeft": {
+        "label": "Strafe Left",
+        "description": "Move sideways left"
+      },
+      "moveRight": {
+        "label": "Strafe Right",
+        "description": "Move sideways right"
+      },
+      "sprint": {
+        "label": "Sprint",
+        "description": "Hold to sprint or gallop on horseback"
+      },
+      "relaxedWalk": {
+        "label": "Relaxed Walk / Dive",
+        "description": "Slow walk on land or dive underwater"
+      },
+      "jump": {
+        "label": "Jump / Climb / Fly (Double Tap)",
+        "description": "Jump, climb ladder, or double-tap for flight mode"
+      },
+      "dash": {
+        "label": "Ranger Dash",
+        "description": "Quick forward combat dash or water surge"
+      },
+      "interactDoor": {
+        "label": "Interact / Loot / Sleep / Door",
+        "description": "Open doors, loot hunted animals, or sleep in bed"
+      },
+      "mountHorse": {
+        "label": "Mount / Dismount Horse",
+        "description": "Mount a nearby horse or dismount"
+      },
+      "drawOrSlash": {
+        "label": "Sword Slash / Draw Bow",
+        "description": "Swing sword or draw bow (in addition to Left Click)"
+      },
+      "cycleArrowElement": {
+        "label": "Cycle Arrow Type (Steel / Fire / Wind)",
+        "description": "Switch between steel, fire, and wind arrows"
+      },
+      "hotbarSlot1": {
+        "label": "Quick Slot 1",
+        "description": "Equip item bound to slot 1 (Bow by default)"
+      },
+      "hotbarSlot2": {
+        "label": "Quick Slot 2",
+        "description": "Equip item bound to slot 2 (Torch by default)"
+      },
+      "hotbarSlot3": {
+        "label": "Quick Slot 3",
+        "description": "Equip item bound to slot 3 (Sword by default)"
+      },
+      "hotbarSlot4": {
+        "label": "Quick Slot 4",
+        "description": "Equip item bound to slot 4 (Unarmed by default)"
+      },
+      "cameraPerspective": {
+        "label": "Toggle Camera (3rd / 1st Person)",
+        "description": "Switch between 3rd-person and 1st-person view"
+      },
+      "inventoryModal": {
+        "label": "Open Inventory & Gear",
+        "description": "Open inventory, skills, and market window"
+      },
+      "favoritesModal": {
+        "label": "Quick Favorites Menu",
+        "description": "Fast access to favorite weapons and items"
+      },
+      "marketModal": {
+        "label": "Trade at Market Stall",
+        "description": "Open merchant trade window near a market stall"
+      },
+      "cycleWeather": {
+        "label": "Cycle Weather",
+        "description": "Cycle weather modes (Auto, Rain, Fog, Storm, Snow)"
+      },
+      "toggleMute": {
+        "label": "Mute / Unmute Audio",
+        "description": "Toggle nature and sound effects"
+      }
+    },
+    "footer_note": "Saving updates the active session and writes to",
+    "listening_prompt": "Press a key for \"{action}\" (or ESC to cancel)..."
+  },
+  "title": {
+    "edition_tag": "OPEN WORLD EDITION",
+    "game_title": "the man",
+    "main_menu_aria": "Main Menu",
+    "start_game": "Start Game",
+    "animation_lab": "Animation Lab",
+    "settings": "Settings",
+    "weather_label": "Weather:"
+  },
+  "hud": {
+    "season_auto": "Auto",
+    "time_of_day_aria": "Time of Day",
+    "set_morning_title": "Set Morning (09:00)",
+    "set_night_title": "Set Night (22:00)",
+    "day": "Day",
+    "night": "Night",
+    "season_label": "Season:",
+    "stealth_badge": "Stealth · Quiet",
+    "loot_prompt": "Loot ({species})",
+    "sleep": "Sleep",
+    "door_close": "Close",
+    "door_open": "Open",
+    "climb": "Climb",
+    "dismount": "Dismount",
+    "ride_horse": "Ride Horse",
+    "dive": "Dive",
+    "surface": "Surface",
+    "collider_debug_title": "Collider Wireframes Debug",
+    "collider_debug_hint": "Shows 3D collision wireframes for walls, stairs, railings, and obstacles (F3)",
+    "toggle_on": "On (F3)",
+    "toggle_off": "Off (F3)"
+  },
+  "errors": {
+    "boundary": {
+      "title": "TheMan — Encountered an Issue",
+      "default_message": "An unexpected application error occurred.",
+      "render_message": "A graphics or rendering error occurred. You can reload the world vista to resume.",
+      "reference": "Reference: {id}",
+      "restart": "Restart World Experience"
+    }
+  },
+  "notifications": {
+    "animal_hunted": "{species} (Hunted! Press {key} to loot)",
+    "animal_hit": "{species} ({hp}/{maxHp} HP)",
+    "awoke": "Awoke refreshed at morning",
+    "sleep_danger": "Cannot sleep while danger is nearby",
+    "sleep_day_only": "You can only sleep at night",
+    "sleeping": "Sleeping until morning..."
+  },
+  "wildlife": {
+    "species": {
+      "rabbit": "Rabbit",
+      "squirrel": "Squirrel",
+      "deer": "Deer",
+      "sheep": "Sheep",
+      "bear": "Bear",
+      "crocodile": "Crocodile",
+      "jaguar": "Jaguar",
+      "wolf": "Wolf",
+      "rhino": "Rhino",
+      "dragon": "Dragon"
+    },
+    "loot_toast": "Looted {species}: {items}"
+  },
+  "beds": {
+    "hunter_lodge": "Hunter's Lodge Bed",
+    "farm_west": "West Farmhouse Bed",
+    "farm_south": "South Farmhouse Bed",
+    "farm_east": "East Farmhouse Bed",
+    "captain": "Captain's Bed",
+    "stone_house": "Stone House Bed",
+    "sleeping_bag": "Sleeping Bag"
   }
 } as const;
 

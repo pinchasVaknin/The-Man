@@ -530,7 +530,7 @@ export interface IWorldBedDef {
 export const WORLD_BEDS: readonly IWorldBedDef[] = [
   {
     id: 'bed-hunter-lodge',
-    name: "Hunter's Lodge Bed",
+    name: t('beds.hunter_lodge'),
     x: HUNTER_LODGE_POS.x - 3.2,
     y: HUNTER_LODGE_POS.height + 0.2,
     z: HUNTER_LODGE_POS.z + 2.4,
@@ -539,7 +539,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   {
     id: 'bed-farm-west',
-    name: 'West Farmhouse Bed',
+    name: t('beds.farm_west'),
     x: VALLEY_FARMS[0].x + 3.4 * VALLEY_FARMS[0].dirZ,
     y: VALLEY_FARMS[0].height + 0.18,
     z: VALLEY_FARMS[0].z - 5.1 * VALLEY_FARMS[0].dirZ,
@@ -548,7 +548,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   {
     id: 'bed-farm-south',
-    name: 'South Farmhouse Bed',
+    name: t('beds.farm_south'),
     x: VALLEY_FARMS[1].x + 3.4 * VALLEY_FARMS[1].dirZ,
     y: VALLEY_FARMS[1].height + 0.18,
     z: VALLEY_FARMS[1].z - 5.1 * VALLEY_FARMS[1].dirZ,
@@ -557,7 +557,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   {
     id: 'bed-farm-east',
-    name: 'East Farmhouse Bed',
+    name: t('beds.farm_east'),
     x: VALLEY_FARMS[2].x + 3.4 * VALLEY_FARMS[2].dirZ,
     y: VALLEY_FARMS[2].height + 0.18,
     z: VALLEY_FARMS[2].z - 5.1 * VALLEY_FARMS[2].dirZ,
@@ -566,7 +566,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   {
     id: 'bed-galleon-cabin',
-    name: "Captain's Bed",
+    name: t('beds.captain'),
     x: 285.8,
     y: 3.6,
     z: 268.8,
@@ -575,7 +575,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   ...DWARVEN_STONE_HOUSES.map((dh) => ({
     id: `bed-${dh.id}`,
-    name: 'Stone House Bed',
+    name: t('beds.stone_house'),
     x: dh.x - dh.dirX * 3.1,
     y: dh.floorY,
     z: dh.z + 2.4,
@@ -584,7 +584,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   })),
   {
     id: 'sleeping-bag-hunter-lodge',
-    name: 'Sleeping Bag',
+    name: t('beds.sleeping_bag'),
     x: HUNTER_LODGE_POS.x + 2.8,
     y: HUNTER_LODGE_POS.height + 0.2,
     z: HUNTER_LODGE_POS.z + 2.2,
@@ -593,7 +593,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   },
   ...HILL_WATCHTOWERS.map((hw) => ({
     id: `sleeping-bag-${hw.id}`,
-    name: 'Sleeping Bag',
+    name: t('beds.sleeping_bag'),
     x: hw.x + 1.85,
     y: hw.baseY + 0.22,
     z: hw.z - hw.doorSideLocalZ * 1.65,
@@ -609,7 +609,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     const pavBackZ = -171.5 + FZ;
     const backRow = [0, 1, 2, 3, 4].map((r) => ({
       id: `sleeping-bag-${sideKey}-pav-back-${r}`,
-      name: 'Sleeping Bag',
+      name: t('beds.sleeping_bag'),
       x: px + innerDir * (-2.6 + r * 2.1),
       y: pavFloor2Y,
       z: pavBackZ + 1.32,
@@ -618,7 +618,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     }));
     const sideRow = [0, 1, 2, 3].map((r) => ({
       id: `sleeping-bag-${sideKey}-pav-side-${r}`,
-      name: 'Sleeping Bag',
+      name: t('beds.sleeping_bag'),
       x: px + innerDir * 7.62,
       y: pavFloor2Y,
       z: pavCenterZ - 2.6 + r * 1.95,
