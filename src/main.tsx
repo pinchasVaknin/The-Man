@@ -10,7 +10,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { InfrastructureCorruptedException } from './core/AppException';
-import { ConsoleLogger } from './core/ILogger';
+import { createAppServices } from './app/compositionRoot';
+import { AppServicesProvider } from './app/AppServicesContext';
 import './index.css';
 // #endregion
 
@@ -21,9 +22,13 @@ if (!rootElement) {
     throw new InfrastructureCorruptedException("Root element '#root' was not found in document DOM.");
 }
 
+const appServices = createAppServices();
+
 createRoot(rootElement).render(
-    <ErrorBoundary logger={ConsoleLogger.instance}>
-        <App />
+    <ErrorBoundary logger={appServices.logger}>
+        <AppServicesProvider value={appServices}>
+            <App />
+        </AppServicesProvider>
     </ErrorBoundary>,
 );
 // #endregion

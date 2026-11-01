@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
-import { ConsoleLogger } from '../core/ILogger';
+import type { ILogger } from '../core/ILogger';
 import { validateGameSettings } from './persistedSettingsValidation';
 
 // #endregion
@@ -125,7 +125,7 @@ const STORAGE_KEY = 'the_man_game_settings_v1';
 /**
  * Summary: Loads active game settings by merging SAVED_GAME_SETTINGS with localStorage.
  */
-export function loadActiveGameSettings(): IGameSettingsConfig {
+export function loadActiveGameSettings(logger: ILogger): IGameSettingsConfig {
   if (typeof window === 'undefined') {
     return SAVED_GAME_SETTINGS;
   }
@@ -143,14 +143,14 @@ export function loadActiveGameSettings(): IGameSettingsConfig {
       },
     });
     if (merged.isFailure) {
-      ConsoleLogger.instance.warn('Stored game settings are invalid; using saved defaults', {
+      logger.warn('Stored game settings are invalid; using saved defaults', {
         errorCode: merged.error,
       });
       return SAVED_GAME_SETTINGS;
     }
     return merged.value;
   } catch (err: unknown) {
-    ConsoleLogger.instance.warn('Stored game settings could not be read; using saved defaults', {
+    logger.warn('Stored game settings could not be read; using saved defaults', {
       error: String(err),
     });
     return SAVED_GAME_SETTINGS;
@@ -161,14 +161,15 @@ export function loadActiveGameSettings(): IGameSettingsConfig {
  * Summary: Persists game settings to localStorage and writes directly to src/config/savedGameSettings.ts via Vite API.
  */
 export async function saveGameSettingsToFile(
-  settings: IGameSettingsConfig
+  settings: IGameSettingsConfig,
+  logger: ILogger
 ): Promise<{ savedToFile: boolean }> {
   if (typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (err: unknown) {
       // Storage can be full or disabled; the file save below can still succeed.
-      ConsoleLogger.instance.warn('Game settings could not be stored in localStorage', {
+      logger.warn('Game settings could not be stored in localStorage', {
         error: String(err),
       });
     }

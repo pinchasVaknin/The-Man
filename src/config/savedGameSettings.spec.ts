@@ -9,6 +9,7 @@
 import { afterEach, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadActiveGameSettings, SAVED_GAME_SETTINGS } from './savedGameSettings';
+import { NullLogger } from '../core/ILogger';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -32,7 +33,7 @@ test('loadActiveGameSettings_WhenStoredSettingsAreValid_ShouldApplyThem', () => 
   stubStoredSettings(JSON.stringify({ mouseSensitivity: 1.5 }));
 
   // Act
-  const settings = loadActiveGameSettings();
+  const settings = loadActiveGameSettings(NullLogger.instance);
 
   // Assert
   assert.equal(settings.mouseSensitivity, 1.5);
@@ -44,10 +45,9 @@ test('loadActiveGameSettings_WhenStoredSettingsAreValid_ShouldApplyThem', () => 
 test('loadActiveGameSettings_WhenStoredSettingsAreInvalid_ShouldReturnSavedDefaults', () => {
   // Arrange
   stubStoredSettings(JSON.stringify({ mouseSensitivity: 'fast', keybindings: { jump: 42 } }));
-  mock.method(console, 'warn', () => {});
 
   // Act
-  const settings = loadActiveGameSettings();
+  const settings = loadActiveGameSettings(NullLogger.instance);
 
   // Assert
   assert.deepEqual(settings, SAVED_GAME_SETTINGS);
@@ -56,10 +56,9 @@ test('loadActiveGameSettings_WhenStoredSettingsAreInvalid_ShouldReturnSavedDefau
 test('loadActiveGameSettings_WhenStoredSettingsAreNotJson_ShouldReturnSavedDefaults', () => {
   // Arrange
   stubStoredSettings('{not json');
-  mock.method(console, 'warn', () => {});
 
   // Act
-  const settings = loadActiveGameSettings();
+  const settings = loadActiveGameSettings(NullLogger.instance);
 
   // Assert
   assert.deepEqual(settings, SAVED_GAME_SETTINGS);
