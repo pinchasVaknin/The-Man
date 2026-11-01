@@ -452,6 +452,9 @@ export function buyMarketItem(
   if (!def) {
     return MarketTransactionResult.failure('ITEM_NOT_FOUND', { goldCoins: state.goldCoins ?? 0 });
   }
+  if (def.lootOnly) {
+    return MarketTransactionResult.failure('NOT_SOLD_BY_MERCHANTS', { goldCoins: state.goldCoins ?? 0 });
+  }
   if (!state.ownedItemIds) {
     state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
   }

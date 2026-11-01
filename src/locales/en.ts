@@ -512,6 +512,7 @@ export const en = {
       "NOT_OWNED": "Item not owned",
       "CANNOT_SELL": "Cannot sell this item",
       "CANNOT_SELL_STARTER_GEAR": "Cannot sell starter gear",
+      "NOT_SOLD_BY_MERCHANTS": "Only obtainable as loot",
       "GENERIC_ERROR": "Trade error"
     },
     "hud": {

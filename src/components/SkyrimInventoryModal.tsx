@@ -221,7 +221,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   });
 
   const merchantCatalogItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
-    if (item.id === 'unarmed') return false;
+    if (item.id === 'unarmed' || item.lootOnly) return false;
     if (merchantMarketCat === 'weapons') {
       return item.category === 'weapons' || item.category === 'ammo' || item.id === 'torch';
     }

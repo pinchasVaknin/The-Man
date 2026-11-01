@@ -586,7 +586,7 @@
       "file_type": "code",
       "norm_label": "iarrowprojectile",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L744"
+      "source_location": "L748"
     },
     {
       "id": "src_world_builders_colliderdebugbuilder_icolliderdebughandles",
@@ -612,7 +612,7 @@
       "file_type": "code",
       "norm_label": "iobstaclecylinder",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L276"
+      "source_location": "L280"
     },
     {
       "id": "src_world_domain_worldtypes_iweatherstatesnapshot",
@@ -625,7 +625,7 @@
       "file_type": "code",
       "norm_label": "iweatherstatesnapshot",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L508"
+      "source_location": "L512"
     },
     {
       "id": "src_world_domain_worldtypes_weathercyclemode",
@@ -638,7 +638,7 @@
       "file_type": "code",
       "norm_label": "weathercyclemode",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L489"
+      "source_location": "L493"
     },
     {
       "id": "src_world_models_architecturalhelpers_architecturalsharedassets",
@@ -1080,7 +1080,7 @@
       "file_type": "code",
       "norm_label": "idynamicatmospherestate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L436"
+      "source_location": "L440"
     },
     {
       "id": "public_models_animals_wolf_complete_wolf",
@@ -1431,7 +1431,7 @@
       "file_type": "code",
       "norm_label": "ibuymarketitempayload",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L785"
+      "source_location": "L790"
     },
     {
       "id": "src_world_domain_worldtypes_igameactions",
@@ -1444,7 +1444,7 @@
       "file_type": "code",
       "norm_label": "igameactions",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L810"
+      "source_location": "L815"
     },
     {
       "id": "src_world_domain_worldtypes_iinventoryitemdef",
@@ -1470,7 +1470,7 @@
       "file_type": "code",
       "norm_label": "isellmarketitempayload",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L795"
+      "source_location": "L800"
     },
     {
       "id": "src_world_domain_worldtypes_markettransactionerrorcode",
@@ -1483,7 +1483,7 @@
       "file_type": "code",
       "norm_label": "markettransactionerrorcode",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L771"
+      "source_location": "L775"
     },
     {
       "id": "src_world_domain_worldtypes_weathertoggleoption",
@@ -1496,7 +1496,7 @@
       "file_type": "code",
       "norm_label": "weathertoggleoption",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L495"
+      "source_location": "L499"
     },
     {
       "id": "src_locales_en_localeschema",
@@ -1509,7 +1509,7 @@
       "file_type": "code",
       "norm_label": "localeschema",
       "source_file": "src/locales/en.ts",
-      "source_location": "L821"
+      "source_location": "L822"
     },
     {
       "id": "src_locales_index_nestedkeyof",
@@ -2250,7 +2250,7 @@
       "file_type": "code",
       "norm_label": "archerytargetdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L726"
+      "source_location": "L730"
     },
     {
       "id": "src_world_domain_worldtypes_arrowtrailpoint",
@@ -2263,7 +2263,7 @@
       "file_type": "code",
       "norm_label": "arrowtrailpoint",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L738"
+      "source_location": "L742"
     },
     {
       "id": "src_world_domain_worldtypes_cameraperspectivemode",
@@ -2289,7 +2289,7 @@
       "file_type": "code",
       "norm_label": "characterskillsstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L270"
+      "source_location": "L274"
     },
     {
       "id": "src_world_domain_worldtypes_climbableladderinfo",
@@ -2302,7 +2302,7 @@
       "file_type": "code",
       "norm_label": "climbableladderinfo",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L676"
+      "source_location": "L680"
     },
     {
       "id": "src_world_domain_worldtypes_cornerwatchtowerdef",
@@ -2315,7 +2315,7 @@
       "file_type": "code",
       "norm_label": "cornerwatchtowerdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L657"
+      "source_location": "L661"
     },
     {
       "id": "src_world_domain_worldtypes_dwarvenguardianstatuedef",
@@ -2328,7 +2328,7 @@
       "file_type": "code",
       "norm_label": "dwarvenguardianstatuedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L600"
+      "source_location": "L604"
     },
     {
       "id": "src_world_domain_worldtypes_dwarvenminercaravanstate",
@@ -2341,7 +2341,7 @@
       "file_type": "code",
       "norm_label": "dwarvenminercaravanstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L638"
+      "source_location": "L642"
     },
     {
       "id": "src_world_domain_worldtypes_dwarvenstonehousedef",
@@ -2354,7 +2354,7 @@
       "file_type": "code",
       "norm_label": "dwarvenstonehousedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L620"
+      "source_location": "L624"
     },
     {
       "id": "src_world_domain_worldtypes_dynamicatmospherestate",
@@ -2367,7 +2367,7 @@
       "file_type": "code",
       "norm_label": "dynamicatmospherestate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L463"
+      "source_location": "L467"
     },
     {
       "id": "src_world_domain_worldtypes_fortressdoordef",
@@ -2380,7 +2380,7 @@
       "file_type": "code",
       "norm_label": "fortressdoordef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L694"
+      "source_location": "L698"
     },
     {
       "id": "src_world_domain_worldtypes_gameactions",
@@ -2393,7 +2393,7 @@
       "file_type": "code",
       "norm_label": "gameactions",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L819"
+      "source_location": "L824"
     },
     {
       "id": "src_world_domain_worldtypes_hillwatchtowerdef",
@@ -2406,7 +2406,7 @@
       "file_type": "code",
       "norm_label": "hillwatchtowerdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L583"
+      "source_location": "L587"
     },
     {
       "id": "src_world_domain_worldtypes_iarrowtrailpoint",
@@ -2419,7 +2419,7 @@
       "file_type": "code",
       "norm_label": "iarrowtrailpoint",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L732"
+      "source_location": "L736"
     },
     {
       "id": "src_world_domain_worldtypes_icharacterskillsstate",
@@ -2432,7 +2432,7 @@
       "file_type": "code",
       "norm_label": "icharacterskillsstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L250"
+      "source_location": "L254"
     },
     {
       "id": "src_world_domain_worldtypes_iclimbableladderinfo",
@@ -2445,7 +2445,7 @@
       "file_type": "code",
       "norm_label": "iclimbableladderinfo",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L663"
+      "source_location": "L667"
     },
     {
       "id": "src_world_domain_worldtypes_icornerwatchtowerdef",
@@ -2458,7 +2458,7 @@
       "file_type": "code",
       "norm_label": "icornerwatchtowerdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L644"
+      "source_location": "L648"
     },
     {
       "id": "src_world_domain_worldtypes_idwarvenguardianstatuedef",
@@ -2471,7 +2471,7 @@
       "file_type": "code",
       "norm_label": "idwarvenguardianstatuedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L589"
+      "source_location": "L593"
     },
     {
       "id": "src_world_domain_worldtypes_idwarvenminercaravanstate",
@@ -2484,7 +2484,7 @@
       "file_type": "code",
       "norm_label": "idwarvenminercaravanstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L626"
+      "source_location": "L630"
     },
     {
       "id": "src_world_domain_worldtypes_idwarvenstonehousedef",
@@ -2497,7 +2497,7 @@
       "file_type": "code",
       "norm_label": "idwarvenstonehousedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L606"
+      "source_location": "L610"
     },
     {
       "id": "src_world_domain_worldtypes_ifortressdoordef",
@@ -2510,7 +2510,7 @@
       "file_type": "code",
       "norm_label": "ifortressdoordef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L682"
+      "source_location": "L686"
     },
     {
       "id": "src_world_domain_worldtypes_ihillwatchtowerdef",
@@ -2523,7 +2523,7 @@
       "file_type": "code",
       "norm_label": "ihillwatchtowerdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L555"
+      "source_location": "L559"
     },
     {
       "id": "src_world_domain_worldtypes_imarkettransactionsuccess",
@@ -2536,7 +2536,7 @@
       "file_type": "code",
       "norm_label": "imarkettransactionsuccess",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L804"
+      "source_location": "L809"
     },
     {
       "id": "src_world_domain_worldtypes_inventoryitemdef",
@@ -2549,7 +2549,7 @@
       "file_type": "code",
       "norm_label": "inventoryitemdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L138"
+      "source_location": "L140"
     },
     {
       "id": "src_world_domain_worldtypes_inventoryitemid",
@@ -2575,7 +2575,7 @@
       "file_type": "code",
       "norm_label": "irideablehorsedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L399"
+      "source_location": "L403"
     },
     {
       "id": "src_world_domain_worldtypes_isolidbuildingbox",
@@ -2588,7 +2588,7 @@
       "file_type": "code",
       "norm_label": "isolidbuildingbox",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L700"
+      "source_location": "L704"
     },
     {
       "id": "src_world_domain_worldtypes_ivalleyfarmdef",
@@ -2601,7 +2601,7 @@
       "file_type": "code",
       "norm_label": "ivalleyfarmdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L536"
+      "source_location": "L540"
     },
     {
       "id": "src_world_domain_worldtypes_obstaclecylinder",
@@ -2614,7 +2614,7 @@
       "file_type": "code",
       "norm_label": "obstaclecylinder",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L284"
+      "source_location": "L288"
     },
     {
       "id": "src_world_domain_worldtypes_playerinput",
@@ -2627,7 +2627,7 @@
       "file_type": "code",
       "norm_label": "playerinput",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L390"
+      "source_location": "L394"
     },
     {
       "id": "src_world_domain_worldtypes_playerstate",
@@ -2640,7 +2640,7 @@
       "file_type": "code",
       "norm_label": "playerstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L372"
+      "source_location": "L376"
     },
     {
       "id": "src_world_domain_worldtypes_rideablehorsedef",
@@ -2653,7 +2653,7 @@
       "file_type": "code",
       "norm_label": "rideablehorsedef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L409"
+      "source_location": "L413"
     },
     {
       "id": "src_world_domain_worldtypes_rideablehorsestate",
@@ -2666,7 +2666,7 @@
       "file_type": "code",
       "norm_label": "rideablehorsestate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L427"
+      "source_location": "L431"
     },
     {
       "id": "src_world_domain_worldtypes_seasontype",
@@ -2679,7 +2679,7 @@
       "file_type": "code",
       "norm_label": "seasontype",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L471"
+      "source_location": "L475"
     },
     {
       "id": "src_world_domain_worldtypes_solidbuildingbox",
@@ -2692,7 +2692,7 @@
       "file_type": "code",
       "norm_label": "solidbuildingbox",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L709"
+      "source_location": "L713"
     },
     {
       "id": "src_world_domain_worldtypes_valleyfarmdef",
@@ -2705,7 +2705,7 @@
       "file_type": "code",
       "norm_label": "valleyfarmdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L549"
+      "source_location": "L553"
     },
     {
       "id": "src_world_domain_worldtypes_walkpacemode",
@@ -2731,7 +2731,7 @@
       "file_type": "code",
       "norm_label": "weatherkind",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L477"
+      "source_location": "L481"
     },
     {
       "id": "src_world_domain_worldtypes_weatherstatesnapshot",
@@ -2744,7 +2744,7 @@
       "file_type": "code",
       "norm_label": "weatherstatesnapshot",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L527"
+      "source_location": "L531"
     },
     {
       "id": "src_world_systems_playerphysicssystem_iskillaccessor",
@@ -2978,7 +2978,7 @@
       "file_type": "code",
       "norm_label": "irideablehorsestate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L415"
+      "source_location": "L419"
     },
     {
       "id": "src_world_models_environmentatmospheremodels_ianimateddeer",
@@ -3121,7 +3121,7 @@
       "file_type": "code",
       "norm_label": "iplayerstate",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L290"
+      "source_location": "L294"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_arrowequipmentstrategy",
@@ -3212,7 +3212,7 @@
       "file_type": "code",
       "norm_label": "iarcherytargetdef",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L718"
+      "source_location": "L722"
     },
     {
       "id": "src_world_systems_boidsandwildlifesystem_ismallanimalstate",
@@ -3238,7 +3238,7 @@
       "file_type": "code",
       "norm_label": "iswordslashhitresult",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L594"
+      "source_location": "L597"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_swordslashhitresult",
@@ -3251,7 +3251,7 @@
       "file_type": "code",
       "norm_label": "swordslashhitresult",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L603"
+      "source_location": "L606"
     },
     {
       "id": "public_models_animals_jaguar_complete_jaguar",
@@ -4239,7 +4239,7 @@
       "file_type": "code",
       "norm_label": "iplayerinput",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L378"
+      "source_location": "L382"
     },
     {
       "id": "src_world_systems_boidsandwildlifesystem_advanceanimalwithwatershorerecovery",
@@ -6459,7 +6459,7 @@
       "file_type": "code",
       "norm_label": "triggerswordslash()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L785"
+      "source_location": "L788"
     },
     {
       "id": "public_models_animals_wolf_complete_createreadywolf",
@@ -7167,7 +7167,7 @@
       "file_type": "code",
       "norm_label": "assignhotbarslot()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L551"
+      "source_location": "L554"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_buymarketitem",
@@ -7239,7 +7239,7 @@
       "file_type": "code",
       "norm_label": "sellmarketitem()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L491"
+      "source_location": "L494"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_spec_createmarketeligibleplayer",
@@ -7263,7 +7263,7 @@
       "file_type": "code",
       "norm_label": "togglefavoriteitem()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L574"
+      "source_location": "L577"
     },
     {
       "id": "src_world_systems_playerphysicssystem_createinitialplayerstate",
@@ -8751,7 +8751,7 @@
       "file_type": "code",
       "norm_label": "createcatalogitem()",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L140"
+      "source_location": "L142"
     },
     {
       "id": "src_core_config_clamp",
@@ -9315,7 +9315,7 @@
       "file_type": "code",
       "norm_label": "evaluateswordstrikewindowhit()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L616"
+      "source_location": "L619"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_getarrowkindlabel",
@@ -9387,7 +9387,7 @@
       "file_type": "code",
       "norm_label": "spawnarrowprojectile()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L887"
+      "source_location": "L890"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_steparrowsphysics",
@@ -9399,7 +9399,7 @@
       "file_type": "code",
       "norm_label": "steparrowsphysics()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L954"
+      "source_location": "L957"
     },
     {
       "id": "src_world_systems_combatandinventorysystem_stepswordswingcombat",
@@ -9411,7 +9411,7 @@
       "file_type": "code",
       "norm_label": "stepswordswingcombat()",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L832"
+      "source_location": "L835"
     },
     {
       "id": "src_world_systems_playerphysicssystem_awardskillxp",
@@ -13880,7 +13880,7 @@
       "file_type": "code",
       "norm_label": "first_market_catalog_item",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L240"
+      "source_location": "L244"
     },
     {
       "id": "src_world_domain_worldtypes_inventory_item_map",
@@ -13891,7 +13891,7 @@
       "file_type": "code",
       "norm_label": "inventory_item_map",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L230"
+      "source_location": "L234"
     },
     {
       "id": "src_world_domain_worldtypes_inventory_items",
@@ -13902,7 +13902,7 @@
       "file_type": "code",
       "norm_label": "inventory_items",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L177"
+      "source_location": "L181"
     },
     {
       "id": "readme",
@@ -14715,7 +14715,7 @@
       "file_type": "code",
       "norm_label": "default_starter_owned_item_ids",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L235"
+      "source_location": "L239"
     },
     {
       "id": "src_core_config",
@@ -24972,7 +24972,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L152",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -27024,7 +27024,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L461",
+      "source_location": "L464",
       "weight": 1.0
     },
     {
@@ -27036,7 +27036,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L476",
+      "source_location": "L479",
       "weight": 1.0
     },
     {
@@ -27048,7 +27048,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L478",
+      "source_location": "L481",
       "weight": 1.0
     },
     {
@@ -27072,7 +27072,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L648",
+      "source_location": "L651",
       "weight": 1.0
     },
     {
@@ -27084,7 +27084,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L655",
+      "source_location": "L658",
       "weight": 1.0
     },
     {
@@ -27096,7 +27096,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L658",
+      "source_location": "L661",
       "weight": 1.0
     },
     {
@@ -27108,7 +27108,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L665",
+      "source_location": "L668",
       "weight": 1.0
     },
     {
@@ -27120,7 +27120,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L720",
+      "source_location": "L723",
       "weight": 1.0
     },
     {
@@ -27132,7 +27132,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L740",
+      "source_location": "L743",
       "weight": 1.0
     },
     {
@@ -27144,7 +27144,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L760",
+      "source_location": "L763",
       "weight": 1.0
     },
     {
@@ -27216,7 +27216,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L495",
+      "source_location": "L498",
       "weight": 1.0
     },
     {
@@ -27228,7 +27228,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L497",
+      "source_location": "L500",
       "weight": 1.0
     },
     {
@@ -27240,7 +27240,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L525",
+      "source_location": "L528",
       "weight": 1.0
     },
     {
@@ -27252,7 +27252,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L534",
+      "source_location": "L537",
       "weight": 1.0
     },
     {
@@ -27264,7 +27264,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L537",
+      "source_location": "L540",
       "weight": 1.0
     },
     {
@@ -27300,7 +27300,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L892",
+      "source_location": "L895",
       "weight": 1.0
     },
     {
@@ -27324,7 +27324,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L1000",
+      "source_location": "L1003",
       "weight": 1.0
     },
     {
@@ -27336,7 +27336,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L1043",
+      "source_location": "L1046",
       "weight": 1.0
     },
     {
@@ -27348,7 +27348,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L1106",
+      "source_location": "L1109",
       "weight": 1.0
     },
     {
@@ -27360,7 +27360,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L1144",
+      "source_location": "L1147",
       "weight": 1.0
     },
     {
@@ -27372,7 +27372,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L1174",
+      "source_location": "L1177",
       "weight": 1.0
     },
     {
@@ -27384,7 +27384,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L969",
+      "source_location": "L972",
       "weight": 1.0
     },
     {
@@ -27396,7 +27396,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L861",
+      "source_location": "L864",
       "weight": 1.0
     },
     {
@@ -27408,7 +27408,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L804",
+      "source_location": "L807",
       "weight": 1.0
     },
     {
@@ -27420,7 +27420,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L820",
+      "source_location": "L823",
       "weight": 1.0
     },
     {
@@ -29979,7 +29979,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L812",
+      "source_location": "L817",
       "weight": 1.0
     },
     {
@@ -30135,7 +30135,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L598",
+      "source_location": "L601",
       "weight": 1.0
     },
     {
@@ -30147,7 +30147,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L599",
+      "source_location": "L602",
       "weight": 1.0
     },
     {
@@ -53500,7 +53500,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/locales/en.ts",
-      "source_location": "L821",
+      "source_location": "L822",
       "weight": 1.0
     },
     {
@@ -54699,7 +54699,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L138",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -54710,7 +54710,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L140",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -54721,7 +54721,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L177",
+      "source_location": "L181",
       "weight": 1.0
     },
     {
@@ -54743,7 +54743,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L230",
+      "source_location": "L234",
       "weight": 1.0
     },
     {
@@ -54754,7 +54754,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L235",
+      "source_location": "L239",
       "weight": 1.0
     },
     {
@@ -54765,7 +54765,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L240",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -54776,7 +54776,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L250",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -54787,7 +54787,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L270",
+      "source_location": "L274",
       "weight": 1.0
     },
     {
@@ -54798,7 +54798,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L276",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -54809,7 +54809,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L284",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -54820,7 +54820,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L290",
+      "source_location": "L294",
       "weight": 1.0
     },
     {
@@ -54831,7 +54831,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L372",
+      "source_location": "L376",
       "weight": 1.0
     },
     {
@@ -54842,7 +54842,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L378",
+      "source_location": "L382",
       "weight": 1.0
     },
     {
@@ -54853,7 +54853,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L390",
+      "source_location": "L394",
       "weight": 1.0
     },
     {
@@ -54864,18 +54864,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L399",
-      "weight": 1.0
-    },
-    {
-      "source": "src_world_domain_worldtypes",
-      "target": "src_world_domain_worldtypes_rideablehorsedef",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L409",
+      "source_location": "L403",
       "weight": 1.0
     },
     {
@@ -54891,13 +54880,24 @@
     },
     {
       "source": "src_world_domain_worldtypes",
+      "target": "src_world_domain_worldtypes_rideablehorsedef",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/world/domain/worldTypes.ts",
+      "source_location": "L413",
+      "weight": 1.0
+    },
+    {
+      "source": "src_world_domain_worldtypes",
       "target": "src_world_domain_worldtypes_irideablehorsestate",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L415",
+      "source_location": "L419",
       "weight": 1.0
     },
     {
@@ -54908,7 +54908,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L427",
+      "source_location": "L431",
       "weight": 1.0
     },
     {
@@ -54919,7 +54919,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L436",
+      "source_location": "L440",
       "weight": 1.0
     },
     {
@@ -54930,7 +54930,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L463",
+      "source_location": "L467",
       "weight": 1.0
     },
     {
@@ -54952,7 +54952,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L471",
+      "source_location": "L475",
       "weight": 1.0
     },
     {
@@ -54963,7 +54963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L477",
+      "source_location": "L481",
       "weight": 1.0
     },
     {
@@ -54974,7 +54974,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L489",
+      "source_location": "L493",
       "weight": 1.0
     },
     {
@@ -54985,7 +54985,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L495",
+      "source_location": "L499",
       "weight": 1.0
     },
     {
@@ -54996,18 +54996,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L508",
-      "weight": 1.0
-    },
-    {
-      "source": "src_world_domain_worldtypes",
-      "target": "src_world_domain_worldtypes_weatherstatesnapshot",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L527",
+      "source_location": "L512",
       "weight": 1.0
     },
     {
@@ -55023,13 +55012,24 @@
     },
     {
       "source": "src_world_domain_worldtypes",
+      "target": "src_world_domain_worldtypes_weatherstatesnapshot",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/world/domain/worldTypes.ts",
+      "source_location": "L531",
+      "weight": 1.0
+    },
+    {
+      "source": "src_world_domain_worldtypes",
       "target": "src_world_domain_worldtypes_ivalleyfarmdef",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L536",
+      "source_location": "L540",
       "weight": 1.0
     },
     {
@@ -55040,7 +55040,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L549",
+      "source_location": "L553",
       "weight": 1.0
     },
     {
@@ -55051,7 +55051,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L555",
+      "source_location": "L559",
       "weight": 1.0
     },
     {
@@ -55062,18 +55062,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L583",
-      "weight": 1.0
-    },
-    {
-      "source": "src_world_domain_worldtypes",
-      "target": "src_world_domain_worldtypes_idwarvenguardianstatuedef",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L589",
+      "source_location": "L587",
       "weight": 1.0
     },
     {
@@ -55089,13 +55078,24 @@
     },
     {
       "source": "src_world_domain_worldtypes",
+      "target": "src_world_domain_worldtypes_idwarvenguardianstatuedef",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/world/domain/worldTypes.ts",
+      "source_location": "L593",
+      "weight": 1.0
+    },
+    {
+      "source": "src_world_domain_worldtypes",
       "target": "src_world_domain_worldtypes_dwarvenguardianstatuedef",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L600",
+      "source_location": "L604",
       "weight": 1.0
     },
     {
@@ -55106,7 +55106,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L606",
+      "source_location": "L610",
       "weight": 1.0
     },
     {
@@ -55117,7 +55117,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L620",
+      "source_location": "L624",
       "weight": 1.0
     },
     {
@@ -55128,7 +55128,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L626",
+      "source_location": "L630",
       "weight": 1.0
     },
     {
@@ -55139,7 +55139,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L638",
+      "source_location": "L642",
       "weight": 1.0
     },
     {
@@ -55150,7 +55150,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L644",
+      "source_location": "L648",
       "weight": 1.0
     },
     {
@@ -55172,7 +55172,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L657",
+      "source_location": "L661",
       "weight": 1.0
     },
     {
@@ -55183,7 +55183,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L663",
+      "source_location": "L667",
       "weight": 1.0
     },
     {
@@ -55194,7 +55194,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L676",
+      "source_location": "L680",
       "weight": 1.0
     },
     {
@@ -55205,7 +55205,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L682",
+      "source_location": "L686",
       "weight": 1.0
     },
     {
@@ -55216,7 +55216,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L694",
+      "source_location": "L698",
       "weight": 1.0
     },
     {
@@ -55227,7 +55227,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L700",
+      "source_location": "L704",
       "weight": 1.0
     },
     {
@@ -55238,7 +55238,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L709",
+      "source_location": "L713",
       "weight": 1.0
     },
     {
@@ -55249,7 +55249,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L718",
+      "source_location": "L722",
       "weight": 1.0
     },
     {
@@ -55260,7 +55260,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L726",
+      "source_location": "L730",
       "weight": 1.0
     },
     {
@@ -55271,7 +55271,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L732",
+      "source_location": "L736",
       "weight": 1.0
     },
     {
@@ -55282,7 +55282,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L738",
+      "source_location": "L742",
       "weight": 1.0
     },
     {
@@ -55293,7 +55293,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L744",
+      "source_location": "L748",
       "weight": 1.0
     },
     {
@@ -55304,7 +55304,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L771",
+      "source_location": "L775",
       "weight": 1.0
     },
     {
@@ -55315,7 +55315,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L785",
+      "source_location": "L790",
       "weight": 1.0
     },
     {
@@ -55326,7 +55326,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L795",
+      "source_location": "L800",
       "weight": 1.0
     },
     {
@@ -55337,7 +55337,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L804",
+      "source_location": "L809",
       "weight": 1.0
     },
     {
@@ -55348,7 +55348,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L810",
+      "source_location": "L815",
       "weight": 1.0
     },
     {
@@ -55359,7 +55359,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/domain/worldTypes.ts",
-      "source_location": "L819",
+      "source_location": "L824",
       "weight": 1.0
     },
     {
@@ -56822,7 +56822,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L491",
+      "source_location": "L494",
       "weight": 1.0
     },
     {
@@ -56855,7 +56855,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L551",
+      "source_location": "L554",
       "weight": 1.0
     },
     {
@@ -56866,7 +56866,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L574",
+      "source_location": "L577",
       "weight": 1.0
     },
     {
@@ -56877,7 +56877,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L594",
+      "source_location": "L597",
       "weight": 1.0
     },
     {
@@ -56888,7 +56888,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L603",
+      "source_location": "L606",
       "weight": 1.0
     },
     {
@@ -56899,7 +56899,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L616",
+      "source_location": "L619",
       "weight": 1.0
     },
     {
@@ -56921,7 +56921,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L785",
+      "source_location": "L788",
       "weight": 1.0
     },
     {
@@ -56932,7 +56932,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L832",
+      "source_location": "L835",
       "weight": 1.0
     },
     {
@@ -56954,7 +56954,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L887",
+      "source_location": "L890",
       "weight": 1.0
     },
     {
@@ -56976,7 +56976,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/world/systems/combatAndInventorySystem.ts",
-      "source_location": "L954",
+      "source_location": "L957",
       "weight": 1.0
     },
     {
@@ -62952,5 +62952,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "1a254a885864b6c99600f69ee9ccb82d6e8e2605"
+  "built_at_commit": "88b88646aa3189686f06b2c569709c59d30419ea"
 }

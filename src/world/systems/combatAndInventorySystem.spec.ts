@@ -229,6 +229,30 @@ test('buyMarketItem_WhenOutsideMarketStall_ShouldReturnFailedResultWithNotInMark
   assert.equal(result.error, 'NOT_IN_MARKET');
 });
 
+test('buyMarketItem_WhenItemIsLootOnly_ShouldReturnFailedResultWithNotSoldByMerchants', () => {
+  // Arrange
+  const player = createMarketEligiblePlayer();
+  const initialGold = player.goldCoins;
+
+  // Act
+  const result = buyMarketItem(player, 'dragon_scales');
+
+  // Assert
+  assert.equal(result.error, 'NOT_SOLD_BY_MERCHANTS');
+  assert.equal(player.goldCoins, initialGold);
+});
+
+test('INVENTORY_ITEMS_WhenDragonLootListed_ShouldAllBeMarkedLootOnly', () => {
+  // Arrange
+  const dragonLootIds = ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'] as const;
+
+  // Act
+  const lootOnlyFlags = dragonLootIds.map((itemId) => INVENTORY_ITEM_MAP.get(itemId)?.lootOnly);
+
+  // Assert
+  assert.deepEqual(lootOnlyFlags, [true, true, true, true, true]);
+});
+
 test('buyMarketItem_WhenHeroLevelIsTooLow_ShouldReturnFailedResultWithLevelTooLow', () => {
   // Arrange
   const player = createMarketEligiblePlayer(); // Hero Level 1
