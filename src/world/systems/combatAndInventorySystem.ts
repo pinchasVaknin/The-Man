@@ -94,6 +94,17 @@ export function getArrowKindLabel(kind: ArrowElementKind = 'normal'): string {
 export function getMarketSellPrice(item: IInventoryItemDef): number {
   return Math.max(MARKET_MIN_SELL_PRICE, Math.round(item.valueGold * MARKET_SELL_RATIO));
 }
+
+/**
+ * Summary: Tells the UI whether selling this item needs an explicit "are you sure" step.
+ * Design: Loot-only items (dragon parts) cannot be bought back from any merchant, so a
+ *         mis-click would lose them for good; regular stock can be re-bought.
+ * @param itemId Identifier of the item the player is about to sell.
+ * @returns true for loot-only catalog items; false for everything else, including unknown ids.
+ */
+export function requiresSellConfirmation(itemId: InventoryItemId): boolean {
+  return INVENTORY_ITEM_MAP.get(itemId)?.lootOnly === true;
+}
 // #endregion
 
 

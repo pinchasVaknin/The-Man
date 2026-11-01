@@ -500,7 +500,11 @@ export const en = {
     "purchased_success": "Purchased",
     "sold_success": "Sold (+{gold} Gold)",
     "assign_hotbar_slot": "Assign Hotbar Slot {slot}",
-    "assign_hotbar_slot_short": "Slot {slot}"
+    "assign_hotbar_slot_short": "Slot {slot}",
+    "rare_sale_title": "Sell a rare item?",
+    "rare_sale_body": "{item} can only be obtained as loot and no merchant sells it. Sell it for {price} Gold?",
+    "rare_sale_confirm": "Sell",
+    "rare_sale_cancel": "Keep it"
   },
   "market": {
     "errors": {
