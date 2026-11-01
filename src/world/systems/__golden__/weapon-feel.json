@@ -1,0 +1,98 @@
+[
+ {
+  "block": 0,
+  "draw": 0.192308,
+  "frame": 9,
+  "kick": 0,
+  "swayX": -0.080099,
+  "swayY": -0.10999
+ },
+ {
+  "block": 0,
+  "draw": 0.416667,
+  "frame": 19,
+  "kick": 0,
+  "swayX": -0.025237,
+  "swayY": 0.017191
+ },
+ {
+  "block": 0,
+  "draw": 0.641026,
+  "frame": 29,
+  "kick": 0,
+  "swayX": 0.074869,
+  "swayY": 0.053279
+ },
+ {
+  "block": 0,
+  "draw": 0.833333,
+  "frame": 39,
+  "kick": 0,
+  "swayX": -0.044565,
+  "swayY": 0.077286
+ },
+ {
+  "block": 0,
+  "draw": 1,
+  "frame": 49,
+  "kick": 0,
+  "swayX": -0.039916,
+  "swayY": -0.118631
+ },
+ {
+  "block": 0,
+  "draw": 0.166667,
+  "frame": 59,
+  "kick": 0.404762,
+  "swayX": 0.077176,
+  "swayY": 0.044588
+ },
+ {
+  "block": 0,
+  "draw": 0,
+  "frame": 69,
+  "kick": 0,
+  "swayX": -0.024492,
+  "swayY": 0.02911
+ },
+ {
+  "block": 0.903028,
+  "draw": 0,
+  "frame": 79,
+  "kick": 0,
+  "swayX": -0.056842,
+  "swayY": 0.10053
+ },
+ {
+  "block": 0.990596,
+  "draw": 0,
+  "frame": 89,
+  "kick": 0,
+  "swayX": 0.071787,
+  "swayY": -0.132357
+ },
+ {
+  "block": 0.999088,
+  "draw": 0,
+  "frame": 99,
+  "kick": 0,
+  "swayX": -0.00291,
+  "swayY": 0.054326
+ },
+ {
+  "block": 0.096884,
+  "draw": 0,
+  "frame": 109,
+  "kick": 0,
+  "swayX": -0.069366,
+  "swayY": 0.021296
+ },
+ {
+  "block": 0.009395,
+  "draw": 0,
+  "frame": 119,
+  "kick": 0,
+  "swayX": 0.060642,
+  "swayY": 0.102055
+ }
+]

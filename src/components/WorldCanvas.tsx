@@ -78,6 +78,15 @@ import {
   writeTitleOrbitPose,
   type ICameraPose,
 } from '../world/systems/cameraRigSystem';
+import {
+  advanceSleepClock,
+  advanceWorldClock,
+  isSleepingAllowedAt,
+  PLAY_CLOCK_HOURS_PER_SECOND,
+  TITLE_CLOCK_HOURS_PER_SECOND,
+} from '../world/systems/worldClockSystem';
+import { stepBowFeel, stepMeleeFeelAndSway } from '../world/systems/weaponFeelSystem';
+import { readMovementAxes, type IMovementAxes } from '../world/controllers/movementIntent';
 import { isBindingHeld, matchesKeyBinding } from '../config/keyBindingMatch';
 import {
   SAVED_GAME_SETTINGS,
@@ -390,6 +399,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let landingDip = 0;
     let lastThunderTime = -10;
     const cameraRig = createCameraRigState();
+    const movementAxes: IMovementAxes = { forward: 0, right: 0 };
     const cameraPose = createCameraPose();
     let isSwordAttackHeld = false;
     let swordHoldDuration = 0;
@@ -926,7 +936,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
       if (gameStateRef.current === 'title') {
         elapsedTotal += rawDt;
-        worldHours = (worldHours + rawDt * 0.022) % 24;
+        worldHours = advanceWorldClock(worldHours, rawDt, TITLE_CLOCK_HOURS_PER_SECOND);
         currentWeather = computeWeatherState(
           elapsedTotal + seasonTimeOffset,
           camera.position.x,
@@ -964,14 +974,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             playerState.vy = 0;
             playerState.vz = 0;
           }
-          const prevH = worldHours;
-          const stepH = rawDt * 7.5;
-          const nextH = (prevH + stepH) % 24;
-          const crossedMorning =
-            (prevH < 6.5 && prevH + stepH >= 6.5) ||
-            (prevH >= 18.0 && prevH + stepH >= 24 + 6.5);
-          if (crossedMorning) {
-            worldHours = 6.5;
+          const sleepClock = advanceSleepClock(worldHours, rawDt);
+          worldHours = sleepClock.hours;
+          if (sleepClock.hasReachedMorning) {
             isSleepingInBed = false;
             playerState.pitch = 0;
             if (preSleepPlayerPos) {
@@ -985,12 +990,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             lastLootNotification = t('notifications.awoke');
             lastLootNotificationTimer = 3.5;
             emitHudSnapshot();
-          } else {
-            worldHours = nextH;
           }
         } else {
-          // Slow, natural continuous 24h day & night solar/lunar cycle + Seasonal Weather cycle
-          worldHours = (worldHours + rawDt * 0.028) % 24;
+          worldHours = advanceWorldClock(worldHours, rawDt, PLAY_CLOCK_HOURS_PER_SECOND);
         }
         currentWeather = computeWeatherState(
           elapsedTotal + seasonTimeOffset,
@@ -1012,14 +1014,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         const kb = gameSettingsRef.current.keybindings;
         const spdMult = gameSettingsRef.current.walkSpeedMultiplier ?? 1.0;
-        let forward = virtualMoveRef.current.forward;
-        let right = virtualMoveRef.current.right;
-        if (document.body.dataset.skyrimModalOpen !== 'true') {
-          if (keysPressed.has(kb.moveForward) || keysPressed.has('ArrowUp')) forward += 1;
-          if (keysPressed.has(kb.moveBackward) || keysPressed.has('ArrowDown')) forward -= 1;
-          if (keysPressed.has(kb.moveRight) || keysPressed.has('ArrowRight')) right += 1;
-          if (keysPressed.has(kb.moveLeft) || keysPressed.has('ArrowLeft')) right -= 1;
-        }
+        readMovementAxes(
+          keysPressed,
+          kb,
+          virtualMoveRef.current,
+          document.body.dataset.skyrimModalOpen === 'true',
+          movementAxes
+        );
+        const { forward, right } = movementAxes;
         if (isSleepingInBed && (Math.abs(forward) > 0.1 || Math.abs(right) > 0.1)) {
           isSleepingInBed = false;
           playerState.pitch = 0;
@@ -1055,7 +1057,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                   isPredatorSpecies(a.species) &&
                   Math.hypot(a.x - playerState.x, a.z - playerState.z) < 24.0
               );
-              const isNightTime = worldHours >= 18.5 || worldHours < 5.8;
+              const isNightTime = isSleepingAllowedAt(worldHours);
               if (dangerNearby) {
                 lastLootNotification = t('notifications.sleep_danger');
                 lastLootNotificationTimer = 3.2;
@@ -1113,19 +1115,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
         }
 
-        // Update Bow Draw Tension Progress (0 -> 1 over 0.52s)
-        if (playerState.bowDrawn) {
-          if (keysPressed.has(kb.drawOrSlash) || isMouseBowHeld || virtualMoveRef.current.drawBow) {
-            playerState.bowDrawProgress = Math.min(1.0, playerState.bowDrawProgress + rawDt / 0.52);
-          }
-        } else {
-          playerState.bowDrawProgress = Math.max(0, playerState.bowDrawProgress - rawDt * 5.0);
-        }
-
-        // Update Bow Release Recoil Kick (1 -> 0 over 0.28s)
-        if ((playerState.bowReleaseKick ?? 0) > 0) {
-          playerState.bowReleaseKick = Math.max(0, (playerState.bowReleaseKick ?? 0) - rawDt / 0.28);
-        }
+        stepBowFeel(
+          playerState,
+          rawDt,
+          keysPressed.has(kb.drawOrSlash) || isMouseBowHeld || Boolean(virtualMoveRef.current.drawBow)
+        );
 
         // Update Long-Press Sword Power Attack Charge (holding Left-Click or [R] >= 0.24s triggers Heavy Forward Air-Cleaving Attack!)
         if (isSwordAttackHeld && !playerState.isSwimming && playerState.equippedTool === 'sword') {
@@ -1148,41 +1142,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             handleSwordStrikeImpactFeedback(strikeWindowRes);
           }
         }
-        const targetBlock =
-          !playerState.isSwimming &&
-          playerState.equippedTool === 'sword' &&
-          Boolean(playerState.swordBlocking)
-            ? 1.0
-            : 0.0;
-        playerState.swordBlockProgress =
-          (playerState.swordBlockProgress ?? 0) +
-          (targetBlock - (playerState.swordBlockProgress ?? 0)) * (1 - Math.exp(-14 * rawDt));
-
-        // Age active Sword Clash Spark burst (0.45s lifetime) & Forward Air-Slash Wave (0.48s lifetime)
-        if (playerState.lastSwordHitPoint) {
-          playerState.lastSwordHitPoint.age += rawDt;
-          if (playerState.lastSwordHitPoint.age > 0.45) {
-            playerState.lastSwordHitPoint = null;
-          }
-        }
-        if (playerState.lastSwordAirWave) {
-          playerState.lastSwordAirWave.age += rawDt;
-          if (playerState.lastSwordAirWave.age > 0.48) {
-            playerState.lastSwordAirWave = null;
-          }
-        }
-
-        // Smooth First-Person Weapon Inertia (Mouse-Look Lag + Vertical Jump/Fall Momentum)
-        const targetSwayX = Math.max(-0.045, Math.min(0.045, -accumYawDelta * 0.65));
-        const targetSwayY = Math.max(
-          -0.045,
-          Math.min(0.045, -accumPitchDelta * 0.65 - playerState.vy * 0.0045 + landingDip * 0.14)
-        );
-        const swayDamp = 1 - Math.exp(-12 * rawDt);
-        playerState.weaponSwayX =
-          ((playerState.weaponSwayX ?? 0) + targetSwayX) * (1 - swayDamp * 0.65);
-        playerState.weaponSwayY =
-          ((playerState.weaponSwayY ?? 0) + targetSwayY) * (1 - swayDamp * 0.65);
+        stepMeleeFeelAndSway(playerState, {
+          dt: rawDt,
+          lookYawDelta: accumYawDelta,
+          lookPitchDelta: accumPitchDelta,
+          landingDip,
+        });
 
         // Step active 3D Arrows in flight
         if (activeArrows.length > 0) {

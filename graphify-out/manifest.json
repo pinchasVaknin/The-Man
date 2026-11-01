@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793556563.0846412,
-    "seen": 1793557131.9032679,
-    "ast_hash": "4f522df99f584d3cbbcf1f87d1aadc48",
+    "mtime": 1793557254.8462124,
+    "seen": 1793557326.4394803,
+    "ast_hash": "4aa6b624446afe96a7ce6ec3e2830448",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -855,6 +855,48 @@
     "mtime": 1793556491.6186578,
     "seen": 1793557131.903384,
     "ast_hash": "406e3ceedaa147d6fb6d6e7f47c4903d",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/movementIntent.spec.ts": {
+    "mtime": 1793557190.421008,
+    "seen": 1793557326.4395735,
+    "ast_hash": "92cb47f37e702cf5565c4c4f0159659d",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/movementIntent.ts": {
+    "mtime": 1793557190.4028878,
+    "seen": 1793557326.4395754,
+    "ast_hash": "29f05d44c38f5d26b69e094f5ba39596",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__golden__/weapon-feel.json": {
+    "mtime": 1793557270.1533418,
+    "seen": 1793557326.4396749,
+    "ast_hash": "2c6a41293659964bea66b282eb3ca97c",
+    "semantic_hash": ""
+  },
+  "src/world/systems/weaponFeelSystem.spec.ts": {
+    "mtime": 1793557254.783194,
+    "seen": 1793557326.4397185,
+    "ast_hash": "e8c4181a331544770f6fc876e777946c",
+    "semantic_hash": ""
+  },
+  "src/world/systems/weaponFeelSystem.ts": {
+    "mtime": 1793557231.8197608,
+    "seen": 1793557326.43972,
+    "ast_hash": "5e637cf8f416c849b7364b98fe085fa1",
+    "semantic_hash": ""
+  },
+  "src/world/systems/worldClockSystem.spec.ts": {
+    "mtime": 1793557190.3708148,
+    "seen": 1793557326.4397235,
+    "ast_hash": "98b3ea1066b515cd1f29de327e2efc11",
+    "semantic_hash": ""
+  },
+  "src/world/systems/worldClockSystem.ts": {
+    "mtime": 1793557190.3541942,
+    "seen": 1793557326.4397252,
+    "ast_hash": "88b9f85819446ae069aa5beb99a3d1f7",
     "semantic_hash": ""
   }
 }
