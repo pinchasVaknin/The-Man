@@ -462,21 +462,21 @@
     "semantic_hash": ""
   },
   "src/lab/CharacterLabView.tsx": {
-    "mtime": 1793478752.7189593,
-    "seen": 1793537725.9239738,
-    "ast_hash": "37f82ab884907251fabe566f68057688",
+    "mtime": 1793539696.722128,
+    "seen": 1793539737.3356364,
+    "ast_hash": "d7e2fdfb24632ff3e657eb14746d45fd",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.test.ts": {
-    "mtime": 1793532546.3121798,
-    "seen": 1793537725.923975,
-    "ast_hash": "fcc5b4d7600dd590a9aaf2af18fdebf0",
+    "mtime": 1793539651.6479547,
+    "seen": 1793539737.3356378,
+    "ast_hash": "c5167dac593a22de644ff8a22fdfd01d",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.ts": {
-    "mtime": 1793478752.7212174,
-    "seen": 1793537725.9239757,
-    "ast_hash": "a8b232ea53adc8e9d830a7c7e86673ee",
+    "mtime": 1793539613.9049637,
+    "seen": 1793539737.3356385,
+    "ast_hash": "2514a8f55f54ceb3c1831fd7b4a77fc9",
     "semantic_hash": ""
   },
   "src/lab/labModelFactory.ts": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793539295.9288487,
-    "seen": 1793539338.8596325,
-    "ast_hash": "5e51b71ce3a86e2cb4cb4dd6a65bb8f7",
+    "mtime": 1793539613.9893074,
+    "seen": 1793539737.3356407,
+    "ast_hash": "5bb8dd1303f9d79aa0568c26070d7b38",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {

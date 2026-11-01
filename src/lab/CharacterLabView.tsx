@@ -31,6 +31,7 @@ import {
 } from './labCatalog';
 import { CharacterLabCanvas } from './CharacterLabCanvas';
 import { SAVED_LAB_OVERRIDES } from '../config/savedLabOverrides';
+import { t } from '../locales';
 
 export interface ICharacterLabViewProps {
   readonly onClose: () => void;
@@ -39,17 +40,17 @@ export interface ICharacterLabViewProps {
 const SPEED_OPTIONS: readonly number[] = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const CAMERA_PRESETS: readonly { id: LabCameraPreset; labelHe: string }[] = [
-  { id: 'angle', labelHe: 'תלת־ממד' },
-  { id: 'front', labelHe: 'חזית' },
-  { id: 'side', labelHe: 'צד' },
-  { id: 'back', labelHe: 'גב' },
-  { id: 'closeup', labelHe: 'תקריב' },
+  { id: 'angle', labelHe: t('lab.view.camera_angle') },
+  { id: 'front', labelHe: t('lab.view.camera_front') },
+  { id: 'side', labelHe: t('lab.view.camera_side') },
+  { id: 'back', labelHe: t('lab.view.camera_back') },
+  { id: 'closeup', labelHe: t('lab.view.camera_closeup') },
 ];
 
 const ENVIRONMENT_PRESETS: readonly { id: LabStageEnvironment; labelHe: string }[] = [
-  { id: 'studio_day', labelHe: 'אולפן יום' },
-  { id: 'golden_sunset', labelHe: 'שקיעה זהובה' },
-  { id: 'moonlit_night', labelHe: 'לילה וירח' },
+  { id: 'studio_day', labelHe: t('lab.view.env_studio_day') },
+  { id: 'golden_sunset', labelHe: t('lab.view.env_golden_sunset') },
+  { id: 'moonlit_night', labelHe: t('lab.view.env_moonlit_night') },
 ];
 
 export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) => {
@@ -353,7 +354,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       {/* TOP STUDIO HEADER BAR                                                */}
       {/* ==================================================================== */}
       <header
-        dir="rtl"
         className="h-14 px-5 flex items-center justify-between border-b border-stone-800/90 bg-[#121620] shrink-0"
       >
         <div className="flex items-center gap-3.5">
@@ -366,14 +366,14 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="font-display-he text-lg font-bold text-stone-100 tracking-tight">
-                מעבדת הדמויות והאנימציות
+                {t('lab.view.title')}
               </h1>
               <span className="px-2 py-0.5 text-[11px] font-medium rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                {categoryCounts.characters} דמויות · {categoryCounts.animals} חיות
+                {t('lab.view.category_counts', { characters: categoryCounts.characters, animals: categoryCounts.animals })}
               </span>
             </div>
             <p className="text-xs text-stone-400">
-              בחינה אינטראקטיבית של כל הדמויות והחיות הקיימות בעולם, האנימציות והסקינים שלהן
+              {t('lab.view.subtitle')}
             </p>
           </div>
         </div>
@@ -414,10 +414,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
           >
             <span>
               {saveFileStatus === 'saving'
-                ? 'שומר לקובץ...'
+                ? t('lab.view.saving')
                 : saveFileStatus === 'saved'
-                  ? '✓ נשמר לקובץ (Saved)'
-                  : 'Save · שמור לקובץ'}
+                  ? t('lab.view.saved')
+                  : t('lab.view.save')}
             </span>
           </button>
 
@@ -427,7 +427,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             onClick={onClose}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-stone-100 bg-stone-800 hover:bg-stone-700 border border-stone-600/80 transition-colors cursor-pointer"
           >
-            <span>חזרה למסך הראשי</span>
+            <span>{t('lab.view.back_to_menu')}</span>
             <kbd className="px-1.5 py-0.5 text-[10px] rounded bg-stone-900 text-stone-300 font-mono">
               ESC
             </kbd>
@@ -438,12 +438,11 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       {/* ==================================================================== */}
       {/* MAIN 3-COLUMN WORKSPACE (Explicit LTR Grid so Left=Left & Right=Right) */}
       {/* ==================================================================== */}
-      <div dir="ltr" className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* ================================================================== */}
         {/* 1. PHYSICAL LEFT PANEL (בצד שמאל: מעבר נוח בין דמויות וחיות + רשימה) */}
         {/* ================================================================== */}
         <aside
-          dir="rtl"
           data-testid="lab-left-panel"
           className="w-80 lg:w-84 h-full flex flex-col border-r border-stone-800/90 bg-[#121620] shrink-0"
         >
@@ -455,10 +454,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   htmlFor="lab-category-select"
                   className="text-[11px] font-bold text-amber-300/95 tracking-wide"
                 >
-                  קטגוריית תצוגה
+                  {t('lab.view.view_category')}
                 </label>
                 <span className="text-[11px] text-stone-400 font-mono-tabular">
-                  {filteredEntities.length} פריטים
+                  {t('lab.view.items_count', { count: filteredEntities.length })}
                 </span>
               </div>
 
@@ -489,7 +488,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     );
                   })}
                   <option value="all" className="bg-stone-900 text-stone-100 py-1">
-                    כל הקטגוריות יחד ({categoryCounts.characters + categoryCounts.animals})
+                    {t('lab.view.all_categories', { count: categoryCounts.characters + categoryCounts.animals })}
                   </option>
                 </select>
                 <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-amber-400">
@@ -518,10 +517,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 }
                 placeholder={
                   session.categoryFilter === 'characters'
-                    ? 'חיפוש דמות (סייר, גמד, נזיר, סוחר...)'
+                    ? t('lab.view.search_characters')
                     : session.categoryFilter === 'animals'
-                      ? 'חיפוש חיה (סוס, אייל, דג קוי, פרפר...)'
-                      : 'חיפוש בכל הדמויות והחיות בעולם...'
+                      ? t('lab.view.search_animals')
+                      : t('lab.view.search_all')
                 }
                 className="w-full px-3 py-1.5 rounded-lg text-xs bg-stone-900/95 border border-stone-700/80 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-400"
               />
@@ -547,7 +546,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   type="button"
                   data-testid={`lab-entity-item-${item.id}`}
                   onClick={() => handleSelectEntity(item.id)}
-                  className={`w-full text-right p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                  className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
                     isSelected
                       ? 'bg-amber-500/15 border-amber-400/80 shadow-md'
                       : 'bg-stone-900/65 border-stone-800/80 hover:bg-stone-800/75 hover:border-stone-700'
@@ -571,7 +570,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         {item.categoryLabelHe}
                       </span>
                       <span className="text-[10px] text-stone-400">
-                        {item.animations.length - 1} אנימציות · {item.skins.length} סקינים
+                        {t('lab.view.entity_counts', { animations: item.animations.length - 1, skins: item.skins.length })}
                       </span>
                     </div>
                   </div>
@@ -596,7 +595,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         {/* 2. CENTER VIEWPORT STAGE (במרכז: התצוגה התלת־ממדית של הדמות/החיה) */}
         {/* ================================================================== */}
         <section
-          dir="rtl"
           data-testid="lab-center-stage"
           className="flex-1 relative h-full min-w-0 bg-[#13161c] overflow-hidden"
         >
@@ -630,7 +628,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   {activeEntity.categoryLabelHe}
                 </span>
                 <span className="text-[10px] text-stone-400 truncate">
-                  {activeEntity.worldLocationHe} · כמות: {activeEntity.worldInstanceCount}
+                  {t('lab.view.location_count', { location: activeEntity.worldLocationHe, count: activeEntity.worldInstanceCount })}
                 </span>
               </div>
               <h2
@@ -640,9 +638,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 {activeEntity.nameHe}
               </h2>
               <div className="flex items-center gap-2.5 mt-1 text-[10px] text-stone-400 font-mono-tabular">
-                <span>חלקים: {rigStats.meshCount}</span>
-                <span>משולשים: {rigStats.triangleCount}</span>
-                <span className="truncate">סקין: {activeSkin.nameHe}</span>
+                <span>{t('lab.view.parts_count', { count: rigStats.meshCount })}</span>
+                <span>{t('lab.view.triangles_count', { count: rigStats.triangleCount })}</span>
+                <span className="truncate">{t('lab.view.skin_label', { name: activeSkin.nameHe })}</span>
               </div>
             </div>
 
@@ -651,18 +649,18 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               <button
                 type="button"
                 onClick={() => handleStepEntity(-1)}
-                title="ישות קודמת"
+                title={t('lab.view.previous_entity')}
                 className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-[#11151e]/92 border border-stone-700/80 text-stone-200 hover:border-amber-400 cursor-pointer"
               >
-                ▶ הקודם
+                {t('lab.view.previous')}
               </button>
               <button
                 type="button"
                 onClick={() => handleStepEntity(1)}
-                title="ישות הבאה"
+                title={t('lab.view.next_entity')}
                 className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-[#11151e]/92 border border-stone-700/80 text-stone-200 hover:border-amber-400 cursor-pointer"
               >
-                הבא ◀
+                {t('lab.view.next')}
               </button>
               <button
                 type="button"
@@ -676,7 +674,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'bg-[#11151e]/92 text-stone-200 border-stone-700/80 hover:border-stone-500'
                 }`}
               >
-                סיבוב במה
+                {t('lab.view.turntable')}
               </button>
               <button
                 type="button"
@@ -690,7 +688,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'bg-[#11151e]/92 text-stone-200 border-stone-700/80 hover:border-stone-500'
                 }`}
               >
-                סרגל גובה (m)
+                {t('lab.view.height_ruler')}
               </button>
               <button
                 type="button"
@@ -704,7 +702,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'bg-[#11151e]/92 text-stone-200 border-stone-700/80 hover:border-stone-500'
                 }`}
               >
-                רשת פוליגונים
+                {t('lab.view.wireframe')}
               </button>
               <button
                 type="button"
@@ -717,16 +715,16 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'bg-[#11151e]/92 text-stone-400 border-stone-800'
                 }`}
               >
-                רשת רצפה
+                {t('lab.view.floor_grid')}
               </button>
               <button
                 type="button"
                 data-testid="lab-snapshot-btn"
                 onClick={() => setSnapshotTriggerNonce((n) => n + 1)}
-                title="שמירת תמונת PNG של הדמות"
+                title={t('lab.view.snapshot_title')}
                 className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-[#11151e]/92 border border-stone-700/80 text-amber-300 hover:bg-stone-800 hover:border-amber-400 transition-colors cursor-pointer"
               >
-                צילום PNG
+                {t('lab.view.snapshot')}
               </button>
             </div>
           </div>
@@ -736,7 +734,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             {/* Camera Presets Row */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1 p-1 rounded-xl bg-[#11151e]/92 border border-stone-700/80 pointer-events-auto">
-                <span className="px-2 text-[11px] text-stone-400">זווית מצלמה:</span>
+                <span className="px-2 text-[11px] text-stone-400">{t('lab.view.camera_angle_label')}</span>
                 {CAMERA_PRESETS.map((preset) => {
                   const isCurrent = session.cameraPreset === preset.id;
                   return (
@@ -760,9 +758,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               </div>
 
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#11151e]/92 border border-stone-800 text-[11px] text-stone-400">
-                <span>גרירת עכבר: סיבוב חופשי 360°</span>
+                <span>{t('lab.view.hint_drag')}</span>
                 <span>·</span>
-                <span>גלגלת: תקריב/התרחקות</span>
+                <span>{t('lab.view.hint_wheel')}</span>
               </div>
             </div>
 
@@ -777,7 +775,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                   }`}
                 >
-                  {isStaticNone ? 'מצב סטטי: ללא אנימציה' : `מנגן: ${activeAnimation.nameHe}`}
+                  {isStaticNone ? t('lab.view.static_mode') : t('lab.view.playing', { name: activeAnimation.nameHe })}
                 </span>
 
                 {!isStaticNone && (
@@ -794,7 +792,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-400 text-stone-950 hover:bg-amber-300 cursor-pointer"
                     >
-                      {session.isPaused ? 'המשך ניגון' : 'השהה'}
+                      {session.isPaused ? t('lab.view.resume') : t('lab.view.pause')}
                     </button>
                     <button
                       type="button"
@@ -802,7 +800,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       onClick={() => handleSelectAnimation('none')}
                       className="px-2.5 py-1 rounded-lg text-xs font-medium bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 cursor-pointer"
                     >
-                      איפוס לעמידת מוצא
+                      {t('lab.view.reset_pose')}
                     </button>
                   </>
                 )}
@@ -814,7 +812,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
                     <button
                       type="button"
-                      title="צעד אחורה (-5%)"
+                      title={t('lab.view.step_back')}
                       onClick={() => handleStepFrame(-0.05)}
                       className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
                     >
@@ -842,7 +840,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     />
                     <button
                       type="button"
-                      title="צעד קדימה (+5%)"
+                      title={t('lab.view.step_forward')}
                       onClick={() => handleStepFrame(0.05)}
                       className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
                     >
@@ -853,13 +851,13 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[11px] text-stone-400 ml-1">
-                    מהירות (נשמר בקוד):
+                    {t('lab.view.speed_label')}
                   </span>
                   <button
                     type="button"
                     data-testid="lab-speed-step-down"
                     disabled={isStaticNone}
-                    title="האט אנימציה (-0.1x)"
+                    title={t('lab.view.slow_down')}
                     onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed - 0.1)}
                     className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
                       isStaticNone
@@ -886,7 +884,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     type="button"
                     data-testid="lab-speed-step-up"
                     disabled={isStaticNone}
-                    title="האץ אנימציה (+0.1x)"
+                    title={t('lab.view.speed_up')}
                     onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed + 0.1)}
                     className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
                       isStaticNone
@@ -898,7 +896,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   </button>
                   <span
                     data-testid="lab-effective-speed-value"
-                    dir="ltr"
                     className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[11px] font-mono-tabular text-amber-300 font-bold min-w-[44px] text-center"
                   >
                     {effectiveAnimSpeed.toFixed(2)}x
@@ -931,7 +928,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         {/* 3. PHYSICAL RIGHT PANEL (בצד ימין: אנימציות | עריכה ותיקונים | סקינים) */}
         {/* ================================================================== */}
         <aside
-          dir="rtl"
           data-testid="lab-right-panel"
           className="w-84 lg:w-92 h-full flex flex-col border-l border-stone-800/90 bg-[#121620] shrink-0"
         >
@@ -950,7 +946,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
                 }`}
               >
-                <span>אנימציות</span>
+                <span>{t('lab.view.tab_animations')}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
                     session.activeRightTab === 'animations'
@@ -974,7 +970,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
                 }`}
               >
-                <span>עריכה ותיקונים</span>
+                <span>{t('lab.view.tab_editor')}</span>
                 {activeOverrideCount > 0 && (
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
@@ -1000,7 +996,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
                 }`}
               >
-                <span>סקינים</span>
+                <span>{t('lab.view.tab_skins')}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
                     session.activeRightTab === 'skins'
@@ -1020,7 +1016,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               <>
                 <div className="px-1 pb-1 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-stone-300 truncate">
-                    אנימציות של {activeEntity.nameHe}
+                    {t('lab.view.animations_of', { name: activeEntity.nameHe })}
                   </span>
                   <button
                     type="button"
@@ -1030,7 +1026,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     }
                     className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-400/40 transition-colors cursor-pointer shrink-0"
                   >
-                    תיקון זווית / סיבוב חרב ✦
+                    {t('lab.view.fix_sword_angle')}
                   </button>
                 </div>
 
@@ -1043,11 +1039,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-amber-400" />
                       <span className="text-xs font-bold text-amber-200">
-                        מהירות אנימציה קבועה בקוד
+                        {t('lab.view.speed_fixed_title')}
                       </span>
                     </div>
                     <span
-                      dir="ltr"
                       data-testid="lab-panel-speed-readout"
                       className="px-2 py-0.5 rounded bg-amber-400/20 border border-amber-400/40 text-xs font-mono-tabular font-bold text-amber-300"
                     >
@@ -1092,8 +1087,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   <div className="flex items-center justify-between pt-1 border-t border-stone-800/80 text-[10px] text-stone-400">
                     <span>
                       {isStaticNone
-                        ? 'בחר אנימציה כדי לכייל ולשמור את מהירותה בקוד'
-                        : `נשמר אוטומטית בקוד עבור "${activeAnimation.nameHe}"`}
+                        ? t('lab.view.select_animation_hint')
+                        : t('lab.view.autosaved_for', { name: activeAnimation.nameHe })}
                     </span>
                     {!isStaticNone && (
                       <button
@@ -1102,7 +1097,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed, true)}
                         className="text-amber-300 hover:text-amber-200 font-semibold cursor-pointer shrink-0 mr-1"
                       >
-                        החל על כל האנימציות
+                        {t('lab.view.apply_all')}
                       </button>
                     )}
                   </div>
@@ -1120,7 +1115,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       type="button"
                       data-testid={`lab-anim-btn-${anim.id}`}
                       onClick={() => handleSelectAnimation(anim.id)}
-                      className={`w-full text-right p-3 rounded-xl border transition-all cursor-pointer ${
+                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer ${
                         isSelected
                           ? isNone
                             ? 'bg-stone-800/95 border-amber-400/80 shadow'
@@ -1158,7 +1153,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                           <div className="flex items-center gap-1.5">
                             {Math.abs(savedAnimSpeed - 1.0) > 0.005 && (
                               <span
-                                dir="ltr"
                                 className="text-[10px] font-mono-tabular text-amber-300 bg-amber-500/15 border border-amber-400/30 px-1.5 py-0.5 rounded font-semibold"
                               >
                                 {savedAnimSpeed.toFixed(2)}x
@@ -1185,10 +1179,10 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <h3 className="text-xs font-bold text-amber-300">
-                        עריכת אנימציה וכיול איברים
+                        {t('lab.view.editor_title')}
                       </h3>
                       <p className="text-[11px] text-stone-400 mt-0.5">
-                        תיקונים בזמן אמת עבור {activeEntity.nameHe} (נשמרים אוטומטית)
+                        {t('lab.view.live_fixes_for', { name: activeEntity.nameHe })}
                       </p>
                     </div>
                     {activeOverrideCount > 0 && (
@@ -1198,7 +1192,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         onClick={resetEntityPoseOverrides}
                         className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 border border-rose-500/40 cursor-pointer shrink-0"
                       >
-                        איפוס הכל ({activeOverrideCount})
+                        {t('lab.view.reset_all', { count: activeOverrideCount })}
                       </button>
                     )}
                   </div>
@@ -1206,16 +1200,16 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   {/* Held Equipment / Prop Visibility Selector */}
                   <div className="pt-1.5 border-t border-stone-800/80">
                     <span className="text-[10px] font-semibold text-stone-400 block mb-1.5">
-                      תצוגת נשק / אביזרים ביד (הפרדה בין ימין לשמאל):
+                      {t('lab.view.equipment_display')}
                     </span>
                     <div className="grid grid-cols-5 gap-1">
                       {(
                         [
-                          { id: 'auto', label: 'אוטומטי' },
-                          { id: 'both', label: 'שניהם' },
-                          { id: 'right_only', label: 'רק ימין' },
-                          { id: 'left_only', label: 'רק שמאל' },
-                          { id: 'none', label: 'ללא' },
+                          { id: 'auto', label: t('lab.view.equip_auto') },
+                          { id: 'both', label: t('lab.view.equip_both') },
+                          { id: 'right_only', label: t('lab.view.equip_right_only') },
+                          { id: 'left_only', label: t('lab.view.equip_left_only') },
+                          { id: 'none', label: t('lab.view.equip_none') },
                         ] as const
                       ).map((mode) => {
                         const isActive =
@@ -1269,7 +1263,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="text-[10px] text-stone-400 hover:text-amber-300 cursor-pointer shrink-0"
                     >
-                      איפוס יד ימין
+                      {t('lab.view.reset_right_hand')}
                     </button>
                   </div>
 
@@ -1288,7 +1282,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סובב +45°
+                      {t('lab.view.rotate_plus_45')}
                     </button>
                     <button
                       type="button"
@@ -1303,7 +1297,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סובב -45°
+                      {t('lab.view.rotate_minus_45')}
                     </button>
                     <button
                       type="button"
@@ -1316,7 +1310,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סיבוב להב 90°
+                      {t('lab.view.rotate_blade_90')}
                     </button>
                     <button
                       type="button"
@@ -1329,7 +1323,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      היפוך 180°
+                      {t('lab.view.flip_180')}
                     </button>
                   </div>
 
@@ -1337,17 +1331,17 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     [
                       {
                         key: 'weaponRotXDeg',
-                        label: 'זווית X (הטיה קדימה/אחורה)',
+                        label: t('lab.view.angle_x'),
                         testId: 'lab-slider-weapon-x',
                       },
                       {
                         key: 'weaponRotYDeg',
-                        label: 'זווית Y (סיבוב סביב הידית)',
+                        label: t('lab.view.angle_y_grip'),
                         testId: 'lab-slider-weapon-y',
                       },
                       {
                         key: 'weaponRotZDeg',
-                        label: 'זווית Z (הטיה לצדדים)',
+                        label: t('lab.view.angle_z'),
                         testId: 'lab-slider-weapon-z',
                       },
                     ] as const
@@ -1358,7 +1352,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-stone-300">{axis.label}</span>
                           <span
-                            dir="ltr"
                             className="font-mono-tabular text-amber-300 font-semibold"
                           >
                             {val}°
@@ -1384,9 +1377,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
                   <div className="space-y-1 pt-1 border-t border-stone-800/70">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-stone-300">גודל / קנה מידה (יד ימין)</span>
+                      <span className="text-stone-300">{t('lab.view.scale_right')}</span>
                       <span
-                        dir="ltr"
                         className="font-mono-tabular text-amber-300 font-semibold"
                       >
                         {activePoseOverrides.weaponScale.toFixed(2)}x
@@ -1434,7 +1426,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="text-[10px] text-stone-400 hover:text-sky-300 cursor-pointer shrink-0"
                     >
-                      איפוס יד שמאל
+                      {t('lab.view.reset_left_hand')}
                     </button>
                   </div>
 
@@ -1453,7 +1445,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סובב +45°
+                      {t('lab.view.rotate_plus_45')}
                     </button>
                     <button
                       type="button"
@@ -1468,7 +1460,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סובב -45°
+                      {t('lab.view.rotate_minus_45')}
                     </button>
                     <button
                       type="button"
@@ -1481,7 +1473,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      סיבוב 90°
+                      {t('lab.view.rotate_90')}
                     </button>
                     <button
                       type="button"
@@ -1494,7 +1486,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="px-2 py-1 rounded-md text-[10px] font-medium bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 cursor-pointer"
                     >
-                      היפוך 180°
+                      {t('lab.view.flip_180')}
                     </button>
                   </div>
 
@@ -1502,17 +1494,17 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     [
                       {
                         key: 'leftWeaponRotXDeg',
-                        label: 'זווית X (הטיה קדימה/אחורה)',
+                        label: t('lab.view.angle_x'),
                         testId: 'lab-slider-left-weapon-x',
                       },
                       {
                         key: 'leftWeaponRotYDeg',
-                        label: 'זווית Y (סיבוב סביב הציר)',
+                        label: t('lab.view.angle_y_axis'),
                         testId: 'lab-slider-left-weapon-y',
                       },
                       {
                         key: 'leftWeaponRotZDeg',
-                        label: 'זווית Z (הטיה לצדדים)',
+                        label: t('lab.view.angle_z'),
                         testId: 'lab-slider-left-weapon-z',
                       },
                     ] as const
@@ -1523,7 +1515,6 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-stone-300">{axis.label}</span>
                           <span
-                            dir="ltr"
                             className="font-mono-tabular text-sky-300 font-semibold"
                           >
                             {val}°
@@ -1549,9 +1540,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
                   <div className="space-y-1 pt-1 border-t border-stone-800/70">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-stone-300">גודל / קנה מידה (יד שמאל)</span>
+                      <span className="text-stone-300">{t('lab.view.scale_left')}</span>
                       <span
-                        dir="ltr"
                         className="font-mono-tabular text-sky-300 font-semibold"
                       >
                         {(activePoseOverrides.leftWeaponScale ?? 1.0).toFixed(2)}x
@@ -1578,10 +1568,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 <div className="p-3 rounded-xl bg-stone-900/75 border border-stone-800/90 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-100">
-                      עוצמת תנועה באנימציה
+                      {t('lab.view.motion_strength')}
                     </span>
                     <span
-                      dir="ltr"
                       className="text-[11px] font-mono-tabular text-emerald-300 font-semibold"
                     >
                       {Math.round(activePoseOverrides.amplitudeMultiplier * 100)}%
@@ -1602,7 +1591,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     className="w-full accent-emerald-400 cursor-pointer"
                   />
                   <p className="text-[10px] text-stone-400">
-                    הקטן או הגבר את משרעת התנועה של האנימציה הפעילה (100% = מקורי)
+                    {t('lab.view.motion_strength_hint')}
                   </p>
                 </div>
 
@@ -1623,20 +1612,20 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="text-[10px] text-stone-400 hover:text-amber-300 cursor-pointer"
                     >
-                      איפוס
+                      {t('lab.view.reset')}
                     </button>
                   </div>
                   {(
                     [
-                      { key: 'rightLimbRotXDeg', label: 'ציר X (הרמה/הורדה)' },
-                      { key: 'rightLimbRotYDeg', label: 'ציר Y (סיבוב פנים/חוץ)' },
-                      { key: 'rightLimbRotZDeg', label: 'ציר Z (פתיחה הצידה)' },
+                      { key: 'rightLimbRotXDeg', label: t('lab.view.axis_x') },
+                      { key: 'rightLimbRotYDeg', label: t('lab.view.axis_y') },
+                      { key: 'rightLimbRotZDeg', label: t('lab.view.axis_z') },
                     ] as const
                   ).map((axis) => (
                     <div key={axis.key} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-stone-300">{axis.label}</span>
-                        <span dir="ltr" className="font-mono-tabular text-amber-300">
+                        <span className="font-mono-tabular text-amber-300">
                           {activePoseOverrides[axis.key]}°
                         </span>
                       </div>
@@ -1674,20 +1663,20 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="text-[10px] text-stone-400 hover:text-amber-300 cursor-pointer"
                     >
-                      איפוס
+                      {t('lab.view.reset')}
                     </button>
                   </div>
                   {(
                     [
-                      { key: 'leftLimbRotXDeg', label: 'ציר X (הרמה/הורדה)' },
-                      { key: 'leftLimbRotYDeg', label: 'ציר Y (סיבוב פנים/חוץ)' },
-                      { key: 'leftLimbRotZDeg', label: 'ציר Z (פתיחה הצידה)' },
+                      { key: 'leftLimbRotXDeg', label: t('lab.view.axis_x') },
+                      { key: 'leftLimbRotYDeg', label: t('lab.view.axis_y') },
+                      { key: 'leftLimbRotZDeg', label: t('lab.view.axis_z') },
                     ] as const
                   ).map((axis) => (
                     <div key={axis.key} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-stone-300">{axis.label}</span>
-                        <span dir="ltr" className="font-mono-tabular text-amber-300">
+                        <span className="font-mono-tabular text-amber-300">
                           {activePoseOverrides[axis.key]}°
                         </span>
                       </div>
@@ -1712,7 +1701,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 <div className="p-3 rounded-xl bg-stone-900/75 border border-stone-800/90 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-100">
-                      {editorLabels.headTitleHe} · גוף וגובה
+                      {t('lab.view.head_body_height', { head: editorLabels.headTitleHe })}
                     </span>
                     <button
                       type="button"
@@ -1729,21 +1718,21 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       }
                       className="text-[10px] text-stone-400 hover:text-amber-300 cursor-pointer"
                     >
-                      איפוס
+                      {t('lab.view.reset')}
                     </button>
                   </div>
                   {(
                     [
-                      { key: 'headRotYDeg', label: 'סיבוב ראש ימינה/שמאלה (Y)' },
-                      { key: 'headRotXDeg', label: 'הטיית ראש למעלה/למטה (X)' },
-                      { key: 'bodyRotXDeg', label: 'הטיית גוף קדימה/אחורה (X)' },
-                      { key: 'bodyRotYDeg', label: 'סיבוב גוף סביב ציר (Y)' },
+                      { key: 'headRotYDeg', label: t('lab.view.head_turn') },
+                      { key: 'headRotXDeg', label: t('lab.view.head_tilt') },
+                      { key: 'bodyRotXDeg', label: t('lab.view.body_tilt') },
+                      { key: 'bodyRotYDeg', label: t('lab.view.body_rotation') },
                     ] as const
                   ).map((axis) => (
                     <div key={axis.key} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-stone-300">{axis.label}</span>
-                        <span dir="ltr" className="font-mono-tabular text-amber-300">
+                        <span className="font-mono-tabular text-amber-300">
                           {activePoseOverrides[axis.key]}°
                         </span>
                       </div>
@@ -1765,8 +1754,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
 
                   <div className="space-y-1 pt-1 border-t border-stone-800/70">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-stone-300">גובה ריחוף / מיקום אנכי (Y)</span>
-                      <span dir="ltr" className="font-mono-tabular text-amber-300">
+                      <span className="text-stone-300">{t('lab.view.hover_height')}</span>
+                      <span className="font-mono-tabular text-amber-300">
                         {activePoseOverrides.bodyOffsetY.toFixed(2)}m
                       </span>
                     </div>
@@ -1799,8 +1788,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     }`}
                   >
                     {saveFileStatus === 'saved'
-                      ? '✓ נשמר לקובץ!'
-                      : 'Save · שמור לקובץ'}
+                      ? t('lab.view.saved_short')
+                      : t('lab.view.save')}
                   </button>
                   <button
                     type="button"
@@ -1809,8 +1798,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                     className="py-2.5 px-3 rounded-xl text-xs font-bold bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700 transition-colors cursor-pointer"
                   >
                     {copiedTweaksFeedback
-                      ? '✓ הועתק ללוח!'
-                      : 'העתק JSON'}
+                      ? t('lab.view.copied')
+                      : t('lab.view.copy_json')}
                   </button>
                 </div>
               </div>
@@ -1818,7 +1807,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               <>
                 <div className="px-1 pb-1 flex items-center justify-between">
                   <span className="text-xs font-semibold text-stone-300">
-                    וריאציות וסקינים של {activeEntity.nameHe}
+                    {t('lab.view.skins_of', { name: activeEntity.nameHe })}
                   </span>
                 </div>
 
@@ -1830,7 +1819,7 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                       type="button"
                       data-testid={`lab-skin-btn-${sk.id}`}
                       onClick={() => handleSelectSkin(sk.id)}
-                      className={`w-full text-right p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
                           ? 'bg-amber-500/15 border-amber-400/85 shadow'
                           : 'bg-stone-900/65 border-stone-800/80 hover:bg-stone-800/70 hover:border-stone-700'
@@ -1871,8 +1860,8 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
           {/* Right Panel Footer: Entity Anatomy & Codebase Inspector */}
           <div className="p-3.5 border-t border-stone-800/90 bg-stone-950/60 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-stone-200">מבנה ורכיבי הישות</span>
-              <span dir="ltr" className="text-[10px] text-amber-300 font-mono truncate">
+              <span className="text-xs font-bold text-stone-200">{t('lab.view.structure_title')}</span>
+              <span className="text-[10px] text-amber-300 font-mono truncate">
                 {activeEntity.worldCoordinatesText}
               </span>
             </div>

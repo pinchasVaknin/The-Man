@@ -24,8 +24,8 @@ import {
   computeLabAnimationCycleProgress,
 } from './labCatalog';
 
-describe('Character & Animation Lab Catalog (מעבדה)', () => {
-  it('organizes all world entities into 2 distinct categories: characters (דמויות) and animals (חיות)', () => {
+describe('Character & Animation Lab Catalog', () => {
+  it('organizes all world entities into 2 distinct categories: characters and animals', () => {
     assert.equal(LAB_CATEGORIES.length, 2);
     assert.deepEqual(
       LAB_CATEGORIES.map((c) => c.id),
@@ -81,7 +81,7 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     assert.equal(switchedEntity.selectedSkinId, 'koi_imperial_gold');
   });
 
-  it('filters entities accurately by category and Hebrew search query', () => {
+  it('filters entities accurately by category and search query', () => {
     const onlyCharacters = filterLabEntities(LAB_ENTITIES, 'characters', '');
     assert.equal(onlyCharacters.length, 8);
     assert.ok(onlyCharacters.every((e) => e.category === 'characters'));
@@ -93,15 +93,15 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     const allCombined = filterLabEntities(LAB_ENTITIES, 'all', '');
     assert.equal(allCombined.length, 24, 'Dropdown "all" option must return all 24 entities');
 
-    const koiSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'קוי');
+    const koiSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'koi');
     assert.equal(koiSearch.length, 1);
     assert.equal(koiSearch[0].id, 'koi_fish');
 
-    const wolfSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'זאב');
+    const wolfSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'wolf');
     assert.equal(wolfSearch.length, 1);
     assert.equal(wolfSearch[0].id, 'forest_wolf');
 
-    const rhinoSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'קרנף');
+    const rhinoSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'rhino');
     assert.equal(rhinoSearch.length, 1);
     assert.equal(rhinoSearch[0].id, 'savanna_rhino');
   });
@@ -142,11 +142,11 @@ describe('Character & Animation Lab Catalog (מעבדה)', () => {
     assert.equal(countActivePoseOverrides(tweakedLeftAndVis), 3);
 
     const rangerLabels = getEntityEditorLabelsHe('ranger_third_person');
-    assert.ok(rangerLabels.weaponGroupTitleHe.includes('חרב'), 'Right hand label should mention sword (חרב)');
-    assert.ok(rangerLabels.leftWeaponGroupTitleHe.includes('קשת'), 'Left hand label should mention bow (קשת)');
+    assert.ok(rangerLabels.weaponGroupTitleHe.toLowerCase().includes('sword'), 'Right hand label should mention sword');
+    assert.ok(rangerLabels.leftWeaponGroupTitleHe.toLowerCase().includes('bow'), 'Left hand label should mention bow');
 
     const eagleLabels = getEntityEditorLabelsHe('mountain_eagle');
-    assert.ok(eagleLabels.rightLimbTitleHe.includes('כנף'));
+    assert.ok(eagleLabels.rightLimbTitleHe.toLowerCase().includes('wing'));
   });
 
   it('wires Deer_Complete.ts with all procedural IK animations into forest_deer and createReadyDeer', async () => {
