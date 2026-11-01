@@ -101,6 +101,28 @@ test('getAnimalLootDrops_WhenSheepJaguarOrWolfHunted_ShouldYieldSpeciesSpecificH
   );
 });
 
+test('getAnimalLootDrops_WhenDragonHunted_ShouldYieldDragonCatalogItems', () => {
+  // Arrange
+  const expectedDragonLoot = ['dragon_meat', 'dragon_scales', 'dragon_horn', 'dragon_claws', 'dragon_bone'];
+
+  // Act
+  const dragonLoot = getAnimalLootDrops('dragon');
+
+  // Assert
+  assert.deepEqual(dragonLoot.itemIds, expectedDragonLoot);
+});
+
+test('getAnimalLootDrops_WhenAnySpeciesHunted_ShouldOnlyYieldItemsThatExistInCatalog', () => {
+  // Arrange
+  const allSpecies = ['rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'dragon'] as const;
+
+  // Act
+  const lootIds = allSpecies.flatMap((species) => getAnimalLootDrops(species).itemIds);
+
+  // Assert
+  assert.deepEqual(lootIds.filter((itemId) => !INVENTORY_ITEM_MAP.has(itemId)), []);
+});
+
 test('getAnimalLootDrops_WhenSmallGameHunted_ShouldNotYieldAnimalBone', () => {
   // Arrange
   const smallGameSpecies = ['rabbit', 'squirrel'] as const;

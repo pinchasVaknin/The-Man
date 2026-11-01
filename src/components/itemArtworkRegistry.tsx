@@ -323,6 +323,48 @@ ARTWORK_STRATEGIES.set('rhino_horn', (sizeClass) => (
     <path d="M48 124 Q62 72 114 34 Q96 92 78 126 Z" fill="#a8a29e" stroke="#f5f5f4" strokeWidth="3.5" />
   </svg>
 ));
+ARTWORK_STRATEGIES.set('dragon_meat', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#b91c1c" fillOpacity="0.2" />
+    <ellipse cx="76" cy="82" rx="46" ry="31" fill="#7f1d1d" stroke="#f97316" strokeWidth="3.5" />
+    <ellipse cx="64" cy="78" rx="14" ry="11" fill="#fecaca" stroke="#450a0a" strokeWidth="2.5" />
+    <path d="M58 62 Q66 52 74 62 M80 60 Q88 50 96 60" stroke="#fb923c" strokeWidth="3" strokeLinecap="round" />
+    <path d="M116 76 L138 68 M116 86 L138 94" stroke="#fef3c7" strokeWidth="5" strokeLinecap="round" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dragon_scales', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#059669" fillOpacity="0.18" />
+    <path d="M44 70 Q60 46 76 70 Q60 94 44 70 Z" fill="#065f46" stroke="#6ee7b7" strokeWidth="3" />
+    <path d="M84 70 Q100 46 116 70 Q100 94 84 70 Z" fill="#065f46" stroke="#6ee7b7" strokeWidth="3" />
+    <path d="M64 100 Q80 76 96 100 Q80 124 64 100 Z" fill="#047857" stroke="#a7f3d0" strokeWidth="3" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dragon_horn', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#7c3aed" fillOpacity="0.16" />
+    <path d="M52 126 Q48 78 92 46 Q112 32 122 30 Q100 52 96 74 Q90 104 74 128 Z" fill="#44403c" stroke="#c4b5fd" strokeWidth="3.5" />
+    <path d="M70 108 L84 104 M74 90 L90 86 M82 72 L98 68" stroke="#a8a29e" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dragon_claws', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#1c1917" fillOpacity="0.3" />
+    <path d="M42 118 Q50 62 74 34 M70 124 Q78 66 104 38 M98 126 Q106 76 130 46" stroke="#fbbf24" strokeWidth="7" strokeLinecap="round" />
+    <path d="M42 118 Q50 62 74 34 M70 124 Q78 66 104 38 M98 126 Q106 76 130 46" stroke="#1c1917" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dragon_bone', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fbbf24" fillOpacity="0.14" />
+    <line x1="40" y1="120" x2="120" y2="40" stroke="#e7e5e4" strokeWidth="18" strokeLinecap="round" />
+    <circle cx="35" cy="113" r="13" fill="#e7e5e4" />
+    <circle cx="47" cy="125" r="13" fill="#e7e5e4" />
+    <circle cx="113" cy="35" r="13" fill="#e7e5e4" />
+    <circle cx="125" cy="47" r="13" fill="#e7e5e4" />
+    <path d="M66 94 L94 66" stroke="#b45309" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+));
 // #endregion
 
 // ======================== PUBLIC RENDER FUNCTIONS ======================== \\

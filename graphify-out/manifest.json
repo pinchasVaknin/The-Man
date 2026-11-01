@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "src/components/SkyrimInventoryModal.tsx": {
-    "mtime": 1793532546.3071563,
-    "seen": 1793537725.923955,
-    "ast_hash": "0286f47b3ed03d83f1d60aa78b47560d",
+    "mtime": 1793538297.818413,
+    "seen": 1793538367.5484793,
+    "ast_hash": "d7cded68981a788675d3dfb6a8388c06",
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "src/world/domain/worldTypes.ts": {
-    "mtime": 1793532546.314962,
-    "seen": 1793537725.9240007,
-    "ast_hash": "ae19a36949b5bfad6658dd5bdb44e8c0",
+    "mtime": 1793538297.7516265,
+    "seen": 1793538367.5485246,
+    "ast_hash": "4ddc4143ddb3dfd87584fbcbf99ea0a0",
     "semantic_hash": ""
   },
   "src/world/proceduralModels.ts": {
@@ -126,15 +126,15 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.ts": {
-    "mtime": 1793537164.135387,
-    "seen": 1793537725.924027,
-    "ast_hash": "e7914a97c57b2e7cf54c567e19f8d006",
+    "mtime": 1793538297.9183269,
+    "seen": 1793538367.5485525,
+    "ast_hash": "f74d0cb9359cdf575cb0d21f785fb794",
     "semantic_hash": ""
   },
   "src/world/systems/combatAndInventorySystem.ts": {
-    "mtime": 1793532546.321835,
-    "seen": 1793537725.924029,
-    "ast_hash": "d3068510f423c3aaaf9aa8d1dda7730a",
+    "mtime": 1793538297.8521502,
+    "seen": 1793538367.5485544,
+    "ast_hash": "7390276ae5e4c435189d87849fd2c1b9",
     "semantic_hash": ""
   },
   "src/world/systems/dwarvenMineAndCaravanSystem.ts": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/components/itemArtworkRegistry.tsx": {
-    "mtime": 1793532546.3071563,
-    "seen": 1793537725.9239578,
-    "ast_hash": "9697a594adc2432822536e5f1bbbc830",
+    "mtime": 1793538297.9360144,
+    "seen": 1793538367.5484815,
+    "ast_hash": "18ef5ff87a06746a6ed1162a9396a354",
     "semantic_hash": ""
   },
   "src/core/AppException.spec.ts": {
@@ -510,9 +510,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.spec.ts": {
-    "mtime": 1793537157.5018911,
-    "seen": 1793537725.9240258,
-    "ast_hash": "37bca166e3c648b168e666aabf9426cd",
+    "mtime": 1793538267.2854602,
+    "seen": 1793538367.5485513,
+    "ast_hash": "143a0dd90d0bd910c0aa0f13290b977c",
     "semantic_hash": ""
   },
   "src/world/systems/footprintTrailSystem.spec.ts": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793536571.764299,
-    "seen": 1793537725.9239771,
-    "ast_hash": "454d357d0df32c7745ebd8db716063e0",
+    "mtime": 1793538297.7850406,
+    "seen": 1793538367.5485015,
+    "ast_hash": "1b251be70bc73d242db0d7fc88b0da16",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {
