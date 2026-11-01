@@ -55,6 +55,9 @@ import type {
   IVirtualMoveState,
 } from '../world/domain/gameShellTypes';
 import { GameLoop } from '../core/gameLoop';
+import { lerp, lerpAngle } from '../core/interpolation';
+import type { IWildlifeSoundCallbacks } from '../world/builders/wildlifeAndFootprintsBuilder';
+import type { IPlayerState } from '../world/domain/worldTypes';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldScene } from '../world/builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../world/soundEngine';
@@ -115,8 +118,12 @@ export interface IWorldCanvasProps {
  * error is handed to the error boundary instead of failing silently every frame.
  */
 const MAX_CONSECUTIVE_TICK_FAILURES = 60;
-/** Longest frame delta fed to the simulation (seconds). */
-const MAX_FRAME_SECONDS = 0.35;
+/** Longest frame delta accepted per rendered frame (seconds, per "Fix Your Timestep"). */
+const MAX_FRAME_SECONDS = 0.25;
+/** Fixed simulation step: 60 Hz. */
+const SIMULATION_STEP_SECONDS = 1 / 60;
+/** Steps allowed per rendered frame; MAX_FRAME_SECONDS / SIMULATION_STEP_SECONDS. */
+const MAX_SIMULATION_STEPS_PER_FRAME = 15;
 /** Minimum gap between two logged frame errors (ms). */
 const TICK_ERROR_LOG_INTERVAL_MS = 2000;
 
@@ -854,10 +861,40 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       }
     }
 
-    function runFrame(rawDt: number, now: number) {
-      soundEngine.setMuted(mutedRef.current);
-      soundEngine.setPaused(gameStateRef.current !== 'playing');
+    const wildlifeSoundCallbacks: IWildlifeSoundCallbacks = {
+      onBirdFlockStartled: (dist) => {
+        soundEngine.playBirdFlockStartle(dist);
+      },
+      onCritterScampered: (dist) => {
+        soundEngine.playCritterScamper(dist);
+      },
+    };
 
+    /** Player pose at the start of the latest simulation step, for render interpolation. */
+    const previousPlayerPose = { x: playerState.x, y: playerState.y, z: playerState.z, yaw: playerState.yaw, pitch: playerState.pitch };
+    /** Interpolated copy of the player that the camera and meshes render from. */
+    const renderPlayer: IPlayerState = { ...playerState };
+
+    function capturePreviousPlayerPose() {
+      previousPlayerPose.x = playerState.x;
+      previousPlayerPose.y = playerState.y;
+      previousPlayerPose.z = playerState.z;
+      previousPlayerPose.yaw = playerState.yaw;
+      previousPlayerPose.pitch = playerState.pitch;
+    }
+
+    /** Fills renderPlayer with the live state, blending the pose between the last two steps. */
+    function interpolateRenderPlayer(alpha: number) {
+      Object.assign(renderPlayer, playerState);
+      renderPlayer.x = lerp(previousPlayerPose.x, playerState.x, alpha);
+      renderPlayer.y = lerp(previousPlayerPose.y, playerState.y, alpha);
+      renderPlayer.z = lerp(previousPlayerPose.z, playerState.z, alpha);
+      renderPlayer.yaw = lerpAngle(previousPlayerPose.yaw, playerState.yaw, alpha);
+      renderPlayer.pitch = lerp(previousPlayerPose.pitch, playerState.pitch, alpha);
+    }
+
+    /** Advances the game simulation by exactly one fixed step. */
+    function simulateStep(rawDt: number) {
       if (gameStateRef.current === 'title') {
         elapsedTotal += rawDt;
         worldHours = advanceWorldClock(worldHours, rawDt, TITLE_CLOCK_HOURS_PER_SECOND);
@@ -870,24 +907,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         );
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
 
-        writeTitleOrbitPose(elapsedTotal, cameraPose);
-        applyCameraPose(cameraPose);
-        worldHandles.update(
-          elapsedTotal,
-          camera.position.x,
-          camera.position.z,
-          currentAtmo.morningMistOpacity,
-          currentAtmo.nightFactor,
-          currentWeather,
-          openDoorIds,
-          rideableHorses,
-          null,
-          undefined,
-          activeArrows,
-          worldHours
-        );
       } else if (gameStateRef.current === 'playing') {
         elapsedTotal += rawDt;
+        capturePreviousPlayerPose();
 
         if (isSleepingInBed) {
           if (activeSleepingBed) {
@@ -1200,14 +1222,52 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
         landingDip *= Math.exp(-12 * rawDt);
 
-        const underRoof = isPositionUnderRoof(playerState.x, playerState.y, playerState.z);
-        const distToBirdsFlock = Math.hypot(playerState.x, playerState.z - 15);
+        worldHandles.simulateWildlife(
+          rawDt,
+          elapsedTotal,
+          playerState,
+          rideableHorses,
+          currentAtmo.nightFactor,
+          currentWeather,
+          wildlifeSoundCallbacks
+        );
+      }
+    }
+
+    /** Renders one frame from the simulation state, interpolated by `alpha`. */
+    function renderFrame(frameDt: number, now: number, alpha: number) {
+      soundEngine.setMuted(mutedRef.current);
+      soundEngine.setPaused(gameStateRef.current !== 'playing');
+
+      // Simulation time of the interpolated moment being drawn.
+      const renderTime = elapsedTotal - (1 - alpha) * SIMULATION_STEP_SECONDS;
+      if (gameStateRef.current === 'title') {
+        writeTitleOrbitPose(renderTime, cameraPose);
+        applyCameraPose(cameraPose);
+        worldHandles.update(
+          renderTime,
+          camera.position.x,
+          camera.position.z,
+          currentAtmo.morningMistOpacity,
+          currentAtmo.nightFactor,
+          currentWeather,
+          openDoorIds,
+          rideableHorses,
+          null,
+          undefined,
+          activeArrows,
+          worldHours
+        );
+      } else if (gameStateRef.current === 'playing') {
+        interpolateRenderPlayer(alpha);
+        const underRoof = isPositionUnderRoof(renderPlayer.x, renderPlayer.y, renderPlayer.z);
+        const distToBirdsFlock = Math.hypot(renderPlayer.x, renderPlayer.z - 15);
         const birdProximity = Math.max(0, Math.min(1, 1.0 - (distToBirdsFlock - 35) / 85));
 
         soundEngine.updateAmbient(
-          rawDt,
-          playerState.x,
-          playerState.z,
+          frameDt,
+          renderPlayer.x,
+          renderPlayer.z,
           true,
           currentWeather.windStrength,
           currentWeather.rainIntensity,
@@ -1218,7 +1278,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         stepCameraRig(
           cameraRig,
-          { player: playerState, dt: rawDt, elapsedSeconds: elapsedTotal, landingDip, isSleepingInBed },
+          { player: renderPlayer, dt: frameDt, elapsedSeconds: renderTime, landingDip, isSleepingInBed },
           cameraPose
         );
         applyCameraPose(cameraPose);
@@ -1226,46 +1286,38 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const camWaterY = getWaterSurfaceHeightAt(
           camera.position.x,
           camera.position.z,
-          playerState.y
+          renderPlayer.y
         );
         if (camWaterY !== null && camera.position.y < camWaterY + 0.05) {
           fog.color.setHex(0x0c4a6e);
           fog.density = 0.038;
         }
 
-        const easedFov = easeFovToward(camera.fov, computeTargetFov(cameraRig, playerState), rawDt);
+        const easedFov = easeFovToward(camera.fov, computeTargetFov(cameraRig, renderPlayer), frameDt);
         if (easedFov !== null) {
           camera.fov = easedFov;
           camera.updateProjectionMatrix();
         }
 
-        sunLight.target.position.set(playerState.x, playerState.y, playerState.z);
+        sunLight.target.position.set(renderPlayer.x, renderPlayer.y, renderPlayer.z);
         sunLight.position
           .copy(_sunVec)
           .multiplyScalar(85)
           .add(sunLight.target.position);
 
         worldHandles.update(
-          elapsedTotal,
-          playerState.x,
-          playerState.z,
+          renderTime,
+          renderPlayer.x,
+          renderPlayer.z,
           currentAtmo.morningMistOpacity,
           currentAtmo.nightFactor,
           currentWeather,
           openDoorIds,
           rideableHorses,
-          playerState.mountedHorseId,
-          playerState,
+          renderPlayer.mountedHorseId,
+          renderPlayer,
           activeArrows,
-          worldHours,
-          {
-            onBirdFlockStartled: (dist) => {
-              soundEngine.playBirdFlockStartle(dist);
-            },
-            onCritterScampered: (dist) => {
-              soundEngine.playCritterScamper(dist);
-            },
-          }
+          worldHours
         );
       }
 
@@ -1308,7 +1360,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       maxConsecutiveFailures: MAX_CONSECUTIVE_TICK_FAILURES,
       maxFrameSeconds: MAX_FRAME_SECONDS,
       errorLogIntervalMs: TICK_ERROR_LOG_INTERVAL_MS,
-      onFrame: runFrame,
+      fixedStep: {
+        stepSeconds: SIMULATION_STEP_SECONDS,
+        maxStepsPerFrame: MAX_SIMULATION_STEPS_PER_FRAME,
+        onStep: simulateStep,
+      },
+      onFrame: renderFrame,
       onFatalError: setFatalTickError,
     });
     gameLoop.start();

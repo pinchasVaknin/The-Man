@@ -47,7 +47,8 @@ export interface IWildlifeSoundCallbacks {
 export interface IWildlifeAndFootprintsHandles {
   readonly birds: IBoidBirdState[];
   readonly animals: ISmallAnimalState[];
-  readonly update: (
+  /** Advances birds, animals and footprints by one simulation step and fires wildlife sound cues. */
+  readonly simulate: (
     dt: number,
     elapsedTime: number,
     playerState: IPlayerState,
@@ -56,6 +57,8 @@ export interface IWildlifeAndFootprintsHandles {
     soundCallbacks?: IWildlifeSoundCallbacks,
     rainIntensity?: number
   ) => void;
+  /** Copies the simulated state onto meshes and advances model animations by the frame delta. */
+  readonly syncMeshes: (dt: number, elapsedTime: number) => void;
   /** Removes the window listeners this layer registered; call when the world is torn down. */
   readonly dispose: () => void;
 }
@@ -495,7 +498,7 @@ export function buildWildlifeAndFootprintsLayer(
         window.removeEventListener('lab-overrides-saved', onLabOverridesSaved);
       }
     },
-    update: (
+    simulate: (
       dt: number,
       elapsedTime: number,
       playerState: IPlayerState,
@@ -586,7 +589,8 @@ export function buildWildlifeAndFootprintsLayer(
           soundCallbacks.onAmbientWildlifeProximity?.(nearestBirdDist, nearestCritterDist);
         }
       }
-
+    },
+    syncMeshes: (dt: number, elapsedTime: number) => {
       // Sync bird meshes
       for (let i = 0; i < birds.length; i++) {
         const b = birds[i];

@@ -18,7 +18,10 @@ import type {
 } from './domain/worldTypes';
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
-import { buildWildlifeAndFootprintsLayer } from './builders/wildlifeAndFootprintsBuilder';
+import {
+  buildWildlifeAndFootprintsLayer,
+  type IWildlifeSoundCallbacks,
+} from './builders/wildlifeAndFootprintsBuilder';
 import type { ILogger } from '../core/ILogger';
 import {
   buildColliderDebugWireframes,
@@ -73,12 +76,21 @@ export interface IAnimatedWorldHandles {
     mountedHorseId?: string | null,
     playerState?: IPlayerState,
     activeArrows?: readonly IArrowProjectile[],
-    worldHours?: number,
-    wildlifeSoundCallbacks?: {
-      onBirdFlockStartled?: (distance: number, count: number) => void;
-      onCritterScampered?: (distance: number, species: 'rabbit' | 'squirrel') => void;
-      onAmbientWildlifeProximity?: (nearestBirdDist: number, nearestCritterDist: number) => void;
-    }
+    worldHours?: number
+  ) => void;
+  /**
+   * Advances wildlife (birds, animals, footprints) by one simulation step.
+   * Design: Separate from update() so the simulation can run on a fixed timestep while
+   *         update() animates meshes once per rendered frame.
+   */
+  simulateWildlife: (
+    dt: number,
+    elapsedTime: number,
+    playerState: IPlayerState,
+    rideableHorses: readonly IRideableHorseState[],
+    nightFactor: number,
+    weather: IWeatherStateSnapshot,
+    soundCallbacks?: IWildlifeSoundCallbacks
   ) => void;
   dispose: () => void;
 }
@@ -206,12 +218,7 @@ export function buildRealisticWorld(
       _mountedHorseId?: string | null,
       playerState?: IPlayerState,
       activeArrows?: readonly IArrowProjectile[],
-      worldHours = 8.5,
-      wildlifeSoundCallbacks?: {
-        onBirdFlockStartled?: (distance: number, count: number) => void;
-        onCritterScampered?: (distance: number, species: 'rabbit' | 'squirrel') => void;
-        onAmbientWildlifeProximity?: (nearestBirdDist: number, nearestCritterDist: number) => void;
-      }
+      worldHours = 8.5
     ) => {
       // 1. Distance-cull terrain chunks and landmarks
       for (let i = 0; i < distanceCulledObjects.length; i++) {
@@ -279,25 +286,26 @@ export function buildRealisticWorld(
         playerState?.y ?? 2.15
       );
 
-      // 5. Wildlife, boids and footprint trails
+      // 5. Wildlife, boids and footprint meshes (the simulation runs in simulateWildlife)
       const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
       lastTime = elapsedTime;
       if (playerState) {
-        const daylightFactor = 1.0 - (nightFactor ?? 0);
-        const rainIntensity = weather ? (weather.rainIntensity ?? weather.wetness ?? 0) : 0;
-        wildlifeAndFootprintsLayer.update(
-          dt,
-          elapsedTime,
-          playerState,
-          rideableHorses ?? [],
-          daylightFactor,
-          wildlifeSoundCallbacks,
-          rainIntensity
-        );
+        wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime);
       }
 
       // 6. Player viewmodel and combat rigs
       updatePlayerAndCombat(elapsedTime, playerState, activeArrows);
+    },
+    simulateWildlife: (dt, elapsedTime, playerState, rideableHorses, nightFactor, weather, soundCallbacks) => {
+      wildlifeAndFootprintsLayer.simulate(
+        dt,
+        elapsedTime,
+        playerState,
+        rideableHorses,
+        1.0 - nightFactor,
+        soundCallbacks,
+        weather.rainIntensity ?? weather.wetness ?? 0
+      );
     },
     dispose: () => {
       wildlifeAndFootprintsLayer.dispose();

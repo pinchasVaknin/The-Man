@@ -36,9 +36,9 @@
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793558212.2397518,
-    "seen": 1793558463.8212934,
-    "ast_hash": "fa156436f7b3ee6009cc170f6b57c08a",
+    "mtime": 1793558987.4906254,
+    "seen": 1793559368.3405128,
+    "ast_hash": "9866453f434d27f38e300713581937cc",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "src/world/builders/wildlifeAndFootprintsBuilder.ts": {
-    "mtime": 1793558212.1736183,
-    "seen": 1793558463.8213403,
-    "ast_hash": "8200012992adc18119222b3de871233d",
+    "mtime": 1793558918.882587,
+    "seen": 1793559368.340561,
+    "ast_hash": "8834d3ba192d1f880e40cb5151297660",
     "semantic_hash": ""
   },
   "src/world/controllers/atmosphereRenderController.ts": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/world/proceduralModels.ts": {
-    "mtime": 1793558212.188991,
-    "seen": 1793558463.8214076,
-    "ast_hash": "1771a92772a93723e32c2445c1b749f1",
+    "mtime": 1793558929.1917014,
+    "seen": 1793559368.3406165,
+    "ast_hash": "5a8459cebd2cc5da383541cfc5f42a7d",
     "semantic_hash": ""
   },
   "src/world/proceduralTextures.ts": {
@@ -798,15 +798,15 @@
     "semantic_hash": ""
   },
   "src/core/gameLoop.spec.ts": {
-    "mtime": 1793555138.948009,
-    "seen": 1793556223.0694659,
-    "ast_hash": "dd599f319a8f7879098f2e20fe7f2940",
+    "mtime": 1793558880.0739796,
+    "seen": 1793559368.340532,
+    "ast_hash": "ca04cae9a639ea8a9fc33fdfef15ef7c",
     "semantic_hash": ""
   },
   "src/core/gameLoop.ts": {
-    "mtime": 1793555155.5183837,
-    "seen": 1793556223.0694668,
-    "ast_hash": "a4154d61f4ac9dda68b0f5e42fad6367",
+    "mtime": 1793558899.6764052,
+    "seen": 1793559368.3405328,
+    "ast_hash": "58ed31cfdeb23731d14d27b366abb38f",
     "semantic_hash": ""
   },
   "src/world/controllers/frameSchedulers.ts": {
@@ -939,6 +939,18 @@
     "mtime": 1793558211.9224446,
     "seen": 1793558463.821284,
     "ast_hash": "5911b3f42190a2dff98c801b55fd6c4b",
+    "semantic_hash": ""
+  },
+  "src/core/interpolation.spec.ts": {
+    "mtime": 1793558987.4575527,
+    "seen": 1793559368.3405354,
+    "ast_hash": "2cfb9441d6e4b0d276165871c1cd54c0",
+    "semantic_hash": ""
+  },
+  "src/core/interpolation.ts": {
+    "mtime": 1793558987.4409018,
+    "seen": 1793559368.3405364,
+    "ast_hash": "dc43d3908af565d7a41ff449f194ea3b",
     "semantic_hash": ""
   }
 }
