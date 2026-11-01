@@ -12,6 +12,7 @@ import { test } from 'node:test';
 import { assertMatchesGolden } from '../../testSupport/goldenMaster';
 import {
   createInitialWildlifeState,
+  damageGroundAnimal,
   getAnimalLootDrops,
   getAnimalMaxHp,
   getAnimalSensoryProfile,
@@ -115,6 +116,45 @@ test('wildlifeSimulation_WhenPlayerWalksThroughHabitatsAtRainyNight_ShouldMatchG
 
   // Assert
   assertMatchesGolden(golden('wildlife-rainy-night'), frames);
+});
+
+test('wildlifeSimulation_WhenPlayerConfrontsEachSpecies_ShouldMatchGolden', () => {
+  // Arrange
+  const trace: unknown[] = [];
+
+  // Act
+  for (const species of ALL_SPECIES) {
+    for (const isShot of [false, true]) {
+      const { birds, animals } = createInitialWildlifeState();
+      const horses = createInitialRideableHorses();
+      const target = animals.find((animal) => animal.species === species);
+      if (!target) continue;
+      const player = createInitialPlayerState();
+      player.x = target.x + 9;
+      player.z = target.z;
+      if (isShot) damageGroundAnimal(target, 1, player.x, player.z, animals);
+      for (let frame = 0; frame < 360; frame++) {
+        player.x += (target.x + 1.5 - player.x) * 0.004;
+        player.vx = -1.2;
+        player.vz = 0;
+        stepBoidsAndWildlife(FRAME_DT, 20 + frame * FRAME_DT, birds, animals, player, horses, 1.0, 0);
+        if (frame % 60 === 59) {
+          trace.push({
+            species, isShot, frame,
+            target: {
+              x: target.x, z: target.z, yaw: target.yaw, vx: target.vx, vz: target.vz, hp: target.hp,
+              aiBehavior: target.aiBehavior, alertLevel: target.alertLevel, pounceHeight: target.pounceHeight,
+              rhinoPhase: target.rhinoPhase, wokenUpTimer: target.wokenUpTimer,
+            },
+            player: { x: player.x, z: player.z, vx: player.vx, vz: player.vz, stamina: player.stamina },
+          });
+        }
+      }
+    }
+  }
+
+  // Assert
+  assertMatchesGolden(golden('wildlife-confrontations'), trace);
 });
 // #endregion
 
