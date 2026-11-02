@@ -128,6 +128,7 @@ export function buildRealisticWorld(
   disposableTextures.push(birchBarkTexture);
 
   const ctx: IWorldModelBuildContext = {
+    logger,
     scene,
     textures,
     obstacles,

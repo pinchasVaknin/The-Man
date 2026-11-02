@@ -21,11 +21,12 @@ import {
 } from '../systems/footprintTrailSystem';
 import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
 import { attachDeerGlbModel } from '../models/deerGlbLoader';
-import { createReadyBear, type BearState } from '../models/Bear';
-import { createReadyCrocodile, type CrocodileState } from '../models/Crocodile';
-import { createReadyJaguar, type JaguarState } from '../models/Jaguar';
-import { createReadyWolf, type WolfState } from '../models/Wolf';
-import { createReadyRhino, type RhinoState } from '../models/Rhino';
+import { DeferredAnimalModel } from '../models/deferredAnimalModel';
+import { createReadyBear, type Bear, type BearState } from '../models/Bear';
+import { createReadyCrocodile, type Crocodile, type CrocodileState } from '../models/Crocodile';
+import { createReadyJaguar, type Jaguar, type JaguarState } from '../models/Jaguar';
+import { createReadyWolf, type Wolf, type WolfState } from '../models/Wolf';
+import { createReadyRhino, type Rhino, type RhinoState } from '../models/Rhino';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
@@ -202,11 +203,11 @@ export function buildWildlifeAndFootprintsLayer(
     headPivot?: THREE.Group;
     legs?: THREE.Mesh[];
     deerGlbCtrl?: ReturnType<typeof attachDeerGlbModel>;
-    bearCtrl?: ReturnType<typeof createReadyBear>;
-    crocodileCtrl?: ReturnType<typeof createReadyCrocodile>;
-    jaguarCtrl?: ReturnType<typeof createReadyJaguar>;
-    wolfCtrl?: ReturnType<typeof createReadyWolf>;
-    rhinoCtrl?: ReturnType<typeof createReadyRhino>;
+    bearCtrl?: DeferredAnimalModel<BearState, Bear>;
+    crocodileCtrl?: DeferredAnimalModel<CrocodileState, Crocodile>;
+    jaguarCtrl?: DeferredAnimalModel<JaguarState, Jaguar>;
+    wolfCtrl?: DeferredAnimalModel<WolfState, Wolf>;
+    rhinoCtrl?: DeferredAnimalModel<RhinoState, Rhino>;
     smoothHeadDip: number;
     smoothLegAmp: number;
     smoothPitch?: number;
@@ -252,6 +253,17 @@ export function buildWildlifeAndFootprintsLayer(
     return rig.lastAnimState as T;
   };
 
+  /** Registers a model's material(s) and geometry for disposal once it has attached. */
+  const registerModelDisposables = (model: { readonly mesh: THREE.SkinnedMesh }): void => {
+    const material = model.mesh.material;
+    if (Array.isArray(material)) {
+      for (const m of material) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(material);
+    }
+    disposableGeometries.push(model.mesh.geometry);
+  };
+
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     const root = new THREE.Group();
@@ -262,6 +274,7 @@ export function buildWildlifeAndFootprintsLayer(
     if (a.species === 'deer') {
       const deerGlbCtrl = attachDeerGlbModel(posePivot, {
         disposableMaterials,
+        logger,
       });
 
       root.position.set(a.x, a.y, a.z);
@@ -275,18 +288,17 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'bear') {
-      const bearCtrl = createReadyBear({
-        castShadow: true,
-        receiveShadow: true,
-      });
+      const bearCtrl = new DeferredAnimalModel<BearState, Bear>(
+        'bear',
+        () =>
+          createReadyBear({
+            castShadow: true,
+            receiveShadow: true,
+          }),
+        logger,
+        registerModelDisposables
+      );
       posePivot.add(bearCtrl.object);
-      const bearMat = bearCtrl.mesh.material;
-      if (Array.isArray(bearMat)) {
-        for (const m of bearMat) disposableMaterials.push(m);
-      } else {
-        disposableMaterials.push(bearMat);
-      }
-      disposableGeometries.push(bearCtrl.mesh.geometry);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
@@ -299,18 +311,17 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'crocodile') {
-      const crocodileCtrl = createReadyCrocodile({
-        castShadow: true,
-        receiveShadow: true,
-      });
+      const crocodileCtrl = new DeferredAnimalModel<CrocodileState, Crocodile>(
+        'crocodile',
+        () =>
+          createReadyCrocodile({
+            castShadow: true,
+            receiveShadow: true,
+          }),
+        logger,
+        registerModelDisposables
+      );
       posePivot.add(crocodileCtrl.object);
-      const crocMat = crocodileCtrl.mesh.material;
-      if (Array.isArray(crocMat)) {
-        for (const m of crocMat) disposableMaterials.push(m);
-      } else {
-        disposableMaterials.push(crocMat);
-      }
-      disposableGeometries.push(crocodileCtrl.mesh.geometry);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
@@ -323,18 +334,17 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'jaguar') {
-      const jaguarCtrl = createReadyJaguar({
-        castShadow: true,
-        receiveShadow: true,
-      });
+      const jaguarCtrl = new DeferredAnimalModel<JaguarState, Jaguar>(
+        'jaguar',
+        () =>
+          createReadyJaguar({
+            castShadow: true,
+            receiveShadow: true,
+          }),
+        logger,
+        registerModelDisposables
+      );
       posePivot.add(jaguarCtrl.object);
-      const jagMat = jaguarCtrl.mesh.material;
-      if (Array.isArray(jagMat)) {
-        for (const m of jagMat) disposableMaterials.push(m);
-      } else {
-        disposableMaterials.push(jagMat);
-      }
-      disposableGeometries.push(jaguarCtrl.mesh.geometry);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
@@ -347,18 +357,17 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'wolf') {
-      const wolfCtrl = createReadyWolf({
-        castShadow: true,
-        receiveShadow: true,
-      });
+      const wolfCtrl = new DeferredAnimalModel<WolfState, Wolf>(
+        'wolf',
+        () =>
+          createReadyWolf({
+            castShadow: true,
+            receiveShadow: true,
+          }),
+        logger,
+        registerModelDisposables
+      );
       posePivot.add(wolfCtrl.object);
-      const wolfMat = wolfCtrl.mesh.material;
-      if (Array.isArray(wolfMat)) {
-        for (const m of wolfMat) disposableMaterials.push(m);
-      } else {
-        disposableMaterials.push(wolfMat);
-      }
-      disposableGeometries.push(wolfCtrl.mesh.geometry);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
@@ -371,18 +380,17 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'rhino') {
-      const rhinoCtrl = createReadyRhino({
-        castShadow: true,
-        receiveShadow: true,
-      });
+      const rhinoCtrl = new DeferredAnimalModel<RhinoState, Rhino>(
+        'rhino',
+        () =>
+          createReadyRhino({
+            castShadow: true,
+            receiveShadow: true,
+          }),
+        logger,
+        registerModelDisposables
+      );
       posePivot.add(rhinoCtrl.object);
-      const rhinoMat = rhinoCtrl.mesh.material;
-      if (Array.isArray(rhinoMat)) {
-        for (const m of rhinoMat) disposableMaterials.push(m);
-      } else {
-        disposableMaterials.push(rhinoMat);
-      }
-      disposableGeometries.push(rhinoCtrl.mesh.geometry);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;

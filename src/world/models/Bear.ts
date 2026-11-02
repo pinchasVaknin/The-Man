@@ -11,12 +11,9 @@ export {
   type BearUnpackedData,
   BEAR_GAITS,
   BEAR_STATES,
-  unpackBearBundle,
   BearRig,
   BearAnimator,
   Bear,
-  BEAR_EMBEDDED_PACK_B64,
-  BEAR_EMBEDDED_TEXTURE_URI,
   createReadyBear,
 } from './animals/Bear_Complete';
 

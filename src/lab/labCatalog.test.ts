@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS & TEST DEPENDENCIES ======================== \\
 // #region Imports & Test Dependencies
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
+import { preloadAnimalModelsForTests } from '../testSupport/animalModelsForTests';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_LAB_POSE_OVERRIDES,
@@ -31,6 +32,10 @@ import {
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests
 describe('Character & Animation Lab Catalog', () => {
+  before(async () => {
+    await preloadAnimalModelsForTests();
+  });
+
   it('organizes all world entities into 2 distinct categories: characters and animals', () => {
     assert.equal(LAB_CATEGORIES.length, 2);
     assert.deepEqual(

@@ -358,6 +358,7 @@ export function buildEnvironmentAtmosphereModels(
       castShadow: !isSoftwareGl,
       receiveShadow: !isSoftwareGl,
       disposableMaterials,
+      logger: ctx.logger,
     });
 
     scene.add(root);

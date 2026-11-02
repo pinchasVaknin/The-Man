@@ -13,11 +13,8 @@ export {
   type JaguarUnpackedData,
   JAGUAR_STATES,
   JAGUAR_GAITS,
-  unpackJaguarBundle,
   JaguarRig,
   JaguarAnimator,
   Jaguar,
-  JAGUAR_EMBEDDED_PACK_B64,
-  JAGUAR_EMBEDDED_TEXTURE_URI,
   createReadyJaguar,
 } from './animals/Jaguar_Complete';

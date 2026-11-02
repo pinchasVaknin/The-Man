@@ -19,8 +19,6 @@ export {
   DeerAnimator,
   type DeerOptions,
   Deer,
-  DEER_EMBEDDED_PACK_B64,
-  DEER_EMBEDDED_TEXTURE_URI,
   createReadyDeer,
 } from './animals/Deer_Complete';
 
