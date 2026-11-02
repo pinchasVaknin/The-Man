@@ -1,6 +1,6 @@
 // ============================================================================
 // MODULE: World / Models / Deer Instance Loader
-// DESIGN: Thin adapter around createReadyDeer returning a small controller (SRP)
+// DESIGN: Thin adapter around createReadyDeer returning a small controller; attaches late (async GLB)
 // SUMMARY: Instantiates the embedded deer model into a target container and exposes
 //          state, scale and update controls. Does not decide deer behavior; the wildlife AI does.
 // ============================================================================
@@ -12,6 +12,9 @@ import {
   type DeerState,
   createReadyDeer,
 } from './Deer';
+import { InfrastructureCorruptedException } from '../../core/AppException';
+import type { ILogger } from '../../core/ILogger';
+import { isAnimalModelLoaded, loadAnimalModel } from './animalModelAssets';
 
 export { DEER_STATES, type DeerState };
 
@@ -20,7 +23,7 @@ export interface DeerGlbInstanceController {
   readonly root: THREE.Group;
   /**Underlying Deer instance from Deer_Complete.ts */
   readonly deer: Deer;
-  /**True when the embedded Deer_Complete model is ready */
+  /**True once the deer GLB has loaded and the model is attached */
   isLoaded: () => boolean;
   /**Current animation state */
   getState: () => DeerState;
@@ -45,64 +48,78 @@ export interface AttachDeerGlbOptions {
   receiveShadow?: boolean;
   /**Optional array to register created materials for disposal */
   disposableMaterials?: THREE.Material[];
+  /**Receives a warning when the model cannot be downloaded */
+  logger?: ILogger;
   /**Optional callback fired when the model is attached */
   onLoaded?: (controller: DeerGlbInstanceController) => void;
 }
 
 /**
- * Synchronously instantiates the self-contained Deer_Complete model
- * (geometry + texture + 27-bone rig + 9-state procedural IK animator)
- * into `targetContainer`.
+ * Summary: Places a deer model into `targetContainer`, now or as soon as its GLB has loaded.
+ * Design: When the model is already loaded (the lab preloads everything) the deer attaches
+ *         synchronously. Otherwise the controller starts empty: isLoaded() is false and
+ *         state/update calls only remember the latest state until the model arrives.
+ * @param targetContainer Group that receives the deer (its children are replaced).
+ * @param options Scale, tint, shadows, disposal list, logger and an attach callback.
+ * @returns The controller (usable immediately).
  */
 export function attachDeerGlbModel(
   targetContainer: THREE.Group,
   options?: AttachDeerGlbOptions
 ): DeerGlbInstanceController {
-  const desiredScale = options?.scale ?? 1.0;
+  let deerInstance: Deer | null = null;
+  let pendingState: DeerState | null = null;
+  let pendingTint: number | null = null;
 
-  while (targetContainer.children.length > 0) {
-    targetContainer.remove(targetContainer.children[0]);
-  }
-
-  const deerInstance = createReadyDeer({
-    scale: desiredScale,
-    tintHex: options?.tintHex,
-    castShadow: options?.castShadow ?? true,
-    receiveShadow: options?.receiveShadow ?? true,
-  });
-
-  if (options?.disposableMaterials && deerInstance.mesh.material instanceof THREE.Material) {
-    options.disposableMaterials.push(deerInstance.mesh.material);
-  }
-
-  targetContainer.add(deerInstance.object);
+  const attach = () => {
+    while (targetContainer.children.length > 0) {
+      targetContainer.remove(targetContainer.children[0]);
+    }
+    const instance = createReadyDeer({
+      scale: options?.scale ?? 1.0,
+      tintHex: options?.tintHex,
+      castShadow: options?.castShadow ?? true,
+      receiveShadow: options?.receiveShadow ?? true,
+    });
+    if (options?.disposableMaterials && instance.mesh.material instanceof THREE.Material) {
+      options.disposableMaterials.push(instance.mesh.material);
+    }
+    targetContainer.add(instance.object);
+    deerInstance = instance;
+    if (pendingState !== null) instance.setState(pendingState);
+    if (pendingTint !== null) handle.setTint(pendingTint);
+    options?.onLoaded?.(handle);
+  };
 
   const handle: DeerGlbInstanceController = {
     get root() {
-      return deerInstance.object;
+      return requireDeer().object;
     },
     get deer() {
-      return deerInstance;
+      return requireDeer();
     },
     isLoaded() {
-      return true;
+      return deerInstance !== null;
     },
     getState() {
-      return deerInstance.state;
+      return deerInstance?.state ?? pendingState ?? 'idle';
     },
     setState(next: DeerState) {
-      deerInstance.setState(next);
+      pendingState = next;
+      deerInstance?.setState(next);
     },
     setTurn(nextTurn: number) {
-      deerInstance.turn = nextTurn;
+      if (deerInstance) deerInstance.turn = nextTurn;
     },
     setTint(tintHex: number) {
-      const mat = deerInstance.mesh.material;
+      pendingTint = tintHex;
+      const mat = deerInstance?.mesh.material;
       if (mat instanceof THREE.MeshStandardMaterial) {
         mat.color.setHex(tintHex);
       }
     },
     update(dt: number, turn?: number) {
+      if (!deerInstance) return;
       if (typeof turn === 'number') {
         deerInstance.turn = turn;
       }
@@ -110,7 +127,21 @@ export function attachDeerGlbModel(
     },
   };
 
-  options?.onLoaded?.(handle);
+  function requireDeer(): Deer {
+    if (!deerInstance) {
+      throw new InfrastructureCorruptedException('The deer model was used before it finished loading.');
+    }
+    return deerInstance;
+  }
 
+  if (isAnimalModelLoaded('deer')) {
+    attach();
+  } else {
+    loadAnimalModel('deer')
+      .then(attach)
+      .catch((err: unknown) => {
+        options?.logger?.warn('Deer model could not be loaded; the deer stays hidden', { error: String(err) });
+      });
+  }
   return handle;
 }

@@ -7,7 +7,8 @@
 
 // ======================== IMPORTS AND TEST DEPENDENCIES ======================== \\
 // #region Imports and Test Dependencies
-import { test } from 'node:test';
+import { before, test } from 'node:test';
+import { preloadAnimalModelsForTests } from '../../testSupport/animalModelsForTests';
 import assert from 'node:assert/strict';
 import {
   createInitialBoidBirds,
@@ -51,6 +52,10 @@ import {
   walkableHeightAt,
 } from './terrainAndBiomeSystem';
 // #endregion
+
+before(async () => {
+  await preloadAnimalModelsForTests();
+});
 
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests

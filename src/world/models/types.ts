@@ -6,6 +6,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import type { ILogger } from '../../core/ILogger';
 import type * as THREE from 'three';
 import type { IWorldTextureSet } from '../proceduralTextures';
 import type { IObstacleCylinder } from '../domain/worldTypes';
@@ -54,6 +55,8 @@ export interface IWorldModelBuildContext {
   readonly mistMaterials: THREE.MeshBasicMaterial[];
   readonly distanceCulledObjects: IDistanceCulledObject[];
   readonly doorPivotHandles: IDoorPivotHandle[];
+  /** Receives recoverable problems, such as a model that failed to download. */
+  readonly logger: ILogger;
   archAssets?: IArchitecturalSharedAssets;
   birchBarkTexture?: THREE.CanvasTexture;
 }

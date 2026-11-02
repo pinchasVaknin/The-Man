@@ -1,17 +1,17 @@
-# Graph Report - TheMan  (2026-11-01)
+# Graph Report - TheMan  (2026-11-02)
 
 ## Corpus Check
-- 158 files · ~288,178 words
+- 172 files · ~291,379 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .css 1)
+- Unclassified: 13 file(s) not represented in the graph (top: .glb 8, (none) 3, .example 1)
 
 ## Summary
-- 1390 nodes · 3872 edges · 77 communities (51 shown, 26 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 30 edges (avg confidence: 0.83)
+- 1431 nodes · 4081 edges · 92 communities (60 shown, 32 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 35 edges (avg confidence: 0.83)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `de3fa1eb`
+- Built from commit: `3021fa5d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,7 +21,7 @@
 - terrainMath.test.ts
 - swordAttackAnimationSystem.ts
 - main.tsx
-- playerPhysicsSystem.ts
+- terrainAndBiomeSystem.ts
 - InfrastructureCorruptedException
 - WorldCanvas.tsx
 - Result
@@ -34,10 +34,10 @@
 - worldTypes.ts
 - proceduralModels.ts
 - devDependencies
-- windowDebugController.spec.ts
-- terrainAndBiomeSystem.ts
+- DeerAnimator
+- landmarksRegistry.ts
 - src_world_terrainmath_cameraperspectivemode
-- GameShellOverlay.tsx
+- SkyrimInventoryModal.tsx
 - TheMan — 3D Living Nature & RPG World Simulator
 - rules/graphify.md
 - workflows/graphify.md
@@ -63,97 +63,112 @@
 - src_world_terrainmath_playerstate
 - src_world_terrainmath_rideablehorsestate
 - src_world_terrainmath_weatherstatesnapshot
-- settlementModels.ts
-- JaguarAnimator
+- animalModelAssets.ts
+- Jaguar_Complete.ts
 - combatAndInventorySystem.ts
 - src_world_terrainmath_walkpacemode
-- Rhino.ts
+- RhinoAnimator
 - atmosphereRenderController.ts
-- DemonDragon_Complete.ts
+- DemonDragon
 - src_world_terrainmath_dynamicatmospherestate
 - ForestDragon_Complete.ts
 - scripts
 - SpatialHashGrid2D
 - dependencies
-- BearAnimator
-- Crocodile.ts
+- Bear_Complete.ts
+- Crocodile_Complete.ts
 - src_world_terrainmath_getanimalspeciesnamehe
 - ref_node_test
 - dwarvenMineAndCaravanSystem.ts
 - ILogger
 - horsePhysicsSystem.ts
 - t
-- AppServicesContext.spec.ts
+- deferredAnimalModel.spec.ts
 - interpolation.spec.ts
-- WolfAnimator
+- Wolf_Complete.ts
+- IPlayerState
+- Rhino_Complete.ts
 - vite.config.ts
-- תיקיית מודלים תלת-ממדיים (`public/models`)
+- playerAndCombatBuilder.ts
+- 3D model files (`public/models`)
 - src_world_terrainmath_archery_targets
-- App.tsx
+- GameShellOverlay.tsx
 - src_locales_index_he
-- hudTelemetryBuilder.ts
-- goldenMaster.ts
+- CharacterLabCanvas.tsx
+- BearAnimator
+- JaguarAnimator
+- registerWindowDebugBridge
+- weaponFeelSystem.spec.ts
+- WolfAnimator
+- wildlifeAndFootprintsBuilder.ts
+- CrocodileAnimator
+- createAnimalTexture
+- labOverridesStorage.ts
+- animalModels.characterization.spec.ts
+- highlandBridgeLandmarks.ts
+- movementIntent.spec.ts
+- keyBindingMatch.ts
 
 ## God Nodes (most connected - your core abstractions)
 1. `WorldCanvas` - 57 edges
 2. `t()` - 48 edges
 3. `groundHeightAt()` - 43 edges
 4. `walkableHeightAt()` - 42 edges
-5. `three` - 35 edges
-6. `DeerAnimator` - 33 edges
-7. `IPlayerState` - 31 edges
-8. `NatureSoundEngine` - 31 edges
-9. `ILogger` - 25 edges
+5. `three` - 39 edges
+6. `ILogger` - 33 edges
+7. `DeerAnimator` - 33 edges
+8. `IPlayerState` - 31 edges
+9. `NatureSoundEngine` - 31 edges
 10. `registerWindowDebugBridge()` - 24 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `IErrorBoundaryProps` --references--> `ILogger`  [EXTRACTED]
-  src/components/ErrorBoundary.tsx → src/core/ILogger.ts
-- `IGameSettingsModalProps` --references--> `IGameSettingsConfig`  [EXTRACTED]
-  src/components/GameSettingsModal.tsx → src/config/savedGameSettings.ts
-- `IWeatherOptionDef` --references--> `WeatherToggleOption`  [EXTRACTED]
-  src/components/GameShellOverlay.tsx → src/world/domain/worldTypes.ts
 - `saveGameSettings()` --calls--> `validateGameSettings()`  [EXTRACTED]
   vite.config.ts → src/config/persistedSettingsValidation.ts
 - `saveLabOverrides()` --calls--> `validateLabOverrides()`  [EXTRACTED]
   vite.config.ts → src/config/persistedSettingsValidation.ts
+- `IErrorBoundaryProps` --references--> `ILogger`  [EXTRACTED]
+  src/components/ErrorBoundary.tsx → src/core/ILogger.ts
+- `IGameSettingsModalProps` --references--> `IGameSettingsConfig`  [EXTRACTED]
+  src/components/GameSettingsModal.tsx → src/config/savedGameSettings.ts
+- `IGameLoopOptions` --references--> `ILogger`  [EXTRACTED]
+  src/core/gameLoop.ts → src/core/ILogger.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (77 total, 26 thin omitted)
+## Communities (92 total, 32 thin omitted)
 
 ### Community 0 - "boidsAndWildlifeSystem.ts"
-Cohesion: 0.09
-Nodes (48): createInput(), createTestBridgeDeps(), IPlayerInput, computeDynamicSolarCycle(), activeWorldAnimalsRegistry, advanceAnimalWithWaterShoreRecovery(), AnimalAiBehavior, BIRD_FLOCK_CONFIGS (+40 more)
+Cohesion: 0.05
+Nodes (67): ref_node_fs, ref_node_os, ref_node_path, ref_node_url, assertMatchesGolden(), normalizeForGolden(), applyDynamicAtmosphereToScene(), createInput() (+59 more)
 
 ### Community 1 - "GameSettingsModal.tsx"
 Cohesion: 0.17
-Nodes (15): GameSettingsModal(), IGameSettingsModalProps, IKeybindRowMeta, KEYBIND_CATEGORIES, KEYBIND_ROWS, KeybindCategory, DEFAULT_GAME_KEYBINDINGS, FirefliesMode (+7 more)
+Nodes (13): GameSettingsModal(), IGameSettingsModalProps, IKeybindRowMeta, KEYBIND_CATEGORIES, KEYBIND_ROWS, KeybindCategory, DEFAULT_GAME_KEYBINDINGS, FirefliesMode (+5 more)
 
 ### Community 2 - "terrainMath.test.ts"
-Cohesion: 0.07
-Nodes (30): DEFAULT_WEATHER_CYCLE_MODE, getRoofHeightAt(), isPositionUnderRoof(), src_world_terrainmath_birch_grove_center, src_world_terrainmath_birchgrovefactorat, src_world_terrainmath_chinesefortressstairheightat, src_world_terrainmath_computeweatherstate, src_world_terrainmath_corner_watchtowers (+22 more)
+Cohesion: 0.05
+Nodes (43): LAKESIDE_TEA_PAVILION_POS, RIDEABLE_HORSES, src_world_terrainmath_bear_mountain_caves, src_world_terrainmath_birch_grove_center, src_world_terrainmath_birchgrovefactorat, src_world_terrainmath_chinese_fortress_pos, src_world_terrainmath_chinesefortressstairheightat, src_world_terrainmath_computehorsebiomechanicalpose (+35 more)
 
 ### Community 3 - "swordAttackAnimationSystem.ts"
 Cohesion: 0.09
 Nodes (33): bezier3(), clamp(), classifySwordAttackPhase(), COMBO_0_KEYFRAMES, COMBO_1_KEYFRAMES, COMBO_2_HEAVY_KEYFRAMES, computeFirstPersonSwordAttackPose(), COS_TILT (+25 more)
 
 ### Community 4 - "main.tsx"
-Cohesion: 0.13
-Nodes (9): ref_react_dom_client, App(), ErrorBoundary, IErrorBoundaryProps, IErrorBoundaryState, loadActiveGameSettings(), src_index, appServices (+1 more)
+Cohesion: 0.15
+Nodes (7): ref_react_dom_client, ErrorBoundary, IErrorBoundaryProps, IErrorBoundaryState, src_index, appServices, rootElement
 
-### Community 5 - "playerPhysicsSystem.ts"
-Cohesion: 0.14
-Nodes (23): ARCHERY_TARGETS, CHINESE_FORTRESS_POS, chineseFortressStairHeightAt(), CORNER_WATCHTOWERS, FORTRESS_Y_OFFSET, FORTRESS_Z_OFFSET, isChineseFortressWalkableZone(), findLookedAtWatchtowerLadder() (+15 more)
+### Community 5 - "terrainAndBiomeSystem.ts"
+Cohesion: 0.19
+Nodes (24): chineseFortressStairHeightAt(), isChineseFortressWalkableZone(), ropeBridgePointInfoAt(), findLookedAtWatchtowerLadder(), findWatchtowerLadderAt(), getLadderById(), isInsideSouthernMine(), findNearestRideableHorse() (+16 more)
 
 ### Community 6 - "InfrastructureCorruptedException"
-Cohesion: 0.24
-Nodes (6): InfrastructureCorruptedException, IFixedStepOptions, IGameLoopOptions, createTickErrorGuard(), ITickErrorGuard, TickErrorDecision
+Cohesion: 0.18
+Nodes (9): InfrastructureCorruptedException, IFixedStepOptions, IGameLoopOptions, createTickErrorGuard(), ITickErrorGuard, TickErrorDecision, fetchAnimalModelFromServer(), requireProceduralGeometry() (+1 more)
 
 ### Community 7 - "WorldCanvas.tsx"
 Cohesion: 0.07
-Nodes (40): _camTargetLook, _euler, _sunVec, isBindingHeld(), matchesKeyBinding(), MODIFIER_FAMILIES, createAnimationFrameScheduler(), createGpuFencePacedScheduler() (+32 more)
+Nodes (43): _camTargetLook, _euler, _sunVec, createAnimationFrameScheduler(), createGpuFencePacedScheduler(), buildTelemetrySnapshot(), findNearestFortressDoor(), findNearestDeadLootableAnimal() (+35 more)
 
 ### Community 8 - "Result"
 Cohesion: 0.25
@@ -164,8 +179,8 @@ Cohesion: 0.15
 Nodes (12): name, private, type, version, react-dom, tailwindcss, tsx, @types/node (+4 more)
 
 ### Community 10 - "Deer_Complete.ts"
-Cohesion: 0.05
-Nodes (40): BoneDef, BoneGroup, BoneName, Chain, CHAINS, computeDeerSkinWeights(), createReadyDeer(), Deer (+32 more)
+Cohesion: 0.07
+Nodes (35): getLoadedAnimalModel(), BoneDef, BoneGroup, BoneName, Chain, CHAINS, computeDeerSkinWeights(), createReadyDeer() (+27 more)
 
 ### Community 11 - "compilerOptions"
 Cohesion: 0.11
@@ -176,36 +191,36 @@ Cohesion: 0.15
 Nodes (6): GameLoop, IFrameScheduler, createFixedHarness(), createHarness(), FakeScheduler, RecordingLogger
 
 ### Community 13 - "labCatalog.ts"
-Cohesion: 0.06
-Nodes (65): ref_three_examples_jsm_environments_roomenvironment_js, SAVED_LAB_OVERRIDES, CharacterLabCanvas(), afterDraw(), tick(), ICharacterLabCanvasProps, CAMERA_PRESETS, CharacterLabView() (+57 more)
+Cohesion: 0.16
+Nodes (25): CAMERA_PRESETS, CharacterLabView(), ENVIRONMENT_PRESETS, ICharacterLabViewProps, SPEED_OPTIONS, countActivePoseOverrides(), createInitialLabSessionState(), EDITOR_LABEL_FIELDS (+17 more)
 
 ### Community 14 - "config.ts"
 Cohesion: 0.35
 Nodes (10): clamp(), IValidatedPositionOverride, MAX_WORLD_HOUR, MIN_WORLD_HOUR, parseAndValidateUrlOverrides(), PLAYABLE_RADIUS, URL_SEASON_OFFSETS, URL_WEATHER_MAP (+2 more)
 
 ### Community 15 - "worldTypes.ts"
-Cohesion: 0.11
-Nodes (27): IValidatedUrlOverrides, ITelemetrySnapshot, ArrowElementKind, BiomeType, CameraPerspectiveMode, createCatalogItem(), DEFAULT_STARTER_OWNED_ITEM_IDS, EquippedToolSlot (+19 more)
+Cohesion: 0.12
+Nodes (26): IValidatedUrlOverrides, ITelemetrySnapshot, ArrowElementKind, BiomeType, CameraPerspectiveMode, createCatalogItem(), DEFAULT_STARTER_OWNED_ITEM_IDS, EquippedToolSlot (+18 more)
 
 ### Community 16 - "proceduralModels.ts"
 Cohesion: 0.06
-Nodes (94): three, ref_three_addons_environments_roomenvironment_js, buildColliderDebugWireframes(), IColliderDebugHandles, buildDwarvenKingdomAndMiners(), buildPlayerAndCombatSystems(), attachFlagHorizontalWaveShader(), attachWindSwayShader() (+86 more)
+Nodes (86): three, ref_three_addons_environments_roomenvironment_js, buildColliderDebugWireframes(), IColliderDebugHandles, buildDwarvenKingdomAndMiners(), IDwarvenKingdomBuilderContext, IDwarvenKingdomHandle, IDwarvenMinerRig (+78 more)
 
 ### Community 17 - "devDependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, tailwindcss, @tailwindcss/vite, tsx, @types/node, @types/react, @types/react-dom, @types/three (+3 more)
 
-### Community 18 - "windowDebugController.spec.ts"
-Cohesion: 0.22
-Nodes (12): IPlayerAndCombatHandle, IWildlifeSoundCallbacks, IHudTelemetryInput, IWindowDebugBridgeDeps, IArrowProjectile, IDynamicAtmosphereState, IRideableHorseState, IWeatherStateSnapshot (+4 more)
-
-### Community 19 - "terrainAndBiomeSystem.ts"
+### Community 18 - "DeerAnimator"
 Cohesion: 0.15
-Nodes (27): CLEAR_ZONES, FLAT_BUILDING_TERRACES, BEAR_MOUNTAIN_CAVES, BIRCH_GROVE_CENTER, CROCODILE_RIVER_BEND_POS, MAGIC_STONE_CIRCLE_POS, PLAYABLE_RADIUS, PLAYER_EYE_HEIGHT (+19 more)
+Nodes (3): DeerAnimator, DeerRig, ss()
 
-### Community 21 - "GameShellOverlay.tsx"
-Cohesion: 0.09
-Nodes (34): GameShellOverlay, IWeatherOptionDef, SEASON_OPTIONS, SkyrimModalMode, WEATHER_OPTIONS, renderArtifactArtwork(), renderItemSvgIcon(), formatMarketError() (+26 more)
+### Community 19 - "landmarksRegistry.ts"
+Cohesion: 0.16
+Nodes (23): SOLID_BUILDING_BOXES, BEAR_MOUNTAIN_CAVES, BIRCH_GROVE_CENTER, CROCODILE_RIVER_BEND_POS, MAGIC_STONE_CIRCLE_POS, PLAYABLE_RADIUS, PLAYER_EYE_HEIGHT, SMALL_MEADOW_HILLS (+15 more)
+
+### Community 21 - "SkyrimInventoryModal.tsx"
+Cohesion: 0.11
+Nodes (23): renderArtifactArtwork(), formatMarketError(), ISkyrimInventoryModalProps, ITEM_SHORT_NAMES, NON_SELLABLE_STARTER_IDS, SkyrimInventoryModal, IBuyMarketItemPayload, IInventoryItemDef (+15 more)
 
 ### Community 22 - "TheMan — 3D Living Nature & RPG World Simulator"
 Cohesion: 0.29
@@ -220,48 +235,44 @@ Cohesion: 0.33
 Nodes (5): INITIAL_TELEMETRY_SNAPSHOT, ITelemetryStore, telemetryStore, TelemetrySnapshot, src_world_terrainmath_world_spawn
 
 ### Community 30 - "persistedSettingsValidation.ts"
-Cohesion: 0.13
-Nodes (21): ANIMATION_SPEED_RANGE, CAMERA_PERSPECTIVES, FIREFLIES_MODES, GameSettingsValidationError, isNumberInRange(), isOneOf(), isPlainObject(), JUMP_FORCE_RANGE (+13 more)
+Cohesion: 0.15
+Nodes (19): ANIMATION_SPEED_RANGE, CAMERA_PERSPECTIVES, FIREFLIES_MODES, GameSettingsValidationError, isNumberInRange(), isOneOf(), isPlainObject(), JUMP_FORCE_RANGE (+11 more)
 
 ### Community 34 - "WorldCanvas"
-Cohesion: 0.14
-Nodes (24): WorldCanvas, IPlayerState, getActiveWorldAnimals(), computeTargetFov(), createCameraPose(), createCameraRigState(), easeFovToward(), ICameraRigFrameInput (+16 more)
+Cohesion: 0.18
+Nodes (20): WorldCanvas, getActiveWorldAnimals(), computeTargetFov(), createCameraPose(), createCameraRigState(), easeFovToward(), ICameraPose, ICameraRigState (+12 more)
 
 ### Community 36 - "itemArtworkRegistry.tsx"
 Cohesion: 0.14
 Nodes (4): ARTWORK_STRATEGIES, ArtworkRenderStrategy, ICON_STRATEGIES, IconRenderStrategy
 
 ### Community 38 - "collisionAndTerraces.ts"
-Cohesion: 0.27
-Nodes (9): SOLID_BUILDING_BOXES, MARKET_STALL_LOCATIONS, SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS, HUNTER_LODGE_POS, RIVERSIDE_WINDMILLS, SAKURA_SANCTUARY_POS, SAKURA_SANCTUARY_YAW (+1 more)
+Cohesion: 0.15
+Nodes (20): CLEAR_ZONES, FLAT_BUILDING_TERRACES, DWARVEN_GUARDIAN_STATUES, DWARVEN_STONE_HOUSES, ARCHERY_TARGETS, CHINESE_FORTRESS_POS, CORNER_WATCHTOWERS, FORTRESS_Y_OFFSET (+12 more)
 
-### Community 47 - "settlementModels.ts"
-Cohesion: 0.12
-Nodes (16): LAKESIDE_TEA_PAVILION_POS, RIDEABLE_HORSES, ISettlementModelHandles, src_world_terrainmath_bear_mountain_caves, src_world_terrainmath_computehorsebiomechanicalpose, src_world_terrainmath_crocodile_river_bend_pos, src_world_terrainmath_hunter_lodge_pos, src_world_terrainmath_irideablehorsestate (+8 more)
+### Community 47 - "animalModelAssets.ts"
+Cohesion: 0.11
+Nodes (24): ref_node_fs_promises, ref_three_addons_loaders_gltfloader_js, CharacterLabView, MODELS_DIRECTORY, preloadAnimalModelsForTests(), readModelFromDisk(), ANIMAL_MODEL_IDS, AnimalModelFetcher (+16 more)
 
-### Community 48 - "JaguarAnimator"
-Cohesion: 0.09
-Nodes (13): CLIP_ORDER, createReadyJaguar(), Jaguar, JAGUAR_EMBEDDED_PACK_B64, JAGUAR_EMBEDDED_TEXTURE_URI, JAGUAR_GAITS, JAGUAR_STATES, JaguarAnimator (+5 more)
+### Community 48 - "Jaguar_Complete.ts"
+Cohesion: 0.13
+Nodes (9): CLIP_ORDER, createReadyJaguar(), Jaguar, JAGUAR_GAITS, JAGUAR_STATES, JaguarOptions, JaguarRig, JaguarState (+1 more)
 
 ### Community 49 - "combatAndInventorySystem.ts"
-Cohesion: 0.06
-Nodes (27): IArcheryTargetDef, InventoryItemId, ARCHERY_TARGETS_SPATIAL_GRID, ArrowEquipmentStrategy, arrowFireStrategy, arrowNormalStrategy, arrowWindStrategy, BowEquipmentStrategy (+19 more)
-
-### Community 51 - "Rhino.ts"
-Cohesion: 0.09
-Nodes (13): CLIP_ORDER, createReadyRhino(), Rhino, RHINO_EMBEDDED_PACK_B64, RHINO_EMBEDDED_TEXTURE_URI, RHINO_GAITS, RHINO_STATES, RhinoAnimator (+5 more)
+Cohesion: 0.08
+Nodes (22): IArcheryTargetDef, ISmallAnimalState, ARCHERY_TARGETS_SPATIAL_GRID, arrowFireStrategy, arrowNormalStrategy, arrowWindStrategy, bowStrategy, cloakStrategy (+14 more)
 
 ### Community 52 - "atmosphereRenderController.ts"
-Cohesion: 0.18
-Nodes (10): ref_three_addons_objects_sky_js, applyDynamicAtmosphereToScene(), _denseFogColor, IAtmosphereRenderContext, _lightningColor, _sandFogColor, _stormFogColor, src_world_terrainmath_computedynamicsolarcycle (+2 more)
+Cohesion: 0.12
+Nodes (18): ref_three_addons_objects_sky_js, IPlayerAndCombatHandle, _denseFogColor, IAtmosphereRenderContext, _lightningColor, _sandFogColor, _stormFogColor, IHudTelemetryInput (+10 more)
 
-### Community 53 - "DemonDragon_Complete.ts"
-Cohesion: 0.10
-Nodes (13): CLIP_ORDER, createReadyDemonDragon(), DEMON_DRAGON_EMBEDDED_PACK_B64, DEMON_DRAGON_EMBEDDED_TEXTURE_URI, DEMON_DRAGON_GAITS, DemonDragon, DemonDragonAnimator, DemonDragonOptions (+5 more)
+### Community 53 - "DemonDragon"
+Cohesion: 0.14
+Nodes (3): DemonDragon, DemonDragonAnimator, DemonDragonRig
 
 ### Community 55 - "ForestDragon_Complete.ts"
-Cohesion: 0.09
-Nodes (14): CLIP_ORDER, createReadyForestDragon(), FOREST_DRAGON_EMBEDDED_PACK_B64, FOREST_DRAGON_EMBEDDED_TEXTURE_URI, FOREST_DRAGON_GAITS, ForestDragon, ForestDragonAnimator, ForestDragonOptions (+6 more)
+Cohesion: 0.11
+Nodes (10): CLIP_ORDER, FOREST_DRAGON_GAITS, ForestDragon, ForestDragonAnimator, ForestDragonOptions, ForestDragonRig, ForestDragonState, ForestDragonUnpackedData (+2 more)
 
 ### Community 56 - "scripts"
 Cohesion: 0.29
@@ -271,25 +282,25 @@ Nodes (7): scripts, build, clean, dev, lint, preview, test
 Cohesion: 0.50
 Nodes (4): dependencies, react, react-dom, three
 
-### Community 59 - "BearAnimator"
-Cohesion: 0.10
-Nodes (13): Bear, BEAR_EMBEDDED_PACK_B64, BEAR_EMBEDDED_TEXTURE_URI, BEAR_GAITS, BEAR_STATES, BearAnimator, BearOptions, BearRig (+5 more)
+### Community 59 - "Bear_Complete.ts"
+Cohesion: 0.14
+Nodes (8): Bear, BEAR_GAITS, BEAR_STATES, BearOptions, BearRig, BearState, BearUnpackedData, CLIP_ORDER
 
-### Community 60 - "Crocodile.ts"
-Cohesion: 0.10
-Nodes (12): createReadyCrocodile(), CROC_EMBEDDED_PACK_B64, CROC_EMBEDDED_TEXTURE_URI, Crocodile, CROCODILE_GAITS, CROCODILE_STATES, CrocodileAnimator, CrocodileOptions (+4 more)
+### Community 60 - "Crocodile_Complete.ts"
+Cohesion: 0.15
+Nodes (8): createReadyCrocodile(), Crocodile, CROCODILE_GAITS, CROCODILE_STATES, CrocodileOptions, CrocodileRig, CrocodileState, CrocodileUnpackedData
 
 ### Community 62 - "ref_node_test"
-Cohesion: 0.15
-Nodes (8): ref_node_assert_strict, ref_node_test, createAppServices(), SAVED_GAME_SETTINGS, globalWithWindow, ConsoleLogger, NullLogger, src_world_terrainmath_biometype
+Cohesion: 0.13
+Nodes (14): ref_node_assert_strict, ref_node_test, react, ref_react_dom_server, App(), AppServicesContext, AppServicesProvider, LoggerProbe() (+6 more)
 
 ### Community 63 - "dwarvenMineAndCaravanSystem.ts"
-Cohesion: 0.13
-Nodes (19): IDwarvenKingdomBuilderContext, IDwarvenKingdomHandle, IDwarvenMinerRig, VIEW_DISTANCE, DWARVEN_GUARDIAN_STATUES, DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS, buildMinerWaypoints() (+11 more)
+Cohesion: 0.24
+Nodes (10): SOUTHERN_MINE_POS, buildMinerWaypoints(), CaravanPath, DWARVEN_MINER_STATIONS, IMinerStationConfig, MinerStationConfig, PRECOMPUTED_CARAVAN_TO_HOME, PRECOMPUTED_CARAVAN_TO_MINE (+2 more)
 
 ### Community 64 - "ILogger"
-Cohesion: 0.13
-Nodes (3): MockErrorLogger, ILogger, MockLogger
+Cohesion: 0.12
+Nodes (4): MockErrorLogger, ILogger, AttachDeerGlbOptions, MockLogger
 
 ### Community 65 - "horsePhysicsSystem.ts"
 Cohesion: 0.29
@@ -299,53 +310,93 @@ Nodes (8): computeHorseBiomechanicalPose(), computeHorseTurnResistance(), IHorse
 Cohesion: 0.20
 Nodes (11): ExplorerMinimap, GRID_SIZE, IExplorerMinimapProps, en, LocaleSchema, getLocaleDictionary(), setLocaleDictionary(), t() (+3 more)
 
-### Community 67 - "AppServicesContext.spec.ts"
-Cohesion: 0.36
-Nodes (7): react, ref_react_dom_server, AppServicesContext, AppServicesProvider, LoggerProbe(), useAppServices(), IAppServices
+### Community 67 - "deferredAnimalModel.spec.ts"
+Cohesion: 0.12
+Nodes (4): DeferredAnimalModel, IAnimatedAnimalModel, FakeModel, RecordingLogger
 
-### Community 69 - "WolfAnimator"
-Cohesion: 0.09
-Nodes (13): CLIP_ORDER, createReadyWolf(), unpackWolfBundle(), Wolf, WOLF_EMBEDDED_PACK_B64, WOLF_EMBEDDED_TEXTURE_URI, WOLF_GAITS, WOLF_STATES (+5 more)
+### Community 69 - "Wolf_Complete.ts"
+Cohesion: 0.14
+Nodes (8): CLIP_ORDER, Wolf, WOLF_GAITS, WOLF_STATES, WolfOptions, WolfRig, WolfState, WolfUnpackedData
+
+### Community 70 - "IPlayerState"
+Cohesion: 0.18
+Nodes (8): InventoryItemId, IPlayerState, ICameraRigFrameInput, ArrowEquipmentStrategy, BowEquipmentStrategy, IEquipmentSlotStrategy, SwordEquipmentStrategy, ToolEquipmentStrategy
+
+### Community 71 - "Rhino_Complete.ts"
+Cohesion: 0.14
+Nodes (8): IClipRigModelData, CLIP_ORDER, Rhino, RHINO_GAITS, RHINO_STATES, RhinoOptions, RhinoState, RhinoUnpackedData
 
 ### Community 72 - "vite.config.ts"
-Cohesion: 0.15
-Nodes (12): ref_node_fs_promises, ref_node_http, ref_path, @tailwindcss/vite, vite, @vitejs/plugin-react, assertTrustedJsonRequest(), PERSISTENCE_ROUTES (+4 more)
+Cohesion: 0.16
+Nodes (13): ref_node_http, ref_path, @tailwindcss/vite, vite, @vitejs/plugin-react, assertTrustedJsonRequest(), PERSISTENCE_ROUTES, PersistenceErrorCode (+5 more)
 
-### Community 74 - "תיקיית מודלים תלת-ממדיים (`public/models`)"
-Cohesion: 0.50
-Nodes (3): מבנה תיקיות מומלץ (אופציונלי, או ישירות בתיקייה זו):, פורמטים מומלצים:, תיקיית מודלים תלת-ממדיים (`public/models`)
+### Community 73 - "playerAndCombatBuilder.ts"
+Cohesion: 0.13
+Nodes (14): SAVED_LAB_OVERRIDES, IPlayerAndCombatBuilderContext, ARROW_TRAIL_MAX_AGE, LOCKED_SWORD_GRIP_TRANSFORM, src_world_terrainmath_arrow_trail_max_age, src_world_terrainmath_arrowelementkind, src_world_terrainmath_computefirstpersonswordattackpose, src_world_terrainmath_computeslopepitchandroll (+6 more)
 
-### Community 76 - "App.tsx"
-Cohesion: 0.33
-Nodes (9): CharacterLabView, WEATHER_CYCLE_ORDER, IGameShellOverlayProps, IWorldCanvasProps, IGameSettingsConfig, GameStateMode, IVirtualMoveState, IGameActions (+1 more)
-
-### Community 81 - "hudTelemetryBuilder.ts"
+### Community 76 - "GameShellOverlay.tsx"
 Cohesion: 0.17
-Nodes (18): buildTelemetrySnapshot(), registerWindowDebugBridge(), findNearestBed(), findNearestFortressDoor(), findNearestMarketStall(), findNearestDeadLootableAnimal(), getAnimalSpeciesName(), lootDeadAnimal() (+10 more)
+Nodes (21): WEATHER_CYCLE_ORDER, GameShellOverlay, IGameShellOverlayProps, IWeatherOptionDef, SEASON_OPTIONS, SkyrimModalMode, WEATHER_OPTIONS, renderItemSvgIcon() (+13 more)
 
-### Community 82 - "goldenMaster.ts"
-Cohesion: 0.27
-Nodes (9): ref_node_fs, ref_node_os, ref_node_path, ref_node_url, assertMatchesGolden(), normalizeForGolden(), IMeleeFeelInput, stepBowFeel() (+1 more)
+### Community 78 - "CharacterLabCanvas.tsx"
+Cohesion: 0.26
+Nodes (14): ref_three_examples_jsm_environments_roomenvironment_js, CharacterLabCanvas(), afterDraw(), tick(), ICharacterLabCanvasProps, computeLabAnimationCycleProgress(), getEffectiveLabAnimationSpeed(), ILabAnimationDef (+6 more)
+
+### Community 81 - "registerWindowDebugBridge"
+Cohesion: 0.29
+Nodes (9): registerWindowDebugBridge(), findNearestMarketStall(), assignHotbarSlot(), buyMarketItem(), equipInventoryItem(), MarketTransactionResult, sellMarketItem(), toggleFavoriteItem() (+1 more)
+
+### Community 82 - "weaponFeelSystem.spec.ts"
+Cohesion: 0.60
+Nodes (3): IMeleeFeelInput, stepBowFeel(), stepMeleeFeelAndSway()
+
+### Community 84 - "wildlifeAndFootprintsBuilder.ts"
+Cohesion: 0.30
+Nodes (12): buildLabEntityRig(), computeGroupStats(), buildWildlifeAndFootprintsLayer(), IWildlifeAndFootprintsHandles, isAnimalModelLoaded(), createReadyBear(), createReadyRhino(), createReadyWolf() (+4 more)
+
+### Community 86 - "createAnimalTexture"
+Cohesion: 0.29
+Nodes (10): createAnimalTexture(), requireClipRig(), CLIP_ORDER, createReadyDemonDragon(), DEMON_DRAGON_GAITS, DemonDragonOptions, DemonDragonState, DemonDragonUnpackedData (+2 more)
+
+### Community 87 - "labOverridesStorage.ts"
+Cohesion: 0.36
+Nodes (5): validateLabOverrides(), DEFAULT_LAB_POSE_OVERRIDES, LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides(), StoredLabOverridesError
+
+### Community 88 - "animalModels.characterization.spec.ts"
+Cohesion: 0.43
+Nodes (4): fingerprint(), IAnimatedModel, poseOf(), sumOf()
+
+### Community 89 - "highlandBridgeLandmarks.ts"
+Cohesion: 0.29
+Nodes (5): HILL_BRIDGE_COS, HILL_BRIDGE_SIN, HILL_BRIDGE_YAW, HILL_WATCHTOWERS, ROPE_BRIDGE_DEF
+
+### Community 90 - "movementIntent.spec.ts"
+Cohesion: 0.47
+Nodes (4): IMovementAxes, readMovementAxes(), BINDINGS, NO_JOYSTICK
+
+### Community 91 - "keyBindingMatch.ts"
+Cohesion: 0.70
+Nodes (3): isBindingHeld(), matchesKeyBinding(), MODIFIER_FAMILIES
 
 ## Knowledge Gaps
-- **222 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+217 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 440 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **224 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+219 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 455 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `three` connect `proceduralModels.ts` to `WolfAnimator`, `WorldCanvas.tsx`, `package.json`, `Deer_Complete.ts`, `labCatalog.ts`, `settlementModels.ts`, `JaguarAnimator`, `windowDebugController.spec.ts`, `Rhino.ts`, `atmosphereRenderController.ts`, `DemonDragon_Complete.ts`, `ForestDragon_Complete.ts`, `BearAnimator`, `Crocodile.ts`, `dwarvenMineAndCaravanSystem.ts`?**
-  _High betweenness centrality (0.208) - this node is a cross-community bridge._
-- **Why does `t()` connect `t` to `boidsAndWildlifeSystem.ts`, `GameSettingsModal.tsx`, `WorldCanvas`, `main.tsx`, `playerPhysicsSystem.ts`, `collisionAndTerraces.ts`, `WorldCanvas.tsx`, `labCatalog.ts`, `worldTypes.ts`, `proceduralModels.ts`, `hudTelemetryBuilder.ts`, `combatAndInventorySystem.ts`, `terrainAndBiomeSystem.ts`, `GameShellOverlay.tsx`, `telemetryStore.ts`, `dwarvenMineAndCaravanSystem.ts`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
-- **Why does `ILogger` connect `ILogger` to `GameSettingsModal.tsx`, `AppServicesContext.spec.ts`, `main.tsx`, `InfrastructureCorruptedException`, `GameLoop`, `labCatalog.ts`, `proceduralModels.ts`, `NatureSoundEngine`, `ref_node_test`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `three` connect `proceduralModels.ts` to `terrainMath.test.ts`, `WorldCanvas.tsx`, `package.json`, `Deer_Complete.ts`, `animalModelAssets.ts`, `Jaguar_Complete.ts`, `atmosphereRenderController.ts`, `ForestDragon_Complete.ts`, `Bear_Complete.ts`, `Crocodile_Complete.ts`, `ref_node_test`, `deferredAnimalModel.spec.ts`, `Wolf_Complete.ts`, `Rhino_Complete.ts`, `playerAndCombatBuilder.ts`, `CharacterLabCanvas.tsx`, `wildlifeAndFootprintsBuilder.ts`, `createAnimalTexture`, `animalModels.characterization.spec.ts`?**
+  _High betweenness centrality (0.152) - this node is a cross-community bridge._
+- **Why does `ILogger` connect `ILogger` to `GameSettingsModal.tsx`, `deferredAnimalModel.spec.ts`, `main.tsx`, `InfrastructureCorruptedException`, `Deer_Complete.ts`, `GameLoop`, `proceduralModels.ts`, `wildlifeAndFootprintsBuilder.ts`, `NatureSoundEngine`, `ref_node_test`?**
+  _High betweenness centrality (0.055) - this node is a cross-community bridge._
+- **Why does `t()` connect `t` to `boidsAndWildlifeSystem.ts`, `GameSettingsModal.tsx`, `WorldCanvas`, `main.tsx`, `terrainAndBiomeSystem.ts`, `collisionAndTerraces.ts`, `WorldCanvas.tsx`, `GameShellOverlay.tsx`, `labCatalog.ts`, `worldTypes.ts`, `combatAndInventorySystem.ts`, `SkyrimInventoryModal.tsx`, `highlandBridgeLandmarks.ts`, `telemetryStore.ts`, `dwarvenMineAndCaravanSystem.ts`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `WorldCanvas` (e.g. with `.start()` and `.stop()`) actually correct?**
   _`WorldCanvas` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `private`, `version` to the rest of the system?**
-  _222 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _224 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `boidsAndWildlifeSystem.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.08583959899749373 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05462962962962963 - nodes in this community are weakly interconnected._
 - **Should `terrainMath.test.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.049494949494949494 - nodes in this community are weakly interconnected._

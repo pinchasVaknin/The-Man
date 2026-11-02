@@ -17,8 +17,9 @@ import {
 import { hash2D } from '../domain/noiseAndMath';
 import { groundHeightAt, isWithinViewDistance, VIEW_DISTANCE } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
-import { createReadyDemonDragon } from './DemonDragon';
-import { createReadyForestDragon } from './ForestDragon';
+import { createReadyDemonDragon, type DemonDragon, type DemonDragonState } from './DemonDragon';
+import { createReadyForestDragon, type ForestDragon, type ForestDragonState } from './ForestDragon';
+import { DeferredAnimalModel } from './deferredAnimalModel';
 import {
   evaluateSouthernDragonTarget,
   getActiveWorldAnimals,
@@ -68,11 +69,16 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
 
   // --- 1) TWO DISTINCT 3D DRAGONS ---
   // Dragon #1: Flying Ice Dragon (DemonDragon_Complete) soaring above the Northern Chinese Fortress
-  const demonDragonCtrl = createReadyDemonDragon({
-    scale: 4.2,
-    castShadow: !ctx.isSoftwareGl,
-    receiveShadow: !ctx.isSoftwareGl,
-  });
+  const demonDragonCtrl = new DeferredAnimalModel<DemonDragonState, DemonDragon>(
+    'demon-dragon',
+    () =>
+      createReadyDemonDragon({
+        scale: 4.2,
+        castShadow: !ctx.isSoftwareGl,
+        receiveShadow: !ctx.isSoftwareGl,
+      }),
+    ctx.logger
+  );
   demonDragonCtrl.setState('fly');
 
   const skyDragonGroup = new THREE.Group();
@@ -695,11 +701,16 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   });
 
   // Dragon #2: Colossal Forest Dragon (scale: 7.8 -> ~14.5m long, ~7m tall!) patrolling & soaring over the Ancient Southern Citadel Ruins
-  const forestDragonCtrl = createReadyForestDragon({
-    scale: 7.8,
-    castShadow: !ctx.isSoftwareGl,
-    receiveShadow: !ctx.isSoftwareGl,
-  });
+  const forestDragonCtrl = new DeferredAnimalModel<ForestDragonState, ForestDragon>(
+    'forest-dragon',
+    () =>
+      createReadyForestDragon({
+        scale: 7.8,
+        castShadow: !ctx.isSoftwareGl,
+        receiveShadow: !ctx.isSoftwareGl,
+      }),
+    ctx.logger
+  );
   forestDragonCtrl.setState('walk');
 
   const gorgeDragonGroup = new THREE.Group();
@@ -1487,7 +1498,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
               (forestDragonMode === 'fire_breath' || forestDragonMode === 'sky_fire_strafe');
             dragonFireBreathGroup.visible = isBreathingFire;
         if (isBreathingFire) {
-          const headBone = forestDragonCtrl.rig.bones[34];
+          const headBone = forestDragonCtrl.rig?.bones[34];
           if (headBone) {
             headBone.getWorldPosition(_headWorldPos);
             _headLocalPos.copy(_headWorldPos);

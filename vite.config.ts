@@ -180,16 +180,6 @@ export default defineConfig(() => {
             groups: [
               { name: 'vendor-three', test: /[\\/]node_modules[\\/]three[\\/]/, priority: 30 },
               { name: 'vendor-react', test: /[\\/]node_modules[\\/]react/, priority: 30 },
-              {
-                // One long-cached chunk per generated animal model (each embeds its mesh and texture).
-                name: (moduleId: string) => {
-                  const match = /[\\/]animals[\\/](\w+)_Complete\.ts$/.exec(moduleId);
-                  return match ? `model-${match[1].toLowerCase()}` : null;
-                },
-                debugName: 'animal-models',
-                test: /[\\/]src[\\/]world[\\/]models[\\/]animals[\\/]/,
-                priority: 20,
-              },
             ],
           },
         },

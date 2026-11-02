@@ -14,6 +14,7 @@ import type { GameStateMode, IVirtualMoveState } from './world/domain/gameShellT
 import { GameShellOverlay } from './components/GameShellOverlay';
 import { GameSettingsModal } from './components/GameSettingsModal';
 import { useAppServices } from './app/AppServicesContext';
+import { preloadAllAnimalModels } from './world/models/animalModelAssets';
 import { telemetryStore } from './core/telemetryStore';
 import {
   loadActiveGameSettings,
@@ -31,10 +32,14 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
 ];
 
 /**
- * Summary: The Character Lab is a developer tool; it loads as its own chunk on first open.
+ * Summary: The Character Lab is a developer tool; it loads as its own chunk on first open,
+ *          together with all animal model files.
  */
 const CharacterLabView = lazy(() =>
-  import('./lab/CharacterLabView').then((module) => ({ default: module.CharacterLabView }))
+  // The lab builds every animal synchronously, so it waits for all model files first.
+  Promise.all([import('./lab/CharacterLabView'), preloadAllAnimalModels()]).then(([module]) => ({
+    default: module.CharacterLabView,
+  }))
 );
 // #endregion
 

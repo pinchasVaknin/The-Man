@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { InfrastructureCorruptedException } from './core/AppException';
 import { createAppServices } from './app/compositionRoot';
 import { AppServicesProvider } from './app/AppServicesContext';
+import { preloadAllAnimalModels } from './world/models/animalModelAssets';
 import './index.css';
 // #endregion
 
@@ -23,6 +24,12 @@ if (!rootElement) {
 }
 
 const appServices = createAppServices();
+
+// Start downloading the animal models right away, in parallel with building the world;
+// animals appear as their files arrive (see DeferredAnimalModel).
+preloadAllAnimalModels().catch((err: unknown) => {
+    appServices.logger.warn('Animal models could not be preloaded', { error: String(err) });
+});
 
 createRoot(rootElement).render(
     <ErrorBoundary logger={appServices.logger}>

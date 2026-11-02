@@ -11,12 +11,9 @@ export {
   type CrocodileUnpackedData,
   CROCODILE_GAITS,
   CROCODILE_STATES,
-  unpackCrocodileBundle,
   CrocodileRig,
   CrocodileAnimator,
   Crocodile,
-  CROC_EMBEDDED_PACK_B64,
-  CROC_EMBEDDED_TEXTURE_URI,
   createReadyCrocodile,
 } from './animals/Crocodile_Complete';
 
