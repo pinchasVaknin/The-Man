@@ -400,7 +400,7 @@ export class Rhino {
   readonly animator: RhinoAnimator;
 
   constructor(data: RhinoUnpackedData, texture: THREE.Texture, options: RhinoOptions = {}) {
-    const scale = options.scale ?? 0.0352;
+    const scale = options.scale ?? 0.058;
     const castShadow = options.castShadow ?? true;
     const receiveShadow = options.receiveShadow ?? true;
 

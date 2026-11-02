@@ -25,6 +25,8 @@ import {
   ensureSafeOffscreenAnimalSpawns,
   getPredatorMeleeStandoffDist,
   getPredatorAttackTriggerDist,
+  getAnimalWaterSubmergenceDepth,
+  getAnimalWaterSpeedMultiplier,
   evaluateSouthernDragonTarget,
   findNearestDeadLootableAnimal,
 } from './boidsAndWildlifeSystem';
@@ -32,22 +34,30 @@ import { createReadyWolf, WOLF_STATES } from '../models/Wolf';
 import { createReadyRhino, RHINO_STATES } from '../models/Rhino';
 import { createReadyBear } from '../models/Bear';
 import { createReadyCrocodile } from '../models/Crocodile';
+import { createReadyCatLion, CAT_LION_STATES } from '../models/CatLion';
+import { createReadyStag, STAG_STATES } from '../models/Stag';
 import { createReadyForestDragon, FOREST_DRAGON_STATES } from '../models/ForestDragon';
+import { createReadyDemonDragon, DEMON_DRAGON_STATES } from '../models/DemonDragon';
 import {
   BEAR_MOUNTAIN_CAVES,
   CROCODILE_RIVER_BEND_POS,
+  FLOATING_BLOOMING_ISLANDS,
+  FLOATING_ISLAND_STAIR_POS,
   SOLID_BUILDING_BOXES,
   SOUTHERN_DRAGON_RUINS_POS,
+  VOLCANO_SANCTUM_POS,
   WATER_LEVEL,
   WORLD_BEDS,
   WORLD_SPAWN,
   findNearestBed,
+  floatingBloomingIslandHeightAt,
 } from '../domain/landmarksRegistry';
 import {
   computeSlopePitchAndRoll,
   getRoofHeightAt,
   groundHeightAt,
   isInsideBearCave,
+  isInsideVolcanoSanctum,
   regionalForestDensityAt,
   walkableHeightAt,
 } from './terrainAndBiomeSystem';
@@ -120,7 +130,7 @@ test('getAnimalLootDrops_WhenDragonHunted_ShouldYieldDragonCatalogItems', () => 
 
 test('getAnimalLootDrops_WhenAnySpeciesHunted_ShouldOnlyYieldItemsThatExistInCatalog', () => {
   // Arrange
-  const allSpecies = ['rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'dragon'] as const;
+  const allSpecies = ['rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'lion', 'stag', 'dragon'] as const;
 
   // Act
   const lootIds = allSpecies.flatMap((species) => getAnimalLootDrops(species).itemIds);
@@ -243,6 +253,8 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
         a.species === 'jaguar' ||
         a.species === 'wolf' ||
         a.species === 'rhino' ||
+        a.species === 'lion' ||
+        a.species === 'stag' ||
         a.species === 'dragon'
     )
   );
@@ -260,11 +272,15 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   const crocodiles = animals.filter((a) => a.species === 'crocodile');
   const wolves = animals.filter((a) => a.species === 'wolf');
   const rhinos = animals.filter((a) => a.species === 'rhino');
+  const lions = animals.filter((a) => a.species === 'lion');
+  const stags = animals.filter((a) => a.species === 'stag');
   assert.equal(bears.length, 7, 'Expected 7 forest/mountain cavern bears (including multiple bears inside the caves)');
   assert.equal(jaguars.length, 4, 'Expected 4 jaguars in Southwest Desert & Southern Forest');
   assert.equal(crocodiles.length, 5, 'Expected 5 crocodiles at the remote Southern River Bend');
   assert.equal(wolves.length, 4, 'Expected 4 timber wolves in the Western & Northern pine woods');
   assert.equal(rhinos.length, 3, 'Expected 3 savanna/oasis rhinos');
+  assert.equal(lions.length, 3, 'Expected 3 savanna lions');
+  assert.equal(stags.length, 4, 'Expected 4 royal woodland stags');
 
   // Verify Jaguars are in Southwest Desert (x < -200, z > 200) or Southern Forest (z > 200)
   for (const jag of jaguars) {
@@ -546,12 +562,40 @@ test('createReadyWolfAndRhinoAndScaledBearCrocodile_WhenConstructed_ShouldUseNew
   assert.equal(rhino.rig.bones.length, 43, 'New GLB Rhino rig must have 43 joints');
   const rhinoPosAttr = rhino.mesh.geometry.getAttribute('position');
   assert.equal(rhinoPosAttr.count, 3032, 'New GLB Rhino mesh must have 3,032 vertices');
+  assert.ok(rhino.object.scale.x >= 0.055, `Rhino scale (${rhino.object.scale.x}) must be enlarged (>= 0.055)`);
   for (const state of RHINO_STATES) {
     rhino.setState(state);
     rhino.update(0.05);
     assert.equal(rhino.state, state);
   }
   rhino.dispose();
+
+  const lion = createReadyCatLion();
+  assert.equal(lion.rig.bones.length, 42, 'CatLion rig must have 42 joints');
+  for (const state of CAT_LION_STATES) {
+    lion.setState(state);
+    lion.update(0.05);
+    assert.equal(lion.state, state);
+  }
+  lion.dispose();
+
+  const stag = createReadyStag();
+  assert.equal(stag.rig.bones.length, 47, 'Stag rig must have 47 joints');
+  for (const state of STAG_STATES) {
+    stag.setState(state);
+    stag.update(0.05);
+    assert.equal(stag.state, state);
+  }
+  stag.dispose();
+
+  const demonDragon = createReadyDemonDragon();
+  assert.equal(demonDragon.rig.bones.length, 120, 'DemonDragon rig must have 120 joints');
+  for (const state of DEMON_DRAGON_STATES) {
+    demonDragon.setState(state);
+    demonDragon.update(0.05);
+    assert.equal(demonDragon.state, state);
+  }
+  demonDragon.dispose();
 
   const bear = createReadyBear();
   assert.ok(bear.object.scale.x >= 1.55, `Bear scale (${bear.object.scale.x}) must be enlarged (>= 1.55)`);
@@ -670,9 +714,9 @@ test('stepSmallAnimals_WhenLandAnimalEntersWater_ShouldNeverFreezeAndShouldSwimT
   // Place deer inside the central lake (x = 0, z = 0 is underwater: groundHeightAt(0,0) < WATER_LEVEL)
   deer.x = 0;
   deer.z = 0;
-  deer.vx = 1.0;
+  deer.vx = 8.0; // enters water at high running speed
   deer.vz = 0;
-  assert.ok(groundHeightAt(0, 0) < WATER_LEVEL, 'Test setup: (0,0) must be underwater');
+  assert.ok(groundHeightAt(0, 0) < WATER_LEVEL - 1.2, 'Test setup: (0,0) must be deep underwater');
 
   const startX = deer.x;
   const startZ = deer.z;
@@ -680,11 +724,37 @@ test('stepSmallAnimals_WhenLandAnimalEntersWater_ShouldNeverFreezeAndShouldSwimT
     stepSmallAnimals(singleDeer, 0.05, 70 + step * 0.05, 500, 500, [], 1.0, undefined, 0, false, false, 0);
   }
   const distMoved = Math.hypot(deer.x - startX, deer.z - startZ);
+  const swimSpd = Math.hypot(deer.vx, deer.vz);
   assert.ok(
     distMoved > 1.5,
     `Land animal in water must actively swim toward shore instead of freezing in place (moved ${distMoved.toFixed(2)}m)`
   );
-  assert.ok(deer.y >= WATER_LEVEL - 0.22, 'Swimming animal must stay afloat at water level');
+  assert.ok(
+    swimSpd < 2.2,
+    `Non-aquatic land animal must slow down significantly when swimming in water (got ${swimSpd.toFixed(2)} m/s)`
+  );
+  assert.equal(deer.inWater, true, 'Deer in deep lake must be marked inWater = true');
+  assert.ok(
+    deer.y <= WATER_LEVEL - getAnimalWaterSubmergenceDepth('deer') + 0.05,
+    `Swimming land animal must sink up to its neck/back in water (deer.y=${deer.y.toFixed(2)} vs WATER_LEVEL=${WATER_LEVEL})`
+  );
+
+  // Conversely, a semi-aquatic crocodile in water maintains or increases its speed!
+  assert.ok(
+    getAnimalWaterSpeedMultiplier('crocodile') > 1.2 &&
+      getAnimalWaterSpeedMultiplier('deer') < 0.5,
+    'Crocodile water speed multiplier must be > 1.2 while non-aquatic land animals must be < 0.5'
+  );
+  const croc = animals.find((a) => a.species === 'crocodile')!;
+  croc.x = 0;
+  croc.z = 0;
+  croc.aiBehavior = 'charging';
+  stepSmallAnimals([croc], 0.05, 72.0, 10.0, 0, [], 1.0, undefined, 0, false, false, 0);
+  assert.equal(croc.inWater, true);
+  assert.ok(
+    croc.x > 0.35,
+    `Crocodile swimming in water must move faster with aquatic speed boost (moved ${croc.x.toFixed(2)}m in 0.05s)`
+  );
 });
 
 test('stepSmallAnimals_WhenPredatorDetectsPreyOrLargerThreat_ShouldHuntPreyAndFleeLargerThreat', () => {
@@ -943,6 +1013,109 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   const nearBag = findNearestBed(sleepingBags[0].x, sleepingBags[0].y, sleepingBags[0].z);
   assert.ok(nearBag && nearBag.id === sleepingBags[0].id, 'Player standing at a sleeping bag must detect it via findNearestBed');
 });
+
+test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_ShouldWorkSmoothly', () => {
+  const animals = createInitialSmallAnimals();
+
+  // 1. Volcano Sanctum & Mystical CatLion sitting on throne dais inside the inner chamber
+  const lions = animals.filter((a) => a.species === 'lion');
+  assert.equal(lions.length, 3);
+  const sanctumLion = lions[0];
+  assert.ok(
+    isInsideVolcanoSanctum(sanctumLion.x, sanctumLion.z, sanctumLion.y),
+    'Mystical CatLion must spawn inside the Volcano Sanctum chamber'
+  );
+  assert.equal(sanctumLion.aiBehavior, 'sitting', 'Mystical CatLion on the throne dais must start in sitting state');
+  assert.ok(
+    Math.abs(walkableHeightAt(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z).height - VOLCANO_SANCTUM_POS.daisY) < 0.05,
+    'Volcano Sanctum throne dais must be walkable at daisY (3.65m)'
+  );
+  assert.ok(
+    Math.abs(walkableHeightAt(VOLCANO_SANCTUM_POS.entranceX, VOLCANO_SANCTUM_POS.entranceZ).height - VOLCANO_SANCTUM_POS.floorY) < 0.1,
+    'Volcano Sanctum entrance tunnel must be walkable at floorY (3.2m)'
+  );
+  assert.ok(
+    (getRoofHeightAt(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z) ?? 0) >= VOLCANO_SANCTUM_POS.floorY + 12.0,
+    'Volcano Sanctum inner chamber must have a high ceiling dome'
+  );
+
+  // 2. Floating Blooming Sky Islands & Royal Stags living in the blooming sky sanctuary
+  const stags = animals.filter((a) => a.species === 'stag');
+  assert.equal(stags.length, 4);
+  for (const stag of stags) {
+    const islandY = floatingBloomingIslandHeightAt(stag.x, stag.z, stag.y);
+    assert.ok(
+      islandY !== null && islandY >= 26.0,
+      `Royal Stag at (${stag.x}, ${stag.z}) must spawn on a Floating Blooming Sky Island (got y=${stag.y}, islandY=${islandY})`
+    );
+  }
+  // Stairway from ground (footX=152) to main floating island (topX=178) provides continuous walkable ascent
+  const midStairX = (FLOATING_ISLAND_STAIR_POS.footX + FLOATING_ISLAND_STAIR_POS.topX) * 0.5;
+  const midStairWalk = walkableHeightAt(midStairX, FLOATING_ISLAND_STAIR_POS.z, 15.0);
+  assert.ok(
+    midStairWalk.height > 12.0 && midStairWalk.height < 18.0,
+    `Floating island stairway midpoint must provide walkable step height (got ${midStairWalk.height.toFixed(2)}m)`
+  );
+
+  // Stag fleeing on floating island stays safely clamped within the island rim instead of falling off the cliff
+  const mainStag = stags[0];
+  mainStag.aiBehavior = 'fleeing';
+  mainStag.isFleeing = true;
+  mainStag.fleeCooldown = 3.0;
+  for (let i = 0; i < 40; i++) {
+    stepSmallAnimals([mainStag], 0.05, 300 + i * 0.05, FLOATING_BLOOMING_ISLANDS[0].x, FLOATING_BLOOMING_ISLANDS[0].z, [], 1.0, undefined, 5.0, false, false, 0);
+  }
+  const stagDistFromMainCenter = Math.hypot(
+    mainStag.x - FLOATING_BLOOMING_ISLANDS[0].x,
+    mainStag.z - FLOATING_BLOOMING_ISLANDS[0].z
+  );
+  assert.ok(
+    stagDistFromMainCenter <= FLOATING_BLOOMING_ISLANDS[0].radius - 1.5 && mainStag.y >= 25.5,
+    `Stag on floating island must stay within the island rim and never fall off (dist=${stagDistFromMainCenter.toFixed(2)}m, y=${mainStag.y.toFixed(2)}m)`
+  );
+
+  // 3. Bear Cave Entrance Smoothness: walking along the entire entrance corridor (lz from +11 down to -12) across the full tunnel width (|lx| <= 4.2) has ZERO cliff spikes
+  const cave0 = BEAR_MOUNTAIN_CAVES[0];
+  const cosY = Math.cos(cave0.facingYaw);
+  const sinY = Math.sin(cave0.facingYaw);
+  for (let lz = 11.0; lz >= -12.0; lz -= 0.5) {
+    for (const lx of [-4.0, -3.5, 0, 3.5, 4.0]) {
+      const wx = cave0.x + lx * cosY + lz * sinY;
+      const wz = cave0.z - lx * sinY + lz * cosY;
+      const wh = walkableHeightAt(wx, wz, cave0.floorY).height;
+      assert.ok(
+        Math.abs(wh - cave0.floorY) < 0.25,
+        `Bear Cave 0 entrance at (lx=${lx}, lz=${lz}) must be flat at floorY=${cave0.floorY}, got ${wh.toFixed(2)}m`
+      );
+    }
+  }
+
+  // 4. Smooth Water Entry: a fleeing deer or charging predator crossing from dry shore into water enters the water smoothly along its trajectory without bouncing 180 degrees back onto land
+  const shoreDeer = animals.find((a) => a.species === 'deer')!;
+  // Find exact shoreline along +X -> 0 at z = 0 where ground transitions into the central lake
+  let shoreX = -15.0;
+  for (let x = -40; x <= 0; x += 0.5) {
+    if (groundHeightAt(x, 0) <= WATER_LEVEL + 0.15) {
+      shoreX = x - 0.8; // just on the dry bank before water
+      break;
+    }
+  }
+  shoreDeer.x = shoreX;
+  shoreDeer.z = 0;
+  shoreDeer.y = walkableHeightAt(shoreX, 0).height;
+  shoreDeer.aiBehavior = 'fleeing';
+  shoreDeer.isFleeing = true;
+  shoreDeer.fleeCooldown = 4.0;
+  // Threat is behind the deer on dry land (shoreX - 4.0), pushing the deer into the lake (+X)
+  for (let step = 0; step < 25; step++) {
+    stepSmallAnimals([shoreDeer], 0.05, 400 + step * 0.05, shoreX - 4.0, 0, [], 1.0, undefined, 6.0, false, false, 0);
+  }
+  assert.ok(
+    shoreDeer.x > shoreX + 1.2 && shoreDeer.inWater === true,
+    `Fleeing animal at shoreline must smoothly enter the water (+X) instead of bouncing back at the shore (start=${shoreX.toFixed(2)}, end=${shoreDeer.x.toFixed(2)}, inWater=${shoreDeer.inWater})`
+  );
+});
 // #endregion
+
 
 

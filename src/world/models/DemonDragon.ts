@@ -9,10 +9,12 @@ export {
   createReadyDemonDragon,
   DemonDragon,
   DEMON_DRAGON_GAITS,
+  DEMON_DRAGON_STATES,
 } from './animals/DemonDragon_Complete';
 export type {
   DemonDragonState,
   DemonDragonOptions,
   ReadyDemonDragonController,
 } from './animals/DemonDragon_Complete';
+
 

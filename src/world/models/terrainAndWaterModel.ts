@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import {
   WATER_LEVEL,
   SOUTHERN_MINE_POS,
+  VOLCANO_SANCTUM_POS,
   groundHeightAt,
   getSurfaceNormalAt,
   trailFactorAt,
@@ -135,27 +136,34 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.25 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 13.5).toFixed(1)} && vTerrainWorldPos.y < 7.05) {
             discard;
           }
-          // Carve arched ground-level tunnel portal openings at the 3 Mountain Bear Caves while keeping the mountain peak solid above the tunnel & cavern
+          // Carve arched ground-level tunnel portal openings at the 3 Mountain Bear Caves while keeping the floor intact and mountain peak solid above
           {
             // Cave 0: (-85, -76), facingYaw = 0 (+Z entrance), floorY = 2.2
             float c0x = vTerrainWorldPos.x - (-85.0);
             float c0z = vTerrainWorldPos.z - (-76.0);
             float c0y = vTerrainWorldPos.y - 2.2;
-            if (c0z > -6.5 && c0z < 7.8 && c0y > -0.6 && ((c0x * c0x) / 11.8 + ((c0y - 0.5) * (c0y - 0.5)) / 17.5) < 1.0) {
+            if (c0z > -9.0 && c0z < 6.45 && c0y > 0.05 && ((c0x * c0x) / 19.5 + ((c0y - 0.35) * (c0y - 0.35)) / 22.5) < 1.0) {
               discard;
             }
             // Cave 1: (-186, -45), facingYaw = PI/2 (+X entrance), floorY = 2.25
             float c1x = -(vTerrainWorldPos.z - (-45.0));
             float c1z = vTerrainWorldPos.x - (-186.0);
             float c1y = vTerrainWorldPos.y - 2.25;
-            if (c1z > -6.5 && c1z < 7.8 && c1y > -0.6 && ((c1x * c1x) / 11.8 + ((c1y - 0.5) * (c1y - 0.5)) / 17.5) < 1.0) {
+            if (c1z > -9.0 && c1z < 6.45 && c1y > 0.05 && ((c1x * c1x) / 19.5 + ((c1y - 0.35) * (c1y - 0.35)) / 22.5) < 1.0) {
               discard;
             }
             // Cave 2: (38, 294), facingYaw = PI (-Z entrance), floorY = 2.25 (unpopulated deep Southern Forest hill)
             float c2x = -(vTerrainWorldPos.x - 38.0);
             float c2z = -(vTerrainWorldPos.z - 294.0);
             float c2y = vTerrainWorldPos.y - 2.25;
-            if (c2z > -6.5 && c2z < 7.8 && c2y > -0.6 && ((c2x * c2x) / 11.8 + ((c2y - 0.5) * (c2y - 0.5)) / 17.5) < 1.0) {
+            if (c2z > -9.0 && c2z < 6.45 && c2y > 0.05 && ((c2x * c2x) / 19.5 + ((c2y - 0.35) * (c2y - 0.35)) / 22.5) < 1.0) {
+              discard;
+            }
+            // Volcano Sanctum: (-265, 115), East-facing obsidian tunnel portal (+X entrance), floorY = 3.2
+            float vkx = vTerrainWorldPos.x - (${VOLCANO_SANCTUM_POS.x.toFixed(1)});
+            float vkz = vTerrainWorldPos.z - (${VOLCANO_SANCTUM_POS.z.toFixed(1)});
+            float vky = vTerrainWorldPos.y - (${VOLCANO_SANCTUM_POS.floorY.toFixed(1)});
+            if (vkx > 13.5 && vkx < 36.5 && vky > 0.06 && ((vkz * vkz) / 26.0 + ((vky - 0.4) * (vky - 0.4)) / 64.0) < 1.0) {
               discard;
             }
           }
@@ -230,6 +238,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const cRock = new THREE.Color(0x706c66);
   const cPeak = new THREE.Color(0x9b9790);
   const cSnow = new THREE.Color(0xeef5fc);
+  const cVolcanoBasalt = new THREE.Color(0x231d1b);
+  const cVolcanoMagma = new THREE.Color(0xe84814);
   const tmpColor = new THREE.Color();
   const tmpDesertColor = new THREE.Color();
 
@@ -302,6 +312,17 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         // Blend alpine snow frost onto high northern mountains & ridges
         if (snowFactor > 0.15 && normal.ny > 0.62) {
           tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
+        }
+
+        // Blend dark volcanic basalt and glowing caldera magma veins onto the Volcano Sanctum massif
+        const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
+        if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 10.0) {
+          const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 10.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
+          tmpColor.lerp(cVolcanoBasalt, volMix * 0.94);
+          if (volDist < 23.5 && y > 24.0) {
+            const magmaGlow = smoothstepLocal(23.5, 16.5, volDist) * (0.45 + 0.55 * macroNoise);
+            tmpColor.lerp(cVolcanoMagma, magmaGlow * 0.85);
+          }
         }
 
         colors[i * 3] = tmpColor.r;

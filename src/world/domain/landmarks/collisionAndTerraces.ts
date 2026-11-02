@@ -13,6 +13,9 @@ import {
   MAGIC_STONE_CIRCLE_POS,
   WATERFALL_CLIFF_POS,
   WATERFALL_POOL_POS,
+  VOLCANO_SANCTUM_POS,
+  FLOATING_BLOOMING_ISLANDS,
+  FLOATING_ISLAND_STAIR_POS,
 } from './coreLandmarks';
 import {
   HUNTER_LODGE_POS,
@@ -694,6 +697,15 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'south-ruins-wall-south-w', minX: 21.0, maxX: 36.0, minZ: 751.6, maxZ: 754.4, maxY: 9.8 },
   { id: 'south-ruins-wall-south-e', minX: 76.0, maxX: 91.0, minZ: 751.6, maxZ: 754.4, maxY: 9.8 },
   { id: 'south-ruins-altar', minX: 52.4, maxX: 59.6, minZ: 733.5, maxZ: 738.5, maxY: 4.8 },
+
+  // Volcano Sanctum (cx=-265, cz=115, facingYaw=+X: entrance tunnel x: -249..-229, z: 115 ± 4.8)
+  { id: 'volcano-tunnel-north-wall', minX: -249.5, maxX: -229.0, minZ: 108.4, maxZ: 110.2, maxY: 14.5 },
+  { id: 'volcano-tunnel-south-wall', minX: -249.5, maxX: -229.0, minZ: 119.8, maxZ: 121.6, maxY: 14.5 },
+  { id: 'volcano-chamber-north-wall', minX: -283.5, maxX: -248.5, minZ: 95.5, maxZ: 98.2, maxY: 18.0 },
+  { id: 'volcano-chamber-south-wall', minX: -283.5, maxX: -248.5, minZ: 131.8, maxZ: 134.5, maxY: 18.0 },
+  { id: 'volcano-chamber-west-wall', minX: -284.5, maxX: -281.8, minZ: 96.5, maxZ: 133.5, maxY: 18.0 },
+  { id: 'volcano-shoulder-north', minX: -251.0, maxX: -247.5, minZ: 96.5, maxZ: 110.2, maxY: 18.0 },
+  { id: 'volcano-shoulder-south', minX: -251.0, maxX: -247.5, minZ: 119.8, maxZ: 133.5, maxY: 18.0 },
 ];
 // #endregion
 
@@ -728,6 +740,8 @@ export const FLAT_BUILDING_TERRACES = [
   { x: 204.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
   { x: 105.0, z: 715.0, innerR: 26.0, outerR: 42.0, targetH: 2.15 },
   { x: 56.0, z: 716.0, innerR: 54.0, outerR: 68.0, targetH: 2.15 },
+  { x: VOLCANO_SANCTUM_POS.entranceX + 6.0, z: VOLCANO_SANCTUM_POS.entranceZ, innerR: 12.0, outerR: 22.0, targetH: VOLCANO_SANCTUM_POS.floorY },
+  { x: FLOATING_ISLAND_STAIR_POS.footX, z: FLOATING_ISLAND_STAIR_POS.z, innerR: 9.0, outerR: 16.0, targetH: FLOATING_ISLAND_STAIR_POS.footY },
 ] as const;
 // #endregion
 
@@ -785,5 +799,9 @@ export const CLEAR_ZONES = [
   { x: 38.0, z: 294.0, r: 16.0 },
   { x: 38.0, z: 308.0, r: 18.0 },
   { x: 38.0, z: 278.0, r: 14.0 },
+  { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z, r: VOLCANO_SANCTUM_POS.outerRadius + 6.0 },
+  { x: VOLCANO_SANCTUM_POS.entranceX + 8.0, z: VOLCANO_SANCTUM_POS.entranceZ, r: 20.0 },
+  { x: FLOATING_ISLAND_STAIR_POS.footX, z: FLOATING_ISLAND_STAIR_POS.z, r: 15.0 },
+  ...FLOATING_BLOOMING_ISLANDS.map((isl) => ({ x: isl.x, z: isl.z, r: 12.0 })),
 ];
 // #endregion

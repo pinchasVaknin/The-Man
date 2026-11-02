@@ -26,7 +26,11 @@ export {
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
+  VOLCANO_SANCTUM_POS,
+  FLOATING_BLOOMING_ISLANDS,
+  FLOATING_ISLAND_STAIR_POS,
   southernRiverBridgeHeightAt,
+  floatingBloomingIslandHeightAt,
   isWithinViewDistance,
 } from './landmarks/coreLandmarks';
 // #endregion

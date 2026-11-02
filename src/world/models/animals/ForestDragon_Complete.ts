@@ -38,6 +38,8 @@ export interface ForestDragonOptions {
   scale?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
+  tintHex?: number;
+  wireframe?: boolean;
 }
 
 /** Summary: Decoded model data (see IClipRigModelData). */
@@ -87,8 +89,10 @@ export class ForestDragonRig {
   readonly bones: THREE.Bone[] = [];
   readonly boneInverses: THREE.Matrix4[] = [];
   readonly skeleton: THREE.Skeleton;
+  private readonly restData: ForestDragonUnpackedData;
 
   constructor(data: ForestDragonUnpackedData) {
+    this.restData = data;
     for (let j = 0; j < NUM_JOINTS; j++) {
       const b = new THREE.Bone();
       b.name = 'ForestDragonJoint_' + j;
@@ -122,6 +126,30 @@ export class ForestDragonRig {
     this.root.updateMatrixWorld(true);
     this.skeleton = new THREE.Skeleton(this.bones, this.boneInverses);
   }
+
+  resetToRest(): void {
+    const data = this.restData;
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const b = this.bones[j];
+      b.position.set(
+        data.restTranslations[j * 3],
+        data.restTranslations[j * 3 + 1],
+        data.restTranslations[j * 3 + 2],
+      );
+      b.quaternion.set(
+        data.restRotations[j * 4],
+        data.restRotations[j * 4 + 1],
+        data.restRotations[j * 4 + 2],
+        data.restRotations[j * 4 + 3],
+      );
+      b.scale.set(1, 1, 1);
+    }
+    this.root.updateMatrixWorld(true);
+  }
+
+  resetPose(): void {
+    this.resetToRest();
+  }
 }
 
 export class ForestDragonAnimator {
@@ -135,6 +163,7 @@ export class ForestDragonAnimator {
   prevTime = 0;
   moveSpeed = 1.55;
   turn = 0;
+  loopDeath = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -162,6 +191,23 @@ export class ForestDragonAnimator {
     }
   }
 
+  restartState(): void {
+    this.time = 0;
+    this.blend = 1.0;
+    this.applyClipPose(this.getClipIndex(this.state), 0, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
+  }
+
+  setNormalizedPhase(phase01: number): void {
+    const clipIdx = this.getClipIndex(this.state);
+    const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
+    const clamped = Math.max(0, Math.min(1, phase01));
+    this.time = clamped * dur;
+    this.blend = 1.0;
+    this.applyClipPose(clipIdx, this.time, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
+  }
+
   private getClipIndex(st: ForestDragonState): number {
     if (st === 'stalk') return 5;
     if (st === 'fly') return 9;
@@ -172,7 +218,7 @@ export class ForestDragonAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: ForestDragonState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
+    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
     if (u < 0) u += 1.0;
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));
@@ -290,6 +336,8 @@ export class ForestDragon {
       roughness: 0.80,
       metalness: 0.04,
       side: THREE.DoubleSide,
+      color: options.tintHex !== undefined ? new THREE.Color(options.tintHex) : new THREE.Color(0xffffff),
+      wireframe: options.wireframe ?? false,
     });
 
     this.mesh = new THREE.SkinnedMesh(geom, mat);
@@ -314,6 +362,22 @@ export class ForestDragon {
 
   getState(): ForestDragonState {
     return this.animator.state;
+  }
+
+  restartState(): void {
+    this.animator.restartState();
+  }
+
+  setNormalizedPhase(phase01: number): void {
+    this.animator.setNormalizedPhase(phase01);
+  }
+
+  set loopDeath(v: boolean) {
+    this.animator.loopDeath = v;
+  }
+
+  get loopDeath(): boolean {
+    return this.animator.loopDeath;
   }
 
   set moveSpeed(v: number) {

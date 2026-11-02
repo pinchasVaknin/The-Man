@@ -35,6 +35,7 @@ import { buildFortressModels } from './models/fortressModels';
 import { buildSanctuaryAndDragonModels } from './models/sanctuaryAndDragonModels';
 import { buildHarborModels } from './models/harborModels';
 import { buildOasisModels } from './models/oasisModels';
+import { buildVolcanoAndFloatingIslandsModels } from './models/volcanoAndFloatingIslandsModels';
 import { buildEnvironmentAtmosphereModels } from './models/environmentAtmosphereModels';
 import { createArchitecturalSharedAssets } from './models/architecturalHelpers';
 import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
@@ -157,6 +158,7 @@ export function buildRealisticWorld(
   const { updateSanctuaryAndDragon } = buildSanctuaryAndDragonModels(ctx);
   const { updateHarbor } = buildHarborModels(ctx);
   const { updateOasis } = buildOasisModels(ctx);
+  const { updateVolcanoAndFloatingIslands } = buildVolcanoAndFloatingIslandsModels(ctx);
   const { birdsGroup, pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
     buildEnvironmentAtmosphereModels(ctx);
 
@@ -275,6 +277,7 @@ export function buildRealisticWorld(
       updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
       updateHarbor(elapsedTime, playerX, playerZ);
       updateOasis(elapsedTime);
+      updateVolcanoAndFloatingIslands(elapsedTime, playerX, playerZ);
       updateEnvironment(
         elapsedTime,
         playerX,

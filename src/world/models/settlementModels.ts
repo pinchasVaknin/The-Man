@@ -1099,9 +1099,9 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         const cosT = Math.cos(theta);
         const sinT = Math.sin(theta);
 
-        // Sheltered low-slung horseshoe cavern arch profile (ground-level entrance, narrower & lower so interior is dark and private)
-        const baseRx = 3.45 + mouthFlare * 0.65 + throatFlare * 0.75 + wallThicknessOffset;
-        const baseRy = 4.35 + mouthFlare * 0.35 + throatFlare * 0.45 + wallThicknessOffset * 0.85;
+        // Sheltered horseshoe cavern arch profile widened to match collision walls (|lx| = 3.8m) with zero wall clipping
+        const baseRx = 4.05 + mouthFlare * 0.65 + throatFlare * 0.75 + wallThicknessOffset;
+        const baseRy = 4.85 + mouthFlare * 0.35 + throatFlare * 0.45 + wallThicknessOffset * 0.85;
         const archShape = Math.pow(sinT, 0.86);
 
         let x = -cosT * baseRx;
@@ -1208,7 +1208,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
         const my = (ay + dy) * 0.5;
         const mz = (az + dz) * 0.5;
 
-        if (mz > -6.8 && Math.abs(mx) < 3.45 && my < 4.35) {
+        if (mz > -6.8 && Math.abs(mx) < 4.25 && my < 4.85) {
           continue;
         }
         indices.push(a, b, d, a, d, c);

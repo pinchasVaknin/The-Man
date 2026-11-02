@@ -283,6 +283,70 @@
  },
  {
   "asleep": {
+   "hearingRadius": 12,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.5,
+  "awake": {
+   "hearingRadius": 24,
+   "visionRange": 22
+  },
+  "isPredator": true,
+  "loot": {
+   "itemIds": [
+    "raw_game_meat",
+    "jaguar_hide",
+    "wolf_fang",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat",
+    "Jaguar Hide",
+    "Wolf Fang",
+    "Animal Bone"
+   ],
+   "notification": "Looted Lion: Game Meat, Jaguar Hide, Wolf Fang, Animal Bone"
+  },
+  "maxHp": 5,
+  "name": "Lion",
+  "sizeRank": 3.2,
+  "species": "lion",
+  "standoff": 1.85
+ },
+ {
+  "asleep": {
+   "hearingRadius": 12,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 24,
+   "visionRange": 21
+  },
+  "isPredator": false,
+  "loot": {
+   "itemIds": [
+    "deer_meat",
+    "deer_hide",
+    "deer_antlers",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Deer Meat",
+    "Deer Hide",
+    "Deer Antlers",
+    "Animal Bone"
+   ],
+   "notification": "Looted Stag: Deer Meat, Deer Hide, Deer Antlers, Animal Bone"
+  },
+  "maxHp": 4,
+  "name": "Stag",
+  "sizeRank": 2.2,
+  "species": "stag",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
    "hearingRadius": 10,
    "visionRange": 0
   },
