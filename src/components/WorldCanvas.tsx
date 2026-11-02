@@ -251,6 +251,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (overrides.worldHour !== undefined) {
         urlWorldHour = overrides.worldHour;
       }
+      (window as unknown as {
+        __THE_MAN_TELEPORT__?: (x: number, y: number, z: number, yaw?: number, pitch?: number) => void;
+      }).__THE_MAN_TELEPORT__ = (x: number, y: number, z: number, yaw?: number, pitch?: number) => {
+        playerState.x = x;
+        playerState.y = y;
+        playerState.z = z;
+        playerState.vx = 0;
+        playerState.vy = 0;
+        playerState.vz = 0;
+        if (yaw !== undefined) playerState.yaw = yaw;
+        if (pitch !== undefined) playerState.pitch = pitch;
+        capturePreviousPlayerPose();
+      };
     }
 
     function getEffectiveForcedWeather(): WeatherKind | null {
@@ -1161,6 +1174,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           playerState.yaw += accumYawDelta;
           playerState.pitch = Math.max(1.05, Math.min(1.53, playerState.pitch + accumPitchDelta));
         } else {
+          const prevMountedId = playerState.mountedHorseId;
           for (let s = 0; s < subSteps; s++) {
             const prevVy = playerState.vy;
             const res = stepPlayerPhysics(
@@ -1192,6 +1206,31 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             }
             if (res.steppedFoot) anySteppedFoot = true;
             if (res.landedImpact > maxLandedImpact) maxLandedImpact = res.landedImpact;
+          }
+          if (prevMountedId !== playerState.mountedHorseId) {
+            capturePreviousPlayerPose();
+          }
+          if (playerState.lastTameNotice) {
+            if (playerState.lastTameNotice === 'meat_required_for_lion') {
+              lastLootNotification = 'You need Meat in your inventory to tame the subdued Boss CatLion!';
+            } else if (playerState.lastTameNotice === 'tamed_boss_lion') {
+              lastLootNotification = 'Fed Meat & Tamed Boss CatLion! (G: Solar Pounce Dash, Space: Leap)';
+            } else if (playerState.lastTameNotice === 'tamed_stag') {
+              lastLootNotification = 'Tamed & Mounted Royal Celestial Stag! (Space: Sky-Leap, Shift: Gallop)';
+            }
+            playerState.lastTameNotice = null;
+            lastLootNotificationTimer = 4.5;
+            emitHudSnapshot();
+          } else if (!prevMountedId && playerState.mountedHorseId) {
+            if (playerState.mountedHorseId.startsWith('mount-stag-')) {
+              lastLootNotification = 'Mounted Royal Celestial Stag! (Space: Sky-Leap, Shift: Gallop)';
+              lastLootNotificationTimer = 4.2;
+              emitHudSnapshot();
+            } else if (playerState.mountedHorseId.startsWith('mount-lion-')) {
+              lastLootNotification = 'Mounted Mystical Boss CatLion! (G: Solar Pounce Dash, Space: Leap)';
+              lastLootNotificationTimer = 4.2;
+              emitHudSnapshot();
+            }
           }
         }
         accumYawDelta = 0;

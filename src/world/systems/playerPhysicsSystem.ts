@@ -25,6 +25,8 @@ import {
   HILL_WATCHTOWERS,
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
+  FLOATING_ISLAND_STAIR_POS,
+  SKY_WIND_GEYSERS,
   getLadderById,
   findWatchtowerLadderAt,
   findLookedAtWatchtowerLadder,
@@ -39,6 +41,7 @@ import {
   getSurfaceBiomeAt,
 } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
+import { getActiveWorldAnimals } from './boidsAndWildlifeSystem';
 // #endregion
 
 // ======================== INITIALIZERS & LEVEL QUERIES ======================== \\
@@ -186,9 +189,41 @@ export function createInitialRideableHorses(): IRideableHorseState[] {
 
 // ======================== HORSE SEARCH & MOUNTING ======================== \\
 // #region Horse Search & Mounting
+const MEAT_ITEM_IDS = [
+  'raw_game_meat',
+  'deer_meat',
+  'bear_meat',
+  'roasted_meat',
+  'dragon_meat',
+] as const;
+
+export function hasPlayerMeatForTaming(state: IPlayerState): boolean {
+  const items = state.ownedItemIds;
+  if (!items) return false;
+  for (let i = 0; i < MEAT_ITEM_IDS.length; i++) {
+    if (items.includes(MEAT_ITEM_IDS[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function consumePlayerMeatForTaming(state: IPlayerState): boolean {
+  const items = state.ownedItemIds;
+  if (!items) return false;
+  for (let i = 0; i < MEAT_ITEM_IDS.length; i++) {
+    const idx = items.indexOf(MEAT_ITEM_IDS[i]);
+    if (idx >= 0) {
+      items.splice(idx, 1);
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
- * Summary: Finds the nearest rideable horse within interaction proximity of the player.
- * @returns The closest horse within maxDist, or null.
+ * Summary: Finds the nearest rideable horse or tameable/mounted creature within interaction proximity of the player.
+ * @returns The closest horse/mount within maxDist, or null.
  */
 export function findNearestRideableHorse(
   px: number,
@@ -206,6 +241,42 @@ export function findNearestRideableHorse(
     if (d <= bestDist) {
       bestDist = d;
       best = h;
+    }
+  }
+  const worldAnimals = getActiveWorldAnimals();
+  for (let i = 0; i < worldAnimals.length; i++) {
+    const a = worldAnimals[i];
+    if (a.isDead || (a.species !== 'stag' && a.species !== 'lion')) continue;
+    // Smaller CatLions (canBeTamed === false) can never be tamed or ridden!
+    if (a.canBeTamed === false) continue;
+    // The Boss CatLion can only be tamed once subdued at low HP (<= 3 HP), or ridden once already tamed!
+    if (a.species === 'lion' && !a.isTamed && !a.isSubdued && (a.hp ?? a.maxHp ?? 12) > 3) {
+      continue;
+    }
+    const maxAnimalDist = a.species === 'lion' && a.isBoss ? Math.max(maxDist, 4.6) : Math.max(maxDist, 4.2);
+    if (Math.abs(py - a.y) > 3.2) continue;
+    const d = Math.hypot(px - a.x, pz - a.z);
+    if (d <= maxAnimalDist && d <= bestDist + 0.8) {
+      bestDist = Math.min(bestDist, d);
+      const mountId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+      const mountYaw = Math.atan2(Math.sin(a.yaw - Math.PI), Math.cos(a.yaw - Math.PI));
+      best = {
+        id: mountId,
+        name:
+          a.species === 'stag'
+            ? a.isTamed
+              ? 'Royal Celestial Stag (Tamed)'
+              : 'Tame & Ride Royal Celestial Stag'
+            : a.isTamed
+              ? 'Mystical Boss CatLion (Tamed)'
+              : 'Feed Meat & Tame Subdued Boss CatLion [F]',
+        x: a.x,
+        y: a.y,
+        z: a.z,
+        yaw: mountYaw,
+        speed: Math.hypot(a.vx, a.vz),
+        gaitPhase: a.hopPhase,
+      };
     }
   }
   return best;
@@ -235,10 +306,29 @@ export function stepPlayerPhysics(
   state.yaw += input.lookYawDelta;
   state.pitch = Math.max(-1.38, Math.min(1.38, state.pitch + input.lookPitchDelta));
 
-  if (input.toggleMountHorseRequested && horses && horses.length > 0) {
+  if (input.toggleMountHorseRequested && horses) {
     if (state.mountedHorseId) {
-      const currentHorse = horses.find((h) => h.id === state.mountedHorseId);
+      const dismountingId = state.mountedHorseId;
+      const currentHorse = horses.find((h) => h.id === dismountingId);
       state.mountedHorseId = null;
+      if (dismountingId.startsWith('mount-stag-') || dismountingId.startsWith('mount-lion-')) {
+        const worldAnimals = getActiveWorldAnimals();
+        for (let i = 0; i < worldAnimals.length; i++) {
+          const a = worldAnimals[i];
+          const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+          if (expectedId === dismountingId) {
+            a.isMountedByPlayer = false;
+            a.vx = 0;
+            a.vz = 0;
+            a.homeX = a.x;
+            a.homeZ = a.z;
+          }
+        }
+        const vIdx = horses.findIndex((h) => h.id === dismountingId);
+        if (vIdx >= 0) {
+          horses.splice(vIdx, 1);
+        }
+      }
       if (currentHorse) {
         currentHorse.speed = 0;
         currentHorse.vy = Math.min(0, state.vy);
@@ -249,19 +339,65 @@ export function stepPlayerPhysics(
         state.y = walkableHeightAt(state.x, state.z, state.y).height;
       }
     } else {
-      const nearHorse = findNearestRideableHorse(state.x, state.y, state.z, horses, 3.8);
+      const nearHorse = findNearestRideableHorse(state.x, state.y, state.z, horses, 4.2);
       if (nearHorse) {
-        state.mountedHorseId = nearHorse.id;
-        state.mountedHorseYaw = nearHorse.yaw;
-        state.isFlying = false;
-        state.climbingLadderId = null;
-        state.x = nearHorse.x;
-        state.z = nearHorse.z;
-        state.y = nearHorse.y;
-        state.yaw = nearHorse.yaw;
-        state.vx = 0;
-        state.vy = 0;
-        state.vz = 0;
+        let canMount = true;
+        if (nearHorse.id.startsWith('mount-stag-') || nearHorse.id.startsWith('mount-lion-')) {
+          const worldAnimals = getActiveWorldAnimals();
+          for (let i = 0; i < worldAnimals.length; i++) {
+            const a = worldAnimals[i];
+            const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+            if (expectedId === nearHorse.id) {
+              if (a.canBeTamed === false) {
+                canMount = false;
+                break;
+              }
+              if (a.species === 'lion' && !a.isTamed) {
+                const isWeakEnough = Boolean(a.isSubdued || (a.hp ?? a.maxHp ?? 12) <= 3);
+                if (!isWeakEnough) {
+                  canMount = false;
+                  break;
+                }
+                if (!consumePlayerMeatForTaming(state)) {
+                  state.lastTameNotice = 'meat_required_for_lion';
+                  canMount = false;
+                  break;
+                }
+                state.lastTameNotice = 'tamed_boss_lion';
+              } else if (a.species === 'stag' && !a.isTamed) {
+                state.lastTameNotice = 'tamed_stag';
+              }
+              a.isTamed = true;
+              a.isSubdued = false;
+              a.hp = a.maxHp ?? (a.species === 'lion' ? 12 : 9);
+              a.isMountedByPlayer = true;
+              a.isFleeing = false;
+              a.fleeCooldown = 0;
+              a.wokenUpTimer = 0;
+              a.alertLevel = 'grazing';
+              a.aiBehavior = 'grazing';
+            }
+          }
+          if (canMount) {
+            const existing = horses.find((h) => h.id === nearHorse.id);
+            if (!existing) {
+              horses.push({ ...nearHorse, speed: 0, gaitPhase: 0 });
+            }
+          }
+        }
+        if (canMount) {
+          state.mountedHorseId = nearHorse.id;
+          state.mountedHorseYaw = nearHorse.yaw;
+          state.isFlying = false;
+          state.climbingLadderId = null;
+          state.x = nearHorse.x;
+          state.z = nearHorse.z;
+          state.y = nearHorse.y;
+          state.yaw = nearHorse.yaw;
+          state.vx = 0;
+          state.vy = 0;
+          state.vz = 0;
+        }
       }
     }
   }
@@ -272,10 +408,29 @@ export function stepPlayerPhysics(
     state.bobPhase = 0;
     state.isCrouching = false;
     if (state.mountedHorseId && horses) {
-      const dismountedHorse = horses.find((h) => h.id === state.mountedHorseId);
+      const dismId = state.mountedHorseId;
+      const dismountedHorse = horses.find((h) => h.id === dismId);
       if (dismountedHorse) {
         dismountedHorse.speed = 0;
         dismountedHorse.vy = Math.min(0, state.vy);
+      }
+      if (dismId.startsWith('mount-stag-') || dismId.startsWith('mount-lion-')) {
+        const worldAnimals = getActiveWorldAnimals();
+        for (let i = 0; i < worldAnimals.length; i++) {
+          const a = worldAnimals[i];
+          const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+          if (expectedId === dismId) {
+            a.isMountedByPlayer = false;
+            a.vx = 0;
+            a.vz = 0;
+            a.homeX = a.x;
+            a.homeZ = a.z;
+          }
+        }
+        const vIdx = horses.findIndex((h) => h.id === dismId);
+        if (vIdx >= 0) {
+          horses.splice(vIdx, 1);
+        }
       }
       state.mountedHorseId = null;
     }
@@ -438,9 +593,11 @@ export function stepPlayerPhysics(
     state.isCrouching = false;
   }
 
-  const baseWalkSpeed = isMountedOnHorse ? 9.4 : 5.0;
+  const isMountedOnStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedOnLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
+  const baseWalkSpeed = isMountedOnLion ? 11.5 : isMountedOnStag ? 10.8 : isMountedOnHorse ? 9.4 : 5.0;
   const waterSlowdown = state.inWater ? 0.68 : 1.0;
-  const dashMultiplier = isDashing ? (state.isSwimming ? 2.45 : 2.35) : 1.0;
+  const dashMultiplier = isDashing ? (state.isSwimming ? 2.45 : isMountedOnLion ? 2.65 : 2.35) : 1.0;
   const targetSpeed = baseWalkSpeed * paceMultiplier * waterSlowdown * dashMultiplier;
 
   const dashDirX = moveLen > 0.05 ? moveX : fwdX;
@@ -547,18 +704,49 @@ export function stepPlayerPhysics(
     }
 
     if (state.jumpBufferTimer > 0 && state.coyoteTimer > 0) {
-      state.vy = isMountedOnHorse ? 7.45 : 6.25;
+      let geyserBoostVy = 0;
+      for (let g = 0; g < SKY_WIND_GEYSERS.length; g++) {
+        const geyser = SKY_WIND_GEYSERS[g];
+        if (
+          Math.hypot(state.x - geyser.x, state.z - geyser.z) <= geyser.radius &&
+          Math.abs(state.y - geyser.y) <= 1.8
+        ) {
+          geyserBoostVy = geyser.boostVy;
+          break;
+        }
+      }
+      const mountJumpVy = isMountedOnStag ? 11.8 : isMountedOnLion ? 10.4 : isMountedOnHorse ? 7.45 : 6.25;
+      state.vy = geyserBoostVy > 0 ? geyserBoostVy : mountJumpVy;
       state.onGround = false;
       state.coyoteTimer = 0;
       state.jumpBufferTimer = 0;
     }
 
-    if (!input.jumpHeld && state.vy > 1.8) {
+    if (!input.jumpHeld && state.vy > 1.8 && state.vy < 8.5) {
       state.vy *= 0.65;
     }
 
     if (!state.isSwimming) {
       state.vy -= GRAVITY * dt;
+    }
+  }
+
+  // Sky-Waterfall Hydro-Elevator: stepping into the central Sky-Waterfall column at (165, -35)
+  // while holding Jump or pressing forward levitates the player up the 65m waterfall to y=68.0m.
+  const distToSkyWaterfall = Math.hypot(
+    state.x - FLOATING_ISLAND_STAIR_POS.waterfallX,
+    state.z - FLOATING_ISLAND_STAIR_POS.waterfallZ
+  );
+  const inSkyWaterfallUpdraft =
+    distToSkyWaterfall <= FLOATING_ISLAND_STAIR_POS.waterfallRadius + 0.35 &&
+    state.y < FLOATING_ISLAND_STAIR_POS.topY + 0.4 &&
+    (input.jumpHeld || input.jumpPressed || input.forward > 0.1);
+  if (inSkyWaterfallUpdraft) {
+    state.vy = 15.5;
+    state.onGround = false;
+    state.isSwimming = false;
+    if (state.y >= FLOATING_ISLAND_STAIR_POS.topY - 1.5) {
+      state.vx = Math.max(state.vx, 4.8);
     }
   }
 
@@ -815,6 +1003,7 @@ export function stepPlayerPhysics(
   const effectiveWalkHeight = standingOnBoulder ? highestBoulderTopY : walkSurface.height;
   const waterSurfaceY = getWaterSurfaceHeightAt(state.x, state.z, state.y);
   const isDeepWater =
+    !inSkyWaterfallUpdraft &&
     !standingOnBoulder &&
     waterSurfaceY !== null &&
     (walkSurface.surface === 'ground' ||
@@ -993,6 +1182,24 @@ export function stepPlayerPhysics(
         state.mountedHorseYaw = h.yaw;
         h.speed = horizSpeed;
         h.gaitPhase = state.bobPhase;
+        if (h.id.startsWith('mount-stag-') || h.id.startsWith('mount-lion-')) {
+          const worldAnimals = getActiveWorldAnimals();
+          for (let aIdx = 0; aIdx < worldAnimals.length; aIdx++) {
+            const a = worldAnimals[aIdx];
+            const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+            if (expectedId === h.id) {
+              a.x = state.x;
+              a.y = state.y;
+              a.z = state.z;
+              a.vx = state.vx;
+              a.vz = state.vz;
+              a.yaw = Math.atan2(Math.sin(h.yaw + Math.PI), Math.cos(h.yaw + Math.PI));
+              a.inWater = state.inWater;
+              a.isMountedByPlayer = true;
+              a.isTamed = true;
+            }
+          }
+        }
       } else {
         const horseFloorY = walkableHeightAt(h.x, h.z, h.y).height;
         if (h.y > horseFloorY + 0.001 || (h.vy ?? 0) !== 0) {

@@ -369,6 +369,7 @@ export interface IPlayerState {
   lastArrowHitTarget?: string | null;
   isCrouching?: boolean;
   isSleeping?: boolean;
+  lastTameNotice?: string | null;
 }
 
 /**

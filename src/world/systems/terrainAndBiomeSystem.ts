@@ -269,8 +269,8 @@ export function isInsideVolcanoSanctum(
     VOLCANO_SANCTUM_POS.floorY +
     daisBlend * (VOLCANO_SANCTUM_POS.daisY - VOLCANO_SANCTUM_POS.floorY);
 
-  const tunnelCeiling = VOLCANO_SANCTUM_POS.floorY + 7.8;
-  const chamberCeiling = VOLCANO_SANCTUM_POS.floorY + 13.5 - 2.2 * Math.min(1, (chamberDist / 18.5) ** 2);
+  const tunnelCeiling = VOLCANO_SANCTUM_POS.floorY + 8.2;
+  const chamberCeiling = VOLCANO_SANCTUM_POS.floorY + 15.8 - 2.4 * Math.min(1, (chamberDist / 18.5) ** 2);
   const ceilingY = inChamber ? chamberCeiling : tunnelCeiling;
 
   if (currentY !== undefined && currentY > ceilingY + 2.5) {
@@ -933,34 +933,39 @@ export function groundHeightAt(x: number, z: number): number {
   // Western Volcano Sanctum Massif & Caldera (centered at VOLCANO_SANCTUM_POS: -265, 115)
   const vDx = x - VOLCANO_SANCTUM_POS.x;
   const vDz = z - VOLCANO_SANCTUM_POS.z;
-  if (Math.abs(vDx) <= 68.0 && Math.abs(vDz) <= 68.0) {
-    // 1) Flatten the eastern approach causeway & tunnel floor (vDx in [12, 55], |vDz| < 18)
-    if (vDx >= 12.0 && vDx <= 55.0 && Math.abs(vDz) < 18.0) {
-      const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDz))) * (1.0 - smoothstep(38.0, 55.0, vDx));
+  if (Math.abs(vDx) <= 72.0 && Math.abs(vDz) <= 72.0) {
+    // 1) Flatten the eastern approach causeway & tunnel floor (vDx in [12, 56], |vDz| < 18)
+    if (vDx >= 12.0 && vDx <= 56.0 && Math.abs(vDz) < 18.0) {
+      const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDz))) * (1.0 - smoothstep(38.0, 56.0, vDx));
       h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
     }
 
-    // 2) Raise the towering volcanic cone (radius 52m) with summit caldera rim at r = 21m
+    // 2) Raise the towering volcanic cone (radius 58m, rim height 48.5m) with radial basalt ridges & caldera rim at r = 21m
     const vDist = Math.hypot(vDx, vDz);
     if (vDist < VOLCANO_SANCTUM_POS.outerRadius) {
-      // Keep the eastern entrance portal trench level for vDx > 33.5 and |vDz| < 4.8
+      // Keep the eastern entrance portal trench level for vDx > 32.5 and |vDz| < 5.0
       const inPortalMouth = vDx > 32.5 && Math.abs(vDz) < 5.0;
       if (!inPortalMouth) {
         const portalRamp =
           vDx > 20.0 && Math.abs(vDz) < 8.5
             ? smoothstep(34.5, 22.5, vDx)
             : 1.0;
+        const vAng = Math.atan2(vDz, vDx);
         let coneProfile: number;
         if (vDist >= 20.5) {
-          // Outer volcanic slope rising from r=52m up to the caldera rim at r=20.5m
+          // Steep concave-up stratovolcano slope rising from r=58m up to the caldera rim at r=20.5m
           const tSlope = 1.0 - (vDist - 20.5) / (VOLCANO_SANCTUM_POS.outerRadius - 20.5);
-          coneProfile = Math.pow(Math.max(0, Math.min(1, tSlope)), 1.25);
+          coneProfile = Math.pow(Math.max(0, Math.min(1, tSlope)), 1.18);
         } else {
-          // Summit caldera bowl dipping slightly inside r < 20.5m (while staying high above the inner sanctum ceiling!)
+          // Deep summit caldera bowl dipping inside r < 20.5m (while staying high above the inner sanctum ceiling!)
           const tCrater = vDist / 20.5;
-          coneProfile = 0.84 + 0.16 * (tCrater * tCrater);
+          coneProfile = 0.78 + 0.22 * (tCrater * tCrater);
         }
-        const vCrag = fbm2D(x * 0.08 + 5.2, z * 0.08 - 3.7, 2) * 2.2;
+        const radialRidge =
+          vDist > 21.0 && vDist < 54.0
+            ? Math.sin(vAng * 7.0 + vDist * 0.08) * 1.85 * Math.sin(((vDist - 21.0) / 33.0) * Math.PI)
+            : 0.0;
+        const vCrag = fbm2D(x * 0.08 + 5.2, z * 0.08 - 3.7, 2) * 2.8 + radialRidge;
         const targetVolcanoH =
           VOLCANO_SANCTUM_POS.floorY +
           portalRamp * coneProfile * (VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY + vCrag);
