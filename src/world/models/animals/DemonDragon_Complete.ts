@@ -38,6 +38,8 @@ export interface DemonDragonOptions {
   scale?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
+  tintHex?: number;
+  wireframe?: boolean;
 }
 
 /** Summary: Decoded model data (see IClipRigModelData). */
@@ -61,6 +63,25 @@ export const DEMON_DRAGON_GAITS: Record<DemonDragonState, { speed: number }> = {
   sleep:  { speed: 0.0 },
   death:  { speed: 0.0 },
 };
+
+export const DEMON_DRAGON_STATES: readonly DemonDragonState[] = [
+  'idle',
+  'walk',
+  'trot',
+  'run',
+  'fly',
+  'stalk',
+  'roar',
+  'call',
+  'attack',
+  'eat',
+  'sit',
+  'lie',
+  'sleep',
+  'flee',
+  'skip',
+  'death',
+] as const;
 
 const CLIP_ORDER: DemonDragonState[] = [
   'idle',
@@ -87,8 +108,10 @@ export class DemonDragonRig {
   readonly bones: THREE.Bone[] = [];
   readonly boneInverses: THREE.Matrix4[] = [];
   readonly skeleton: THREE.Skeleton;
+  private readonly restData: DemonDragonUnpackedData;
 
   constructor(data: DemonDragonUnpackedData) {
+    this.restData = data;
     for (let j = 0; j < NUM_JOINTS; j++) {
       const b = new THREE.Bone();
       b.name = 'DemonDragonJoint_' + j;
@@ -122,6 +145,30 @@ export class DemonDragonRig {
     this.root.updateMatrixWorld(true);
     this.skeleton = new THREE.Skeleton(this.bones, this.boneInverses);
   }
+
+  resetToRest(): void {
+    const data = this.restData;
+    for (let j = 0; j < NUM_JOINTS; j++) {
+      const b = this.bones[j];
+      b.position.set(
+        data.restTranslations[j * 3],
+        data.restTranslations[j * 3 + 1],
+        data.restTranslations[j * 3 + 2],
+      );
+      b.quaternion.set(
+        data.restRotations[j * 4],
+        data.restRotations[j * 4 + 1],
+        data.restRotations[j * 4 + 2],
+        data.restRotations[j * 4 + 3],
+      );
+      b.scale.set(1, 1, 1);
+    }
+    this.root.updateMatrixWorld(true);
+  }
+
+  resetPose(): void {
+    this.resetToRest();
+  }
 }
 
 export class DemonDragonAnimator {
@@ -135,6 +182,7 @@ export class DemonDragonAnimator {
   prevTime = 0;
   moveSpeed = 1.55;
   turn = 0;
+  loopDeath = false;
 
   private qA = new THREE.Quaternion();
   private qB = new THREE.Quaternion();
@@ -162,6 +210,23 @@ export class DemonDragonAnimator {
     }
   }
 
+  restartState(): void {
+    this.time = 0;
+    this.blend = 1.0;
+    this.applyClipPose(this.getClipIndex(this.state), 0, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
+  }
+
+  setNormalizedPhase(phase01: number): void {
+    const clipIdx = this.getClipIndex(this.state);
+    const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
+    const clamped = Math.max(0, Math.min(1, phase01));
+    this.time = clamped * dur;
+    this.blend = 1.0;
+    this.applyClipPose(clipIdx, this.time, 1.0, false);
+    this.rig.root.updateMatrixWorld(true);
+  }
+
   private getClipIndex(st: DemonDragonState): number {
     if (st === 'stalk') return 5;
     if (st === 'fly') return 9;
@@ -172,7 +237,7 @@ export class DemonDragonAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: DemonDragonState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
+    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
     if (u < 0) u += 1.0;
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));
@@ -290,6 +355,8 @@ export class DemonDragon {
       roughness: 0.80,
       metalness: 0.04,
       side: THREE.DoubleSide,
+      color: options.tintHex !== undefined ? new THREE.Color(options.tintHex) : new THREE.Color(0xffffff),
+      wireframe: options.wireframe ?? false,
     });
 
     this.mesh = new THREE.SkinnedMesh(geom, mat);
@@ -314,6 +381,22 @@ export class DemonDragon {
 
   getState(): DemonDragonState {
     return this.animator.state;
+  }
+
+  restartState(): void {
+    this.animator.restartState();
+  }
+
+  setNormalizedPhase(phase01: number): void {
+    this.animator.setNormalizedPhase(phase01);
+  }
+
+  set loopDeath(v: boolean) {
+    this.animator.loopDeath = v;
+  }
+
+  get loopDeath(): boolean {
+    return this.animator.loopDeath;
   }
 
   set moveSpeed(v: number) {

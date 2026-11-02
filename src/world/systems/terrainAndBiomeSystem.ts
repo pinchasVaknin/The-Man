@@ -44,7 +44,11 @@ import {
   SOUTHERN_RIVER_WAYPOINTS,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
+  VOLCANO_SANCTUM_POS,
+  FLOATING_BLOOMING_ISLANDS,
+  FLOATING_ISLAND_STAIR_POS,
   southernRiverBridgeHeightAt,
+  floatingBloomingIslandHeightAt,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
 } from '../domain/landmarksRegistry';
@@ -205,15 +209,16 @@ export function isInsideBearCave(
     const lx = dx * cosY - dz * sinY;
     const lz = dx * sinY + dz * cosY; // +lz points out of tunnel mouth, -lz goes deep into the mountain
 
-    // 1. Sheltered Entrance Tunnel & Portal Threshold: lz in [-6.4, +9.2], width 6.7m (|lx| <= 3.35), arched ceiling 4.35m high
-    const inTunnel = lz >= -6.4 && lz <= 9.2 && Math.abs(lx) <= 3.35;
-    // 2. Spacious Subterranean Cavern inside the mountain: centered at (lx=0, lz=-15.0), rx=10.2m, rz=9.8m
-    const cavNormSq = (lx / 10.2) * (lx / 10.2) + ((lz + 15.0) / 9.8) * ((lz + 15.0) / 9.8);
-    const inCavern = lz <= -5.0 && lz >= -24.8 && cavNormSq <= 1.0;
+    // 1. Sheltered Entrance Tunnel & Portal Threshold: lz in [-8.5, +11.2], width 9.7m (|lx| <= 4.85), arched ceiling 4.85m high
+    //    Wide enough to cover the entire collision corridor (|lx| <= 3.8) plus third-person camera shoulder offset!
+    const inTunnel = lz >= -8.5 && lz <= 11.2 && Math.abs(lx) <= 4.85;
+    // 2. Spacious Subterranean Cavern inside the mountain: centered at (lx=0, lz=-15.0), rx=11.4m, rz=10.6m
+    const cavNormSq = (lx / 11.4) * (lx / 11.4) + ((lz + 15.0) / 10.6) * ((lz + 15.0) / 10.6);
+    const inCavern = lz <= -4.5 && lz >= -25.4 && cavNormSq <= 1.0;
 
     if (inTunnel || inCavern) {
-      const tunnelCeiling = cave.floorY + 4.35 - 0.06 * lx * lx;
-      const cavernCeiling = cave.floorY + 6.4 - 1.5 * Math.min(1.0, cavNormSq);
+      const tunnelCeiling = cave.floorY + 4.85 - 0.05 * lx * lx;
+      const cavernCeiling = cave.floorY + 6.6 - 1.4 * Math.min(1.0, cavNormSq);
       const ceilingY =
         inCavern && !inTunnel
           ? cavernCeiling
@@ -232,6 +237,49 @@ export function isInsideBearCave(
 }
 
 /**
+ * Summary: Checks if world coordinates (x, z, currentY) are inside the Volcano Sanctum's
+ *          eastern obsidian entrance tunnel or inner subterranean magma chamber.
+ */
+export function isInsideVolcanoSanctum(
+  x: number,
+  z: number,
+  currentY?: number
+): {
+  floorY: number;
+  ceilingY: number;
+  inTunnel: boolean;
+  inChamber: boolean;
+} | null {
+  const dx = x - VOLCANO_SANCTUM_POS.x;
+  const dz = z - VOLCANO_SANCTUM_POS.z;
+  if (Math.abs(dx) > 48.0 || Math.abs(dz) > 32.0) return null;
+
+  // East-facing entrance tunnel: dx in [+14.0, +42.0] (world x in [-251.0, -223.0]), |dz| <= 5.2
+  const inTunnel = dx >= 14.0 && dx <= 42.0 && Math.abs(dz) <= 5.2;
+  // Inner Volcanic Sanctum Chamber: centered at (-265, 115), radius 18.5m
+  const chamberDist = Math.hypot(dx, dz);
+  const inChamber = chamberDist <= VOLCANO_SANCTUM_POS.chamberRadius;
+
+  if (!inTunnel && !inChamber) return null;
+
+  // Raised central throne dais at (-266, 115) for the Mystical CatLion
+  const daisDist = Math.hypot(x - (VOLCANO_SANCTUM_POS.x - 1.0), z - VOLCANO_SANCTUM_POS.z);
+  const daisBlend = inChamber ? 1.0 - smoothstep(3.8, 5.8, daisDist) : 0.0;
+  const floorY =
+    VOLCANO_SANCTUM_POS.floorY +
+    daisBlend * (VOLCANO_SANCTUM_POS.daisY - VOLCANO_SANCTUM_POS.floorY);
+
+  const tunnelCeiling = VOLCANO_SANCTUM_POS.floorY + 7.8;
+  const chamberCeiling = VOLCANO_SANCTUM_POS.floorY + 13.5 - 2.2 * Math.min(1, (chamberDist / 18.5) ** 2);
+  const ceilingY = inChamber ? chamberCeiling : tunnelCeiling;
+
+  if (currentY !== undefined && currentY > ceilingY + 2.5) {
+    return null;
+  }
+  return { floorY, ceilingY, inTunnel, inChamber };
+}
+
+/**
  * Summary: Queries the elevation of overhead roofs and ceilings at the given coordinate.
  * @param x World X in meters.
  * @param z World Z in meters.
@@ -241,6 +289,10 @@ export function getRoofHeightAt(x: number, z: number): number | null {
   const bearCave = isInsideBearCave(x, z);
   if (bearCave && bearCave.lz <= 6.2) {
     return bearCave.ceilingY;
+  }
+  const volcano = isInsideVolcanoSanctum(x, z);
+  if (volcano && x <= VOLCANO_SANCTUM_POS.entranceX + 0.5) {
+    return volcano.ceilingY;
   }
   if (Math.abs(x) <= 23.2 && z >= -216.5 + FZ && z <= -188.8 + FZ) {
     return CHINESE_FORTRESS_POS.mainHallFloor2Y + 5.2;
@@ -842,21 +894,22 @@ export function groundHeightAt(x: number, z: number): number {
     const lx = dx * cosY - dz * sinY;
     const lz = dx * sinY + dz * cosY;
 
-    // 1) Flatten the natural approach clearing outside the tunnel mouth (lz: +2.0 .. +25.0)
-    if (lz >= 2.0 && lz <= 25.0 && Math.abs(lx) < 18.0) {
-      const gladeDist = Math.hypot(lx * 0.82, (lz - 11.5) * 0.85);
+    // 1) Flatten the natural approach clearing and tunnel threshold (lz: -2.5 .. +25.0)
+    //    No drop-off at lz = 2..4 so the terrain floor stays 100% level at cave.floorY right into the tunnel!
+    if (lz >= -2.5 && lz <= 25.0 && Math.abs(lx) < 18.0) {
+      const gladeDist = Math.hypot(lx * 0.82, Math.max(0, lz - 9.5) * 0.85);
       if (gladeDist < 17.5) {
-        const wGlade = (1.0 - smoothstep(8.2, 17.5, gladeDist)) * smoothstep(2.0, 4.0, lz);
+        const wGlade = 1.0 - smoothstep(8.2, 17.5, gladeDist);
         h = h * (1.0 - wGlade) + cave.floorY * wGlade;
       }
     }
 
-    // 2) Raise a massive, craggy mountain massif over the tunnel & subterranean cavern (lz < 4.5)
+    // 2) Raise a massive, craggy mountain massif over the tunnel & subterranean cavern (lz < 3.2)
     //    Uses a wide inner plateau (15.5m) so the subterranean chamber ceiling is always deeply buried inside solid mountain rock
     const mtnDist = Math.hypot(lx * 0.82, (lz + 13.5) * 0.78);
-    if (mtnDist < 43.0 && lz < 4.5) {
+    if (mtnDist < 43.0 && lz < 3.2) {
       const radialWeight = 1.0 - smoothstep(14.5, 43.0, mtnDist);
-      const frontCliffRamp = smoothstep(4.5, 0.2, lz);
+      const frontCliffRamp = smoothstep(3.2, -0.8, lz);
       const mtnRise = radialWeight * frontCliffRamp;
       const crag =
         fbm2D(x * 0.065 + i * 3.1, z * 0.065 - i * 2.3, 2) * 2.8 +
@@ -865,15 +918,54 @@ export function groundHeightAt(x: number, z: number): number {
       h = Math.max(h, targetMtnH);
     }
 
-    // 3) Natural flanking rock cliff shoulders framing the portal clearing (|lx| in 5.2..18.5, lz in 1.0..12.5)
+    // 3) Natural flanking rock cliff shoulders framing the portal clearing (|lx| in 5.4..18.5, lz in 1.0..12.5)
     const absLx = Math.abs(lx);
-    if (absLx > 5.0 && absLx < 19.0 && lz >= 1.0 && lz <= 12.5) {
+    if (absLx > 5.4 && absLx < 19.0 && lz >= 1.0 && lz <= 12.5) {
       const sideShoulderW =
-        smoothstep(5.0, 7.8, absLx) *
+        smoothstep(5.4, 8.2, absLx) *
         (1.0 - smoothstep(12.0, 19.0, absLx)) *
         (1.0 - smoothstep(4.2, 12.5, lz));
       const shoulderH = cave.floorY + sideShoulderW * 11.5;
       h = Math.max(h, shoulderH);
+    }
+  }
+
+  // Western Volcano Sanctum Massif & Caldera (centered at VOLCANO_SANCTUM_POS: -265, 115)
+  const vDx = x - VOLCANO_SANCTUM_POS.x;
+  const vDz = z - VOLCANO_SANCTUM_POS.z;
+  if (Math.abs(vDx) <= 68.0 && Math.abs(vDz) <= 68.0) {
+    // 1) Flatten the eastern approach causeway & tunnel floor (vDx in [12, 55], |vDz| < 18)
+    if (vDx >= 12.0 && vDx <= 55.0 && Math.abs(vDz) < 18.0) {
+      const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDz))) * (1.0 - smoothstep(38.0, 55.0, vDx));
+      h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
+    }
+
+    // 2) Raise the towering volcanic cone (radius 52m) with summit caldera rim at r = 21m
+    const vDist = Math.hypot(vDx, vDz);
+    if (vDist < VOLCANO_SANCTUM_POS.outerRadius) {
+      // Keep the eastern entrance portal trench level for vDx > 33.5 and |vDz| < 4.8
+      const inPortalMouth = vDx > 32.5 && Math.abs(vDz) < 5.0;
+      if (!inPortalMouth) {
+        const portalRamp =
+          vDx > 20.0 && Math.abs(vDz) < 8.5
+            ? smoothstep(34.5, 22.5, vDx)
+            : 1.0;
+        let coneProfile: number;
+        if (vDist >= 20.5) {
+          // Outer volcanic slope rising from r=52m up to the caldera rim at r=20.5m
+          const tSlope = 1.0 - (vDist - 20.5) / (VOLCANO_SANCTUM_POS.outerRadius - 20.5);
+          coneProfile = Math.pow(Math.max(0, Math.min(1, tSlope)), 1.25);
+        } else {
+          // Summit caldera bowl dipping slightly inside r < 20.5m (while staying high above the inner sanctum ceiling!)
+          const tCrater = vDist / 20.5;
+          coneProfile = 0.84 + 0.16 * (tCrater * tCrater);
+        }
+        const vCrag = fbm2D(x * 0.08 + 5.2, z * 0.08 - 3.7, 2) * 2.2;
+        const targetVolcanoH =
+          VOLCANO_SANCTUM_POS.floorY +
+          portalRamp * coneProfile * (VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY + vCrag);
+        h = Math.max(h, targetVolcanoH);
+      }
     }
   }
 
@@ -1106,6 +1198,16 @@ export function walkableHeightAt(
   const bearCave = isInsideBearCave(x, z, currentY);
   if (bearCave) {
     return { height: bearCave.floorY, surface: 'cabin' };
+  }
+
+  const volcanoSanctum = isInsideVolcanoSanctum(x, z, currentY);
+  if (volcanoSanctum) {
+    return { height: volcanoSanctum.floorY, surface: 'cabin' };
+  }
+
+  const floatingIslandY = floatingBloomingIslandHeightAt(x, z, currentY);
+  if (floatingIslandY !== null) {
+    return { height: floatingIslandY, surface: 'bridge' };
   }
 
   const groundH = groundHeightAt(x, z);
@@ -1477,6 +1579,20 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     const cave = BEAR_MOUNTAIN_CAVES[i];
     if (Math.hypot(x - cave.x, z - cave.z) <= cave.radius) {
       return [88, 82, 74];
+    }
+  }
+  const volcanoDist = Math.hypot(x - VOLCANO_SANCTUM_POS.x, z - VOLCANO_SANCTUM_POS.z);
+  if (volcanoDist <= VOLCANO_SANCTUM_POS.outerRadius) {
+    if (volcanoDist <= 17.5 || Math.abs(volcanoDist - 21.0) <= 2.4) {
+      return [242, 88, 26];
+    }
+    return [48, 42, 40];
+  }
+  for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
+    const isl = FLOATING_BLOOMING_ISLANDS[i];
+    const dIsl = Math.hypot(x - isl.x, z - isl.z);
+    if (dIsl <= isl.radius) {
+      return dIsl > isl.radius - 3.2 ? [236, 134, 174] : [106, 188, 118];
     }
   }
   if (isChineseFortressWalkableZone(x, z)) {

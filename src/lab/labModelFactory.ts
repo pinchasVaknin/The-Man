@@ -21,6 +21,10 @@ import { createReadyCrocodile, type CrocodileState } from '../world/models/Croco
 import { createReadyJaguar, type JaguarState } from '../world/models/Jaguar';
 import { createReadyWolf, type WolfState } from '../world/models/Wolf';
 import { createReadyRhino, type RhinoState } from '../world/models/Rhino';
+import { createReadyCatLion, type CatLionState } from '../world/models/CatLion';
+import { createReadyStag, type StagState } from '../world/models/Stag';
+import { createReadyForestDragon, type ForestDragonState } from '../world/models/ForestDragon';
+import { createReadyDemonDragon, type DemonDragonState } from '../world/models/DemonDragon';
 // #endregion
 
 // ======================== RIG CONTRACT ======================== \\
@@ -2342,6 +2346,360 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         rhino.update(dt);
       } else {
         rhino.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // 8G. SAVANNA LION (full 61-bone skeleton + 11 animations)
+  else if (entityId === 'savanna_lion') {
+    const lionRoot = new THREE.Group();
+    root.add(lionRoot);
+
+    const lion = createReadyCatLion({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    lion.animator.loopDeath = true;
+    lionRoot.add(lion.object);
+
+    const lionMat = lion.mesh.material;
+    if (Array.isArray(lionMat)) {
+      for (const m of lionMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(lionMat);
+    }
+    disposableGeometries.push(lion.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(lionRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'lion_savanna_gold' ? 0xffffff : skin.palette.primaryHex;
+      const mat = lion.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastLionAnimTime = 0;
+    let lastLionAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastLionAnimTime ? t - lastLionAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastLionAnimTime = t;
+
+      lionRoot.position.set(0, 0, 0);
+      lionRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastLionAnimId !== 'none') {
+          lion.rig.resetToRest();
+          lion.object.position.set(0, 0, 0);
+          lion.object.rotation.set(0, 0, 0);
+          lion.setState('idle');
+          lastLionAnimId = 'none';
+        }
+        return;
+      }
+
+      const validLionStates: ReadonlySet<CatLionState> = new Set<CatLionState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'eat',
+        'call',
+        'roar',
+        'bite_attack',
+        'sit',
+        'lie',
+        'death',
+      ]);
+      const mappedState: CatLionState = validLionStates.has(animId as CatLionState)
+        ? (animId as CatLionState)
+        : 'idle';
+
+      if (lastLionAnimId !== animId) {
+        if (mappedState === 'death') {
+          lion.animator.restartState('death');
+        } else {
+          lion.setState(mappedState);
+        }
+        lastLionAnimId = animId;
+      }
+
+      if (dt > 0) {
+        lion.update(dt);
+      } else {
+        lion.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // 8H. ROYAL FOREST STAG (full 61-bone skeleton + 14 animations)
+  else if (entityId === 'royal_stag') {
+    const stagRoot = new THREE.Group();
+    root.add(stagRoot);
+
+    const stag = createReadyStag({
+      castShadow: true,
+      receiveShadow: true,
+    });
+    stag.animator.loopDeath = true;
+    stagRoot.add(stag.object);
+
+    const stagMat = stag.mesh.material;
+    if (Array.isArray(stagMat)) {
+      for (const m of stagMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(stagMat);
+    }
+    disposableGeometries.push(stag.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(stagRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'stag_royal_chestnut' ? 0xffffff : skin.palette.primaryHex;
+      const mat = stag.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastStagAnimTime = 0;
+    let lastStagAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastStagAnimTime ? t - lastStagAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastStagAnimTime = t;
+
+      stagRoot.position.set(0, 0, 0);
+      stagRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastStagAnimId !== 'none') {
+          stag.rig.resetToRest();
+          stag.object.position.set(0, 0, 0);
+          stag.object.rotation.set(0, 0, 0);
+          stag.setState('idle');
+          lastStagAnimId = 'none';
+        }
+        return;
+      }
+
+      const validStagStates: ReadonlySet<StagState> = new Set<StagState>([
+        'idle',
+        'walk',
+        'trot',
+        'stalk',
+        'run',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: StagState = validStagStates.has(animId as StagState)
+        ? (animId as StagState)
+        : 'idle';
+
+      if (lastStagAnimId !== animId) {
+        if (mappedState === 'death') {
+          stag.animator.restartState('death');
+        } else {
+          stag.setState(mappedState);
+        }
+        lastStagAnimId = animId;
+      }
+
+      if (dt > 0) {
+        stag.update(dt);
+      } else {
+        stag.animator.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // 8I. SOUTHERN FOREST DRAGON (full 74-bone skeleton + 13 animations)
+  else if (entityId === 'forest_dragon') {
+    const dragonRoot = new THREE.Group();
+    root.add(dragonRoot);
+
+    const dragon = createReadyForestDragon({
+      scale: 0.42,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    dragon.loopDeath = true;
+    dragonRoot.add(dragon.object);
+
+    const dragonMat = dragon.mesh.material;
+    if (Array.isArray(dragonMat)) {
+      for (const m of dragonMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(dragonMat);
+    }
+    disposableGeometries.push(dragon.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(dragonRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'forest_dragon_emerald' ? 0xffffff : skin.palette.primaryHex;
+      const mat = dragon.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastDragonAnimTime = 0;
+    let lastDragonAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastDragonAnimTime ? t - lastDragonAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastDragonAnimTime = t;
+
+      dragonRoot.position.set(0, 0, 0);
+      dragonRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastDragonAnimId !== 'none') {
+          dragon.rig.resetToRest();
+          dragon.object.position.set(0, 0, 0);
+          dragon.object.rotation.set(0, 0, 0);
+          dragon.setState('idle');
+          lastDragonAnimId = 'none';
+        }
+        return;
+      }
+
+      const validDragonStates: ReadonlySet<ForestDragonState> = new Set<ForestDragonState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'fly',
+        'stalk',
+        'roar',
+        'call',
+        'attack',
+        'sit',
+        'lie',
+        'sleep',
+        'death',
+      ]);
+      const mappedState: ForestDragonState = validDragonStates.has(animId as ForestDragonState)
+        ? (animId as ForestDragonState)
+        : 'idle';
+
+      if (lastDragonAnimId !== animId) {
+        dragon.setState(mappedState);
+        if (mappedState === 'death') {
+          dragon.restartState();
+        }
+        lastDragonAnimId = animId;
+      }
+
+      if (dt > 0) {
+        dragon.update(dt);
+      } else {
+        dragon.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // 8J. NORTHERN DEMON & FROST DRAGON (full 120-joint skeleton + 16 animations)
+  else if (entityId === 'demon_dragon') {
+    const dragonRoot = new THREE.Group();
+    root.add(dragonRoot);
+
+    const dragon = createReadyDemonDragon({
+      scale: 0.42,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    dragon.loopDeath = true;
+    dragonRoot.add(dragon.object);
+
+    const dragonMat = dragon.mesh.material;
+    if (Array.isArray(dragonMat)) {
+      for (const m of dragonMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(dragonMat);
+    }
+    disposableGeometries.push(dragon.mesh.geometry);
+
+    editableRigTargets.bodyNodes.push(dragonRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'demon_dragon_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = dragon.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastDemonAnimTime = 0;
+    let lastDemonAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastDemonAnimTime ? t - lastDemonAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastDemonAnimTime = t;
+
+      dragonRoot.position.set(0, 0, 0);
+      dragonRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastDemonAnimId !== 'none') {
+          dragon.rig.resetToRest();
+          dragon.object.position.set(0, 0, 0);
+          dragon.object.rotation.set(0, 0, 0);
+          dragon.setState('idle');
+          lastDemonAnimId = 'none';
+        }
+        return;
+      }
+
+      const validDemonStates: ReadonlySet<DemonDragonState> = new Set<DemonDragonState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'fly',
+        'stalk',
+        'roar',
+        'call',
+        'attack',
+        'eat',
+        'sit',
+        'lie',
+        'sleep',
+        'flee',
+        'skip',
+        'death',
+      ]);
+      const mappedState: DemonDragonState = validDemonStates.has(animId as DemonDragonState)
+        ? (animId as DemonDragonState)
+        : 'idle';
+
+      if (lastDemonAnimId !== animId) {
+        dragon.setState(mappedState);
+        if (mappedState === 'death') {
+          dragon.restartState();
+        }
+        lastDemonAnimId = animId;
+      }
+
+      if (dt > 0) {
+        dragon.update(dt);
+      } else {
+        dragon.setNormalizedPhase(p);
       }
     };
   }

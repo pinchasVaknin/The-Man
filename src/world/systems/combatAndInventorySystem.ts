@@ -680,11 +680,11 @@ export function evaluateSwordStrikeWindowHit(
             : anim.species === 'crocodile'
               ? 2.65
               : anim.species === 'rhino'
-                ? 2.45
-                : anim.species === 'deer'
+                ? 2.65
+                : anim.species === 'deer' || anim.species === 'stag'
                   ? 1.55
-                  : anim.species === 'jaguar' || anim.species === 'wolf'
-                    ? 1.45
+                  : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                    ? 1.48
                     : anim.species === 'sheep'
                       ? 1.15
                       : 0.95;
@@ -697,11 +697,11 @@ export function evaluateSwordStrikeWindowHit(
           : anim.species === 'bear'
             ? 1.45
             : anim.species === 'rhino'
-              ? 1.25
-              : anim.species === 'deer'
+              ? 1.45
+              : anim.species === 'deer' || anim.species === 'stag'
                 ? 1.15
-                : anim.species === 'jaguar' || anim.species === 'wolf'
-                  ? 0.85
+                : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                  ? 0.90
                   : anim.species === 'sheep'
                     ? 0.55
                     : anim.species === 'crocodile'
@@ -711,8 +711,8 @@ export function evaluateSwordStrikeWindowHit(
         anim.species === 'dragon'
           ? 4.2
           : anim.species === 'bear' || anim.species === 'rhino'
-            ? 2.15
-            : anim.species === 'deer'
+            ? 2.25
+            : anim.species === 'deer' || anim.species === 'stag'
               ? 1.55
               : 1.45;
       if (
@@ -1071,11 +1071,11 @@ export function stepArrowsPhysics(
               : anim.species === 'crocodile'
                 ? 2.65
                 : anim.species === 'rhino'
-                  ? 2.45
-                  : anim.species === 'deer'
-                    ? 1.42
-                    : anim.species === 'jaguar' || anim.species === 'wolf'
-                      ? 1.38
+                  ? 2.65
+                  : anim.species === 'deer' || anim.species === 'stag'
+                    ? 1.45
+                    : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                      ? 1.42
                       : anim.species === 'sheep'
                         ? 0.92
                         : 0.62;
@@ -1088,11 +1088,11 @@ export function stepArrowsPhysics(
             : anim.species === 'bear'
               ? 3.05
               : anim.species === 'rhino'
-                ? 2.45
-                : anim.species === 'deer'
+                ? 2.65
+                : anim.species === 'deer' || anim.species === 'stag'
                   ? 2.45
-                  : anim.species === 'jaguar' || anim.species === 'wolf'
-                    ? 1.65
+                  : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                    ? 1.75
                     : anim.species === 'sheep'
                       ? 1.25
                       : anim.species === 'crocodile'

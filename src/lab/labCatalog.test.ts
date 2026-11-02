@@ -47,9 +47,9 @@ describe('Character & Animation Lab Catalog', () => {
     const animals = LAB_ENTITIES.filter((e) => e.category === 'animals');
 
     assert.equal(characters.length, 8, 'Should include all 8 characters');
-    assert.equal(animals.length, 16, 'Should include all 16 animals (including forest_bear, river_crocodile, jungle_jaguar, forest_wolf, and savanna_rhino)');
+    assert.equal(animals.length, 20, 'Should include all 20 animals (including forest_bear, river_crocodile, jungle_jaguar, forest_wolf, savanna_rhino, savanna_lion, royal_stag, forest_dragon, and demon_dragon)');
 
-    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, Crocodile, Jaguar, Wolf, and Rhino are standalone entries
+    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, Crocodile, Jaguar, Wolf, Rhino, Lion, Stag, and Dragons are standalone entries
     assert.ok(animals.some((a) => a.id === 'koi_fish'), 'Koi fish must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'meadow_butterfly'), 'Meadow butterfly must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'harbor_seagull'), 'Harbor seagull must be its own standalone animal entry');
@@ -58,6 +58,10 @@ describe('Character & Animation Lab Catalog', () => {
     assert.ok(animals.some((a) => a.id === 'jungle_jaguar'), 'Jungle jaguar must be included in animals');
     assert.ok(animals.some((a) => a.id === 'forest_wolf'), 'Forest wolf must be included in animals');
     assert.ok(animals.some((a) => a.id === 'savanna_rhino'), 'Savanna rhino must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'savanna_lion'), 'Savanna lion must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'royal_stag'), 'Royal stag must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'forest_dragon'), 'Forest dragon must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'demon_dragon'), 'Demon dragon must be included in animals');
     assert.ok(!LAB_ENTITIES.some((e) => e.id === 'koi_and_butterfly'), 'Combined koi_and_butterfly entry must not exist');
   });
 
@@ -98,11 +102,11 @@ describe('Character & Animation Lab Catalog', () => {
     assert.ok(onlyCharacters.every((e) => e.category === 'characters'));
 
     const onlyAnimals = filterLabEntities(LAB_ENTITIES, 'animals', '');
-    assert.equal(onlyAnimals.length, 16);
+    assert.equal(onlyAnimals.length, 20);
     assert.ok(onlyAnimals.every((e) => e.category === 'animals'));
 
     const allCombined = filterLabEntities(LAB_ENTITIES, 'all', '');
-    assert.equal(allCombined.length, 24, 'Dropdown "all" option must return all 24 entities');
+    assert.equal(allCombined.length, 28, 'Dropdown "all" option must return all 28 entities');
 
     const koiSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'koi');
     assert.equal(koiSearch.length, 1);
@@ -115,6 +119,9 @@ describe('Character & Animation Lab Catalog', () => {
     const rhinoSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'rhino');
     assert.equal(rhinoSearch.length, 1);
     assert.equal(rhinoSearch[0].id, 'savanna_rhino');
+
+    const dragonSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'dragon');
+    assert.equal(dragonSearch.length, 3);
   });
 
   it('computes animation cycle progress as 0 for "none" and wraps [0, 1) for active animations', () => {
@@ -355,6 +362,16 @@ describe('Character & Animation Lab Catalog', () => {
     rhinoLabRig.applyAnimation('death', 0.6, 0.5);
     rhinoLabRig.dispose();
     rhino.dispose();
+
+    // Verify CatLion, Stag, ForestDragon, and DemonDragon Lab rigs
+    for (const entityId of ['savanna_lion', 'royal_stag', 'forest_dragon', 'demon_dragon']) {
+      const entity = getLabEntityById(entityId);
+      const rig = buildLabEntityRig(entityId, entity.skins[0]);
+      assert.ok(rig.stats.triangleCount > 1000, `${entityId} should have a valid 3D mesh`);
+      rig.applyAnimation('walk', 0.2, 0.2);
+      rig.applyAnimation('death', 0.5, 0.5);
+      rig.dispose();
+    }
 
     // Verify persistent per-animation and entity-wide speed resolution
     const customSpeedOverrides = {

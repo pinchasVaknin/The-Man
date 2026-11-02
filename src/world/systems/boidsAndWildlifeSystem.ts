@@ -15,6 +15,8 @@ import {
   WORLD_SPAWN,
   BEAR_MOUNTAIN_CAVES,
   CROCODILE_RIVER_BEND_POS,
+  VOLCANO_SANCTUM_POS,
+  FLOATING_BLOOMING_ISLANDS,
   SOLID_BUILDING_BOXES,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
@@ -41,6 +43,8 @@ export type GroundAnimalSpecies =
   | 'jaguar'
   | 'wolf'
   | 'rhino'
+  | 'lion'
+  | 'stag'
   | 'dragon';
 
 export type AnimalAiBehavior =
@@ -228,6 +232,49 @@ export function getPredatorMeleeStandoffDist(species: GroundAnimalSpecies): numb
  */
 export function getPredatorAttackTriggerDist(species: GroundAnimalSpecies): number {
   return getPredatorMeleeStandoffDist(species) + SPECIES_PROFILES[species].attackReachBonus;
+}
+
+/**
+ * Summary: Returns how deeply (in meters below WATER_LEVEL) an animal's root sinks when swimming in water,
+ *          so land animals sink up to their neck/back instead of appearing to run on the surface,
+ *          while crocodiles float naturally at their waterline.
+ */
+export function getAnimalWaterSubmergenceDepth(species: GroundAnimalSpecies): number {
+  switch (species) {
+    case 'rhino':
+      return 1.15;
+    case 'bear':
+      return 1.05;
+    case 'stag':
+      return 1.02;
+    case 'deer':
+      return 0.88;
+    case 'lion':
+      return 0.78;
+    case 'jaguar':
+      return 0.68;
+    case 'wolf':
+      return 0.62;
+    case 'sheep':
+      return 0.50;
+    case 'crocodile':
+      return 0.24;
+    case 'rabbit':
+      return 0.22;
+    case 'squirrel':
+      return 0.18;
+    case 'dragon':
+      return 1.80;
+  }
+}
+
+/**
+ * Summary: Returns the water speed multiplier for an animal swimming in water.
+ * Design: Non-aquatic land animals lose most of their speed (0.38x) when swimming,
+ *         whereas semi-aquatic crocodiles maintain or increase their speed (1.38x) in water.
+ */
+export function getAnimalWaterSpeedMultiplier(species: GroundAnimalSpecies): number {
+  return species === 'crocodile' ? 1.38 : 0.38;
 }
 // #endregion
 
@@ -659,6 +706,48 @@ function steerBearThroughCavePortal(
 }
 
 /**
+ * Summary: Routes the Mystical CatLion cleanly through the Volcano Sanctum's eastern
+ *          obsidian entrance tunnel (z = 115.0, x: -249..-229) when moving between the
+ *          inner throne chamber and the outer valley.
+ */
+function steerLionThroughVolcanoPortal(
+  lionX: number,
+  lionZ: number,
+  targetX: number,
+  targetZ: number
+): { x: number; z: number } {
+  const vx = VOLCANO_SANCTUM_POS.x;
+  const vz = VOLCANO_SANCTUM_POS.z;
+  if ((lionX - vx) * (lionX - vx) + (lionZ - vz) * (lionZ - vz) > 58 * 58) {
+    return { x: targetX, z: targetZ };
+  }
+  const lDx = lionX - vx;
+  const lDz = lionZ - vz;
+  const tDx = targetX - vx;
+  const tDz = targetZ - vz;
+
+  const lionInsideSanctum = lDx < 33.0 && lDx > -20.0 && Math.abs(lDz) < 19.0;
+  const targetOutsideSanctum = tDx >= 34.0 || Math.abs(tDz) > 18.0 || tDx < -20.0;
+  if (lionInsideSanctum && targetOutsideSanctum) {
+    if (lDx < 15.0 && Math.abs(lDz) > 2.4) {
+      return { x: vx + 15.0, z: vz };
+    }
+    return { x: vx + 37.0, z: vz };
+  }
+
+  const lionOutsideSanctum = lDx >= 34.0 || Math.abs(lDz) > 5.2;
+  const targetInsideSanctum = tDx < 28.0 && tDx > -19.0 && Math.abs(tDz) < 18.0;
+  if (lionOutsideSanctum && targetInsideSanctum) {
+    if (lDx > 35.0 || Math.abs(lDz) > 2.8) {
+      return { x: vx + 37.0, z: vz };
+    }
+    return { x: vx + 13.0, z: vz };
+  }
+
+  return { x: targetX, z: targetZ };
+}
+
+/**
  * Summary: Validates that an animal spawn coordinate is neither within `minSafeRadius` around the player
  *          (preventing pop-in behind the player's back) nor inside the player's forward field-of-view cone.
  */
@@ -851,6 +940,15 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -195, z: 215, species: 'rhino' },
     { x: -224, z: 262, species: 'rhino' },
     { x: 146, z: 168, species: 'rhino' },
+    // Mystical CatLions — seated on the Volcano Sanctum Throne Dais & guarding the Volcano Entrance (3)
+    { x: VOLCANO_SANCTUM_POS.x - 1.0, z: VOLCANO_SANCTUM_POS.z, species: 'lion' },
+    { x: -222, z: 108, species: 'lion' },
+    { x: -222, z: 122, species: 'lion' },
+    // Royal Blooming Stags — roaming the 3 Large Floating Blooming Sky Islands in the East (4)
+    { x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z + 7, species: 'stag' },
+    { x: FLOATING_BLOOMING_ISLANDS[0].x - 11, z: FLOATING_BLOOMING_ISLANDS[0].z - 6, species: 'stag' },
+    { x: FLOATING_BLOOMING_ISLANDS[1].x, z: FLOATING_BLOOMING_ISLANDS[1].z, species: 'stag' },
+    { x: FLOATING_BLOOMING_ISLANDS[2].x, z: FLOATING_BLOOMING_ISLANDS[2].z, species: 'stag' },
     // Secluded Southern Pass Valley Deer beyond the Mountain Gorge Pass (2)
     { x: 96, z: 724, species: 'deer' },
     { x: 114, z: 708, species: 'deer' },
@@ -863,6 +961,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     const gy = walkableHeightAt(c.x, c.z).height;
     const shelter = findNearestShelterPoint(c.x, c.z, c.species, c.caveIndex);
     const maxHp = getAnimalMaxHp(c.species);
+    const isVolcanoSanctumMysticLion =
+      c.species === 'lion' &&
+      Math.hypot(c.x - VOLCANO_SANCTUM_POS.x, c.z - VOLCANO_SANCTUM_POS.z) < 10.0;
     animals.push({
       id: i,
       species: c.species,
@@ -871,7 +972,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       z: c.z,
       vx: 0,
       vz: 0,
-      yaw: (i * 1.37) % (Math.PI * 2),
+      yaw: isVolcanoSanctumMysticLion ? Math.PI / 2 : (i * 1.37) % (Math.PI * 2),
       hopPhase: (i * 0.9) % (Math.PI * 2),
       homeX: c.x,
       homeZ: c.z,
@@ -879,7 +980,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       shelterTargetZ: shelter.z,
       isSeekingShelter: false,
       alertLevel: 'grazing',
-      aiBehavior: 'grazing',
+      aiBehavior: isVolcanoSanctumMysticLion ? 'sitting' : 'grazing',
       listenTimer: 0,
       listenCooldown: 0,
       actionTimer: 0,
@@ -1083,15 +1184,64 @@ function advanceAnimalWithWaterShoreRecovery(
     return;
   }
 
-  const nextWalkableY = walkableHeightAt(nextX, nextZ).height;
-  const currentWalkableY = walkableHeightAt(a.x, a.z).height;
+  // Keep animals living on the Floating Blooming Sky Islands within their island deck rim
+  if (a.y >= 18.0) {
+    for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
+      const isl = FLOATING_BLOOMING_ISLANDS[i];
+      if (Math.hypot(a.homeX - isl.x, a.homeZ - isl.z) <= isl.radius + 1.0) {
+        const dxIsl = nextX - isl.x;
+        const dzIsl = nextZ - isl.z;
+        const distIsl = Math.hypot(dxIsl, dzIsl);
+        const maxSafeRad = isl.radius - 2.2;
+        if (distIsl > maxSafeRad && distIsl > 0.01) {
+          const clampScale = maxSafeRad / distIsl;
+          nextX = isl.x + dxIsl * clampScale;
+          nextZ = isl.z + dzIsl * clampScale;
+          const spd = Math.max(1.5, Math.hypot(a.vx, a.vz));
+          a.vx = (-dxIsl / distIsl) * spd;
+          a.vz = (-dzIsl / distIsl) * spd;
+        }
+        a.inWater = false;
+        a.x = nextX;
+        a.z = nextZ;
+        a.y = walkableHeightAt(a.x, a.z, a.y).height;
+        if (Math.hypot(a.vx, a.vz) > 0.05) {
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.0, safeDt);
+        }
+        return;
+      }
+    }
+  }
+
+  const nextWalkableY = walkableHeightAt(nextX, nextZ, a.y).height;
+  const currentWalkableY = walkableHeightAt(a.x, a.z, a.y).height;
   const dryLandThreshold = WATER_LEVEL + 0.12;
 
   if (isCroc) {
+    const inWaterNow = nextWalkableY <= dryLandThreshold || currentWalkableY <= dryLandThreshold;
     a.inWater = nextWalkableY <= dryLandThreshold;
-    a.x = nextX;
-    a.z = nextZ;
-    a.y = Math.max(WATER_LEVEL - 0.18, nextWalkableY);
+    if (inWaterNow && (Math.abs(a.vx) > 0.05 || Math.abs(a.vz) > 0.05)) {
+      const crocWaterMult = getAnimalWaterSpeedMultiplier('crocodile');
+      const boostedNext = resolveAnimalObstacleCollision(
+        a.x + a.vx * crocWaterMult * safeDt,
+        a.z + a.vz * crocWaterMult * safeDt,
+        SPECIES_PROFILES.crocodile.predatorBodyRadius
+      );
+      a.x = boostedNext.x;
+      a.z = boostedNext.z;
+      const boostedWalkableY = walkableHeightAt(a.x, a.z, a.y).height;
+      a.inWater = boostedWalkableY <= dryLandThreshold;
+      const waterDepth = Math.max(0, WATER_LEVEL - boostedWalkableY);
+      const submerge = Math.min(waterDepth, getAnimalWaterSubmergenceDepth('crocodile'));
+      a.y = Math.max(boostedWalkableY, WATER_LEVEL - submerge);
+      a.hopPhase += safeDt * 4.5;
+    } else {
+      a.x = nextX;
+      a.z = nextZ;
+      const waterDepth = Math.max(0, WATER_LEVEL - nextWalkableY);
+      const submerge = Math.min(waterDepth, getAnimalWaterSubmergenceDepth('crocodile'));
+      a.y = Math.max(nextWalkableY, WATER_LEVEL - submerge);
+    }
     if (hitObstacle && (Math.abs(a.vx) > 0.1 || Math.abs(a.vz) > 0.1)) {
       a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.0, safeDt);
     }
@@ -1110,46 +1260,74 @@ function advanceAnimalWithWaterShoreRecovery(
     return;
   }
 
-  // Land animal is either entering water or already in water:
-  // Never freeze in place! Find the strongest uphill/shore direction across 12 radial bearings
-  // (plus the vector back toward homeX/homeZ) and swim steadily onto dry land.
+  // Land animal is either entering water from the shoreline or already swimming in water:
+  // 1) If the animal is actively pursuing a target ('charging', 'stalking', 'attacking', 'curious')
+  //    or actively fleeing from a threat ('fleeing', isFleeing, fleeCooldown > 0), DO NOT reverse
+  //    its velocity back onto the shore! Let it smoothly enter the water along its intended vector
+  //    at reduced swimming speed (waterMult) while gradually submerging up to its neck/back!
+  // 2) Only when an unprovoked wandering/grazing animal is in deep water with no chase/flee target
+  //    does it steer steadily back toward the nearest dry shore!
   a.inWater = true;
-  let bestDirX = 0;
-  let bestDirZ = 0;
-  let bestScore = -Infinity;
+  const waterMult = getAnimalWaterSpeedMultiplier(a.species);
+  const baseLandSpd = isPredatorSpecies(a.species) ? 4.9 : 4.55;
+  const swimSpd = baseLandSpd * waterMult;
 
-  const homeDx = a.homeX - a.x;
-  const homeDz = a.homeZ - a.z;
-  const homeDist = Math.hypot(homeDx, homeDz);
-  if (homeDist > 0.5 && groundHeightAt(a.homeX, a.homeZ) > WATER_LEVEL + 0.35) {
-    bestDirX = homeDx / homeDist;
-    bestDirZ = homeDz / homeDist;
-    bestScore = 0.5;
-  }
+  const isIntentionalPursuitOrEscape =
+    a.aiBehavior === 'charging' ||
+    a.aiBehavior === 'stalking' ||
+    a.aiBehavior === 'attacking' ||
+    a.aiBehavior === 'fleeing' ||
+    a.alertLevel === 'curious' ||
+    a.alertLevel === 'fleeing' ||
+    Boolean(a.isFleeing) ||
+    a.fleeCooldown > 0;
 
-  for (let k = 0; k < 12; k++) {
-    const ang = (k / 12) * Math.PI * 2;
-    const dx = Math.cos(ang);
-    const dz = Math.sin(ang);
-    const hNear = groundHeightAt(a.x + dx * 5.0, a.z + dz * 5.0);
-    const hMid = groundHeightAt(a.x + dx * 12.0, a.z + dz * 12.0);
-    const hFar = groundHeightAt(a.x + dx * 22.0, a.z + dz * 22.0);
-    const dryBonus =
-      (hNear > dryLandThreshold ? 4.0 : 0) +
-      (hMid > dryLandThreshold ? 2.5 : 0) +
-      (hFar > dryLandThreshold ? 1.5 : 0);
-    const score = (hNear - currentWalkableY) * 2.2 + (hMid - currentWalkableY) * 1.4 + dryBonus;
-    if (score > bestScore) {
-      bestScore = score;
-      bestDirX = dx;
-      bestDirZ = dz;
+  if (isIntentionalPursuitOrEscape) {
+    const rawSpd = Math.hypot(a.vx, a.vz);
+    if (rawSpd > 0.02) {
+      const dirX = a.vx / rawSpd;
+      const dirZ = a.vz / rawSpd;
+      const cappedSwimSpd = Math.min(rawSpd * waterMult, swimSpd * 1.12);
+      const effSpd = Math.max(swimSpd * 0.85, cappedSwimSpd);
+      a.vx = dirX * effSpd;
+      a.vz = dirZ * effSpd;
     }
+  } else {
+    let bestDirX = 0;
+    let bestDirZ = 0;
+    let bestScore = -Infinity;
+
+    const homeDx = a.homeX - a.x;
+    const homeDz = a.homeZ - a.z;
+    const homeDist = Math.hypot(homeDx, homeDz);
+    if (homeDist > 0.5 && groundHeightAt(a.homeX, a.homeZ) > WATER_LEVEL + 0.35) {
+      bestDirX = homeDx / homeDist;
+      bestDirZ = homeDz / homeDist;
+      bestScore = 0.5;
+    }
+
+    for (let k = 0; k < 12; k++) {
+      const ang = (k / 12) * Math.PI * 2;
+      const dx = Math.cos(ang);
+      const dz = Math.sin(ang);
+      const hNear = groundHeightAt(a.x + dx * 5.0, a.z + dz * 5.0);
+      const hMid = groundHeightAt(a.x + dx * 12.0, a.z + dz * 12.0);
+      const hFar = groundHeightAt(a.x + dx * 22.0, a.z + dz * 22.0);
+      const dryBonus =
+        (hNear > dryLandThreshold ? 4.0 : 0) +
+        (hMid > dryLandThreshold ? 2.5 : 0) +
+        (hFar > dryLandThreshold ? 1.5 : 0);
+      const score = (hNear - currentWalkableY) * 2.2 + (hMid - currentWalkableY) * 1.4 + dryBonus;
+      if (score > bestScore) {
+        bestScore = score;
+        bestDirX = dx;
+        bestDirZ = dz;
+      }
+    }
+    a.vx = bestDirX * swimSpd;
+    a.vz = bestDirZ * swimSpd;
   }
 
-  const swimSpd = isPredatorSpecies(a.species) ? 3.8 : 3.4;
-  const steerBlend = Math.min(1, safeDt * 8.5);
-  a.vx += (bestDirX * swimSpd - a.vx) * steerBlend;
-  a.vz += (bestDirZ * swimSpd - a.vz) * steerBlend;
   const swimNext = resolveAnimalObstacleCollision(
     a.x + a.vx * safeDt,
     a.z + a.vz * safeDt,
@@ -1157,17 +1335,20 @@ function advanceAnimalWithWaterShoreRecovery(
   );
   a.x = swimNext.x;
   a.z = swimNext.z;
-  const swimGroundY = walkableHeightAt(a.x, a.z).height;
+  const swimGroundY = walkableHeightAt(a.x, a.z, a.y).height;
   if (swimGroundY > dryLandThreshold) {
     a.inWater = false;
     a.y = swimGroundY;
   } else {
-    a.y = Math.max(swimGroundY, WATER_LEVEL - 0.18);
+    const waterDepth = Math.max(0, WATER_LEVEL - swimGroundY);
+    const maxSubmerge = getAnimalWaterSubmergenceDepth(a.species);
+    const submergeDepth = Math.min(waterDepth, maxSubmerge);
+    a.y = Math.max(swimGroundY, WATER_LEVEL - submergeDepth);
   }
   if (Math.hypot(a.vx, a.vz) > 0.05) {
-    a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 8.0, safeDt);
+    a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
   }
-  a.hopPhase += safeDt * 11.0;
+  a.hopPhase += safeDt * 5.2;
 }
 
 /**
@@ -1491,7 +1672,9 @@ export function stepSmallAnimals(
           const steeredTarget =
             a.species === 'bear'
               ? steerBearThroughCavePortal(a.x, a.z, preyX, preyZ, a.caveIndex)
-              : { x: preyX, z: preyZ };
+              : a.species === 'lion'
+                ? steerLionThroughVolcanoPortal(a.x, a.z, preyX, preyZ)
+                : { x: preyX, z: preyZ };
           const toPreyX = steeredTarget.x - a.x;
           const toPreyZ = steeredTarget.z - a.z;
           const len = Math.hypot(toPreyX, toPreyZ) || 1;
@@ -1861,7 +2044,30 @@ export function stepSmallAnimals(
 
           // If a crocodile is out of prey range and away from its river water home, return smoothly to the water!
           const distFromHome = Math.hypot(a.homeX - a.x, a.homeZ - a.z);
-          if (a.species === 'crocodile' && distFromHome > 4.5) {
+          const isVolcanoSanctumLion =
+            a.species === 'lion' &&
+            Math.hypot(a.homeX - VOLCANO_SANCTUM_POS.x, a.homeZ - VOLCANO_SANCTUM_POS.z) < 10.0;
+          if (isVolcanoSanctumLion) {
+            if (distFromHome > 2.2) {
+              a.isResting = false;
+              a.aiBehavior = 'wandering';
+              const steeredHome = steerLionThroughVolcanoPortal(a.x, a.z, a.homeX, a.homeZ);
+              const toHomeX = steeredHome.x - a.x;
+              const toHomeZ = steeredHome.z - a.z;
+              const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
+              a.vx = (toHomeX / dHome) * 2.6;
+              a.vz = (toHomeZ / dHome) * 2.6;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+              a.hopPhase += safeDt * 7.5;
+            } else {
+              // Seated majestically on the Volcano Sanctum Throne Dais facing the entrance (+X)!
+              a.isResting = false;
+              a.aiBehavior = 'sitting';
+              a.vx = 0;
+              a.vz = 0;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.PI / 2, 4.0, safeDt);
+            }
+          } else if (a.species === 'crocodile' && distFromHome > 4.5) {
             a.wokenUpTimer = 0;
             a.isResting = false;
             a.aiBehavior = 'wandering';
@@ -1961,7 +2167,8 @@ export function stepSmallAnimals(
     }
 
     const awakeSensory = getAnimalSensoryProfile(a.species, false);
-    const fleeRadius = isPlayerSneaking ? 2.5 : a.species === 'deer' ? 8.8 : 10.5;
+    const fleeRadius =
+      isPlayerSneaking ? 2.5 : a.species === 'deer' || a.species === 'stag' ? 8.8 : 10.5;
     const playerNoiseRate = computePlayerNoiseRateAtDistance(
       distP,
       playerSpeed,
@@ -2000,7 +2207,7 @@ export function stepSmallAnimals(
         a.isFleeing = true;
         a.aiBehavior = 'fleeing';
       }
-    } else if (a.species === 'deer') {
+    } else if (a.species === 'deer' || a.species === 'stag') {
       // DEER SPECIFIC AI: Stand upright to listen when hearing noise or seeing movement,
       // then decide based on incoming sensory info whether to flee or return to grazing!
       const stimulusDetected =

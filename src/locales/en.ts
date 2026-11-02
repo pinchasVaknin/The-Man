@@ -810,6 +810,8 @@ export const en = {
       "jaguar": "Jaguar",
       "wolf": "Wolf",
       "rhino": "Rhino",
+      "lion": "Lion",
+      "stag": "Stag",
       "dragon": "Dragon"
     },
     "loot_toast": "Looted {species}: {items}"
@@ -1717,6 +1719,172 @@ export const en = {
           }
         }
       },
+      "savanna_lion": {
+        "name": "Savanna lion (CatLion)",
+        "subtitle": "Apex feline predator with a golden coat, muscular frame and 11 animations",
+        "category_label": "Animals",
+        "world_location": "South-western oasis savanna and southern plains",
+        "description": "The savanna lion — built on a 61-bone skeleton with a golden-tawny coat, powerful shoulders, articulated jaw and tail, and 11 baked animations including stalking, trotting, sprinting, roaring and bite attack.",
+        "anatomy_tags": {
+          "0": "61-bone feline skeleton",
+          "1": "Muscular shoulders and claws",
+          "2": "Articulated jaw and fangs",
+          "3": "Long tufted tail"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Neutral base pose for inspecting the lion's proportions and anatomy."
+          },
+          "idle": {
+            "name": "Alert stance and breathing (Idle)",
+            "description": "Calm breathing with subtle head, ear and tail movement."
+          },
+          "walk": {
+            "name": "Savanna patrol walk (Walk)",
+            "description": "Measured four-beat feline walk across the plains."
+          },
+          "trot": {
+            "name": "Rhythmic trot (Trot)",
+            "description": "Balanced medium-speed trot across the savanna."
+          },
+          "run": {
+            "name": "Hunting sprint (Run)",
+            "description": "Fast, powerful bounding stride with extended spine."
+          },
+          "eat": {
+            "name": "Feeding and lowering head (Eat)",
+            "description": "Lower the head and neck to feed on prey."
+          },
+          "call": {
+            "name": "Pride call (Call)",
+            "description": "Lift the head to call across the territory."
+          },
+          "roar": {
+            "name": "Thunderous savanna roar (Roar)",
+            "description": "Open the jaws wide in a resonant territorial roar."
+          },
+          "bite_attack": {
+            "name": "Lunge and bite attack (Bite Attack)",
+            "description": "Forward pounce with jaws snapping and front paws striking."
+          },
+          "sit": {
+            "name": "Seated watch pose (Sit)",
+            "description": "Sit back on the haunches while scanning the horizon."
+          },
+          "lie": {
+            "name": "Resting on the ground (Lie)",
+            "description": "Lie down in the shade with a calm breathing rhythm."
+          },
+          "death": {
+            "name": "Collapse onto the side (Death)",
+            "description": "Collapse onto the side and come to rest."
+          }
+        },
+        "skins": {
+          "lion_savanna_gold": {
+            "name": "Golden savanna lion (original)",
+            "subtitle": "Warm golden-tawny fur of the southern plains"
+          },
+          "lion_kalahari_amber": {
+            "name": "Kalahari amber lion",
+            "subtitle": "Deep bronze-amber coat and dark ear tips"
+          },
+          "lion_white_royal": {
+            "name": "Royal white lion",
+            "subtitle": "Rare ivory-cream coat of the oasis sanctuary"
+          }
+        }
+      },
+      "royal_stag": {
+        "name": "Royal forest stag (Stag)",
+        "subtitle": "Majestic antlered monarch of the birch grove and forest glades with 14 animations",
+        "category_label": "Animals",
+        "world_location": "The eastern birch grove, valley meadows and northern pines",
+        "description": "The royal forest stag — built on a 61-bone skeleton with a tall regal neck, branching royal antlers, chestnut woodland coat and 14 baked animations including grazing, calling, antler charge, joyful skip and gallop.",
+        "anatomy_tags": {
+          "0": "61-bone cervid skeleton",
+          "1": "Branching royal antlers",
+          "2": "Tall muscular neck",
+          "3": "Agile cloven hooves"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static pose for inspecting the stag's antlers and proportions."
+          },
+          "idle": {
+            "name": "Regal watch stance (Idle)",
+            "description": "Calm breathing with gentle ear and head movement."
+          },
+          "walk": {
+            "name": "Woodland walk (Walk)",
+            "description": "Graceful four-beat walk among the trees."
+          },
+          "trot": {
+            "name": "Light forest trot (Trot)",
+            "description": "Springy diagonal trot across the meadow."
+          },
+          "stalk": {
+            "name": "Cautious step (Stalk)",
+            "description": "Low, alert stepping through the underbrush."
+          },
+          "run": {
+            "name": "Full forest gallop (Run)",
+            "description": "Fast, sweeping bounds across the valley."
+          },
+          "flee": {
+            "name": "Startled escape sprint (Flee)",
+            "description": "Rapid bounding flight away from danger."
+          },
+          "skip": {
+            "name": "Meadow pronk and leap (Skip)",
+            "description": "High, joyful springing leaps through the grass."
+          },
+          "eat": {
+            "name": "Grazing meadow grass (Eat)",
+            "description": "Lower the antlered head to graze on grass and herbs."
+          },
+          "call": {
+            "name": "Forest bugle call (Call)",
+            "description": "Raise the muzzle and bugle across the valley."
+          },
+          "roar": {
+            "name": "Rutting bellow (Roar)",
+            "description": "Deep, resonant challenge bellow with head raised."
+          },
+          "sit": {
+            "name": "Folded-leg rest (Sit)",
+            "description": "Tuck the forelegs and rest upright in the glade."
+          },
+          "lie": {
+            "name": "Lying in the fern glade (Lie)",
+            "description": "Rest calmly on the forest floor."
+          },
+          "attack": {
+            "name": "Antler sweep and charge (Attack)",
+            "description": "Lower the royal antlers and thrust forward in defense."
+          },
+          "death": {
+            "name": "Collapse onto the side (Death)",
+            "description": "Fall onto the side in the meadow."
+          }
+        },
+        "skins": {
+          "stag_royal_chestnut": {
+            "name": "Royal chestnut stag (original)",
+            "subtitle": "Rich red-brown woodland coat and ivory-tipped antlers"
+          },
+          "stag_silver_birch": {
+            "name": "Silver birch stag",
+            "subtitle": "Pale silver-grey coat of the eastern birch grove"
+          },
+          "stag_autumn_umber": {
+            "name": "Dark highland stag",
+            "subtitle": "Deep umber coat of the northern mountain ridges"
+          }
+        }
+      },
       "grazing_sheep": {
         "name": "Grazing farm sheep",
         "subtitle": "Woolly sheep grazing around the valley farm and the wheat fields",
@@ -2137,6 +2305,190 @@ export const en = {
           }
         }
       },
+      "forest_dragon": {
+        "name": "Colossal southern forest dragon (ForestDragon)",
+        "subtitle": "Winged guardian dragon of the southern ruins with a 74-bone skeleton and 13 animations",
+        "category_label": "Animals",
+        "world_location": "Southern ancient ruins and mountain ridges",
+        "world_coordinates": "(65, 290)",
+        "description": "The colossal winged dragon of the southern ruins — built on a 74-bone skinned rig with leathery wings, horned skull, armored tail and 13 animations including ground patrol, soaring flight, fire roar, claw attack and sleep.",
+        "anatomy_tags": {
+          "0": "74-bone dragon skeleton",
+          "1": "Wide leathery wingspan",
+          "2": "Horned skull and jaws",
+          "3": "Long armored tail"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static rest pose for inspecting the dragon's wings, scales and horns."
+          },
+          "idle": {
+            "name": "Watchful breathing stance (Idle)",
+            "description": "Heavy chest breathing with subtle wing and tail sway."
+          },
+          "walk": {
+            "name": "Heavy ruins patrol walk (Walk)",
+            "description": "Powerful grounded stride across the ancient stones."
+          },
+          "trot": {
+            "name": "Fast ground advance (Trot)",
+            "description": "Quickened quadruped advance with wings folded."
+          },
+          "run": {
+            "name": "Charging dragon sprint (Run)",
+            "description": "Relentless ground charge toward intruders."
+          },
+          "fly": {
+            "name": "Winged flight and hover (Fly)",
+            "description": "Powerful sweeping wingbeats while airborne."
+          },
+          "stalk": {
+            "name": "Low predatory prowl (Stalk)",
+            "description": "Crouched, menacing prowl around its lair."
+          },
+          "roar": {
+            "name": "Earth-shaking dragon roar (Roar)",
+            "description": "Rear back, spread wings and unleash a thunderous roar."
+          },
+          "call": {
+            "name": "Skyward territorial call (Call)",
+            "description": "Raise the horned head and call across the southern peaks."
+          },
+          "attack": {
+            "name": "Jaws and claw strike (Attack)",
+            "description": "Fierce forward lunge with snapping jaws and talons."
+          },
+          "sit": {
+            "name": "Perched guardian stance (Sit)",
+            "description": "Seated sentinel posture overlooking the ruins."
+          },
+          "lie": {
+            "name": "Resting in the ruins (Lie)",
+            "description": "Lower the heavy body onto the stone floor."
+          },
+          "sleep": {
+            "name": "Deep dragon slumber (Sleep)",
+            "description": "Curled, slow-breathing sleep in its lair."
+          },
+          "death": {
+            "name": "Dragon fall and collapse (Death)",
+            "description": "Heavy collapse of the wings, neck and body."
+          }
+        },
+        "skins": {
+          "forest_dragon_emerald": {
+            "name": "Ancient moss and bronze dragon (original)",
+            "subtitle": "Natural weathered scales of the southern ruins"
+          },
+          "forest_dragon_crimson": {
+            "name": "Volcanic ember dragon",
+            "subtitle": "Crimson-bronze scales glowing with volcanic heat"
+          },
+          "forest_dragon_jade": {
+            "name": "Verdant jade wyrm",
+            "subtitle": "Deep forest emerald scales"
+          }
+        }
+      },
+      "demon_dragon": {
+        "name": "Northern ice & demon dragon (DemonDragon)",
+        "subtitle": "120-joint winged apex dragon of the northern fortress peaks with 16 animation states",
+        "category_label": "Animals",
+        "world_location": "Northern fortress peaks and high cliffs",
+        "world_coordinates": "(0, -285)",
+        "description": "The winged demon & frost dragon of the northern peaks — built on a detailed 120-joint skeleton with twin wing membranes, spiked crest, articulated jaw and 16 animation states including soaring flight, stalking, roaring and lethal strike.",
+        "anatomy_tags": {
+          "0": "120-joint articulated skeleton",
+          "1": "Spiked membrane wings",
+          "2": "Horned crown and fangs",
+          "3": "Whip-like spiked tail"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static rest pose for inspecting the 120-joint dragon rig."
+          },
+          "idle": {
+            "name": "Menacing idle stance (Idle)",
+            "description": "Heavy breathing with wings poised at the sides."
+          },
+          "walk": {
+            "name": "Stalking fortress walk (Walk)",
+            "description": "Heavy, deliberate stride across the mountain ridge."
+          },
+          "trot": {
+            "name": "Predatory advance (Trot)",
+            "description": "Swift ground movement with balanced tail counterbalance."
+          },
+          "run": {
+            "name": "Full ground charge (Run)",
+            "description": "High-speed bounding charge."
+          },
+          "fly": {
+            "name": "Soaring wingbeat cycle (Fly)",
+            "description": "Full-wingspan aerial flight cycle."
+          },
+          "stalk": {
+            "name": "Crouched ambush prowl (Stalk)",
+            "description": "Low, creeping approach before striking."
+          },
+          "roar": {
+            "name": "Abyssal dragon roar (Roar)",
+            "description": "Spread wings and roar across the northern valley."
+          },
+          "call": {
+            "name": "High-altitude cry (Call)",
+            "description": "Sharp, echoing dragon call."
+          },
+          "attack": {
+            "name": "Fanged lunge and strike (Attack)",
+            "description": "Explosive bite and claw strike."
+          },
+          "eat": {
+            "name": "Devouring prey (Eat)",
+            "description": "Lower the head and tear at prey."
+          },
+          "sit": {
+            "name": "Citadel perch (Sit)",
+            "description": "Upright seated watch posture."
+          },
+          "lie": {
+            "name": "Coiled rest (Lie)",
+            "description": "Lie down with wings folded."
+          },
+          "sleep": {
+            "name": "Slumber on the peak (Sleep)",
+            "description": "Deep resting pose on the mountain rock."
+          },
+          "flee": {
+            "name": "Evasive dash (Flee)",
+            "description": "Rapid evasive surge."
+          },
+          "skip": {
+            "name": "Wing-assisted bound (Skip)",
+            "description": "Leaping bound assisted by wing thrusts."
+          },
+          "death": {
+            "name": "Final collapse (Death)",
+            "description": "Collapse onto the ground with wingsfolding."
+          }
+        },
+        "skins": {
+          "demon_dragon_classic": {
+            "name": "Abyssal frost & iron (original)",
+            "subtitle": "Original dark scaled hide of the northern dragon"
+          },
+          "demon_dragon_glacier": {
+            "name": "Glacier ice wyrm",
+            "subtitle": "Pale frost-blue scales of the frozen summit"
+          },
+          "demon_dragon_hellfire": {
+            "name": "Obsidian hellfire dragon",
+            "subtitle": "Charcoal scales tinted with crimson ash"
+          }
+        }
+      },
       "dwarven_king_statue": {
         "name": "Giant dwarf king guardian",
         "subtitle": "The mighty monolith guardian standing at the gate of the dwarven kingdom with a double-bladed axe and lantern",
@@ -2319,6 +2671,48 @@ export const en = {
         "right_limb_title": "Jaguar's right legs",
         "left_limb_title": "Jaguar's left legs",
         "head_title": "Jaguar's head and neck"
+      },
+      "forest_wolf": {
+        "weapon_group_title": "Jaws and fangs",
+        "left_weapon_group_title": "Bushy wolf tail",
+        "right_limb_title": "Wolf's right legs",
+        "left_limb_title": "Wolf's left legs",
+        "head_title": "Wolf's head and ears"
+      },
+      "savanna_rhino": {
+        "weapon_group_title": "Nasal horn",
+        "left_weapon_group_title": "Armored shoulders",
+        "right_limb_title": "Rhino's right legs",
+        "left_limb_title": "Rhino's left legs",
+        "head_title": "Rhino's head and horn"
+      },
+      "savanna_lion": {
+        "weapon_group_title": "Front paws and claws",
+        "left_weapon_group_title": "Lion tail and jaw",
+        "right_limb_title": "Lion's right legs",
+        "left_limb_title": "Lion's left legs",
+        "head_title": "Lion's head and neck"
+      },
+      "royal_stag": {
+        "weapon_group_title": "Royal antler crown",
+        "left_weapon_group_title": "Stag tail",
+        "right_limb_title": "Stag's right legs",
+        "left_limb_title": "Stag's left legs",
+        "head_title": "Stag's head and neck"
+      },
+      "forest_dragon": {
+        "weapon_group_title": "Dragon jaws and horns",
+        "left_weapon_group_title": "Armored dragon tail",
+        "right_limb_title": "Right wing and legs",
+        "left_limb_title": "Left wing and legs",
+        "head_title": "Dragon head and neck"
+      },
+      "demon_dragon": {
+        "weapon_group_title": "Dragon jaws and fangs",
+        "left_weapon_group_title": "Spiked dragon tail",
+        "right_limb_title": "Right wing and legs",
+        "left_limb_title": "Left wing and legs",
+        "head_title": "Dragon head and crown"
       },
       "default": {
         "weapon_group_title": "Tail / main accessory",

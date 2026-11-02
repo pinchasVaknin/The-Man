@@ -112,21 +112,41 @@
  {
   "entityId": "forest_wolf",
   "labels": {
-   "headTitle": "Head and neck",
-   "leftLimbTitle": "Left legs",
-   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
-   "rightLimbTitle": "Right legs",
-   "weaponGroupTitle": "Tail / main accessory"
+   "headTitle": "Wolf's head and ears",
+   "leftLimbTitle": "Wolf's left legs",
+   "leftWeaponGroupTitle": "Bushy wolf tail",
+   "rightLimbTitle": "Wolf's right legs",
+   "weaponGroupTitle": "Jaws and fangs"
   }
  },
  {
   "entityId": "savanna_rhino",
   "labels": {
-   "headTitle": "Head and neck",
-   "leftLimbTitle": "Left legs",
-   "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
-   "rightLimbTitle": "Right legs",
-   "weaponGroupTitle": "Tail / main accessory"
+   "headTitle": "Rhino's head and horn",
+   "leftLimbTitle": "Rhino's left legs",
+   "leftWeaponGroupTitle": "Armored shoulders",
+   "rightLimbTitle": "Rhino's right legs",
+   "weaponGroupTitle": "Nasal horn"
+  }
+ },
+ {
+  "entityId": "savanna_lion",
+  "labels": {
+   "headTitle": "Lion's head and neck",
+   "leftLimbTitle": "Lion's left legs",
+   "leftWeaponGroupTitle": "Lion tail and jaw",
+   "rightLimbTitle": "Lion's right legs",
+   "weaponGroupTitle": "Front paws and claws"
+  }
+ },
+ {
+  "entityId": "royal_stag",
+  "labels": {
+   "headTitle": "Stag's head and neck",
+   "leftLimbTitle": "Stag's left legs",
+   "leftWeaponGroupTitle": "Stag tail",
+   "rightLimbTitle": "Stag's right legs",
+   "weaponGroupTitle": "Royal antler crown"
   }
  },
  {
@@ -217,6 +237,26 @@
    "leftWeaponGroupTitle": "Saddle / ears / secondary accessory",
    "rightLimbTitle": "Right legs",
    "weaponGroupTitle": "Tail / main accessory"
+  }
+ },
+ {
+  "entityId": "forest_dragon",
+  "labels": {
+   "headTitle": "Dragon head and neck",
+   "leftLimbTitle": "Left wing and legs",
+   "leftWeaponGroupTitle": "Armored dragon tail",
+   "rightLimbTitle": "Right wing and legs",
+   "weaponGroupTitle": "Dragon jaws and horns"
+  }
+ },
+ {
+  "entityId": "demon_dragon",
+  "labels": {
+   "headTitle": "Dragon head and crown",
+   "leftLimbTitle": "Left wing and legs",
+   "leftWeaponGroupTitle": "Spiked dragon tail",
+   "rightLimbTitle": "Right wing and legs",
+   "weaponGroupTitle": "Dragon jaws and fangs"
   }
  },
  {
