@@ -38,6 +38,7 @@ src/
   lab/                   Character & Animation Lab (developer tool, lazy-loaded)
   testSupport/           golden-master helper, test-only model preloading
 public/models/animals/   animal GLB files (served as static assets)
+devServer/               dev-only Vite middleware (Save-to-file endpoints); imports nothing from src/
 ```
 
 Dependencies point downward only:
@@ -188,7 +189,7 @@ SPECIES_PROFILES: Readonly<Record<GroundAnimalSpecies, ISpeciesProfile>>
 |---|---|---|
 | `EQUIPMENT_STRATEGY_MAP` | `world/systems/combatAndInventorySystem.ts` | a switch over item kinds (bow, sword, arrows…) |
 | `EDITOR_LABEL_SETS` | `lab/labCatalog.ts` | a 130-line switch of lab editor labels |
-| `PERSISTENCE_ROUTES` | `vite.config.ts` | if-chains in the dev-only save endpoints |
+| `PERSISTENCE_ROUTES` | `devServer/persistencePlugin.ts` | if-chains in the dev-only save endpoints |
 
 ## 7. Animal models: GLB files and async loading
 
@@ -245,10 +246,16 @@ flowchart LR
   - Values come from `localStorage` and are merged over code defaults.
   - Everything is validated by `config/persistedSettingsValidation.ts`, which returns a `Result`.
   - Invalid data falls back to the defaults and logs a warning.
-- **Dev-only "Save to file" endpoints** (`vite.config.ts`) write settings and lab pose overrides
-  back into `src/config/`.
+- **Dev-only "Save to file" endpoints** (`devServer/persistencePlugin.ts`, registered in
+  `vite.config.ts`) write settings and lab pose overrides back into `src/config/`.
   - Safeguards: same-origin check, JSON-only, 256 KB cap, schema validation, opaque error codes.
   - They are not part of the production build.
+  - **Isolation rule:** `vite.config.ts` and `devServer/` import nothing from `src/`, so the dev
+    server never loads game code. The server therefore keeps its own copy of the validation
+    rules (`devServer/persistenceValidation.ts`).
+  - The duplication is guarded by `src/config/persistenceValidationParity.spec.ts`: both copies
+    must accept, reject and clean the same fixtures. When a setting or lab field changes, update
+    both copies; the parity test fails if only one changes.
 - **Key handling** goes through `config/keyBindingMatch.ts`. Bindings are dynamic: either Shift,
   Ctrl or Alt key matches its family. Fixed fallbacks remain on purpose: Esc pauses, arrow keys
   move, F3 shows colliders.

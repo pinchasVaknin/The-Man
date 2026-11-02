@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "vite.config.ts": {
-    "mtime": 1793562824.8503463,
-    "seen": 1793593033.939598,
-    "ast_hash": "e6d486d0ffbd3b2ce7e6fc2db14f8490",
+    "mtime": 1793602347.305366,
+    "seen": 1793602557.4488251,
+    "ast_hash": "8d618e046e265244f0880e33e45447d0",
     "semantic_hash": ""
   },
   "src/core/AppException.ts": {
@@ -1038,9 +1038,27 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1793601518.8458283,
-    "seen": 1793601551.9854465,
-    "ast_hash": "a8d4bdd4c797efceb323bbaa7643faa5",
+    "mtime": 1793602473.262018,
+    "seen": 1793602557.4488282,
+    "ast_hash": "4d456554e6cfc9e66029905e1cce2241",
+    "semantic_hash": ""
+  },
+  "devServer/persistencePlugin.ts": {
+    "mtime": 1793602341.9787276,
+    "seen": 1793602557.448634,
+    "ast_hash": "cd28ca895fa95b18512772580a53fb68",
+    "semantic_hash": ""
+  },
+  "devServer/persistenceValidation.ts": {
+    "mtime": 1793602341.9684792,
+    "seen": 1793602557.448636,
+    "ast_hash": "89d79ff04f118496e80a7e5bff7f1e68",
+    "semantic_hash": ""
+  },
+  "src/config/persistenceValidationParity.spec.ts": {
+    "mtime": 1793602386.4284382,
+    "seen": 1793602557.4486692,
+    "ast_hash": "f2d3174b745a44dbb4854f45958eaeeb",
     "semantic_hash": ""
   }
 }
