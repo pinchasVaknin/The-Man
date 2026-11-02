@@ -8,7 +8,9 @@ A realistic, high-performance procedural 3D open-world adventure built with Thre
 - **Atmosphere & Weather**: 24-hour dynamic solar elevation, morning mist, starry night cycles, and seasonal or turbo-test weather systems (rain, snow, dense fog, thunderstorm, and sandstorm).
 - **Kinematics & Combat**: Physics-driven first-person and third-person locomotion, swimming buoyancy, ladder climbing, ballistic arrow flight, and a 5-phase sword combat system with synchronized strike windows.
 - **Locomotion & Mounts**: Biomechanical horse simulation with gallop gaits, turning resistance, and free-look camera.
-- **Economy & UI**: Skyrim-style split-pane inventory with O(1) item lookups, equipment strategy pattern, hotbar binding, and localized Hebrew UI strings (`src/locales/`).
+- **Economy & UI**: Skyrim-style split-pane inventory with O(1) item lookups, equipment strategy pattern, hotbar binding, rebindable keys, and English UI strings (`src/locales/en.ts`).
+
+For the code structure (layers, game loop with fixed timestep, species strategy table, composition root, async GLB model loading, testing) see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## Getting Started
 
