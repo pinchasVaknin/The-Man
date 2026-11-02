@@ -43,6 +43,8 @@ import {
   CROCODILE_RIVER_BEND_POS,
   FLOATING_BLOOMING_ISLANDS,
   FLOATING_ISLAND_STAIR_POS,
+  FLOATING_WATERFALL_STEP_ISLANDS,
+  SKY_WIND_GEYSERS,
   SOLID_BUILDING_BOXES,
   SOUTHERN_DRAGON_RUINS_POS,
   VOLCANO_SANCTUM_POS,
@@ -52,6 +54,11 @@ import {
   findNearestBed,
   floatingBloomingIslandHeightAt,
 } from '../domain/landmarksRegistry';
+import {
+  createInitialPlayerState,
+  createInitialRideableHorses,
+  stepPlayerPhysics,
+} from './playerPhysicsSystem';
 import {
   computeSlopePitchAndRoll,
   getRoofHeightAt,
@@ -1039,23 +1046,84 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     'Volcano Sanctum inner chamber must have a high ceiling dome'
   );
 
-  // 2. Floating Blooming Sky Islands & Royal Stags living in the blooming sky sanctuary
+  // 2. High-Altitude Floating Blooming Sky Islands (y >= 68m) & Spiraling Waterfall Mini-Islands
   const stags = animals.filter((a) => a.species === 'stag');
   assert.equal(stags.length, 4);
   for (const stag of stags) {
     const islandY = floatingBloomingIslandHeightAt(stag.x, stag.z, stag.y);
     assert.ok(
-      islandY !== null && islandY >= 26.0,
-      `Royal Stag at (${stag.x}, ${stag.z}) must spawn on a Floating Blooming Sky Island (got y=${stag.y}, islandY=${islandY})`
+      islandY !== null && islandY >= 68.0,
+      `Royal Stag at (${stag.x}, ${stag.z}) must spawn on a High-Altitude Floating Blooming Sky Island (got y=${stag.y}, islandY=${islandY})`
     );
   }
-  // Stairway from ground (footX=152) to main floating island (topX=178) provides continuous walkable ascent
-  const midStairX = (FLOATING_ISLAND_STAIR_POS.footX + FLOATING_ISLAND_STAIR_POS.topX) * 0.5;
-  const midStairWalk = walkableHeightAt(midStairX, FLOATING_ISLAND_STAIR_POS.z, 15.0);
+
+  // Verify the 57 Floating Mini-Islands & Grand Rest-Landing Terraces spiraling upward around the Central Sky-Waterfall (165, -35) from y=3.4m to y=68.0m
+  assert.equal(FLOATING_WATERFALL_STEP_ISLANDS.length, 57);
+  assert.equal(FLOATING_WATERFALL_STEP_ISLANDS.filter((s) => s.isRestLanding).length, 9);
   assert.ok(
-    midStairWalk.height > 12.0 && midStairWalk.height < 18.0,
-    `Floating island stairway midpoint must provide walkable step height (got ${midStairWalk.height.toFixed(2)}m)`
+    FLOATING_ISLAND_STAIR_POS.topY >= 68.0,
+    `Floating island waterfall topY must be high in the air (>= 68m, got ${FLOATING_ISLAND_STAIR_POS.topY})`
   );
+  // Ground-level Marble Entry Plaza Ramp smoothly connects valley floor to Mini-Island #0
+  const rampHeight = floatingBloomingIslandHeightAt(147.0, -35.0, 3.3);
+  assert.ok(rampHeight !== null && rampHeight >= 3.18 && rampHeight <= 3.4);
+
+  for (let i = 0; i < FLOATING_WATERFALL_STEP_ISLANDS.length; i += 4) {
+    const stepIsl = FLOATING_WATERFALL_STEP_ISLANDS[i];
+    const stepWalk = walkableHeightAt(stepIsl.x, stepIsl.z, stepIsl.y);
+    assert.ok(
+      Math.abs(stepWalk.height - stepIsl.y) < 0.85,
+      `Spiral waterfall mini-island #${i} at (${stepIsl.x.toFixed(1)}, ${stepIsl.z.toFixed(1)}, y=${stepIsl.y.toFixed(1)}) must be walkable (got ${stepWalk.height.toFixed(2)}m)`
+    );
+  }
+
+  // Verify Special Ideas: Celestial Sanctuary Bed, Sky-Waterfall Hydro-Elevator, and Sky Wind-Geyser Launch Pads
+  const skyBed = findNearestBed(205.0, 68.35, -35.0);
+  assert.ok(skyBed && skyBed.id === 'bed-floating-sky-sanctuary', 'Main Floating Sky Island must have the Celestial Star-Sanctuary Bed');
+
+  const testPlayer = createInitialPlayerState();
+  testPlayer.x = FLOATING_ISLAND_STAIR_POS.waterfallX;
+  testPlayer.z = FLOATING_ISLAND_STAIR_POS.waterfallZ;
+  testPlayer.y = 10.0;
+  stepPlayerPhysics(
+    testPlayer,
+    {
+      forward: 1,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.ok(testPlayer.vy >= 15.0, `Sky-Waterfall Hydro-Elevator must lift player upward (got vy=${testPlayer.vy})`);
+
+  const geyser0 = SKY_WIND_GEYSERS[0];
+  testPlayer.x = geyser0.x;
+  testPlayer.z = geyser0.z;
+  testPlayer.y = geyser0.y;
+  testPlayer.onGround = true;
+  testPlayer.coyoteTimer = 0.11;
+  stepPlayerPhysics(
+    testPlayer,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: true,
+      jumpHeld: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.016
+  );
+  assert.ok(testPlayer.vy >= 18.0, `Sky Wind-Geyser pad must launch player with high upward velocity (got vy=${testPlayer.vy})`);
 
   // Stag fleeing on floating island stays safely clamped within the island rim instead of falling off the cliff
   const mainStag = stags[0];
@@ -1070,7 +1138,7 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     mainStag.z - FLOATING_BLOOMING_ISLANDS[0].z
   );
   assert.ok(
-    stagDistFromMainCenter <= FLOATING_BLOOMING_ISLANDS[0].radius - 1.5 && mainStag.y >= 25.5,
+    stagDistFromMainCenter <= FLOATING_BLOOMING_ISLANDS[0].radius - 1.5 && mainStag.y >= 67.5,
     `Stag on floating island must stay within the island rim and never fall off (dist=${stagDistFromMainCenter.toFixed(2)}m, y=${mainStag.y.toFixed(2)}m)`
   );
 
@@ -1115,7 +1183,291 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     `Fleeing animal at shoreline must smoothly enter the water (+X) instead of bouncing back at the shore (start=${shoreX.toFixed(2)}, end=${shoreDeer.x.toFixed(2)}, inWater=${shoreDeer.inWater})`
   );
 });
+
+test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldClimbWithoutJumpingAndRideSmoothly', () => {
+  // 1. Verify walking continuously up all 57 spiral waterfall mini-islands from the ground entry plaza (144, -35, y=3.2m)
+  //    all the way to the Main Floating Sky Island deck (188, -35, y=68.0m) with ZERO jumps (jumpPressed=false, jumpHeld=false)!
+  const climber = createInitialPlayerState();
+  climber.x = 144.0;
+  climber.z = -35.0;
+  climber.y = walkableHeightAt(144.0, -35.0).height;
+  climber.onGround = true;
+
+  let waypointIdx = 0;
+  for (let tick = 0; tick < 1800 && waypointIdx < FLOATING_WATERFALL_STEP_ISLANDS.length; tick++) {
+    const wp = FLOATING_WATERFALL_STEP_ISLANDS[waypointIdx];
+    const dx = wp.x - climber.x;
+    const dz = wp.z - climber.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 1.25) {
+      waypointIdx++;
+      continue;
+    }
+    climber.yaw = Math.atan2(-dx, -dz);
+    stepPlayerPhysics(
+      climber,
+      {
+        forward: 1,
+        right: 0,
+        sprint: true,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.02
+    );
+  }
+
+  assert.equal(
+    waypointIdx,
+    FLOATING_WATERFALL_STEP_ISLANDS.length,
+    `Player must walk smoothly through all 57 spiral staircase islands without ever snagging or jumping (reached island #${waypointIdx}, y=${climber.y.toFixed(2)}m)`
+  );
+  assert.ok(
+    climber.y >= 67.6,
+    `Player at top of spiral staircase must reach y >= 67.6m without jumping (got y=${climber.y.toFixed(2)}m)`
+  );
+
+  // Step onto the Main Floating Sky Island deck at (185, -35) without jumping
+  for (let tick = 0; tick < 60; tick++) {
+    climber.yaw = -Math.PI / 2; // facing +X onto Main Island
+    stepPlayerPhysics(
+      climber,
+      {
+        forward: 1,
+        right: 0,
+        sprint: false,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.02
+    );
+  }
+  assert.ok(
+    climber.x > 181.0 && climber.y >= 68.0,
+    `Player must transition seamlessly from top of spiral stairs onto Main Floating Island deck (x=${climber.x.toFixed(1)}, y=${climber.y.toFixed(2)})`
+  );
+
+  // 2. Verify Taming & Riding the Royal Celestial Stag ('stag') and Mystical Volcano CatLion ('lion')
+  const animals = createInitialSmallAnimals();
+  const birds = [] as ReturnType<typeof createInitialSmallAnimals> extends (infer _U)[] ? never[] : never[];
+  const horses = createInitialRideableHorses();
+  // Register activeWorldAnimalsRegistry via stepSmallAnimals
+  stepSmallAnimals(animals, 0.016, 1.0, climber.x, climber.z, horses, 1.0, climber);
+
+  const royalStag = animals.find((a) => a.species === 'stag')!;
+  assert.ok(royalStag, 'Expected Royal Stag on Floating Sky Island');
+  climber.x = royalStag.x + 1.2;
+  climber.z = royalStag.z;
+  climber.y = royalStag.y;
+
+  // Press mount key to tame & ride the Royal Stag
+  stepPlayerPhysics(
+    climber,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      toggleMountHorseRequested: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.02,
+    undefined,
+    horses
+  );
+  assert.equal(climber.mountedHorseId, `mount-stag-${royalStag.id}`, 'Player must mount the Royal Stag');
+  assert.equal(royalStag.isTamed, true, 'Mounted Royal Stag must become tamed');
+  assert.equal(royalStag.isMountedByPlayer, true, 'Royal Stag must be marked as mounted by player');
+
+  // Ride forward and perform a Celestial Sky-Leap on the Stag
+  const startStagX = royalStag.x;
+  const startStagZ = royalStag.z;
+  for (let i = 0; i < 15; i++) {
+    stepPlayerPhysics(
+      climber,
+      {
+        forward: 1,
+        right: 0,
+        sprint: true,
+        relaxed: false,
+        jumpPressed: i === 5,
+        jumpHeld: i >= 5 && i <= 10,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.02,
+      undefined,
+      horses
+    );
+  }
+  assert.ok(
+    Math.hypot(royalStag.x - startStagX, royalStag.z - startStagZ) > 1.5,
+    'Riding Royal Stag must move both player and Stag across the island'
+  );
+
+  // Dismount Royal Stag
+  stepPlayerPhysics(
+    climber,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      toggleMountHorseRequested: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.02,
+    undefined,
+    horses
+  );
+  assert.equal(climber.mountedHorseId, null, 'Player must dismount Royal Stag cleanly');
+  assert.equal(royalStag.isMountedByPlayer, false);
+  assert.equal(royalStag.isTamed, true, 'Dismounted Royal Stag must remain tamed');
+
+  // Verify tamed Royal Stag cannot be damaged or killed by player weapons
+  const tamedHit = damageGroundAnimal(royalStag, 5, climber.x, climber.z);
+  assert.equal(tamedHit.killed, false, 'Tamed Royal Stag must be immune to player damage');
+  assert.equal(royalStag.isDead, false);
+
+  // Verify the 2 smaller CatLions cannot be tamed, while the Boss CatLion requires being subdued to low HP and fed meat!
+  const smallLion = animals.find((a) => a.species === 'lion' && !a.isBoss)!;
+  const bossLion = animals.find((a) => a.species === 'lion' && a.isBoss)!;
+  assert.ok(smallLion, 'Expected smaller entrance CatLion');
+  assert.ok(bossLion, 'Expected central Boss CatLion');
+  assert.equal(smallLion.canBeTamed, false);
+  assert.equal(bossLion.canBeTamed, true);
+
+  // Attempting to tame Boss CatLion at full HP should NOT mount it
+  climber.x = bossLion.x + 1.2;
+  climber.z = bossLion.z;
+  climber.y = bossLion.y;
+  stepPlayerPhysics(
+    climber,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      toggleMountHorseRequested: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.02,
+    undefined,
+    horses
+  );
+  assert.equal(climber.mountedHorseId, null, 'Full-HP Boss CatLion cannot be tamed before being subdued');
+
+  // Attack Boss CatLion until nearly dead (subdued at <= 3 HP)
+  damageGroundAnimal(bossLion, 10, climber.x, climber.z);
+  assert.equal(bossLion.isDead, false, 'Boss CatLion should clamp at low HP and become subdued');
+  assert.equal(bossLion.isSubdued, true, 'Boss CatLion must enter subdued non-fleeing state when nearly dead');
+
+  // Attempting to tame subdued Boss CatLion without meat should fail and notify meat is required
+  stepPlayerPhysics(
+    climber,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      toggleMountHorseRequested: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.02,
+    undefined,
+    horses
+  );
+  assert.equal(climber.mountedHorseId, null, 'Subdued Boss CatLion requires meat in inventory to tame');
+  assert.equal(climber.lastTameNotice, 'meat_required_for_lion');
+
+  // Give player meat and tame & mount the subdued Boss CatLion!
+  climber.ownedItemIds = [...(climber.ownedItemIds ?? []), 'raw_game_meat'];
+  stepPlayerPhysics(
+    climber,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      toggleMountHorseRequested: true,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.02,
+    undefined,
+    horses
+  );
+  assert.equal(climber.mountedHorseId, `mount-lion-${bossLion.id}`, 'Player with meat must tame and mount the subdued Boss CatLion');
+  assert.equal(bossLion.isTamed, true);
+  assert.equal(bossLion.isMountedByPlayer, true);
+  assert.equal((climber.ownedItemIds ?? []).includes('raw_game_meat'), false, 'Taming Boss CatLion must consume 1 meat item');
+  void birds;
+});
+
+test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeutralUntilShotAndRespawnAfterTimer', () => {
+  const birds = createInitialBoidBirds();
+  const animals = createInitialSmallAnimals();
+  const horses = createInitialRideableHorses();
+  const player = createInitialPlayerState();
+
+  const wildStag = animals.find((a) => a.species === 'stag')!;
+  assert.equal(wildStag.maxHp, 9, 'Royal Stag must have upgraded 9 HP');
+
+  // Stand right next to the wild Stag without shooting: Stag must remain neutral (never flee or attack unprovoked)
+  player.x = wildStag.x + 1.5;
+  player.z = wildStag.z;
+  player.y = wildStag.y;
+  for (let i = 0; i < 20; i++) {
+    stepBoidsAndWildlife(0.05, i * 0.05, birds, animals, player, horses, 1.0, 0);
+  }
+  assert.notEqual(wildStag.aiBehavior, 'fleeing', 'Floating Island Stag must never flee from player');
+  assert.notEqual(wildStag.aiBehavior, 'charging', 'Floating Island Stag must not attack unprovoked');
+
+  // Shoot the Stag: it must retaliate with charging/attacking!
+  damageGroundAnimal(wildStag, 2, player.x, player.z);
+  stepBoidsAndWildlife(0.05, 2.0, birds, animals, player, horses, 1.0, 0);
+  assert.ok(
+    wildStag.aiBehavior === 'charging' || wildStag.aiBehavior === 'attacking',
+    `Provoked Stag must retaliate against player, got ${wildStag.aiBehavior}`
+  );
+
+  // Kill a smaller CatLion and verify timed respawn after 45 seconds
+  const smallLion = animals.find((a) => a.species === 'lion' && !a.isBoss)!;
+  killGroundAnimal(smallLion);
+  assert.equal(smallLion.isDead, true);
+  assert.ok((smallLion.respawnTimer ?? 0) >= 40, 'Killed animal must start a timed respawn countdown');
+
+  // Step 46 seconds of wildlife simulation so the timer expires
+  stepBoidsAndWildlife(46.0, 50.0, birds, animals, player, horses, 1.0, 0);
+  assert.equal(smallLion.isDead, false, 'Dead animal must respawn after its respawn timer elapses');
+  assert.equal(smallLion.hp, smallLion.maxHp);
+});
 // #endregion
-
-
-

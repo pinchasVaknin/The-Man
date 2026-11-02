@@ -1373,7 +1373,9 @@ export function buildPlayerAndCombatSystems(
       playerTorchLight.intensity = 0;
     }
 
-    const mountLift = isMounted ? 0.72 : 0.0;
+    const isMountedStag = Boolean(playerState.mountedHorseId?.startsWith('mount-stag-'));
+    const isMountedLion = Boolean(playerState.mountedHorseId?.startsWith('mount-lion-'));
+    const mountLift = isMountedStag ? 1.12 : isMountedLion ? 1.24 : isMounted ? 0.72 : 0.0;
     const horseBaseYaw = isMounted
       ? (playerState.mountedHorseYaw ?? playerState.yaw)
       : playerState.yaw;
@@ -1457,7 +1459,7 @@ export function buildPlayerAndCombatSystems(
       const isCrouching =
         !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
       const crouchOffset = isCrouching ? -0.48 : 0;
-      const saddleHeightBonus = isMounted ? 0.68 : 0;
+      const saddleHeightBonus = isMountedStag ? 1.06 : isMountedLion ? 1.18 : isMounted ? 0.68 : 0;
       const bobScale = isFlying ? 0 : isMounted ? 0.014 : isSwim ? 0.042 : isCrouching ? 0.024 : 0.048;
       const bobY = isFlying
         ? 0

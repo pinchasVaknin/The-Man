@@ -671,7 +671,7 @@ export function evaluateSwordStrikeWindowHit(
 
     for (let a = 0; a < activeAnimals.length; a++) {
       const anim = activeAnimals[a];
-      if (anim.isDead || anim.isLooted) continue;
+      if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
       const animRad =
         anim.species === 'dragon'
           ? 5.2
@@ -681,13 +681,17 @@ export function evaluateSwordStrikeWindowHit(
               ? 2.65
               : anim.species === 'rhino'
                 ? 2.65
-                : anim.species === 'deer' || anim.species === 'stag'
-                  ? 1.55
-                  : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                    ? 1.48
-                    : anim.species === 'sheep'
-                      ? 1.15
-                      : 0.95;
+                : anim.species === 'stag'
+                  ? 2.15
+                  : anim.species === 'deer'
+                    ? 1.55
+                    : anim.species === 'lion' && anim.isBoss
+                      ? 2.65
+                      : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                        ? 1.48
+                        : anim.species === 'sheep'
+                          ? 1.15
+                          : 0.95;
       // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
       const animGroundY = anim.y ?? walkableHeightAt(anim.x, anim.z).height;
       const animCenterY =
@@ -1062,7 +1066,7 @@ export function stepArrowsPhysics(
 
       for (let a = 0; a < activeAnimals.length; a++) {
         const anim = activeAnimals[a];
-        if (anim.isDead || anim.isLooted) continue;
+        if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
         const animRad =
           anim.species === 'dragon'
             ? 5.2
@@ -1072,13 +1076,17 @@ export function stepArrowsPhysics(
                 ? 2.65
                 : anim.species === 'rhino'
                   ? 2.65
-                  : anim.species === 'deer' || anim.species === 'stag'
-                    ? 1.45
-                    : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                      ? 1.42
-                      : anim.species === 'sheep'
-                        ? 0.92
-                        : 0.62;
+                  : anim.species === 'stag'
+                    ? 2.05
+                    : anim.species === 'deer'
+                      ? 1.45
+                      : anim.species === 'lion' && anim.isBoss
+                        ? 2.55
+                        : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                          ? 1.42
+                          : anim.species === 'sheep'
+                            ? 0.92
+                            : 0.62;
         // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
         const animGroundY =
           (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);

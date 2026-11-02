@@ -292,7 +292,7 @@ export function buildRealisticWorld(
       const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
       lastTime = elapsedTime;
       if (playerState) {
-        wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime);
+        wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, playerState);
       }
 
       // 6. Player viewmodel and combat rigs

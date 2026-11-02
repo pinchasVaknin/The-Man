@@ -188,6 +188,44 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
             vec3 puddleTint = vec3(0.20, 0.30, 0.42);
             diffuseColor.rgb = mix(diffuseColor.rgb, puddleTint, puddleMask * 0.84);
           }
+          // Animated glowing magma veins & lava fissures on the Western Volcano Sanctum cone
+          {
+            vec2 volDelta = vTerrainWorldPos.xz - vec2(${VOLCANO_SANCTUM_POS.x.toFixed(1)}, ${VOLCANO_SANCTUM_POS.z.toFixed(1)});
+            float volR = length(volDelta);
+            if (volR < ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)} && vTerrainWorldPos.y > ${(VOLCANO_SANCTUM_POS.floorY + 2.2).toFixed(1)}) {
+              float volAng = atan(volDelta.y, volDelta.x);
+              float veinWave = abs(sin(volAng * 7.0 + volR * 0.11 + sin(volR * 0.25) * 0.7));
+              float veinMask = (1.0 - smoothstep(0.0, 0.19, veinWave))
+                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 3.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 14.0).toFixed(1)}, vTerrainWorldPos.y)
+                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 9.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volR));
+              float craterGlow = (1.0 - smoothstep(14.0, 22.5, volR)) * smoothstep(26.0, 38.0, vTerrainWorldPos.y);
+              float lavaPulse = 0.78 + 0.22 * sin(uTime * 3.4 - volR * 0.35);
+              float totalLava = clamp(max(veinMask * 0.92, craterGlow), 0.0, 1.0) * lavaPulse;
+              vec3 moltenColor = mix(vec3(0.95, 0.22, 0.02), vec3(1.0, 0.68, 0.12), totalLava);
+              diffuseColor.rgb = mix(diffuseColor.rgb, moltenColor, totalLava * 0.88);
+            }
+          }
+          `
+        )
+        .replace(
+          '#include <emissivemap_fragment>',
+          `
+          #include <emissivemap_fragment>
+          {
+            vec2 volDeltaE = vTerrainWorldPos.xz - vec2(${VOLCANO_SANCTUM_POS.x.toFixed(1)}, ${VOLCANO_SANCTUM_POS.z.toFixed(1)});
+            float volRE = length(volDeltaE);
+            if (volRE < ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)} && vTerrainWorldPos.y > ${(VOLCANO_SANCTUM_POS.floorY + 2.2).toFixed(1)}) {
+              float volAngE = atan(volDeltaE.y, volDeltaE.x);
+              float veinWaveE = abs(sin(volAngE * 7.0 + volRE * 0.11 + sin(volRE * 0.25) * 0.7));
+              float veinMaskE = (1.0 - smoothstep(0.0, 0.18, veinWaveE))
+                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 3.5).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 15.0).toFixed(1)}, vTerrainWorldPos.y)
+                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 9.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volRE));
+              float craterGlowE = (1.0 - smoothstep(14.5, 22.0, volRE)) * smoothstep(26.0, 38.0, vTerrainWorldPos.y);
+              float lavaPulseE = 0.8 + 0.2 * sin(uTime * 3.4 - volRE * 0.35);
+              float lavaStrength = max(veinMaskE, craterGlowE) * lavaPulseE;
+              totalEmissiveRadiance += vec3(1.35, 0.36, 0.04) * lavaStrength;
+            }
+          }
           `
         )
         .replace(
@@ -238,8 +276,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const cRock = new THREE.Color(0x706c66);
   const cPeak = new THREE.Color(0x9b9790);
   const cSnow = new THREE.Color(0xeef5fc);
-  const cVolcanoBasalt = new THREE.Color(0x231d1b);
-  const cVolcanoMagma = new THREE.Color(0xe84814);
+  const cVolcanoBasalt = new THREE.Color(0x1d1716);
+  const cVolcanoMagma = new THREE.Color(0xf24c13);
   const tmpColor = new THREE.Color();
   const tmpDesertColor = new THREE.Color();
 
@@ -316,12 +354,12 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
 
         // Blend dark volcanic basalt and glowing caldera magma veins onto the Volcano Sanctum massif
         const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
-        if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 10.0) {
-          const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 10.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
-          tmpColor.lerp(cVolcanoBasalt, volMix * 0.94);
-          if (volDist < 23.5 && y > 24.0) {
-            const magmaGlow = smoothstepLocal(23.5, 16.5, volDist) * (0.45 + 0.55 * macroNoise);
-            tmpColor.lerp(cVolcanoMagma, magmaGlow * 0.85);
+        if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 12.0) {
+          const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 12.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
+          tmpColor.lerp(cVolcanoBasalt, volMix * 0.96);
+          if (volDist < 24.5 && y > 26.0) {
+            const magmaGlow = smoothstepLocal(24.5, 16.5, volDist) * (0.5 + 0.5 * macroNoise);
+            tmpColor.lerp(cVolcanoMagma, magmaGlow * 0.9);
           }
         }
 

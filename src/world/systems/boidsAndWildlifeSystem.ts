@@ -148,7 +148,16 @@ export interface ISmallAnimalState {
   attackHitCooldownTimer?: number;
   isDead?: boolean; // true when hunted/killed after hp reaches 0
   isLooted?: boolean; // true after player collects loot with [E]
+  isTamed?: boolean; // true after player tames & mounts a Royal Stag or Mystical CatLion
+  isMountedByPlayer?: boolean; // true while actively ridden by the player
+  isBoss?: boolean; // true for the giant central Volcano Sanctum Boss CatLion
+  canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
+  isSubdued?: boolean; // true when the Volcano Boss CatLion is beaten to low HP and awaits meat taming
+  respawnTimer?: number; // seconds remaining before a killed animal respawns at its home territory
 }
+
+/** Time in seconds before a hunted/killed animal respawns at its home territory. */
+export const ANIMAL_RESPAWN_DELAY_SECONDS = 45.0;
 // #endregion
 
 // ======================== SHELTER TREE CANOPIES ======================== \\
@@ -323,10 +332,12 @@ export function getAnimalMaxHp(species: GroundAnimalSpecies): number {
  * Summary: Marks an animal as killed (stops movement and lies on its side).
  */
 export function killGroundAnimal(animal: ISmallAnimalState): void {
-  if (animal.isDead) return;
+  if (animal.isDead || animal.isTamed || animal.isMountedByPlayer) return;
   animal.hp = 0;
   animal.isDead = true;
   animal.isLooted = false;
+  animal.isSubdued = false;
+  animal.respawnTimer = ANIMAL_RESPAWN_DELAY_SECONDS;
   animal.vx = 0;
   animal.vz = 0;
   animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
@@ -367,8 +378,11 @@ export function triggerCrocodilePackAggro(
 
 /**
  * Summary: Applies combat damage to an animal's invisible health (`hp`).
- *          Only kills the animal when `hp` reaches 0; otherwise triggers a realistic flee or predator charge reaction.
- *          When a crocodile is hit, all living crocodiles immediately aggro and charge the player together!
+ *          - Tamed or player-mounted animals (`isTamed` / `isMountedByPlayer`) are completely immune to player damage.
+ *          - Floating Island Stags (`stag`) are neutral until struck; once hit, they charge and retaliate with antler attacks!
+ *          - The Giant Volcano Boss CatLion (`species === 'lion' && isBoss`) fights fiercely until reduced to low HP (`<= 3`),
+ *            at which point it does NOT flee and instead becomes subdued (`isSubdued = true`) so the player can tame it with meat!
+ *          - Smaller Volcano CatLions (`species === 'lion' && !isBoss`) flee when their HP drops low (`<= 2`).
  */
 export function damageGroundAnimal(
   animal: ISmallAnimalState,
@@ -383,11 +397,35 @@ export function damageGroundAnimal(
 } {
   const maxHp = animal.maxHp ?? getAnimalMaxHp(animal.species);
   animal.maxHp = maxHp;
+  if (animal.isTamed || animal.isMountedByPlayer) {
+    return { killed: false, remainingHp: animal.hp ?? maxHp, maxHp };
+  }
   if (animal.isDead) {
     return { killed: true, remainingHp: 0, maxHp };
   }
   const currentHp = animal.hp ?? maxHp;
-  const remainingHp = Math.max(0, currentHp - Math.max(1, damage));
+  let remainingHp = Math.max(0, currentHp - Math.max(1, damage));
+
+  // Giant Volcano Boss CatLion: when reduced to low HP (<= 3), clamp at >= 1 HP and enter subdued state for meat-taming!
+  if (animal.species === 'lion' && animal.isBoss && !animal.isTamed) {
+    const subdueThreshold = Math.max(2, Math.ceil(maxHp * 0.25));
+    if (remainingHp <= subdueThreshold) {
+      remainingHp = Math.max(1, remainingHp);
+      animal.hp = remainingHp;
+      animal.isSubdued = true;
+      animal.hitReactionTimer = 0.45;
+      animal.isResting = false;
+      animal.isSeekingShelter = false;
+      animal.isFleeing = false;
+      animal.fleeCooldown = 0;
+      animal.alertLevel = 'grazing';
+      animal.aiBehavior = 'sitting';
+      animal.vx = 0;
+      animal.vz = 0;
+      return { killed: false, remainingHp, maxHp };
+    }
+  }
+
   animal.hp = remainingHp;
   animal.hitReactionTimer = 0.45;
 
@@ -408,23 +446,40 @@ export function damageGroundAnimal(
   // Wounded but still alive: wake immediately and react to the attacker
   animal.isResting = false;
   animal.isSeekingShelter = false;
-  animal.wokenUpTimer = SPECIES_PROFILES[animal.species].woundedAlertSeconds;
+  animal.wokenUpTimer =
+    animal.species === 'stag'
+      ? 28.0
+      : SPECIES_PROFILES[animal.species].woundedAlertSeconds;
   if (attackerX !== undefined && attackerZ !== undefined) {
     animal.stimulusX = attackerX;
     animal.stimulusZ = attackerZ;
   }
 
-  if (
+  // Smaller CatLions flee when their HP drops low (<= 2), whereas Stags and healthy predators charge & retaliate!
+  const isLowHpSmallLion =
+    animal.species === 'lion' && !animal.isBoss && remainingHp <= Math.max(1, Math.ceil(maxHp * 0.35));
+
+  if (animal.species === 'stag') {
+    animal.alertLevel = 'curious';
+    animal.aiBehavior = 'charging';
+    animal.isFleeing = false;
+    animal.fleeCooldown = 0;
+    animal.listenTimer = 0;
+  } else if (
+    isLowHpSmallLion ||
     !isPredatorSpecies(animal.species) ||
-    (remainingHp <= 1 && animal.species !== 'crocodile' && animal.species !== 'dragon')
+    (remainingHp <= 1 &&
+      animal.species !== 'crocodile' &&
+      animal.species !== 'dragon' &&
+      !(animal.species === 'lion' && animal.isBoss))
   ) {
     animal.alertLevel = 'fleeing';
     animal.aiBehavior = 'fleeing';
     animal.isFleeing = true;
-    animal.fleeCooldown = 4.5;
+    animal.fleeCooldown = 5.5;
     animal.listenTimer = 0;
   } else {
-    // Healthy bear/jaguar/crocodile/wolf/dragon struck from afar charges toward the hunter!
+    // Healthy bear/jaguar/crocodile/wolf/dragon/boss-lion struck from afar charges toward the hunter!
     animal.alertLevel = 'curious';
     animal.aiBehavior = 'charging';
     animal.stompWarningDone = true;
@@ -960,10 +1015,10 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     const c = spawnCandidates[i];
     const gy = walkableHeightAt(c.x, c.z).height;
     const shelter = findNearestShelterPoint(c.x, c.z, c.species, c.caveIndex);
-    const maxHp = getAnimalMaxHp(c.species);
     const isVolcanoSanctumMysticLion =
       c.species === 'lion' &&
       Math.hypot(c.x - VOLCANO_SANCTUM_POS.x, c.z - VOLCANO_SANCTUM_POS.z) < 10.0;
+    const maxHp = isVolcanoSanctumMysticLion ? 12 : getAnimalMaxHp(c.species);
     animals.push({
       id: i,
       species: c.species,
@@ -997,6 +1052,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       hitReactionTimer: 0,
       isDead: false,
       isLooted: false,
+      isBoss: isVolcanoSanctumMysticLion,
+      canBeTamed: c.species === 'stag' || isVolcanoSanctumMysticLion,
+      isSubdued: false,
     });
   }
 
@@ -1378,15 +1436,37 @@ export function stepSmallAnimals(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
 
-    // Dead animals do not move at all and remain anchored on top of the terrain!
+    // Dead animals stay anchored on top of the terrain until their timed respawn timer expires!
     if (a.isDead) {
       a.vx = 0;
       a.vz = 0;
-      a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
+      a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
       a.isResting = false;
       a.isSeekingShelter = false;
       a.isFleeing = false;
       a.aiBehavior = 'dead';
+      if (dt > 0) {
+        a.respawnTimer = (a.respawnTimer ?? ANIMAL_RESPAWN_DELAY_SECONDS) - Math.max(0, dt);
+        if (a.respawnTimer <= 0) {
+          const homeWalk = walkableHeightAt(a.homeX, a.homeZ);
+          a.x = a.homeX;
+          a.z = a.homeZ;
+          a.y = Math.max(WATER_LEVEL + 0.08, homeWalk.height);
+          a.vx = 0;
+          a.vz = 0;
+          a.isDead = false;
+          a.isLooted = false;
+          a.isSubdued = false;
+          a.maxHp = a.maxHp ?? getAnimalMaxHp(a.species);
+          a.hp = a.maxHp;
+          a.respawnTimer = undefined;
+          a.wokenUpTimer = 0;
+          a.hitReactionTimer = 0;
+          a.fleeCooldown = 0;
+          a.alertLevel = 'grazing';
+          a.aiBehavior = a.species === 'lion' && a.isBoss ? 'sitting' : 'grazing';
+        }
+      }
       continue;
     }
 
@@ -1418,6 +1498,38 @@ export function stepSmallAnimals(
 
     // The Southern Ruins Dragon's 3D flight/landing/resting/fire-breathing trajectory is driven by sanctuaryAndDragonModels.ts
     if (a.species === 'dragon') {
+      continue;
+    }
+
+    // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
+    // its position, velocity, and yaw are driven directly by stepPlayerPhysics!
+    if (a.isMountedByPlayer) {
+      a.isResting = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'grazing';
+      a.pounceHeight = 0;
+      const spd = Math.hypot(a.vx, a.vz);
+      a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
+      a.hopPhase += safeDt * Math.max(4.0, spd * 1.8);
+      continue;
+    }
+
+    // If this animal has been tamed by the player (unmounted Royal Stag or Mystical CatLion companion),
+    // it stays calm and loyal near its dismount spot without fleeing or attacking the player!
+    if (a.isTamed) {
+      a.isResting = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'grazing';
+      a.pounceHeight = 0;
+      a.vx = 0;
+      a.vz = 0;
+      a.aiBehavior = a.species === 'lion' ? 'sitting' : 'grazing';
+      if (distP < 12.0 && distP > 0.5) {
+        const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+        a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 3.2, safeDt);
+      }
       continue;
     }
 
@@ -1498,6 +1610,31 @@ export function stepSmallAnimals(
     //      running horn-gore attack, has restricted turning radius at high speed so it tries
     //      to turn when dodged, overshoots, decelerates/brakes, turns around, and charges again.
     // -------------------------------------------------------------------------
+    // If the Giant Volcano Boss CatLion has been beaten down to low HP (isSubdued),
+    // it does NOT flee and does NOT attack — it sits subdued waiting for the player to feed it meat and tame it with [F]!
+    if (
+      a.species === 'lion' &&
+      a.isBoss &&
+      !a.isTamed &&
+      (a.isSubdued || (a.hp ?? a.maxHp ?? 12) <= Math.max(2, Math.ceil((a.maxHp ?? 12) * 0.25)))
+    ) {
+      a.isSubdued = true;
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'grazing';
+      a.aiBehavior = 'sitting';
+      a.pounceHeight = 0;
+      a.vx = 0;
+      a.vz = 0;
+      if (distP < 14.0 && distP > 0.4) {
+        const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+        a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 3.5, safeDt);
+      }
+      continue;
+    }
+
     if (isPredatorSpecies(a.species)) {
       const myRank = getAnimalSizeRank(a.species);
       let largerThreatX = 0;
@@ -1535,6 +1672,24 @@ export function stepSmallAnimals(
         largerThreatDist = distP;
         largerThreatX = playerX;
         largerThreatZ = playerZ;
+      }
+
+      // Smaller Volcano CatLions (!isBoss) flee when their HP drops low (<= 2) like regular animals!
+      if (
+        a.species === 'lion' &&
+        !a.isBoss &&
+        (a.hp ?? a.maxHp ?? 5) <= Math.max(1, Math.ceil((a.maxHp ?? 5) * 0.35)) &&
+        distP < 22.0
+      ) {
+        largerThreatDist = distP;
+        largerThreatX = playerX;
+        largerThreatZ = playerZ;
+      }
+      // The Giant Volcano Boss CatLion never flees!
+      if (a.species === 'lion' && a.isBoss) {
+        largerThreatDist = Infinity;
+        a.fleeCooldown = 0;
+        a.isFleeing = false;
       }
 
       if (largerThreatDist < Infinity) {
@@ -1641,7 +1796,14 @@ export function stepSmallAnimals(
           : isPlayerSneaking
             ? 4.2
             : basePlayerDetectRange;
-        if (distP < playerDetectRange && distP <= (provokedByShot ? maxProvokedRange : bestPreyDist)) {
+        const playerRidingMysticalLion = Boolean(
+          playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
+        );
+        if (
+          !playerRidingMysticalLion &&
+          distP < playerDetectRange &&
+          distP <= (provokedByShot ? maxProvokedRange : bestPreyDist)
+        ) {
           bestPreyDist = distP;
           preyX = playerX;
           preyZ = playerZ;
@@ -2130,6 +2292,115 @@ export function stepSmallAnimals(
     }
 
     // -------------------------------------------------------------------------
+    // 2B. ROYAL FLOATING-ISLAND STAG AI:
+    //     - Neutral by default: never flees from the player and never attacks unprovoked.
+    //     - When shot or slashed by the player (wokenUpTimer > 0 && hp < maxHp), it charges
+    //       and retaliates with powerful antler-gore attack animations!
+    // -------------------------------------------------------------------------
+    if (a.species === 'stag') {
+      const isProvokedStag =
+        !a.isTamed &&
+        (a.wokenUpTimer ?? 0) > 0 &&
+        (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9);
+
+      if (isProvokedStag) {
+        a.isResting = false;
+        a.isSeekingShelter = false;
+        a.isFleeing = false;
+        a.fleeCooldown = 0;
+        a.alertLevel = 'curious';
+
+        const toPlayerX = playerX - a.x;
+        const toPlayerZ = playerZ - a.z;
+        const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
+        const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
+        const standoffDist = SPECIES_PROFILES.stag.meleeStandoff;
+        const attackTriggerDist = standoffDist + SPECIES_PROFILES.stag.attackReachBonus;
+        const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
+
+        if (isCommittedAttack || dPlayer <= attackTriggerDist) {
+          if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+            a.aiBehavior = 'attacking';
+            a.actionTimer = 0.88;
+          }
+          a.vx = 0;
+          a.vz = 0;
+          if (dPlayer > 0.35) {
+            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
+          }
+
+          if (
+            playerStateRef &&
+            prevActionTimer > 0.44 &&
+            (a.actionTimer ?? 0) <= 0.44 &&
+            dPlayer <= attackTriggerDist + 0.65
+          ) {
+            playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 22);
+            playerStateRef.vx += (toPlayerX / dPlayer) * 4.2;
+            playerStateRef.vz += (toPlayerZ / dPlayer) * 4.2;
+          }
+
+          if ((a.actionTimer ?? 0) <= 0.02 && dPlayer > attackTriggerDist) {
+            a.aiBehavior = 'charging';
+            a.actionTimer = 0;
+          }
+        } else {
+          a.aiBehavior = 'charging';
+          const chargeSpd = SPECIES_PROFILES.stag.chargeSpeed;
+          const maxChargeNoOvershoot =
+            Math.max(0, dPlayer - standoffDist) / Math.max(safeDt, 0.016);
+          const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+          a.vx = (toPlayerX / dPlayer) * effChargeSpd;
+          a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.5, safeDt);
+          a.hopPhase += safeDt * 15.0;
+        }
+
+        const rawNextX = a.x + a.vx * safeDt;
+        const rawNextZ = a.z + a.vz * safeDt;
+        const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
+        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+        continue;
+      }
+
+      // Unprovoked Stag: 100% neutral on the Floating Sky Islands (never flees, never attacks)
+      a.alertLevel = 'grazing';
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.listenTimer = 0;
+      a.isSeekingShelter = false;
+      a.isResting = false;
+      const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
+      const wanderSeed = hash2D(a.id * 13.7, timeWindow);
+      const pauseThreshold = SPECIES_PROFILES.stag.grazePauseThreshold;
+      if (wanderSeed > pauseThreshold) {
+        a.aiBehavior = 'grazing';
+        a.vx = 0;
+        a.vz = 0;
+      } else {
+        a.aiBehavior = 'wandering';
+        const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
+        const homePullX = (a.homeX - a.x) * 0.18;
+        const homePullZ = (a.homeZ - a.z) * 0.18;
+        const grazeSpeed = SPECIES_PROFILES.stag.grazeSpeed;
+        const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
+        const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
+        const blend = Math.min(1, safeDt * 4.5);
+        a.vx += (desiredVx - a.vx) * blend;
+        a.vz += (desiredVz - a.vz) * blend;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+        a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
+      }
+      const rawNextX = a.x + a.vx * safeDt;
+      const rawNextZ = a.z + a.vz * safeDt;
+      const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
+      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+      continue;
+    }
+
+    // -------------------------------------------------------------------------
     // 3. HERBIVORE & SMALL WILDLIFE AI (DEER, SHEEP, RABBIT, SQUIRREL)
     //    Includes Deer upright listening/evaluating behavior before deciding
     //    whether to return to grazing or flee!
@@ -2168,7 +2439,7 @@ export function stepSmallAnimals(
 
     const awakeSensory = getAnimalSensoryProfile(a.species, false);
     const fleeRadius =
-      isPlayerSneaking ? 2.5 : a.species === 'deer' || a.species === 'stag' ? 8.8 : 10.5;
+      isPlayerSneaking ? 2.5 : a.species === 'deer' ? 8.8 : 10.5;
     const playerNoiseRate = computePlayerNoiseRateAtDistance(
       distP,
       playerSpeed,
@@ -2207,7 +2478,7 @@ export function stepSmallAnimals(
         a.isFleeing = true;
         a.aiBehavior = 'fleeing';
       }
-    } else if (a.species === 'deer' || a.species === 'stag') {
+    } else if (a.species === 'deer') {
       // DEER SPECIFIC AI: Stand upright to listen when hearing noise or seeing movement,
       // then decide based on incoming sensory info whether to flee or return to grazing!
       const stimulusDetected =
@@ -2578,7 +2849,7 @@ export function stepBoidsAndWildlife(
   // --- 2. STEP REACTIVE GROUND ANIMALS ---
   const animalRes = stepSmallAnimals(
     animals,
-    safeDt,
+    dt,
     elapsedTime,
     playerX,
     playerZ,

@@ -32,6 +32,7 @@ import { createReadyStag, type Stag, type StagState } from '../models/Stag';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
+  walkableHeightAt,
 } from '../systems/terrainAndBiomeSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
@@ -61,7 +62,7 @@ export interface IWildlifeAndFootprintsHandles {
     rainIntensity?: number
   ) => void;
   /** Copies the simulated state onto meshes and advances model animations by the frame delta. */
-  readonly syncMeshes: (dt: number, elapsedTime: number) => void;
+  readonly syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => void;
   /** Removes the window listeners this layer registered; call when the world is torn down. */
   readonly dispose: () => void;
 }
@@ -407,10 +408,14 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'lion') {
+      const lionScale = a.isBoss ? 2.15 : 1.05;
       const lionCtrl = createReadyCatLion({
+        scale: lionScale,
         castShadow: true,
         receiveShadow: true,
       });
+      // Center the CatLion mid-back saddle directly at local (0, y, 0) so the rider sits squarely on its spine
+      lionCtrl.object.position.set(0, 0, a.isBoss ? 0.22 : 0.10);
       registerModelDisposables(lionCtrl);
       posePivot.add(lionCtrl.object);
 
@@ -425,10 +430,15 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'stag') {
+      const stagScale = 1.75;
       const stagCtrl = createReadyStag({
+        scale: stagScale,
         castShadow: true,
         receiveShadow: true,
       });
+      // In Stag_Complete, bone[6] (neck base) is at z=0 and bone[5] (saddle spine) is at z=-0.20*scale.
+      // Shifting stagCtrl.object by +0.35m along +Z places the Stag's back saddle directly at (0, y, 0)!
+      stagCtrl.object.position.set(0, 0, 0.35);
       registerModelDisposables(stagCtrl);
       posePivot.add(stagCtrl.object);
 
@@ -638,7 +648,7 @@ export function buildWildlifeAndFootprintsLayer(
         }
       }
     },
-    syncMeshes: (dt: number, elapsedTime: number) => {
+    syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => {
       // Sync bird meshes
       for (let i = 0; i < birds.length; i++) {
         const b = birds[i];
@@ -657,7 +667,7 @@ export function buildWildlifeAndFootprintsLayer(
         m.rightWing.rotation.z = -flap;
       }
 
-      // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep, Bears, Crocodiles, Jaguars, Wolves)
+      // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep, Bears, Crocodiles, Jaguars, Wolves, Stags, CatLions)
       for (let i = 0; i < animals.length; i++) {
         const a = animals[i];
         const rig = animalMeshes[i];
@@ -669,9 +679,30 @@ export function buildWildlifeAndFootprintsLayer(
         }
         rig.root.visible = true;
 
-        // Compute terrain slope alignment (pitch & roll) for mountain/hill walking with smooth damping
-        const n = getSurfaceNormalAt(a.x, a.z);
-        const rawSlope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, a.yaw, 0.48);
+        // When mounted by the player, lock the animal's render coordinates and yaw directly to the interpolated renderPlayer
+        // so there is zero frame-interpolation lag or side-offset between the rider and mount!
+        const renderX = a.isMountedByPlayer && renderPlayer ? renderPlayer.x : a.x;
+        const renderY = a.isMountedByPlayer && renderPlayer ? renderPlayer.y : a.y;
+        const renderZ = a.isMountedByPlayer && renderPlayer ? renderPlayer.z : a.z;
+        const renderYaw =
+          a.isMountedByPlayer && renderPlayer
+            ? Math.atan2(
+                Math.sin((renderPlayer.mountedHorseYaw ?? renderPlayer.yaw) + Math.PI),
+                Math.cos((renderPlayer.mountedHorseYaw ?? renderPlayer.yaw) + Math.PI)
+              )
+            : a.yaw;
+
+        // Compute terrain slope alignment (pitch & roll) ONLY when standing on natural ground (not on elevated Floating Sky Islands!)
+        // and not mounted on a flat deck, preventing the ground cliff 65m below the floating islands from rolling the Stag to the side!
+        const onNaturalGround =
+          !a.isMountedByPlayer &&
+          walkableHeightAt(renderX, renderZ, renderY).surface === 'ground';
+        const rawSlope = onNaturalGround
+          ? (() => {
+              const n = getSurfaceNormalAt(renderX, renderZ);
+              return computeSlopePitchAndRoll(n.nx, n.ny, n.nz, renderYaw, 0.48);
+            })()
+          : { pitch: 0, roll: 0 };
         const slopeBlend = Math.min(1, Math.max(0.05, dt * 8.5));
         rig.smoothPitch =
           rig.smoothPitch === undefined
@@ -686,8 +717,8 @@ export function buildWildlifeAndFootprintsLayer(
         const yawDelta =
           rig.prevYaw === undefined
             ? 0
-            : Math.atan2(Math.sin(a.yaw - rig.prevYaw), Math.cos(a.yaw - rig.prevYaw));
-        rig.prevYaw = a.yaw;
+            : Math.atan2(Math.sin(renderYaw - rig.prevYaw), Math.cos(renderYaw - rig.prevYaw));
+        rig.prevYaw = renderYaw;
         const turnAmount = Math.max(-1, Math.min(1, (yawDelta / Math.max(dt, 0.016)) * 0.28));
 
         if (a.isDead) {
@@ -1130,37 +1161,49 @@ export function buildWildlifeAndFootprintsLayer(
         } else if (a.species === 'lion' && rig.lionCtrl) {
           const pounceY = a.inWater ? 0 : (a.pounceHeight ?? 0);
           const pouncePitch = a.inWater ? -0.10 : pounceY > 0.02 ? -0.18 * (pounceY / 0.56) : 0;
-          rig.root.position.set(a.x, a.y + pounceY, a.z);
-          rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY + pounceY, renderZ);
+          rig.root.rotation.set(slope.pitch + pouncePitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.15 + i * 1.53) % 1;
-          const desiredLionState: CatLionState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? 'roar'
-                  : ai === 'charging' || moveSpd > 4.0
-                    ? 'run'
-                    : ai === 'stalking'
-                      ? 'stalk'
-                      : moveSpd > 2.1
-                        ? 'trot'
-                        : moveSpd > 0.16
-                          ? 'walk'
-                          : ai === 'sitting'
-                            ? 'sit'
-                            : ai === 'grazing'
-                              ? cycleSlot < 0.68
-                                ? 'eat'
-                                : 'idle'
-                              : cycleSlot < 0.65
-                                ? 'idle'
-                                : 'call';
+          const desiredLionState: CatLionState = a.isMountedByPlayer
+            ? moveSpd > 6.2
+              ? 'run'
+              : moveSpd > 2.2
+                ? 'trot'
+                : moveSpd > 0.15
+                  ? 'walk'
+                  : 'idle'
+            : a.isSubdued
+              ? 'sit'
+              : a.inWater
+                ? 'walk'
+                : ai === 'fleeing' || a.alertLevel === 'fleeing'
+                  ? 'flee'
+                  : ai === 'attacking'
+                    ? 'attack'
+                    : ai === 'roaring'
+                      ? 'roar'
+                      : ai === 'charging' || moveSpd > 4.0
+                        ? 'run'
+                        : ai === 'stalking'
+                          ? 'stalk'
+                          : moveSpd > 2.1
+                            ? 'trot'
+                            : moveSpd > 0.16
+                              ? 'walk'
+                              : ai === 'sitting'
+                                ? 'sit'
+                                : ai === 'grazing'
+                                  ? cycleSlot < 0.68
+                                    ? 'eat'
+                                    : 'idle'
+                                  : cycleSlot < 0.65
+                                    ? 'idle'
+                                    : 'call';
           const isUrgent =
+            Boolean(a.isMountedByPlayer) ||
+            Boolean(a.isSubdued) ||
             a.inWater ||
             desiredLionState === 'attack' ||
             desiredLionState === 'roar' ||
@@ -1174,32 +1217,49 @@ export function buildWildlifeAndFootprintsLayer(
           rig.lionCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'stag' && rig.stagCtrl) {
           const swimPitch = a.inWater ? -0.10 : 0;
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch + swimPitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.20 + i * 1.67) % 1;
-          const desiredStagState: StagState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'listening' || a.alertLevel === 'curious'
-                ? cycleSlot > 0.76
-                  ? 'call'
+          const desiredStagState: StagState = a.isMountedByPlayer
+            ? moveSpd > 5.8
+              ? 'run'
+              : moveSpd > 2.1
+                ? 'trot'
+                : moveSpd > 0.15
+                  ? 'walk'
                   : 'idle'
-                : moveSpd > 3.2
-                  ? 'run'
-                  : moveSpd > 2.1
-                    ? 'trot'
-                    : moveSpd > 0.16
-                      ? 'walk'
-                      : cycleSlot < 0.68
-                        ? 'eat'
-                        : cycleSlot < 0.90
-                          ? 'idle'
-                          : 'call';
+            : a.inWater
+              ? 'walk'
+              : ai === 'attacking'
+                ? 'attack'
+                : ai === 'roaring'
+                  ? 'roar'
+                  : ai === 'charging'
+                    ? 'run'
+                    : ai === 'fleeing' || a.alertLevel === 'fleeing'
+                      ? 'flee'
+                      : ai === 'listening' || a.alertLevel === 'curious'
+                        ? cycleSlot > 0.76
+                          ? 'call'
+                          : 'idle'
+                        : moveSpd > 3.2
+                          ? 'run'
+                          : moveSpd > 2.1
+                            ? 'trot'
+                            : moveSpd > 0.16
+                              ? 'walk'
+                              : cycleSlot < 0.68
+                                ? 'eat'
+                                : cycleSlot < 0.90
+                                  ? 'idle'
+                                  : 'call';
           const isUrgentStag =
+            Boolean(a.isMountedByPlayer) ||
             a.inWater ||
+            desiredStagState === 'attack' ||
+            desiredStagState === 'roar' ||
             desiredStagState === 'flee' ||
             desiredStagState === 'run';
           const stagState = selectStabilizedState(rig, desiredStagState, dt, isUrgentStag);

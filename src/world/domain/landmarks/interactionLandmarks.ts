@@ -625,6 +625,15 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     }));
     return [...backRow, ...sideRow];
   }),
+  {
+    id: 'bed-floating-sky-sanctuary',
+    name: 'Celestial Star-Sanctuary Canopy Bed',
+    x: 205.0,
+    y: 68.35,
+    z: -35.0,
+    yaw: 0,
+    interactRadius: 3.6,
+  },
 ] as const;
 
 /**

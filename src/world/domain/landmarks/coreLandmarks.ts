@@ -174,8 +174,8 @@ export const VOLCANO_SANCTUM_POS = {
   z: 115.0,
   floorY: 3.2,
   daisY: 3.65,
-  craterRimY: 36.2,
-  outerRadius: 52.0,
+  craterRimY: 48.5,
+  outerRadius: 58.0,
   chamberRadius: 18.5,
   facingYaw: Math.PI / 2, // +X entrance facing East toward the central valley
   entranceX: -230.0,
@@ -183,7 +183,7 @@ export const VOLCANO_SANCTUM_POS = {
 } as const;
 
 /**
- * Summary: Cluster of 3 Large Floating Blooming Sky Islands in the Eastern Sky Meadow,
+ * Summary: Cluster of 3 High-Altitude Large Floating Blooming Sky Islands in the Eastern Sky,
  *          dedicated habitat of the Royal Stag (`stag`) herd.
  */
 export const FLOATING_BLOOMING_ISLANDS = [
@@ -191,40 +191,156 @@ export const FLOATING_BLOOMING_ISLANDS = [
     id: 'floating-bloom-island-main',
     x: 205.0,
     z: -35.0,
-    deckY: 26.0,
+    deckY: 68.0,
     radius: 28.0,
   },
   {
     id: 'floating-bloom-island-north',
     x: 205.0,
     z: -85.0,
-    deckY: 28.0,
+    deckY: 71.0,
     radius: 18.0,
   },
   {
     id: 'floating-bloom-island-east',
     x: 252.0,
     z: -18.0,
-    deckY: 27.5,
+    deckY: 70.0,
     radius: 18.0,
   },
 ] as const;
 
 /**
- * Summary: Ascending stone-and-blossom sky stairway connecting the eastern valley floor
- *          at (152, -35) up to the western rim of the Main Floating Blooming Island at (178, -35, y=26.0).
+ * Summary: Central Sky-Waterfall & Spiraling Mini-Island Staircase ascending from the valley floor
+ *          at (152, -35, y=3.4) around the central waterfall column (165, -35) up to the western rim
+ *          of the Main Floating Blooming Island at (178, -35, y=68.0).
  */
 export const FLOATING_ISLAND_STAIR_POS = {
+  entryRampStartX: 142.5,
   footX: 152.0,
   topX: 178.0,
   z: -35.0,
-  halfWidthZ: 3.2,
+  halfWidthZ: 3.8,
   footY: 3.4,
-  topY: 26.0,
+  topY: 68.0,
+  waterfallX: 165.0,
+  waterfallZ: -35.0,
+  waterfallRadius: 3.4,
+  spiralRadius: 13.5,
+  turns: 2.5,
 } as const;
 
+export interface IFloatingWaterfallStepIsland {
+  readonly index: number;
+  readonly t: number;
+  readonly angle: number;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly radius: number;
+  readonly isRestLanding: boolean;
+}
+
 /**
- * Summary: Computes the walkable deck/bridge/stair height on the Floating Blooming Sky Islands,
+ * Summary: 57 Floating Mini-Islands & Grand Rest-Landing Terraces spiraling upward (2.5 full revolutions)
+ *          around the central Sky-Waterfall at (165, -35) like a grand helical staircase from y=3.4m to y=68.0m.
+ *          Every 7th island (index % 7 === 0) is an extra-wide Rest-Landing Terrace with a Blossom Pergola.
+ */
+export const FLOATING_WATERFALL_STEP_ISLANDS: readonly IFloatingWaterfallStepIsland[] = Array.from(
+  { length: 57 },
+  (_, i) => {
+    const t = i / 56;
+    const angle = Math.PI + t * (FLOATING_ISLAND_STAIR_POS.turns * Math.PI * 2);
+    const orbitR = 13.0 + 1.0 * Math.sin(t * Math.PI);
+    const isRestLanding = i % 7 === 0;
+    return {
+      index: i,
+      t,
+      angle,
+      x: FLOATING_ISLAND_STAIR_POS.waterfallX + Math.cos(angle) * orbitR,
+      y:
+        FLOATING_ISLAND_STAIR_POS.footY +
+        t * (FLOATING_ISLAND_STAIR_POS.topY - FLOATING_ISLAND_STAIR_POS.footY),
+      z: FLOATING_ISLAND_STAIR_POS.waterfallZ + Math.sin(angle) * orbitR,
+      radius: isRestLanding ? 1.85 : 1.48,
+      isRestLanding,
+    };
+  }
+);
+
+export interface ISkyWindGeyser {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly radius: number;
+  readonly boostVy: number;
+  readonly theme: 'sky' | 'volcano';
+}
+
+/**
+ * Summary: Magical Celestial Wind-Ring & Thermal Updraft Geysers that launch the player high into
+ *          the air when jumping on them, allowing aerial leaps across the Floating Sky Islands and Volcano.
+ */
+export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
+  {
+    id: 'geyser-waterfall-entry-plaza',
+    x: 146.5,
+    y: 3.3,
+    z: -35.0,
+    radius: 2.5,
+    boostVy: 19.5,
+    theme: 'sky',
+  },
+  {
+    id: 'geyser-main-island-west',
+    x: 183.0,
+    y: 68.0,
+    z: -35.0,
+    radius: 2.5,
+    boostVy: 19.5,
+    theme: 'sky',
+  },
+  {
+    id: 'geyser-main-island-north',
+    x: 205.0,
+    y: 68.0,
+    z: -58.5,
+    radius: 2.5,
+    boostVy: 19.5,
+    theme: 'sky',
+  },
+  {
+    id: 'geyser-north-island-star',
+    x: 205.0,
+    y: 71.0,
+    z: -85.0,
+    radius: 2.6,
+    boostVy: 20.5,
+    theme: 'sky',
+  },
+  {
+    id: 'geyser-east-island-sun',
+    x: 252.0,
+    y: 70.0,
+    z: -18.0,
+    radius: 2.6,
+    boostVy: 20.5,
+    theme: 'sky',
+  },
+  {
+    id: 'geyser-volcano-thermal-vent',
+    x: -222.0,
+    y: 3.25,
+    z: 102.0,
+    radius: 2.6,
+    boostVy: 22.0,
+    theme: 'volcano',
+  },
+] as const;
+
+/**
+ * Summary: Computes the walkable deck/bridge/spiral-mini-island height on the Floating Blooming Sky Islands,
  *          or returns null if (x, z, currentY) is not on a floating island surface.
  */
 export function floatingBloomingIslandHeightAt(
@@ -232,11 +348,26 @@ export function floatingBloomingIslandHeightAt(
   z: number,
   currentY?: number
 ): number | null {
-  // 1. Check the 3 Large Floating Blooming Island circular decks
+  const distFromWaterfall = Math.hypot(
+    x - FLOATING_ISLAND_STAIR_POS.waterfallX,
+    z - FLOATING_ISLAND_STAIR_POS.waterfallZ
+  );
+
+  // 1. Check the 3 High-Altitude Large Floating Blooming Island circular decks (y = 68m..71m)
   for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
     const isl = FLOATING_BLOOMING_ISLANDS[i];
     const d = Math.hypot(x - isl.x, z - isl.z);
     if (d <= isl.radius) {
+      // Do not prematurely snap to the Main Island deck (68.0m) while the player is still climbing
+      // the upper quarter-turn of the spiral waterfall staircase (distFromWaterfall <= 19.5 && currentY < 67.55m).
+      if (
+        i === 0 &&
+        distFromWaterfall <= 19.5 &&
+        currentY !== undefined &&
+        currentY < FLOATING_ISLAND_STAIR_POS.topY - 0.45
+      ) {
+        continue;
+      }
       const centerCrown = d < isl.radius * 0.65 ? (1.0 - d / (isl.radius * 0.65)) * 0.35 : 0.0;
       const targetY = isl.deckY + centerCrown;
       if (currentY === undefined || currentY >= isl.deckY - 8.5) {
@@ -245,17 +376,17 @@ export function floatingBloomingIslandHeightAt(
     }
   }
 
-  // 2. North Floral Sky-Bridge connecting Main Island (205, -62, y=26.0) to North Island (205, -68, y=28.0)
-  if (Math.abs(x - 205.0) <= 3.1 && z >= -68.5 && z <= -61.5) {
+  // 2. North Floral Sky-Bridge connecting Main Island (205, -62, y=68.0) to North Island (205, -68, y=71.0)
+  if (Math.abs(x - 205.0) <= 3.3 && z >= -68.5 && z <= -61.5) {
     const t = Math.max(0, Math.min(1, (-61.5 - z) / 7.0));
     const archLift = Math.sin(t * Math.PI) * 0.55;
-    const bridgeY = 26.0 + t * (28.0 - 26.0) + archLift;
+    const bridgeY = 68.0 + t * (71.0 - 68.0) + archLift;
     if (currentY === undefined || currentY >= bridgeY - 6.0) {
       return bridgeY;
     }
   }
 
-  // 3. East Floral Sky-Bridge connecting Main Island rim (230, -26, y=26.0) to East Island rim (236.5, -23.6, y=27.5)
+  // 3. East Floral Sky-Bridge connecting Main Island rim (230, -26, y=68.0) to East Island rim (236.5, -23.6, y=70.0)
   const bx0 = 230.0;
   const bz0 = -26.0;
   const bx1 = 236.5;
@@ -266,34 +397,92 @@ export function floatingBloomingIslandHeightAt(
   const bt = Math.max(0, Math.min(1, ((x - bx0) * bdx + (z - bz0) * bdz) / bLenSq));
   const projX = bx0 + bt * bdx;
   const projZ = bz0 + bt * bdz;
-  if (Math.hypot(x - projX, z - projZ) <= 3.1) {
+  if (Math.hypot(x - projX, z - projZ) <= 3.3) {
     const archLift = Math.sin(bt * Math.PI) * 0.45;
-    const bridgeY = 26.0 + bt * (27.5 - 26.0) + archLift;
+    const bridgeY = 68.0 + bt * (70.0 - 68.0) + archLift;
     if (currentY === undefined || currentY >= bridgeY - 6.0) {
       return bridgeY;
     }
   }
 
-  // 4. Ascending Floral Sky-Stairway from valley floor (x=152) up to Main Island western rim (x=178)
+  // 4. Upper Waterfall Aqueduct Ledge connecting the central waterfall top (165, -35) to Main Island rim (178, -35) at y=68.0
   if (
-    x >= FLOATING_ISLAND_STAIR_POS.footX &&
-    x <= FLOATING_ISLAND_STAIR_POS.topX &&
-    Math.abs(z - FLOATING_ISLAND_STAIR_POS.z) <= FLOATING_ISLAND_STAIR_POS.halfWidthZ
+    x >= FLOATING_ISLAND_STAIR_POS.waterfallX - 0.5 &&
+    x <= FLOATING_ISLAND_STAIR_POS.topX + 0.8 &&
+    Math.abs(z - FLOATING_ISLAND_STAIR_POS.waterfallZ) <= 4.0 &&
+    (currentY === undefined ||
+      currentY >= FLOATING_ISLAND_STAIR_POS.topY - 0.45 ||
+      (distFromWaterfall <= 8.5 && currentY >= FLOATING_ISLAND_STAIR_POS.topY - 5.8))
   ) {
-    const tStair = Math.max(
+    return FLOATING_ISLAND_STAIR_POS.topY;
+  }
+
+  // 5. Spiraling Floating Mini-Islands & Grand Rest-Landing Terraces winding upward around the Central Sky-Waterfall (165, -35)
+  //    Evaluates horizontal distance `d` on the active spiral revolution and interpolates along the continuous polar helix
+  //    so walking up the spiral staircase never snags on a clamped segment endpoint!
+  if (distFromWaterfall <= 19.5) {
+    let bestSegIdx = -1;
+    let bestHorizDist = Infinity;
+    for (let i = 0; i < FLOATING_WATERFALL_STEP_ISLANDS.length - 1; i++) {
+      const a = FLOATING_WATERFALL_STEP_ISLANDS[i];
+      const b = FLOATING_WATERFALL_STEP_ISLANDS[i + 1];
+      const sdx = b.x - a.x;
+      const sdz = b.z - a.z;
+      const sLenSq = sdx * sdx + sdz * sdz;
+      const u = sLenSq > 1e-6 ? Math.max(0, Math.min(1, ((x - a.x) * sdx + (z - a.z) * sdz) / sLenSq)) : 0;
+      const px = a.x + u * sdx;
+      const pz = a.z + u * sdz;
+      const d = Math.hypot(x - px, z - pz);
+      const corridorRadius = 4.05;
+      if (d <= corridorRadius) {
+        const candY = a.y + u * (b.y - a.y);
+        // Adjacent revolutions of the 2.5-turn spiral are ~25.84m apart vertically, so a [-6m, +9m] window
+        // uniquely isolates the player's current revolution while allowing horizontal distance `d` to pick
+        // the exact active segment without sticking to the previous island's clamped endpoint.
+        if (currentY === undefined || (currentY >= candY - 6.0 && currentY <= candY + 9.0)) {
+          if (d < bestHorizDist) {
+            bestHorizDist = d;
+            bestSegIdx = i;
+          }
+        }
+      }
+    }
+    if (bestSegIdx >= 0) {
+      const a = FLOATING_WATERFALL_STEP_ISLANDS[bestSegIdx];
+      const rawAngle = Math.atan2(
+        z - FLOATING_ISLAND_STAIR_POS.waterfallZ,
+        x - FLOATING_ISLAND_STAIR_POS.waterfallX
+      );
+      const deltaAngle = Math.atan2(
+        Math.sin(rawAngle - a.angle),
+        Math.cos(rawAngle - a.angle)
+      );
+      const continuousAngle = a.angle + deltaAngle;
+      const totalSpanRad = FLOATING_ISLAND_STAIR_POS.turns * Math.PI * 2;
+      const continuousT = Math.max(0, Math.min(1, (continuousAngle - Math.PI) / totalSpanRad));
+      return (
+        FLOATING_ISLAND_STAIR_POS.footY +
+        continuousT * (FLOATING_ISLAND_STAIR_POS.topY - FLOATING_ISLAND_STAIR_POS.footY)
+      );
+    }
+  }
+
+  // 6. Ground-Level Marble Entry Plaza & Approach Ramp leading onto Mini-Island #0 at (152, -35, y=3.4)
+  if (
+    x >= FLOATING_ISLAND_STAIR_POS.entryRampStartX &&
+    x <= FLOATING_ISLAND_STAIR_POS.footX + 0.6 &&
+    Math.abs(z - FLOATING_ISLAND_STAIR_POS.waterfallZ) <= 4.0 &&
+    (currentY === undefined || currentY <= FLOATING_ISLAND_STAIR_POS.footY + 4.5)
+  ) {
+    const rampT = Math.max(
       0,
       Math.min(
         1,
-        (x - FLOATING_ISLAND_STAIR_POS.footX) /
-          (FLOATING_ISLAND_STAIR_POS.topX - FLOATING_ISLAND_STAIR_POS.footX)
+        (x - FLOATING_ISLAND_STAIR_POS.entryRampStartX) /
+          (FLOATING_ISLAND_STAIR_POS.footX - FLOATING_ISLAND_STAIR_POS.entryRampStartX)
       )
     );
-    const stairY =
-      FLOATING_ISLAND_STAIR_POS.footY +
-      tStair * (FLOATING_ISLAND_STAIR_POS.topY - FLOATING_ISLAND_STAIR_POS.footY);
-    if (currentY === undefined || (currentY >= stairY - 2.2 && currentY <= stairY + 4.5)) {
-      return stairY;
-    }
+    return 3.18 + rampT * (FLOATING_ISLAND_STAIR_POS.footY - 3.18);
   }
 
   return null;
