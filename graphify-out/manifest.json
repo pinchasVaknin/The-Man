@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793258427.613248,
-    "seen": 1793260582.9190078,
-    "ast_hash": "dbd4538deca1457841c69886d1f7cee4",
+    "mtime": 1793601518.876624,
+    "seen": 1793601551.985458,
+    "ast_hash": "79f95870042e34b8eddc685c37e8ac58",
     "semantic_hash": ""
   },
   "index.html": {
@@ -1035,6 +1035,12 @@
     "mtime": 1793592913.4705193,
     "seen": 1793593033.9395483,
     "ast_hash": "91996d6e6fb9494bfbbf3fabec2f3d14",
+    "semantic_hash": ""
+  },
+  "ARCHITECTURE.md": {
+    "mtime": 1793601518.8458283,
+    "seen": 1793601551.9854465,
+    "ast_hash": "a8d4bdd4c797efceb323bbaa7643faa5",
     "semantic_hash": ""
   }
 }
