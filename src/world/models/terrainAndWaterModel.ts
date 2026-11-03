@@ -21,7 +21,11 @@ import {
   northernSnowZoneFactorAt,
   fbm2D,
 } from '../terrainMath';
-import { volcanicBadlandsFactorAt } from '../systems/terrainAndBiomeSystem';
+import {
+  volcanicBadlandsFactorAt,
+  northernTundraFactorAt,
+  easternCoastlineXAt,
+} from '../systems/terrainAndBiomeSystem';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -330,13 +334,16 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         const tf = trailFactorAt(wx, wz);
         const bf = birchGroveFactorAt(wx, wz);
         const swDesert = southwestOasisBiomeFactorAt(wx, wz);
+        const tundraFactor = northernTundraFactorAt(wx, wz);
         const snowFactor = northernSnowZoneFactorAt(wx, wz);
+        const coastX = easternCoastlineXAt(wz);
         const macroNoise = fbm2D(wx * 0.035 + 2.1, wz * 0.035 - 6.3, 2) * 0.5 + 0.5;
 
         if (y < WATER_LEVEL - 0.6) {
           tmpColor.copy(cLakebed).lerp(cSand, Math.max(0, (y + 2.8) / 2.2));
-        } else if (y < WATER_LEVEL + 0.42) {
-          const shoreT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 0.6)) / 1.02));
+        } else if (y < WATER_LEVEL + 0.42 || (wx >= coastX - 16.0 && y < WATER_LEVEL + 1.15)) {
+          const maxBeachY = wx >= coastX - 16.0 ? WATER_LEVEL + 1.15 : WATER_LEVEL + 0.42;
+          const shoreT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 0.6)) / (maxBeachY - (WATER_LEVEL - 0.6))));
           tmpColor.copy(cSand).lerp(cMeadow, shoreT * shoreT);
         } else {
           tmpColor.copy(cMeadow).lerp(cLush, macroNoise);
@@ -355,6 +362,11 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
               .lerp(cDesertTerracotta, macroNoise * 0.38);
             tmpColor.lerp(tmpDesertColor, Math.min(0.96, swDesert * 1.08));
           }
+          // Gradual Northern Taiga & Frost Tundra Ecotone before Alpine Snow
+          if (tundraFactor > 0.04) {
+            tmpColor.lerp(cPeak, tundraFactor * 0.55);
+            tmpColor.lerp(cSnow, Math.max(0, tundraFactor - 0.35) * 0.48);
+          }
         }
 
         if (tf > 0.01 && y > WATER_LEVEL + 0.15) {
@@ -365,7 +377,12 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           const slopeFactor = Math.min(1, Math.max(0, (0.83 - normal.ny) * 5.5));
           const heightFactor = Math.min(1, Math.max(0, (y - 10.5) / 16.0));
           const rockMix = Math.max(slopeFactor, heightFactor);
-          tmpColor.lerp(y > 20 ? cPeak : cRock, rockMix);
+          if (swDesert > 0.35) {
+            tmpColor.lerp(cDesertTerracotta, rockMix * 0.65);
+            tmpColor.lerp(cRock, rockMix * 0.45);
+          } else {
+            tmpColor.lerp(y > 20 ? cPeak : cRock, rockMix);
+          }
         }
 
         // Blend alpine snow frost onto high northern mountains & ridges
@@ -373,10 +390,13 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
         }
 
-        // Blend scorched volcanic ashlands across the Western Volcanic Badlands and dark basalt on the Volcano cone
+        // Blend basalt foothills & scorched volcanic ashlands across the Western Volcanic Badlands
         const volBadlands = volcanicBadlandsFactorAt(wx, wz);
         if (volBadlands > 0.02) {
-          tmpColor.lerp(cVolcanoAsh, Math.min(0.94, volBadlands * 0.92));
+          const foothillMix = smoothstepLocal(0.02, 0.46, volBadlands);
+          const ashMix = smoothstepLocal(0.38, 0.92, volBadlands);
+          tmpColor.lerp(cSavannaDirt, foothillMix * 0.48);
+          tmpColor.lerp(cVolcanoAsh, ashMix * 0.92);
         }
         const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
         if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 12.0) {
@@ -458,6 +478,25 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     cx: 172,
     cz: 565,
     radius: 340,
+  });
+
+  // Continuous North-to-South Eastern Sea water surface (z = -900..+900, x = 180..1340)
+  const eastSeaSegsX = isSoftwareGl ? 48 : 84;
+  const eastSeaSegsZ = isSoftwareGl ? 64 : 112;
+  const eastSeaWaterGeo = new THREE.PlaneGeometry(1160, 1800, eastSeaSegsX, eastSeaSegsZ);
+  eastSeaWaterGeo.rotateX(-Math.PI / 2);
+  eastSeaWaterGeo.computeBoundingSphere();
+  disposableGeometries.push(eastSeaWaterGeo);
+
+  const eastSeaWaterMesh = new THREE.Mesh(eastSeaWaterGeo, waterMat);
+  eastSeaWaterMesh.position.set(760, WATER_LEVEL, 0);
+  eastSeaWaterMesh.receiveShadow = !isSoftwareGl;
+  scene.add(eastSeaWaterMesh);
+  distanceCulledObjects.push({
+    obj: eastSeaWaterMesh,
+    cx: 760,
+    cz: 0,
+    radius: 1350,
   });
 
   return { waterMaterial: waterMat, terrainMaterial: terrainMat };

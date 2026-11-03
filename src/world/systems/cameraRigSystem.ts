@@ -87,11 +87,12 @@ export function createCameraPose(): ICameraPose {
 export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput, out: ICameraPose): void {
   const { player, dt, elapsedSeconds, landingDip } = input;
   const isMountedOnHorse = Boolean(player.mountedHorseId);
+  const isMountedShip = player.mountedHorseId === 'sailable-ship';
   const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
-  const saddleHeightBonus = isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
+  const saddleHeightBonus = isMountedShip ? 0.0 : isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
   const horseYaw = isMountedOnHorse ? (player.mountedHorseYaw ?? player.yaw) : player.yaw;
-  const mountBackOffset = isMountedLion ? 0.28 : 0;
+  const mountBackOffset = isMountedShip ? 3.6 : isMountedLion ? 0.28 : 0;
   const mountBackOffsetX = Math.sin(horseYaw) * mountBackOffset;
   const mountBackOffsetZ = Math.cos(horseYaw) * mountBackOffset;
   const bobScale = isMountedOnHorse ? 0.022 : player.isSwimming ? 0.045 : 0.055;
@@ -188,6 +189,7 @@ function writeThirdPersonPose(
   out: ICameraPose
 ): void {
   const isMountedOnHorse = Boolean(player.mountedHorseId);
+  const isMountedShip = player.mountedHorseId === 'sailable-ship';
   const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
   const pivotX = player.x + mountBackOffsetX;
@@ -207,11 +209,11 @@ function writeThirdPersonPose(
   const rightX = Math.cos(player.yaw);
   const rightZ = -Math.sin(player.yaw);
 
-  const baseDist = isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
-  const aimDist = isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
+  const baseDist = isMountedShip ? 11.2 : isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
+  const aimDist = isMountedShip ? 5.5 : isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
   const camDist = baseDist + (aimDist - baseDist) * zoom;
   const shoulderSide = 0.44 - 0.86 * zoom;
-  const shoulderUp = 0.28 - 0.12 * zoom;
+  const shoulderUp = (isMountedShip ? 2.2 : 0.28) - 0.12 * zoom;
 
   const camX = pivotX - fwdX * camDist + rightX * shoulderSide;
   const camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;

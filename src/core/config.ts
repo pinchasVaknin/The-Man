@@ -16,7 +16,7 @@ import type { WeatherKind, WeatherCycleMode, CameraPerspectiveMode } from '../wo
  * Summary: Canonical maximum playable world radius in meters from origin.
  * Design: Clamps player teleportation, debug positioning, and spatial calculations.
  */
-export const PLAYABLE_RADIUS = 680;
+export const PLAYABLE_RADIUS = 1260;
 
 /**
  * Summary: Minimum valid world hour in the 24-hour day cycle.
