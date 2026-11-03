@@ -45,6 +45,14 @@ export interface IHudTelemetryInput {
   readonly pointerLocked: boolean;
   readonly lootNotification: string | null;
   readonly arrowHitTargetName: string | null;
+  readonly activeEnemyHealthBar?: {
+    readonly id: number;
+    readonly name: string;
+    readonly hp: number;
+    readonly maxHp: number;
+    readonly isBoss: boolean;
+    readonly isSubdued?: boolean;
+  } | null;
   readonly isSleepingInBed: boolean;
   readonly worldHours: number;
   readonly forcedSeason: SeasonType | 'auto';
@@ -109,6 +117,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
         }
       : null,
+    activeEnemyHealthBar: input.activeEnemyHealthBar ? { ...input.activeEnemyHealthBar } : null,
     lootNotification: input.lootNotification,
     swordSwingProgress: player.swordSwingProgress,
     dashCooldown: player.dashCooldown,

@@ -79,6 +79,7 @@ export function validateGameSettings(
   const fireflies = value.firefliesMode;
   if (!isOneOf(perspective, CAMERA_PERSPECTIVES) || !isOneOf(fireflies, FIREFLIES_MODES)) return fail;
   if (typeof value.defaultMuted !== 'boolean') return fail;
+  if (value.godMode !== undefined && typeof value.godMode !== 'boolean') return fail;
   if (
     !isNumberInRange(value.mouseSensitivity, MOUSE_SENSITIVITY_RANGE) ||
     !isNumberInRange(value.walkSpeedMultiplier, WALK_SPEED_RANGE) ||
@@ -95,6 +96,7 @@ export function validateGameSettings(
     jumpForceMultiplier: value.jumpForceMultiplier,
     firefliesMode: fireflies,
     defaultMuted: value.defaultMuted,
+    ...(typeof value.godMode === 'boolean' ? { godMode: value.godMode } : {}),
   });
 }
 // #endregion

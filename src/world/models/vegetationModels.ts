@@ -1,8 +1,9 @@
 // ============================================================================
 // MODULE: World / Models / Vegetation Models
-// DESIGN: Procedural instanced flora, trees, boulders, and wind-swayed meadow grass (SRP)
-// SUMMARY: Generates instanced geometry for forest pines, mature oaks, silver birches,
-//          desert palms, savanna acacias, mossy boulders, waterside reeds, and grasses.
+// DESIGN: Spatially sectorized instanced flora, trees, boulders, and meadow grass (SRP)
+// SUMMARY: Generates frustum-culled spatial sector InstancedMeshes for forest pines,
+//          mature oaks, silver birches, desert palms, savanna acacias, mossy boulders,
+//          waterside reeds, and grasses so off-screen sectors are never rendered.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -26,8 +27,12 @@ import type { IWorldModelBuildContext } from './types';
 
 // ======================== BUILD VEGETATION MODELS ======================== \\
 // #region Build Vegetation Models
+const VEG_SECTOR_SIZE = 220;
+const VEG_SECTOR_RADIUS = 165;
+
 /**
- * Summary: Constructs instanced forest trees, boulders, palms, acacias, and swaying ground grass.
+ * Summary: Constructs spatially sectorized, frustum-culled instanced forest trees, boulders,
+ *          palms, acacias, and swaying ground grass.
  * @param ctx Shared build context (scene, textures, disposal lists).
  */
 export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
@@ -39,7 +44,61 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     disposableGeometries,
     disposableMaterials,
     swayMaterials,
+    distanceCulledObjects,
   } = ctx;
+
+  // Spatial sector registry so each 220m x 220m cell is distance-culled & frustum-culled
+  const sectorGroups = new Map<string, THREE.Group>();
+  const getSectorGroup = (x: number, z: number): THREE.Group => {
+    const gx = Math.round(x / VEG_SECTOR_SIZE);
+    const gz = Math.round(z / VEG_SECTOR_SIZE);
+    const key = `${gx},${gz}`;
+    let grp = sectorGroups.get(key);
+    if (!grp) {
+      grp = new THREE.Group();
+      scene.add(grp);
+      sectorGroups.set(key, grp);
+      distanceCulledObjects.push({
+        obj: grp,
+        cx: gx * VEG_SECTOR_SIZE,
+        cz: gz * VEG_SECTOR_SIZE,
+        radius: VEG_SECTOR_RADIUS,
+      });
+    }
+    return grp;
+  };
+
+  const groupBySector = <T extends { x: number; z: number }>(items: readonly T[]): Map<THREE.Group, T[]> => {
+    const map = new Map<THREE.Group, T[]>();
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const grp = getSectorGroup(item.x, item.z);
+      let list = map.get(grp);
+      if (!list) {
+        list = [];
+        map.set(grp, list);
+      }
+      list.push(item);
+    }
+    return map;
+  };
+
+  const finalizeInstancedMesh = (
+    im: THREE.InstancedMesh,
+    count: number,
+    castShadow: boolean,
+    receiveShadow: boolean,
+    parent: THREE.Object3D
+  ): void => {
+    im.count = count;
+    im.instanceMatrix.needsUpdate = true;
+    if (im.instanceColor) im.instanceColor.needsUpdate = true;
+    im.computeBoundingSphere();
+    im.frustumCulled = true;
+    im.castShadow = castShadow && !isSoftwareGl;
+    im.receiveShadow = receiveShadow && !isSoftwareGl;
+    parent.add(im);
+  };
 
   const pines = obstacles.filter((o) => o.kind === 'pine');
   const oaks = obstacles.filter((o) => o.kind === 'oak');
@@ -170,24 +229,6 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     pineCrownGeo
   );
 
-  const maxPineInstances = Math.max(1, pines.length);
-  const mRoot = new THREE.InstancedMesh(pineRootGeo, barkMat, maxPineInstances);
-  const mTrunk = new THREE.InstancedMesh(pineTrunkGeo, barkMat, maxPineInstances);
-  const mTier1 = new THREE.InstancedMesh(pineTier1Geo, pineNeedleMat1, maxPineInstances);
-  const mTier2 = new THREE.InstancedMesh(pineTier2Geo, pineNeedleMat2, maxPineInstances);
-  const mTier3 = new THREE.InstancedMesh(pineTier3Geo, pineNeedleMat1, maxPineInstances);
-  const mCrown = new THREE.InstancedMesh(pineCrownGeo, pineNeedleMat2, maxPineInstances);
-  const mShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxPineInstances);
-
-  for (const im of [mRoot, mTrunk, mTier1, mTier2, mTier3, mCrown, mShadow]) {
-    im.frustumCulled = false;
-    if (im !== mShadow) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
-    }
-    scene.add(im);
-  }
-
   // --- B. TALL MATURE OAK GEOMETRIES ---
   const oakBaseGeo = new THREE.CylinderGeometry(0.38, 0.66, 1.6, 8);
   oakBaseGeo.translate(0, 0.8, 0);
@@ -207,23 +248,6 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   oakCrownGeo.translate(0, 9.6, 0);
 
   disposableGeometries.push(oakBaseGeo, oakTrunkGeo, oakLobe1Geo, oakLobe2Geo, oakCrownGeo);
-
-  const maxOakInstances = Math.max(1, oaks.length);
-  const oBase = new THREE.InstancedMesh(oakBaseGeo, barkMat, maxOakInstances);
-  const oTrunk = new THREE.InstancedMesh(oakTrunkGeo, barkMat, maxOakInstances);
-  const oLobe1 = new THREE.InstancedMesh(oakLobe1Geo, oakLeafMat1, maxOakInstances);
-  const oLobe2 = new THREE.InstancedMesh(oakLobe2Geo, oakLeafMat2, maxOakInstances);
-  const oCrown = new THREE.InstancedMesh(oakCrownGeo, oakLeafMat2, maxOakInstances);
-  const oShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxOakInstances);
-
-  for (const im of [oBase, oTrunk, oLobe1, oLobe2, oCrown, oShadow]) {
-    im.frustumCulled = false;
-    if (im !== oShadow) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
-    }
-    scene.add(im);
-  }
 
   // --- C. SILVER BIRCH GROVE TREES ---
   const birchBaseGeo = new THREE.CylinderGeometry(0.24, 0.42, 1.4, 8);
@@ -249,23 +273,6 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     birchCanopy1Geo,
     birchCanopy2Geo
   );
-
-  const maxBirchInstances = Math.max(1, birches.length);
-  const brBase = new THREE.InstancedMesh(birchBaseGeo, birchBarkMat, maxBirchInstances);
-  const brTrunk = new THREE.InstancedMesh(birchTrunkGeo, birchBarkMat, maxBirchInstances);
-  const brBranch = new THREE.InstancedMesh(birchBranchGeo, birchBarkMat, maxBirchInstances);
-  const brCanopy1 = new THREE.InstancedMesh(birchCanopy1Geo, birchLeafMat1, maxBirchInstances);
-  const brCanopy2 = new THREE.InstancedMesh(birchCanopy2Geo, birchLeafMat2, maxBirchInstances);
-  const brShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxBirchInstances);
-
-  for (const im of [brBase, brTrunk, brBranch, brCanopy1, brCanopy2, brShadow]) {
-    im.frustumCulled = false;
-    if (im !== brShadow) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
-    }
-    scene.add(im);
-  }
 
   // --- D. BOULDER 3-PART GEOMETRIES ---
   const rockMat = new THREE.MeshStandardMaterial({
@@ -302,156 +309,179 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
 
   disposableGeometries.push(boulderMainGeo, boulderSideGeo, boulderMossGeo);
 
-  const maxBoulderInstances = Math.max(1, boulders.length);
-  const bMain = new THREE.InstancedMesh(boulderMainGeo, rockMat, maxBoulderInstances);
-  const bSide = new THREE.InstancedMesh(boulderSideGeo, rockMat, maxBoulderInstances);
-  const bMoss = new THREE.InstancedMesh(boulderMossGeo, mossCapMat, maxBoulderInstances);
-  const bShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxBoulderInstances);
-
-  for (const im of [bMain, bSide, bMoss, bShadow]) {
-    im.frustumCulled = false;
-    if (im !== bShadow) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
-    }
-    scene.add(im);
-  }
-
-  const pineHeights = pines.map((p) => groundHeightAt(p.x, p.z));
-  const oakHeights = oaks.map((o) => groundHeightAt(o.x, o.z));
-  const birchHeights = birches.map((b) => groundHeightAt(b.x, b.z));
-  const boulderHeights = boulders.map((b) => groundHeightAt(b.x, b.z));
-
   const cullDummy = new THREE.Object3D();
   const cullTint = new THREE.Color();
 
-  // Populate pine instances
-  for (let i = 0; i < pines.length; i++) {
-    const p = pines[i];
-    const gy = pineHeights[i];
-    cullDummy.position.set(p.x, gy - 0.1, p.z);
-    cullDummy.rotation.set((p.seed - 0.5) * 0.05, p.seed * Math.PI * 2, (p.seed - 0.5) * 0.05);
-    cullDummy.scale.setScalar(p.scale);
-    cullDummy.updateMatrix();
+  // Populate pine instances per spatial sector
+  for (const [sectorGrp, sectorPines] of groupBySector(pines)) {
+    const n = sectorPines.length;
+    const mRoot = new THREE.InstancedMesh(pineRootGeo, barkMat, n);
+    const mTrunk = new THREE.InstancedMesh(pineTrunkGeo, barkMat, n);
+    const mTier1 = new THREE.InstancedMesh(pineTier1Geo, pineNeedleMat1, n);
+    const mTier2 = new THREE.InstancedMesh(pineTier2Geo, pineNeedleMat2, n);
+    const mTier3 = new THREE.InstancedMesh(pineTier3Geo, pineNeedleMat1, n);
+    const mCrown = new THREE.InstancedMesh(pineCrownGeo, pineNeedleMat2, n);
+    const mShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
 
-    mRoot.setMatrixAt(i, cullDummy.matrix);
-    mTrunk.setMatrixAt(i, cullDummy.matrix);
-    mTier1.setMatrixAt(i, cullDummy.matrix);
-    mTier2.setMatrixAt(i, cullDummy.matrix);
-    mTier3.setMatrixAt(i, cullDummy.matrix);
-    mCrown.setMatrixAt(i, cullDummy.matrix);
+    for (let i = 0; i < n; i++) {
+      const p = sectorPines[i];
+      const gy = groundHeightAt(p.x, p.z);
+      cullDummy.position.set(p.x, gy - 0.1, p.z);
+      cullDummy.rotation.set((p.seed - 0.5) * 0.05, p.seed * Math.PI * 2, (p.seed - 0.5) * 0.05);
+      cullDummy.scale.setScalar(p.scale);
+      cullDummy.updateMatrix();
 
-    cullTint.setHSL(
-      0.28 + (p.seed - 0.5) * 0.05,
-      0.44 + (p.seed - 0.5) * 0.1,
-      0.42 + (p.seed - 0.5) * 0.1
-    );
-    mTier1.setColorAt(i, cullTint);
-    mTier2.setColorAt(i, cullTint);
-    mTier3.setColorAt(i, cullTint);
-    mCrown.setColorAt(i, cullTint);
+      mRoot.setMatrixAt(i, cullDummy.matrix);
+      mTrunk.setMatrixAt(i, cullDummy.matrix);
+      mTier1.setMatrixAt(i, cullDummy.matrix);
+      mTier2.setMatrixAt(i, cullDummy.matrix);
+      mTier3.setMatrixAt(i, cullDummy.matrix);
+      mCrown.setMatrixAt(i, cullDummy.matrix);
 
-    cullDummy.position.set(p.x, gy + 0.03, p.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(p.scale * 1.35);
-    cullDummy.updateMatrix();
-    mShadow.setMatrixAt(i, cullDummy.matrix);
-  }
-  for (const im of [mRoot, mTrunk, mTier1, mTier2, mTier3, mCrown, mShadow]) {
-    im.count = pines.length;
-    im.instanceMatrix.needsUpdate = true;
-    if (im.instanceColor) im.instanceColor.needsUpdate = true;
-    im.frustumCulled = false;
-  }
+      cullTint.setHSL(
+        0.28 + (p.seed - 0.5) * 0.05,
+        0.44 + (p.seed - 0.5) * 0.1,
+        0.42 + (p.seed - 0.5) * 0.1
+      );
+      mTier1.setColorAt(i, cullTint);
+      mTier2.setColorAt(i, cullTint);
+      mTier3.setColorAt(i, cullTint);
+      mCrown.setColorAt(i, cullTint);
 
-  // Populate oak instances
-  for (let i = 0; i < oaks.length; i++) {
-    const o = oaks[i];
-    const gy = oakHeights[i];
-    cullDummy.position.set(o.x, gy - 0.1, o.z);
-    cullDummy.rotation.set(0, o.seed * Math.PI * 2, 0);
-    cullDummy.scale.setScalar(o.scale);
-    cullDummy.updateMatrix();
+      cullDummy.position.set(p.x, gy + 0.03, p.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(p.scale * 1.35);
+      cullDummy.updateMatrix();
+      mShadow.setMatrixAt(i, cullDummy.matrix);
+    }
 
-    oBase.setMatrixAt(i, cullDummy.matrix);
-    oTrunk.setMatrixAt(i, cullDummy.matrix);
-    oLobe1.setMatrixAt(i, cullDummy.matrix);
-    oLobe2.setMatrixAt(i, cullDummy.matrix);
-    oCrown.setMatrixAt(i, cullDummy.matrix);
-
-    cullTint.setHSL(0.24 + (o.seed - 0.5) * 0.08, 0.48, 0.44 + (o.seed - 0.5) * 0.12);
-    oLobe1.setColorAt(i, cullTint);
-    oLobe2.setColorAt(i, cullTint);
-    oCrown.setColorAt(i, cullTint);
-
-    cullDummy.position.set(o.x, gy + 0.03, o.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(o.scale * 1.55);
-    cullDummy.updateMatrix();
-    oShadow.setMatrixAt(i, cullDummy.matrix);
-  }
-  for (const im of [oBase, oTrunk, oLobe1, oLobe2, oCrown, oShadow]) {
-    im.count = oaks.length;
-    im.instanceMatrix.needsUpdate = true;
-    if (im.instanceColor) im.instanceColor.needsUpdate = true;
-    im.frustumCulled = false;
+    finalizeInstancedMesh(mRoot, n, false, true, sectorGrp);
+    finalizeInstancedMesh(mTrunk, n, true, true, sectorGrp);
+    finalizeInstancedMesh(mTier1, n, true, true, sectorGrp);
+    finalizeInstancedMesh(mTier2, n, true, true, sectorGrp);
+    finalizeInstancedMesh(mTier3, n, false, true, sectorGrp);
+    finalizeInstancedMesh(mCrown, n, false, true, sectorGrp);
+    finalizeInstancedMesh(mShadow, n, false, false, sectorGrp);
   }
 
-  // Populate birch instances
-  for (let i = 0; i < birches.length; i++) {
-    const br = birches[i];
-    const gy = birchHeights[i];
-    cullDummy.position.set(br.x, gy - 0.1, br.z);
-    cullDummy.rotation.set(0, br.seed * Math.PI * 2, 0);
-    cullDummy.scale.setScalar(br.scale);
-    cullDummy.updateMatrix();
+  // Populate oak instances per spatial sector
+  for (const [sectorGrp, sectorOaks] of groupBySector(oaks)) {
+    const n = sectorOaks.length;
+    const oBase = new THREE.InstancedMesh(oakBaseGeo, barkMat, n);
+    const oTrunk = new THREE.InstancedMesh(oakTrunkGeo, barkMat, n);
+    const oLobe1 = new THREE.InstancedMesh(oakLobe1Geo, oakLeafMat1, n);
+    const oLobe2 = new THREE.InstancedMesh(oakLobe2Geo, oakLeafMat2, n);
+    const oCrown = new THREE.InstancedMesh(oakCrownGeo, oakLeafMat2, n);
+    const oShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
 
-    brBase.setMatrixAt(i, cullDummy.matrix);
-    brTrunk.setMatrixAt(i, cullDummy.matrix);
-    brBranch.setMatrixAt(i, cullDummy.matrix);
-    brCanopy1.setMatrixAt(i, cullDummy.matrix);
-    brCanopy2.setMatrixAt(i, cullDummy.matrix);
+    for (let i = 0; i < n; i++) {
+      const o = sectorOaks[i];
+      const gy = groundHeightAt(o.x, o.z);
+      cullDummy.position.set(o.x, gy - 0.1, o.z);
+      cullDummy.rotation.set(0, o.seed * Math.PI * 2, 0);
+      cullDummy.scale.setScalar(o.scale);
+      cullDummy.updateMatrix();
 
-    cullTint.setHSL(0.08 + br.seed * 0.11, 0.72, 0.48 + (br.seed - 0.5) * 0.1);
-    brCanopy1.setColorAt(i, cullTint);
-    brCanopy2.setColorAt(i, cullTint);
+      oBase.setMatrixAt(i, cullDummy.matrix);
+      oTrunk.setMatrixAt(i, cullDummy.matrix);
+      oLobe1.setMatrixAt(i, cullDummy.matrix);
+      oLobe2.setMatrixAt(i, cullDummy.matrix);
+      oCrown.setMatrixAt(i, cullDummy.matrix);
 
-    cullDummy.position.set(br.x, gy + 0.03, br.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(br.scale * 1.35);
-    cullDummy.updateMatrix();
-    brShadow.setMatrixAt(i, cullDummy.matrix);
+      cullTint.setHSL(0.24 + (o.seed - 0.5) * 0.08, 0.48, 0.44 + (o.seed - 0.5) * 0.12);
+      oLobe1.setColorAt(i, cullTint);
+      oLobe2.setColorAt(i, cullTint);
+      oCrown.setColorAt(i, cullTint);
+
+      cullDummy.position.set(o.x, gy + 0.03, o.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(o.scale * 1.55);
+      cullDummy.updateMatrix();
+      oShadow.setMatrixAt(i, cullDummy.matrix);
+    }
+
+    finalizeInstancedMesh(oBase, n, false, true, sectorGrp);
+    finalizeInstancedMesh(oTrunk, n, true, true, sectorGrp);
+    finalizeInstancedMesh(oLobe1, n, false, true, sectorGrp);
+    finalizeInstancedMesh(oLobe2, n, false, true, sectorGrp);
+    finalizeInstancedMesh(oCrown, n, true, true, sectorGrp);
+    finalizeInstancedMesh(oShadow, n, false, false, sectorGrp);
   }
-  for (const im of [brBase, brTrunk, brBranch, brCanopy1, brCanopy2, brShadow]) {
-    im.count = birches.length;
-    im.instanceMatrix.needsUpdate = true;
-    if (im.instanceColor) im.instanceColor.needsUpdate = true;
-    im.frustumCulled = false;
+
+  // Populate birch instances per spatial sector
+  for (const [sectorGrp, sectorBirches] of groupBySector(birches)) {
+    const n = sectorBirches.length;
+    const brBase = new THREE.InstancedMesh(birchBaseGeo, birchBarkMat, n);
+    const brTrunk = new THREE.InstancedMesh(birchTrunkGeo, birchBarkMat, n);
+    const brBranch = new THREE.InstancedMesh(birchBranchGeo, birchBarkMat, n);
+    const brCanopy1 = new THREE.InstancedMesh(birchCanopy1Geo, birchLeafMat1, n);
+    const brCanopy2 = new THREE.InstancedMesh(birchCanopy2Geo, birchLeafMat2, n);
+    const brShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
+
+    for (let i = 0; i < n; i++) {
+      const br = sectorBirches[i];
+      const gy = groundHeightAt(br.x, br.z);
+      cullDummy.position.set(br.x, gy - 0.1, br.z);
+      cullDummy.rotation.set(0, br.seed * Math.PI * 2, 0);
+      cullDummy.scale.setScalar(br.scale);
+      cullDummy.updateMatrix();
+
+      brBase.setMatrixAt(i, cullDummy.matrix);
+      brTrunk.setMatrixAt(i, cullDummy.matrix);
+      brBranch.setMatrixAt(i, cullDummy.matrix);
+      brCanopy1.setMatrixAt(i, cullDummy.matrix);
+      brCanopy2.setMatrixAt(i, cullDummy.matrix);
+
+      cullTint.setHSL(0.08 + br.seed * 0.11, 0.72, 0.48 + (br.seed - 0.5) * 0.1);
+      brCanopy1.setColorAt(i, cullTint);
+      brCanopy2.setColorAt(i, cullTint);
+
+      cullDummy.position.set(br.x, gy + 0.03, br.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(br.scale * 1.35);
+      cullDummy.updateMatrix();
+      brShadow.setMatrixAt(i, cullDummy.matrix);
+    }
+
+    finalizeInstancedMesh(brBase, n, false, true, sectorGrp);
+    finalizeInstancedMesh(brTrunk, n, true, true, sectorGrp);
+    finalizeInstancedMesh(brBranch, n, false, true, sectorGrp);
+    finalizeInstancedMesh(brCanopy1, n, true, true, sectorGrp);
+    finalizeInstancedMesh(brCanopy2, n, true, true, sectorGrp);
+    finalizeInstancedMesh(brShadow, n, false, false, sectorGrp);
   }
 
-  // Populate boulder instances
-  for (let i = 0; i < boulders.length; i++) {
-    const b = boulders[i];
-    const gy = boulderHeights[i];
-    cullDummy.position.set(b.x, gy - 0.08, b.z);
-    cullDummy.rotation.set(0, b.seed * Math.PI * 2, 0);
-    cullDummy.scale.setScalar(b.scale);
-    cullDummy.updateMatrix();
+  // Populate boulder instances per spatial sector
+  for (const [sectorGrp, sectorBoulders] of groupBySector(boulders)) {
+    const n = sectorBoulders.length;
+    const bMain = new THREE.InstancedMesh(boulderMainGeo, rockMat, n);
+    const bSide = new THREE.InstancedMesh(boulderSideGeo, rockMat, n);
+    const bMoss = new THREE.InstancedMesh(boulderMossGeo, mossCapMat, n);
+    const bShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
 
-    bMain.setMatrixAt(i, cullDummy.matrix);
-    bSide.setMatrixAt(i, cullDummy.matrix);
-    bMoss.setMatrixAt(i, cullDummy.matrix);
+    for (let i = 0; i < n; i++) {
+      const b = sectorBoulders[i];
+      const gy = groundHeightAt(b.x, b.z);
+      cullDummy.position.set(b.x, gy - 0.08, b.z);
+      cullDummy.rotation.set(0, b.seed * Math.PI * 2, 0);
+      cullDummy.scale.setScalar(b.scale);
+      cullDummy.updateMatrix();
 
-    cullDummy.position.set(b.x, gy + 0.025, b.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(b.scale * 0.55);
-    cullDummy.updateMatrix();
-    bShadow.setMatrixAt(i, cullDummy.matrix);
-  }
-  for (const im of [bMain, bSide, bMoss, bShadow]) {
-    im.count = boulders.length;
-    im.instanceMatrix.needsUpdate = true;
-    im.frustumCulled = false;
+      bMain.setMatrixAt(i, cullDummy.matrix);
+      bSide.setMatrixAt(i, cullDummy.matrix);
+      bMoss.setMatrixAt(i, cullDummy.matrix);
+
+      cullDummy.position.set(b.x, gy + 0.025, b.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(b.scale * 0.55);
+      cullDummy.updateMatrix();
+      bShadow.setMatrixAt(i, cullDummy.matrix);
+    }
+
+    finalizeInstancedMesh(bMain, n, true, true, sectorGrp);
+    finalizeInstancedMesh(bSide, n, false, true, sectorGrp);
+    finalizeInstancedMesh(bMoss, n, false, true, sectorGrp);
+    finalizeInstancedMesh(bShadow, n, false, false, sectorGrp);
   }
 
   // --- E. SOUTH-WEST DESERT DATE PALMS & SAVANNA UMBRELLA ACACIAS ---
@@ -509,77 +539,71 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     instAcaciaTier2Geo
   );
 
-  const maxPalmInst = Math.max(1, palms.length);
-  const pTrunkIM = new THREE.InstancedMesh(instPalmTrunkGeo, barkMat, maxPalmInst);
-  const pCrown1IM = new THREE.InstancedMesh(instPalmCrownGeo, palmCrownMat, maxPalmInst);
-  const pCrown2IM = new THREE.InstancedMesh(instPalmLowerCrownGeo, palmCrownMat, maxPalmInst);
-  const pShadowIM = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxPalmInst);
-  for (let i = 0; i < palms.length; i++) {
-    const p = palms[i];
-    const gy = groundHeightAt(p.x, p.z);
-    cullDummy.position.set(p.x, gy - 0.1, p.z);
-    cullDummy.rotation.set((p.seed - 0.5) * 0.12, p.seed * Math.PI * 2, (p.seed - 0.5) * 0.12);
-    cullDummy.scale.setScalar(p.scale);
-    cullDummy.updateMatrix();
-    pTrunkIM.setMatrixAt(i, cullDummy.matrix);
-    pCrown1IM.setMatrixAt(i, cullDummy.matrix);
-    pCrown2IM.setMatrixAt(i, cullDummy.matrix);
+  for (const [sectorGrp, sectorPalms] of groupBySector(palms)) {
+    const n = sectorPalms.length;
+    const pTrunkIM = new THREE.InstancedMesh(instPalmTrunkGeo, barkMat, n);
+    const pCrown1IM = new THREE.InstancedMesh(instPalmCrownGeo, palmCrownMat, n);
+    const pCrown2IM = new THREE.InstancedMesh(instPalmLowerCrownGeo, palmCrownMat, n);
+    const pShadowIM = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
+    for (let i = 0; i < n; i++) {
+      const p = sectorPalms[i];
+      const gy = groundHeightAt(p.x, p.z);
+      cullDummy.position.set(p.x, gy - 0.1, p.z);
+      cullDummy.rotation.set((p.seed - 0.5) * 0.12, p.seed * Math.PI * 2, (p.seed - 0.5) * 0.12);
+      cullDummy.scale.setScalar(p.scale);
+      cullDummy.updateMatrix();
+      pTrunkIM.setMatrixAt(i, cullDummy.matrix);
+      pCrown1IM.setMatrixAt(i, cullDummy.matrix);
+      pCrown2IM.setMatrixAt(i, cullDummy.matrix);
 
-    cullDummy.position.set(p.x, gy + 0.03, p.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(p.scale * 1.25);
-    cullDummy.updateMatrix();
-    pShadowIM.setMatrixAt(i, cullDummy.matrix);
-  }
-  for (const im of [pTrunkIM, pCrown1IM, pCrown2IM, pShadowIM]) {
-    im.count = palms.length;
-    im.instanceMatrix.needsUpdate = true;
-    im.frustumCulled = false;
-    if (im !== pShadowIM) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
+      cullDummy.position.set(p.x, gy + 0.03, p.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(p.scale * 1.25);
+      cullDummy.updateMatrix();
+      pShadowIM.setMatrixAt(i, cullDummy.matrix);
     }
-    scene.add(im);
+    finalizeInstancedMesh(pTrunkIM, n, true, true, sectorGrp);
+    finalizeInstancedMesh(pCrown1IM, n, true, true, sectorGrp);
+    finalizeInstancedMesh(pCrown2IM, n, false, true, sectorGrp);
+    finalizeInstancedMesh(pShadowIM, n, false, false, sectorGrp);
   }
 
-  const maxAcaciaInst = Math.max(1, acacias.length);
-  const acTrunkIM = new THREE.InstancedMesh(instAcaciaTrunkGeo, barkMat, maxAcaciaInst);
-  const acBrLIM = new THREE.InstancedMesh(instAcaciaBranchLGeo, barkMat, maxAcaciaInst);
-  const acBrRIM = new THREE.InstancedMesh(instAcaciaBranchRGeo, barkMat, maxAcaciaInst);
-  const acTier1IM = new THREE.InstancedMesh(instAcaciaTier1Geo, acaciaCanopyMat, maxAcaciaInst);
-  const acTier2IM = new THREE.InstancedMesh(instAcaciaTier2Geo, acaciaCanopyMat, maxAcaciaInst);
-  const acShadowIM = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, maxAcaciaInst);
-  for (let i = 0; i < acacias.length; i++) {
-    const ac = acacias[i];
-    const gy = groundHeightAt(ac.x, ac.z);
-    cullDummy.position.set(ac.x, gy - 0.1, ac.z);
-    cullDummy.rotation.set(0, ac.seed * Math.PI * 2, 0);
-    cullDummy.scale.setScalar(ac.scale);
-    cullDummy.updateMatrix();
-    acTrunkIM.setMatrixAt(i, cullDummy.matrix);
-    acBrLIM.setMatrixAt(i, cullDummy.matrix);
-    acBrRIM.setMatrixAt(i, cullDummy.matrix);
-    acTier1IM.setMatrixAt(i, cullDummy.matrix);
-    acTier2IM.setMatrixAt(i, cullDummy.matrix);
+  for (const [sectorGrp, sectorAcacias] of groupBySector(acacias)) {
+    const n = sectorAcacias.length;
+    const acTrunkIM = new THREE.InstancedMesh(instAcaciaTrunkGeo, barkMat, n);
+    const acBrLIM = new THREE.InstancedMesh(instAcaciaBranchLGeo, barkMat, n);
+    const acBrRIM = new THREE.InstancedMesh(instAcaciaBranchRGeo, barkMat, n);
+    const acTier1IM = new THREE.InstancedMesh(instAcaciaTier1Geo, acaciaCanopyMat, n);
+    const acTier2IM = new THREE.InstancedMesh(instAcaciaTier2Geo, acaciaCanopyMat, n);
+    const acShadowIM = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
+    for (let i = 0; i < n; i++) {
+      const ac = sectorAcacias[i];
+      const gy = groundHeightAt(ac.x, ac.z);
+      cullDummy.position.set(ac.x, gy - 0.1, ac.z);
+      cullDummy.rotation.set(0, ac.seed * Math.PI * 2, 0);
+      cullDummy.scale.setScalar(ac.scale);
+      cullDummy.updateMatrix();
+      acTrunkIM.setMatrixAt(i, cullDummy.matrix);
+      acBrLIM.setMatrixAt(i, cullDummy.matrix);
+      acBrRIM.setMatrixAt(i, cullDummy.matrix);
+      acTier1IM.setMatrixAt(i, cullDummy.matrix);
+      acTier2IM.setMatrixAt(i, cullDummy.matrix);
 
-    cullDummy.position.set(ac.x, gy + 0.03, ac.z);
-    cullDummy.rotation.set(0, 0, 0);
-    cullDummy.scale.setScalar(ac.scale * 1.55);
-    cullDummy.updateMatrix();
-    acShadowIM.setMatrixAt(i, cullDummy.matrix);
-  }
-  for (const im of [acTrunkIM, acBrLIM, acBrRIM, acTier1IM, acTier2IM, acShadowIM]) {
-    im.count = acacias.length;
-    im.instanceMatrix.needsUpdate = true;
-    im.frustumCulled = false;
-    if (im !== acShadowIM) {
-      im.castShadow = !isSoftwareGl;
-      im.receiveShadow = !isSoftwareGl;
+      cullDummy.position.set(ac.x, gy + 0.03, ac.z);
+      cullDummy.rotation.set(0, 0, 0);
+      cullDummy.scale.setScalar(ac.scale * 1.55);
+      cullDummy.updateMatrix();
+      acShadowIM.setMatrixAt(i, cullDummy.matrix);
     }
-    scene.add(im);
+    finalizeInstancedMesh(acTrunkIM, n, true, true, sectorGrp);
+    finalizeInstancedMesh(acBrLIM, n, false, true, sectorGrp);
+    finalizeInstancedMesh(acBrRIM, n, false, true, sectorGrp);
+    finalizeInstancedMesh(acTier1IM, n, true, true, sectorGrp);
+    finalizeInstancedMesh(acTier2IM, n, true, true, sectorGrp);
+    finalizeInstancedMesh(acShadowIM, n, false, false, sectorGrp);
   }
 
-  // --- F. SWAYING MEADOW GRASS TUFTS & WATERSIDE REEDS ---
+  // --- F. SWAYING MEADOW GRASS TUFTS & WATERSIDE REEDS (Sectorized) ---
   const grassCount = isSoftwareGl ? 900 : 2200;
   const grassBladeGeo = new THREE.ConeGeometry(0.055, 0.26, 4);
   grassBladeGeo.translate(0, 0.13, 0);
@@ -593,12 +617,17 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   attachWindSwayShader(grassMat, 0.05, 2.4, swayMaterials);
   disposableMaterials.push(grassMat);
 
-  const grassInstanced = new THREE.InstancedMesh(grassBladeGeo, grassMat, grassCount);
+  interface IGrassSample {
+    x: number;
+    z: number;
+    matrix: THREE.Matrix4;
+    color: THREE.Color;
+  }
+  const grassSamples: IGrassSample[] = [];
   const gDummy = new THREE.Object3D();
   const gColor = new THREE.Color();
-  let gIdx = 0;
 
-  for (let i = 0; i < grassCount * 2 && gIdx < grassCount; i++) {
+  for (let i = 0; i < grassCount * 2 && grassSamples.length < grassCount; i++) {
     const r1 = hash2D(i * 13, i * 29);
     const r2 = hash2D(i * 47 + 9, i * 71 - 3);
     const angle = r1 * Math.PI * 2;
@@ -629,14 +658,22 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       gColor.setHSL(0.26 + (r1 - 0.5) * 0.06, 0.48, 0.38 + (r2 - 0.5) * 0.1);
     }
     gDummy.updateMatrix();
-    grassInstanced.setMatrixAt(gIdx, gDummy.matrix);
-    grassInstanced.setColorAt(gIdx, gColor);
-    gIdx++;
+    grassSamples.push({
+      x: gx,
+      z: gz,
+      matrix: gDummy.matrix.clone(),
+      color: gColor.clone(),
+    });
   }
-  grassInstanced.count = gIdx;
-  grassInstanced.instanceMatrix.needsUpdate = true;
-  if (grassInstanced.instanceColor) grassInstanced.instanceColor.needsUpdate = true;
-  grassInstanced.computeBoundingSphere();
-  scene.add(grassInstanced);
+
+  for (const [sectorGrp, sectorGrass] of groupBySector(grassSamples)) {
+    const n = sectorGrass.length;
+    const grassIM = new THREE.InstancedMesh(grassBladeGeo, grassMat, n);
+    for (let i = 0; i < n; i++) {
+      grassIM.setMatrixAt(i, sectorGrass[i].matrix);
+      grassIM.setColorAt(i, sectorGrass[i].color);
+    }
+    finalizeInstancedMesh(grassIM, n, false, false, sectorGrp);
+  }
 }
 // #endregion

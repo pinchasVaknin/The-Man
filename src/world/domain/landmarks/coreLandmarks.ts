@@ -14,7 +14,7 @@ export const WATER_LEVEL = 0.0;
 export const PLAYER_EYE_HEIGHT = 1.72;
 
 /** Summary: Playable terrain boundary radius from world origin. */
-export const PLAYABLE_RADIUS = 960;
+export const PLAYABLE_RADIUS = 1120;
 
 /** Summary: Maximum visible distance for terrain chunk culling and entity activation. */
 export const VIEW_DISTANCE = 225;
@@ -164,46 +164,47 @@ export const CROCODILE_RIVER_BEND_POS = {
 } as const;
 
 /**
- * Summary: Volcanic Mountain & Enterable Mystical CatLion Sanctum in the Western Badlands.
- * Design: Features an east-facing carved obsidian entrance tunnel (`x: -248..-228, z: 115 ± 4.8`)
- *         leading into a vaulted subterranean magma chamber (`center: -265, 115`, `radius: 18.5m`)
- *         where the mystical CatLion sits on an ancient volcanic throne dais.
+ * Summary: Colossal Volcanic Mountain & Enterable Mystical CatLion Sanctum in the Western Badlands.
+ * Design: Features 3 cardinal baffled obsidian entrance corridors (East +X, North -Z, South +Z)
+ *         with chicane baffle walls blocking exterior line-of-sight, leading into a colossal vaulted
+ *         subterranean magma boss chamber (`center: -620, 115`, `radius: 30.0m`, `diameter: 60.0m`)
+ *         where the King CatLion sits on an ancient volcanic throne dais.
  */
 export const VOLCANO_SANCTUM_POS = {
-  x: -265.0,
+  x: -620.0,
   z: 115.0,
   floorY: 3.2,
   daisY: 3.65,
-  craterRimY: 48.5,
-  outerRadius: 58.0,
-  chamberRadius: 18.5,
-  facingYaw: Math.PI / 2, // +X entrance facing East toward the central valley
-  entranceX: -230.0,
+  craterRimY: 74.0,
+  outerRadius: 105.0,
+  chamberRadius: 30.0,
+  facingYaw: Math.PI / 2, // Primary +X entrance facing East toward the central valley
+  entranceX: -525.0,
   entranceZ: 115.0,
 } as const;
 
 /**
- * Summary: Cluster of 3 High-Altitude Large Floating Blooming Sky Islands in the Eastern Sky,
+ * Summary: Cluster of 3 High-Altitude Large Floating Blooming Sky Islands in the Far Eastern Sky,
  *          dedicated habitat of the Royal Stag (`stag`) herd.
  */
 export const FLOATING_BLOOMING_ISLANDS = [
   {
     id: 'floating-bloom-island-main',
-    x: 205.0,
+    x: 760.0,
     z: -35.0,
     deckY: 68.0,
     radius: 28.0,
   },
   {
     id: 'floating-bloom-island-north',
-    x: 205.0,
+    x: 760.0,
     z: -85.0,
     deckY: 71.0,
     radius: 18.0,
   },
   {
     id: 'floating-bloom-island-east',
-    x: 252.0,
+    x: 807.0,
     z: -18.0,
     deckY: 70.0,
     radius: 18.0,
@@ -212,18 +213,18 @@ export const FLOATING_BLOOMING_ISLANDS = [
 
 /**
  * Summary: Central Sky-Waterfall & Spiraling Mini-Island Staircase ascending from the valley floor
- *          at (152, -35, y=3.4) around the central waterfall column (165, -35) up to the western rim
- *          of the Main Floating Blooming Island at (178, -35, y=68.0).
+ *          at (707, -35, y=3.4) around the central waterfall column (720, -35) up to the western rim
+ *          of the Main Floating Blooming Island at (733, -35, y=68.0).
  */
 export const FLOATING_ISLAND_STAIR_POS = {
-  entryRampStartX: 142.5,
-  footX: 152.0,
-  topX: 178.0,
+  entryRampStartX: 697.5,
+  footX: 707.0,
+  topX: 733.0,
   z: -35.0,
   halfWidthZ: 3.8,
   footY: 3.4,
   topY: 68.0,
-  waterfallX: 165.0,
+  waterfallX: 720.0,
   waterfallZ: -35.0,
   waterfallRadius: 3.4,
   spiralRadius: 13.5,
@@ -243,7 +244,7 @@ export interface IFloatingWaterfallStepIsland {
 
 /**
  * Summary: 57 Floating Mini-Islands & Grand Rest-Landing Terraces spiraling upward (2.5 full revolutions)
- *          around the central Sky-Waterfall at (165, -35) like a grand helical staircase from y=3.4m to y=68.0m.
+ *          around the central Sky-Waterfall at (720, -35) like a grand helical staircase from y=3.4m to y=68.0m.
  *          Every 7th island (index % 7 === 0) is an extra-wide Rest-Landing Terrace with a Blossom Pergola.
  */
 export const FLOATING_WATERFALL_STEP_ISLANDS: readonly IFloatingWaterfallStepIsland[] = Array.from(
@@ -285,7 +286,7 @@ export interface ISkyWindGeyser {
 export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   {
     id: 'geyser-waterfall-entry-plaza',
-    x: 146.5,
+    x: 701.5,
     y: 3.3,
     z: -35.0,
     radius: 2.5,
@@ -294,7 +295,7 @@ export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   },
   {
     id: 'geyser-main-island-west',
-    x: 183.0,
+    x: 738.0,
     y: 68.0,
     z: -35.0,
     radius: 2.5,
@@ -303,7 +304,7 @@ export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   },
   {
     id: 'geyser-main-island-north',
-    x: 205.0,
+    x: 760.0,
     y: 68.0,
     z: -58.5,
     radius: 2.5,
@@ -312,7 +313,7 @@ export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   },
   {
     id: 'geyser-north-island-star',
-    x: 205.0,
+    x: 760.0,
     y: 71.0,
     z: -85.0,
     radius: 2.6,
@@ -321,7 +322,7 @@ export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   },
   {
     id: 'geyser-east-island-sun',
-    x: 252.0,
+    x: 807.0,
     y: 70.0,
     z: -18.0,
     radius: 2.6,
@@ -330,11 +331,11 @@ export const SKY_WIND_GEYSERS: readonly ISkyWindGeyser[] = [
   },
   {
     id: 'geyser-volcano-thermal-vent',
-    x: -222.0,
+    x: -514.0,
     y: 3.25,
-    z: 102.0,
+    z: 100.0,
     radius: 2.6,
-    boostVy: 22.0,
+    boostVy: 24.5,
     theme: 'volcano',
   },
 ] as const;
@@ -376,8 +377,9 @@ export function floatingBloomingIslandHeightAt(
     }
   }
 
-  // 2. North Floral Sky-Bridge connecting Main Island (205, -62, y=68.0) to North Island (205, -68, y=71.0)
-  if (Math.abs(x - 205.0) <= 3.3 && z >= -68.5 && z <= -61.5) {
+  // 2. North Floral Sky-Bridge connecting Main Island (350, -62, y=68.0) to North Island (350, -68, y=71.0)
+  const mainIslandX = FLOATING_BLOOMING_ISLANDS[0].x;
+  if (Math.abs(x - mainIslandX) <= 3.3 && z >= -68.5 && z <= -61.5) {
     const t = Math.max(0, Math.min(1, (-61.5 - z) / 7.0));
     const archLift = Math.sin(t * Math.PI) * 0.55;
     const bridgeY = 68.0 + t * (71.0 - 68.0) + archLift;
@@ -386,10 +388,10 @@ export function floatingBloomingIslandHeightAt(
     }
   }
 
-  // 3. East Floral Sky-Bridge connecting Main Island rim (230, -26, y=68.0) to East Island rim (236.5, -23.6, y=70.0)
-  const bx0 = 230.0;
+  // 3. East Floral Sky-Bridge connecting Main Island rim (mainX+25, -26, y=68.0) to East Island rim (mainX+31.5, -23.6, y=70.0)
+  const bx0 = mainIslandX + 25.0;
   const bz0 = -26.0;
-  const bx1 = 236.5;
+  const bx1 = mainIslandX + 31.5;
   const bz1 = -23.6;
   const bdx = bx1 - bx0;
   const bdz = bz1 - bz0;

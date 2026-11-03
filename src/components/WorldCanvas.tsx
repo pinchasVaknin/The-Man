@@ -44,6 +44,7 @@ import {
   isPredatorSpecies,
   triggerSwordSlash,
   stepSwordSwingCombat,
+  recoverArrowsFromAnimal,
   buyMarketItem,
   sellMarketItem,
   IGameActions,
@@ -58,6 +59,7 @@ import { GameLoop } from '../core/gameLoop';
 import { lerp, lerpAngle } from '../core/interpolation';
 import type { IWildlifeSoundCallbacks } from '../world/builders/wildlifeAndFootprintsBuilder';
 import type { IPlayerState } from '../world/domain/worldTypes';
+import type { ISmallAnimalState } from '../world/systems/boidsAndWildlifeSystem';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldScene } from '../world/builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../world/soundEngine';
@@ -119,11 +121,11 @@ export interface IWorldCanvasProps {
  */
 const MAX_CONSECUTIVE_TICK_FAILURES = 60;
 /** Longest frame delta accepted per rendered frame (seconds, per "Fix Your Timestep"). */
-const MAX_FRAME_SECONDS = 0.25;
+const MAX_FRAME_SECONDS = 0.05;
 /** Fixed simulation step: 60 Hz. */
 const SIMULATION_STEP_SECONDS = 1 / 60;
-/** Steps allowed per rendered frame; MAX_FRAME_SECONDS / SIMULATION_STEP_SECONDS. */
-const MAX_SIMULATION_STEPS_PER_FRAME = 15;
+/** Steps allowed per rendered frame; capped at 2 to prevent spiral-of-death stutter when flying. */
+const MAX_SIMULATION_STEPS_PER_FRAME = 2;
 /** Minimum gap between two logged frame errors (ms). */
 const TICK_ERROR_LOG_INTERVAL_MS = 2000;
 
@@ -209,6 +211,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     const activeArrows: IArrowProjectile[] = [];
     let lastArrowHitTargetName: string | null = null;
     let lastArrowHitTimer = 0;
+    let lastHitAnimal: ISmallAnimalState | null = null;
+    let lastHitAnimalTimer = 0;
     let lastLootNotification: string | null = null;
     let lastLootNotificationTimer = 0;
 
@@ -282,6 +286,20 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         playerState.bowDrawn = false;
         playerState.bowDrawProgress = 0;
         return null;
+      }
+      // When God Mode is disabled, require the active arrow element to be in inventory!
+      if (gameSettingsRef.current.godMode === false) {
+        const activeArrowItem =
+          playerState.arrowKind === 'fire'
+            ? 'arrow_fire'
+            : playerState.arrowKind === 'wind'
+              ? 'arrow_wind'
+              : 'arrow_normal';
+        if (!(playerState.ownedItemIds ?? []).includes(activeArrowItem)) {
+          playerState.bowDrawn = false;
+          playerState.bowDrawProgress = 0;
+          return null;
+        }
       }
       playerState.equippedTool = 'bow';
       const pwr =
@@ -392,9 +410,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (!res) return;
       if (res.hitAnimal) {
         const spName = getAnimalSpeciesName(res.hitAnimal.species);
+        lastHitAnimal = res.hitAnimal;
+        lastHitAnimalTimer = res.killedAnimal ? 1.8 : 6.0;
         lastArrowHitTargetName = res.killedAnimal
           ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
-          : t('notifications.animal_hit', { species: spName, hp: res.hitAnimal.hp ?? 0, maxHp: res.hitAnimal.maxHp ?? 0 });
+          : t('notifications.animal_hit', { species: spName });
         lastArrowHitTimer = res.killedAnimal ? 4.0 : 2.5;
         soundEngine.playArrowHit(true);
         emitHudSnapshot();
@@ -472,6 +492,43 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         emitHudSnapshot();
       },
+      onTeleportToWorldPos: (worldX, worldZ) => {
+        if (gameSettingsRef.current.godMode === false) return;
+        isSleepingInBed = false;
+        activeSleepingBed = null;
+        preSleepPlayerPos = null;
+        const targetY = walkableHeightAt(worldX, worldZ).height;
+        playerState.x = worldX;
+        playerState.z = worldZ;
+        playerState.y = targetY;
+        playerState.vx = 0;
+        playerState.vy = 0;
+        playerState.vz = 0;
+        if (playerState.mountedHorseId) {
+          const mountedHorse = rideableHorses.find((h) => h.id === playerState.mountedHorseId);
+          if (mountedHorse) {
+            mountedHorse.x = worldX;
+            mountedHorse.z = worldZ;
+            mountedHorse.y = targetY;
+            mountedHorse.speed = 0;
+          } else {
+            const mAnim = getActiveWorldAnimals().find(
+              (a) =>
+                `mount-stag-${a.id}` === playerState.mountedHorseId ||
+                `mount-lion-${a.id}` === playerState.mountedHorseId
+            );
+            if (mAnim) {
+              mAnim.x = worldX;
+              mAnim.z = worldZ;
+              mAnim.y = targetY;
+              mAnim.vx = 0;
+              mAnim.vz = 0;
+            }
+          }
+        }
+        capturePreviousPlayerPose();
+        emitHudSnapshot();
+      },
     };
     onRegisterGameActions?.(gameActions);
 
@@ -512,14 +569,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         triggerLootNearbyAnimal: () => {
           const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
           if (!dead) return { looted: false, notification: null };
-          const res = lootDeadAnimal(playerState, dead);
+          const res = lootDeadAnimal(playerState, dead, activeArrows);
           if (res.addedItems.length > 0 && res.notification) {
             lastLootNotification = res.notification;
             lastLootNotificationTimer = 4.5;
             soundEngine.playFootstep('trail', 1.15);
             emitHudSnapshot();
           }
-          return { looted: res.addedItems.length > 0, notification: res.notification };
+          return {
+            looted: res.addedItems.length > 0,
+            recoveredArrowCount: res.recoveredArrowCount,
+            notification: res.notification,
+          };
         },
         emitHudSnapshot,
       });
@@ -545,8 +606,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           e.preventDefault();
         }
       }
-      // If Skyrim Inventory [Tab] or Favorites [Q] modal is open, let the modal handle keys!
-      if (document.body.dataset.skyrimModalOpen === 'true') {
+      // If Skyrim Inventory [Tab], Favorites [Q], or Full-Screen Map [M] modal is open, let the modal handle keys!
+      if (
+        document.body.dataset.skyrimModalOpen === 'true' ||
+        document.body.dataset.worldMapModalOpen === 'true'
+      ) {
         return;
       }
 
@@ -618,8 +682,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
         }
       }
-      // Detect Double-Tap Jump Key (within 500ms) to toggle Flight Mode (disabled when mounting/dismounting a ladder!)
-      if (e.code === kb.jump && !e.repeat && gameStateRef.current === 'playing') {
+      // Detect Double-Tap Jump Key (within 500ms) to toggle Flight Mode in God Mode (disabled when mounting/dismounting a ladder!)
+      if (
+        e.code === kb.jump &&
+        !e.repeat &&
+        gameStateRef.current === 'playing' &&
+        gameSettingsRef.current.godMode !== false
+      ) {
         const onOrLookingAtLadder =
           Boolean(playerState.climbingLadderId) ||
           Boolean(
@@ -697,7 +766,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       mouseDownStartY = e.clientY;
       mouseMovedWhileDown = false;
 
-      if (document.body.dataset.skyrimModalOpen === 'true') return;
+      if (
+        document.body.dataset.skyrimModalOpen === 'true' ||
+        document.body.dataset.worldMapModalOpen === 'true'
+      ) {
+        return;
+      }
 
       if (e.button === 2 && !playerState.isSwimming) {
         if (playerState.equippedTool === 'sword') {
@@ -973,11 +1047,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         const kb = gameSettingsRef.current.keybindings;
         const spdMult = gameSettingsRef.current.walkSpeedMultiplier ?? 1.0;
+        if (gameSettingsRef.current.godMode === false && playerState.isFlying) {
+          playerState.isFlying = false;
+        }
         readMovementAxes(
           keysPressed,
           kb,
           virtualMoveRef.current,
-          document.body.dataset.skyrimModalOpen === 'true',
+          document.body.dataset.skyrimModalOpen === 'true' ||
+            document.body.dataset.worldMapModalOpen === 'true',
           movementAxes
         );
         const { forward, right } = movementAxes;
@@ -1000,7 +1078,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             playerState.z
           );
           if (nearDeadAnimal) {
-            const lootRes = lootDeadAnimal(playerState, nearDeadAnimal);
+            const lootRes = lootDeadAnimal(playerState, nearDeadAnimal, activeArrows);
             if (lootRes.addedItems.length > 0 && lootRes.notification) {
               lastLootNotification = lootRes.notification;
               lastLootNotificationTimer = 4.5;
@@ -1114,9 +1192,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           if (arrowRes.hitAnimal) {
             const spName = getAnimalSpeciesName(arrowRes.hitAnimal.species);
             playerState.lastArrowHitTarget = String(arrowRes.hitAnimal.id);
+            lastHitAnimal = arrowRes.hitAnimal;
+            lastHitAnimalTimer = arrowRes.killedAnimal ? 1.8 : 6.0;
             lastArrowHitTargetName = arrowRes.killedAnimal
               ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
-              : t('notifications.animal_hit', { species: spName, hp: arrowRes.hitAnimal.hp ?? 0, maxHp: arrowRes.hitAnimal.maxHp ?? 0 });
+              : t('notifications.animal_hit', { species: spName });
             lastArrowHitTimer = arrowRes.killedAnimal ? 4.0 : 2.5;
             awardSkillXp(playerState, 'archery', arrowRes.killedAnimal ? 36 : 18);
             soundEngine.playArrowHit(true);
@@ -1125,7 +1205,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             playerState.lastArrowHitTarget = arrowRes.hitTarget.id;
             lastArrowHitTargetName = arrowRes.hitTarget.name;
             lastArrowHitTimer = 3.5;
-            playerState.goldCoins = (playerState.goldCoins ?? 280) + 15;
             awardSkillXp(playerState, 'archery', 32);
             soundEngine.playArrowHit(true);
             emitHudSnapshot();
@@ -1135,6 +1214,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
         if (lastArrowHitTimer > 0) {
           lastArrowHitTimer = Math.max(0, lastArrowHitTimer - rawDt);
+        }
+        if (lastHitAnimalTimer > 0) {
+          lastHitAnimalTimer = Math.max(0, lastHitAnimalTimer - rawDt);
         }
         if (lastLootNotificationTimer > 0) {
           lastLootNotificationTimer = Math.max(0, lastLootNotificationTimer - rawDt);
@@ -1158,7 +1240,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         pendingFlyToggle = false;
         keysJustPressed.clear();
 
-        const subSteps = Math.max(1, Math.ceil(rawDt / 0.05));
+        const subSteps = playerState.isFlying ? 1 : Math.max(1, Math.ceil(rawDt / 0.05));
         const subDt = rawDt / subSteps;
         let anySteppedFoot = false;
         let maxLandedImpact = 0;
@@ -1211,23 +1293,54 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             capturePreviousPlayerPose();
           }
           if (playerState.lastTameNotice) {
-            if (playerState.lastTameNotice === 'meat_required_for_lion') {
-              lastLootNotification = 'You need Meat in your inventory to tame the subdued Boss CatLion!';
-            } else if (playerState.lastTameNotice === 'tamed_boss_lion') {
-              lastLootNotification = 'Fed Meat & Tamed Boss CatLion! (G: Solar Pounce Dash, Space: Leap)';
-            } else if (playerState.lastTameNotice === 'tamed_stag') {
-              lastLootNotification = 'Tamed & Mounted Royal Celestial Stag! (Space: Sky-Leap, Shift: Gallop)';
+            if (playerState.mountedHorseId) {
+              const mountMatch = playerState.mountedHorseId.match(/^mount-(?:lion|stag)-(\d+)$/);
+              if (mountMatch) {
+                const animId = Number(mountMatch[1]);
+                const rec = recoverArrowsFromAnimal(
+                  animId,
+                  activeArrows,
+                  playerState,
+                  playerState.x,
+                  playerState.z
+                );
+                if (rec.recoveredCount > 0 && playerState.lastTameNotice === 'tamed_boss_lion') {
+                  lastLootNotification = `Fed Meat & Tamed Boss CatLion! (+${rec.recoveredCount} Arrows Recovered, Space: Attack)`;
+                  playerState.lastTameNotice = null;
+                  lastLootNotificationTimer = 4.5;
+                  emitHudSnapshot();
+                }
+              }
             }
-            playerState.lastTameNotice = null;
-            lastLootNotificationTimer = 4.5;
-            emitHudSnapshot();
+            if (playerState.lastTameNotice) {
+              if (playerState.lastTameNotice === 'meat_required_for_lion') {
+                lastLootNotification = 'You need Meat in your inventory to tame the subdued Boss CatLion!';
+              } else if (playerState.lastTameNotice === 'tamed_boss_lion') {
+                lastLootNotification = 'Fed Meat & Tamed Boss CatLion! (Space: Stationary Attack, Shift: Sprint)';
+              } else if (playerState.lastTameNotice === 'tamed_stag') {
+                lastLootNotification = 'Tamed & Mounted Royal Celestial Stag! (Space: Sky-Leap, Shift: Gallop)';
+              }
+              playerState.lastTameNotice = null;
+              lastLootNotificationTimer = 4.5;
+              emitHudSnapshot();
+            }
           } else if (!prevMountedId && playerState.mountedHorseId) {
+            const mountMatch = playerState.mountedHorseId.match(/^mount-(?:lion|stag)-(\d+)$/);
+            if (mountMatch) {
+              recoverArrowsFromAnimal(
+                Number(mountMatch[1]),
+                activeArrows,
+                playerState,
+                playerState.x,
+                playerState.z
+              );
+            }
             if (playerState.mountedHorseId.startsWith('mount-stag-')) {
               lastLootNotification = 'Mounted Royal Celestial Stag! (Space: Sky-Leap, Shift: Gallop)';
               lastLootNotificationTimer = 4.2;
               emitHudSnapshot();
             } else if (playerState.mountedHorseId.startsWith('mount-lion-')) {
-              lastLootNotification = 'Mounted Mystical Boss CatLion! (G: Solar Pounce Dash, Space: Leap)';
+              lastLootNotification = 'Mounted Mystical Boss CatLion! (Space: Stationary Attack, Shift: Sprint)';
               lastLootNotificationTimer = 4.2;
               emitHudSnapshot();
             }
@@ -1338,7 +1451,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           camera.updateProjectionMatrix();
         }
 
-        sunLight.target.position.set(renderPlayer.x, renderPlayer.y, renderPlayer.z);
+        const shadowTargetX = Math.round(renderPlayer.x * 0.25) * 4;
+        const shadowTargetY = renderPlayer.isFlying ? Math.min(renderPlayer.y, 12) : renderPlayer.y;
+        const shadowTargetZ = Math.round(renderPlayer.z * 0.25) * 4;
+        sunLight.target.position.set(shadowTargetX, shadowTargetY, shadowTargetZ);
         sunLight.position
           .copy(_sunVec)
           .multiplyScalar(85)
@@ -1372,6 +1488,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     function emitHudSnapshot() {
+      const showEnemyBar =
+        lastHitAnimalTimer > 0 &&
+        lastHitAnimal !== null &&
+        (!lastHitAnimal.isDead || lastHitAnimalTimer > 0.3);
       onTelemetryUpdateRef.current(
         buildTelemetrySnapshot({
           player: playerState,
@@ -1383,6 +1503,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           pointerLocked: document.pointerLockElement === renderer.domElement,
           lootNotification: lastLootNotificationTimer > 0 ? lastLootNotification : null,
           arrowHitTargetName: lastArrowHitTimer > 0 ? lastArrowHitTargetName : null,
+          activeEnemyHealthBar:
+            showEnemyBar && lastHitAnimal
+              ? {
+                  id: lastHitAnimal.id,
+                  name: lastHitAnimal.isBoss
+                    ? `King ${getAnimalSpeciesName(lastHitAnimal.species)}`
+                    : getAnimalSpeciesName(lastHitAnimal.species),
+                  hp: Math.max(0, lastHitAnimal.hp ?? 0),
+                  maxHp: Math.max(1, lastHitAnimal.maxHp ?? 1),
+                  isBoss: Boolean(lastHitAnimal.isBoss || lastHitAnimal.species === 'dragon'),
+                  isSubdued: Boolean(lastHitAnimal.isSubdued),
+                }
+              : null,
           isSleepingInBed,
           worldHours,
           forcedSeason,

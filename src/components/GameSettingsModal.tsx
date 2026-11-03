@@ -131,6 +131,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
       jumpForceMultiplier: 1.0,
       firefliesMode: 'sanctuary_only',
       defaultMuted: false,
+      godMode: true,
     };
     setDraft(factory);
   }, []);
@@ -318,6 +319,47 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             </>
           ) : (
             <div className="space-y-4">
+              {/* 0. God Mode (Flight, Infinite Arrows & Map Teleport) */}
+              <div className="p-4 rounded-xl bg-amber-950/25 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <span>God Mode (Developer / Sandbox Powers)</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] uppercase tracking-wider">
+                      {draft.godMode !== false ? 'ACTIVE' : 'OFF'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-stone-300 mt-0.5">
+                    Enables double-space Flying, Infinite Arrows, and Click-to-Teleport on the Full World Map [M].
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    data-testid="god-mode-on-btn"
+                    onClick={() => setDraft((prev) => ({ ...prev, godMode: true }))}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer ${
+                      draft.godMode !== false
+                        ? 'bg-amber-400 text-stone-950'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    On (God Mode)
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="god-mode-off-btn"
+                    onClick={() => setDraft((prev) => ({ ...prev, godMode: false }))}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer ${
+                      draft.godMode === false
+                        ? 'bg-amber-400 text-stone-950'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    Off (Survival)
+                  </button>
+                </div>
+              </div>
+
               {/* 1. Default Camera Perspective */}
               <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>

@@ -628,7 +628,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
   {
     id: 'bed-floating-sky-sanctuary',
     name: 'Celestial Star-Sanctuary Canopy Bed',
-    x: 205.0,
+    x: 760.0,
     y: 68.35,
     z: -35.0,
     yaw: 0,

@@ -104,6 +104,37 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
 }
 
 /**
+ * Summary: Evaluates non-linear procedural transition into the Western Volcanic Badlands / Scorched Ashlands
+ *          surrounding the Volcano Sanctum at VOLCANO_SANCTUM_POS (-620, 115).
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 0 outside the volcanic badlands, rising to 1 inside the scorched ashlands and volcano massif.
+ */
+export function volcanicBadlandsFactorAt(x: number, z: number): number {
+  const dx = x - VOLCANO_SANCTUM_POS.x;
+  const dz = z - VOLCANO_SANCTUM_POS.z;
+  if (Math.abs(dx) > 285.0 || Math.abs(dz) > 285.0) return 0;
+  const dist = Math.hypot(dx * 0.94, dz * 1.02);
+  if (dist > 270.0) return 0;
+  const warp = fbm2D(x * 0.018 + 4.7, z * 0.018 - 3.2, 2) * 28.0;
+  return 1.0 - smoothstep(125.0, 245.0, dist + warp);
+}
+
+/**
+ * Summary: Computes the walkable elevation along the Southern Cliffside Mountain Pass Trail
+ *          carved into the mountainside west of the Southern River Gorge (x in 94.8..101.4, z in 512..682).
+ * Design: Rises smoothly from valley floor (2.15m at z=512) up to an elevated cliffside bench (11.4m at z=556..638)
+ *         high above the Crocodile River Gorge, then descends smoothly back to 2.15m at z=682.
+ */
+export function southernCliffsidePassTrailHeightAt(z: number): number {
+  if (z <= 512.0 || z >= 682.0) return 2.15;
+  const northClimb = smoothstep(512.0, 556.0, z);
+  const southDescent = 1.0 - smoothstep(638.0, 682.0, z);
+  const passArch = Math.sin(Math.max(0, Math.min(1, (z - 550.0) / 94.0)) * Math.PI) * 1.15;
+  return 2.15 + northClimb * southDescent * (9.25 + passArch);
+}
+
+/**
  * Summary: Calculates composite regional density of forest trees across the landscape.
  * Design: Contrasts the open pastoral farming valley against deep unbuilt northern, western, and southern forests.
  * @param x World X in meters.
@@ -146,6 +177,12 @@ export function regionalForestDensityAt(x: number, z: number): number {
   const mineEntranceDist = Math.hypot(x - SOUTHERN_MINE_POS.x, z - (SOUTHERN_MINE_POS.entranceZ - 8));
   if (mineEntranceDist < 34) {
     openValleySuppress = Math.max(openValleySuppress, 1.0 - smoothstep(18, 34, mineEntranceDist));
+  }
+
+  // Suppress green forest inside the Western Volcanic Badlands
+  const volBadlands = volcanicBadlandsFactorAt(x, z);
+  if (volBadlands > 0.05) {
+    openValleySuppress = Math.max(openValleySuppress, Math.min(1.0, volBadlands * 1.25));
   }
 
   const macroPatch = fbm2D(x * 0.012 + 3.1, z * 0.012 - 5.2, 2) * 0.5 + 0.5;
@@ -237,8 +274,9 @@ export function isInsideBearCave(
 }
 
 /**
- * Summary: Checks if world coordinates (x, z, currentY) are inside the Volcano Sanctum's
- *          eastern obsidian entrance tunnel or inner subterranean magma chamber.
+ * Summary: Checks if world coordinates (x, z, currentY) are inside the Colossal Volcano Sanctum's
+ *          3 cardinal baffled obsidian entrance corridors (East +X, North -Z, South +Z)
+ *          or inner 60m-diameter subterranean magma boss chamber.
  */
 export function isInsideVolcanoSanctum(
   x: number,
@@ -252,25 +290,39 @@ export function isInsideVolcanoSanctum(
 } | null {
   const dx = x - VOLCANO_SANCTUM_POS.x;
   const dz = z - VOLCANO_SANCTUM_POS.z;
-  if (Math.abs(dx) > 48.0 || Math.abs(dz) > 32.0) return null;
+  if (Math.abs(dx) > 98.0 || Math.abs(dz) > 98.0) return null;
 
-  // East-facing entrance tunnel: dx in [+14.0, +42.0] (world x in [-251.0, -223.0]), |dz| <= 5.2
-  const inTunnel = dx >= 14.0 && dx <= 42.0 && Math.abs(dz) <= 5.2;
-  // Inner Volcanic Sanctum Chamber: centered at (-265, 115), radius 18.5m
+  const isInsideCardinalCorridor = (along: number, perp: number): boolean => {
+    if (along < 26.0 || along > 96.5) return false;
+    const absPerp = Math.abs(perp);
+    const allowedHalfW = along >= 45.0 && along <= 69.0 ? 11.4 : 5.2;
+    return absPerp <= allowedHalfW;
+  };
+
+  // 3 Cardinal Entrance Corridors: East (+dx), North (-dz), South (+dz)
+  const inEastTunnel = isInsideCardinalCorridor(dx, dz);
+  const inNorthTunnel = isInsideCardinalCorridor(-dz, dx);
+  const inSouthTunnel = isInsideCardinalCorridor(dz, dx);
+  const inTunnel = inEastTunnel || inNorthTunnel || inSouthTunnel;
+
+  // Colossal Inner Volcanic Boss Chamber: centered at (-620, 115), radius 30.0m (60m diameter)
   const chamberDist = Math.hypot(dx, dz);
   const inChamber = chamberDist <= VOLCANO_SANCTUM_POS.chamberRadius;
 
   if (!inTunnel && !inChamber) return null;
 
-  // Raised central throne dais at (-266, 115) for the Mystical CatLion
+  // Raised central throne dais at (-621, 115) for the King CatLion
   const daisDist = Math.hypot(x - (VOLCANO_SANCTUM_POS.x - 1.0), z - VOLCANO_SANCTUM_POS.z);
-  const daisBlend = inChamber ? 1.0 - smoothstep(3.8, 5.8, daisDist) : 0.0;
+  const daisBlend = inChamber ? 1.0 - smoothstep(4.5, 7.2, daisDist) : 0.0;
   const floorY =
     VOLCANO_SANCTUM_POS.floorY +
     daisBlend * (VOLCANO_SANCTUM_POS.daisY - VOLCANO_SANCTUM_POS.floorY);
 
-  const tunnelCeiling = VOLCANO_SANCTUM_POS.floorY + 8.2;
-  const chamberCeiling = VOLCANO_SANCTUM_POS.floorY + 15.8 - 2.4 * Math.min(1, (chamberDist / 18.5) ** 2);
+  const tunnelCeiling = VOLCANO_SANCTUM_POS.floorY + 9.6;
+  const chamberCeiling =
+    VOLCANO_SANCTUM_POS.floorY +
+    21.5 -
+    3.6 * Math.min(1, (chamberDist / VOLCANO_SANCTUM_POS.chamberRadius) ** 2);
   const ceilingY = inChamber ? chamberCeiling : tunnelCeiling;
 
   if (currentY !== undefined && currentY > ceilingY + 2.5) {
@@ -291,7 +343,7 @@ export function getRoofHeightAt(x: number, z: number): number | null {
     return bearCave.ceilingY;
   }
   const volcano = isInsideVolcanoSanctum(x, z);
-  if (volcano && x <= VOLCANO_SANCTUM_POS.entranceX + 0.5) {
+  if (volcano && Math.hypot(x - VOLCANO_SANCTUM_POS.x, z - VOLCANO_SANCTUM_POS.z) <= 95.5) {
     return volcano.ceilingY;
   }
   if (Math.abs(x) <= 23.2 && z >= -216.5 + FZ && z <= -188.8 + FZ) {
@@ -513,10 +565,10 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 196, 336, 204, 378),
     distToSegment(x, z, 204, 378, 152, 378),
     distToSegment(x, z, 152, 378, 96, 428),
-    distToSegment(x, z, 96, 428, 102, 515),
-    distToSegment(x, z, 102, 515, 99.5, 600),
-    distToSegment(x, z, 99.5, 600, 101, 675),
-    distToSegment(x, z, 101, 675, 105, 715)
+    distToSegment(x, z, 96, 428, 98.2, 512),
+    distToSegment(x, z, 98.2, 512, 98.2, 600),
+    distToSegment(x, z, 98.2, 600, 98.2, 682),
+    distToSegment(x, z, 98.2, 682, 105, 715)
   );
 
   let bridgeTrailDist = 999;
@@ -723,13 +775,55 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // Carve a guaranteed dry, level walkable footpath along the West bank of the Southern Mountain Gorge (x ≈ 99.5, z: 520..675)
-  if (x >= 91.0 && x <= 107.0 && z >= 518.0 && z <= 678.0) {
-    const pathDist = Math.abs(x - 99.5);
-    const zWeight = smoothstep(518.0, 534.0, z) * (1.0 - smoothstep(662.0, 678.0, z));
-    const pathW = (1.0 - smoothstep(3.2, 6.8, pathDist)) * zWeight;
-    if (pathW > 0.01) {
-      h = h * (1.0 - pathW) + 2.15 * pathW;
+  // Impassable Southern Mountain Barrier Ranges flanking the Southern River Gorge:
+  // 1) Eastern Mountain Range: Continuous high, steep alpine ridge from the East bank of the Southern River (x = 131)
+  //    all the way East to the Sea coastline (x = 262) along z ≈ 535..665.
+  if (x >= 125.0 && x <= 265.0 && z >= 522.0 && z <= 676.0) {
+    const eastRidgeAxisZ = 598.0 + Math.sin((x - 130.0) * 0.045) * 6.0;
+    const distFromEastAxis = Math.abs(z - eastRidgeAxisZ);
+    const xEnvelope =
+      smoothstep(126.5, 141.0, x) * (1.0 - smoothstep(246.0, 260.0, x));
+    const zEnvelope = 1.0 - smoothstep(14.0, 62.0, distFromEastAxis);
+    const eastBarrierW = xEnvelope * zEnvelope;
+    if (eastBarrierW > 0.005) {
+      const crag =
+        Math.abs(fbm2D(x * 0.048 + 3.1, z * 0.048 - 2.7, 3)) * 9.5 +
+        Math.sin(x * 0.11 + z * 0.09) * 2.2;
+      const targetEastMtnH = 4.0 + Math.pow(eastBarrierW, 0.78) * (49.0 + crag);
+      h = Math.max(h, targetEastMtnH);
+    }
+  }
+
+  // 2) Western & Southern Mountain Range: Continuous high, steep alpine barrier starting immediately West of the
+  //    Cliffside Mountain Pass Trail (x = 94.5), extending West into the Southern Desert (x = -195, z = 596),
+  //    and turning South (x = -165, z = 596..1095) all the way to the Southern Map Rim.
+  if (x >= -245.0 && x <= 102.0 && z >= 522.0 && z <= 1110.0) {
+    const distWestEastSeg = distToSegment(x, z, 88.0, 596.0, -165.0, 596.0);
+    const distNorthSouthSeg = distToSegment(x, z, -165.0, 596.0, -165.0, 1095.0);
+    const barrierDist = Math.min(distWestEastSeg, distNorthSouthSeg);
+    // Keep the east end of the Western Range sharply bounded at x <= 94.8 right beside the Cliffside Pass Trail!
+    const trailSideCutoff = x > 84.0 ? 1.0 - smoothstep(84.0, 94.8, x) : 1.0;
+    const westBarrierW = (1.0 - smoothstep(14.0, 62.0, barrierDist)) * trailSideCutoff;
+    if (westBarrierW > 0.005) {
+      const crag =
+        Math.abs(fbm2D(x * 0.046 - 4.2, z * 0.046 + 1.9, 3)) * 10.5 +
+        Math.cos(x * 0.095 - z * 0.085) * 2.4;
+      const targetWestMtnH = 4.0 + Math.pow(westBarrierW, 0.76) * (51.0 + crag);
+      h = Math.max(h, targetWestMtnH);
+    }
+  }
+
+  // 3) Elevated Cliffside Mountain Pass Trail carved into the mountainside above the West bank of the Southern River Gorge
+  //    Walkable bench: x in [94.8, 101.4], z in [512.0, 682.0], rising smoothly to 11.4m and descending back to 2.15m.
+  if (x >= 91.5 && x <= 105.0 && z >= 510.0 && z <= 684.0) {
+    const passTargetH = southernCliffsidePassTrailHeightAt(z);
+    const zBlend = smoothstep(510.0, 518.0, z) * (1.0 - smoothstep(676.0, 684.0, z));
+    // Flat bench between x = 94.8 (mountain rock wall) and x = 101.4 (cliffside guardrail fence)
+    const benchDist =
+      x < 94.8 ? 94.8 - x : x > 101.4 ? x - 101.4 : 0.0;
+    const benchW = (1.0 - smoothstep(0.0, 3.0, benchDist)) * zBlend;
+    if (benchW > 0.005) {
+      h = h * (1.0 - benchW) + passTargetH * benchW;
     }
   }
 
@@ -789,8 +883,8 @@ export function groundHeightAt(x: number, z: number): number {
     h += mtnAdd;
   }
 
-  if (r > 885 && !(x > 225 && z > 80)) {
-    const rimT = smoothstep(885, 965, r);
+  if (r > 1020 && !(x > 225 && z > 80)) {
+    const rimT = smoothstep(1020, 1100, r);
     const ridgeNoise = Math.abs(fbm2D(x * 0.022, z * 0.022, 3));
     h += rimT * (30.0 + ridgeNoise * 38.0);
   }
@@ -930,46 +1024,79 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // Western Volcano Sanctum Massif & Caldera (centered at VOLCANO_SANCTUM_POS: -265, 115)
+  // Colossal Western Volcano Sanctum Massif, Caldera & Surrounding Volcanic Badlands (centered at VOLCANO_SANCTUM_POS: -620, 115)
   const vDx = x - VOLCANO_SANCTUM_POS.x;
   const vDz = z - VOLCANO_SANCTUM_POS.z;
-  if (Math.abs(vDx) <= 72.0 && Math.abs(vDz) <= 72.0) {
-    // 1) Flatten the eastern approach causeway & tunnel floor (vDx in [12, 56], |vDz| < 18)
-    if (vDx >= 12.0 && vDx <= 56.0 && Math.abs(vDz) < 18.0) {
-      const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDz))) * (1.0 - smoothstep(38.0, 56.0, vDx));
-      h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
+  if (Math.abs(vDx) <= 265.0 && Math.abs(vDz) <= 265.0) {
+    const vDist = Math.hypot(vDx, vDz);
+    // 0) Sculpt undulating scorched basalt badlands & low jagged ash ridges across the outer volcanic zone (r = 98..250m)
+    if (vDist > 96.0 && vDist < 250.0) {
+      const inEastApproach = vDx > 65.0 && Math.abs(vDz) < 22.0 ? smoothstep(12.0, 22.0, Math.abs(vDz)) : 1.0;
+      const inNorthApproach = vDz < -65.0 && Math.abs(vDx) < 22.0 ? smoothstep(12.0, 22.0, Math.abs(vDx)) : 1.0;
+      const inSouthApproach = vDz > 65.0 && Math.abs(vDx) < 22.0 ? smoothstep(12.0, 22.0, Math.abs(vDx)) : 1.0;
+      const badlandsW =
+        smoothstep(96.0, 115.0, vDist) *
+        (1.0 - smoothstep(185.0, 250.0, vDist)) *
+        Math.min(inEastApproach, inNorthApproach, inSouthApproach);
+      if (badlandsW > 0.01) {
+        const ridgeWave =
+          Math.abs(Math.sin(vDx * 0.055 + vDz * 0.042)) * 2.1 +
+          fbm2D(x * 0.038 + 2.4, z * 0.038 - 1.9, 2) * 1.65;
+        h = h * (1.0 - badlandsW * 0.45) + (VOLCANO_SANCTUM_POS.floorY + ridgeWave) * (badlandsW * 0.45);
+      }
     }
 
-    // 2) Raise the towering volcanic cone (radius 58m, rim height 48.5m) with radial basalt ridges & caldera rim at r = 21m
-    const vDist = Math.hypot(vDx, vDz);
-    if (vDist < VOLCANO_SANCTUM_POS.outerRadius) {
-      // Keep the eastern entrance portal trench level for vDx > 32.5 and |vDz| < 5.0
-      const inPortalMouth = vDx > 32.5 && Math.abs(vDz) < 5.0;
-      if (!inPortalMouth) {
-        const portalRamp =
-          vDx > 20.0 && Math.abs(vDz) < 8.5
-            ? smoothstep(34.5, 22.5, vDx)
-            : 1.0;
-        const vAng = Math.atan2(vDz, vDx);
-        let coneProfile: number;
-        if (vDist >= 20.5) {
-          // Steep concave-up stratovolcano slope rising from r=58m up to the caldera rim at r=20.5m
-          const tSlope = 1.0 - (vDist - 20.5) / (VOLCANO_SANCTUM_POS.outerRadius - 20.5);
-          coneProfile = Math.pow(Math.max(0, Math.min(1, tSlope)), 1.18);
-        } else {
-          // Deep summit caldera bowl dipping inside r < 20.5m (while staying high above the inner sanctum ceiling!)
-          const tCrater = vDist / 20.5;
-          coneProfile = 0.78 + 0.22 * (tCrater * tCrater);
+    if (Math.abs(vDx) <= 125.0 && Math.abs(vDz) <= 125.0) {
+      // 1) Flatten the 3 cardinal approach causeways & portal thresholds (East +X, North -Z, South +Z)
+      if (vDx >= 24.0 && vDx <= 118.0 && Math.abs(vDz) < 18.0) {
+        const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDz))) * (1.0 - smoothstep(96.0, 118.0, vDx));
+        h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
+      }
+      if (vDz <= -24.0 && vDz >= -118.0 && Math.abs(vDx) < 18.0) {
+        const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDx))) * (1.0 - smoothstep(96.0, 118.0, -vDz));
+        h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
+      }
+      if (vDz >= 24.0 && vDz <= 118.0 && Math.abs(vDx) < 18.0) {
+        const causewayW = (1.0 - smoothstep(7.5, 17.5, Math.abs(vDx))) * (1.0 - smoothstep(96.0, 118.0, vDz));
+        h = h * (1.0 - causewayW) + VOLCANO_SANCTUM_POS.floorY * causewayW;
+      }
+
+      // 2) Raise the colossal volcanic cone (outerRadius = 105m, craterRimY = 74.0m) with caldera rim at r = 34.0m
+      if (vDist < VOLCANO_SANCTUM_POS.outerRadius) {
+        const inEastPortalMouth = vDx > 86.0 && Math.abs(vDz) < 5.0;
+        const inNorthPortalMouth = vDz < -86.0 && Math.abs(vDx) < 5.0;
+        const inSouthPortalMouth = vDz > 86.0 && Math.abs(vDx) < 5.0;
+        if (!inEastPortalMouth && !inNorthPortalMouth && !inSouthPortalMouth) {
+          const eastPortalRamp =
+            vDx > 68.0 && Math.abs(vDz) < 8.8 ? smoothstep(88.0, 72.0, vDx) : 1.0;
+          const northPortalRamp =
+            vDz < -68.0 && Math.abs(vDx) < 8.8 ? smoothstep(88.0, 72.0, -vDz) : 1.0;
+          const southPortalRamp =
+            vDz > 68.0 && Math.abs(vDx) < 8.8 ? smoothstep(88.0, 72.0, vDz) : 1.0;
+          const portalRamp = Math.min(eastPortalRamp, northPortalRamp, southPortalRamp);
+
+          const vAng = Math.atan2(vDz, vDx);
+          const rimRadius = 34.0;
+          let coneProfile: number;
+          if (vDist >= rimRadius) {
+            // Steep stratovolcano slope rising from r = 105m up to the caldera rim at r = 34m
+            const tSlope = 1.0 - (vDist - rimRadius) / (VOLCANO_SANCTUM_POS.outerRadius - rimRadius);
+            coneProfile = Math.pow(Math.max(0, Math.min(1, tSlope)), 1.15);
+          } else {
+            // Deep summit caldera bowl dipping inside r < 34m while remaining high above the 24.7m inner chamber ceiling
+            const tCrater = vDist / rimRadius;
+            coneProfile = 0.78 + 0.22 * (tCrater * tCrater);
+          }
+          const radialRidge =
+            vDist > rimRadius && vDist < 98.0
+              ? Math.sin(vAng * 9.0 + vDist * 0.06) * 2.6 * Math.sin(((vDist - rimRadius) / (98.0 - rimRadius)) * Math.PI)
+              : 0.0;
+          const vCrag = fbm2D(x * 0.065 + 5.2, z * 0.065 - 3.7, 2) * 3.8 + radialRidge;
+          const targetVolcanoH =
+            VOLCANO_SANCTUM_POS.floorY +
+            portalRamp * coneProfile * (VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY + vCrag);
+          h = Math.max(h, targetVolcanoH);
         }
-        const radialRidge =
-          vDist > 21.0 && vDist < 54.0
-            ? Math.sin(vAng * 7.0 + vDist * 0.08) * 1.85 * Math.sin(((vDist - 21.0) / 33.0) * Math.PI)
-            : 0.0;
-        const vCrag = fbm2D(x * 0.08 + 5.2, z * 0.08 - 3.7, 2) * 2.8 + radialRidge;
-        const targetVolcanoH =
-          VOLCANO_SANCTUM_POS.floorY +
-          portalRamp * coneProfile * (VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY + vCrag);
-        h = Math.max(h, targetVolcanoH);
       }
     }
   }
@@ -1588,10 +1715,23 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   }
   const volcanoDist = Math.hypot(x - VOLCANO_SANCTUM_POS.x, z - VOLCANO_SANCTUM_POS.z);
   if (volcanoDist <= VOLCANO_SANCTUM_POS.outerRadius) {
-    if (volcanoDist <= 17.5 || Math.abs(volcanoDist - 21.0) <= 2.4) {
+    if (volcanoDist <= 28.0 || Math.abs(volcanoDist - 34.0) <= 3.2) {
       return [242, 88, 26];
     }
     return [48, 42, 40];
+  }
+  const volBadlands = volcanicBadlandsFactorAt(x, z);
+  if (volBadlands > 0.24) {
+    const vAng = Math.atan2(z - VOLCANO_SANCTUM_POS.z, x - VOLCANO_SANCTUM_POS.x);
+    const lavaCrack = Math.abs(Math.sin(vAng * 6.0 + volcanoDist * 0.055));
+    if (lavaCrack < 0.095 && volcanoDist < 210.0) {
+      return [218, 76, 28];
+    }
+    return [
+      Math.round(84 * (1 - volBadlands) + 58 * volBadlands),
+      Math.round(132 * (1 - volBadlands) + 49 * volBadlands),
+      Math.round(66 * (1 - volBadlands) + 46 * volBadlands),
+    ];
   }
   for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
     const isl = FLOATING_BLOOMING_ISLANDS[i];
@@ -2095,10 +2235,37 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
   }
 
   cachedWorldObstacles = obstacles;
+  buildWorldObstacleGrid(obstacles);
   return obstacles;
 }
 
+const OBSTACLE_GRID_CELL_SIZE = 24.0;
+const EMPTY_OBSTACLE_CELL: readonly IObstacleCylinder[] = [];
+const _nearbyObstaclesScratch: IObstacleCylinder[] = [];
 let cachedWorldObstacles: IObstacleCylinder[] | null = null;
+let cachedWorldObstacleGrid: Map<number, IObstacleCylinder[]> | null = null;
+
+function encodeObstacleCellKey(cx: number, cz: number): number {
+  return ((cx + 512) << 10) | ((cz + 512) & 1023);
+}
+
+function buildWorldObstacleGrid(obstacles: readonly IObstacleCylinder[]): Map<number, IObstacleCylinder[]> {
+  const grid = new Map<number, IObstacleCylinder[]>();
+  for (let i = 0; i < obstacles.length; i++) {
+    const obs = obstacles[i];
+    const cx = Math.floor(obs.x / OBSTACLE_GRID_CELL_SIZE);
+    const cz = Math.floor(obs.z / OBSTACLE_GRID_CELL_SIZE);
+    const key = encodeObstacleCellKey(cx, cz);
+    let bucket = grid.get(key);
+    if (!bucket) {
+      bucket = [];
+      grid.set(key, bucket);
+    }
+    bucket.push(obs);
+  }
+  cachedWorldObstacleGrid = grid;
+  return grid;
+}
 
 /**
  * Summary: Returns cached world obstacle cylinders (trees, boulders, stones) for fast wildlife collision queries.
@@ -2110,4 +2277,42 @@ export function getWorldObstacles(): readonly IObstacleCylinder[] {
   return cachedWorldObstacles;
 }
 
+/**
+ * Summary: Returns only the world obstacles in the 24m spatial grid cells overlapping (x, z) +/- searchRadius.
+ * Design: Zero-allocation spatial hash lookup (~600x faster than scanning all 6,000 world obstacles).
+ */
+export function getNearbyWorldObstacles(
+  x: number,
+  z: number,
+  searchRadius = 4.0
+): readonly IObstacleCylinder[] {
+  if (!cachedWorldObstacleGrid) {
+    getWorldObstacles();
+  }
+  const grid = cachedWorldObstacleGrid!;
+  const reach = searchRadius + 1.8;
+  const minCx = Math.floor((x - reach) / OBSTACLE_GRID_CELL_SIZE);
+  const maxCx = Math.floor((x + reach) / OBSTACLE_GRID_CELL_SIZE);
+  const minCz = Math.floor((z - reach) / OBSTACLE_GRID_CELL_SIZE);
+  const maxCz = Math.floor((z + reach) / OBSTACLE_GRID_CELL_SIZE);
+
+  if (minCx === maxCx && minCz === maxCz) {
+    return grid.get(encodeObstacleCellKey(minCx, minCz)) ?? EMPTY_OBSTACLE_CELL;
+  }
+
+  _nearbyObstaclesScratch.length = 0;
+  for (let cx = minCx; cx <= maxCx; cx++) {
+    for (let cz = minCz; cz <= maxCz; cz++) {
+      const bucket = grid.get(encodeObstacleCellKey(cx, cz));
+      if (bucket) {
+        for (let i = 0; i < bucket.length; i++) {
+          _nearbyObstaclesScratch.push(bucket[i]);
+        }
+      }
+    }
+  }
+  return _nearbyObstaclesScratch;
+}
+
 // #endregion
+

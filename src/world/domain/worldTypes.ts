@@ -795,6 +795,7 @@ export interface IGameActions {
   readonly onToggleFavorite: (id: InventoryItemId) => void;
   readonly onSetWorldHours?: (hours: number) => void;
   readonly onSetSeason?: (season: SeasonType | 'auto') => void;
+  readonly onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
 }
 // #endregion
 // #endregion

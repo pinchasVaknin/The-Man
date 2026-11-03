@@ -788,20 +788,20 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -83.161402,
+   "x": -83.417075,
    "z": -18
   },
   "species": "deer",
   "target": {
-   "aiBehavior": "grazing",
-   "alertLevel": "grazing",
+   "aiBehavior": "fleeing",
+   "alertLevel": "fleeing",
    "hp": 2,
-   "vx": 0,
-   "vz": 0,
+   "vx": -9.199222,
+   "vz": -0.119629,
    "wokenUpTimer": 3,
-   "x": -109.365235,
-   "yaw": -1.578255,
-   "z": -18.219003
+   "x": -113.633204,
+   "yaw": -1.5838,
+   "z": -18.46898
   }
  },
  {
@@ -811,7 +811,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -88.441862,
+   "x": -90.234449,
    "z": -18
   },
   "species": "deer",
@@ -822,9 +822,9 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 2,
-   "x": -109.365235,
-   "yaw": -1.578255,
-   "z": -18.219003
+   "x": -117.891018,
+   "yaw": -1.606588,
+   "z": -19.109964
   }
  },
  {
@@ -1203,7 +1203,7 @@
   "frame": 299,
   "isShot": false,
   "player": {
-   "stamina": 44,
+   "stamina": 30,
    "vx": -1.2,
    "vz": 0,
    "x": -78.859909,
@@ -1227,7 +1227,7 @@
   "frame": 359,
   "isShot": false,
   "player": {
-   "stamina": 30,
+   "stamina": 16,
    "vx": -1.2,
    "vz": 0,
    "x": -79.005279,
@@ -1275,7 +1275,7 @@
   "frame": 119,
   "isShot": true,
   "player": {
-   "stamina": 86,
+   "stamina": 72,
    "vx": -1.2,
    "vz": 0,
    "x": -77.217531,
@@ -1299,7 +1299,7 @@
   "frame": 179,
   "isShot": true,
   "player": {
-   "stamina": 72,
+   "stamina": 58,
    "vx": -1.2,
    "vz": 0,
    "x": -77.455322,
@@ -1323,7 +1323,7 @@
   "frame": 239,
   "isShot": true,
   "player": {
-   "stamina": 58,
+   "stamina": 44,
    "vx": -1.2,
    "vz": 0,
    "x": -77.642285,
@@ -1348,7 +1348,7 @@
   "isShot": true,
   "player": {
    "stamina": 30,
-   "vx": 1.6,
+   "vx": -1.2,
    "vz": 0,
    "x": -77.789285,
    "z": -56
@@ -1371,7 +1371,7 @@
   "frame": 359,
   "isShot": true,
   "player": {
-   "stamina": 16,
+   "stamina": 2,
    "vx": -1.2,
    "vz": 0,
    "x": -77.904863,
@@ -2562,19 +2562,19 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.762552,
+   "x": -392.762552,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0.558978,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2586,19 +2586,19 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.833851,
+   "x": -392.833851,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2610,19 +2610,19 @@
    "stamina": 64,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.88991,
+   "x": -392.88991,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0.523609,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2634,19 +2634,19 @@
    "stamina": 40,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.933987,
+   "x": -392.933987,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0.011277,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2658,19 +2658,19 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.968642,
+   "x": -392.968642,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0.440823,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2682,19 +2682,19 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.99589,
+   "x": -392.99589,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 5,
+   "hp": 12,
    "pounceHeight": 0.177334,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2706,19 +2706,19 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.762552,
+   "x": -392.762552,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0.558978,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 7,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2730,19 +2730,19 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.833851,
+   "x": -392.833851,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 6,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2754,19 +2754,19 @@
    "stamina": 64,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.88991,
+   "x": -392.88991,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0.523609,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 5,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2778,19 +2778,19 @@
    "stamina": 40,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.933987,
+   "x": -392.933987,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0.011277,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 4,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2802,19 +2802,19 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.968642,
+   "x": -392.968642,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0.440823,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 3,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2826,19 +2826,19 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -257.99589,
+   "x": -392.99589,
    "z": 115
   },
   "species": "lion",
   "target": {
    "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 4,
+   "hp": 11,
    "pounceHeight": 0.177334,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 2,
-   "x": -259.596116,
+   "x": -394.596116,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2850,135 +2850,135 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 211.401763,
-   "z": -28
-  },
-  "species": "stag",
-  "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 4,
-   "vx": -9.4,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": 195.756667,
-   "yaw": -1.570796,
-   "z": -28
-  }
- },
- {
-  "frame": 119,
-  "isShot": false,
-  "player": {
-   "stamina": 100,
-   "vx": -1.2,
-   "vz": 0,
-   "x": 207.35014,
-   "z": -28
-  },
-  "species": "stag",
-  "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 4,
-   "vx": -9.4,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": 186.356667,
-   "yaw": -1.570796,
-   "z": -28
-  }
- },
- {
-  "frame": 179,
-  "isShot": false,
-  "player": {
-   "stamina": 100,
-   "vx": -1.2,
-   "vz": 0,
-   "x": 202.268922,
-   "z": -28
-  },
-  "species": "stag",
-  "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 4,
-   "vx": 9.12832,
-   "vz": -2.243609,
-   "wokenUpTimer": 0,
-   "x": 179.945676,
-   "yaw": -1.706654,
-   "z": -28.842008
-  }
- },
- {
-  "frame": 239,
-  "isShot": false,
-  "player": {
-   "stamina": 100,
-   "vx": -1.2,
-   "vz": 0,
-   "x": 197.769842,
-   "z": -28
-  },
-  "species": "stag",
-  "target": {
-   "aiBehavior": "listening",
-   "alertLevel": "curious",
-   "hp": 4,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": 179.647189,
-   "yaw": -3.903529,
-   "z": -30.217219
-  }
- },
- {
-  "frame": 299,
-  "isShot": false,
-  "player": {
-   "stamina": 100,
-   "vx": -1.2,
-   "vz": 0,
-   "x": 194.216739,
-   "z": -28
-  },
-  "species": "stag",
-  "target": {
-   "aiBehavior": "listening",
-   "alertLevel": "curious",
-   "hp": 4,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": 179.647189,
-   "yaw": 1.419773,
-   "z": -30.217219
-  }
- },
- {
-  "frame": 359,
-  "isShot": false,
-  "player": {
-   "stamina": 100,
-   "vx": -1.2,
-   "vz": 0,
-   "x": 191.423115,
+   "x": 357.39687,
    "z": -28
   },
   "species": "stag",
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 4,
+   "hp": 9,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 179.647189,
-   "yaw": 1.412684,
-   "z": -30.217219
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
+  }
+ },
+ {
+  "frame": 119,
+  "isShot": false,
+  "player": {
+   "stamina": 100,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 356.13641,
+   "z": -28
+  },
+  "species": "stag",
+  "target": {
+   "aiBehavior": "grazing",
+   "alertLevel": "grazing",
+   "hp": 9,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
+  }
+ },
+ {
+  "frame": 179,
+  "isShot": false,
+  "player": {
+   "stamina": 100,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 355.145375,
+   "z": -28
+  },
+  "species": "stag",
+  "target": {
+   "aiBehavior": "grazing",
+   "alertLevel": "grazing",
+   "hp": 9,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
+  }
+ },
+ {
+  "frame": 239,
+  "isShot": false,
+  "player": {
+   "stamina": 100,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 354.366174,
+   "z": -28
+  },
+  "species": "stag",
+  "target": {
+   "aiBehavior": "grazing",
+   "alertLevel": "grazing",
+   "hp": 9,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
+  }
+ },
+ {
+  "frame": 299,
+  "isShot": false,
+  "player": {
+   "stamina": 100,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 353.753527,
+   "z": -28
+  },
+  "species": "stag",
+  "target": {
+   "aiBehavior": "grazing",
+   "alertLevel": "grazing",
+   "hp": 9,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
+  }
+ },
+ {
+  "frame": 359,
+  "isShot": false,
+  "player": {
+   "stamina": 100,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 353.271834,
+   "z": -28
+  },
+  "species": "stag",
+  "target": {
+   "aiBehavior": "grazing",
+   "alertLevel": "grazing",
+   "hp": 9,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": 350,
+   "yaw": 4.864962,
+   "z": -28
   }
  },
  {
@@ -2988,19 +2988,19 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 211.36877,
+   "x": 358.1964,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 3,
-   "vx": -9.4,
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 8,
+   "vx": 0,
    "vz": 0,
-   "wokenUpTimer": 7,
-   "x": 195.6,
-   "yaw": -1.570796,
+   "wokenUpTimer": 27,
+   "x": 355.303333,
+   "yaw": 1.570796,
    "z": -28
   }
  },
@@ -3008,22 +3008,22 @@
   "frame": 119,
   "isShot": true,
   "player": {
-   "stamina": 100,
+   "stamina": 56,
    "vx": -1.2,
    "vz": 0,
-   "x": 207.290712,
+   "x": 357.898631,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 3,
-   "vx": -9.4,
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 8,
+   "vx": 0,
    "vz": 0,
-   "wokenUpTimer": 6,
-   "x": 186.2,
-   "yaw": -1.570796,
+   "wokenUpTimer": 26,
+   "x": 355.303333,
+   "yaw": 1.570796,
    "z": -28
   }
  },
@@ -3031,92 +3031,92 @@
   "frame": 179,
   "isShot": true,
   "player": {
-   "stamina": 100,
+   "stamina": 34,
    "vx": -1.2,
    "vz": 0,
-   "x": 202.200211,
+   "x": 357.664511,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 3,
-   "vx": 9.132032,
-   "vz": -2.228452,
-   "wokenUpTimer": 5,
-   "x": 179.935487,
-   "yaw": -1.708612,
-   "z": -28.883612
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 8,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 25,
+   "x": 355.303333,
+   "yaw": 1.570796,
+   "z": -28
   }
  },
  {
   "frame": 239,
   "isShot": true,
   "player": {
-   "stamina": 100,
+   "stamina": 12,
    "vx": -1.2,
    "vz": 0,
-   "x": 197.7025,
+   "x": 357.480434,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 3,
-   "vx": 9.316936,
-   "vz": -1.246881,
-   "wokenUpTimer": 4,
-   "x": 179.427985,
-   "yaw": -1.86159,
-   "z": -31.57771
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 8,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 24,
+   "x": 355.303333,
+   "yaw": 1.570796,
+   "z": -28
   }
  },
  {
   "frame": 299,
   "isShot": true,
   "player": {
-   "stamina": 100,
+   "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 194.089789,
+   "x": 357.335703,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "listening",
+   "aiBehavior": "attacking",
    "alertLevel": "curious",
-   "hp": 3,
+   "hp": 8,
    "vx": 0,
    "vz": 0,
-   "wokenUpTimer": 3,
-   "x": 179.265249,
-   "yaw": -4.145712,
-   "z": -33.166265
+   "wokenUpTimer": 23,
+   "x": 355.303333,
+   "yaw": 1.570796,
+   "z": -28
   }
  },
  {
   "frame": 359,
   "isShot": true,
   "player": {
-   "stamina": 100,
+   "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 191.240869,
+   "x": 357.221909,
    "z": -28
   },
   "species": "stag",
   "target": {
-   "aiBehavior": "fleeing",
-   "alertLevel": "fleeing",
-   "hp": 3,
-   "vx": 9.391249,
-   "vz": -0.405513,
-   "wokenUpTimer": 2,
-   "x": 179.224019,
-   "yaw": 1.903142,
-   "z": -33.886996
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 8,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 22,
+   "x": 355.303333,
+   "yaw": 1.570796,
+   "z": -28
   }
  },
  {

@@ -138,6 +138,8 @@ export function createWorldScene(container: HTMLElement, logger: ILogger): IWorl
   const textures = createWorldTextures(renderer);
   const obstacles = generateWorldObstacles();
   const worldHandles = buildRealisticWorld(scene, textures, obstacles, isSoftwareGl, logger);
+  // Pre-compile all WebGL shaders while all chunks/landmarks are visible to eliminate first-sight stalls when flying
+  renderer.compile(scene, camera);
 
   return {
     isSoftwareGl,

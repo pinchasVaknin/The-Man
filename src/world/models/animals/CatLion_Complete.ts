@@ -329,7 +329,12 @@ export class CatLionAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: CatLionState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
+    const isOneShot =
+      (st === 'death' && !this.loopDeath) ||
+      st === 'attack' ||
+      st === 'bite_attack' ||
+      st === 'roar';
+    let u = isOneShot ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
     if (u < 0) u += 1.0;
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));

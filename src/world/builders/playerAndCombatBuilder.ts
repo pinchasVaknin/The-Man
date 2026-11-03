@@ -1359,32 +1359,36 @@ export function buildPlayerAndCombatSystems(
     const torchActive = !isSwim && equippedTool === 'torch' && !isAimingBow;
     const swordActive = !isSwim && equippedTool === 'sword' && !isAimingBow;
     const fireArrowActive = !isSwim && arrowKind === 'fire' && isAimingBow;
-    if (torchActive || fireArrowActive) {
-      playerTorchLight.intensity = (torchActive ? 3.8 : 2.6) * flameFlicker;
-      playerTorchLight.color.setHex(torchActive ? 0xff8c24 : 0xff6b00);
-      const fwdX = -Math.sin(playerState.yaw);
-      const fwdZ = -Math.cos(playerState.yaw);
-      playerTorchLight.position.set(
-        playerState.x + fwdX * 0.65,
-        playerState.y + (isMounted ? 2.3 : 1.65),
-        playerState.z + fwdZ * 0.65
-      );
-    } else {
-      playerTorchLight.intensity = 0;
-    }
-
     const isMountedStag = Boolean(playerState.mountedHorseId?.startsWith('mount-stag-'));
     const isMountedLion = Boolean(playerState.mountedHorseId?.startsWith('mount-lion-'));
-    const mountLift = isMountedStag ? 1.12 : isMountedLion ? 1.24 : isMounted ? 0.72 : 0.0;
+    const mountLift = isMountedStag ? 1.12 : isMountedLion ? 1.54 : isMounted ? 0.72 : 0.0;
+    const saddleHeightBonus = isMountedStag ? 1.06 : isMountedLion ? 1.48 : isMounted ? 0.68 : 0.0;
     const horseBaseYaw = isMounted
       ? (playerState.mountedHorseYaw ?? playerState.yaw)
       : playerState.yaw;
+    const mountBackOffset = isMountedLion ? 0.28 : 0;
+    const mountBackOffsetX = Math.sin(horseBaseYaw) * mountBackOffset;
+    const mountBackOffsetZ = Math.cos(horseBaseYaw) * mountBackOffset;
     const mountedRelLookYaw = isMounted
       ? Math.atan2(
           Math.sin(playerState.yaw - horseBaseYaw),
           Math.cos(playerState.yaw - horseBaseYaw)
         )
       : 0;
+
+    if (torchActive || fireArrowActive) {
+      playerTorchLight.intensity = (torchActive ? 3.8 : 2.6) * flameFlicker;
+      playerTorchLight.color.setHex(torchActive ? 0xff8c24 : 0xff6b00);
+      const fwdX = -Math.sin(playerState.yaw);
+      const fwdZ = -Math.cos(playerState.yaw);
+      playerTorchLight.position.set(
+        playerState.x + mountBackOffsetX + fwdX * 0.65,
+        playerState.y + (isMounted ? 1.65 + saddleHeightBonus : 1.65),
+        playerState.z + mountBackOffsetZ + fwdZ * 0.65
+      );
+    } else {
+      playerTorchLight.intensity = 0;
+    }
 
     if (playerState.isSleeping) {
       // Lying horizontally on the bed mattress on back (head on pillow at -Z, feet stretched toward +Z)
@@ -1418,11 +1422,16 @@ export function buildPlayerAndCombatSystems(
       rangerRightLeg.rotation.set(0, 0, -0.04);
       rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
       rangerLeftArmGroup.rotation.set(0.12, 0, 0.18);
+      rRightHandMesh.rotation.set(0, 0, 0);
       poseRightArmSegments(0.25, 0.52, 0, 0.12, 0, -0.18, 0.25, 0, 0);
       return;
     }
 
-    playerCharacterGroup.position.set(playerState.x, playerState.y + mountLift, playerState.z);
+    playerCharacterGroup.position.set(
+      playerState.x + mountBackOffsetX,
+      playerState.y + mountLift,
+      playerState.z + mountBackOffsetZ
+    );
     playerCharacterGroup.rotation.order = 'YXZ';
     playerCharacterGroup.rotation.y = horseBaseYaw;
 
@@ -1459,8 +1468,7 @@ export function buildPlayerAndCombatSystems(
       const isCrouching =
         !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
       const crouchOffset = isCrouching ? -0.48 : 0;
-      const saddleHeightBonus = isMountedStag ? 1.06 : isMountedLion ? 1.18 : isMounted ? 0.68 : 0;
-      const bobScale = isFlying ? 0 : isMounted ? 0.014 : isSwim ? 0.042 : isCrouching ? 0.024 : 0.048;
+      const bobScale = isFlying ? 0 : isMounted ? 0.022 : isSwim ? 0.045 : isCrouching ? 0.024 : 0.055;
       const bobY = isFlying
         ? 0
         : isMounted
@@ -1468,15 +1476,17 @@ export function buildPlayerAndCombatSystems(
           : Math.sin(playerState.bobPhase * 2) * bobScale * playerState.bobAmount;
       const bobRoll = isFlying
         ? 0
-        : Math.cos(playerState.bobPhase) * (isMounted ? 0.0025 : 0.006) * playerState.bobAmount;
+        : Math.cos(playerState.bobPhase) * (isMounted ? 0.0045 : 0.008) * playerState.bobAmount;
+      const horsePitchSway =
+        !isFlying && isMounted ? Math.sin(playerState.bobPhase) * 0.011 * playerState.bobAmount : 0;
 
       fpViewModelGroup.position.set(
-        playerState.x,
+        playerState.x + mountBackOffsetX,
         playerState.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + crouchOffset + bobY,
-        playerState.z
+        playerState.z + mountBackOffsetZ
       );
       fpViewModelGroup.rotation.order = 'YXZ';
-      fpViewModelGroup.rotation.set(playerState.pitch, playerState.yaw, bobRoll);
+      fpViewModelGroup.rotation.set(playerState.pitch + horsePitchSway, playerState.yaw, bobRoll);
 
       // When mounted on a horse or flying (double-space), do NOT swing arms with walking bobPhase!
       const swayX =
@@ -1631,6 +1641,15 @@ export function buildPlayerAndCombatSystems(
           impactAge: playerState.lastSwordHitPoint?.age ?? 99,
         });
 
+        // Keep fpViewModelGroup rotation synchronized with cameraRigSystem's sword cameraImpulse!
+        if (swordSwing > 0.0001) {
+          fpViewModelGroup.rotation.set(
+            playerState.pitch + poseResult.cameraImpulse.pitchOffset + horsePitchSway,
+            playerState.yaw + poseResult.cameraImpulse.yawOffset,
+            bobRoll + poseResult.cameraImpulse.rollOffset
+          );
+        }
+
         fpSlashArcMesh.visible = poseResult.slashRibbon.visible;
         fpSlashArcMat.opacity = poseResult.slashRibbon.opacity;
         fpSlashArcMat.color.setHex(
@@ -1738,17 +1757,20 @@ export function buildPlayerAndCombatSystems(
     const isFlying = Boolean(playerState.isFlying);
     const isCrouching =
       !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
-    const bowInHands = !isSwim && (isAimingBow || equippedTool === 'bow');
+    // When mounted and not aiming the bow, stow the bow on the back so the left hand holds the reins cleanly!
+    const bowInHands = !isSwim && (isAimingBow || (equippedTool === 'bow' && !isMounted));
     bowGroup.visible = bowInHands;
     stowedBackBowGroup.visible = !bowInHands;
     thirdPersonTorchGroup.visible = torchActive;
     thirdPersonSwordGroup.visible = swordActive;
 
     if (isMounted) {
-      rangerLeftLeg.position.set(-0.22, 0.88, 0.05);
-      rangerRightLeg.position.set(0.22, 0.88, 0.05);
-      rangerLeftLeg.rotation.set(-0.55, 0, 0.28);
-      rangerRightLeg.rotation.set(-0.55, 0, -0.28);
+      const legSpreadX = isMountedLion ? 0.26 : 0.22;
+      const legSplayZ = isMountedLion ? 0.34 : 0.28;
+      rangerLeftLeg.position.set(-legSpreadX, 0.88, 0.05);
+      rangerRightLeg.position.set(legSpreadX, 0.88, 0.05);
+      rangerLeftLeg.rotation.set(-0.52, 0, legSplayZ);
+      rangerRightLeg.rotation.set(-0.52, 0, -legSplayZ);
     } else if (isSwim) {
       const swimKick = Math.sin(elapsedTime * 5.2) * 0.34;
       const bodyPitch = horizSpd > 0.2 || Math.abs(playerState.vy) > 0.3
@@ -1778,8 +1800,9 @@ export function buildPlayerAndCombatSystems(
       rangerRightLeg.rotation.set(-legSwing, 0, 0);
     }
 
-    rangerHeadGroup.rotation.x = playerState.pitch * 0.65 + (isCrouching ? 0.24 : 0);
-    rangerHeadGroup.rotation.y = isMounted ? mountedRelLookYaw * 0.38 : 0;
+    rangerHeadGroup.rotation.x =
+      (isAimingBow ? playerState.pitch * 0.25 : playerState.pitch * 0.65) + (isCrouching ? 0.24 : 0);
+    rangerHeadGroup.rotation.y = isMounted ? mountedRelLookYaw * (isAimingBow ? 0.15 : 0.38) : 0;
 
     if (isSwim) {
       const swimCycle = elapsedTime * (horizSpd > 0.2 ? 4.4 : 2.8);
@@ -1790,6 +1813,7 @@ export function buildPlayerAndCombatSystems(
       rangerUpperTorsoPivot.rotation.set(swimTorsoPitch, 0, 0);
       rangerLeftArmGroup.position.set(-0.25, 0.52, 0);
       rangerLeftArmGroup.rotation.set(Math.sin(swimCycle) * 0.52, 0.25, -0.35);
+      rRightHandMesh.rotation.set(0, 0, 0);
       poseRightArmSegments(
         0.25,
         0.52,
@@ -1819,54 +1843,73 @@ export function buildPlayerAndCombatSystems(
             (isCrouching ? 0.018 : 0.035)),
       0
     );
+    rangerUpperTorsoPivot.rotation.order = 'YXZ';
+    const activeMountCombatTurn = isAimingBow || (swordActive && swordSwing > 0.01);
     rangerUpperTorsoPivot.rotation.set(
-      (isAimingBow ? playerState.pitch * 0.35 : -Math.min(0.10, horizSpd * 0.010)) +
-        crouchForwardLean,
-      (isMounted ? mountedRelLookYaw * 0.68 : 0) + (isAimingBow ? -0.16 : 0),
+      (isAimingBow
+        ? playerState.pitch * 0.62
+        : swordActive && swordSwing > 0.01
+          ? playerState.pitch * 0.35 - Math.sin(swordSwing * Math.PI) * 0.18
+          : -Math.min(0.10, horizSpd * 0.010)) + crouchForwardLean,
+      (isMounted ? mountedRelLookYaw * (activeMountCombatTurn ? 0.95 : 0.68) : 0) +
+        (isAimingBow ? -0.16 : 0),
       0
     );
 
     if (isAimingBow) {
-      rangerLeftArmGroup.position.set(-0.24, 0.55, -0.04);
-      rangerLeftArmGroup.rotation.set(playerState.pitch * 0.55, 0.14, 0);
+      // Both left bow arm and right string-drawing arm are children of rangerUpperTorsoPivot,
+      // which already pitches by playerState.pitch * 0.62 — keep both hands at matching local Y (0.50..0.52)
+      // so the string hand and bow hand remain 100% synchronized at any vertical aim angle!
+      rangerLeftArmGroup.position.set(-0.24, 0.50, -0.04);
+      rangerLeftArmGroup.rotation.set(0, 0.14, 0);
       bowGroup.rotation.set(0, 0, -0.08);
+      rRightHandMesh.rotation.set(0, 0, 0);
 
       nockedArrowGroup.visible = true;
       updateBowRigString(tpBowRig, drawProg, false);
 
       const handX = -0.20 + drawProg * 0.14;
-      const handY = 0.57;
+      const handY = 0.51;
       const handZ = -0.52 + drawProg * 0.44;
       const elbowX = 0.34;
-      const elbowY = 0.58;
+      const elbowY = 0.50;
       const elbowZ = -0.04 + drawProg * 0.28;
-      poseRightArmSegments(0.24, 0.54, 0.0, elbowX, elbowY, elbowZ, handX, handY, handZ);
+      poseRightArmSegments(0.24, 0.50, 0.0, elbowX, elbowY, elbowZ, handX, handY, handZ);
     } else if (isMounted) {
-      // Mounted on horse: hands hold the reins steadily in front of the saddle pommel (ZERO walking arm swing!)
-      rangerLeftArmGroup.position.set(-0.23, 0.50, -0.04);
-      rangerLeftArmGroup.rotation.set(-0.72, -0.16, 0.14);
+      // Mounted on horse/stag/Boss CatLion: left hand holds the reins at natural waist/pommel level
+      rangerLeftArmGroup.position.set(-0.23, 0.48, -0.04);
+      rangerLeftArmGroup.rotation.set(-0.62, -0.16, 0.12);
       bowGroup.rotation.set(0.35, 0, -0.45);
       nockedArrowGroup.visible = false;
       updateBowRigString(tpBowRig, 0, false);
 
       if (torchActive) {
-        poseRightArmSegments(0.25, 0.52, 0.0, 0.30, 0.44, -0.22, 0.26, 0.64, -0.46);
+        rRightHandMesh.rotation.set(0.18, 0, -0.08);
+        poseRightArmSegments(0.24, 0.48, 0.0, 0.29, 0.36, -0.18, 0.24, 0.38, -0.38);
       } else if (swordActive) {
         const slashArc = Math.sin(swordSwing * Math.PI);
+        const comboDir = swordComboIdx % 2 === 1 ? -1 : 1;
+        rRightHandMesh.rotation.order = 'YXZ';
+        rRightHandMesh.rotation.set(
+          -0.28 - slashArc * 0.85,
+          comboDir * (0.22 - slashArc * 0.95),
+          -0.18 - comboDir * slashArc * 0.65
+        );
         poseRightArmSegments(
-          0.25,
-          0.52,
+          0.24,
+          0.48,
           0.0,
-          0.32 - slashArc * 0.12,
-          0.38,
-          -0.18 - slashArc * 0.18,
-          0.28 - slashArc * 0.36,
-          0.42 - slashArc * 0.12,
-          -0.44 - slashArc * 0.16
+          0.30 - slashArc * 0.10,
+          0.34 - slashArc * 0.06,
+          -0.16 - slashArc * 0.16,
+          0.26 - comboDir * slashArc * 0.38,
+          0.32 - slashArc * 0.14,
+          -0.38 - slashArc * 0.18
         );
       } else {
-        // Right hand also gripping the reins in front of the saddle
-        poseRightArmSegments(0.23, 0.50, -0.04, 0.24, 0.32, -0.18, 0.12, 0.24, -0.34);
+        // Right hand also gripping the reins in front of the saddle (matching left hand height)
+        rRightHandMesh.rotation.set(0, 0, 0);
+        poseRightArmSegments(0.23, 0.48, -0.04, 0.24, 0.32, -0.18, 0.12, 0.24, -0.34);
       }
     } else {
       const armSwing = isFlying
@@ -1881,21 +1924,30 @@ export function buildPlayerAndCombatSystems(
       updateBowRigString(tpBowRig, 0, false);
 
       if (torchActive) {
-        poseRightArmSegments(0.25, 0.52, 0.0, 0.30, 0.44, -0.22, 0.26, 0.64, -0.46);
+        rRightHandMesh.rotation.set(0.18, 0, -0.08);
+        poseRightArmSegments(0.25, 0.50, 0.0, 0.30, 0.38, -0.20, 0.25, 0.42, -0.40);
       } else if (swordActive) {
         const slashArc = Math.sin(swordSwing * Math.PI);
+        const comboDir = swordComboIdx % 2 === 1 ? -1 : 1;
+        rRightHandMesh.rotation.order = 'YXZ';
+        rRightHandMesh.rotation.set(
+          -0.28 - slashArc * 0.85,
+          comboDir * (0.22 - slashArc * 0.95),
+          -0.18 - comboDir * slashArc * 0.65
+        );
         poseRightArmSegments(
           0.25,
-          0.52,
+          0.50,
           0.0,
           0.32 - slashArc * 0.12,
-          0.38,
+          0.36 - slashArc * 0.06,
           -0.18 - slashArc * 0.18,
-          0.28 - slashArc * 0.36,
-          0.42 - slashArc * 0.12,
-          -0.44 - slashArc * 0.16
+          0.28 - comboDir * slashArc * 0.38,
+          0.36 - slashArc * 0.14,
+          -0.40 - slashArc * 0.18
         );
       } else {
+        rRightHandMesh.rotation.set(0, 0, 0);
         poseRightArmSegments(
           0.25,
           0.52,
