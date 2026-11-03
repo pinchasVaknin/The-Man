@@ -27,6 +27,7 @@ import {
   SOLID_BUILDING_BOXES,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
+  VOLCANO_SANCTUM_POS,
   getLadderById,
   findWatchtowerLadderAt,
   findLookedAtWatchtowerLadder,
@@ -36,12 +37,19 @@ import {
   groundHeightAt,
   isChineseFortressWalkableZone,
   chineseFortressStairHeightAt,
+  southernCliffsidePassTrailHeightAt,
   getWaterSurfaceHeightAt,
   walkableHeightAt,
   getSurfaceBiomeAt,
+  getSurfaceNormalAt,
+  getNearbyWorldObstacles,
 } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
-import { getActiveWorldAnimals } from './boidsAndWildlifeSystem';
+import {
+  getActiveWorldAnimals,
+  damageGroundAnimal,
+  isVolcanoBossArenaLocked,
+} from './boidsAndWildlifeSystem';
 // #endregion
 
 // ======================== INITIALIZERS & LEVEL QUERIES ======================== \\
@@ -249,8 +257,14 @@ export function findNearestRideableHorse(
     if (a.isDead || (a.species !== 'stag' && a.species !== 'lion')) continue;
     // Smaller CatLions (canBeTamed === false) can never be tamed or ridden!
     if (a.canBeTamed === false) continue;
-    // The Boss CatLion can only be tamed once subdued at low HP (<= 3 HP), or ridden once already tamed!
-    if (a.species === 'lion' && !a.isTamed && !a.isSubdued && (a.hp ?? a.maxHp ?? 12) > 3) {
+    // The Boss CatLion can only be tamed once subdued at low HP (<= 25% maxHp), or ridden once already tamed!
+    const lionSubdueThreshold = Math.max(60, Math.ceil((a.maxHp ?? 360) * 0.25));
+    if (
+      a.species === 'lion' &&
+      !a.isTamed &&
+      !a.isSubdued &&
+      (a.hp ?? a.maxHp ?? 360) > lionSubdueThreshold
+    ) {
       continue;
     }
     const maxAnimalDist = a.species === 'lion' && a.isBoss ? Math.max(maxDist, 4.6) : Math.max(maxDist, 4.2);
@@ -353,7 +367,10 @@ export function stepPlayerPhysics(
                 break;
               }
               if (a.species === 'lion' && !a.isTamed) {
-                const isWeakEnough = Boolean(a.isSubdued || (a.hp ?? a.maxHp ?? 12) <= 3);
+                const lionSubdueThreshold = Math.max(60, Math.ceil((a.maxHp ?? 360) * 0.25));
+                const isWeakEnough = Boolean(
+                  a.isSubdued || (a.hp ?? a.maxHp ?? 360) <= lionSubdueThreshold
+                );
                 if (!isWeakEnough) {
                   canMount = false;
                   break;
@@ -369,7 +386,7 @@ export function stepPlayerPhysics(
               }
               a.isTamed = true;
               a.isSubdued = false;
-              a.hp = a.maxHp ?? (a.species === 'lion' ? 12 : 9);
+              a.hp = a.maxHp ?? (a.species === 'lion' ? 360 : 270);
               a.isMountedByPlayer = true;
               a.isFleeing = false;
               a.fleeCooldown = 0;
@@ -523,7 +540,11 @@ export function stepPlayerPhysics(
     state.distanceWalked += stepDist;
     state.y += state.vy * dt;
 
-    const floorY = Math.max(walkableHeightAt(state.x, state.z, state.y).height, WATER_LEVEL - 0.5);
+    const baseGroundY = groundHeightAt(state.x, state.z);
+    const floorY =
+      state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0)
+        ? Math.max(baseGroundY, WATER_LEVEL - 0.5)
+        : Math.max(walkableHeightAt(state.x, state.z, state.y).height, WATER_LEVEL - 0.5);
     if (state.y < floorY + 0.15 && input.relaxed) {
       state.y = floorY;
       state.vy = 0;
@@ -578,13 +599,23 @@ export function stepPlayerPhysics(
   }
 
   const isMountedOnHorse = Boolean(state.mountedHorseId);
+  const isMountedOnStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedOnLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
+  const canSprint = (state.stamina ?? 100) > 1.0;
+
   let paceMultiplier = 1.0;
   if (input.relaxed && !input.sprint) {
     paceMultiplier = isMountedOnHorse ? 0.55 : 0.45;
     state.walkPace = 'relaxed';
     state.isCrouching = !isMountedOnHorse && !state.isSwimming;
-  } else if (input.sprint) {
-    paceMultiplier = isMountedOnHorse ? 1.62 : 1.75;
+  } else if (input.sprint && canSprint) {
+    paceMultiplier = isMountedOnLion
+      ? 1.48
+      : isMountedOnStag
+        ? 1.58
+        : isMountedOnHorse
+          ? 1.55
+          : 1.75;
     state.walkPace = 'fast';
     state.isCrouching = false;
   } else {
@@ -593,11 +624,20 @@ export function stepPlayerPhysics(
     state.isCrouching = false;
   }
 
-  const isMountedOnStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
-  const isMountedOnLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
-  const baseWalkSpeed = isMountedOnLion ? 11.5 : isMountedOnStag ? 10.8 : isMountedOnHorse ? 9.4 : 5.0;
+  // Strict mount speed hierarchy:
+  // 1) Royal Stag ('mount-stag-') fastest (7.4 normal, ~11.7 gallop)
+  // 2) Horse ('horse-') medium pace (6.2 normal, ~9.6 gallop)
+  // 3) Boss CatLion ('mount-lion-') slowest mount, slightly faster than human (5.3 normal, ~7.84 run)
+  // 4) Unmounted human (5.0 normal, 8.75 sprint)
+  const baseWalkSpeed = isMountedOnStag
+    ? 7.4
+    : isMountedOnHorse && !isMountedOnLion
+      ? 6.2
+      : isMountedOnLion
+        ? 5.3
+        : 5.0;
   const waterSlowdown = state.inWater ? 0.68 : 1.0;
-  const dashMultiplier = isDashing ? (state.isSwimming ? 2.45 : isMountedOnLion ? 2.65 : 2.35) : 1.0;
+  const dashMultiplier = isDashing ? (state.isSwimming ? 2.45 : isMountedOnHorse ? 1.45 : 2.35) : 1.0;
   const targetSpeed = baseWalkSpeed * paceMultiplier * waterSlowdown * dashMultiplier;
 
   const dashDirX = moveLen > 0.05 ? moveX : fwdX;
@@ -605,10 +645,16 @@ export function stepPlayerPhysics(
   const targetVx = (isDashing ? dashDirX : moveX) * targetSpeed;
   const targetVz = (isDashing ? dashDirZ : moveZ) * targetSpeed;
 
-  const accel = isDashing ? 24.0 : state.onGround ? 15.0 : 5.5;
+  const accel = isDashing ? 24.0 : state.onGround ? 15.0 : isMountedOnHorse ? 6.5 : 5.5;
   const damp = 1.0 - Math.exp(-accel * dt);
   state.vx += (targetVx - state.vx) * damp;
   state.vz += (targetVz - state.vz) * damp;
+  if (isMountedOnHorse && !state.onGround && !state.isSwimming && state.vy < -10.5) {
+    // Only apply horizontal air-drag during deep cliff free-falls (vy < -10.5) so normal jumps keep their full forward momentum!
+    const cliffFallDrag = Math.exp(-1.85 * dt);
+    state.vx *= cliffFallDrag;
+    state.vz *= cliffFallDrag;
+  }
 
   const nearbyLadderAtPos = findWatchtowerLadderAt(state.x, state.z);
   const lookedAtLadder = findLookedAtWatchtowerLadder(state.x, state.y, state.z, state.yaw, state.pitch);
@@ -697,13 +743,53 @@ export function stepPlayerPhysics(
       state.coyoteTimer = Math.max(0, state.coyoteTimer - dt);
     }
 
-    if (input.jumpPressed && !jumpConsumedByLadder) {
+    if (isMountedOnLion) {
+      // Boss CatLion cannot jump — pressing Space triggers a full 24-frame stationary attack in place!
+      state.jumpBufferTimer = 0;
+      const worldAnimals = getActiveWorldAnimals();
+      for (let aIdx = 0; aIdx < worldAnimals.length; aIdx++) {
+        const a = worldAnimals[aIdx];
+        if (`mount-lion-${a.id}` === state.mountedHorseId) {
+          if ((a.actionTimer ?? 0) > 0.12 && a.aiBehavior === 'attacking') {
+            state.vx = 0;
+            state.vz = 0;
+          }
+          break;
+        }
+      }
+      if (input.jumpPressed && !jumpConsumedByLadder) {
+        state.vx = 0;
+        state.vz = 0;
+        const mountYaw = activeMountedHorse ? activeMountedHorse.yaw : state.yaw;
+        const strikeFwdX = -Math.sin(mountYaw);
+        const strikeFwdZ = -Math.cos(mountYaw);
+        for (let aIdx = 0; aIdx < worldAnimals.length; aIdx++) {
+          const a = worldAnimals[aIdx];
+          if (`mount-lion-${a.id}` === state.mountedHorseId) {
+            a.aiBehavior = 'attacking';
+            a.actionTimer = 0.96;
+            a.vx = 0;
+            a.vz = 0;
+          } else if (!a.isDead && !a.isLooted && !a.isTamed && !a.isMountedByPlayer) {
+            const dxA = a.x - state.x;
+            const dzA = a.z - state.z;
+            const distA = Math.hypot(dxA, dzA);
+            if (distA <= 5.5) {
+              const dotFwd = (dxA * strikeFwdX + dzA * strikeFwdZ) / (distA || 1);
+              if (dotFwd >= 0.12 || distA <= 2.8) {
+                damageGroundAnimal(a, 65, state.x, state.z);
+              }
+            }
+          }
+        }
+      }
+    } else if (input.jumpPressed && !jumpConsumedByLadder) {
       state.jumpBufferTimer = 0.13;
     } else {
       state.jumpBufferTimer = Math.max(0, state.jumpBufferTimer - dt);
     }
 
-    if (state.jumpBufferTimer > 0 && state.coyoteTimer > 0) {
+    if (!isMountedOnLion && state.jumpBufferTimer > 0 && state.coyoteTimer > 0) {
       let geyserBoostVy = 0;
       for (let g = 0; g < SKY_WIND_GEYSERS.length; g++) {
         const geyser = SKY_WIND_GEYSERS[g];
@@ -715,8 +801,13 @@ export function stepPlayerPhysics(
           break;
         }
       }
-      const mountJumpVy = isMountedOnStag ? 11.8 : isMountedOnLion ? 10.4 : isMountedOnHorse ? 7.45 : 6.25;
+      const mountJumpVy = isMountedOnStag ? 8.8 : isMountedOnHorse ? 7.2 : 6.25;
       state.vy = geyserBoostVy > 0 ? geyserBoostVy : mountJumpVy;
+      if (isMountedOnStag && geyserBoostVy === 0) {
+        // Give the Royal Stag a graceful forward leap carry on takeoff instead of braking in mid-air!
+        state.vx *= 1.12;
+        state.vz *= 1.12;
+      }
       state.onGround = false;
       state.coyoteTimer = 0;
       state.jumpBufferTimer = 0;
@@ -727,7 +818,13 @@ export function stepPlayerPhysics(
     }
 
     if (!state.isSwimming) {
-      state.vy -= GRAVITY * dt;
+      const effectiveGravity =
+        isMountedOnHorse && !state.onGround
+          ? state.vy >= 0
+            ? GRAVITY * 1.12
+            : 21.5
+          : GRAVITY;
+      state.vy -= effectiveGravity * dt;
     }
   }
 
@@ -756,8 +853,10 @@ export function stepPlayerPhysics(
   const playerRadius = 0.44;
   let highestBoulderTopY = -Infinity;
 
-  for (let i = 0; i < obstacles.length; i++) {
-    const obs = obstacles[i];
+  const candidateObstacles =
+    obstacles.length > 500 ? getNearbyWorldObstacles(nextX, nextZ, 3.0) : obstacles;
+  for (let i = 0; i < candidateObstacles.length; i++) {
+    const obs = candidateObstacles[i];
     const dx = nextX - obs.x;
     const dz = nextZ - obs.z;
     if (Math.abs(dx) > 2.5 || Math.abs(dz) > 2.5) continue;
@@ -821,6 +920,8 @@ export function stepPlayerPhysics(
             CHINESE_FORTRESS_POS.summitHeight +
             tStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
           effectiveMaxY = stairY + 0.95;
+        } else if (box.id === 'southern-cliff-pass-guardrail') {
+          effectiveMaxY = southernCliffsidePassTrailHeightAt(nextZ) + 1.25;
         }
         if (effectiveMaxY !== undefined && state.y >= effectiveMaxY - 0.28) continue;
 
@@ -962,19 +1063,53 @@ export function stepPlayerPhysics(
     }
   }
 
-  // Prevent side-collision snap-up: if stepping horizontally to (nextX, nextZ) would abruptly
-  // raise walkableHeightAt by more than a climbable step (0.56m), block that axis instead of
-  // teleporting the player on top of stairs/walls/ledges.
+  // Volcano Boss Arena Lock: once the player steps inside the 60m-diameter Boss Chamber while the
+  // King CatLion is alive, untamed, and not yet subdued, the Obsidian Magma Gates lock the exits!
+  if (!state.isFlying && isVolcanoBossArenaLocked(state.x, state.z)) {
+    const vDx = nextX - VOLCANO_SANCTUM_POS.x;
+    const vDz = nextZ - VOLCANO_SANCTUM_POS.z;
+    const vDist = Math.hypot(vDx, vDz);
+    const lockRadius = VOLCANO_SANCTUM_POS.chamberRadius - 1.4;
+    if (vDist > lockRadius && vDist > 0.001) {
+      nextX = VOLCANO_SANCTUM_POS.x + (vDx / vDist) * lockRadius;
+      nextZ = VOLCANO_SANCTUM_POS.z + (vDz / vDist) * lockRadius;
+    }
+  }
+
+  // Prevent side-collision snap-up & block climbing overly steep mountain slopes (> 38.7 deg, normal.ny < 0.78):
   if (!state.isFlying && !onLadderVolume) {
     const maxStepUp = 0.56;
-    const candFloor = walkableHeightAt(nextX, nextZ, state.y);
-    if (candFloor.height - state.y > maxStepUp) {
-      const tryXFloor = walkableHeightAt(nextX, state.z, state.y);
-      const tryZFloor = walkableHeightAt(state.x, nextZ, state.y);
-      if (tryXFloor.height - state.y <= maxStepUp) {
+    const currFloor = walkableHeightAt(state.x, state.z, state.y);
+    const isBlockedMoveTo = (tx: number, tz: number): boolean => {
+      const floor = walkableHeightAt(tx, tz, state.y);
+      if (floor.height - state.y > maxStepUp) {
+        return true;
+      }
+      // Enforce steep slope climbing limit when moving uphill on natural ground
+      if (floor.surface === 'ground' && floor.height > currFloor.height + 0.008) {
+        const horizStep = Math.hypot(tx - state.x, tz - state.z);
+        const stepGrade = horizStep > 1e-4 ? (floor.height - currFloor.height) / horizStep : 0;
+        const surfNorm = getSurfaceNormalAt(tx, tz);
+        if (surfNorm.ny < 0.78 || stepGrade > 0.80) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (isBlockedMoveTo(nextX, nextZ)) {
+      const xOk = !isBlockedMoveTo(nextX, state.z);
+      const zOk = !isBlockedMoveTo(state.x, nextZ);
+      if (xOk && !zOk) {
         nextZ = state.z;
-      } else if (tryZFloor.height - state.y <= maxStepUp) {
+      } else if (zOk && !xOk) {
         nextX = state.x;
+      } else if (xOk && zOk) {
+        if (Math.abs(nextX - state.x) >= Math.abs(nextZ - state.z)) {
+          nextZ = state.z;
+        } else {
+          nextX = state.x;
+        }
       } else {
         nextX = state.x;
         nextZ = state.z;
@@ -1139,15 +1274,26 @@ export function stepPlayerPhysics(
   }
 
   // Stamina & RPG Skill Progression
+  // Strict Mount Stamina Hierarchy:
+  // 1) Boss CatLion ('mount-lion-') has the MOST stamina (slowest drain: 4.2 / sec)
+  // 2) Royal Stag ('mount-stag-') has MEDIUM stamina (drain: 9.5 / sec)
+  // 3) Horse ('horse-') has the LEAST stamina (fastest drain: 16.5 / sec)
   const maxStam = state.maxStamina ?? 100;
   let curStam = state.stamina ?? maxStam;
-  if (input.sprint && horizSpeed > 1.2) {
-    const drainRate = isMountedOnHorse ? 5.5 : 10.5;
-    curStam = Math.max(8, curStam - drainRate * dt);
+  if (input.sprint && canSprint && horizSpeed > 1.2) {
+    const drainRate = isMountedOnLion
+      ? 4.2
+      : isMountedOnStag
+        ? 9.5
+        : isMountedOnHorse
+          ? 16.5
+          : 11.5;
+    curStam = Math.max(0, curStam - drainRate * dt);
   } else if (state.bowDrawn && (state.bowDrawProgress ?? 0) > 0.65) {
     curStam = Math.max(5, curStam - 7.5 * dt);
   } else {
-    curStam = Math.min(maxStam, curStam + 18.0 * dt);
+    const regenRate = input.sprint ? 3.5 : 16.0;
+    curStam = Math.min(maxStam, curStam + regenRate * dt);
   }
   state.stamina = curStam;
 

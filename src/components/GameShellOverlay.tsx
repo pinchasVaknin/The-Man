@@ -864,14 +864,67 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             </div>
           </div>
 
-          {/* Top-Center Combat, Hunting Loot & Level-Up Toasts (Well above the center view!) */}
-          {(telemetry.lastArrowHitTargetName ||
+          {/* Top-Center Visual Enemy Health Bar & Combat/Loot Toasts (No numeric HP text!) */}
+          {(telemetry.activeEnemyHealthBar ||
+            telemetry.lastArrowHitTargetName ||
             telemetry.lootNotification ||
             telemetry.skills?.lastLevelUpTitle) && (
             <div
-              className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
+              className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-2 z-20"
               aria-hidden="true"
             >
+              {telemetry.activeEnemyHealthBar && (
+                <div
+                  data-testid="enemy-health-bar"
+                  className="w-64 sm:w-80 px-3.5 py-2 rounded-xl flex flex-col gap-1.5 shadow-2xl"
+                  style={{
+                    backgroundColor: 'rgba(14, 11, 9, 0.90)',
+                    border: telemetry.activeEnemyHealthBar.isBoss
+                      ? '1px solid rgba(251, 191, 36, 0.72)'
+                      : '1px solid rgba(239, 68, 68, 0.55)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold tracking-wide text-stone-100 uppercase">
+                      {telemetry.activeEnemyHealthBar.name}
+                    </span>
+                    {telemetry.activeEnemyHealthBar.isSubdued && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-bold">
+                        SUBDUED
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="w-full h-2.5 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: 'rgba(28, 22, 18, 0.95)',
+                      border: '1px solid rgba(255, 255, 255, 0.14)',
+                    }}
+                  >
+                    <div
+                      data-testid="enemy-health-bar-fill"
+                      className="h-full transition-all duration-150"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (telemetry.activeEnemyHealthBar.hp /
+                              Math.max(1, telemetry.activeEnemyHealthBar.maxHp)) *
+                              100
+                          )
+                        )}%`,
+                        backgroundColor: telemetry.activeEnemyHealthBar.isSubdued
+                          ? '#f59e0b'
+                          : telemetry.activeEnemyHealthBar.isBoss
+                            ? '#dc2626'
+                            : '#ef4444',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {telemetry.lootNotification && (
                 <div
                   data-testid="hunting-loot-toast"
@@ -1101,11 +1154,16 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         </>
       )}
 
-      {/* Bottom-Left Fog-of-War Explorer Minimap (Player Always Centered) */}
+      {/* Bottom-Left Fog-of-War Explorer Minimap & [M] Full-Screen Interactive World Map */}
       <ExplorerMinimap
         playerX={telemetry.x}
         playerZ={telemetry.z}
         yawDeg={telemetry.yawDeg}
+        isPlaying={gameState === 'playing'}
+        godMode={gameSettings.godMode !== false}
+        onTeleportToWorldPos={(wx, wz) => {
+          gameActions?.onTeleportToWorldPos?.(wx, wz);
+        }}
       />
 
       {/* Mobile Touch Walk Pad (Positioned on Bottom-Right so it never overlaps the Bottom-Left Minimap) */}

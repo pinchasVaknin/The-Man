@@ -318,10 +318,10 @@
    "hearingRadius": 12,
    "visionRange": 0
   },
-  "attackTrigger": 2.4,
+  "attackTrigger": 3.15,
   "awake": {
    "hearingRadius": 24,
-   "visionRange": 21
+   "visionRange": 22
   },
   "isPredator": false,
   "loot": {
@@ -339,11 +339,11 @@
    ],
    "notification": "Looted Stag: Deer Meat, Deer Hide, Deer Antlers, Animal Bone"
   },
-  "maxHp": 4,
+  "maxHp": 9,
   "name": "Stag",
-  "sizeRank": 2.2,
+  "sizeRank": 3.5,
   "species": "stag",
-  "standoff": 1.75
+  "standoff": 2.2
  },
  {
   "asleep": {

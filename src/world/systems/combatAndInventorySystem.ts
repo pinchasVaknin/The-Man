@@ -36,6 +36,7 @@ import {
   SWORD_STRIKE_CONTACT_APEX,
 } from './swordAttackAnimationSystem';
 import {
+  BASE_ARROW_HIT_DAMAGE,
   getActiveWorldAnimals,
   damageGroundAnimal,
   type ISmallAnimalState,
@@ -627,7 +628,21 @@ export function evaluateSwordStrikeWindowHit(
   const dirX = -Math.sin(state.yaw) * cosP;
   const dirY = sinP;
   const dirZ = -Math.cos(state.yaw) * cosP;
-  const eyeY = state.y + (state.mountedHorseId ? 2.22 : PLAYER_EYE_HEIGHT * 0.88);
+  const isMountedStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
+  const eyeY =
+    state.y +
+    (isMountedLion
+      ? 2.98
+      : isMountedStag
+        ? 2.56
+        : state.mountedHorseId
+          ? 2.22
+          : PLAYER_EYE_HEIGHT * 0.88);
+  const horseYaw = state.mountedHorseId ? (state.mountedHorseYaw ?? state.yaw) : state.yaw;
+  const mountBackOffset = isMountedLion ? 0.28 : 0;
+  const originX = state.x + Math.sin(horseYaw) * mountBackOffset;
+  const originZ = state.z + Math.cos(horseYaw) * mountBackOffset;
 
   if (isHeavy) {
     if (!state.isSwimming) {
@@ -635,9 +650,9 @@ export function evaluateSwordStrikeWindowHit(
       state.vz += -Math.cos(state.yaw) * 3.6;
     }
     state.lastSwordAirWave = {
-      startX: state.x + dirX * 0.72,
+      startX: originX + dirX * 0.72,
       startY: eyeY + dirY * 0.72 - 0.06,
-      startZ: state.z + dirZ * 0.72,
+      startZ: originZ + dirZ * 0.72,
       dirX,
       dirY,
       dirZ,
@@ -650,9 +665,9 @@ export function evaluateSwordStrikeWindowHit(
   const activeAnimals = getActiveWorldAnimals();
   const maxReach = isHeavy ? SWORD_HEAVY_REACH : SWORD_LIGHT_REACH;
   for (let d = 0.75; d <= maxReach; d += 0.25) {
-    const sx = state.x + dirX * d;
+    const sx = originX + dirX * d;
     const sy = eyeY + dirY * d;
-    const sz = state.z + dirZ * d;
+    const sz = originZ + dirZ * d;
 
     const nearbyTargets = getNearbyArcheryTargets(sx, sz);
     for (let t = 0; t < nearbyTargets.length; t++) {
@@ -662,7 +677,6 @@ export function evaluateSwordStrikeWindowHit(
       if (Math.hypot(sx - tgt.x, sy - centerY, sz - tgt.z) <= tgt.bullseyeRadius + (isHeavy ? 0.45 : 0.25)) {
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'target' };
         state.lastArrowHitTarget = tgt.id;
-        state.goldCoins = (state.goldCoins ?? 280) + 15;
         state.swordHitStopTimer = 0.042;
         awardSkillXp(state, 'swordsmanship', 18);
         return { comboIndex, isHeavy, hitKind: 'target', hitTarget: tgt, hitAnySurface: true };
@@ -686,7 +700,7 @@ export function evaluateSwordStrikeWindowHit(
                   : anim.species === 'deer'
                     ? 1.55
                     : anim.species === 'lion' && anim.isBoss
-                      ? 2.65
+                      ? 3.15
                       : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
                         ? 1.48
                         : anim.species === 'sheep'
@@ -698,32 +712,41 @@ export function evaluateSwordStrikeWindowHit(
         animGroundY +
         (anim.species === 'dragon'
           ? 2.85
-          : anim.species === 'bear'
-            ? 1.45
-            : anim.species === 'rhino'
+          : anim.species === 'lion' && anim.isBoss
+            ? 1.55
+            : anim.species === 'bear'
               ? 1.45
-              : anim.species === 'deer' || anim.species === 'stag'
-                ? 1.15
-                : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                  ? 0.90
-                  : anim.species === 'sheep'
-                    ? 0.55
-                    : anim.species === 'crocodile'
-                      ? 0.65
-                      : 0.25);
+              : anim.species === 'rhino'
+                ? 1.45
+                : anim.species === 'deer' || anim.species === 'stag'
+                  ? 1.15
+                  : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                    ? 0.90
+                    : anim.species === 'sheep'
+                      ? 0.55
+                      : anim.species === 'crocodile'
+                        ? 0.65
+                        : 0.25);
       const animHalfH =
         anim.species === 'dragon'
           ? 4.2
-          : anim.species === 'bear' || anim.species === 'rhino'
-            ? 2.25
-            : anim.species === 'deer' || anim.species === 'stag'
-              ? 1.55
-              : 1.45;
+          : anim.species === 'lion' && anim.isBoss
+            ? 2.35
+            : anim.species === 'bear' || anim.species === 'rhino'
+              ? 2.25
+              : anim.species === 'deer' || anim.species === 'stag'
+                ? 1.55
+                : 1.45;
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
         Math.abs(sy - animCenterY) <= animHalfH
       ) {
-        const dmgRes = damageGroundAnimal(anim, isHeavy ? 2 : 1, state.x, state.z);
+        const dmgRes = damageGroundAnimal(
+          anim,
+          isHeavy ? BASE_ARROW_HIT_DAMAGE * 2 : BASE_ARROW_HIT_DAMAGE,
+          state.x,
+          state.z
+        );
         state.lastSwordHitPoint = { x: sx, y: animCenterY, z: sz, age: 0, kind: 'target' };
         state.lastArrowHitTarget = String(anim.id);
         state.swordHitStopTimer = 0.045;
@@ -916,15 +939,21 @@ export function spawnArrowProjectile(
   const nz = dirZ / dirLen;
 
   const isMounted = Boolean(state.mountedHorseId);
+  const isMountedStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
   const isFirstPerson = state.cameraPerspective === 'first_person';
-  const shoulderY = state.y + (isMounted ? 2.18 : isFirstPerson ? 1.56 : 1.44);
+  const shoulderY =
+    state.y +
+    (isMountedLion ? 2.96 : isMountedStag ? 2.54 : isMounted ? 2.18 : isFirstPerson ? 1.56 : 1.44);
+  const horseYaw = isMounted ? (state.mountedHorseYaw ?? state.yaw) : state.yaw;
+  const mountBackOffset = isMountedLion ? 0.28 : 0;
   const sideScale = isFirstPerson ? -0.06 : 0.14;
   const rightOffX = Math.cos(state.yaw) * sideScale;
   const rightOffZ = -Math.sin(state.yaw) * sideScale;
 
-  const startX = state.x + rightOffX + nx * 0.72;
+  const startX = state.x + Math.sin(horseYaw) * mountBackOffset + rightOffX + nx * 0.72;
   const startY = shoulderY + ny * 0.72;
-  const startZ = state.z + rightOffZ + nz * 0.72;
+  const startZ = state.z + Math.cos(horseYaw) * mountBackOffset + rightOffZ + nz * 0.72;
 
   return {
     id: nextIdGenerator ? nextIdGenerator() : (state.nextArrowId = (state.nextArrowId ?? 1) + 1) - 1,
@@ -992,27 +1021,31 @@ export function stepArrowsPhysics(
             break;
           }
         }
-        if (hostAnim) {
-          const cosY = Math.cos(hostAnim.yaw);
-          const sinY = Math.sin(hostAnim.yaw);
-          const lox = arr.localOffsetX ?? 0;
-          const loz = arr.localOffsetZ ?? 0;
-          const loy = arr.localOffsetY ?? 0.65;
-          const baseAnimY =
-            (hostAnim.y ?? walkableHeightAt(hostAnim.x, hostAnim.z).height) +
-            (hostAnim.pounceHeight ?? 0);
-          if (hostAnim.isDead) {
-            // When the animal falls dead on its side (roll = PI/2), transform local offset so the arrow stays stuck in the fallen body
-            arr.x = hostAnim.x + lox * 0.45 * cosY + loz * sinY;
-            arr.z = hostAnim.z - lox * 0.45 * sinY + loz * cosY;
-            arr.y = baseAnimY + Math.max(0.18, loy * 0.38);
-          } else {
-            arr.x = hostAnim.x + lox * cosY + loz * sinY;
-            arr.z = hostAnim.z - lox * sinY + loz * cosY;
-            arr.y = baseAnimY + loy;
-          }
-          arr.yaw = hostAnim.yaw + (arr.localYawOffset ?? 0);
+        if (!hostAnim || hostAnim.isLooted || hostAnim.isTamed || hostAnim.isMountedByPlayer) {
+          // Animal was looted, tamed, or despawned — remove stuck arrow from world so it never floats in empty air
+          arrows.splice(i, 1);
+          i--;
+          continue;
         }
+        const cosY = Math.cos(hostAnim.yaw);
+        const sinY = Math.sin(hostAnim.yaw);
+        const lox = arr.localOffsetX ?? 0;
+        const loz = arr.localOffsetZ ?? 0;
+        const loy = arr.localOffsetY ?? 0.65;
+        const baseAnimY =
+          (hostAnim.y ?? walkableHeightAt(hostAnim.x, hostAnim.z).height) +
+          (hostAnim.pounceHeight ?? 0);
+        if (hostAnim.isDead) {
+          // When the animal falls dead on its side (roll = PI/2), transform local offset so the arrow stays stuck in the fallen body
+          arr.x = hostAnim.x + lox * 0.45 * cosY + loz * sinY;
+          arr.z = hostAnim.z - lox * 0.45 * sinY + loz * cosY;
+          arr.y = baseAnimY + Math.max(0.18, loy * 0.38);
+        } else {
+          arr.x = hostAnim.x + lox * cosY + loz * sinY;
+          arr.z = hostAnim.z - lox * sinY + loz * cosY;
+          arr.y = baseAnimY + loy;
+        }
+        arr.yaw = hostAnim.yaw + (arr.localYawOffset ?? 0);
       }
       continue;
     }
@@ -1081,7 +1114,7 @@ export function stepArrowsPhysics(
                     : anim.species === 'deer'
                       ? 1.45
                       : anim.species === 'lion' && anim.isBoss
-                        ? 2.55
+                        ? 3.10
                         : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
                           ? 1.42
                           : anim.species === 'sheep'
@@ -1093,25 +1126,27 @@ export function stepArrowsPhysics(
         const animHeightSpan =
           anim.species === 'dragon'
             ? 6.5
-            : anim.species === 'bear'
-              ? 3.05
-              : anim.species === 'rhino'
-                ? 2.65
-                : anim.species === 'deer' || anim.species === 'stag'
-                  ? 2.45
-                  : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                    ? 1.75
-                    : anim.species === 'sheep'
-                      ? 1.25
-                      : anim.species === 'crocodile'
-                        ? 1.55
-                        : 0.75;
+            : anim.species === 'lion' && anim.isBoss
+              ? 3.15
+              : anim.species === 'bear'
+                ? 3.05
+                : anim.species === 'rhino'
+                  ? 2.65
+                  : anim.species === 'deer' || anim.species === 'stag'
+                    ? 2.45
+                    : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                      ? 1.75
+                      : anim.species === 'sheep'
+                        ? 1.25
+                        : anim.species === 'crocodile'
+                          ? 1.55
+                          : 0.75;
         const animMaxY = animGroundY + animHeightSpan;
         const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
         if (horizDist <= animRad && arr.y >= animGroundY - 0.2 && arr.y <= animMaxY) {
           const dmgRes = damageGroundAnimal(
             anim,
-            1,
+            BASE_ARROW_HIT_DAMAGE,
             arr.x - arr.vx * 0.25,
             arr.z - arr.vz * 0.25
           );
@@ -1254,4 +1289,61 @@ export function stepArrowsPhysics(
 
   return { hitTarget, hitAnimal, killedAnimal, hitAnySurface };
 }
+
+/**
+ * Summary: Recovers all arrows stuck in a specific animal (when looting its corpse or taming it),
+ *          removing those arrows from the active world projectiles list so they disappear from the 3D scene
+ *          and returning their arrow item IDs to the player's inventory.
+ */
+export function recoverArrowsFromAnimal(
+  animalId: number,
+  activeArrows: IArrowProjectile[],
+  playerState?: IPlayerState,
+  animalX?: number,
+  animalZ?: number
+): {
+  readonly recoveredCount: number;
+  readonly recoveredItemIds: InventoryItemId[];
+} {
+  let recoveredCount = 0;
+  const recoveredItemIds: InventoryItemId[] = [];
+  for (let i = activeArrows.length - 1; i >= 0; i--) {
+    const arr = activeArrows[i];
+    const isAttachedToAnimal =
+      arr.attachedAnimalId === animalId ||
+      (arr.hitKind === 'animal' && arr.hitTargetId === String(animalId));
+    const isNearbyStuckGroundArrow =
+      arr.stuck &&
+      arr.hitKind !== 'target' &&
+      arr.attachedAnimalId === undefined &&
+      animalX !== undefined &&
+      animalZ !== undefined &&
+      Math.hypot(arr.x - animalX, arr.z - animalZ) <= 2.8;
+
+    if (isAttachedToAnimal || isNearbyStuckGroundArrow) {
+      const arrowItemId: InventoryItemId =
+        arr.arrowKind === 'fire'
+          ? 'arrow_fire'
+          : arr.arrowKind === 'wind'
+            ? 'arrow_wind'
+            : 'arrow_normal';
+      recoveredItemIds.push(arrowItemId);
+      recoveredCount++;
+      activeArrows.splice(i, 1);
+    }
+  }
+
+  if (playerState && recoveredItemIds.length > 0) {
+    if (!playerState.ownedItemIds) {
+      playerState.ownedItemIds = [];
+    }
+    for (let j = 0; j < recoveredItemIds.length; j++) {
+      const itemId = recoveredItemIds[j];
+      playerState.ownedItemIds.push(itemId);
+    }
+  }
+
+  return { recoveredCount, recoveredItemIds };
+}
 // #endregion
+

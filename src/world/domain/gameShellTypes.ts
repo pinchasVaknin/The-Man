@@ -63,6 +63,14 @@ export interface ITelemetrySnapshot {
     species: string;
     speciesName: string;
   } | null;
+  activeEnemyHealthBar?: {
+    id: number;
+    name: string;
+    hp: number;
+    maxHp: number;
+    isBoss: boolean;
+    isSubdued?: boolean;
+  } | null;
   lootNotification?: string | null;
   swordSwingProgress?: number;
   dashCooldown?: number;

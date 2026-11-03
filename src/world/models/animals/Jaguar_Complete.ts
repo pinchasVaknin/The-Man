@@ -275,6 +275,8 @@ export class JaguarAnimator {
     let u: number;
     if (st === 'death' && !this.loopDeath) {
       u = Math.min(1.0, Math.max(0.0, t / dur));
+    } else if (st === 'lie') {
+      u = Math.min(0.92, Math.max(0.0, t / dur));
     } else if (st === 'attack') {
       // Keep attack sampling strictly inside the dynamic strike frames (0..0.64 of clip) with a brisk 0.68s cycle
       // so the jaguar never hits static end frames or freezes at the end of its pounce!

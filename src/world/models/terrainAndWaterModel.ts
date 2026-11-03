@@ -21,6 +21,7 @@ import {
   northernSnowZoneFactorAt,
   fbm2D,
 } from '../terrainMath';
+import { volcanicBadlandsFactorAt } from '../systems/terrainAndBiomeSystem';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -159,12 +160,23 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
             if (c2z > -9.0 && c2z < 6.45 && c2y > 0.05 && ((c2x * c2x) / 19.5 + ((c2y - 0.35) * (c2y - 0.35)) / 22.5) < 1.0) {
               discard;
             }
-            // Volcano Sanctum: (-265, 115), East-facing obsidian tunnel portal (+X entrance), floorY = 3.2
+            // Colossal Volcano Sanctum: (-620, 115), 3 Cardinal Baffled Corridors (East +X, North -Z, South +Z), floorY = 3.2
             float vkx = vTerrainWorldPos.x - (${VOLCANO_SANCTUM_POS.x.toFixed(1)});
             float vkz = vTerrainWorldPos.z - (${VOLCANO_SANCTUM_POS.z.toFixed(1)});
             float vky = vTerrainWorldPos.y - (${VOLCANO_SANCTUM_POS.floorY.toFixed(1)});
-            if (vkx > 13.5 && vkx < 36.5 && vky > 0.06 && ((vkz * vkz) / 26.0 + ((vky - 0.4) * (vky - 0.4)) / 64.0) < 1.0) {
-              discard;
+            if (vky > 0.06 && vky < 9.8) {
+              float eastHalfW = (vkx > 44.5 && vkx < 69.5) ? 11.4 : 5.1;
+              if (vkx > 26.0 && vkx < 96.5 && abs(vkz) < eastHalfW) {
+                discard;
+              }
+              float northHalfW = (vkz < -44.5 && vkz > -69.5) ? 11.4 : 5.1;
+              if (vkz < -26.0 && vkz > -96.5 && abs(vkx) < northHalfW) {
+                discard;
+              }
+              float southHalfW = (vkz > 44.5 && vkz < 69.5) ? 11.4 : 5.1;
+              if (vkz > 26.0 && vkz < 96.5 && abs(vkx) < southHalfW) {
+                discard;
+              }
             }
           }
           float pWave1 = sin(vTerrainWorldPos.x * 0.24 + cos(vTerrainWorldPos.z * 0.21) * 1.6);
@@ -188,19 +200,23 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
             vec3 puddleTint = vec3(0.20, 0.30, 0.42);
             diffuseColor.rgb = mix(diffuseColor.rgb, puddleTint, puddleMask * 0.84);
           }
-          // Animated glowing magma veins & lava fissures on the Western Volcano Sanctum cone
+          // Animated glowing magma veins & lava fissures on the Colossal Western Volcano Sanctum cone & Badlands
           {
             vec2 volDelta = vTerrainWorldPos.xz - vec2(${VOLCANO_SANCTUM_POS.x.toFixed(1)}, ${VOLCANO_SANCTUM_POS.z.toFixed(1)});
             float volR = length(volDelta);
-            if (volR < ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)} && vTerrainWorldPos.y > ${(VOLCANO_SANCTUM_POS.floorY + 2.2).toFixed(1)}) {
+            if (volR < 240.0) {
               float volAng = atan(volDelta.y, volDelta.x);
-              float veinWave = abs(sin(volAng * 7.0 + volR * 0.11 + sin(volR * 0.25) * 0.7));
-              float veinMask = (1.0 - smoothstep(0.0, 0.19, veinWave))
-                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 3.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 14.0).toFixed(1)}, vTerrainWorldPos.y)
-                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 9.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volR));
-              float craterGlow = (1.0 - smoothstep(14.0, 22.5, volR)) * smoothstep(26.0, 38.0, vTerrainWorldPos.y);
-              float lavaPulse = 0.78 + 0.22 * sin(uTime * 3.4 - volR * 0.35);
-              float totalLava = clamp(max(veinMask * 0.92, craterGlow), 0.0, 1.0) * lavaPulse;
+              float veinWave = abs(sin(volAng * 9.0 + volR * 0.085 + sin(volR * 0.18) * 0.7));
+              float coneVeinMask = (1.0 - smoothstep(0.0, 0.19, veinWave))
+                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 6.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 20.0).toFixed(1)}, vTerrainWorldPos.y)
+                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 12.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volR));
+              float badlandsCrackWave = abs(sin(volAng * 6.0 + volR * 0.055 + cos(volR * 0.12) * 0.5));
+              float badlandsFissure = (1.0 - smoothstep(0.0, 0.085, badlandsCrackWave))
+                * smoothstep(102.0, 118.0, volR)
+                * (1.0 - smoothstep(190.0, 235.0, volR));
+              float craterGlow = (1.0 - smoothstep(24.0, 36.5, volR)) * smoothstep(42.0, 58.0, vTerrainWorldPos.y);
+              float lavaPulse = 0.78 + 0.22 * sin(uTime * 3.4 - volR * 0.28);
+              float totalLava = clamp(max(max(coneVeinMask * 0.92, badlandsFissure * 0.75), craterGlow), 0.0, 1.0) * lavaPulse;
               vec3 moltenColor = mix(vec3(0.95, 0.22, 0.02), vec3(1.0, 0.68, 0.12), totalLava);
               diffuseColor.rgb = mix(diffuseColor.rgb, moltenColor, totalLava * 0.88);
             }
@@ -214,15 +230,19 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           {
             vec2 volDeltaE = vTerrainWorldPos.xz - vec2(${VOLCANO_SANCTUM_POS.x.toFixed(1)}, ${VOLCANO_SANCTUM_POS.z.toFixed(1)});
             float volRE = length(volDeltaE);
-            if (volRE < ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)} && vTerrainWorldPos.y > ${(VOLCANO_SANCTUM_POS.floorY + 2.2).toFixed(1)}) {
+            if (volRE < 240.0) {
               float volAngE = atan(volDeltaE.y, volDeltaE.x);
-              float veinWaveE = abs(sin(volAngE * 7.0 + volRE * 0.11 + sin(volRE * 0.25) * 0.7));
-              float veinMaskE = (1.0 - smoothstep(0.0, 0.18, veinWaveE))
-                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 3.5).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 15.0).toFixed(1)}, vTerrainWorldPos.y)
-                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 9.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volRE));
-              float craterGlowE = (1.0 - smoothstep(14.5, 22.0, volRE)) * smoothstep(26.0, 38.0, vTerrainWorldPos.y);
-              float lavaPulseE = 0.8 + 0.2 * sin(uTime * 3.4 - volRE * 0.35);
-              float lavaStrength = max(veinMaskE, craterGlowE) * lavaPulseE;
+              float veinWaveE = abs(sin(volAngE * 9.0 + volRE * 0.085 + sin(volRE * 0.18) * 0.7));
+              float coneVeinMaskE = (1.0 - smoothstep(0.0, 0.18, veinWaveE))
+                * smoothstep(${(VOLCANO_SANCTUM_POS.floorY + 6.5).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.floorY + 21.0).toFixed(1)}, vTerrainWorldPos.y)
+                * (1.0 - smoothstep(${(VOLCANO_SANCTUM_POS.outerRadius - 12.0).toFixed(1)}, ${(VOLCANO_SANCTUM_POS.outerRadius - 2.0).toFixed(1)}, volRE));
+              float badlandsCrackWaveE = abs(sin(volAngE * 6.0 + volRE * 0.055 + cos(volRE * 0.12) * 0.5));
+              float badlandsFissureE = (1.0 - smoothstep(0.0, 0.08, badlandsCrackWaveE))
+                * smoothstep(102.0, 118.0, volRE)
+                * (1.0 - smoothstep(190.0, 235.0, volRE));
+              float craterGlowE = (1.0 - smoothstep(24.5, 36.0, volRE)) * smoothstep(42.0, 58.0, vTerrainWorldPos.y);
+              float lavaPulseE = 0.8 + 0.2 * sin(uTime * 3.4 - volRE * 0.28);
+              float lavaStrength = max(max(coneVeinMaskE, badlandsFissureE * 0.7), craterGlowE) * lavaPulseE;
               totalEmissiveRadiance += vec3(1.35, 0.36, 0.04) * lavaStrength;
             }
           }
@@ -277,16 +297,17 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const cPeak = new THREE.Color(0x9b9790);
   const cSnow = new THREE.Color(0xeef5fc);
   const cVolcanoBasalt = new THREE.Color(0x1d1716);
+  const cVolcanoAsh = new THREE.Color(0x382e2b);
   const cVolcanoMagma = new THREE.Color(0xf24c13);
   const tmpColor = new THREE.Color();
   const tmpDesertColor = new THREE.Color();
 
   const chunkSize = 220;
   const chunkSegs = isSoftwareGl ? 38 : 54;
-  const gridRadius = 3;
+  const gridRadius = 4;
 
   for (let gx = -gridRadius; gx <= gridRadius; gx++) {
-    for (let gz = -gridRadius; gz <= gridRadius + 1; gz++) {
+    for (let gz = -gridRadius; gz <= gridRadius; gz++) {
       const cx = gx * chunkSize;
       const cz = gz * chunkSize;
 
@@ -352,7 +373,11 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
         }
 
-        // Blend dark volcanic basalt and glowing caldera magma veins onto the Volcano Sanctum massif
+        // Blend scorched volcanic ashlands across the Western Volcanic Badlands and dark basalt on the Volcano cone
+        const volBadlands = volcanicBadlandsFactorAt(wx, wz);
+        if (volBadlands > 0.02) {
+          tmpColor.lerp(cVolcanoAsh, Math.min(0.94, volBadlands * 0.92));
+        }
         const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
         if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 12.0) {
           const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 12.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
@@ -370,6 +395,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
 
       chunkGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       chunkGeo.computeVertexNormals();
+      chunkGeo.computeBoundingSphere();
 
       const chunkMesh = new THREE.Mesh(chunkGeo, terrainMat);
       chunkMesh.position.set(cx, 0, cz);
@@ -389,6 +415,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const waterSegs = isSoftwareGl ? 56 : 96;
   const waterGeo = new THREE.PlaneGeometry(420, 420, waterSegs, waterSegs);
   waterGeo.rotateX(-Math.PI / 2);
+  waterGeo.computeBoundingSphere();
   disposableGeometries.push(waterGeo);
 
   const waterMat = new THREE.MeshPhysicalMaterial({
@@ -408,17 +435,30 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   waterMesh.position.set(0, WATER_LEVEL, 0);
   waterMesh.receiveShadow = !isSoftwareGl;
   scene.add(waterMesh);
+  distanceCulledObjects.push({
+    obj: waterMesh,
+    cx: 0,
+    cz: 0,
+    radius: 300,
+  });
 
   // Southern River, Crocodile Lagoon & Mountain Gorge Pass water surface (flowing from Sea at z=330 through Gorge down to z=805)
   const southRiverWaterSegs = isSoftwareGl ? 44 : 78;
   const southRiverWaterGeo = new THREE.PlaneGeometry(290, 520, southRiverWaterSegs, southRiverWaterSegs);
   southRiverWaterGeo.rotateX(-Math.PI / 2);
+  southRiverWaterGeo.computeBoundingSphere();
   disposableGeometries.push(southRiverWaterGeo);
 
   const southRiverWaterMesh = new THREE.Mesh(southRiverWaterGeo, waterMat);
   southRiverWaterMesh.position.set(172, WATER_LEVEL, 565);
   southRiverWaterMesh.receiveShadow = !isSoftwareGl;
   scene.add(southRiverWaterMesh);
+  distanceCulledObjects.push({
+    obj: southRiverWaterMesh,
+    cx: 172,
+    cz: 565,
+    radius: 340,
+  });
 
   return { waterMaterial: waterMat, terrainMaterial: terrainMat };
 }

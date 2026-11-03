@@ -25,9 +25,12 @@ import {
   groundHeightAt,
   walkableHeightAt,
   getWorldObstacles,
+  getNearbyWorldObstacles,
+  isInsideVolcanoSanctum,
 } from './terrainAndBiomeSystem';
 import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
 import type {
+  IArrowProjectile,
   InventoryItemId,
   IPlayerState,
   IRideableHorseState,
@@ -156,8 +159,11 @@ export interface ISmallAnimalState {
   respawnTimer?: number; // seconds remaining before a killed animal respawns at its home territory
 }
 
-/** Time in seconds before a hunted/killed animal respawns at its home territory. */
+/** Time in seconds before a hunted/killed regular animal respawns at its home territory. */
 export const ANIMAL_RESPAWN_DELAY_SECONDS = 45.0;
+
+/** Base damage dealt by a standard arrow strike. */
+export const BASE_ARROW_HIT_DAMAGE = 30;
 // #endregion
 
 // ======================== SHELTER TREE CANOPIES ======================== \\
@@ -218,7 +224,8 @@ export function getAnimalSensoryProfile(
 /**
  * Summary: Returns relative size/dominance rank for predator vs. predator/threat intimidation checks.
  */
-export function getAnimalSizeRank(species: GroundAnimalSpecies): number {
+export function getAnimalSizeRank(species: GroundAnimalSpecies, isBoss = false): number {
+  if (species === 'lion' && isBoss) return 5.5;
   return SPECIES_PROFILES[species].sizeRank;
 }
 
@@ -232,15 +239,19 @@ export function isPredatorSpecies(species: GroundAnimalSpecies): boolean {
  *          strike right in front of the player without the root center ever walking onto (0,0) or
  *          overshooting past the player.
  */
-export function getPredatorMeleeStandoffDist(species: GroundAnimalSpecies): number {
+export function getPredatorMeleeStandoffDist(species: GroundAnimalSpecies, isBoss = false): number {
+  if (species === 'lion' && isBoss) return 2.95;
   return SPECIES_PROFILES[species].meleeStandoff;
 }
 
 /**
  * Summary: Distance (in meters) at which a charging predator transitions into its active melee attack swing.
  */
-export function getPredatorAttackTriggerDist(species: GroundAnimalSpecies): number {
-  return getPredatorMeleeStandoffDist(species) + SPECIES_PROFILES[species].attackReachBonus;
+export function getPredatorAttackTriggerDist(species: GroundAnimalSpecies, isBoss = false): number {
+  if (species === 'lion' && isBoss) {
+    return getPredatorMeleeStandoffDist(species, true) + 1.15;
+  }
+  return getPredatorMeleeStandoffDist(species, false) + SPECIES_PROFILES[species].attackReachBonus;
 }
 
 /**
@@ -337,7 +348,9 @@ export function killGroundAnimal(animal: ISmallAnimalState): void {
   animal.isDead = true;
   animal.isLooted = false;
   animal.isSubdued = false;
-  animal.respawnTimer = ANIMAL_RESPAWN_DELAY_SECONDS;
+  // Kings / Bosses (Volcano Boss CatLion & Southern Ruins Dragon) never respawn once slain!
+  animal.respawnTimer =
+    animal.isBoss || animal.species === 'dragon' ? undefined : ANIMAL_RESPAWN_DELAY_SECONDS;
   animal.vx = 0;
   animal.vz = 0;
   animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
@@ -377,16 +390,16 @@ export function triggerCrocodilePackAggro(
 }
 
 /**
- * Summary: Applies combat damage to an animal's invisible health (`hp`).
+ * Summary: Applies combat damage to an animal's health (`hp`).
  *          - Tamed or player-mounted animals (`isTamed` / `isMountedByPlayer`) are completely immune to player damage.
  *          - Floating Island Stags (`stag`) are neutral until struck; once hit, they charge and retaliate with antler attacks!
- *          - The Giant Volcano Boss CatLion (`species === 'lion' && isBoss`) fights fiercely until reduced to low HP (`<= 3`),
- *            at which point it does NOT flee and instead becomes subdued (`isSubdued = true`) so the player can tame it with meat!
- *          - Smaller Volcano CatLions (`species === 'lion' && !isBoss`) flee when their HP drops low (`<= 2`).
+ *          - The Giant Volcano Boss CatLion (`species === 'lion' && isBoss`) fights fiercely until reduced to <= 25% HP (`<= 90`),
+ *            at which point it becomes subdued (`isSubdued = true`) so the player can either tame it with meat OR finish killing it!
+ *          - Smaller Volcano CatLions (`species === 'lion' && !isBoss`) flee when their HP drops low.
  */
 export function damageGroundAnimal(
   animal: ISmallAnimalState,
-  damage = 1,
+  damage = BASE_ARROW_HIT_DAMAGE,
   attackerX?: number,
   attackerZ?: number,
   allAnimals: readonly ISmallAnimalState[] = activeWorldAnimalsRegistry
@@ -404,13 +417,26 @@ export function damageGroundAnimal(
     return { killed: true, remainingHp: 0, maxHp };
   }
   const currentHp = animal.hp ?? maxHp;
-  let remainingHp = Math.max(0, currentHp - Math.max(1, damage));
+  const effectiveDamage = Math.max(1, damage);
+  let remainingHp = Math.max(0, currentHp - effectiveDamage);
 
-  // Giant Volcano Boss CatLion: when reduced to low HP (<= 3), clamp at >= 1 HP and enter subdued state for meat-taming!
+  // Giant Volcano Boss CatLion:
+  // 1) Invulnerable to long-range cheese shots fired from outside the Volcano Sanctum!
+  //    The hunter must enter the Volcano Sanctum corridors/chamber to damage the King CatLion.
+  // 2) When reduced to <= 25% HP (<= 90 HP), enters subdued state so the player can choose
+  //    to either tame it with meat [F]/[E] OR keep attacking to kill it!
   if (animal.species === 'lion' && animal.isBoss && !animal.isTamed) {
-    const subdueThreshold = Math.max(2, Math.ceil(maxHp * 0.25));
-    if (remainingHp <= subdueThreshold) {
-      remainingHp = Math.max(1, remainingHp);
+    if (
+      attackerX !== undefined &&
+      attackerZ !== undefined &&
+      !isInsideVolcanoSanctum(attackerX, attackerZ)
+    ) {
+      return { killed: false, remainingHp: currentHp, maxHp };
+    }
+    const subdueThreshold = Math.max(60, Math.ceil(maxHp * 0.25));
+    if (!animal.isSubdued && remainingHp <= subdueThreshold) {
+      // First time crossing the subdue threshold: clamp at >= 30 HP so the player gets a clear chance to tame or execute it
+      remainingHp = Math.max(BASE_ARROW_HIT_DAMAGE, remainingHp);
       animal.hp = remainingHp;
       animal.isSubdued = true;
       animal.hitReactionTimer = 0.45;
@@ -419,6 +445,15 @@ export function damageGroundAnimal(
       animal.isFleeing = false;
       animal.fleeCooldown = 0;
       animal.alertLevel = 'grazing';
+      animal.aiBehavior = 'sitting';
+      animal.vx = 0;
+      animal.vz = 0;
+      return { killed: false, remainingHp, maxHp };
+    }
+    if (animal.isSubdued && remainingHp > 0) {
+      // Already subdued and struck again, but still has HP > 0: stays sitting until HP reaches 0
+      animal.hp = remainingHp;
+      animal.hitReactionTimer = 0.45;
       animal.aiBehavior = 'sitting';
       animal.vx = 0;
       animal.vz = 0;
@@ -483,11 +518,41 @@ export function damageGroundAnimal(
     animal.alertLevel = 'curious';
     animal.aiBehavior = 'charging';
     animal.stompWarningDone = true;
+    animal.roarWarningDone = true;
     animal.isFleeing = false;
     animal.fleeCooldown = 0;
+    if (animal.species === 'lion' && animal.isBoss) {
+      animal.wokenUpTimer = 45.0;
+    }
   }
 
   return { killed: false, remainingHp, maxHp };
+}
+
+/**
+ * Summary: Returns true when the player is inside the Volcano Boss Chamber (r <= 28.5m)
+ *          and the Boss CatLion is alive, untamed, and not yet subdued — locking the
+ *          Obsidian Magma Gates at the chamber exits until the Boss is defeated or subdued!
+ */
+export function isVolcanoBossArenaLocked(
+  playerX: number,
+  playerZ: number,
+  animals: readonly ISmallAnimalState[] = activeWorldAnimalsRegistry
+): boolean {
+  const distToCenter = Math.hypot(
+    playerX - VOLCANO_SANCTUM_POS.x,
+    playerZ - VOLCANO_SANCTUM_POS.z
+  );
+  if (distToCenter > VOLCANO_SANCTUM_POS.chamberRadius - 1.2) {
+    return false;
+  }
+  for (let i = 0; i < animals.length; i++) {
+    const a = animals[i];
+    if (a.species === 'lion' && a.isBoss) {
+      return !a.isDead && !a.isTamed && !a.isSubdued;
+    }
+  }
+  return false;
 }
 
 /**
@@ -574,7 +639,12 @@ export function findNearestDeadLootableAnimal(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     if (!a.isDead || a.isLooted) continue;
-    const allowedDist = a.species === 'dragon' ? Math.max(maxDist, 6.8) : maxDist;
+    const allowedDist =
+      a.species === 'dragon'
+        ? Math.max(maxDist, 6.8)
+        : a.species === 'lion' && a.isBoss
+          ? Math.max(maxDist, 5.2)
+          : maxDist;
     const d = Math.hypot(a.x - playerX, a.z - playerZ);
     if (d <= allowedDist && d < bestDist) {
       bestDist = d;
@@ -585,16 +655,19 @@ export function findNearestDeadLootableAnimal(
 }
 
 /**
- * Summary: Loots a dead animal into the player's inventory and marks the corpse as looted.
+ * Summary: Loots a dead animal into the player's inventory, recovers any arrows stuck in the animal,
+ *          and marks the corpse as looted.
  */
 export function lootDeadAnimal(
   playerState: IPlayerState,
-  animal: ISmallAnimalState
+  animal: ISmallAnimalState,
+  activeArrows?: IArrowProjectile[]
 ): {
   readonly ok: boolean;
   readonly species: GroundAnimalSpecies;
   readonly addedItemIds: readonly InventoryItemId[];
   readonly addedItems: readonly InventoryItemId[];
+  readonly recoveredArrowCount: number;
   readonly notification: string;
 } {
   if (!animal.isDead || animal.isLooted) {
@@ -603,6 +676,7 @@ export function lootDeadAnimal(
       species: animal.species,
       addedItemIds: [],
       addedItems: [],
+      recoveredArrowCount: 0,
       notification: '',
     };
   }
@@ -611,17 +685,49 @@ export function lootDeadAnimal(
   if (!playerState.ownedItemIds) {
     playerState.ownedItemIds = [];
   }
+  const allAddedItemIds: InventoryItemId[] = [...drops.itemIds];
   for (const itemId of drops.itemIds) {
     if (!playerState.ownedItemIds.includes(itemId)) {
       playerState.ownedItemIds.push(itemId);
     }
   }
+
+  let recoveredArrowCount = 0;
+  if (activeArrows && activeArrows.length > 0) {
+    for (let i = activeArrows.length - 1; i >= 0; i--) {
+      const arr = activeArrows[i];
+      const isAttached =
+        arr.attachedAnimalId === animal.id ||
+        (arr.hitKind === 'animal' && arr.hitTargetId === String(animal.id)) ||
+        (arr.stuck &&
+          arr.hitKind !== 'target' &&
+          arr.attachedAnimalId === undefined &&
+          Math.hypot(arr.x - animal.x, arr.z - animal.z) <= 2.8);
+      if (isAttached) {
+        const arrowItemId: InventoryItemId =
+          arr.arrowKind === 'fire'
+            ? 'arrow_fire'
+            : arr.arrowKind === 'wind'
+              ? 'arrow_wind'
+              : 'arrow_normal';
+        playerState.ownedItemIds.push(arrowItemId);
+        allAddedItemIds.push(arrowItemId);
+        recoveredArrowCount++;
+        activeArrows.splice(i, 1);
+      }
+    }
+  }
+
   return {
     ok: true,
     species: animal.species,
-    addedItemIds: drops.itemIds,
-    addedItems: drops.itemIds,
-    notification: drops.notification,
+    addedItemIds: allAddedItemIds,
+    addedItems: allAddedItemIds,
+    recoveredArrowCount,
+    notification:
+      recoveredArrowCount > 0
+        ? `${drops.notification} (+${recoveredArrowCount} Arrows Recovered)`
+        : drops.notification,
   };
 }
 // #endregion
@@ -773,30 +879,20 @@ function steerLionThroughVolcanoPortal(
 ): { x: number; z: number } {
   const vx = VOLCANO_SANCTUM_POS.x;
   const vz = VOLCANO_SANCTUM_POS.z;
-  if ((lionX - vx) * (lionX - vx) + (lionZ - vz) * (lionZ - vz) > 58 * 58) {
-    return { x: targetX, z: targetZ };
-  }
   const lDx = lionX - vx;
   const lDz = lionZ - vz;
+  const lDist = Math.hypot(lDx, lDz);
+  if (lDist > 115.0) {
+    return { x: targetX, z: targetZ };
+  }
   const tDx = targetX - vx;
   const tDz = targetZ - vz;
+  const tDist = Math.hypot(tDx, tDz);
 
-  const lionInsideSanctum = lDx < 33.0 && lDx > -20.0 && Math.abs(lDz) < 19.0;
-  const targetOutsideSanctum = tDx >= 34.0 || Math.abs(tDz) > 18.0 || tDx < -20.0;
-  if (lionInsideSanctum && targetOutsideSanctum) {
-    if (lDx < 15.0 && Math.abs(lDz) > 2.4) {
-      return { x: vx + 15.0, z: vz };
-    }
-    return { x: vx + 37.0, z: vz };
-  }
-
-  const lionOutsideSanctum = lDx >= 34.0 || Math.abs(lDz) > 5.2;
-  const targetInsideSanctum = tDx < 28.0 && tDx > -19.0 && Math.abs(tDz) < 18.0;
-  if (lionOutsideSanctum && targetInsideSanctum) {
-    if (lDx > 35.0 || Math.abs(lDz) > 2.8) {
-      return { x: vx + 37.0, z: vz };
-    }
-    return { x: vx + 13.0, z: vz };
+  // Keep untamed Boss CatLion inside its colossal 60m-diameter inner sanctum arena (radius <= 27.5m)
+  if (lDist <= VOLCANO_SANCTUM_POS.chamberRadius + 1.0 && tDist > VOLCANO_SANCTUM_POS.chamberRadius - 2.2) {
+    const scale = (VOLCANO_SANCTUM_POS.chamberRadius - 2.5) / (tDist || 1);
+    return { x: vx + tDx * scale, z: vz + tDz * scale };
   }
 
   return { x: targetX, z: targetZ };
@@ -995,10 +1091,14 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -195, z: 215, species: 'rhino' },
     { x: -224, z: 262, species: 'rhino' },
     { x: 146, z: 168, species: 'rhino' },
-    // Mystical CatLions — seated on the Volcano Sanctum Throne Dais & guarding the Volcano Entrance (3)
+    // Mystical CatLions — 1 Boss seated on the Volcano Sanctum Throne Dais + 6 roaming the Western Volcanic Badlands outside the colossal cone (7)
     { x: VOLCANO_SANCTUM_POS.x - 1.0, z: VOLCANO_SANCTUM_POS.z, species: 'lion' },
-    { x: -222, z: 108, species: 'lion' },
-    { x: -222, z: 122, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.entranceX + 14.0, z: VOLCANO_SANCTUM_POS.z - 9.0, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.entranceX + 14.0, z: VOLCANO_SANCTUM_POS.z + 9.0, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.x + 112.0, z: VOLCANO_SANCTUM_POS.z - 68.0, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.x + 108.0, z: VOLCANO_SANCTUM_POS.z + 72.0, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.x - 118.0, z: VOLCANO_SANCTUM_POS.z - 54.0, species: 'lion' },
+    { x: VOLCANO_SANCTUM_POS.x - 16.0, z: VOLCANO_SANCTUM_POS.z - 122.0, species: 'lion' },
     // Royal Blooming Stags — roaming the 3 Large Floating Blooming Sky Islands in the East (4)
     { x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z + 7, species: 'stag' },
     { x: FLOATING_BLOOMING_ISLANDS[0].x - 11, z: FLOATING_BLOOMING_ISLANDS[0].z - 6, species: 'stag' },
@@ -1018,7 +1118,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     const isVolcanoSanctumMysticLion =
       c.species === 'lion' &&
       Math.hypot(c.x - VOLCANO_SANCTUM_POS.x, c.z - VOLCANO_SANCTUM_POS.z) < 10.0;
-    const maxHp = isVolcanoSanctumMysticLion ? 12 : getAnimalMaxHp(c.species);
+    const maxHp = isVolcanoSanctumMysticLion ? 360 : getAnimalMaxHp(c.species);
     animals.push({
       id: i,
       species: c.species,
@@ -1193,8 +1293,8 @@ function resolveAnimalObstacleCollision(
     }
   }
 
-  // 2. Nearby world rocks and trunks
-  const obstacles = getWorldObstacles();
+  // 2. Nearby world rocks and trunks (O(1) spatial hash lookup)
+  const obstacles = getNearbyWorldObstacles(x, z, radius + 2.5);
   for (let i = 0; i < obstacles.length; i++) {
     const obs = obstacles[i];
     const minDist = obs.radius + radius;
@@ -1436,7 +1536,7 @@ export function stepSmallAnimals(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
 
-    // Dead animals stay anchored on top of the terrain until their timed respawn timer expires!
+    // Dead animals stay anchored on top of the terrain. Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
     if (a.isDead) {
       a.vx = 0;
       a.vz = 0;
@@ -1445,9 +1545,28 @@ export function stepSmallAnimals(
       a.isSeekingShelter = false;
       a.isFleeing = false;
       a.aiBehavior = 'dead';
+      if (a.isBoss || a.species === 'dragon') {
+        a.respawnTimer = undefined;
+        continue;
+      }
       if (dt > 0) {
         a.respawnTimer = (a.respawnTimer ?? ANIMAL_RESPAWN_DELAY_SECONDS) - Math.max(0, dt);
-        if (a.respawnTimer <= 0) {
+        const toHomeDx = a.homeX - playerX;
+        const toHomeDz = a.homeZ - playerZ;
+        const distPlayerToHome = Math.hypot(toHomeDx, toHomeDz);
+        let canRespawnOffscreen = distPlayerToHome > 38.0;
+        if (playerStateRef) {
+          // When actively playing, only respawn when the player is far away (> 95m) AND not looking toward the spawn spot!
+          const lookX = -Math.sin(playerStateRef.yaw);
+          const lookZ = -Math.cos(playerStateRef.yaw);
+          const dot =
+            distPlayerToHome > 0.001
+              ? (toHomeDx * lookX + toHomeDz * lookZ) / distPlayerToHome
+              : 1.0;
+          canRespawnOffscreen =
+            distPlayerToHome > 95.0 && (dot < 0.15 || distPlayerToHome > 195.0);
+        }
+        if (a.respawnTimer <= 0 && canRespawnOffscreen) {
           const homeWalk = walkableHeightAt(a.homeX, a.homeZ);
           a.x = a.homeX;
           a.z = a.homeZ;
@@ -1464,7 +1583,7 @@ export function stepSmallAnimals(
           a.hitReactionTimer = 0;
           a.fleeCooldown = 0;
           a.alertLevel = 'grazing';
-          a.aiBehavior = a.species === 'lion' && a.isBoss ? 'sitting' : 'grazing';
+          a.aiBehavior = 'grazing';
         }
       }
       continue;
@@ -1501,6 +1620,11 @@ export function stepSmallAnimals(
       continue;
     }
 
+    // Fast path while player is flying high/fast: skip full AI and terrain/obstacle queries for distant off-screen animals (> 210m)
+    if (playerStateRef?.isFlying && distP > 210.0 && !a.isMountedByPlayer) {
+      continue;
+    }
+
     // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
     // its position, velocity, and yaw are driven directly by stepPlayerPhysics!
     if (a.isMountedByPlayer) {
@@ -1510,25 +1634,51 @@ export function stepSmallAnimals(
       a.alertLevel = 'grazing';
       a.pounceHeight = 0;
       const spd = Math.hypot(a.vx, a.vz);
-      a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
+      // Note: a.actionTimer was already decremented once above (line 1567) — do NOT double-decrement it here!
+      if ((a.actionTimer ?? 0) > 0 && a.aiBehavior === 'attacking') {
+        a.vx = 0;
+        a.vz = 0;
+      } else {
+        a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
+      }
       a.hopPhase += safeDt * Math.max(4.0, spd * 1.8);
       continue;
     }
 
     // If this animal has been tamed by the player (unmounted Royal Stag or Mystical CatLion companion),
-    // it stays calm and loyal near its dismount spot without fleeing or attacking the player!
+    // it wanders, grazes, and rests peacefully around its current territory without staring at or attacking the player!
     if (a.isTamed) {
       a.isResting = false;
       a.isFleeing = false;
       a.fleeCooldown = 0;
       a.alertLevel = 'grazing';
       a.pounceHeight = 0;
-      a.vx = 0;
-      a.vz = 0;
-      a.aiBehavior = a.species === 'lion' ? 'sitting' : 'grazing';
-      if (distP < 12.0 && distP > 0.5) {
-        const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
-        a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 3.2, safeDt);
+      const timeWindow = Math.floor(elapsedTime * 0.14 + a.id * 1.53);
+      const wanderSeed = hash2D(a.id * 17.3, timeWindow);
+      if (wanderSeed > 0.62) {
+        a.aiBehavior = a.species === 'lion' && wanderSeed > 0.82 ? 'sitting' : 'grazing';
+        a.vx = 0;
+        a.vz = 0;
+      } else {
+        a.aiBehavior = 'wandering';
+        const targetAngle = (wanderSeed / 0.62) * Math.PI * 2;
+        const homePullX = (a.homeX - a.x) * 0.14;
+        const homePullZ = (a.homeZ - a.z) * 0.14;
+        const roamSpd = a.species === 'lion' ? 1.85 : 1.75;
+        const desiredVx = Math.cos(targetAngle) * roamSpd + homePullX;
+        const desiredVz = Math.sin(targetAngle) * roamSpd + homePullZ;
+        const blend = Math.min(1, safeDt * 4.0);
+        a.vx += (desiredVx - a.vx) * blend;
+        a.vz += (desiredVz - a.vz) * blend;
+        if (Math.hypot(a.vx, a.vz) > 0.08) {
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
+        }
+        a.hopPhase += safeDt * 6.0;
+        const rawNextX = a.x + a.vx * safeDt;
+        const rawNextZ = a.z + a.vz * safeDt;
+        const bodyRadius = a.species === 'lion' && a.isBoss ? 1.65 : 0.75;
+        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
       }
       continue;
     }
@@ -1616,7 +1766,7 @@ export function stepSmallAnimals(
       a.species === 'lion' &&
       a.isBoss &&
       !a.isTamed &&
-      (a.isSubdued || (a.hp ?? a.maxHp ?? 12) <= Math.max(2, Math.ceil((a.maxHp ?? 12) * 0.25)))
+      (a.isSubdued || (a.hp ?? a.maxHp ?? 360) <= Math.max(60, Math.ceil((a.maxHp ?? 360) * 0.25)))
     ) {
       a.isSubdued = true;
       a.isResting = false;
@@ -1636,7 +1786,7 @@ export function stepSmallAnimals(
     }
 
     if (isPredatorSpecies(a.species)) {
-      const myRank = getAnimalSizeRank(a.species);
+      const myRank = getAnimalSizeRank(a.species, a.isBoss);
       let largerThreatX = 0;
       let largerThreatZ = 0;
       let largerThreatDist = Infinity;
@@ -1646,7 +1796,7 @@ export function stepSmallAnimals(
         if (i === j) continue;
         const other = animals[j];
         if (other.isDead || !isPredatorSpecies(other.species)) continue;
-        if (getAnimalSizeRank(other.species) > myRank) {
+        if (getAnimalSizeRank(other.species, other.isBoss) > myRank) {
           const dOther = Math.hypot(a.x - other.x, a.z - other.z);
           if (dOther < 14.5 && dOther < largerThreatDist) {
             largerThreatDist = dOther;
@@ -1783,6 +1933,15 @@ export function stepSmallAnimals(
           }
         }
 
+        const isBossLion = a.species === 'lion' && Boolean(a.isBoss);
+        const playerDistToVolcanoCenter = isBossLion
+          ? Math.hypot(playerX - VOLCANO_SANCTUM_POS.x, playerZ - VOLCANO_SANCTUM_POS.z)
+          : Infinity;
+        const playerInBossChamber =
+          isBossLion && playerDistToVolcanoCenter <= VOLCANO_SANCTUM_POS.chamberRadius;
+        const playerInVolcanoSanctum =
+          isBossLion && Boolean(isInsideVolcanoSanctum(playerX, playerZ));
+
         const provokedByShot =
           (a.wokenUpTimer ?? 0) > 0 &&
           ((a.hp ?? a.maxHp ?? 1) < (a.maxHp ?? 1) || a.species === 'crocodile');
@@ -1791,18 +1950,22 @@ export function stepSmallAnimals(
           ? SPECIES_PROFILES[a.species].playerDetectRangeWhileChasing
           : SPECIES_PROFILES[a.species].playerDetectRange;
         const maxProvokedRange = SPECIES_PROFILES[a.species].provokedDetectRange;
-        const playerDetectRange = provokedByShot
-          ? maxProvokedRange
-          : isPlayerSneaking
-            ? 4.2
-            : basePlayerDetectRange;
+        const playerDetectRange =
+          playerInBossChamber || (isBossLion && provokedByShot && playerInVolcanoSanctum)
+            ? 95.0
+            : provokedByShot
+              ? maxProvokedRange
+              : isPlayerSneaking
+                ? 4.2
+                : basePlayerDetectRange;
         const playerRidingMysticalLion = Boolean(
           playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
         );
         if (
           !playerRidingMysticalLion &&
+          (!isBossLion || playerInBossChamber || (provokedByShot && playerInVolcanoSanctum)) &&
           distP < playerDetectRange &&
-          distP <= (provokedByShot ? maxProvokedRange : bestPreyDist)
+          distP <= (provokedByShot || playerInBossChamber ? 95.0 : bestPreyDist)
         ) {
           bestPreyDist = distP;
           preyX = playerX;
@@ -1841,8 +2004,8 @@ export function stepSmallAnimals(
           const toPreyZ = steeredTarget.z - a.z;
           const len = Math.hypot(toPreyX, toPreyZ) || 1;
           const targetYaw = Math.atan2(toPreyX, toPreyZ);
-          const standoffDist = getPredatorMeleeStandoffDist(a.species);
-          const attackTriggerDist = getPredatorAttackTriggerDist(a.species);
+          const standoffDist = getPredatorMeleeStandoffDist(a.species, a.isBoss);
+          const attackTriggerDist = getPredatorAttackTriggerDist(a.species, a.isBoss);
 
           // -----------------------------------------------------------------
           // A. RHINO COMBAT:
@@ -2040,8 +2203,17 @@ export function stepSmallAnimals(
                 // Immediately transition to locomotion ('charging') as soon as the 0.68s pounce finishes so it never freezes!
                 if (timer <= 0.02) {
                   a.pounceHeight = 0;
-                  a.aiBehavior = bestPreyDist <= attackTriggerDist ? 'attacking' : 'charging';
                   a.actionTimer = 0;
+                  if (bestPreyDist <= attackTriggerDist) {
+                    a.aiBehavior = 'attacking';
+                  } else {
+                    a.aiBehavior = 'charging';
+                    const maxChargeNoOvershoot =
+                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                    a.vx = (toPreyX / len) * effChargeSpd;
+                    a.vz = (toPreyZ / len) * effChargeSpd;
+                  }
                 }
               } else if (a.species === 'crocodile') {
                 // CROCODILE FORWARD LUNGE STRIKE:
@@ -2095,16 +2267,25 @@ export function stepSmallAnimals(
                 }
 
                 if (timer <= 0.02) {
-                  a.aiBehavior = bestPreyDist <= attackTriggerDist ? 'attacking' : 'charging';
                   a.actionTimer = 0;
+                  if (bestPreyDist <= attackTriggerDist) {
+                    a.aiBehavior = 'attacking';
+                  } else {
+                    a.aiBehavior = 'charging';
+                    const maxChargeNoOvershoot =
+                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                    a.vx = (toPreyX / len) * effChargeSpd;
+                    a.vz = (toPreyZ / len) * effChargeSpd;
+                  }
                 }
               } else {
-                // BEAR STATIONARY ATTACK:
+                // BEAR & CAT-LION STATIONARY ATTACK:
                 // Committed 100% to completing the full attack animation in place (vx = 0, vz = 0).
                 // Cannot move until actionTimer finishes and aiBehavior switches to a movement animation!
                 if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
                   a.aiBehavior = 'attacking';
-                  a.actionTimer = 0.92;
+                  a.actionTimer = a.species === 'lion' ? 0.96 : 0.78;
                 }
                 a.pounceHeight = 0;
                 a.vx = 0;
@@ -2116,8 +2297,8 @@ export function stepSmallAnimals(
                 if (
                   preyIsPlayer &&
                   playerStateRef &&
-                  prevActionTimer > 0.46 &&
-                  (a.actionTimer ?? 0) <= 0.46 &&
+                  prevActionTimer > 0.40 &&
+                  (a.actionTimer ?? 0) <= 0.40 &&
                   bestPreyDist <= standoffDist + 0.85
                 ) {
                   playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 14);
@@ -2125,9 +2306,17 @@ export function stepSmallAnimals(
                   playerStateRef.vz += (toPreyZ / len) * 2.8;
                 }
 
-                if ((a.actionTimer ?? 0) <= 0.02 && bestPreyDist > attackTriggerDist) {
-                  a.aiBehavior = 'charging';
+                if ((a.actionTimer ?? 0) <= 0.02) {
                   a.actionTimer = 0;
+                  if (bestPreyDist > attackTriggerDist) {
+                    a.aiBehavior = 'charging';
+                    const maxChargeNoOvershoot =
+                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                    a.vx = (toPreyX / len) * effChargeSpd;
+                    a.vz = (toPreyZ / len) * effChargeSpd;
+                    a.hopPhase += safeDt * 15.0;
+                  }
                 }
               }
             } else if (isCommittedStationaryWarning) {
@@ -2174,7 +2363,7 @@ export function stepSmallAnimals(
                 a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.2, safeDt);
                 a.hopPhase += safeDt * 15.0;
               }
-            } else if (bestPreyDist <= 11.5 || provokedByShot) {
+            } else if (bestPreyDist <= 11.5 || provokedByShot || isBossLion) {
               a.pounceHeight = 0;
               a.aiBehavior = 'charging';
               const maxChargeNoOvershoot =
@@ -2239,7 +2428,7 @@ export function stepSmallAnimals(
             a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.5, safeDt);
             a.hopPhase += safeDt * 9.0;
           } else {
-            const timeWindow = Math.floor(elapsedTime * 0.22 + a.id * 1.73);
+            const timeWindow = Math.floor(elapsedTime * 0.06 + a.id * 1.73);
             const seed = hash2D(a.id * 19.3, timeWindow);
             if (seed > 0.78) {
               a.isResting = false;
@@ -2253,41 +2442,57 @@ export function stepSmallAnimals(
               a.vz = 0;
             } else {
               a.isResting = false;
-              a.aiBehavior = 'wandering';
               let patrolGoalX = a.homeX + Math.cos((seed / 0.58) * Math.PI * 2) * 14.0;
               let patrolGoalZ = a.homeZ + Math.sin((seed / 0.58) * Math.PI * 2) * 14.0;
               if (a.species === 'bear' && a.caveIndex !== undefined && BEAR_MOUNTAIN_CAVES[a.caveIndex]) {
-                // Bears alternate their patrol between the outer forest apron (lz = +14) and inner cavern (lz = -12)
+                // Bears alternate their patrol between the outer forest apron (lz = +14) and inner cavern (lz = -13)
                 // and steer cleanly through the cave portal so they freely walk in and out of the cave!
                 const patrolOut = seed < 0.34;
                 const rawGoal = patrolOut
                   ? caveLocalToWorld(a.caveIndex, ((a.id % 3) - 1) * 4.5, 14.0)
                   : caveLocalToWorld(a.caveIndex, ((a.id % 2) === 0 ? -4.2 : 4.2), -13.0);
-                const steered = steerBearThroughCavePortal(a.x, a.z, rawGoal.x, rawGoal.z, a.caveIndex);
-                patrolGoalX = steered.x;
-                patrolGoalZ = steered.z;
+                const rawDistToGoal = Math.hypot(rawGoal.x - a.x, rawGoal.z - a.z);
+                if (rawDistToGoal < 1.85) {
+                  patrolGoalX = a.x;
+                  patrolGoalZ = a.z;
+                } else {
+                  const steered = steerBearThroughCavePortal(a.x, a.z, rawGoal.x, rawGoal.z, a.caveIndex);
+                  patrolGoalX = steered.x;
+                  patrolGoalZ = steered.z;
+                }
               }
               const toGoalX = patrolGoalX - a.x;
               const toGoalZ = patrolGoalZ - a.z;
-              const distGoal = Math.hypot(toGoalX, toGoalZ) || 1;
-              const patrolSpd = a.species === 'crocodile' ? 1.15 : 1.75;
-              const desiredVx = (toGoalX / distGoal) * patrolSpd;
-              const desiredVz = (toGoalZ / distGoal) * patrolSpd;
-              const blend = Math.min(1, safeDt * 4.5);
-              a.vx += (desiredVx - a.vx) * blend;
-              a.vz += (desiredVz - a.vz) * blend;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.8, safeDt);
-              a.hopPhase += safeDt * 6.0;
+              const distGoal = Math.hypot(toGoalX, toGoalZ);
+              if (distGoal < 1.65) {
+                // Reached patrol destination: settle calmly into foraging/idle instead of oscillating over goal!
+                a.aiBehavior = 'grazing';
+                a.vx = 0;
+                a.vz = 0;
+              } else {
+                a.aiBehavior = 'wandering';
+                const patrolSpd = a.species === 'crocodile' ? 1.15 : 1.75;
+                const desiredVx = (toGoalX / distGoal) * patrolSpd;
+                const desiredVz = (toGoalZ / distGoal) * patrolSpd;
+                const blend = Math.min(1, safeDt * 4.5);
+                a.vx += (desiredVx - a.vx) * blend;
+                a.vz += (desiredVz - a.vz) * blend;
+                a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
+                a.hopPhase += safeDt * 6.0;
+              }
             }
           }
         }
       }
 
-      const rawNextX = a.x + a.vx * safeDt;
-      const rawNextZ = a.z + a.vz * safeDt;
-      const bodyRadius = SPECIES_PROFILES[a.species].predatorBodyRadius;
-      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+      if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
+        const rawNextX = a.x + a.vx * safeDt;
+        const rawNextZ = a.z + a.vz * safeDt;
+        const bodyRadius =
+          a.species === 'lion' && a.isBoss ? 1.65 : SPECIES_PROFILES[a.species].predatorBodyRadius;
+        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+      }
       continue;
     }
 
@@ -2621,11 +2826,13 @@ export function stepSmallAnimals(
       }
     }
 
-    const rawNextX = a.x + a.vx * safeDt;
-    const rawNextZ = a.z + a.vz * safeDt;
-    const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
-    const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-    advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+    if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
+      const rawNextX = a.x + a.vx * safeDt;
+      const rawNextZ = a.z + a.vz * safeDt;
+      const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
+      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+    }
   }
 
   return { scamperedCritterCount, nearestCritterDist };

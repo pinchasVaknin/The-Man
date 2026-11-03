@@ -14,6 +14,7 @@ import {
   SKY_WIND_GEYSERS,
   floatingBloomingIslandHeightAt,
   groundHeightAt,
+  isVolcanoBossArenaLocked,
   isWithinViewDistance,
   VIEW_DISTANCE,
 } from '../terrainMath';
@@ -117,23 +118,33 @@ export function buildVolcanoAndFloatingIslandsModels(
     volcanicSmokeMat
   );
 
-  // 1A. Subterranean Chamber Floor, Lava Moat, 4 Moat Bridges & Entrance Tunnel Causeway
-  const chamberFloorGeo = new THREE.CylinderGeometry(14.0, 14.4, 0.6, 36);
-  const lavaMoatGeo = new THREE.RingGeometry(13.4, 18.4, 40);
+  // 1A. Colossal Subterranean Boss Chamber Floor (60m diameter), Lava Moat, 3 Cardinal Baffled Corridors & Chicane Baffle Walls
+  const chamberFloorGeo = new THREE.CylinderGeometry(24.2, 24.8, 0.6, 48);
+  const lavaMoatGeo = new THREE.RingGeometry(23.6, 30.2, 48);
   lavaMoatGeo.rotateX(-Math.PI / 2);
-  const tunnelFloorGeo = new THREE.BoxGeometry(36.0, 0.6, 11.2);
-  const moatBridgeGeo = new THREE.BoxGeometry(5.2, 0.42, 3.8);
-  const daisStep1Geo = new THREE.CylinderGeometry(5.6, 6.1, 0.24, 8);
-  const daisStep2Geo = new THREE.CylinderGeometry(4.2, 4.7, 0.26, 8);
-  const daisTrimRingGeo = new THREE.TorusGeometry(4.25, 0.14, 10, 28);
+  const tunnelFloorGeo = new THREE.BoxGeometry(68.0, 0.6, 11.2);
+  const pocketFloorGeo = new THREE.BoxGeometry(24.0, 0.6, 23.6);
+  const baffleWallGeo = new THREE.BoxGeometry(5.0, 9.6, 11.6);
+  const baffleTrimGeo = new THREE.BoxGeometry(5.25, 0.45, 11.85);
+  const lockGateBarGeo = new THREE.CylinderGeometry(0.24, 0.24, 8.8, 8);
+  const lockGateHeaderGeo = new THREE.BoxGeometry(1.1, 0.85, 10.4);
+  const moatBridgeGeo = new THREE.BoxGeometry(7.2, 0.46, 5.2);
+  const daisStep1Geo = new THREE.CylinderGeometry(6.4, 7.0, 0.24, 8);
+  const daisStep2Geo = new THREE.CylinderGeometry(4.8, 5.4, 0.26, 8);
+  const daisTrimRingGeo = new THREE.TorusGeometry(4.85, 0.16, 10, 28);
   daisTrimRingGeo.rotateX(Math.PI / 2);
-  const sunHaloArchGeo = new THREE.TorusGeometry(3.8, 0.28, 10, 28, Math.PI * 1.25);
-  const sunBladeGeo = new THREE.ConeGeometry(0.32, 2.2, 5);
+  const sunHaloArchGeo = new THREE.TorusGeometry(4.2, 0.30, 10, 28, Math.PI * 1.25);
+  const sunBladeGeo = new THREE.ConeGeometry(0.35, 2.4, 5);
 
   disposableGeometries.push(
     chamberFloorGeo,
     lavaMoatGeo,
     tunnelFloorGeo,
+    pocketFloorGeo,
+    baffleWallGeo,
+    baffleTrimGeo,
+    lockGateBarGeo,
+    lockGateHeaderGeo,
     moatBridgeGeo,
     daisStep1Geo,
     daisStep2Geo,
@@ -151,20 +162,15 @@ export function buildVolcanoAndFloatingIslandsModels(
   lavaMoatMesh.position.set(0, -0.04, 0);
   volcanoGroup.add(lavaMoatMesh);
 
-  // 4 Obsidian Bridges spanning the inner Lava Moat (North, South, West) + Main Eastern Causeway
-  for (const ang of [Math.PI * 0.5, -Math.PI * 0.5, Math.PI]) {
+  // 4 Obsidian Bridges spanning the inner Lava Moat (East, North, South, West)
+  for (const ang of [0, Math.PI * 0.5, -Math.PI * 0.5, Math.PI]) {
     const br = new THREE.Mesh(moatBridgeGeo, obsidianMat);
-    br.position.set(Math.cos(ang) * 15.6, 0.06, Math.sin(ang) * 15.6);
+    br.position.set(Math.cos(ang) * 26.8, 0.06, Math.sin(ang) * 26.8);
     br.rotation.y = -ang;
     volcanoGroup.add(br);
   }
 
-  const tunnelFloor = new THREE.Mesh(tunnelFloorGeo, obsidianMat);
-  tunnelFloor.position.set(27.0, -0.28, 0);
-  tunnelFloor.receiveShadow = !isSoftwareGl;
-  volcanoGroup.add(tunnelFloor);
-
-  // Mystical CatLion Sun-Throne Dais at local (-1.0, 0, 0) -> world (-266, 3.2..3.65, 115)
+  // King CatLion Sun-Throne Dais at local (-1.0, 0, 0) -> world (-621, 3.2..3.65, 115)
   const daisStep1 = new THREE.Mesh(daisStep1Geo, obsidianMat);
   daisStep1.position.set(-1.0, 0.12, 0);
   daisStep1.receiveShadow = !isSoftwareGl;
@@ -175,9 +181,9 @@ export function buildVolcanoAndFloatingIslandsModels(
   daisTrim.position.set(-1.0, 0.45, 0);
   volcanoGroup.add(daisStep1, daisStep2, daisTrim);
 
-  // Grand Sun-Halo Arch & Radiating Flame Blades behind the CatLion Throne (local x = -4.2)
+  // Grand Sun-Halo Arch & Radiating Flame Blades behind the CatLion Throne (local x = -4.6)
   const sunHaloGroup = new THREE.Group();
-  sunHaloGroup.position.set(-4.2, 3.8, 0);
+  sunHaloGroup.position.set(-4.6, 4.1, 0);
   sunHaloGroup.rotation.y = Math.PI / 2;
   const sunHaloArch = new THREE.Mesh(sunHaloArchGeo, goldTrimMat);
   sunHaloArch.rotation.z = -Math.PI * 0.125;
@@ -185,22 +191,22 @@ export function buildVolcanoAndFloatingIslandsModels(
   for (let b = 0; b < 7; b++) {
     const bAng = ((b / 6) - 0.5) * Math.PI * 0.92;
     const blade = new THREE.Mesh(sunBladeGeo, magmaCrystalMat);
-    blade.position.set(Math.sin(bAng) * 4.55, Math.cos(bAng) * 4.55, 0);
+    blade.position.set(Math.sin(bAng) * 5.0, Math.cos(bAng) * 5.0, 0);
     blade.rotation.z = -bAng;
     sunHaloGroup.add(blade);
   }
   volcanoGroup.add(sunHaloGroup);
 
-  // 1B. Sculpted Vaulted Inner Sanctum Cathedral Dome (radius 18.6m, height 15.8m) with open eastern tunnel throat
+  // 1B. Sculpted Vaulted Inner Sanctum Cathedral Dome (radius 30.2m, height 21.5m) with 3 open cardinal throats (East +X, North -Z, South +Z)
   const buildVolcanoChamberDomeGeo = (): THREE.BufferGeometry => {
-    const azSegs = 48;
-    const elSegs = 22;
+    const azSegs = 56;
+    const elSegs = 24;
     const positions: number[] = [];
     const uvs: number[] = [];
     const indices: number[] = [];
-    const rx = 18.6;
-    const rz = 18.6;
-    const ry = 15.8;
+    const rx = 30.2;
+    const rz = 30.2;
+    const ry = 21.5;
 
     for (let ie = 0; ie <= elSegs; ie++) {
       const v = ie / elSegs;
@@ -212,12 +218,12 @@ export function buildVolcanoAndFloatingIslandsModels(
         const ang = u * Math.PI * 2;
         const cosA = Math.cos(ang);
         const sinA = Math.sin(ang);
-        const crag = Math.sin(ang * 7.0 + phi * 5.0) * 0.55 * sinP;
+        const crag = Math.sin(ang * 9.0 + phi * 5.0) * 0.75 * sinP;
         const x = cosA * (rx * cosP + crag);
         const y = -0.3 + Math.pow(sinP, 0.85) * ry;
         const z = sinA * (rz * cosP + crag);
         positions.push(x, y, z);
-        uvs.push(u * 6.0, v * 3.0);
+        uvs.push(u * 8.0, v * 4.0);
       }
     }
 
@@ -231,8 +237,11 @@ export function buildVolcanoAndFloatingIslandsModels(
         const mx = (positions[a * 3] + positions[d * 3]) * 0.5;
         const my = (positions[a * 3 + 1] + positions[d * 3 + 1]) * 0.5;
         const mz = (positions[a * 3 + 2] + positions[d * 3 + 2]) * 0.5;
-        // Leave eastern entrance throat open (+X side: mx > 13.0, |mz| < 5.4, my < 8.3)
-        if (mx > 13.0 && Math.abs(mz) < 5.4 && my < 8.3) {
+        // Leave East (+X), North (-Z), and South (+Z) entrance throats open
+        const inEastThroat = mx > 24.0 && Math.abs(mz) < 5.6 && my < 9.5;
+        const inNorthThroat = mz < -24.0 && Math.abs(mx) < 5.6 && my < 9.5;
+        const inSouthThroat = mz > 24.0 && Math.abs(mx) < 5.6 && my < 9.5;
+        if (inEastThroat || inNorthThroat || inSouthThroat) {
           continue;
         }
         indices.push(a, b, d, a, d, c);
@@ -246,28 +255,33 @@ export function buildVolcanoAndFloatingIslandsModels(
     return geo;
   };
 
-  // 1C. Sculpted Obsidian Entrance Tunnel Arch Shell (local x: +14.0 .. +36.0, clear width 10.2m, height 8.2m)
+  // 1C. Sculpted Obsidian Cardinal Corridor Arch Shell (local x: +27.5 .. +95.5, clear width 10.4m, widened to 22.8m in Chicane Baffle Pocket r = 45..69m, height 9.6m)
   const buildVolcanoTunnelShellGeo = (): THREE.BufferGeometry => {
     const uSegs = 32;
-    const vSegs = 20;
+    const vSegs = 36;
     const positions: number[] = [];
     const uvs: number[] = [];
     const indices: number[] = [];
 
     for (let iv = 0; iv <= vSegs; iv++) {
       const v = iv / vSegs;
-      const lx = 14.0 + v * 22.0;
+      const lx = 27.5 + v * 68.0;
+      const inPocket = lx >= 44.5 && lx <= 69.5;
+      const pocketBlend = inPocket
+        ? Math.sin(Math.max(0, Math.min(1, (lx - 44.5) / 25.0)) * Math.PI)
+        : 0;
+      const baseHalfW = 5.25 + (pocketBlend > 0.12 ? 6.35 : 0.0);
       for (let iu = 0; iu <= uSegs; iu++) {
         const u = iu / uSegs;
         const theta = u * Math.PI;
         const cosT = Math.cos(theta);
         const sinT = Math.sin(theta);
-        const rz = 5.15 + Math.sin(lx * 0.4) * 0.18;
-        const ry = 8.2;
+        const rz = baseHalfW + Math.sin(lx * 0.35) * 0.18;
+        const ry = 9.6;
         const z = -cosT * rz;
         const y = -0.25 + Math.pow(sinT, 0.85) * ry;
         positions.push(lx, y, z);
-        uvs.push(u * 4.0, v * 4.0);
+        uvs.push(u * 4.0, v * 8.0);
       }
     }
     const row = uSegs + 1;
@@ -293,21 +307,20 @@ export function buildVolcanoAndFloatingIslandsModels(
   disposableGeometries.push(chamberDomeGeo, tunnelShellGeo);
 
   const chamberDomeMesh = new THREE.Mesh(chamberDomeGeo, basaltMat);
-  const tunnelShellMesh = new THREE.Mesh(tunnelShellGeo, basaltMat);
-  volcanoGroup.add(chamberDomeMesh, tunnelShellMesh);
+  volcanoGroup.add(chamberDomeMesh);
 
-  // 1D. Hanging Ceiling Stalactites, Inner Magma Falls, Portal Gate & Exterior Lava Rivers
-  const portalPillarGeo = new THREE.CylinderGeometry(1.45, 1.95, 12.4, 8);
-  const portalLintelGeo = new THREE.BoxGeometry(3.4, 2.4, 14.4);
+  // 1D. Hanging Ceiling Stalactites, Inner Magma Falls, 3 Cardinal Corridors, Chicane Baffle Walls & Dynamic Boss Lock Gates
+  const portalPillarGeo = new THREE.CylinderGeometry(1.55, 2.1, 13.6, 8);
+  const portalLintelGeo = new THREE.BoxGeometry(3.8, 2.6, 15.2);
   const crystalClusterGeo = new THREE.OctahedronGeometry(0.8, 0);
-  const stalactiteGeo = new THREE.ConeGeometry(0.65, 3.6, 7);
+  const stalactiteGeo = new THREE.ConeGeometry(0.72, 4.2, 7);
   stalactiteGeo.rotateX(Math.PI);
-  const lavaFallSheetGeo = new THREE.CylinderGeometry(0.65, 1.15, 11.5, 12);
-  const lavaBasinGeo = new THREE.CylinderGeometry(3.4, 3.8, 0.35, 20);
-  const calderaPoolGeo = new THREE.CylinderGeometry(17.5, 15.5, 0.6, 32);
-  const calderaSpireGeo = new THREE.ConeGeometry(2.6, 8.8, 7);
-  const lavaRiverSegGeo = new THREE.BoxGeometry(4.2, 0.28, 2.4);
-  const smokePuffGeo = new THREE.DodecahedronGeometry(3.2, 1);
+  const lavaFallSheetGeo = new THREE.CylinderGeometry(0.75, 1.25, 14.5, 12);
+  const lavaBasinGeo = new THREE.CylinderGeometry(3.6, 4.0, 0.35, 20);
+  const calderaPoolGeo = new THREE.CylinderGeometry(31.5, 28.5, 0.6, 36);
+  const calderaSpireGeo = new THREE.ConeGeometry(3.2, 11.2, 7);
+  const lavaRiverSegGeo = new THREE.BoxGeometry(5.6, 0.32, 2.8);
+  const smokePuffGeo = new THREE.DodecahedronGeometry(3.8, 1);
 
   disposableGeometries.push(
     portalPillarGeo,
@@ -322,159 +335,221 @@ export function buildVolcanoAndFloatingIslandsModels(
     smokePuffGeo
   );
 
-  // 16 Hanging Volcanic Stalactites with glowing magma tips inside the Sanctum Ceiling Dome
-  for (let s = 0; s < 16; s++) {
-    const sAng = (s / 16) * Math.PI * 2 + 0.2;
-    const sRad = 5.5 + (s % 3) * 3.8;
+  // Glowing Magma Crystal Pillars & Throne Accents inside the Sanctum Chamber
+  const sanctumCrystals: THREE.Mesh[] = [];
+  const bossArenaLockGates: THREE.Group[] = [];
+
+  // Build all 3 Cardinal Corridors: East (rotY = 0), North (rotY = +PI/2), South (rotY = -PI/2)
+  for (const corridorRotY of [0, Math.PI * 0.5, -Math.PI * 0.5]) {
+    const corrGroup = new THREE.Group();
+    corrGroup.rotation.y = corridorRotY;
+
+    const tFloor = new THREE.Mesh(tunnelFloorGeo, obsidianMat);
+    tFloor.position.set(61.5, -0.28, 0);
+    tFloor.receiveShadow = !isSoftwareGl;
+    corrGroup.add(tFloor);
+
+    const pFloor = new THREE.Mesh(pocketFloorGeo, obsidianMat);
+    pFloor.position.set(57.0, -0.27, 0);
+    pFloor.receiveShadow = !isSoftwareGl;
+    corrGroup.add(pFloor);
+
+    const tShell = new THREE.Mesh(tunnelShellGeo, basaltMat);
+    corrGroup.add(tShell);
+
+    // Solid Obsidian Chicane Baffle Wall at r = 57.0m (blocks straight line-of-sight from outside while leaving 5.4m side passages on left & right!)
+    const baffleWall = new THREE.Mesh(baffleWallGeo, obsidianMat);
+    baffleWall.position.set(57.0, 4.6, 0);
+    baffleWall.castShadow = !isSoftwareGl;
+    baffleWall.receiveShadow = !isSoftwareGl;
+    corrGroup.add(baffleWall);
+
+    const baffleLowerTrim = new THREE.Mesh(baffleTrimGeo, goldTrimMat);
+    baffleLowerTrim.position.set(57.0, 0.85, 0);
+    const baffleUpperTrim = new THREE.Mesh(baffleTrimGeo, goldTrimMat);
+    baffleUpperTrim.position.set(57.0, 7.65, 0);
+    corrGroup.add(baffleLowerTrim, baffleUpperTrim);
+
+    // Glowing Magma Crystals on both faces of the Chicane Baffle Wall to guide the hunter around the turn
+    for (const faceSign of [-1, 1] as const) {
+      const baffleCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
+      baffleCrystal.scale.set(1.25, 2.2, 0.65);
+      baffleCrystal.position.set(57.0 + faceSign * 2.65, 4.2, 0);
+      corrGroup.add(baffleCrystal);
+      sanctumCrystals.push(baffleCrystal);
+    }
+
+    // Dynamic Obsidian & Magma Portcullis Lock Gate at the inner chamber threshold (r = 28.6m)
+    const lockGateGroup = new THREE.Group();
+    lockGateGroup.position.set(28.6, 9.2, 0); // Starts raised open (y = 9.2m) until player enters the Boss Arena!
+    const gateHeader = new THREE.Mesh(lockGateHeaderGeo, goldTrimMat);
+    gateHeader.position.set(0, 8.6, 0);
+    lockGateGroup.add(gateHeader);
+    for (let barIdx = -4; barIdx <= 4; barIdx++) {
+      const bar = new THREE.Mesh(
+        lockGateBarGeo,
+        barIdx % 2 === 0 ? obsidianMat : magmaCrystalMat
+      );
+      bar.position.set(0, 4.4, barIdx * 1.08);
+      lockGateGroup.add(bar);
+    }
+    corrGroup.add(lockGateGroup);
+    bossArenaLockGates.push(lockGateGroup);
+
+    // Outer Portal Pylons, Lintel, Crest Crystal & Twin Magma Waterfalls at r = 94.0m
+    for (const side of [-1, 1] as const) {
+      const pillar = new THREE.Mesh(portalPillarGeo, obsidianMat);
+      pillar.position.set(94.0, 6.2, side * 6.0);
+      pillar.castShadow = !isSoftwareGl;
+      pillar.receiveShadow = !isSoftwareGl;
+      corrGroup.add(pillar);
+
+      const topCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
+      topCrystal.scale.set(1.45, 2.7, 1.45);
+      topCrystal.position.set(94.0, 13.6, side * 6.0);
+      corrGroup.add(topCrystal);
+
+      const extLavaFall = new THREE.Mesh(lavaFallSheetGeo, magmaMat);
+      extLavaFall.scale.set(1.2, 1.3, 1.2);
+      extLavaFall.position.set(94.2, 7.2, side * 9.5);
+      corrGroup.add(extLavaFall);
+
+      const extLavaBasin = new THREE.Mesh(lavaBasinGeo, magmaMat);
+      extLavaBasin.position.set(94.8, 0.08, side * 9.5);
+      corrGroup.add(extLavaBasin);
+
+      for (const tx of [34.0, 42.0, 72.0, 82.0]) {
+        const rib = new THREE.Mesh(portalPillarGeo, obsidianMat);
+        rib.scale.set(0.58, 0.68, 0.58);
+        rib.position.set(tx, 4.1, side * 4.95);
+        corrGroup.add(rib);
+      }
+
+      for (const ox of [101.5, 108.5]) {
+        const obelisk = new THREE.Mesh(portalPillarGeo, basaltMat);
+        obelisk.scale.set(0.68, 0.58, 0.68);
+        obelisk.position.set(ox, 3.2, side * 6.6);
+        corrGroup.add(obelisk);
+
+        const brazierCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
+        brazierCrystal.scale.set(0.95, 1.75, 0.95);
+        brazierCrystal.position.set(ox, 7.1, side * 6.6);
+        corrGroup.add(brazierCrystal);
+      }
+    }
+
+    const portalLintel = new THREE.Mesh(portalLintelGeo, obsidianMat);
+    portalLintel.position.set(94.0, 10.8, 0);
+    portalLintel.castShadow = !isSoftwareGl;
+    corrGroup.add(portalLintel);
+
+    const crestCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
+    crestCrystal.scale.set(1.9, 3.4, 1.9);
+    crestCrystal.position.set(94.2, 14.4, 0);
+    corrGroup.add(crestCrystal);
+    sanctumCrystals.push(crestCrystal);
+
+    volcanoGroup.add(corrGroup);
+  }
+
+  // 20 Hanging Volcanic Stalactites with glowing magma tips inside the Colossal Sanctum Ceiling Dome
+  for (let s = 0; s < 20; s++) {
+    const sAng = (s / 20) * Math.PI * 2 + 0.2;
+    const sRad = 9.5 + (s % 3) * 5.8;
     const sx = Math.cos(sAng) * sRad;
     const sz = Math.sin(sAng) * sRad;
-    const ceilY = 14.8 - 2.2 * Math.pow(sRad / 18.5, 2);
+    const ceilY = 20.5 - 3.2 * Math.pow(sRad / 30.0, 2);
     const stal = new THREE.Mesh(stalactiteGeo, basaltMat);
-    stal.position.set(sx, ceilY - 1.4, sz);
-    stal.scale.set(0.85 + (s % 3) * 0.25, 0.8 + (s % 4) * 0.25, 0.85 + (s % 3) * 0.25);
+    stal.position.set(sx, ceilY - 1.6, sz);
+    stal.scale.set(0.95 + (s % 3) * 0.25, 0.9 + (s % 4) * 0.25, 0.95 + (s % 3) * 0.25);
     volcanoGroup.add(stal);
 
     if (s % 2 === 0) {
       const tip = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-      tip.scale.set(0.38, 0.75, 0.38);
-      tip.position.set(sx, ceilY - 3.1, sz);
+      tip.scale.set(0.42, 0.82, 0.42);
+      tip.position.set(sx, ceilY - 3.5, sz);
       volcanoGroup.add(tip);
     }
   }
 
-  // 4 Inner Wall Magma Cascades pouring down into the circular Lava Moat
-  for (const wAng of [Math.PI * 0.28, -Math.PI * 0.28, Math.PI * 0.74, -Math.PI * 0.74]) {
+  // 4 Inner Wall Magma Cascades pouring down into the circular Lava Moat (r = 26.8m)
+  for (const wAng of [Math.PI * 0.25, -Math.PI * 0.25, Math.PI * 0.75, -Math.PI * 0.75]) {
     const fall = new THREE.Mesh(lavaFallSheetGeo, magmaMat);
-    fall.position.set(Math.cos(wAng) * 16.4, 5.2, Math.sin(wAng) * 16.4);
+    fall.position.set(Math.cos(wAng) * 26.8, 6.8, Math.sin(wAng) * 26.8);
     volcanoGroup.add(fall);
   }
 
-  // Grand Eastern Portal Pylons, Twin Exterior Magma Waterfalls & Approach Avenue Obelisks
-  for (const side of [-1, 1] as const) {
-    const pillar = new THREE.Mesh(portalPillarGeo, obsidianMat);
-    pillar.position.set(35.0, 5.8, side * 5.9);
-    pillar.castShadow = !isSoftwareGl;
-    pillar.receiveShadow = !isSoftwareGl;
-    volcanoGroup.add(pillar);
-
-    const topCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-    topCrystal.scale.set(1.35, 2.5, 1.35);
-    topCrystal.position.set(35.0, 12.6, side * 5.9);
-    volcanoGroup.add(topCrystal);
-
-    // Twin Exterior Magma Waterfalls flanking the Obsidian Portal (local x = 35.2, z = ±9.2)
-    const extLavaFall = new THREE.Mesh(lavaFallSheetGeo, magmaMat);
-    extLavaFall.scale.set(1.15, 1.25, 1.15);
-    extLavaFall.position.set(35.2, 6.8, side * 9.2);
-    volcanoGroup.add(extLavaFall);
-
-    const extLavaBasin = new THREE.Mesh(lavaBasinGeo, magmaMat);
-    extLavaBasin.position.set(35.6, 0.08, side * 9.2);
-    volcanoGroup.add(extLavaBasin);
-
-    // Tunnel Rib-Arch Pillars along the Obsidian Entrance Corridor
-    for (const tx of [18.0, 23.5, 29.0]) {
-      const rib = new THREE.Mesh(portalPillarGeo, obsidianMat);
-      rib.scale.set(0.55, 0.62, 0.55);
-      rib.position.set(tx, 3.6, side * 4.85);
-      volcanoGroup.add(rib);
-    }
-
-    // Approach avenue basalt obelisks & glowing magma braziers (local x = 41.5, 48.0)
-    for (const ox of [41.5, 48.0]) {
-      const obelisk = new THREE.Mesh(portalPillarGeo, basaltMat);
-      obelisk.scale.set(0.65, 0.55, 0.65);
-      obelisk.position.set(ox, 3.0, side * 6.5);
-      volcanoGroup.add(obelisk);
-
-      const brazierCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-      brazierCrystal.scale.set(0.9, 1.65, 0.9);
-      brazierCrystal.position.set(ox, 6.6, side * 6.5);
-      volcanoGroup.add(brazierCrystal);
-    }
-  }
-
-  const portalLintel = new THREE.Mesh(portalLintelGeo, obsidianMat);
-  portalLintel.position.set(35.0, 10.2, 0);
-  portalLintel.castShadow = !isSoftwareGl;
-  volcanoGroup.add(portalLintel);
-
-  // Colossal Portal Crest Magma Crystal above the Lintel
-  const crestCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-  crestCrystal.scale.set(1.8, 3.2, 1.8);
-  crestCrystal.position.set(35.2, 13.4, 0);
-  volcanoGroup.add(crestCrystal);
-
-  // Glowing Magma Crystal Pillars & Throne Accents inside the Sanctum Chamber
-  const sanctumCrystals: THREE.Mesh[] = [];
-  sanctumCrystals.push(crestCrystal);
-
   // Heart of the Volcano levitating crystal inside the Sun-Throne Halo
   const heartCrystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-  heartCrystal.scale.set(1.45, 2.4, 1.45);
-  heartCrystal.position.set(-4.0, 4.2, 0);
+  heartCrystal.scale.set(1.55, 2.6, 1.55);
+  heartCrystal.position.set(-4.4, 4.6, 0);
   volcanoGroup.add(heartCrystal);
   sanctumCrystals.push(heartCrystal);
 
   for (let i = 0; i < 8; i++) {
-    const ang = (i / 8) * Math.PI * 2 + 0.35;
-    if (Math.abs(ang) < 0.45 || Math.abs(ang - Math.PI * 2) < 0.45) continue;
-    const cx = Math.cos(ang) * 12.2;
-    const cz = Math.sin(ang) * 12.2;
+    const ang = (i / 8) * Math.PI * 2 + 0.38;
+    if (
+      Math.abs(Math.sin(ang)) < 0.28 ||
+      Math.abs(Math.cos(ang)) < 0.28
+    ) {
+      continue;
+    }
+    const cx = Math.cos(ang) * 21.5;
+    const cz = Math.sin(ang) * 21.5;
     const col = new THREE.Mesh(portalPillarGeo, obsidianMat);
-    col.scale.set(0.75, 1.05, 0.75);
-    col.position.set(cx, 5.6, cz);
+    col.scale.set(0.85, 1.25, 0.85);
+    col.position.set(cx, 7.2, cz);
     volcanoGroup.add(col);
 
     const crys = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
-    crys.scale.set(1.15, 2.5, 1.15);
-    crys.position.set(cx * 0.88, 1.3, cz * 0.88);
+    crys.scale.set(1.25, 2.7, 1.25);
+    crys.position.set(cx * 0.90, 1.4, cz * 0.90);
     crys.rotation.set(0.2 * Math.sin(i), i, 0.15 * Math.cos(i));
     volcanoGroup.add(crys);
     sanctumCrystals.push(crys);
   }
 
-  // 4 Exterior Molten Lava Rivers cascading down the Volcano flanks from the Summit Crater Rim
-  for (const rAng of [Math.PI * 0.45, Math.PI * 0.78, Math.PI * 1.15, -Math.PI * 0.55]) {
+  // 4 Exterior Molten Lava Rivers cascading down the Volcano flanks between the 3 cardinal portals
+  for (const rAng of [Math.PI * 0.25, Math.PI * 0.75, -Math.PI * 0.75, -Math.PI * 0.25]) {
     const cosR = Math.cos(rAng);
     const sinR = Math.sin(rAng);
-    for (let step = 0; step < 10; step++) {
-      const rad = 21.5 + step * 3.3;
+    for (let step = 0; step < 12; step++) {
+      const rad = 35.0 + step * 5.4;
       const wx = VOLCANO_SANCTUM_POS.x + cosR * rad;
       const wz = VOLCANO_SANCTUM_POS.z + sinR * rad;
       const wy = groundHeightAt(wx, wz) - VOLCANO_SANCTUM_POS.floorY;
-      const nextRad = rad + 3.3;
+      const nextRad = rad + 5.4;
       const nextWy =
         groundHeightAt(
           VOLCANO_SANCTUM_POS.x + cosR * nextRad,
           VOLCANO_SANCTUM_POS.z + sinR * nextRad
         ) - VOLCANO_SANCTUM_POS.floorY;
       const seg = new THREE.Mesh(lavaRiverSegGeo, magmaMat);
-      seg.position.set(cosR * (rad + 1.5), (wy + nextWy) * 0.5 + 0.08, sinR * (rad + 1.5));
+      seg.position.set(cosR * (rad + 2.5), (wy + nextWy) * 0.5 + 0.08, sinR * (rad + 2.5));
       seg.rotation.y = -rAng;
-      seg.rotation.z = Math.atan2(nextWy - wy, 3.3);
+      seg.rotation.z = Math.atan2(nextWy - wy, 5.4);
       volcanoGroup.add(seg);
     }
     // Base Lava Pool at the foot of each lava river
     const pool = new THREE.Mesh(lavaBasinGeo, magmaMat);
-    pool.scale.set(1.4, 1.0, 1.4);
-    pool.position.set(cosR * 55.0, 0.12, sinR * 55.0);
+    pool.scale.set(1.6, 1.0, 1.6);
+    pool.position.set(cosR * 102.0, 0.12, sinR * 102.0);
     volcanoGroup.add(pool);
   }
 
-  // Summit Caldera Molten Lava Lake & 16 Jagged Basalt Crater Rim Spires high above the chamber (y = +38.5m local)
-  const calderaLocalY = VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY - 7.2;
+  // Summit Caldera Molten Lava Lake & 16 Jagged Basalt Crater Rim Spires high above the chamber
+  const calderaLocalY = VOLCANO_SANCTUM_POS.craterRimY - VOLCANO_SANCTUM_POS.floorY - 9.5;
   const calderaPool = new THREE.Mesh(calderaPoolGeo, magmaMat);
   calderaPool.position.set(0, calderaLocalY, 0);
   volcanoGroup.add(calderaPool);
 
   for (let s = 0; s < 16; s++) {
     const sAng = (s / 16) * Math.PI * 2;
-    const sRad = 20.5 + (s % 2) * 1.8;
+    const sRad = 33.5 + (s % 2) * 2.4;
     const spire = new THREE.Mesh(calderaSpireGeo, basaltMat);
     spire.position.set(
       Math.cos(sAng) * sRad,
-      calderaLocalY + 4.8 + (s % 3) * 1.2,
+      calderaLocalY + 6.2 + (s % 3) * 1.4,
       Math.sin(sAng) * sRad
     );
     spire.rotation.z = -Math.cos(sAng) * 0.22;
@@ -489,31 +564,76 @@ export function buildVolcanoAndFloatingIslandsModels(
     const puff = new THREE.Mesh(smokePuffGeo, volcanicSmokeMat);
     const t = p / 16;
     puff.position.set(
-      Math.cos(p * 1.7) * (2.5 + t * 8.5),
-      calderaLocalY + 4.0 + t * 38.0,
-      Math.sin(p * 1.7) * (2.5 + t * 8.5)
+      Math.cos(p * 1.7) * (3.5 + t * 12.5),
+      calderaLocalY + 4.5 + t * 42.0,
+      Math.sin(p * 1.7) * (3.5 + t * 12.5)
     );
-    puff.scale.setScalar(0.85 + t * 2.1);
+    puff.scale.setScalar(0.95 + t * 2.4);
     volcanoGroup.add(puff);
     smokePuffs.push(puff);
   }
   for (let e = 0; e < 20; e++) {
     const ember = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
     const t = e / 20;
-    ember.scale.setScalar(0.35 + (e % 3) * 0.18);
+    ember.scale.setScalar(0.4 + (e % 3) * 0.2);
     ember.position.set(
-      Math.cos(e * 2.3) * (3.0 + t * 9.0),
-      calderaLocalY + 2.0 + t * 34.0,
-      Math.sin(e * 2.3) * (3.0 + t * 9.0)
+      Math.cos(e * 2.3) * (4.0 + t * 12.0),
+      calderaLocalY + 2.5 + t * 38.0,
+      Math.sin(e * 2.3) * (4.0 + t * 12.0)
     );
     volcanoGroup.add(ember);
     risingEmbers.push(ember);
   }
 
+  // Outer Western Volcanic Badlands: jagged basalt monoliths, obsidian crags, and glowing magma vents (r = 112m..215m)
+  const badlandsCragGeo = new THREE.ConeGeometry(2.8, 9.2, 6);
+  perturbGeometryVertices(badlandsCragGeo, 0.38, 1.4);
+  const badlandsLavaPoolGeo = new THREE.CylinderGeometry(3.0, 3.5, 0.22, 12);
+  disposableGeometries.push(badlandsCragGeo, badlandsLavaPoolGeo);
+
+  for (let b = 0; b < 28; b++) {
+    const bAng = (b / 28) * Math.PI * 2 + (b % 3) * 0.14;
+    // Leave the 3 cardinal entrance approach corridors clear (East 0, North -PI/2, South +PI/2)
+    if (
+      Math.abs(Math.sin(bAng)) < 0.24 ||
+      Math.abs(Math.cos(bAng)) < 0.24
+    ) {
+      continue;
+    }
+    const bRad = 112.0 + ((b * 37) % 98);
+    const wx = VOLCANO_SANCTUM_POS.x + Math.cos(bAng) * bRad;
+    const wz = VOLCANO_SANCTUM_POS.z + Math.sin(bAng) * bRad;
+    const wy = groundHeightAt(wx, wz);
+    const lx = wx - VOLCANO_SANCTUM_POS.x;
+    const lz = wz - VOLCANO_SANCTUM_POS.z;
+    const ly = wy - VOLCANO_SANCTUM_POS.floorY;
+
+    const crag = new THREE.Mesh(badlandsCragGeo, b % 2 === 0 ? basaltMat : obsidianMat);
+    const cragScale = 0.8 + (b % 4) * 0.34;
+    crag.scale.set(cragScale, cragScale * (0.85 + (b % 3) * 0.28), cragScale);
+    crag.position.set(lx, ly + 2.6 * cragScale, lz);
+    crag.rotation.set(((b % 5) - 2) * 0.08, b * 1.1, (((b + 2) % 5) - 2) * 0.08);
+    crag.castShadow = !isSoftwareGl;
+    crag.receiveShadow = !isSoftwareGl;
+    volcanoGroup.add(crag);
+
+    if (b % 3 === 0) {
+      const crystal = new THREE.Mesh(crystalClusterGeo, magmaCrystalMat);
+      crystal.scale.setScalar(1.0 + (b % 3) * 0.25);
+      crystal.position.set(lx + Math.cos(bAng + 0.6) * 2.6, ly + 0.55, lz + Math.sin(bAng + 0.6) * 2.6);
+      volcanoGroup.add(crystal);
+    }
+    if (b % 4 === 0 && bRad < 195.0) {
+      const pool = new THREE.Mesh(badlandsLavaPoolGeo, magmaCrystalMat);
+      pool.position.set(lx - Math.cos(bAng) * 4.0, ly + 0.06, lz - Math.sin(bAng) * 4.0);
+      volcanoGroup.add(pool);
+    }
+  }
+
   let volcanoLight: THREE.PointLight | null = null;
   if (!isSoftwareGl) {
-    volcanoLight = new THREE.PointLight(0xff5511, 3.2, 42.0, 1.35);
-    volcanoLight.position.set(0, 7.5, 0);
+    volcanoLight = new THREE.PointLight(0xff5511, 3.6, 58.0, 1.3);
+    volcanoLight.position.set(0, 10.5, 0);
     volcanoGroup.add(volcanoLight);
   }
 
@@ -522,7 +642,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     obj: volcanoGroup,
     cx: VOLCANO_SANCTUM_POS.x,
     cz: VOLCANO_SANCTUM_POS.z,
-    radius: 90,
+    radius: 250,
   });
 
   // ==========================================================================
@@ -760,8 +880,16 @@ export function buildVolcanoAndFloatingIslandsModels(
     floatingIslandsGroup.add(islGroup);
   }
 
-  // 4. Centerpiece Floral Marble Sanctuary Arch & Celestial Star-Sanctuary Canopy Bed (205, 68.3, -35)
+  // 4. Centerpiece Floral Marble Sanctuary Arch & Celestial Star-Sanctuary Canopy Bed
+  const mainIslX = FLOATING_BLOOMING_ISLANDS[0].x;
+  const mainIslZ = FLOATING_BLOOMING_ISLANDS[0].z;
   const mainDeckY = FLOATING_BLOOMING_ISLANDS[0].deckY;
+  const northIslX = FLOATING_BLOOMING_ISLANDS[1].x;
+  const northIslZ = FLOATING_BLOOMING_ISLANDS[1].z;
+  const northDeckY = FLOATING_BLOOMING_ISLANDS[1].deckY;
+  const eastIslX = FLOATING_BLOOMING_ISLANDS[2].x;
+  const eastIslZ = FLOATING_BLOOMING_ISLANDS[2].z;
+  const eastDeckY = FLOATING_BLOOMING_ISLANDS[2].deckY;
   const archColumnGeo = new THREE.CylinderGeometry(0.42, 0.52, 5.6, 12);
   const archTorusGeo = new THREE.TorusGeometry(3.2, 0.42, 10, 24, Math.PI);
   const bedDaisGeo = new THREE.CylinderGeometry(2.6, 2.9, 0.36, 24);
@@ -788,62 +916,60 @@ export function buildVolcanoAndFloatingIslandsModels(
 
   for (const side of [-1, 1] as const) {
     const col = new THREE.Mesh(archColumnGeo, marbleArchMat);
-    col.position.set(205.0 + side * 3.2, mainDeckY + 0.3 + 2.8, -35.0);
+    col.position.set(mainIslX + side * 3.2, mainDeckY + 0.3 + 2.8, mainIslZ);
     col.castShadow = !isSoftwareGl;
     floatingIslandsGroup.add(col);
   }
   const archTop = new THREE.Mesh(archTorusGeo, marbleArchMat);
-  archTop.position.set(205.0, mainDeckY + 0.3 + 5.6, -35.0);
+  archTop.position.set(mainIslX, mainDeckY + 0.3 + 5.6, mainIslZ);
   floatingIslandsGroup.add(archTop);
 
-  // Celestial Star-Sanctuary Canopy Bed at (205.0, 68.35, -35.0)
+  // Celestial Star-Sanctuary Canopy Bed at (mainIslX, 68.35, -35.0)
   const bedDais = new THREE.Mesh(bedDaisGeo, marbleArchMat);
-  bedDais.position.set(205.0, mainDeckY + 0.32, -35.0);
+  bedDais.position.set(mainIslX, mainDeckY + 0.32, mainIslZ);
   floatingIslandsGroup.add(bedDais);
 
   const bedFrame = new THREE.Mesh(bedFrameGeo, flowerGoldMat);
-  bedFrame.position.set(205.0, mainDeckY + 0.62, -35.0);
+  bedFrame.position.set(mainIslX, mainDeckY + 0.62, mainIslZ);
   floatingIslandsGroup.add(bedFrame);
 
   const bedMattress = new THREE.Mesh(bedMattressGeo, blossomCanopyWhiteMat);
-  bedMattress.position.set(205.0, mainDeckY + 0.84, -35.0);
+  bedMattress.position.set(mainIslX, mainDeckY + 0.84, mainIslZ);
   floatingIslandsGroup.add(bedMattress);
 
   const bedPillow = new THREE.Mesh(bedPillowGeo, blossomCanopyPinkMat);
-  bedPillow.position.set(205.0, mainDeckY + 1.05, -36.05);
+  bedPillow.position.set(mainIslX, mainDeckY + 1.05, mainIslZ - 1.05);
   floatingIslandsGroup.add(bedPillow);
 
   const sanctuaryStarCrystal = new THREE.Mesh(undersideCrystalGeo, skyCrystalMat);
   sanctuaryStarCrystal.scale.set(0.55, 0.85, 0.55);
-  sanctuaryStarCrystal.position.set(205.0, mainDeckY + 4.4, -35.0);
+  sanctuaryStarCrystal.position.set(mainIslX, mainDeckY + 4.4, mainIslZ);
   floatingIslandsGroup.add(sanctuaryStarCrystal);
   floatingCrystals.push(sanctuaryStarCrystal);
 
-  // North Island Celestial Star-Fountain at (205.0, 71.0, -85.0)
-  const northDeckY = FLOATING_BLOOMING_ISLANDS[1].deckY;
+  // North Island Celestial Star-Fountain at (northIslX, 71.0, -85.0)
   const starFountainBasin = new THREE.Mesh(fountainBasinGeo, marbleArchMat);
-  starFountainBasin.position.set(205.0, northDeckY + 0.42, -85.0);
+  starFountainBasin.position.set(northIslX, northDeckY + 0.42, northIslZ);
   floatingIslandsGroup.add(starFountainBasin);
 
   const starFountainWater = new THREE.Mesh(fountainWaterGeo, waterfallCoreMat);
-  starFountainWater.position.set(205.0, northDeckY + 0.78, -85.0);
+  starFountainWater.position.set(northIslX, northDeckY + 0.78, northIslZ);
   floatingIslandsGroup.add(starFountainWater);
 
-  // East Island Golden Sun-Gazebo Belvedere at (252.0, 70.0, -18.0)
-  const eastDeckY = FLOATING_BLOOMING_ISLANDS[2].deckY;
+  // East Island Golden Sun-Gazebo Belvedere at (eastIslX, 70.0, -18.0)
   for (let g = 0; g < 6; g++) {
     const gAng = (g / 6) * Math.PI * 2;
     const gCol = new THREE.Mesh(archColumnGeo, marbleArchMat);
     gCol.scale.set(0.72, 0.78, 0.72);
     gCol.position.set(
-      252.0 + Math.cos(gAng) * 4.2,
+      eastIslX + Math.cos(gAng) * 4.2,
       eastDeckY + 2.2,
-      -18.0 + Math.sin(gAng) * 4.2
+      eastIslZ + Math.sin(gAng) * 4.2
     );
     floatingIslandsGroup.add(gCol);
   }
   const gazeboCrown = new THREE.Mesh(gazeboDomeRingGeo, flowerGoldMat);
-  gazeboCrown.position.set(252.0, eastDeckY + 4.4, -18.0);
+  gazeboCrown.position.set(eastIslX, eastDeckY + 4.4, eastIslZ);
   floatingIslandsGroup.add(gazeboCrown);
 
   // 5. North & East Arched Floral Sky-Bridges connecting the 3 High-Altitude Floating Islands
@@ -851,26 +977,28 @@ export function buildVolcanoAndFloatingIslandsModels(
   const bridgeKerbGeo = new THREE.BoxGeometry(0.35, 0.52, 1.18);
   disposableGeometries.push(bridgePlankGeo, bridgeKerbGeo);
 
-  // North Sky-Bridge (x = 205, z = -61.5 .. -68.5)
+  // North Sky-Bridge (x = mainIslX, z = -61.5 .. -68.5)
   for (let s = 0; s <= 7; s++) {
     const t = s / 7;
     const bz = -61.5 - t * 7.0;
-    const by = floatingBloomingIslandHeightAt(205.0, bz, mainDeckY + 1.5) ?? mainDeckY + 1.5;
+    const by = floatingBloomingIslandHeightAt(mainIslX, bz, mainDeckY + 1.5) ?? mainDeckY + 1.5;
     const plank = new THREE.Mesh(bridgePlankGeo, marbleArchMat);
-    plank.position.set(205.0, by - 0.14, bz);
+    plank.position.set(mainIslX, by - 0.14, bz);
     floatingIslandsGroup.add(plank);
     for (const side of [-1, 1] as const) {
       const kerb = new THREE.Mesh(bridgeKerbGeo, blossomCanopyPinkMat);
-      kerb.position.set(205.0 + side * 2.75, by + 0.18, bz);
+      kerb.position.set(mainIslX + side * 2.75, by + 0.18, bz);
       floatingIslandsGroup.add(kerb);
     }
   }
 
-  // East Sky-Bridge (from (230, -26) to (236.5, -23.6))
-  const eastBridgeYaw = Math.atan2(236.5 - 230.0, -23.6 - -26.0);
+  // East Sky-Bridge (from (mainIslX + 25.0, -26) to (mainIslX + 31.5, -23.6))
+  const eastBridgeStartX = mainIslX + 25.0;
+  const eastBridgeEndX = mainIslX + 31.5;
+  const eastBridgeYaw = Math.atan2(eastBridgeEndX - eastBridgeStartX, -23.6 - -26.0);
   for (let s = 0; s <= 7; s++) {
     const t = s / 7;
-    const bx = 230.0 + t * 6.5;
+    const bx = eastBridgeStartX + t * 6.5;
     const bz = -26.0 + t * 2.4;
     const by = floatingBloomingIslandHeightAt(bx, bz, mainDeckY + 1.0) ?? mainDeckY + 1.0;
     const plank = new THREE.Mesh(bridgePlankGeo, marbleArchMat);
@@ -928,7 +1056,7 @@ export function buildVolcanoAndFloatingIslandsModels(
   waterfallVeilMesh.position.set(wfX, wfFootY + wfHeight * 0.5, wfZ);
   floatingIslandsGroup.add(waterfallVeilMesh);
 
-  // Ground-Level Plunge Pool & Rim Boulders at (165, 3.4, -35)
+  // Ground-Level Plunge Pool & Rim Boulders at (wfX, 3.4, -35)
   const plungePoolMesh = new THREE.Mesh(plungePoolWaterGeo, waterfallCoreMat);
   plungePoolMesh.position.set(wfX, wfFootY + 0.06, wfZ);
   floatingIslandsGroup.add(plungePoolMesh);
@@ -961,7 +1089,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     waterfallMistPuffs.push(puff);
   }
 
-  // 6B. Ground-Level Marble Entry Plaza & Welcome Torii Archway at (142.5..152.0, 3.3, -35.0)
+  // 6B. Ground-Level Marble Entry Plaza & Welcome Torii Archway at (entryRampStartX..footX, 3.3, -35.0)
   const entryPlazaGeo = new THREE.BoxGeometry(10.2, 0.48, 7.8);
   const entryArchBeamGeo = new THREE.BoxGeometry(1.1, 0.75, 8.6);
   // Non-overlapping floating step island discs (1.48m regular, 1.85m rest landing; consecutive centers are ~3.78m apart)
@@ -995,8 +1123,9 @@ export function buildVolcanoAndFloatingIslandsModels(
     miniCrystalGeo
   );
 
+  const entryGateX = FLOATING_ISLAND_STAIR_POS.entryRampStartX + 1.5;
   const entryPlazaMesh = new THREE.Mesh(entryPlazaGeo, marbleArchMat);
-  entryPlazaMesh.position.set(147.2, 3.12, wfZ);
+  entryPlazaMesh.position.set(FLOATING_ISLAND_STAIR_POS.entryRampStartX + 4.7, 3.12, wfZ);
   entryPlazaMesh.rotation.z = 0.024;
   entryPlazaMesh.receiveShadow = !isSoftwareGl;
   floatingIslandsGroup.add(entryPlazaMesh);
@@ -1004,17 +1133,17 @@ export function buildVolcanoAndFloatingIslandsModels(
   for (const side of [-1, 1] as const) {
     const gateCol = new THREE.Mesh(archColumnGeo, marbleArchMat);
     gateCol.scale.set(0.88, 0.92, 0.88);
-    gateCol.position.set(144.0, 3.2 + 2.5, wfZ + side * 3.4);
+    gateCol.position.set(entryGateX, 3.2 + 2.5, wfZ + side * 3.4);
     floatingIslandsGroup.add(gateCol);
 
     const gateLantern = new THREE.Mesh(miniCrystalGeo, skyCrystalMat);
     gateLantern.scale.setScalar(1.35);
-    gateLantern.position.set(144.0, 3.2 + 5.7, wfZ + side * 3.4);
+    gateLantern.position.set(entryGateX, 3.2 + 5.7, wfZ + side * 3.4);
     floatingIslandsGroup.add(gateLantern);
     floatingCrystals.push(gateLantern);
   }
   const gateTopBeam = new THREE.Mesh(entryArchBeamGeo, flowerGoldMat);
-  gateTopBeam.position.set(144.0, 3.2 + 5.15, wfZ);
+  gateTopBeam.position.set(entryGateX, 3.2 + 5.15, wfZ);
   floatingIslandsGroup.add(gateTopBeam);
 
   // 6C. 57 Floating Mini-Islands & Grand Rest-Landing Terraces Spiraling Upward Around the Waterfall
@@ -1175,10 +1304,11 @@ export function buildVolcanoAndFloatingIslandsModels(
     orreryRingGeo
   );
 
-  // 1) Twin Sky-Gate Watchtowers on Main Island flanking the Upper Waterfall Aqueduct (183.5, 68.0, -35 ± 5.2)
+  // 1) Twin Sky-Gate Watchtowers on Main Island flanking the Upper Waterfall Aqueduct (topX + 5.5, 68.0, -35 ± 5.2)
+  const skyWatchtowerX = FLOATING_ISLAND_STAIR_POS.topX + 5.5;
   for (const side of [-1, 1] as const) {
     const wtGroup = new THREE.Group();
-    wtGroup.position.set(183.5, mainDeckY, wfZ + side * 5.2);
+    wtGroup.position.set(skyWatchtowerX, mainDeckY, wfZ + side * 5.2);
 
     const wtBody = new THREE.Mesh(towerBodyGeo, marbleArchMat);
     wtBody.position.set(0, 2.9, 0);
@@ -1202,32 +1332,32 @@ export function buildVolcanoAndFloatingIslandsModels(
     floatingIslandsGroup.add(wtGroup);
   }
 
-  // 2) Grand Celestial Temple Pavilion around the Main Island Sanctuary (205, 68.0, -35)
+  // 2) Grand Celestial Temple Pavilion around the Main Island Sanctuary (mainIslX, 68.0, -35)
   for (let c = 0; c < 8; c++) {
     const cAng = (c / 8) * Math.PI * 2 + Math.PI / 8;
     const tCol = new THREE.Mesh(archColumnGeo, marbleArchMat);
     tCol.scale.set(0.82, 1.05, 0.82);
-    tCol.position.set(205.0 + Math.cos(cAng) * 5.2, mainDeckY + 2.95, -35.0 + Math.sin(cAng) * 5.2);
+    tCol.position.set(mainIslX + Math.cos(cAng) * 5.2, mainDeckY + 2.95, mainIslZ + Math.sin(cAng) * 5.2);
     floatingIslandsGroup.add(tCol);
   }
   const templeDome = new THREE.Mesh(templeDomeGeo, marbleArchMat);
-  templeDome.position.set(205.0, mainDeckY + 5.8, -35.0);
+  templeDome.position.set(mainIslX, mainDeckY + 5.8, mainIslZ);
   floatingIslandsGroup.add(templeDome);
 
   const templeCrownRing = new THREE.Mesh(gazeboDomeRingGeo, flowerGoldMat);
   templeCrownRing.scale.setScalar(1.26);
-  templeCrownRing.position.set(205.0, mainDeckY + 5.85, -35.0);
+  templeCrownRing.position.set(mainIslX, mainDeckY + 5.85, mainIslZ);
   floatingIslandsGroup.add(templeCrownRing);
 
   const templeApexSpire = new THREE.Mesh(undersideCrystalGeo, skyCrystalMat);
   templeApexSpire.scale.set(0.75, 1.35, 0.75);
-  templeApexSpire.position.set(205.0, mainDeckY + 12.6, -35.0);
+  templeApexSpire.position.set(mainIslX, mainDeckY + 12.6, mainIslZ);
   floatingIslandsGroup.add(templeApexSpire);
   floatingCrystals.push(templeApexSpire);
 
-  // 3) Sky-Guard Citadel Barracks & Armory Hall on Main Island Southern Terrace (205, 68.0, -15.5)
+  // 3) Sky-Guard Citadel Barracks & Armory Hall on Main Island Southern Terrace (mainIslX, 68.0, -15.5)
   const barracksGroup = new THREE.Group();
-  barracksGroup.position.set(205.0, mainDeckY, -15.5);
+  barracksGroup.position.set(mainIslX, mainDeckY, -15.5);
 
   const bDais = new THREE.Mesh(barracksBaseGeo, marbleArchMat);
   bDais.position.set(0, 0.22, 0);
@@ -1256,9 +1386,9 @@ export function buildVolcanoAndFloatingIslandsModels(
 
   floatingIslandsGroup.add(barracksGroup);
 
-  // 4) North Island Hall of the Starlight Guardians Citadel (205, 71.0, -93.5)
+  // 4) North Island Hall of the Starlight Guardians Citadel (northIslX, 71.0, -93.5)
   const northCitadelGroup = new THREE.Group();
-  northCitadelGroup.position.set(205.0, northDeckY, -93.5);
+  northCitadelGroup.position.set(northIslX, northDeckY, -93.5);
 
   const ncTowerCenter = new THREE.Mesh(towerBodyGeo, marbleArchMat);
   ncTowerCenter.scale.set(1.25, 1.25, 1.25);
@@ -1289,9 +1419,9 @@ export function buildVolcanoAndFloatingIslandsModels(
 
   floatingIslandsGroup.add(northCitadelGroup);
 
-  // 5) East Island Astral Observatory Dome & Rotating Golden Orrery at (252.0, 70.0, -18.0)
+  // 5) East Island Astral Observatory Dome & Rotating Golden Orrery at (eastIslX, 70.0, -18.0)
   const orreryGroup = new THREE.Group();
-  orreryGroup.position.set(252.0, eastDeckY + 2.55, -18.0);
+  orreryGroup.position.set(eastIslX, eastDeckY + 2.55, eastIslZ);
   const orreryRing1 = new THREE.Mesh(orreryRingGeo, flowerGoldMat);
   const orreryRing2 = new THREE.Mesh(orreryRingGeo, silverArmorMat);
   orreryRing2.scale.setScalar(0.78);
@@ -1301,12 +1431,12 @@ export function buildVolcanoAndFloatingIslandsModels(
   orreryGroup.add(orreryRing1, orreryRing2, orreryCore);
   floatingIslandsGroup.add(orreryGroup);
 
-  // East Island Celestial Relic Chest on a marble pedestal at (257.5, 70.0, -18.0)
+  // East Island Celestial Relic Chest on a marble pedestal at (eastIslX + 5.5, 70.0, -18.0)
   const eastChestBase = new THREE.Mesh( chestBoxGeo, silverArmorMat );
-  eastChestBase.position.set(257.5, eastDeckY + 0.55, -18.0);
+  eastChestBase.position.set(eastIslX + 5.5, eastDeckY + 0.55, eastIslZ);
   eastChestBase.rotation.y = -Math.PI / 2;
   const eastChestTop = new THREE.Mesh( chestLidGeo, flowerGoldMat );
-  eastChestTop.position.set(257.5, eastDeckY + 0.98, -18.0);
+  eastChestTop.position.set(eastIslX + 5.5, eastDeckY + 0.98, eastIslZ);
   eastChestTop.rotation.y = -Math.PI / 2;
   floatingIslandsGroup.add(eastChestBase, eastChestTop);
 
@@ -1388,6 +1518,8 @@ export function buildVolcanoAndFloatingIslandsModels(
   }
 
   const skyGuards: ICelestialSkyGuard[] = [];
+  const groundGateGuardX = entryGateX - 0.2;
+  const upperGateGuardX = FLOATING_ISLAND_STAIR_POS.topX + 3.2;
   const guardConfigs: ReadonlyArray<{
     x: number;
     y: number;
@@ -1402,61 +1534,61 @@ export function buildVolcanoAndFloatingIslandsModels(
   }> = [
     // 2 Gate Guards at Ground Waterfall Entry Gate (facing -X; spears crossed in an "X" across the gate until player is very close)
     {
-      x: 143.8,
+      x: groundGateGuardX,
       y: 3.22,
       z: wfZ - 2.35,
       yaw: -Math.PI / 2,
       patrolAxis: 'none',
       patrolRadius: 0,
       isGateGuard: true,
-      gateCenterX: 143.8,
+      gateCenterX: groundGateGuardX,
       gateCenterZ: wfZ,
       gateSide: -1,
     },
     {
-      x: 143.8,
+      x: groundGateGuardX,
       y: 3.22,
       z: wfZ + 2.35,
       yaw: -Math.PI / 2,
       patrolAxis: 'none',
       patrolRadius: 0,
       isGateGuard: true,
-      gateCenterX: 143.8,
+      gateCenterX: groundGateGuardX,
       gateCenterZ: wfZ,
       gateSide: 1,
     },
     // 2 Gate Guards at Upper Sky-Gate Watchtowers (facing -X; spears crossed in an "X" across the gate until player is very close)
     {
-      x: 181.2,
+      x: upperGateGuardX,
       y: mainDeckY,
       z: wfZ - 2.35,
       yaw: -Math.PI / 2,
       patrolAxis: 'none',
       patrolRadius: 0,
       isGateGuard: true,
-      gateCenterX: 181.2,
+      gateCenterX: upperGateGuardX,
       gateCenterZ: wfZ,
       gateSide: -1,
     },
     {
-      x: 181.2,
+      x: upperGateGuardX,
       y: mainDeckY,
       z: wfZ + 2.35,
       yaw: -Math.PI / 2,
       patrolAxis: 'none',
       patrolRadius: 0,
       isGateGuard: true,
-      gateCenterX: 181.2,
+      gateCenterX: upperGateGuardX,
       gateCenterZ: wfZ,
       gateSide: 1,
     },
     // 2 Patrolling Guards on Main Sky Island Sanctuary Plaza & Barracks
-    { x: 196.5, y: mainDeckY + 0.12, z: -35.0, yaw: 0, patrolAxis: 'z', patrolRadius: 8.5 },
-    { x: 205.0, y: mainDeckY + 0.12, z: -22.5, yaw: Math.PI / 2, patrolAxis: 'x', patrolRadius: 8.0 },
+    { x: mainIslX - 8.5, y: mainDeckY + 0.12, z: mainIslZ, yaw: 0, patrolAxis: 'z', patrolRadius: 8.5 },
+    { x: mainIslX, y: mainDeckY + 0.12, z: mainIslZ + 12.5, yaw: Math.PI / 2, patrolAxis: 'x', patrolRadius: 8.0 },
     // 1 Guard at North Island Star-Citadel Courtyard
-    { x: 202.2, y: northDeckY + 0.1, z: -76.5, yaw: 0, patrolAxis: 'x', patrolRadius: 4.5 },
+    { x: northIslX - 2.8, y: northDeckY + 0.1, z: northIslZ + 8.5, yaw: 0, patrolAxis: 'x', patrolRadius: 4.5 },
     // 1 Guard at East Island Astral Observatory Entrance
-    { x: 244.5, y: eastDeckY + 0.1, z: -20.5, yaw: -Math.PI / 2, patrolAxis: 'z', patrolRadius: 4.0 },
+    { x: eastIslX - 7.5, y: eastDeckY + 0.1, z: eastIslZ - 2.5, yaw: -Math.PI / 2, patrolAxis: 'z', patrolRadius: 4.0 },
   ];
 
   for (let gIdx = 0; gIdx < guardConfigs.length; gIdx++) {
@@ -1616,7 +1748,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     const lanternMesh = new THREE.Mesh(miniCrystalGeo, l % 2 === 0 ? flowerGoldMat : skyCrystalMat);
     lanternMesh.scale.setScalar(1.3);
     const ly = mainDeckY + 6.5 + (l % 4) * 3.2;
-    lanternMesh.position.set(205.0 + Math.cos(lAng) * lRad, ly, -35.0 + Math.sin(lAng) * lRad);
+    lanternMesh.position.set(mainIslX + Math.cos(lAng) * lRad, ly, mainIslZ + Math.sin(lAng) * lRad);
     floatingIslandsGroup.add(lanternMesh);
     skyLanterns.push({ mesh: lanternMesh, baseY: ly, phase: l * 0.91 });
   }
@@ -1652,20 +1784,29 @@ export function buildVolcanoAndFloatingIslandsModels(
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({
     obj: floatingIslandsGroup,
-    cx: 205.0,
-    cz: -35.0,
-    radius: 120,
+    cx: mainIslX,
+    cz: mainIslZ,
+    radius: 135,
   });
 
   return {
     volcanoGroup,
     floatingIslandsGroup,
     updateVolcanoAndFloatingIslands: (elapsedTime: number, playerX: number, playerZ: number) => {
-      if (isWithinViewDistance(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z, playerX, playerZ, 95, VIEW_DISTANCE)) {
+      if (isWithinViewDistance(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z, playerX, playerZ, 135, VIEW_DISTANCE)) {
         const pulse = 2.15 + Math.sin(elapsedTime * 3.4) * 0.5;
         magmaMat.emissiveIntensity = pulse;
         if (volcanoLight) {
-          volcanoLight.intensity = 3.0 + Math.sin(elapsedTime * 4.5) * 0.65;
+          volcanoLight.intensity = 3.2 + Math.sin(elapsedTime * 4.5) * 0.65;
+        }
+        // Animate the 3 Dynamic Obsidian & Magma Portcullis Lock Gates:
+        // Drop to y = 0.0 (locked shut!) when the player is inside the Boss Arena fighting the King CatLion,
+        // and rise to y = 9.2 (open!) when outside or once the King CatLion is subdued/tamed/defeated.
+        const arenaLocked = isVolcanoBossArenaLocked(playerX, playerZ);
+        const targetGateY = arenaLocked ? 0.0 : 9.2;
+        for (let gIdx = 0; gIdx < bossArenaLockGates.length; gIdx++) {
+          const gate = bossArenaLockGates[gIdx];
+          gate.position.y += (targetGateY - gate.position.y) * 0.18;
         }
         for (let i = 0; i < sanctumCrystals.length; i++) {
           sanctumCrystals[i].rotation.y = elapsedTime * 0.65 + i;
@@ -1698,7 +1839,7 @@ export function buildVolcanoAndFloatingIslandsModels(
         }
       }
 
-      if (isWithinViewDistance(205.0, -35.0, playerX, playerZ, 120, VIEW_DISTANCE)) {
+      if (isWithinViewDistance(mainIslX, mainIslZ, playerX, playerZ, 135, VIEW_DISTANCE)) {
         skyCrystalMat.emissiveIntensity = 1.9 + Math.sin(elapsedTime * 2.4) * 0.45;
         // Animate cascading sky-waterfall rings & plunge pool mist
         for (let r = 0; r < waterfallRings.length; r++) {

@@ -532,7 +532,7 @@ export const en = {
     "exploration": "Exploration",
     "level_up_title": "{title} · Level {level}",
     "level_up_hud": "Skill Up! (+35 Gold) · {title}",
-    "target_hit_hud": "Target Hit (+15 Gold) · {target}"
+    "target_hit_hud": "Target Hit · {target}"
   },
   "dwarven": {
     "miners": {
@@ -793,7 +793,7 @@ export const en = {
   },
   "notifications": {
     "animal_hunted": "{species} (Hunted! Press {key} to loot)",
-    "animal_hit": "{species} ({hp}/{maxHp} HP)",
+    "animal_hit": "Struck {species}",
     "awoke": "Awoke refreshed at morning",
     "sleep_danger": "Cannot sleep while danger is nearby",
     "sleep_day_only": "You can only sleep at night",

@@ -221,7 +221,7 @@ export function buildRealisticWorld(
       activeArrows?: readonly IArrowProjectile[],
       worldHours = 8.5
     ) => {
-      // 1. Distance-cull terrain chunks and landmarks
+      // 1. Distance-cull and directional frustum-cull terrain chunks, vegetation sectors, and landmarks
       for (let i = 0; i < distanceCulledObjects.length; i++) {
         const entry = distanceCulledObjects[i];
         entry.obj.visible = isWithinViewDistance(

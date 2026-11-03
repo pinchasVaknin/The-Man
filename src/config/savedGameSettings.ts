@@ -52,6 +52,7 @@ export interface IGameSettingsConfig {
   jumpForceMultiplier: number;
   firefliesMode: FirefliesMode;
   defaultMuted: boolean;
+  godMode?: boolean;
 }
 
 export const DEFAULT_GAME_KEYBINDINGS: IGameKeybindings = {
@@ -76,7 +77,7 @@ export const DEFAULT_GAME_KEYBINDINGS: IGameKeybindings = {
   hotbarSlot3: 'Digit3',
   hotbarSlot4: 'Digit4',
   cycleWeather: 'KeyV',
-  toggleMute: 'KeyM',
+  toggleMute: 'KeyN',
   pauseGame: 'KeyP',
   toggleFavorite: 'KeyF',
 };
@@ -104,7 +105,7 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
     "hotbarSlot3": "Digit3",
     "hotbarSlot4": "Digit4",
     "cycleWeather": "KeyV",
-    "toggleMute": "KeyM",
+    "toggleMute": "KeyN",
     "pauseGame": "KeyP",
     "toggleFavorite": "KeyF"
   },
@@ -113,7 +114,8 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
   "walkSpeedMultiplier": 1,
   "jumpForceMultiplier": 1,
   "firefliesMode": "sanctuary_only",
-  "defaultMuted": false
+  "defaultMuted": false,
+  "godMode": true
 };
 
 const STORAGE_KEY = 'the_man_game_settings_v1';

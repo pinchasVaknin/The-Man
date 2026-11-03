@@ -1616,13 +1616,14 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     const hwSleepingBag = new THREE.Group();
     hwSleepingBag.position.set(1.85, 0.18, -hw.doorSideLocalZ * 1.65);
     hwSleepingBag.rotation.y = hw.doorSideLocalZ === 1 ? 0 : Math.PI;
-    const hwMatMesh = new THREE.Mesh(matRollGeo, bedMatFabric);
+    const hwMatMesh = new THREE.Mesh(fSleepingBagGeo, sleepingBagColors[0]);
     hwMatMesh.position.y = 0.04;
-    const hwBlanketMesh = new THREE.Mesh(blanketGeo, blanketFabric);
-    hwBlanketMesh.position.set(0, 0.08, 0.22);
-    const hwPillowMesh = new THREE.Mesh(pillowRollGeo, pillowFabric);
+    hwMatMesh.castShadow = true;
+    hwMatMesh.receiveShadow = true;
+    const hwPillowMesh = new THREE.Mesh(fSleepingPillowGeo, pillowClothMat);
     hwPillowMesh.position.set(0, 0.12, -0.68);
-    hwSleepingBag.add(hwMatMesh, hwBlanketMesh, hwPillowMesh);
+    hwPillowMesh.rotation.z = Math.PI / 2;
+    hwSleepingBag.add(hwMatMesh, hwPillowMesh);
     hwGroup.add(guardTable, guardCrate, hwSleepingBag, archAssets.createRedChineseLantern(0, 4.25, 0));
 
     const hwSkirtRoof1 = archAssets.createChinesePerimeterSkirtRoof(7.6, 7.6, 1.55, 0.95);

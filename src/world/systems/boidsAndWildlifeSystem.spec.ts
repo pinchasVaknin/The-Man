@@ -19,6 +19,7 @@ import {
   getAnimalLootDrops,
   getAnimalSensoryProfile,
   getAnimalMaxHp,
+  BASE_ARROW_HIT_DAMAGE,
   damageGroundAnimal,
   killGroundAnimal,
   isSafeAnimalSpawnPosition,
@@ -66,8 +67,19 @@ import {
   isInsideBearCave,
   isInsideVolcanoSanctum,
   regionalForestDensityAt,
+  southernCliffsidePassTrailHeightAt,
+  volcanicBadlandsFactorAt,
   walkableHeightAt,
 } from './terrainAndBiomeSystem';
+import {
+  lootDeadAnimal,
+  isVolcanoBossArenaLocked,
+} from './boidsAndWildlifeSystem';
+import {
+  spawnArrowProjectile,
+  stepArrowsPhysics,
+  recoverArrowsFromAnimal,
+} from './combatAndInventorySystem';
 // #endregion
 
 before(async () => {
@@ -170,45 +182,46 @@ test('damageGroundAnimal_WhenStruckWithArrows_ShouldRequireMultipleHitsForBearJa
   const deer = animals.find((a) => a.species === 'deer')!;
   const rabbit = animals.find((a) => a.species === 'rabbit')!;
 
-  assert.equal(getAnimalMaxHp('bear'), 8);
-  assert.equal(getAnimalMaxHp('crocodile'), 6);
-  assert.equal(getAnimalMaxHp('jaguar'), 4);
-  assert.equal(getAnimalMaxHp('wolf'), 3);
-  assert.equal(getAnimalMaxHp('deer'), 3);
-  assert.equal(getAnimalMaxHp('sheep'), 2);
-  assert.equal(getAnimalMaxHp('rabbit'), 1);
+  assert.equal(BASE_ARROW_HIT_DAMAGE, 30);
+  assert.equal(getAnimalMaxHp('bear'), 240);
+  assert.equal(getAnimalMaxHp('crocodile'), 180);
+  assert.equal(getAnimalMaxHp('jaguar'), 120);
+  assert.equal(getAnimalMaxHp('wolf'), 90);
+  assert.equal(getAnimalMaxHp('deer'), 90);
+  assert.equal(getAnimalMaxHp('sheep'), 60);
+  assert.equal(getAnimalMaxHp('rabbit'), 30);
 
-  // Rabbit dies in 1 arrow hit
-  const rabRes = damageGroundAnimal(rabbit, 1, 0, 0);
+  // Rabbit dies in 1 arrow hit (30 damage)
+  const rabRes = damageGroundAnimal(rabbit, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(rabRes.killed, true);
   assert.equal(rabbit.isDead, true);
 
-  // Deer takes 3 hits: first hit wounds & triggers fleeing, 3rd hit kills
-  const deerHit1 = damageGroundAnimal(deer, 1, 0, 0);
+  // Deer takes 3 hits (90 HP): first hit wounds & triggers fleeing, 3rd hit kills
+  const deerHit1 = damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(deerHit1.killed, false);
-  assert.equal(deerHit1.remainingHp, 2);
+  assert.equal(deerHit1.remainingHp, 60);
   assert.equal(deer.aiBehavior, 'fleeing');
-  damageGroundAnimal(deer, 1, 0, 0);
-  const deerHit3 = damageGroundAnimal(deer, 1, 0, 0);
+  damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
+  const deerHit3 = damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(deerHit3.killed, true);
   assert.equal(deer.isDead, true);
 
-  // Jaguar takes 4 hits (fewer than Bear's 8 hits)
-  const jagHit1 = damageGroundAnimal(jaguar, 1, 0, 0);
+  // Jaguar takes 4 hits (120 HP, fewer than Bear's 8 hits / 240 HP)
+  const jagHit1 = damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(jagHit1.killed, false);
-  assert.equal(jagHit1.remainingHp, 3);
+  assert.equal(jagHit1.remainingHp, 90);
   assert.equal(jaguar.aiBehavior, 'charging');
-  damageGroundAnimal(jaguar, 2, 0, 0);
-  const jagHitFinal = damageGroundAnimal(jaguar, 1, 0, 0);
+  damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE * 2, 0, 0);
+  const jagHitFinal = damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(jagHitFinal.killed, true);
 
-  // Bear takes 8 arrow hits
+  // Bear takes 8 arrow hits (240 HP)
   for (let h = 1; h <= 7; h++) {
-    const r = damageGroundAnimal(bear, 1, 0, 0);
+    const r = damageGroundAnimal(bear, BASE_ARROW_HIT_DAMAGE, 0, 0);
     assert.equal(r.killed, false);
-    assert.equal(r.remainingHp, 8 - h);
+    assert.equal(r.remainingHp, 240 - h * BASE_ARROW_HIT_DAMAGE);
   }
-  const bearFinal = damageGroundAnimal(bear, 1, 0, 0);
+  const bearFinal = damageGroundAnimal(bear, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(bearFinal.killed, true);
   assert.equal(bear.isDead, true);
 });
@@ -286,7 +299,7 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   assert.equal(crocodiles.length, 5, 'Expected 5 crocodiles at the remote Southern River Bend');
   assert.equal(wolves.length, 4, 'Expected 4 timber wolves in the Western & Northern pine woods');
   assert.equal(rhinos.length, 3, 'Expected 3 savanna/oasis rhinos');
-  assert.equal(lions.length, 3, 'Expected 3 savanna lions');
+  assert.equal(lions.length, 7, 'Expected 7 Volcanic Badlands CatLions (1 Boss + 6 roaming)');
   assert.equal(stags.length, 4, 'Expected 4 royal woodland stags');
 
   // Verify Jaguars are in Southwest Desert (x < -200, z > 200) or Southern Forest (z > 200)
@@ -974,9 +987,9 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   const animals = createInitialSmallAnimals();
   const dragon = animals.find((a) => a.species === 'dragon')!;
   assert.ok(dragon, 'Expected Southern Dragon in world animals registry');
-  assert.equal(getAnimalMaxHp('dragon'), 250, 'Southern Dragon must have colossal 250 HP pool');
-  assert.equal(dragon.hp, 250);
-  assert.equal(dragon.maxHp, 250);
+  assert.equal(getAnimalMaxHp('dragon'), 7500, 'Southern Dragon must have colossal 7500 HP pool');
+  assert.equal(dragon.hp, 7500);
+  assert.equal(dragon.maxHp, 7500);
 
   // 1. When player is far away (e.g. at spawn 0,0) and deer are outside 34m range, dragon has NO target (peaceful flight/rest, never fights empty air)
   const peacefulCheck = evaluateSouthernDragonTarget(56, 716, 0, 0, animals, 0);
@@ -992,18 +1005,18 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   assert.equal(preyCheck.targetKind, 'prey');
   assert.equal(preyCheck.targetPrey, deer);
 
-  // 3. Dragon is vulnerable to damage, takes 250 hits to kill, never flees even at 1 HP, and can be looted when slain
-  const hit1 = damageGroundAnimal(dragon, 10, 62, 714, animals);
+  // 3. Dragon is vulnerable to damage, takes 7500 HP to kill, never flees even at low HP, and can be looted when slain
+  const hit1 = damageGroundAnimal(dragon, 300, 62, 714, animals);
   assert.equal(hit1.killed, false);
-  assert.equal(hit1.remainingHp, 240);
+  assert.equal(hit1.remainingHp, 7200);
   assert.equal(dragon.aiBehavior, 'charging');
 
-  const hit249 = damageGroundAnimal(dragon, 239, 62, 714, animals);
+  const hit249 = damageGroundAnimal(dragon, 7170, 62, 714, animals);
   assert.equal(hit249.killed, false);
-  assert.equal(hit249.remainingHp, 1);
-  assert.equal(dragon.isFleeing, false, 'Dragon must never flee even at 1 HP');
+  assert.equal(hit249.remainingHp, 30);
+  assert.equal(dragon.isFleeing, false, 'Dragon must never flee even at low HP');
 
-  const finalHit = damageGroundAnimal(dragon, 1, 62, 714, animals);
+  const finalHit = damageGroundAnimal(dragon, 30, 62, 714, animals);
   assert.equal(finalHit.killed, true);
   assert.equal(dragon.isDead, true);
   const lootableDragon = findNearestDeadLootableAnimal(dragon.x + 5.0, dragon.z, animals);
@@ -1026,7 +1039,7 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
 
   // 1. Volcano Sanctum & Mystical CatLion sitting on throne dais inside the inner chamber
   const lions = animals.filter((a) => a.species === 'lion');
-  assert.equal(lions.length, 3);
+  assert.equal(lions.length, 7);
   const sanctumLion = lions[0];
   assert.ok(
     isInsideVolcanoSanctum(sanctumLion.x, sanctumLion.z, sanctumLion.y),
@@ -1065,7 +1078,11 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     `Floating island waterfall topY must be high in the air (>= 68m, got ${FLOATING_ISLAND_STAIR_POS.topY})`
   );
   // Ground-level Marble Entry Plaza Ramp smoothly connects valley floor to Mini-Island #0
-  const rampHeight = floatingBloomingIslandHeightAt(147.0, -35.0, 3.3);
+  const rampHeight = floatingBloomingIslandHeightAt(
+    FLOATING_ISLAND_STAIR_POS.entryRampStartX + 4.5,
+    FLOATING_ISLAND_STAIR_POS.z,
+    3.3
+  );
   assert.ok(rampHeight !== null && rampHeight >= 3.18 && rampHeight <= 3.4);
 
   for (let i = 0; i < FLOATING_WATERFALL_STEP_ISLANDS.length; i += 4) {
@@ -1078,7 +1095,7 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
   }
 
   // Verify Special Ideas: Celestial Sanctuary Bed, Sky-Waterfall Hydro-Elevator, and Sky Wind-Geyser Launch Pads
-  const skyBed = findNearestBed(205.0, 68.35, -35.0);
+  const skyBed = findNearestBed(FLOATING_BLOOMING_ISLANDS[0].x, 68.35, FLOATING_BLOOMING_ISLANDS[0].z);
   assert.ok(skyBed && skyBed.id === 'bed-floating-sky-sanctuary', 'Main Floating Sky Island must have the Celestial Star-Sanctuary Bed');
 
   const testPlayer = createInitialPlayerState();
@@ -1188,9 +1205,9 @@ test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldCl
   // 1. Verify walking continuously up all 57 spiral waterfall mini-islands from the ground entry plaza (144, -35, y=3.2m)
   //    all the way to the Main Floating Sky Island deck (188, -35, y=68.0m) with ZERO jumps (jumpPressed=false, jumpHeld=false)!
   const climber = createInitialPlayerState();
-  climber.x = 144.0;
-  climber.z = -35.0;
-  climber.y = walkableHeightAt(144.0, -35.0).height;
+  climber.x = FLOATING_ISLAND_STAIR_POS.entryRampStartX + 1.5;
+  climber.z = FLOATING_ISLAND_STAIR_POS.z;
+  climber.y = walkableHeightAt(climber.x, climber.z).height;
   climber.onGround = true;
 
   let waypointIdx = 0;
@@ -1251,7 +1268,7 @@ test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldCl
     );
   }
   assert.ok(
-    climber.x > 181.0 && climber.y >= 68.0,
+    climber.x > FLOATING_ISLAND_STAIR_POS.topX + 3.0 && climber.y >= 68.0,
     `Player must transition seamlessly from top of spiral stairs onto Main Floating Island deck (x=${climber.x.toFixed(1)}, y=${climber.y.toFixed(2)})`
   );
 
@@ -1378,8 +1395,8 @@ test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldCl
   );
   assert.equal(climber.mountedHorseId, null, 'Full-HP Boss CatLion cannot be tamed before being subdued');
 
-  // Attack Boss CatLion until nearly dead (subdued at <= 3 HP)
-  damageGroundAnimal(bossLion, 10, climber.x, climber.z);
+  // Attack Boss CatLion (360 maxHp) until nearly dead (subdued at <= 90 HP)
+  damageGroundAnimal(bossLion, 300, climber.x, climber.z);
   assert.equal(bossLion.isDead, false, 'Boss CatLion should clamp at low HP and become subdued');
   assert.equal(bossLion.isSubdued, true, 'Boss CatLion must enter subdued non-fleeing state when nearly dead');
 
@@ -1432,14 +1449,14 @@ test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldCl
   void birds;
 });
 
-test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeutralUntilShotAndRespawnAfterTimer', () => {
+test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeutralUntilShotAndRespawnRegularAnimalsButNeverKings', () => {
   const birds = createInitialBoidBirds();
   const animals = createInitialSmallAnimals();
   const horses = createInitialRideableHorses();
   const player = createInitialPlayerState();
 
   const wildStag = animals.find((a) => a.species === 'stag')!;
-  assert.equal(wildStag.maxHp, 9, 'Royal Stag must have upgraded 9 HP');
+  assert.equal(wildStag.maxHp, 270, 'Royal Stag must have 270 HP');
 
   // Stand right next to the wild Stag without shooting: Stag must remain neutral (never flee or attack unprovoked)
   player.x = wildStag.x + 1.5;
@@ -1452,22 +1469,365 @@ test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeut
   assert.notEqual(wildStag.aiBehavior, 'charging', 'Floating Island Stag must not attack unprovoked');
 
   // Shoot the Stag: it must retaliate with charging/attacking!
-  damageGroundAnimal(wildStag, 2, player.x, player.z);
+  damageGroundAnimal(wildStag, 60, player.x, player.z);
   stepBoidsAndWildlife(0.05, 2.0, birds, animals, player, horses, 1.0, 0);
   assert.ok(
     wildStag.aiBehavior === 'charging' || wildStag.aiBehavior === 'attacking',
     `Provoked Stag must retaliate against player, got ${wildStag.aiBehavior}`
   );
 
-  // Kill a smaller CatLion and verify timed respawn after 45 seconds
+  // Verify Boss CatLion is invulnerable to sniping from outside the Volcano Sanctum,
+  // and can be subdued or killed once the player enters the Volcano Sanctum
+  const bossLion = animals.find((a) => a.species === 'lion' && a.isBoss)!;
+  assert.equal(bossLion.maxHp, 360);
+
+  // Shooting Boss CatLion from outside the Volcano (e.g. from x = -500) deals 0 damage
+  const outsideShot = damageGroundAnimal(bossLion, 300, -500, VOLCANO_SANCTUM_POS.z);
+  assert.equal(outsideShot.killed, false);
+  assert.equal(outsideShot.remainingHp, 360, 'Boss CatLion must be invulnerable to arrows fired from outside the Volcano Sanctum');
+
+  // Move player inside the Volcano Sanctum inner chamber and attack Boss CatLion
+  player.x = bossLion.x + 8.0;
+  player.z = bossLion.z;
+  player.y = VOLCANO_SANCTUM_POS.floorY;
+  damageGroundAnimal(bossLion, 300, player.x, player.z);
+  assert.equal(bossLion.isSubdued, true, 'Boss CatLion enters subdued state at <= 90 HP when attacked from inside');
+  assert.equal(bossLion.isDead, false);
+
+  // Player chooses to kill the subdued Boss CatLion instead of taming it
+  const bossKillRes = damageGroundAnimal(bossLion, 90, player.x, player.z);
+  assert.equal(bossKillRes.killed, true, 'Continuing to attack subdued Boss CatLion must kill it');
+  assert.equal(bossLion.isDead, true);
+  assert.equal(bossLion.respawnTimer, undefined, 'Slain Boss CatLion must not have a respawn timer');
+
+  // Also kill the Southern Dragon boss
+  const dragon = animals.find((a) => a.species === 'dragon')!;
+  killGroundAnimal(dragon);
+  assert.equal(dragon.isDead, true);
+
+  // Kill a regular smaller CatLion and verify timed respawn ONLY when player is far away (> 95m) AND looking away
   const smallLion = animals.find((a) => a.species === 'lion' && !a.isBoss)!;
   killGroundAnimal(smallLion);
   assert.equal(smallLion.isDead, true);
-  assert.ok((smallLion.respawnTimer ?? 0) >= 40, 'Killed animal must start a timed respawn countdown');
+  assert.ok((smallLion.respawnTimer ?? 0) >= 40, 'Killed regular animal must start a timed respawn countdown');
 
-  // Step 46 seconds of wildlife simulation so the timer expires
+  // Move player 110m away from smallLion's home BUT looking directly toward smallLion's home -> must NOT respawn while in view!
+  player.x = smallLion.homeX + 110.0;
+  player.z = smallLion.homeZ;
+  player.yaw = Math.PI * 0.5; // forward (-sin(yaw), -cos(yaw)) = (-1, 0), looking straight toward smallLion.homeX
   stepBoidsAndWildlife(46.0, 50.0, birds, animals, player, horses, 1.0, 0);
-  assert.equal(smallLion.isDead, false, 'Dead animal must respawn after its respawn timer elapses');
+  assert.equal(smallLion.isDead, true, 'Regular animal must NOT respawn while player is looking toward its spawn point');
+
+  // Now turn player to look away (yaw = -Math.PI * 0.5 -> looking +X away from smallLion) -> respawns immediately on next step!
+  player.yaw = -Math.PI * 0.5;
+  stepBoidsAndWildlife(1.0, 96.0, birds, animals, player, horses, 1.0, 0);
+  assert.equal(smallLion.isDead, false, 'Regular animal must respawn after timer elapses when player is away and looking away');
   assert.equal(smallLion.hp, smallLion.maxHp);
+  assert.equal(bossLion.isDead, true, 'Slain King/Boss CatLion must NEVER respawn');
+  assert.equal(dragon.isDead, true, 'Slain Southern Dragon boss must NEVER respawn');
+});
+
+test('mountPhysicsStaminaSpacebarAttackAndArrowRecovery_WhenEvaluated_ShouldFollowAllRules', () => {
+  const animals = createInitialSmallAnimals();
+  const horses = createInitialRideableHorses();
+  const player = createInitialPlayerState();
+
+  // 1. Verify Far-East Floating Sky Islands (x >= 760) & Far-West Volcano Badlands (x = -620)
+  assert.equal(FLOATING_BLOOMING_ISLANDS[0].x, 760);
+  assert.equal(FLOATING_BLOOMING_ISLANDS[2].x, 807);
+  assert.equal(VOLCANO_SANCTUM_POS.x, -620);
+  assert.ok(
+    volcanicBadlandsFactorAt(VOLCANO_SANCTUM_POS.x + 80, VOLCANO_SANCTUM_POS.z) > 0.7,
+    'Western Volcanic Badlands factor must be active around the relocated Volcano'
+  );
+
+  // 2. Verify Mount Speed Hierarchy (Stag > Horse > Boss CatLion > Human)
+  //    and Mount Stamina Hierarchy (Boss CatLion drains slowest, Stag medium, Horse fastest)
+  const stagAnim = animals.find((a) => a.species === 'stag')!;
+  const bossLion = animals.find((a) => a.species === 'lion' && a.isBoss)!;
+  horses.push({
+    ...horses[0],
+    id: `mount-stag-${stagAnim.id}`,
+    name: 'Royal Stag',
+    x: 0,
+    y: walkableHeightAt(0, 32).height,
+    z: 32,
+    yaw: 0,
+    speed: 0,
+    gaitPhase: 0,
+  });
+  horses.push({
+    ...horses[0],
+    id: `mount-lion-${bossLion.id}`,
+    name: 'Boss CatLion',
+    x: 0,
+    y: walkableHeightAt(0, 32).height,
+    z: 32,
+    yaw: 0,
+    speed: 0,
+    gaitPhase: 0,
+  });
+
+  const measureMountSprint = (mountId: string) => {
+    player.mountedHorseId = mountId;
+    player.x = 0;
+    player.z = 32;
+    player.y = walkableHeightAt(0, 32).height;
+    player.vx = 0;
+    player.vz = 0;
+    player.vy = 0;
+    player.onGround = true;
+    player.stamina = 100;
+    const h = horses.find((item) => item.id === mountId)!;
+    h.x = player.x;
+    h.y = player.y;
+    h.z = player.z;
+    h.yaw = 0;
+    for (let i = 0; i < 20; i++) {
+      stepPlayerPhysics(
+        player,
+        {
+          forward: 1,
+          right: 0,
+          sprint: true,
+          relaxed: false,
+          jumpPressed: false,
+          jumpHeld: false,
+          toggleFlyRequested: false,
+          toggleMountHorseRequested: false,
+          lookYawDelta: 0,
+          lookPitchDelta: 0,
+        },
+        [],
+        0.05,
+        new Set(),
+        horses
+      );
+    }
+    return {
+      speed: Math.hypot(player.vx, player.vz),
+      staminaRemaining: player.stamina ?? 0,
+    };
+  };
+
+  const stagMetrics = measureMountSprint(`mount-stag-${stagAnim.id}`);
+  const horseMetrics = measureMountSprint(horses[0].id);
+  const lionMetrics = measureMountSprint(`mount-lion-${bossLion.id}`);
+
+  assert.ok(
+    stagMetrics.speed > horseMetrics.speed && horseMetrics.speed > lionMetrics.speed,
+    `Expected Stag (${stagMetrics.speed.toFixed(2)}) > Horse (${horseMetrics.speed.toFixed(2)}) > CatLion (${lionMetrics.speed.toFixed(2)})`
+  );
+  assert.ok(
+    lionMetrics.staminaRemaining > stagMetrics.staminaRemaining &&
+      stagMetrics.staminaRemaining > horseMetrics.staminaRemaining,
+    `Expected CatLion stamina (${lionMetrics.staminaRemaining.toFixed(1)}) > Stag (${stagMetrics.staminaRemaining.toFixed(1)}) > Horse (${horseMetrics.staminaRemaining.toFixed(1)})`
+  );
+
+  // 3. Verify Boss CatLion CANNOT jump on Spacebar and instead performs a stationary attack in place!
+  player.mountedHorseId = `mount-lion-${bossLion.id}`;
+  player.x = 0;
+  player.z = 32;
+  player.y = walkableHeightAt(0, 32).height;
+  player.vy = 0;
+  player.onGround = true;
+  const targetWolf = animals.find((a) => a.species === 'wolf')!;
+  targetWolf.x = 0;
+  targetWolf.z = 29.0; // 3m in front of yaw=0 (-Z direction)
+  targetWolf.y = walkableHeightAt(0, 29.0).height;
+  const wolfHpBefore = targetWolf.hp ?? 90;
+
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: true,
+      jumpHeld: true,
+      toggleFlyRequested: false,
+      toggleMountHorseRequested: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05,
+    new Set(),
+    horses
+  );
+  assert.ok(player.vy <= 0.01, `Boss CatLion must NOT jump when Spacebar is pressed (got vy=${player.vy})`);
+  assert.equal(bossLion.aiBehavior, 'attacking', 'Pressing Spacebar on Boss CatLion must trigger stationary attack');
+  assert.ok((bossLion.actionTimer ?? 0) > 0.5, 'Boss CatLion stationary attack must set actionTimer');
+  assert.ok((targetWolf.hp ?? 0) < wolfHpBefore, 'Boss CatLion Spacebar stationary attack must damage animal in front');
+
+  // 4. Verify arrows stuck in an animal are removed from the world and returned to inventory on Loot OR Taming
+  const deer = animals.find((a) => a.species === 'deer' && !a.isDead)!;
+  player.mountedHorseId = null;
+  player.ownedItemIds = ['bow'];
+  const activeArrows = [
+    {
+      ...spawnArrowProjectile(player, 1.0),
+      stuck: true,
+      hitKind: 'animal' as const,
+      hitTargetId: String(deer.id),
+      attachedAnimalId: deer.id,
+      arrowKind: 'fire' as const,
+      x: deer.x,
+      y: deer.y + 0.8,
+      z: deer.z,
+    },
+    {
+      ...spawnArrowProjectile(player, 1.0),
+      stuck: true,
+      hitKind: 'animal' as const,
+      hitTargetId: String(deer.id),
+      attachedAnimalId: deer.id,
+      arrowKind: 'normal' as const,
+      x: deer.x,
+      y: deer.y + 0.9,
+      z: deer.z,
+    },
+  ];
+  killGroundAnimal(deer);
+  const lootRes = lootDeadAnimal(player, deer, activeArrows);
+  assert.equal(lootRes.ok, true);
+  assert.equal(lootRes.recoveredArrowCount, 2, 'Looting animal must recover all 2 stuck arrows');
+  assert.equal(activeArrows.length, 0, 'Recovered arrows must disappear from activeArrows in the world');
+  assert.ok(player.ownedItemIds.includes('arrow_fire'), 'Fire arrow must be returned to player inventory');
+  assert.ok(player.ownedItemIds.includes('arrow_normal'), 'Normal arrow must be returned to player inventory');
+
+  // Also test recoverArrowsFromAnimal directly when taming the Boss CatLion
+  const lionArrows = [
+    {
+      ...spawnArrowProjectile(player, 1.0),
+      stuck: true,
+      hitKind: 'animal' as const,
+      hitTargetId: String(bossLion.id),
+      attachedAnimalId: bossLion.id,
+      arrowKind: 'wind' as const,
+      x: bossLion.x,
+      y: bossLion.y + 1.2,
+      z: bossLion.z,
+    },
+  ];
+  const tameRecover = recoverArrowsFromAnimal(bossLion.id, lionArrows, player, bossLion.x, bossLion.z);
+  assert.equal(tameRecover.recoveredCount, 1, 'Taming Boss CatLion must recover stuck arrows');
+  assert.equal(lionArrows.length, 0, 'Arrows stuck in tamed Boss CatLion must be removed from world');
+  assert.ok(player.ownedItemIds.includes('arrow_wind'), 'Wind arrow must return to player inventory on tame');
+});
+
+test('colossalVolcanoBaffledCorridorsBossArenaLockStagJumpMomentumAndSouthernMountainPass_WhenEvaluated_ShouldEnforceAllMechanics', () => {
+  const birds = createInitialBoidBirds();
+  const animals = createInitialSmallAnimals();
+  const horses = createInitialRideableHorses();
+  const player = createInitialPlayerState();
+
+  // 1. Colossal Volcano Sanctum dimensions & 3 cardinal baffled corridors (East, North, South)
+  assert.equal(VOLCANO_SANCTUM_POS.outerRadius, 105.0);
+  assert.equal(VOLCANO_SANCTUM_POS.chamberRadius, 30.0);
+  assert.equal(VOLCANO_SANCTUM_POS.craterRimY, 74.0);
+  assert.ok(isInsideVolcanoSanctum(VOLCANO_SANCTUM_POS.x + 85, VOLCANO_SANCTUM_POS.z), 'East corridor must be inside Volcano Sanctum');
+  assert.ok(isInsideVolcanoSanctum(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z - 85), 'North corridor must be inside Volcano Sanctum');
+  assert.ok(isInsideVolcanoSanctum(VOLCANO_SANCTUM_POS.x, VOLCANO_SANCTUM_POS.z + 85), 'South corridor must be inside Volcano Sanctum');
+
+  // Verify the 3 Obsidian Chicane Baffle Walls exist in SOLID_BUILDING_BOXES to block straight line-of-sight from outside
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'volcano-baffle-east'), 'East chicane baffle wall must exist');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'volcano-baffle-north'), 'North chicane baffle wall must exist');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'volcano-baffle-south'), 'South chicane baffle wall must exist');
+
+  // 2. Volcano Boss Arena Lock: entering the 30m chamber aggros Boss CatLion and locks the 3 Portcullis Gates until subdued/killed
+  const bossLion = animals.find((a) => a.species === 'lion' && a.isBoss)!;
+  player.x = VOLCANO_SANCTUM_POS.x + 22.0;
+  player.z = VOLCANO_SANCTUM_POS.z;
+  player.y = VOLCANO_SANCTUM_POS.floorY;
+  stepBoidsAndWildlife(0.05, 10.0, birds, animals, player, horses, 1.0, 0);
+  assert.equal(bossLion.aiBehavior, 'charging', 'Entering the 30m Boss Chamber must immediately aggro the Boss CatLion');
+  assert.equal(isVolcanoBossArenaLocked(player.x, player.z, animals), true, 'Volcano Boss Arena gates must lock while player is fighting Boss inside the chamber');
+
+  // Subduing the Boss unlocks the Portcullis Gates immediately
+  damageGroundAnimal(bossLion, 300, player.x, player.z);
+  stepBoidsAndWildlife(0.05, 10.1, birds, animals, player, horses, 1.0, 0);
+  assert.equal(bossLion.isSubdued, true);
+  assert.equal(isVolcanoBossArenaLocked(player.x, player.z, animals), false, 'Volcano Boss Arena gates must unlock once the Boss is subdued');
+
+  // 3. Tamed unmounted companion wanders/grazes naturally instead of freezing in sitting state staring at player
+  bossLion.isTamed = true;
+  bossLion.isSubdued = false;
+  bossLion.isMountedByPlayer = false;
+  bossLion.aiBehavior = 'wandering';
+  stepBoidsAndWildlife(0.05, 11.0, birds, animals, player, horses, 1.0, 0);
+  assert.notEqual(bossLion.aiBehavior, 'sitting', 'Tamed unmounted companion must wander/graze naturally instead of sitting motionless');
+
+  // 4. Royal Stag jump momentum carry: jumping while sprinting carries forward speed without the 0.55 airborne speed penalty
+  const stagAnim = animals.find((a) => a.species === 'stag')!;
+  const stagMountId = `mount-stag-${stagAnim.id}`;
+  horses.push({
+    ...horses[0],
+    id: stagMountId,
+    name: 'Royal Stag',
+    x: 0,
+    y: walkableHeightAt(0, 32).height,
+    z: 32,
+    yaw: 0,
+    speed: 0,
+    gaitPhase: 0,
+  });
+  player.mountedHorseId = stagMountId;
+  player.x = 0;
+  player.z = 32;
+  player.y = walkableHeightAt(0, 32).height;
+  player.onGround = true;
+  player.stamina = 100;
+  // Build up sprint speed on ground
+  for (let i = 0; i < 15; i++) {
+    stepPlayerPhysics(
+      player,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.04,
+      new Set(),
+      horses
+    );
+  }
+  const preJumpSpeed = Math.hypot(player.vx, player.vz);
+  // Press jump while sprinting
+  stepPlayerPhysics(
+    player,
+    { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: true, jumpHeld: true, lookYawDelta: 0, lookPitchDelta: 0 },
+    [],
+    0.04,
+    new Set(),
+    horses
+  );
+  // Step several airborne frames
+  for (let i = 0; i < 6; i++) {
+    stepPlayerPhysics(
+      player,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: true, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.04,
+      new Set(),
+      horses
+    );
+  }
+  const midJumpSpeed = Math.hypot(player.vx, player.vz);
+  assert.ok(
+    midJumpSpeed >= preJumpSpeed * 0.95,
+    `Royal Stag jump must carry forward sprint momentum through the air (preJump=${preJumpSpeed.toFixed(2)}, midJump=${midJumpSpeed.toFixed(2)})`
+  );
+
+  // 5. Southern Cliffside Mountain Pass Trail, Guardrail Fence, Impassable Mountain Ranges & Steep Slope Limit
+  const midPassTrailY = southernCliffsidePassTrailHeightAt(596);
+  assert.ok(midPassTrailY > 12.5, `Southern Cliffside Pass Trail at z=596 must rise high above the river gorge (got ${midPassTrailY.toFixed(2)}m)`);
+  const trailGroundY = groundHeightAt(98.0, 596.0);
+  assert.ok(Math.abs(trailGroundY - midPassTrailY) < 0.25, 'Cliffside Pass Trail at x=98, z=596 must match southernCliffsidePassTrailHeightAt');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'southern-cliff-pass-guardrail'), 'Southern Cliffside Pass guardrail collision box must exist');
+
+  // Verify towering Eastern Mountain Range (x=185, z=596) and Western Mountain Range (x=78, z=596)
+  assert.ok(groundHeightAt(185, 596) > 35.0, 'Eastern Mountain Range between River Gorge and Sea must be high');
+  assert.ok(groundHeightAt(78, 596) > 35.0, 'Western Mountain Range immediately west of the Cliffside Pass Trail must be high');
 });
 // #endregion
+
+

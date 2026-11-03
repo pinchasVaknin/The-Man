@@ -255,7 +255,12 @@ export class CrocodileAnimator {
 
   private sampleClipFrame(clipIdx: number, t: number, st: CrocodileState) {
     const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
+    let u =
+      st === 'death' && !this.loopDeath
+        ? Math.min(1.0, Math.max(0.0, t / dur))
+        : st === 'sit' || st === 'lie'
+          ? Math.min(0.92, Math.max(0.0, t / dur))
+          : (t % dur) / dur;
     if (u < 0) u += 1.0;
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));

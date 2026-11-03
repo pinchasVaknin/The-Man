@@ -15,7 +15,12 @@ import {
   SOUTHERN_DRAGON_RUINS_POS,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
-import { groundHeightAt, isWithinViewDistance, VIEW_DISTANCE } from '../terrainMath';
+import {
+  groundHeightAt,
+  southernCliffsidePassTrailHeightAt,
+  isWithinViewDistance,
+  VIEW_DISTANCE,
+} from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
 import { createReadyDemonDragon, type DemonDragon, type DemonDragonState } from './DemonDragon';
 import { createReadyForestDragon, type ForestDragon, type ForestDragonState } from './ForestDragon';
@@ -698,6 +703,93 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     cx: ruinsBaseX,
     cz: ruinsBaseZ,
     radius: 135,
+  });
+
+  // 7. Southern Cliffside Mountain Pass Guardrail Fence along the River Gorge drop-off (x = 101.35, z = 516..678)
+  const cliffPassFenceGroup = new THREE.Group();
+  const fencePostStoneBaseGeo = new THREE.BoxGeometry(0.46, 0.55, 0.46);
+  const fencePostTimberGeo = new THREE.BoxGeometry(0.26, 1.35, 0.26);
+  const fencePostCapGeo = new THREE.ConeGeometry(0.24, 0.24, 4);
+  fencePostCapGeo.rotateY(Math.PI * 0.25);
+  const fenceRailBeamGeo = new THREE.BoxGeometry(0.14, 0.16, 4.1);
+  const fencePostTimberMat = new THREE.MeshStandardMaterial({
+    map: textures.timberAlbedo,
+    color: 0x4a3222,
+    roughness: 0.88,
+  });
+  const fenceRailWoodMat = new THREE.MeshStandardMaterial({
+    map: textures.timberAlbedo,
+    color: 0x6b4c35,
+    roughness: 0.84,
+  });
+  disposableGeometries.push(
+    fencePostStoneBaseGeo,
+    fencePostTimberGeo,
+    fencePostCapGeo,
+    fenceRailBeamGeo
+  );
+  disposableMaterials.push(fencePostTimberMat, fenceRailWoodMat);
+
+  const fenceX = 101.35;
+  const fenceStartZ = 516.0;
+  const fenceEndZ = 678.0;
+  const fenceStepZ = 4.0;
+  const numPosts = Math.floor((fenceEndZ - fenceStartZ) / fenceStepZ) + 1;
+
+  for (let p = 0; p < numPosts; p++) {
+    const pz = fenceStartZ + p * fenceStepZ;
+    const py = southernCliffsidePassTrailHeightAt(pz);
+
+    const stoneBase = new THREE.Mesh(fencePostStoneBaseGeo, ruinsStoneMat);
+    stoneBase.position.set(fenceX, py + 0.22, pz);
+    stoneBase.castShadow = !ctx.isSoftwareGl;
+    stoneBase.receiveShadow = !ctx.isSoftwareGl;
+    cliffPassFenceGroup.add(stoneBase);
+
+    const timberPost = new THREE.Mesh(fencePostTimberGeo, fencePostTimberMat);
+    timberPost.position.set(fenceX, py + 0.65, pz);
+    timberPost.castShadow = !ctx.isSoftwareGl;
+    cliffPassFenceGroup.add(timberPost);
+
+    const postCap = new THREE.Mesh(fencePostCapGeo, ruinsDarkCarvedMat);
+    postCap.position.set(fenceX, py + 1.42, pz);
+    cliffPassFenceGroup.add(postCap);
+
+    // Add glowing trail guide-crystals at the North entry, Mid-pass crest, and South exit
+    if (p === 0 || p === Math.floor(numPosts / 2) || p === numPosts - 1) {
+      const lanternCrystal = new THREE.Mesh(brazierCrystalGeo, emberGlowMat);
+      lanternCrystal.scale.setScalar(0.45);
+      lanternCrystal.position.set(fenceX, py + 1.72, pz);
+      cliffPassFenceGroup.add(lanternCrystal);
+    }
+
+    if (p < numPosts - 1) {
+      const nextZ = pz + fenceStepZ;
+      const nextY = southernCliffsidePassTrailHeightAt(nextZ);
+      const midZ = (pz + nextZ) * 0.5;
+      const midY = (py + nextY) * 0.5;
+      const slopePitch = -Math.atan2(nextY - py, fenceStepZ);
+
+      const upperRail = new THREE.Mesh(fenceRailBeamGeo, fenceRailWoodMat);
+      upperRail.position.set(fenceX, midY + 1.08, midZ);
+      upperRail.rotation.x = slopePitch;
+      upperRail.castShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(upperRail);
+
+      const lowerRail = new THREE.Mesh(fenceRailBeamGeo, fenceRailWoodMat);
+      lowerRail.position.set(fenceX, midY + 0.62, midZ);
+      lowerRail.rotation.x = slopePitch;
+      lowerRail.castShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(lowerRail);
+    }
+  }
+
+  scene.add(cliffPassFenceGroup);
+  distanceCulledObjects.push({
+    obj: cliffPassFenceGroup,
+    cx: 101.35,
+    cz: 597.0,
+    radius: 115,
   });
 
   // Dragon #2: Colossal Forest Dragon (scale: 7.8 -> ~14.5m long, ~7m tall!) patrolling & soaring over the Ancient Southern Citadel Ruins

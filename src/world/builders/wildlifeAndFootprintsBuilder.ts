@@ -217,6 +217,8 @@ export function buildWildlifeAndFootprintsLayer(
     smoothLegAmp: number;
     smoothPitch?: number;
     smoothRoll?: number;
+    smoothSpeed?: number;
+    smoothTurn?: number;
     prevYaw?: number;
     lastAnimState?: string;
     stateHoldTimer?: number;
@@ -228,6 +230,14 @@ export function buildWildlifeAndFootprintsLayer(
   const isLocomotionClip = (st: string): boolean =>
     st === 'walk' || st === 'trot' || st === 'run' || st === 'flee' || st === 'stalk' || st === 'skip';
 
+  const locomotionRank = (st: string): number => {
+    if (st === 'flee') return 4;
+    if (st === 'run' || st === 'skip') return 3;
+    if (st === 'trot' || st === 'stalk') return 2;
+    if (st === 'walk') return 1;
+    return 0;
+  };
+
   const selectStabilizedState = <T extends string>(
     rig: IAnimalMeshRig,
     desiredState: T,
@@ -237,22 +247,24 @@ export function buildWildlifeAndFootprintsLayer(
     rig.stateHoldTimer = Math.max(0, (rig.stateHoldTimer ?? 0) - dt);
     if (!rig.lastAnimState) {
       rig.lastAnimState = desiredState;
-      rig.stateHoldTimer = 0.36;
+      rig.stateHoldTimer = 0.25;
       return desiredState;
     }
     if (desiredState === rig.lastAnimState) {
       return desiredState;
     }
-    // Always transition immediately when entering or leaving an attack/roar/stomp clip,
-    // or when transitioning between stationary and locomotion clips so animals never slide!
+    const prevWasStationaryAction = isStationaryActionClip(rig.lastAnimState);
+    // Transition immediately when entering or leaving a committed combat action clip,
+    // when starting/stopping locomotion, or when accelerating to a faster gait!
     const urgentTransition =
       isUrgent ||
-      isStationaryActionClip(rig.lastAnimState) ||
+      prevWasStationaryAction ||
       isStationaryActionClip(desiredState) ||
-      isLocomotionClip(desiredState) !== isLocomotionClip(rig.lastAnimState);
+      isLocomotionClip(desiredState) !== isLocomotionClip(rig.lastAnimState) ||
+      locomotionRank(desiredState) > locomotionRank(rig.lastAnimState);
     if (urgentTransition || (rig.stateHoldTimer ?? 0) <= 0) {
       rig.lastAnimState = desiredState;
-      rig.stateHoldTimer = urgentTransition ? 0.18 : 0.42;
+      rig.stateHoldTimer = prevWasStationaryAction ? 0.05 : urgentTransition ? 0.18 : 0.45;
       return desiredState;
     }
     return rig.lastAnimState as T;
@@ -408,14 +420,14 @@ export function buildWildlifeAndFootprintsLayer(
         smoothLegAmp: 0,
       });
     } else if (a.species === 'lion') {
-      const lionScale = a.isBoss ? 2.15 : 1.05;
+      const lionScale = a.isBoss ? 2.25 : 1.05;
       const lionCtrl = createReadyCatLion({
         scale: lionScale,
         castShadow: true,
         receiveShadow: true,
       });
-      // Center the CatLion mid-back saddle directly at local (0, y, 0) so the rider sits squarely on its spine
-      lionCtrl.object.position.set(0, 0, a.isBoss ? 0.22 : 0.10);
+      // Offset the CatLion mesh slightly forward so local (0, y, +0.28) places the rider higher and slightly further back on its spine
+      lionCtrl.object.position.set(0, 0, a.isBoss ? 0.46 : 0.10);
       registerModelDisposables(lionCtrl);
       posePivot.add(lionCtrl.object);
 
@@ -677,6 +689,27 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.visible = false;
           continue;
         }
+
+        // Distance + directional camera frustum culling so off-screen animals never waste CPU/GPU
+        let distSqToPlayer = 0;
+        if (!a.isMountedByPlayer && renderPlayer) {
+          const dxCam = a.x - renderPlayer.x;
+          const dzCam = a.z - renderPlayer.z;
+          distSqToPlayer = dxCam * dxCam + dzCam * dzCam;
+          if (distSqToPlayer > 165 * 165) {
+            rig.root.visible = false;
+            continue;
+          }
+          if (distSqToPlayer > 22 * 22) {
+            const camFwdX = -Math.sin(renderPlayer.yaw);
+            const camFwdZ = -Math.cos(renderPlayer.yaw);
+            const forwardDot = dxCam * camFwdX + dzCam * camFwdZ;
+            if (forwardDot < -Math.sqrt(distSqToPlayer) * 0.38) {
+              rig.root.visible = false;
+              continue;
+            }
+          }
+        }
         rig.root.visible = true;
 
         // When mounted by the player, lock the animal's render coordinates and yaw directly to the interpolated renderPlayer
@@ -692,10 +725,10 @@ export function buildWildlifeAndFootprintsLayer(
               )
             : a.yaw;
 
-        // Compute terrain slope alignment (pitch & roll) ONLY when standing on natural ground (not on elevated Floating Sky Islands!)
-        // and not mounted on a flat deck, preventing the ground cliff 65m below the floating islands from rolling the Stag to the side!
+        // Compute terrain slope alignment (pitch & roll) ONLY when close enough (< 55m) and standing on natural ground
         const onNaturalGround =
           !a.isMountedByPlayer &&
+          distSqToPlayer < 55 * 55 &&
           walkableHeightAt(renderX, renderZ, renderY).surface === 'ground';
         const rawSlope = onNaturalGround
           ? (() => {
@@ -719,7 +752,12 @@ export function buildWildlifeAndFootprintsLayer(
             ? 0
             : Math.atan2(Math.sin(renderYaw - rig.prevYaw), Math.cos(renderYaw - rig.prevYaw));
         rig.prevYaw = renderYaw;
-        const turnAmount = Math.max(-1, Math.min(1, (yawDelta / Math.max(dt, 0.016)) * 0.28));
+        const rawTurn = Math.max(-1, Math.min(1, (yawDelta / Math.max(dt, 0.016)) * 0.22));
+        rig.smoothTurn =
+          rig.smoothTurn === undefined
+            ? rawTurn
+            : rig.smoothTurn + (rawTurn - rig.smoothTurn) * Math.min(1, Math.max(0.12, dt * 7.5));
+        const turnAmount = rig.smoothTurn;
 
         if (a.isDead) {
           // Hunted animal: collapses and lies motionless on top of the ground until looted with [E]
@@ -839,7 +877,12 @@ export function buildWildlifeAndFootprintsLayer(
           continue;
         }
 
-        const moveSpd = Math.hypot(a.vx, a.vz);
+        const rawMoveSpd = Math.hypot(a.vx, a.vz);
+        rig.smoothSpeed =
+          rig.smoothSpeed === undefined || rawMoveSpd >= rig.smoothSpeed
+            ? rawMoveSpd
+            : rig.smoothSpeed + (rawMoveSpd - rig.smoothSpeed) * Math.min(1, Math.max(0.22, dt * 12.0));
+        const moveSpd = rig.smoothSpeed;
         const ai = a.aiBehavior;
 
         if (a.isResting || ai === 'sleeping') {
@@ -946,32 +989,29 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.14 + i * 1.41) % 1;
-          const desiredBearState: BearState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? 'roar'
-                  : ai === 'stomping'
-                    ? 'stomp'
-                    : ai === 'charging' || moveSpd > 3.6
-                      ? 'run'
-                      : ai === 'stalking' || ai === 'seeking_shelter' || moveSpd > 2.0
-                        ? 'trot'
-                        : ai === 'wandering' || moveSpd > 0.14
-                          ? 'walk'
-                          : ai === 'sitting'
-                            ? 'sit'
-                            : ai === 'grazing'
-                              ? cycleSlot < 0.72
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.41) % 1;
+          const desiredBearState: BearState =
+            ai === 'attacking'
+              ? 'attack'
+              : ai === 'roaring'
+                ? 'roar'
+                : ai === 'stomping'
+                  ? 'stomp'
+                  : a.inWater && moveSpd > 0.08
+                    ? 'walk'
+                    : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                      ? 'flee'
+                      : ai === 'charging' || moveSpd > 3.2
+                        ? 'run'
+                        : ai === 'stalking' || moveSpd > 2.0
+                          ? 'trot'
+                          : moveSpd > 0.12
+                            ? 'walk'
+                            : ai === 'sitting'
+                              ? 'sit'
+                              : ai === 'grazing' && cycleSlot < 0.72
                                 ? 'eat'
-                                : 'idle'
-                              : cycleSlot < 0.55
-                                ? 'idle'
-                                : 'call';
+                                : 'idle';
           const isUrgent =
             a.inWater ||
             desiredBearState === 'attack' ||
@@ -982,7 +1022,7 @@ export function buildWildlifeAndFootprintsLayer(
           const bearState = selectStabilizedState(rig, desiredBearState, dt, isUrgent);
           const spd =
             getEffectiveLabAnimationSpeed(liveLabOverrides['forest_bear'], bearState, 1.0) *
-            (a.inWater ? 0.72 : 1.0);
+            (a.inWater ? 0.78 : 1.0);
           rig.bearCtrl.setState(bearState);
           rig.bearCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
@@ -990,26 +1030,24 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.13 + i * 1.91) % 1;
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.91) % 1;
           const desiredCrocState: CrocodileState =
-            ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? 'roar'
-                  : ai === 'charging' || moveSpd > 3.0
+            ai === 'attacking'
+              ? 'attack'
+              : ai === 'roaring'
+                ? 'roar'
+                : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                  ? 'flee'
+                  : moveSpd > 2.8
                     ? 'run'
-                    : ai === 'stalking' || moveSpd > 1.5
+                    : moveSpd > 1.5
                       ? 'trot'
                       : moveSpd > 0.14
                         ? 'walk'
                         : ai === 'sitting'
                           ? 'sit'
-                          : ai === 'grazing'
-                            ? cycleSlot < 0.65
-                              ? 'eat'
-                              : 'call'
+                          : ai === 'grazing' && cycleSlot < 0.65
+                            ? 'eat'
                             : 'idle';
           const isUrgent =
             desiredCrocState === 'attack' ||
@@ -1029,32 +1067,29 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.15 + i * 1.57) % 1;
-          const desiredJaguarState: JaguarState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? 'roar'
-                  : ai === 'charging' || moveSpd > 4.2
-                    ? 'run'
-                    : ai === 'stalking'
-                      ? 'stalk'
-                      : moveSpd > 2.2
-                        ? 'trot'
-                        : moveSpd > 0.16
-                          ? 'walk'
-                          : ai === 'sitting'
-                            ? 'sit'
-                            : ai === 'grazing'
-                              ? cycleSlot < 0.68
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.57) % 1;
+          const desiredJaguarState: JaguarState =
+            ai === 'attacking'
+              ? 'attack'
+              : ai === 'roaring'
+                ? 'roar'
+                : a.inWater && moveSpd > 0.08
+                  ? 'walk'
+                  : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                    ? 'flee'
+                    : moveSpd > 3.8
+                      ? 'run'
+                      : ai === 'stalking' && moveSpd > 0.14
+                        ? 'stalk'
+                        : moveSpd > 2.2
+                          ? 'trot'
+                          : moveSpd > 0.14
+                            ? 'walk'
+                            : ai === 'sitting'
+                              ? 'sit'
+                              : ai === 'grazing' && cycleSlot < 0.68
                                 ? 'eat'
-                                : 'idle'
-                              : cycleSlot < 0.65
-                                ? 'idle'
-                                : 'call';
+                                : 'idle';
           const isUrgent =
             a.inWater ||
             desiredJaguarState === 'attack' ||
@@ -1074,34 +1109,31 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.15 + i * 1.49) % 1;
-          const desiredWolfState: WolfState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? i % 2 === 0
-                    ? 'howl'
-                    : 'roar'
-                  : ai === 'charging' || moveSpd > 3.8
-                    ? 'run'
-                    : ai === 'stalking'
-                      ? 'stalk'
-                      : moveSpd > 2.0
-                        ? 'trot'
-                        : moveSpd > 0.16
-                          ? 'walk'
-                          : ai === 'sitting'
-                            ? 'sit'
-                            : ai === 'grazing'
-                              ? cycleSlot < 0.65
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.49) % 1;
+          const desiredWolfState: WolfState =
+            ai === 'attacking'
+              ? 'attack'
+              : ai === 'roaring'
+                ? i % 2 === 0
+                  ? 'howl'
+                  : 'roar'
+                : a.inWater && moveSpd > 0.08
+                  ? 'walk'
+                  : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                    ? 'flee'
+                    : moveSpd > 3.6
+                      ? 'run'
+                      : ai === 'stalking' && moveSpd > 0.14
+                        ? 'stalk'
+                        : moveSpd > 2.0
+                          ? 'trot'
+                          : moveSpd > 0.14
+                            ? 'walk'
+                            : ai === 'sitting'
+                              ? 'sit'
+                              : ai === 'grazing' && cycleSlot < 0.65
                                 ? 'eat'
-                                : 'idle'
-                              : cycleSlot < 0.72
-                                ? 'idle'
-                                : 'howl';
+                                : 'idle';
           const isUrgent =
             a.inWater ||
             desiredWolfState === 'attack' ||
@@ -1121,30 +1153,27 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.14 + i * 1.63) % 1;
-          const desiredRhinoState: RhinoState = a.inWater
-            ? 'walk'
-            : ai === 'fleeing' || a.alertLevel === 'fleeing'
-              ? 'flee'
-              : ai === 'attacking'
-                ? 'attack'
-                : ai === 'roaring'
-                  ? 'roar'
-                  : ai === 'charging' || moveSpd > 3.4
-                    ? 'run'
-                    : ai === 'stalking' || moveSpd > 1.8
-                      ? 'trot'
-                      : moveSpd > 0.16
-                        ? 'walk'
-                        : ai === 'sitting'
-                          ? 'sit'
-                          : ai === 'grazing'
-                            ? cycleSlot < 0.68
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.63) % 1;
+          const desiredRhinoState: RhinoState =
+            ai === 'attacking'
+              ? 'attack'
+              : ai === 'roaring'
+                ? 'roar'
+                : a.inWater && moveSpd > 0.08
+                  ? 'walk'
+                  : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                    ? 'flee'
+                    : moveSpd > 3.2
+                      ? 'run'
+                      : moveSpd > 1.8
+                        ? 'trot'
+                        : moveSpd > 0.14
+                          ? 'walk'
+                          : ai === 'sitting'
+                            ? 'sit'
+                            : ai === 'grazing' && cycleSlot < 0.68
                               ? 'eat'
-                              : 'idle'
-                            : cycleSlot < 0.72
-                              ? 'idle'
-                              : 'call';
+                              : 'idle';
           const isUrgent =
             a.inWater ||
             desiredRhinoState === 'attack' ||
@@ -1165,42 +1194,40 @@ export function buildWildlifeAndFootprintsLayer(
           rig.root.rotation.set(slope.pitch + pouncePitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
-          const cycleSlot = (elapsedTime * 0.15 + i * 1.53) % 1;
+          const cycleSlot = (elapsedTime * 0.05 + i * 1.53) % 1;
           const desiredLionState: CatLionState = a.isMountedByPlayer
-            ? moveSpd > 6.2
-              ? 'run'
-              : moveSpd > 2.2
-                ? 'trot'
-                : moveSpd > 0.15
-                  ? 'walk'
-                  : 'idle'
+            ? ai === 'attacking' && (a.actionTimer ?? 0) > 0
+              ? 'attack'
+              : moveSpd > 5.4
+                ? 'run'
+                : moveSpd > 1.8
+                  ? 'trot'
+                  : moveSpd > 0.15
+                    ? 'walk'
+                    : 'idle'
             : a.isSubdued
               ? 'sit'
-              : a.inWater
-                ? 'walk'
-                : ai === 'fleeing' || a.alertLevel === 'fleeing'
-                  ? 'flee'
-                  : ai === 'attacking'
-                    ? 'attack'
-                    : ai === 'roaring'
-                      ? 'roar'
-                      : ai === 'charging' || moveSpd > 4.0
+              : ai === 'attacking'
+                ? 'attack'
+                : ai === 'roaring'
+                  ? 'roar'
+                  : a.inWater && moveSpd > 0.08
+                    ? 'walk'
+                    : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                      ? 'flee'
+                      : moveSpd > 3.8
                         ? 'run'
-                        : ai === 'stalking'
+                        : ai === 'stalking' && moveSpd > 0.14
                           ? 'stalk'
                           : moveSpd > 2.1
                             ? 'trot'
-                            : moveSpd > 0.16
+                            : moveSpd > 0.14
                               ? 'walk'
                               : ai === 'sitting'
                                 ? 'sit'
-                                : ai === 'grazing'
-                                  ? cycleSlot < 0.68
-                                    ? 'eat'
-                                    : 'idle'
-                                  : cycleSlot < 0.65
-                                    ? 'idle'
-                                    : 'call';
+                                : ai === 'grazing' && cycleSlot < 0.68
+                                  ? 'eat'
+                                  : 'idle';
           const isUrgent =
             Boolean(a.isMountedByPlayer) ||
             Boolean(a.isSubdued) ||
@@ -1222,14 +1249,19 @@ export function buildWildlifeAndFootprintsLayer(
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.20 + i * 1.67) % 1;
+          const isMountedStagAirborne =
+            Boolean(a.isMountedByPlayer) &&
+            Boolean(renderPlayer && !renderPlayer.onGround && Math.abs(renderPlayer.vy) > 0.5);
           const desiredStagState: StagState = a.isMountedByPlayer
-            ? moveSpd > 5.8
-              ? 'run'
-              : moveSpd > 2.1
-                ? 'trot'
-                : moveSpd > 0.15
-                  ? 'walk'
-                  : 'idle'
+            ? isMountedStagAirborne
+              ? 'skip'
+              : moveSpd > 8.6
+                ? 'run'
+                : moveSpd > 4.5
+                  ? 'trot'
+                  : moveSpd > 0.15
+                    ? 'walk'
+                    : 'idle'
             : a.inWater
               ? 'walk'
               : ai === 'attacking'
@@ -1258,6 +1290,7 @@ export function buildWildlifeAndFootprintsLayer(
           const isUrgentStag =
             Boolean(a.isMountedByPlayer) ||
             a.inWater ||
+            desiredStagState === 'skip' ||
             desiredStagState === 'attack' ||
             desiredStagState === 'roar' ||
             desiredStagState === 'flee' ||

@@ -210,13 +210,13 @@ export class BearAnimator {
   }
 
   private computeBlendDuration(from: BearState, to: BearState): number {
-    if (to === 'attack') return 0.34;
-    if (to === 'death') return 0.38;
-    if (from === 'roar' || to === 'roar') return 0.56;
-    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.58;
-    if (from === 'stomp' || to === 'stomp' || from === 'call' || to === 'call' || from === 'eat' || to === 'eat') return 0.48;
-    if (BearAnimator.isLocomotionState(from) && BearAnimator.isLocomotionState(to)) return 0.42;
-    return 0.45;
+    if (to === 'attack' || from === 'attack') return 0.14;
+    if (to === 'death') return 0.22;
+    if (from === 'roar' || to === 'roar' || from === 'stomp' || to === 'stomp') return 0.18;
+    if (from === 'lie' || to === 'lie' || from === 'sit' || to === 'sit') return 0.28;
+    if (from === 'call' || to === 'call' || from === 'eat' || to === 'eat') return 0.24;
+    if (BearAnimator.isLocomotionState(from) && BearAnimator.isLocomotionState(to)) return 0.18;
+    return 0.20;
   }
 
   constructor(rig: BearRig, data: BearUnpackedData) {
@@ -249,11 +249,11 @@ export class BearAnimator {
     this.blendDuration = this.computeBlendDuration(prev, next);
 
     if (BearAnimator.isLocomotionState(prev) && BearAnimator.isLocomotionState(next)) {
-      const oldDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(prev)]);
-      const newDur = Math.max(0.1, this.data.clipDurations[this.getClipIndex(next)]);
+      const oldDur = this.getEffectiveClipDuration(this.getClipIndex(prev), prev);
+      const newDur = this.getEffectiveClipDuration(this.getClipIndex(next), next);
       const normPhase = (((this.time % oldDur) + oldDur) % oldDur) / oldDur;
       this.time = normPhase * newDur;
-    } else if (next === 'call' || next === 'stomp' || next === 'roar' || next === 'attack' || next === 'death' || next === 'lie' || next === 'sit' || next === 'eat') {
+    } else {
       this.time = 0.0;
     }
 
@@ -274,7 +274,7 @@ export class BearAnimator {
 
   setNormalizedPhase(uNorm: number): void {
     const clipIdx = this.getClipIndex(this.state);
-    const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
+    const dur = this.getEffectiveClipDuration(clipIdx, this.state);
     const u = ((uNorm % 1) + 1) % 1;
     this.time = u * dur;
     this.blend = 1.0;
@@ -288,15 +288,41 @@ export class BearAnimator {
     return idx >= 0 ? idx : 0;
   }
 
+  private getEffectiveClipDuration(_clipIdx: number, st: BearState): number {
+    if (st === 'walk') return 0.92;
+    if (st === 'trot') return 0.58;
+    if (st === 'run') return 0.46;
+    if (st === 'flee') return 0.40;
+    if (st === 'skip') return 0.52;
+    if (st === 'attack') return 0.78;
+    if (st === 'roar') return 0.72;
+    if (st === 'stomp' || st === 'call') return 0.78;
+    if (st === 'eat') return 2.20;
+    if (st === 'idle' || st === 'sit' || st === 'lie') return 2.20;
+    if (st === 'death') return 1.15;
+    return 1.0;
+  }
+
   private sampleClipFrame(clipIdx: number, t: number, st: BearState) {
-    const dur = Math.max(0.1, this.data.clipDurations[clipIdx]);
-    let u = st === 'death' && !this.loopDeath ? Math.min(1.0, Math.max(0.0, t / dur)) : (t % dur) / dur;
-    if (u < 0) u += 1.0;
+    const dur = this.getEffectiveClipDuration(clipIdx, st);
+    let u: number;
+    if (st === 'death' && !this.loopDeath) {
+      u = Math.min(1.0, Math.max(0.0, t / dur));
+    } else if (st === 'attack') {
+      // Sample only the active windup & maul strike frames (frames 1..18, u = 0.04..0.76),
+      // skipping the static recovery frames 19..23 at the end of bear.glb's attack clip!
+      let cycleNorm = (t % dur) / dur;
+      if (cycleNorm < 0) cycleNorm += 1.0;
+      u = 0.04 + cycleNorm * 0.72;
+    } else {
+      u = (t % dur) / dur;
+      if (u < 0) u += 1.0;
+    }
     const pos = u * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(pos));
     const f1 = Math.min(NUM_FRAMES - 1, f0 + 1);
     const frac = pos - f0;
-    return { f0, f1, frac };
+    return { f0, f1, frac, u };
   }
 
   private readPelvis(clipIdx: number, f0: number, f1: number, frac: number, out: THREE.Vector3): void {
@@ -329,60 +355,57 @@ export class BearAnimator {
       this.readJointQuat(clipIdx, cur.f0, cur.f1, cur.frac, j, this.rig.bones[j].quaternion);
     }
 
-    if (this.state === 'stomp' || this.state === 'call') {
-      // Heavy 4-legged intimidation ground-stomp: alternate front paw lift & heavy ground slam with shoulder drop
-      const stompPhase = (t * 1.65) % 1.0;
+    if (this.state === 'stomp') {
+      // Heavy 4-legged intimidation ground-stomp at natural pace
+      const stompPhase = (t * 1.05) % 1.0;
       const slam = Math.pow(Math.max(0, Math.sin(stompPhase * Math.PI * 2)), 2);
       const lift = Math.max(0, -Math.sin(stompPhase * Math.PI * 2));
-      const leftTurn = Math.sin(t * 0.825 * Math.PI * 2) >= 0;
-      this.rig.bones[2].position.y -= slam * 0.08;
-      this.addLocalRot(11, slam * 0.14 - lift * 0.08, 0, (leftTurn ? -1 : 1) * (slam * 0.09 - lift * 0.06));
-      this.addLocalRot(19, slam * 0.16, 0, 0);
-      this.addLocalRot(23, 0.32 + slam * 0.24, 0, 0);
+      const leftTurn = Math.sin(t * 0.525 * Math.PI * 2) >= 0;
+      this.rig.bones[2].position.y -= slam * 0.055;
+      this.addLocalRot(11, slam * 0.10 - lift * 0.05, 0, (leftTurn ? -1 : 1) * (slam * 0.06 - lift * 0.04));
+      this.addLocalRot(19, slam * 0.11, 0, 0);
+      this.addLocalRot(23, 0.22 + slam * 0.16, 0, 0);
       if (leftTurn) {
-        this.addLocalRot(14, -lift * 0.42 + slam * 0.18, 0, 0);
-        this.addLocalRot(15, lift * 0.55 - slam * 0.15, 0, 0);
+        this.addLocalRot(14, -lift * 0.28 + slam * 0.12, 0, 0);
+        this.addLocalRot(15, lift * 0.36 - slam * 0.10, 0, 0);
       } else {
-        this.addLocalRot(26, -lift * 0.42 + slam * 0.18, 0, 0);
-        this.addLocalRot(27, lift * 0.55 - slam * 0.15, 0, 0);
+        this.addLocalRot(26, -lift * 0.28 + slam * 0.12, 0, 0);
+        this.addLocalRot(27, lift * 0.36 - slam * 0.10, 0, 0);
       }
     } else if (this.state === 'roar') {
-      // Powerful chest expansion, head thrash, and wide roaring jaw so 'roar' never looks static
-      const roarWave = Math.sin(t * 5.2);
-      const roarSwell = 0.5 + 0.5 * Math.sin(t * 3.4);
-      this.rig.bones[2].position.y += roarSwell * 0.045;
-      this.addLocalRot(11, -0.14 * roarSwell, roarWave * 0.11, 0);
-      this.addLocalRot(19, -0.18 * roarSwell, roarWave * 0.16, 0);
-      this.addLocalRot(21, -0.12 * roarSwell, -roarWave * 0.14, roarWave * 0.08);
-      this.addLocalRot(23, 0.42 + roarSwell * 0.28, 0, 0);
+      // Chest expansion and roaring jaw at controlled natural speed
+      const roarWave = Math.sin(t * 3.1);
+      const roarSwell = 0.5 + 0.5 * Math.sin(t * 2.2);
+      this.rig.bones[2].position.y += roarSwell * 0.035;
+      this.addLocalRot(11, -0.10 * roarSwell, roarWave * 0.08, 0);
+      this.addLocalRot(19, -0.14 * roarSwell, roarWave * 0.11, 0);
+      this.addLocalRot(21, -0.09 * roarSwell, -roarWave * 0.09, roarWave * 0.05);
+      this.addLocalRot(23, 0.32 + roarSwell * 0.22, 0, 0);
     } else if (this.state === 'attack') {
-      // Forward lunge & heavy dual-paw maul sweep on bear attack so the strike never stalls
-      const dur = Math.max(0.1, this.data.clipDurations[clipIdx] || 1.6);
-      const u = ((t % dur) + dur) % dur / dur;
+      // Controlled forward maul sweep on bear attack
+      const u = cur.u;
       const lunge = Math.sin(u * Math.PI);
       const swipe = Math.sin(u * Math.PI * 2);
-      this.rig.bones[2].position.z += 0.14 * lunge;
-      this.addLocalRot(11, lunge * 0.16, swipe * 0.10, 0);
-      this.addLocalRot(19, -lunge * 0.12, swipe * 0.12, 0);
-      this.addLocalRot(23, 0.28 + lunge * 0.30, 0, 0);
-      this.addLocalRot(14, -lunge * 0.38 + swipe * 0.24, 0, 0);
-      this.addLocalRot(26, -lunge * 0.38 - swipe * 0.24, 0, 0);
+      this.rig.bones[2].position.z += 0.10 * lunge;
+      this.addLocalRot(11, lunge * 0.11, swipe * 0.07, 0);
+      this.addLocalRot(19, -lunge * 0.08, swipe * 0.08, 0);
+      this.addLocalRot(23, 0.20 + lunge * 0.22, 0, 0);
     } else if (this.state === 'idle' || this.state === 'sit' || this.state === 'eat' || this.state === 'lie') {
-      // Continuous natural breathing, weight shift, and head scanning so stationary bears never freeze
-      const breath = Math.sin(t * 2.4);
-      const lookYaw = Math.sin(t * 1.15) * 0.18 + Math.cos(t * 0.65) * 0.09;
-      const lookPitch = Math.sin(t * 1.7) * 0.09;
-      this.rig.bones[2].position.y += breath * 0.016;
-      this.addLocalRot(11, breath * 0.035, lookYaw * 0.35, Math.sin(t * 1.2) * 0.025);
-      this.addLocalRot(19, lookPitch + (this.state === 'eat' ? 0.22 + Math.abs(Math.sin(t * 4.2)) * 0.16 : 0), lookYaw * 0.65, 0);
-      this.addLocalRot(21, lookPitch * 0.8, lookYaw * 0.5, Math.cos(t * 1.5) * 0.04);
+      // Gentle natural breathing and slow head scanning so stationary bears never freeze or jitter
+      const breath = Math.sin(t * 1.65);
+      const lookYaw = Math.sin(t * 0.72) * 0.12 + Math.cos(t * 0.41) * 0.06;
+      const lookPitch = Math.sin(t * 0.95) * 0.06;
+      this.rig.bones[2].position.y += breath * 0.011;
+      this.addLocalRot(11, breath * 0.022, lookYaw * 0.25, Math.sin(t * 0.8) * 0.015);
+      this.addLocalRot(19, lookPitch + (this.state === 'eat' ? 0.16 + Math.abs(Math.sin(t * 2.2)) * 0.10 : 0), lookYaw * 0.45, 0);
+      this.addLocalRot(21, lookPitch * 0.6, lookYaw * 0.35, Math.cos(t * 0.9) * 0.025);
       if (this.state === 'eat') {
-        this.addLocalRot(23, 0.18 + Math.abs(Math.sin(t * 6.5)) * 0.22, 0, 0);
+        this.addLocalRot(23, 0.12 + Math.abs(Math.sin(t * 3.2)) * 0.14, 0, 0);
       }
     }
 
     if (Math.abs(this.turn) > 0.001 && this.state !== 'death') {
-      const bend = THREE.MathUtils.clamp(this.turn, -1, 1) * 0.14;
+      const bend = THREE.MathUtils.clamp(this.turn, -1, 1) * 0.12;
       const bendJoints = [11, 12, 19, 20, 21];
       for (let k = 0; k < bendJoints.length; k++) {
         const jIdx = bendJoints[k];
@@ -405,7 +428,7 @@ export class BearAnimator {
       this.vPrev.copy(this.fromRootPos).lerp(this.rig.bones[2].position, blendAlpha);
       if (BearAnimator.isPostureChangeState(this.prevState) || BearAnimator.isPostureChangeState(this.state)) {
         const transitionArc = Math.sin(blendAlpha * Math.PI);
-        this.vPrev.y -= 0.042 * transitionArc;
+        this.vPrev.y -= 0.032 * transitionArc;
       }
       this.rig.bones[2].position.copy(this.vPrev);
     }
@@ -422,10 +445,10 @@ export class BearAnimator {
   }
 
   update(dt: number, turn?: number): void {
-    if (typeof turn === 'number') {
-      this.turn = turn;
-    }
     const clamped = Math.min(dt, 0.1);
+    if (typeof turn === 'number') {
+      this.turn += (turn - this.turn) * Math.min(1.0, Math.max(0.15, clamped * 7.5));
+    }
     const targetSpeed = BEAR_GAITS[this.state] ? BEAR_GAITS[this.state].speed : 0.0;
     this.moveSpeed += (targetSpeed - this.moveSpeed) * Math.min(1.0, clamped * 8.0);
 
@@ -437,7 +460,7 @@ export class BearAnimator {
     if (this.blend < 1.0) {
       this.blend = Math.min(1.0, this.blend + clamped / Math.max(0.001, this.blendDuration));
       const b = this.blend;
-      alpha = b * b * b * (b * (b * 6.0 - 15.0) + 10.0);
+      alpha = b * b * (3.0 - 2.0 * b);
       hasPrev = true;
     }
 

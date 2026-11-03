@@ -87,7 +87,13 @@ export function createCameraPose(): ICameraPose {
 export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput, out: ICameraPose): void {
   const { player, dt, elapsedSeconds, landingDip } = input;
   const isMountedOnHorse = Boolean(player.mountedHorseId);
-  const saddleHeightBonus = isMountedOnHorse ? 0.68 : 0;
+  const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
+  const saddleHeightBonus = isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
+  const horseYaw = isMountedOnHorse ? (player.mountedHorseYaw ?? player.yaw) : player.yaw;
+  const mountBackOffset = isMountedLion ? 0.28 : 0;
+  const mountBackOffsetX = Math.sin(horseYaw) * mountBackOffset;
+  const mountBackOffsetZ = Math.cos(horseYaw) * mountBackOffset;
   const bobScale = isMountedOnHorse ? 0.022 : player.isSwimming ? 0.045 : 0.055;
   const bobY = isMountedOnHorse
     ? Math.sin(player.bobPhase) * bobScale * player.bobAmount
@@ -119,7 +125,18 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
   }
 
   if (player.cameraPerspective === 'third_person') {
-    writeThirdPersonPose(rig, player, bobY, landingDip, horsePitchSway, combinedThirdPersonZoom, out);
+    writeThirdPersonPose(
+      rig,
+      player,
+      saddleHeightBonus,
+      mountBackOffsetX,
+      mountBackOffsetZ,
+      bobY,
+      landingDip,
+      horsePitchSway,
+      combinedThirdPersonZoom,
+      out
+    );
     return;
   }
 
@@ -147,9 +164,9 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
     combatRoll = swordPose.cameraImpulse.rollOffset;
   }
   out.mode = 'euler';
-  out.x = player.x;
+  out.x = player.x + mountBackOffsetX;
   out.y = player.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + rig.smoothCrouchOffset + bobY - landingDip;
-  out.z = player.z;
+  out.z = player.z + mountBackOffsetZ;
   out.pitch = player.pitch + combatPitch + horsePitchSway;
   out.yaw = player.yaw + combatYaw;
   out.roll = bobRoll + combatRoll;
@@ -161,6 +178,9 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
 function writeThirdPersonPose(
   rig: ICameraRigState,
   player: IPlayerState,
+  saddleHeightBonus: number,
+  mountBackOffsetX: number,
+  mountBackOffsetZ: number,
   bobY: number,
   landingDip: number,
   horsePitchSway: number,
@@ -168,9 +188,13 @@ function writeThirdPersonPose(
   out: ICameraPose
 ): void {
   const isMountedOnHorse = Boolean(player.mountedHorseId);
+  const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
+  const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
+  const pivotX = player.x + mountBackOffsetX;
+  const pivotZ = player.z + mountBackOffsetZ;
   const pivotY =
     player.y +
-    (isMountedOnHorse ? 2.22 : player.isSwimming ? 1.25 : 1.54) +
+    (isMountedOnHorse ? 1.54 + saddleHeightBonus : player.isSwimming ? 1.25 : 1.54) +
     rig.smoothCrouchOffset * 0.72 +
     bobY -
     landingDip;
@@ -183,14 +207,14 @@ function writeThirdPersonPose(
   const rightX = Math.cos(player.yaw);
   const rightZ = -Math.sin(player.yaw);
 
-  const baseDist = isMountedOnHorse ? 4.15 : 2.95;
-  const aimDist = isMountedOnHorse ? 2.55 : 1.78;
+  const baseDist = isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
+  const aimDist = isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
   const camDist = baseDist + (aimDist - baseDist) * zoom;
   const shoulderSide = 0.44 - 0.86 * zoom;
   const shoulderUp = 0.28 - 0.12 * zoom;
 
-  const camX = player.x - fwdX * camDist + rightX * shoulderSide;
-  const camZ = player.z - fwdZ * camDist + rightZ * shoulderSide;
+  const camX = pivotX - fwdX * camDist + rightX * shoulderSide;
+  const camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;
   const minCamFloorY = walkableHeightAt(camX, camZ, player.y).height + 0.45;
   const rawCamY = Math.max(minCamFloorY, pivotY - fwdY * camDist + shoulderUp);
   const overheadRoofY = getRoofHeightAt(camX, camZ);
@@ -204,9 +228,9 @@ function writeThirdPersonPose(
   out.x = camX;
   out.y = camY;
   out.z = camZ;
-  out.lookX = player.x + fwdX * 32.0 + rightX * lookSideOffset;
+  out.lookX = pivotX + fwdX * 32.0 + rightX * lookSideOffset;
   out.lookY = pivotY + fwdY * 32.0;
-  out.lookZ = player.z + fwdZ * 32.0 + rightZ * lookSideOffset;
+  out.lookZ = pivotZ + fwdZ * 32.0 + rightZ * lookSideOffset;
 }
 // #endregion
 
