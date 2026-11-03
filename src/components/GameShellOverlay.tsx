@@ -20,6 +20,7 @@ import {
   INVENTORY_ITEM_MAP,
   DEFAULT_STARTER_OWNED_ITEM_IDS,
   FIRST_MARKET_CATALOG_ITEM,
+  RUINED_ATLANTIS_POS,
 } from '../world/terrainMath';
 import { Result } from '../core/Result';
 import { t } from '../locales';
@@ -1080,6 +1081,33 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {telemetry.mountedHorseId === 'sailable-ship' && (() => {
+              const distToAtlantis = Math.round(
+                Math.hypot(
+                  RUINED_ATLANTIS_POS.dockX - telemetry.x,
+                  RUINED_ATLANTIS_POS.dockZ - telemetry.z
+                )
+              );
+              const arrivedAtAtlantis = distToAtlantis <= 36;
+              return (
+                <div
+                  data-testid="ship-wayfinder-compass"
+                  className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-cyan-100 shadow-2xl"
+                  style={{
+                    backgroundColor: 'rgba(8, 28, 38, 0.92)',
+                    border: '1px solid rgba(34, 211, 238, 0.68)',
+                  }}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="font-semibold tracking-wide text-xs text-cyan-100">
+                    {arrivedAtAtlantis
+                      ? 'Ruined Atlantis Dock Reached — Press [F] to Drop Anchor'
+                      : `Atlantean Wayfinder: ${distToAtlantis}m East-Southeast`}
+                  </span>
+                </div>
+              );
+            })()}
+
             {(telemetry.nearbyHorse || telemetry.mountedHorseId) &&
               !telemetry.climbingLadder &&
               !telemetry.nearbyLadder && (
@@ -1095,7 +1123,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     {formatKeyCodeLabel(kb.mountHorse)}
                   </kbd>
                   <span className="font-semibold tracking-wide text-sm text-amber-100">
-                    {telemetry.mountedHorseId ? t('hud.dismount') : t('hud.ride_horse')}
+                    {telemetry.mountedHorseId === 'sailable-ship'
+                      ? 'Drop Anchor / Disembark'
+                      : telemetry.mountedHorseId
+                        ? t('hud.dismount')
+                        : telemetry.nearbyHorse?.id === 'sailable-ship'
+                          ? 'Sail Ship'
+                          : t('hud.ride_horse')}
                   </span>
                 </div>
               )}

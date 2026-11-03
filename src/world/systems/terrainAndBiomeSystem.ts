@@ -45,8 +45,11 @@ import {
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
   VOLCANO_SANCTUM_POS,
+  RUINED_ATLANTIS_POS,
   FLOATING_BLOOMING_ISLANDS,
   FLOATING_ISLAND_STAIR_POS,
+  SOUTHERN_DRAGON_RUINS_POS,
+  DESERT_DRAGON_PASS_POS,
   southernRiverBridgeHeightAt,
   floatingBloomingIslandHeightAt,
   FLAT_BUILDING_TERRACES,
@@ -57,6 +60,10 @@ import {
   southernMineWalkableHeightAt,
   isInsideSouthernMine,
 } from './dwarvenMineAndCaravanSystem';
+import {
+  getActiveSailableShip,
+  sailableShipDeckHeightAt,
+} from './sailableShipSystem';
 
 const FZ = FORTRESS_Z_OFFSET;
 const FY = FORTRESS_Y_OFFSET;
@@ -72,27 +79,72 @@ const FY = FORTRESS_Y_OFFSET;
  */
 export function birchGroveFactorAt(x: number, z: number): number {
   const d = Math.hypot(x - BIRCH_GROVE_CENTER.x, z - BIRCH_GROVE_CENTER.z);
-  return 1.0 - smoothstep(BIRCH_GROVE_CENTER.radius * 0.48, BIRCH_GROVE_CENTER.radius, d);
+  if (d > BIRCH_GROVE_CENTER.radius + 18.0) return 0;
+  const warp = d > 22.0 ? fbm2D(x * 0.035 + 1.7, z * 0.035 - 2.9, 2) * 14.0 : 0;
+  return 1.0 - smoothstep(BIRCH_GROVE_CENTER.radius * 0.45, BIRCH_GROVE_CENTER.radius, d + warp);
 }
 
 /**
- * Summary: Evaluates non-linear procedural transition into the Southwest Desert and Oasis.
+ * Summary: Computes the continuous North-to-South organic Eastern Sea coastline X coordinate for a given Z.
+ * Design: Creates natural bays, headlands, and sandy coves from z = -900 to z = +900 while pinning
+ *         the Harbor Quay (z in 212..312) to x = 255.2 and aligning river mouths.
+ */
+export function easternCoastlineXAt(z: number): number {
+  const wave1 = Math.sin(z * 0.0105 + 0.4) * 22.0;
+  const wave2 = Math.cos(z * 0.024 - 1.1) * 11.5;
+  const wave3 = Math.sin(z * 0.052 + 2.2) * 5.0;
+  const noiseShift = fbm2D(z * 0.0075 + 1.9, z * 0.0045 - 3.1, 2) * 18.0;
+  const naturalCoastX = 264.0 + wave1 + wave2 + wave3 + noiseShift;
+
+  // Keep Harbor Quay & Lighthouse headland exact across z in [205, 320]
+  const harborPin =
+    smoothstep(182.0, 210.0, z) * (1.0 - smoothstep(314.0, 342.0, z));
+  // Keep Southern River lower estuary mouth aligned around z = 785
+  const southMouthPin =
+    smoothstep(752.0, 774.0, z) * (1.0 - smoothstep(794.0, 818.0, z));
+
+  const pinnedHarborX =
+    naturalCoastX * (1.0 - harborPin) + 255.2 * harborPin;
+  return pinnedHarborX * (1.0 - southMouthPin) + 256.0 * southMouthPin;
+}
+
+/**
+ * Summary: Scenic offshore rocky islands dotting the continuous Eastern Sea.
+ */
+const EASTERN_SEA_ISLANDS = [
+  { x: 348.0, z: -265.0, r: 24.0, h: 6.4 },
+  { x: 376.0, z: -105.0, r: 20.0, h: 5.2 },
+  { x: 358.0, z: 435.0, r: 25.0, h: 6.8 },
+  { x: 372.0, z: 665.0, r: 21.0, h: 5.5 },
+] as const;
+
+/**
+ * Summary: Evaluates non-linear multi-stage transition into the Southwest Savanna, Terracotta Canyons,
+ *          Golden Desert Oasis, and the far-southwest Dragon Ruins basin (-540, 540).
  * @param x World X in meters.
  * @param z World Z in meters.
- * @returns 0 outside the desert, rising to 1 deep in it.
+ * @returns 0 in central meadow, 0.1..0.45 in Golden Savanna, 0.45..0.75 in Terracotta Steppe, 0.75..1.0 in Deep Desert.
  */
 export function southwestOasisBiomeFactorAt(x: number, z: number): number {
-  if (x > -105 || z < 130) return 0;
+  if (x > -75 || z < 85) return 0;
   const farmWestDist = Math.hypot(x - VALLEY_FARMS[0].x, z - VALLEY_FARMS[0].z);
-  const farmProtect = 1.0 - smoothstep(VALLEY_FARMS[0].clearRadius - 4.0, VALLEY_FARMS[0].clearRadius + 14.0, farmWestDist);
+  const farmProtect =
+    1.0 - smoothstep(VALLEY_FARMS[0].clearRadius - 4.0, VALLEY_FARMS[0].clearRadius + 14.0, farmWestDist);
 
   const warp1 = fbm2D(x * 0.011 + 2.3, z * 0.011 - 4.1, 2) * 34.0;
   const warp2 = fbm2D(x * 0.024 - 5.7, z * 0.024 + 1.9, 2) * 14.0;
+
+  // Outer Savanna & Dry Steppe ecotone belt starting gently from (-95, 115)
+  const savannaWest = smoothstep(-85.0, -210.0, x + warp1 * 0.85);
+  const savannaSouth = smoothstep(95.0, 225.0, z - warp1 * 0.65);
+  const savannaBuffer = savannaWest * savannaSouth * 0.42;
+
   const westProgress = smoothstep(-125.0, -215.0, x + warp1 + warp2);
   const southProgress = smoothstep(155.0, 235.0, z - warp1 * 0.75 + warp2);
   const diagonalProgress = smoothstep(285.0, 405.0, -x + z + warp1 * 1.1);
 
   const regionalExpanse = Math.max(
+    savannaBuffer,
     westProgress * southProgress,
     diagonalProgress * smoothstep(-120.0, -175.0, x) * smoothstep(150.0, 195.0, z)
   );
@@ -100,24 +152,51 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   const oasisCoreDist = Math.hypot(x - SOUTHWEST_OASIS_POS.x, z - SOUTHWEST_OASIS_POS.z);
   const oasisCore = 1.0 - smoothstep(68.0, 145.0, oasisCoreDist);
 
-  return Math.max(0, Math.min(1, Math.max(regionalExpanse, oasisCore) * (1.0 - farmProtect)));
+  // Far-Southwest Desert Basin & Dragon Ruins Sanctuary (-540, 540)
+  const dragonRuinsDist = Math.hypot(
+    x - SOUTHERN_DRAGON_RUINS_POS.x,
+    z - SOUTHERN_DRAGON_RUINS_POS.z
+  );
+  const dragonDesertCore = 1.0 - smoothstep(140.0, 260.0, dragonRuinsDist);
+
+  return Math.max(
+    0,
+    Math.min(1, Math.max(regionalExpanse, oasisCore, dragonDesertCore) * (1.0 - farmProtect))
+  );
 }
 
 /**
- * Summary: Evaluates non-linear procedural transition into the Western Volcanic Badlands / Scorched Ashlands
- *          surrounding the Volcano Sanctum at VOLCANO_SANCTUM_POS (-620, 115).
+ * Summary: Evaluates gradual multi-stage transition into the Western Basalt Foothills, Scorched Ashlands,
+ *          and Volcano Sanctum at VOLCANO_SANCTUM_POS (-620, 115).
  * @param x World X in meters.
  * @param z World Z in meters.
- * @returns 0 outside the volcanic badlands, rising to 1 inside the scorched ashlands and volcano massif.
+ * @returns 0 outside the foothills, 0.1..0.45 in Basalt Foothills, 0.45..1.0 in Scorched Ashlands & Volcano.
  */
 export function volcanicBadlandsFactorAt(x: number, z: number): number {
   const dx = x - VOLCANO_SANCTUM_POS.x;
   const dz = z - VOLCANO_SANCTUM_POS.z;
-  if (Math.abs(dx) > 285.0 || Math.abs(dz) > 285.0) return 0;
+  if (Math.abs(dx) > 365.0 || Math.abs(dz) > 365.0) return 0;
   const dist = Math.hypot(dx * 0.94, dz * 1.02);
-  if (dist > 270.0) return 0;
-  const warp = fbm2D(x * 0.018 + 4.7, z * 0.018 - 3.2, 2) * 28.0;
-  return 1.0 - smoothstep(125.0, 245.0, dist + warp);
+  if (dist > 350.0) return 0;
+  const warp = fbm2D(x * 0.016 + 4.7, z * 0.016 - 3.2, 2) * 34.0;
+  const coreAsh = 1.0 - smoothstep(125.0, 245.0, dist + warp * 0.8);
+  const outerFoothills = (1.0 - smoothstep(185.0, 335.0, dist + warp)) * 0.46;
+  return Math.max(coreAsh, outerFoothills);
+}
+
+/**
+ * Summary: Evaluates the gradual Northern Taiga-to-Frost-Tundra ecotone transition before the Alpine Snowline.
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 0 in temperate meadows, rising smoothly to 1 in sub-alpine northern tundra.
+ */
+export function northernTundraFactorAt(x: number, z: number): number {
+  if (z > -38.0 || isChineseFortressWalkableZone(x, z)) return 0;
+  const warp = fbm2D(x * 0.015 - 2.1, z * 0.015 + 4.3, 2) * 24.0;
+  const latFactor = smoothstep(-45.0, -155.0, z + warp);
+  const h = groundHeightAt(x, z);
+  const altFactor = smoothstep(6.8, SNOW_LINE_ALTITUDE, h);
+  return Math.max(0, Math.min(1, latFactor * (0.38 + 0.62 * altFactor)));
 }
 
 /**
@@ -568,7 +647,48 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 96, 428, 98.2, 512),
     distToSegment(x, z, 98.2, 512, 98.2, 600),
     distToSegment(x, z, 98.2, 600, 98.2, 682),
-    distToSegment(x, z, 98.2, 682, 105, 715)
+    distToSegment(x, z, 98.2, 682, 105, 715),
+    // Southwest Desert Caravan Trail through the Narrow Mountain Pass into the Dragon Ruins (-540, 540)
+    distToSegment(
+      x,
+      z,
+      SOUTHWEST_OASIS_POS.fountainX,
+      SOUTHWEST_OASIS_POS.fountainZ,
+      -362.0,
+      358.0
+    ),
+    distToSegment(
+      x,
+      z,
+      -362.0,
+      358.0,
+      DESERT_DRAGON_PASS_POS.entryX,
+      DESERT_DRAGON_PASS_POS.entryZ
+    ),
+    distToSegment(
+      x,
+      z,
+      DESERT_DRAGON_PASS_POS.entryX,
+      DESERT_DRAGON_PASS_POS.entryZ,
+      DESERT_DRAGON_PASS_POS.gorgeX,
+      DESERT_DRAGON_PASS_POS.gorgeZ
+    ),
+    distToSegment(
+      x,
+      z,
+      DESERT_DRAGON_PASS_POS.gorgeX,
+      DESERT_DRAGON_PASS_POS.gorgeZ,
+      DESERT_DRAGON_PASS_POS.exitX,
+      DESERT_DRAGON_PASS_POS.exitZ
+    ),
+    distToSegment(
+      x,
+      z,
+      DESERT_DRAGON_PASS_POS.exitX,
+      DESERT_DRAGON_PASS_POS.exitZ,
+      SOUTHERN_DRAGON_RUINS_POS.x,
+      SOUTHERN_DRAGON_RUINS_POS.z - 36.0
+    )
   );
 
   let bridgeTrailDist = 999;
@@ -678,10 +798,13 @@ export function groundHeightAt(x: number, z: number): number {
 
   let riverDepth = 0;
   if (x > 16 && z < 12) {
-    const segDist = distToSegment(x, z, 18, 2, 175, -92);
+    const segDist = Math.min(
+      distToSegment(x, z, 18, 2, 175, -92),
+      distToSegment(x, z, 175, -92, 272, -138)
+    );
     const meander = Math.sin(x * 0.065) * 3.2;
     const effDist = Math.abs(segDist + meander * 0.35);
-    riverDepth = (1.0 - smoothstep(2.4, 7.8, effDist)) * 4.2;
+    riverDepth = (1.0 - smoothstep(2.4, 8.2, effDist)) * 4.2;
   }
 
   const westLagoonDist = Math.hypot((x + 138) * 0.88, (z - 42) * 1.12);
@@ -794,21 +917,20 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // 2) Western & Southern Mountain Range: Continuous high, steep alpine barrier starting immediately West of the
-  //    Cliffside Mountain Pass Trail (x = 94.5), extending West into the Southern Desert (x = -195, z = 596),
-  //    and turning South (x = -165, z = 596..1095) all the way to the Southern Map Rim.
-  if (x >= -245.0 && x <= 102.0 && z >= 522.0 && z <= 1110.0) {
-    const distWestEastSeg = distToSegment(x, z, 88.0, 596.0, -165.0, 596.0);
-    const distNorthSouthSeg = distToSegment(x, z, -165.0, 596.0, -165.0, 1095.0);
-    const barrierDist = Math.min(distWestEastSeg, distNorthSouthSeg);
+  // 2) Western Gorge Mountain Ridge: Natural craggy mountain ridge immediately West of the
+  //    Cliffside Mountain Pass Trail (x = 94.5) tapering organically into foothills South of the Dwarven Kingdom.
+  if (x >= -65.0 && x <= 102.0 && z >= 522.0 && z <= 685.0) {
+    const warpZ = Math.sin(x * 0.042) * 12.0 + fbm2D(x * 0.025 + 1.4, z * 0.025 - 2.1, 2) * 18.0;
+    const barrierDist = distToSegment(x, z + warpZ * (x < 68.0 ? 1.0 : 0.0), 88.0, 596.0, -18.0, 612.0);
     // Keep the east end of the Western Range sharply bounded at x <= 94.8 right beside the Cliffside Pass Trail!
     const trailSideCutoff = x > 84.0 ? 1.0 - smoothstep(84.0, 94.8, x) : 1.0;
-    const westBarrierW = (1.0 - smoothstep(14.0, 62.0, barrierDist)) * trailSideCutoff;
+    const westTaper = 1.0 - smoothstep(-5.0, -58.0, x);
+    const westBarrierW = (1.0 - smoothstep(14.0, 58.0, barrierDist)) * trailSideCutoff * westTaper;
     if (westBarrierW > 0.005) {
       const crag =
         Math.abs(fbm2D(x * 0.046 - 4.2, z * 0.046 + 1.9, 3)) * 10.5 +
         Math.cos(x * 0.095 - z * 0.085) * 2.4;
-      const targetWestMtnH = 4.0 + Math.pow(westBarrierW, 0.76) * (51.0 + crag);
+      const targetWestMtnH = 4.0 + Math.pow(westBarrierW, 0.76) * (49.0 + crag);
       h = Math.max(h, targetWestMtnH);
     }
   }
@@ -883,10 +1005,86 @@ export function groundHeightAt(x: number, z: number): number {
     h += mtnAdd;
   }
 
-  if (r > 1020 && !(x > 225 && z > 80)) {
+  if (r > 1020 && x <= 220) {
     const rimT = smoothstep(1020, 1100, r);
     const ridgeNoise = Math.abs(fbm2D(x * 0.022, z * 0.022, 3));
     h += rimT * (30.0 + ridgeNoise * 38.0);
+  }
+
+  // 4) High Desert-End Mountain Barrier & Narrow Canyon Pass (מעבר הרים צר) shielding the Dragon Ruins (-540, 540)
+  //    Towers 46..56m high between the Desert Oasis (-310, 300) and the Dragon Ruins (-540, 540),
+  //    with a walkable narrow canyon gorge along (-405, 405) -> (-455, 455) -> (-498, 492) -> (-540, 503).
+  if (x <= -320.0 && x >= -760.0 && z >= 320.0 && z <= 760.0) {
+    const dRx = x - SOUTHERN_DRAGON_RUINS_POS.x;
+    const dRz = z - SOUTHERN_DRAGON_RUINS_POS.z;
+    const rawRuinsDist = Math.hypot(dRx, dRz);
+    const ridgeWarp =
+      rawRuinsDist > 64.0
+        ? fbm2D(x * 0.022 + 4.1, z * 0.022 - 1.8, 2) * 26.0 +
+          Math.sin(x * 0.045 + z * 0.038) * 9.0
+        : 0.0;
+    const warpedRuinsDist = rawRuinsDist + ridgeWarp;
+
+    if (rawRuinsDist >= 60.0 && warpedRuinsDist <= 182.0) {
+      // Mountain range peaks around warped radius ~108m around the Dragon Ruins
+      const innerClimb = smoothstep(62.0, 90.0, rawRuinsDist);
+      const outerSlope = 1.0 - smoothstep(122.0, 178.0, warpedRuinsDist);
+      const ringProfile = innerClimb * outerSlope;
+
+      // Distance to the Narrow Canyon Pass centerline cutting through the northeastern mountain barrier
+      const passSeg1 = distToSegment(
+        x,
+        z,
+        DESERT_DRAGON_PASS_POS.entryX,
+        DESERT_DRAGON_PASS_POS.entryZ,
+        DESERT_DRAGON_PASS_POS.gorgeX,
+        DESERT_DRAGON_PASS_POS.gorgeZ
+      );
+      const passSeg2 = distToSegment(
+        x,
+        z,
+        DESERT_DRAGON_PASS_POS.gorgeX,
+        DESERT_DRAGON_PASS_POS.gorgeZ,
+        DESERT_DRAGON_PASS_POS.exitX,
+        DESERT_DRAGON_PASS_POS.exitZ
+      );
+      const passSeg3 = distToSegment(
+        x,
+        z,
+        DESERT_DRAGON_PASS_POS.exitX,
+        DESERT_DRAGON_PASS_POS.exitZ,
+        SOUTHERN_DRAGON_RUINS_POS.x,
+        SOUTHERN_DRAGON_RUINS_POS.z - 36.0
+      );
+      const passDist = Math.min(passSeg1, passSeg2, passSeg3);
+
+      // Keep the narrow pass floor (~13m wide) completely flat & walkable while sheer canyon walls tower on both sides
+      const canyonWallRise = smoothstep(
+        DESERT_DRAGON_PASS_POS.halfWidth - 0.6,
+        DESERT_DRAGON_PASS_POS.halfWidth + 11.5,
+        passDist
+      );
+      const passFloorFlatten =
+        1.0 -
+        smoothstep(
+          DESERT_DRAGON_PASS_POS.halfWidth - 0.4,
+          DESERT_DRAGON_PASS_POS.halfWidth + 5.5,
+          passDist
+        );
+
+      const desertCrag =
+        Math.abs(fbm2D(x * 0.044 + 2.7, z * 0.044 - 3.5, 3)) * 11.0 +
+        Math.sin(x * 0.09 - z * 0.08) * 2.5;
+      const barrierMtnH =
+        SOUTHERN_DRAGON_RUINS_POS.height +
+        Math.pow(ringProfile * canyonWallRise, 0.78) * (47.5 + desertCrag);
+      h = Math.max(h, barrierMtnH);
+
+      if (passFloorFlatten > 0.005) {
+        const passTargetH = SOUTHERN_DRAGON_RUINS_POS.height + 0.12 * Math.sin(passDist * 0.3);
+        h = h * (1.0 - passFloorFlatten) + passTargetH * passFloorFlatten;
+      }
+    }
   }
 
   for (let i = 0; i < FLAT_BUILDING_TERRACES.length; i++) {
@@ -909,15 +1107,46 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  if (x >= 184 && z >= 85) {
-    const coastLineX =
-      z >= 212.0 && z <= 312.0
-        ? 255.2
-        : 255.2 + Math.sin(z * 0.035) * 6.0;
-    if (x >= coastLineX - 8.0 && z >= 95.0) {
+  // Continuous North-to-South Eastern Coastline, Sandy Beaches, Shoals, Offshore Islands & Deep Ocean
+  if (x >= 184) {
+    const coastLineX = easternCoastlineXAt(z);
+    if (x >= coastLineX - 18.0) {
+      // Protect the Sky-Waterfall staircase entry island at (704, -35) so its plaza stays dry at 3.18m
+      const skyStairDist = Math.hypot(
+        x - (FLOATING_ISLAND_STAIR_POS.footX - 3.0),
+        z - FLOATING_ISLAND_STAIR_POS.z
+      );
+      const skyStairProtect = 1.0 - smoothstep(16.0, 32.0, skyStairDist);
+
+      // Gentle sandy beach transition just inland of coastLineX, then shallow shoals & deep ocean
+      const beachSlope =
+        smoothstep(coastLineX - 18.0, coastLineX - 3.5, x) *
+        (1.0 - smoothstep(coastLineX - 3.5, coastLineX + 1.5, x));
+      if (beachSlope > 0.01 && (z < 208.0 || z > 316.0)) {
+        const sandyBeachH = 0.48 + (coastLineX - x) * 0.045;
+        h = h * (1.0 - beachSlope * 0.72 * (1.0 - skyStairProtect)) +
+          sandyBeachH * (beachSlope * 0.72 * (1.0 - skyStairProtect));
+      }
+
       const seaWeight =
-        smoothstep(coastLineX - 4.0, coastLineX + 2.5, x) * smoothstep(95.0, 125.0, z);
-      h = h * (1.0 - seaWeight) + -6.8 * seaWeight;
+        smoothstep(coastLineX - 4.0, coastLineX + 2.5, x) * (1.0 - skyStairProtect);
+      if (seaWeight > 0.001) {
+        const deepOceanExtra = smoothstep(coastLineX + 18.0, coastLineX + 125.0, x) * -2.8;
+        const targetSeaFloor = -6.8 + deepOceanExtra;
+        h = h * (1.0 - seaWeight) + targetSeaFloor * seaWeight;
+      }
+
+      // Sculpt natural rocky coastal islands in the Eastern Sea
+      for (let i = 0; i < EASTERN_SEA_ISLANDS.length; i++) {
+        const isl = EASTERN_SEA_ISLANDS[i];
+        const dIsl = Math.hypot(x - isl.x, z - isl.z);
+        if (dIsl < isl.r + 14.0) {
+          const islW = 1.0 - smoothstep(isl.r * 0.38, isl.r + 14.0, dIsl);
+          const islCrag = fbm2D(x * 0.08 + i * 2.1, z * 0.08 - i * 1.7, 2) * 1.1;
+          const islH = -2.5 + islW * (isl.h + 2.5 + islCrag);
+          h = Math.max(h, islH);
+        }
+      }
     }
 
     if (x <= 256.5 && z >= 198 && z <= 328) {
@@ -958,11 +1187,37 @@ export function groundHeightAt(x: number, z: number): number {
   const swFactor = southwestOasisBiomeFactorAt(x, z);
   if (swFactor > 0.05) {
     const oasisDist = Math.hypot(x - SOUTHWEST_OASIS_POS.x, z - SOUTHWEST_OASIS_POS.z);
-    if (oasisDist > 58.0) {
+    const dragonDist = Math.hypot(
+      x - SOUTHERN_DRAGON_RUINS_POS.x,
+      z - SOUTHERN_DRAGON_RUINS_POS.z
+    );
+    const passDist = Math.min(
+      distToSegment(
+        x,
+        z,
+        DESERT_DRAGON_PASS_POS.entryX,
+        DESERT_DRAGON_PASS_POS.entryZ,
+        DESERT_DRAGON_PASS_POS.gorgeX,
+        DESERT_DRAGON_PASS_POS.gorgeZ
+      ),
+      distToSegment(
+        x,
+        z,
+        DESERT_DRAGON_PASS_POS.gorgeX,
+        DESERT_DRAGON_PASS_POS.gorgeZ,
+        DESERT_DRAGON_PASS_POS.exitX,
+        DESERT_DRAGON_PASS_POS.exitZ
+      )
+    );
+    if (oasisDist > 58.0 && dragonDist > 68.0 && passDist > 14.0) {
       const duneWave =
         Math.sin(x * 0.045 + z * 0.032) * 1.15 +
         fbm2D(x * 0.025 - 3.4, z * 0.025 + 6.1, 2) * 1.65;
-      const duneMask = smoothstep(58.0, 92.0, oasisDist) * swFactor;
+      const duneMask =
+        smoothstep(58.0, 92.0, oasisDist) *
+        smoothstep(68.0, 96.0, dragonDist) *
+        smoothstep(14.0, 26.0, passDist) *
+        swFactor;
       h += Math.max(-0.4, duneWave) * duneMask;
     }
     const lagNorm = Math.hypot(
@@ -1101,9 +1356,52 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
+  // Monumental Ruined Atlantis Sunken Ring & Central Boss Arena Sanctuary in the Deep Eastern Ocean (980, 420)
+  // Note: Walkable marble floors (y = 2.15m) are provided by walkableHeightAt() and 3D marble meshes in atlantisGroup,
+  // while the terrain mesh forms the submerged turquoise lagoon shoal (-1.35m) beneath the animated ocean water.
+  const atDx = x - RUINED_ATLANTIS_POS.x;
+  const atDz = z - RUINED_ATLANTIS_POS.z;
+  if (Math.abs(atDx) <= 108.0 && Math.abs(atDz) <= 108.0) {
+    const atDist = Math.hypot(atDx, atDz);
+    if (atDist < 94.0) {
+      const shoalW = 1.0 - smoothstep(74.0, 94.0, atDist);
+      h = h * (1.0 - shoalW) + -1.35 * shoalW;
+    }
+  }
+
   return h;
 }
 
+/**
+ * Summary: Checks whether an ocean coordinate (x, z) is deep/clear enough for the Sailable Ship to navigate.
+ */
+export function isNavigableOceanForShip(x: number, z: number): boolean {
+  // Keep clear of the Harbor Pier & moored Imperial Galleon
+  if (x <= 275.0 && Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 6.8) {
+    return false;
+  }
+  if (
+    Math.abs(x - SOUTHEAST_HARBOR_POS.shipX) <= SOUTHEAST_HARBOR_POS.shipHalfW + 3.8 &&
+    Math.abs(z - SOUTHEAST_HARBOR_POS.shipZ) <= SOUTHEAST_HARBOR_POS.shipHalfL + 3.8
+  ) {
+    return false;
+  }
+  // Keep clear of the solid Ruined Atlantis Western Dock & Outer Ring while allowing docking right at dockX - 4.5m (x ≈ 881.5)
+  const atDx = x - RUINED_ATLANTIS_POS.x;
+  const atDz = z - RUINED_ATLANTIS_POS.z;
+  const atDist = Math.hypot(atDx, atDz);
+  if (atDist <= RUINED_ATLANTIS_POS.outerRingRadius + 10.5) {
+    return false;
+  }
+  if (
+    x >= RUINED_ATLANTIS_POS.dockX - 3.5 &&
+    x <= RUINED_ATLANTIS_POS.x &&
+    Math.abs(atDz) <= 9.2
+  ) {
+    return false;
+  }
+  return groundHeightAt(x, z) < WATER_LEVEL + 0.45;
+}
 // #endregion
 
 // ======================== WATER & SNOW ZONE QUERIES ======================== \\
@@ -1130,7 +1428,8 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   if (lagNorm <= 1.0) {
     return SOUTHWEST_OASIS_POS.lagoonWaterY;
   }
-  if (x >= 254.0 && z >= 95.0 && groundHeightAt(x, z) < SOUTHEAST_HARBOR_POS.waterY - 0.05) {
+  const coastLineX = easternCoastlineXAt(z);
+  if (x >= coastLineX - 2.0 && groundHeightAt(x, z) < SOUTHEAST_HARBOR_POS.waterY - 0.05) {
     return SOUTHEAST_HARBOR_POS.waterY;
   }
   if (groundHeightAt(x, z) < WATER_LEVEL + 0.15) {
@@ -1140,21 +1439,55 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
 }
 
 /**
- * Summary: Calculates snow accumulation factor based on terrain altitude above the snowline.
+ * Summary: Calculates snow accumulation factor based on northern latitude and terrain altitude above the snowline.
+ * Design: Restricts snow strictly to the Northern Alpine region (z < -40) and modulates the snowline
+ *         with mountain-ridge noise in the far north so valleys show Tundra/Taiga while peaks are snow-capped.
  * @param x World X in meters.
  * @param z World Z in meters.
  * @returns Snow cover from 0 (none) to 1 (full).
  */
 export function northernSnowZoneFactorAt(x: number, z: number): number {
-  if (isChineseFortressWalkableZone(x, z)) {
+  if (z >= -40.0 || isChineseFortressWalkableZone(x, z)) {
     return 0;
   }
   const h = groundHeightAt(x, z);
   if (h < SNOW_LINE_ALTITUDE) {
     return 0;
   }
-  const altitudeSnow = smoothstep(SNOW_LINE_ALTITUDE, SNOW_LINE_ALTITUDE + 6.5, h);
-  return Math.max(0, Math.min(1, altitudeSnow));
+
+  // Evaluate mountain peak prominence from WALKABLE_MOUNTAINS + procedural North-West Alpine Peaks
+  let peakProminence = 0;
+  for (let i = 0; i < WALKABLE_MOUNTAINS.length; i++) {
+    const m = WALKABLE_MOUNTAINS[i];
+    if (m.z < -40.0) {
+      const d = Math.hypot(x - m.x, z - m.z);
+      if (d < m.radius * 0.92) {
+        peakProminence = Math.max(
+          peakProminence,
+          1.0 - smoothstep(m.radius * 0.35, m.radius * 0.88, d)
+        );
+      }
+    }
+  }
+
+  // Procedural Alpine Range peaks in the North-West & Far-North (matching the reference fantasy map)
+  const nwAlpineFavor = smoothstep(-20.0, -280.0, x) * smoothstep(-110.0, -240.0, z);
+  const ridgeWave1 = Math.sin(x * 0.032 + z * 0.024) * Math.cos(x * 0.019 - z * 0.031);
+  const ridgeWave2 = fbm2D(x * 0.018 + 2.3, z * 0.018 - 3.7, 3);
+  const alpinePeakCluster = smoothstep(
+    0.22 - nwAlpineFavor * 0.14,
+    0.58 - nwAlpineFavor * 0.12,
+    ridgeWave1 * 0.55 + ridgeWave2 * 0.65
+  );
+  peakProminence = Math.max(peakProminence, alpinePeakCluster);
+
+  const localSnowLine = SNOW_LINE_ALTITUDE + (1.0 - peakProminence) * 18.5;
+  if (h < localSnowLine) {
+    return 0;
+  }
+  const latFade = smoothstep(-40.0, -95.0, z);
+  const altitudeSnow = smoothstep(localSnowLine, localSnowLine + 5.5, h);
+  return Math.max(0, Math.min(1, altitudeSnow * latFade * (0.35 + 0.65 * peakProminence)));
 }
 
 // #endregion
@@ -1542,6 +1875,33 @@ export function walkableHeightAt(
     return { height: SOUTHEAST_HARBOR_POS.shipDeckY, surface: 'pier' };
   }
 
+  // Sailable Royal Explorer Caravel deck & Harbor North Boarding Jetty
+  const sailableDeckY = sailableShipDeckHeightAt(x, z, currentY);
+  if (sailableDeckY !== null) {
+    return { height: sailableDeckY, surface: 'pier' };
+  }
+
+  // Ruined Atlantis Central Boss Arena Sanctuary, Western Ship Dock, Radial Causeways & Outer Ring Colonnade
+  const atDxWalk = x - RUINED_ATLANTIS_POS.x;
+  const atDzWalk = z - RUINED_ATLANTIS_POS.z;
+  const atDistWalk = Math.hypot(atDxWalk, atDzWalk);
+  const onAtlantisDock =
+    x >= RUINED_ATLANTIS_POS.dockX - 1.5 &&
+    x <= RUINED_ATLANTIS_POS.x - 30.0 &&
+    Math.abs(atDzWalk) <= 4.8;
+  const onAtlantisRadialCauseway =
+    atDistWalk <= RUINED_ATLANTIS_POS.outerRingRadius + 4.0 &&
+    (Math.abs(atDxWalk) <= 3.6 || Math.abs(atDzWalk) <= 3.6);
+  if (atDistWalk <= RUINED_ATLANTIS_POS.innerArenaRadius + 0.8 || onAtlantisDock || onAtlantisRadialCauseway) {
+    return { height: RUINED_ATLANTIS_POS.arenaFloorY, surface: 'bridge' };
+  }
+  if (
+    atDistWalk >= RUINED_ATLANTIS_POS.outerRingRadius - 5.2 &&
+    atDistWalk <= RUINED_ATLANTIS_POS.outerRingRadius + 5.2
+  ) {
+    return { height: RUINED_ATLANTIS_POS.outerRingY, surface: 'bridge' };
+  }
+
   const obsDist = Math.hypot(x - SOUTHWEST_OASIS_POS.observatoryX, z - SOUTHWEST_OASIS_POS.observatoryZ);
   if (obsDist <= SOUTHWEST_OASIS_POS.observatoryRadius + 0.45) {
     const inObsHatch =
@@ -1710,29 +2070,23 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   for (let i = 0; i < BEAR_MOUNTAIN_CAVES.length; i++) {
     const cave = BEAR_MOUNTAIN_CAVES[i];
     if (Math.hypot(x - cave.x, z - cave.z) <= cave.radius) {
-      return [88, 82, 74];
+      return [94, 88, 78];
     }
   }
   const volcanoDist = Math.hypot(x - VOLCANO_SANCTUM_POS.x, z - VOLCANO_SANCTUM_POS.z);
   if (volcanoDist <= VOLCANO_SANCTUM_POS.outerRadius) {
-    if (volcanoDist <= 28.0 || Math.abs(volcanoDist - 34.0) <= 3.2) {
-      return [242, 88, 26];
+    if (volcanoDist <= 28.0 || Math.abs(volcanoDist - 34.0) <= 3.4) {
+      return [246, 92, 28];
     }
-    return [48, 42, 40];
-  }
-  const volBadlands = volcanicBadlandsFactorAt(x, z);
-  if (volBadlands > 0.24) {
-    const vAng = Math.atan2(z - VOLCANO_SANCTUM_POS.z, x - VOLCANO_SANCTUM_POS.x);
-    const lavaCrack = Math.abs(Math.sin(vAng * 6.0 + volcanoDist * 0.055));
-    if (lavaCrack < 0.095 && volcanoDist < 210.0) {
-      return [218, 76, 28];
-    }
+    const vNorm = getSurfaceNormalAt(x, z);
+    const vShade = Math.max(0.72, Math.min(1.22, 0.92 + (-0.58 * vNorm.nx + 0.58 * vNorm.ny - 0.52 * vNorm.nz) * 0.35));
     return [
-      Math.round(84 * (1 - volBadlands) + 58 * volBadlands),
-      Math.round(132 * (1 - volBadlands) + 49 * volBadlands),
-      Math.round(66 * (1 - volBadlands) + 46 * volBadlands),
+      Math.round(52 * vShade),
+      Math.round(44 * vShade),
+      Math.round(42 * vShade),
     ];
   }
+
   for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
     const isl = FLOATING_BLOOMING_ISLANDS[i];
     const dIsl = Math.hypot(x - isl.x, z - isl.z);
@@ -1740,6 +2094,22 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
       return dIsl > isl.radius - 3.2 ? [236, 134, 174] : [106, 188, 118];
     }
   }
+
+  // Ancient Dragon Citadel Ruins at SOUTHERN_DRAGON_RUINS_POS (-540, 540)
+  const drDx = Math.abs(x - SOUTHERN_DRAGON_RUINS_POS.x);
+  const drDz = Math.abs(z - SOUTHERN_DRAGON_RUINS_POS.z);
+  if (drDx <= 39.5 && drDz <= 39.5) {
+    if (
+      (Math.abs(drDx - 37.0) <= 2.2 && drDz <= 37.5) ||
+      (Math.abs(drDz - 37.0) <= 2.2 && drDx <= 37.5)
+    ) {
+      return [148, 138, 122];
+    }
+    if (drDx <= 4.5 && Math.abs(z - (SOUTHERN_DRAGON_RUINS_POS.z + 20.0)) <= 3.5) {
+      return [214, 92, 56];
+    }
+  }
+
   if (isChineseFortressWalkableZone(x, z)) {
     if (
       (Math.abs(x) <= 22.0 && z >= -216.0 + FZ && z <= -189.5 + FZ) ||
@@ -1818,8 +2188,50 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   ) {
     return [164, 108, 56];
   }
-  if (x >= 255.2 && z >= 95 && groundHeightAt(x, z) < SOUTHEAST_HARBOR_POS.waterY) {
-    return [28, 118, 158];
+  // Live Sailable Ship on the Minimap / World Map
+  const activeShip = getActiveSailableShip();
+  const sDx = x - activeShip.x;
+  const sDz = z - activeShip.z;
+  if (sDx * sDx + sDz * sDz <= 115.0) {
+    const cosS = Math.cos(activeShip.yaw);
+    const sinS = Math.sin(activeShip.yaw);
+    const slx = sDx * cosS - sDz * sinS;
+    const slz = sDx * sinS + sDz * cosS;
+    if (Math.abs(slx) <= activeShip.halfW && Math.abs(slz) <= activeShip.halfL) {
+      return Math.abs(slz) <= 2.2 && Math.abs(slx) <= 2.8 ? [246, 238, 214] : [188, 122, 58];
+    }
+  }
+  // Ruined Atlantis Concentric Rings, Lagoon & Western Ship Dock in the Deep Eastern Ocean (980, 420)
+  const atMapDx = x - RUINED_ATLANTIS_POS.x;
+  const atMapDz = z - RUINED_ATLANTIS_POS.z;
+  const atMapDist = Math.hypot(atMapDx, atMapDz);
+  if (
+    atMapDist <= RUINED_ATLANTIS_POS.outerRingRadius + 16.0 ||
+    (x >= RUINED_ATLANTIS_POS.dockX - 2.0 && x <= RUINED_ATLANTIS_POS.x && Math.abs(atMapDz) <= 5.8)
+  ) {
+    if (atMapDist <= 7.5) {
+      return [38, 224, 238]; // Glowing Cyan Boss Seal Core & Poseidon Statue
+    }
+    if (Math.abs(atMapDist - 19.5) <= 2.0 || Math.abs(atMapDist - 31.0) <= 2.2) {
+      return [224, 182, 74]; // Concentric Orichalcum Gold Rings
+    }
+    if (atMapDist <= RUINED_ATLANTIS_POS.innerArenaRadius) {
+      return [212, 228, 234]; // Central Boss Arena Marble Sanctuary
+    }
+    if (
+      (x >= RUINED_ATLANTIS_POS.dockX - 1.5 && x <= RUINED_ATLANTIS_POS.x - 30.0 && Math.abs(atMapDz) <= 5.0) ||
+      (atMapDist <= RUINED_ATLANTIS_POS.outerRingRadius + 3.0 &&
+        (Math.abs(atMapDx) <= 4.0 || Math.abs(atMapDz) <= 4.0))
+    ) {
+      return [198, 216, 224]; // Western Ship Dock & Radial Marble Causeways
+    }
+    if (
+      atMapDist >= RUINED_ATLANTIS_POS.outerRingRadius - 5.0 &&
+      atMapDist <= RUINED_ATLANTIS_POS.outerRingRadius + 5.0
+    ) {
+      return [176, 204, 214]; // Above-water Outer Ring Colonnade & Aqueduct Ruins
+    }
+    return [44, 194, 208]; // Luminous Bioluminescent Turquoise Atlantis Lagoon
   }
   if (x >= 200 && x <= 255.5 && z >= 214 && z <= 312) {
     return [206, 196, 178];
@@ -1846,7 +2258,7 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     return [36, 178, 172];
   }
   if (Math.hypot(x - SOUTHWEST_OASIS_POS.x, z - SOUTHWEST_OASIS_POS.z) <= 44.0) {
-    return [222, 198, 152];
+    return [226, 202, 152];
   }
 
   const walk = walkableHeightAt(x, z);
@@ -1858,77 +2270,190 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   }
 
   const h = walk.height;
-  const swBiome = southwestOasisBiomeFactorAt(x, z);
-  if (swBiome > 0.32 && h >= WATER_LEVEL + 0.42) {
-    return [
-      Math.round(84 + swBiome * 124),
-      Math.round(132 + swBiome * 38),
-      Math.round(66 + swBiome * 52),
-    ];
-  }
-  if (h < WATER_LEVEL - 0.8) {
-    return [28, 88, 128];
-  }
+
+  // Multi-stop water depth gradient: Turquoise Shoal -> Vibrant Azure Sea -> Deep Navy Ocean
   if (h < WATER_LEVEL) {
-    return [46, 128, 162];
-  }
-  if (h < WATER_LEVEL + 0.42) {
-    return [194, 176, 134];
-  }
-
-  const contourFrac = Math.abs(((h % 5) + 5) % 5 - 2.5);
-  const isContour = contourFrac < 0.16 && h > 2.5;
-  const darken = isContour ? 0.84 : 1.0;
-
-  if (h >= SNOW_LINE_ALTITUDE + 2.2) {
+    const depth = WATER_LEVEL - h;
+    if (depth < 1.25) {
+      const t = depth / 1.25;
+      return [
+        Math.round(64 * (1 - t) + 38 * t),
+        Math.round(176 * (1 - t) + 138 * t),
+        Math.round(188 * (1 - t) + 174 * t),
+      ];
+    }
+    const deepT = Math.min(1.0, (depth - 1.25) / 6.8);
     return [
-      Math.round(232 * darken),
-      Math.round(238 * darken),
-      Math.round(245 * darken),
+      Math.round(38 * (1 - deepT) + 18 * deepT),
+      Math.round(138 * (1 - deepT) + 82 * deepT),
+      Math.round(174 * (1 - deepT) + 134 * deepT),
     ];
   }
 
-  if (h > 12.5) {
+  // Golden sandy beaches along the Eastern Coastline & lake/river shores
+  const coastX = easternCoastlineXAt(z);
+  const isCoastalBeach = x >= coastX - 16.0 && h < WATER_LEVEL + 1.15;
+  if (h < WATER_LEVEL + 0.45 || isCoastalBeach) {
+    return [218, 196, 142];
+  }
+
+  // Analytical hill-shading & subtle contour lines for illustrated fantasy map relief
+  const normal = getSurfaceNormalAt(x, z);
+  const sunDot = -0.56 * normal.nx + 0.64 * normal.ny - 0.52 * normal.nz;
+  const hillShade = Math.max(0.74, Math.min(1.16, 0.62 + sunDot * 0.62));
+  const contourFrac = Math.abs(((h % 6) + 6) % 6 - 3.0);
+  const isContour = contourFrac < 0.14 && h > 3.0;
+  const shade = hillShade * (isContour ? 0.90 : 1.0);
+
+  // High Alpine Snow Peaks (strictly on northern mountain peaks & high alpine ridges, z < -40)
+  const snowF = northernSnowZoneFactorAt(x, z);
+  if (snowF > 0.35) {
     return [
-      Math.round(138 * darken),
-      Math.round(130 * darken),
-      Math.round(118 * darken),
+      Math.min(255, Math.round((152 * (1 - snowF) + 238 * snowF) * shade)),
+      Math.min(255, Math.round((156 * (1 - snowF) + 244 * snowF) * shade)),
+      Math.min(255, Math.round((154 * (1 - snowF) + 252 * snowF) * shade)),
     ];
   }
 
+  // Steep Mountain Ridges, Northern Frost Tundra Plateau & Desert Sandstone Crags
+  const swBiome = southwestOasisBiomeFactorAt(x, z);
+  if (h > 12.5 || normal.ny < 0.76) {
+    if (swBiome > 0.35) {
+      // Warm sandstone-terracotta mountains in the Southwest Desert & Dragon Ruins barrier
+      return [
+        Math.min(255, Math.round(168 * shade)),
+        Math.min(255, Math.round(124 * shade)),
+        Math.min(255, Math.round(88 * shade)),
+      ];
+    }
+    if (z < -65.0 && normal.ny >= 0.78) {
+      // Northern Highland Tundra & Sub-Alpine Steppe between the snow-capped peaks (matching the reference map's warm pale tundra)
+      const frostMix = smoothstep(-75.0, -240.0, z);
+      const rTundra = 148 * (1 - frostMix) + 194 * frostMix;
+      const gTundra = 152 * (1 - frostMix) + 188 * frostMix;
+      const bTundra = 116 * (1 - frostMix) + 168 * frostMix;
+      return [
+        Math.min(255, Math.round(rTundra * shade)),
+        Math.min(255, Math.round(gTundra * shade)),
+        Math.min(255, Math.round(bTundra * shade)),
+      ];
+    }
+    return [
+      Math.min(255, Math.round(134 * shade)),
+      Math.min(255, Math.round(128 * shade)),
+      Math.min(255, Math.round(118 * shade)),
+    ];
+  }
+
+  // Interconnected Dirt & Stone Trail Network
   const tf = trailFactorAt(x, z);
-  if (tf > 0.36) {
-    return [168, 136, 96];
+  if (tf > 0.34) {
+    return [
+      Math.min(255, Math.round(176 * shade)),
+      Math.min(255, Math.round(144 * shade)),
+      Math.min(255, Math.round(102 * shade)),
+    ];
+  }
+
+  // Gradual Western Volcanic Badlands & Basalt Foothills Ecotone
+  const volBadlands = volcanicBadlandsFactorAt(x, z);
+  if (volBadlands > 0.06) {
+    const vAng = Math.atan2(z - VOLCANO_SANCTUM_POS.z, x - VOLCANO_SANCTUM_POS.x);
+    const radialWarp = fbm2D(x * 0.024 + 3.1, z * 0.024 - 2.4, 2) * 1.35;
+    const lavaCrack = Math.abs(Math.sin(vAng * 7.0 + radialWarp));
+    if (lavaCrack < 0.085 && volcanoDist < 195.0) {
+      return [234, 86, 28];
+    }
+    // Multi-stop blend: Meadow (88,138,68) -> Warm Basalt Foothills (112,92,68) -> Scorched Ashlands (58,49,46)
+    const foothillT = smoothstep(0.06, 0.48, volBadlands);
+    const ashT = smoothstep(0.42, 0.92, volBadlands);
+    const rMid = 88 * (1 - foothillT) + 114 * foothillT;
+    const gMid = 138 * (1 - foothillT) + 94 * foothillT;
+    const bMid = 68 * (1 - foothillT) + 68 * foothillT;
+    const rFinal = rMid * (1 - ashT) + 58 * ashT;
+    const gFinal = gMid * (1 - ashT) + 49 * ashT;
+    const bFinal = bMid * (1 - ashT) + 46 * ashT;
+    return [
+      Math.min(255, Math.round(rFinal * shade)),
+      Math.min(255, Math.round(gFinal * shade)),
+      Math.min(255, Math.round(bFinal * shade)),
+    ];
+  }
+
+  // Gradual Southwest Savanna -> Terracotta Steppe -> Deep Golden Desert Ecotone
+  if (swBiome > 0.05) {
+    // 0.05..0.42: Meadow (88,138,68) -> Golden Savanna (166,154,82)
+    // 0.42..0.76: Golden Savanna (166,154,82) -> Terracotta Steppe (198,156,96)
+    // 0.76..1.00: Terracotta Steppe (198,156,96) -> Golden Desert Sand (224,186,118)
+    let rD: number;
+    let gD: number;
+    let bD: number;
+    if (swBiome < 0.42) {
+      const t = (swBiome - 0.05) / 0.37;
+      rD = 88 + t * (166 - 88);
+      gD = 138 + t * (154 - 138);
+      bD = 68 + t * (82 - 68);
+    } else if (swBiome < 0.76) {
+      const t = (swBiome - 0.42) / 0.34;
+      rD = 166 + t * (198 - 166);
+      gD = 154 + t * (156 - 154);
+      bD = 82 + t * (96 - 82);
+    } else {
+      const t = (swBiome - 0.76) / 0.24;
+      rD = 198 + t * (224 - 198);
+      gD = 156 + t * (186 - 156);
+      bD = 96 + t * (118 - 96);
+    }
+    return [
+      Math.min(255, Math.round(rD * shade)),
+      Math.min(255, Math.round(gD * shade)),
+      Math.min(255, Math.round(bD * shade)),
+    ];
+  }
+
+  // Gradual Northern Taiga & Frost Tundra Ecotone
+  const tundraF = northernTundraFactorAt(x, z);
+  if (tundraF > 0.08) {
+    const rT = 84 * (1 - tundraF) + 146 * tundraF;
+    const gT = 128 * (1 - tundraF) + 152 * tundraF;
+    const bT = 68 * (1 - tundraF) + 138 * tundraF;
+    return [
+      Math.min(255, Math.round(rT * shade)),
+      Math.min(255, Math.round(gT * shade)),
+      Math.min(255, Math.round(bT * shade)),
+    ];
   }
 
   if (birchGroveFactorAt(x, z) > 0.35) {
     return [
-      Math.round(168 * darken),
-      Math.round(132 * darken),
-      Math.round(58 * darken),
+      Math.min(255, Math.round(168 * shade)),
+      Math.min(255, Math.round(132 * shade)),
+      Math.min(255, Math.round(58 * shade)),
     ];
   }
 
   if (h > 7.5) {
     return [
-      Math.round(104 * darken),
-      Math.round(122 * darken),
-      Math.round(82 * darken),
+      Math.min(255, Math.round(104 * shade)),
+      Math.min(255, Math.round(124 * shade)),
+      Math.min(255, Math.round(82 * shade)),
     ];
   }
 
-  if (regionalForestDensityAt(x, z) > 0.42) {
+  const forestF = regionalForestDensityAt(x, z);
+  if (forestF > 0.36) {
+    const fMix = smoothstep(0.36, 0.78, forestF);
     return [
-      Math.round(46 * darken),
-      Math.round(88 * darken),
-      Math.round(42 * darken),
+      Math.min(255, Math.round((84 * (1 - fMix) + 46 * fMix) * shade)),
+      Math.min(255, Math.round((134 * (1 - fMix) + 92 * fMix) * shade)),
+      Math.min(255, Math.round((66 * (1 - fMix) + 44 * fMix) * shade)),
     ];
   }
 
   return [
-    Math.round(84 * darken),
-    Math.round(132 * darken),
-    Math.round(66 * darken),
+    Math.min(255, Math.round(86 * shade)),
+    Math.min(255, Math.round(136 * shade)),
+    Math.min(255, Math.round(68 * shade)),
   ];
 }
 

@@ -43,8 +43,16 @@ import {
   getSurfaceBiomeAt,
   getSurfaceNormalAt,
   getNearbyWorldObstacles,
+  isNavigableOceanForShip,
 } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
+import {
+  findSailableShipDisembarkPoint,
+  getActiveSailableShip,
+  isEntityOnSailableShipDeck,
+  stationMountInSailableShipStall,
+  stepSailableShipPhysics,
+} from './sailableShipSystem';
 import {
   getActiveWorldAnimals,
   damageGroundAnimal,
@@ -293,6 +301,32 @@ export function findNearestRideableHorse(
       };
     }
   }
+
+  // Check proximity to the Sailable Royal Explorer Flagship
+  const ship = getActiveSailableShip();
+  const shipDist = Math.hypot(px - ship.x, pz - ship.z);
+  if (shipDist <= Math.max(maxDist, 11.5) && Math.abs(py - ship.deckY) <= 4.4) {
+    const dx = px - ship.x;
+    const dz = pz - ship.z;
+    const lz = -dx * Math.sin(ship.yaw) + dz * Math.cos(ship.yaw);
+    const horseOnDeckNearPlayer =
+      best !== null &&
+      isEntityOnSailableShipDeck(best.x, best.z, best.y, ship, 1.5) &&
+      Math.hypot(px - best.x, pz - best.z) <= 3.0 &&
+      lz < 0.8;
+    if (!horseOnDeckNearPlayer) {
+      best = {
+        id: ship.id,
+        name: ship.name,
+        x: ship.x,
+        y: ship.deckY + 0.55,
+        z: ship.z,
+        yaw: ship.yaw,
+        speed: Math.abs(ship.speed),
+        gaitPhase: ship.wakePhase,
+      };
+    }
+  }
   return best;
 }
 // #endregion
@@ -325,32 +359,67 @@ export function stepPlayerPhysics(
       const dismountingId = state.mountedHorseId;
       const currentHorse = horses.find((h) => h.id === dismountingId);
       state.mountedHorseId = null;
-      if (dismountingId.startsWith('mount-stag-') || dismountingId.startsWith('mount-lion-')) {
-        const worldAnimals = getActiveWorldAnimals();
-        for (let i = 0; i < worldAnimals.length; i++) {
-          const a = worldAnimals[i];
-          const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
-          if (expectedId === dismountingId) {
-            a.isMountedByPlayer = false;
-            a.vx = 0;
-            a.vz = 0;
-            a.homeX = a.x;
-            a.homeZ = a.z;
+      if (dismountingId === 'sailable-ship') {
+        const ship = getActiveSailableShip();
+        ship.speed = 0;
+        const disembark = findSailableShipDisembarkPoint(ship);
+        state.x = disembark.x;
+        state.y = disembark.y;
+        state.z = disembark.z;
+        state.vx = 0;
+        state.vy = 0;
+        state.vz = 0;
+        state.onGround = true;
+      } else {
+        const ship = getActiveSailableShip();
+        const dismountingOnShip = isEntityOnSailableShipDeck(state.x, state.z, state.y, ship, 2.2);
+        if (dismountingId.startsWith('mount-stag-') || dismountingId.startsWith('mount-lion-')) {
+          const worldAnimals = getActiveWorldAnimals();
+          for (let i = 0; i < worldAnimals.length; i++) {
+            const a = worldAnimals[i];
+            const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
+            if (expectedId === dismountingId) {
+              a.isMountedByPlayer = false;
+              a.vx = 0;
+              a.vz = 0;
+              if (dismountingOnShip) {
+                stationMountInSailableShipStall(a, 1, ship);
+              }
+              a.homeX = a.x;
+              a.homeZ = a.z;
+            }
+          }
+          const vIdx = horses.findIndex((h) => h.id === dismountingId);
+          if (vIdx >= 0) {
+            horses.splice(vIdx, 1);
           }
         }
-        const vIdx = horses.findIndex((h) => h.id === dismountingId);
-        if (vIdx >= 0) {
-          horses.splice(vIdx, 1);
+        if (currentHorse) {
+          currentHorse.speed = 0;
+          currentHorse.vy = 0;
+          if (dismountingOnShip) {
+            stationMountInSailableShipStall(currentHorse, 0, ship);
+          }
         }
-      }
-      if (currentHorse) {
-        currentHorse.speed = 0;
-        currentHorse.vy = Math.min(0, state.vy);
-        const sideX = Math.cos(currentHorse.yaw) * 0.95;
-        const sideZ = -Math.sin(currentHorse.yaw) * 0.95;
-        state.x = currentHorse.x + sideX;
-        state.z = currentHorse.z + sideZ;
-        state.y = walkableHeightAt(state.x, state.z, state.y).height;
+        if (dismountingOnShip) {
+          const cosY = Math.cos(ship.yaw);
+          const sinY = Math.sin(ship.yaw);
+          const helmLz = 2.6;
+          state.x = ship.x - sinY * helmLz;
+          state.z = ship.z + cosY * helmLz;
+          state.y = ship.deckY + 0.35;
+          state.vx = 0;
+          state.vy = 0;
+          state.vz = 0;
+          state.onGround = true;
+        } else if (currentHorse) {
+          currentHorse.vy = Math.min(0, state.vy);
+          const sideX = Math.cos(currentHorse.yaw) * 0.95;
+          const sideZ = -Math.sin(currentHorse.yaw) * 0.95;
+          state.x = currentHorse.x + sideX;
+          state.z = currentHorse.z + sideZ;
+          state.y = walkableHeightAt(state.x, state.z, state.y).height;
+        }
       }
     } else {
       const nearHorse = findNearestRideableHorse(state.x, state.y, state.z, horses, 4.2);
@@ -460,6 +529,20 @@ export function stepPlayerPhysics(
     } else {
       state.vy = 0;
     }
+  }
+
+  if (state.mountedHorseId === 'sailable-ship') {
+    stepSailableShipPhysics(
+      state,
+      input,
+      dt,
+      isNavigableOceanForShip,
+      getActiveSailableShip(),
+      horses,
+      getActiveWorldAnimals()
+    );
+    state.currentBiome = 'pier';
+    return { steppedFoot: false, landedImpact: 0 };
   }
 
   const activeMountedHorse =

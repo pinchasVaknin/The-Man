@@ -14,7 +14,7 @@ export const WATER_LEVEL = 0.0;
 export const PLAYER_EYE_HEIGHT = 1.72;
 
 /** Summary: Playable terrain boundary radius from world origin. */
-export const PLAYABLE_RADIUS = 1120;
+export const PLAYABLE_RADIUS = 1260;
 
 /** Summary: Maximum visible distance for terrain chunk culling and entity activation. */
 export const VIEW_DISTANCE = 225;
@@ -136,12 +136,30 @@ export const SOUTHERN_PASS_VALLEY_POS = {
   radius: 36.0,
 } as const;
 
-/** Summary: Ancient Mossy Temple Ruins south of the river in the Southern Valley, home to the Forest Dragon. */
+/**
+ * Summary: Ancient Dragon Citadel Ruins at the far end of the Southwest Desert,
+ *          shielded by a towering desert mountain barrier with a narrow canyon pass.
+ */
 export const SOUTHERN_DRAGON_RUINS_POS = {
-  x: 56.0,
-  z: 716.0,
+  x: -540.0,
+  z: 540.0,
   height: 2.15,
   radius: 58.0,
+} as const;
+
+/**
+ * Summary: Narrow desert-mountain canyon pass leading through the high mountain barrier
+ *          into the Dragon Ruins basin at the far end of the Southwest Desert.
+ */
+export const DESERT_DRAGON_PASS_POS = {
+  entryX: -405.0,
+  entryZ: 405.0,
+  gorgeX: -455.0,
+  gorgeZ: 455.0,
+  exitX: -498.0,
+  exitZ: 492.0,
+  halfWidth: 7.2,
+  barrierRadius: 112.0,
 } as const;
 
 /** Summary: Grand 3-Arch Stone & Timber Bridge spanning East-West across the Southern River. */
@@ -181,6 +199,40 @@ export const VOLCANO_SANCTUM_POS = {
   facingYaw: Math.PI / 2, // Primary +X entrance facing East toward the central valley
   entranceX: -525.0,
   entranceZ: 115.0,
+} as const;
+
+/**
+ * Summary: Monumental Ruined Atlantis Sunken Ring & Central Boss Arena Sanctuary in the Deep Eastern Ocean.
+ * Design: Located ~715m East-Southeast of the Harbor Pier at (980, 420) beyond coastal visibility so the player
+ *         must sail across the open sea following the Atlantean Wayfinder Compass to discover it.
+ */
+export const RUINED_ATLANTIS_POS = {
+  x: 980.0,
+  z: 420.0,
+  outerRadius: 96.0,
+  outerRingRadius: 68.0,
+  lagoonRadius: 50.0,
+  innerArenaRadius: 34.0,
+  arenaFloorY: 2.15,
+  outerRingY: 1.85,
+  dockX: 886.0,
+  dockZ: 420.0,
+  dockY: 2.15,
+} as const;
+
+/**
+ * Summary: Sailable 3-Masted Royal Explorer Flagship moored beside the Harbor Pier,
+ *          equipped with a midships Animal & Mount Deck Stall and Atlantean Wayfinder Compass.
+ */
+export const SAILABLE_SHIP_INITIAL_POS = {
+  id: 'sailable-ship',
+  name: 'Royal Explorer Flagship',
+  homeX: 278.0,
+  homeZ: 282.0,
+  homeYaw: -Math.PI / 2, // Facing East (+X) toward Ruined Atlantis
+  deckY: 2.85,
+  halfW: 4.5,
+  halfL: 11.4,
 } as const;
 
 /**

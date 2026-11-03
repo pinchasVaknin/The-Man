@@ -1359,14 +1359,15 @@ export function buildPlayerAndCombatSystems(
     const torchActive = !isSwim && equippedTool === 'torch' && !isAimingBow;
     const swordActive = !isSwim && equippedTool === 'sword' && !isAimingBow;
     const fireArrowActive = !isSwim && arrowKind === 'fire' && isAimingBow;
+    const isMountedShip = playerState.mountedHorseId === 'sailable-ship';
     const isMountedStag = Boolean(playerState.mountedHorseId?.startsWith('mount-stag-'));
     const isMountedLion = Boolean(playerState.mountedHorseId?.startsWith('mount-lion-'));
-    const mountLift = isMountedStag ? 1.12 : isMountedLion ? 1.54 : isMounted ? 0.72 : 0.0;
-    const saddleHeightBonus = isMountedStag ? 1.06 : isMountedLion ? 1.48 : isMounted ? 0.68 : 0.0;
+    const mountLift = isMountedShip ? 0.0 : isMountedStag ? 1.12 : isMountedLion ? 1.54 : isMounted ? 0.72 : 0.0;
+    const saddleHeightBonus = isMountedShip ? 0.0 : isMountedStag ? 1.06 : isMountedLion ? 1.48 : isMounted ? 0.68 : 0.0;
     const horseBaseYaw = isMounted
       ? (playerState.mountedHorseYaw ?? playerState.yaw)
       : playerState.yaw;
-    const mountBackOffset = isMountedLion ? 0.28 : 0;
+    const mountBackOffset = isMountedShip ? 3.6 : isMountedLion ? 0.28 : 0;
     const mountBackOffsetX = Math.sin(horseBaseYaw) * mountBackOffset;
     const mountBackOffsetZ = Math.cos(horseBaseYaw) * mountBackOffset;
     const mountedRelLookYaw = isMounted
@@ -1764,13 +1765,18 @@ export function buildPlayerAndCombatSystems(
     thirdPersonTorchGroup.visible = torchActive;
     thirdPersonSwordGroup.visible = swordActive;
 
-    if (isMounted) {
+    if (isMounted && !isMountedShip) {
       const legSpreadX = isMountedLion ? 0.26 : 0.22;
       const legSplayZ = isMountedLion ? 0.34 : 0.28;
       rangerLeftLeg.position.set(-legSpreadX, 0.88, 0.05);
       rangerRightLeg.position.set(legSpreadX, 0.88, 0.05);
       rangerLeftLeg.rotation.set(-0.52, 0, legSplayZ);
       rangerRightLeg.rotation.set(-0.52, 0, -legSplayZ);
+    } else if (isMountedShip) {
+      rangerLeftLeg.position.set(-0.12, 0.90, 0);
+      rangerRightLeg.position.set(0.12, 0.90, 0);
+      rangerLeftLeg.rotation.set(0, 0, 0.05);
+      rangerRightLeg.rotation.set(0, 0, -0.05);
     } else if (isSwim) {
       const swimKick = Math.sin(elapsedTime * 5.2) * 0.34;
       const bodyPitch = horizSpd > 0.2 || Math.abs(playerState.vy) > 0.3

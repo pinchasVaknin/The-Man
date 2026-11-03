@@ -17,6 +17,7 @@ export * from './domain/landmarksRegistry';
 export * from './systems/dwarvenMineAndCaravanSystem';
 export * from './systems/terrainAndBiomeSystem';
 export * from './systems/horsePhysicsSystem';
+export * from './systems/sailableShipSystem';
 export * from './systems/playerPhysicsSystem';
 export * from './systems/combatAndInventorySystem';
 export * from './systems/atmosphereAndWeatherSystem';

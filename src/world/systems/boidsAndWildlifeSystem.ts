@@ -17,6 +17,7 @@ import {
   CROCODILE_RIVER_BEND_POS,
   VOLCANO_SANCTUM_POS,
   FLOATING_BLOOMING_ISLANDS,
+  SOUTHERN_DRAGON_RUINS_POS,
   SOLID_BUILDING_BOXES,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
@@ -28,6 +29,11 @@ import {
   getNearbyWorldObstacles,
   isInsideVolcanoSanctum,
 } from './terrainAndBiomeSystem';
+import {
+  getActiveSailableShip,
+  isEntityOnSailableShipDeck,
+  sailableShipDeckHeightAt,
+} from './sailableShipSystem';
 import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
 import type {
   IArrowProjectile,
@@ -1107,8 +1113,8 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     // Secluded Southern Pass Valley Deer beyond the Mountain Gorge Pass (2)
     { x: 96, z: 724, species: 'deer' },
     { x: 114, z: 708, species: 'deer' },
-    // Colossal Southern Ruins Forest Dragon (250 HP, vulnerable to arrows & sword)
-    { x: 56, z: 714, species: 'dragon' },
+    // Colossal Ancient Dragon Ruins Dragon (250 HP, vulnerable to arrows & sword)
+    { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z - 2, species: 'dragon' },
   ];
 
   for (let i = 0; i < spawnCandidates.length; i++) {
@@ -1642,6 +1648,24 @@ export function stepSmallAnimals(
         a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
       }
       a.hopPhase += safeDt * Math.max(4.0, spd * 1.8);
+      continue;
+    }
+
+    // Keep any animal standing on the Sailable Ship deck safely aboard during the voyage!
+    const activeShip = getActiveSailableShip();
+    if (isEntityOnSailableShipDeck(a.x, a.z, a.y, activeShip, 1.35)) {
+      a.isResting = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'grazing';
+      a.aiBehavior = 'grazing';
+      a.pounceHeight = 0;
+      a.vx = 0;
+      a.vz = 0;
+      a.inWater = false;
+      a.y = sailableShipDeckHeightAt(a.x, a.z, a.y, activeShip) ?? activeShip.deckY;
+      a.homeX = a.x;
+      a.homeZ = a.z;
       continue;
     }
 

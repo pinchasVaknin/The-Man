@@ -16,6 +16,8 @@ import {
   CROCODILE_RIVER_BEND_POS,
   FLOATING_BLOOMING_ISLANDS,
   HUNTER_LODGE_POS,
+  RUINED_ATLANTIS_POS,
+  SAILABLE_SHIP_INITIAL_POS,
   SOUTHEAST_HARBOR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHERN_MINE_POS,
@@ -36,12 +38,12 @@ export interface IExplorerMinimapProps {
   onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
 }
 
-const MAP_WORLD_HALF = 900; // -900m .. +900m covers the expanded world, Far-West Volcano Badlands & Far-East Sky Islands
-const METERS_PER_CELL = 2;  // 2m per pixel cell -> 900 x 900 offscreen map
-const GRID_SIZE = Math.floor((MAP_WORLD_HALF * 2) / METERS_PER_CELL); // 900
+const MAP_WORLD_HALF = 1080; // -1080m .. +1080m covers the expanded world & deep-sea Ruined Atlantis at (980, 420)
+const METERS_PER_CELL = 2;  // 2m per pixel cell -> 1080 x 1080 offscreen map
+const GRID_SIZE = Math.floor((MAP_WORLD_HALF * 2) / METERS_PER_CELL); // 1080
 const DISCOVERY_RADIUS_M = 46; // Reveal radius around the player in meters
 const VIEW_WINDOW_M = 180; // Visible meters across the minimap diameter
-const FULL_MAP_GRID_METERS = 4; // 4m per pixel cell for full-world overview texture (450x450)
+const FULL_MAP_GRID_METERS = 4; // 4m per pixel cell for full-world overview texture (540x540)
 const FULL_MAP_GRID_SIZE = Math.floor((MAP_WORLD_HALF * 2) / FULL_MAP_GRID_METERS);
 
 interface IWorldMapLandmarkPin {
@@ -56,11 +58,13 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'fortress', label: 'Imperial Fortress', x: CHINESE_FORTRESS_POS.x, z: CHINESE_FORTRESS_POS.z, color: '#fbbf24' },
   { id: 'lodge', label: 'Hunter Lodge', x: HUNTER_LODGE_POS.x, z: HUNTER_LODGE_POS.z, color: '#a3e635' },
   { id: 'harbor', label: 'Harbor & Market', x: SOUTHEAST_HARBOR_POS.x, z: SOUTHEAST_HARBOR_POS.z, color: '#38bdf8' },
+  { id: 'sailable_ship', label: 'Sailable Ship', x: SAILABLE_SHIP_INITIAL_POS.homeX, z: SAILABLE_SHIP_INITIAL_POS.homeZ, color: '#f59e0b' },
+  { id: 'atlantis', label: 'Ruined Atlantis', x: RUINED_ATLANTIS_POS.x, z: RUINED_ATLANTIS_POS.z, color: '#06b6d4' },
   { id: 'oasis', label: 'Desert Oasis', x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, color: '#facc15' },
   { id: 'volcano', label: 'Volcano Sanctum (King Lion)', x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z, color: '#f97316' },
   { id: 'sky_islands', label: 'Floating Sky Islands', x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z, color: '#e879f9' },
   { id: 'dwarven', label: 'Dwarven Kingdom', x: SOUTHERN_MINE_POS.x, z: SOUTHERN_MINE_POS.z, color: '#cbd5e1' },
-  { id: 'dragon_ruins', label: 'Southern Dragon Ruins', x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, color: '#ef4444' },
+  { id: 'dragon_ruins', label: 'Dragon Ruins (Desert Pass)', x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, color: '#ef4444' },
   { id: 'croc_lagoon', label: 'Crocodile River Bend', x: CROCODILE_RIVER_BEND_POS.x, z: CROCODILE_RIVER_BEND_POS.z, color: '#22c55e' },
   { id: 'bear_cave', label: 'Bear Mountain Caves', x: BEAR_MOUNTAIN_CAVES[0].x, z: BEAR_MOUNTAIN_CAVES[0].z, color: '#d97706' },
 ];
@@ -712,6 +716,24 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
                 title="Pan Right"
               >
                 →
+              </button>
+              <button
+                type="button"
+                data-testid="fullmap-pan-up"
+                onClick={() => applyClampedPanDelta(0, 140)}
+                className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-bold text-stone-200 cursor-pointer"
+                title="Pan Up"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                data-testid="fullmap-pan-down"
+                onClick={() => applyClampedPanDelta(0, -140)}
+                className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-bold text-stone-200 cursor-pointer"
+                title="Pan Down"
+              >
+                ↓
               </button>
               <button
                 type="button"

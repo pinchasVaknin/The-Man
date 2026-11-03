@@ -47,6 +47,9 @@ import {
   recoverArrowsFromAnimal,
   buyMarketItem,
   sellMarketItem,
+  isNavigableOceanForShip,
+  setSailableShipTransform,
+  getActiveSailableShip,
   IGameActions,
 } from '../world/terrainMath';
 import { useAppServices } from '../app/AppServicesContext';
@@ -497,6 +500,31 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         isSleepingInBed = false;
         activeSleepingBed = null;
         preSleepPlayerPos = null;
+        if (playerState.mountedHorseId === 'sailable-ship') {
+          if (isNavigableOceanForShip(worldX, worldZ)) {
+            setSailableShipTransform(
+              worldX,
+              worldZ,
+              undefined,
+              rideableHorses,
+              getActiveWorldAnimals()
+            );
+            const ship = getActiveSailableShip();
+            const cosY = Math.cos(ship.yaw);
+            const sinY = Math.sin(ship.yaw);
+            const helmOffsetZ = 3.6;
+            playerState.x = ship.x - sinY * helmOffsetZ;
+            playerState.z = ship.z + cosY * helmOffsetZ;
+            playerState.y = ship.deckY + 0.35;
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.vz = 0;
+            capturePreviousPlayerPose();
+            emitHudSnapshot();
+            return;
+          }
+          playerState.mountedHorseId = null;
+        }
         const targetY = walkableHeightAt(worldX, worldZ).height;
         playerState.x = worldX;
         playerState.z = worldZ;
