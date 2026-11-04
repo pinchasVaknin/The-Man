@@ -17,9 +17,11 @@ import type {
 } from '../domain/worldTypes';
 import {
   findLookedAtWatchtowerLadder,
-  findNearestBed,
-  findNearestFortressDoor,
   findNearestMarketStall,
+  findNearestWorldChest,
+  getChestContents,
+  getMerchantStallStock,
+  resolveBestLookedAtInteraction,
 } from '../terrainMath';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
 import { findNearestDeadLootableAnimal, getAnimalSpeciesName } from '../systems/boidsAndWildlifeSystem';
@@ -68,13 +70,20 @@ export interface IHudTelemetryInput {
 export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySnapshot {
   const { player } = input;
   const normYaw = ((((player.yaw * 180) / Math.PI) % 360) + 360) % 360;
-  const nearDoor = findNearestFortressDoor(
+  const lookedAt = resolveBestLookedAtInteraction(
     player.x,
     player.y,
     player.z,
     player.yaw,
     player.pitch
   );
+  const nearDoor = lookedAt.door;
+  const nearBed = lookedAt.bed;
+  const activeOpenChest = findNearestWorldChest(player.x, player.y, player.z);
+  const nearChest =
+    activeOpenChest && input.openDoorIds.has(activeOpenChest.id)
+      ? activeOpenChest
+      : lookedAt.chest;
   const nearLadder = findLookedAtWatchtowerLadder(
     player.x,
     player.y,
@@ -87,7 +96,6 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     : null;
   const nearMarket = findNearestMarketStall(player.x, player.z);
   const nearDeadAnimal = findNearestDeadLootableAnimal(player.x, player.z);
-  const nearBed = findNearestBed(player.x, player.y, player.z);
   return {
     x: player.x,
     y: player.y,
@@ -104,17 +112,32 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     cameraPerspective: player.cameraPerspective,
     equippedTool: player.equippedTool,
     activeWeaponId: player.activeWeaponId,
+    equippedClothingId: player.equippedClothingId,
     arrowKind: player.arrowKind,
     hotbarSlots: player.hotbarSlots ? [...player.hotbarSlots] : undefined,
     favoriteIds: player.favoriteIds ? [...player.favoriteIds] : undefined,
     goldCoins: player.goldCoins ?? 280,
     ownedItemIds: player.ownedItemIds ? [...player.ownedItemIds] : undefined,
-    nearbyMarket: nearMarket ? { id: nearMarket.id, name: nearMarket.name } : null,
+    nearbyMarket: nearMarket
+      ? {
+          id: nearMarket.id,
+          name: nearMarket.name,
+          stock: { ...getMerchantStallStock(player, nearMarket.id) },
+        }
+      : null,
     nearbyDeadAnimal: nearDeadAnimal
       ? {
           id: String(nearDeadAnimal.id),
           species: nearDeadAnimal.species,
           speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
+        }
+      : null,
+    nearbyChest: nearChest
+      ? {
+          id: nearChest.id,
+          name: nearChest.name,
+          isOpened: input.openDoorIds.has(nearChest.id),
+          contents: [...getChestContents(player, nearChest)],
         }
       : null,
     activeEnemyHealthBar: input.activeEnemyHealthBar ? { ...input.activeEnemyHealthBar } : null,
@@ -162,6 +185,12 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     climbingLadder: Boolean(player.climbingLadderId),
     stamina: player.stamina,
     maxStamina: player.maxStamina,
+    staminaExhausted: Boolean(player.staminaExhausted),
+    hp: player.hp ?? 100,
+    maxHp: player.maxHp ?? 100,
+    hunger: player.hunger ?? 100,
+    maxHunger: player.maxHunger ?? 100,
+    damageFlashIntensity: Math.max(0, Math.min(1, player.damageFlashTimer ?? 0)),
     skills: player.skills ? { ...player.skills } : undefined,
   };
 }

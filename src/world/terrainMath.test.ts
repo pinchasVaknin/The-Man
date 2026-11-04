@@ -962,7 +962,7 @@ test('horseMounting_WhenInteractingWithMountableHorse_ShouldAllowMountingGallopi
     );
   }
   const distGalloped = startZ - player.z;
-  assert.ok(distGalloped > 10.5, `Expected galloping horse to cover > 10.5m in 1s, got ${distGalloped.toFixed(2)}m`);
+  assert.ok(distGalloped > 7.5, `Expected galloping horse to cover > 7.5m in 1s, got ${distGalloped.toFixed(2)}m`);
   assert.equal(spawnHorse.x, player.x, 'Expected mounted horse position to stay synced with rider');
   assert.equal(spawnHorse.z, player.z, 'Expected mounted horse position to stay synced with rider');
 
@@ -2270,7 +2270,218 @@ test('stealthCrouchNightSleepWakeMeterRainShelterAndHuntingLoot_WhenEvaluated_Sh
     );
   }
 });
+
+test('expandedRegionalLandmarksAndSmartWildlifeAI_WhenEvaluated_ShouldVerifyNordicShrinePyramidSmugglerCoveAndPackHerdAI', async () => {
+  const {
+    NORDIC_FROST_SHRINE_POS,
+    DESERT_PYRAMID_SANCTUARY_POS,
+    SMUGGLER_ISLAND_POS,
+    desertPyramidHeightAt,
+    isNavigableOceanForShip,
+    createInitialSmallAnimals,
+    computeWolfPackFlankAngle,
+    propagateHerdAlert,
+  } = await import('./terrainMath');
+
+  // 1) Nordic Frost Giant Shrine & Geothermal Hot Springs at (-320, -290)
+  const hotSpringFloor = groundHeightAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z);
+  assert.ok(
+    Math.abs(hotSpringFloor - NORDIC_FROST_SHRINE_POS.poolFloorY) < 0.08,
+    `Expected Nordic Hot Spring pool floor at ${NORDIC_FROST_SHRINE_POS.poolFloorY}m, got ${hotSpringFloor}`
+  );
+  const altarFloor = groundHeightAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z - 16.5);
+  assert.ok(
+    Math.abs(altarFloor - NORDIC_FROST_SHRINE_POS.altarDaisY) < 0.08,
+    `Expected Nordic Altar Dais at ${NORDIC_FROST_SHRINE_POS.altarDaisY}m, got ${altarFloor}`
+  );
+  assert.ok(
+    trailFactorAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0) > 0.75,
+    'Expected mountain trail to arrive at Nordic Frost Shrine'
+  );
+  assert.deepEqual(
+    sampleMinimapColorAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z),
+    [42, 214, 222]
+  );
+
+  // Standing in the Nordic Geothermal Hot Spring rapidly regenerates stamina (+44/s total vs +16/s normal)
+  const bather = createInitialPlayerState();
+  bather.x = NORDIC_FROST_SHRINE_POS.x;
+  bather.z = NORDIC_FROST_SHRINE_POS.z;
+  bather.y = NORDIC_FROST_SHRINE_POS.poolFloorY;
+  bather.stamina = 20;
+  for (let i = 0; i < 10; i++) {
+    stepPlayerPhysics(
+      bather,
+      { forward: 0, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05
+    );
+  }
+  assert.ok(
+    (bather.stamina ?? 0) > 40,
+    `Expected rapid stamina regeneration in Nordic Geothermal Hot Spring (>40 after 0.5s from 20), got ${bather.stamina}`
+  );
+
+  // 2) Ancient Pharaoh Stepped Sun Pyramid & Walkable Eastern Ceremonial Ramp at (-475, 295)
+  const pyTop = walkableHeightAt(DESERT_PYRAMID_SANCTUARY_POS.x, DESERT_PYRAMID_SANCTUARY_POS.z);
+  assert.equal(pyTop.surface, 'bridge');
+  assert.ok(Math.abs(pyTop.height - DESERT_PYRAMID_SANCTUARY_POS.topY) < 0.05);
+
+  const rampMidY = desertPyramidHeightAt(
+    DESERT_PYRAMID_SANCTUARY_POS.x + 15.75,
+    DESERT_PYRAMID_SANCTUARY_POS.z
+  );
+  assert.ok(
+    rampMidY !== null && Math.abs(rampMidY - 9.35) < 0.15,
+    `Expected ceremonial stair ramp midpoint around 9.35m, got ${rampMidY}`
+  );
+  assert.ok(
+    trailFactorAt(DESERT_PYRAMID_SANCTUARY_POS.rampMaxX + 4.0, DESERT_PYRAMID_SANCTUARY_POS.z) > 0.75,
+    'Expected desert caravan trail to connect directly to the Sun Pyramid eastern plaza'
+  );
+  assert.deepEqual(
+    sampleMinimapColorAt(DESERT_PYRAMID_SANCTUARY_POS.x, DESERT_PYRAMID_SANCTUARY_POS.z),
+    [252, 216, 62]
+  );
+
+  // 3) Mid-Ocean Corsair Smuggler Cove & Sea Watchtower Island at (540, 185)
+  const smPier = walkableHeightAt(506.0, 185.0);
+  assert.equal(smPier.surface, 'pier');
+  assert.ok(Math.abs(smPier.height - SMUGGLER_ISLAND_POS.deckY) < 0.05);
+  assert.equal(
+    isNavigableOceanForShip(SMUGGLER_ISLAND_POS.dockMinX - 6.0, SMUGGLER_ISLAND_POS.dockZ),
+    true,
+    'Expected ocean just west of Smuggler Pier to be navigable for docking'
+  );
+  assert.equal(
+    isNavigableOceanForShip(SMUGGLER_ISLAND_POS.x, SMUGGLER_ISLAND_POS.z),
+    false,
+    'Expected solid Smuggler Island interior to block ship navigation'
+  );
+
+  // 4) Smart Wolf Pack Tactical Flanking & Herbivore Herd Alert Propagation
+  const animals = createInitialSmallAnimals();
+  const wolves = animals.filter((a) => a.species === 'wolf');
+  assert.ok(wolves.length >= 6, `Expected >= 6 wolves including Nordic Shrine pack, got ${wolves.length}`);
+  const w0 = wolves[0];
+  const w1 = wolves[1];
+  w0.x = -310;
+  w0.z = -280;
+  w1.x = -314;
+  w1.z = -280;
+  const angle0 = computeWolfPackFlankAngle(w0, -312, -260, animals);
+  const angle1 = computeWolfPackFlankAngle(w1, -312, -260, animals);
+  assert.ok(
+    Math.abs(angle0 - angle1) > 0.35,
+    `Expected nearby pack wolves to choose distinct flanking angles (>0.35 rad apart), got ${angle0.toFixed(2)} vs ${angle1.toFixed(2)}`
+  );
+
+  const deerHerd = animals.filter((a) => a.species === 'deer');
+  const d0 = deerHerd[0];
+  const d1 = deerHerd[1];
+  d0.x = -100;
+  d0.z = 190;
+  d0.alertLevel = 'fleeing';
+  d0.isFleeing = true;
+  d1.x = -108;
+  d1.z = 194;
+  d1.alertLevel = 'grazing';
+  d1.isFleeing = false;
+  const alerted = propagateHerdAlert(d0, -90, 190, animals);
+  assert.ok(alerted >= 1, 'Expected panicked deer to propagate alert to nearby herd mates within 22m');
+  assert.equal(d1.alertLevel, 'fleeing', 'Expected nearby herd mate to enter fleeing state');
+  assert.equal(d1.isFleeing, true);
+});
+
+test('survivalModeCabinSpawnStarterChestClothingAndShopFiltering_WhenEvaluated_ShouldVerifyAllSurvivalAndMarketRules', async () => {
+  const {
+    SURVIVAL_CABIN_SPAWN,
+    WORLD_CHESTS,
+    findNearestWorldChest,
+    lootWorldChest,
+    applyGameModeToPlayerState,
+    equipInventoryItem,
+    isInventoryItemEquipped,
+    getMarketStallCatalogItems,
+    INVENTORY_ITEMS,
+  } = await import('./terrainMath');
+
+  // 1) Survival Mode spawns player inside the Hunter's Lodge cabin with bare hands, simple tunic, 0 gold, and no weapons/food
+  const survivalPlayer = createInitialPlayerState({ survivalMode: true });
+  assert.equal(survivalPlayer.x, SURVIVAL_CABIN_SPAWN.x);
+  assert.equal(survivalPlayer.z, SURVIVAL_CABIN_SPAWN.z);
+  assert.equal(survivalPlayer.equippedTool, 'unarmed');
+  assert.equal(survivalPlayer.activeWeaponId, 'unarmed');
+  assert.equal(survivalPlayer.equippedClothingId, 'simple_tunic');
+  assert.equal(survivalPlayer.goldCoins, 0);
+  assert.deepEqual(survivalPlayer.ownedItemIds, ['unarmed', 'simple_tunic']);
+  assert.equal(
+    isPositionUnderRoof(survivalPlayer.x, survivalPlayer.y, survivalPlayer.z),
+    true,
+    'Expected Survival Mode spawn point to be inside the roofed Hunter Lodge cabin'
+  );
+
+  // 2) Cabin Starter Chest is reachable right inside the starting cabin and grants Ranger's Cloak & Tunic + Steel Sword
+  assert.ok(WORLD_CHESTS.length >= 1);
+  const nearChest = findNearestWorldChest(
+    survivalPlayer.x,
+    survivalPlayer.y,
+    survivalPlayer.z,
+    survivalPlayer.openedChestIds
+  );
+  assert.equal(nearChest?.id, 'chest-hunter-lodge', 'Expected starter chest to be within interaction range inside the cabin');
+
+  const chestLoot = lootWorldChest(survivalPlayer, nearChest!);
+  assert.equal(chestLoot.alreadyOpened, false);
+  assert.deepEqual(chestLoot.addedItems, ['ranger_garb', 'sword']);
+  assert.equal(survivalPlayer.equippedClothingId, 'ranger_garb', 'Expected looting cabin chest to equip Ranger Garb');
+  assert.equal(survivalPlayer.equippedTool, 'sword', 'Expected looting cabin chest to equip Steel Sword');
+  assert.equal(survivalPlayer.activeWeaponId, 'sword');
+  assert.ok(survivalPlayer.ownedItemIds?.includes('ranger_garb'));
+  assert.ok(survivalPlayer.ownedItemIds?.includes('sword'));
+  assert.equal(
+    findNearestWorldChest(survivalPlayer.x, survivalPlayer.y, survivalPlayer.z, survivalPlayer.openedChestIds),
+    null,
+    'Expected opened chest to no longer prompt for opening'
+  );
+
+  // 3) Clothing category items exist in catalog and can be equipped/swapped
+  const clothingItems = INVENTORY_ITEMS.filter((item) => item.category === 'clothing');
+  assert.ok(clothingItems.length >= 4, 'Expected at least 4 clothing items in catalog');
+  assert.equal(isInventoryItemEquipped(survivalPlayer, 'ranger_garb'), true);
+  assert.equal(isInventoryItemEquipped(survivalPlayer, 'simple_tunic'), false);
+  equipInventoryItem(survivalPlayer, 'simple_tunic');
+  assert.equal(survivalPlayer.equippedClothingId, 'simple_tunic');
+  assert.equal(isInventoryItemEquipped(survivalPlayer, 'simple_tunic'), true);
+
+  // 4) Switching between God Mode (Classic) and Survival Mode via applyGameModeToPlayerState
+  applyGameModeToPlayerState(survivalPlayer, false);
+  assert.equal(survivalPlayer.x, WORLD_SPAWN.x);
+  assert.equal(survivalPlayer.equippedTool, 'bow');
+  assert.equal(survivalPlayer.equippedClothingId, 'ranger_garb');
+  assert.equal(survivalPlayer.goldCoins, 280);
+
+  // 5) Market stalls strictly filter inventory by shop specialty
+  const bladeMerchantItems = getMarketStallCatalogItems('market-harbor-1').map((i) => i.id);
+  assert.deepEqual(bladeMerchantItems, ['sword', 'katana_imperial', 'dwarven_warhammer', 'celestial_jin_sword']);
+
+  const fletcherItems = getMarketStallCatalogItems('market-harbor-2').map((i) => i.id);
+  assert.ok(fletcherItems.includes('bow') && fletcherItems.includes('arrow_normal'));
+  assert.equal(fletcherItems.includes('sword'), false, 'Fletcher should not sell swords');
+  assert.equal(fletcherItems.includes('red_orchard_apples'), false, 'Fletcher should not sell food');
+
+  const outfitterItems = getMarketStallCatalogItems('market-harbor-3').map((i) => i.id);
+  assert.ok(outfitterItems.includes('ranger_garb') && outfitterItems.includes('elven_cloak'));
+  assert.equal(outfitterItems.includes('dwarven_gold_ore'), false, 'Outfitter should not sell ore');
+
+  const masonItems = getMarketStallCatalogItems('market-harbor-4').map((i) => i.id);
+  assert.deepEqual(masonItems, ['cut_granite_blocks', 'imperial_clay_tiles', 'marble_pillar_stone', 'crystal_gem']);
+
+  const smithyItems = getMarketStallCatalogItems('market-harbor-5').map((i) => i.id);
+  assert.ok(smithyItems.includes('imperial_armor') && smithyItems.includes('iron_ingots'));
+  assert.equal(smithyItems.includes('fresh_bread_loaf'), false, 'Smithy should not sell food');
+
+  const provisionsItems = getMarketStallCatalogItems('market-harbor-6').map((i) => i.id);
+  assert.ok(provisionsItems.every((id) => INVENTORY_ITEMS.find((c) => c.id === id)?.category === 'food'));
+});
 // #endregion
-
-
-

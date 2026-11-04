@@ -50,8 +50,12 @@ import {
   FLOATING_ISLAND_STAIR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   DESERT_DRAGON_PASS_POS,
+  NORDIC_FROST_SHRINE_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
+  SMUGGLER_ISLAND_POS,
   southernRiverBridgeHeightAt,
   floatingBloomingIslandHeightAt,
+  desertPyramidHeightAt,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
 } from '../domain/landmarksRegistry';
@@ -152,16 +156,24 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   const oasisCoreDist = Math.hypot(x - SOUTHWEST_OASIS_POS.x, z - SOUTHWEST_OASIS_POS.z);
   const oasisCore = 1.0 - smoothstep(68.0, 145.0, oasisCoreDist);
 
-  // Far-Southwest Desert Basin & Dragon Ruins Sanctuary (-540, 540)
+  // Far-Southwest Desert Basin & Dragon Ruins Sanctuary (-540, 540) + Ancient Sun Pyramid (-475, 295)
   const dragonRuinsDist = Math.hypot(
     x - SOUTHERN_DRAGON_RUINS_POS.x,
     z - SOUTHERN_DRAGON_RUINS_POS.z
   );
   const dragonDesertCore = 1.0 - smoothstep(140.0, 260.0, dragonRuinsDist);
+  const pyramidDist = Math.hypot(
+    x - DESERT_PYRAMID_SANCTUARY_POS.x,
+    z - DESERT_PYRAMID_SANCTUARY_POS.z
+  );
+  const pyramidDesertCore = 1.0 - smoothstep(105.0, 210.0, pyramidDist);
 
   return Math.max(
     0,
-    Math.min(1, Math.max(regionalExpanse, oasisCore, dragonDesertCore) * (1.0 - farmProtect))
+    Math.min(
+      1,
+      Math.max(regionalExpanse, oasisCore, dragonDesertCore, pyramidDesertCore) * (1.0 - farmProtect)
+    )
   );
 }
 
@@ -688,6 +700,23 @@ export function trailFactorAt(x: number, z: number): number {
       DESERT_DRAGON_PASS_POS.exitZ,
       SOUTHERN_DRAGON_RUINS_POS.x,
       SOUTHERN_DRAGON_RUINS_POS.z - 36.0
+    ),
+    // Western Desert Caravan Trail connecting Desert Oasis (-310, 300) -> Ancient Sun Pyramid Plaza (-445, 295) -> Dragon Canyon Pass (-405, 405)
+    distToSegment(
+      x,
+      z,
+      SOUTHWEST_OASIS_POS.fountainX,
+      SOUTHWEST_OASIS_POS.fountainZ,
+      DESERT_PYRAMID_SANCTUARY_POS.rampMaxX + 4.0,
+      DESERT_PYRAMID_SANCTUARY_POS.z
+    ),
+    distToSegment(
+      x,
+      z,
+      DESERT_PYRAMID_SANCTUARY_POS.rampMaxX + 4.0,
+      DESERT_PYRAMID_SANCTUARY_POS.z,
+      DESERT_DRAGON_PASS_POS.entryX,
+      DESERT_DRAGON_PASS_POS.entryZ
     )
   );
 
@@ -717,7 +746,9 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 0, -76, -42, -98),
     distToSegment(x, z, -42, -98, -45, -188),
     distToSegment(x, z, -24, -18, -42, -30),
-    distToSegment(x, z, -42, -30, -85, -105)
+    distToSegment(x, z, -42, -30, -85, -105),
+    distToSegment(x, z, -85, -105, -195, -195),
+    distToSegment(x, z, -195, -195, NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0)
   );
 
   const westTrailDist = Math.min(
@@ -1136,7 +1167,7 @@ export function groundHeightAt(x: number, z: number): number {
         h = h * (1.0 - seaWeight) + targetSeaFloor * seaWeight;
       }
 
-      // Sculpt natural rocky coastal islands in the Eastern Sea
+      // Sculpt natural rocky coastal islands in the Eastern Sea + Mid-Ocean Corsair Smuggler Cove Island (540, 185)
       for (let i = 0; i < EASTERN_SEA_ISLANDS.length; i++) {
         const isl = EASTERN_SEA_ISLANDS[i];
         const dIsl = Math.hypot(x - isl.x, z - isl.z);
@@ -1146,6 +1177,14 @@ export function groundHeightAt(x: number, z: number): number {
           const islH = -2.5 + islW * (isl.h + 2.5 + islCrag);
           h = Math.max(h, islH);
         }
+      }
+      const smugglerDist = Math.hypot(x - SMUGGLER_ISLAND_POS.x, z - SMUGGLER_ISLAND_POS.z);
+      if (smugglerDist < SMUGGLER_ISLAND_POS.radius + 14.0) {
+        const smugglerFlatW = 1.0 - smoothstep(22.0, SMUGGLER_ISLAND_POS.radius, smugglerDist);
+        const smugglerSlopeW = 1.0 - smoothstep(SMUGGLER_ISLAND_POS.radius, SMUGGLER_ISLAND_POS.radius + 14.0, smugglerDist);
+        const smugglerTargetH =
+          -4.5 + smugglerSlopeW * (SMUGGLER_ISLAND_POS.deckY + 4.5);
+        h = Math.max(h, smugglerFlatW > 0.85 ? SMUGGLER_ISLAND_POS.deckY : smugglerTargetH);
       }
     }
 
@@ -1191,6 +1230,10 @@ export function groundHeightAt(x: number, z: number): number {
       x - SOUTHERN_DRAGON_RUINS_POS.x,
       z - SOUTHERN_DRAGON_RUINS_POS.z
     );
+    const pyramidDist = Math.hypot(
+      x - (DESERT_PYRAMID_SANCTUARY_POS.x + 8.0),
+      z - DESERT_PYRAMID_SANCTUARY_POS.z
+    );
     const passDist = Math.min(
       distToSegment(
         x,
@@ -1209,13 +1252,14 @@ export function groundHeightAt(x: number, z: number): number {
         DESERT_DRAGON_PASS_POS.exitZ
       )
     );
-    if (oasisDist > 58.0 && dragonDist > 68.0 && passDist > 14.0) {
+    if (oasisDist > 58.0 && dragonDist > 68.0 && pyramidDist > 48.0 && passDist > 14.0) {
       const duneWave =
         Math.sin(x * 0.045 + z * 0.032) * 1.15 +
         fbm2D(x * 0.025 - 3.4, z * 0.025 + 6.1, 2) * 1.65;
       const duneMask =
         smoothstep(58.0, 92.0, oasisDist) *
         smoothstep(68.0, 96.0, dragonDist) *
+        smoothstep(48.0, 72.0, pyramidDist) *
         smoothstep(14.0, 26.0, passDist) *
         swFactor;
       h += Math.max(-0.4, duneWave) * duneMask;
@@ -1369,6 +1413,23 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
+  // Nordic Frost Giant Shrine & Geothermal Hot Springs Basin at (-320, -290)
+  const nfDx = x - NORDIC_FROST_SHRINE_POS.x;
+  const nfDz = z - NORDIC_FROST_SHRINE_POS.z;
+  if (Math.abs(nfDx) <= 22.0 && Math.abs(nfDz) <= 22.0) {
+    const nfDist = Math.hypot(nfDx, nfDz);
+    if (nfDist < NORDIC_FROST_SHRINE_POS.poolRadius + 1.5) {
+      const poolCarve = 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.poolRadius - 2.2, NORDIC_FROST_SHRINE_POS.poolRadius + 0.8, nfDist);
+      h = h * (1.0 - poolCarve) + NORDIC_FROST_SHRINE_POS.poolFloorY * poolCarve;
+    }
+    // Raised Northern Rune Altar Dais at (x: -320, z: -306.5)
+    const altarDist = Math.hypot(nfDx, z - (NORDIC_FROST_SHRINE_POS.z - 16.5));
+    if (altarDist < 6.2) {
+      const altarW = 1.0 - smoothstep(3.8, 6.2, altarDist);
+      h = h * (1.0 - altarW) + NORDIC_FROST_SHRINE_POS.altarDaisY * altarW;
+    }
+  }
+
   return h;
 }
 
@@ -1383,6 +1444,18 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.shipX) <= SOUTHEAST_HARBOR_POS.shipHalfW + 3.8 &&
     Math.abs(z - SOUTHEAST_HARBOR_POS.shipZ) <= SOUTHEAST_HARBOR_POS.shipHalfL + 3.8
+  ) {
+    return false;
+  }
+  // Keep clear of Smuggler Island & its Western Docking Pier while allowing mooring right off dockMinX (x ≈ 493)
+  const smDist = Math.hypot(x - SMUGGLER_ISLAND_POS.x, z - SMUGGLER_ISLAND_POS.z);
+  if (smDist <= SMUGGLER_ISLAND_POS.radius + 4.0) {
+    return false;
+  }
+  if (
+    x >= SMUGGLER_ISLAND_POS.dockMinX - 3.5 &&
+    x <= SMUGGLER_ISLAND_POS.x &&
+    Math.abs(z - SMUGGLER_ISLAND_POS.dockZ) <= SMUGGLER_ISLAND_POS.dockHalfWidthZ + 4.2
   ) {
     return false;
   }
@@ -1902,6 +1975,28 @@ export function walkableHeightAt(
     return { height: RUINED_ATLANTIS_POS.outerRingY, surface: 'bridge' };
   }
 
+  // Ancient Pharaoh Stepped Sun Pyramid & Walkable Eastern Ceremonial Ramp (-475, 295)
+  const pyramidY = desertPyramidHeightAt(x, z, currentY);
+  if (pyramidY !== null) {
+    return { height: pyramidY, surface: 'bridge' };
+  }
+
+  // Mid-Ocean Corsair Smuggler Cove Western Timber Docking Pier & Beacon Watchtower (540, 185)
+  if (
+    x >= SMUGGLER_ISLAND_POS.dockMinX &&
+    x <= SMUGGLER_ISLAND_POS.dockMaxX &&
+    Math.abs(z - SMUGGLER_ISLAND_POS.dockZ) <= SMUGGLER_ISLAND_POS.dockHalfWidthZ
+  ) {
+    return { height: SMUGGLER_ISLAND_POS.deckY, surface: 'pier' };
+  }
+  if (
+    Math.hypot(x - SMUGGLER_ISLAND_POS.towerX, z - SMUGGLER_ISLAND_POS.towerZ) <= 4.6 &&
+    currentY !== undefined &&
+    currentY >= SMUGGLER_ISLAND_POS.towerTopY - 2.4
+  ) {
+    return { height: SMUGGLER_ISLAND_POS.towerTopY, surface: 'tower' };
+  }
+
   const obsDist = Math.hypot(x - SOUTHWEST_OASIS_POS.observatoryX, z - SOUTHWEST_OASIS_POS.observatoryZ);
   if (obsDist <= SOUTHWEST_OASIS_POS.observatoryRadius + 0.45) {
     const inObsHatch =
@@ -2233,6 +2328,54 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     }
     return [44, 194, 208]; // Luminous Bioluminescent Turquoise Atlantis Lagoon
   }
+
+  // Nordic Frost Giant Shrine & Geothermal Hot Springs at (-320, -290)
+  const nfMapDist = Math.hypot(x - NORDIC_FROST_SHRINE_POS.x, z - NORDIC_FROST_SHRINE_POS.z);
+  if (nfMapDist <= 24.0) {
+    if (nfMapDist <= NORDIC_FROST_SHRINE_POS.poolRadius) {
+      return [42, 214, 222]; // Steaming Turquoise Geothermal Pool
+    }
+    if (Math.abs(nfMapDist - 15.0) <= 1.8) {
+      return [112, 224, 248]; // Glowing Cyan-Ice Runestone Ring
+    }
+    return [192, 204, 214]; // Carved Nordic Stone Sanctuary Plaza
+  }
+
+  // Ancient Pharaoh Stepped Sun Pyramid, Twin Obelisks & Sphinx at (-475, 295)
+  const pyMapDx = x - DESERT_PYRAMID_SANCTUARY_POS.x;
+  const pyMapDz = z - DESERT_PYRAMID_SANCTUARY_POS.z;
+  const pyMaxC = Math.max(Math.abs(pyMapDx), Math.abs(pyMapDz));
+  if (pyMaxC <= DESERT_PYRAMID_SANCTUARY_POS.halfBase) {
+    if (pyMaxC <= DESERT_PYRAMID_SANCTUARY_POS.topHalf) {
+      return [252, 216, 62]; // Golden Sun-Disc Summit Altar
+    }
+    const tierStripe = Math.floor(((DESERT_PYRAMID_SANCTUARY_POS.halfBase - pyMaxC) / 16.5) * 5) % 2;
+    return tierStripe === 0 ? [232, 184, 78] : [208, 158, 62];
+  }
+  if (
+    pyMapDx >= DESERT_PYRAMID_SANCTUARY_POS.topHalf &&
+    pyMapDx <= DESERT_PYRAMID_SANCTUARY_POS.rampMaxX - DESERT_PYRAMID_SANCTUARY_POS.x &&
+    Math.abs(pyMapDz) <= DESERT_PYRAMID_SANCTUARY_POS.rampHalfWidthZ
+  ) {
+    return [218, 174, 92]; // Eastern Ceremonial Stair Ramp
+  }
+
+  // Mid-Ocean Corsair Smuggler Cove & Beacon Watchtower at (540, 185)
+  const smMapDist = Math.hypot(x - SMUGGLER_ISLAND_POS.x, z - SMUGGLER_ISLAND_POS.z);
+  if (Math.hypot(x - SMUGGLER_ISLAND_POS.towerX, z - SMUGGLER_ISLAND_POS.towerZ) <= 5.0) {
+    return [228, 78, 52]; // Corsair Beacon Watchtower
+  }
+  if (
+    x >= SMUGGLER_ISLAND_POS.dockMinX &&
+    x <= SMUGGLER_ISLAND_POS.dockMaxX &&
+    Math.abs(z - SMUGGLER_ISLAND_POS.dockZ) <= SMUGGLER_ISLAND_POS.dockHalfWidthZ
+  ) {
+    return [184, 128, 68]; // Smuggler Timber Docking Pier
+  }
+  if (smMapDist <= SMUGGLER_ISLAND_POS.radius - 4.0) {
+    return [102, 146, 82]; // Smuggler Cove Island interior
+  }
+
   if (x >= 200 && x <= 255.5 && z >= 214 && z <= 312) {
     return [206, 196, 178];
   }

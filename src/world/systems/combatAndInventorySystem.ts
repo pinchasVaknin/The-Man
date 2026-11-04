@@ -21,12 +21,15 @@ import {
   type IObstacleCylinder,
   type IArcheryTargetDef,
   type IArrowProjectile,
+  type IWorldChest,
 } from '../domain/worldTypes';
 import {
   PLAYER_EYE_HEIGHT,
   SOLID_BUILDING_BOXES,
   ARCHERY_TARGETS,
+  MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
+  getMarketStallCatalogItems,
 } from '../domain/landmarksRegistry';
 import { groundHeightAt, walkableHeightAt } from './terrainAndBiomeSystem';
 import { awardSkillXp, getPlayerHeroLevel } from './playerPhysicsSystem';
@@ -274,6 +277,61 @@ class UsableGearStrategy implements IEquipmentSlotStrategy {
   }
 }
 
+class ClothingEquipmentStrategy implements IEquipmentSlotStrategy {
+  isEquipped(state: IPlayerState, itemId: InventoryItemId): boolean {
+    return (state.equippedClothingId ?? 'ranger_garb') === itemId;
+  }
+
+  equip(state: IPlayerState, itemId: InventoryItemId): void {
+    state.equippedClothingId = itemId;
+    awardSkillXp(state, 'athletics', 8);
+  }
+}
+
+class FoodConsumptionStrategy implements IEquipmentSlotStrategy {
+  isEquipped(): boolean {
+    return false;
+  }
+
+  equip(state: IPlayerState, itemId: InventoryItemId): void {
+    if (state.ownedItemIds) {
+      const idx = state.ownedItemIds.indexOf(itemId);
+      if (idx !== -1) {
+        state.ownedItemIds.splice(idx, 1);
+      }
+    }
+    const maxStam = state.maxStamina ?? 100;
+    const maxHp = state.maxHp ?? 100;
+    const maxHunger = state.maxHunger ?? 100;
+    state.stamina = maxStam;
+
+    if (itemId === 'rotten_meat') {
+      state.hunger = Math.min(maxHunger, (state.hunger ?? maxHunger) + 15);
+      state.hp = Math.max(5, (state.hp ?? maxHp) - 8);
+    } else {
+      // Generous food satisfaction: 1 loaf of bread (+85) or 1 roasted/bear meat (+100) satisfies hunger!
+      const hungerGain =
+        itemId === 'roasted_meat' || itemId === 'dragon_meat' || itemId === 'bear_meat'
+          ? 100
+          : itemId === 'fresh_bread_loaf'
+            ? 85
+            : itemId === 'harbor_cheese_wheel' || itemId === 'deer_meat' || itemId === 'raw_game_meat'
+              ? 75
+              : 45;
+      const hpGain =
+        itemId === 'roasted_meat' || itemId === 'dragon_meat'
+          ? 40
+          : itemId === 'bear_meat' || itemId === 'harbor_cheese_wheel' || itemId === 'fresh_bread_loaf'
+            ? 25
+            : 18;
+      state.hunger = Math.min(maxHunger, (state.hunger ?? maxHunger) + hungerGain);
+      state.hp = Math.min(maxHp, (state.hp ?? maxHp) + hpGain);
+    }
+    syncEquippedItemsAfterRemoval(state, itemId);
+    awardSkillXp(state, 'athletics', 14);
+  }
+}
+
 const bowStrategy = new BowEquipmentStrategy();
 const swordStrategy = new SwordEquipmentStrategy();
 const torchStrategy = new ToolEquipmentStrategy('torch');
@@ -282,9 +340,9 @@ const arrowNormalStrategy = new ArrowEquipmentStrategy('normal');
 const arrowFireStrategy = new ArrowEquipmentStrategy('fire');
 const arrowWindStrategy = new ArrowEquipmentStrategy('wind');
 const hornStrategy = new UsableGearStrategy('exploration', 12, true);
-const meatStrategy = new UsableGearStrategy('athletics', 14, true);
+const meatStrategy = new FoodConsumptionStrategy();
 const materialStrategy = new UsableGearStrategy('exploration', 10);
-const cloakStrategy = new UsableGearStrategy('athletics', 10);
+const clothingStrategy = new ClothingEquipmentStrategy();
 
 export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlotStrategy> = new Map<
   InventoryItemId,
@@ -307,7 +365,10 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['arrow_wind', arrowWindStrategy],
 
   ['ancient_dwarven_horn', hornStrategy],
-  ['elven_cloak', cloakStrategy],
+  ['simple_tunic', clothingStrategy],
+  ['ranger_garb', clothingStrategy],
+  ['elven_cloak', clothingStrategy],
+  ['imperial_armor', clothingStrategy],
   ['raw_game_meat', meatStrategy],
   ['deer_meat', meatStrategy],
   ['bear_meat', meatStrategy],
@@ -350,6 +411,71 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
 // ======================== INVENTORY & MARKET OPERATIONS ======================== \\
 // #region Inventory & Market Operations
 /**
+ * Summary: Returns true when an inventory item is stackable (arrows, materials, food)
+ * so multiple copies can be bought, stored, or carried.
+ */
+export function isStackableInventoryItem(itemId: InventoryItemId): boolean {
+  const def = INVENTORY_ITEM_MAP.get(itemId);
+  if (!def) return false;
+  return def.category === 'ammo' || def.category === 'materials' || def.category === 'food';
+}
+
+/**
+ * Summary: Synchronizes equipped weapon, tool, clothing, hotbar slots, and favorites
+ * after an item is removed from the player's inventory (sold, stored in chest, or consumed).
+ */
+export function syncEquippedItemsAfterRemoval(
+  state: IPlayerState,
+  removedItemId: InventoryItemId
+): void {
+  if (state.ownedItemIds?.includes(removedItemId)) {
+    return;
+  }
+  if (state.hotbarSlots) {
+    for (let i = 0; i < 4; i++) {
+      if (state.hotbarSlots[i] === removedItemId) {
+        state.hotbarSlots[i] = null;
+      }
+    }
+  }
+  if (state.favoriteIds) {
+    const favIdx = state.favoriteIds.indexOf(removedItemId);
+    if (favIdx !== -1) {
+      state.favoriteIds.splice(favIdx, 1);
+    }
+  }
+  const def = INVENTORY_ITEM_MAP.get(removedItemId);
+  const wasEquippedSword =
+    def?.weaponRole === 'sword' &&
+    (state.activeWeaponId === removedItemId || state.equippedTool === 'sword');
+  const wasEquippedBow =
+    def?.weaponRole === 'bow' &&
+    (state.activeWeaponId === removedItemId || state.equippedTool === 'bow');
+
+  if (
+    state.activeWeaponId === removedItemId ||
+    state.equippedTool === removedItemId ||
+    wasEquippedSword ||
+    wasEquippedBow
+  ) {
+    state.equippedTool = 'unarmed';
+    state.activeWeaponId = 'unarmed';
+    state.bowDrawn = false;
+    state.bowDrawProgress = 0;
+    state.swordBlocking = false;
+    state.swordSwingProgress = 0;
+    state.swordChargeTime = 0;
+  }
+
+  if (state.equippedClothingId === removedItemId) {
+    const fallbackClothing = state.ownedItemIds?.find(
+      (id) => INVENTORY_ITEM_MAP.get(id)?.category === 'clothing'
+    );
+    state.equippedClothingId = fallbackClothing ?? 'simple_tunic';
+  }
+}
+
+/**
  * Summary: Checks whether the player owns a specified inventory item.
  * @param state Player state (read only).
  * @param itemId Inventory item id.
@@ -382,6 +508,13 @@ export function isInventoryItemEquipped(state: IPlayerState, itemId: InventoryIt
  * @param itemId Inventory item id.
  */
 export function equipInventoryItem(state: IPlayerState, itemId: InventoryItemId): void {
+  if (
+    itemId !== 'unarmed' &&
+    state.ownedItemIds &&
+    !state.ownedItemIds.includes(itemId)
+  ) {
+    return;
+  }
   const strategy = EQUIPMENT_STRATEGY_MAP.get(itemId);
   if (strategy) {
     strategy.equip(state, itemId);
@@ -438,16 +571,91 @@ export class MarketTransactionResult<T, E = string> extends Result<T, E> {
   }
 }
 
+/** Number of in-game days between automatic merchant supply restocks. */
+export const MERCHANT_RESTOCK_INTERVAL_DAYS = 3;
+
 /**
- * Summary: Purchases an item from a market stall if within range, level-eligible, and affordable.
- * Design: Guard clauses validate proximity, item presence, prior ownership, level gating, and currency.
+ * Summary: Returns the default initial stock count for a merchant catalog item.
+ * Arrows start at 10 units, food at 8, materials at 6, and weapons/clothing/gear at 1.
+ */
+export function getInitialItemStockForStall(item: IInventoryItemDef): number {
+  if (item.category === 'ammo') return 10;
+  if (item.category === 'food') return 8;
+  if (item.category === 'materials') return 6;
+  return 1;
+}
+
+/**
+ * Summary: Returns the mutable stock map (`itemId -> quantity`) for a specific market stall,
+ * initializing it from the stall's specialized catalog on first access.
+ */
+export function getMerchantStallStock(
+  state: IPlayerState,
+  stallId: string
+): Partial<Record<InventoryItemId, number>> {
+  if (!state.merchantStockByStallId) {
+    state.merchantStockByStallId = {};
+  }
+  if (!state.merchantStockByStallId[stallId]) {
+    const stock: Partial<Record<InventoryItemId, number>> = {};
+    const catalog = getMarketStallCatalogItems(stallId);
+    for (let i = 0; i < catalog.length; i++) {
+      const item = catalog[i];
+      stock[item.id] = getInitialItemStockForStall(item);
+    }
+    state.merchantStockByStallId[stallId] = stock;
+  }
+  return state.merchantStockByStallId[stallId];
+}
+
+/**
+ * Summary: Restocks all Harbor Market stalls, replenishing depleted catalog items
+ * and adding rotating bonus stock while preserving any player-sold items.
+ */
+export function restockAllMerchants(state: IPlayerState, dayIndex = 0): void {
+  if (!state.merchantStockByStallId) {
+    state.merchantStockByStallId = {};
+  }
+  for (let s = 0; s < MARKET_STALL_LOCATIONS.length; s++) {
+    const stall = MARKET_STALL_LOCATIONS[s];
+    const currentStock = state.merchantStockByStallId[stall.id] ?? {};
+    const catalog = getMarketStallCatalogItems(stall.id);
+    for (let i = 0; i < catalog.length; i++) {
+      const item = catalog[i];
+      const baseQty = getInitialItemStockForStall(item);
+      const bonus = isStackableInventoryItem(item.id) && (dayIndex + i + s) % 2 === 0 ? 2 : 0;
+      currentStock[item.id] = Math.max(currentStock[item.id] ?? 0, baseQty + bonus);
+    }
+    state.merchantStockByStallId[stall.id] = currentStock;
+  }
+}
+
+/**
+ * Summary: Checks whether `MERCHANT_RESTOCK_INTERVAL_DAYS` in-game days have elapsed since
+ * the last restock and replenishes all market stalls when due.
+ */
+export function checkAndRestockMerchants(state: IPlayerState, currentDay: number): boolean {
+  const lastDay = state.lastMerchantRestockDay ?? 0;
+  if (currentDay - lastDay >= MERCHANT_RESTOCK_INTERVAL_DAYS) {
+    restockAllMerchants(state, currentDay);
+    state.lastMerchantRestockDay = currentDay;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Purchases an item from a market stall if within range, in stock, level-eligible, and affordable.
+ * Supports purchasing multiple units at once for stackable items (ammo, materials, food) and depletes merchant stock.
  * @param state Player runtime state container.
  * @param itemId Item to purchase.
+ * @param quantity Number of units to purchase (default 1).
  * @returns Result.ok with payload on success, or Result.fail with error code.
  */
 export function buyMarketItem(
   state: IPlayerState,
-  itemId: InventoryItemId
+  itemId: InventoryItemId,
+  quantity = 1
 ): MarketTransactionResult<IBuyMarketItemPayload, MarketTransactionErrorCode> {
   const nearMarket = findNearestMarketStall(state.x, state.z);
   if (!nearMarket) {
@@ -463,7 +671,10 @@ export function buyMarketItem(
   if (!state.ownedItemIds) {
     state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
   }
-  if (state.ownedItemIds.includes(itemId)) {
+  const stallStock = getMerchantStallStock(state, nearMarket.id);
+  const availableStock = stallStock[itemId] ?? 0;
+  const stackable = isStackableInventoryItem(itemId);
+  if (!stackable && state.ownedItemIds.includes(itemId)) {
     return MarketTransactionResult.failure('ALREADY_OWNED', { goldCoins: state.goldCoins ?? 0 });
   }
   const playerLevel = getPlayerHeroLevel(state);
@@ -474,14 +685,28 @@ export function buyMarketItem(
       playerLevel,
     });
   }
+  if (availableStock <= 0) {
+    return MarketTransactionResult.failure('OUT_OF_STOCK', { goldCoins: state.goldCoins ?? 0 });
+  }
+  const requestedQty = stackable ? Math.max(1, Math.min(99, Math.floor(quantity || 1))) : 1;
+  if (requestedQty > availableStock) {
+    return MarketTransactionResult.failure('OUT_OF_STOCK', { goldCoins: state.goldCoins ?? 0 });
+  }
+  const qty = requestedQty;
+  const totalCost = def.valueGold * qty;
   const currentGold = state.goldCoins ?? 0;
-  if (currentGold < def.valueGold) {
+  if (currentGold < totalCost) {
     return MarketTransactionResult.failure('INSUFFICIENT_GOLD', { goldCoins: currentGold });
   }
-  state.goldCoins = currentGold - def.valueGold;
-  state.ownedItemIds.push(itemId);
-  if (def.weaponRole) {
-    equipInventoryItem(state, itemId);
+  state.goldCoins = currentGold - totalCost;
+  const remainingStock = availableStock - qty;
+  if (remainingStock <= 0) {
+    delete stallStock[itemId];
+  } else {
+    stallStock[itemId] = remainingStock;
+  }
+  for (let i = 0; i < qty; i++) {
+    state.ownedItemIds.push(itemId);
   }
   return MarketTransactionResult.success(
     { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel },
@@ -490,7 +715,7 @@ export function buyMarketItem(
 }
 
 /**
- * Summary: Sells an owned inventory item to a nearby market stall.
+ * Summary: Sells an owned inventory item to a nearby market stall and adds it to that merchant's stock.
  * Design: Validates market stall proximity and inventory possession before awarding currency.
  * @param state Player runtime state container.
  * @param itemId Item to sell.
@@ -534,13 +759,11 @@ export function sellMarketItem(
   state.ownedItemIds.splice(idx, 1);
   state.goldCoins = (state.goldCoins ?? 0) + sellPrice;
 
-  if (state.activeWeaponId === itemId || state.equippedTool === itemId) {
-    const fallbackWeapon = state.ownedItemIds.find((id: InventoryItemId) => {
-      const d = INVENTORY_ITEM_MAP.get(id);
-      return d?.weaponRole === 'bow' || d?.weaponRole === 'sword';
-    });
-    equipInventoryItem(state, fallbackWeapon ?? 'unarmed');
-  }
+  // Add the sold item into the merchant's stall inventory so the player sees it in the shop!
+  const stallStock = getMerchantStallStock(state, nearMarket.id);
+  stallStock[itemId] = (stallStock[itemId] ?? 0) + 1;
+
+  syncEquippedItemsAfterRemoval(state, itemId);
 
   return MarketTransactionResult.success(
     { goldCoins: state.goldCoins, soldForGold: sellPrice },
@@ -586,6 +809,166 @@ export function toggleFavoriteItem(state: IPlayerState, itemId: InventoryItemId)
     return false;
   }
   state.favoriteIds.push(itemId);
+  return true;
+}
+
+/**
+ * Summary: Returns the mutable contents array of a world chest for the current player session,
+ * initializing it from the chest definition if not yet accessed.
+ */
+export function getChestContents(state: IPlayerState, chest: IWorldChest): InventoryItemId[] {
+  if (!state.chestContentsById) {
+    state.chestContentsById = {};
+  }
+  if (!state.chestContentsById[chest.id]) {
+    state.chestContentsById[chest.id] = [...chest.contents];
+  }
+  return state.chestContentsById[chest.id];
+}
+
+/**
+ * Summary: Takes one or more copies of an item from a world chest into the player's inventory.
+ */
+export function takeItemFromWorldChest(
+  state: IPlayerState,
+  chest: IWorldChest,
+  itemId: InventoryItemId,
+  quantity = 1
+): { ok: boolean; takenCount: number } {
+  const contents = getChestContents(state, chest);
+  if (!state.ownedItemIds) {
+    state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
+  }
+  if (!state.favoriteIds) {
+    state.favoriteIds = [];
+  }
+  if (!state.openedChestIds) {
+    state.openedChestIds = [];
+  }
+  if (!state.openedChestIds.includes(chest.id)) {
+    state.openedChestIds.push(chest.id);
+  }
+  const maxTake = Math.max(1, Math.floor(quantity || 1));
+  let takenCount = 0;
+  for (let i = 0; i < maxTake; i++) {
+    const idx = contents.indexOf(itemId);
+    if (idx === -1) break;
+    contents.splice(idx, 1);
+    state.ownedItemIds.push(itemId);
+    takenCount++;
+  }
+  if (takenCount === 0) {
+    return { ok: false, takenCount: 0 };
+  }
+  if (!state.favoriteIds.includes(itemId)) {
+    state.favoriteIds.push(itemId);
+  }
+  return { ok: true, takenCount };
+}
+
+/**
+ * Summary: Stores one or more copies of an item from the player's inventory into a world chest.
+ */
+export function storeItemInWorldChest(
+  state: IPlayerState,
+  chest: IWorldChest,
+  itemId: InventoryItemId,
+  quantity = 1
+): { ok: boolean; storedCount: number } {
+  if (itemId === 'unarmed' || !state.ownedItemIds) {
+    return { ok: false, storedCount: 0 };
+  }
+  const contents = getChestContents(state, chest);
+  if (!state.openedChestIds) {
+    state.openedChestIds = [];
+  }
+  if (!state.openedChestIds.includes(chest.id)) {
+    state.openedChestIds.push(chest.id);
+  }
+  const maxStore = Math.max(1, Math.floor(quantity || 1));
+  let storedCount = 0;
+  for (let i = 0; i < maxStore; i++) {
+    const idx = state.ownedItemIds.indexOf(itemId);
+    if (idx === -1) break;
+    state.ownedItemIds.splice(idx, 1);
+    contents.push(itemId);
+    storedCount++;
+  }
+  if (storedCount === 0) {
+    return { ok: false, storedCount: 0 };
+  }
+  syncEquippedItemsAfterRemoval(state, itemId);
+  return { ok: true, storedCount };
+}
+
+/**
+ * Summary: Opens and loots an interactive world chest, transferring its contents into the player's inventory
+ * and equipping any clothing and weapons found inside.
+ */
+export function lootWorldChest(
+  state: IPlayerState,
+  chest: IWorldChest
+): { ok: boolean; alreadyOpened: boolean; addedItems: InventoryItemId[]; notification: string } {
+  if (!state.openedChestIds) {
+    state.openedChestIds = [];
+  }
+  const contents = getChestContents(state, chest);
+  if (state.openedChestIds.includes(chest.id) && contents.length === 0) {
+    return {
+      ok: false,
+      alreadyOpened: true,
+      addedItems: [],
+      notification: t('hud.chest_empty'),
+    };
+  }
+  if (!state.ownedItemIds) {
+    state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
+  }
+  if (!state.favoriteIds) {
+    state.favoriteIds = [];
+  }
+  const itemsToTake = [...contents];
+  contents.length = 0;
+  const addedItems: InventoryItemId[] = [];
+  const addedNames: string[] = [];
+  for (const itemId of itemsToTake) {
+    if (!state.ownedItemIds.includes(itemId) || isStackableInventoryItem(itemId)) {
+      state.ownedItemIds.push(itemId);
+    }
+    if (!state.favoriteIds.includes(itemId)) {
+      state.favoriteIds.push(itemId);
+    }
+    addedItems.push(itemId);
+    const def = INVENTORY_ITEM_MAP.get(itemId);
+    if (def) {
+      addedNames.push(def.name);
+    }
+  }
+  if (!state.openedChestIds.includes(chest.id)) {
+    state.openedChestIds.push(chest.id);
+  }
+  const notification = t('notifications.chest_looted', {
+    chest: chest.name,
+    items: addedNames.join(', '),
+  });
+  return {
+    ok: true,
+    alreadyOpened: false,
+    addedItems,
+    notification,
+  };
+}
+
+/**
+ * Summary: Cancels an active bow draw without firing an arrow (triggered by pressing [R]).
+ * @returns True if an active bow draw was cancelled, or false if the bow was not drawn.
+ */
+export function cancelBowDraw(state: IPlayerState): boolean {
+  if (!state.bowDrawn && (state.bowDrawProgress ?? 0) <= 0) {
+    return false;
+  }
+  state.bowDrawn = false;
+  state.bowDrawProgress = 0;
   return true;
 }
 // #endregion
@@ -903,6 +1286,41 @@ export function stepSwordSwingCombat(
 
 // ======================== ARROW BALLISTIC PROJECTILES ======================== \\
 // #region Arrow Ballistic Projectiles
+/**
+ * Summary: Returns the inventory item ID corresponding to an arrow element kind.
+ */
+export function getArrowItemIdForKind(kind: ArrowElementKind = 'normal'): InventoryItemId {
+  return kind === 'fire' ? 'arrow_fire' : kind === 'wind' ? 'arrow_wind' : 'arrow_normal';
+}
+
+/**
+ * Summary: Consumes 1 arrow of the active arrow element from `state.ownedItemIds` when shooting.
+ * Returns whether an arrow was available & consumed and how many arrows of that kind remain.
+ */
+export function consumeArrowFromInventory(state: IPlayerState): {
+  readonly consumed: boolean;
+  readonly arrowItemId: InventoryItemId;
+  readonly remainingCount: number;
+} {
+  const arrowItemId = getArrowItemIdForKind(state.arrowKind ?? 'normal');
+  if (!state.ownedItemIds) {
+    state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
+  }
+  const idx = state.ownedItemIds.indexOf(arrowItemId);
+  if (idx === -1) {
+    return { consumed: false, arrowItemId, remainingCount: 0 };
+  }
+  state.ownedItemIds.splice(idx, 1);
+  let remainingCount = 0;
+  for (let i = 0; i < state.ownedItemIds.length; i++) {
+    if (state.ownedItemIds[i] === arrowItemId) remainingCount++;
+  }
+  if (remainingCount === 0) {
+    syncEquippedItemsAfterRemoval(state, arrowItemId);
+  }
+  return { consumed: true, arrowItemId, remainingCount };
+}
+
 /**
  * Summary: Instantiates a ballistic arrow projectile based on player aim and bow power.
  * @param state Player state; updated in place.

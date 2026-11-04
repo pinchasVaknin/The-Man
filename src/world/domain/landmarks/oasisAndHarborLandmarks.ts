@@ -116,15 +116,121 @@ export const SOUTHEAST_HARBOR_POS = {
 
 // ======================== HARBOR MARKET STALLS ======================== \\
 // #region Harbor Market Stalls
-/** Summary: Merchant shop locations in the harbor town marketplace. */
+import { INVENTORY_ITEMS, type IInventoryItemDef, type InventoryItemId } from '../worldTypes';
+
+/** Summary: Merchant shop locations in the harbor town marketplace, each specialized by shop type. */
 export const MARKET_STALL_LOCATIONS = [
-  { id: 'market-harbor-1', name: t('landmarks.market_harbor_swords'), x: 212.0, z: 254.0, radius: 4.5 },
-  { id: 'market-harbor-2', name: t('landmarks.market_harbor_bows'), x: 212.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-3', name: t('landmarks.market_harbor_timber'), x: 224.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-4', name: t('landmarks.market_harbor_stone'), x: 240.0, z: 263.0, radius: 4.5 },
-  { id: 'market-harbor-5', name: t('landmarks.market_harbor_smithy'), x: 246.0, z: 238.0, radius: 4.5 },
-  { id: 'market-harbor-6', name: t('landmarks.market_harbor_minerals'), x: 246.0, z: 246.0, radius: 4.5 },
+  {
+    id: 'market-harbor-1',
+    name: t('landmarks.market_harbor_swords'),
+    shopType: 'swords' as const,
+    x: 212.0,
+    z: 254.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'sword',
+      'katana_imperial',
+      'dwarven_warhammer',
+      'celestial_jin_sword',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-harbor-2',
+    name: t('landmarks.market_harbor_bows'),
+    shopType: 'bows' as const,
+    x: 212.0,
+    z: 263.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'bow',
+      'elven_longbow',
+      'dragonbone_bow',
+      'arrow_normal',
+      'arrow_fire',
+      'arrow_wind',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-harbor-3',
+    name: t('landmarks.market_harbor_timber'),
+    shopType: 'clothing_and_timber' as const,
+    x: 224.0,
+    z: 263.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'simple_tunic',
+      'ranger_garb',
+      'elven_cloak',
+      'imperial_armor',
+      'oak_timber',
+      'torch',
+      'ancient_dwarven_horn',
+      'small_hide',
+      'sheep_hide',
+      'deer_hide',
+      'wolf_hide',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-harbor-4',
+    name: t('landmarks.market_harbor_stone'),
+    shopType: 'stone' as const,
+    x: 240.0,
+    z: 263.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'cut_granite_blocks',
+      'imperial_clay_tiles',
+      'marble_pillar_stone',
+      'crystal_gem',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-harbor-5',
+    name: t('landmarks.market_harbor_smithy'),
+    shopType: 'smithy' as const,
+    x: 246.0,
+    z: 238.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'iron_ingots',
+      'dwarven_gold_ore',
+      'imperial_armor',
+      'dwarven_warhammer',
+      'sword',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-harbor-6',
+    name: t('landmarks.market_harbor_minerals'),
+    shopType: 'food' as const,
+    x: 246.0,
+    z: 246.0,
+    radius: 4.5,
+    allowedItemIds: [
+      'fresh_bread_loaf',
+      'harbor_cheese_wheel',
+      'red_orchard_apples',
+      'raw_game_meat',
+      'deer_meat',
+      'bear_meat',
+      'roasted_meat',
+    ] as readonly InventoryItemId[],
+  },
 ] as const;
+
+/**
+ * Summary: Returns the merchant catalog items sold by a specific market stall according to its shop type.
+ * When stallId matches a specialized stall in MARKET_STALL_LOCATIONS, strictly returns that stall's inventory.
+ */
+export function getMarketStallCatalogItems(stallId?: string | null): readonly IInventoryItemDef[] {
+  const baseCatalog = INVENTORY_ITEMS.filter((item) => item.id !== 'unarmed' && !item.lootOnly);
+  if (!stallId) return baseCatalog;
+  const stall = MARKET_STALL_LOCATIONS.find((s) => s.id === stallId);
+  if (!stall) return baseCatalog;
+  const allowedSet = new Set<InventoryItemId>(stall.allowedItemIds);
+  return baseCatalog.filter((item) => allowedSet.has(item.id));
+}
 
 /**
  * Summary: Finds the nearest harbor market stall interactable at a world position.
@@ -147,3 +253,4 @@ export function findNearestMarketStall(px: number, pz: number): (typeof MARKET_S
   return best;
 }
 // #endregion
+

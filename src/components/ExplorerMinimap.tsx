@@ -14,10 +14,13 @@ import {
   BEAR_MOUNTAIN_CAVES,
   CHINESE_FORTRESS_POS,
   CROCODILE_RIVER_BEND_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
   FLOATING_BLOOMING_ISLANDS,
   HUNTER_LODGE_POS,
+  NORDIC_FROST_SHRINE_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
+  SMUGGLER_ISLAND_POS,
   SOUTHEAST_HARBOR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHERN_MINE_POS,
@@ -56,11 +59,14 @@ interface IWorldMapLandmarkPin {
 
 const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'fortress', label: 'Imperial Fortress', x: CHINESE_FORTRESS_POS.x, z: CHINESE_FORTRESS_POS.z, color: '#fbbf24' },
+  { id: 'nordic_shrine', label: 'Nordic Frost Shrine & Hot Springs', x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, color: '#22d3ee' },
   { id: 'lodge', label: 'Hunter Lodge', x: HUNTER_LODGE_POS.x, z: HUNTER_LODGE_POS.z, color: '#a3e635' },
   { id: 'harbor', label: 'Harbor & Market', x: SOUTHEAST_HARBOR_POS.x, z: SOUTHEAST_HARBOR_POS.z, color: '#38bdf8' },
   { id: 'sailable_ship', label: 'Sailable Ship', x: SAILABLE_SHIP_INITIAL_POS.homeX, z: SAILABLE_SHIP_INITIAL_POS.homeZ, color: '#f59e0b' },
+  { id: 'smuggler_cove', label: 'Corsair Smuggler Cove', x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, color: '#fb7185' },
   { id: 'atlantis', label: 'Ruined Atlantis', x: RUINED_ATLANTIS_POS.x, z: RUINED_ATLANTIS_POS.z, color: '#06b6d4' },
   { id: 'oasis', label: 'Desert Oasis', x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, color: '#facc15' },
+  { id: 'sun_pyramid', label: 'Ancient Sun Pyramid & Sphinx', x: DESERT_PYRAMID_SANCTUARY_POS.x, z: DESERT_PYRAMID_SANCTUARY_POS.z, color: '#eab308' },
   { id: 'volcano', label: 'Volcano Sanctum (King Lion)', x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z, color: '#f97316' },
   { id: 'sky_islands', label: 'Floating Sky Islands', x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z, color: '#e879f9' },
   { id: 'dwarven', label: 'Dwarven Kingdom', x: SOUTHERN_MINE_POS.x, z: SOUTHERN_MINE_POS.z, color: '#cbd5e1' },
@@ -421,7 +427,8 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     const ctx = fullCanvas.getContext('2d');
     if (!ctx) return;
 
-    const sourceCanvas = showFullMap ? ensureFullWorldTerrainCanvas() : offscreenCanvasRef.current;
+    const effectiveShowFullMap = godMode ? showFullMap : false;
+    const sourceCanvas = effectiveShowFullMap ? ensureFullWorldTerrainCanvas() : offscreenCanvasRef.current;
     const w = fullCanvas.width;
     const h = fullCanvas.height;
     const halfW = w / 2;
@@ -464,7 +471,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     ctx.font = 'bold 12px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     for (const lm of WORLD_MAP_LANDMARKS) {
-      if (!showFullMap && revealed) {
+      if (!effectiveShowFullMap && revealed) {
         const cx = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((lm.x + MAP_WORLD_HALF) / METERS_PER_CELL)));
         const cz = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((lm.z + MAP_WORLD_HALF) / METERS_PER_CELL)));
         if (revealed[cz * GRID_SIZE + cx] < 35) {
@@ -520,6 +527,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   }, [
     isFullScreenMapOpen,
     showFullMap,
+    godMode,
     mapZoom,
     panOffset,
     playerX,
@@ -687,18 +695,20 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
 
             {/* Fog-of-War Toggle & Pan/Zoom Controls */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                data-testid="fullmap-toggle-fog"
-                onClick={() => setShowFullMap((prev) => !prev)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                  showFullMap
-                    ? 'bg-emerald-500/25 border border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/35'
-                    : 'bg-amber-500/25 border border-amber-400/50 text-amber-200 hover:bg-amber-500/35'
-                }`}
-              >
-                {showFullMap ? 'Full Map (Show Explored Only)' : 'Explored Only (Show Full Map)'}
-              </button>
+              {godMode && (
+                <button
+                  type="button"
+                  data-testid="fullmap-toggle-fog"
+                  onClick={() => setShowFullMap((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    showFullMap
+                      ? 'bg-emerald-500/25 border border-emerald-400/50 text-emerald-200 hover:bg-emerald-500/35'
+                      : 'bg-amber-500/25 border border-amber-400/50 text-amber-200 hover:bg-amber-500/35'
+                  }`}
+                >
+                  {showFullMap ? 'Full Map (Show Explored Only)' : 'Explored Only (Show Full Map)'}
+                </button>
+              )}
               <button
                 type="button"
                 data-testid="fullmap-pan-left"

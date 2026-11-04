@@ -156,12 +156,36 @@ export const en = {
       "lore": "War horn."
     },
     "elven_cloak": {
-      "name": "Cloak",
-      "short": "Cloak",
-      "category": "Gear",
-      "stat": "Gear · 190 Gold",
-      "description": "Cloak.",
-      "lore": "Cloak."
+      "name": "Elven Cloak",
+      "short": "Elven Cloak",
+      "category": "Clothing",
+      "stat": "Clothing · Defense +8 · 190 Gold",
+      "description": "Finely woven emerald forest cloak.",
+      "lore": "Woven by forest artisans for silent travel."
+    },
+    "simple_tunic": {
+      "name": "Simple Tunic",
+      "short": "Simple Tunic",
+      "category": "Clothing",
+      "stat": "Clothing · Basic Garment",
+      "description": "Basic homespun linen tunic and trousers.",
+      "lore": "Simple everyday clothes worn indoors."
+    },
+    "ranger_garb": {
+      "name": "Ranger's Cloak & Tunic",
+      "short": "Ranger Garb",
+      "category": "Clothing",
+      "stat": "Clothing · Defense +12 · 140 Gold",
+      "description": "Reinforced ranger tunic, leather bracers, and hooded cloak.",
+      "lore": "Standard frontier attire of the northern rangers."
+    },
+    "imperial_armor": {
+      "name": "Imperial Guard Armor",
+      "short": "Imperial Armor",
+      "category": "Clothing",
+      "stat": "Clothing · Defense +24 · 360 Gold",
+      "description": "Heavy crimson-and-gold lamellar armor.",
+      "lore": "Forged for the elite guards of the northern fortress."
     },
     "unarmed": {
       "name": "Unarmed",
@@ -398,6 +422,7 @@ export const en = {
   "categories": {
     "all": "All",
     "weapons": "Weapons",
+    "clothing": "Clothing",
     "materials": "Materials",
     "food": "Food",
     "ammo": "Ammo",
@@ -602,6 +627,7 @@ export const en = {
     "items_count": "{count} Items",
     "all_filter": "All",
     "weapons_filter": "Weapons",
+    "clothing_filter": "Clothing",
     "materials_filter": "Materials",
     "food_filter": "Food",
     "selected_from_my_list": "Inventory Item · Equip or Sell",
@@ -611,9 +637,11 @@ export const en = {
     "merchant_goods_right": "Merchant Goods",
     "merchant_goods_hint": "Select an item to buy",
     "weapons_tab": "Weapons",
+    "clothing_tab": "Clothing",
     "materials_tab": "Materials",
     "food_tab": "Food",
     "owned_weapons_desc": "Owned weapons & gear",
+    "owned_clothing_desc": "Owned clothing & armor",
     "owned_materials_desc": "Owned materials & hunting loot",
     "owned_food_desc": "Owned food & meat",
     "category_owned_by_hero": "{category} · Owned",
@@ -755,6 +783,7 @@ export const en = {
     "game_title": "the man",
     "main_menu_aria": "Main Menu",
     "start_game": "Start Game",
+    "god_mode": "God Mode",
     "animation_lab": "Animation Lab",
     "settings": "Settings",
     "weather_label": "Weather:"
@@ -769,6 +798,8 @@ export const en = {
     "season_label": "Season:",
     "stealth_badge": "Stealth · Quiet",
     "loot_prompt": "Loot ({species})",
+    "open_chest": "Open Chest ({name})",
+    "chest_empty": "Chest Opened",
     "sleep": "Sleep",
     "door_close": "Close",
     "door_open": "Open",
@@ -794,6 +825,7 @@ export const en = {
   "notifications": {
     "animal_hunted": "{species} (Hunted! Press {key} to loot)",
     "animal_hit": "Struck {species}",
+    "chest_looted": "Opened {chest}: {items}",
     "awoke": "Awoke refreshed at morning",
     "sleep_danger": "Cannot sleep while danger is nearby",
     "sleep_day_only": "You can only sleep at night",

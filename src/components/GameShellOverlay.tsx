@@ -50,6 +50,7 @@ export interface IGameShellOverlayProps {
   weatherToggle: WeatherToggleOption;
   gameSettings?: IGameSettingsConfig;
   onStartGame: () => void;
+  onStartGodMode?: () => void;
   onResumeGame: () => void;
   onReturnToTitle: () => void;
   onTogglePause: () => void;
@@ -99,6 +100,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   weatherToggle,
   gameSettings = SAVED_GAME_SETTINGS,
   onStartGame,
+  onStartGodMode,
   onResumeGame,
   onReturnToTitle,
   onCycleWeather,
@@ -152,6 +154,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     if (def?.weaponRole === 'sword') {
       return equippedTool === 'sword' && activeWeaponId === itemId;
     }
+    if (def?.category === 'clothing') {
+      return (telemetry.equippedClothingId ?? 'ranger_garb') === itemId;
+    }
     if (itemId === 'torch' || itemId === 'unarmed') {
       return equippedTool === itemId;
     }
@@ -167,10 +172,11 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   };
 
   const triggerBuyItem = (
-    itemId: InventoryItemId
+    itemId: InventoryItemId,
+    quantity = 1
   ): Result<IBuyMarketItemPayload, MarketTransactionErrorCode> => {
     if (gameActions) {
-      const res = gameActions.onBuyItem(itemId);
+      const res = gameActions.onBuyItem(itemId, quantity);
       setUiTick((t) => t + 1);
       return res;
     }
@@ -186,6 +192,24 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
       return res;
     }
     return Result.fail('NOT_IN_MARKET');
+  };
+
+  const triggerTakeChestItem = (
+    chestId: string,
+    itemId: InventoryItemId,
+    quantity = 1
+  ) => {
+    gameActions?.onTakeChestItem?.(chestId, itemId, quantity);
+    setUiTick((t) => t + 1);
+  };
+
+  const triggerStoreChestItem = (
+    chestId: string,
+    itemId: InventoryItemId,
+    quantity = 1
+  ) => {
+    gameActions?.onStoreChestItem?.(chestId, itemId, quantity);
+    setUiTick((t) => t + 1);
   };
 
   const triggerAssignHotbar = (slotIndex: number, itemId: InventoryItemId) => {
@@ -210,35 +234,38 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     };
   }, [gameState, skyrimModal]);
 
-  // Expose helper hooks for automated tests & handle [Tab] / [B] / [Q] / [1-4] / [F] / [E]
+  // Expose helper hooks for WorldCanvas chest interaction & automated tests
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      const win = window as unknown as Record<string, unknown>;
-      win.openInventoryModal = (
-        open?: boolean,
-        category?: InventoryCategoryTab
-      ) => {
-        if (category) {
-          setSelectedCategory(category);
-          if (category === 'market') {
-            setSelectedItemId(FIRST_MARKET_CATALOG_ITEM.id);
+    const win = window as unknown as Record<string, unknown>;
+    win.openInventoryModal = (
+      open?: boolean,
+      category?: InventoryCategoryTab
+    ) => {
+      if (category) {
+        setSelectedCategory(category);
+        if (category === 'market') {
+          setSelectedItemId(FIRST_MARKET_CATALOG_ITEM.id);
+        } else if (category === 'chest') {
+          const chestFirst = telemetry.nearbyChest?.contents?.[0];
+          if (chestFirst) {
+            setSelectedItemId(chestFirst);
           }
         }
-        setSkyrimModal((prev) =>
-          open === undefined ? (prev === 'inventory' ? 'none' : 'inventory') : open ? 'inventory' : 'none'
-        );
-      };
-      win.openFavoritesModal = (open?: boolean) => {
-        setSkyrimModal((prev) =>
-          open === undefined ? (prev === 'favorites' ? 'none' : 'favorites') : open ? 'favorites' : 'none'
-        );
-      };
-      return () => {
-        delete win.openInventoryModal;
-        delete win.openFavoritesModal;
-      };
-    }
-  }, []);
+      }
+      setSkyrimModal((prev) =>
+        open === undefined ? (prev === 'inventory' ? 'none' : 'inventory') : open ? 'inventory' : 'none'
+      );
+    };
+    win.openFavoritesModal = (open?: boolean) => {
+      setSkyrimModal((prev) =>
+        open === undefined ? (prev === 'favorites' ? 'none' : 'favorites') : open ? 'favorites' : 'none'
+      );
+    };
+    return () => {
+      delete win.openInventoryModal;
+      delete win.openFavoritesModal;
+    };
+  }, [telemetry.nearbyChest]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -246,7 +273,30 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
       if (e.code === kb.inventoryModal) {
         e.preventDefault();
-        setSkyrimModal((prev) => (prev === 'inventory' ? 'none' : 'inventory'));
+        setSkyrimModal((prev) => {
+          if (prev === 'inventory') return 'none';
+          if (selectedCategory === 'chest' || selectedCategory === 'market') {
+            setSelectedCategory('all');
+          }
+          return 'inventory';
+        });
+        return;
+      }
+
+      if (
+        skyrimModal === 'none' &&
+        e.code === kb.interactDoor &&
+        !e.repeat &&
+        telemetry.nearbyChest &&
+        !telemetry.nearbyDeadAnimal
+      ) {
+        e.preventDefault();
+        gameActions?.onOpenChest?.(telemetry.nearbyChest.id);
+        setSelectedCategory('chest');
+        const firstChestItem =
+          telemetry.nearbyChest.contents?.[0] ?? ownedItemIds[0] ?? 'bow';
+        setSelectedItemId(firstChestItem);
+        setSkyrimModal('inventory');
         return;
       }
 
@@ -295,10 +345,18 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         }
         if ((e.code === 'Enter' || e.code === kb.interactDoor) && !e.repeat) {
           e.preventDefault();
+          if (selectedCategory === 'chest' && telemetry.nearbyChest) {
+            if (telemetry.nearbyChest.contents.includes(selectedItemId)) {
+              triggerTakeChestItem(telemetry.nearbyChest.id, selectedItemId, 1);
+            } else if (isItemOwned(selectedItemId)) {
+              triggerStoreChestItem(telemetry.nearbyChest.id, selectedItemId, 1);
+            }
+            return;
+          }
           if (isItemOwned(selectedItemId)) {
             triggerEquipItem(selectedItemId);
           } else {
-            triggerBuyItem(selectedItemId);
+            triggerBuyItem(selectedItemId, 1);
           }
           return;
         }
@@ -307,7 +365,18 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState, skyrimModal, selectedCategory, selectedItemId, telemetry.nearbyMarket, kb]);
+  }, [
+    gameState,
+    skyrimModal,
+    selectedCategory,
+    selectedItemId,
+    telemetry.nearbyMarket,
+    telemetry.nearbyChest,
+    telemetry.nearbyDeadAnimal,
+    ownedItemIds,
+    gameActions,
+    kb,
+  ]);
 
   // 1. TITLE SCREEN OVERLAY ("the man" — Left-Aligned Typographic Menu)
   if (gameState === 'title') {
@@ -370,10 +439,11 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             aria-label={t('title.main_menu_aria')}
             className="flex flex-col items-start w-full gap-1.5 pointer-events-auto"
           >
-            {/* 1. Start Game Text Button */}
+            {/* 1. Start Game (Survival Mode) Text Button */}
             <button
               type="button"
               data-start="true"
+              data-testid="start-survival-btn"
               onClick={(e) => {
                 e.currentTarget.blur();
                 onStartGame();
@@ -399,6 +469,40 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
               >
                 {t('title.start_game')}
+              </span>
+            </button>
+
+            {/* 1B. God Mode Text Button */}
+            <button
+              type="button"
+              data-testid="start-god-mode-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                if (onStartGodMode) {
+                  onStartGodMode();
+                } else {
+                  onStartGame();
+                }
+              }}
+              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                style={{
+                  background:
+                    'linear-gradient(to right, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                }}
+              />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+              />
+              <span
+                className="relative z-10 block font-display-he text-xl sm:text-2xl font-medium tracking-wide text-amber-300/90 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
+                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+              >
+                {t('title.god_mode')}
               </span>
             </button>
 
@@ -461,41 +565,6 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 {t('title.settings')}
               </span>
             </button>
-
-            {/* 4. Weather Cycle Text Button */}
-            <button
-              type="button"
-              data-testid="weather-toggle-btn"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                onCycleWeather();
-              }}
-              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
-            >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
-                style={{
-                  background:
-                    'linear-gradient(to right, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.1) 55%, rgba(217, 119, 6, 0) 100%)',
-                }}
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
-              />
-              <div
-                className="relative z-10 flex items-baseline justify-start gap-3 text-stone-300 group-hover:text-amber-100 transition-all duration-200 group-hover:translate-x-1.5"
-                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
-              >
-                <span className="font-display-he text-xl sm:text-2xl font-medium tracking-wide">
-                  {t('title.weather_label')}
-                </span>
-                <span className="text-base sm:text-lg font-medium text-amber-300/90">
-                  {activeWeatherOption.short}
-                </span>
-              </div>
-            </button>
           </nav>
         </div>
       </main>
@@ -507,168 +576,225 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   const favoriteItems = INVENTORY_ITEMS.filter(
     (item) => favoriteIds.includes(item.id) && isItemOwned(item.id)
   );
+  const displayedWeatherKind =
+    weatherToggle !== 'auto' ? weatherToggle : (telemetry.weatherKind ?? 'clear_clouds');
+  const displayedWeatherName =
+    weatherToggle === 'auto'
+      ? telemetry.weatherLabel || activeWeatherOption.short
+      : activeWeatherOption.short;
+  const activeArrowKind = telemetry.arrowKind ?? 'normal';
+  const activeArrowItemId =
+    activeArrowKind === 'fire'
+      ? 'arrow_fire'
+      : activeArrowKind === 'wind'
+        ? 'arrow_wind'
+        : 'arrow_normal';
+  const activeArrowCount = ownedItemIds.filter((id) => id === activeArrowItemId).length;
+  const damageVignetteAlpha = Math.max(
+    telemetry.damageFlashIntensity ?? 0,
+    (telemetry.hp ?? 100) < 28 ? (28 - (telemetry.hp ?? 100)) / 48 : 0
+  );
 
-  // 2. PLAYING & PAUSED HUD OVERLAY (Strictly ONLY Weather [V] Button in Top Bar!)
+  const renderWeatherSvgIcon = (kind: string) => (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-sky-400 stroke-2 shrink-0">
+      {kind === 'regional_rain' ? (
+        <>
+          <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
+          <path d="M8 19v2M12 19v2M16 19v2" />
+        </>
+      ) : kind === 'lightning_storm' ? (
+        <>
+          <path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9" />
+          <polyline points="13 11 9 17 15 17 11 23" />
+        </>
+      ) : kind === 'dense_fog' ? (
+        <>
+          <path d="M4 10h16M6 14h12M4 18h16" />
+        </>
+      ) : kind === 'mountain_snow' ? (
+        <>
+          <path d="M12 2v20M4.93 4.93l14.14 14.14M2 12h20M4.93 19.07L19.07 4.93" />
+        </>
+      ) : kind === 'wind_sand' ? (
+        <>
+          <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
+        </>
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
+        </>
+      )}
+    </svg>
+  );
+
+  // 2. PLAYING & PAUSED HUD OVERLAY
   return (
     <div className="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-4 md:p-5">
-      {/* Top Row: Developer Time, Season & Weather Controls */}
-      <div className="flex items-start justify-end w-full">
+      {/* Red Screen-Edge Damage Vignette Overlay when taking damage or critically low HP */}
+      {damageVignetteAlpha > 0.01 && (
         <div
-          className="flex flex-wrap items-center justify-end gap-2 pointer-events-auto shrink-0"
-        >
-          {/* Developer Time of Day Control */}
+          data-testid="damage-vignette-overlay"
+          aria-hidden="true"
+          className="fixed inset-0 pointer-events-none z-10 transition-opacity duration-100"
+          style={{
+            opacity: Math.min(1, damageVignetteAlpha),
+            background:
+              'radial-gradient(circle at center, rgba(220, 38, 38, 0) 42%, rgba(220, 38, 38, 0.42) 78%, rgba(153, 27, 27, 0.85) 100%)',
+            boxShadow: 'inset 0 0 90px rgba(220, 38, 38, 0.75)',
+          }}
+        />
+      )}
+
+      {/* Top-Right Visual Weather & Season HUD + God Mode Developer Controls */}
+      <div className="flex items-start justify-end w-full">
+        {gameSettings.godMode !== false ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 pointer-events-auto shrink-0">
+            {/* Developer Time of Day Control */}
+            <div
+              data-testid="dev-time-control"
+              className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-2 text-xs font-medium text-stone-200 shrink-0"
+              style={{
+                backgroundColor: 'rgba(18, 16, 13, 0.88)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+              }}
+            >
+              <span className="font-mono-tabular text-amber-300 font-semibold">
+                {telemetry.timeString || '06:40'}
+              </span>
+              <input
+                type="range"
+                aria-label={t('hud.time_of_day_aria')}
+                data-testid="dev-time-slider"
+                min={0}
+                max={23.95}
+                step={0.1}
+                value={telemetry.worldHours ?? 6.68}
+                onChange={(e) => {
+                  gameActions?.onSetWorldHours?.(parseFloat(e.target.value));
+                }}
+                className="w-16 sm:w-20 accent-amber-400 cursor-pointer"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                data-testid="dev-time-day-btn"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  gameActions?.onSetWorldHours?.(9.0);
+                }}
+                className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-amber-200 cursor-pointer"
+                title={t('hud.set_morning_title')}
+              >
+                {t('hud.day')}
+              </button>
+              <button
+                type="button"
+                tabIndex={-1}
+                data-testid="dev-time-night-btn"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  gameActions?.onSetWorldHours?.(22.0);
+                }}
+                className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-sky-300 cursor-pointer"
+                title={t('hud.set_night_title')}
+              >
+                {t('hud.night')}
+              </button>
+            </div>
+
+            {/* Developer Season Selector */}
+            <div
+              data-testid="dev-season-control"
+              className="h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-medium text-stone-200 shrink-0"
+              style={{
+                backgroundColor: 'rgba(18, 16, 13, 0.88)',
+                border:
+                  telemetry.forcedSeason && telemetry.forcedSeason !== 'auto'
+                    ? '1px solid rgba(251, 191, 36, 0.55)'
+                    : '1px solid rgba(255, 255, 255, 0.14)',
+              }}
+            >
+              <span className="text-[11px] text-stone-400 hidden md:inline mr-0.5">
+                {t('hud.season_label')}
+              </span>
+              {SEASON_OPTIONS.map((sOpt) => {
+                const active = (telemetry.forcedSeason ?? 'auto') === sOpt.id;
+                return (
+                  <button
+                    key={sOpt.id}
+                    type="button"
+                    tabIndex={-1}
+                    data-testid={`dev-season-${sOpt.id}`}
+                    onClick={(e) => {
+                      e.currentTarget.blur();
+                      gameActions?.onSetSeason?.(sOpt.id);
+                    }}
+                    className={`px-1.5 py-0.5 rounded text-[11px] transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-amber-400 text-stone-950 font-bold'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800'
+                    }`}
+                  >
+                    {sOpt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              tabIndex={-1}
+              data-testid="weather-toggle-btn"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                onCycleWeather();
+              }}
+              aria-label={t('ui.weather_toggle_aria', { key: formatKeyCodeLabel(kb.cycleWeather) })}
+              title={t('ui.weather_toggle_title', { key: formatKeyCodeLabel(kb.cycleWeather) })}
+              className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium text-stone-200 hover:text-sky-300 transition-colors cursor-pointer shrink-0"
+              style={{
+                backgroundColor: 'rgba(18, 16, 13, 0.88)',
+                border:
+                  weatherToggle !== 'auto'
+                    ? '1px solid rgba(56, 189, 248, 0.55)'
+                    : '1px solid rgba(255, 255, 255, 0.14)',
+              }}
+            >
+              {renderWeatherSvgIcon(displayedWeatherKind)}
+              <span data-testid="hud-weather-display" className="whitespace-nowrap">
+                {weatherToggle === 'auto' && telemetry.weatherLabel
+                  ? `${activeWeatherOption.short} · ${telemetry.weatherLabel}`
+                  : activeWeatherOption.short}
+              </span>
+              <kbd className="hidden sm:inline-block px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
+                {formatKeyCodeLabel(kb.cycleWeather)}
+              </kbd>
+            </button>
+          </div>
+        ) : (
           <div
-            data-testid="dev-time-control"
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-2 text-xs font-medium text-stone-200 shrink-0"
+            data-testid="hud-weather-display"
+            className="h-9 sm:h-10 px-3 rounded-xl flex items-center gap-2 text-xs font-medium text-stone-200 shrink-0 shadow-lg"
             style={{
-              backgroundColor: 'rgba(18, 16, 13, 0.88)',
+              backgroundColor: 'rgba(18, 16, 13, 0.85)',
               border: '1px solid rgba(255, 255, 255, 0.14)',
             }}
           >
-            <span className="font-mono-tabular text-amber-300 font-semibold">
-              {telemetry.timeString || '06:40'}
+            {renderWeatherSvgIcon(displayedWeatherKind)}
+            <span className="text-amber-300 font-semibold">
+              {telemetry.seasonLabel || 'Summer'}
             </span>
-            <input
-              type="range"
-              aria-label={t('hud.time_of_day_aria')}
-              data-testid="dev-time-slider"
-              min={0}
-              max={23.95}
-              step={0.1}
-              value={telemetry.worldHours ?? 6.68}
-              onChange={(e) => {
-                gameActions?.onSetWorldHours?.(parseFloat(e.target.value));
-              }}
-              className="w-16 sm:w-20 accent-amber-400 cursor-pointer"
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              data-testid="dev-time-day-btn"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                gameActions?.onSetWorldHours?.(9.0);
-              }}
-              className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-amber-200 cursor-pointer"
-              title={t('hud.set_morning_title')}
-            >
-              {t('hud.day')}
-            </button>
-            <button
-              type="button"
-              tabIndex={-1}
-              data-testid="dev-time-night-btn"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                gameActions?.onSetWorldHours?.(22.0);
-              }}
-              className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] text-sky-300 cursor-pointer"
-              title={t('hud.set_night_title')}
-            >
-              {t('hud.night')}
-            </button>
-          </div>
-
-          {/* Developer Season Selector */}
-          <div
-            data-testid="dev-season-control"
-            className="h-9 sm:h-10 px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-medium text-stone-200 shrink-0"
-            style={{
-              backgroundColor: 'rgba(18, 16, 13, 0.88)',
-              border:
-                telemetry.forcedSeason && telemetry.forcedSeason !== 'auto'
-                  ? '1px solid rgba(251, 191, 36, 0.55)'
-                  : '1px solid rgba(255, 255, 255, 0.14)',
-            }}
-          >
-            <span className="text-[11px] text-stone-400 hidden md:inline mr-0.5">{t('hud.season_label')}</span>
-            {SEASON_OPTIONS.map((sOpt) => {
-              const active = (telemetry.forcedSeason ?? 'auto') === sOpt.id;
-              return (
-                <button
-                  key={sOpt.id}
-                  type="button"
-                  tabIndex={-1}
-                  data-testid={`dev-season-${sOpt.id}`}
-                  onClick={(e) => {
-                    e.currentTarget.blur();
-                    gameActions?.onSetSeason?.(sOpt.id);
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[11px] transition-colors cursor-pointer ${
-                    active
-                      ? 'bg-amber-400 text-stone-950 font-bold'
-                      : 'text-stone-300 hover:text-white hover:bg-stone-800'
-                  }`}
-                >
-                  {sOpt.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            tabIndex={-1}
-            data-testid="weather-toggle-btn"
-            onClick={(e) => {
-              e.currentTarget.blur();
-              onCycleWeather();
-            }}
-            aria-label={t('ui.weather_toggle_aria', { key: formatKeyCodeLabel(kb.cycleWeather) })}
-            title={t('ui.weather_toggle_title', { key: formatKeyCodeLabel(kb.cycleWeather) })}
-            className="h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium text-stone-200 hover:text-sky-300 transition-colors cursor-pointer shrink-0"
-            style={{
-              backgroundColor: 'rgba(18, 16, 13, 0.88)',
-              border:
-                weatherToggle !== 'auto'
-                  ? '1px solid rgba(56, 189, 248, 0.55)'
-                  : '1px solid rgba(255, 255, 255, 0.14)',
-            }}
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-sky-400 stroke-2 shrink-0">
-              {weatherToggle === 'regional_rain' ? (
-                <>
-                  <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
-                  <path d="M8 19v2M12 19v2M16 19v2" />
-                </>
-              ) : weatherToggle === 'lightning_storm' ? (
-                <>
-                  <path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9" />
-                  <polyline points="13 11 9 17 15 17 11 23" />
-                </>
-              ) : weatherToggle === 'dense_fog' ? (
-                <>
-                  <path d="M4 10h16M6 14h12M4 18h16" />
-                </>
-              ) : weatherToggle === 'mountain_snow' ? (
-                <>
-                  <path d="M12 2v20M4.93 4.93l14.14 14.14M2 12h20M4.93 19.07L19.07 4.93" />
-                </>
-              ) : weatherToggle === 'wind_sand' ? (
-                <>
-                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
-                </>
-              ) : (
-                <>
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" />
-                </>
-              )}
-            </svg>
-            <span className="whitespace-nowrap">
-              {weatherToggle === 'auto' && telemetry.weatherLabel
-                ? `${activeWeatherOption.short} · ${telemetry.weatherLabel}`
-                : activeWeatherOption.short}
+            <span className="text-stone-600">·</span>
+            <span className="whitespace-nowrap text-stone-200">
+              {displayedWeatherName}
             </span>
-            <kbd className="hidden sm:inline-block px-1 py-0.5 text-[10px] rounded bg-stone-800 text-stone-300 font-mono-tabular">
-              {formatKeyCodeLabel(kb.cycleWeather)}
-            </kbd>
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================================================ */}
-      {/* 2B. RADIAL INVENTORY, MARKET & SKILLS WHEEL ([Tab] / [B])                    */}
+      {/* 2B. RADIAL INVENTORY, MARKET, CHEST & SKILLS WHEEL ([Tab] / [B] / [E])       */}
       {/* ============================================================================ */}
       {gameState === 'playing' && skyrimModal === 'inventory' && (
         <SkyrimInventoryModal
@@ -678,19 +804,27 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           onSelectItem={setSelectedItemId}
           isItemEquipped={isItemEquipped}
           isItemOwned={isItemOwned}
+          ownedItemIds={ownedItemIds}
           goldCoins={goldCoins}
           favoriteIds={favoriteIds}
           hotbarSlots={hotbarSlots}
           onEquipItem={triggerEquipItem}
           onBuyItem={triggerBuyItem}
           onSellItem={triggerSellItem}
+          onTakeChestItem={triggerTakeChestItem}
+          onStoreChestItem={triggerStoreChestItem}
           onToggleFavorite={triggerToggleFavorite}
           onAssignHotbar={triggerAssignHotbar}
           onClose={() => setSkyrimModal('none')}
           closeKeyLabel={formatKeyCodeLabel(kb.inventoryModal)}
           interactKeyLabel={formatKeyCodeLabel(kb.interactDoor)}
           nearbyMarket={telemetry.nearbyMarket}
+          nearbyChest={telemetry.nearbyChest}
           skills={telemetry.skills}
+          hp={telemetry.hp}
+          maxHp={telemetry.maxHp}
+          hunger={telemetry.hunger}
+          maxHunger={telemetry.maxHunger}
           stamina={telemetry.stamina}
           maxStamina={telemetry.maxStamina}
           distanceWalked={telemetry.distanceWalked}
@@ -1004,7 +1138,25 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
-            {telemetry.nearbyBed && !telemetry.nearbyDeadAnimal && (
+            {telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && (
+              <div
+                data-testid="open-chest-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(15, 13, 10, 0.92)',
+                  border: '1px solid rgba(251, 191, 36, 0.72)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold text-xs text-amber-100">
+                  {t('hud.open_chest', { name: telemetry.nearbyChest.name })}
+                </span>
+              </div>
+            )}
+
+            {telemetry.nearbyBed && !telemetry.nearbyDeadAnimal && !telemetry.nearbyChest && (
               <div
                 data-testid="bed-sleep-prompt"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-stone-100 shadow-2xl"
@@ -1158,33 +1310,133 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 </span>
               </div>
             )}
+
+            {/* Bottom-Right Bow Mode Arrow Counter HUD */}
+            {(telemetry.equippedTool ?? 'bow') === 'bow' && (
+              <div
+                data-testid="hud-arrow-counter"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(16, 14, 11, 0.92)',
+                  border:
+                    activeArrowCount > 0
+                      ? '1px solid rgba(251, 191, 36, 0.65)'
+                      : '1px solid rgba(244, 63, 94, 0.72)',
+                }}
+              >
+                <span className={activeArrowCount > 0 ? 'text-amber-400' : 'text-rose-400'}>
+                  {renderItemSvgIcon(activeArrowItemId, 'w-4 h-4')}
+                </span>
+                <span className="text-xs font-semibold text-stone-200">
+                  {ITEM_SHORT_NAMES[activeArrowItemId] ?? 'Arrows'}
+                </span>
+                <span
+                  data-testid="hud-arrow-counter-value"
+                  className={`px-2 py-0.5 rounded font-mono-tabular text-xs font-bold ${
+                    activeArrowCount > 0
+                      ? 'bg-amber-400/20 text-amber-300'
+                      : 'bg-rose-500/25 text-rose-300'
+                  }`}
+                >
+                  ×{activeArrowCount}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Skyrim-Style Green Stamina Bar at Bottom Center when sprinting, drawing bow, or attacking */}
-          {telemetry.stamina !== undefined &&
-            telemetry.maxStamina !== undefined &&
-            telemetry.stamina < telemetry.maxStamina - 0.5 && (
-              <div
-                className="fixed left-1/2 bottom-6 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1"
-                aria-hidden="true"
-              >
+          {/* Skyrim-Style Vitals HUD (Health, Hunger & Stamina Bars) at Bottom Center */}
+          <div
+            data-testid="hud-vitals-bars"
+            className="fixed left-1/2 bottom-4 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
+            aria-hidden="true"
+          >
+            {/* Stamina Bar (shows when sprinting, drawing bow, or attacking) */}
+            {telemetry.stamina !== undefined &&
+              telemetry.maxStamina !== undefined &&
+              telemetry.stamina < telemetry.maxStamina - 0.5 && (
                 <div
-                  className="w-48 h-2 overflow-hidden"
+                  data-testid="hud-stamina-bar"
+                  className="w-52 h-2 rounded-full overflow-hidden shadow-lg"
                   style={{
                     backgroundColor: 'rgba(12, 10, 9, 0.85)',
-                    border: '1px solid rgba(52, 211, 153, 0.45)',
+                    border: telemetry.staminaExhausted
+                      ? '1px solid rgba(245, 158, 11, 0.75)'
+                      : '1px solid rgba(52, 211, 153, 0.45)',
                   }}
                 >
                   <div
-                    className="h-full transition-all duration-100"
+                    className={`h-full transition-all duration-100 ${
+                      telemetry.staminaExhausted ? 'animate-pulse' : ''
+                    }`}
                     style={{
-                      width: `${Math.max(0, Math.min(100, (telemetry.stamina / telemetry.maxStamina) * 100))}%`,
-                      backgroundColor: '#10b981',
+                      width: `${Math.max(
+                        0,
+                        Math.min(100, (telemetry.stamina / telemetry.maxStamina) * 100)
+                      )}%`,
+                      backgroundColor: telemetry.staminaExhausted ? '#f59e0b' : '#10b981',
                     }}
                   />
                 </div>
+              )}
+
+            {/* Health & Hunger Row */}
+            <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-stone-950/85 border border-stone-800/80 shadow-xl">
+              {/* Health (HP) Bar */}
+              <div className="flex items-center gap-1.5" data-testid="hud-hp-bar">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-rose-400">
+                  HP
+                </span>
+                <div className="w-24 sm:w-28 h-2 rounded-full overflow-hidden bg-stone-900 border border-rose-500/35">
+                  <div
+                    data-testid="hud-hp-bar-fill"
+                    className="h-full transition-all duration-150"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          ((telemetry.hp ?? 100) / Math.max(1, telemetry.maxHp ?? 100)) * 100
+                        )
+                      )}%`,
+                      backgroundColor: '#f43f5e',
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono-tabular font-bold text-rose-200 w-7 text-right">
+                  {Math.round(telemetry.hp ?? 100)}
+                </span>
               </div>
-            )}
+
+              <span className="text-stone-700">|</span>
+
+              {/* Hunger Bar */}
+              <div className="flex items-center gap-1.5" data-testid="hud-hunger-bar">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-amber-400">
+                  Hunger
+                </span>
+                <div className="w-24 sm:w-28 h-2 rounded-full overflow-hidden bg-stone-900 border border-amber-500/35">
+                  <div
+                    data-testid="hud-hunger-bar-fill"
+                    className="h-full transition-all duration-150"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          ((telemetry.hunger ?? 100) / Math.max(1, telemetry.maxHunger ?? 100)) *
+                            100
+                        )
+                      )}%`,
+                      backgroundColor: '#f59e0b',
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono-tabular font-bold text-amber-200 w-7 text-right">
+                  {Math.round(telemetry.hunger ?? 100)}
+                </span>
+              </div>
+            </div>
+          </div>
         </>
       )}
 
@@ -1288,38 +1540,42 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </p>
             </div>
 
-            {/* Dynamic Weather Selector */}
-            <div
-              className="p-4 rounded-xl flex flex-col gap-2.5 text-xs text-stone-300"
-              style={{
-                backgroundColor: 'rgba(30, 26, 22, 0.9)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sky-300">{t('ui.weather_control_label', { key: formatKeyCodeLabel(kb.cycleWeather) })}</span>
-                <span className="text-[11px] text-stone-400">{telemetry.weatherLabel}</span>
+            {/* Dynamic Weather Selector (God Mode Only) */}
+            {gameSettings.godMode !== false && (
+              <div
+                className="p-4 rounded-xl flex flex-col gap-2.5 text-xs text-stone-300"
+                style={{
+                  backgroundColor: 'rgba(30, 26, 22, 0.9)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sky-300">
+                    {t('ui.weather_control_label', { key: formatKeyCodeLabel(kb.cycleWeather) })}
+                  </span>
+                  <span className="text-[11px] text-stone-400">{telemetry.weatherLabel}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEATHER_OPTIONS.map((opt) => {
+                    const active = weatherToggle === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => onSelectWeather(opt.id)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-sky-400 text-stone-950 font-semibold'
+                            : 'bg-stone-800/90 text-stone-300 hover:bg-stone-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {WEATHER_OPTIONS.map((opt) => {
-                  const active = weatherToggle === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onSelectWeather(opt.id)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                        active
-                          ? 'bg-sky-400 text-stone-950 font-semibold'
-                          : 'bg-stone-800/90 text-stone-300 hover:bg-stone-700'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            )}
 
             {/* Visual Collider Wireframe Debug Toggle */}
             <div

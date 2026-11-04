@@ -46,7 +46,9 @@ export interface ISettlementModelHandles {
     rideableHorses?: readonly IRideableHorseState[],
     mountedHorseId?: string | null,
     playerX?: number,
-    playerZ?: number
+    playerZ?: number,
+    openDoorIds?: ReadonlySet<string>,
+    openedChestIds?: readonly string[]
   ) => void;
 }
 // #endregion
@@ -727,6 +729,101 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     win.position.set(wx, 2.25, 1.82);
     hunterCompound.add(win);
   }
+
+  // Interior Cabin Furniture: Bed (local x=3.2, z=-2.4), Table & Lantern, and Starter Gear Chest (local x=-2.4, z=-0.8)
+  const lodgeBedFrameGeo = new THREE.BoxGeometry(1.75, 0.42, 2.35);
+  const lodgeMattressGeo = new THREE.BoxGeometry(1.58, 0.2, 2.15);
+  const lodgePillowGeo = new THREE.BoxGeometry(1.15, 0.16, 0.48);
+  const lodgeBlanketMat = new THREE.MeshStandardMaterial({ color: 0x284e3a, roughness: 0.85 });
+  const lodgeLinenMat = new THREE.MeshStandardMaterial({ color: 0xe7dfd3, roughness: 0.8 });
+  const lodgeChestIronMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.45, metalness: 0.78 });
+  const lodgeGoldLockMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.35,
+    roughness: 0.3,
+    metalness: 0.85,
+  });
+  const lodgeChestBoxGeo = new THREE.BoxGeometry(1.35, 0.68, 0.86);
+  const lodgeChestLidGeo = new THREE.CylinderGeometry(0.43, 0.43, 1.37, 10, 1, false, 0, Math.PI);
+  lodgeChestLidGeo.rotateZ(Math.PI / 2);
+  const lodgeChestBandGeo = new THREE.BoxGeometry(0.1, 0.72, 0.9);
+  const lodgeLockPlateGeo = new THREE.BoxGeometry(0.22, 0.26, 0.08);
+  const lodgeTableTopGeo = new THREE.BoxGeometry(1.8, 0.12, 1.1);
+  const lodgeTableLegGeo = new THREE.BoxGeometry(0.12, 0.78, 0.12);
+  disposableGeometries.push(
+    lodgeBedFrameGeo,
+    lodgeMattressGeo,
+    lodgePillowGeo,
+    lodgeChestBoxGeo,
+    lodgeChestLidGeo,
+    lodgeChestBandGeo,
+    lodgeLockPlateGeo,
+    lodgeTableTopGeo,
+    lodgeTableLegGeo
+  );
+  disposableMaterials.push(lodgeBlanketMat, lodgeLinenMat, lodgeChestIronMat, lodgeGoldLockMat);
+
+  const lodgeBedGroup = new THREE.Group();
+  lodgeBedGroup.position.set(3.2, 0.48, -2.4);
+  const bedFrameMesh = new THREE.Mesh(lodgeBedFrameGeo, timberMat);
+  bedFrameMesh.position.y = 0.21;
+  const mattressMesh = new THREE.Mesh(lodgeMattressGeo, lodgeBlanketMat);
+  mattressMesh.position.y = 0.48;
+  const pillowMesh = new THREE.Mesh(lodgePillowGeo, lodgeLinenMat);
+  pillowMesh.position.set(0, 0.6, -0.72);
+  lodgeBedGroup.add(bedFrameMesh, mattressMesh, pillowMesh);
+  hunterCompound.add(lodgeBedGroup);
+
+  const lodgeTableGroup = new THREE.Group();
+  lodgeTableGroup.position.set(0.2, 0.48, -2.55);
+  const tableTop = new THREE.Mesh(lodgeTableTopGeo, timberMat);
+  tableTop.position.y = 0.82;
+  lodgeTableGroup.add(tableTop);
+  for (const [tx, tz] of [
+    [-0.75, -0.42],
+    [0.75, -0.42],
+    [-0.75, 0.42],
+    [0.75, 0.42],
+  ]) {
+    const leg = new THREE.Mesh(lodgeTableLegGeo, barkMat);
+    leg.position.set(tx, 0.39, tz);
+    lodgeTableGroup.add(leg);
+  }
+  hunterCompound.add(lodgeTableGroup);
+
+  // Starter Gear Chest at local (-2.4, 0.48, -0.8) -> world (-89.6, 2.35, 72.8)
+  const starterChestGroup = new THREE.Group();
+  starterChestGroup.name = 'chest-hunter-lodge';
+  starterChestGroup.position.set(-2.4, 0.48, -0.8);
+  starterChestGroup.rotation.y = 0.35;
+  const chestBase = new THREE.Mesh(lodgeChestBoxGeo, timberMat);
+  chestBase.position.y = 0.34;
+  chestBase.castShadow = !isSoftwareGl;
+  const chestInteriorGlowGeo = new THREE.BoxGeometry(1.18, 0.08, 0.68);
+  disposableGeometries.push(chestInteriorGlowGeo);
+  const chestInteriorGlowMesh = new THREE.Mesh(chestInteriorGlowGeo, lodgeGoldLockMat);
+  chestInteriorGlowMesh.position.set(0, 0.63, 0);
+  starterChestGroup.add(chestBase, chestInteriorGlowMesh);
+
+  for (const bx of [-0.46, 0, 0.46]) {
+    const band = new THREE.Mesh(lodgeChestBandGeo, lodgeChestIronMat);
+    band.position.set(bx, 0.36, 0);
+    starterChestGroup.add(band);
+  }
+
+  // Hinged lid pivot at the back edge of the chest (y = 0.68, z = -0.42)
+  const chestLidPivot = new THREE.Group();
+  chestLidPivot.position.set(0, 0.68, -0.42);
+  const chestLid = new THREE.Mesh(lodgeChestLidGeo, barkMat);
+  chestLid.position.set(0, 0, 0.42);
+  chestLid.castShadow = !isSoftwareGl;
+  const lockPlate = new THREE.Mesh(lodgeLockPlateGeo, lodgeGoldLockMat);
+  lockPlate.position.set(0, -0.12, 0.86);
+  chestLidPivot.add(chestLid, lockPlate);
+  starterChestGroup.add(chestLidPivot);
+  let currentChestLidAngle = 0;
+  hunterCompound.add(starterChestGroup);
 
   const roofSlopeGeo = new THREE.BoxGeometry(11.8, 0.24, 6.2);
   const verandaColGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.3, 8);
@@ -2052,8 +2149,22 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     rideableHorses?: readonly IRideableHorseState[],
     mountedHorseId?: string | null,
     playerX = 0,
-    playerZ = 0
+    playerZ = 0,
+    openDoorIds?: ReadonlySet<string>,
+    openedChestIds?: readonly string[]
   ) => {
+    const chestOpen = Boolean(
+      openDoorIds?.has('chest-hunter-lodge') ||
+        openedChestIds?.includes('chest-hunter-lodge')
+    );
+    const targetLidAngle = chestOpen ? -1.18 : 0.0;
+    if (Math.abs(targetLidAngle - currentChestLidAngle) > 0.001) {
+      currentChestLidAngle += (targetLidAngle - currentChestLidAngle) * 0.22;
+      chestLidPivot.rotation.x = currentChestLidAngle;
+    }
+    lodgeGoldLockMat.emissiveIntensity = chestOpen
+      ? 0.55 + Math.sin(elapsedTime * 3.2) * 0.2
+      : 0.28;
     rowboatGroup.position.y = WATER_LEVEL + 0.05 + Math.sin(elapsedTime * 1.8) * 0.04;
     rowboatGroup.rotation.z = Math.sin(elapsedTime * 1.4) * 0.03;
     for (let r = 0; r < windmillRotors.length; r++) {

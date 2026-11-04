@@ -155,6 +155,7 @@ export interface ISmallAnimalState {
   rhinoPhaseTimer?: number;
   rhinoChargeSpeed?: number;
   attackHitCooldownTimer?: number;
+  level?: number;
   isDead?: boolean; // true when hunted/killed after hp reaches 0
   isLooted?: boolean; // true after player collects loot with [E]
   isTamed?: boolean; // true after player tames & mounts a Royal Stag or Mystical CatLion
@@ -208,6 +209,51 @@ let activeWorldAnimalsRegistry: ISmallAnimalState[] = [];
  */
 export function getActiveWorldAnimals(): ISmallAnimalState[] {
   return activeWorldAnimalsRegistry;
+}
+
+/**
+ * Summary: Computes the combat level and base melee/charge attack damage for a ground animal,
+ * scaled by species strength, boss status, and individual animal level.
+ */
+export function getAnimalStrengthAndLevel(animal: ISmallAnimalState): {
+  readonly level: number;
+  readonly baseStrength: number;
+  readonly attackDamage: number;
+} {
+  let defaultLevel = 1;
+  let baseStrength = 6;
+  if (animal.species === 'dragon') {
+    defaultLevel = 12;
+    baseStrength = 34;
+  } else if (animal.species === 'lion' && animal.isBoss) {
+    defaultLevel = 10;
+    baseStrength = 26;
+  } else if (animal.species === 'lion') {
+    defaultLevel = 6;
+    baseStrength = 17;
+  } else if (animal.species === 'bear') {
+    defaultLevel = 5;
+    baseStrength = 20;
+  } else if (animal.species === 'rhino') {
+    defaultLevel = 5;
+    baseStrength = 19;
+  } else if (animal.species === 'crocodile') {
+    defaultLevel = 4;
+    baseStrength = 15;
+  } else if (animal.species === 'stag') {
+    defaultLevel = 4;
+    baseStrength = 13;
+  } else if (animal.species === 'jaguar') {
+    defaultLevel = 3;
+    baseStrength = 12;
+  } else if (animal.species === 'wolf') {
+    defaultLevel = 2;
+    baseStrength = 9;
+  }
+  const level = Math.max(1, animal.level ?? defaultLevel + (animal.id % 2));
+  const levelMult = 1 + (level - 1) * 0.14;
+  const attackDamage = Math.round(baseStrength * levelMult);
+  return { level, baseStrength, attackDamage };
 }
 
 // #endregion
@@ -1093,10 +1139,10 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -158, z: -112, species: 'wolf' },
     { x: -118, z: 86, species: 'wolf' },
     { x: 136, z: -118, species: 'wolf' },
-    // Armored Savanna / Oasis Rhinos — roaming the Southern & Southwest savanna plains (3)
+    // Armored Savanna / Oasis Rhinos — roaming the Southwest desert & oasis plains (3)
     { x: -195, z: 215, species: 'rhino' },
     { x: -224, z: 262, species: 'rhino' },
-    { x: 146, z: 168, species: 'rhino' },
+    { x: -286, z: 248, species: 'rhino' },
     // Mystical CatLions — 1 Boss seated on the Volcano Sanctum Throne Dais + 6 roaming the Western Volcanic Badlands outside the colossal cone (7)
     { x: VOLCANO_SANCTUM_POS.x - 1.0, z: VOLCANO_SANCTUM_POS.z, species: 'lion' },
     { x: VOLCANO_SANCTUM_POS.entranceX + 14.0, z: VOLCANO_SANCTUM_POS.z - 9.0, species: 'lion' },
@@ -1113,6 +1159,11 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     // Secluded Southern Pass Valley Deer beyond the Mountain Gorge Pass (2)
     { x: 96, z: 724, species: 'deer' },
     { x: 114, z: 708, species: 'deer' },
+    // Nordic Frost Shrine Alpine Wolf Pack & Desert Sun Pyramid Guardians (4)
+    { x: -302, z: -274, species: 'wolf' },
+    { x: -336, z: -278, species: 'wolf' },
+    { x: -446, z: 274, species: 'jaguar' },
+    { x: -442, z: 318, species: 'rhino' },
     // Colossal Ancient Dragon Ruins Dragon (250 HP, vulnerable to arrows & sword)
     { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z - 2, species: 'dragon' },
   ];
@@ -1155,6 +1206,21 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       wokenUpTimer: 0,
       hp: maxHp,
       maxHp,
+      level: isVolcanoSanctumMysticLion
+        ? 10
+        : c.species === 'dragon'
+          ? 12
+          : c.species === 'lion'
+            ? 6 + (i % 2)
+            : c.species === 'bear' || c.species === 'rhino'
+              ? 5 + (i % 2)
+              : c.species === 'crocodile' || c.species === 'stag'
+                ? 4 + (i % 2)
+                : c.species === 'jaguar'
+                  ? 3 + (i % 2)
+                  : c.species === 'wolf'
+                    ? 2 + (i % 2)
+                    : 1,
       hitReactionTimer: 0,
       isDead: false,
       isLooted: false,
@@ -1262,6 +1328,78 @@ function rotateYawSmoothlyToward(
     return targetYaw;
   }
   return currentYaw + Math.sign(diffYaw) * maxStep;
+}
+
+/**
+ * Summary: Computes tactical pack-flanking angle offset for a wolf when packmates are within 32m,
+ *          so wolves encircle prey from left/right flanks instead of overlapping on a single line.
+ */
+export function computeWolfPackFlankAngle(
+  wolf: ISmallAnimalState,
+  targetX: number,
+  targetZ: number,
+  animals: readonly ISmallAnimalState[]
+): number {
+  const baseAngle = Math.atan2(targetX - wolf.x, targetZ - wolf.z);
+  const distToTarget = Math.hypot(targetX - wolf.x, targetZ - wolf.z);
+  if (distToTarget < 3.6) {
+    return baseAngle;
+  }
+  let packmatesNear = 0;
+  let lowerIdCount = 0;
+  for (let i = 0; i < animals.length; i++) {
+    const other = animals[i];
+    if (other.id === wolf.id || other.isDead || other.species !== 'wolf') continue;
+    const d = Math.hypot(other.x - wolf.x, other.z - wolf.z);
+    if (d <= 32.0) {
+      packmatesNear++;
+      if (other.id < wolf.id) lowerIdCount++;
+    }
+  }
+  if (packmatesNear === 0) {
+    return baseAngle;
+  }
+  const flankSign = lowerIdCount % 2 === 0 ? 1 : -1;
+  const distScale = Math.min(1.0, (distToTarget - 3.6) / 10.0);
+  return baseAngle + flankSign * 0.48 * distScale;
+}
+
+/**
+ * Summary: Propagates a panic alert wave from a fleeing herbivore (`deer`, `sheep`, `rabbit`)
+ *          to nearby calm herd members of the same species within 22m so herds flee together.
+ */
+export function propagateHerdAlert(
+  panickedAnimal: ISmallAnimalState,
+  threatX: number,
+  threatZ: number,
+  animals: ISmallAnimalState[]
+): number {
+  let alertedCount = 0;
+  for (let i = 0; i < animals.length; i++) {
+    const mate = animals[i];
+    if (
+      mate.id === panickedAnimal.id ||
+      mate.isDead ||
+      mate.species !== panickedAnimal.species ||
+      mate.alertLevel === 'fleeing'
+    ) {
+      continue;
+    }
+    const d = Math.hypot(mate.x - panickedAnimal.x, mate.z - panickedAnimal.z);
+    if (d <= 22.0) {
+      mate.alertLevel = 'fleeing';
+      mate.aiBehavior = 'fleeing';
+      mate.isFleeing = true;
+      mate.fleeCooldown = Math.max(mate.fleeCooldown, 2.8);
+      mate.listenTimer = 0;
+      mate.isResting = false;
+      mate.isSeekingShelter = false;
+      mate.stimulusX = threatX;
+      mate.stimulusZ = threatZ;
+      alertedCount++;
+    }
+  }
+  return alertedCount;
 }
 
 /**
@@ -2393,18 +2531,26 @@ export function stepSmallAnimals(
               const maxChargeNoOvershoot =
                 Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
               const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-              a.vx = (toPreyX / len) * effChargeSpd;
-              a.vz = (toPreyZ / len) * effChargeSpd;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.2, safeDt);
+              const moveAngle =
+                a.species === 'wolf'
+                  ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
+                  : targetYaw;
+              a.vx = Math.sin(moveAngle) * effChargeSpd;
+              a.vz = Math.cos(moveAngle) * effChargeSpd;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, moveAngle, 6.2, safeDt);
               a.hopPhase += safeDt * 15.0;
             } else {
-              // Outer detection ring -> stealthy stalk / approach
+              // Outer detection ring -> stealthy stalk / approach (with wolf pack flanking)
               a.pounceHeight = 0;
               a.aiBehavior = 'stalking';
               const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
-              a.vx = (toPreyX / len) * stalkSpd;
-              a.vz = (toPreyZ / len) * stalkSpd;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.0, safeDt);
+              const stalkAngle =
+                a.species === 'wolf'
+                  ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
+                  : targetYaw;
+              a.vx = Math.sin(stalkAngle) * stalkSpd;
+              a.vz = Math.cos(stalkAngle) * stalkSpd;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, stalkAngle, 5.0, safeDt);
               a.hopPhase += safeDt * 7.5;
             }
           }
@@ -2697,6 +2843,7 @@ export function stepSmallAnimals(
       a.listenTimer = 0;
       a.isResting = false;
       a.isSeekingShelter = false;
+      scamperedCritterCount += propagateHerdAlert(a, nearestThreatX, nearestThreatZ, animals);
     } else if (a.fleeCooldown > 0) {
       a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
       if (a.fleeCooldown <= 0) {

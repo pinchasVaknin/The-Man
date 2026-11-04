@@ -1377,6 +1377,52 @@ export function buildPlayerAndCombatSystems(
         )
       : 0;
 
+    const equippedClothing = playerState.equippedClothingId ?? 'ranger_garb';
+    const isSimpleClothes = equippedClothing === 'simple_tunic';
+    const ownedIds = playerState.ownedItemIds;
+    const ownsBow = !ownedIds
+      ? true
+      : ownedIds.includes('bow') ||
+        ownedIds.includes('elven_longbow') ||
+        ownedIds.includes('dragonbone_bow');
+    const ownsSword = !ownedIds
+      ? true
+      : ownedIds.includes('sword') ||
+        ownedIds.includes('katana_imperial') ||
+        ownedIds.includes('dwarven_warhammer') ||
+        ownedIds.includes('celestial_jin_sword');
+    const bowActive = ownsBow && !isSwim && (isAimingBow || equippedTool === 'bow');
+    const swordActiveWithOwnership = ownsSword && swordActive;
+
+    mantleMesh.visible = !isSimpleClothes;
+    hoodFoldMesh.visible = !isSimpleClothes;
+    claspL.visible = !isSimpleClothes;
+    claspR.visible = !isSimpleClothes;
+    baldricMesh.visible = !isSimpleClothes;
+    cloakBackMesh.visible = !isSimpleClothes;
+    pouchL.visible = !isSimpleClothes;
+    pouchR.visible = !isSimpleClothes;
+    buckleMesh.visible = !isSimpleClothes;
+    quiverGroup.visible = ownsBow && !isSimpleClothes;
+    scabbardMesh.visible = ownsSword && !swordActiveWithOwnership;
+
+    if (isSimpleClothes) {
+      rangerTunicMat.color.setHex(0xa89882);
+      rangerPantsMat.color.setHex(0x574c3f);
+    } else if (equippedClothing === 'elven_cloak') {
+      rangerTunicMat.color.setHex(0x1b4332);
+      rangerCloakMat.color.setHex(0x14532d);
+      rangerPantsMat.color.setHex(0x1c2826);
+    } else if (equippedClothing === 'imperial_armor') {
+      rangerTunicMat.color.setHex(0x7f1d1d);
+      rangerCloakMat.color.setHex(0x450a0a);
+      rangerPantsMat.color.setHex(0x27272a);
+    } else {
+      rangerTunicMat.color.setHex(0x3e2a1b);
+      rangerCloakMat.color.setHex(0x2e3627);
+      rangerPantsMat.color.setHex(0x24201c);
+    }
+
     if (torchActive || fireArrowActive) {
       playerTorchLight.intensity = (torchActive ? 3.8 : 2.6) * flameFlicker;
       playerTorchLight.color.setHex(torchActive ? 0xff8c24 : 0xff6b00);
@@ -1531,7 +1577,7 @@ export function buildPlayerAndCombatSystems(
           0.12, Math.cos(swimPhase) * 0.35, 0.22,
           0.15
         );
-      } else if (isAimingBow || equippedTool === 'bow') {
+      } else if (bowActive) {
         fpBowRig.bowGroup.visible = true;
         fpTorch.tGroup.visible = false;
         fpSwordGroup.visible = false;
@@ -1613,7 +1659,7 @@ export function buildPlayerAndCombatSystems(
           fpNockedArrowGroup.visible = false;
           fpRightArm.root.visible = false;
         }
-      } else if (swordActive) {
+      } else if (swordActiveWithOwnership) {
         fpNockedArrowGroup.visible = false;
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = false;
@@ -1759,11 +1805,11 @@ export function buildPlayerAndCombatSystems(
     const isCrouching =
       !isMounted && !isSwim && !isFlying && Boolean(playerState.isCrouching || playerState.walkPace === 'relaxed');
     // When mounted and not aiming the bow, stow the bow on the back so the left hand holds the reins cleanly!
-    const bowInHands = !isSwim && (isAimingBow || (equippedTool === 'bow' && !isMounted));
+    const bowInHands = ownsBow && !isSwim && (isAimingBow || (equippedTool === 'bow' && !isMounted));
     bowGroup.visible = bowInHands;
-    stowedBackBowGroup.visible = !bowInHands;
+    stowedBackBowGroup.visible = ownsBow && !bowInHands;
     thirdPersonTorchGroup.visible = torchActive;
-    thirdPersonSwordGroup.visible = swordActive;
+    thirdPersonSwordGroup.visible = ownsSword && swordActive;
 
     if (isMounted && !isMountedShip) {
       const legSpreadX = isMountedLion ? 0.26 : 0.22;

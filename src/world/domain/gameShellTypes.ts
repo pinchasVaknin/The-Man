@@ -49,6 +49,7 @@ export interface ITelemetrySnapshot {
   cameraPerspective?: CameraPerspectiveMode;
   equippedTool?: EquippedToolSlot;
   activeWeaponId?: InventoryItemId;
+  equippedClothingId?: InventoryItemId;
   arrowKind?: ArrowElementKind;
   hotbarSlots?: (InventoryItemId | null)[];
   favoriteIds?: InventoryItemId[];
@@ -57,11 +58,18 @@ export interface ITelemetrySnapshot {
   nearbyMarket?: {
     id: string;
     name: string;
+    stock?: Partial<Record<InventoryItemId, number>>;
   } | null;
   nearbyDeadAnimal?: {
     id: string;
     species: string;
     speciesName: string;
+  } | null;
+  nearbyChest?: {
+    id: string;
+    name: string;
+    isOpened: boolean;
+    contents: InventoryItemId[];
   } | null;
   activeEnemyHealthBar?: {
     id: number;
@@ -109,6 +117,12 @@ export interface ITelemetrySnapshot {
   climbingLadder?: boolean;
   stamina?: number;
   maxStamina?: number;
+  staminaExhausted?: boolean;
+  hp?: number;
+  maxHp?: number;
+  hunger?: number;
+  maxHunger?: number;
+  damageFlashIntensity?: number;
   skills?: ICharacterSkillsState;
 }
 export type TelemetrySnapshot = ITelemetrySnapshot;

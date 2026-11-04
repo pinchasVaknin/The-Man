@@ -8,17 +8,19 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { t } from '../../locales';
-import type {
-  IPlayerState,
-  IPlayerInput,
-  IObstacleCylinder,
-  IRideableHorseState,
-  ICharacterSkillsState,
+import {
+  DEFAULT_STARTER_OWNED_ITEM_IDS,
+  type IPlayerState,
+  type IPlayerInput,
+  type IObstacleCylinder,
+  type IRideableHorseState,
+  type ICharacterSkillsState,
 } from '../domain/worldTypes';
 import {
   WATER_LEVEL,
   PLAYABLE_RADIUS,
   WORLD_SPAWN,
+  SURVIVAL_CABIN_SPAWN,
   RIDEABLE_HORSES,
   FORTRESS_Z_OFFSET,
   CHINESE_FORTRESS_POS,
@@ -28,6 +30,8 @@ import {
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
   VOLCANO_SANCTUM_POS,
+  NORDIC_FROST_SHRINE_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
   getLadderById,
   findWatchtowerLadderAt,
   findLookedAtWatchtowerLadder,
@@ -55,6 +59,7 @@ import {
 } from './sailableShipSystem';
 import {
   getActiveWorldAnimals,
+  getAnimalStrengthAndLevel,
   damageGroundAnimal,
   isVolcanoBossArenaLocked,
 } from './boidsAndWildlifeSystem';
@@ -64,14 +69,194 @@ import {
 // #region Initializers & Level Queries
 const FZ = FORTRESS_Z_OFFSET;
 const GRAVITY = 14.8;
+/** Minimum stamina required after hitting 0 before sprinting is allowed again (prevents run-walk-run stutter). */
+export const STAMINA_EXHAUSTION_RECOVERY_THRESHOLD = 24;
 
 /**
- * Summary: Creates and initializes default player state at the designated world spawn coordinates.
- * @returns A fresh player at the world spawn.
+ * Summary: Configures a player state for Survival Mode (waking up inside the Hunter's Lodge cabin
+ * with simple clothes, bare hands, 0 gold, no weapons, and no food) vs God Mode (classic full gear).
  */
-export function createInitialPlayerState(): IPlayerState {
+export function applyGameModeToPlayerState(state: IPlayerState, survivalMode: boolean): IPlayerState {
+  state.vx = 0;
+  state.vy = 0;
+  state.vz = 0;
+  state.onGround = true;
+  state.isFlying = false;
+  state.inWater = false;
+  state.isSwimming = false;
+  state.climbingLadderId = null;
+  state.mountedHorseId = null;
+  state.bowDrawn = false;
+  state.bowDrawProgress = 0;
+  state.openedChestIds = [];
+  state.chestContentsById = {};
+  state.maxHp = 100;
+  state.hp = 100;
+  state.maxHunger = 100;
+  state.hunger = 100;
+  state.maxStamina = 100;
+  state.stamina = 100;
+  state.staminaExhausted = false;
+  state.damageFlashTimer = 0;
+
+  if (survivalMode) {
+    const cabinGround = walkableHeightAt(SURVIVAL_CABIN_SPAWN.x, SURVIVAL_CABIN_SPAWN.z);
+    state.x = SURVIVAL_CABIN_SPAWN.x;
+    state.y = cabinGround.height;
+    state.z = SURVIVAL_CABIN_SPAWN.z;
+    state.yaw = SURVIVAL_CABIN_SPAWN.yaw;
+    state.pitch = SURVIVAL_CABIN_SPAWN.pitch;
+    state.mountedHorseYaw = SURVIVAL_CABIN_SPAWN.yaw;
+    state.currentBiome = 'cabin';
+    state.equippedTool = 'unarmed';
+    state.activeWeaponId = 'unarmed';
+    state.equippedClothingId = 'simple_tunic';
+    state.goldCoins = 0;
+    state.ownedItemIds = ['unarmed', 'simple_tunic'];
+    state.hotbarSlots = ['unarmed', null, null, null];
+    state.favoriteIds = ['unarmed', 'simple_tunic'];
+  } else {
+    const ground = walkableHeightAt(WORLD_SPAWN.x, WORLD_SPAWN.z);
+    state.x = WORLD_SPAWN.x;
+    state.y = ground.height;
+    state.z = WORLD_SPAWN.z;
+    state.yaw = WORLD_SPAWN.yaw;
+    state.pitch = WORLD_SPAWN.pitch;
+    state.mountedHorseYaw = WORLD_SPAWN.yaw;
+    state.currentBiome = 'trail';
+    state.equippedTool = 'bow';
+    state.activeWeaponId = 'bow';
+    state.equippedClothingId = 'ranger_garb';
+    state.goldCoins = 280;
+    state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
+    state.hotbarSlots = ['bow', 'torch', 'sword', 'unarmed'];
+    state.favoriteIds = ['bow', 'torch', 'sword', 'arrow_normal', 'arrow_fire', 'arrow_wind', 'unarmed'];
+  }
+  return state;
+}
+
+/**
+ * Summary: Steps Health (HP), Hunger, animal attack damage, and damage flash vignette per simulation tick.
+ * In Survival Mode (!godMode), hunger drains at a gentle realistic pace, starvation drains HP,
+ * well-fed state regenerates HP, and hostile/retaliating animal strikes deal HP damage scaled by
+ * the animal's strength and level.
+ */
+export function stepSurvivalVitals(
+  state: IPlayerState,
+  dt: number,
+  isSprinting: boolean,
+  godMode: boolean
+): { starvedOrDied: boolean; tookDamage: boolean } {
+  const maxHp = state.maxHp ?? 100;
+  const maxHunger = state.maxHunger ?? 100;
+  state.maxHp = maxHp;
+  state.maxHunger = maxHunger;
+  if (state.hp === undefined) state.hp = maxHp;
+  if (state.hunger === undefined) state.hunger = maxHunger;
+  if ((state.damageFlashTimer ?? 0) > 0) {
+    state.damageFlashTimer = Math.max(0, (state.damageFlashTimer ?? 0) - dt * 1.45);
+  }
+
+  let tookDamage = false;
+  const animals = getActiveWorldAnimals();
+  const clothing = state.equippedClothingId ?? 'simple_tunic';
+  const armorMitigation =
+    clothing === 'imperial_armor'
+      ? 0.5
+      : clothing === 'ranger_garb'
+        ? 0.72
+        : clothing === 'elven_cloak'
+          ? 0.82
+          : 1.0;
+
+  for (let i = 0; i < animals.length; i++) {
+    const a = animals[i];
+    if (a.isDead || a.isTamed || a.isSubdued || a.isMountedByPlayer) continue;
+    if ((a.attackHitCooldownTimer ?? 0) > 0) {
+      a.attackHitCooldownTimer = Math.max(0, (a.attackHitCooldownTimer ?? 0) - dt);
+    }
+    const canAttackPlayer =
+      a.species === 'wolf' ||
+      a.species === 'bear' ||
+      a.species === 'jaguar' ||
+      a.species === 'crocodile' ||
+      a.species === 'rhino' ||
+      a.species === 'stag' ||
+      a.species === 'lion' ||
+      a.species === 'dragon';
+    if (!canAttackPlayer) continue;
+    const dist = Math.hypot(a.x - state.x, a.z - state.z);
+    const strikeReach =
+      a.isBoss || a.species === 'dragon'
+        ? 4.4
+        : a.species === 'rhino' || a.species === 'bear' || a.species === 'crocodile'
+          ? 3.1
+          : 2.6;
+    if (
+      dist <= strikeReach &&
+      (a.aiBehavior === 'attacking' || a.aiBehavior === 'charging') &&
+      (a.attackHitCooldownTimer ?? 0) <= 0
+    ) {
+      const { attackDamage } = getAnimalStrengthAndLevel(a);
+      const blockFactor = state.swordBlocking ? 0.35 : 1.0;
+      const finalDamage = Math.max(1, Math.round(attackDamage * armorMitigation * blockFactor));
+      a.attackHitCooldownTimer = 1.05;
+      state.damageFlashTimer = 0.9;
+      tookDamage = true;
+      if (!godMode) {
+        state.hp = Math.max(0, state.hp - finalDamage);
+      }
+    }
+  }
+
+  if (godMode) {
+    state.hp = maxHp;
+    state.hunger = maxHunger;
+    return { starvedOrDied: false, tookDamage };
+  }
+
+  // Gentle, realistic hunger drain (~25-40 minutes for a full bar instead of 3 minutes)
+  const hungerDrainRate = isSprinting && !state.staminaExhausted ? 0.085 : 0.04;
+  state.hunger = Math.max(0, state.hunger - hungerDrainRate * dt);
+
+  if (state.hunger <= 0.01) {
+    state.hp = Math.max(0, state.hp - 1.2 * dt);
+    state.damageFlashTimer = Math.max(state.damageFlashTimer ?? 0, 0.55);
+    tookDamage = true;
+  } else if (state.hunger > 60 && state.hp < maxHp && (state.damageFlashTimer ?? 0) <= 0.01) {
+    state.hp = Math.min(maxHp, state.hp + 0.85 * dt);
+  }
+
+  if (state.hp <= 0) {
+    const cabinGround = walkableHeightAt(SURVIVAL_CABIN_SPAWN.x, SURVIVAL_CABIN_SPAWN.z);
+    state.x = SURVIVAL_CABIN_SPAWN.x;
+    state.y = cabinGround.height;
+    state.z = SURVIVAL_CABIN_SPAWN.z;
+    state.vx = 0;
+    state.vy = 0;
+    state.vz = 0;
+    state.yaw = SURVIVAL_CABIN_SPAWN.yaw;
+    state.pitch = SURVIVAL_CABIN_SPAWN.pitch;
+    state.mountedHorseId = null;
+    state.hp = maxHp;
+    state.hunger = Math.round(maxHunger * 0.75);
+    state.stamina = state.maxStamina ?? 100;
+    state.staminaExhausted = false;
+    state.damageFlashTimer = 0;
+    return { starvedOrDied: true, tookDamage: true };
+  }
+
+  return { starvedOrDied: false, tookDamage };
+}
+
+/**
+ * Summary: Creates and initializes default player state at the designated world spawn coordinates
+ * (or inside the starting cabin when options.survivalMode is true).
+ * @returns A fresh player state.
+ */
+export function createInitialPlayerState(options?: { survivalMode?: boolean }): IPlayerState {
   const ground = walkableHeightAt(WORLD_SPAWN.x, WORLD_SPAWN.z);
-  return {
+  const state: IPlayerState = {
     x: WORLD_SPAWN.x,
     y: ground.height,
     z: WORLD_SPAWN.z,
@@ -99,6 +284,9 @@ export function createInitialPlayerState(): IPlayerState {
     cameraPerspective: 'third_person',
     equippedTool: 'bow',
     activeWeaponId: 'bow',
+    equippedClothingId: 'ranger_garb',
+    openedChestIds: [],
+    chestContentsById: {},
     arrowKind: 'normal',
     goldCoins: 280,
     ownedItemIds: [
@@ -106,6 +294,8 @@ export function createInitialPlayerState(): IPlayerState {
       'sword',
       'torch',
       'unarmed',
+      'simple_tunic',
+      'ranger_garb',
       'arrow_normal',
       'arrow_fire',
       'arrow_wind',
@@ -141,6 +331,10 @@ export function createInitialPlayerState(): IPlayerState {
     lastArrowHitTarget: null,
     stamina: 100,
     maxStamina: 100,
+    hp: 100,
+    maxHp: 100,
+    hunger: 100,
+    maxHunger: 100,
     skills: {
       archeryLevel: 1,
       archeryXp: 0,
@@ -162,6 +356,10 @@ export function createInitialPlayerState(): IPlayerState {
       lastLevelUpTimer: 0,
     },
   };
+  if (options?.survivalMode) {
+    applyGameModeToPlayerState(state, true);
+  }
+  return state;
 }
 
 /**
@@ -684,7 +882,15 @@ export function stepPlayerPhysics(
   const isMountedOnHorse = Boolean(state.mountedHorseId);
   const isMountedOnStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedOnLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
-  const canSprint = (state.stamina ?? 100) > 1.0;
+  const maxStamForSprint = state.maxStamina ?? 100;
+  const curStamForSprint = state.stamina ?? maxStamForSprint;
+  const recoveryGate = Math.min(STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, maxStamForSprint * 0.25);
+  if (curStamForSprint <= 0.5) {
+    state.staminaExhausted = true;
+  } else if (state.staminaExhausted && curStamForSprint >= recoveryGate) {
+    state.staminaExhausted = false;
+  }
+  const canSprint = !state.staminaExhausted && curStamForSprint > 0.5;
 
   let paceMultiplier = 1.0;
   if (input.relaxed && !input.sprint) {
@@ -1372,11 +1578,28 @@ export function stepPlayerPhysics(
           ? 16.5
           : 11.5;
     curStam = Math.max(0, curStam - drainRate * dt);
+    if (curStam <= 0.5) {
+      curStam = 0;
+      state.staminaExhausted = true;
+    }
   } else if (state.bowDrawn && (state.bowDrawProgress ?? 0) > 0.65) {
     curStam = Math.max(5, curStam - 7.5 * dt);
   } else {
-    const regenRate = input.sprint ? 3.5 : 16.0;
+    const inNordicHotSpring =
+      Math.hypot(state.x - NORDIC_FROST_SHRINE_POS.x, state.z - NORDIC_FROST_SHRINE_POS.z) <=
+      NORDIC_FROST_SHRINE_POS.poolRadius + 2.5;
+    const onSunPyramidAltar =
+      Math.hypot(state.x - DESERT_PYRAMID_SANCTUARY_POS.x, state.z - DESERT_PYRAMID_SANCTUARY_POS.z) <=
+        6.5 && state.y >= DESERT_PYRAMID_SANCTUARY_POS.topY - 0.5;
+    const sanctuaryBonusRegen = inNordicHotSpring || onSunPyramidAltar ? 28.0 : 0.0;
+    const regenRate = (input.sprint && !state.staminaExhausted ? 3.5 : 16.0) + sanctuaryBonusRegen;
     curStam = Math.min(maxStam, curStam + regenRate * dt);
+    if (
+      state.staminaExhausted &&
+      curStam >= Math.min(STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, maxStam * 0.25)
+    ) {
+      state.staminaExhausted = false;
+    }
   }
   state.stamina = curStam;
 
