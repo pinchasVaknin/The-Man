@@ -90,12 +90,25 @@ export default function App() {
   }, [gameState, isLabOpen]);
 
   const handleStartGame = useCallback(() => {
+    setGameSettings((prev) => ({ ...prev, godMode: false }));
+    setWeatherToggle('auto');
+    gameActions?.onApplyGameMode?.(true);
     document.body.dataset.state = 'playing';
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     setGameState('playing');
-  }, []);
+  }, [gameActions]);
+
+  const handleStartGodMode = useCallback(() => {
+    setGameSettings((prev) => ({ ...prev, godMode: true }));
+    gameActions?.onApplyGameMode?.(false);
+    document.body.dataset.state = 'playing';
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setGameState('playing');
+  }, [gameActions]);
 
   const handleResumeGame = useCallback(() => {
     document.body.dataset.state = 'playing';
@@ -119,11 +132,12 @@ export default function App() {
   }, []);
 
   const handleCycleWeather = useCallback(() => {
+    if (gameSettings.godMode === false) return;
     setWeatherToggle((prev) => {
       const idx = WEATHER_CYCLE_ORDER.indexOf(prev);
       return WEATHER_CYCLE_ORDER[(idx + 1) % WEATHER_CYCLE_ORDER.length];
     });
-  }, []);
+  }, [gameSettings.godMode]);
 
   // Global keyboard shortcuts for Title Start (Enter/Space), Mute, and Weather Cycle
   useEffect(() => {
@@ -137,13 +151,25 @@ export default function App() {
       if (e.code === gameSettings.keybindings.toggleMute) {
         setMuted((prev) => !prev);
       }
-      if (e.code === gameSettings.keybindings.cycleWeather) {
+      if (
+        e.code === gameSettings.keybindings.cycleWeather &&
+        gameState !== 'title' &&
+        gameSettings.godMode !== false
+      ) {
         handleCycleWeather();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [gameState, isLabOpen, isSettingsOpen, gameSettings.keybindings, handleStartGame, handleCycleWeather]);
+  }, [
+    gameState,
+    isLabOpen,
+    isSettingsOpen,
+    gameSettings.keybindings,
+    gameSettings.godMode,
+    handleStartGame,
+    handleCycleWeather,
+  ]);
 
   if (isLabOpen) {
     return (
@@ -172,6 +198,7 @@ export default function App() {
         weatherToggle={weatherToggle}
         gameSettings={gameSettings}
         onStartGame={handleStartGame}
+        onStartGodMode={handleStartGodMode}
         onResumeGame={handleResumeGame}
         onReturnToTitle={handleReturnToTitle}
         onTogglePause={handleTogglePause}

@@ -18,6 +18,9 @@ import {
   FLOATING_ISLAND_STAIR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   DESERT_DRAGON_PASS_POS,
+  NORDIC_FROST_SHRINE_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
+  SMUGGLER_ISLAND_POS,
 } from './coreLandmarks';
 import {
   HUNTER_LODGE_POS,
@@ -740,6 +743,11 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
 
   // 5) Southern Cliffside Mountain Pass Guardrail Fence along the River Gorge drop-off (x = 101.35, z = 516..678)
   { id: 'southern-cliff-pass-guardrail', minX: 101.1, maxX: 101.7, minZ: 516.0, maxZ: 678.0, maxY: 14.0 },
+
+  // 6) Desert Sun Pyramid Twin Obelisks & Guardian Sphinx Pedestal
+  { id: 'desert-pyramid-obelisk-north', minX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 - 1.4, maxX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 + 1.4, minZ: DESERT_PYRAMID_SANCTUARY_POS.z - 10.5 - 1.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.z - 10.5 + 1.4, maxY: 18.5 },
+  { id: 'desert-pyramid-obelisk-south', minX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 - 1.4, maxX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 + 1.4, minZ: DESERT_PYRAMID_SANCTUARY_POS.z + 10.5 - 1.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.z + 10.5 + 1.4, maxY: 18.5 },
+  { id: 'desert-pyramid-sphinx', minX: DESERT_PYRAMID_SANCTUARY_POS.sphinxX - 5.2, maxX: DESERT_PYRAMID_SANCTUARY_POS.sphinxX + 5.2, minZ: DESERT_PYRAMID_SANCTUARY_POS.sphinxZ - 14.0 - 2.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.sphinxZ - 14.0 + 2.4, maxY: 10.5 },
 ];
 // #endregion
 
@@ -778,6 +786,8 @@ export const FLAT_BUILDING_TERRACES = [
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z - 103.0, innerR: 12.0, outerR: 24.0, targetH: VOLCANO_SANCTUM_POS.floorY },
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z + 103.0, innerR: 12.0, outerR: 24.0, targetH: VOLCANO_SANCTUM_POS.floorY },
   { x: FLOATING_ISLAND_STAIR_POS.footX - 3.0, z: FLOATING_ISLAND_STAIR_POS.z, innerR: 12.0, outerR: 22.0, targetH: 3.18 },
+  { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, innerR: 28.0, outerR: 42.0, targetH: NORDIC_FROST_SHRINE_POS.floorY },
+  { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, innerR: 42.0, outerR: 58.0, targetH: DESERT_PYRAMID_SANCTUARY_POS.baseY },
 ] as const;
 // #endregion
 
@@ -844,5 +854,8 @@ export const CLEAR_ZONES = [
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z + 105.0, r: 24.0 },
   { x: FLOATING_ISLAND_STAIR_POS.footX, z: FLOATING_ISLAND_STAIR_POS.z, r: 15.0 },
   ...FLOATING_BLOOMING_ISLANDS.map((isl) => ({ x: isl.x, z: isl.z, r: 12.0 })),
+  { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, r: 36.0 },
+  { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, r: 48.0 },
+  { x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, r: 34.0 },
 ];
 // #endregion

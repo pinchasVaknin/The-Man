@@ -7,7 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { IClimbableLadderInfo, IFortressDoorDef } from '../worldTypes';
+import type { IClimbableLadderInfo, IFortressDoorDef, IWorldChest } from '../worldTypes';
 import { t } from '../../../locales';
 import { CHINESE_FORTRESS_POS, CORNER_WATCHTOWERS, FORTRESS_Z_OFFSET } from './fortressLandmarks';
 import { HILL_WATCHTOWERS } from './highlandBridgeLandmarks';
@@ -465,6 +465,34 @@ export const FORTRESS_DOORS: readonly IFortressDoorDef[] = [
 ] as const;
 
 /**
+ * Summary: Computes a directional gaze + proximity alignment score for an interactive world object.
+ * Returns -Infinity when out of range, out of vertical reach, or outside the player's forward look cone.
+ */
+export function computeInteractableGazeScore(
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  pitch: number,
+  targetX: number,
+  targetY: number,
+  targetZ: number,
+  maxHorizDist: number
+): number {
+  if (Math.abs(y - targetY) > 3.2) return -Infinity;
+  if (Math.abs(pitch) > 1.18) return -Infinity;
+  const dx = targetX - x;
+  const dz = targetZ - z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > maxHorizDist) return -Infinity;
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  const horizDot = dist < 0.22 ? 1.0 : (dx * fwdX + dz * fwdZ) / dist;
+  if (horizDot < 0.68) return -Infinity;
+  return horizDot * 2.5 - dist / Math.max(0.5, maxHorizDist);
+}
+
+/**
  * Summary: Finds the closest enterable building door within interaction radius.
  * Design: Evaluates distance to door center and optional gaze dot product alignment.
  * @param x Observer X.
@@ -482,6 +510,7 @@ export function findNearestFortressDoor(
   pitch = 0
 ): IFortressDoorDef | null {
   let best: IFortressDoorDef | null = null;
+  let bestScore = -Infinity;
   let bestDist = Infinity;
   const hasGaze = yaw !== undefined;
   const fwdX = hasGaze ? -Math.sin(yaw) : 0;
@@ -491,7 +520,8 @@ export function findNearestFortressDoor(
     const d = FORTRESS_DOORS[i];
     if (Math.abs(y - d.y) > 3.5) continue;
     const distCenter = Math.hypot(x - d.x, z - d.z);
-    if (distCenter > d.interactRadius) continue;
+    const maxDoorDist = hasGaze ? Math.min(d.interactRadius, 3.4) : d.interactRadius;
+    if (distCenter > maxDoorDist) continue;
 
     if (hasGaze) {
       if (Math.abs(pitch) > 1.18) continue;
@@ -500,13 +530,14 @@ export function findNearestFortressDoor(
       const dx = targetX - x;
       const dz = targetZ - z;
       const len = Math.hypot(dx, dz);
-      if (len > 0.15) {
-        const horizDot = (dx * fwdX + dz * fwdZ) / len;
-        if (horizDot < 0.56) continue;
+      const horizDot = len > 0.15 ? (dx * fwdX + dz * fwdZ) / len : 1.0;
+      if (horizDot < 0.68) continue;
+      const score = horizDot * 2.5 - distCenter / maxDoorDist;
+      if (score > bestScore) {
+        bestScore = score;
+        best = d;
       }
-    }
-
-    if (distCenter < bestDist) {
+    } else if (distCenter < bestDist) {
       bestDist = distCenter;
       best = d;
     }
@@ -637,26 +668,174 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
 ] as const;
 
 /**
- * Summary: Finds the nearest sleepable bed within interaction range of the player.
+ * Summary: Finds the nearest sleepable bed within interaction range (and gaze cone when yaw is provided).
  */
 export function findNearestBed(
   x: number,
   y: number,
   z: number,
-  maxDistOverride?: number
+  maxDistOverride?: number,
+  yaw?: number,
+  pitch = 0
 ): IWorldBedDef | null {
   let best: IWorldBedDef | null = null;
   let bestDist = Infinity;
+  let bestScore = -Infinity;
+  const hasGaze = yaw !== undefined;
   for (let i = 0; i < WORLD_BEDS.length; i++) {
     const b = WORLD_BEDS[i];
     if (Math.abs(y - b.y) > 3.5) continue;
-    const d = Math.hypot(x - b.x, z - b.z);
-    const maxR = maxDistOverride ?? b.interactRadius;
-    if (d <= maxR && d < bestDist) {
-      bestDist = d;
-      best = b;
+    const maxR = hasGaze
+      ? Math.min(maxDistOverride ?? b.interactRadius, 2.7)
+      : (maxDistOverride ?? b.interactRadius);
+    if (hasGaze) {
+      const score = computeInteractableGazeScore(x, y, z, yaw, pitch, b.x, b.y, b.z, maxR);
+      if (score > bestScore) {
+        bestScore = score;
+        best = b;
+      }
+    } else {
+      const d = Math.hypot(x - b.x, z - b.z);
+      if (d <= maxR && d < bestDist) {
+        bestDist = d;
+        best = b;
+      }
     }
   }
   return best;
 }
+
+/**
+ * Summary: Spawn point inside the Hunter's Lodge cabin (which has a water trough and stable beside it)
+ * used when starting a new game in Survival mode.
+ */
+export const SURVIVAL_CABIN_SPAWN = {
+  x: HUNTER_LODGE_POS.x + 0.2,
+  y: HUNTER_LODGE_POS.height + 0.2,
+  z: HUNTER_LODGE_POS.z + 0.8,
+  yaw: -Math.PI * 0.5,
+  pitch: -0.08,
+} as const;
+
+/**
+ * Summary: Registry of interactive loot chests in the world.
+ * Includes the starter chest inside the Hunter's Lodge cabin containing clothing and a basic sword.
+ */
+export const WORLD_CHESTS: readonly IWorldChest[] = [
+  {
+    id: 'chest-hunter-lodge',
+    name: "Hunter's Cabin Chest",
+    x: HUNTER_LODGE_POS.x + 2.4,
+    y: HUNTER_LODGE_POS.height + 0.2,
+    z: HUNTER_LODGE_POS.z + 0.8,
+    interactRadius: 4.2,
+    contents: ['ranger_garb', 'sword'],
+  },
+] as const;
+
+/**
+ * Summary: Finds the nearest interactive loot chest within interaction range (and gaze cone when yaw is provided).
+ */
+export function findNearestWorldChest(
+  x: number,
+  y: number,
+  z: number,
+  openedChestIdsOrMaxDist?: readonly string[] | number,
+  maxDistOverride?: number,
+  yaw?: number,
+  pitch = 0
+): IWorldChest | null {
+  const openedIds = Array.isArray(openedChestIdsOrMaxDist)
+    ? (openedChestIdsOrMaxDist as readonly string[])
+    : undefined;
+  const distOverride =
+    typeof openedChestIdsOrMaxDist === 'number' ? openedChestIdsOrMaxDist : maxDistOverride;
+
+  let best: IWorldChest | null = null;
+  let bestDist = Infinity;
+  let bestScore = -Infinity;
+  const hasGaze = yaw !== undefined;
+  for (let i = 0; i < WORLD_CHESTS.length; i++) {
+    const c = WORLD_CHESTS[i];
+    if (openedIds && openedIds.includes(c.id)) continue;
+    if (Math.abs(y - c.y) > 3.5) continue;
+    const maxR = hasGaze
+      ? Math.min(distOverride ?? c.interactRadius, 2.8)
+      : (distOverride ?? c.interactRadius);
+    if (hasGaze) {
+      const score = computeInteractableGazeScore(x, y, z, yaw, pitch, c.x, c.y, c.z, maxR);
+      if (score > bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    } else {
+      const d = Math.hypot(x - c.x, z - c.z);
+      if (d <= maxR && d < bestDist) {
+        bestDist = d;
+        best = c;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Summary: Resolves the single best interactive object (chest, bed, or door) that the player
+ * is standing close to AND looking directly at, preventing nearby chests/beds behind or beside
+ * the player from hijacking door interactions.
+ */
+export function resolveBestLookedAtInteraction(
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  pitch = 0
+): {
+  kind: 'chest' | 'bed' | 'door' | 'none';
+  chest: IWorldChest | null;
+  bed: IWorldBedDef | null;
+  door: IFortressDoorDef | null;
+} {
+  const chest = findNearestWorldChest(x, y, z, undefined, undefined, yaw, pitch);
+  const bed = findNearestBed(x, y, z, undefined, yaw, pitch);
+  const door = findNearestFortressDoor(x, y, z, yaw, pitch);
+
+  const chestScore = chest
+    ? computeInteractableGazeScore(x, y, z, yaw, pitch, chest.x, chest.y, chest.z, 2.8)
+    : -Infinity;
+  const bedScore = bed
+    ? computeInteractableGazeScore(x, y, z, yaw, pitch, bed.x, bed.y, bed.z, 2.7)
+    : -Infinity;
+
+  let doorScore = -Infinity;
+  if (door) {
+    const fwdX = -Math.sin(yaw);
+    const fwdZ = -Math.cos(yaw);
+    const distCenter = Math.hypot(x - door.x, z - door.z);
+    const maxDoorDist = Math.min(door.interactRadius, 3.4);
+    const targetX = Math.max(door.minX, Math.min(door.maxX, x + fwdX * distCenter));
+    const targetZ = Math.max(door.minZ, Math.min(door.maxZ, z + fwdZ * distCenter));
+    const dx = targetX - x;
+    const dz = targetZ - z;
+    const len = Math.hypot(dx, dz);
+    const horizDot = len > 0.15 ? (dx * fwdX + dz * fwdZ) / len : 1.0;
+    doorScore = horizDot * 2.5 - distCenter / maxDoorDist;
+  }
+
+  if (chestScore === -Infinity && bedScore === -Infinity && doorScore === -Infinity) {
+    return { kind: 'none', chest: null, bed: null, door: null };
+  }
+  if (doorScore >= chestScore && doorScore >= bedScore && door) {
+    return { kind: 'door', chest: null, bed: null, door };
+  }
+  if (chestScore >= bedScore && chest) {
+    return { kind: 'chest', chest, bed: null, door: null };
+  }
+  if (bed) {
+    return { kind: 'bed', chest: null, bed, door: null };
+  }
+  return { kind: 'none', chest: null, bed: null, door: null };
+}
 // #endregion
+
+

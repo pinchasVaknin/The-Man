@@ -12,13 +12,23 @@ import {
   buyMarketItem,
   requiresSellConfirmation,
   sellMarketItem,
+  equipInventoryItem,
   assignHotbarSlot,
   toggleFavoriteItem,
   triggerSwordSlash,
   stepArrowsPhysics,
+  getChestContents,
+  takeItemFromWorldChest,
+  storeItemInWorldChest,
 } from './combatAndInventorySystem';
-import { createInitialPlayerState } from './playerPhysicsSystem';
-import { INVENTORY_ITEMS, INVENTORY_ITEM_MAP, type IPlayerState, type IArrowProjectile } from '../domain/worldTypes';
+import { createInitialPlayerState, stepSurvivalVitals } from './playerPhysicsSystem';
+import { WORLD_CHESTS } from '../terrainMath';
+import {
+  INVENTORY_ITEMS,
+  INVENTORY_ITEM_MAP,
+  type IPlayerState,
+  type IArrowProjectile,
+} from '../domain/worldTypes';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -278,4 +288,262 @@ test('buyMarketItem_WhenHeroLevelIsTooLow_ShouldReturnFailedResultWithLevelTooLo
   assert.equal(result.error, 'LEVEL_TOO_LOW');
   assert.equal(player.ownedItemIds?.includes('elven_longbow') ?? false, false);
 });
+
+test('sellMarketItem_WhenSellingEquippedSword_ShouldUnequipToUnarmedAndClearHotbarAndBlockReequipping', () => {
+  // Arrange
+  const player = createMarketEligiblePlayer();
+  player.ownedItemIds = ['unarmed', 'simple_tunic', 'sword'];
+  player.equippedTool = 'sword';
+  player.activeWeaponId = 'sword';
+  player.hotbarSlots = ['sword', null, null, 'unarmed'];
+  player.favoriteIds = ['sword'];
+
+  // Act
+  const res = sellMarketItem(player, 'sword');
+
+  // Assert
+  assert.equal(res.isSuccess, true);
+  assert.equal(player.ownedItemIds.includes('sword'), false);
+  assert.equal(player.equippedTool, 'unarmed');
+  assert.equal(player.activeWeaponId, 'unarmed');
+  assert.equal(player.hotbarSlots[0], null);
+  assert.equal(player.favoriteIds.includes('sword'), false);
+
+  // Attempting to equip an unowned sword must be ignored
+  equipInventoryItem(player, 'sword');
+  assert.equal(player.equippedTool, 'unarmed');
+  assert.equal(player.activeWeaponId, 'unarmed');
+});
+
+test('buyMarketItem_WhenBuyingStackableArrowsWithQuantity_ShouldMultiplyReducedUnitPriceAndAddMultipleCopies', () => {
+  // Arrange: Position at Fletcher stall (market-harbor-2) which stocks bows & arrows
+  const player = createMarketEligiblePlayer();
+  player.z = 263.0;
+  player.ownedItemIds = ['unarmed', 'bow', 'arrow_normal'];
+  player.goldCoins = 100;
+
+  // Verify reduced arrow prices
+  assert.equal(INVENTORY_ITEM_MAP.get('arrow_normal')?.valueGold, 5);
+  assert.equal(INVENTORY_ITEM_MAP.get('arrow_fire')?.valueGold, 12);
+  assert.equal(INVENTORY_ITEM_MAP.get('arrow_wind')?.valueGold, 15);
+
+  // Act: Buy 6 steel arrows even though 1 is already owned
+  const res = buyMarketItem(player, 'arrow_normal', 6);
+
+  // Assert
+  assert.equal(res.isSuccess, true);
+  assert.equal(player.goldCoins, 100 - 5 * 6);
+  const arrowCount = player.ownedItemIds.filter((id) => id === 'arrow_normal').length;
+  assert.equal(arrowCount, 7);
+});
+
+test('chestInventory_WhenTakingAndStoringItems_ShouldTransferBetweenChestAndPlayerAndUnequipStoredWeapon', () => {
+  // Arrange
+  const player = createInitialPlayerState({ survivalMode: true });
+  const chest = WORLD_CHESTS[0];
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'sword']);
+  assert.equal(player.equippedTool, 'unarmed');
+  assert.equal(player.equippedClothingId, 'simple_tunic');
+
+  // Act 1: Take sword from chest -> auto-equips since bare-handed
+  const takeSwordRes = takeItemFromWorldChest(player, chest, 'sword', 1);
+  assert.equal(takeSwordRes.ok, true);
+  assert.equal(player.ownedItemIds?.includes('sword'), true);
+  assert.equal(player.equippedTool, 'sword');
+  assert.equal(player.activeWeaponId, 'sword');
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb']);
+
+  // Act 2: Store sword back into chest -> unequips back to unarmed
+  const storeSwordRes = storeItemInWorldChest(player, chest, 'sword', 1);
+  assert.equal(storeSwordRes.ok, true);
+  assert.equal(player.ownedItemIds?.includes('sword'), false);
+  assert.equal(player.equippedTool, 'unarmed');
+  assert.equal(player.activeWeaponId, 'unarmed');
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'sword']);
+});
+
+test('survivalVitalsAndFood_WhenInSurvivalVsGodMode_ShouldDrainHungerRestoreOnEatAndLockInGodMode', () => {
+  // Arrange
+  const player = createInitialPlayerState({ survivalMode: true });
+  player.ownedItemIds = ['unarmed', 'simple_tunic', 'deer_meat'];
+  assert.equal(player.hp, 100);
+  assert.equal(player.hunger, 100);
+
+  // Act 1: Survival mode drains hunger over time
+  stepSurvivalVitals(player, 10.0, true, false);
+  assert.ok((player.hunger ?? 100) < 100, 'Expected hunger to drain in Survival mode');
+  player.hp = 70;
+  player.hunger = 50;
+
+  // Act 2: Eating deer_meat consumes it and restores hunger & HP
+  equipInventoryItem(player, 'deer_meat');
+  assert.equal(player.ownedItemIds.includes('deer_meat'), false, 'Expected eaten food to be consumed');
+  assert.ok((player.hunger ?? 0) > 50, 'Expected hunger to increase after eating');
+  assert.ok((player.hp ?? 0) > 70, 'Expected HP to increase after eating');
+
+  // Act 3: God mode locks HP and Hunger at 100
+  stepSurvivalVitals(player, 5.0, true, true);
+  assert.equal(player.hp, 100);
+  assert.equal(player.hunger, 100);
+});
+
+test('staminaExhaustionHysteresis_WhenStaminaHitsZero_ShouldPreventSprintUntilRecoveredPastThreshold', async () => {
+  const { stepPlayerPhysics, STAMINA_EXHAUSTION_RECOVERY_THRESHOLD } = await import('./playerPhysicsSystem');
+  const player = createInitialPlayerState({ survivalMode: true });
+  player.stamina = 0.2;
+
+  // Step 1: Trying to sprint when stamina is ~0 triggers staminaExhausted and forces normal walk pace
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 1,
+      right: 0,
+      sprint: true,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.equal(player.staminaExhausted, true);
+  assert.equal(player.walkPace, 'normal', 'Expected player to walk normally while staminaExhausted is true');
+
+  // Step 2: Even when stamina recovers slightly to 10 (below threshold 24), sprinting is still blocked (no stutter!)
+  player.stamina = 10;
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 1,
+      right: 0,
+      sprint: true,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.equal(player.staminaExhausted, true);
+  assert.equal(player.walkPace, 'normal');
+
+  // Step 3: Once stamina recovers to >= STAMINA_EXHAUSTION_RECOVERY_THRESHOLD (24), sprinting resumes!
+  player.stamina = STAMINA_EXHAUSTION_RECOVERY_THRESHOLD + 1;
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 1,
+      right: 0,
+      sprint: true,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.equal(player.staminaExhausted, false);
+  assert.equal(player.walkPace, 'fast');
+});
+
+test('consumeArrowFromInventory_WhenFiringBow_ShouldDecrementArrowCountFromOwnedItems', async () => {
+  const { consumeArrowFromInventory } = await import('./combatAndInventorySystem');
+  const player = createInitialPlayerState();
+  player.arrowKind = 'normal';
+  player.ownedItemIds = ['bow', 'arrow_normal', 'arrow_normal', 'arrow_normal'];
+
+  const shot1 = consumeArrowFromInventory(player);
+  assert.equal(shot1.consumed, true);
+  assert.equal(shot1.remainingCount, 2);
+
+  const shot2 = consumeArrowFromInventory(player);
+  assert.equal(shot2.consumed, true);
+  assert.equal(shot2.remainingCount, 1);
+
+  const shot3 = consumeArrowFromInventory(player);
+  assert.equal(shot3.consumed, true);
+  assert.equal(shot3.remainingCount, 0);
+
+  const shot4 = consumeArrowFromInventory(player);
+  assert.equal(shot4.consumed, false);
+  assert.equal(shot4.remainingCount, 0);
+});
+
+test('merchantStockAndRestock_WhenBuyingSellingAndAdvancingDays_ShouldDepleteStockShowSoldItemAndRestock', async () => {
+  const { getMerchantStallStock, checkAndRestockMerchants } = await import('./combatAndInventorySystem');
+  const player = createMarketEligiblePlayer();
+  player.z = 263.0; // market-harbor-2 (Fletcher stall)
+  player.goldCoins = 2000;
+
+  // 1) Initial stock at market-harbor-2 has 10 arrow_normal
+  const stock = getMerchantStallStock(player, 'market-harbor-2');
+  assert.equal(stock.arrow_normal, 10);
+
+  // 2) Buy 8 arrows -> 2 remain in merchant stock
+  const buy8 = buyMarketItem(player, 'arrow_normal', 8);
+  assert.equal(buy8.isSuccess, true);
+  assert.equal(stock.arrow_normal, 2);
+
+  // 3) Buy remaining 2 arrows -> 0 remain (deleted from merchant stock)
+  const buy2 = buyMarketItem(player, 'arrow_normal', 2);
+  assert.equal(buy2.isSuccess, true);
+  assert.equal(stock.arrow_normal, undefined);
+
+  // 4) Buying more when stock is 0 fails with OUT_OF_STOCK
+  const buyExtra = buyMarketItem(player, 'arrow_normal', 1);
+  assert.equal(buyExtra.isSuccess, false);
+  assert.equal(buyExtra.error, 'OUT_OF_STOCK');
+
+  // 5) Selling an owned item (e.g. deer_hide) adds it into the merchant's stock
+  player.ownedItemIds = ['unarmed', 'deer_hide'];
+  const sellRes = sellMarketItem(player, 'deer_hide');
+  assert.equal(sellRes.isSuccess, true);
+  assert.equal(stock.deer_hide, 1, 'Expected sold item to appear in merchant stock');
+
+  // 6) After 3 in-game days, merchant restocks depleted catalog items while keeping sold items
+  const restocked = checkAndRestockMerchants(player, 3);
+  assert.equal(restocked, true);
+  assert.ok((stock.arrow_normal ?? 0) >= 10, 'Expected arrow_normal to be restocked after 3 days');
+  assert.equal(stock.deer_hide, 1, 'Expected player-sold item to remain in merchant stock');
+});
+
+test('breadSatisfactionAndRhinoDesertBiome_WhenChecked_ShouldSatisfyHungerAndKeepRhinosInSouthwestDesert', async () => {
+  const { createInitialSmallAnimals, getAnimalStrengthAndLevel } = await import('./boidsAndWildlifeSystem');
+  const player = createInitialPlayerState({ survivalMode: true });
+  player.hunger = 15;
+  player.ownedItemIds = ['unarmed', 'simple_tunic', 'fresh_bread_loaf'];
+
+  // 1 loaf of bread restores +85 hunger (15 -> 100)
+  equipInventoryItem(player, 'fresh_bread_loaf');
+  assert.equal(player.hunger, 100, 'Expected 1 loaf of bread to satisfy hunger up to 100');
+
+  // Verify all Rhinos spawn in the Southwest Desert (x < -150, z > 180) and none in the Eastern Orange Birch Forest
+  const animals = createInitialSmallAnimals();
+  const rhinos = animals.filter((a) => a.species === 'rhino');
+  assert.ok(rhinos.length >= 3);
+  for (const r of rhinos) {
+    assert.ok(
+      r.x < -150 && r.z > 180,
+      `Expected Rhino #${r.id} to spawn in the Southwest Desert, got (${r.x}, ${r.z})`
+    );
+  }
+
+  // Verify animal attack damage scales with species strength and level
+  const wolf = animals.find((a) => a.species === 'wolf')!;
+  const bear = animals.find((a) => a.species === 'bear')!;
+  const dragon = animals.find((a) => a.species === 'dragon')!;
+  assert.ok(
+    getAnimalStrengthAndLevel(wolf).attackDamage < getAnimalStrengthAndLevel(bear).attackDamage &&
+      getAnimalStrengthAndLevel(bear).attackDamage < getAnimalStrengthAndLevel(dragon).attackDamage,
+    'Expected animal attack damage to scale with species strength and level'
+  );
+});
 // #endregion
+
+

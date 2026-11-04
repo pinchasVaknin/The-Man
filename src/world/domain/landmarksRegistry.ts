@@ -28,6 +28,9 @@ export {
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
   VOLCANO_SANCTUM_POS,
+  NORDIC_FROST_SHRINE_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
+  SMUGGLER_ISLAND_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
   FLOATING_BLOOMING_ISLANDS,
@@ -38,6 +41,7 @@ export {
   type ISkyWindGeyser,
   southernRiverBridgeHeightAt,
   floatingBloomingIslandHeightAt,
+  desertPyramidHeightAt,
   isWithinViewDistance,
 } from './landmarks/coreLandmarks';
 // #endregion
@@ -83,6 +87,7 @@ export {
   SOUTHEAST_HARBOR_POS,
   MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
+  getMarketStallCatalogItems,
 } from './landmarks/oasisAndHarborLandmarks';
 // #endregion
 
@@ -111,6 +116,11 @@ export {
   WORLD_BEDS,
   findNearestBed,
   type IWorldBedDef,
+  SURVIVAL_CABIN_SPAWN,
+  WORLD_CHESTS,
+  findNearestWorldChest,
+  computeInteractableGazeScore,
+  resolveBestLookedAtInteraction,
 } from './landmarks/interactionLandmarks';
 // #endregion
 

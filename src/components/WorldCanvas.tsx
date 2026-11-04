@@ -21,11 +21,13 @@ import {
   DEFAULT_WEATHER_CYCLE_MODE,
   MIN_BOW_DRAW_TO_SHOOT,
   createInitialPlayerState,
+  applyGameModeToPlayerState,
   equipInventoryItem,
   assignHotbarSlot,
   toggleFavoriteItem,
   createInitialRideableHorses,
   stepPlayerPhysics,
+  stepSurvivalVitals,
   awardSkillXp,
   spawnArrowProjectile,
   stepArrowsPhysics,
@@ -35,9 +37,12 @@ import {
   isPositionUnderRoof,
   findNearestFortressDoor,
   findNearestBed,
+  findNearestWorldChest,
   findLookedAtWatchtowerLadder,
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
+  takeItemFromWorldChest,
+  storeItemInWorldChest,
   getAnimalSpeciesName,
   getActiveWorldAnimals,
   ensureSafeOffscreenAnimalSpawns,
@@ -45,6 +50,9 @@ import {
   triggerSwordSlash,
   stepSwordSwingCombat,
   recoverArrowsFromAnimal,
+  consumeArrowFromInventory,
+   getArrowItemIdForKind,
+  checkAndRestockMerchants,
   buyMarketItem,
   sellMarketItem,
   isNavigableOceanForShip,
@@ -208,7 +216,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     } = worldScene;
 
     // 7. Player State, Rideable Horses, Active Arrows & Input Tracking
-    const playerState = createInitialPlayerState();
+    const playerState = createInitialPlayerState({
+      survivalMode: gameSettingsRef.current.godMode === false,
+    });
     playerState.cameraPerspective = gameSettingsRef.current.defaultCameraPerspective;
     const rideableHorses = createInitialRideableHorses();
     const activeArrows: IArrowProjectile[] = [];
@@ -221,7 +231,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
-    let seasonTimeOffset = 0;
+    // Start in Summer by default (SEASON_DURATION_SECONDS = 180.0, index 1 = 'summer').
+    // Each season lasts 5 full in-game days (120 in-game hours -> 1.5 seasonal units per in-game hour).
+    const SEASON_UNITS_PER_INGAME_HOUR = 180.0 / (5 * 24);
+    let seasonTimeOffset = 180.0;
+    let inGameHoursElapsed = 0;
+    const getSeasonClockSeconds = () =>
+      seasonTimeOffset + inGameHoursElapsed * SEASON_UNITS_PER_INGAME_HOUR;
     let urlWorldHour: number | null = null;
 
     // Optional URL parameters validated via centralized core/config
@@ -274,6 +290,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     function getEffectiveForcedWeather(): WeatherKind | null {
+      if (gameSettingsRef.current.godMode === false) {
+        return urlForcedWeatherKind;
+      }
       if (weatherToggleRef.current !== 'auto') {
         return weatherToggleRef.current;
       }
@@ -290,19 +309,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         playerState.bowDrawProgress = 0;
         return null;
       }
-      // When God Mode is disabled, require the active arrow element to be in inventory!
-      if (gameSettingsRef.current.godMode === false) {
-        const activeArrowItem =
-          playerState.arrowKind === 'fire'
-            ? 'arrow_fire'
-            : playerState.arrowKind === 'wind'
-              ? 'arrow_wind'
-              : 'arrow_normal';
-        if (!(playerState.ownedItemIds ?? []).includes(activeArrowItem)) {
-          playerState.bowDrawn = false;
-          playerState.bowDrawProgress = 0;
-          return null;
-        }
+      const activeArrowItem = getArrowItemIdForKind(playerState.arrowKind ?? 'normal');
+      const hasArrowInInventory = (playerState.ownedItemIds ?? []).includes(activeArrowItem);
+      if (!hasArrowInInventory && gameSettingsRef.current.godMode === false) {
+        playerState.bowDrawn = false;
+        playerState.bowDrawProgress = 0;
+        lastLootNotification = 'No arrows left in inventory!';
+        lastLootNotificationTimer = 2.5;
+        emitHudSnapshot();
+        return null;
+      }
+      if (hasArrowInInventory) {
+        consumeArrowFromInventory(playerState);
       }
       playerState.equippedTool = 'bow';
       const pwr =
@@ -319,6 +337,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       playerState.bowDrawProgress = 0;
       playerState.bowReleaseKick = 1.0;
       soundEngine.playArrowShoot(pwr);
+      emitHudSnapshot();
       return arrow;
     }
 
@@ -452,8 +471,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         soundEngine.playFootstep('trail', 1.15);
         emitHudSnapshot();
       },
-      onBuyItem: (itemId) => {
-        const res = buyMarketItem(playerState, itemId);
+      onBuyItem: (itemId, quantity = 1) => {
+        const res = buyMarketItem(playerState, itemId, quantity);
         if (res.isSuccess) {
           soundEngine.playFootstep('trail', 1.22);
         }
@@ -468,6 +487,33 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         emitHudSnapshot();
         return res;
       },
+      onTakeChestItem: (chestId, itemId, quantity = 1) => {
+        const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+        if (chest && chest.id === chestId) {
+          openDoorIds.add(chest.id);
+          takeItemFromWorldChest(playerState, chest, itemId, quantity);
+          soundEngine.playFootstep('trail', 1.15);
+          emitHudSnapshot();
+        }
+      },
+      onStoreChestItem: (chestId, itemId, quantity = 1) => {
+        const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+        if (chest && chest.id === chestId) {
+          openDoorIds.add(chest.id);
+          storeItemInWorldChest(playerState, chest, itemId, quantity);
+          soundEngine.playFootstep('trail', 0.95);
+          emitHudSnapshot();
+        }
+      },
+      onOpenChest: (chestId) => {
+        openDoorIds.add(chestId);
+        if (!playerState.openedChestIds) playerState.openedChestIds = [];
+        if (!playerState.openedChestIds.includes(chestId)) {
+          playerState.openedChestIds.push(chestId);
+        }
+        soundEngine.playFootstep('bridge', 1.15);
+        emitHudSnapshot();
+      },
       onAssignHotbar: (slotIndex, itemId) => {
         assignHotbarSlot(playerState, slotIndex as 0 | 1 | 2 | 3, itemId);
         emitHudSnapshot();
@@ -477,15 +523,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         emitHudSnapshot();
       },
       onSetWorldHours: (hours) => {
+        if (gameSettingsRef.current.godMode === false) return;
         isSleepingInBed = false;
         worldHours = ((Number(hours) % 24) + 24) % 24;
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         emitHudSnapshot();
       },
       onSetSeason: (season) => {
+        if (gameSettingsRef.current.godMode === false) return;
         forcedSeason = season;
         currentWeather = computeWeatherState(
-          elapsedTotal + seasonTimeOffset,
+          getSeasonClockSeconds(),
           playerState.x,
           playerState.z,
           activeWeatherMode,
@@ -554,6 +602,30 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             }
           }
         }
+        capturePreviousPlayerPose();
+        emitHudSnapshot();
+      },
+      onApplyGameMode: (survivalMode) => {
+        isSleepingInBed = false;
+        activeSleepingBed = null;
+        preSleepPlayerPos = null;
+        openDoorIds.delete('chest-hunter-lodge');
+        inGameHoursElapsed = 0;
+        seasonTimeOffset = 180.0;
+        if (survivalMode) {
+          forcedSeason = 'auto';
+          activeWeatherMode = DEFAULT_WEATHER_CYCLE_MODE;
+        }
+        applyGameModeToPlayerState(playerState, survivalMode);
+        currentWeather = computeWeatherState(
+          getSeasonClockSeconds(),
+          playerState.x,
+          playerState.z,
+          activeWeatherMode,
+          getEffectiveForcedWeather(),
+          forcedSeason === 'auto' ? null : forcedSeason
+        );
+        currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         capturePreviousPlayerPose();
         emitHudSnapshot();
       },
@@ -703,10 +775,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           swordHoldDuration = 0;
           swordHeavyTriggeredDuringHold = false;
         } else {
-          playerState.equippedTool = 'bow';
-          if (!playerState.bowDrawn) {
-            playerState.bowDrawn = true;
-            soundEngine.playBowDraw();
+          const ownsAnyBow = playerState.ownedItemIds
+            ? playerState.ownedItemIds.some(
+                (id) => id === 'bow' || id === 'elven_longbow' || id === 'dragonbone_bow'
+              )
+            : true;
+          if (ownsAnyBow) {
+            playerState.equippedTool = 'bow';
+            if (!playerState.bowDrawn) {
+              playerState.bowDrawn = true;
+              soundEngine.playBowDraw();
+            }
           }
         }
       }
@@ -821,11 +900,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           !playerState.isSwimming &&
           (playerState.equippedTool ?? 'bow') === 'bow'
         ) {
-          // Left mouse button in Bow mode draws the bow and arrow!
-          isMouseBowHeld = true;
-          if (!playerState.bowDrawn) {
-            playerState.bowDrawn = true;
-            soundEngine.playBowDraw();
+          const ownsAnyBow = playerState.ownedItemIds
+            ? playerState.ownedItemIds.some(
+                (id) => id === 'bow' || id === 'elven_longbow' || id === 'dragonbone_bow'
+              )
+            : true;
+          if (ownsAnyBow) {
+            // Left mouse button in Bow mode draws the bow and arrow!
+            isMouseBowHeld = true;
+            if (!playerState.bowDrawn) {
+              playerState.bowDrawn = true;
+              soundEngine.playBowDraw();
+            }
           }
         }
         if (
@@ -1014,7 +1100,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         elapsedTotal += rawDt;
         worldHours = advanceWorldClock(worldHours, rawDt, TITLE_CLOCK_HOURS_PER_SECOND);
         currentWeather = computeWeatherState(
-          elapsedTotal + seasonTimeOffset,
+          getSeasonClockSeconds(),
           camera.position.x,
           camera.position.z,
           activeWeatherMode,
@@ -1035,8 +1121,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             playerState.vy = 0;
             playerState.vz = 0;
           }
+          const prevSleepHours = worldHours;
           const sleepClock = advanceSleepClock(worldHours, rawDt);
           worldHours = sleepClock.hours;
+          const sleptHoursDelta = ((worldHours - prevSleepHours) + 24) % 24;
+          inGameHoursElapsed += sleptHoursDelta;
           if (sleepClock.hasReachedMorning) {
             isSleepingInBed = false;
             playerState.pitch = 0;
@@ -1048,15 +1137,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             activeSleepingBed = null;
             preSleepPlayerPos = null;
             playerState.stamina = playerState.maxStamina ?? 100;
+            playerState.staminaExhausted = false;
             lastLootNotification = t('notifications.awoke');
             lastLootNotificationTimer = 3.5;
             emitHudSnapshot();
           }
         } else {
           worldHours = advanceWorldClock(worldHours, rawDt, PLAY_CLOCK_HOURS_PER_SECOND);
+          inGameHoursElapsed += rawDt * PLAY_CLOCK_HOURS_PER_SECOND;
+        }
+        playerState.worldDaysElapsed = Math.floor(inGameHoursElapsed / 24);
+        if (checkAndRestockMerchants(playerState, playerState.worldDaysElapsed)) {
+          lastLootNotification = 'Harbor Market merchants have restocked their supplies!';
+          lastLootNotificationTimer = 4.0;
         }
         currentWeather = computeWeatherState(
-          elapsedTotal + seasonTimeOffset,
+          getSeasonClockSeconds(),
           playerState.x,
           playerState.z,
           activeWeatherMode,
@@ -1099,7 +1195,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           preSleepPlayerPos = null;
         }
 
-        // Interactive Looting of Hunted Animal, Sleeping in Bed, OR Door Toggle when pressing interactDoor ([E])
+        // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
           const nearDeadAnimal = findNearestDeadLootableAnimal(
             playerState.x,
@@ -1114,8 +1210,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               emitHudSnapshot();
             }
           } else {
-            const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
-            if (nearBed) {
+            const nearChest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+            if (nearChest) {
+              openDoorIds.add(nearChest.id);
+              if (!playerState.openedChestIds) playerState.openedChestIds = [];
+              if (!playerState.openedChestIds.includes(nearChest.id)) {
+                playerState.openedChestIds.push(nearChest.id);
+              }
+              soundEngine.playFootstep('bridge', 1.15);
+              emitHudSnapshot();
+              const win = window as unknown as {
+                openInventoryModal?: (open?: boolean, cat?: string) => void;
+              };
+              win.openInventoryModal?.(true, 'chest');
+            } else {
+              const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
+              if (nearBed) {
               const dangerNearby = getActiveWorldAnimals().some(
                 (a) =>
                   !a.isDead &&
@@ -1168,6 +1278,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 }
                 soundEngine.playFootstep('bridge', 0.85);
               }
+            }
             }
           }
         }
@@ -1319,6 +1430,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
           if (prevMountedId !== playerState.mountedHorseId) {
             capturePreviousPlayerPose();
+          }
+          const vitalsRes = stepSurvivalVitals(
+            playerState,
+            rawDt,
+            sprint,
+            gameSettingsRef.current.godMode !== false
+          );
+          if (vitalsRes.starvedOrDied) {
+            lastLootNotification = 'You collapsed from exhaustion and awoke inside the cabin.';
+            lastLootNotificationTimer = 4.5;
+            capturePreviousPlayerPose();
+            emitHudSnapshot();
           }
           if (playerState.lastTameNotice) {
             if (playerState.mountedHorseId) {

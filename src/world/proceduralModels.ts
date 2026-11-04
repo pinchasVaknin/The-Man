@@ -273,7 +273,15 @@ export function buildRealisticWorld(
       }
 
       // 4. Submodule simulation updates
-      updateSettlement(elapsedTime, rideableHorses, _mountedHorseId, playerX, playerZ);
+      updateSettlement(
+        elapsedTime,
+        rideableHorses,
+        _mountedHorseId,
+        playerX,
+        playerZ,
+        openDoorIds,
+        playerState?.openedChestIds
+      );
       updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
       updateFortress(elapsedTime, playerX, playerZ);
       updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);

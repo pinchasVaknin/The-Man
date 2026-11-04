@@ -236,6 +236,61 @@ export const SAILABLE_SHIP_INITIAL_POS = {
 } as const;
 
 /**
+ * Summary: Nordic Frost Giant Shrine & Geothermal Hot Springs Sanctuary in the North-West Snow Alpine region.
+ * Design: Steaming turquoise geothermal spring pool surrounded by 8 glowing cyan-ice Nordic runestones,
+ *         braziers, and a raised northern rune-altar dais that restores stamina to travelers.
+ */
+export const NORDIC_FROST_SHRINE_POS = {
+  x: -320.0,
+  z: -290.0,
+  floorY: 18.5,
+  poolWaterY: 18.25,
+  poolFloorY: 17.65,
+  altarDaisY: 19.45,
+  poolRadius: 11.0,
+  outerRadius: 34.0,
+} as const;
+
+/**
+ * Summary: Ancient Pharaoh Stepped Sun Pyramid, Twin Obelisks & Sphinx Sanctuary in the Western Desert expanse.
+ * Design: Monumental 5-tier stepped golden sandstone pyramid with a walkable eastern ceremonial ramp leading up
+ *         to a golden Sun-Disc summit altar, flanked by twin hieroglyphic obelisks and a guardian sphinx.
+ */
+export const DESERT_PYRAMID_SANCTUARY_POS = {
+  x: -475.0,
+  z: 295.0,
+  baseY: 2.35,
+  topY: 16.35,
+  halfBase: 22.0,
+  topHalf: 5.5,
+  rampMaxX: -449.0,
+  rampHalfWidthZ: 3.6,
+  sphinxX: -436.0,
+  sphinxZ: 295.0,
+} as const;
+
+/**
+ * Summary: Mid-Ocean Corsair Smuggler Cove & Sea Watchtower Island along the shipping lane between Harbor and Atlantis.
+ * Design: Features a western timber docking jetty for the Royal Explorer Flagship, a stone-and-timber sea beacon
+ *         watchtower, and smuggler supply caches.
+ */
+export const SMUGGLER_ISLAND_POS = {
+  x: 540.0,
+  z: 185.0,
+  deckY: 2.25,
+  radius: 32.0,
+  dockX: 506.0,
+  dockZ: 185.0,
+  dockMinX: 498.0,
+  dockMaxX: 516.0,
+  dockHalfWidthZ: 3.4,
+  towerX: 546.0,
+  towerZ: 185.0,
+  towerTopY: 12.65,
+} as const;
+
+
+/**
  * Summary: Cluster of 3 High-Altitude Large Floating Blooming Sky Islands in the Far Eastern Sky,
  *          dedicated habitat of the Royal Stag (`stag`) herd.
  */
@@ -554,6 +609,51 @@ export function southernRiverBridgeHeightAt(x: number): number {
     SOUTHERN_RIVER_BRIDGE_POS.baseY +
     (1.0 - normX * normX) * SOUTHERN_RIVER_BRIDGE_POS.crownLift
   );
+}
+
+/**
+ * Summary: Computes the walkable stepped-tier or eastern ceremonial stair ramp height on the Ancient Desert Sun Pyramid,
+ *          or returns null if (x, z) is outside the pyramid & stair footprint.
+ */
+export function desertPyramidHeightAt(
+  x: number,
+  z: number,
+  currentY?: number
+): number | null {
+  const px = DESERT_PYRAMID_SANCTUARY_POS.x;
+  const pz = DESERT_PYRAMID_SANCTUARY_POS.z;
+  const dx = x - px;
+  const dz = z - pz;
+  const absX = Math.abs(dx);
+  const absZ = Math.abs(dz);
+
+  // 1. Eastern Ceremonial Stair Ramp (dx from +5.5 out to +26.0, |dz| <= 3.6) ascending smoothly from baseY (2.35) to topY (16.35)
+  const rampStartDx = DESERT_PYRAMID_SANCTUARY_POS.topHalf; // 5.5
+  const rampEndDx = DESERT_PYRAMID_SANCTUARY_POS.rampMaxX - px; // 26.0
+  if (dx >= rampStartDx && dx <= rampEndDx && absZ <= DESERT_PYRAMID_SANCTUARY_POS.rampHalfWidthZ) {
+    const t = Math.max(0, Math.min(1, (rampEndDx - dx) / (rampEndDx - rampStartDx)));
+    const rampY =
+      DESERT_PYRAMID_SANCTUARY_POS.baseY +
+      t * (DESERT_PYRAMID_SANCTUARY_POS.topY - DESERT_PYRAMID_SANCTUARY_POS.baseY);
+    if (currentY === undefined || currentY >= rampY - 3.5) {
+      return rampY;
+    }
+  }
+
+  // 2. 5-Tier Stepped Golden Sandstone Pyramid footprint (|dx| <= 22.0, |dz| <= 22.0)
+  const maxCoord = Math.max(absX, absZ);
+  if (maxCoord <= DESERT_PYRAMID_SANCTUARY_POS.halfBase) {
+    if (maxCoord <= DESERT_PYRAMID_SANCTUARY_POS.topHalf) {
+      return DESERT_PYRAMID_SANCTUARY_POS.topY;
+    }
+    // 5 stepped tiers between halfBase (22.0) and topHalf (5.5): each tier is 3.3m wide horizontally and 2.8m tall
+    const norm = (DESERT_PYRAMID_SANCTUARY_POS.halfBase - maxCoord) /
+      (DESERT_PYRAMID_SANCTUARY_POS.halfBase - DESERT_PYRAMID_SANCTUARY_POS.topHalf);
+    const tierIndex = Math.min(4, Math.floor(norm * 5));
+    return DESERT_PYRAMID_SANCTUARY_POS.baseY + (tierIndex + 1) * 2.8;
+  }
+
+  return null;
 }
 // #endregion
 

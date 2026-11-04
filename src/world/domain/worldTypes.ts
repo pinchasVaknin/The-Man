@@ -83,7 +83,10 @@ export type InventoryItemId =
   | 'dwarven_gold_ore'
   | 'crystal_gem'
   | 'ancient_dwarven_horn'
+  | 'simple_tunic'
+  | 'ranger_garb'
   | 'elven_cloak'
+  | 'imperial_armor'
   | 'raw_game_meat'
   | 'roasted_meat'
   | 'fresh_bread_loaf'
@@ -123,7 +126,7 @@ export type InventoryItemId =
 export interface IInventoryItemDef {
   readonly id: InventoryItemId;
   readonly name: string;
-  readonly category: 'weapons' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures';
+  readonly category: 'weapons' | 'clothing' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures';
   readonly categoryLabel: string;
   readonly statLabel: string;
   readonly weight: number;
@@ -138,9 +141,19 @@ export interface IInventoryItemDef {
   readonly lootOnly?: boolean;
 }
 
+export interface IWorldChest {
+  readonly id: string;
+  readonly name: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly interactRadius: number;
+  readonly contents: readonly InventoryItemId[];
+}
+
 function createCatalogItem(
   id: InventoryItemId,
-  category: 'weapons' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures',
+  category: 'weapons' | 'clothing' | 'materials' | 'food' | 'ammo' | 'gear' | 'treasures',
   weight: number,
   valueGold: number,
   requiredLevel: number,
@@ -186,9 +199,9 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('dragonbone_bow', 'weapons', 3.2, 980, 4, { weaponRole: 'bow', rarity: 'legendary' }),
   createCatalogItem('celestial_jin_sword', 'weapons', 3.8, 1450, 5, { weaponRole: 'sword', rarity: 'legendary' }),
   createCatalogItem('torch', 'gear', 1.5, 45, 1, { starterOwned: true, rarity: 'common' }),
-  createCatalogItem('arrow_normal', 'ammo', 1, 25, 1, { starterOwned: true, rarity: 'common' }),
-  createCatalogItem('arrow_fire', 'ammo', 1, 55, 1, { starterOwned: true, rarity: 'refined' }),
-  createCatalogItem('arrow_wind', 'ammo', 0.8, 65, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('arrow_normal', 'ammo', 1, 5, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('arrow_fire', 'ammo', 1, 12, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('arrow_wind', 'ammo', 0.8, 15, 1, { starterOwned: true, rarity: 'refined' }),
   createCatalogItem('oak_timber', 'materials', 4, 65, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('cut_granite_blocks', 'materials', 8, 90, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('iron_ingots', 'materials', 5, 130, 1, { starterOwned: true, rarity: 'refined' }),
@@ -197,7 +210,10 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('dwarven_gold_ore', 'materials', 6, 220, 1, { starterOwned: true, rarity: 'epic' }),
   createCatalogItem('crystal_gem', 'materials', 2, 350, 1, { starterOwned: true, rarity: 'legendary' }),
   createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
-  createCatalogItem('elven_cloak', 'gear', 1.2, 190, 1, { rarity: 'refined' }),
+  createCatalogItem('simple_tunic', 'clothing', 0.8, 25, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('ranger_garb', 'clothing', 1.8, 140, 1, { starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('elven_cloak', 'clothing', 1.2, 190, 1, { rarity: 'refined' }),
+  createCatalogItem('imperial_armor', 'clothing', 4.5, 360, 2, { rarity: 'epic' }),
   createCatalogItem('raw_game_meat', 'food', 1.0, 45, 1, { rarity: 'common' }),
   createCatalogItem('deer_meat', 'food', 1.2, 55, 1, { rarity: 'common' }),
   createCatalogItem('bear_meat', 'food', 1.5, 70, 1, { rarity: 'refined' }),
@@ -234,10 +250,29 @@ export const INVENTORY_ITEM_MAP: ReadonlyMap<InventoryItemId, IInventoryItemDef>
   INVENTORY_ITEMS.map((item) => [item.id, item])
 );
 
-/** Summary: List of starter owned item IDs derived directly from catalog definitions. */
-export const DEFAULT_STARTER_OWNED_ITEM_IDS: readonly InventoryItemId[] = Object.freeze(
-  INVENTORY_ITEMS.filter((item) => Boolean(item.starterOwned)).map((item) => item.id)
-);
+/** Summary: List of starter owned item IDs derived directly from catalog definitions, with starter arrow stacks. */
+export const DEFAULT_STARTER_OWNED_ITEM_IDS: readonly InventoryItemId[] = Object.freeze([
+  ...INVENTORY_ITEMS.filter((item) => Boolean(item.starterOwned)).map((item) => item.id),
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_normal',
+  'arrow_fire',
+  'arrow_fire',
+  'arrow_fire',
+  'arrow_fire',
+  'arrow_fire',
+  'arrow_wind',
+  'arrow_wind',
+  'arrow_wind',
+  'arrow_wind',
+  'arrow_wind',
+]);
 
 /** Summary: First available non-starter market catalog item. */
 export const FIRST_MARKET_CATALOG_ITEM: IInventoryItemDef =
@@ -312,10 +347,22 @@ export interface IPlayerState {
   walkPace: WalkPaceMode;
   stamina?: number; // 0..100
   maxStamina?: number; // 100
+  staminaExhausted?: boolean;
+  hp?: number; // 0..100
+  maxHp?: number; // 100
+  hunger?: number; // 0..100
+  maxHunger?: number; // 100
+  damageFlashTimer?: number; // 0..1 red vignette timer when taking damage
+  worldDaysElapsed?: number;
+  lastMerchantRestockDay?: number;
+  merchantStockByStallId?: Record<string, Partial<Record<InventoryItemId, number>>>;
   skills?: ICharacterSkillsState;
   goldCoins?: number;
   ownedItemIds?: InventoryItemId[];
   activeWeaponId?: InventoryItemId;
+  equippedClothingId?: InventoryItemId;
+  openedChestIds?: string[];
+  chestContentsById?: Record<string, InventoryItemId[]>;
   climbingLadderId?: string | null;
   mountedHorseId?: string | null;
   mountedHorseYaw?: number;
@@ -762,7 +809,8 @@ export type MarketTransactionErrorCode =
   | 'NOT_OWNED'
   | 'CANNOT_SELL'
   | 'CANNOT_SELL_STARTER_GEAR'
-  | 'NOT_SOLD_BY_MERCHANTS';
+  | 'NOT_SOLD_BY_MERCHANTS'
+  | 'OUT_OF_STOCK';
 
 /**
  * Summary: Success payload generated upon successful item purchase at a market stall.
@@ -789,13 +837,22 @@ export interface ISellMarketItemPayload {
  */
 export interface IGameActions {
   readonly onEquipItem: (id: InventoryItemId) => void;
-  readonly onBuyItem: (id: InventoryItemId) => Result<IBuyMarketItemPayload, MarketTransactionErrorCode>;
+  readonly onBuyItem: (
+    id: InventoryItemId,
+    quantity?: number
+  ) => Result<IBuyMarketItemPayload, MarketTransactionErrorCode>;
   readonly onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
+  readonly onTakeChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
+  readonly onStoreChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
+  readonly onOpenChest?: (chestId: string) => void;
+  readonly onCloseChest?: (chestId: string) => void;
+  readonly onResumeGameControl?: () => void;
   readonly onAssignHotbar: (slotIndex: number, id: InventoryItemId) => void;
   readonly onToggleFavorite: (id: InventoryItemId) => void;
   readonly onSetWorldHours?: (hours: number) => void;
   readonly onSetSeason?: (season: SeasonType | 'auto') => void;
   readonly onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
+  readonly onApplyGameMode?: (survivalMode: boolean) => void;
 }
 // #endregion
 // #endregion

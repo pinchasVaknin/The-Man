@@ -365,6 +365,44 @@ ARTWORK_STRATEGIES.set('dragon_bone', (sizeClass) => (
     <path d="M66 94 L94 66" stroke="#b45309" strokeWidth="3" strokeLinecap="round" />
   </svg>
 ));
+
+const clothingIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M8 4l-5 4 3 3 2-2v11h8V9l2 2 3-3-5-4-2 2h-4L8 4z" />
+  </svg>
+);
+ICON_STRATEGIES.set('simple_tunic', clothingIcon);
+ICON_STRATEGIES.set('ranger_garb', clothingIcon);
+ICON_STRATEGIES.set('elven_cloak', clothingIcon);
+ICON_STRATEGIES.set('imperial_armor', clothingIcon);
+
+const createClothingArtwork = (
+  mainFill: string,
+  cloakFill: string,
+  trimStroke: string
+): ArtworkRenderStrategy => (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill={trimStroke} fillOpacity="0.18" />
+    <path
+      d="M44 42 Q80 28 116 42 L132 128 Q80 138 28 128 Z"
+      fill={cloakFill}
+      stroke={trimStroke}
+      strokeWidth="2.8"
+    />
+    <path
+      d="M56 38 L32 62 L44 76 L56 64 L56 124 L104 124 L104 64 L116 76 L128 62 L104 38 Q80 50 56 38 Z"
+      fill={mainFill}
+      stroke={trimStroke}
+      strokeWidth="3"
+    />
+    <rect x="56" y="84" width="48" height="10" rx="2" fill="#29180c" stroke={trimStroke} strokeWidth="2" />
+    <rect x="74" y="82" width="12" height="14" rx="2" fill={trimStroke} />
+  </svg>
+);
+ARTWORK_STRATEGIES.set('simple_tunic', createClothingArtwork('#a89882', '#786c5c', '#fde68a'));
+ARTWORK_STRATEGIES.set('ranger_garb', createClothingArtwork('#3e2a1b', '#2e3627', '#fbbf24'));
+ARTWORK_STRATEGIES.set('elven_cloak', createClothingArtwork('#1b4332', '#14532d', '#6ee7b7'));
+ARTWORK_STRATEGIES.set('imperial_armor', createClothingArtwork('#7f1d1d', '#450a0a', '#facc15'));
 // #endregion
 
 // ======================== PUBLIC RENDER FUNCTIONS ======================== \\

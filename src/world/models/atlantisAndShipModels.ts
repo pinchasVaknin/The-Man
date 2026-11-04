@@ -11,6 +11,9 @@ import * as THREE from 'three';
 import {
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
+  NORDIC_FROST_SHRINE_POS,
+  DESERT_PYRAMID_SANCTUARY_POS,
+  SMUGGLER_ISLAND_POS,
   isWithinViewDistance,
 } from '../terrainMath';
 import { getActiveSailableShip } from '../systems/sailableShipSystem';
@@ -802,7 +805,239 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   scene.add(sailableShipGroup);
 
   // ============================================================================
-  // 4. PER-FRAME ANIMATION & LIVE SHIP TRANSFORM SYNC
+  // 4. NORDIC FROST GIANT SHRINE & GEOTHERMAL HOT SPRINGS (-320, -290)
+  // ============================================================================
+  const nordicShrineGroup = new THREE.Group();
+  const nfX = NORDIC_FROST_SHRINE_POS.x;
+  const nfZ = NORDIC_FROST_SHRINE_POS.z;
+  const nfFloorY = NORDIC_FROST_SHRINE_POS.floorY;
+
+  const nordicGraniteMat = new THREE.MeshStandardMaterial({
+    color: 0x64748b,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.045,
+    roughness: 0.72,
+    metalness: 0.08,
+  });
+  const geothermalWaterMat = new THREE.MeshStandardMaterial({
+    color: 0x22d3ee,
+    emissive: 0x0891b2,
+    emissiveIntensity: 0.55,
+    roughness: 0.14,
+    metalness: 0.18,
+    transparent: true,
+    opacity: 0.86,
+  });
+  const goldenSandstoneMat = new THREE.MeshStandardMaterial({
+    color: 0xd9a05b,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.04,
+    roughness: 0.68,
+    metalness: 0.06,
+  });
+  disposableMaterials.push(nordicGraniteMat, geothermalWaterMat, goldenSandstoneMat);
+
+  const springRimGeo = new THREE.TorusGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.6, 0.85, 8, 28);
+  springRimGeo.rotateX(Math.PI / 2);
+  const springWaterDiscGeo = new THREE.CircleGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.2, 28);
+  springWaterDiscGeo.rotateX(-Math.PI / 2);
+  const runestoneMonolithGeo = new THREE.BoxGeometry(1.65, 6.2, 0.95);
+  const runestoneGlyphStripGeo = new THREE.BoxGeometry(0.32, 4.4, 1.02);
+  const altarDaisSlabGeo = new THREE.CylinderGeometry(4.4, 5.2, 1.05, 8);
+  disposableGeometries.push(
+    springRimGeo,
+    springWaterDiscGeo,
+    runestoneMonolithGeo,
+    runestoneGlyphStripGeo,
+    altarDaisSlabGeo
+  );
+
+  const springRimMesh = new THREE.Mesh(springRimGeo, nordicGraniteMat);
+  springRimMesh.position.set(nfX, nfFloorY + 0.15, nfZ);
+  const springWaterMesh = new THREE.Mesh(springWaterDiscGeo, geothermalWaterMat);
+  springWaterMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.poolWaterY, nfZ);
+  nordicShrineGroup.add(springRimMesh, springWaterMesh);
+
+  // 8 Ancient Carved Nordic Runestones with Glowing Cyan-Ice Runes encircling the Geothermal Pool
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const rx = nfX + Math.cos(ang) * 15.0;
+    const rz = nfZ + Math.sin(ang) * 15.0;
+    const stoneGroup = new THREE.Group();
+    stoneGroup.position.set(rx, nfFloorY, rz);
+    stoneGroup.rotation.y = -ang + Math.PI / 2;
+    const monolith = new THREE.Mesh(runestoneMonolithGeo, nordicGraniteMat);
+    monolith.position.y = 3.1;
+    const glyph = new THREE.Mesh(runestoneGlyphStripGeo, biolumCyanMat);
+    glyph.position.y = 3.2;
+    stoneGroup.add(monolith, glyph);
+    nordicShrineGroup.add(stoneGroup);
+  }
+
+  // Northern Raised Frost-Rune Altar Dais & Floating Ice Crystal at (x: -320, z: -306.5)
+  const altarZ = nfZ - 16.5;
+  const altarDais = new THREE.Mesh(altarDaisSlabGeo, nordicGraniteMat);
+  altarDais.position.set(nfX, nfFloorY + 0.52, altarZ);
+  const nordicFloatingCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
+  nordicFloatingCrystal.scale.setScalar(0.58);
+  nordicFloatingCrystal.position.set(nfX, NORDIC_FROST_SHRINE_POS.altarDaisY + 2.4, altarZ);
+  nordicShrineGroup.add(altarDais, nordicFloatingCrystal);
+
+  scene.add(nordicShrineGroup);
+  distanceCulledObjects.push({
+    obj: nordicShrineGroup,
+    cx: nfX,
+    cz: nfZ,
+    radius: 175.0,
+  });
+
+  // ============================================================================
+  // 5. ANCIENT PHARAOH STEPPED SUN PYRAMID, TWIN OBELISKS & SPHINX (-475, 295)
+  // ============================================================================
+  const desertPyramidGroup = new THREE.Group();
+  const pyX = DESERT_PYRAMID_SANCTUARY_POS.x;
+  const pyZ = DESERT_PYRAMID_SANCTUARY_POS.z;
+  const pyBaseY = DESERT_PYRAMID_SANCTUARY_POS.baseY;
+
+  // 5 Stepped Sandstone Tiers rising from halfBase = 22.0m to topHalf = 5.5m (each tier 2.8m high)
+  for (let tier = 0; tier < 5; tier++) {
+    const tierHalf = DESERT_PYRAMID_SANCTUARY_POS.halfBase - tier * 3.3;
+    const tierGeo = new THREE.BoxGeometry(tierHalf * 2, 2.8, tierHalf * 2);
+    disposableGeometries.push(tierGeo);
+    const tierMesh = new THREE.Mesh(
+      tierGeo,
+      tier === 4 ? orichalcumGoldMat : goldenSandstoneMat
+    );
+    tierMesh.position.set(pyX, pyBaseY + tier * 2.8 + 1.4, pyZ);
+    desertPyramidGroup.add(tierMesh);
+  }
+
+  // Walkable Eastern Ceremonial Staircase Ramp (dx: +5.5..+26.0, width 7.2m)
+  const rampLen = Math.hypot(20.5, 14.0);
+  const rampPitch = Math.atan2(14.0, 20.5);
+  const pyramidRampGeo = new THREE.BoxGeometry(rampLen, 0.9, DESERT_PYRAMID_SANCTUARY_POS.rampHalfWidthZ * 2);
+  const obeliskShaftGeo = new THREE.CylinderGeometry(0.65, 1.25, 13.5, 4);
+  obeliskShaftGeo.rotateY(Math.PI / 4);
+  const obeliskCapGeo = new THREE.ConeGeometry(0.92, 1.85, 4);
+  obeliskCapGeo.rotateY(Math.PI / 4);
+  const sunDiscGeo = new THREE.TorusGeometry(1.85, 0.32, 10, 24);
+  const sphinxBodyGeo = new THREE.BoxGeometry(7.6, 3.4, 3.2);
+  const sphinxHeadGeo = new THREE.BoxGeometry(2.4, 2.6, 2.6);
+  disposableGeometries.push(
+    pyramidRampGeo,
+    obeliskShaftGeo,
+    obeliskCapGeo,
+    sunDiscGeo,
+    sphinxBodyGeo,
+    sphinxHeadGeo
+  );
+
+  const pyramidRampMesh = new THREE.Mesh(pyramidRampGeo, goldenSandstoneMat);
+  pyramidRampMesh.position.set(pyX + 15.75, pyBaseY + 7.0 - 0.35, pyZ);
+  pyramidRampMesh.rotation.z = rampPitch;
+  desertPyramidGroup.add(pyramidRampMesh);
+
+  // Summit Golden Sun-Disc Altar at topY (16.35m)
+  const pyramidSunDisc = new THREE.Mesh(sunDiscGeo, orichalcumGoldMat);
+  pyramidSunDisc.position.set(pyX, DESERT_PYRAMID_SANCTUARY_POS.topY + 2.5, pyZ);
+  pyramidSunDisc.rotation.y = Math.PI / 2;
+  const sunCoreGem = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+  sunCoreGem.scale.setScalar(2.4);
+  sunCoreGem.position.set(pyX, DESERT_PYRAMID_SANCTUARY_POS.topY + 2.5, pyZ);
+  desertPyramidGroup.add(pyramidSunDisc, sunCoreGem);
+
+  // Twin Hieroglyphic Obelisks flanking the Ceremonial Staircase Foot (x = pyX + 28, z = pyZ ± 10.5)
+  for (const sideZ of [-10.5, 10.5]) {
+    const obShaft = new THREE.Mesh(obeliskShaftGeo, goldenSandstoneMat);
+    obShaft.position.set(pyX + 28.0, pyBaseY + 6.75, pyZ + sideZ);
+    const obCap = new THREE.Mesh(obeliskCapGeo, orichalcumGoldMat);
+    obCap.position.set(pyX + 28.0, pyBaseY + 14.4, pyZ + sideZ);
+    desertPyramidGroup.add(obShaft, obCap);
+  }
+
+  // Guardian Desert Sphinx Statue at (sphinxX: -436, sphinxZ - 14.0) facing East (+X)
+  const spX = DESERT_PYRAMID_SANCTUARY_POS.sphinxX;
+  const spZ = DESERT_PYRAMID_SANCTUARY_POS.sphinxZ - 14.0;
+  const sphinxBody = new THREE.Mesh(sphinxBodyGeo, goldenSandstoneMat);
+  sphinxBody.position.set(spX, pyBaseY + 1.7, spZ);
+  const sphinxHead = new THREE.Mesh(sphinxHeadGeo, orichalcumGoldMat);
+  sphinxHead.position.set(spX + 2.6, pyBaseY + 4.4, spZ);
+  desertPyramidGroup.add(sphinxBody, sphinxHead);
+
+  scene.add(desertPyramidGroup);
+  distanceCulledObjects.push({
+    obj: desertPyramidGroup,
+    cx: pyX,
+    cz: pyZ,
+    radius: 195.0,
+  });
+
+  // ============================================================================
+  // 6. MID-OCEAN CORSAIR SMUGGLER COVE & BEACON WATCHTOWER ISLAND (540, 185)
+  // ============================================================================
+  const smugglerIslandGroup = new THREE.Group();
+  const smX = SMUGGLER_ISLAND_POS.x;
+  const smZ = SMUGGLER_ISLAND_POS.z;
+  const smDeckY = SMUGGLER_ISLAND_POS.deckY;
+
+  const smugglerDockPlankGeo = new THREE.BoxGeometry(
+    SMUGGLER_ISLAND_POS.dockMaxX - SMUGGLER_ISLAND_POS.dockMinX,
+    0.45,
+    SMUGGLER_ISLAND_POS.dockHalfWidthZ * 2
+  );
+  const smugglerTowerBaseGeo = new THREE.CylinderGeometry(3.8, 4.5, 10.4, 8);
+  const smugglerTowerDeckGeo = new THREE.CylinderGeometry(4.8, 4.4, 0.7, 8);
+  const smugglerBeaconCageGeo = new THREE.CylinderGeometry(1.1, 0.85, 1.8, 6);
+  disposableGeometries.push(
+    smugglerDockPlankGeo,
+    smugglerTowerBaseGeo,
+    smugglerTowerDeckGeo,
+    smugglerBeaconCageGeo
+  );
+
+  // Western Timber Docking Pier (x: 498..516, z: 185, y: 2.25)
+  const smugglerPier = new THREE.Mesh(smugglerDockPlankGeo, shipDeckPlankMat);
+  smugglerPier.position.set(
+    (SMUGGLER_ISLAND_POS.dockMinX + SMUGGLER_ISLAND_POS.dockMaxX) * 0.5,
+    smDeckY - 0.18,
+    SMUGGLER_ISLAND_POS.dockZ
+  );
+  smugglerIslandGroup.add(smugglerPier);
+  for (const px of [500.0, 507.0, 514.0]) {
+    for (const pz of [smZ - 2.9, smZ + 2.9]) {
+      const piling = new THREE.Mesh(stallPostGeo, shipHullWoodMat);
+      piling.scale.set(2.2, 4.5, 2.2);
+      piling.position.set(px, 0.6, pz);
+      smugglerIslandGroup.add(piling);
+    }
+  }
+
+  // Corsair Sea Beacon Watchtower at (546, 185)
+  const twX = SMUGGLER_ISLAND_POS.towerX;
+  const twZ = SMUGGLER_ISLAND_POS.towerZ;
+  const smTowerBase = new THREE.Mesh(smugglerTowerBaseGeo, nordicGraniteMat);
+  smTowerBase.position.set(twX, smDeckY + 5.2, twZ);
+  const smTowerDeck = new THREE.Mesh(smugglerTowerDeckGeo, imperialDoorWoodMat);
+  smTowerDeck.position.set(twX, SMUGGLER_ISLAND_POS.towerTopY - 0.35, twZ);
+  const smBeaconCage = new THREE.Mesh(smugglerBeaconCageGeo, bronzeCannonMat);
+  smBeaconCage.position.set(twX, SMUGGLER_ISLAND_POS.towerTopY + 0.9, twZ);
+  const smBeaconFlame = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+  smBeaconFlame.scale.setScalar(2.6);
+  smBeaconFlame.position.set(twX, SMUGGLER_ISLAND_POS.towerTopY + 1.35, twZ);
+  smugglerIslandGroup.add(smTowerBase, smTowerDeck, smBeaconCage, smBeaconFlame);
+
+  scene.add(smugglerIslandGroup);
+  distanceCulledObjects.push({
+    obj: smugglerIslandGroup,
+    cx: smX,
+    cz: smZ,
+    radius: 185.0,
+  });
+
+  // ============================================================================
+  // 7. PER-FRAME ANIMATION & LIVE SHIP TRANSFORM SYNC
   // ============================================================================
   const updateAtlantisAndShip = (elapsedTime: number, playerX: number, playerZ: number) => {
     // 1) Sync Sailable Ship 3D group with live sailableShipSystem state
@@ -853,6 +1088,16 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       astroRing1.rotation.x = Math.sin(elapsedTime * 0.5) * 0.45;
       astroRing2.rotation.z = -elapsedTime * 0.85;
       astroRing2.rotation.y = Math.cos(elapsedTime * 0.6) * 0.52;
+    }
+
+    // 3) Animate Nordic Frost Shrine Floating Rune Crystal & Desert Sun Pyramid Disc when visible
+    if (nordicShrineGroup.visible) {
+      nordicFloatingCrystal.position.y =
+        NORDIC_FROST_SHRINE_POS.altarDaisY + 2.4 + Math.sin(elapsedTime * 1.8) * 0.28;
+      nordicFloatingCrystal.rotation.y = elapsedTime * 0.9;
+    }
+    if (desertPyramidGroup.visible) {
+      pyramidSunDisc.rotation.y = elapsedTime * 0.75;
     }
   };
 

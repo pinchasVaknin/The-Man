@@ -215,8 +215,12 @@ function writeThirdPersonPose(
   const shoulderSide = 0.44 - 0.86 * zoom;
   const shoulderUp = (isMountedShip ? 2.2 : 0.28) - 0.12 * zoom;
 
-  const camX = pivotX - fwdX * camDist + rightX * shoulderSide;
-  const camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;
+  let camX = pivotX - fwdX * camDist + rightX * shoulderSide;
+  let camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;
+  if (Math.abs(player.x - -92.0) < 4.5 && player.z >= 70.2 && player.z <= 75.7) {
+    camX = Math.max(-95.8, Math.min(-88.2, camX));
+    camZ = Math.max(70.65, Math.min(75.15, camZ));
+  }
   const minCamFloorY = walkableHeightAt(camX, camZ, player.y).height + 0.45;
   const rawCamY = Math.max(minCamFloorY, pivotY - fwdY * camDist + shoulderUp);
   const overheadRoofY = getRoofHeightAt(camX, camZ);
