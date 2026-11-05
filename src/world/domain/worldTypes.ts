@@ -65,6 +65,7 @@ export type ArrowElementKind = 'normal' | 'fire' | 'wind';
 export type InventoryItemId =
   | 'bow'
   | 'sword'
+  | 'woodcutter_axe'
   | 'katana_imperial'
   | 'elven_longbow'
   | 'dwarven_warhammer'
@@ -115,6 +116,8 @@ export type InventoryItemId =
   | 'dragon_horn'
   | 'dragon_claws'
   | 'dragon_bone';
+
+export type IObstacle = IObstacleCylinder;
 // #endregion
 
 // ======================== INVENTORY & EQUIPMENT TYPES ======================== \\
@@ -193,6 +196,7 @@ function createCatalogItem(
 export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('bow', 'weapons', 3, 145, 1, { weaponRole: 'bow', starterOwned: true, rarity: 'refined' }),
   createCatalogItem('sword', 'weapons', 4, 180, 1, { weaponRole: 'sword', starterOwned: true, rarity: 'refined' }),
+  createCatalogItem('woodcutter_axe', 'weapons', 3.4, 95, 1, { weaponRole: 'sword', starterOwned: true, rarity: 'common' }),
   createCatalogItem('katana_imperial', 'weapons', 3, 220, 1, { weaponRole: 'sword', rarity: 'refined' }),
   createCatalogItem('elven_longbow', 'weapons', 2.8, 480, 2, { weaponRole: 'bow', rarity: 'epic' }),
   createCatalogItem('dwarven_warhammer', 'weapons', 6.2, 720, 3, { weaponRole: 'sword', rarity: 'epic' }),
@@ -313,7 +317,7 @@ export interface ICharacterSkillsState {
 export interface IObstacleCylinder {
   readonly x: number;
   readonly z: number;
-  readonly radius: number;
+  radius: number;
   readonly kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia' | 'boulder' | 'pillar';
   readonly scale: number;
   readonly seed: number;
@@ -348,6 +352,9 @@ export interface IPlayerState {
   stamina?: number; // 0..100
   maxStamina?: number; // 100
   staminaExhausted?: boolean;
+  mountStamina?: number; // 0..100 stamina of active mount
+  mountMaxStamina?: number; // 100
+  mountStaminaExhausted?: boolean;
   hp?: number; // 0..100
   maxHp?: number; // 100
   hunger?: number; // 0..100
@@ -394,7 +401,7 @@ export interface IPlayerState {
     y: number;
     z: number;
     age: number;
-    kind: 'target' | 'obstacle' | 'wall';
+    kind: 'target' | 'obstacle' | 'wall' | 'wood';
   } | null;
   lastSwordAirWave?: {
     startX: number;
@@ -417,6 +424,10 @@ export interface IPlayerState {
   isCrouching?: boolean;
   isSleeping?: boolean;
   lastTameNotice?: string | null;
+  lastLootNotification?: {
+    text: string;
+    timer: number;
+  } | null;
   deathRespawnPhase?: {
     stage: 'dying' | 'waking';
     timer: number;
@@ -475,6 +486,9 @@ export interface IRideableHorseState {
   speed: number;
   gaitPhase: number;
   isJumping?: boolean;
+  stamina?: number;
+  maxStamina?: number;
+  staminaExhausted?: boolean;
 }
 // #endregion
 

@@ -72,6 +72,12 @@ import {
   applyWorldSnapshotToLiveSystems,
   getDefaultWorldBaseline,
   resetLiveWorldToFreshBaseline,
+  cancelBowDraw,
+  findNearestFallenTree,
+  harvestFallenTree,
+  resetTreeFellingSystem,
+  stepTreeFellingSystem,
+  getTreeDisplayName,
 } from '../world/terrainMath';
 import { useAppServices } from '../app/AppServicesContext';
 import type {
@@ -769,6 +775,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             getActiveWorldAnimals(),
             openDoorIds
           );
+          resetTreeFellingSystem(obstacles);
           inGameHoursElapsed = 0;
           seasonTimeOffset = 180.0;
           if (urlWorldHour === null) {
@@ -810,7 +817,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         emitHudSnapshot();
       },
       onResumeGameControl: () => {
+        openDoorIds.delete('chest-hunter-lodge');
         handleReacquirePointerLock();
+        emitHudSnapshot();
       },
     };
     onRegisterGameActions?.(gameActions);
@@ -876,9 +885,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     // Event Listeners
     const onKeyDown = (e: KeyboardEvent) => {
       const kb = gameSettingsRef.current.keybindings;
-      // Escape always pauses as a universal fallback, next to the configurable pause key.
+      // Escape always pauses as a universal fallback, next to the configurable pause key (unless an inventory/chest/market/map modal is open).
       if (matchesKeyBinding(e.code, kb.pauseGame) || e.code === 'Escape') {
-        if (gameStateRef.current === 'playing' || gameStateRef.current === 'paused') {
+        if (
+          document.body.dataset.skyrimModalOpen !== 'true' &&
+          document.body.dataset.worldMapModalOpen !== 'true' &&
+          (gameStateRef.current === 'playing' || gameStateRef.current === 'paused')
+        ) {
           onRequestPauseToggleRef.current();
         }
       }
@@ -946,47 +959,26 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           soundEngine.playFootstep(playerState.isSwimming ? 'water' : playerState.currentBiome, 1.25);
         }
       }
-      // Start drawing bow or charging/swinging sword on drawOrSlash keydown (only when not swimming!)
+      // Cancel bow draw with [R] key (or trigger sword attack when holding a sword)
       if (
-        e.code === kb.drawOrSlash &&
+        (e.code === 'KeyR' || e.code === kb.drawOrSlash) &&
         !e.repeat &&
         gameStateRef.current === 'playing' &&
         !playerState.isSwimming
       ) {
-        if (playerState.equippedTool === 'sword') {
+        if (playerState.equippedTool === 'sword' && e.code === kb.drawOrSlash) {
           isSwordAttackHeld = true;
           swordHoldDuration = 0;
           swordHeavyTriggeredDuringHold = false;
-        } else {
-          const ownsAnyBow = playerState.ownedItemIds
-            ? playerState.ownedItemIds.some(
-                (id) => id === 'bow' || id === 'elven_longbow' || id === 'dragonbone_bow'
-              )
-            : true;
-          if (ownsAnyBow) {
-            playerState.equippedTool = 'bow';
-            if (!playerState.bowDrawn) {
-              playerState.bowDrawn = true;
-              soundEngine.playBowDraw();
-            }
-          }
+        } else if (cancelBowDraw(playerState)) {
+          e.preventDefault();
+          isMouseBowHeld = false;
+          mouseMovedWhileDown = false;
+          cameraRig.smoothAimZoom = 0;
+          soundEngine.playFootstep('trail', 0.85);
+          emitHudSnapshot();
+          return;
         }
-      }
-      // Cancel bow draw with [R] key: relaxes the bow, resets draw progress, and keeps arrow safely in inventory
-      if (
-        e.code === 'KeyR' &&
-        !e.repeat &&
-        gameStateRef.current === 'playing' &&
-        playerState.bowDrawn
-      ) {
-        e.preventDefault();
-        playerState.bowDrawn = false;
-        playerState.bowDrawProgress = 0;
-        isMouseBowHeld = false;
-        mouseMovedWhileDown = false;
-        cameraRig.smoothAimZoom = 0;
-        soundEngine.playFootstep('trail', 0.85);
-        return;
       }
       // Detect Double-Tap Jump Key (within 500ms) to toggle Flight Mode in God Mode (disabled when mounting/dismounting a ladder!)
       if (
@@ -1035,8 +1027,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           if (!swordHeavyTriggeredDuringHold) {
             executeSwordSlash(false);
           }
-        } else if (playerState.bowDrawn) {
-          fireArrowNow();
         }
       }
     };
@@ -1079,9 +1069,21 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       }
     };
 
+    renderer.domElement.tabIndex = -1;
     const handleReacquirePointerLock = () => {
       lastPointerLockExitTimeMs = -Infinity;
+      if (
+        document.activeElement instanceof HTMLElement &&
+        document.activeElement !== renderer.domElement
+      ) {
+        document.activeElement.blur();
+      }
+      renderer.domElement.focus?.({ preventScroll: true });
       requestPointerLockSafely();
+      requestAnimationFrame(() => {
+        renderer.domElement.focus?.({ preventScroll: true });
+        requestPointerLockSafely();
+      });
     };
     window.addEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
 
@@ -1112,8 +1114,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           // Right mouse button with Sword equipped raises Skyrim Horizontal Parry / Block Guard!
           playerState.swordBlocking = true;
           soundEngine.playSwordClash(true);
-        } else {
-          // Right mouse button in Bow mode ONLY zooms the screen in closer (does NOT draw the arrow)!
+        } else if (!playerState.staminaExhausted) {
+          // Right mouse button in Bow mode ONLY zooms the screen in closer (while stamina is not exhausted)!
           playerState.bowZoomHeld = true;
         }
       } else if (e.button === 0) {
@@ -1206,7 +1208,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           (isLocked || !mouseMovedWhileDown || playerState.bowDrawProgress >= 0.35)
         ) {
           fireArrowNow();
-        } else if (!isBindingHeld(keysPressed, gameSettingsRef.current.keybindings.drawOrSlash)) {
+        } else {
           playerState.bowDrawn = false;
           playerState.bowDrawProgress = 0;
         }
@@ -1437,7 +1439,25 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               emitHudSnapshot();
             }
           } else {
-            const bestInteract = resolveBestLookedAtInteraction(
+            const nearFallenTree = findNearestFallenTree(
+              playerState.x,
+              playerState.z,
+              4.4
+            );
+            if (nearFallenTree) {
+              const harvestRes = harvestFallenTree(
+                playerState,
+                nearFallenTree,
+                obstacles
+              );
+              if (harvestRes.ok && harvestRes.notification) {
+                lastLootNotification = harvestRes.notification;
+                lastLootNotificationTimer = 4.2;
+                soundEngine.playFootstep('bridge', 1.12);
+                emitHudSnapshot();
+              }
+            } else {
+              const bestInteract = resolveBestLookedAtInteraction(
               playerState.x,
               playerState.y,
               playerState.z,
@@ -1504,7 +1524,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               }
               soundEngine.playFootstep('bridge', 0.85);
             }
+            }
           }
+        }
+
+        if (
+          openDoorIds.has('chest-hunter-lodge') &&
+          document.body.dataset.skyrimModalOpen !== 'true'
+        ) {
+          openDoorIds.delete('chest-hunter-lodge');
         }
 
         // Virtual bow draw button on touch / HUD
@@ -1518,7 +1546,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         stepBowFeel(
           playerState,
           rawDt,
-          keysPressed.has(kb.drawOrSlash) || isMouseBowHeld || Boolean(virtualMoveRef.current.drawBow)
+          isMouseBowHeld || Boolean(virtualMoveRef.current.drawBow)
         );
 
         // Update Long-Press Sword Power Attack Charge (holding Left-Click or [R] >= 0.24s triggers Heavy Forward Air-Cleaving Attack!)
@@ -1540,6 +1568,25 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           const strikeWindowRes = stepSwordSwingCombat(playerState, obstacles, rawDt);
           if (strikeWindowRes) {
             handleSwordStrikeImpactFeedback(strikeWindowRes);
+          }
+        }
+        const treeStepRes = stepTreeFellingSystem(rawDt, playerState, obstacles);
+        if (treeStepRes.playerDamaged) {
+          lastLootNotification =
+            treeStepRes.notification ??
+            `Crushed by falling tree! (-${treeStepRes.damageAmount} HP)`;
+          lastLootNotificationTimer = 4.0;
+          soundEngine.playSwordClash(true);
+          emitHudSnapshot();
+        }
+        if (playerState.lastLootNotification && playerState.lastLootNotification.timer > 0) {
+          playerState.lastLootNotification.timer = Math.max(
+            0,
+            playerState.lastLootNotification.timer - rawDt
+          );
+          if (playerState.lastLootNotification.timer > 0 && lastLootNotificationTimer <= 0) {
+            lastLootNotification = playerState.lastLootNotification.text;
+            lastLootNotificationTimer = playerState.lastLootNotification.timer;
           }
         }
         stepMeleeFeelAndSway(playerState, {

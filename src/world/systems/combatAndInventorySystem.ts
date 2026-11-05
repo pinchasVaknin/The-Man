@@ -19,6 +19,7 @@ import {
   type InventoryItemId,
   type IInventoryItemDef,
   type IObstacleCylinder,
+  type IObstacle,
   type IArcheryTargetDef,
   type IArrowProjectile,
   type IWorldChest,
@@ -41,6 +42,10 @@ import {
   SWORD_ACTIVE_STRIKE_WINDOW_END,
   SWORD_STRIKE_CONTACT_APEX,
 } from './swordAttackAnimationSystem';
+import {
+  strikeTreeWithAxe,
+  type ITreeFellingRecord,
+} from './treeFellingSystem';
 import {
   BASE_ARROW_HIT_DAMAGE,
   getActiveWorldAnimals,
@@ -357,6 +362,7 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['dragonbone_bow', bowStrategy],
 
   ['sword', swordStrategy],
+  ['woodcutter_axe', swordStrategy],
   ['katana_imperial', swordStrategy],
   ['dwarven_warhammer', swordStrategy],
   ['celestial_jin_sword', swordStrategy],
@@ -712,8 +718,11 @@ export function buyMarketItem(
   for (let i = 0; i < qty; i++) {
     state.ownedItemIds.push(itemId);
   }
-  if (!stackable) {
-    equipInventoryItem(state, itemId);
+  if (!state.favoriteIds) {
+    state.favoriteIds = [];
+  }
+  if (!state.favoriteIds.includes(itemId)) {
+    state.favoriteIds.push(itemId);
   }
   return MarketTransactionResult.success(
     { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel },
@@ -1035,7 +1044,6 @@ export function lootWorldChest(
     if (!state.favoriteIds.includes(itemId)) {
       state.favoriteIds.push(itemId);
     }
-    equipInventoryItem(state, itemId);
     addedItems.push(itemId);
     const def = INVENTORY_ITEM_MAP.get(itemId);
     if (def) {
@@ -1084,6 +1092,8 @@ export interface ISwordSlashHitResult {
   readonly hitTarget: IArcheryTargetDef | null;
   readonly hitAnimal?: ISmallAnimalState | null;
   readonly killedAnimal?: boolean;
+  readonly choppedTree?: ITreeFellingRecord | null;
+  readonly felledTree?: boolean;
   readonly hitAnySurface: boolean;
 }
 
@@ -1141,6 +1151,29 @@ export function evaluateSwordStrikeWindowHit(
       pitch: state.pitch,
       age: 0,
     };
+  }
+
+  if (state.activeWeaponId === 'woodcutter_axe' && obstacles.length > 0) {
+    const axeStrike = strikeTreeWithAxe(state, obstacles as IObstacle[], isHeavy);
+    if (axeStrike.hit) {
+      state.swordHitStopTimer = 0.052;
+      awardSkillXp(state, 'swordsmanship', axeStrike.felled ? 18 : 8);
+      if (axeStrike.notification) {
+        state.lastLootNotification = {
+          text: axeStrike.notification,
+          timer: 2.8,
+        };
+      }
+      return {
+        comboIndex,
+        isHeavy,
+        hitKind: 'obstacle',
+        hitTarget: null,
+        choppedTree: axeStrike.tree,
+        felledTree: axeStrike.felled,
+        hitAnySurface: true,
+      };
+    }
   }
 
   const activeAnimals = getActiveWorldAnimals();

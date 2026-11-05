@@ -107,6 +107,7 @@ export interface ISkyrimInventoryModalProps {
 export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   bow: t('items.bow.short'),
   sword: t('items.sword.short'),
+  woodcutter_axe: t('items.woodcutter_axe.short'),
   torch: t('items.torch.short'),
   unarmed: t('items.unarmed.short'),
   arrow_normal: t('items.arrow_normal.short'),

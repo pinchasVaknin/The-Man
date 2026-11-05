@@ -163,6 +163,7 @@ export const MARKET_STALL_LOCATIONS = [
       'elven_cloak',
       'imperial_armor',
       'oak_timber',
+      'woodcutter_axe',
       'torch',
       'ancient_dwarven_horn',
       'small_hide',
@@ -198,6 +199,7 @@ export const MARKET_STALL_LOCATIONS = [
       'imperial_armor',
       'dwarven_warhammer',
       'sword',
+      'woodcutter_axe',
     ] as readonly InventoryItemId[],
   },
   {

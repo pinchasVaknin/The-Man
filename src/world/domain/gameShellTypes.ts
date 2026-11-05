@@ -65,6 +65,12 @@ export interface ITelemetrySnapshot {
     species: string;
     speciesName: string;
   } | null;
+  nearbyFallenTree?: {
+    id: string;
+    kind: string;
+    name: string;
+    woodYield: number;
+  } | null;
   nearbyChest?: {
     id: string;
     name: string;
@@ -118,6 +124,9 @@ export interface ITelemetrySnapshot {
   stamina?: number;
   maxStamina?: number;
   staminaExhausted?: boolean;
+  mountStamina?: number;
+  mountMaxStamina?: number;
+  mountStaminaExhausted?: boolean;
   hp?: number;
   maxHp?: number;
   hunger?: number;

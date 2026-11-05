@@ -595,6 +595,44 @@ export function buildPlayerAndCombatSystems(
     return sGroup;
   };
 
+  // Helper to construct a 3D Woodcutter's Lumberjack Axe Mesh
+  const axeHaftGeo = new THREE.CylinderGeometry(0.017, 0.021, 0.64, 8);
+  axeHaftGeo.translate(0, 0.16, 0);
+  const axeGripWrapGeo = new THREE.CylinderGeometry(0.020, 0.023, 0.22, 8);
+  axeGripWrapGeo.translate(0, -0.04, 0);
+  const axeCollarGeo = new THREE.BoxGeometry(0.044, 0.095, 0.056);
+  axeCollarGeo.translate(0, 0.42, 0);
+  const axeCheekGeo = new THREE.BoxGeometry(0.022, 0.135, 0.14);
+  axeCheekGeo.translate(0, 0.42, -0.075);
+  const axeBitGeo = new THREE.CylinderGeometry(0.095, 0.095, 0.012, 12, 1, false, -Math.PI * 0.35, Math.PI * 0.7);
+  axeBitGeo.rotateZ(Math.PI / 2);
+  axeBitGeo.scale(1.0, 1.15, 0.72);
+  axeBitGeo.translate(0, 0.415, -0.11);
+  const axePollGeo = new THREE.BoxGeometry(0.032, 0.068, 0.042);
+  axePollGeo.translate(0, 0.42, 0.042);
+  disposableGeometries.push(
+    axeHaftGeo,
+    axeGripWrapGeo,
+    axeCollarGeo,
+    axeCheekGeo,
+    axeBitGeo,
+    axePollGeo
+  );
+
+  const createWoodcutterAxeAssembly = () => {
+    const aGroup = new THREE.Group();
+    const haft = new THREE.Mesh(axeHaftGeo, bowWoodMat);
+    const gripWrap = new THREE.Mesh(axeGripWrapGeo, rangerDarkLeatherMat);
+    const collar = new THREE.Mesh(axeCollarGeo, swordFullerMat);
+    const cheek = new THREE.Mesh(axeCheekGeo, swordSteelMat);
+    const bit = new THREE.Mesh(axeBitGeo, swordSteelMat);
+    const poll = new THREE.Mesh(axePollGeo, swordFullerMat);
+    const pommelCap = new THREE.Mesh(swordPommelGeo, swordGoldFiligreeMat);
+    pommelCap.position.y = -0.16;
+    aGroup.add(haft, gripWrap, collar, cheek, bit, poll, pommelCap);
+    return aGroup;
+  };
+
   const createRecurveBowRig = () => {
     const bGroup = new THREE.Group();
     const bRiser = new THREE.Mesh(bowRiserGeo, bowWoodMat);
@@ -702,6 +740,11 @@ export function buildPlayerAndCombatSystems(
   thirdPersonSwordGroup.rotation.x = -Math.PI * 0.42;
   thirdPersonSwordGroup.visible = false;
 
+  const thirdPersonAxeGroup = createWoodcutterAxeAssembly();
+  thirdPersonAxeGroup.position.set(0, 0.06, -0.04);
+  thirdPersonAxeGroup.rotation.x = -Math.PI * 0.42;
+  thirdPersonAxeGroup.visible = false;
+
   const playerTorchLight = new THREE.PointLight(0xff8c24, 0, 28, 1.35);
   scene.add(playerTorchLight);
 
@@ -716,7 +759,7 @@ export function buildPlayerAndCombatSystems(
   const rUpperArmMesh = new THREE.Mesh(rUpperArmUnitGeo, rangerTunicMat);
   const rForearmMesh = new THREE.Mesh(rForearmUnitGeo, rangerLeatherMat);
   const rRightHandMesh = new THREE.Mesh(rHandGeo, rangerSkinMat);
-  rRightHandMesh.add(thirdPersonTorchGroup, thirdPersonSwordGroup);
+  rRightHandMesh.add(thirdPersonTorchGroup, thirdPersonSwordGroup, thirdPersonAxeGroup);
   thirdPersonTorchGroup.position.set(0, 0.12, -0.04);
   thirdPersonTorchGroup.rotation.x = -0.35;
   rangerRightArmGroup.add(rUpperArmMesh, rForearmMesh, rRightHandMesh);
@@ -1037,6 +1080,21 @@ export function buildPlayerAndCombatSystems(
   );
   fpSwordGroup.visible = false;
   fpRightArm.handGroup.add(fpSwordGroup);
+
+  const fpAxeGroup = createWoodcutterAxeAssembly();
+  fpAxeGroup.position.set(
+    LOCKED_SWORD_GRIP_TRANSFORM.posX,
+    LOCKED_SWORD_GRIP_TRANSFORM.posY,
+    LOCKED_SWORD_GRIP_TRANSFORM.posZ
+  );
+  fpAxeGroup.rotation.order = 'YXZ';
+  fpAxeGroup.rotation.set(
+    LOCKED_SWORD_GRIP_TRANSFORM.rotX,
+    LOCKED_SWORD_GRIP_TRANSFORM.rotY,
+    LOCKED_SWORD_GRIP_TRANSFORM.rotZ
+  );
+  fpAxeGroup.visible = false;
+  fpRightArm.handGroup.add(fpAxeGroup);
 
   const fpSlashArcGeo = new THREE.RingGeometry(0.32, 0.56, 24, 1, -Math.PI * 0.42, Math.PI * 0.84);
   const fpSlashArcMat = new THREE.MeshBasicMaterial({
@@ -1385,9 +1443,11 @@ export function buildPlayerAndCombatSystems(
     const ownsSword = !ownedIds
       ? true
       : ownedIds.includes('sword') ||
+        ownedIds.includes('woodcutter_axe') ||
         ownedIds.includes('katana_imperial') ||
         ownedIds.includes('dwarven_warhammer') ||
         ownedIds.includes('celestial_jin_sword');
+    const isAxeEquipped = playerState.activeWeaponId === 'woodcutter_axe';
     const bowActive = ownsBow && !isSwim && (isAimingBow || equippedTool === 'bow');
     const swordActiveWithOwnership = ownsSword && swordActive;
 
@@ -1455,6 +1515,7 @@ export function buildPlayerAndCombatSystems(
       stowedBackBowGroup.visible = false;
       thirdPersonTorchGroup.visible = false;
       thirdPersonSwordGroup.visible = false;
+      thirdPersonAxeGroup.visible = false;
 
       const sleepBreath = Math.sin(elapsedTime * 1.6) * 0.025;
       rangerUpperTorsoPivot.position.set(0, 0.92, 0);
@@ -1542,6 +1603,7 @@ export function buildPlayerAndCombatSystems(
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = false;
         fpSwordGroup.visible = false;
+        fpAxeGroup.visible = false;
         fpLeftArm.root.visible = true;
         fpRightArm.root.visible = true;
 
@@ -1568,6 +1630,7 @@ export function buildPlayerAndCombatSystems(
         fpBowRig.bowGroup.visible = true;
         fpTorch.tGroup.visible = false;
         fpSwordGroup.visible = false;
+        fpAxeGroup.visible = false;
         fpLeftArm.root.visible = true;
 
         const tAim = isAimingBow ? Math.min(1, 0.55 + drawProg * 0.45) : 0;
@@ -1650,7 +1713,8 @@ export function buildPlayerAndCombatSystems(
         fpNockedArrowGroup.visible = false;
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = false;
-        fpSwordGroup.visible = true;
+        fpSwordGroup.visible = !isAxeEquipped;
+        fpAxeGroup.visible = isAxeEquipped;
         fpLeftArm.root.visible = true;
         fpRightArm.root.visible = true;
 
@@ -1739,6 +1803,7 @@ export function buildPlayerAndCombatSystems(
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = true;
         fpSwordGroup.visible = false;
+        fpAxeGroup.visible = false;
         fpLeftArm.root.visible = true;
         fpRightArm.root.visible = true;
 
@@ -1760,6 +1825,7 @@ export function buildPlayerAndCombatSystems(
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = false;
         fpSwordGroup.visible = false;
+        fpAxeGroup.visible = false;
         fpLeftArm.root.visible = true;
         fpRightArm.root.visible = true;
 
@@ -1796,7 +1862,8 @@ export function buildPlayerAndCombatSystems(
     bowGroup.visible = bowInHands;
     stowedBackBowGroup.visible = ownsBow && !bowInHands;
     thirdPersonTorchGroup.visible = torchActive;
-    thirdPersonSwordGroup.visible = ownsSword && swordActive;
+    thirdPersonSwordGroup.visible = ownsSword && swordActive && !isAxeEquipped;
+    thirdPersonAxeGroup.visible = ownsSword && swordActive && isAxeEquipped;
 
     if (isMounted && !isMountedShip) {
       const legSpreadX = isMountedLion ? 0.26 : 0.22;
@@ -2014,6 +2081,9 @@ export function buildPlayerAndCombatSystems(
     );
     thirdPersonSwordGroup.position.set(0, 0.06, -0.04);
     thirdPersonSwordGroup.scale.setScalar(labOv.weaponScale || 1);
+    thirdPersonAxeGroup.rotation.copy(thirdPersonSwordGroup.rotation);
+    thirdPersonAxeGroup.position.copy(thirdPersonSwordGroup.position);
+    thirdPersonAxeGroup.scale.copy(thirdPersonSwordGroup.scale);
     bowGroup.rotation.x += labOv.leftWeaponRotXDeg * deg2rad;
     bowGroup.rotation.y += labOv.leftWeaponRotYDeg * deg2rad;
     bowGroup.rotation.z += labOv.leftWeaponRotZDeg * deg2rad;

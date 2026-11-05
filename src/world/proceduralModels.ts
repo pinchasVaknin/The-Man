@@ -28,7 +28,10 @@ import {
   type IColliderDebugHandles,
 } from './builders/colliderDebugBuilder';
 import { buildTerrainAndWaterModel } from './models/terrainAndWaterModel';
-import { buildVegetationModels } from './models/vegetationModels';
+import {
+  buildVegetationModels,
+  updateChoppableTreesVisuals,
+} from './models/vegetationModels';
 import { buildSettlementModels } from './models/settlementModels';
 import { buildFarmhouseModels } from './models/farmhouseModels';
 import { buildFortressModels } from './models/fortressModels';
@@ -232,7 +235,7 @@ export function buildRealisticWorld(
           playerX,
           playerZ,
           entry.radius,
-          VIEW_DISTANCE
+          entry.maxDist ?? VIEW_DISTANCE
         );
       }
 
@@ -302,6 +305,7 @@ export function buildRealisticWorld(
       // 5. Wildlife, boids and footprint meshes (the simulation runs in simulateWildlife)
       const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
       lastTime = elapsedTime;
+      updateChoppableTreesVisuals(dt, weather);
       if (playerState) {
         wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, playerState);
       }

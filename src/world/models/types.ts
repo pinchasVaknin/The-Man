@@ -24,6 +24,7 @@ export interface IDistanceCulledObject {
   readonly cx: number;
   readonly cz: number;
   readonly radius: number;
+  readonly maxDist?: number;
 }
 
 /**
