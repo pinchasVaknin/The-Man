@@ -701,6 +701,13 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       hunterCompound.add(sideLog);
     }
   }
+  // Upper front cabin wall logs (rows 10 & 11 at z=1.8) rising flush to the underside of the front roof slope (y=4.58)
+  for (const extraRowY of [4.05, 4.39]) {
+    const upperFrontLog = new THREE.Mesh(horizLogBackGeo, barkMat);
+    upperFrontLog.position.set(0, extraRowY, 1.8);
+    upperFrontLog.castShadow = !isSoftwareGl;
+    hunterCompound.add(upperFrontLog);
+  }
 
   const lodgeDoorGroup = new THREE.Group();
   lodgeDoorGroup.position.set(0, 0.48, 1.8);
@@ -825,22 +832,108 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   let currentChestLidAngle = 0;
   hunterCompound.add(starterChestGroup);
 
-  const roofSlopeGeo = new THREE.BoxGeometry(11.8, 0.24, 6.2);
-  const verandaColGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.3, 8);
-  verandaColGeo.translate(0, 2.1, 0);
+  // Connected Log Cabin Roof: Triangular Timber Gable Walls, Tapered Gable Logs, Ridgepole, Rafters, and Veranda Support Beams
+  // Ridge at (z = -0.85, y = 5.65); Back eaves at (z = -4.45, y = 3.51); Front veranda eaves at (z = +4.55, y = 3.54)
+  const lodgeGableShape = new THREE.Shape();
+  lodgeGableShape.moveTo(-3.8, 3.82);
+  lodgeGableShape.lineTo(-0.85, 5.62);
+  lodgeGableShape.lineTo(1.8, 4.58);
+  lodgeGableShape.lineTo(1.8, 3.82);
+  lodgeGableShape.closePath();
+  const lodgeGableGeo = new THREE.ExtrudeGeometry(lodgeGableShape, {
+    depth: 0.34,
+    bevelEnabled: false,
+  });
+  lodgeGableGeo.rotateY(Math.PI / 2);
+  lodgeGableGeo.translate(-0.17, 0, 0);
+
+  const roofBackGeo = new THREE.BoxGeometry(11.8, 0.24, 4.35);
+  const roofFrontGeo = new THREE.BoxGeometry(11.8, 0.24, 5.95);
+  const ridgePoleGeo = new THREE.CylinderGeometry(0.22, 0.22, 12.0, 10);
+  ridgePoleGeo.rotateZ(Math.PI / 2);
+  const verandaColGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.22, 8);
+  verandaColGeo.translate(0, 2.01, 0);
+  const verandaHeaderBeamGeo = new THREE.BoxGeometry(10.8, 0.24, 0.28);
+  const verandaSideTieBeamGeo = new THREE.BoxGeometry(0.24, 0.24, 2.55);
+  const backEavesBeamGeo = new THREE.BoxGeometry(10.8, 0.22, 0.26);
+  const roofRafterBackGeo = new THREE.BoxGeometry(0.18, 0.2, 4.25);
+  const roofRafterFrontGeo = new THREE.BoxGeometry(0.18, 0.2, 5.85);
   const porchRailGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.4, 6);
   porchRailGeo.rotateZ(Math.PI / 2);
-  disposableGeometries.push(roofSlopeGeo, verandaColGeo, porchRailGeo);
+  disposableGeometries.push(
+    lodgeGableGeo,
+    roofBackGeo,
+    roofFrontGeo,
+    ridgePoleGeo,
+    verandaColGeo,
+    verandaHeaderBeamGeo,
+    verandaSideTieBeamGeo,
+    backEavesBeamGeo,
+    roofRafterBackGeo,
+    roofRafterFrontGeo,
+    porchRailGeo
+  );
 
-  const roofFront = new THREE.Mesh(roofSlopeGeo, barkMat);
-  roofFront.position.set(0, 4.85, 1.55);
-  roofFront.rotation.x = 0.52;
-  roofFront.castShadow = !isSoftwareGl;
-  const roofBack = new THREE.Mesh(roofSlopeGeo, barkMat);
-  roofBack.position.set(0, 4.85, -3.15);
-  roofBack.rotation.x = -0.52;
+  // Enclosed triangular gable infill + tapered horizontal log courses on West & East cabin walls (x = ±4.6)
+  for (const gx of [-4.6, 4.6]) {
+    const gableWall = new THREE.Mesh(lodgeGableGeo, timberMat);
+    gableWall.position.x = gx;
+    gableWall.castShadow = !isSoftwareGl;
+    gableWall.receiveShadow = !isSoftwareGl;
+    hunterCompound.add(gableWall);
+  }
+  for (const gy of [4.05, 4.39, 4.73, 5.07, 5.41]) {
+    const zMin = -0.85 - ((5.65 - gy) / 2.14) * 3.6;
+    const zMaxSlope = -0.85 + ((5.65 - gy) / 2.11) * 5.4;
+    const zMax = Math.min(1.85, zMaxSlope);
+    const logLen = Math.max(0.6, zMax - zMin);
+    const zMid = (zMin + zMax) * 0.5;
+    const gLogGeo = new THREE.CylinderGeometry(0.17, 0.17, logLen, 8);
+    gLogGeo.rotateX(Math.PI / 2);
+    disposableGeometries.push(gLogGeo);
+    for (const gx of [-4.6, 4.6]) {
+      const gLog = new THREE.Mesh(gLogGeo, barkMat);
+      gLog.position.set(gx, gy, zMid);
+      gLog.castShadow = !isSoftwareGl;
+      hunterCompound.add(gLog);
+    }
+  }
+
+  // Roof Slopes, Central Ridgepole Log, and Exposed Timber Rafters
+  const roofBack = new THREE.Mesh(roofBackGeo, barkMat);
+  roofBack.position.set(0, 4.58, -2.65);
+  roofBack.rotation.x = -0.536;
   roofBack.castShadow = !isSoftwareGl;
-  hunterCompound.add(roofFront, roofBack);
+  const roofFront = new THREE.Mesh(roofFrontGeo, barkMat);
+  roofFront.position.set(0, 4.6, 1.85);
+  roofFront.rotation.x = 0.373;
+  roofFront.castShadow = !isSoftwareGl;
+  const ridgePole = new THREE.Mesh(ridgePoleGeo, barkMat);
+  ridgePole.position.set(0, 5.65, -0.85);
+  ridgePole.castShadow = !isSoftwareGl;
+  hunterCompound.add(roofBack, roofFront, ridgePole);
+
+  for (const rx of [-5.5, -3.3, -1.1, 1.1, 3.3, 5.5]) {
+    const rBack = new THREE.Mesh(roofRafterBackGeo, timberMat);
+    rBack.position.set(rx, 4.46, -2.65);
+    rBack.rotation.x = -0.536;
+    const rFront = new THREE.Mesh(roofRafterFrontGeo, timberMat);
+    rFront.position.set(rx, 4.48, 1.85);
+    rFront.rotation.x = 0.373;
+    hunterCompound.add(rBack, rFront);
+  }
+
+  // Veranda Header Plate Beam, Back Eaves Plate Beam, and Side Porch Tie-Beams connecting cabin walls to veranda columns
+  const verandaHeaderBeam = new THREE.Mesh(verandaHeaderBeamGeo, timberMat);
+  verandaHeaderBeam.position.set(0, 3.62, 4.1);
+  const backEavesBeam = new THREE.Mesh(backEavesBeamGeo, timberMat);
+  backEavesBeam.position.set(0, 3.82, -3.8);
+  hunterCompound.add(verandaHeaderBeam, backEavesBeam);
+  for (const sx of [-4.7, 4.7]) {
+    const tieBeam = new THREE.Mesh(verandaSideTieBeamGeo, timberMat);
+    tieBeam.position.set(sx, 3.62, 2.95);
+    hunterCompound.add(tieBeam);
+  }
 
   for (const vx of [-4.8, -1.8, 1.8, 4.8]) {
     const col = new THREE.Mesh(verandaColGeo, barkMat);
@@ -879,35 +972,104 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
   hunterCompound.add(createLanternAssembly(-2.1, 0.48, 4.2, true));
 
-  // Water Trough
+  // Water Trough with Enclosed Wooden Floor, Iron Straps, Hand Pump Handle, Pouring Water Stream, and Crystal-Clear Rippled Water
   const troughGroup = new THREE.Group();
   troughGroup.position.set(9.5, 0.28, 3.5);
 
-  const troughBaseGeo = new THREE.BoxGeometry(0.45, 0.45, 0.95);
-  troughBaseGeo.translate(0, 0.22, 0);
+  const troughBaseGeo = new THREE.BoxGeometry(0.45, 0.42, 0.95);
+  troughBaseGeo.translate(0, 0.21, 0);
+  const troughBottomGeo = new THREE.BoxGeometry(2.64, 0.08, 0.78);
   const troughSideLGeo = new THREE.BoxGeometry(2.8, 0.52, 0.12);
   const troughEndGeo = new THREE.BoxGeometry(0.12, 0.52, 0.88);
-  const troughWaterGeo = new THREE.PlaneGeometry(2.56, 0.68);
-  troughWaterGeo.rotateX(-Math.PI / 2);
+  const troughStrapGeo = new THREE.BoxGeometry(0.08, 0.54, 0.92);
+  const troughWaterGeo = new THREE.BoxGeometry(2.54, 0.34, 0.66, 16, 1, 8);
   const pumpPostGeo = new THREE.CylinderGeometry(0.12, 0.14, 1.55, 8);
   pumpPostGeo.translate(-1.55, 0.77, 0);
-  const spoutGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.45, 6);
+  const pumpCapGeo = new THREE.CylinderGeometry(0.16, 0.14, 0.12, 8);
+  pumpCapGeo.translate(-1.55, 1.56, 0);
+  const spoutGeo = new THREE.CylinderGeometry(0.04, 0.045, 0.45, 8);
   spoutGeo.rotateZ(Math.PI / 2);
   spoutGeo.translate(-1.3, 1.18, 0);
+  const pumpHandleGeo = new THREE.BoxGeometry(0.05, 0.58, 0.05);
+  pumpHandleGeo.rotateZ(-0.48);
+  pumpHandleGeo.translate(-1.72, 1.18, 0);
+  const waterStreamGeo = new THREE.CylinderGeometry(0.022, 0.036, 0.42, 8);
+  waterStreamGeo.translate(-1.08, 0.97, 0);
+  const rippleRingGeo = new THREE.RingGeometry(0.07, 0.11, 18);
+  rippleRingGeo.rotateX(-Math.PI / 2);
+  const rippleRingOuterGeo = new THREE.RingGeometry(0.16, 0.20, 18);
+  rippleRingOuterGeo.rotateX(-Math.PI / 2);
+
+  const troughWaterMat = new THREE.MeshStandardMaterial({
+    color: 0x2b9be0,
+    emissive: new THREE.Color(0x093b5e),
+    emissiveIntensity: 0.32,
+    roughness: 0.12,
+    metalness: 0.18,
+    transparent: true,
+    opacity: 0.88,
+  });
+  troughWaterMat.userData.uTime = waterfallMat.userData.uTime;
+  troughWaterMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = troughWaterMat.userData.uTime;
+    shader.vertexShader =
+      `uniform float uTime;\nvarying vec3 vTroughLocalPos;\n` +
+      shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `
+        #include <begin_vertex>
+        vTroughLocalPos = position;
+        if (position.y > 0.0) {
+          float dSpout = length(position.xz - vec2(-1.08, 0.0));
+          float ringWave = sin(dSpout * 22.0 - uTime * 5.5) * exp(-dSpout * 1.4) * 0.012;
+          float gentleSlosh = sin(position.x * 4.5 + uTime * 2.2) * cos(position.z * 6.0 - uTime * 1.8) * 0.006;
+          transformed.y += ringWave + gentleSlosh;
+        }
+        `
+      );
+    shader.fragmentShader =
+      `uniform float uTime;\nvarying vec3 vTroughLocalPos;\n` +
+      shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `
+        #include <color_fragment>
+        float dSpout = length(vTroughLocalPos.xz - vec2(-1.08, 0.0));
+        float rings = smoothstep(0.45, 1.0, sin(dSpout * 24.0 - uTime * 5.5)) * exp(-dSpout * 1.3);
+        float caustic = sin(vTroughLocalPos.x * 11.0 + uTime * 2.4) * cos(vTroughLocalPos.z * 13.0 - uTime * 2.1) * 0.5 + 0.5;
+        vec3 deepWater = vec3(0.11, 0.48, 0.74);
+        vec3 clearAqua = vec3(0.28, 0.74, 0.95);
+        vec3 foamHighlight = vec3(0.88, 0.97, 1.0);
+        diffuseColor.rgb = mix(deepWater, clearAqua, caustic * 0.55 + 0.25);
+        diffuseColor.rgb = mix(diffuseColor.rgb, foamHighlight, rings * 0.52);
+        `
+      );
+  };
+
   disposableGeometries.push(
     troughBaseGeo,
+    troughBottomGeo,
     troughSideLGeo,
     troughEndGeo,
+    troughStrapGeo,
     troughWaterGeo,
     pumpPostGeo,
-    spoutGeo
+    pumpCapGeo,
+    spoutGeo,
+    pumpHandleGeo,
+    waterStreamGeo,
+    rippleRingGeo,
+    rippleRingOuterGeo
   );
+  disposableMaterials.push(troughWaterMat);
 
   for (const tx of [-1.0, 1.0]) {
     const sup = new THREE.Mesh(troughBaseGeo, rockMat);
     sup.position.x = tx;
     troughGroup.add(sup);
   }
+  const troughBottom = new THREE.Mesh(troughBottomGeo, furnitureWoodMat);
+  troughBottom.position.set(0, 0.42, 0);
+  troughGroup.add(troughBottom);
   for (const tz of [-0.38, 0.38]) {
     const side = new THREE.Mesh(troughSideLGeo, timberMat);
     side.position.set(0, 0.62, tz);
@@ -918,14 +1080,28 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     end.position.set(tx, 0.62, 0);
     troughGroup.add(end);
   }
-  const troughWater = new THREE.Mesh(troughWaterGeo, waterfallMat);
-  troughWater.position.set(0, 0.78, 0);
-  troughGroup.add(troughWater);
-  troughGroup.add(new THREE.Mesh(pumpPostGeo, barkMat));
-  troughGroup.add(new THREE.Mesh(spoutGeo, darkIronMat));
+  for (const sx of [-1.22, 0, 1.22]) {
+    const strap = new THREE.Mesh(troughStrapGeo, darkIronMat);
+    strap.position.set(sx, 0.62, 0);
+    troughGroup.add(strap);
+  }
+  const troughWater = new THREE.Mesh(troughWaterGeo, troughWaterMat);
+  troughWater.position.set(0, 0.63, 0);
+  const splashRingInner = new THREE.Mesh(rippleRingGeo, foamRingMat);
+  splashRingInner.position.set(-1.08, 0.81, 0);
+  const splashRingOuter = new THREE.Mesh(rippleRingOuterGeo, foamRingMat);
+  splashRingOuter.position.set(-1.08, 0.81, 0);
+  troughGroup.add(troughWater, splashRingInner, splashRingOuter);
+  troughGroup.add(
+    new THREE.Mesh(pumpPostGeo, barkMat),
+    new THREE.Mesh(pumpCapGeo, darkIronMat),
+    new THREE.Mesh(spoutGeo, darkIronMat),
+    new THREE.Mesh(pumpHandleGeo, darkIronMat),
+    new THREE.Mesh(waterStreamGeo, troughWaterMat)
+  );
   hunterCompound.add(troughGroup);
 
-  // Stable & Corral
+  // Stable & Corral (East bay x=-3.6..0 houses horse-hunter-stable with open front access; West bay x=0..3.6 holds hay bales and corral fence)
   const stableGroup = new THREE.Group();
   stableGroup.position.set(12.5, 0.28, -3.5);
 
@@ -933,14 +1109,17 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   stableFloorGeo.translate(0, 0.09, 0);
   const stableBackWallGeo = new THREE.BoxGeometry(7.6, 3.1, 0.25);
   stableBackWallGeo.translate(0, 1.65, -2.5);
-  const stableDividerGeo = new THREE.BoxGeometry(0.18, 1.8, 4.6);
-  stableDividerGeo.translate(0, 1.0, -0.2);
+  const stableSideWallGeo = new THREE.BoxGeometry(0.22, 3.1, 4.8);
+  stableSideWallGeo.translate(0, 1.65, -0.1);
+  const stableDividerGeo = new THREE.BoxGeometry(0.18, 1.8, 3.8);
+  stableDividerGeo.translate(0, 1.0, -0.6);
   const stableRoofGeo = new THREE.BoxGeometry(8.4, 0.22, 6.4);
   const hayBaleGeo = new THREE.BoxGeometry(0.95, 0.58, 0.65);
   hayBaleGeo.translate(0, 0.29, 0);
   disposableGeometries.push(
     stableFloorGeo,
     stableBackWallGeo,
+    stableSideWallGeo,
     stableDividerGeo,
     stableRoofGeo,
     hayBaleGeo
@@ -949,17 +1128,21 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   stableGroup.add(new THREE.Mesh(stableFloorGeo, rockMat));
   stableGroup.add(new THREE.Mesh(stableBackWallGeo, timberMat));
 
-  for (const sx of [-3.6, -1.2, 1.2, 3.6]) {
+  for (const sx of [-3.6, 0.0, 3.6]) {
     const postF = new THREE.Mesh(verandaColGeo, barkMat);
     postF.position.set(sx, 0, 2.3);
     const postB = new THREE.Mesh(verandaColGeo, barkMat);
     postB.position.set(sx, 0, -2.5);
     stableGroup.add(postF, postB);
-
-    const div = new THREE.Mesh(stableDividerGeo, timberMat);
-    div.position.x = sx;
-    stableGroup.add(div);
   }
+  for (const sideX of [-3.6, 3.6]) {
+    const sideWall = new THREE.Mesh(stableSideWallGeo, timberMat);
+    sideWall.position.x = sideX;
+    stableGroup.add(sideWall);
+  }
+  const centerDiv = new THREE.Mesh(stableDividerGeo, timberMat);
+  centerDiv.position.x = 0.0;
+  stableGroup.add(centerDiv);
 
   const stableRoof = new THREE.Mesh(stableRoofGeo, barkMat);
   stableRoof.position.set(0, 3.55, 0);
@@ -967,11 +1150,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   stableRoof.castShadow = !isSoftwareGl;
   stableGroup.add(stableRoof);
 
+  // Stacked hay bales in the West storage bay (local x = 1.4..2.7 -> world x = -107.2..-105.9)
   for (const [hx, hy, hz, rot] of [
-    [-2.4, 0.18, -1.6, 0.1],
-    [-2.4, 0.76, -1.7, -0.2],
-    [0.0, 0.18, -1.6, 0.05],
-    [2.4, 0.18, -1.6, -0.15],
+    [1.6, 0.18, -1.6, 0.08],
+    [2.55, 0.18, -1.6, -0.12],
+    [2.1, 0.76, -1.65, 0.15],
   ]) {
     const bale = new THREE.Mesh(hayBaleGeo, hayMat);
     bale.position.set(hx, hy, hz);
@@ -979,16 +1162,17 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     stableGroup.add(bale);
   }
 
-  for (const fx of [-3.6, 0, 3.6]) {
+  // Front corral fence enclosing the West storage side (fx = 0..3.6, sz = 5.6) while keeping East horse stall entrance open
+  for (const fx of [0, 3.6]) {
     const fPost = new THREE.Mesh(postStoneGeo, barkMat);
     fPost.position.set(fx, 0.55, 5.6);
     stableGroup.add(fPost);
   }
-  for (const rx of [-1.8, 1.8]) {
-    const fRail = new THREE.Mesh(porchRailGeo, timberMat);
-    fRail.position.set(rx, 0.85, 5.6);
-    stableGroup.add(fRail);
-  }
+  const fRailTop = new THREE.Mesh(porchRailGeo, timberMat);
+  fRailTop.position.set(1.8, 0.85, 5.6);
+  const fRailMid = new THREE.Mesh(porchRailGeo, timberMat);
+  fRailMid.position.set(1.8, 0.48, 5.6);
+  stableGroup.add(fRailTop, fRailMid);
 
   hunterCompound.add(stableGroup);
   scene.add(hunterCompound);
@@ -1824,55 +2008,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     radius: 44,
   });
 
-  // SOUTHERN PASS VALLEY GLADE, TRAVELER'S REFUGE SHELTER & WORLD SLEEPING BEDS
-  // Beyond the Southern Mountain Gorge Pass at (105, 715) + Spawn Camp Bedroll & Lodge Bed
-  const bedFrameGeo = new THREE.BoxGeometry(1.35, 0.36, 2.15);
-  const bedMattressGeo = new THREE.BoxGeometry(1.22, 0.22, 1.96);
-  const bedPillowGeo = new THREE.BoxGeometry(0.92, 0.16, 0.42);
-  const bedBlanketGeo = new THREE.BoxGeometry(1.25, 0.24, 1.32);
-  const bedPillowMat = new THREE.MeshStandardMaterial({ color: 0xf4eee1, roughness: 0.82 });
-  const bedBlanketMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.88 });
-  disposableGeometries.push(bedFrameGeo, bedMattressGeo, bedPillowGeo, bedBlanketGeo);
-  disposableMaterials.push(bedPillowMat, bedBlanketMat);
-
-  const createBedProp = (bx: number, by: number, bz: number, yaw = 0): THREE.Group => {
-    const g = new THREE.Group();
-    g.position.set(bx, by, bz);
-    g.rotation.y = yaw;
-    const frame = new THREE.Mesh(bedFrameGeo, furnitureWoodMat);
-    frame.position.y = 0.18;
-    const mattress = new THREE.Mesh(bedMattressGeo, sailClothMat);
-    mattress.position.y = 0.40;
-    const blanket = new THREE.Mesh(bedBlanketGeo, bedBlanketMat);
-    blanket.position.set(0, 0.42, 0.28);
-    const pillow = new THREE.Mesh(bedPillowGeo, bedPillowMat);
-    pillow.position.set(0, 0.52, -0.68);
-    g.add(frame, mattress, blanket, pillow);
-    return g;
-  };
-
-  // 1) Hunter's Lodge Bed + Sleeping Bag (Spawn Camp forest bed removed — sleep is inside cabins/lodges only)
-  scene.add(createBedProp(HUNTER_LODGE_POS.x - 3.2, HUNTER_LODGE_POS.height + 0.2, HUNTER_LODGE_POS.z + 2.4, 0));
-
-  const sleepingBagPadGeo = new THREE.BoxGeometry(0.95, 0.08, 1.92);
-  const sleepingBagQuiltGeo = new THREE.BoxGeometry(0.88, 0.12, 1.38);
-  const sleepingBagRollGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.78, 10);
-  sleepingBagRollGeo.rotateZ(Math.PI / 2);
-  const sleepingBagMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.86 });
-  disposableGeometries.push(sleepingBagPadGeo, sleepingBagQuiltGeo, sleepingBagRollGeo);
-  disposableMaterials.push(sleepingBagMat);
-
-  const lodgeBagGroup = new THREE.Group();
-  lodgeBagGroup.position.set(HUNTER_LODGE_POS.x + 2.8, HUNTER_LODGE_POS.height + 0.2, HUNTER_LODGE_POS.z + 2.2);
-  const sbPad = new THREE.Mesh(sleepingBagPadGeo, barkMat);
-  sbPad.position.y = 0.04;
-  const sbQuilt = new THREE.Mesh(sleepingBagQuiltGeo, sleepingBagMat);
-  sbQuilt.position.set(0, 0.1, 0.22);
-  const sbPillow = new THREE.Mesh(sleepingBagRollGeo, bedPillowMat);
-  sbPillow.position.set(0, 0.14, -0.68);
-  lodgeBagGroup.add(sbPad, sbQuilt, sbPillow);
-  scene.add(lodgeBagGroup);
-
+  // SOUTHERN PASS VALLEY GLADE & TRAVELER'S REFUGE SHELTER
+  // (Hunter's Cabin has its single wooden bed inside hunterCompound at (-95.2, 2.35, 74.4))
   // 2) Southern Pass Valley Glade & Traveler's Refuge at (105, 715) after the Mountain Gorge Pass
   const southPassGroup = new THREE.Group();
   const spX = SOUTHERN_PASS_VALLEY_POS.x;
@@ -2153,10 +2290,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     openDoorIds?: ReadonlySet<string>,
     openedChestIds?: readonly string[]
   ) => {
-    const chestOpen = Boolean(
-      openDoorIds?.has('chest-hunter-lodge') ||
-        openedChestIds?.includes('chest-hunter-lodge')
-    );
+    const chestOpen = Boolean(openDoorIds?.has('chest-hunter-lodge'));
     const targetLidAngle = chestOpen ? -1.18 : 0.0;
     if (Math.abs(targetLidAngle - currentChestLidAngle) > 0.001) {
       currentChestLidAngle += (targetLidAngle - currentChestLidAngle) * 0.22;
@@ -2214,18 +2348,19 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       if (!inView) continue;
 
       rig.root.position.set(hx, hy, hz);
+      rig.root.rotation.order = 'YXZ';
       rig.root.rotation.y = hyaw;
 
-      // Align horse pitch & roll to mountain/hill slope when on ground
+      // Keep mounted horse cleanly upright (matching rider pelvis pivot) and never twist sideways (roll = 0)
       const onGround = !state || !state.isJumping;
-      if (onGround && walkSurf.surface === 'ground') {
+      if (!isMounted && onGround && walkSurf.surface === 'ground') {
         const n = getSurfaceNormalAt(hx, hz);
-        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, hyaw, 0.45);
+        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, hyaw, 0.28);
         rig.root.rotation.x += (slope.pitch - rig.root.rotation.x) * 0.25;
-        rig.root.rotation.z += (slope.roll - rig.root.rotation.z) * 0.25;
+        rig.root.rotation.z = 0;
       } else {
-        rig.root.rotation.x *= 0.8;
-        rig.root.rotation.z *= 0.8;
+        rig.root.rotation.x = 0;
+        rig.root.rotation.z = 0;
       }
 
       const pose = computeHorseBiomechanicalPose(hspeed, hgait, elapsedTime, i);

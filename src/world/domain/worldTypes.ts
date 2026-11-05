@@ -417,6 +417,12 @@ export interface IPlayerState {
   isCrouching?: boolean;
   isSleeping?: boolean;
   lastTameNotice?: string | null;
+  deathRespawnPhase?: {
+    stage: 'dying' | 'waking';
+    timer: number;
+    cause: 'combat' | 'starvation';
+    causeText?: string;
+  } | null;
 }
 
 /**
@@ -729,8 +735,10 @@ export interface IFortressDoorDef {
 }
 
 /**
- * Summary: Axis-aligned or oriented bounding box for architectural collision solid volumes.
- * Design: Prevents player and mount clipping into building interiors, walls, and steps.
+ * Summary: Axis-aligned or oriented bounding box (OBB) for architectural and prop collision solid volumes.
+ * Design: Prevents player, mount, wildlife, and projectile clipping into rotated or axis-aligned structures, walls, and props.
+ *         When `yaw` (radians around Y) is specified, collision is evaluated in the box's rotated local frame centered at
+ *         `((minX + maxX) * 0.5, (minZ + maxZ) * 0.5)` with half-extents `((maxX - minX) * 0.5, (maxZ - minZ) * 0.5)`.
  */
 export interface ISolidBuildingBox {
   readonly id: string;
@@ -740,6 +748,32 @@ export interface ISolidBuildingBox {
   readonly maxZ: number;
   readonly minY?: number;
   readonly maxY?: number;
+  readonly yaw?: number;
+  readonly colliderTag?: string;
+}
+
+/**
+ * Summary: Explicit architectural justification required whenever a world entity or sub-prop is exempted from solid collision.
+ * Design: Enforces intentional opt-out rather than accidental omission of hitboxes.
+ */
+export type NonCollidableExemptionReason =
+  | 'walkable_floor_or_stair'
+  | 'open_doorway_portal'
+  | 'foliage_canopy'
+  | 'water_or_particle_fx'
+  | 'overhead_trim';
+
+/**
+ * Summary: Mandatory collision contract for world structures, landmarks, and physical props.
+ * Design: Guarantees that every registered world object either provides one or more solid hitboxes (AABB / OBB / Cylinder)
+ *         or declares a typed `exemptionReason` explaining why players can pass through it.
+ */
+export interface ICollidableWorldEntity {
+  readonly entityId: string;
+  readonly category: 'building' | 'wall' | 'tower' | 'stall' | 'ship' | 'prop' | 'monument' | 'foliage' | 'walkable_surface';
+  readonly collidable: boolean;
+  readonly exemptionReason?: NonCollidableExemptionReason;
+  readonly solidBoxIds?: readonly string[];
 }
 // #endregion
 
@@ -844,6 +878,9 @@ export interface IGameActions {
   readonly onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
   readonly onTakeChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
   readonly onStoreChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
+  readonly onTakeAllChestItems?: (chestId: string) => void;
+  readonly onStoreAllChestItems?: (chestId: string) => void;
+  readonly onBuyShip?: (tierId: string) => { ok: boolean; message: string };
   readonly onOpenChest?: (chestId: string) => void;
   readonly onCloseChest?: (chestId: string) => void;
   readonly onResumeGameControl?: () => void;
@@ -853,6 +890,7 @@ export interface IGameActions {
   readonly onSetSeason?: (season: SeasonType | 'auto') => void;
   readonly onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
   readonly onApplyGameMode?: (survivalMode: boolean) => void;
+  readonly onResetWorld?: (mode: 'survival' | 'creative' | 'both') => { ok: boolean; message: string };
 }
 // #endregion
 // #endregion

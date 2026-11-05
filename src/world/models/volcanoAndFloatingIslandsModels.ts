@@ -972,39 +972,69 @@ export function buildVolcanoAndFloatingIslandsModels(
   gazeboCrown.position.set(eastIslX, eastDeckY + 4.4, eastIslZ);
   floatingIslandsGroup.add(gazeboCrown);
 
-  // 5. North & East Arched Floral Sky-Bridges connecting the 3 High-Altitude Floating Islands
-  const bridgePlankGeo = new THREE.BoxGeometry(5.8, 0.32, 1.15);
-  const bridgeKerbGeo = new THREE.BoxGeometry(0.35, 0.52, 1.18);
-  disposableGeometries.push(bridgePlankGeo, bridgeKerbGeo);
+  // 5. North & East Stepped Marble Stair-Bridges connecting the 3 High-Altitude Floating Islands
+  const bridgePlankGeo = new THREE.BoxGeometry(5.6, 0.34, 0.92);
+  const bridgeKerbGeo = new THREE.BoxGeometry(0.36, 0.56, 0.96);
+  const bridgeRailPostGeo = new THREE.CylinderGeometry(0.14, 0.16, 1.15, 10);
+  disposableGeometries.push(bridgePlankGeo, bridgeKerbGeo, bridgeRailPostGeo);
 
-  // North Sky-Bridge (x = mainIslX, z = -61.5 .. -68.5)
-  for (let s = 0; s <= 7; s++) {
-    const t = s / 7;
-    const bz = -61.5 - t * 7.0;
-    const by = floatingBloomingIslandHeightAt(mainIslX, bz, mainDeckY + 1.5) ?? mainDeckY + 1.5;
+  // North Stair-Bridge (x = mainIslX, z = -61.2 .. -68.2, climbing smoothly from 68.0m to 71.0m)
+  const northSteps = 12;
+  for (let s = 0; s <= northSteps; s++) {
+    const t = s / northSteps;
+    const bz = -61.2 - t * 7.0;
+    const by = 68.0 + t * (71.0 - 68.0);
     const plank = new THREE.Mesh(bridgePlankGeo, marbleArchMat);
-    plank.position.set(mainIslX, by - 0.14, bz);
+    plank.position.set(mainIslX, by - 0.15, bz);
+    plank.receiveShadow = !isSoftwareGl;
     floatingIslandsGroup.add(plank);
     for (const side of [-1, 1] as const) {
-      const kerb = new THREE.Mesh(bridgeKerbGeo, blossomCanopyPinkMat);
-      kerb.position.set(mainIslX + side * 2.75, by + 0.18, bz);
+      const kerb = new THREE.Mesh(bridgeKerbGeo, flowerGoldMat);
+      kerb.position.set(mainIslX + side * 2.65, by + 0.16, bz);
       floatingIslandsGroup.add(kerb);
+      if (s % 3 === 0) {
+        const post = new THREE.Mesh(bridgeRailPostGeo, marbleArchMat);
+        post.position.set(mainIslX + side * 2.65, by + 0.68, bz);
+        floatingIslandsGroup.add(post);
+      }
     }
   }
 
-  // East Sky-Bridge (from (mainIslX + 25.0, -26) to (mainIslX + 31.5, -23.6))
-  const eastBridgeStartX = mainIslX + 25.0;
-  const eastBridgeEndX = mainIslX + 31.5;
-  const eastBridgeYaw = Math.atan2(eastBridgeEndX - eastBridgeStartX, -23.6 - -26.0);
-  for (let s = 0; s <= 7; s++) {
-    const t = s / 7;
-    const bx = eastBridgeStartX + t * 6.5;
-    const bz = -26.0 + t * 2.4;
-    const by = floatingBloomingIslandHeightAt(bx, bz, mainDeckY + 1.0) ?? mainDeckY + 1.0;
+  // East Stair-Bridge (from (mainIslX + 24.8, -25.63, y=68.0) to (mainIslX + 32.0, -22.91, y=70.0))
+  const eastBridgeStartX = mainIslX + 24.8;
+  const eastBridgeStartZ = -25.63;
+  const eastBridgeEndX = mainIslX + 32.0;
+  const eastBridgeEndZ = -22.91;
+  const eastBridgeDx = eastBridgeEndX - eastBridgeStartX;
+  const eastBridgeDz = eastBridgeEndZ - eastBridgeStartZ;
+  const eastBridgeLen = Math.hypot(eastBridgeDx, eastBridgeDz) || 1;
+  const eastPerpX = -eastBridgeDz / eastBridgeLen;
+  const eastPerpZ = eastBridgeDx / eastBridgeLen;
+  const eastBridgeYaw = Math.atan2(eastBridgeDx, eastBridgeDz);
+  const eastSteps = 12;
+  for (let s = 0; s <= eastSteps; s++) {
+    const t = s / eastSteps;
+    const bx = eastBridgeStartX + t * eastBridgeDx;
+    const bz = eastBridgeStartZ + t * eastBridgeDz;
+    const by = 68.0 + t * (70.0 - 68.0);
     const plank = new THREE.Mesh(bridgePlankGeo, marbleArchMat);
-    plank.position.set(bx, by - 0.14, bz);
+    plank.position.set(bx, by - 0.15, bz);
     plank.rotation.y = eastBridgeYaw;
+    plank.receiveShadow = !isSoftwareGl;
     floatingIslandsGroup.add(plank);
+    for (const side of [-1, 1] as const) {
+      const kx = bx + eastPerpX * side * 2.65;
+      const kz = bz + eastPerpZ * side * 2.65;
+      const kerb = new THREE.Mesh(bridgeKerbGeo, flowerGoldMat);
+      kerb.position.set(kx, by + 0.16, kz);
+      kerb.rotation.y = eastBridgeYaw;
+      floatingIslandsGroup.add(kerb);
+      if (s % 3 === 0) {
+        const post = new THREE.Mesh(bridgeRailPostGeo, marbleArchMat);
+        post.position.set(kx, by + 0.68, kz);
+        floatingIslandsGroup.add(post);
+      }
+    }
   }
 
   // ==========================================================================
@@ -1056,7 +1086,43 @@ export function buildVolcanoAndFloatingIslandsModels(
   waterfallVeilMesh.position.set(wfX, wfFootY + wfHeight * 0.5, wfZ);
   floatingIslandsGroup.add(waterfallVeilMesh);
 
-  // Ground-Level Plunge Pool & Rim Boulders at (wfX, 3.4, -35)
+  // Broad Lower Island Sanctuary Terrace Foundation, Gently Sloped Coastal Beach & Ground-Level Plunge Pool at (wfX, 3.4, -35)
+  const lowerIslandTopGeo = new THREE.CylinderGeometry(22.0, 24.0, 1.1, 36);
+  const lowerIslandBeachSlopeGeo = new THREE.CylinderGeometry(22.2, 37.8, 2.75, 36);
+  const lowerIslandCliffGeo = new THREE.CylinderGeometry(36.8, 43.5, 8.2, 28);
+  const westShoreRampGeo = new THREE.BoxGeometry(17.2, 0.48, 8.2);
+  perturbGeometryVertices(lowerIslandCliffGeo, 0.35, 1.2);
+  disposableGeometries.push(
+    lowerIslandTopGeo,
+    lowerIslandBeachSlopeGeo,
+    lowerIslandCliffGeo,
+    westShoreRampGeo
+  );
+
+  const lowerIslandTopMesh = new THREE.Mesh(lowerIslandTopGeo, islandGrassMat);
+  lowerIslandTopMesh.position.set(wfX - 5.0, 3.25 - 0.56, wfZ);
+  lowerIslandTopMesh.receiveShadow = !isSoftwareGl;
+  floatingIslandsGroup.add(lowerIslandTopMesh);
+
+  const lowerIslandBeachMesh = new THREE.Mesh(lowerIslandBeachSlopeGeo, islandGrassMat);
+  lowerIslandBeachMesh.position.set(wfX - 5.0, 1.86, wfZ);
+  lowerIslandBeachMesh.receiveShadow = !isSoftwareGl;
+  floatingIslandsGroup.add(lowerIslandBeachMesh);
+
+  const lowerIslandCliffMesh = new THREE.Mesh(lowerIslandCliffGeo, islandCliffMat);
+  lowerIslandCliffMesh.position.set(wfX - 5.0, -3.55, wfZ);
+  floatingIslandsGroup.add(lowerIslandCliffMesh);
+
+  const westShoreRampMesh = new THREE.Mesh(westShoreRampGeo, marbleArchMat);
+  westShoreRampMesh.position.set(
+    FLOATING_ISLAND_STAIR_POS.entryRampStartX - 8.2,
+    2.02,
+    wfZ
+  );
+  westShoreRampMesh.rotation.z = Math.atan2(3.18 - 1.15, 16.5);
+  westShoreRampMesh.receiveShadow = !isSoftwareGl;
+  floatingIslandsGroup.add(westShoreRampMesh);
+
   const plungePoolMesh = new THREE.Mesh(plungePoolWaterGeo, waterfallCoreMat);
   plungePoolMesh.position.set(wfX, wfFootY + 0.06, wfZ);
   floatingIslandsGroup.add(plungePoolMesh);
@@ -1171,7 +1237,9 @@ export function buildVolcanoAndFloatingIslandsModels(
     const outCos = Math.cos(stepIsl.angle);
     const outSin = Math.sin(stepIsl.angle);
 
-    if (stepIsl.isRestLanding) {
+    const isFirstOrLastStep = i === 0 || i === FLOATING_WATERFALL_STEP_ISLANDS.length - 1;
+
+    if (stepIsl.isRestLanding && !isFirstOrLastStep) {
       const restPillar = new THREE.Mesh(archColumnGeo, marbleArchMat);
       restPillar.scale.set(0.42, 0.48, 0.42);
       restPillar.position.set(outCos * 1.52, 1.25, outSin * 1.52);
@@ -1204,25 +1272,27 @@ export function buildVolcanoAndFloatingIslandsModels(
     miniGroup.add(miniCrys);
     floatingCrystals.push(miniCrys);
 
-    // Outer-edge marble balustrade post & glowing crystal lantern
-    const balPost = new THREE.Mesh(railPostGeo, marbleArchMat);
-    const balR = stepIsl.radius - 0.18;
-    balPost.position.set(outCos * balR, 0.46, outSin * balR);
-    miniGroup.add(balPost);
+    // Outer-edge marble balustrade post & glowing crystal lantern (omitted on entry/exit steps so guards are never obstructed)
+    if (!isFirstOrLastStep) {
+      const balPost = new THREE.Mesh(railPostGeo, marbleArchMat);
+      const balR = stepIsl.radius - 0.18;
+      balPost.position.set(outCos * balR, 0.46, outSin * balR);
+      miniGroup.add(balPost);
 
-    const balGem = new THREE.Mesh(miniCrystalGeo, flowerGoldMat);
-    balGem.scale.setScalar(0.42);
-    balGem.position.set(outCos * balR, 1.04, outSin * balR);
-    miniGroup.add(balGem);
+      const balGem = new THREE.Mesh(miniCrystalGeo, flowerGoldMat);
+      balGem.scale.setScalar(0.42);
+      balGem.position.set(outCos * balR, 1.04, outSin * balR);
+      miniGroup.add(balGem);
 
-    // Blooming flower accent on the outer edge of each mini-island
-    const flowerAccent = new THREE.Mesh(
-      flowerPatchGeo,
-      i % 2 === 0 ? blossomCanopyPinkMat : flowerGoldMat
-    );
-    flowerAccent.scale.setScalar(0.48);
-    flowerAccent.position.set(outCos * (balR - 0.38), 0.04, outSin * (balR - 0.38));
-    miniGroup.add(flowerAccent);
+      // Blooming flower accent on the outer edge of each mini-island
+      const flowerAccent = new THREE.Mesh(
+        flowerPatchGeo,
+        i % 2 === 0 ? blossomCanopyPinkMat : flowerGoldMat
+      );
+      flowerAccent.scale.setScalar(0.48);
+      flowerAccent.position.set(outCos * (balR - 0.38), 0.04, outSin * (balR - 0.38));
+      miniGroup.add(flowerAccent);
+    }
 
     if (i % 3 === 0) {
       const miniVine = new THREE.Mesh(hangingVineGeo, vineFoliageMat);

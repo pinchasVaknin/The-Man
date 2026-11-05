@@ -2484,4 +2484,465 @@ test('survivalModeCabinSpawnStarterChestClothingAndShopFiltering_WhenEvaluated_S
   const provisionsItems = getMarketStallCatalogItems('market-harbor-6').map((i) => i.id);
   assert.ok(provisionsItems.every((id) => INVENTORY_ITEMS.find((c) => c.id === id)?.category === 'food'));
 });
+
+test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldVerifyAllNewMechanics', async () => {
+  const {
+    floatingBloomingIslandHeightAt,
+    WORLD_CHESTS,
+    takeAllFromWorldChest,
+    storeAllUnequippedInWorldChest,
+    getChestContents,
+    configureSailableShipsForGameMode,
+    buyOrSpawnShipFromShipwright,
+    getSpawnedSailableShips,
+    placeMountOnShipDeckWithoutStacking,
+    stepSurvivalVitals,
+    findNearestMarketStall,
+  } = await import('./terrainMath');
+
+  // 1) Floating Islands upper stair-bridges (Main <-> North & Main <-> East) interpolate smoothly without step drops
+  const northBridgeStart = floatingBloomingIslandHeightAt(760, -56);
+  const northBridgeMid = floatingBloomingIslandHeightAt(760, -64.5);
+  const northBridgeEnd = floatingBloomingIslandHeightAt(760, -73);
+  assert.ok(northBridgeStart !== null && Math.abs(northBridgeStart - 68.0) < 0.25);
+  assert.ok(northBridgeMid !== null && northBridgeMid > 69.0 && northBridgeMid < 70.0);
+  assert.ok(northBridgeEnd !== null && Math.abs(northBridgeEnd - 71.0) < 0.25);
+
+  const eastBridgeStart = floatingBloomingIslandHeightAt(784.8, -25.63);
+  const eastBridgeMid = floatingBloomingIslandHeightAt(788.4, -24.27);
+  const eastBridgeEnd = floatingBloomingIslandHeightAt(792.0, -22.91);
+  assert.ok(eastBridgeStart !== null && Math.abs(eastBridgeStart - 68.0) < 0.25);
+  assert.ok(eastBridgeMid !== null && eastBridgeMid > 68.6 && eastBridgeMid < 69.4);
+  assert.ok(eastBridgeEnd !== null && Math.abs(eastBridgeEnd - 70.0) < 0.25);
+
+  // 2) Lower waterfall island around (715, -35) is wide dry land so waterfall pool at (720, -35) is well above sea level
+  const waterfallBaseGround = groundHeightAt(720, -35);
+  assert.ok(
+    waterfallBaseGround > WATER_LEVEL + 2.0,
+    `Expected expanded lower waterfall island at (720, -35) to sit above sea level, got ${waterfallBaseGround}`
+  );
+
+  // 3) Vertical height checks block interacting with ground doors/markets when high above on a roof or flying
+  const highRoofDoor = findNearestFortressDoor(0, CHINESE_FORTRESS_POS.pavilionFloor1Y + 6.5, -188.0 + FORTRESS_Z_OFFSET, 0, 0);
+  assert.equal(highRoofDoor, null, 'Standing 6.5m above a door must not detect or open the ground-floor door');
+  const flyingAboveMarket = findNearestMarketStall(212, 254, 25.0);
+  assert.equal(flyingAboveMarket, null, 'Flying high above a market stall must not trigger market interaction');
+
+  // 4) Chest Take All & Store All Unequipped
+  const chestPlayer = createInitialPlayerState({ survivalMode: true });
+  const cabinChest = WORLD_CHESTS[0];
+  const takeAllRes = takeAllFromWorldChest(chestPlayer, cabinChest);
+  assert.equal(takeAllRes.ok, true);
+  assert.equal(takeAllRes.takenCount, 2);
+  assert.equal(getChestContents(chestPlayer, cabinChest).length, 0);
+  // Equip ranger_garb and sword, leaving simple_tunic unequipped, plus add an unequipped apple
+  chestPlayer.equippedClothingId = 'ranger_garb';
+  chestPlayer.activeWeaponId = 'sword';
+  chestPlayer.equippedTool = 'sword';
+  chestPlayer.ownedItemIds?.push('red_orchard_apples');
+  const storeAllRes = storeAllUnequippedInWorldChest(chestPlayer, cabinChest);
+  assert.equal(storeAllRes.ok, true);
+  assert.equal(storeAllRes.storedCount, 2, 'Expected simple_tunic and red_orchard_apples to be stored while equipped items stay');
+  assert.equal(chestPlayer.ownedItemIds?.includes('ranger_garb'), true);
+  assert.equal(chestPlayer.ownedItemIds?.includes('sword'), true);
+  assert.equal(chestPlayer.ownedItemIds?.includes('simple_tunic'), false);
+
+  // 5) Shipwright 4-tier ship economy, dock clearance, and non-stacking animal deck placement
+  configureSailableShipsForGameMode(true); // Survival Mode starts with 0 spawned ships
+  assert.equal(getSpawnedSailableShips().length, 0);
+  const brokeBuy = buyOrSpawnShipFromShipwright(chestPlayer, 'sloop', false);
+  assert.equal(brokeBuy.ok, false);
+  assert.equal(brokeBuy.code, 'INSUFFICIENT_GOLD');
+
+  chestPlayer.goldCoins = 500;
+  const sloopBuy = buyOrSpawnShipFromShipwright(chestPlayer, 'sloop', false);
+  assert.equal(sloopBuy.ok, true);
+  assert.equal(chestPlayer.goldCoins, 350);
+  assert.equal(getSpawnedSailableShips().length, 1);
+
+  // Buying a second ship while Sloop is still at the pier is blocked by DOCK_OCCUPIED
+  const blockedByDock = buyOrSpawnShipFromShipwright(chestPlayer, 'caravel', true);
+  assert.equal(blockedByDock.ok, false);
+  assert.equal(blockedByDock.code, 'DOCK_OCCUPIED');
+
+  // Move Sloop away from the pier -> buying Caravel in God Mode (free) succeeds!
+  sloopBuy.ship!.x += 45;
+  const freeCaravelBuy = buyOrSpawnShipFromShipwright(chestPlayer, 'caravel', true);
+  assert.equal(freeCaravelBuy.ok, true);
+  assert.equal(getSpawnedSailableShips().length, 2);
+
+  // Non-stacking animal deck placement keeps animals where left and nudges only if overlapping
+  const activeShip = freeCaravelBuy.ship!;
+  const horseA = { id: 'horse-test-a', name: 'A', x: activeShip.x + 1.0, y: activeShip.deckY, z: activeShip.z - 2.0, yaw: 0, speed: 0, gaitPhase: 0 };
+  const horseB = { id: 'horse-test-b', name: 'B', x: activeShip.x + 1.0, y: activeShip.deckY, z: activeShip.z - 2.0, yaw: 0, speed: 0, gaitPhase: 0 };
+  placeMountOnShipDeckWithoutStacking(horseA, activeShip, [horseA], []);
+  placeMountOnShipDeckWithoutStacking(horseB, activeShip, [horseA, horseB], []);
+  const distBetweenMounts = Math.hypot(horseA.x - horseB.x, horseA.z - horseB.z);
+  assert.ok(distBetweenMounts >= 1.5, `Expected animals on ship deck not to stack on top of each other, got dist=${distBetweenMounts}`);
+  configureSailableShipsForGameMode(false);
+
+  // 6) Survival Death & Bed Awakening 2-stage transition
+  const dyingPlayer = createInitialPlayerState({ survivalMode: true });
+  dyingPlayer.hp = 1;
+  dyingPlayer.hunger = 0;
+  const vitalsRes = stepSurvivalVitals(dyingPlayer, 2.0, false, false);
+  assert.equal(vitalsRes.tookDamage, true);
+  assert.equal(dyingPlayer.deathRespawnPhase?.stage, 'dying');
+  // Advance past dying stage (2.8s) -> transitions to 'waking' on the Hunter's Cabin bed
+  stepSurvivalVitals(dyingPlayer, 3.0, false, false);
+  assert.equal(dyingPlayer.deathRespawnPhase?.stage, 'waking');
+  // Advance past waking stage (3.6s) -> stands up inside cabin with full HP & Hunger
+  const wakeDone = stepSurvivalVitals(dyingPlayer, 3.8, false, false);
+  assert.equal(wakeDone.starvedOrDied, true);
+  assert.equal(dyingPlayer.deathRespawnPhase, null);
+  assert.equal(dyingPlayer.hp, 100);
+
+  // 7) Full World & Map Reset for Survival and Creative modes
+  const {
+    resetLiveWorldToFreshBaseline,
+    createInitialRideableHorses,
+    getSurfaceNormalAt,
+  } = await import('./terrainMath');
+  const { SOLID_BUILDING_BOXES } = await import('./domain/landmarks/collisionAndTerraces');
+  const resetHorses = createInitialRideableHorses();
+  resetHorses[0].x += 250;
+  const resetDoors = new Set<string>(['door-hunter-lodge', 'chest-hunter-lodge']);
+  chestPlayer.goldCoins = 999;
+  resetLiveWorldToFreshBaseline('survival', chestPlayer, resetHorses, [], resetDoors);
+  assert.equal(chestPlayer.goldCoins, 0);
+  assert.equal(chestPlayer.ownedItemIds?.length, 2);
+  assert.equal(getChestContents(chestPlayer, cabinChest).length, 2, 'Resetting Survival mode restores starter chest contents');
+  assert.equal(getSpawnedSailableShips().length, 0);
+  assert.equal(resetDoors.size, 0);
+
+  resetLiveWorldToFreshBaseline('creative', chestPlayer, resetHorses, [], resetDoors);
+  assert.equal(chestPlayer.goldCoins, 280);
+  assert.equal(getSpawnedSailableShips().length, 1);
+
+  // 8) Lower Island of the Floating Islands (715, -35) is gently sloped and climbable from swimming
+  for (let x = 677; x <= 696; x += 1.0) {
+    const n = getSurfaceNormalAt(x, -35.0);
+    assert.ok(
+      n.ny >= 0.85,
+      `Expected gentle climbable shoreline on Lower Floating Island at x=${x}, z=-35, got ny=${n.ny.toFixed(3)}`
+    );
+  }
+  const swimClimber = createInitialPlayerState();
+  swimClimber.x = 677.0;
+  swimClimber.z = -35.0;
+  swimClimber.y = WATER_LEVEL;
+  swimClimber.yaw = -Math.PI / 2; // facing East (+X) toward the Lower Floating Island
+  for (let step = 0; step < 60; step++) {
+    stepPlayerPhysics(
+      swimClimber,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05,
+      new Set()
+    );
+  }
+  assert.ok(
+    swimClimber.x > 692.0 && swimClimber.y >= 3.1,
+    `Expected player swimming East from x=677 to climb onto Lower Floating Island plateau (x=${swimClimber.x.toFixed(2)}, y=${swimClimber.y.toFixed(2)})`
+  );
+
+  // 9) Harbor Portmaster's House (243, 277) & all 6 Harbor Stalls have solid hitboxes in SOLID_BUILDING_BOXES
+  for (const requiredId of [
+    'harbor-shed-south-wall',
+    'harbor-shed-west-wall',
+    'harbor-shed-east-wall',
+    'harbor-shed-north-left',
+    'harbor-shed-north-right',
+    'harbor-quayside-crane-pedestal',
+    'market-stall-counter-harbor-1',
+    'market-stall-counter-harbor-2',
+    'market-stall-counter-harbor-3',
+    'market-stall-counter-harbor-4',
+    'market-stall-counter-harbor-5',
+    'market-stall-counter-harbor-6',
+    'galleon-office-desk',
+    'galleon-office-bookshelf-port',
+    'galleon-office-drafting-stbd',
+    'galleon-office-strongbox',
+    'galleon-office-globe',
+    'harbor-lighthouse-wall-seg-1',
+    'harbor-lighthouse-wall-seg-14',
+    'harbor-lighthouse-top-rail-seg-1',
+    'harbor-lighthouse-top-rail-seg-16',
+  ]) {
+    assert.ok(
+      SOLID_BUILDING_BOXES.some((b) => b.id === requiredId),
+      `Expected SOLID_BUILDING_BOXES to contain hitbox ${requiredId}`
+    );
+  }
+
+  // 10) Shipwright Naval Office inside Galleon Captain's Cabin (282.0, 267.6) is reachable inside cabin & removed from outdoor deck
+  const cabinShipwright = findNearestMarketStall(282.0, 264.8, SOUTHEAST_HARBOR_POS.shipDeckY);
+  assert.equal(
+    cabinShipwright?.id,
+    'market-harbor-shipwright',
+    'Expected Shipwright to be interactable inside the Galleon cabin Naval Office'
+  );
+  const oldDeckSpot = findNearestMarketStall(280.5, 248.5, SOUTHEAST_HARBOR_POS.shipDeckY);
+  assert.equal(
+    oldDeckSpot,
+    null,
+    'Expected old outdoor main-deck Shipwright spot (280.5, 248.5) to be empty'
+  );
+
+  // 11) Oriented Bounding Box (OBB) rotated stall hitboxes & Universal Collidable Entity Contract
+  const {
+    resolveHorizontalBoxCollision,
+    pointInsideSolidBuildingBox,
+    validateWorldEntityColliders,
+  } = await import('./terrainMath');
+  const contractValidation = validateWorldEntityColliders();
+  assert.equal(
+    contractValidation.valid,
+    true,
+    `Expected all registered collidable world entities to be valid, errors: ${contractValidation.errors.join('; ')}`
+  );
+
+  const stall2Box = SOLID_BUILDING_BOXES.find((b) => b.id === 'market-stall-counter-harbor-2')!;
+  assert.ok(stall2Box.yaw !== undefined && Math.abs(stall2Box.yaw) > 0.2, 'Expected Harbor Stall 2 to have diagonal OBB yaw');
+  const insideStallCenter = pointInsideSolidBuildingBox(212.0, 263.0, 0.35, stall2Box);
+  assert.equal(insideStallCenter, true, 'Expected center of Harbor Stall 2 to be inside OBB');
+  const resolvedStall = resolveHorizontalBoxCollision(212.1, 263.1, 0.35, stall2Box);
+  assert.equal(resolvedStall.collided, true, 'Expected collision inside rotated Harbor Stall 2 OBB');
+  assert.equal(
+    pointInsideSolidBuildingBox(resolvedStall.x, resolvedStall.z, 0.34, stall2Box),
+    false,
+    'Expected resolved OBB position to be pushed cleanly outside the rotated stall boundary'
+  );
+
+  // 12) Cylindrical Harbor Lighthouse (252, 202): South doorway at (252, 205.85) is open while North/East/West curved wall segments block clipping
+  const lhBoxes = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-lighthouse-wall-seg-'));
+  assert.equal(lhBoxes.length, 14, 'Expected 14 tangential OBB wall segments for cylindrical lighthouse');
+  const southDoorOpen = lhBoxes.every((b) => !pointInsideSolidBuildingBox(252.0, 205.85, 0.25, b));
+  assert.equal(southDoorOpen, true, 'Expected South doorway portal of cylindrical lighthouse to be open');
+  const northWallBlocked = lhBoxes.some((b) => pointInsideSolidBuildingBox(252.0, 198.0, 0.35, b));
+  assert.equal(northWallBlocked, true, 'Expected North curved wall of cylindrical lighthouse to block clipping');
+
+  // 13) Exact Harbor Bollards, Streetlamps (zero phantom lamps), Sea-Wall Merlons, Pier/Jetty Pilings, and Full-Height Birch Trunk Arrow Collision
+  const { getObstacleColliderMetrics, stepArrowsPhysics } = await import('./terrainMath');
+  const lampBoxes = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-lamp-post-'));
+  assert.equal(lampBoxes.length, 6, 'Expected exactly 6 Harbor streetlamp hitboxes matching harborModels.ts (no phantom lamps)');
+  const lamp5 = SOLID_BUILDING_BOXES.find((b) => b.id === 'harbor-lamp-post-5')!;
+  assert.ok(
+    Math.abs((lamp5.minX + lamp5.maxX) * 0.5 - 225.0) < 0.01 &&
+      Math.abs((lamp5.minZ + lamp5.maxZ) * 0.5 - 242.0) < 0.01,
+    'Expected harbor-lamp-post-5 to be centered at (225.0, 242.0)'
+  );
+  const bollard3 = SOLID_BUILDING_BOXES.find((b) => b.id === 'harbor-quayside-bollard-3')!;
+  assert.ok(
+    Math.abs((bollard3.minX + bollard3.maxX) * 0.5 - 254.35) < 0.01 &&
+      Math.abs((bollard3.minZ + bollard3.maxZ) * 0.5 - 245.5) < 0.01 &&
+      bollard3.minY === 3.2,
+    'Expected harbor-quayside-bollard-3 to wrap the 3D bollard at (254.35, 245.5, y=3.2..4.4)'
+  );
+  assert.equal(
+    SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-seawall-merlon-')).length,
+    13,
+    'Expected 13 Harbor sea-wall stone parapet merlon hitboxes (skipping bz=284 at Sailable Ship Jetty entrance)'
+  );
+  assert.equal(
+    SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-pier-piling-')).length,
+    10,
+    'Expected 10 Harbor wooden pier piling hitboxes'
+  );
+  const jettyPilings = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-jetty-piling-'));
+  assert.equal(jettyPilings.length, 8, 'Expected 8 Harbor North boarding jetty piling hitboxes');
+  for (const jp of jettyPilings) {
+    const cz = (jp.minZ + jp.maxZ) * 0.5;
+    assert.ok(
+      Math.abs(cz - 279.6) < 0.05 || Math.abs(cz - 284.4) < 0.05,
+      `Expected jetty piling ${jp.id} to align with actual jetty at z=279.6/284.4, got ${cz}`
+    );
+  }
+
+  // Royal Galleon main-deck bulwark railing height check:
+  // On the main deck (z = 248), the starboard and port railings end at y = 4.75m.
+  // Shooting an arrow across the starboard railing at y = 5.5m must fly freely out to sea without sticking in mid-air.
+  const stbdBowRailBox = SOLID_BUILDING_BOXES.find((b) => b.id === 'galleon-rail-starboard-bow')!;
+  assert.ok(
+    stbdBowRailBox.maxY !== undefined && Math.abs(stbdBowRailBox.maxY - 4.75) < 0.01,
+    'Expected main-deck starboard railing maxY to be 4.75m'
+  );
+  const seaArrow = {
+    id: 998,
+    x: 286.0,
+    y: 5.5,
+    z: 248.0,
+    vx: 30,
+    vy: 0,
+    vz: 0,
+    yaw: Math.PI * 0.5,
+    pitch: 0,
+    arrowKind: 'normal' as const,
+    stuck: false,
+    hitKind: 'none' as const,
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  stepArrowsPhysics([seaArrow], [], 0.05);
+  assert.equal(
+    seaArrow.stuck,
+    false,
+    'Expected arrow shot over Royal Galleon main-deck starboard railing at y=5.5m to fly freely without hitting a sky-high hitbox'
+  );
+
+  // Birch trunk upper-half arrow collision test (up to 9.4 * scale above ground)
+  const birchObs = { x: 110.0, z: -20.0, radius: 0.42, kind: 'birch' as const, scale: 1.0, seed: 0.5 };
+  const birchMetrics = getObstacleColliderMetrics(birchObs);
+  assert.ok(Math.abs(birchMetrics.height - 9.4) < 0.01, 'Expected birch trunk collider height to be 9.4m');
+  const birchGroundY = groundHeightAt(birchObs.x, birchObs.z);
+  const highArrow = {
+    id: 999,
+    x: birchObs.x,
+    y: birchGroundY + 8.2, // Upper birch trunk (previously > 4.2m flew right through!)
+    z: birchObs.z + 0.5,
+    vx: 0,
+    vy: 0,
+    vz: -20,
+    yaw: 0,
+    pitch: 0,
+    arrowKind: 'normal' as const,
+    stuck: false,
+    hitKind: 'none' as const,
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  stepArrowsPhysics([highArrow], [birchObs], 0.025);
+  assert.equal(highArrow.stuck, true, 'Expected arrow aimed at upper Birch trunk (y = ground + 8.2m) to stick into trunk');
+  assert.equal(highArrow.hitKind, 'obstacle', 'Expected arrow hitKind to be obstacle on upper Birch trunk');
+
+  // 14) Harbor Castle Bastion OBB Segments, Royal Galleon Quarterdeck Stair Walk-Up Without Jumping, Lighthouse Upper Deck Ladder Clearance, and Amphitheater Stage & Bench Tier Hitboxes
+  const nwBastionSegs = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-bastion-nw-seg-'));
+  assert.equal(nwBastionSegs.length, 8, 'Expected 8 tangential OBB segments for NW castle bastion tower');
+  // At diagonal offset (+3.3, +3.3) from NW bastion center (200, 214), r = 4.67m > 3.5m octagon radius -> must NOT be blocked by square AABB corner!
+  const nwCornerBlocked = nwBastionSegs.some((b) => pointInsideSolidBuildingBox(203.3, 217.3, 0.35, b));
+  assert.equal(nwCornerBlocked, false, 'Expected diagonal corner outside octagonal NW bastion tower (r=4.67m) to be free of square AABB overhang');
+  // At face offset (+3.15, 0) from NW bastion center (200, 214), r = 3.15m -> must be blocked by tangential OBB segment!
+  const nwFaceBlocked = nwBastionSegs.some((b) => pointInsideSolidBuildingBox(203.15, 214.0, 0.35, b));
+  assert.equal(nwFaceBlocked, true, 'Expected octagonal face of NW bastion tower (r=3.15m) to block player');
+
+  // Royal Galleon Port Stairs (x = 277.45) walk-up from z = 254.0 (main deck y=3.65) to z = 260.6 (quarterdeck y=6.65) without jumping!
+  const stairRider = createInitialPlayerState();
+  stairRider.x = 277.45;
+  stairRider.z = 254.0;
+  stairRider.y = 3.65;
+  stairRider.yaw = Math.PI; // facing +Z (forward = +Z when yaw = PI: -sin(yaw)=0, -cos(yaw)=+1)
+  for (let i = 0; i < 60; i++) {
+    stepPlayerPhysics(
+      stairRider,
+      {
+        forward: 1,
+        right: 0,
+        sprint: false,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.05,
+      new Set()
+    );
+  }
+  assert.ok(
+    stairRider.z > 260.0 && Math.abs(stairRider.y - 6.65) < 0.1,
+    `Expected player to walk smoothly up Royal Galleon port stairs onto quarterdeck (z > 260, y ≈ 6.65) without jumping, got z=${stairRider.z.toFixed(2)}, y=${stairRider.y.toFixed(2)}`
+  );
+
+  // Lighthouse top deck ladder hatch & central lantern core clearance:
+  const lhStandWalk = walkableHeightAt(
+    SOUTHEAST_HARBOR_POS.lighthouseLadderX,
+    SOUTHEAST_HARBOR_POS.lighthouseStandZ,
+    SOUTHEAST_HARBOR_POS.lighthouseTopDeckY
+  );
+  assert.ok(
+    lhStandWalk !== null && Math.abs(lhStandWalk.height - SOUTHEAST_HARBOR_POS.lighthouseTopDeckY) < 0.05,
+    `Expected lighthouse upper deck standZ (${SOUTHEAST_HARBOR_POS.lighthouseStandZ}) to be solid walkable top deck (${SOUTHEAST_HARBOR_POS.lighthouseTopDeckY}m), got ${lhStandWalk?.height}`
+  );
+  const lanternCoreBox = SOLID_BUILDING_BOXES.find((b) => b.id === 'harbor-lighthouse-lantern-core')!;
+  assert.equal(
+    pointInsideSolidBuildingBox(
+      SOUTHEAST_HARBOR_POS.lighthouseLadderX,
+      SOUTHEAST_HARBOR_POS.lighthouseStandZ,
+      0.44,
+      lanternCoreBox
+    ),
+    false,
+    'Expected lighthouse central lantern room hitbox not to overlap ladder exit at standZ'
+  );
+
+  // Harbor Amphitheater stage & 5 semicircular bench tiers OBB hitboxes:
+  const amphStageSegs = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-amphitheater-stage-'));
+  const amphTierSegs = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('harbor-amphitheater-tier-'));
+  assert.equal(amphStageSegs.length, 13, 'Expected 1 core + 12 tangential OBB stage segments for Harbor Amphitheater');
+  assert.equal(amphTierSegs.length, 45, 'Expected 45 curved OBB segments across 5 seating tiers in Harbor Amphitheater');
+
+  // 15) Hunter's Cabin & Stable, Valley Farmhouses, Riverside Windmills, and Lakeside Tea Pavilion Hitboxes
+  const hunterWestWall = SOLID_BUILDING_BOXES.find((b) => b.id === 'hunter-lodge-west-wall')!;
+  const hunterChimney = SOLID_BUILDING_BOXES.find((b) => b.id === 'hunter-lodge-chimney')!;
+  assert.ok(hunterWestWall && hunterChimney, 'Expected Hunter Cabin West wall and stone chimney to have separate hitboxes');
+  assert.equal(
+    pointInsideSolidBuildingBox(-97.2, 70.5, 0.25, hunterWestWall),
+    false,
+    'Expected area outside front-west corner of Hunter Cabin (-97.2, 70.5) to be free of chimney overhang'
+  );
+  assert.equal(
+    pointInsideSolidBuildingBox(-97.2, 73.2, 0.25, hunterChimney),
+    true,
+    'Expected Hunter Cabin exterior stone chimney (-97.2, 73.2) to have accurate collision'
+  );
+  const hunterChest = SOLID_BUILDING_BOXES.find((b) => b.id === 'hunter-lodge-starter-chest')!;
+  assert.equal(hunterChest.yaw, 0.35, 'Expected Hunter Cabin starter chest to use rotated OBB matching yaw=0.35');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-lodge-bed'), 'Expected Hunter Cabin bed hitbox');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-lodge-table'), 'Expected Hunter Cabin table hitbox');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-water-pump'), 'Expected Hunter Cabin water pump hitbox');
+  // Verify East horse stall entrance (x = -102.5, z = 71.8) is unobstructed while West hay bay is enclosed by front fence:
+  const stableBoxes = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith('stable-'));
+  assert.equal(
+    stableBoxes.some((b) => pointInsideSolidBuildingBox(-102.5, 71.8, 0.4, b)),
+    false,
+    'Expected East horse stall entrance at (-102.5, 71.8) to be open for riding out'
+  );
+  assert.equal(
+    stableBoxes.some((b) => pointInsideSolidBuildingBox(-106.5, 77.15, 0.35, b)),
+    true,
+    'Expected West hay storage bay at (-106.5, 77.15) to have solid hay bale collision'
+  );
+
+  // Verify all 3 Valley Farmhouses have walls capped at eaves height (not protruding above roof), porch columns, interior furniture, wheat field fences, hay bales, and gate posts:
+  for (const farm of VALLEY_FARMS) {
+    const westWallBox = SOLID_BUILDING_BOXES.find((b) => b.id === `${farm.id}-west-wall`)!;
+    assert.ok(
+      Math.abs((westWallBox.maxY ?? 0) - (farm.height + 3.58)) < 0.05,
+      `Expected ${farm.id}-west-wall maxY to stop at eaves height (${farm.height + 3.58}m), got ${westWallBox.maxY}`
+    );
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-interior-hearth`), `Expected ${farm.id} interior hearth hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-interior-table`), `Expected ${farm.id} interior table hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-interior-wardrobe`), `Expected ${farm.id} interior wardrobe hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-interior-bed`), `Expected ${farm.id} interior bed hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-interior-chest`), `Expected ${farm.id} interior chest hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-field-fence-left-back`), `Expected ${farm.id} wheat field border fence hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-hay-bale-left`), `Expected ${farm.id} left hay bale OBB hitbox`);
+    assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === `${farm.id}-gate-crossbeam`), `Expected ${farm.id} overhead gate crossbeam hitbox`);
+  }
+
+  // Verify both Riverside Windmills use 8 tangential OBB segments instead of a coarse square AABB:
+  for (const wm of RIVERSIDE_WINDMILLS) {
+    const wmSegs = SOLID_BUILDING_BOXES.filter((b) => b.id.startsWith(`${wm.id}-seg-`));
+    assert.equal(wmSegs.length, 8, `Expected 8 tangential OBB segments for octagonal windmill ${wm.id}`);
+  }
+
+  // Verify Lakeside Tea Pavilion columns, rails, and center table exist:
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'tea-pavilion-table'), 'Expected Lakeside Tea Pavilion center table hitbox');
+  assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'tea-pavilion-rail-west'), 'Expected Lakeside Tea Pavilion West railing hitbox');
+});
 // #endregion
+

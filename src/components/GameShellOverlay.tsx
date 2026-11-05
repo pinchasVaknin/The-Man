@@ -7,7 +7,7 @@
 
 // ======================== IMPORTS & PROPS ======================== \\
 // #region Imports & Props
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   WeatherToggleOption,
   SeasonType,
@@ -212,6 +212,27 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     setUiTick((t) => t + 1);
   };
 
+  const triggerTakeAllChestItems = (chestId: string): number => {
+    const count = gameActions?.onTakeAllChestItems?.(chestId) ?? 0;
+    setUiTick((t) => t + 1);
+    return count;
+  };
+
+  const triggerStoreAllChestItems = (chestId: string): number => {
+    const count = gameActions?.onStoreAllChestItems?.(chestId) ?? 0;
+    setUiTick((t) => t + 1);
+    return count;
+  };
+
+  const triggerBuyShip = (tierId: string): { ok: boolean; message: string } => {
+    const res = gameActions?.onBuyShip?.(tierId) ?? {
+      ok: false,
+      message: 'Shipwright unavailable',
+    };
+    setUiTick((t) => t + 1);
+    return res;
+  };
+
   const triggerAssignHotbar = (slotIndex: number, itemId: InventoryItemId) => {
     gameActions?.onAssignHotbar(slotIndex, itemId);
     setUiTick((t) => t + 1);
@@ -222,17 +243,27 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     setUiTick((t) => t + 1);
   };
 
+  const prevSkyrimModalRef = useRef(skyrimModal);
   // Sync body dataset flag so WorldCanvas knows when Radial Inventory [Tab] or Favorites [Q] is open
   useEffect(() => {
     const isOpen = gameState === 'playing' && skyrimModal !== 'none';
     document.body.dataset.skyrimModalOpen = isOpen ? 'true' : 'false';
     if (isOpen && document.pointerLockElement) {
       document.exitPointerLock?.();
+    } else if (!isOpen && prevSkyrimModalRef.current !== 'none' && gameState === 'playing') {
+      // Auto-close chest when exiting inventory or chest modal
+      if (selectedCategory === 'chest' || telemetry.nearbyChest) {
+        gameActions?.onCloseChest?.(telemetry.nearbyChest?.id ?? 'chest-hunter-lodge');
+      }
+      // Auto-refocus pointer lock on game viewport
+      window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
+      gameActions?.onResumeGameControl?.();
     }
+    prevSkyrimModalRef.current = skyrimModal;
     return () => {
       document.body.dataset.skyrimModalOpen = 'false';
     };
-  }, [gameState, skyrimModal]);
+  }, [gameState, skyrimModal, selectedCategory, telemetry.nearbyChest, gameActions]);
 
   // Expose helper hooks for WorldCanvas chest interaction & automated tests
   useEffect(() => {
@@ -288,7 +319,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         e.code === kb.interactDoor &&
         !e.repeat &&
         telemetry.nearbyChest &&
-        !telemetry.nearbyDeadAnimal
+        !telemetry.nearbyDeadAnimal &&
+        !telemetry.nearbyDoor &&
+        !telemetry.nearbyBed
       ) {
         e.preventDefault();
         gameActions?.onOpenChest?.(telemetry.nearbyChest.id);
@@ -342,6 +375,25 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           e.preventDefault();
           triggerToggleFavorite(selectedItemId);
           return;
+        }
+        if (selectedCategory === 'chest' && telemetry.nearbyChest && !e.repeat) {
+          if (e.code === 'KeyR') {
+            e.preventDefault();
+            if (isItemOwned(selectedItemId)) {
+              triggerEquipItem(selectedItemId);
+            }
+            return;
+          }
+          if (e.code === 'KeyT') {
+            e.preventDefault();
+            triggerTakeAllChestItems(telemetry.nearbyChest.id);
+            return;
+          }
+          if (e.code === 'KeyY') {
+            e.preventDefault();
+            triggerStoreAllChestItems(telemetry.nearbyChest.id);
+            return;
+          }
         }
         if ((e.code === 'Enter' || e.code === kb.interactDoor) && !e.repeat) {
           e.preventDefault();
@@ -632,7 +684,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   return (
     <div className="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-4 md:p-5">
       {/* Red Screen-Edge Damage Vignette Overlay when taking damage or critically low HP */}
-      {damageVignetteAlpha > 0.01 && (
+      {damageVignetteAlpha > 0.01 && !telemetry.deathRespawnPhase && (
         <div
           data-testid="damage-vignette-overlay"
           aria-hidden="true"
@@ -644,6 +696,104 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             boxShadow: 'inset 0 0 90px rgba(220, 38, 38, 0.75)',
           }}
         />
+      )}
+
+      {/* Survival Death & Rebirth Transition + Bed Awakening Overlay */}
+      {telemetry.deathRespawnPhase && (
+        <div
+          data-testid={
+            telemetry.deathRespawnPhase.stage === 'dying'
+              ? 'survival-death-respawn-overlay'
+              : 'survival-bed-waking-overlay'
+          }
+          className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center select-none overflow-hidden"
+        >
+          {telemetry.deathRespawnPhase.stage === 'dying' ? (
+            <div
+              className="w-full h-full flex flex-col items-center justify-center px-6 text-center transition-opacity duration-300"
+              style={{
+                background: `radial-gradient(circle at center, rgba(40, 6, 6, ${Math.min(
+                  0.97,
+                  0.68 + telemetry.deathRespawnPhase.timer * 0.14
+                )}) 0%, rgba(8, 5, 5, 0.98) 72%)`,
+              }}
+            >
+              <div className="mb-4 px-3 py-1 border border-rose-500/50 bg-rose-950/70 text-rose-300 text-xs font-mono uppercase tracking-[0.28em]">
+                SURVIVAL · VITALITY DEPLETED
+              </div>
+              <h2
+                data-testid="survival-death-headline"
+                className="font-display-he text-4xl sm:text-6xl font-bold text-rose-400 tracking-wide mb-3"
+                style={{ textShadow: '0 4px 28px rgba(220, 38, 38, 0.85)' }}
+              >
+                YOU FELL
+              </h2>
+              <p
+                data-testid="survival-death-cause"
+                className="max-w-lg text-base sm:text-xl font-semibold text-stone-100 mb-6"
+              >
+                {telemetry.deathRespawnPhase.causeText ??
+                  (telemetry.deathRespawnPhase.cause === 'starvation'
+                    ? 'Your strength gave out from extreme starvation in the wilderness.'
+                    : 'You were overcome by predators and foes of the realm.')}
+              </p>
+              <div className="w-64 h-[2px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent mb-4" />
+              <p className="text-xs sm:text-sm text-amber-200/90 font-medium animate-pulse">
+                Awakening in the Hunter's Cabin bed...
+              </p>
+            </div>
+          ) : (
+            (() => {
+              const tWake = telemetry.deathRespawnPhase.timer;
+              // Eyelid blink curve: opens partially, blinks once, then opens wide as player sits up & stands
+              const lidCloseFactor =
+                tWake < 0.55
+                  ? 1.0 - (tWake / 0.55) * 0.65
+                  : tWake < 0.85
+                    ? 0.35 + ((tWake - 0.55) / 0.3) * 0.45
+                    : Math.max(0, 0.8 * (1.0 - (tWake - 0.85) / 1.45));
+              const lidHeightPct = Math.round(Math.max(0, Math.min(52, lidCloseFactor * 52)));
+              return (
+                <>
+                  {/* Upper Eyelid */}
+                  <div
+                    className="fixed top-0 left-0 right-0 bg-stone-950 transition-all duration-75"
+                    style={{
+                      height: `${lidHeightPct}%`,
+                      boxShadow: '0 18px 42px rgba(0,0,0,0.95)',
+                    }}
+                  />
+                  {/* Lower Eyelid */}
+                  <div
+                    className="fixed bottom-0 left-0 right-0 bg-stone-950 transition-all duration-75"
+                    style={{
+                      height: `${lidHeightPct}%`,
+                      boxShadow: '0 -18px 42px rgba(0,0,0,0.95)',
+                    }}
+                  />
+                  {/* Awakening Status Banner */}
+                  <div
+                    className="fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-stone-950/88 border border-amber-400/50 text-center"
+                    style={{
+                      opacity: tWake < 3.1 ? 1 : Math.max(0, 1 - (tWake - 3.1) / 0.5),
+                    }}
+                  >
+                    <div className="text-xs sm:text-sm font-bold text-amber-300">
+                      ✨ Awakened in the Hunter's Cabin Bed
+                    </div>
+                    <div className="text-[11px] text-stone-300 mt-0.5">
+                      {tWake < 1.15
+                        ? 'Opening your eyes and sitting up in bed...'
+                        : tWake < 2.65
+                          ? 'Looking around the cabin...'
+                          : 'Standing up from bed — ready to head out!'}
+                    </div>
+                  </div>
+                </>
+              );
+            })()
+          )}
+        </div>
       )}
 
       {/* Top-Right Visual Weather & Season HUD + God Mode Developer Controls */}
@@ -813,6 +963,10 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           onSellItem={triggerSellItem}
           onTakeChestItem={triggerTakeChestItem}
           onStoreChestItem={triggerStoreChestItem}
+          onTakeAllChestItems={triggerTakeAllChestItems}
+          onStoreAllChestItems={triggerStoreAllChestItems}
+          onBuyShip={triggerBuyShip}
+          godMode={gameSettings.godMode !== false}
           onToggleFavorite={triggerToggleFavorite}
           onAssignHotbar={triggerAssignHotbar}
           onClose={() => setSkyrimModal('none')}

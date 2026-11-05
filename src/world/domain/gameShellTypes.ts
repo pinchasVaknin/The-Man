@@ -124,6 +124,24 @@ export interface ITelemetrySnapshot {
   maxHunger?: number;
   damageFlashIntensity?: number;
   skills?: ICharacterSkillsState;
+  deathRespawnPhase?: {
+    stage: 'dying' | 'waking';
+    timer: number;
+    cause: 'combat' | 'starvation';
+    causeText?: string;
+  } | null;
+  ownedShips?: ReadonlyArray<{
+    id: string;
+    tierId: string;
+    name: string;
+    x: number;
+    z: number;
+    yaw: number;
+    spawned: boolean;
+    priceGold: number;
+    maxForwardSpeed: number;
+    description: string;
+  }>;
 }
 export type TelemetrySnapshot = ITelemetrySnapshot;
 

@@ -28,6 +28,7 @@ export interface IGameSettingsModalProps {
   readonly isOpen: boolean;
   readonly settings: IGameSettingsConfig;
   readonly onApplySettings: (next: IGameSettingsConfig) => void;
+  readonly onResetWorld?: (mode: 'survival' | 'creative' | 'both') => { ok: boolean; message: string } | undefined;
   readonly onClose: () => void;
 }
 
@@ -75,6 +76,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   isOpen,
   settings,
   onApplySettings,
+  onResetWorld,
   onClose,
 }) => {
   const { logger } = useAppServices();
@@ -82,12 +84,14 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
   const [listeningKey, setListeningKey] = useState<keyof IGameKeybindings | null>(null);
   const [activeTab, setActiveTab] = useState<'keybindings' | 'gameplay'>('keybindings');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'saved_local'>('idle');
+  const [resetWorldNotice, setResetWorldNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setDraft(settings);
       setListeningKey(null);
       setSaveStatus('idle');
+      setResetWorldNotice(null);
     }
   }, [isOpen, settings]);
 
@@ -233,15 +237,61 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
             </button>
           </div>
 
-          <button
-            type="button"
-            data-testid="settings-reset-defaults-btn"
-            onClick={handleResetToFactory}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-400 hover:text-amber-300 bg-stone-900 hover:bg-stone-800 border border-stone-800 cursor-pointer"
-          >
-            {t('settings.reset_defaults')}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              data-testid="settings-reset-survival-top-btn"
+              onClick={() => {
+                const res = onResetWorld?.('survival');
+                setResetWorldNotice(
+                  res?.message ?? 'Survival World & Map have been reset to a fresh state!'
+                );
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-200 hover:text-white bg-rose-950/70 hover:bg-rose-800 border border-rose-500/40 cursor-pointer"
+              title="Reset Survival Mode world, map discovery, chests, ships, and wildlife"
+            >
+              Reset Survival World
+            </button>
+            <button
+              type="button"
+              data-testid="settings-reset-creative-top-btn"
+              onClick={() => {
+                const res = onResetWorld?.('creative');
+                setResetWorldNotice(
+                  res?.message ?? 'Creative (God Mode) World & Map have been reset to a fresh state!'
+                );
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-sky-200 hover:text-white bg-sky-950/70 hover:bg-sky-800 border border-sky-500/40 cursor-pointer"
+              title="Reset Creative (God Mode) world, map discovery, chests, ships, and wildlife"
+            >
+              Reset Creative World
+            </button>
+            <button
+              type="button"
+              data-testid="settings-reset-defaults-btn"
+              onClick={handleResetToFactory}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-400 hover:text-amber-300 bg-stone-900 hover:bg-stone-800 border border-stone-800 cursor-pointer"
+            >
+              {t('settings.reset_defaults')}
+            </button>
+          </div>
         </div>
+
+        {resetWorldNotice && (
+          <div
+            data-testid="settings-world-reset-notice"
+            className="px-6 py-2.5 bg-emerald-950/85 border-b border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center justify-between"
+          >
+            <span>✓ {resetWorldNotice}</span>
+            <button
+              type="button"
+              onClick={() => setResetWorldNotice(null)}
+              className="text-emerald-300 hover:text-white text-[11px] underline cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Scrollable Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -356,6 +406,62 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                     }`}
                   >
                     Off (Survival)
+                  </button>
+                </div>
+              </div>
+
+              {/* 0B. World State & Map Reset (Survival / Creative Initialization) */}
+              <div
+                data-testid="settings-world-reset-card"
+                className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/35 flex flex-col gap-3"
+              >
+                <div>
+                  <div className="text-sm font-bold text-rose-300">
+                    World & Map Reset (Re-Initialize Survival or Creative)
+                  </div>
+                  <div className="text-xs text-stone-300 mt-0.5">
+                    Resets the selected mode&apos;s map discovery, player spawn, inventory, chests, ships, horses, doors, and all wildlife/bosses back to a brand-new world.
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    data-testid="reset-survival-world-btn"
+                    onClick={() => {
+                      const res = onResetWorld?.('survival');
+                      setResetWorldNotice(
+                        res?.message ?? 'Survival World & Map have been reset to a fresh state!'
+                      );
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                  >
+                    Reset Survival World
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="reset-creative-world-btn"
+                    onClick={() => {
+                      const res = onResetWorld?.('creative');
+                      setResetWorldNotice(
+                        res?.message ?? 'Creative (God Mode) World & Map have been reset to a fresh state!'
+                      );
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors cursor-pointer"
+                  >
+                    Reset Creative (God Mode) World
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="reset-all-worlds-btn"
+                    onClick={() => {
+                      const res = onResetWorld?.('both');
+                      setResetWorldNotice(
+                        res?.message ?? 'Both Survival & Creative Worlds and the Map have been reset!'
+                      );
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-800 hover:bg-stone-700 text-amber-300 border border-amber-500/40 transition-colors cursor-pointer"
+                  >
+                    Reset Both Worlds
                   </button>
                 </div>
               </div>

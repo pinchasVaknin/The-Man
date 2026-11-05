@@ -1042,7 +1042,7 @@ export function groundHeightAt(x: number, z: number): number {
     h += rimT * (30.0 + ridgeNoise * 38.0);
   }
 
-  // 4) High Desert-End Mountain Barrier & Narrow Canyon Pass (מעבר הרים צר) shielding the Dragon Ruins (-540, 540)
+  // 4) High Desert-End Mountain Barrier & Narrow Canyon Pass shielding the Dragon Ruins (-540, 540)
   //    Towers 46..56m high between the Desert Oasis (-310, 300) and the Dragon Ruins (-540, 540),
   //    with a walkable narrow canyon gorge along (-405, 405) -> (-455, 455) -> (-498, 492) -> (-540, 503).
   if (x <= -320.0 && x >= -760.0 && z >= 320.0 && z <= 760.0) {
@@ -1142,12 +1142,14 @@ export function groundHeightAt(x: number, z: number): number {
   if (x >= 184) {
     const coastLineX = easternCoastlineXAt(z);
     if (x >= coastLineX - 18.0) {
-      // Protect the Sky-Waterfall staircase entry island at (704, -35) so its plaza stays dry at 3.18m
+      // Sculpt the Sky-Waterfall lower island at (715, -35) with a flat inner sanctuary (r <= 22m at 3.25m),
+      // a gentle 16m-wide walkable shoreline beach (r = 22..38m sloping from 3.25m down to 0.55m wading depth, ny >= 0.96),
+      // and a submerged outer reef (r = 38..56m sloping from 0.55m down to the deep ocean floor).
       const skyStairDist = Math.hypot(
-        x - (FLOATING_ISLAND_STAIR_POS.footX - 3.0),
+        x - (FLOATING_ISLAND_STAIR_POS.waterfallX - 5.0),
         z - FLOATING_ISLAND_STAIR_POS.z
       );
-      const skyStairProtect = 1.0 - smoothstep(16.0, 32.0, skyStairDist);
+      const skyStairProtect = 1.0 - smoothstep(22.0, 56.0, skyStairDist);
 
       // Gentle sandy beach transition just inland of coastLineX, then shallow shoals & deep ocean
       const beachSlope =
@@ -1165,6 +1167,22 @@ export function groundHeightAt(x: number, z: number): number {
         const deepOceanExtra = smoothstep(coastLineX + 18.0, coastLineX + 125.0, x) * -2.8;
         const targetSeaFloor = -6.8 + deepOceanExtra;
         h = h * (1.0 - seaWeight) + targetSeaFloor * seaWeight;
+      }
+
+      if (skyStairDist < 56.0) {
+        const deepOceanExtra = smoothstep(coastLineX + 18.0, coastLineX + 125.0, x) * -2.8;
+        const targetSeaFloor = -6.8 + deepOceanExtra;
+        let islandTargetH: number;
+        if (skyStairDist <= 22.0) {
+          islandTargetH = 3.25;
+        } else if (skyStairDist <= 38.0) {
+          const shoreT = smoothstep(22.0, 38.0, skyStairDist);
+          islandTargetH = 3.25 * (1.0 - shoreT) + 0.55 * shoreT;
+        } else {
+          const reefT = smoothstep(38.0, 56.0, skyStairDist);
+          islandTargetH = 0.55 * (1.0 - reefT) + targetSeaFloor * reefT;
+        }
+        h = h * (1.0 - skyStairProtect) + islandTargetH * skyStairProtect;
       }
 
       // Sculpt natural rocky coastal islands in the Eastern Sea + Mid-Ocean Corsair Smuggler Cove Island (540, 185)
@@ -1863,6 +1881,26 @@ export function walkableHeightAt(
     }
   }
 
+  // Harbor Marble Amphitheater (at 226.0, 294.0): circular stage (r <= 6.68m) and 5 stepped semicircular bench tiers (r in 6.975..15.25m)
+  const amphDx = x - 226.0;
+  const amphDz = z - 294.0;
+  const amphR = Math.hypot(amphDx, amphDz);
+  if (amphR <= 6.68) {
+    const stageTopY = SOUTHEAST_HARBOR_POS.plazaY + 0.36;
+    if (currentY === undefined || currentY >= stageTopY - 0.85) {
+      return { height: stageTopY, surface: 'pier' };
+    }
+  } else if (amphR >= 6.975 && amphR <= 15.25 && amphDz >= -0.2) {
+    const amphAng = Math.atan2(amphDx, amphDz);
+    if (Math.abs(amphAng) <= Math.PI * 0.46) {
+      const tier = Math.min(4, Math.max(0, Math.floor((amphR - 6.975) / 1.65)));
+      const tierTopY = SOUTHEAST_HARBOR_POS.plazaY + 0.55 + tier * 0.56;
+      if (currentY === undefined || currentY >= tierTopY - 0.95) {
+        return { height: tierTopY, surface: 'pier' };
+      }
+    }
+  }
+
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.tavernX) <= SOUTHEAST_HARBOR_POS.tavernHalfW &&
     z >= SOUTHEAST_HARBOR_POS.tavernZ - SOUTHEAST_HARBOR_POS.tavernHalfD &&
@@ -1886,9 +1924,11 @@ export function walkableHeightAt(
 
   const lhDist = Math.hypot(x - SOUTHEAST_HARBOR_POS.lighthouseX, z - SOUTHEAST_HARBOR_POS.lighthouseZ);
   if (lhDist <= SOUTHEAST_HARBOR_POS.lighthouseRadius + 0.45) {
+    // Hatch opening wraps the vertical ladder at z=199.1 (z in 198.55..199.52) so stepping off onto standZ=199.65 lands on the solid 25.5m upper deck
     const inLhHatch =
-      Math.abs(x - SOUTHEAST_HARBOR_POS.lighthouseLadderX) <= 0.82 &&
-      Math.abs(z - SOUTHEAST_HARBOR_POS.lighthouseLadderZ) <= 0.82;
+      Math.abs(x - SOUTHEAST_HARBOR_POS.lighthouseLadderX) <= 0.65 &&
+      z >= SOUTHEAST_HARBOR_POS.lighthouseLadderZ - 0.55 &&
+      z <= SOUTHEAST_HARBOR_POS.lighthouseLadderZ + 0.42;
     if (!inLhHatch && currentY !== undefined && currentY >= SOUTHEAST_HARBOR_POS.lighthouseTopDeckY - 2.5) {
       return { height: SOUTHEAST_HARBOR_POS.lighthouseTopDeckY, surface: 'tower' };
     }
@@ -1927,7 +1967,12 @@ export function walkableHeightAt(
     (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.shipDeckY - 0.65)
   ) {
     const absShipDx = Math.abs(x - SOUTHEAST_HARBOR_POS.shipX);
-    if (absShipDx >= 3.45 && absShipDx <= 5.65 && z >= 254.5 && z <= SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ) {
+    if (
+      absShipDx >= 3.32 &&
+      absShipDx <= 5.85 &&
+      z >= 254.4 &&
+      z <= SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ + 0.15
+    ) {
       const tStair = Math.max(
         0,
         Math.min(1, (z - 254.5) / (SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ - 254.5))
@@ -1935,7 +1980,7 @@ export function walkableHeightAt(
       const stairY =
         SOUTHEAST_HARBOR_POS.shipDeckY +
         tStair * (SOUTHEAST_HARBOR_POS.shipQuarterdeckY - SOUTHEAST_HARBOR_POS.shipDeckY);
-      if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 1.8)) {
+      if (currentY === undefined || (currentY >= stairY - 0.65 && currentY <= stairY + 1.8)) {
         return { height: stairY, surface: 'pier' };
       }
     }
@@ -2635,42 +2680,24 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
   };
 
   const towerCorners = [
-    [-2.6, -2.6],
-    [2.6, -2.6],
-    [-2.6, 2.6],
-    [2.6, 2.6],
+    [-2.5, -2.5],
+    [2.5, -2.5],
+    [-2.5, 2.5],
+    [2.5, 2.5],
   ];
   for (const [ox, oz] of towerCorners) {
     obstacles.push({
       x: 30.0 + ox,
       z: -26.0 + oz,
-      radius: 0.35,
+      radius: 0.25,
       kind: 'pillar',
-      scale: 1,
+      scale: 1.2,
       seed: 0.5,
     });
   }
 
-  for (const hw of HILL_WATCHTOWERS) {
-    const cOff = hw.halfSize - 0.35;
-    const c = Math.cos(hw.yaw);
-    const s = Math.sin(hw.yaw);
-    for (const [lx, lz] of [
-      [-cOff, -cOff],
-      [cOff, -cOff],
-      [-cOff, cOff],
-      [cOff, cOff],
-    ]) {
-      obstacles.push({
-        x: hw.x + lx * c + lz * s,
-        z: hw.z - lx * s + lz * c,
-        radius: 0.32,
-        kind: 'pillar',
-        scale: 1.1,
-        seed: 0.4,
-      });
-    }
-  }
+  const pylonGroundY = groundHeightAt(ROPE_BRIDGE_DEF.mx, ROPE_BRIDGE_DEF.mz);
+  const pylonScale = Math.max(1.2, (ROPE_BRIDGE_DEF.my - pylonGroundY + 4.0) / 3.5);
   for (const [lx, lz] of [
     [-1.75, -1.85],
     [1.75, -1.85],
@@ -2682,7 +2709,7 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
       z: ROPE_BRIDGE_DEF.mz - lx * HILL_BRIDGE_SIN + lz * HILL_BRIDGE_COS,
       radius: 0.32,
       kind: 'pillar',
-      scale: 1.2,
+      scale: pylonScale,
       seed: 0.7,
     });
   }

@@ -24,4 +24,5 @@ export * from './systems/atmosphereAndWeatherSystem';
 export * from './systems/boidsAndWildlifeSystem';
 export * from './systems/footprintTrailSystem';
 export * from './systems/swordAttackAnimationSystem';
+export * from './systems/worldSaveManager';
 // #endregion

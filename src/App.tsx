@@ -215,9 +215,15 @@ export default function App() {
         isOpen={isSettingsOpen}
         settings={gameSettings}
         onApplySettings={(next) => {
+          const prevSurvival = gameSettings.godMode === false;
+          const nextSurvival = next.godMode === false;
           setGameSettings(next);
           setMuted(next.defaultMuted);
+          if (prevSurvival !== nextSurvival) {
+            gameActions?.onApplyGameMode?.(nextSurvival);
+          }
         }}
+        onResetWorld={(mode) => gameActions?.onResetWorld?.(mode)}
         onClose={() => setIsSettingsOpen(false)}
       />
     </div>

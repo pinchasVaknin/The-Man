@@ -15,6 +15,7 @@ import {
   CHINESE_FORTRESS_POS,
   SOUTHEAST_HARBOR_POS,
   SOUTHERN_MINE_POS,
+  getObstacleColliderMetrics,
   groundHeightAt,
 } from '../terrainMath';
 import type { IObstacleCylinder } from '../domain/worldTypes';
@@ -110,6 +111,9 @@ export function buildColliderDebugWireframes(
       b.id.includes('stair') || b.id.includes('galleon') || b.id.includes('harbor');
     const mesh = new THREE.Mesh(geo, isStairOrShip ? stairGuardWireMat : boxWireMat);
     mesh.position.set(cx, minY + h * 0.5, cz);
+    if (b.yaw) {
+      mesh.rotation.y = b.yaw;
+    }
     group.add(mesh);
   }
 
@@ -130,21 +134,23 @@ export function buildColliderDebugWireframes(
     group.add(mesh);
   }
 
-  // 3. HILL_WATCHTOWERS local wall segments (Orange)
+  // 3. HILL_WATCHTOWERS local wall segments (Orange — exact match with fortressModels.ts & playerPhysicsSystem.ts)
   for (let t = 0; t < HILL_WATCHTOWERS.length; t++) {
     const tw = HILL_WATCHTOWERS[t];
-    const ty = groundHeightAt(tw.x, tw.z);
     const towerGroup = new THREE.Group();
-    towerGroup.position.set(tw.x, ty, tw.z);
+    towerGroup.position.set(tw.x, tw.baseY, tw.z);
     towerGroup.rotation.y = tw.yaw;
 
+    const deckH = tw.deckY - tw.baseY;
+    const doorZ = tw.doorSideLocalZ * 3.45;
+    const nonDoorZ = -tw.doorSideLocalZ * 3.45;
     const wallDefs: Array<[number, number, number, number, number, number]> = [
-      [-1.95, 2.3, 0, 0.3, 4.6, 4.2],
-      [1.95, 2.3, 0, 0.3, 4.6, 4.2],
-      [0, 2.3, -1.95, 4.2, 4.6, 0.3],
-      [-1.375, 2.3, 1.95, 1.45, 4.6, 0.3],
-      [1.375, 2.3, 1.95, 1.45, 4.6, 0.3],
-      [0, 4.7, 0, 5.2, 0.3, 5.2],
+      [-3.45, deckH * 0.5, 0, 0.36, deckH, 7.2],
+      [3.45, deckH * 0.5, 0, 0.36, deckH, 7.2],
+      [0, deckH * 0.5, nonDoorZ, 7.2, deckH, 0.36],
+      [-2.35, deckH * 0.5, doorZ, 2.5, deckH, 0.36],
+      [2.35, deckH * 0.5, doorZ, 2.5, deckH, 0.36],
+      [0, deckH, 0, 7.5, 0.28, 7.5],
     ];
     for (const [wx, wy, wz, ww, wh, wd] of wallDefs) {
       const geo = new THREE.BoxGeometry(ww, wh, wd);
@@ -156,18 +162,19 @@ export function buildColliderDebugWireframes(
     group.add(towerGroup);
   }
 
-  // 4. OBSTACLE CYLINDERS (Green)
+  // 4. OBSTACLE CYLINDERS (Green — 100% of world obstacles using exact getObstacleColliderMetrics)
   const unitCylGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
   disposableGeometries.push(unitCylGeo);
-  const maxObs = Math.min(obstacles.length, 600);
+  const maxObs = obstacles.length;
   const obsInstanced = new THREE.InstancedMesh(unitCylGeo, cylWireMat, maxObs);
+  obsInstanced.frustumCulled = false;
   const dummy = new THREE.Object3D();
   for (let i = 0; i < maxObs; i++) {
     const o = obstacles[i];
     const gy = groundHeightAt(o.x, o.z);
-    const h = o.kind === 'boulder' ? 2.4 : 5.5;
-    dummy.position.set(o.x, gy + h * 0.5, o.z);
-    dummy.scale.set(o.radius, h, o.radius);
+    const metrics = getObstacleColliderMetrics(o);
+    dummy.position.set(o.x, gy + metrics.height * 0.5, o.z);
+    dummy.scale.set(metrics.radius, metrics.height, metrics.radius);
     dummy.updateMatrix();
     obsInstanced.setMatrixAt(i, dummy.matrix);
   }
@@ -196,20 +203,32 @@ export function buildColliderDebugWireframes(
     group.add(mesh);
   };
 
-  // Ship Gangplank (X-aligned slope from x=268.2 y=2.65 to x=276.2 y=3.65, z in 250.38..253.62)
+  // Ship Gangplank (X-aligned slope from x=270.8 y=3.25 to x=276.2 y=3.65, z in 250.1..253.9)
   {
-    const gangGeo = new THREE.BoxGeometry(8.1, 0.14, 3.2);
+    const gangGeo = new THREE.BoxGeometry(5.4, 0.2, 3.8);
     disposableGeometries.push(gangGeo);
     const gangMesh = new THREE.Mesh(gangGeo, walkableRampWireMat);
-    gangMesh.position.set(272.2, 3.15, 252.0);
-    gangMesh.rotation.z = Math.atan2(1.0, 8.0);
+    gangMesh.position.set(273.5, 3.45, 252.0);
+    gangMesh.rotation.z = Math.atan2(0.4, 5.0);
     group.add(gangMesh);
+
+    const pierGeo = new THREE.BoxGeometry(17.5, 0.35, 6.2);
+    disposableGeometries.push(pierGeo);
+    const pierMesh = new THREE.Mesh(pierGeo, walkableRampWireMat);
+    pierMesh.position.set(262.75, 3.12, 252.0);
+    group.add(pierMesh);
+
+    const jettyGeo = new THREE.BoxGeometry(20.0, 0.35, 5.6);
+    disposableGeometries.push(jettyGeo);
+    const jettyMesh = new THREE.Mesh(jettyGeo, walkableRampWireMat);
+    jettyMesh.position.set(264.2, 3.02, 282.0);
+    group.add(jettyMesh);
   }
 
-  // Ship Quarterdeck Port & Starboard Stairs (z: 254.5..259.5, y: 3.65..6.45)
+  // Ship Quarterdeck Port & Starboard Stairs (z: 254.5..259.5, y: 3.65..6.65)
   const shipX = SOUTHEAST_HARBOR_POS.shipX;
-  addSlopeRampWireframe(shipX - 5.65, shipX - 3.45, 254.5, 259.5, 3.65, 6.45);
-  addSlopeRampWireframe(shipX + 3.45, shipX + 5.65, 254.5, 259.5, 3.65, 6.45);
+  addSlopeRampWireframe(shipX - 5.65, shipX - 3.45, 254.5, 259.5, 3.65, 6.65);
+  addSlopeRampWireframe(shipX + 3.45, shipX + 5.65, 254.5, 259.5, 3.65, 6.65);
 
   // Fortress Grand Approach Stairs & Main Hall Interior Stairs
   const fz = CHINESE_FORTRESS_POS.z - -170;

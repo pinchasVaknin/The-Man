@@ -77,13 +77,9 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     player.yaw,
     player.pitch
   );
-  const nearDoor = lookedAt.door;
-  const nearBed = lookedAt.bed;
-  const activeOpenChest = findNearestWorldChest(player.x, player.y, player.z);
-  const nearChest =
-    activeOpenChest && input.openDoorIds.has(activeOpenChest.id)
-      ? activeOpenChest
-      : lookedAt.chest;
+  const nearDoor = lookedAt.kind === 'door' ? lookedAt.door : null;
+  const nearBed = lookedAt.kind === 'bed' ? lookedAt.bed : null;
+  const nearChest = lookedAt.kind === 'chest' ? lookedAt.chest : null;
   const nearLadder = findLookedAtWatchtowerLadder(
     player.x,
     player.y,
@@ -94,8 +90,18 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const nearHorse = !player.mountedHorseId
     ? findNearestRideableHorse(player.x, player.y, player.z, input.horses)
     : null;
-  const nearMarket = findNearestMarketStall(player.x, player.z);
-  const nearDeadAnimal = findNearestDeadLootableAnimal(player.x, player.z);
+  const nearMarket = findNearestMarketStall(
+    player.x,
+    player.z,
+    player.isFlying ? player.y : undefined
+  );
+  const nearDeadAnimal = findNearestDeadLootableAnimal(
+    player.x,
+    player.z,
+    undefined,
+    3.4,
+    player.isFlying ? player.y : undefined
+  );
   return {
     x: player.x,
     y: player.y,
@@ -192,6 +198,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     maxHunger: player.maxHunger ?? 100,
     damageFlashIntensity: Math.max(0, Math.min(1, player.damageFlashTimer ?? 0)),
     skills: player.skills ? { ...player.skills } : undefined,
+    ...(player.deathRespawnPhase ? { deathRespawnPhase: { ...player.deathRespawnPhase } } : {}),
   };
 }
 // #endregion

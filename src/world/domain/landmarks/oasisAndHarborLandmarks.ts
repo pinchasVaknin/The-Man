@@ -217,6 +217,15 @@ export const MARKET_STALL_LOCATIONS = [
       'roasted_meat',
     ] as readonly InventoryItemId[],
   },
+  {
+    id: 'market-harbor-shipwright',
+    name: 'Royal Galleon Shipwright',
+    shopType: 'shipwright' as const,
+    x: 282.0,
+    z: 267.6,
+    radius: 4.5,
+    allowedItemIds: [] as readonly InventoryItemId[],
+  },
 ] as const;
 
 /**
@@ -234,16 +243,23 @@ export function getMarketStallCatalogItems(stallId?: string | null): readonly II
 
 /**
  * Summary: Finds the nearest harbor market stall interactable at a world position.
- * Design: Linear scan with distance threshold matching the stall's interaction radius.
+ * Design: Linear scan with distance threshold matching the stall's interaction radius and vertical elevation check.
  * @param px Observer X coordinate.
  * @param pz Observer Z coordinate.
+ * @param py Optional observer Y coordinate to prevent triggering ground stalls while flying high above.
  * @returns Nearest market stall record within interaction range, or null.
  */
-export function findNearestMarketStall(px: number, pz: number): (typeof MARKET_STALL_LOCATIONS)[number] | null {
+export function findNearestMarketStall(
+  px: number,
+  pz: number,
+  py?: number
+): (typeof MARKET_STALL_LOCATIONS)[number] | null {
   let best: (typeof MARKET_STALL_LOCATIONS)[number] | null = null;
   let bestDist = Infinity;
   for (let i = 0; i < MARKET_STALL_LOCATIONS.length; i++) {
     const st = MARKET_STALL_LOCATIONS[i];
+    const stallY = st.id === 'market-harbor-shipwright' ? SOUTHEAST_HARBOR_POS.shipDeckY : SOUTHEAST_HARBOR_POS.plazaY;
+    if (py !== undefined && Math.abs(py - stallY) > 2.85) continue;
     const d = Math.hypot(px - st.x, pz - st.z);
     if (d <= st.radius && d < bestDist) {
       bestDist = d;
