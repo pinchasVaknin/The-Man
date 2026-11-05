@@ -26,6 +26,9 @@ import {
 import {
   PLAYER_EYE_HEIGHT,
   SOLID_BUILDING_BOXES,
+  getObstacleColliderMetrics,
+  getSolidBuildingWorldAABB,
+  pointInsideSolidBuildingBox,
   ARCHERY_TARGETS,
   MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
@@ -154,10 +157,11 @@ export class SpatialHashGrid2D<T> {
   }
 }
 
-/** Precomputed spatial grid for all static solid building collision boxes. */
+/** Precomputed spatial grid for all static solid building collision boxes (including rotated OBBs). */
 export const SOLID_BUILDING_SPATIAL_GRID = new SpatialHashGrid2D<ISolidBuildingBox>(32);
 for (const box of SOLID_BUILDING_BOXES) {
-  SOLID_BUILDING_SPATIAL_GRID.insert(box, box.minX, box.maxX, box.minZ, box.maxZ);
+  const aabb = getSolidBuildingWorldAABB(box);
+  SOLID_BUILDING_SPATIAL_GRID.insert(box, aabb.minX, aabb.maxX, aabb.minZ, aabb.maxZ);
 }
 
 /** Precomputed spatial grid for archery targets. */
@@ -708,6 +712,9 @@ export function buyMarketItem(
   for (let i = 0; i < qty; i++) {
     state.ownedItemIds.push(itemId);
   }
+  if (!stackable) {
+    equipInventoryItem(state, itemId);
+  }
   return MarketTransactionResult.success(
     { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel },
     { goldCoins: state.goldCoins, requiredLevel: def.requiredLevel, playerLevel }
@@ -902,6 +909,96 @@ export function storeItemInWorldChest(
 }
 
 /**
+ * Summary: Takes all items currently inside a world chest into the player's inventory.
+ */
+export function takeAllFromWorldChest(
+  state: IPlayerState,
+  chest: IWorldChest
+): { ok: boolean; takenCount: number } {
+  const contents = getChestContents(state, chest);
+  if (contents.length === 0) {
+    return { ok: false, takenCount: 0 };
+  }
+  if (!state.ownedItemIds) {
+    state.ownedItemIds = [...DEFAULT_STARTER_OWNED_ITEM_IDS];
+  }
+  if (!state.favoriteIds) {
+    state.favoriteIds = [];
+  }
+  if (!state.openedChestIds) {
+    state.openedChestIds = [];
+  }
+  if (!state.openedChestIds.includes(chest.id)) {
+    state.openedChestIds.push(chest.id);
+  }
+  const takenCount = contents.length;
+  for (let i = 0; i < contents.length; i++) {
+    const id = contents[i];
+    state.ownedItemIds.push(id);
+    if (!state.favoriteIds.includes(id)) {
+      state.favoriteIds.push(id);
+    }
+  }
+  contents.length = 0;
+  return { ok: true, takenCount };
+}
+
+/**
+ * Summary: Stores all unequipped items from the player's inventory into a world chest,
+ *          keeping only items that the player currently has equipped (active weapon, worn clothing, torch if held).
+ */
+export function storeAllUnequippedInWorldChest(
+  state: IPlayerState,
+  chest: IWorldChest
+): { ok: boolean; storedCount: number } {
+  if (!state.ownedItemIds || state.ownedItemIds.length === 0) {
+    return { ok: false, storedCount: 0 };
+  }
+  const contents = getChestContents(state, chest);
+  if (!state.openedChestIds) {
+    state.openedChestIds = [];
+  }
+  if (!state.openedChestIds.includes(chest.id)) {
+    state.openedChestIds.push(chest.id);
+  }
+
+  const equippedClothing = state.equippedClothingId ?? 'simple_tunic';
+  const activeWeapon = state.activeWeaponId ?? 'bow';
+  const torchEquipped = state.equippedTool === 'torch';
+
+  let keptClothing = false;
+  let keptWeapon = false;
+  let keptTorch = false;
+  const remainingOwned: InventoryItemId[] = [];
+  let storedCount = 0;
+
+  for (let i = 0; i < state.ownedItemIds.length; i++) {
+    const id = state.ownedItemIds[i];
+    if (id === 'unarmed') {
+      remainingOwned.push(id);
+    } else if (id === equippedClothing && !keptClothing) {
+      keptClothing = true;
+      remainingOwned.push(id);
+    } else if (id === activeWeapon && !keptWeapon) {
+      keptWeapon = true;
+      remainingOwned.push(id);
+    } else if (id === 'torch' && torchEquipped && !keptTorch) {
+      keptTorch = true;
+      remainingOwned.push(id);
+    } else {
+      contents.push(id);
+      storedCount++;
+    }
+  }
+
+  if (storedCount === 0) {
+    return { ok: false, storedCount: 0 };
+  }
+  state.ownedItemIds = remainingOwned;
+  return { ok: true, storedCount };
+}
+
+/**
  * Summary: Opens and loots an interactive world chest, transferring its contents into the player's inventory
  * and equipping any clothing and weapons found inside.
  */
@@ -938,6 +1035,7 @@ export function lootWorldChest(
     if (!state.favoriteIds.includes(itemId)) {
       state.favoriteIds.push(itemId);
     }
+    equipInventoryItem(state, itemId);
     addedItems.push(itemId);
     const def = INVENTORY_ITEM_MAP.get(itemId);
     if (def) {
@@ -1150,18 +1248,9 @@ export function evaluateSwordStrikeWindowHit(
       const obs = obstacles[o];
       if (Math.abs(sx - obs.x) > 1.8 || Math.abs(sz - obs.z) > 1.8) continue;
       const obsGroundY = groundHeightAt(obs.x, obs.z);
-      const obsMaxH =
-        obs.kind === 'boulder'
-          ? obsGroundY + obs.radius * 0.95
-          : obs.kind === 'pillar'
-            ? obsGroundY + obs.scale * 3.2
-            : obsGroundY + obs.scale * 4.5;
-      const hitRad =
-        obs.kind === 'boulder'
-          ? obs.radius * 0.92
-          : obs.kind === 'pillar'
-            ? obs.radius
-            : obs.radius * 0.52;
+      const metrics = getObstacleColliderMetrics(obs);
+      const obsMaxH = obsGroundY + metrics.height;
+      const hitRad = metrics.radius;
       if (sy >= obsGroundY && sy <= obsMaxH && Math.hypot(sx - obs.x, sz - obs.z) <= hitRad + 0.18) {
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
         state.swordHitStopTimer = 0.048;
@@ -1172,7 +1261,7 @@ export function evaluateSwordStrikeWindowHit(
     const nearbyBoxes = getNearbySolidBuildingBoxes(sx, sz);
     for (let b = 0; b < nearbyBoxes.length; b++) {
       const box = nearbyBoxes[b];
-      if (sx >= box.minX && sx <= box.maxX && sz >= box.minZ && sz <= box.maxZ) {
+      if (pointInsideSolidBuildingBox(sx, sz, 0.05, box)) {
         if (box.minY !== undefined && sy < box.minY) continue;
         if (box.maxY !== undefined && sy > box.maxY) continue;
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'wall' };
@@ -1601,18 +1690,9 @@ export function stepArrowsPhysics(
         const obs = obstacles[o];
         if (Math.abs(arr.x - obs.x) > 1.8 || Math.abs(arr.z - obs.z) > 1.8) continue;
         const obsGroundY = groundHeightAt(obs.x, obs.z);
-        const obsMaxH =
-          obs.kind === 'boulder'
-            ? obsGroundY + obs.radius * 0.92
-            : obs.kind === 'pillar'
-              ? obsGroundY + obs.scale * 3.2
-              : obsGroundY + obs.scale * 4.2;
-        const hitRad =
-          obs.kind === 'boulder'
-            ? obs.radius * 0.88
-            : obs.kind === 'pillar'
-              ? obs.radius
-              : obs.radius * 0.45;
+        const metrics = getObstacleColliderMetrics(obs);
+        const obsMaxH = obsGroundY + metrics.height;
+        const hitRad = metrics.radius;
         if (arr.y >= obsGroundY && arr.y <= obsMaxH) {
           const d2 = Math.hypot(arr.x - obs.x, arr.z - obs.z);
           if (d2 <= hitRad) {
@@ -1633,7 +1713,7 @@ export function stepArrowsPhysics(
       const nearbyBoxes = getNearbySolidBuildingBoxes(arr.x, arr.z);
       for (let b = 0; b < nearbyBoxes.length; b++) {
         const box = nearbyBoxes[b];
-        if (arr.x >= box.minX && arr.x <= box.maxX && arr.z >= box.minZ && arr.z <= box.maxZ) {
+        if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
           if (box.minY !== undefined && arr.y < box.minY) continue;
           if (box.maxY !== undefined && arr.y > box.maxY) continue;
           arr.stuck = true;

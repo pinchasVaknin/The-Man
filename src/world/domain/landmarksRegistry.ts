@@ -130,5 +130,12 @@ export {
   SOLID_BUILDING_BOXES,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
+  getSolidBuildingWorldAABB,
+  pointInsideSolidBuildingBox,
+  resolveHorizontalBoxCollision,
+  COLLIDABLE_WORLD_ENTITY_REGISTRY,
+  validateWorldEntityColliders,
+  getObstacleColliderMetrics,
 } from './landmarks/collisionAndTerraces';
 // #endregion
+

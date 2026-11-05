@@ -518,7 +518,7 @@ export function findNearestFortressDoor(
 
   for (let i = 0; i < FORTRESS_DOORS.length; i++) {
     const d = FORTRESS_DOORS[i];
-    if (Math.abs(y - d.y) > 3.5) continue;
+    if (Math.abs(y - d.y) > 2.25) continue;
     const distCenter = Math.hypot(x - d.x, z - d.z);
     const maxDoorDist = hasGaze ? Math.min(d.interactRadius, 3.4) : d.interactRadius;
     if (distCenter > maxDoorDist) continue;
@@ -571,7 +571,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     name: t('beds.farm_west'),
     x: VALLEY_FARMS[0].x + 3.4 * VALLEY_FARMS[0].dirZ,
     y: VALLEY_FARMS[0].height + 0.18,
-    z: VALLEY_FARMS[0].z - 5.1 * VALLEY_FARMS[0].dirZ,
+    z: VALLEY_FARMS[0].z - 4.85 * VALLEY_FARMS[0].dirZ,
     yaw: VALLEY_FARMS[0].dirZ === 1 ? 0 : Math.PI,
     interactRadius: 3.4,
   },
@@ -580,7 +580,7 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     name: t('beds.farm_south'),
     x: VALLEY_FARMS[1].x + 3.4 * VALLEY_FARMS[1].dirZ,
     y: VALLEY_FARMS[1].height + 0.18,
-    z: VALLEY_FARMS[1].z - 5.1 * VALLEY_FARMS[1].dirZ,
+    z: VALLEY_FARMS[1].z - 4.85 * VALLEY_FARMS[1].dirZ,
     yaw: VALLEY_FARMS[1].dirZ === 1 ? 0 : Math.PI,
     interactRadius: 3.4,
   },
@@ -589,17 +589,8 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     name: t('beds.farm_east'),
     x: VALLEY_FARMS[2].x + 3.4 * VALLEY_FARMS[2].dirZ,
     y: VALLEY_FARMS[2].height + 0.18,
-    z: VALLEY_FARMS[2].z - 5.1 * VALLEY_FARMS[2].dirZ,
+    z: VALLEY_FARMS[2].z - 4.85 * VALLEY_FARMS[2].dirZ,
     yaw: VALLEY_FARMS[2].dirZ === 1 ? 0 : Math.PI,
-    interactRadius: 3.4,
-  },
-  {
-    id: 'bed-galleon-cabin',
-    name: t('beds.captain'),
-    x: 285.8,
-    y: 3.6,
-    z: 268.8,
-    yaw: 0,
     interactRadius: 3.4,
   },
   ...DWARVEN_STONE_HOUSES.map((dh) => ({
@@ -611,15 +602,6 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     yaw: dh.dirX === 1 ? Math.PI * 0.5 : -Math.PI * 0.5,
     interactRadius: 3.4,
   })),
-  {
-    id: 'sleeping-bag-hunter-lodge',
-    name: t('beds.sleeping_bag'),
-    x: HUNTER_LODGE_POS.x + 2.8,
-    y: HUNTER_LODGE_POS.height + 0.2,
-    z: HUNTER_LODGE_POS.z + 2.2,
-    yaw: 0,
-    interactRadius: 3.2,
-  },
   ...HILL_WATCHTOWERS.map((hw) => ({
     id: `sleeping-bag-${hw.id}`,
     name: t('beds.sleeping_bag'),
@@ -684,7 +666,7 @@ export function findNearestBed(
   const hasGaze = yaw !== undefined;
   for (let i = 0; i < WORLD_BEDS.length; i++) {
     const b = WORLD_BEDS[i];
-    if (Math.abs(y - b.y) > 3.5) continue;
+    if (Math.abs(y - b.y) > 2.25) continue;
     const maxR = hasGaze
       ? Math.min(maxDistOverride ?? b.interactRadius, 2.7)
       : (maxDistOverride ?? b.interactRadius);
@@ -758,7 +740,7 @@ export function findNearestWorldChest(
   for (let i = 0; i < WORLD_CHESTS.length; i++) {
     const c = WORLD_CHESTS[i];
     if (openedIds && openedIds.includes(c.id)) continue;
-    if (Math.abs(y - c.y) > 3.5) continue;
+    if (Math.abs(y - c.y) > 2.25) continue;
     const maxR = hasGaze
       ? Math.min(distOverride ?? c.interactRadius, 2.8)
       : (distOverride ?? c.interactRadius);

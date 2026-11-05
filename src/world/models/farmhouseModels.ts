@@ -257,20 +257,38 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   // --- 1) 3 VALLEY FARMHOUSES & WHEAT FIELDS ---
   const farmWallBackGeo = new THREE.BoxGeometry(10.0, 3.4, 0.42);
   const farmWallSideGeo = new THREE.BoxGeometry(0.42, 3.4, 8.6);
-  const farmWallSideGableGeo = new THREE.BoxGeometry(0.42, 1.45, 5.2);
+  // Exact triangular prism gable wall matching the ±0.402 rad pitch of fRoofBack and fRoofFront (never pokes through roof!)
+  const farmGableShape = new THREE.Shape();
+  farmGableShape.moveTo(-6.15, 3.54);
+  farmGableShape.lineTo(-1.4, 5.62);
+  farmGableShape.lineTo(2.2, 4.05);
+  farmGableShape.lineTo(2.2, 3.54);
+  farmGableShape.closePath();
+  const farmWallSideGableGeo = new THREE.ExtrudeGeometry(farmGableShape, {
+    depth: 0.42,
+    bevelEnabled: false,
+  });
+  farmWallSideGableGeo.rotateY(Math.PI / 2);
+  farmWallSideGableGeo.translate(-0.21, 0, 0);
+
   const farmWallFrontFlankGeo = new THREE.BoxGeometry(4.0, 3.4, 0.42);
-  const farmWallFrontHeaderGeo = new THREE.BoxGeometry(2.0, 0.95, 0.42);
+  const farmWallFrontHeaderGeo = new THREE.BoxGeometry(2.1, 1.05, 0.42);
+  const farmWallFrontTopPlateGeo = new THREE.BoxGeometry(10.0, 0.48, 0.42);
   const farmFloorGeo = new THREE.BoxGeometry(10.4, 0.18, 10.6);
-  const farmRoofSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 6.8);
+  const farmRoofBackSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 5.8);
+  const farmRoofFrontSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 6.55);
+  const farmRidgeCapGeo = new THREE.BoxGeometry(11.3, 0.22, 0.34);
+  const farmVerandaHeaderGeo = new THREE.BoxGeometry(10.4, 0.22, 0.28);
+  const farmPorchTieBeamGeo = new THREE.BoxGeometry(0.24, 0.22, 2.1);
   const plowedSoilFurrowGeo = new THREE.BoxGeometry(11.6, 0.08, 15.6);
   const farmFenceRailGeo = new THREE.BoxGeometry(3.8, 0.1, 0.1);
   const wheatStalkGeo = new THREE.ConeGeometry(0.085, 0.92, 5);
   wheatStalkGeo.translate(0, 0.46, 0);
   const lodgeLeafGeo = new THREE.BoxGeometry(0.92, 2.35, 0.12);
   lodgeLeafGeo.translate(0.46, 1.175, 0);
-  const windowPaneGeo = new THREE.BoxGeometry(1.45, 1.05, 0.42);
-  const verandaColGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.3, 8);
-  verandaColGeo.translate(0, 2.1, 0);
+  const windowPaneGeo = new THREE.BoxGeometry(1.45, 1.05, 0.44);
+  const verandaColGeo = new THREE.CylinderGeometry(0.16, 0.19, 3.02, 8);
+  verandaColGeo.translate(0, 1.65, 0);
   const hayBaleGeo = new THREE.BoxGeometry(0.95, 0.58, 0.65);
   hayBaleGeo.translate(0, 0.29, 0);
 
@@ -280,8 +298,13 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     farmWallSideGableGeo,
     farmWallFrontFlankGeo,
     farmWallFrontHeaderGeo,
+    farmWallFrontTopPlateGeo,
     farmFloorGeo,
-    farmRoofSlopeGeo,
+    farmRoofBackSlopeGeo,
+    farmRoofFrontSlopeGeo,
+    farmRidgeCapGeo,
+    farmVerandaHeaderGeo,
+    farmPorchTieBeamGeo,
     plowedSoilFurrowGeo,
     farmFenceRailGeo,
     wheatStalkGeo,
@@ -294,83 +317,352 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   type HouseInteriorKind = 'hunter' | 'farm_bakery' | 'farm_dairy' | 'farm_weaver';
 
   const tableTopGeo = new THREE.BoxGeometry(2.1, 0.1, 1.25);
-  const tableLegGeo = new THREE.BoxGeometry(0.1, 0.76, 0.1);
-  const chairSeatGeo = new THREE.BoxGeometry(0.52, 0.07, 0.52);
-  const chairLegGeo = new THREE.BoxGeometry(0.06, 0.45, 0.06);
-  const chairBackGeo = new THREE.BoxGeometry(0.52, 0.52, 0.06);
-  const wardrobeBodyGeo = new THREE.BoxGeometry(1.45, 2.25, 0.72);
-  const bedFrameGeo = new THREE.BoxGeometry(1.45, 0.34, 2.25);
-  const bedHeadboardGeo = new THREE.BoxGeometry(1.45, 0.88, 0.12);
-  const mattressGeo = new THREE.BoxGeometry(1.34, 0.2, 2.1);
-  const pillowGeo = new THREE.BoxGeometry(0.88, 0.14, 0.42);
-  const chestBodyGeo = new THREE.BoxGeometry(1.1, 0.58, 0.62);
-  const grainSackGeo = new THREE.SphereGeometry(0.42, 8, 8);
-  grainSackGeo.scale(1.0, 1.28, 0.85);
-  const barrelGeo = new THREE.CylinderGeometry(0.38, 0.42, 0.92, 10);
-  const toolShaftGeo = new THREE.CylinderGeometry(0.025, 0.028, 1.85, 6);
+  const tableLegGeo = new THREE.BoxGeometry(0.1, 0.74, 0.1);
+  const tableStretcherGeo = new THREE.BoxGeometry(1.75, 0.07, 0.08);
+  const benchSeatGeo = new THREE.BoxGeometry(1.85, 0.08, 0.36);
+  const benchLegGeo = new THREE.BoxGeometry(0.08, 0.42, 0.32);
+  const platterGeo = new THREE.CylinderGeometry(0.28, 0.24, 0.04, 12);
+  const loafGeo = new THREE.SphereGeometry(0.16, 10, 8);
+  loafGeo.scale(1.35, 0.75, 0.9);
+  const mugGeo = new THREE.CylinderGeometry(0.06, 0.065, 0.14, 8);
 
-  const ovenGeo = new THREE.BoxGeometry(2.4, 2.2, 1.8);
-  const churnGeo = new THREE.CylinderGeometry(0.28, 0.38, 0.95, 8);
-  const loomGeo = new THREE.BoxGeometry(2.2, 1.8, 1.4);
+  const wardrobeBodyGeo = new THREE.BoxGeometry(1.55, 2.22, 0.76);
+  const wardrobeCorniceGeo = new THREE.BoxGeometry(1.68, 0.12, 0.84);
+  const wardrobeDoorPanelGeo = new THREE.BoxGeometry(0.64, 1.82, 0.05);
+  const wardrobeHandleGeo = new THREE.BoxGeometry(0.04, 0.18, 0.06);
+
+  const bedFrameGeo = new THREE.BoxGeometry(1.52, 0.28, 2.15);
+  const bedPostGeo = new THREE.CylinderGeometry(0.065, 0.07, 1.08, 8);
+  const bedHeadboardGeo = new THREE.BoxGeometry(1.52, 0.92, 0.12);
+  const bedFootboardGeo = new THREE.BoxGeometry(1.52, 0.56, 0.1);
+  const mattressGeo = new THREE.BoxGeometry(1.38, 0.22, 1.98);
+  const quiltGeo = new THREE.BoxGeometry(1.42, 0.23, 1.42);
+  const pillowGeo = new THREE.BoxGeometry(0.56, 0.13, 0.38);
+  const nightstandGeo = new THREE.BoxGeometry(0.64, 0.68, 0.56);
+
+  const chestBodyGeo = new THREE.BoxGeometry(0.68, 0.58, 1.18);
+  const chestLidGeo = new THREE.CylinderGeometry(0.34, 0.34, 1.2, 10, 1, false, 0, Math.PI);
+  chestLidGeo.rotateX(Math.PI / 2);
+  const chestStrapGeo = new THREE.BoxGeometry(0.72, 0.6, 0.08);
+
+  const hearthBaseGeo = new THREE.BoxGeometry(2.2, 0.22, 0.95);
+  const hearthPillarGeo = new THREE.BoxGeometry(0.46, 1.65, 0.78);
+  const hearthBackGeo = new THREE.BoxGeometry(1.35, 1.65, 0.28);
+  const hearthMantelGeo = new THREE.BoxGeometry(2.38, 0.18, 0.92);
+  const hearthHoodGeo = new THREE.BoxGeometry(1.65, 1.65, 0.68);
+  const hearthLogGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.76, 7);
+  hearthLogGeo.rotateZ(Math.PI / 2);
+  const hearthEmberGeo = new THREE.SphereGeometry(0.24, 8, 6);
+  hearthEmberGeo.scale(1.5, 0.45, 0.9);
+
+  const rugRunnerGeo = new THREE.BoxGeometry(1.85, 0.025, 3.6);
+  const rugHearthGeo = new THREE.BoxGeometry(2.4, 0.028, 1.45);
+  const pantryShelfGeo = new THREE.BoxGeometry(0.52, 0.06, 1.65);
+  const grainSackGeo = new THREE.SphereGeometry(0.32, 8, 8);
+  grainSackGeo.scale(1.0, 1.25, 0.85);
+  const barrelGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.74, 10);
+  const cheeseRoundGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.14, 12);
+
+  // Detailed Craft Station Geometries (Bakery Oven, Dairy Churns & Press, Timber Weaving Loom)
+  const ovenBaseGeo = new THREE.BoxGeometry(1.25, 0.88, 1.85);
+  const ovenDomeGeo = new THREE.CylinderGeometry(0.58, 0.62, 1.72, 10, 1, false, 0, Math.PI);
+  ovenDomeGeo.rotateX(Math.PI / 2);
+  const ovenFlueGeo = new THREE.BoxGeometry(0.52, 1.45, 0.56);
+  const ovenMouthGeo = new THREE.BoxGeometry(0.16, 0.42, 0.62);
+
+  const churnBarrelGeo = new THREE.CylinderGeometry(0.22, 0.28, 0.78, 10);
+  const churnHoopGeo = new THREE.CylinderGeometry(0.255, 0.265, 0.05, 10);
+  const churnPlungerGeo = new THREE.CylinderGeometry(0.025, 0.025, 1.18, 6);
+  const dairyCounterGeo = new THREE.BoxGeometry(0.88, 0.78, 1.65);
+
+  const loomPostGeo = new THREE.BoxGeometry(0.12, 1.75, 0.12);
+  const loomBeamGeo = new THREE.BoxGeometry(0.12, 0.12, 1.56);
+  const loomSideBarGeo = new THREE.BoxGeometry(0.96, 0.1, 0.1);
+  const loomRollerGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.44, 8);
+  loomRollerGeo.rotateX(Math.PI / 2);
+  const loomTapestryGeo = new THREE.BoxGeometry(0.04, 1.05, 1.28);
 
   disposableGeometries.push(
     tableTopGeo,
     tableLegGeo,
-    chairSeatGeo,
-    chairLegGeo,
-    chairBackGeo,
+    tableStretcherGeo,
+    benchSeatGeo,
+    benchLegGeo,
+    platterGeo,
+    loafGeo,
+    mugGeo,
     wardrobeBodyGeo,
+    wardrobeCorniceGeo,
+    wardrobeDoorPanelGeo,
+    wardrobeHandleGeo,
     bedFrameGeo,
+    bedPostGeo,
     bedHeadboardGeo,
+    bedFootboardGeo,
     mattressGeo,
+    quiltGeo,
     pillowGeo,
+    nightstandGeo,
     chestBodyGeo,
+    chestLidGeo,
+    chestStrapGeo,
+    hearthBaseGeo,
+    hearthPillarGeo,
+    hearthBackGeo,
+    hearthMantelGeo,
+    hearthHoodGeo,
+    hearthLogGeo,
+    hearthEmberGeo,
+    rugRunnerGeo,
+    rugHearthGeo,
+    pantryShelfGeo,
     grainSackGeo,
     barrelGeo,
-    toolShaftGeo,
-    ovenGeo,
-    churnGeo,
-    loomGeo
+    cheeseRoundGeo,
+    ovenBaseGeo,
+    ovenDomeGeo,
+    ovenFlueGeo,
+    ovenMouthGeo,
+    churnBarrelGeo,
+    churnHoopGeo,
+    churnPlungerGeo,
+    dairyCounterGeo,
+    loomPostGeo,
+    loomBeamGeo,
+    loomSideBarGeo,
+    loomRollerGeo,
+    loomTapestryGeo
   );
 
   function createInteriorFurnitureSet(interiorKind: HouseInteriorKind = 'hunter'): THREE.Group {
+    // Note: farmFurniture is mounted at (0, 0.18, -2.0) in farmGroup, so local fz maps to z_farm = fz - 2.0.
+    // Back wall inner face is fz = -3.90 (z_farm = -5.90); Front wall inner face is fz = +3.95 (z_farm = +1.95);
+    // West wall inner face is x = -4.70; East wall inner face is x = +4.70.
     const fGroup = new THREE.Group();
+
+    // 1. Central Entrance Runner Rug & Hearth Rug (keeping central walkway x = -1.2..+1.2 completely open)
+    const runnerRug = new THREE.Mesh(rugRunnerGeo, blanketClothMat);
+    runnerRug.position.set(0, 0.015, 1.55);
+    const hearthRug = new THREE.Mesh(rugHearthGeo, furRugMat);
+    hearthRug.position.set(0, 0.016, -1.55);
+    fGroup.add(runnerRug, hearthRug);
+
+    // 2. Back-Center Stone Hearth & Fireplace flush against Back Wall (x = 0, fz = -3.42 -> z_farm = -5.42)
+    const hearthGroup = new THREE.Group();
+    hearthGroup.position.set(0, 0, -3.42);
+    const hBase = new THREE.Mesh(hearthBaseGeo, rockMat);
+    hBase.position.y = 0.11;
+    const hBack = new THREE.Mesh(hearthBackGeo, rockMat);
+    hBack.position.set(0, 0.92, -0.32);
+    const hLeft = new THREE.Mesh(hearthPillarGeo, rockMat);
+    hLeft.position.set(-0.82, 0.92, -0.05);
+    const hRight = new THREE.Mesh(hearthPillarGeo, rockMat);
+    hRight.position.set(0.82, 0.92, -0.05);
+    const hMantel = new THREE.Mesh(hearthMantelGeo, timberMat);
+    hMantel.position.set(0, 1.82, 0.0);
+    const hHood = new THREE.Mesh(hearthHoodGeo, rockMat);
+    hHood.position.set(0, 2.72, -0.12);
+    const hLog1 = new THREE.Mesh(hearthLogGeo, barkMat);
+    hLog1.position.set(0, 0.28, -0.04);
+    const hLog2 = new THREE.Mesh(hearthLogGeo, barkMat);
+    hLog2.position.set(0, 0.34, 0.08);
+    hLog2.rotation.y = 0.28;
+    const hEmber = new THREE.Mesh(hearthEmberGeo, mineMoltenCoalMat);
+    hEmber.position.set(0, 0.24, 0.02);
+    hearthGroup.add(hBase, hBack, hLeft, hRight, hMantel, hHood, hLog1, hLog2, hEmber);
+    fGroup.add(hearthGroup);
+
+    // 3. Back-East Cozy Sleeping Nook: Country Bed (x = 3.4, fz = -2.85 -> z_farm = -4.85) & Nightstand (x = 2.15, fz = -3.55)
+    const bedGroup = new THREE.Group();
+    bedGroup.position.set(3.4, 0, -2.85);
+    const bFrame = new THREE.Mesh(bedFrameGeo, furnitureWoodMat);
+    bFrame.position.y = 0.28;
+    const bHead = new THREE.Mesh(bedHeadboardGeo, furnitureWoodMat);
+    bHead.position.set(0, 0.62, -1.02);
+    const bFoot = new THREE.Mesh(bedFootboardGeo, furnitureWoodMat);
+    bFoot.position.set(0, 0.44, 1.03);
+    const bMat = new THREE.Mesh(mattressGeo, pillowClothMat);
+    bMat.position.set(0, 0.48, 0);
+    const bQuilt = new THREE.Mesh(quiltGeo, blanketClothMat);
+    bQuilt.position.set(0, 0.5, 0.26);
+    const bPilL = new THREE.Mesh(pillowGeo, pillowClothMat);
+    bPilL.position.set(-0.34, 0.63, -0.72);
+    const bPilR = new THREE.Mesh(pillowGeo, pillowClothMat);
+    bPilR.position.set(0.34, 0.63, -0.72);
+    bedGroup.add(bFrame, bHead, bFoot, bMat, bQuilt, bPilL, bPilR);
+    for (const [px, pz] of [
+      [-0.72, -1.02],
+      [0.72, -1.02],
+      [-0.72, 1.02],
+      [0.72, 1.02],
+    ]) {
+      const post = new THREE.Mesh(bedPostGeo, barkMat);
+      post.position.set(px, 0.54, pz);
+      bedGroup.add(post);
+    }
+    const nightstand = new THREE.Mesh(nightstandGeo, furnitureWoodMat);
+    nightstand.position.set(2.15, 0.34, -3.55);
+    const bedMug = new THREE.Mesh(mugGeo, cheeseWheelMat);
+    bedMug.position.set(2.15, 0.75, -3.55);
+    fGroup.add(bedGroup, nightstand, bedMug);
+
+    // 4. Iron-Bound Storage Chest flush against East Wall (x = 4.18, fz = -0.2 -> z_farm = -2.2)
+    const chestGroup = new THREE.Group();
+    chestGroup.position.set(4.18, 0, -0.2);
+    const cBody = new THREE.Mesh(chestBodyGeo, furnitureWoodMat);
+    cBody.position.y = 0.29;
+    const cLid = new THREE.Mesh(chestLidGeo, barkMat);
+    cLid.position.y = 0.58;
+    chestGroup.add(cBody, cLid);
+    for (const sz of [-0.42, 0, 0.42]) {
+      const strap = new THREE.Mesh(chestStrapGeo, darkIronMat);
+      strap.position.set(0, 0.3, sz);
+      chestGroup.add(strap);
+    }
+    fGroup.add(chestGroup);
+
+    // 5. Front-East Dining Area: Table, Twin Benches & Tableware (x = 2.85, fz = +2.35 -> z_farm = +0.35)
+    const diningGroup = new THREE.Group();
+    diningGroup.position.set(2.85, 0, 2.35);
     const tTop = new THREE.Mesh(tableTopGeo, furnitureWoodMat);
-    tTop.position.set(0, 0.76, 0);
-    fGroup.add(tTop);
-    for (const lx of [-0.9, 0.9]) {
-      for (const lz of [-0.45, 0.45]) {
-        const leg = new THREE.Mesh(tableLegGeo, furnitureWoodMat);
-        leg.position.set(lx, 0.38, lz);
-        fGroup.add(leg);
+    tTop.position.y = 0.76;
+    const tStretch = new THREE.Mesh(tableStretcherGeo, barkMat);
+    tStretch.position.y = 0.22;
+    diningGroup.add(tTop, tStretch);
+    for (const lx of [-0.88, 0.88]) {
+      for (const lz of [-0.48, 0.48]) {
+        const leg = new THREE.Mesh(tableLegGeo, barkMat);
+        leg.position.set(lx, 0.37, lz);
+        diningGroup.add(leg);
       }
     }
-    const wardrobe = new THREE.Mesh(wardrobeBodyGeo, furnitureWoodMat);
-    wardrobe.position.set(-3.6, 1.12, -3.2);
-    const bFrame = new THREE.Mesh(bedFrameGeo, furnitureWoodMat);
-    bFrame.position.set(3.4, 0.17, -3.1);
-    const bHead = new THREE.Mesh(bedHeadboardGeo, furnitureWoodMat);
-    bHead.position.set(3.4, 0.44, -4.2);
-    const bMat = new THREE.Mesh(mattressGeo, blanketClothMat);
-    bMat.position.set(3.4, 0.44, -3.1);
-    const bPil = new THREE.Mesh(pillowGeo, pillowClothMat);
-    bPil.position.set(3.4, 0.61, -3.8);
-    const chest = new THREE.Mesh(chestBodyGeo, furnitureWoodMat);
-    chest.position.set(3.4, 0.29, -1.2);
-    fGroup.add(wardrobe, bFrame, bHead, bMat, bPil, chest);
+    for (const bz of [-0.78, 0.78]) {
+      const bSeat = new THREE.Mesh(benchSeatGeo, furnitureWoodMat);
+      bSeat.position.set(0, 0.44, bz);
+      const bLegL = new THREE.Mesh(benchLegGeo, barkMat);
+      bLegL.position.set(-0.72, 0.21, bz);
+      const bLegR = new THREE.Mesh(benchLegGeo, barkMat);
+      bLegR.position.set(0.72, 0.21, bz);
+      diningGroup.add(bSeat, bLegL, bLegR);
+    }
+    const platter = new THREE.Mesh(platterGeo, barkMat);
+    platter.position.set(-0.25, 0.83, 0);
+    const loaf = new THREE.Mesh(loafGeo, breadLoafMat);
+    loaf.position.set(-0.25, 0.91, 0);
+    const cheese = new THREE.Mesh(cheeseRoundGeo, cheeseWheelMat);
+    cheese.position.set(0.35, 0.88, -0.12);
+    const mugA = new THREE.Mesh(mugGeo, pillowClothMat);
+    mugA.position.set(-0.65, 0.88, 0.28);
+    const mugB = new THREE.Mesh(mugGeo, pillowClothMat);
+    mugB.position.set(0.65, 0.88, -0.28);
+    diningGroup.add(platter, loaf, cheese, mugA, mugB);
+    fGroup.add(diningGroup);
 
+    // 6. Back-West Panelled Wardrobe (x = -3.65, fz = -3.48 -> z_farm = -5.48) & Pantry Shelves along West Wall
+    const wardrobeGroup = new THREE.Group();
+    wardrobeGroup.position.set(-3.65, 0, -3.48);
+    const wBody = new THREE.Mesh(wardrobeBodyGeo, furnitureWoodMat);
+    wBody.position.y = 1.11;
+    const wCornice = new THREE.Mesh(wardrobeCorniceGeo, barkMat);
+    wCornice.position.y = 2.26;
+    const wDoorL = new THREE.Mesh(wardrobeDoorPanelGeo, timberMat);
+    wDoorL.position.set(-0.36, 1.14, 0.39);
+    const wDoorR = new THREE.Mesh(wardrobeDoorPanelGeo, timberMat);
+    wDoorR.position.set(0.36, 1.14, 0.39);
+    const wHandleL = new THREE.Mesh(wardrobeHandleGeo, darkIronMat);
+    wHandleL.position.set(-0.08, 1.14, 0.43);
+    const wHandleR = new THREE.Mesh(wardrobeHandleGeo, darkIronMat);
+    wHandleR.position.set(0.08, 1.14, 0.43);
+    wardrobeGroup.add(wBody, wCornice, wDoorL, wDoorR, wHandleL, wHandleR);
+    fGroup.add(wardrobeGroup);
+
+    // West wall pantry shelves & grain sacks (x = -4.38, fz = -1.35 -> z_farm = -3.35)
+    for (const sy of [1.15, 1.75]) {
+      const shelf = new THREE.Mesh(pantryShelfGeo, timberMat);
+      shelf.position.set(-4.38, sy, -1.35);
+      fGroup.add(shelf);
+    }
+    const cWheelPantry = new THREE.Mesh(cheeseRoundGeo, cheeseWheelMat);
+    cWheelPantry.position.set(-4.36, 1.25, -1.65);
+    const loafPantry = new THREE.Mesh(loafGeo, breadLoafMat);
+    loafPantry.position.set(-4.36, 1.26, -1.05);
+    const sackA = new THREE.Mesh(grainSackGeo, burlapSackMat);
+    sackA.position.set(-4.28, 0.36, -1.72);
+    const barrelPantry = new THREE.Mesh(barrelGeo, furnitureWoodMat);
+    barrelPantry.position.set(-4.28, 0.37, -0.95);
+    fGroup.add(cWheelPantry, loafPantry, sackA, barrelPantry);
+
+    // 7. Front-West Artisan Craft Station flush against West Wall (x = -3.95, fz = +2.0 -> z_farm = 0.0)
     if (interiorKind === 'farm_bakery') {
-      const oven = new THREE.Mesh(ovenGeo, brickOvenMat);
-      oven.position.set(-2.8, 1.1, -1.2);
-      fGroup.add(oven);
+      const bakeryGroup = new THREE.Group();
+      bakeryGroup.position.set(-3.98, 0, 2.0);
+      const oBase = new THREE.Mesh(ovenBaseGeo, rockMat);
+      oBase.position.y = 0.44;
+      const oDome = new THREE.Mesh(ovenDomeGeo, brickOvenMat);
+      oDome.position.y = 0.88;
+      const oFlue = new THREE.Mesh(ovenFlueGeo, brickOvenMat);
+      oFlue.position.set(-0.22, 1.85, 0);
+      const oMouth = new THREE.Mesh(ovenMouthGeo, darkIronMat);
+      oMouth.position.set(0.58, 1.06, 0);
+      const oCoals = new THREE.Mesh(hearthEmberGeo, mineMoltenCoalMat);
+      oCoals.position.set(0.45, 0.92, 0);
+      const oLoaf1 = new THREE.Mesh(loafGeo, breadLoafMat);
+      oLoaf1.position.set(0.42, 0.92, -0.58);
+      const oLoaf2 = new THREE.Mesh(loafGeo, breadLoafMat);
+      oLoaf2.position.set(0.42, 0.92, 0.58);
+      bakeryGroup.add(oBase, oDome, oFlue, oMouth, oCoals, oLoaf1, oLoaf2);
+      fGroup.add(bakeryGroup);
     } else if (interiorKind === 'farm_dairy') {
-      const churn = new THREE.Mesh(churnGeo, furnitureWoodMat);
-      churn.position.set(-2.6, 0.48, -1.0);
-      fGroup.add(churn);
-    } else if (interiorKind === 'farm_weaver') {
-      const loom = new THREE.Mesh(loomGeo, furnitureWoodMat);
-      loom.position.set(-2.8, 0.9, -1.0);
-      fGroup.add(loom);
+      const dairyGroup = new THREE.Group();
+      dairyGroup.position.set(-4.05, 0, 2.0);
+      const dCounter = new THREE.Mesh(dairyCounterGeo, furnitureWoodMat);
+      dCounter.position.set(-0.12, 0.39, 0);
+      const cWheel1 = new THREE.Mesh(cheeseRoundGeo, cheeseWheelMat);
+      cWheel1.position.set(-0.1, 0.85, -0.42);
+      const cWheel2 = new THREE.Mesh(cheeseRoundGeo, cheeseWheelMat);
+      cWheel2.position.set(-0.1, 0.85, 0.12);
+      const churn1 = new THREE.Mesh(churnBarrelGeo, timberMat);
+      churn1.position.set(0.48, 0.39, -0.45);
+      const hoop1 = new THREE.Mesh(churnHoopGeo, darkIronMat);
+      hoop1.position.set(0.48, 0.52, -0.45);
+      const plunger1 = new THREE.Mesh(churnPlungerGeo, barkMat);
+      plunger1.position.set(0.48, 0.68, -0.45);
+      const churn2 = new THREE.Mesh(churnBarrelGeo, timberMat);
+      churn2.position.set(0.48, 0.39, 0.45);
+      const hoop2 = new THREE.Mesh(churnHoopGeo, darkIronMat);
+      hoop2.position.set(0.48, 0.52, 0.45);
+      const plunger2 = new THREE.Mesh(churnPlungerGeo, barkMat);
+      plunger2.position.set(0.48, 0.68, 0.45);
+      dairyGroup.add(dCounter, cWheel1, cWheel2, churn1, hoop1, plunger1, churn2, hoop2, plunger2);
+      fGroup.add(dairyGroup);
+    } else {
+      const loomGroup = new THREE.Group();
+      loomGroup.position.set(-4.02, 0, 2.0);
+      for (const lx of [-0.42, 0.42]) {
+        for (const lz of [-0.72, 0.72]) {
+          const post = new THREE.Mesh(loomPostGeo, barkMat);
+          post.position.set(lx, 0.88, lz);
+          loomGroup.add(post);
+        }
+        const topBeam = new THREE.Mesh(loomBeamGeo, timberMat);
+        topBeam.position.set(lx, 1.68, 0);
+        loomGroup.add(topBeam);
+      }
+      for (const lz of [-0.72, 0.72]) {
+        const sBarLow = new THREE.Mesh(loomSideBarGeo, timberMat);
+        sBarLow.position.set(0, 0.45, lz);
+        const sBarHigh = new THREE.Mesh(loomSideBarGeo, timberMat);
+        sBarHigh.position.set(0, 1.62, lz);
+        loomGroup.add(sBarLow, sBarHigh);
+      }
+      const rollerTop = new THREE.Mesh(loomRollerGeo, furnitureWoodMat);
+      rollerTop.position.set(0, 1.42, 0);
+      const rollerBot = new THREE.Mesh(loomRollerGeo, furnitureWoodMat);
+      rollerBot.position.set(0, 0.58, 0);
+      const tapestry = new THREE.Mesh(loomTapestryGeo, blanketClothMat);
+      tapestry.position.set(0, 1.0, 0);
+      loomGroup.add(rollerTop, rollerBot, tapestry);
+      fGroup.add(loomGroup);
     }
     return fGroup;
   }
@@ -407,12 +699,16 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     const frontRight = new THREE.Mesh(farmWallFrontFlankGeo, timberMat);
     frontRight.position.set(3.0, 1.88, 2.2);
     const frontHeader = new THREE.Mesh(farmWallFrontHeaderGeo, timberMat);
-    frontHeader.position.set(0, 3.1, 2.2);
+    frontHeader.position.set(0, 3.06, 2.2);
+    const frontTopPlate = new THREE.Mesh(farmWallFrontTopPlateGeo, timberMat);
+    frontTopPlate.position.set(0, 3.82, 2.2);
     const westGable = new THREE.Mesh(farmWallSideGableGeo, timberMat);
-    westGable.position.set(-4.95, 4.15, -1.55);
+    westGable.position.set(-4.95, 0, 0);
+    westGable.castShadow = !isSoftwareGl;
     const eastGable = new THREE.Mesh(farmWallSideGableGeo, timberMat);
-    eastGable.position.set(4.95, 4.15, -1.55);
-    farmGroup.add(backWall, westWall, eastWall, westGable, eastGable, frontLeft, frontRight, frontHeader);
+    eastGable.position.set(4.95, 0, 0);
+    eastGable.castShadow = !isSoftwareGl;
+    farmGroup.add(backWall, westWall, eastWall, westGable, eastGable, frontLeft, frontRight, frontHeader, frontTopPlate);
 
     for (const wx of [-3.0, 3.0]) {
       const win = new THREE.Mesh(windowPaneGeo, warmLanternMat);
@@ -439,15 +735,26 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       currentAngle: 0,
     });
 
-    const fRoofFront = new THREE.Mesh(farmRoofSlopeGeo, barkMat);
-    fRoofFront.position.set(0, 4.35, 1.15);
-    fRoofFront.rotation.x = 0.48;
-    fRoofFront.castShadow = !isSoftwareGl;
-    const fRoofBack = new THREE.Mesh(farmRoofSlopeGeo, barkMat);
-    fRoofBack.position.set(0, 4.35, -3.95);
-    fRoofBack.rotation.x = -0.48;
+    // Connected Farmhouse Roof Slopes (pitch = ±0.402 rad meeting at ridge z = -1.40, y = 5.66) + Ridge Cap + Veranda Header Beam
+    const fRoofBack = new THREE.Mesh(farmRoofBackSlopeGeo, barkMat);
+    fRoofBack.position.set(0, 4.55, -4.02);
+    fRoofBack.rotation.x = -0.402;
     fRoofBack.castShadow = !isSoftwareGl;
-    farmGroup.add(fRoofFront, fRoofBack);
+    const fRoofFront = new THREE.Mesh(farmRoofFrontSlopeGeo, barkMat);
+    fRoofFront.position.set(0, 4.4, 1.58);
+    fRoofFront.rotation.x = 0.402;
+    fRoofFront.castShadow = !isSoftwareGl;
+    const fRidgeCap = new THREE.Mesh(farmRidgeCapGeo, barkMat);
+    fRidgeCap.position.set(0, 5.72, -1.4);
+    const fVerandaHeader = new THREE.Mesh(farmVerandaHeaderGeo, timberMat);
+    fVerandaHeader.position.set(0, 3.2, 4.1);
+    farmGroup.add(fRoofBack, fRoofFront, fRidgeCap, fVerandaHeader);
+
+    for (const sx of [-4.8, 4.8]) {
+      const tieBeam = new THREE.Mesh(farmPorchTieBeamGeo, timberMat);
+      tieBeam.position.set(sx, 3.2, 3.15);
+      farmGroup.add(tieBeam);
+    }
 
     for (const vx of [-4.6, -1.6, 1.6, 4.6]) {
       const col = new THREE.Mesh(verandaColGeo, barkMat);
@@ -468,11 +775,21 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       soilPlot.receiveShadow = !isSoftwareGl;
       farmGroup.add(soilPlot);
 
+      const fieldFencePostGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.82, 7);
+      fieldFencePostGeo.translate(0, 0.41, 0);
+      disposableGeometries.push(fieldFencePostGeo);
       for (const fz of [-8.6, 7.6]) {
         for (const fxOff of [-3.6, 0, 3.6]) {
-          const rail = new THREE.Mesh(farmFenceRailGeo, timberMat);
-          rail.position.set(fieldCenterX + fxOff, 0.55, fz);
-          farmGroup.add(rail);
+          for (const railY of [0.32, 0.64]) {
+            const rail = new THREE.Mesh(farmFenceRailGeo, timberMat);
+            rail.position.set(fieldCenterX + fxOff, railY, fz);
+            farmGroup.add(rail);
+          }
+        }
+        for (const postOff of [-5.4, -1.8, 1.8, 5.4]) {
+          const post = new THREE.Mesh(fieldFencePostGeo, barkMat);
+          post.position.set(fieldCenterX + postOff, 0, fz);
+          farmGroup.add(post);
         }
       }
       const hayBale = new THREE.Mesh(hayBaleGeo, hayMat);

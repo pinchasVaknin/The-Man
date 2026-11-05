@@ -20,6 +20,7 @@ import {
   WATER_LEVEL,
   PLAYABLE_RADIUS,
   WORLD_SPAWN,
+  HUNTER_LODGE_POS,
   SURVIVAL_CABIN_SPAWN,
   RIDEABLE_HORSES,
   FORTRESS_Z_OFFSET,
@@ -27,6 +28,7 @@ import {
   HILL_WATCHTOWERS,
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
+  resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
   VOLCANO_SANCTUM_POS,
@@ -51,10 +53,13 @@ import {
 } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
 import {
+  findSailableShipContainingPoint,
   findSailableShipDisembarkPoint,
   getActiveSailableShip,
+  getSpawnedSailableShips,
   isEntityOnSailableShipDeck,
-  stationMountInSailableShipStall,
+  placeMountOnShipDeckWithoutStacking,
+  setActiveSailableShipByTier,
   stepSailableShipPhysics,
 } from './sailableShipSystem';
 import {
@@ -157,6 +162,84 @@ export function stepSurvivalVitals(
     state.damageFlashTimer = Math.max(0, (state.damageFlashTimer ?? 0) - dt * 1.45);
   }
 
+  // If currently in the Survival Death & Rebirth cinematic sequence, step its two-stage timeline:
+  // Stage 1 ('dying', 0..2.8s): Dramatic collapse & death banner overlay
+  // Stage 2 ('waking', 0..3.6s): Awaken on the Hunter's Cabin bed, sit up, look left/right, and step onto the cabin floor
+  if (!godMode && state.deathRespawnPhase) {
+    const phase = state.deathRespawnPhase;
+    phase.timer += dt;
+    state.vx = 0;
+    state.vy = 0;
+    state.vz = 0;
+    state.mountedHorseId = null;
+
+    if (phase.stage === 'dying') {
+      state.pitch = Math.max(-1.08, state.pitch - dt * 0.48);
+      state.damageFlashTimer = Math.max(0.45, 1.0 - phase.timer * 0.25);
+      if (phase.timer >= 2.8) {
+        phase.stage = 'waking';
+        phase.timer = 0;
+        const bedX = HUNTER_LODGE_POS.x - 3.2;
+        const bedY = HUNTER_LODGE_POS.height + 0.36;
+        const bedZ = HUNTER_LODGE_POS.z + 2.4;
+        state.x = bedX;
+        state.y = bedY;
+        state.z = bedZ;
+        state.yaw = 0;
+        state.pitch = 1.12;
+        state.hp = maxHp;
+        state.hunger = Math.round(maxHunger * 0.75);
+        state.stamina = state.maxStamina ?? 100;
+        state.staminaExhausted = false;
+        state.damageFlashTimer = 0;
+      }
+      return { starvedOrDied: false, tookDamage: false };
+    }
+
+    // Stage 2: Waking up in the Hunter's Cabin Bed
+    const bedX = HUNTER_LODGE_POS.x - 3.2;
+    const bedY = HUNTER_LODGE_POS.height + 0.36;
+    const bedZ = HUNTER_LODGE_POS.z + 2.4;
+    const cabinGround = walkableHeightAt(SURVIVAL_CABIN_SPAWN.x, SURVIVAL_CABIN_SPAWN.z);
+
+    if (phase.timer < 1.2) {
+      // Blinking eyes open & sitting up from pillow
+      const u = phase.timer / 1.2;
+      const smoothU = u * u * (3 - 2 * u);
+      state.x = bedX;
+      state.y = bedY;
+      state.z = bedZ;
+      state.yaw = -smoothU * (Math.PI * 0.5);
+      state.pitch = 1.12 * (1 - smoothU) + 0.02 * smoothU;
+    } else if (phase.timer < 2.6) {
+      // Sitting on the edge of the bed, looking left and right across the cabin
+      const u = (phase.timer - 1.2) / 1.4;
+      state.x = bedX + 0.35;
+      state.y = bedY - 0.04;
+      state.z = bedZ;
+      state.yaw = -Math.PI * 0.5 + Math.sin(u * Math.PI * 2) * 0.58;
+      state.pitch = -0.04 + Math.cos(u * Math.PI) * 0.04;
+    } else if (phase.timer < 3.6) {
+      // Standing up from the bed onto the cabin floor
+      const u = (phase.timer - 2.6) / 1.0;
+      const smoothU = u * u * (3 - 2 * u);
+      state.x = (bedX + 0.35) * (1 - smoothU) + SURVIVAL_CABIN_SPAWN.x * smoothU;
+      state.y = (bedY - 0.04) * (1 - smoothU) + cabinGround.height * smoothU;
+      state.z = bedZ * (1 - smoothU) + SURVIVAL_CABIN_SPAWN.z * smoothU;
+      state.yaw = SURVIVAL_CABIN_SPAWN.yaw;
+      state.pitch = SURVIVAL_CABIN_SPAWN.pitch;
+    } else {
+      state.x = SURVIVAL_CABIN_SPAWN.x;
+      state.y = cabinGround.height;
+      state.z = SURVIVAL_CABIN_SPAWN.z;
+      state.yaw = SURVIVAL_CABIN_SPAWN.yaw;
+      state.pitch = SURVIVAL_CABIN_SPAWN.pitch;
+      state.deathRespawnPhase = null;
+      return { starvedOrDied: true, tookDamage: false };
+    }
+    return { starvedOrDied: false, tookDamage: false };
+  }
+
   let tookDamage = false;
   const animals = getActiveWorldAnimals();
   const clothing = state.equippedClothingId ?? 'simple_tunic';
@@ -185,6 +268,11 @@ export function stepSurvivalVitals(
       a.species === 'lion' ||
       a.species === 'dragon';
     if (!canAttackPlayer) continue;
+    // Enforce vertical height check so ground predators cannot hit a flying or elevated player!
+    const vertDiff = Math.abs(a.y - state.y);
+    const maxVerticalReach = a.isBoss || a.species === 'dragon' ? 4.2 : 2.6;
+    if (vertDiff > maxVerticalReach) continue;
+
     const dist = Math.hypot(a.x - state.x, a.z - state.z);
     const strikeReach =
       a.isBoss || a.species === 'dragon'
@@ -212,6 +300,7 @@ export function stepSurvivalVitals(
   if (godMode) {
     state.hp = maxHp;
     state.hunger = maxHunger;
+    state.deathRespawnPhase = null;
     return { starvedOrDied: false, tookDamage };
   }
 
@@ -228,22 +317,17 @@ export function stepSurvivalVitals(
   }
 
   if (state.hp <= 0) {
-    const cabinGround = walkableHeightAt(SURVIVAL_CABIN_SPAWN.x, SURVIVAL_CABIN_SPAWN.z);
-    state.x = SURVIVAL_CABIN_SPAWN.x;
-    state.y = cabinGround.height;
-    state.z = SURVIVAL_CABIN_SPAWN.z;
+    state.hp = 0;
     state.vx = 0;
     state.vy = 0;
     state.vz = 0;
-    state.yaw = SURVIVAL_CABIN_SPAWN.yaw;
-    state.pitch = SURVIVAL_CABIN_SPAWN.pitch;
     state.mountedHorseId = null;
-    state.hp = maxHp;
-    state.hunger = Math.round(maxHunger * 0.75);
-    state.stamina = state.maxStamina ?? 100;
-    state.staminaExhausted = false;
-    state.damageFlashTimer = 0;
-    return { starvedOrDied: true, tookDamage: true };
+    state.deathRespawnPhase = {
+      stage: 'dying',
+      timer: 0,
+      cause: (state.hunger ?? 100) <= 0.05 ? 'starvation' : 'combat',
+    };
+    return { starvedOrDied: false, tookDamage };
   }
 
   return { starvedOrDied: false, tookDamage };
@@ -500,29 +584,35 @@ export function findNearestRideableHorse(
     }
   }
 
-  // Check proximity to the Sailable Royal Explorer Flagship
-  const ship = getActiveSailableShip();
-  const shipDist = Math.hypot(px - ship.x, pz - ship.z);
-  if (shipDist <= Math.max(maxDist, 11.5) && Math.abs(py - ship.deckY) <= 4.4) {
-    const dx = px - ship.x;
-    const dz = pz - ship.z;
-    const lz = -dx * Math.sin(ship.yaw) + dz * Math.cos(ship.yaw);
-    const horseOnDeckNearPlayer =
-      best !== null &&
-      isEntityOnSailableShipDeck(best.x, best.z, best.y, ship, 1.5) &&
-      Math.hypot(px - best.x, pz - best.z) <= 3.0 &&
-      lz < 0.8;
-    if (!horseOnDeckNearPlayer) {
-      best = {
-        id: ship.id,
-        name: ship.name,
-        x: ship.x,
-        y: ship.deckY + 0.55,
-        z: ship.z,
-        yaw: ship.yaw,
-        speed: Math.abs(ship.speed),
-        gaitPhase: ship.wakePhase,
-      };
+  // Check proximity to any Owned/Spawned Sailable Ship
+  const spawnedShips = getSpawnedSailableShips();
+  let bestShipDist = Infinity;
+  for (let sIdx = 0; sIdx < spawnedShips.length; sIdx++) {
+    const ship = spawnedShips[sIdx];
+    const shipDist = Math.hypot(px - ship.x, pz - ship.z);
+    if (shipDist <= Math.max(maxDist, 11.5) && Math.abs(py - ship.deckY) <= 4.4 && shipDist < bestShipDist) {
+      const dx = px - ship.x;
+      const dz = pz - ship.z;
+      const lz = -dx * Math.sin(ship.yaw) + dz * Math.cos(ship.yaw);
+      const horseOnDeckNearPlayer =
+        best !== null &&
+        isEntityOnSailableShipDeck(best.x, best.z, best.y, ship, 1.5) &&
+        Math.hypot(px - best.x, pz - best.z) <= 2.6 &&
+        lz < 1.2;
+      if (!horseOnDeckNearPlayer) {
+        bestShipDist = shipDist;
+        setActiveSailableShipByTier(ship.tierId);
+        best = {
+          id: 'sailable-ship',
+          name: ship.name,
+          x: ship.x,
+          y: ship.deckY + 0.55,
+          z: ship.z,
+          yaw: ship.yaw,
+          speed: Math.abs(ship.speed),
+          gaitPhase: ship.wakePhase,
+        };
+      }
     }
   }
   return best;
@@ -549,6 +639,10 @@ export function stepPlayerPhysics(
 ): { steppedFoot: boolean; landedImpact: number } {
   const dt = Math.min(Math.max(rawDt, 0.001), 0.11);
 
+  if (state.deathRespawnPhase) {
+    return { steppedFoot: false, landedImpact: 0 };
+  }
+
   state.yaw += input.lookYawDelta;
   state.pitch = Math.max(-1.38, Math.min(1.38, state.pitch + input.lookPitchDelta));
 
@@ -569,10 +663,17 @@ export function stepPlayerPhysics(
         state.vz = 0;
         state.onGround = true;
       } else {
-        const ship = getActiveSailableShip();
-        const dismountingOnShip = isEntityOnSailableShipDeck(state.x, state.z, state.y, ship, 2.2);
+        const shipUnderPlayer =
+          findSailableShipContainingPoint(state.x, state.z, state.y, 2.2) ?? getActiveSailableShip();
+        const dismountingOnShip = isEntityOnSailableShipDeck(
+          state.x,
+          state.z,
+          state.y,
+          shipUnderPlayer,
+          2.2
+        );
+        const worldAnimals = getActiveWorldAnimals();
         if (dismountingId.startsWith('mount-stag-') || dismountingId.startsWith('mount-lion-')) {
-          const worldAnimals = getActiveWorldAnimals();
           for (let i = 0; i < worldAnimals.length; i++) {
             const a = worldAnimals[i];
             const expectedId = a.species === 'stag' ? `mount-stag-${a.id}` : `mount-lion-${a.id}`;
@@ -581,7 +682,7 @@ export function stepPlayerPhysics(
               a.vx = 0;
               a.vz = 0;
               if (dismountingOnShip) {
-                stationMountInSailableShipStall(a, 1, ship);
+                placeMountOnShipDeckWithoutStacking(a, shipUnderPlayer, horses, worldAnimals);
               }
               a.homeX = a.x;
               a.homeZ = a.z;
@@ -596,16 +697,23 @@ export function stepPlayerPhysics(
           currentHorse.speed = 0;
           currentHorse.vy = 0;
           if (dismountingOnShip) {
-            stationMountInSailableShipStall(currentHorse, 0, ship);
+            placeMountOnShipDeckWithoutStacking(currentHorse, shipUnderPlayer, horses, worldAnimals);
           }
         }
         if (dismountingOnShip) {
-          const cosY = Math.cos(ship.yaw);
-          const sinY = Math.sin(ship.yaw);
-          const helmLz = 2.6;
-          state.x = ship.x - sinY * helmLz;
-          state.z = ship.z + cosY * helmLz;
-          state.y = ship.deckY + 0.35;
+          const cosY = Math.cos(shipUnderPlayer.yaw);
+          const sinY = Math.sin(shipUnderPlayer.yaw);
+          const sideX = cosY * 0.85;
+          const sideZ = -sinY * 0.85;
+          state.x = Math.max(
+            shipUnderPlayer.x - shipUnderPlayer.halfW + 0.6,
+            Math.min(shipUnderPlayer.x + shipUnderPlayer.halfW - 0.6, state.x + sideX)
+          );
+          state.z = Math.max(
+            shipUnderPlayer.z - shipUnderPlayer.halfL + 0.8,
+            Math.min(shipUnderPlayer.z + shipUnderPlayer.halfL - 0.8, state.z + sideZ)
+          );
+          state.y = shipUnderPlayer.deckY + 0.15;
           state.vx = 0;
           state.vy = 0;
           state.vz = 0;
@@ -729,7 +837,7 @@ export function stepPlayerPhysics(
     }
   }
 
-  if (state.mountedHorseId === 'sailable-ship') {
+  if (state.mountedHorseId?.startsWith('sailable-ship')) {
     stepSailableShipPhysics(
       state,
       input,
@@ -1178,11 +1286,13 @@ export function stepPlayerPhysics(
     for (let pass = 0; pass < 2; pass++) {
       for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
         const box = SOLID_BUILDING_BOXES[i];
-        const expMinX = box.minX - playerRadius;
-        const expMaxX = box.maxX + playerRadius;
-        const expMinZ = box.minZ - playerRadius;
-        const expMaxZ = box.maxZ + playerRadius;
-        if (nextX <= expMinX || nextX >= expMaxX || nextZ <= expMinZ || nextZ >= expMaxZ) continue;
+        if (!box.yaw) {
+          const expMinX = box.minX - playerRadius;
+          const expMaxX = box.maxX + playerRadius;
+          const expMinZ = box.minZ - playerRadius;
+          const expMaxZ = box.maxZ + playerRadius;
+          if (nextX <= expMinX || nextX >= expMaxX || nextZ <= expMinZ || nextZ >= expMaxZ) continue;
+        }
 
         if (box.minY !== undefined && state.y + 1.55 < box.minY) continue;
         let effectiveMaxY = box.maxY;
@@ -1211,18 +1321,25 @@ export function stepPlayerPhysics(
           effectiveMaxY = stairY + 0.95;
         } else if (box.id === 'southern-cliff-pass-guardrail') {
           effectiveMaxY = southernCliffsidePassTrailHeightAt(nextZ) + 1.25;
+        } else if (
+          box.id.startsWith('galleon-port-stair-side-') ||
+          box.id.startsWith('galleon-stbd-stair-side-')
+        ) {
+          const tGalleonStair = Math.max(0, Math.min(1, (nextZ - 254.5) / 5.0));
+          effectiveMaxY = 3.65 + tGalleonStair * 3.0;
         }
-        if (effectiveMaxY !== undefined && state.y >= effectiveMaxY - 0.28) continue;
+        const stepClearance =
+          box.id.startsWith('harbor-amphitheater-stage-') ||
+          box.id.startsWith('harbor-amphitheater-tier-')
+            ? 0.62
+            : 0.28;
+        if (effectiveMaxY !== undefined && state.y >= effectiveMaxY - stepClearance) continue;
 
-        const penLeft = nextX - expMinX;
-        const penRight = expMaxX - nextX;
-        const penBack = nextZ - expMinZ;
-        const penFront = expMaxZ - nextZ;
-        const minPen = Math.min(penLeft, penRight, penBack, penFront);
-        if (minPen === penLeft) nextX = expMinX;
-        else if (minPen === penRight) nextX = expMaxX;
-        else if (minPen === penBack) nextZ = expMinZ;
-        else nextZ = expMaxZ;
+        const resolved = resolveHorizontalBoxCollision(nextX, nextZ, playerRadius, box);
+        if (resolved.collided) {
+          nextX = resolved.x;
+          nextZ = resolved.z;
+        }
       }
     }
 
@@ -1365,17 +1482,28 @@ export function stepPlayerPhysics(
     }
   }
 
-  // Prevent side-collision snap-up & block climbing overly steep mountain slopes (> 38.7 deg, normal.ny < 0.78):
+  // Prevent side-collision snap-up & block climbing overly steep mountain slopes (> 38.7 deg, normal.ny < 0.78),
+  // while never blocking a swimming/wading player on underwater seabed slopes when approaching dry land!
   if (!state.isFlying && !onLadderVolume) {
-    const maxStepUp = 0.56;
     const currFloor = walkableHeightAt(state.x, state.z, state.y);
+    const isSwimmingOrWading = Boolean(
+      state.isSwimming || state.inWater || currFloor.height <= WATER_LEVEL + 0.55
+    );
+    const maxStepUp = isSwimmingOrWading ? 1.15 : 0.56;
+    const refPlayerY = isSwimmingOrWading ? Math.max(state.y, WATER_LEVEL + 0.35) : state.y;
+
     const isBlockedMoveTo = (tx: number, tz: number): boolean => {
       const floor = walkableHeightAt(tx, tz, state.y);
-      if (floor.height - state.y > maxStepUp) {
+      if (floor.height - refPlayerY > maxStepUp) {
         return true;
       }
-      // Enforce steep slope climbing limit when moving uphill on natural ground
-      if (floor.surface === 'ground' && floor.height > currFloor.height + 0.008) {
+      // Enforce steep slope climbing limit only when moving uphill on dry land above shoreline level
+      if (
+        !isSwimmingOrWading &&
+        floor.surface === 'ground' &&
+        floor.height > WATER_LEVEL + 0.65 &&
+        floor.height > currFloor.height + 0.008
+      ) {
         const horizStep = Math.hypot(tx - state.x, tz - state.z);
         const stepGrade = horizStep > 1e-4 ? (floor.height - currFloor.height) / horizStep : 0;
         const surfNorm = getSurfaceNormalAt(tx, tz);

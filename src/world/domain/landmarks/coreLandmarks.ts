@@ -461,7 +461,40 @@ export function floatingBloomingIslandHeightAt(
     z - FLOATING_ISLAND_STAIR_POS.waterfallZ
   );
 
-  // 1. Check the 3 High-Altitude Large Floating Blooming Island circular decks (y = 68m..71m)
+  // 1. North Floral Stair-Bridge connecting Main Island (760, -61.2, y=68.0) to North Island (760, -68.2, y=71.0)
+  //    Evaluated BEFORE flat island discs so the staircase rises smoothly from the Main deck to the North deck.
+  const mainIslandX = FLOATING_BLOOMING_ISLANDS[0].x;
+  if (Math.abs(x - mainIslandX) <= 3.3 && z >= -68.2 && z <= -61.2) {
+    const t = Math.max(0, Math.min(1, (-61.2 - z) / 7.0));
+    const bridgeY = 68.0 + t * (71.0 - 68.0);
+    if (currentY === undefined || currentY >= bridgeY - 6.0) {
+      return bridgeY;
+    }
+  }
+
+  // 2. East Floral Stair-Bridge connecting Main Island rim (mainX+24.8, -25.63, y=68.0) to East Island rim (mainX+32.0, -22.91, y=70.0)
+  //    Evaluated BEFORE flat island discs so the staircase rises smoothly from the Main deck to the East deck.
+  const bx0 = mainIslandX + 24.8;
+  const bz0 = -25.63;
+  const bx1 = mainIslandX + 32.0;
+  const bz1 = -22.91;
+  const bdx = bx1 - bx0;
+  const bdz = bz1 - bz0;
+  const bLenSq = bdx * bdx + bdz * bdz;
+  const rawBt = ((x - bx0) * bdx + (z - bz0) * bdz) / bLenSq;
+  if (rawBt >= -0.04 && rawBt <= 1.04) {
+    const bt = Math.max(0, Math.min(1, rawBt));
+    const projX = bx0 + bt * bdx;
+    const projZ = bz0 + bt * bdz;
+    if (Math.hypot(x - projX, z - projZ) <= 3.2) {
+      const bridgeY = 68.0 + bt * (70.0 - 68.0);
+      if (currentY === undefined || currentY >= bridgeY - 6.0) {
+        return bridgeY;
+      }
+    }
+  }
+
+  // 3. Check the 3 High-Altitude Large Floating Blooming Island circular decks (y = 68m..71m)
   for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
     const isl = FLOATING_BLOOMING_ISLANDS[i];
     const d = Math.hypot(x - isl.x, z - isl.z);
@@ -481,36 +514,6 @@ export function floatingBloomingIslandHeightAt(
       if (currentY === undefined || currentY >= isl.deckY - 8.5) {
         return targetY;
       }
-    }
-  }
-
-  // 2. North Floral Sky-Bridge connecting Main Island (350, -62, y=68.0) to North Island (350, -68, y=71.0)
-  const mainIslandX = FLOATING_BLOOMING_ISLANDS[0].x;
-  if (Math.abs(x - mainIslandX) <= 3.3 && z >= -68.5 && z <= -61.5) {
-    const t = Math.max(0, Math.min(1, (-61.5 - z) / 7.0));
-    const archLift = Math.sin(t * Math.PI) * 0.55;
-    const bridgeY = 68.0 + t * (71.0 - 68.0) + archLift;
-    if (currentY === undefined || currentY >= bridgeY - 6.0) {
-      return bridgeY;
-    }
-  }
-
-  // 3. East Floral Sky-Bridge connecting Main Island rim (mainX+25, -26, y=68.0) to East Island rim (mainX+31.5, -23.6, y=70.0)
-  const bx0 = mainIslandX + 25.0;
-  const bz0 = -26.0;
-  const bx1 = mainIslandX + 31.5;
-  const bz1 = -23.6;
-  const bdx = bx1 - bx0;
-  const bdz = bz1 - bz0;
-  const bLenSq = bdx * bdx + bdz * bdz;
-  const bt = Math.max(0, Math.min(1, ((x - bx0) * bdx + (z - bz0) * bdz) / bLenSq));
-  const projX = bx0 + bt * bdx;
-  const projZ = bz0 + bt * bdz;
-  if (Math.hypot(x - projX, z - projZ) <= 3.3) {
-    const archLift = Math.sin(bt * Math.PI) * 0.45;
-    const bridgeY = 68.0 + bt * (70.0 - 68.0) + archLift;
-    if (currentY === undefined || currentY >= bridgeY - 6.0) {
-      return bridgeY;
     }
   }
 
@@ -576,7 +579,7 @@ export function floatingBloomingIslandHeightAt(
     }
   }
 
-  // 6. Ground-Level Marble Entry Plaza & Approach Ramp leading onto Mini-Island #0 at (152, -35, y=3.4)
+  // 6. Ground-Level Marble Entry Plaza & Approach Ramp leading onto Mini-Island #0 at (707, -35, y=3.4)
   if (
     x >= FLOATING_ISLAND_STAIR_POS.entryRampStartX &&
     x <= FLOATING_ISLAND_STAIR_POS.footX + 0.6 &&
@@ -592,6 +595,20 @@ export function floatingBloomingIslandHeightAt(
       )
     );
     return 3.18 + rampT * (FLOATING_ISLAND_STAIR_POS.footY - 3.18);
+  }
+
+  // 7. Gentle Western Shoreline Landing Steps leading from sea level (x = 681.0, y = 1.15) up to the Entry Plaza (x = 697.5, y = 3.18)
+  if (
+    x >= FLOATING_ISLAND_STAIR_POS.entryRampStartX - 16.5 &&
+    x < FLOATING_ISLAND_STAIR_POS.entryRampStartX &&
+    Math.abs(z - FLOATING_ISLAND_STAIR_POS.waterfallZ) <= 4.5 &&
+    (currentY === undefined || currentY <= FLOATING_ISLAND_STAIR_POS.footY + 4.5)
+  ) {
+    const shoreT = Math.max(
+      0,
+      Math.min(1, (x - (FLOATING_ISLAND_STAIR_POS.entryRampStartX - 16.5)) / 16.5)
+    );
+    return 1.15 + shoreT * (3.18 - 1.15);
   }
 
   return null;

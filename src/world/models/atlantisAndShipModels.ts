@@ -16,7 +16,11 @@ import {
   SMUGGLER_ISLAND_POS,
   isWithinViewDistance,
 } from '../terrainMath';
-import { getActiveSailableShip } from '../systems/sailableShipSystem';
+import {
+  getAllSailableShips,
+  SHIP_CATALOG,
+  type ISailableShipState,
+} from '../systems/sailableShipSystem';
 import type { IWorldModelBuildContext } from './types';
 
 export interface IAtlantisAndShipHandles {
@@ -525,12 +529,11 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     radius: 130.0,
   });
 
-  // 3B) Sailable 3-Masted Royal Explorer Flagship (Dynamic ocean-going flagship with Animal Stall)
+  // 3B) Sailable Fleet (4 Distinct Ship Tiers: Coastal Sloop, Explorer Caravel, War Galleon, Atlantean Royal Flagship)
+  //     Designed with a low-profile aft quarterdeck, no aft view-blocking cabin/mast, and high-clearance sails
+  //     so the helmsman enjoys a 100% unobstructed view of the open ocean ahead.
   const sailableShipGroup = new THREE.Group();
-  const shipState = getActiveSailableShip();
-  sailableShipGroup.position.set(shipState.x, shipState.deckY, shipState.z);
-  sailableShipGroup.rotation.order = 'YXZ';
-  sailableShipGroup.rotation.y = shipState.yaw;
+  scene.add(sailableShipGroup);
 
   const flagshipHullGeo = new THREE.BoxGeometry(8.6, 3.0, 20.4);
   const flagshipBowGeo = new THREE.ConeGeometry(4.3, 6.6, 4);
@@ -539,40 +542,41 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   const flagshipBowspritGeo = new THREE.CylinderGeometry(0.12, 0.24, 7.8, 8);
   flagshipBowspritGeo.rotateX(Math.PI * 0.36);
   const flagshipMainDeckGeo = new THREE.BoxGeometry(8.8, 0.24, 22.4);
-  const flagshipQuarterdeckGeo = new THREE.BoxGeometry(8.8, 0.68, 7.8);
-  const captainsCabinGeo = new THREE.BoxGeometry(7.2, 1.85, 5.2);
-  const cabinWindowGeo = new THREE.PlaneGeometry(0.85, 0.72);
-  const flagshipRailSideGeo = new THREE.BoxGeometry(0.28, 0.92, 21.4);
-  const flagshipRailSternGeo = new THREE.BoxGeometry(8.8, 1.08, 0.32);
+  const flagshipQuarterdeckGeo = new THREE.BoxGeometry(8.8, 0.62, 7.8);
+  const captainsCabinGeo = new THREE.BoxGeometry(7.2, 0.56, 4.6);
+  const cabinWindowGeo = new THREE.PlaneGeometry(0.85, 0.52);
+  const flagshipRailSideGeo = new THREE.BoxGeometry(0.28, 0.82, 21.4);
+  const flagshipRailSternGeo = new THREE.BoxGeometry(8.8, 0.86, 0.32);
   const figureheadNeckGeo = new THREE.CylinderGeometry(0.28, 0.48, 2.2, 8);
   figureheadNeckGeo.rotateX(Math.PI * 0.28);
   const figureheadHeadGeo = new THREE.ConeGeometry(0.52, 1.35, 6);
   figureheadHeadGeo.rotateX(-Math.PI * 0.42);
 
   // Midships Animal & Mount Cargo Stall Geometries (z = -5.2..-0.8)
-  const stallPostGeo = new THREE.CylinderGeometry(0.12, 0.14, 1.25, 8);
+  const stallPostGeo = new THREE.CylinderGeometry(0.12, 0.14, 1.05, 8);
   const stallRailLongGeo = new THREE.BoxGeometry(0.1, 0.12, 4.2);
   const stallRailCrossGeo = new THREE.BoxGeometry(5.4, 0.12, 0.1);
   const hayBaleGeo = new THREE.BoxGeometry(0.95, 0.52, 0.68);
   const waterTroughGeo = new THREE.BoxGeometry(0.68, 0.46, 1.45);
+  const stallRingGeo = new THREE.TorusGeometry(0.12, 0.03, 6, 12);
 
-  // 6 Broadside Bronze Cannons
+  // Broadside Bronze Cannons
   const cannonCarriageGeo = new THREE.BoxGeometry(0.62, 0.42, 0.95);
   const cannonBarrelGeo = new THREE.CylinderGeometry(0.14, 0.2, 1.45, 10);
   cannonBarrelGeo.rotateZ(Math.PI / 2);
 
-  // 3 Masts, Sails, Crow's Nest & Royal Pennants
-  const flagshipMastGeo = new THREE.CylinderGeometry(0.2, 0.32, 17.2, 10);
+  // Masts, High-Clearance Sails, Crow's Nest & Royal Pennants
+  const flagshipMastGeo = new THREE.CylinderGeometry(0.18, 0.28, 17.2, 10);
   flagshipMastGeo.translate(0, 8.6, 0);
   const crowsNestGeo = new THREE.CylinderGeometry(0.95, 0.72, 0.85, 10);
   const flagshipYardGeo = new THREE.CylinderGeometry(0.1, 0.12, 8.6, 8);
   flagshipYardGeo.rotateZ(Math.PI / 2);
-  const flagshipSailGeo = new THREE.PlaneGeometry(8.2, 4.6, 8, 4);
+  const flagshipSailGeo = new THREE.PlaneGeometry(8.2, 4.2, 8, 4);
   const fSailPos = flagshipSailGeo.attributes.position;
   for (let i = 0; i < fSailPos.count; i++) {
     const sx = fSailPos.getX(i);
     const sy = fSailPos.getY(i);
-    const billow = Math.cos((sx / 8.2) * Math.PI) * Math.cos((sy / 4.6) * Math.PI) * 1.08;
+    const billow = Math.cos((sx / 8.2) * Math.PI) * Math.cos((sy / 4.2) * Math.PI) * 1.02;
     fSailPos.setZ(i, -billow);
   }
   flagshipSailGeo.computeVertexNormals();
@@ -580,11 +584,12 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   royalPennantGeo.rotateX(Math.PI / 2);
 
   // Helm, Ship's Wheel & Live Atlantean Wayfinder Compass Spear
-  const helmStandGeo = new THREE.BoxGeometry(0.42, 1.24, 0.38);
-  const wheelRimGeo = new THREE.TorusGeometry(0.66, 0.065, 8, 18);
-  const wheelSpokeGeo = new THREE.CylinderGeometry(0.028, 0.028, 1.56, 6);
+  const helmStandGeo = new THREE.BoxGeometry(0.38, 0.96, 0.34);
+  const wheelRimGeo = new THREE.TorusGeometry(0.56, 0.055, 8, 18);
+  const wheelSpokeGeo = new THREE.CylinderGeometry(0.026, 0.026, 1.32, 6);
   const wayfinderSpearGeo = new THREE.ConeGeometry(0.16, 0.95, 6);
-  wayfinderSpearGeo.rotateX(-Math.PI / 2); // Points along local -Z when rotation.y = 0
+  wayfinderSpearGeo.rotateX(-Math.PI / 2);
+  const wayfinderTailGeo = new THREE.SphereGeometry(0.07, 8, 8);
   const sternLampSphereGeo = new THREE.SphereGeometry(0.26, 8, 8);
   const wakeWingGeo = new THREE.PlaneGeometry(2.8, 17.5);
   wakeWingGeo.rotateX(-Math.PI / 2);
@@ -606,6 +611,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     stallRailCrossGeo,
     hayBaleGeo,
     waterTroughGeo,
+    stallRingGeo,
     cannonCarriageGeo,
     cannonBarrelGeo,
     flagshipMastGeo,
@@ -617,192 +623,211 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     wheelRimGeo,
     wheelSpokeGeo,
     wayfinderSpearGeo,
+    wayfinderTailGeo,
     sternLampSphereGeo,
     wakeWingGeo
   );
 
-  const cHull = new THREE.Mesh(flagshipHullGeo, shipHullWoodMat);
-  cHull.position.set(0, -1.45, 0.4);
-  const cBow = new THREE.Mesh(flagshipBowGeo, shipHullWoodMat);
-  cBow.position.set(0, -1.0, -12.2);
-  const cBowsprit = new THREE.Mesh(flagshipBowspritGeo, imperialDoorWoodMat);
-  cBowsprit.position.set(0, 0.95, -13.8);
-
-  // Carved Golden Sea-Dragon Figurehead at the Prow
-  const figNeck = new THREE.Mesh(figureheadNeckGeo, orichalcumGoldMat);
-  figNeck.position.set(0, 0.25, -12.6);
-  const figHead = new THREE.Mesh(figureheadHeadGeo, orichalcumGoldMat);
-  figHead.position.set(0, 1.15, -13.4);
-
-  const cMainDeck = new THREE.Mesh(flagshipMainDeckGeo, shipDeckPlankMat);
-  cMainDeck.position.set(0, -0.1, 0);
-  const cQuarterdeck = new THREE.Mesh(flagshipQuarterdeckGeo, shipDeckPlankMat);
-  cQuarterdeck.position.set(0, 0.32, 6.8);
-  const captainsCabin = new THREE.Mesh(captainsCabinGeo, imperialDoorWoodMat);
-  captainsCabin.position.set(0, 0.85, 7.6);
-
-  // Warm Glowing Stern Cabin Windows
-  for (const wx of [-1.8, 0, 1.8]) {
-    const win = new THREE.Mesh(cabinWindowGeo, warmLanternMat);
-    win.position.set(wx, 1.05, 10.22);
-    sailableShipGroup.add(win);
+  interface IShipTierVisualHandle {
+    state: ISailableShipState;
+    root: THREE.Group;
+    wheelPivot: THREE.Group;
+    compassCrystal: THREE.Mesh;
+    wayfinderNeedleGroup: THREE.Group;
+    bowWakeGroup: THREE.Group;
   }
 
-  const cRailPort = new THREE.Mesh(flagshipRailSideGeo, imperialCrimsonMat);
-  cRailPort.position.set(-4.25, 0.46, 0.4);
-  const cRailStbd = new THREE.Mesh(flagshipRailSideGeo, imperialCrimsonMat);
-  cRailStbd.position.set(4.25, 0.46, 0.4);
-  const cRailStern = new THREE.Mesh(flagshipRailSternGeo, imperialGoldMat);
-  cRailStern.position.set(0, 1.25, 10.8);
+  const shipVisualHandles: IShipTierVisualHandle[] = [];
+  const allShips = getAllSailableShips();
 
-  sailableShipGroup.add(
-    cHull,
-    cBow,
-    cBowsprit,
-    figNeck,
-    figHead,
-    cMainDeck,
-    cQuarterdeck,
-    captainsCabin,
-    cRailPort,
-    cRailStbd,
-    cRailStern
-  );
+  for (let sIdx = 0; sIdx < allShips.length; sIdx++) {
+    const sState = allShips[sIdx];
+    const def = SHIP_CATALOG.find((d) => d.tierId === sState.tierId) ?? SHIP_CATALOG[3];
+    const tierRoot = new THREE.Group();
+    tierRoot.position.set(sState.x, sState.deckY, sState.z);
+    tierRoot.rotation.order = 'YXZ';
+    tierRoot.rotation.y = sState.yaw;
+    tierRoot.scale.set(def.scale, 1.0, def.scale);
+    tierRoot.visible = sState.spawned;
 
-  // Midships Animal & Mount Deck Stall (z = -5.0..-0.8, x = -2.7..+2.7)
-  const animalStallGroup = new THREE.Group();
-  for (const sx of [-2.7, 2.7]) {
-    for (const sz of [-5.0, -2.9, -0.8]) {
-      const post = new THREE.Mesh(stallPostGeo, imperialDoorWoodMat);
-      post.position.set(sx, 0.62, sz);
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.12, 0.03, 6, 12),
-        orichalcumGoldMat
-      );
-      ring.position.set(sx, 1.15, sz);
-      animalStallGroup.add(post, ring);
-    }
-    for (const ry of [0.48, 0.92]) {
-      const sideRail = new THREE.Mesh(stallRailLongGeo, shipDeckPlankMat);
-      sideRail.position.set(sx, ry, -2.9);
-      animalStallGroup.add(sideRail);
-    }
-  }
-  const frontCrossRail = new THREE.Mesh(stallRailCrossGeo, shipDeckPlankMat);
-  frontCrossRail.position.set(0, 0.88, -5.0);
-  const trough = new THREE.Mesh(waterTroughGeo, imperialDoorWoodMat);
-  trough.position.set(-2.15, 0.23, -3.1);
-  const hay1 = new THREE.Mesh(hayBaleGeo, hayStrawMat);
-  hay1.position.set(2.05, 0.26, -3.8);
-  hay1.rotation.y = 0.18;
-  const hay2 = new THREE.Mesh(hayBaleGeo, hayStrawMat);
-  hay2.position.set(2.1, 0.26, -2.9);
-  hay2.rotation.y = -0.12;
-  const hay3 = new THREE.Mesh(hayBaleGeo, hayStrawMat);
-  hay3.position.set(2.08, 0.76, -3.35);
-  animalStallGroup.add(frontCrossRail, trough, hay1, hay2, hay3);
-  sailableShipGroup.add(animalStallGroup);
+    const tierTrimMat =
+      def.tierId === 'royal_flagship'
+        ? orichalcumGoldMat
+        : def.tierId === 'galleon'
+          ? imperialCrimsonMat
+          : imperialDoorWoodMat;
 
-  // 6 Bronze Broadside Cannons (3 Port, 3 Starboard)
-  for (const cz of [-6.4, -2.8, 0.8]) {
-    for (const side of [-1, 1]) {
-      const carriage = new THREE.Mesh(cannonCarriageGeo, imperialDoorWoodMat);
-      carriage.position.set(side * 3.7, 0.21, cz);
-      const barrel = new THREE.Mesh(cannonBarrelGeo, bronzeCannonMat);
-      barrel.position.set(side * 4.05, 0.52, cz);
-      sailableShipGroup.add(carriage, barrel);
-    }
-  }
+    const cHull = new THREE.Mesh(flagshipHullGeo, shipHullWoodMat);
+    cHull.position.set(0, -1.45, 0.4);
+    const cBow = new THREE.Mesh(flagshipBowGeo, shipHullWoodMat);
+    cBow.position.set(0, -1.0, -12.2);
+    const cBowsprit = new THREE.Mesh(flagshipBowspritGeo, imperialDoorWoodMat);
+    cBowsprit.position.set(0, 0.95, -13.8);
 
-  // 3 Towering Masts (Foremast z = -7.0, Mainmast z = -0.6, Mizzenmast z = +5.4)
-  for (const [mz, mScale, hasCrowsNest] of [
-    [-7.0, 0.88, false],
-    [-0.6, 1.08, true],
-    [5.4, 0.82, false],
-  ] as const) {
-    const mast = new THREE.Mesh(flagshipMastGeo, shipHullWoodMat);
-    mast.position.set(0, 0, mz);
-    mast.scale.y = mScale;
-    sailableShipGroup.add(mast);
+    const cMainDeck = new THREE.Mesh(flagshipMainDeckGeo, shipDeckPlankMat);
+    cMainDeck.position.set(0, -0.1, 0);
+    // Low-profile aft quarterdeck platform so it NEVER blocks forward ocean visibility
+    const cQuarterdeck = new THREE.Mesh(flagshipQuarterdeckGeo, shipDeckPlankMat);
+    cQuarterdeck.position.set(0, 0.28, 6.6);
+    const captainsCabin = new THREE.Mesh(captainsCabinGeo, imperialDoorWoodMat);
+    captainsCabin.position.set(0, 0.34, 8.2);
 
-    if (hasCrowsNest) {
-      const nest = new THREE.Mesh(crowsNestGeo, imperialDoorWoodMat);
-      nest.position.set(0, 13.2 * mScale, mz);
-      sailableShipGroup.add(nest);
+    const cRailPort = new THREE.Mesh(flagshipRailSideGeo, tierTrimMat);
+    cRailPort.position.set(-4.25, 0.42, 0.4);
+    const cRailStbd = new THREE.Mesh(flagshipRailSideGeo, tierTrimMat);
+    cRailStbd.position.set(4.25, 0.42, 0.4);
+    const cRailStern = new THREE.Mesh(flagshipRailSternGeo, imperialGoldMat);
+    cRailStern.position.set(0, 0.82, 10.8);
+
+    tierRoot.add(
+      cHull,
+      cBow,
+      cBowsprit,
+      cMainDeck,
+      cQuarterdeck,
+      captainsCabin,
+      cRailPort,
+      cRailStbd,
+      cRailStern
+    );
+
+    if (def.tierId === 'galleon' || def.tierId === 'royal_flagship') {
+      const figNeck = new THREE.Mesh(figureheadNeckGeo, orichalcumGoldMat);
+      figNeck.position.set(0, 0.25, -12.6);
+      const figHead = new THREE.Mesh(figureheadHeadGeo, orichalcumGoldMat);
+      figHead.position.set(0, 1.15, -13.4);
+      tierRoot.add(figNeck, figHead);
     }
 
-    const pennant = new THREE.Mesh(royalPennantGeo, imperialCrimsonMat);
-    pennant.position.set(0, 17.2 * mScale, mz + 1.4);
-    sailableShipGroup.add(pennant);
-
-    for (const sy of [6.8 * mScale, 12.0 * mScale]) {
-      const yard = new THREE.Mesh(flagshipYardGeo, imperialDoorWoodMat);
-      yard.position.set(0, sy + 2.0, mz);
-      yard.scale.x = mScale;
-      const sail = new THREE.Mesh(flagshipSailGeo, sailCanvasMat);
-      sail.position.set(0, sy, mz - 0.26);
-      sail.scale.x = mScale;
-      sailableShipGroup.add(yard, sail);
+    // Open-View Side Tie Posts & Hay/Trough for Onboard Animals (no center cross-bar blocking sight)
+    const animalStallGroup = new THREE.Group();
+    for (const sx of [-3.4, 3.4]) {
+      for (const sz of [-5.0, -2.5, 0.0]) {
+        const post = new THREE.Mesh(stallPostGeo, imperialDoorWoodMat);
+        post.position.set(sx, 0.52, sz);
+        const ring = new THREE.Mesh(stallRingGeo, orichalcumGoldMat);
+        ring.position.set(sx, 0.96, sz);
+        animalStallGroup.add(post, ring);
+      }
     }
+    const trough = new THREE.Mesh(waterTroughGeo, imperialDoorWoodMat);
+    trough.position.set(-3.1, 0.23, -3.1);
+    const hay1 = new THREE.Mesh(hayBaleGeo, hayStrawMat);
+    hay1.position.set(3.1, 0.26, -3.6);
+    animalStallGroup.add(trough, hay1);
+    tierRoot.add(animalStallGroup);
+
+    // Broadside Cannons on Caravel, Galleon, and Flagship
+    if (def.tierId !== 'sloop') {
+      const cannonZs = def.tierId === 'caravel' ? [-4.2, -1.2] : [-6.4, -2.8, 0.8];
+      for (const cz of cannonZs) {
+        for (const side of [-1, 1]) {
+          const carriage = new THREE.Mesh(cannonCarriageGeo, imperialDoorWoodMat);
+          carriage.position.set(side * 3.7, 0.21, cz);
+          const barrel = new THREE.Mesh(cannonBarrelGeo, bronzeCannonMat);
+          barrel.position.set(side * 4.05, 0.52, cz);
+          tierRoot.add(carriage, barrel);
+        }
+      }
+    }
+
+    // High-Clearance Masts (no aft mizzenmast behind the helm; sails raised high so forward ocean horizon is 100% open!)
+    const mastConfigs: ReadonlyArray<readonly [number, number, boolean]> =
+      def.mastCount === 1
+        ? [[-3.2, 0.92, false]]
+        : [
+            [-7.2, 0.90, false],
+            [-1.4, 1.06, def.tierId === 'royal_flagship' || def.tierId === 'galleon'],
+          ];
+
+    for (const [mz, mScale, hasCrowsNest] of mastConfigs) {
+      const mast = new THREE.Mesh(flagshipMastGeo, shipHullWoodMat);
+      mast.position.set(0, 0, mz);
+      mast.scale.y = mScale;
+      tierRoot.add(mast);
+
+      if (hasCrowsNest) {
+        const nest = new THREE.Mesh(crowsNestGeo, imperialDoorWoodMat);
+        nest.position.set(0, 13.8 * mScale, mz);
+        tierRoot.add(nest);
+      }
+
+      const pennant = new THREE.Mesh(royalPennantGeo, imperialCrimsonMat);
+      pennant.position.set(0, 17.2 * mScale, mz + 1.4);
+      tierRoot.add(pennant);
+
+      // Sails elevated to 8.4m and 13.2m so the lower 6.2m above the deck is completely clear!
+      for (const sy of [8.4 * mScale, 13.2 * mScale]) {
+        const yard = new THREE.Mesh(flagshipYardGeo, imperialDoorWoodMat);
+        yard.position.set(0, sy + 1.9, mz);
+        yard.scale.x = mScale;
+        const sail = new THREE.Mesh(flagshipSailGeo, sailCanvasMat);
+        sail.position.set(0, sy, mz - 0.26);
+        sail.scale.x = mScale;
+        tierRoot.add(yard, sail);
+      }
+    }
+
+    // Interactive Helm Stand, Ship's Wheel & Wayfinder Compass on the Aft Quarterdeck (z = 3.85)
+    const helmStand = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
+    helmStand.position.set(0, 1.02, 3.85);
+    const shipWheelPivot = new THREE.Group();
+    shipWheelPivot.position.set(0, 1.42, 4.04);
+    const wRim = new THREE.Mesh(wheelRimGeo, imperialGoldMat);
+    shipWheelPivot.add(wRim);
+    for (let sp = 0; sp < 4; sp++) {
+      const spoke = new THREE.Mesh(wheelSpokeGeo, orichalcumGoldMat);
+      spoke.rotation.z = (sp / 4) * Math.PI;
+      shipWheelPivot.add(spoke);
+    }
+
+    const wayfinderBinnacleGroup = new THREE.Group();
+    wayfinderBinnacleGroup.position.set(0, 1.54, 3.72);
+    const helmCompassCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
+    helmCompassCrystal.scale.setScalar(0.11);
+    const wayfinderNeedleGroup = new THREE.Group();
+    const wayfinderSpear = new THREE.Mesh(wayfinderSpearGeo, biolumCyanMat);
+    wayfinderSpear.scale.setScalar(0.55);
+    wayfinderSpear.position.set(0, 0.14, -0.22);
+    const wayfinderTail = new THREE.Mesh(wayfinderTailGeo, orichalcumGoldMat);
+    wayfinderTail.position.set(0, 0.14, 0.12);
+    wayfinderNeedleGroup.add(wayfinderSpear, wayfinderTail);
+    wayfinderBinnacleGroup.add(helmCompassCrystal, wayfinderNeedleGroup);
+
+    for (const [lx, ly, lz] of [
+      [-3.8, 1.55, 10.4],
+      [3.8, 1.55, 10.4],
+      [-4.1, 1.35, 3.8],
+      [4.1, 1.35, 3.8],
+    ] as const) {
+      const lamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+      lamp.position.set(lx, ly, lz);
+      tierRoot.add(lamp);
+    }
+
+    tierRoot.add(helmStand, shipWheelPivot, wayfinderBinnacleGroup);
+
+    const bowWakeGroup = new THREE.Group();
+    bowWakeGroup.position.set(0, -1.52, -12.6);
+    const wakeLeft = new THREE.Mesh(wakeWingGeo, wakeFoamMat);
+    wakeLeft.position.set(-3.1, 0, 7.2);
+    wakeLeft.rotation.y = 0.32;
+    const wakeRight = new THREE.Mesh(wakeWingGeo, wakeFoamMat);
+    wakeRight.position.set(3.1, 0, 7.2);
+    wakeRight.rotation.y = -0.32;
+    bowWakeGroup.add(wakeLeft, wakeRight);
+    tierRoot.add(bowWakeGroup);
+
+    sailableShipGroup.add(tierRoot);
+    shipVisualHandles.push({
+      state: sState,
+      root: tierRoot,
+      wheelPivot: shipWheelPivot,
+      compassCrystal: helmCompassCrystal,
+      wayfinderNeedleGroup,
+      bowWakeGroup,
+    });
   }
-
-  // Interactive Helm Stand, Ship's Wheel & Live Atlantean Wayfinder Compass at Quarterdeck (z = 3.25)
-  const helmStand = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
-  helmStand.position.set(0, 1.18, 3.25);
-  const shipWheelPivot = new THREE.Group();
-  shipWheelPivot.position.set(0, 1.68, 3.46);
-  const wRim = new THREE.Mesh(wheelRimGeo, imperialGoldMat);
-  shipWheelPivot.add(wRim);
-  for (let sp = 0; sp < 4; sp++) {
-    const spoke = new THREE.Mesh(wheelSpokeGeo, orichalcumGoldMat);
-    spoke.rotation.z = (sp / 4) * Math.PI;
-    shipWheelPivot.add(spoke);
-  }
-
-  // Live Rotating Atlantean Wayfinder Compass Spear on the Helm Binnacle pointing toward Ruined Atlantis (980, 420)
-  const wayfinderBinnacleGroup = new THREE.Group();
-  wayfinderBinnacleGroup.position.set(0, 1.82, 3.12);
-  const helmCompassCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
-  helmCompassCrystal.scale.setScalar(0.11);
-  const wayfinderNeedleGroup = new THREE.Group();
-  const wayfinderSpear = new THREE.Mesh(wayfinderSpearGeo, biolumCyanMat);
-  wayfinderSpear.scale.setScalar(0.55);
-  wayfinderSpear.position.set(0, 0.14, -0.22);
-  const wayfinderTail = new THREE.Mesh(
-    new THREE.SphereGeometry(0.07, 8, 8),
-    orichalcumGoldMat
-  );
-  wayfinderTail.position.set(0, 0.14, 0.12);
-  wayfinderNeedleGroup.add(wayfinderSpear, wayfinderTail);
-  wayfinderBinnacleGroup.add(helmCompassCrystal, wayfinderNeedleGroup);
-
-  // 4 Warm Stern & Quarterdeck Lanterns
-  for (const [lx, ly, lz] of [
-    [-3.8, 1.95, 10.6],
-    [3.8, 1.95, 10.6],
-    [-4.1, 1.55, 3.2],
-    [4.1, 1.55, 3.2],
-  ] as const) {
-    const lamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
-    lamp.position.set(lx, ly, lz);
-    sailableShipGroup.add(lamp);
-  }
-
-  sailableShipGroup.add(helmStand, shipWheelPivot, wayfinderBinnacleGroup);
-
-  // V-Shaped Animated Bow Wake Foam Group (at water level y = -1.6)
-  const bowWakeGroup = new THREE.Group();
-  bowWakeGroup.position.set(0, -1.52, -12.6);
-  const wakeLeft = new THREE.Mesh(wakeWingGeo, wakeFoamMat);
-  wakeLeft.position.set(-3.1, 0, 7.2);
-  wakeLeft.rotation.y = 0.32;
-  const wakeRight = new THREE.Mesh(wakeWingGeo, wakeFoamMat);
-  wakeRight.position.set(3.1, 0, 7.2);
-  wakeRight.rotation.y = -0.32;
-  bowWakeGroup.add(wakeLeft, wakeRight);
-  sailableShipGroup.add(bowWakeGroup);
-
-  scene.add(sailableShipGroup);
 
   // ============================================================================
   // 4. NORDIC FROST GIANT SHRINE & GEOTHERMAL HOT SPRINGS (-320, -290)
@@ -1040,43 +1065,42 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   // 7. PER-FRAME ANIMATION & LIVE SHIP TRANSFORM SYNC
   // ============================================================================
   const updateAtlantisAndShip = (elapsedTime: number, playerX: number, playerZ: number) => {
-    // 1) Sync Sailable Ship 3D group with live sailableShipSystem state
-    const liveShip = getActiveSailableShip();
+    // 1) Sync all 4 Sailable Ship 3D groups with live sailableShipSystem states
     const idleWaveBob = Math.sin(elapsedTime * 1.85) * 0.07;
     const idleWaveRoll = Math.cos(elapsedTime * 1.45) * 0.015;
-    sailableShipGroup.position.set(
-      liveShip.x,
-      liveShip.deckY + idleWaveBob,
-      liveShip.z
-    );
-    sailableShipGroup.rotation.set(
-      liveShip.pitchAngle,
-      liveShip.yaw,
-      liveShip.rollAngle + idleWaveRoll
-    );
-    sailableShipGroup.visible = isWithinViewDistance(
-      liveShip.x,
-      liveShip.z,
-      playerX,
-      playerZ,
-      115.0,
-      320.0
-    );
-    shipWheelPivot.rotation.z = liveShip.wheelAngle;
-    helmCompassCrystal.rotation.y = elapsedTime * 1.8;
+    for (let i = 0; i < shipVisualHandles.length; i++) {
+      const h = shipVisualHandles[i];
+      const liveShip = h.state;
+      if (!liveShip.spawned) {
+        h.root.visible = false;
+        continue;
+      }
+      h.root.position.set(liveShip.x, liveShip.deckY + idleWaveBob, liveShip.z);
+      h.root.rotation.set(liveShip.pitchAngle, liveShip.yaw, liveShip.rollAngle + idleWaveRoll);
+      h.root.visible = isWithinViewDistance(
+        liveShip.x,
+        liveShip.z,
+        playerX,
+        playerZ,
+        115.0,
+        320.0
+      );
+      if (h.root.visible) {
+        h.wheelPivot.rotation.z = liveShip.wheelAngle;
+        h.compassCrystal.rotation.y = elapsedTime * 1.8;
+        const worldAngleToAtlantis = Math.atan2(
+          -(RUINED_ATLANTIS_POS.x - liveShip.x),
+          -(RUINED_ATLANTIS_POS.z - liveShip.z)
+        );
+        h.wayfinderNeedleGroup.rotation.y = worldAngleToAtlantis - liveShip.yaw;
 
-    // Point the glowing cyan Wayfinder Spear directly toward Ruined Atlantis (980, 420)
-    const worldAngleToAtlantis = Math.atan2(
-      -(RUINED_ATLANTIS_POS.x - liveShip.x),
-      -(RUINED_ATLANTIS_POS.z - liveShip.z)
-    );
-    wayfinderNeedleGroup.rotation.y = worldAngleToAtlantis - liveShip.yaw;
-
-    const spdRatio = Math.min(1.0, Math.abs(liveShip.speed) / 14.0);
-    bowWakeGroup.visible = spdRatio > 0.04;
-    if (bowWakeGroup.visible) {
-      bowWakeGroup.scale.set(0.65 + spdRatio * 0.75, 1.0, 0.55 + spdRatio * 0.85);
-      wakeFoamMat.opacity = 0.24 + spdRatio * 0.5;
+        const spdRatio = Math.min(1.0, Math.abs(liveShip.speed) / 14.0);
+        h.bowWakeGroup.visible = spdRatio > 0.04;
+        if (h.bowWakeGroup.visible) {
+          h.bowWakeGroup.scale.set(0.65 + spdRatio * 0.75, 1.0, 0.55 + spdRatio * 0.85);
+          wakeFoamMat.opacity = 0.24 + spdRatio * 0.5;
+        }
+      }
     }
 
     // 2) Animate Ruined Atlantis Boss Seal Astrolabe Rings & Crystal Core when visible

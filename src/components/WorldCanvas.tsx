@@ -38,11 +38,14 @@ import {
   findNearestFortressDoor,
   findNearestBed,
   findNearestWorldChest,
+  resolveBestLookedAtInteraction,
   findLookedAtWatchtowerLadder,
   findNearestDeadLootableAnimal,
   lootDeadAnimal,
   takeItemFromWorldChest,
   storeItemInWorldChest,
+  takeAllFromWorldChest,
+  storeAllUnequippedInWorldChest,
   getAnimalSpeciesName,
   getActiveWorldAnimals,
   ensureSafeOffscreenAnimalSpawns,
@@ -51,14 +54,24 @@ import {
   stepSwordSwingCombat,
   recoverArrowsFromAnimal,
   consumeArrowFromInventory,
-   getArrowItemIdForKind,
+  getArrowItemIdForKind,
   checkAndRestockMerchants,
   buyMarketItem,
   sellMarketItem,
   isNavigableOceanForShip,
   setSailableShipTransform,
   getActiveSailableShip,
+  configureSailableShipsForGameMode,
+  buyOrSpawnShipFromShipwright,
   IGameActions,
+  GameWorldMode,
+  saveWorldSnapshot,
+  loadWorldSnapshot,
+  clearWorldSave,
+  captureCurrentWorldSnapshot,
+  applyWorldSnapshotToLiveSystems,
+  getDefaultWorldBaseline,
+  resetLiveWorldToFreshBaseline,
 } from '../world/terrainMath';
 import { useAppServices } from '../app/AppServicesContext';
 import type {
@@ -216,9 +229,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     } = worldScene;
 
     // 7. Player State, Rideable Horses, Active Arrows & Input Tracking
+    const initialSurvivalMode = gameSettingsRef.current.godMode === false;
     const playerState = createInitialPlayerState({
-      survivalMode: gameSettingsRef.current.godMode === false,
+      survivalMode: initialSurvivalMode,
     });
+    configureSailableShipsForGameMode(initialSurvivalMode);
     playerState.cameraPerspective = gameSettingsRef.current.defaultCameraPerspective;
     const rideableHorses = createInitialRideableHorses();
     const activeArrows: IArrowProjectile[] = [];
@@ -394,6 +409,37 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let isSleepingInBed = false;
     let activeSleepingBed: { x: number; y: number; z: number; yaw?: number } | null = null;
     let preSleepPlayerPos: { x: number; y: number; z: number } | null = null;
+    let worldSaveTimer = 0;
+
+    // Isolate Survival vs Creative (God Mode) save slots so changes never bleed across worlds!
+    let activeWorldMode: GameWorldMode =
+      gameSettingsRef.current.godMode === false ? 'survival' : 'creative';
+    const initialSavedWorld = loadWorldSnapshot(activeWorldMode);
+    if (initialSavedWorld) {
+      applyWorldSnapshotToLiveSystems(
+        initialSavedWorld,
+        playerState,
+        rideableHorses,
+        getActiveWorldAnimals(),
+        openDoorIds
+      );
+      if (initialSavedWorld.timeOfDayHours !== undefined && urlWorldHour === null) {
+        worldHours = initialSavedWorld.timeOfDayHours;
+      }
+    }
+
+    const saveCurrentWorld = () => {
+      const snap = captureCurrentWorldSnapshot(
+        activeWorldMode,
+        playerState,
+        rideableHorses,
+        getActiveWorldAnimals(),
+        openDoorIds,
+        worldHours
+      );
+      saveWorldSnapshot(activeWorldMode, snap);
+    };
+    (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = saveCurrentWorld;
 
     function applyDynamicAtmosphere(hours: number, weather?: IWeatherStateSnapshot) {
       return applyDynamicAtmosphereToScene(
@@ -505,6 +551,43 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           emitHudSnapshot();
         }
       },
+      onTakeAllChestItems: (chestId) => {
+        const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+        if (chest && chest.id === chestId) {
+          openDoorIds.add(chest.id);
+          const res = takeAllFromWorldChest(playerState, chest);
+          if (res.takenCount > 0) {
+            soundEngine.playFootstep('trail', 1.18);
+          }
+          emitHudSnapshot();
+          return res.takenCount;
+        }
+        return 0;
+      },
+      onStoreAllChestItems: (chestId) => {
+        const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+        if (chest && chest.id === chestId) {
+          openDoorIds.add(chest.id);
+          const res = storeAllUnequippedInWorldChest(playerState, chest);
+          if (res.storedCount > 0) {
+            soundEngine.playFootstep('trail', 0.92);
+          }
+          emitHudSnapshot();
+          return res.storedCount;
+        }
+        return 0;
+      },
+      onBuyShip: (tierId) => {
+        const godMode = gameSettingsRef.current.godMode !== false;
+        const res = buyOrSpawnShipFromShipwright(playerState, tierId, godMode);
+        if (res.ok) {
+          soundEngine.playFootstep('bridge', 1.2);
+          lastLootNotification = res.message;
+          lastLootNotificationTimer = 4.8;
+        }
+        emitHudSnapshot();
+        return { ok: res.ok, message: res.message };
+      },
       onOpenChest: (chestId) => {
         openDoorIds.add(chestId);
         if (!playerState.openedChestIds) playerState.openedChestIds = [];
@@ -548,7 +631,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         isSleepingInBed = false;
         activeSleepingBed = null;
         preSleepPlayerPos = null;
-        if (playerState.mountedHorseId === 'sailable-ship') {
+        if (playerState.mountedHorseId?.startsWith('sailable-ship')) {
           if (isNavigableOceanForShip(worldX, worldZ)) {
             setSailableShipTransform(
               worldX,
@@ -609,14 +692,51 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         isSleepingInBed = false;
         activeSleepingBed = null;
         preSleepPlayerPos = null;
+
+        // 1. Persist current mode's world snapshot before switching
+        const currentSnap = captureCurrentWorldSnapshot(
+          activeWorldMode,
+          playerState,
+          rideableHorses,
+          getActiveWorldAnimals(),
+          openDoorIds,
+          worldHours
+        );
+        saveWorldSnapshot(activeWorldMode, currentSnap);
+
+        // 2. Switch world mode and restore target snapshot (or fresh baseline if no save exists)
+        const targetMode: GameWorldMode = survivalMode ? 'survival' : 'creative';
+        activeWorldMode = targetMode;
+        const savedSnap = loadWorldSnapshot(targetMode);
+        if (savedSnap) {
+          applyWorldSnapshotToLiveSystems(
+            savedSnap,
+            playerState,
+            rideableHorses,
+            getActiveWorldAnimals(),
+            openDoorIds
+          );
+          if (savedSnap.timeOfDayHours !== undefined && urlWorldHour === null) {
+            worldHours = savedSnap.timeOfDayHours;
+          }
+        } else {
+          resetLiveWorldToFreshBaseline(
+            targetMode,
+            playerState,
+            rideableHorses,
+            getActiveWorldAnimals(),
+            openDoorIds
+          );
+          if (urlWorldHour === null) {
+            worldHours = survivalMode ? 9 : 12;
+          }
+        }
+
         openDoorIds.delete('chest-hunter-lodge');
-        inGameHoursElapsed = 0;
-        seasonTimeOffset = 180.0;
         if (survivalMode) {
           forcedSeason = 'auto';
           activeWeatherMode = DEFAULT_WEATHER_CYCLE_MODE;
         }
-        applyGameModeToPlayerState(playerState, survivalMode);
         currentWeather = computeWeatherState(
           getSeasonClockSeconds(),
           playerState.x,
@@ -628,6 +748,69 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         capturePreviousPlayerPose();
         emitHudSnapshot();
+      },
+      onResetWorld: (mode) => {
+        if (mode === 'survival' || mode === 'both') {
+          clearWorldSave('survival');
+        }
+        if (mode === 'creative' || mode === 'both') {
+          clearWorldSave('creative');
+        }
+
+        if (mode === 'both' || mode === activeWorldMode) {
+          isSleepingInBed = false;
+          activeSleepingBed = null;
+          preSleepPlayerPos = null;
+          activeArrows.length = 0;
+          resetLiveWorldToFreshBaseline(
+            activeWorldMode,
+            playerState,
+            rideableHorses,
+            getActiveWorldAnimals(),
+            openDoorIds
+          );
+          inGameHoursElapsed = 0;
+          seasonTimeOffset = 180.0;
+          if (urlWorldHour === null) {
+            worldHours = activeWorldMode === 'survival' ? 9 : 12;
+          }
+          if (activeWorldMode === 'survival') {
+            forcedSeason = 'auto';
+            activeWeatherMode = DEFAULT_WEATHER_CYCLE_MODE;
+          }
+          currentWeather = computeWeatherState(
+            getSeasonClockSeconds(),
+            playerState.x,
+            playerState.z,
+            activeWeatherMode,
+            getEffectiveForcedWeather(),
+            forcedSeason === 'auto' ? null : forcedSeason
+          );
+          currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
+          capturePreviousPlayerPose();
+          window.dispatchEvent(new CustomEvent('reset-world-minimap'));
+          emitHudSnapshot();
+        } else {
+          window.dispatchEvent(new CustomEvent('reset-world-minimap'));
+        }
+
+        const message =
+          mode === 'survival'
+            ? 'Survival World & Map have been completely reset to a fresh state!'
+            : mode === 'creative'
+              ? 'Creative (God Mode) World & Map have been completely reset to a fresh state!'
+              : 'Both Survival & Creative Worlds and the Map have been completely reset!';
+        lastLootNotification = message;
+        lastLootNotificationTimer = 4.5;
+        emitHudSnapshot();
+        return { ok: true, message };
+      },
+      onCloseChest: (chestId) => {
+        openDoorIds.delete(chestId);
+        emitHudSnapshot();
+      },
+      onResumeGameControl: () => {
+        handleReacquirePointerLock();
       },
     };
     onRegisterGameActions?.(gameActions);
@@ -789,6 +972,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
         }
       }
+      // Cancel bow draw with [R] key: relaxes the bow, resets draw progress, and keeps arrow safely in inventory
+      if (
+        e.code === 'KeyR' &&
+        !e.repeat &&
+        gameStateRef.current === 'playing' &&
+        playerState.bowDrawn
+      ) {
+        e.preventDefault();
+        playerState.bowDrawn = false;
+        playerState.bowDrawProgress = 0;
+        isMouseBowHeld = false;
+        mouseMovedWhileDown = false;
+        cameraRig.smoothAimZoom = 0;
+        soundEngine.playFootstep('trail', 0.85);
+        return;
+      }
       // Detect Double-Tap Jump Key (within 500ms) to toggle Flight Mode in God Mode (disabled when mounting/dismounting a ladder!)
       if (
         e.code === kb.jump &&
@@ -857,6 +1056,34 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         lastPointerLockExitTimeMs = performance.now();
       }
     };
+
+    const requestPointerLockSafely = () => {
+      if (
+        gameStateRef.current !== 'playing' ||
+        document.body.dataset.skyrimModalOpen === 'true' ||
+        document.body.dataset.worldMapModalOpen === 'true'
+      ) {
+        return;
+      }
+      try {
+        if (renderer.domElement && document.pointerLockElement !== renderer.domElement) {
+          const lockPromise = renderer.domElement.requestPointerLock?.() as
+            | Promise<void>
+            | undefined;
+          if (lockPromise && typeof lockPromise.catch === 'function') {
+            lockPromise.catch(() => {});
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleReacquirePointerLock = () => {
+      lastPointerLockExitTimeMs = -Infinity;
+      requestPointerLockSafely();
+    };
+    window.addEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
 
     const onContextMenu = (e: MouseEvent) => {
       if (gameStateRef.current === 'playing') {
@@ -1210,8 +1437,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               emitHudSnapshot();
             }
           } else {
-            const nearChest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
-            if (nearChest) {
+            const bestInteract = resolveBestLookedAtInteraction(
+              playerState.x,
+              playerState.y,
+              playerState.z,
+              playerState.yaw,
+              playerState.pitch
+            );
+            if (bestInteract.kind === 'chest' && bestInteract.chest) {
+              const nearChest = bestInteract.chest;
               openDoorIds.add(nearChest.id);
               if (!playerState.openedChestIds) playerState.openedChestIds = [];
               if (!playerState.openedChestIds.includes(nearChest.id)) {
@@ -1223,9 +1457,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 openInventoryModal?: (open?: boolean, cat?: string) => void;
               };
               win.openInventoryModal?.(true, 'chest');
-            } else {
-              const nearBed = findNearestBed(playerState.x, playerState.y, playerState.z);
-              if (nearBed) {
+            } else if (bestInteract.kind === 'bed' && bestInteract.bed) {
+              const nearBed = bestInteract.bed;
               const dangerNearby = getActiveWorldAnimals().some(
                 (a) =>
                   !a.isDead &&
@@ -1262,23 +1495,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 soundEngine.playFootstep('cabin', 0.8);
                 emitHudSnapshot();
               }
-            } else {
-              const nearDoor = findNearestFortressDoor(
-                playerState.x,
-                playerState.y,
-                playerState.z,
-                playerState.yaw,
-                playerState.pitch
-              );
-              if (nearDoor) {
-                if (openDoorIds.has(nearDoor.id)) {
-                  openDoorIds.delete(nearDoor.id);
-                } else {
-                  openDoorIds.add(nearDoor.id);
-                }
-                soundEngine.playFootstep('bridge', 0.85);
+            } else if (bestInteract.kind === 'door' && bestInteract.door) {
+              const nearDoor = bestInteract.door;
+              if (openDoorIds.has(nearDoor.id)) {
+                openDoorIds.delete(nearDoor.id);
+              } else {
+                openDoorIds.add(nearDoor.id);
               }
-            }
+              soundEngine.playFootstep('bridge', 0.85);
             }
           }
         }
@@ -1534,6 +1758,21 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           currentWeather,
           wildlifeSoundCallbacks
         );
+
+        // Auto-close chest lid if player walked away (> 4.2m)
+        if (openDoorIds.has('chest-hunter-lodge')) {
+          const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
+          if (!chest || Math.hypot(playerState.x - chest.x, playerState.z - chest.z) > 4.2) {
+            openDoorIds.delete('chest-hunter-lodge');
+          }
+        }
+
+        // Periodic auto-save to isolated world save slot (Survival vs Creative)
+        worldSaveTimer += rawDt;
+        if (worldSaveTimer >= 2.5) {
+          worldSaveTimer = 0;
+          saveCurrentWorld();
+        }
       }
     }
 
@@ -1706,7 +1945,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.domElement.removeEventListener('touchstart', onTouchStart);
       renderer.domElement.removeEventListener('touchmove', onTouchMove);
-      renderer.domElement.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
+      saveCurrentWorld();
       onRegisterGameActions?.(null);
       unregisterDebugBridge?.();
       soundEngine.dispose();

@@ -9,7 +9,7 @@
 // #region Imports & Props
 import { t } from '../locales';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { sampleMinimapColorAt } from '../world/terrainMath';
+import { getSpawnedSailableShips, sampleMinimapColorAt } from '../world/terrainMath';
 import {
   BEAR_MOUNTAIN_CAVES,
   CHINESE_FORTRESS_POS,
@@ -19,7 +19,6 @@ import {
   HUNTER_LODGE_POS,
   NORDIC_FROST_SHRINE_POS,
   RUINED_ATLANTIS_POS,
-  SAILABLE_SHIP_INITIAL_POS,
   SMUGGLER_ISLAND_POS,
   SOUTHEAST_HARBOR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
@@ -62,7 +61,6 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'nordic_shrine', label: 'Nordic Frost Shrine & Hot Springs', x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, color: '#22d3ee' },
   { id: 'lodge', label: 'Hunter Lodge', x: HUNTER_LODGE_POS.x, z: HUNTER_LODGE_POS.z, color: '#a3e635' },
   { id: 'harbor', label: 'Harbor & Market', x: SOUTHEAST_HARBOR_POS.x, z: SOUTHEAST_HARBOR_POS.z, color: '#38bdf8' },
-  { id: 'sailable_ship', label: 'Sailable Ship', x: SAILABLE_SHIP_INITIAL_POS.homeX, z: SAILABLE_SHIP_INITIAL_POS.homeZ, color: '#f59e0b' },
   { id: 'smuggler_cove', label: 'Corsair Smuggler Cove', x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, color: '#fb7185' },
   { id: 'atlantis', label: 'Ruined Atlantis', x: RUINED_ATLANTIS_POS.x, z: RUINED_ATLANTIS_POS.z, color: '#06b6d4' },
   { id: 'oasis', label: 'Desert Oasis', x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, color: '#facc15' },
@@ -134,13 +132,17 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     []
   );
 
+  const prevMapOpenRef = useRef(isFullScreenMapOpen);
   // Sync body dataset flag so WorldCanvas ignores gameplay clicks/movement while Full-Screen Map is open
   useEffect(() => {
     const active = isPlaying && isFullScreenMapOpen;
     document.body.dataset.worldMapModalOpen = active ? 'true' : 'false';
     if (active && document.pointerLockElement) {
       document.exitPointerLock?.();
+    } else if (!active && prevMapOpenRef.current && isPlaying) {
+      window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
     }
+    prevMapOpenRef.current = isFullScreenMapOpen;
     return () => {
       document.body.dataset.worldMapModalOpen = 'false';
     };
@@ -162,23 +164,40 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isPlaying, isFullScreenMapOpen]);
 
-  // Initialize persistent Fog-of-War offscreen canvas and cached color arrays once
+  // Initialize persistent Fog-of-War offscreen canvas and cached color arrays once,
+  // and listen for 'reset-world-minimap' to clear explored Fog-of-War cells on world reset.
   useEffect(() => {
-    const off = document.createElement('canvas');
-    off.width = GRID_SIZE;
-    off.height = GRID_SIZE;
-    const ctx = off.getContext('2d');
-    if (!ctx) return;
+    const initOrClearFogCanvas = () => {
+      let off = offscreenCanvasRef.current;
+      if (!off) {
+        off = document.createElement('canvas');
+        off.width = GRID_SIZE;
+        off.height = GRID_SIZE;
+        offscreenCanvasRef.current = off;
+      }
+      const ctx = off.getContext('2d');
+      if (!ctx) return;
 
-    // Fill with unexplored dark slate-parchment fog color
-    ctx.fillStyle = '#151310';
-    ctx.fillRect(0, 0, GRID_SIZE, GRID_SIZE);
+      // Fill with unexplored dark slate-parchment fog color
+      ctx.fillStyle = '#151310';
+      ctx.fillRect(0, 0, GRID_SIZE, GRID_SIZE);
 
-    offscreenCanvasRef.current = off;
-    offscreenImgDataRef.current = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
-    revealedLevelRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
-    cachedColorsRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE * 3);
-    hasCachedColorRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      offscreenImgDataRef.current = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
+      revealedLevelRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      if (!cachedColorsRef.current) {
+        cachedColorsRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE * 3);
+      }
+      if (!hasCachedColorRef.current) {
+        hasCachedColorRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      }
+      lastRevealPosRef.current = { x: 99999, z: 99999 };
+    };
+
+    initOrClearFogCanvas();
+    window.addEventListener('reset-world-minimap', initOrClearFogCanvas);
+    return () => {
+      window.removeEventListener('reset-world-minimap', initOrClearFogCanvas);
+    };
   }, []);
 
   // Lazily build the full-world topographic terrain texture the first time the Full-Screen Map is opened
@@ -357,6 +376,25 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       dispCtx.stroke();
     }
 
+    // 2B. Draw Owned Sailable Ships on Minimap Radar
+    const ownedShips = getSpawnedSailableShips();
+    for (let i = 0; i < ownedShips.length; i++) {
+      const sh = ownedShips[i];
+      const dxM = sh.x - playerX;
+      const dzM = sh.z - playerZ;
+      const sx = halfW + (dxM / VIEW_WINDOW_M) * w;
+      const sz = halfH + (dzM / VIEW_WINDOW_M) * h;
+      if (Math.hypot(sx - halfW, sz - halfH) <= halfW - 6) {
+        dispCtx.fillStyle = '#38bdf8';
+        dispCtx.strokeStyle = '#0c0a09';
+        dispCtx.lineWidth = 1.8;
+        dispCtx.beginPath();
+        dispCtx.arc(sx, sz, 4.2, 0, Math.PI * 2);
+        dispCtx.fill();
+        dispCtx.stroke();
+      }
+    }
+
     // 3. Draw Player View-Direction Cone & Heading Arrow at Center
     const yawRad = (yawDeg * Math.PI) / 180;
     const canvasHeadingRad = -yawRad - Math.PI / 2;
@@ -498,6 +536,32 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       ctx.fillRect(px - textWidth / 2 - 5, pz + 8, textWidth + 10, 17);
       ctx.fillStyle = '#f5f5f4';
       ctx.fillText(lm.label, px, pz + 20);
+    }
+
+    // Always draw Owned/Spawned Sailable Ships on the Full-Screen World Map (even in Survival Mode!)
+    const spawnedShips = getSpawnedSailableShips();
+    for (let i = 0; i < spawnedShips.length; i++) {
+      const sh = spawnedShips[i];
+      const nx = (sh.x + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+      const nz = (sh.z + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+      const px = mapLeft + nx * mapDrawSize;
+      const pz = mapTop + nz * mapDrawSize;
+      if (px < -60 || px > w + 60 || pz < -40 || pz > h + 40) continue;
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = '#0c0a09';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(px, pz, 6.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      const shipLabel = `⚓ ${sh.name.split(' · ')[0]}`;
+      const textWidth = ctx.measureText(shipLabel).width;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.fillRect(px - textWidth / 2 - 5, pz - 24, textWidth + 10, 17);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillText(shipLabel, px, pz - 12);
     }
 
     // Draw Player Position & Heading Chevron

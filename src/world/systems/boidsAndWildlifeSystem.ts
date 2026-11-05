@@ -19,6 +19,7 @@ import {
   FLOATING_BLOOMING_ISLANDS,
   SOUTHERN_DRAGON_RUINS_POS,
   SOLID_BUILDING_BOXES,
+  resolveHorizontalBoxCollision,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
 import { t } from '../../locales';
@@ -684,13 +685,17 @@ export function findNearestDeadLootableAnimal(
   playerX: number,
   playerZ: number,
   animals: readonly ISmallAnimalState[] = activeWorldAnimalsRegistry,
-  maxDist = 3.4
+  maxDist = 3.4,
+  playerY?: number
 ): ISmallAnimalState | null {
   let best: ISmallAnimalState | null = null;
   let bestDist = Infinity;
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     if (!a.isDead || a.isLooted) continue;
+    if (playerY !== undefined && Math.abs(a.y - playerY) > (a.species === 'dragon' ? 5.2 : 2.8)) {
+      continue;
+    }
     const allowedDist =
       a.species === 'dragon'
         ? Math.max(maxDist, 6.8)
@@ -1415,24 +1420,13 @@ function resolveAnimalObstacleCollision(
   let z = nextZ;
   let hitObstacle = false;
 
-  // 1. Solid building & carved mountain cave cliff walls (SOLID_BUILDING_BOXES)
+  // 1. Solid building & carved mountain cave cliff walls (SOLID_BUILDING_BOXES, including rotated OBBs)
   for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
     const b = SOLID_BUILDING_BOXES[i];
-    if (
-      x + radius > b.minX &&
-      x - radius < b.maxX &&
-      z + radius > b.minZ &&
-      z - radius < b.maxZ
-    ) {
-      const penLeft = x + radius - b.minX;
-      const penRight = b.maxX - (x - radius);
-      const penBack = z + radius - b.minZ;
-      const penFront = b.maxZ - (z - radius);
-      const minPen = Math.min(penLeft, penRight, penBack, penFront);
-      if (minPen === penLeft) x = b.minX - radius;
-      else if (minPen === penRight) x = b.maxX + radius;
-      else if (minPen === penBack) z = b.minZ - radius;
-      else z = b.maxZ + radius;
+    const resolved = resolveHorizontalBoxCollision(x, z, radius, b);
+    if (resolved.collided) {
+      x = resolved.x;
+      z = resolved.z;
       hitObstacle = true;
     }
   }
@@ -2123,8 +2117,11 @@ export function stepSmallAnimals(
         const playerRidingMysticalLion = Boolean(
           playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
         );
+        const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
+        const canReachPlayerVertically = playerVertDiff <= (isBossLion ? 5.2 : 3.4);
         if (
           !playerRidingMysticalLion &&
+          canReachPlayerVertically &&
           (!isBossLion || playerInBossChamber || (provokedByShot && playerInVolcanoSanctum)) &&
           distP < playerDetectRange &&
           distP <= (provokedByShot || playerInBossChamber ? 95.0 : bestPreyDist)

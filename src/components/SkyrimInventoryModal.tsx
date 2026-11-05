@@ -18,6 +18,10 @@ import {
   getMarketStallCatalogItems,
   isStackableInventoryItem,
   requiresSellConfirmation,
+  getAllSailableShips,
+  isHarborShipDockOccupied,
+  type ShipTierId,
+  type ISailableShipState,
   type IBuyMarketItemPayload,
   type ISellMarketItemPayload,
   type MarketTransactionErrorCode,
@@ -67,6 +71,10 @@ export interface ISkyrimInventoryModalProps {
   onSellItem: (id: InventoryItemId) => Result<ISellMarketItemPayload, MarketTransactionErrorCode>;
   onTakeChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
   onStoreChestItem?: (chestId: string, itemId: InventoryItemId, quantity?: number) => void;
+  onTakeAllChestItems?: (chestId: string) => number;
+  onStoreAllChestItems?: (chestId: string) => number;
+  onBuyShip?: (tierId: string) => { ok: boolean; message: string };
+  godMode?: boolean;
   onToggleFavorite: (id: InventoryItemId) => void;
   onAssignHotbar: (slotIdx: number, id: InventoryItemId) => void;
   onClose: () => void;
@@ -179,6 +187,10 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   onSellItem,
   onTakeChestItem,
   onStoreChestItem,
+  onTakeAllChestItems,
+  onStoreAllChestItems,
+  onBuyShip,
+  godMode = false,
   onAssignHotbar,
   onClose,
   closeKeyLabel,
@@ -194,6 +206,8 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const [tradeFeedback, setTradeFeedback] = useState<string | null>(null);
   const [pendingRareSaleId, setPendingRareSaleId] = useState<InventoryItemId | null>(null);
   const [buyQuantity, setBuyQuantity] = useState<number>(1);
+  const [selectedShipTier, setSelectedShipTier] = useState<ShipTierId>('sloop');
+  const [, setShipTick] = useState(0);
 
   useEffect(() => {
     setBuyQuantity(1);
@@ -274,8 +288,16 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const overallHeroLevel = Math.max(1, 1 + Math.floor((totalSkillLevels - 5) / 2));
 
   const inChestModal = Boolean(nearbyChest && selectedCategory === 'chest');
+  const isShipwrightMarket = Boolean(
+    !inChestModal && nearbyMarket?.id === 'market-harbor-shipwright'
+  );
   const inHarborMarket = Boolean(nearbyMarket && !inChestModal);
   const inSplitContainerMode = inHarborMarket || inChestModal;
+  const allShips: readonly ISailableShipState[] = isShipwrightMarket ? getAllSailableShips() : [];
+  const inspectedShip: ISailableShipState | null = isShipwrightMarket
+    ? (allShips.find((sh) => sh.tierId === selectedShipTier) ?? allShips[0] ?? null)
+    : null;
+  const dockBlockingShip = isShipwrightMarket ? isHarborShipDockOccupied(18.0) : null;
 
   // Personal Inventory Mode (Outside Market/Chest): ONLY show items currently owned by the player!
   const activePersonalTab: 'weapons' | 'clothing' | 'materials' | 'food' =
@@ -476,92 +498,164 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-700/70">
               <div>
                 <h2 className="font-display-he text-xl font-bold text-amber-300">
-                  {t('ui.my_gear_left')}
+                  {isShipwrightMarket ? 'Owned Fleet' : t('ui.my_gear_left')}
                 </h2>
                 <p className="text-xs text-stone-400">
-                  {inChestModal
-                    ? 'Select an item to store in the chest or equip'
-                    : t('ui.my_gear_hint')}
+                  {isShipwrightMarket
+                    ? 'Commissioned ships appear on the World Map [M] and at the Harbor Pier'
+                    : inChestModal
+                      ? 'Select an item to store in the chest or equip'
+                      : t('ui.my_gear_hint')}
                 </p>
               </div>
-              <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
-                {t('ui.items_count', { count: playerOwnedMarketItems.length })}
-              </span>
-            </div>
-
-            {/* Category Filter for Player's Owned Items */}
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              {(
-                [
-                  ['all', t('ui.all_filter')],
-                  ['weapons', t('ui.weapons_filter')],
-                  ['clothing', t('ui.clothing_filter')],
-                  ['materials', t('ui.materials_filter')],
-                  ['food', t('ui.food_filter')],
-                ] as const
-              ).map(([catKey, label]) => (
-                <button
-                  key={catKey}
-                  type="button"
-                  data-testid={`player-market-filter-${catKey}`}
-                  onClick={() => setPlayerMarketCat(catKey)}
-                  className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
-                    playerMarketCat === catKey
-                      ? 'bg-amber-400 text-stone-950'
-                      : 'bg-stone-800/70 text-stone-300 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div
-              data-testid="market-player-owned-list"
-              className="flex-1 overflow-y-auto space-y-1.5 pr-1"
-            >
-              {playerOwnedMarketItems.map((item) => {
-                const isSelected = inspectedItem?.id === item.id && tradeSide === 'player';
-                const equipped = isItemEquipped(item.id);
-                const sellVal = getMarketSellPrice(item);
-                const count = getOwnedCount(item.id);
-
-                return (
+              <div className="flex items-center gap-2">
+                {inChestModal && nearbyChest && (
                   <button
-                    key={item.id}
                     type="button"
-                    data-testid={`player-market-item-${item.id}`}
+                    data-testid="chest-store-all-btn"
                     onClick={() => {
-                      setTradeSide('player');
-                      onSelectItem(item.id);
-                      setTradeFeedback(null);
+                      const storedCount = onStoreAllChestItems?.(nearbyChest.id) ?? 0;
+                      setTradeFeedback(
+                        storedCount > 0
+                          ? `Stored ${storedCount} unequipped item${storedCount === 1 ? '' : 's'} in the chest.`
+                          : 'No unequipped items to store.'
+                      );
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
-                      isSelected
-                        ? 'border-amber-400 bg-amber-950/40 text-white font-bold'
-                        : 'border-transparent text-stone-300 hover:bg-stone-800/50 hover:text-stone-100'
-                    }`}
+                    className="px-2.5 py-1 text-xs font-bold bg-amber-400 hover:bg-amber-300 text-stone-950 transition-colors cursor-pointer"
+                    title="Store all unequipped items in chest [Y]"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="truncate text-sm sm:text-base">{item.name}</span>
-                      {count > 1 && (
-                        <span className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-amber-200">
-                          ×{count}
-                        </span>
-                      )}
-                      {equipped && (
-                        <span className="text-[11px] font-semibold text-amber-300 shrink-0">
-                          {t('interactions.equipped_label')}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs font-mono-tabular text-amber-300 shrink-0">
-                      {inChestModal ? 'Store →' : t('interactions.sell_tag', { price: sellVal })}
-                    </span>
+                    Store All [Y]
                   </button>
-                );
-              })}
+                )}
+                <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
+                  {isShipwrightMarket
+                    ? `${allShips.filter((sh) => sh.spawned).length} / ${allShips.length}`
+                    : t('ui.items_count', { count: playerOwnedMarketItems.length })}
+                </span>
+              </div>
             </div>
+
+            {isShipwrightMarket ? (
+              <div
+                data-testid="shipwright-owned-fleet-list"
+                className="flex-1 overflow-y-auto space-y-2 pr-1"
+              >
+                {allShips.filter((sh) => sh.spawned).length === 0 ? (
+                  <div className="py-10 text-center text-xs text-stone-400">
+                    You do not own any active ships yet. Select a ship from the catalog on the right to commission it!
+                  </div>
+                ) : (
+                  allShips
+                    .filter((sh) => sh.spawned)
+                    .map((sh) => {
+                      const isSelected = inspectedShip?.tierId === sh.tierId;
+                      return (
+                        <button
+                          key={sh.id}
+                          type="button"
+                          data-testid={`owned-ship-item-${sh.tierId}`}
+                          onClick={() => {
+                            setSelectedShipTier(sh.tierId);
+                            setTradeFeedback(null);
+                          }}
+                          className={`w-full flex flex-col gap-1 px-3 py-2.5 text-left transition-colors cursor-pointer border-l-2 ${
+                            isSelected
+                              ? 'border-amber-400 bg-amber-950/40 text-white font-bold'
+                              : 'border-transparent text-stone-300 hover:bg-stone-800/50 hover:text-stone-100'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className="text-sm font-bold text-amber-200">{sh.name}</span>
+                            <span className="px-1.5 py-0.5 text-[10px] font-mono-tabular bg-emerald-950/80 border border-emerald-400/40 text-emerald-300">
+                              Owned · On Map [M]
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono-tabular text-stone-400">
+                            Position: ({Math.round(sh.x)}, {Math.round(sh.z)}) · Top Speed:{' '}
+                            {sh.sprintForwardSpeed} kt
+                          </span>
+                        </button>
+                      );
+                    })
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Category Filter for Player's Owned Items */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {(
+                    [
+                      ['all', t('ui.all_filter')],
+                      ['weapons', t('ui.weapons_filter')],
+                      ['clothing', t('ui.clothing_filter')],
+                      ['materials', t('ui.materials_filter')],
+                      ['food', t('ui.food_filter')],
+                    ] as const
+                  ).map(([catKey, label]) => (
+                    <button
+                      key={catKey}
+                      type="button"
+                      data-testid={`player-market-filter-${catKey}`}
+                      onClick={() => setPlayerMarketCat(catKey)}
+                      className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
+                        playerMarketCat === catKey
+                          ? 'bg-amber-400 text-stone-950'
+                          : 'bg-stone-800/70 text-stone-300 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  data-testid="market-player-owned-list"
+                  className="flex-1 overflow-y-auto space-y-1.5 pr-1"
+                >
+                  {playerOwnedMarketItems.map((item) => {
+                    const isSelected = inspectedItem?.id === item.id && tradeSide === 'player';
+                    const equipped = isItemEquipped(item.id);
+                    const sellVal = getMarketSellPrice(item);
+                    const count = getOwnedCount(item.id);
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-testid={`player-market-item-${item.id}`}
+                        onClick={() => {
+                          setTradeSide('player');
+                          onSelectItem(item.id);
+                          setTradeFeedback(null);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
+                          isSelected
+                            ? 'border-amber-400 bg-amber-950/40 text-white font-bold'
+                            : 'border-transparent text-stone-300 hover:bg-stone-800/50 hover:text-stone-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate text-sm sm:text-base">{item.name}</span>
+                          {count > 1 && (
+                            <span className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-amber-200">
+                              ×{count}
+                            </span>
+                          )}
+                          {equipped && (
+                            <span className="text-[11px] font-semibold text-amber-300 shrink-0">
+                              {t('interactions.equipped_label')}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-mono-tabular text-amber-300 shrink-0">
+                          {inChestModal ? 'Store →' : t('interactions.sell_tag', { price: sellVal })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           {/* PHYSICAL CENTER COLUMN (Center screen - Item inspection & buy/sell/take/store actions) */}
@@ -578,7 +672,134 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
               </div>
             )}
 
-            {inspectedItem ? (
+            {isShipwrightMarket && inspectedShip ? (
+              <div data-testid="shipwright-center-showcase" className="w-full flex flex-col items-center">
+                <div className="px-3 py-1 text-xs font-bold mb-3 border bg-sky-950/60 border-sky-400/50 text-sky-200">
+                  ⚓ Royal Galleon Shipyard · Harbor Shipwright
+                </div>
+
+                {/* Naval Ship Silhouette & Compass Artwork */}
+                <div className="relative w-36 h-36 flex items-center justify-center mb-3 bg-stone-900/80 border border-amber-500/35">
+                  <svg viewBox="0 0 96 96" className="w-28 h-28">
+                    <path
+                      d="M14 64 L82 64 L72 78 L24 78 Z"
+                      fill="#78350f"
+                      stroke="#fbbf24"
+                      strokeWidth="2"
+                    />
+                    <line x1="48" y1="16" x2="48" y2="64" stroke="#d97706" strokeWidth="3" />
+                    <path
+                      d="M48 18 Q68 32 64 54 L48 54 Z"
+                      fill="#fef3c7"
+                      stroke="#f59e0b"
+                      strokeWidth="1.5"
+                    />
+                    {inspectedShip.tierId !== 'sloop' && (
+                      <>
+                        <line x1="30" y1="24" x2="30" y2="64" stroke="#b45309" strokeWidth="2.5" />
+                        <path
+                          d="M30 26 Q43 36 41 54 L30 54 Z"
+                          fill="#fde68a"
+                          stroke="#d97706"
+                          strokeWidth="1.2"
+                        />
+                      </>
+                    )}
+                    <path
+                      d="M8 80 Q28 75 48 80 T88 80"
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth="2.5"
+                    />
+                  </svg>
+                </div>
+
+                <h2
+                  data-testid="inspected-ship-title"
+                  className="font-display-he text-xl sm:text-2xl font-bold text-white mb-2"
+                >
+                  {inspectedShip.name}
+                </h2>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-stone-300 mb-3">
+                  <span className="text-sky-300 font-semibold font-mono-tabular">
+                    Cruise Speed: {inspectedShip.maxForwardSpeed} kt
+                  </span>
+                  <span className="text-stone-600">·</span>
+                  <span className="text-amber-300 font-semibold font-mono-tabular">
+                    Full Sail Speed: {inspectedShip.sprintForwardSpeed} kt
+                  </span>
+                </div>
+
+                <p className="max-w-sm text-xs sm:text-sm text-stone-300/90 leading-relaxed mb-3">
+                  {inspectedShip.description}
+                </p>
+
+                <div className="mb-3 px-3 py-1.5 text-xs font-mono-tabular font-bold bg-stone-900/90 border border-stone-700 text-amber-300">
+                  {godMode
+                    ? `Price: Free (0 🪙 in God Mode)`
+                    : `Purchase Price: ${inspectedShip.priceGold} 🪙 Gold`}
+                </div>
+
+                {dockBlockingShip && !inspectedShip.spawned && (
+                  <div
+                    data-testid="shipwright-dock-occupied-warning"
+                    className="w-full mb-3 px-3 py-2 text-xs font-bold text-rose-200 bg-rose-950/75 border border-rose-500/50"
+                  >
+                    ⚠️ The Harbor Pier is currently occupied by {dockBlockingShip.name}! Sail it away from the dock before commissioning another ship.
+                  </div>
+                )}
+
+                {tradeFeedback && (
+                  <div
+                    data-testid="trade-feedback-banner"
+                    className="w-full mb-3 px-4 py-1.5 text-xs font-bold text-amber-200 bg-stone-900/95 border border-amber-400/50"
+                  >
+                    {tradeFeedback}
+                  </div>
+                )}
+
+                {inspectedShip.spawned ? (
+                  <div
+                    data-testid="shipwright-already-owned-badge"
+                    className="w-full py-2.5 px-4 text-xs font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-500/50"
+                  >
+                    ✓ Ship Owned · Moored at Harbor & Tracked on World Map [M]
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-testid="shipwright-buy-ship-btn"
+                    disabled={
+                      Boolean(dockBlockingShip) ||
+                      (!godMode && goldCoins < inspectedShip.priceGold)
+                    }
+                    onClick={() => {
+                      const res = onBuyShip?.(inspectedShip.tierId);
+                      if (res) {
+                        setTradeFeedback(res.message);
+                        setShipTick((n) => n + 1);
+                      }
+                    }}
+                    className={`w-full py-2.5 px-5 text-sm font-bold transition-colors ${
+                      dockBlockingShip
+                        ? 'bg-rose-950/80 text-rose-200 border border-rose-500/40 cursor-not-allowed'
+                        : !godMode && goldCoins < inspectedShip.priceGold
+                          ? 'bg-stone-800 text-stone-400 cursor-not-allowed'
+                          : 'bg-emerald-400 hover:bg-emerald-300 text-stone-950 cursor-pointer'
+                    }`}
+                  >
+                    {dockBlockingShip
+                      ? 'Harbor Pier Occupied — Clear Existing Ship First'
+                      : !godMode && goldCoins < inspectedShip.priceGold
+                        ? `Insufficient Gold (${inspectedShip.priceGold} 🪙)`
+                        : godMode
+                          ? `Commission & Launch at Pier (Free · God Mode) [${interactKeyLabel}]`
+                          : `Purchase & Launch at Pier (${inspectedShip.priceGold} 🪙) [${interactKeyLabel}]`}
+                  </button>
+                )}
+              </div>
+            ) : inspectedItem ? (
               <>
                 <div
                   className={`px-3 py-1 text-xs font-bold mb-3 border ${
@@ -716,10 +937,10 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                             className="w-full py-2 px-4 text-xs font-bold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 transition-colors cursor-pointer"
                           >
                             {inspectedItem.category === 'food'
-                              ? `Eat (${inspectedItem.name}) [${interactKeyLabel}]`
+                              ? `Eat (${inspectedItem.name}) [R]`
                               : inspectedEquipped
-                                ? t('interactions.equipped_now', { key: interactKeyLabel })
-                                : t('interactions.equip_action', { key: interactKeyLabel })}
+                                ? t('interactions.equipped_now', { key: 'R' })
+                                : t('interactions.equip_action', { key: 'R' })}
                           </button>
                         )}
                       </>
@@ -842,121 +1063,199 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-700/70">
               <div>
                 <h2 className="font-display-he text-xl font-bold text-emerald-300">
-                  {inChestModal
-                    ? nearbyChest?.name ?? "Hunter's Cabin Chest"
-                    : t('ui.merchant_goods_right')}
+                  {isShipwrightMarket
+                    ? 'Harbor Shipyard Catalog (4 Ship Classes)'
+                    : inChestModal
+                      ? nearbyChest?.name ?? "Hunter's Cabin Chest"
+                      : t('ui.merchant_goods_right')}
                 </h2>
                 <p className="text-xs text-stone-400">
-                  {inChestModal
-                    ? 'Select an item from the chest to take'
-                    : t('ui.merchant_goods_hint')}
+                  {isShipwrightMarket
+                    ? 'Max 1 ship owned per class · Appears at the Harbor Pier & World Map'
+                    : inChestModal
+                      ? 'Select an item from the chest to take'
+                      : t('ui.merchant_goods_hint')}
                 </p>
               </div>
-              <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
-                {t('ui.items_count', { count: rightColumnItems.length })}
-              </span>
+              <div className="flex items-center gap-2">
+                {inChestModal && nearbyChest && (
+                  <button
+                    type="button"
+                    data-testid="chest-take-all-btn"
+                    disabled={(nearbyChest.contents?.length ?? 0) === 0}
+                    onClick={() => {
+                      const takenCount = onTakeAllChestItems?.(nearbyChest.id) ?? 0;
+                      setTradeFeedback(
+                        takenCount > 0
+                          ? `Took ${takenCount} item${takenCount === 1 ? '' : 's'} from the chest.`
+                          : 'Chest is empty.'
+                      );
+                    }}
+                    className={`px-2.5 py-1 text-xs font-bold transition-colors ${
+                      (nearbyChest.contents?.length ?? 0) > 0
+                        ? 'bg-emerald-400 hover:bg-emerald-300 text-stone-950 cursor-pointer'
+                        : 'bg-stone-800 text-stone-500 cursor-not-allowed'
+                    }`}
+                    title="Take all items from chest [T]"
+                  >
+                    Take All [T]
+                  </button>
+                )}
+                <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
+                  {isShipwrightMarket
+                    ? `${allShips.length} Ships`
+                    : t('ui.items_count', { count: rightColumnItems.length })}
+                </span>
+              </div>
             </div>
 
-            {/* Category Filter for Merchant / Chest */}
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              {(
-                [
-                  ['all', t('ui.all_filter')],
-                  ['weapons', t('ui.weapons_filter')],
-                  ['clothing', t('ui.clothing_filter')],
-                  ['materials', t('ui.materials_filter')],
-                  ['food', t('ui.food_filter')],
-                ] as const
-              ).map(([catKey, label]) => (
-                <button
-                  key={catKey}
-                  type="button"
-                  data-testid={`merchant-market-filter-${catKey}`}
-                  onClick={() => setMerchantMarketCat(catKey)}
-                  className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
-                    merchantMarketCat === catKey
-                      ? 'bg-emerald-400 text-stone-950'
-                      : 'bg-stone-800/70 text-stone-300 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div
-              data-testid="market-merchant-catalog-list"
-              className="flex-1 overflow-y-auto space-y-1.5 pr-1"
-            >
-              {rightColumnItems.length === 0 ? (
-                <div className="py-10 text-center text-xs text-stone-400">
-                  {inChestModal ? 'Chest is empty.' : 'No items in this category.'}
-                </div>
-              ) : (
-                rightColumnItems.map((item) => {
-                  const isSelected = inspectedItem?.id === item.id && tradeSide === 'merchant';
-                  const owned = isItemOwned(item.id);
-                  const ownedCount = getOwnedCount(item.id);
-                  const chestCount = getChestCount(item.id);
-                  const merchantStockCount = getMerchantStockCount(item.id);
-                  const reqLvl = item.requiredLevel ?? 1;
-                  const locked = !inChestModal && !owned && overallHeroLevel < reqLvl;
-
+            {isShipwrightMarket ? (
+              <div
+                data-testid="shipwright-catalog-list"
+                className="flex-1 overflow-y-auto space-y-2 pr-1"
+              >
+                {allShips.map((sh) => {
+                  const isSelected = inspectedShip?.tierId === sh.tierId;
                   return (
                     <button
-                      key={item.id}
+                      key={sh.id}
                       type="button"
-                      data-testid={`merchant-market-item-${item.id}`}
+                      data-testid={`shipwright-ship-item-${sh.tierId}`}
                       onClick={() => {
-                        setTradeSide('merchant');
-                        onSelectItem(item.id);
+                        setSelectedShipTier(sh.tierId);
                         setTradeFeedback(null);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
+                      className={`w-full flex items-center justify-between px-3 py-3 text-left transition-colors cursor-pointer border-l-2 ${
                         isSelected
                           ? 'border-emerald-400 bg-emerald-950/40 text-white font-bold'
                           : 'border-transparent text-stone-300 hover:bg-stone-800/50 hover:text-stone-100'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate text-sm sm:text-base">{item.name}</span>
-                        {inChestModal && chestCount > 1 && (
-                          <span className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-emerald-200">
-                            ×{chestCount}
-                          </span>
-                        )}
-                        {!inChestModal && merchantStockCount > 0 && (
-                          <span
-                            data-testid={`merchant-stock-badge-${item.id}`}
-                            className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-emerald-200"
-                          >
-                            ×{merchantStockCount}
-                          </span>
-                        )}
-                        {!inChestModal && owned && (
-                          <span className="text-[11px] font-semibold text-amber-300/90 shrink-0">
-                            {ownedCount > 1
-                              ? `${t('interactions.owned_label')} ×${ownedCount}`
-                              : t('interactions.owned_label')}
-                          </span>
-                        )}
+                      <div className="flex flex-col items-start min-w-0">
+                        <span className="truncate text-sm sm:text-base font-bold">{sh.name}</span>
+                        <span className="text-[11px] text-stone-400 font-mono-tabular">
+                          Speed: {sh.maxForwardSpeed}–{sh.sprintForwardSpeed} kt
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-xs font-mono-tabular">
-                        {inChestModal ? (
-                          <span className="text-emerald-300">← Take</span>
-                        ) : locked ? (
-                          <span className="text-rose-400">
-                            {t('interactions.level_required_badge', { level: reqLvl })}
+                        {sh.spawned ? (
+                          <span className="px-2 py-0.5 bg-emerald-950/90 border border-emerald-400/40 text-emerald-300 font-bold">
+                            Owned
                           </span>
                         ) : (
-                          <span className="text-amber-300">{item.valueGold} 🪙</span>
+                          <span className="text-amber-300 font-bold">
+                            {godMode ? '0 🪙 (Free)' : `${sh.priceGold} 🪙`}
+                          </span>
                         )}
                       </div>
                     </button>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            ) : (
+              <>
+                {/* Category Filter for Merchant / Chest */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {(
+                    [
+                      ['all', t('ui.all_filter')],
+                      ['weapons', t('ui.weapons_filter')],
+                      ['clothing', t('ui.clothing_filter')],
+                      ['materials', t('ui.materials_filter')],
+                      ['food', t('ui.food_filter')],
+                    ] as const
+                  ).map(([catKey, label]) => (
+                    <button
+                      key={catKey}
+                      type="button"
+                      data-testid={`merchant-market-filter-${catKey}`}
+                      onClick={() => setMerchantMarketCat(catKey)}
+                      className={`px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
+                        merchantMarketCat === catKey
+                          ? 'bg-emerald-400 text-stone-950'
+                          : 'bg-stone-800/70 text-stone-300 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  data-testid="market-merchant-catalog-list"
+                  className="flex-1 overflow-y-auto space-y-1.5 pr-1"
+                >
+                  {rightColumnItems.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-stone-400">
+                      {inChestModal ? 'Chest is empty.' : 'No items in this category.'}
+                    </div>
+                  ) : (
+                    rightColumnItems.map((item) => {
+                      const isSelected = inspectedItem?.id === item.id && tradeSide === 'merchant';
+                      const owned = isItemOwned(item.id);
+                      const ownedCount = getOwnedCount(item.id);
+                      const chestCount = getChestCount(item.id);
+                      const merchantStockCount = getMerchantStockCount(item.id);
+                      const reqLvl = item.requiredLevel ?? 1;
+                      const locked = !inChestModal && !owned && overallHeroLevel < reqLvl;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          data-testid={`merchant-market-item-${item.id}`}
+                          onClick={() => {
+                            setTradeSide('merchant');
+                            onSelectItem(item.id);
+                            setTradeFeedback(null);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 ${
+                            isSelected
+                              ? 'border-emerald-400 bg-emerald-950/40 text-white font-bold'
+                              : 'border-transparent text-stone-300 hover:bg-stone-800/50 hover:text-stone-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="truncate text-sm sm:text-base">{item.name}</span>
+                            {inChestModal && chestCount > 1 && (
+                              <span className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-emerald-200">
+                                ×{chestCount}
+                              </span>
+                            )}
+                            {!inChestModal && merchantStockCount > 0 && (
+                              <span
+                                data-testid={`merchant-stock-badge-${item.id}`}
+                                className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-emerald-200"
+                              >
+                                ×{merchantStockCount}
+                              </span>
+                            )}
+                            {!inChestModal && owned && (
+                              <span className="text-[11px] font-semibold text-amber-300/90 shrink-0">
+                                {ownedCount > 1
+                                  ? `${t('interactions.owned_label')} ×${ownedCount}`
+                                  : t('interactions.owned_label')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 text-xs font-mono-tabular">
+                            {inChestModal ? (
+                              <span className="text-emerald-300">← Take</span>
+                            ) : locked ? (
+                              <span className="text-rose-400">
+                                {t('interactions.level_required_badge', { level: reqLvl })}
+                              </span>
+                            ) : (
+                              <span className="text-amber-300">{item.valueGold} 🪙</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       ) : (

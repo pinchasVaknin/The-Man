@@ -10,7 +10,10 @@
 // #region Imports & Dependencies
 import type { IPlayerState } from '../domain/worldTypes';
 import { PLAYER_EYE_HEIGHT } from '../domain/landmarks/coreLandmarks';
-import { getRoofHeightAt, walkableHeightAt } from './terrainAndBiomeSystem';
+import {
+  getRoofHeightAt,
+  walkableHeightAt,
+} from './terrainAndBiomeSystem';
 import { computeFirstPersonSwordAttackPose } from './swordAttackAnimationSystem';
 // #endregion
 
@@ -68,7 +71,11 @@ const FOV_EPSILON = 0.05;
 // #region Factories
 /** Summary: Creates the rig state at rest (no zoom, standing). */
 export function createCameraRigState(): ICameraRigState {
-  return { smoothAimZoom: 0, smoothRightClickZoom: 0, smoothCrouchOffset: 0 };
+  return {
+    smoothAimZoom: 0,
+    smoothRightClickZoom: 0,
+    smoothCrouchOffset: 0,
+  };
 }
 
 /** Summary: Creates a reusable pose object. */
@@ -90,9 +97,9 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
   const isMountedShip = player.mountedHorseId === 'sailable-ship';
   const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
-  const saddleHeightBonus = isMountedShip ? 0.0 : isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
+  const saddleHeightBonus = isMountedShip ? 1.28 : isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
   const horseYaw = isMountedOnHorse ? (player.mountedHorseYaw ?? player.yaw) : player.yaw;
-  const mountBackOffset = isMountedShip ? 3.6 : isMountedLion ? 0.28 : 0;
+  const mountBackOffset = isMountedShip ? 2.45 : isMountedLion ? 0.28 : 0;
   const mountBackOffsetX = Math.sin(horseYaw) * mountBackOffset;
   const mountBackOffsetZ = Math.cos(horseYaw) * mountBackOffset;
   const bobScale = isMountedOnHorse ? 0.022 : player.isSwimming ? 0.045 : 0.055;
@@ -164,6 +171,7 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
     combatYaw = swordPose.cameraImpulse.yawOffset;
     combatRoll = swordPose.cameraImpulse.rollOffset;
   }
+
   out.mode = 'euler';
   out.x = player.x + mountBackOffsetX;
   out.y = player.y + PLAYER_EYE_HEIGHT + saddleHeightBonus + rig.smoothCrouchOffset + bobY - landingDip;
@@ -209,11 +217,11 @@ function writeThirdPersonPose(
   const rightX = Math.cos(player.yaw);
   const rightZ = -Math.sin(player.yaw);
 
-  const baseDist = isMountedShip ? 11.2 : isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
-  const aimDist = isMountedShip ? 5.5 : isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
+  const baseDist = isMountedShip ? 12.8 : isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
+  const aimDist = isMountedShip ? 6.2 : isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
   const camDist = baseDist + (aimDist - baseDist) * zoom;
   const shoulderSide = 0.44 - 0.86 * zoom;
-  const shoulderUp = (isMountedShip ? 2.2 : 0.28) - 0.12 * zoom;
+  const shoulderUp = (isMountedShip ? 3.45 : 0.28) - 0.12 * zoom;
 
   let camX = pivotX - fwdX * camDist + rightX * shoulderSide;
   let camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;
