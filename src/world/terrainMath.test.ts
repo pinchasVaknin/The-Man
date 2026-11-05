@@ -1784,13 +1784,12 @@ test('fortressEconomyAndProgression_WhenTradingAtMarketStall_ShouldEnforceLevelG
   assert.equal(lockedBuy.reason, 'LEVEL_TOO_LOW');
   assert.equal(isInventoryItemOwned(player, 'elven_longbow'), false);
 
-  // Buying a Level 1 Market weapon ('katana_imperial', 220 gold) at the Harbor Market succeeds and equips it!
+  // Buying a Level 1 Market weapon ('katana_imperial', 220 gold) at the Harbor Market succeeds and adds it to inventory without auto-equipping
   const validBuy = buyMarketItem(player, 'katana_imperial');
   assert.equal(validBuy.ok, true, 'Expected Level 1 weapon purchase at Harbor Market to succeed');
   assert.equal(isInventoryItemOwned(player, 'katana_imperial'), true);
   assert.equal(player.goldCoins, 780);
-  assert.equal(player.equippedTool, 'sword');
-  assert.equal(player.activeWeaponId, 'katana_imperial');
+  assert.equal(player.equippedTool, 'bow');
 
   // Selling an owned material ('dwarven_gold_ore') at the Harbor Market adds gold and removes it from ownedItemIds
   const sellRes = sellMarketItem(player, 'dwarven_gold_ore');
@@ -2433,12 +2432,12 @@ test('survivalModeCabinSpawnStarterChestClothingAndShopFiltering_WhenEvaluated_S
 
   const chestLoot = lootWorldChest(survivalPlayer, nearChest!);
   assert.equal(chestLoot.alreadyOpened, false);
-  assert.deepEqual(chestLoot.addedItems, ['ranger_garb', 'sword']);
-  assert.equal(survivalPlayer.equippedClothingId, 'ranger_garb', 'Expected looting cabin chest to equip Ranger Garb');
-  assert.equal(survivalPlayer.equippedTool, 'sword', 'Expected looting cabin chest to equip Steel Sword');
-  assert.equal(survivalPlayer.activeWeaponId, 'sword');
+  assert.deepEqual(chestLoot.addedItems, ['ranger_garb', 'sword', 'woodcutter_axe']);
+  assert.equal(survivalPlayer.equippedClothingId, 'simple_tunic', 'Expected looting cabin chest not to auto-equip Ranger Garb');
+  assert.equal(survivalPlayer.equippedTool, 'unarmed', 'Expected looting cabin chest not to auto-equip Steel Sword');
   assert.ok(survivalPlayer.ownedItemIds?.includes('ranger_garb'));
   assert.ok(survivalPlayer.ownedItemIds?.includes('sword'));
+  assert.ok(survivalPlayer.ownedItemIds?.includes('woodcutter_axe'));
   assert.equal(
     findNearestWorldChest(survivalPlayer.x, survivalPlayer.y, survivalPlayer.z, survivalPlayer.openedChestIds),
     null,
@@ -2448,6 +2447,7 @@ test('survivalModeCabinSpawnStarterChestClothingAndShopFiltering_WhenEvaluated_S
   // 3) Clothing category items exist in catalog and can be equipped/swapped
   const clothingItems = INVENTORY_ITEMS.filter((item) => item.category === 'clothing');
   assert.ok(clothingItems.length >= 4, 'Expected at least 4 clothing items in catalog');
+  equipInventoryItem(survivalPlayer, 'ranger_garb');
   assert.equal(isInventoryItemEquipped(survivalPlayer, 'ranger_garb'), true);
   assert.equal(isInventoryItemEquipped(survivalPlayer, 'simple_tunic'), false);
   equipInventoryItem(survivalPlayer, 'simple_tunic');
@@ -2533,16 +2533,16 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
   const cabinChest = WORLD_CHESTS[0];
   const takeAllRes = takeAllFromWorldChest(chestPlayer, cabinChest);
   assert.equal(takeAllRes.ok, true);
-  assert.equal(takeAllRes.takenCount, 2);
+  assert.equal(takeAllRes.takenCount, 3);
   assert.equal(getChestContents(chestPlayer, cabinChest).length, 0);
-  // Equip ranger_garb and sword, leaving simple_tunic unequipped, plus add an unequipped apple
+  // Equip ranger_garb and sword, leaving simple_tunic and woodcutter_axe unequipped, plus add an unequipped apple
   chestPlayer.equippedClothingId = 'ranger_garb';
   chestPlayer.activeWeaponId = 'sword';
   chestPlayer.equippedTool = 'sword';
   chestPlayer.ownedItemIds?.push('red_orchard_apples');
   const storeAllRes = storeAllUnequippedInWorldChest(chestPlayer, cabinChest);
   assert.equal(storeAllRes.ok, true);
-  assert.equal(storeAllRes.storedCount, 2, 'Expected simple_tunic and red_orchard_apples to be stored while equipped items stay');
+  assert.equal(storeAllRes.storedCount, 3, 'Expected simple_tunic, woodcutter_axe, and red_orchard_apples to be stored while equipped items stay');
   assert.equal(chestPlayer.ownedItemIds?.includes('ranger_garb'), true);
   assert.equal(chestPlayer.ownedItemIds?.includes('sword'), true);
   assert.equal(chestPlayer.ownedItemIds?.includes('simple_tunic'), false);
@@ -2611,7 +2611,7 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
   resetLiveWorldToFreshBaseline('survival', chestPlayer, resetHorses, [], resetDoors);
   assert.equal(chestPlayer.goldCoins, 0);
   assert.equal(chestPlayer.ownedItemIds?.length, 2);
-  assert.equal(getChestContents(chestPlayer, cabinChest).length, 2, 'Resetting Survival mode restores starter chest contents');
+  assert.equal(getChestContents(chestPlayer, cabinChest).length, 3, 'Resetting Survival mode restores starter chest contents');
   assert.equal(getSpawnedSailableShips().length, 0);
   assert.equal(resetDoors.size, 0);
 

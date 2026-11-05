@@ -44,6 +44,13 @@ ICON_STRATEGIES.set('katana_imperial', swordIcon);
 ICON_STRATEGIES.set('dwarven_warhammer', swordIcon);
 ICON_STRATEGIES.set('celestial_jin_sword', swordIcon);
 
+const axeIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M14 4c3 1 5 4 5 7-3 1-6 0-8-2L5 19l-2-2 6-6c-2-2-3-5-2-8 3 0 5 1 7 1z" />
+  </svg>
+);
+ICON_STRATEGIES.set('woodcutter_axe', axeIcon);
+
 const torchIcon: IconRenderStrategy = (className) => (
   <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
     <path d="M12 2c2.5 2.5 3.5 5 2 8-1.5 2-4 2-4-1 0-2 1-4 2-7z" />
@@ -106,6 +113,14 @@ ARTWORK_STRATEGIES.set('sword', createSwordArtwork('#e2e8f0', '#c084fc'));
 ARTWORK_STRATEGIES.set('katana_imperial', createSwordArtwork('#f1f5f9', '#fb7185'));
 ARTWORK_STRATEGIES.set('dwarven_warhammer', createSwordArtwork('#fde68a', '#f59e0b'));
 ARTWORK_STRATEGIES.set('celestial_jin_sword', createSwordArtwork('#a5f3fc', '#38bdf8'));
+ARTWORK_STRATEGIES.set('woodcutter_axe', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f59e0b" fillOpacity="0.18" />
+    <line x1="36" y1="128" x2="116" y2="48" stroke="#92400e" strokeWidth="10" strokeLinecap="round" />
+    <path d="M90 36 C122 34, 138 58, 124 88 C106 82, 94 70, 84 56 Z" fill="#cbd5e1" stroke="#f8fafc" strokeWidth="3" />
+    <circle cx="104" cy="56" r="5" fill="#475569" />
+  </svg>
+));
 
 const createArrowArtwork = (col: string): ArtworkRenderStrategy => (sizeClass) => (
   <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>

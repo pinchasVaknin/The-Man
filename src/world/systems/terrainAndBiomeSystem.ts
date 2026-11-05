@@ -3009,5 +3009,163 @@ export function getNearbyWorldObstacles(
   return _nearbyObstaclesScratch;
 }
 
+const FLOWER_WATER_COMPASS_DIRS: ReadonlyArray< readonly [number, number] > = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+  [0.7071, 0.7071],
+  [-0.7071, 0.7071],
+  [0.7071, -0.7071],
+  [-0.7071, -0.7071],
+];
+
+/**
+ * Summary: Evaluates whether (x, z) is on dry land immediately bordering a freshwater lake,
+ *          waterfall pool, river bank, or oasis lagoon where waterside flowers (Cornflowers) grow.
+ */
+export function isNearWaterForFlowers(x: number, z: number): boolean {
+  if (getWaterSurfaceHeightAt(x, z) !== null) return false;
+  if (trailFactorAt(x, z) > 0.22) return false;
+  if (isInsideBearCave(x, z) !== null) return false;
+  if (
+    Math.abs(x - SOUTHERN_MINE_POS.x) < 12.0 &&
+    z > SOUTHERN_MINE_POS.entranceZ - 10.0 &&
+    z < SOUTHERN_MINE_POS.entranceZ + 22.0
+  ) {
+    return false;
+  }
+
+  // 1) Southwest Oasis Lagoon lush perimeter bank (1.03 <= lagNorm <= 1.48)
+  const lagNorm = Math.hypot(
+    (x - SOUTHWEST_OASIS_POS.lagoonX) / SOUTHWEST_OASIS_POS.lagoonRadiusX,
+    (z - SOUTHWEST_OASIS_POS.lagoonZ) / SOUTHWEST_OASIS_POS.lagoonRadiusZ
+  );
+  if (lagNorm >= 1.03 && lagNorm <= 1.48) {
+    const oH = groundHeightAt(x, z);
+    return oH >= SOUTHWEST_OASIS_POS.lagoonWaterY + 0.04 && oH <= SOUTHWEST_OASIS_POS.terraceY + 0.85;
+  }
+
+  // Exclude arid southwest desert outside the oasis lagoon perimeter
+  if (x < -38 && z > 38) return false;
+
+  // Exclude salty eastern ocean beaches
+  const coastX = easternCoastlineXAt(z);
+  if (x >= coastX - 10.0) return false;
+
+  const gy = groundHeightAt(x, z);
+  if (gy < WATER_LEVEL + 0.06 || gy > WATER_LEVEL + 1.45) {
+    return false;
+  }
+
+  // Must be within 1.8m..6.5m of actual water surface
+  for (let d = 0; d < FLOWER_WATER_COMPASS_DIRS.length; d++) {
+    const [dx, dz] = FLOWER_WATER_COMPASS_DIRS[d];
+    const nx1 = x + dx * 2.6;
+    const nz1 = z + dz * 2.6;
+    if (getWaterSurfaceHeightAt(nx1, nz1) !== null || groundHeightAt(nx1, nz1) <= WATER_LEVEL + 0.1) {
+      return true;
+    }
+    const nx2 = x + dx * 5.8;
+    const nz2 = z + dz * 5.8;
+    if (getWaterSurfaceHeightAt(nx2, nz2) !== null || groundHeightAt(nx2, nz2) <= WATER_LEVEL + 0.1) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export interface IWatersideFlowerPlacement {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly yaw: number;
+  readonly scale: number;
+}
+
+/**
+ * Summary: Generates deterministic waterside Cornflower placements exclusively along lakeshores,
+ *          waterfall pools, riverbanks, and the oasis lagoon edge.
+ */
+export function generateWatersideCornflowerPositions(
+  targetCount = 260
+): IWatersideFlowerPlacement[] {
+  const placements: IWatersideFlowerPlacement[] = [];
+
+  const tryAddCandidate = (cx: number, cz: number, seedA: number, seedB: number): void => {
+    if (placements.length >= targetCount) return;
+    if (!isNearWaterForFlowers(cx, cz)) return;
+    const cy = groundHeightAt(cx, cz);
+    placements.push({
+      x: cx,
+      y: cy - 0.02,
+      z: cz,
+      yaw: seedA * Math.PI * 2,
+      scale: 0.78 + seedB * 0.48,
+    });
+  };
+
+  // 1) Central Lake & Waterfall Pool shoreline rings
+  for (let i = 0; i < 420 && placements.length < targetCount; i++) {
+    const r1 = hash2D(i * 31 + 17, i * 67 + 13);
+    const r2 = hash2D(i * 83 + 29, i * 43 + 19);
+    const ang = r1 * Math.PI * 2;
+    const radius = 9.0 + r2 * 76.0;
+    const cx = WATERFALL_POOL_POS.x * 0.35 + Math.cos(ang) * radius;
+    const cz = WATERFALL_POOL_POS.z * 0.35 + Math.sin(ang) * radius;
+    tryAddCandidate(cx, cz, r1, r2);
+  }
+
+  // 2) Southern River & Crocodile River Bend banks
+  for (let w = 0; w < SOUTHERN_RIVER_WAYPOINTS.length - 1 && placements.length < targetCount; w++) {
+    const p0 = SOUTHERN_RIVER_WAYPOINTS[w];
+    const p1 = SOUTHERN_RIVER_WAYPOINTS[w + 1];
+    const segSamples = 36;
+    for (let s = 0; s < segSamples && placements.length < targetCount; s++) {
+      const idx = w * 100 + s;
+      const r1 = hash2D(idx * 19 + 5, idx * 47 + 11);
+      const r2 = hash2D(idx * 73 + 23, idx * 37 + 7);
+      const t = (s + r1 * 0.8) / segSamples;
+      const rx = p0.x + (p1.x - p0.x) * t;
+      const rz = p0.z + (p1.z - p0.z) * t;
+      const side = s % 2 === 0 ? 1 : -1;
+      const bankOffset = 10.5 + r2 * 4.6;
+      const segDx = p1.x - p0.x;
+      const segDz = p1.z - p0.z;
+      const segLen = Math.max(0.001, Math.hypot(segDx, segDz));
+      const perpX = -segDz / segLen;
+      const perpZ = segDx / segLen;
+      const cx = rx + perpX * side * bankOffset;
+      const cz = rz + perpZ * side * bankOffset;
+      tryAddCandidate(cx, cz, r1, r2);
+    }
+  }
+
+  // 3) Southwest Oasis Lagoon shore ring
+  for (let i = 0; i < 90 && placements.length < targetCount; i++) {
+    const r1 = hash2D(i * 59 + 3, i * 29 + 41);
+    const r2 = hash2D(i * 97 + 19, i * 61 + 7);
+    const ang = (i / 90) * Math.PI * 2 + (r1 - 0.5) * 0.12;
+    const normR = 1.06 + r2 * 0.34;
+    const cx = SOUTHWEST_OASIS_POS.lagoonX + Math.cos(ang) * SOUTHWEST_OASIS_POS.lagoonRadiusX * normR;
+    const cz = SOUTHWEST_OASIS_POS.lagoonZ + Math.sin(ang) * SOUTHWEST_OASIS_POS.lagoonRadiusZ * normR;
+    tryAddCandidate(cx, cz, r1, r2);
+  }
+
+  // 4) Additional valley lakeside/stream shoreline samples if needed
+  for (let i = 0; i < 600 && placements.length < targetCount; i++) {
+    const r1 = hash2D(i * 41 + 101, i * 89 + 53);
+    const r2 = hash2D(i * 67 + 211, i * 23 + 79);
+    const ang = r1 * Math.PI * 2;
+    const dist = 8.0 + Math.sqrt(r2) * 185.0;
+    const cx = Math.cos(ang) * dist;
+    const cz = Math.sin(ang) * dist;
+    tryAddCandidate(cx, cz, r1, r2);
+  }
+
+  return placements;
+}
+
 // #endregion
 

@@ -366,15 +366,90 @@ export function getAnimalSpeciesName(species: GroundAnimalSpecies): string {
  * Design: Item labels come from the item catalog strings, so the toast always names exactly
  *         the items the player receives.
  */
+const SINGLE_QUANTITY_HIDE_ITEMS: ReadonlySet<InventoryItemId> = new Set<InventoryItemId>([
+  'small_hide',
+  'deer_hide',
+  'sheep_hide',
+  'wolf_hide',
+  'jaguar_hide',
+  'crocodile_hide',
+  'bear_hide',
+  'rhino_hide',
+  'rhino_horn',
+]);
+
+/**
+ * Summary: Returns the quantity of a specific loot item dropped by a hunted animal.
+ * Hides/pelts drop 1 piece, while bones, meat, fangs, claws, teeth, and scales drop multiple pieces (2-4).
+ */
+export function getAnimalLootItemQuantity(
+  itemId: InventoryItemId,
+  species: GroundAnimalSpecies
+): number {
+  if (SINGLE_QUANTITY_HIDE_ITEMS.has(itemId)) {
+    return 1;
+  }
+  switch (itemId) {
+    case 'animal_bone':
+      return species === 'bear' || species === 'rhino'
+        ? 4
+        : species === 'deer' || species === 'crocodile' || species === 'stag'
+          ? 3
+          : 2;
+    case 'raw_game_meat':
+      return species === 'rabbit' || species === 'squirrel' || species === 'sheep' ? 2 : 3;
+    case 'deer_meat':
+      return 3;
+    case 'bear_meat':
+      return 4;
+    case 'dragon_meat':
+      return 4;
+    case 'wolf_fang':
+      return 2;
+    case 'bear_claws':
+      return 4;
+    case 'crocodile_teeth':
+      return 3;
+    case 'animal_fat':
+      return species === 'bear' ? 3 : 2;
+    case 'deer_antlers':
+      return 2;
+    case 'dragon_scales':
+      return 4;
+    case 'dragon_claws':
+      return 4;
+    case 'dragon_bone':
+      return 3;
+    case 'dragon_horn':
+      return 2;
+    default:
+      return 2;
+  }
+}
+
 export function getAnimalLootDrops(species: GroundAnimalSpecies): {
   readonly itemIds: readonly InventoryItemId[];
+  readonly itemQuantities: Readonly<Record<string, number>>;
+  readonly expandedItemIds: readonly InventoryItemId[];
   readonly itemLabels: readonly string[];
   readonly notification: string;
 } {
   const itemIds = SPECIES_PROFILES[species].loot;
-  const itemLabels = itemIds.map((itemId) => t(`items.${itemId}.name`));
+  const itemQuantities: Record<string, number> = {};
+  const expandedItemIds: InventoryItemId[] = [];
+  const itemLabels = itemIds.map((itemId) => {
+    const qty = getAnimalLootItemQuantity(itemId, species);
+    itemQuantities[itemId] = qty;
+    for (let q = 0; q < qty; q++) {
+      expandedItemIds.push(itemId);
+    }
+    const baseName = t(`items.${itemId}.name`);
+    return qty > 1 ? `${baseName} ×${qty}` : baseName;
+  });
   return {
     itemIds,
+    itemQuantities,
+    expandedItemIds,
     itemLabels,
     notification: t('wildlife.loot_toast', {
       species: getAnimalSpeciesName(species),
@@ -742,11 +817,9 @@ export function lootDeadAnimal(
   if (!playerState.ownedItemIds) {
     playerState.ownedItemIds = [];
   }
-  const allAddedItemIds: InventoryItemId[] = [...drops.itemIds];
-  for (const itemId of drops.itemIds) {
-    if (!playerState.ownedItemIds.includes(itemId)) {
-      playerState.ownedItemIds.push(itemId);
-    }
+  const allAddedItemIds: InventoryItemId[] = [...drops.expandedItemIds];
+  for (const itemId of drops.expandedItemIds) {
+    playerState.ownedItemIds.push(itemId);
   }
 
   let recoveredArrowCount = 0;

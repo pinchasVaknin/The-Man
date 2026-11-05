@@ -692,11 +692,11 @@ export function findNearestBed(
  * used when starting a new game in Survival mode.
  */
 export const SURVIVAL_CABIN_SPAWN = {
-  x: HUNTER_LODGE_POS.x + 0.2,
+  x: HUNTER_LODGE_POS.x + 1.75,
   y: HUNTER_LODGE_POS.height + 0.2,
-  z: HUNTER_LODGE_POS.z + 0.8,
-  yaw: -Math.PI * 0.5,
-  pitch: -0.08,
+  z: HUNTER_LODGE_POS.z + 1.15,
+  yaw: -2.356,
+  pitch: -0.12,
 } as const;
 
 /**
@@ -707,11 +707,11 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
   {
     id: 'chest-hunter-lodge',
     name: "Hunter's Cabin Chest",
-    x: HUNTER_LODGE_POS.x + 2.4,
+    x: HUNTER_LODGE_POS.x + 3.55,
     y: HUNTER_LODGE_POS.height + 0.2,
-    z: HUNTER_LODGE_POS.z + 0.8,
+    z: HUNTER_LODGE_POS.z + 2.95,
     interactRadius: 4.2,
-    contents: ['ranger_garb', 'sword'],
+    contents: ['ranger_garb', 'sword', 'woodcutter_axe'],
   },
 ] as const;
 

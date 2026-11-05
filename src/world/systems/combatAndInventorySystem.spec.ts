@@ -147,21 +147,25 @@ test('stepArrowsPhysics_WhenArrowShotUnderGalleonShipBowOverhang_ShouldNotHitEmp
   assert.equal(arrow.stuck, false, 'Arrow under ship bow overhang at y=1.2 should not hit invisible box');
 });
 
-test('buyMarketItem_WhenAtHarborMarketWithGoldAndEligibleLevel_ShouldSucceedAndEquipWeapon', () => {
+test('buyMarketItem_WhenAtHarborMarketWithGoldAndEligibleLevel_ShouldSucceedWithoutAutoEquipping', () => {
   // Arrange
   const player = createMarketEligiblePlayer();
   const initialGold = player.goldCoins ?? 1000;
+  assert.equal(player.equippedTool, 'bow');
 
   // Act
   const result = buyMarketItem(player, 'katana_imperial');
 
-  // Assert
+  // Assert: item is added to inventory without auto-equipping until the player equips it
   assert.equal(result.isSuccess, true);
   assert.equal(result.ok, true);
   assert.equal(player.ownedItemIds?.includes('katana_imperial'), true);
+  assert.equal(player.equippedTool, 'bow');
+  assert.equal(player.goldCoins, initialGold - 220);
+
+  equipInventoryItem(player, 'katana_imperial');
   assert.equal(player.activeWeaponId, 'katana_imperial');
   assert.equal(player.equippedTool, 'sword');
-  assert.equal(player.goldCoins, initialGold - 220);
 });
 
 test('sellMarketItem_WhenSellingOwnedMaterialAtMarket_ShouldIncreaseGoldAndRemoveItem', () => {
@@ -337,29 +341,32 @@ test('buyMarketItem_WhenBuyingStackableArrowsWithQuantity_ShouldMultiplyReducedU
   assert.equal(arrowCount, 7);
 });
 
-test('chestInventory_WhenTakingAndStoringItems_ShouldTransferBetweenChestAndPlayerAndUnequipStoredWeapon', () => {
+test('chestInventory_WhenTakingAndStoringItems_ShouldTransferWithoutAutoEquippingAndUnequipStoredWeapon', () => {
   // Arrange
   const player = createInitialPlayerState({ survivalMode: true });
   const chest = WORLD_CHESTS[0];
-  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'sword']);
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'sword', 'woodcutter_axe']);
   assert.equal(player.equippedTool, 'unarmed');
   assert.equal(player.equippedClothingId, 'simple_tunic');
 
-  // Act 1: Take sword from chest -> auto-equips since bare-handed
+  // Act 1: Take sword from chest -> adds to inventory without auto-equipping
   const takeSwordRes = takeItemFromWorldChest(player, chest, 'sword', 1);
   assert.equal(takeSwordRes.ok, true);
   assert.equal(player.ownedItemIds?.includes('sword'), true);
+  assert.equal(player.equippedTool, 'unarmed', 'Taking from chest must not auto-equip');
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'woodcutter_axe']);
+
+  // Equip sword explicitly, then store it back into chest -> unequips back to unarmed
+  equipInventoryItem(player, 'sword');
   assert.equal(player.equippedTool, 'sword');
   assert.equal(player.activeWeaponId, 'sword');
-  assert.deepEqual(getChestContents(player, chest), ['ranger_garb']);
 
-  // Act 2: Store sword back into chest -> unequips back to unarmed
   const storeSwordRes = storeItemInWorldChest(player, chest, 'sword', 1);
   assert.equal(storeSwordRes.ok, true);
   assert.equal(player.ownedItemIds?.includes('sword'), false);
   assert.equal(player.equippedTool, 'unarmed');
   assert.equal(player.activeWeaponId, 'unarmed');
-  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'sword']);
+  assert.deepEqual(getChestContents(player, chest), ['ranger_garb', 'woodcutter_axe', 'sword']);
 });
 
 test('survivalVitalsAndFood_WhenInSurvivalVsGodMode_ShouldDrainHungerRestoreOnEatAndLockInGodMode', () => {
@@ -544,6 +551,346 @@ test('breadSatisfactionAndRhinoDesertBiome_WhenChecked_ShouldSatisfyHungerAndKee
     'Expected animal attack damage to scale with species strength and level'
   );
 });
-// #endregion
 
+test('cancelBowDrawAndBowZoomStaminaAndGazeInteraction_WhenEvaluated_ShouldCancelDrawCancelZoomOnZeroStaminaAndPrioritizeGazeTarget', async () => {
+  const { cancelBowDraw } = await import('./combatAndInventorySystem');
+  const { stepPlayerPhysics, STAMINA_EXHAUSTION_RECOVERY_THRESHOLD } = await import('./playerPhysicsSystem');
+  const { resolveBestLookedAtInteraction, HUNTER_LODGE_POS, WORLD_CHESTS } = await import('../terrainMath');
+
+  // 1) cancelBowDraw ([R] key) cancels an active bow draw and resets draw progress to 0
+  const player = createInitialPlayerState();
+  player.bowDrawn = true;
+  player.bowDrawProgress = 0.85;
+  assert.equal(cancelBowDraw(player), true);
+  assert.equal(player.bowDrawn, false);
+  assert.equal(player.bowDrawProgress, 0);
+  assert.equal(cancelBowDraw(player), false);
+
+  // 2) Holding right-click bow zoom (bowZoomHeld) drains stamina down to 0 and cancels bowZoomHeld until recovery >= 24
+  player.bowZoomHeld = true;
+  player.bowDrawn = true;
+  player.bowDrawProgress = 0.9;
+  player.stamina = 4.0;
+  player.staminaExhausted = false;
+  for (let i = 0; i < 6; i++) {
+    stepPlayerPhysics(
+      player,
+      {
+        forward: 0,
+        right: 0,
+        sprint: false,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.08
+    );
+  }
+  assert.equal(player.staminaExhausted, true);
+  assert.equal(player.bowZoomHeld, false, 'Expected right-click bow zoom to cancel when stamina hits 0');
+
+  // While stamina < STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, staminaExhausted remains true
+  player.stamina = STAMINA_EXHAUSTION_RECOVERY_THRESHOLD - 5;
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.05
+  );
+  assert.equal(player.staminaExhausted, true);
+
+  // 3) Gaze interaction inside Hunter's Cabin: looking at the cabin door returns 'door' (never opens the corner chest),
+  //    and standing near the corner chest while looking at the chest returns 'chest'
+  const cabinDoorZ = HUNTER_LODGE_POS.z - 1.8;
+  const lookingAtDoor = resolveBestLookedAtInteraction(
+    HUNTER_LODGE_POS.x,
+    HUNTER_LODGE_POS.height + 0.2,
+    cabinDoorZ + 1.5,
+    0, // Looking toward -Z (straight at the cabin door)
+    0
+  );
+  assert.equal(lookingAtDoor.kind, 'door', 'Expected looking at cabin door to resolve to door, not chest');
+
+  const cabinChest = WORLD_CHESTS[0];
+  const lookingAtChest = resolveBestLookedAtInteraction(
+    cabinChest.x - 1.5,
+    cabinChest.y,
+    cabinChest.z - 1.5,
+    -2.356, // Looking toward (+X, +Z) straight at the corner chest
+    -0.1
+  );
+  assert.equal(lookingAtChest.kind, 'chest', 'Expected looking directly at corner chest from close range to resolve to chest');
+
+  const lookingAwayFromChest = resolveBestLookedAtInteraction(
+    cabinChest.x - 1.5,
+    cabinChest.y,
+    cabinChest.z - 1.5,
+    0.785, // Looking away (-X, -Z) from the corner chest
+    0
+  );
+  assert.notEqual(lookingAwayFromChest.kind, 'chest', 'Expected looking away from chest not to trigger chest interaction');
+});
+
+test('bowDrawNoStaminaDrainAndMountedStaminaIsolation_WhenEvaluated_ShouldKeepStaminaFullOnBowDrawAndDrainOnlyMountStaminaWhenRiding', async () => {
+  const { stepPlayerPhysics, createInitialRideableHorses } = await import('./playerPhysicsSystem');
+
+  // 1) Drawing an arrow (bowDrawn = true, bowZoomHeld = false) does NOT drain player stamina!
+  const player = createInitialPlayerState();
+  player.stamina = 100;
+  player.maxStamina = 100;
+  player.bowDrawn = true;
+  player.bowDrawProgress = 0.95;
+  player.bowZoomHeld = false;
+
+  for (let i = 0; i < 10; i++) {
+    stepPlayerPhysics(
+      player,
+      {
+        forward: 0,
+        right: 0,
+        sprint: false,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.05
+    );
+  }
+  assert.equal(
+    player.stamina,
+    100,
+    'Expected drawing an arrow without right-click zoom NOT to drain player stamina'
+  );
+
+  // 2) Holding right-click zoom (bowZoomHeld = true) DOES drain player stamina
+  player.bowZoomHeld = true;
+  stepPlayerPhysics(
+    player,
+    {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    },
+    [],
+    0.1
+  );
+  assert.ok(player.stamina < 100, 'Expected right-click bow zoom to drain stamina');
+
+  // 3) When riding a horse and sprinting, ONLY the mount's stamina drains while the player's own stamina does not drain (and regenerates)
+  const horses = createInitialRideableHorses();
+  const horse = horses[0];
+  player.mountedHorseId = horse.id;
+  player.x = horse.x;
+  player.y = horse.y;
+  player.z = horse.z;
+  player.bowDrawn = false;
+  player.bowZoomHeld = false;
+  player.stamina = 80;
+  horse.stamina = 100;
+  horse.maxStamina = 100;
+
+  for (let i = 0; i < 10; i++) {
+    stepPlayerPhysics(
+      player,
+      {
+        forward: 1,
+        right: 0,
+        sprint: true,
+        relaxed: false,
+        jumpPressed: false,
+        jumpHeld: false,
+        lookYawDelta: 0,
+        lookPitchDelta: 0,
+      },
+      [],
+      0.05,
+      undefined,
+      horses
+    );
+  }
+  assert.ok(
+    (horse.stamina ?? 100) < 100,
+    'Expected mounted horse stamina to drain when galloping/sprinting'
+  );
+  assert.equal(
+    player.mountStamina,
+    horse.stamina,
+    'Expected player.mountStamina to mirror the active horse stamina'
+  );
+  assert.ok(
+    player.stamina > 80,
+    `Expected player stamina NOT to drain (and to regenerate) while sprinting on a mount, got ${player.stamina}`
+  );
+});
+
+test('woodcutterAxeTreeFellingDamageAndHarvestPlusMultiQuantityAnimalLoot_WhenEvaluated_ShouldChopFallDamageHarvestMultipleTimberAndLootMultipleBones', async () => {
+  const {
+    resetTreeFellingSystem,
+    strikeTreeWithAxe,
+    stepTreeFellingSystem,
+    findNearestFallenTree,
+    harvestFallenTree,
+  } = await import('./treeFellingSystem');
+  const { getAnimalLootDrops, createInitialSmallAnimals, lootDeadAnimal } = await import(
+    './boidsAndWildlifeSystem'
+  );
+  const { WORLD_CHESTS } = await import('../terrainMath');
+  type IObstacle = import('../domain/worldTypes').IObstacle;
+
+  // 1) Starter cabin chest includes woodcutter_axe
+  assert.ok(
+    WORLD_CHESTS[0].contents.includes('woodcutter_axe'),
+    'Expected Hunter Cabin starter chest to include woodcutter_axe'
+  );
+
+  // 2) Chopping a pine tree with woodcutter_axe fells it, deals falling damage if player stands in its path, and [E] harvests multiple oak_timber pieces
+  const obstacles: IObstacle[] = [
+    { x: 10, z: 6, radius: 0.65, scale: 1.1, seed: 0.5, kind: 'pine' },
+  ];
+  resetTreeFellingSystem(obstacles);
+
+  const player = createInitialPlayerState({ survivalMode: true });
+  player.ownedItemIds = ['unarmed', 'simple_tunic', 'woodcutter_axe'];
+  equipInventoryItem(player, 'woodcutter_axe');
+  assert.equal(player.activeWeaponId, 'woodcutter_axe');
+  assert.equal(player.equippedTool, 'sword');
+
+  // Position player facing the pine tree at (10, 6) from (10, 8) looking toward -Z (yaw = 0)
+  player.x = 10;
+  player.z = 8;
+  player.yaw = 0;
+
+  const chop1 = strikeTreeWithAxe(player, obstacles, false);
+  assert.equal(chop1.hit, true);
+  assert.equal(chop1.felled, false);
+
+  const chop2 = strikeTreeWithAxe(player, obstacles, false);
+  assert.equal(chop2.hit, true);
+  assert.equal(chop2.felled, true);
+
+  // Keep player standing directly in the falling path of the tree (tree falls toward player at (10, 8))
+  player.x = 10;
+  player.z = 8.2;
+  player.hp = 100;
+
+  let damagedByFallingTree = false;
+  for (let s = 0; s < 50; s++) {
+    const stepRes = stepTreeFellingSystem(0.05, player, obstacles);
+    if (stepRes.playerDamaged) {
+      damagedByFallingTree = true;
+    }
+  }
+  assert.equal(damagedByFallingTree, true, 'Expected falling tree to damage player standing in its fall path');
+  assert.ok((player.hp ?? 100) < 100, 'Expected player HP to decrease after being hit by falling tree');
+
+  // Approach fallen tree and press [E] (harvestFallenTree) -> receive multiple oak_timber pieces (3..4)
+  const fallen = findNearestFallenTree(player.x, player.z, 5.0);
+  assert.ok(fallen, 'Expected fallen tree to be interactable nearby');
+  const timberBefore = (player.ownedItemIds ?? []).filter((id) => id === 'oak_timber').length;
+  const harvestRes = harvestFallenTree(player, fallen!, obstacles);
+  const timberAfter = (player.ownedItemIds ?? []).filter((id) => id === 'oak_timber').length;
+  assert.equal(harvestRes.ok, true);
+  assert.ok(
+    harvestRes.woodCount >= 3,
+    `Expected harvesting fallen tree to yield multiple wood pieces (>= 3), got ${harvestRes.woodCount}`
+  );
+  assert.equal(timberAfter - timberBefore, harvestRes.woodCount);
+
+  // 3) Animal loot drops: hides give 1 piece, while bones/meat/claws/fangs give multiple pieces (2..4)
+  const bearDrops = getAnimalLootDrops('bear');
+  const bearHideCount = bearDrops.expandedItemIds.filter((id) => id === 'bear_hide').length;
+  const bearBoneCount = bearDrops.expandedItemIds.filter((id) => id === 'animal_bone').length;
+  const bearMeatCount = bearDrops.expandedItemIds.filter((id) => id === 'bear_meat').length;
+  const bearClawCount = bearDrops.expandedItemIds.filter((id) => id === 'bear_claws').length;
+  assert.equal(bearHideCount, 1, 'Expected bear_hide to drop quantity 1');
+  assert.ok(bearBoneCount >= 2, 'Expected animal_bone to drop multiple pieces (>= 2)');
+  assert.ok(bearMeatCount >= 2, 'Expected bear_meat to drop multiple pieces (>= 2)');
+  assert.ok(bearClawCount >= 2, 'Expected bear_claws to drop multiple pieces (>= 2)');
+
+  const animals = createInitialSmallAnimals();
+  const deadDeer = animals.find((a) => a.species === 'deer')!;
+  deadDeer.isDead = true;
+  deadDeer.isLooted = false;
+  const lootRes = lootDeadAnimal(player, deadDeer, []);
+  const deerHidesAdded = lootRes.addedItems.filter((id) => id === 'deer_hide').length;
+  const deerBonesAdded = lootRes.addedItems.filter((id) => id === 'animal_bone').length;
+  const deerMeatAdded = lootRes.addedItems.filter((id) => id === 'deer_meat').length;
+  assert.equal(deerHidesAdded, 1, 'Expected looting deer to add 1 deer_hide');
+  assert.ok(deerBonesAdded >= 2, 'Expected looting deer to add multiple animal_bone items');
+  assert.ok(deerMeatAdded >= 2, 'Expected looting deer to add multiple deer_meat items');
+});
+
+test('plantWeatherAnimationsAndWatersideCornflowers_WhenEvaluated_ShouldMapWeatherClipsAndPlaceFlowersStrictlyNearWater', async () => {
+  const { resolvePlantAnimationStateForWeather } = await import('../models/vegetationModels');
+  const {
+    isNearWaterForFlowers,
+    generateWatersideCornflowerPositions,
+  } = await import('../terrainMath');
+
+  // 1) Weather state maps deterministically to built-in skeletal plant animations
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'dense_fog', windStrength: 0.2 }),
+    'sit'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'clear_clouds', windStrength: 0.3 }),
+    'idle'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'clear_clouds', windStrength: 0.52 }),
+    'walk'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'regional_rain', windStrength: 0.55 }),
+    'morph_wind'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'mountain_snow', windStrength: 0.6 }),
+    'lie'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'wind_sand', windStrength: 0.7 }),
+    'run'
+  );
+  assert.equal(
+    resolvePlantAnimationStateForWeather({ weatherKind: 'lightning_storm', windStrength: 0.9 }),
+    'flee'
+  );
+
+  // 2) Cornflower wildflowers are generated strictly near water (lake, waterfall pool, rivers, oasis lagoon)
+  const flowers = generateWatersideCornflowerPositions(120);
+  assert.ok(flowers.length >= 60, `Expected waterside flower generator to place >= 60 flowers, got ${flowers.length}`);
+  for (const f of flowers) {
+    assert.equal(
+      isNearWaterForFlowers(f.x, f.z),
+      true,
+      `Expected flower at (${f.x.toFixed(1)}, ${f.z.toFixed(1)}) to be strictly near water`
+    );
+  }
+
+  // Dry upland / mountain / desert locations must be rejected by isNearWaterForFlowers
+  assert.equal(isNearWaterForFlowers(-180, 180), false, 'Arid desert dunes far from oasis must not grow cornflowers');
+  assert.equal(isNearWaterForFlowers(0, -210), false, 'High northern fortress mountain must not grow cornflowers');
+});
+// #endregion
 

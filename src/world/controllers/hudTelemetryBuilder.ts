@@ -17,10 +17,12 @@ import type {
 } from '../domain/worldTypes';
 import {
   findLookedAtWatchtowerLadder,
+  findNearestFallenTree,
   findNearestMarketStall,
   findNearestWorldChest,
   getChestContents,
   getMerchantStallStock,
+  getTreeDisplayName,
   resolveBestLookedAtInteraction,
 } from '../terrainMath';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
@@ -102,6 +104,12 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     3.4,
     player.isFlying ? player.y : undefined
   );
+  const nearFallenTree = findNearestFallenTree(player.x, player.z, 4.4);
+  const resolvedLootNotification =
+    input.lootNotification ??
+    (player.lastLootNotification && player.lastLootNotification.timer > 0
+      ? player.lastLootNotification.text
+      : null);
   return {
     x: player.x,
     y: player.y,
@@ -146,8 +154,16 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           contents: [...getChestContents(player, nearChest)],
         }
       : null,
+    nearbyFallenTree: nearFallenTree
+      ? {
+          id: nearFallenTree.id,
+          kind: nearFallenTree.kind,
+          name: getTreeDisplayName(nearFallenTree.kind),
+          woodYield: nearFallenTree.woodYield,
+        }
+      : null,
     activeEnemyHealthBar: input.activeEnemyHealthBar ? { ...input.activeEnemyHealthBar } : null,
-    lootNotification: input.lootNotification,
+    lootNotification: resolvedLootNotification,
     swordSwingProgress: player.swordSwingProgress,
     dashCooldown: player.dashCooldown,
     bowDrawn: player.bowDrawn,
@@ -192,6 +208,9 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     stamina: player.stamina,
     maxStamina: player.maxStamina,
     staminaExhausted: Boolean(player.staminaExhausted),
+    mountStamina: player.mountStamina ?? 100,
+    mountMaxStamina: player.mountMaxStamina ?? 100,
+    mountStaminaExhausted: Boolean(player.mountStaminaExhausted),
     hp: player.hp ?? 100,
     maxHp: player.maxHp ?? 100,
     hunger: player.hunger ?? 100,

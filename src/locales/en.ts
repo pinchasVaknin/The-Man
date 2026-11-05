@@ -22,6 +22,14 @@ export const en = {
       "description": "Steel sword.",
       "lore": "Steel blade."
     },
+    "woodcutter_axe": {
+      "name": "Woodcutter's Axe",
+      "short": "Wood Axe",
+      "category": "Weapons",
+      "stat": "Damage 26 · Chops Trees",
+      "description": "Heavy steel-headed woodcutter's axe for felling forest timber and melee defense.",
+      "lore": "Forged for frontier lumberjacks to fell pines and oaks."
+    },
     "katana_imperial": {
       "name": "Katana",
       "short": "Katana",
@@ -798,6 +806,7 @@ export const en = {
     "season_label": "Season:",
     "stealth_badge": "Stealth · Quiet",
     "loot_prompt": "Loot ({species})",
+    "harvest_fallen_tree": "Harvest {name} (Oak Wood ×{count})",
     "open_chest": "Open Chest ({name})",
     "chest_empty": "Chest Opened",
     "sleep": "Sleep",

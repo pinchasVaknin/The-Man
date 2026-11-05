@@ -480,6 +480,9 @@ export function createInitialRideableHorses(): IRideableHorseState[] {
       yaw: def.homeYaw,
       speed: 0,
       gaitPhase: 0,
+      stamina: 100,
+      maxStamina: 100,
+      staminaExhausted: false,
     };
   });
 }
@@ -990,6 +993,11 @@ export function stepPlayerPhysics(
   const isMountedOnHorse = Boolean(state.mountedHorseId);
   const isMountedOnStag = Boolean(state.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedOnLion = Boolean(state.mountedHorseId?.startsWith('mount-lion-'));
+  const activeMountedEntity =
+    isMountedOnHorse && horses
+      ? (horses.find((h) => h.id === state.mountedHorseId) ?? null)
+      : null;
+
   const maxStamForSprint = state.maxStamina ?? 100;
   const curStamForSprint = state.stamina ?? maxStamForSprint;
   const recoveryGate = Math.min(STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, maxStamForSprint * 0.25);
@@ -998,7 +1006,22 @@ export function stepPlayerPhysics(
   } else if (state.staminaExhausted && curStamForSprint >= recoveryGate) {
     state.staminaExhausted = false;
   }
-  const canSprint = !state.staminaExhausted && curStamForSprint > 0.5;
+
+  const mountMaxStam = activeMountedEntity?.maxStamina ?? state.mountMaxStamina ?? 100;
+  let curMountStam = activeMountedEntity?.stamina ?? state.mountStamina ?? mountMaxStam;
+  let mountExhausted = Boolean(
+    activeMountedEntity?.staminaExhausted ?? state.mountStaminaExhausted
+  );
+  const mountRecoveryGate = Math.min(STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, mountMaxStam * 0.25);
+  if (curMountStam <= 0.5) {
+    mountExhausted = true;
+  } else if (mountExhausted && curMountStam >= mountRecoveryGate) {
+    mountExhausted = false;
+  }
+
+  const canSprint = isMountedOnHorse
+    ? !mountExhausted && curMountStam > 0.5
+    : !state.staminaExhausted && curStamForSprint > 0.5;
 
   let paceMultiplier = 1.0;
   if (input.relaxed && !input.sprint) {
@@ -1691,28 +1714,66 @@ export function stepPlayerPhysics(
   }
 
   // Stamina & RPG Skill Progression
-  // Strict Mount Stamina Hierarchy:
+  // Strict Mount Stamina Hierarchy (when mounted, sprinting drains ONLY the mount's stamina, never the player's!):
   // 1) Boss CatLion ('mount-lion-') has the MOST stamina (slowest drain: 4.2 / sec)
   // 2) Royal Stag ('mount-stag-') has MEDIUM stamina (drain: 9.5 / sec)
   // 3) Horse ('horse-') has the LEAST stamina (fastest drain: 16.5 / sec)
+  if (isMountedOnHorse) {
+    if (input.sprint && canSprint && horizSpeed > 1.2) {
+      const mountDrainRate = isMountedOnLion
+        ? 4.2
+        : isMountedOnStag
+          ? 9.5
+          : 16.5;
+      curMountStam = Math.max(0, curMountStam - mountDrainRate * dt);
+      if (curMountStam <= 0.5) {
+        curMountStam = 0;
+        mountExhausted = true;
+      }
+    } else {
+      const mountRegenRate = input.sprint && !mountExhausted ? 3.5 : 16.0;
+      curMountStam = Math.min(mountMaxStam, curMountStam + mountRegenRate * dt);
+      if (mountExhausted && curMountStam >= mountRecoveryGate) {
+        mountExhausted = false;
+      }
+    }
+    state.mountStamina = curMountStam;
+    state.mountMaxStamina = mountMaxStam;
+    state.mountStaminaExhausted = mountExhausted;
+    if (activeMountedEntity) {
+      activeMountedEntity.stamina = curMountStam;
+      activeMountedEntity.maxStamina = mountMaxStam;
+      activeMountedEntity.staminaExhausted = mountExhausted;
+    }
+  } else {
+    state.mountStamina = undefined;
+    state.mountMaxStamina = undefined;
+    state.mountStaminaExhausted = undefined;
+  }
+
+  // Player's own stamina: drains ONLY when sprinting on foot OR holding right-click bow zoom (`bowZoomHeld`).
+  // Drawing an arrow (`bowDrawn`) without holding right-click zoom does NOT drain stamina!
   const maxStam = state.maxStamina ?? 100;
   let curStam = state.stamina ?? maxStam;
-  if (input.sprint && canSprint && horizSpeed > 1.2) {
-    const drainRate = isMountedOnLion
-      ? 4.2
-      : isMountedOnStag
-        ? 9.5
-        : isMountedOnHorse
-          ? 16.5
-          : 11.5;
+  if (!isMountedOnHorse && input.sprint && canSprint && horizSpeed > 1.2) {
+    const drainRate = 11.5;
     curStam = Math.max(0, curStam - drainRate * dt);
     if (curStam <= 0.5) {
       curStam = 0;
       state.staminaExhausted = true;
     }
-  } else if (state.bowDrawn && (state.bowDrawProgress ?? 0) > 0.65) {
-    curStam = Math.max(5, curStam - 7.5 * dt);
+  } else if (!state.staminaExhausted && Boolean(state.bowZoomHeld)) {
+    const bowZoomDrainRate = 11.0;
+    curStam = Math.max(0, curStam - bowZoomDrainRate * dt);
+    if (curStam <= 0.5) {
+      curStam = 0;
+      state.staminaExhausted = true;
+      state.bowZoomHeld = false;
+    }
   } else {
+    if (state.staminaExhausted) {
+      state.bowZoomHeld = false;
+    }
     const inNordicHotSpring =
       Math.hypot(state.x - NORDIC_FROST_SHRINE_POS.x, state.z - NORDIC_FROST_SHRINE_POS.z) <=
       NORDIC_FROST_SHRINE_POS.poolRadius + 2.5;
@@ -1720,7 +1781,9 @@ export function stepPlayerPhysics(
       Math.hypot(state.x - DESERT_PYRAMID_SANCTUARY_POS.x, state.z - DESERT_PYRAMID_SANCTUARY_POS.z) <=
         6.5 && state.y >= DESERT_PYRAMID_SANCTUARY_POS.topY - 0.5;
     const sanctuaryBonusRegen = inNordicHotSpring || onSunPyramidAltar ? 28.0 : 0.0;
-    const regenRate = (input.sprint && !state.staminaExhausted ? 3.5 : 16.0) + sanctuaryBonusRegen;
+    const regenRate =
+      (!isMountedOnHorse && input.sprint && !state.staminaExhausted ? 3.5 : 16.0) +
+      sanctuaryBonusRegen;
     curStam = Math.min(maxStam, curStam + regenRate * dt);
     if (
       state.staminaExhausted &&
@@ -1799,6 +1862,15 @@ export function stepPlayerPhysics(
         if (h.speed > 0.001) {
           h.speed *= Math.exp(-8.0 * dt);
           if (h.speed < 0.01) h.speed = 0;
+        }
+        // Regenerate resting unmounted horse stamina
+        const hMaxStam = h.maxStamina ?? 100;
+        const hCurStam = h.stamina ?? hMaxStam;
+        if (hCurStam < hMaxStam) {
+          h.stamina = Math.min(hMaxStam, hCurStam + 16.0 * dt);
+          if (h.staminaExhausted && h.stamina >= Math.min(STAMINA_EXHAUSTION_RECOVERY_THRESHOLD, hMaxStam * 0.25)) {
+            h.staminaExhausted = false;
+          }
         }
       }
     }

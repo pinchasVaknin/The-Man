@@ -112,7 +112,12 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
   const targetAimZoom = player.bowDrawn ? 1.0 : 0.0;
   rig.smoothAimZoom += (targetAimZoom - rig.smoothAimZoom) * (1 - Math.exp(-10 * dt));
   const targetRightZoom =
-    !player.isSwimming && (player.equippedTool ?? 'bow') === 'bow' && Boolean(player.bowZoomHeld) ? 1.0 : 0.0;
+    !player.isSwimming &&
+    !player.staminaExhausted &&
+    (player.equippedTool ?? 'bow') === 'bow' &&
+    Boolean(player.bowZoomHeld)
+      ? 1.0
+      : 0.0;
   rig.smoothRightClickZoom += (targetRightZoom - rig.smoothRightClickZoom) * (1 - Math.exp(-12 * dt));
   const combinedThirdPersonZoom = Math.min(1.0, rig.smoothAimZoom * 0.7 + rig.smoothRightClickZoom * 0.8);
 

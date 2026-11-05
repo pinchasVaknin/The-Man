@@ -22,7 +22,7 @@ export type SwordAttackPhase =
  * Summary: Sword impact kind.
  * Design: Standard type implementing domain specifications and behavioral contracts.
  */
-export type SwordImpactKind = 'none' | 'target' | 'obstacle' | 'wall';
+export type SwordImpactKind = 'none' | 'target' | 'obstacle' | 'wall' | 'wood';
 
 /**
  * Summary: I vec3 tuple.

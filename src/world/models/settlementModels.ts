@@ -219,6 +219,23 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     return g;
   }
 
+  function createHangingLantern(x: number, y: number, z: number): THREE.Group {
+    const g = new THREE.Group();
+    g.position.set(x, y, z);
+    const chainGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.32, 6);
+    chainGeo.translate(0, -0.16, 0);
+    const capGeo = new THREE.ConeGeometry(0.17, 0.12, 6);
+    capGeo.translate(0, -0.34, 0);
+    const cageGeo = new THREE.CylinderGeometry(0.13, 0.1, 0.28, 6);
+    cageGeo.translate(0, -0.51, 0);
+    disposableGeometries.push(chainGeo, capGeo, cageGeo);
+
+    g.add(new THREE.Mesh(chainGeo, darkIronMat));
+    g.add(new THREE.Mesh(capGeo, darkIronMat));
+    g.add(new THREE.Mesh(cageGeo, warmLanternMat));
+    return g;
+  }
+
   // --- A. CENTRAL LAKESIDE TIMBER PIER & MOORED WOODEN ROWBOAT ---
   const pierGroup = new THREE.Group();
   pierGroup.position.set(-11.5, 0, 15.5);
@@ -799,11 +816,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   }
   hunterCompound.add(lodgeTableGroup);
 
-  // Starter Gear Chest at local (-2.4, 0.48, -0.8) -> world (-89.6, 2.35, 72.8)
+  // Starter Gear Chest tucked neatly into the cabin corner at local (-3.55, 0.48, -2.95) -> world (-88.45, 2.35, 74.95)
   const starterChestGroup = new THREE.Group();
   starterChestGroup.name = 'chest-hunter-lodge';
-  starterChestGroup.position.set(-2.4, 0.48, -0.8);
-  starterChestGroup.rotation.y = 0.35;
+  starterChestGroup.position.set(-3.55, 0.48, -2.95);
+  starterChestGroup.rotation.y = 0.0;
   const chestBase = new THREE.Mesh(lodgeChestBoxGeo, timberMat);
   chestBase.position.y = 0.34;
   chestBase.castShadow = !isSoftwareGl;
@@ -844,8 +861,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     depth: 0.34,
     bevelEnabled: false,
   });
-  lodgeGableGeo.rotateY(Math.PI / 2);
-  lodgeGableGeo.translate(-0.17, 0, 0);
+  lodgeGableGeo.rotateY(-Math.PI / 2);
+  lodgeGableGeo.translate(0.17, 0, 0);
 
   const roofBackGeo = new THREE.BoxGeometry(11.8, 0.24, 4.35);
   const roofFrontGeo = new THREE.BoxGeometry(11.8, 0.24, 5.95);
@@ -970,7 +987,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   trophyGroup.add(hornL, hornR);
   hunterCompound.add(trophyGroup);
 
-  hunterCompound.add(createLanternAssembly(-2.1, 0.48, 4.2, true));
+  hunterCompound.add(createHangingLantern(-1.45, 3.5, 4.1));
 
   // Water Trough with Enclosed Wooden Floor, Iron Straps, Hand Pump Handle, Pouring Water Stream, and Crystal-Clear Rippled Water
   const troughGroup = new THREE.Group();

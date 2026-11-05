@@ -243,6 +243,16 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     setUiTick((t) => t + 1);
   };
 
+  const closeSkyrimModal = () => {
+    document.body.dataset.skyrimModalOpen = 'false';
+    if (selectedCategory === 'chest' || telemetry.nearbyChest) {
+      gameActions?.onCloseChest?.(telemetry.nearbyChest?.id ?? 'chest-hunter-lodge');
+    }
+    setSkyrimModal('none');
+    window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
+    gameActions?.onResumeGameControl?.();
+  };
+
   const prevSkyrimModalRef = useRef(skyrimModal);
   // Sync body dataset flag so WorldCanvas knows when Radial Inventory [Tab] or Favorites [Q] is open
   useEffect(() => {
@@ -302,15 +312,22 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState !== 'playing') return;
 
+      if (e.code === 'Escape' && skyrimModal !== 'none') {
+        e.preventDefault();
+        closeSkyrimModal();
+        return;
+      }
+
       if (e.code === kb.inventoryModal) {
         e.preventDefault();
-        setSkyrimModal((prev) => {
-          if (prev === 'inventory') return 'none';
+        if (skyrimModal === 'inventory') {
+          closeSkyrimModal();
+        } else {
           if (selectedCategory === 'chest' || selectedCategory === 'market') {
             setSelectedCategory('all');
           }
-          return 'inventory';
-        });
+          setSkyrimModal('inventory');
+        }
         return;
       }
 
@@ -320,6 +337,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         !e.repeat &&
         telemetry.nearbyChest &&
         !telemetry.nearbyDeadAnimal &&
+        !telemetry.nearbyFallenTree &&
         !telemetry.nearbyDoor &&
         !telemetry.nearbyBed
       ) {
@@ -337,7 +355,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         if (!telemetry.nearbyMarket) return;
         e.preventDefault();
         if (skyrimModal === 'inventory' && selectedCategory === 'market') {
-          setSkyrimModal('none');
+          closeSkyrimModal();
         } else {
           setSelectedCategory('market');
           setSelectedItemId(FIRST_MARKET_CATALOG_ITEM.id);
@@ -348,7 +366,11 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
       if (e.code === kb.favoritesModal && !e.repeat) {
         e.preventDefault();
-        setSkyrimModal((prev) => (prev === 'favorites' ? 'none' : 'favorites'));
+        if (skyrimModal === 'favorites') {
+          closeSkyrimModal();
+        } else {
+          setSkyrimModal('favorites');
+        }
         return;
       }
 
@@ -969,7 +991,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           godMode={gameSettings.godMode !== false}
           onToggleFavorite={triggerToggleFavorite}
           onAssignHotbar={triggerAssignHotbar}
-          onClose={() => setSkyrimModal('none')}
+          onClose={closeSkyrimModal}
           closeKeyLabel={formatKeyCodeLabel(kb.inventoryModal)}
           interactKeyLabel={formatKeyCodeLabel(kb.interactDoor)}
           nearbyMarket={telemetry.nearbyMarket}
@@ -997,7 +1019,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
           className="fixed inset-0 z-30 flex items-center justify-start p-6 md:p-12 pointer-events-auto"
           style={{ backgroundColor: 'rgba(8, 7, 6, 0.45)' }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setSkyrimModal('none');
+            if (e.target === e.currentTarget) closeSkyrimModal();
           }}
         >
           <div
@@ -1019,7 +1041,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
               <button
                 type="button"
-                onClick={() => setSkyrimModal('none')}
+                onClick={closeSkyrimModal}
                 className="text-xs text-stone-400 hover:text-white cursor-pointer"
               >
                 {t('ui.close_favorites', { key: formatKeyCodeLabel(kb.favoritesModal) })}
@@ -1043,7 +1065,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                       onClick={() => {
                         setSelectedItemId(item.id);
                         triggerEquipItem(item.id);
-                        setSkyrimModal('none');
+                        closeSkyrimModal();
                       }}
                       className={`p-2.5 rounded-xl flex items-center justify-between gap-2 transition-colors cursor-pointer ${
                         equipped
@@ -1292,7 +1314,28 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
-            {telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && (
+            {telemetry.nearbyFallenTree && !telemetry.nearbyDeadAnimal && (
+              <div
+                data-testid="harvest-tree-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(22, 18, 11, 0.94)',
+                  border: '1px solid rgba(251, 191, 36, 0.75)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold text-xs text-amber-100">
+                  {t('hud.harvest_fallen_tree', {
+                    name: telemetry.nearbyFallenTree.name,
+                    count: telemetry.nearbyFallenTree.woodYield,
+                  })}
+                </span>
+              </div>
+            )}
+
+            {telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && !telemetry.nearbyFallenTree && (
               <div
                 data-testid="open-chest-prompt"
                 className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
@@ -1504,34 +1547,51 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             className="fixed left-1/2 bottom-4 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
             aria-hidden="true"
           >
-            {/* Stamina Bar (shows when sprinting, drawing bow, or attacking) */}
-            {telemetry.stamina !== undefined &&
-              telemetry.maxStamina !== undefined &&
-              telemetry.stamina < telemetry.maxStamina - 0.5 && (
+            {/* Stamina Bar (shows player stamina on foot, or mount stamina when riding) */}
+            {(() => {
+              const isMountedView = Boolean(telemetry.mountedHorseId);
+              const curStamina = isMountedView
+                ? (telemetry.mountStamina ?? telemetry.stamina)
+                : telemetry.stamina;
+              const curMaxStamina = isMountedView
+                ? (telemetry.mountMaxStamina ?? telemetry.maxStamina)
+                : telemetry.maxStamina;
+              const curExhausted = isMountedView
+                ? Boolean(telemetry.mountStaminaExhausted)
+                : Boolean(telemetry.staminaExhausted);
+              if (
+                curStamina === undefined ||
+                curMaxStamina === undefined ||
+                curStamina >= curMaxStamina - 0.5
+              ) {
+                return null;
+              }
+              return (
                 <div
                   data-testid="hud-stamina-bar"
                   className="w-52 h-2 rounded-full overflow-hidden shadow-lg"
                   style={{
                     backgroundColor: 'rgba(12, 10, 9, 0.85)',
-                    border: telemetry.staminaExhausted
+                    border: curExhausted
                       ? '1px solid rgba(245, 158, 11, 0.75)'
                       : '1px solid rgba(52, 211, 153, 0.45)',
                   }}
                 >
                   <div
                     className={`h-full transition-all duration-100 ${
-                      telemetry.staminaExhausted ? 'animate-pulse' : ''
+                      curExhausted ? 'animate-pulse' : ''
                     }`}
                     style={{
                       width: `${Math.max(
                         0,
-                        Math.min(100, (telemetry.stamina / telemetry.maxStamina) * 100)
+                        Math.min(100, (curStamina / Math.max(1, curMaxStamina)) * 100)
                       )}%`,
-                      backgroundColor: telemetry.staminaExhausted ? '#f59e0b' : '#10b981',
+                      backgroundColor: curExhausted ? '#f59e0b' : '#10b981',
                     }}
                   />
                 </div>
-              )}
+              );
+            })()}
 
             {/* Health & Hunger Row */}
             <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-stone-950/85 border border-stone-800/80 shadow-xl">

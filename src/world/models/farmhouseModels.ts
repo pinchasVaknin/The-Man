@@ -238,46 +238,43 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   function createLanternAssembly(x: number, y: number, z: number, _addLight = false): THREE.Group {
     const g = new THREE.Group();
     g.position.set(x, y, z);
-    const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.45, 8);
-    postGeo.translate(0, 0.72, 0);
-    const armGeo = new THREE.BoxGeometry(0.38, 0.06, 0.06);
-    armGeo.translate(0.14, 1.42, 0);
-    const cageGeo = new THREE.CylinderGeometry(0.13, 0.1, 0.28, 6);
-    cageGeo.translate(0.28, 1.24, 0);
+    const chainGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6);
+    chainGeo.translate(0, -0.15, 0);
     const capGeo = new THREE.ConeGeometry(0.17, 0.12, 6);
-    capGeo.translate(0.28, 1.41, 0);
-    disposableGeometries.push(postGeo, armGeo, cageGeo, capGeo);
-    g.add(new THREE.Mesh(postGeo, timberMat));
-    g.add(new THREE.Mesh(armGeo, darkIronMat));
-    g.add(new THREE.Mesh(cageGeo, warmLanternMat));
+    capGeo.translate(0, -0.32, 0);
+    const cageGeo = new THREE.CylinderGeometry(0.13, 0.1, 0.28, 6);
+    cageGeo.translate(0, -0.49, 0);
+    disposableGeometries.push(chainGeo, capGeo, cageGeo);
+    g.add(new THREE.Mesh(chainGeo, darkIronMat));
     g.add(new THREE.Mesh(capGeo, darkIronMat));
+    g.add(new THREE.Mesh(cageGeo, warmLanternMat));
     return g;
   }
 
   // --- 1) 3 VALLEY FARMHOUSES & WHEAT FIELDS ---
   const farmWallBackGeo = new THREE.BoxGeometry(10.0, 3.4, 0.42);
   const farmWallSideGeo = new THREE.BoxGeometry(0.42, 3.4, 8.6);
-  // Exact triangular prism gable wall matching the ±0.402 rad pitch of fRoofBack and fRoofFront (never pokes through roof!)
+  // Symmetric triangular prism gable wall matching the main house walls (z = -6.18 .. +2.23, peak at z = -1.975, y = 5.56)
   const farmGableShape = new THREE.Shape();
-  farmGableShape.moveTo(-6.15, 3.54);
-  farmGableShape.lineTo(-1.4, 5.62);
-  farmGableShape.lineTo(2.2, 4.05);
-  farmGableShape.lineTo(2.2, 3.54);
+  farmGableShape.moveTo(-6.18, 3.52);
+  farmGableShape.lineTo(-1.975, 5.56);
+  farmGableShape.lineTo(2.23, 3.52);
   farmGableShape.closePath();
   const farmWallSideGableGeo = new THREE.ExtrudeGeometry(farmGableShape, {
     depth: 0.42,
     bevelEnabled: false,
   });
-  farmWallSideGableGeo.rotateY(Math.PI / 2);
-  farmWallSideGableGeo.translate(-0.21, 0, 0);
+  farmWallSideGableGeo.rotateY(-Math.PI / 2);
+  farmWallSideGableGeo.translate(0.21, 0, 0);
 
   const farmWallFrontFlankGeo = new THREE.BoxGeometry(4.0, 3.4, 0.42);
   const farmWallFrontHeaderGeo = new THREE.BoxGeometry(2.1, 1.05, 0.42);
-  const farmWallFrontTopPlateGeo = new THREE.BoxGeometry(10.0, 0.48, 0.42);
+  const farmWallFrontTopPlateGeo = new THREE.BoxGeometry(10.3, 0.24, 0.46);
   const farmFloorGeo = new THREE.BoxGeometry(10.4, 0.18, 10.6);
-  const farmRoofBackSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 5.8);
-  const farmRoofFrontSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 6.55);
-  const farmRidgeCapGeo = new THREE.BoxGeometry(11.3, 0.22, 0.34);
+  const farmRoofBackSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 5.25);
+  const farmRoofFrontSlopeGeo = new THREE.BoxGeometry(11.2, 0.24, 5.25);
+  const farmPorchRoofSlopeGeo = new THREE.BoxGeometry(10.8, 0.2, 2.38);
+  const farmRidgeCapGeo = new THREE.BoxGeometry(11.3, 0.24, 0.36);
   const farmVerandaHeaderGeo = new THREE.BoxGeometry(10.4, 0.22, 0.28);
   const farmPorchTieBeamGeo = new THREE.BoxGeometry(0.24, 0.22, 2.1);
   const plowedSoilFurrowGeo = new THREE.BoxGeometry(11.6, 0.08, 15.6);
@@ -302,6 +299,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     farmFloorGeo,
     farmRoofBackSlopeGeo,
     farmRoofFrontSlopeGeo,
+    farmPorchRoofSlopeGeo,
     farmRidgeCapGeo,
     farmVerandaHeaderGeo,
     farmPorchTieBeamGeo,
@@ -701,7 +699,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     const frontHeader = new THREE.Mesh(farmWallFrontHeaderGeo, timberMat);
     frontHeader.position.set(0, 3.06, 2.2);
     const frontTopPlate = new THREE.Mesh(farmWallFrontTopPlateGeo, timberMat);
-    frontTopPlate.position.set(0, 3.82, 2.2);
+    frontTopPlate.position.set(0, 3.52, 2.2);
     const westGable = new THREE.Mesh(farmWallSideGableGeo, timberMat);
     westGable.position.set(-4.95, 0, 0);
     westGable.castShadow = !isSoftwareGl;
@@ -735,20 +733,24 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       currentAngle: 0,
     });
 
-    // Connected Farmhouse Roof Slopes (pitch = ±0.402 rad meeting at ridge z = -1.40, y = 5.66) + Ridge Cap + Veranda Header Beam
+    // Connected Farmhouse Main Gable Roof (centered on house walls z = -6.15 .. +2.20, ridge at z = -1.975, y = 5.58) + Front Veranda Porch Roof
     const fRoofBack = new THREE.Mesh(farmRoofBackSlopeGeo, barkMat);
-    fRoofBack.position.set(0, 4.55, -4.02);
-    fRoofBack.rotation.x = -0.402;
+    fRoofBack.position.set(0, 4.46, -4.31);
+    fRoofBack.rotation.x = -0.447;
     fRoofBack.castShadow = !isSoftwareGl;
     const fRoofFront = new THREE.Mesh(farmRoofFrontSlopeGeo, barkMat);
-    fRoofFront.position.set(0, 4.4, 1.58);
-    fRoofFront.rotation.x = 0.402;
+    fRoofFront.position.set(0, 4.46, 0.36);
+    fRoofFront.rotation.x = 0.447;
     fRoofFront.castShadow = !isSoftwareGl;
+    const fPorchRoof = new THREE.Mesh(farmPorchRoofSlopeGeo, barkMat);
+    fPorchRoof.position.set(0, 3.34, 3.3);
+    fPorchRoof.rotation.x = 0.155;
+    fPorchRoof.castShadow = !isSoftwareGl;
     const fRidgeCap = new THREE.Mesh(farmRidgeCapGeo, barkMat);
-    fRidgeCap.position.set(0, 5.72, -1.4);
+    fRidgeCap.position.set(0, 5.64, -1.975);
     const fVerandaHeader = new THREE.Mesh(farmVerandaHeaderGeo, timberMat);
     fVerandaHeader.position.set(0, 3.2, 4.1);
-    farmGroup.add(fRoofBack, fRoofFront, fRidgeCap, fVerandaHeader);
+    farmGroup.add(fRoofBack, fRoofFront, fPorchRoof, fRidgeCap, fVerandaHeader);
 
     for (const sx of [-4.8, 4.8]) {
       const tieBeam = new THREE.Mesh(farmPorchTieBeamGeo, timberMat);
@@ -761,7 +763,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       col.position.set(vx, 0, 4.1);
       farmGroup.add(col);
     }
-    farmGroup.add(createLanternAssembly(-1.9, 0.18, 4.15, false));
+    farmGroup.add(createLanternAssembly(-1.35, 3.1, 4.1, false));
 
     const farmInteriorKinds: HouseInteriorKind[] = ['farm_bakery', 'farm_dairy', 'farm_weaver'];
     const farmFurniture = createInteriorFurnitureSet(farmInteriorKinds[f % farmInteriorKinds.length]);
@@ -888,8 +890,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     gBeam.position.set(0, 3.45, fHalfD);
     farmGroup.add(
       gBeam,
-      createLanternAssembly(-fGateHalfW + 0.15, 1.85, fHalfD + 0.25, false),
-      createLanternAssembly(fGateHalfW - 0.65, 1.85, fHalfD + 0.25, false)
+      createLanternAssembly(-fGateHalfW + 0.55, 3.32, fHalfD, false),
+      createLanternAssembly(fGateHalfW - 0.55, 3.32, fHalfD, false)
     );
 
     scene.add(farmGroup);
