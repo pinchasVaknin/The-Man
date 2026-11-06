@@ -892,5 +892,139 @@ test('plantWeatherAnimationsAndWatersideCornflowers_WhenEvaluated_ShouldMapWeath
   assert.equal(isNearWaterForFlowers(-180, 180), false, 'Arid desert dunes far from oasis must not grow cornflowers');
   assert.equal(isNearWaterForFlowers(0, -210), false, 'High northern fortress mountain must not grow cornflowers');
 });
+
+test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterAllTenPlantSpeciesAndAnimateHitAndFell', async () => {
+  const THREE = await import('three');
+  const {
+    buildVegetationModels,
+    getRegisteredFloraSpeciesKeys,
+    updateChoppableTreesVisuals,
+  } = await import('../models/vegetationModels');
+  const {
+    FloraModel,
+    unpackFloraBundle,
+    ANIMTREE_PACK_B64,
+  } = await import('../models/plants/AnimTree_Complete');
+
+  // 1) Verify FloraModel custom standing wind sway, hitTree(), and fellTree() wood-cut ring animation
+  const submeshes = unpackFloraBundle(ANIMTREE_PACK_B64);
+  const model = new FloraModel('animtree', submeshes, {}, 1.0);
+  const cutRingIdx = submeshes.findIndex((s) => s.matId === 7);
+  assert.ok(cutRingIdx >= 0, 'Expected tree bundle to include matId === 7 wood-cut ring submesh');
+  assert.equal(model.meshes[cutRingIdx].visible, false, 'Cut ring must be hidden while standing');
+
+  model.hitTree();
+  assert.equal(model.chopState, 'hit');
+  model.update(0.1);
+  assert.equal(model.chopState, 'hit');
+
+  model.fellTree();
+  assert.equal(model.chopState, 'falling');
+  model.update(0.05);
+  assert.equal(model.meshes[cutRingIdx].visible, true, 'Cut ring must become visible when felled');
+  for (let step = 0; step < 40; step++) {
+    model.update(0.05);
+  }
+  assert.equal(model.chopState, 'fallen');
+  assert.ok(model.chopTime > 1.88, 'Expected fallen tree chopTime to complete fall + bounce');
+
+  // 2) Verify buildVegetationModels registers all 10 new plant species from world/models/plants
+  const dummyTex = new THREE.CanvasTexture(null as unknown as HTMLCanvasElement);
+  const scene = new THREE.Scene();
+  buildVegetationModels({
+    scene,
+    textures: {
+      terrainAlbedo: dummyTex,
+      terrainBump: dummyTex,
+      barkAlbedo: dummyTex,
+      barkBump: dummyTex,
+      timberAlbedo: dummyTex,
+      rockAlbedo: dummyTex,
+      rockBump: dummyTex,
+      foliageBump: dummyTex,
+      contactShadow: dummyTex,
+      dispose: () => {},
+    },
+    obstacles: [
+      { x: 12, z: 12, radius: 0.5, scale: 1.0, seed: 0.2, kind: 'pine' },
+      { x: 16, z: 12, radius: 0.6, scale: 1.0, seed: 0.3, kind: 'oak' },
+      { x: 20, z: 12, radius: 0.6, scale: 1.0, seed: 0.4, kind: 'oak' },
+      { x: 24, z: 12, radius: 0.6, scale: 1.0, seed: 0.5, kind: 'oak' },
+      { x: 28, z: 12, radius: 0.6, scale: 1.0, seed: 0.6, kind: 'oak' },
+      { x: 32, z: 12, radius: 0.5, scale: 1.0, seed: 0.7, kind: 'birch' },
+    ],
+    isSoftwareGl: true,
+    disposableGeometries: [],
+    disposableMaterials: [],
+    disposableTextures: [],
+    swayMaterials: [],
+    animatedWaterMaterials: [],
+    lanternLights: [],
+    mistMaterials: [],
+    distanceCulledObjects: [],
+    doorPivotHandles: [],
+    logger: {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    },
+  });
+
+  const { getFloraLodAndShaderStats } = await import('../models/vegetationModels');
+  const registeredKeys = getRegisteredFloraSpeciesKeys();
+  assert.deepEqual(
+    registeredKeys,
+    [
+      'pinetree',
+      'oakgreen',
+      'oakyellow',
+      'animtree',
+      'animtree_wide',
+      'animtree_compact',
+      'forestbush',
+      'forestfern',
+      'cornflower',
+      'whiteflower',
+    ],
+    'Expected all 10 new plant species from world/models/plants to be registered'
+  );
+
+  // 3) Verify automatic in-code LOD1 triangle reduction (~50%+ fewer triangles on all 6 tree species) and GPU wind shaders
+  const initialStats = getFloraLodAndShaderStats();
+  assert.equal(
+    initialStats.gpuWindMaterialCount,
+    7,
+    'Expected all 7 standing plant material slots (0..6) to have GPU wind shaders attached'
+  );
+  for (const treeKey of [
+    'pinetree',
+    'oakgreen',
+    'oakyellow',
+    'animtree',
+    'animtree_wide',
+    'animtree_compact',
+  ]) {
+    const counts = initialStats.speciesTriangleCounts[treeKey];
+    assert.ok(counts, `Expected triangle counts for ${treeKey}`);
+    assert.ok(
+      counts.lod1 < counts.lod0 * 0.6,
+      `Expected ${treeKey} LOD1 triangles (${counts.lod1}) to be < 60% of LOD0 (${counts.lod0})`
+    );
+  }
+  assert.equal(initialStats.sectorLodStates[0]?.activeLod, 0, 'Sector should start in LOD0 when near');
+
+  // Move player far from sector (0,0) -> sector switches to LOD1
+  updateChoppableTreesVisuals(0.05, undefined, 160, 160);
+  const farStats = getFloraLodAndShaderStats();
+  assert.equal(farStats.sectorLodStates[0]?.activeLod, 1, 'Sector should switch to LOD1 when player is far');
+
+  // Move player back near sector (0,0) -> sector switches back to LOD0
+  updateChoppableTreesVisuals(0.05, undefined, 10, 10);
+  const nearStats = getFloraLodAndShaderStats();
+  assert.equal(nearStats.sectorLodStates[0]?.activeLod, 0, 'Sector should switch back to LOD0 when player returns near');
+});
 // #endregion
+
+
 

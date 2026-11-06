@@ -1,10 +1,11 @@
 // ============================================================================
 // MODULE: World / Models / Vegetation Models
-// DESIGN: Spatially sectorized instanced flora, trees, boulders, and meadow grass (SRP)
-// SUMMARY: Uses embedded botanical 3D models from Plants/ (PineTree, OakGreen, OakYellow,
-//          ForestBush, ForestFern, Cornflower) rendered via single-prototype InstancedMeshes
-//          per spatial sector with GPU hardware bone skinning driven by weather-adaptive
-//          skeletal animations, plus pooled skeletal felling rigs for chopped trees.
+// DESIGN: Spatially sectorized instanced flora with GPU Vertex-Shader Wind & Sector LOD (SRP)
+// SUMMARY: Uses embedded botanical 3D models from plants/ (PineTree, OakGreen, OakYellow,
+//          AnimTree, AnimTreeWide, AnimTreeCompact, ForestBush, ForestFern, Cornflower,
+//          WhiteFlower) rendered via static GPU-driven InstancedMeshes with per-instance
+//          spatial wind phase, automatic in-code LOD0/LOD1 sector switching, and pooled
+//          CPU FloraModel rigs exclusively for active axe hitTree() and fellTree() animations.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -26,51 +27,46 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import type { IWorldModelBuildContext } from './types';
 import {
-  PineTree,
-  PineTreeRig,
-  PineTreeAnimator,
-  type PineTreeState,
-  unpackPineTreeBundle,
-  PINE_TREE_EMBEDDED_PACK_B64,
-  PINE_TREE_EMBEDDED_TEXTURE_URI,
-} from './Plants/PineTree_Complete';
+  FloraModel,
+  createWoodCutRingMaterial,
+  unpackFloraBundle,
+  type FloraCategory,
+  type FloraKey,
+  type FloraSubmeshData,
+  type FloraWindState,
+  ANIMTREE_PACK_B64,
+  ANIMTREE_TEXTURES,
+} from './plants/AnimTree_Complete';
 import {
-  OakGreen,
-  OakGreenRig,
-  OakGreenAnimator,
-  unpackOakGreenBundle,
-  OAK_GREEN_EMBEDDED_PACK_B64,
-  OAK_GREEN_EMBEDDED_TEXTURE_URI,
-} from './Plants/OakGreen_Complete';
+  ANIMTREEWIDE_PACK_B64,
+} from './plants/AnimTreeWide_Complete';
 import {
-  OakYellow,
-  OakYellowRig,
-  OakYellowAnimator,
-  unpackOakYellowBundle,
-  OAK_YELLOW_EMBEDDED_PACK_B64,
-  OAK_YELLOW_EMBEDDED_TEXTURE_URI,
-} from './Plants/OakYellow_Complete';
+  ANIMTREECOMPACT_PACK_B64,
+} from './plants/AnimTreeCompact_Complete';
 import {
-  ForestBushRig,
-  ForestBushAnimator,
-  unpackForestBushBundle,
-  FOREST_BUSH_EMBEDDED_PACK_B64,
-  FOREST_BUSH_EMBEDDED_TEXTURE_URI,
-} from './Plants/ForestBush_Complete';
+  PINETREE_PACK_B64,
+  PINETREE_TEXTURES,
+} from './plants/PineTree_Complete';
 import {
-  ForestFernRig,
-  ForestFernAnimator,
-  unpackForestFernBundle,
-  FOREST_FERN_EMBEDDED_PACK_B64,
-  FOREST_FERN_EMBEDDED_TEXTURE_URI,
-} from './Plants/ForestFern_Complete';
+  OAKGREEN_PACK_B64,
+  OAKGREEN_TEXTURES,
+} from './plants/OakGreen_Complete';
 import {
-  CornflowerRig,
-  CornflowerAnimator,
-  unpackCornflowerBundle,
-  CORNFLOWER_EMBEDDED_PACK_B64,
-  CORNFLOWER_EMBEDDED_TEXTURE_URI,
-} from './Plants/Cornflower_Complete';
+  OAKYELLOW_PACK_B64,
+} from './plants/OakYellow_Complete';
+import {
+  FORESTBUSH_PACK_B64,
+  FORESTBUSH_TEXTURES,
+} from './plants/ForestBush_Complete';
+import {
+  FORESTFERN_PACK_B64,
+} from './plants/ForestFern_Complete';
+import {
+  CORNFLOWER_PACK_B64,
+} from './plants/Cornflower_Complete';
+import {
+  WHITEFLOWER_PACK_B64,
+} from './plants/WhiteFlower_Complete';
 import {
   getActiveTreeFellingRecords,
   type ITreeFellingRecord,
@@ -86,16 +82,131 @@ const TREE_SECTOR_MAX_DIST_SW = 155;
 const UNDERGROWTH_SECTOR_MAX_DIST = 112;
 const UNDERGROWTH_SECTOR_MAX_DIST_SW = 74;
 
+/** Distance thresholds (with hysteresis) for switching tree sectors between LOD0 (full) and LOD1 (low-poly). */
+const TREE_LOD_NEAR_DIST = 95;
+const TREE_LOD_FAR_DIST = 103;
+const TREE_LOD_NEAR_DIST_SW = 68;
+const TREE_LOD_FAR_DIST_SW = 75;
+
 const PINE_MODEL_BASE_SCALE = 3.85;
 const OAK_GREEN_MODEL_BASE_SCALE = 3.65;
 const OAK_YELLOW_MODEL_BASE_SCALE = 3.45;
+const ANIM_TREE_MODEL_BASE_SCALE = 3.65;
+const ANIM_TREE_WIDE_MODEL_BASE_SCALE = 3.55;
+const ANIM_TREE_COMPACT_MODEL_BASE_SCALE = 3.65;
 const FOREST_BUSH_BASE_SCALE = 1.18;
 const FOREST_FERN_BASE_SCALE = 0.88;
 const CORNFLOWER_BASE_SCALE = 0.58;
+const WHITE_FLOWER_BASE_SCALE = 0.58;
+
+const TREE_CUT_Y = 0.32;
+
+export type PlantWeatherAnimationState =
+  | FloraWindState
+  | 'sit'
+  | 'lie'
+  | 'morph_wind';
+
+export type TreeFloraKey =
+  | 'pinetree'
+  | 'oakgreen'
+  | 'oakyellow'
+  | 'animtree'
+  | 'animtree_wide'
+  | 'animtree_compact';
+
+const OAK_FLORA_VARIANTS: readonly TreeFloraKey[] = [
+  'oakgreen',
+  'animtree',
+  'animtree_wide',
+  'animtree_compact',
+];
+
+interface IFloraSpec {
+  key: FloraKey;
+  category: FloraCategory;
+  packB64: string;
+  baseScale: number;
+  maxY: number;
+}
+
+const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
+  pinetree: {
+    key: 'pinetree',
+    category: 'other_trees',
+    packB64: PINETREE_PACK_B64,
+    baseScale: PINE_MODEL_BASE_SCALE,
+    maxY: 4.0,
+  },
+  oakgreen: {
+    key: 'oakgreen',
+    category: 'other_trees',
+    packB64: OAKGREEN_PACK_B64,
+    baseScale: OAK_GREEN_MODEL_BASE_SCALE,
+    maxY: 3.5,
+  },
+  oakyellow: {
+    key: 'oakyellow',
+    category: 'other_trees',
+    packB64: OAKYELLOW_PACK_B64,
+    baseScale: OAK_YELLOW_MODEL_BASE_SCALE,
+    maxY: 3.4,
+  },
+  animtree: {
+    key: 'animtree',
+    category: 'trees',
+    packB64: ANIMTREE_PACK_B64,
+    baseScale: ANIM_TREE_MODEL_BASE_SCALE,
+    maxY: 3.6,
+  },
+  animtree_wide: {
+    key: 'animtree_wide',
+    category: 'trees',
+    packB64: ANIMTREEWIDE_PACK_B64,
+    baseScale: ANIM_TREE_WIDE_MODEL_BASE_SCALE,
+    maxY: 3.3,
+  },
+  animtree_compact: {
+    key: 'animtree_compact',
+    category: 'trees',
+    packB64: ANIMTREECOMPACT_PACK_B64,
+    baseScale: ANIM_TREE_COMPACT_MODEL_BASE_SCALE,
+    maxY: 2.9,
+  },
+  forestbush: {
+    key: 'forestbush',
+    category: 'vegetation',
+    packB64: FORESTBUSH_PACK_B64,
+    baseScale: FOREST_BUSH_BASE_SCALE,
+    maxY: 1.25,
+  },
+  forestfern: {
+    key: 'forestfern',
+    category: 'vegetation',
+    packB64: FORESTFERN_PACK_B64,
+    baseScale: FOREST_FERN_BASE_SCALE,
+    maxY: 0.85,
+  },
+  cornflower: {
+    key: 'cornflower',
+    category: 'vegetation',
+    packB64: CORNFLOWER_PACK_B64,
+    baseScale: CORNFLOWER_BASE_SCALE,
+    maxY: 1.15,
+  },
+  whiteflower: {
+    key: 'whiteflower',
+    category: 'vegetation',
+    packB64: WHITEFLOWER_PACK_B64,
+    baseScale: WHITE_FLOWER_BASE_SCALE,
+    maxY: 1.2,
+  },
+};
 
 interface ITreeInstanceHandle {
   obstacleIndex: number;
   kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia';
+  floraKey?: TreeFloraKey;
   meshes: THREE.InstancedMesh[];
   shadowMesh: THREE.InstancedMesh;
   instanceIndex: number;
@@ -105,46 +216,58 @@ interface ITreeInstanceHandle {
   isHiddenInInstancedMesh: boolean;
 }
 
-interface IPooledSkeletalTree {
-  species: 'pine' | 'oak' | 'birch';
-  instance: PineTree | OakGreen | OakYellow;
+interface IPooledFloraTree {
+  floraKey: TreeFloraKey;
+  instance: FloraModel;
   assignedObstacleIndex: number | null;
   lastChopHits: number;
 }
 
-interface IMasterSpeciesAnimationDriver {
-  speciesKey: 'pine' | 'oak' | 'birch' | 'bush' | 'fern' | 'cornflower';
-  animatorA: {
-    state: PineTreeState;
-    time: number;
-    setState: (next: PineTreeState) => void;
-    update: (dt: number) => void;
-  };
-  animatorB: {
-    state: PineTreeState;
-    time: number;
-    setState: (next: PineTreeState) => void;
-    update: (dt: number) => void;
-  };
-  skeletonA: THREE.Skeleton;
-  skeletonB: THREE.Skeleton;
+interface IFloraSubmeshProto {
+  matId: number;
+  material: THREE.MeshStandardMaterial;
+  lod0Geometry: THREE.BufferGeometry;
+  lod1Geometry: THREE.BufferGeometry;
+  lod0Triangles: number;
+  lod1Triangles: number;
+}
+
+interface IMasterFloraDriver {
+  key: FloraKey;
+  submeshProtos: IFloraSubmeshProto[];
+  lod0TotalTriangles: number;
+  lod1TotalTriangles: number;
+}
+
+interface ITreeSectorLodEntry {
+  key: string;
+  cx: number;
+  cz: number;
+  rootGroup: THREE.Group;
+  lod0Group: THREE.Group;
+  lod1Group: THREE.Group;
+  activeLod: 0 | 1;
 }
 
 const treeInstanceRegistry = new Map<number, ITreeInstanceHandle>();
-const pooledSkeletalTrees: IPooledSkeletalTree[] = [];
-const masterSpeciesDrivers: IMasterSpeciesAnimationDriver[] = [];
-let currentWeatherPlantAnimationState: PineTreeState = 'idle';
+const pooledFloraTrees: IPooledFloraTree[] = [];
+const masterFloraDrivers = new Map<FloraKey, IMasterFloraDriver>();
+const treeSectorLodEntries: ITreeSectorLodEntry[] = [];
+const gpuFloraWindMaterials: THREE.MeshStandardMaterial[] = [];
+let currentWeatherPlantAnimationState: PlantWeatherAnimationState = 'idle';
+let currentGpuFloraWindStrength = 0.55;
+let activeSoftwareGlMode = false;
 
 const _zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
 const _tempDummy = new THREE.Object3D();
 
 /**
- * Pure, deterministic mapping from the current world weather state to the built-in
- * skeletal animation clip in `Plants/*_Complete.ts`.
+ * Pure, deterministic mapping from the current world weather state to the
+ * wind animation state used across `plants/*_Complete.ts`.
  */
 export function resolvePlantAnimationStateForWeather(
   weather?: Pick<IWeatherStateSnapshot, 'weatherKind' | 'windStrength'> | null
-): PineTreeState {
+): PlantWeatherAnimationState {
   if (!weather) return 'idle';
   const wind = weather.windStrength ?? 0.35;
   switch (weather.weatherKind) {
@@ -169,10 +292,86 @@ export function resolvePlantAnimationStateForWeather(
 }
 
 /**
- * Returns the currently active weather-driven skeletal animation state applied to world plants.
+ * Computes the effective scalar wind strength (`uFloraWindStrength`) for a resolved weather state.
  */
-export function getActiveWeatherPlantAnimationState(): PineTreeState {
+export function computeFloraWindStrength(
+  state: PlantWeatherAnimationState,
+  weather?: Pick<IWeatherStateSnapshot, 'windStrength'> | null
+): number {
+  const mappedState = state === 'morph_wind' ? 'trot' : state;
+  const baseStrength =
+    mappedState === 'calm' || mappedState === 'lie'
+      ? 0.15
+      : mappedState === 'idle' || mappedState === 'sit'
+        ? 0.55
+        : mappedState === 'walk'
+          ? 1.0
+          : mappedState === 'trot'
+            ? 1.45
+            : 2.15;
+  if (weather && typeof weather.windStrength === 'number') {
+    return baseStrength * (0.75 + weather.windStrength * 0.55);
+  }
+  return baseStrength;
+}
+
+/**
+ * Applies a resolved `PlantWeatherAnimationState` and optional continuous windStrength
+ * to a pooled CPU `FloraModel` instance without clobbering active chop/hit/felling states.
+ */
+function applyWeatherWindToFloraModel(
+  model: FloraModel,
+  state: PlantWeatherAnimationState,
+  weather?: Pick<IWeatherStateSnapshot, 'windStrength'> | null
+): void {
+  const mappedState = state === 'morph_wind' ? 'trot' : state;
+  if (model.chopState === 'standing') {
+    model.setWindFromState(mappedState);
+  }
+  model.windStrength = computeFloraWindStrength(state, weather);
+}
+
+/**
+ * Returns the currently active weather-driven animation state applied to world plants.
+ */
+export function getActiveWeatherPlantAnimationState(): PlantWeatherAnimationState {
   return currentWeatherPlantAnimationState;
+}
+
+/**
+ * Returns the list of registered master `FloraKey` drivers currently active in the world.
+ */
+export function getRegisteredFloraSpeciesKeys(): FloraKey[] {
+  return Array.from(masterFloraDrivers.keys());
+}
+
+/**
+ * Returns diagnostic statistics for the GPU wind shader and automatic LOD0/LOD1 geometries.
+ */
+export function getFloraLodAndShaderStats(): {
+  gpuWindMaterialCount: number;
+  currentWindStrength: number;
+  speciesTriangleCounts: Record<string, { lod0: number; lod1: number }>;
+  sectorLodStates: Array<{ key: string; cx: number; cz: number; activeLod: 0 | 1 }>;
+} {
+  const speciesTriangleCounts: Record<string, { lod0: number; lod1: number }> = {};
+  for (const [k, drv] of masterFloraDrivers.entries()) {
+    speciesTriangleCounts[k] = {
+      lod0: drv.lod0TotalTriangles,
+      lod1: drv.lod1TotalTriangles,
+    };
+  }
+  return {
+    gpuWindMaterialCount: gpuFloraWindMaterials.length,
+    currentWindStrength: currentGpuFloraWindStrength,
+    speciesTriangleCounts,
+    sectorLodStates: treeSectorLodEntries.map((s) => ({
+      key: s.key,
+      cx: s.cx,
+      cz: s.cz,
+      activeLod: s.activeLod,
+    })),
+  };
 }
 
 /**
@@ -185,6 +384,8 @@ function createPlantTexture(
   const tex = new THREE.Texture();
   tex.flipY = false;
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
   if (typeof Image !== 'undefined') {
     const img = new Image();
     img.onload = () => {
@@ -198,190 +399,315 @@ function createPlantTexture(
 }
 
 /**
- * Builds an optimized, vertex-compacted BufferGeometry from unpacked plant bundle data,
- * stripping microscopic sub-centimeter triangles (`area < minTriangleArea`) to cut GPU
- * vertex/fragment load by ~50% while preserving `aPlantSkinIndex` and `aPlantSkinWeight`
- * for GPU instanced skeletal animation.
+ * Attaches the custom `FloraModel` quadratic trunk bend + 3D per-vertex foliage flutter
+ * directly to a `MeshStandardMaterial` via `onBeforeCompile`, with per-instance spatial
+ * wind phase (`instanceMatrix[3].xz`) so standing vegetation animates 100% on the GPU
+ * with zero CPU vertex loops and zero buffer uploads per frame.
  */
-function buildOptimizedSkinnedPlantGeometry(
-  data: {
-    positions: Float32Array;
-    normals: Float32Array;
-    uvs: Float32Array;
-    skinIndices: Uint8Array;
-    skinWeights: Float32Array;
-    indices: Uint16Array;
-  },
-  minTriangleArea: number,
-  disposableGeometries: THREE.BufferGeometry[]
-): THREE.BufferGeometry {
-  const srcPos = data.positions;
-  const srcNorm = data.normals;
-  const srcUv = data.uvs;
-  const srcSkinIdx = data.skinIndices;
-  const srcSkinW = data.skinWeights;
-  const srcIndices = data.indices;
+function attachFloraGpuWindShader(
+  mat: THREE.MeshStandardMaterial,
+  isFoliage: boolean,
+  invMaxHeight: number,
+  swayMaterials: THREE.MeshStandardMaterial[]
+): void {
+  const uTime = { value: 0 };
+  const uWindScale = { value: 1.0 };
+  const uFloraWindStrength = { value: currentGpuFloraWindStrength };
+  const uFloraInvHeight = { value: invMaxHeight };
 
-  const keptTriIndices: number[] = [];
-  const oldToNewVert = new Int32Array(srcPos.length / 3).fill(-1);
+  mat.userData.uTime = uTime;
+  mat.userData.uWindScale = uWindScale;
+  mat.userData.uFloraWindStrength = uFloraWindStrength;
+  mat.userData.uFloraInvHeight = uFloraInvHeight;
+  mat.customProgramCacheKey = () => (isFoliage ? 'flora_gpu_wind_foliage' : 'flora_gpu_wind_bark');
+
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = uTime;
+    shader.uniforms.uFloraWindStrength = uFloraWindStrength;
+    shader.uniforms.uFloraInvHeight = uFloraInvHeight;
+
+    shader.vertexShader =
+      `
+      uniform float uTime;
+      uniform float uFloraWindStrength;
+      uniform float uFloraInvHeight;
+      ` +
+      shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `
+        #include <begin_vertex>
+        float floraInstPhase = 0.0;
+        #ifdef USE_INSTANCING
+          floraInstPhase = instanceMatrix[3].x * 0.17 + instanceMatrix[3].z * 0.23;
+        #endif
+        float floraT = uTime + floraInstPhase;
+        float floraW = uFloraWindStrength;
+        float floraHNorm = max(0.0, transformed.y * uFloraInvHeight);
+        float floraBend = floraHNorm * floraHNorm;
+        float floraSwayX = (sin(floraT * 1.45) * 0.055 + sin(floraT * 3.1) * 0.022) * floraW;
+        float floraSwayZ = (cos(floraT * 1.15) * 0.042 + sin(floraT * 2.6) * 0.018) * floraW;
+        transformed.x += floraSwayX * transformed.y * floraBend;
+        transformed.z += floraSwayZ * transformed.y * floraBend;
+        ${
+          isFoliage
+            ? `
+        if (floraW > 0.01) {
+          float floraPhase = transformed.x * 3.2 + transformed.z * 3.2 + transformed.y * 2.1 + floraInstPhase * 1.3;
+          float floraAmp = floraW * min(1.0, floraHNorm + 0.25);
+          transformed.x += sin(floraT * 4.8 + floraPhase) * 0.024 * floraAmp;
+          transformed.z += cos(floraT * 4.2 + floraPhase) * 0.020 * floraAmp;
+          transformed.y += sin(floraT * 5.4 + floraPhase * 1.3) * 0.012 * floraW * floraHNorm;
+        }
+        `
+            : ''
+        }
+        `
+      );
+  };
+
+  swayMaterials.push(mat);
+  gpuFloraWindMaterials.push(mat);
+}
+
+/**
+ * Builds static `BufferGeometry` from unpacked `FloraSubmeshData`:
+ * - Welds the pre-sliced `0.318..0.322` cut seam on tree bark submeshes to `0.32` so standing trees have zero visible line.
+ * - When `isLod1 === true`, strips sub-pixel upper twigs and smaller interior leaf cards (`~50%-58%` triangle reduction)
+ *   while preserving 100% of the lower/mid trunk silhouette (`y < maxY * 0.38`) and outer canopy volume.
+ */
+function buildStaticFloraSubmeshGeometry(
+  sub: FloraSubmeshData,
+  isTree: boolean,
+  maxY: number,
+  isLod1: boolean,
+  disposableGeometries: THREE.BufferGeometry[]
+): { geometry: THREE.BufferGeometry; triangleCount: number } {
+  const srcPos = sub.positions;
+  const srcNorm = sub.normals;
+  const srcUv = sub.uvs;
+  const srcIndices = sub.indices;
+  const isBark = sub.matId === 0 || sub.matId === 3 || sub.matId === 4;
+  const numTris = Math.floor(srcIndices.length / 3);
+
+  let areaThreshold = 0;
+  const trunkKeepY = maxY * 0.36;
+
+  if (isLod1 && isTree && numTris > 80) {
+    // Compute triangle areas to determine the adaptive cutoff threshold for this submesh
+    const areas = new Float32Array(numTris);
+    for (let t = 0; t < numTris; t++) {
+      const i = t * 3;
+      const a = srcIndices[i] * 3;
+      const b = srcIndices[i + 1] * 3;
+      const c = srcIndices[i + 2] * 3;
+      const bx = srcPos[b] - srcPos[a];
+      const by = srcPos[b + 1] - srcPos[a + 1];
+      const bz = srcPos[b + 2] - srcPos[a + 2];
+      const cx = srcPos[c] - srcPos[a];
+      const cy = srcPos[c + 1] - srcPos[a + 1];
+      const cz = srcPos[c + 2] - srcPos[a + 2];
+      areas[t] =
+        0.5 *
+        Math.hypot(by * cz - bz * cy, bz * cx - bx * cz, bx * cy - by * cx);
+    }
+    const sorted = Array.from(areas).sort((x, y) => x - y);
+    // Strip ~58% smallest twig triangles on bark, and ~48% smallest interior leaf triangles on foliage
+    const dropFraction = isBark ? 0.58 : 0.48;
+    areaThreshold = sorted[Math.floor(sorted.length * dropFraction)] ?? 0;
+  }
+
+  const keptIndices: number[] = [];
+  const totalSrcVerts = srcPos.length / 3;
+  const oldToNewVert = new Int32Array(totalSrcVerts).fill(-1);
   let newVertCount = 0;
 
-  for (let i = 0; i < srcIndices.length; i += 3) {
-    const a = srcIndices[i];
-    const b = srcIndices[i + 1];
-    const c = srcIndices[i + 2];
-    if (minTriangleArea > 0) {
-      const ax = srcPos[a * 3];
-      const ay = srcPos[a * 3 + 1];
-      const az = srcPos[a * 3 + 2];
-      const bx = srcPos[b * 3] - ax;
-      const by = srcPos[b * 3 + 1] - ay;
-      const bz = srcPos[b * 3 + 2] - az;
-      const cx = srcPos[c * 3] - ax;
-      const cy = srcPos[c * 3 + 1] - ay;
-      const cz = srcPos[c * 3 + 2] - az;
-      const nx = by * cz - bz * cy;
-      const ny = bz * cx - bx * cz;
-      const nz = bx * cy - by * cx;
-      const area = 0.5 * Math.hypot(nx, ny, nz);
-      if (area < minTriangleArea) continue;
+  for (let t = 0; t < numTris; t++) {
+    const i = t * 3;
+    const va = srcIndices[i];
+    const vb = srcIndices[i + 1];
+    const vc = srcIndices[i + 2];
+
+    if (areaThreshold > 0) {
+      const a3 = va * 3;
+      const b3 = vb * 3;
+      const c3 = vc * 3;
+      const minY = Math.min(srcPos[a3 + 1], srcPos[b3 + 1], srcPos[c3 + 1]);
+      // Always keep lower trunk triangles on bark so the main trunk base never develops gaps
+      const isLowerTrunk = isBark && minY < trunkKeepY;
+      if (!isLowerTrunk) {
+        const bx = srcPos[b3] - srcPos[a3];
+        const by = srcPos[b3 + 1] - srcPos[a3 + 1];
+        const bz = srcPos[b3 + 2] - srcPos[a3 + 2];
+        const cx = srcPos[c3] - srcPos[a3];
+        const cy = srcPos[c3 + 1] - srcPos[a3 + 1];
+        const cz = srcPos[c3 + 2] - srcPos[a3 + 2];
+        const area =
+          0.5 *
+          Math.hypot(by * cz - bz * cy, bz * cx - bx * cz, bx * cy - by * cx);
+        if (area < areaThreshold) {
+          continue;
+        }
+      }
     }
 
-    if (oldToNewVert[a] === -1) oldToNewVert[a] = newVertCount++;
-    if (oldToNewVert[b] === -1) oldToNewVert[b] = newVertCount++;
-    if (oldToNewVert[c] === -1) oldToNewVert[c] = newVertCount++;
-    keptTriIndices.push(oldToNewVert[a], oldToNewVert[b], oldToNewVert[c]);
+    if (oldToNewVert[va] === -1) oldToNewVert[va] = newVertCount++;
+    if (oldToNewVert[vb] === -1) oldToNewVert[vb] = newVertCount++;
+    if (oldToNewVert[vc] === -1) oldToNewVert[vc] = newVertCount++;
+    keptIndices.push(oldToNewVert[va], oldToNewVert[vb], oldToNewVert[vc]);
   }
 
   const positions = new Float32Array(newVertCount * 3);
   const normals = new Float32Array(newVertCount * 3);
   const uvs = new Float32Array(newVertCount * 2);
-  const skinIndicesFloat = new Float32Array(newVertCount * 4);
-  const skinWeights = new Float32Array(newVertCount * 4);
 
-  const totalSrcVerts = srcPos.length / 3;
   for (let oldV = 0; oldV < totalSrcVerts; oldV++) {
     const newV = oldToNewVert[oldV];
     if (newV === -1) continue;
-    positions[newV * 3] = srcPos[oldV * 3];
-    positions[newV * 3 + 1] = srcPos[oldV * 3 + 1];
-    positions[newV * 3 + 2] = srcPos[oldV * 3 + 2];
+    const o3 = oldV * 3;
+    const n3 = newV * 3;
+    const o2 = oldV * 2;
+    const n2 = newV * 2;
 
-    normals[newV * 3] = srcNorm[oldV * 3];
-    normals[newV * 3 + 1] = srcNorm[oldV * 3 + 1];
-    normals[newV * 3 + 2] = srcNorm[oldV * 3 + 2];
+    const rx = srcPos[o3];
+    const ryRaw = srcPos[o3 + 1];
+    const rz = srcPos[o3 + 2];
+    // Weld the pre-sliced 0.318..0.322 cut gap on standing bark geometry
+    const ry =
+      isTree && isBark && Math.abs(ryRaw - TREE_CUT_Y) < 0.0035
+        ? TREE_CUT_Y
+        : ryRaw;
 
-    uvs[newV * 2] = srcUv[oldV * 2];
-    uvs[newV * 2 + 1] = srcUv[oldV * 2 + 1];
+    positions[n3] = rx;
+    positions[n3 + 1] = ry;
+    positions[n3 + 2] = rz;
 
-    skinIndicesFloat[newV * 4] = srcSkinIdx[oldV * 4];
-    skinIndicesFloat[newV * 4 + 1] = srcSkinIdx[oldV * 4 + 1];
-    skinIndicesFloat[newV * 4 + 2] = srcSkinIdx[oldV * 4 + 2];
-    skinIndicesFloat[newV * 4 + 3] = srcSkinIdx[oldV * 4 + 3];
+    normals[n3] = srcNorm[o3];
+    normals[n3 + 1] = srcNorm[o3 + 1];
+    normals[n3 + 2] = srcNorm[o3 + 2];
 
-    skinWeights[newV * 4] = srcSkinW[oldV * 4];
-    skinWeights[newV * 4 + 1] = srcSkinW[oldV * 4 + 1];
-    skinWeights[newV * 4 + 2] = srcSkinW[oldV * 4 + 2];
-    skinWeights[newV * 4 + 3] = srcSkinW[oldV * 4 + 3];
+    uvs[n2] = srcUv[o2];
+    uvs[n2 + 1] = srcUv[o2 + 1];
   }
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
   geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  geo.setAttribute('aPlantSkinIndex', new THREE.BufferAttribute(skinIndicesFloat, 4));
-  geo.setAttribute('aPlantSkinWeight', new THREE.BufferAttribute(skinWeights, 4));
-  geo.setIndex(new THREE.BufferAttribute(new Uint16Array(keptTriIndices), 1));
+  geo.setIndex(new THREE.BufferAttribute(new Uint16Array(keptIndices), 1));
   geo.computeBoundingSphere();
   disposableGeometries.push(geo);
-  return geo;
+
+  return {
+    geometry: geo,
+    triangleCount: Math.floor(keptIndices.length / 3),
+  };
 }
 
 /**
- * Attaches GPU hardware 25-bone skeletal skinning (`uPlantBonesA`, `uPlantBonesB`)
- * with per-instance spatial phase blending to an instanced plant `MeshStandardMaterial`.
+ * Builds two sets of materials from the shared `0..7` plant textures:
+ * 1. `gpuInstancedMaterials`: Equipped with `attachFloraGpuWindShader` for zero-CPU standing `InstancedMesh`es.
+ * 2. `cpuPoolMaterials`: Plain `MeshStandardMaterial`s for the pooled `FloraModel` rigs used during axe hits and felling.
  */
-function attachPlantSkeletalAnimationShader(
-  material: THREE.MeshStandardMaterial,
-  skeletonA: THREE.Skeleton,
-  skeletonB: THREE.Skeleton,
-  swayMaterials: THREE.MeshStandardMaterial[]
-): void {
-  const uTime = { value: 0 };
-  const uWindScale = { value: 1.0 };
-  const uPlantBonesA = { value: skeletonA.boneMatrices };
-  const uPlantBonesB = { value: skeletonB.boneMatrices };
-  material.userData.uTime = uTime;
-  material.userData.uWindScale = uWindScale;
-  material.userData.uPlantBonesA = uPlantBonesA;
-  material.userData.uPlantBonesB = uPlantBonesB;
+export function buildSharedFloraMaterials(
+  disposableTextures: THREE.Texture[],
+  disposableMaterials: THREE.Material[],
+  swayMaterials: THREE.MeshStandardMaterial[] = []
+): {
+  gpuInstancedMaterials: Record<number, THREE.MeshStandardMaterial>;
+  cpuPoolMaterials: Record<number, THREE.Material>;
+} {
+  const tex0 = createPlantTexture(ANIMTREE_TEXTURES[0], disposableTextures);
+  const tex1 = createPlantTexture(ANIMTREE_TEXTURES[1], disposableTextures);
+  const tex2 = createPlantTexture(ANIMTREE_TEXTURES[2], disposableTextures);
+  const tex3 = createPlantTexture(PINETREE_TEXTURES[3], disposableTextures);
+  const tex4 = createPlantTexture(OAKGREEN_TEXTURES[4], disposableTextures);
+  const tex5 = createPlantTexture(PINETREE_TEXTURES[5], disposableTextures);
+  const tex6 = createPlantTexture(FORESTBUSH_TEXTURES[6], disposableTextures);
 
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uTime = uTime;
-    shader.uniforms.uWindScale = uWindScale;
-    shader.uniforms.uPlantBonesA = uPlantBonesA;
-    shader.uniforms.uPlantBonesB = uPlantBonesB;
-
-    shader.vertexShader =
-      `
-      attribute vec4 aPlantSkinIndex;
-      attribute vec4 aPlantSkinWeight;
-      uniform mat4 uPlantBonesA[25];
-      uniform mat4 uPlantBonesB[25];
-      uniform float uTime;
-      uniform float uWindScale;
-      ` +
-      shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        `
-        #include <begin_vertex>
-        float plantInstancePhase = 0.0;
-        #ifdef USE_INSTANCING
-          plantInstancePhase = 0.5 + 0.5 * sin(instanceMatrix[3].x * 0.23 + instanceMatrix[3].z * 0.37);
-        #endif
-        int pb0 = int(aPlantSkinIndex.x + 0.5);
-        int pb1 = int(aPlantSkinIndex.y + 0.5);
-        int pb2 = int(aPlantSkinIndex.z + 0.5);
-        int pb3 = int(aPlantSkinIndex.w + 0.5);
-        mat4 plantMatA =
-          aPlantSkinWeight.x * uPlantBonesA[pb0] +
-          aPlantSkinWeight.y * uPlantBonesA[pb1] +
-          aPlantSkinWeight.z * uPlantBonesA[pb2] +
-          aPlantSkinWeight.w * uPlantBonesA[pb3];
-        mat4 plantMatB =
-          aPlantSkinWeight.x * uPlantBonesB[pb0] +
-          aPlantSkinWeight.y * uPlantBonesB[pb1] +
-          aPlantSkinWeight.z * uPlantBonesB[pb2] +
-          aPlantSkinWeight.w * uPlantBonesB[pb3];
-        vec3 skinnedA = (plantMatA * vec4(transformed, 1.0)).xyz;
-        vec3 skinnedB = (plantMatB * vec4(transformed, 1.0)).xyz;
-        transformed = mix(skinnedA, skinnedB, plantInstancePhase);
-        `
-      );
+  const makeMatPair = (
+    tex: THREE.Texture,
+    isFoliage: boolean,
+    invMaxHeight: number
+  ): { gpu: THREE.MeshStandardMaterial; cpu: THREE.MeshStandardMaterial } => {
+    const params: THREE.MeshStandardMaterialParameters = isFoliage
+      ? {
+          map: tex,
+          alphaTest: 0.35,
+          roughness: 0.8,
+          metalness: 0.02,
+          side: THREE.DoubleSide,
+        }
+      : {
+          map: tex,
+          roughness: 0.86,
+          metalness: 0.02,
+        };
+    const gpu = new THREE.MeshStandardMaterial(params);
+    const cpu = new THREE.MeshStandardMaterial(params);
+    attachFloraGpuWindShader(gpu, isFoliage, invMaxHeight, swayMaterials);
+    disposableMaterials.push(gpu, cpu);
+    return { gpu, cpu };
   };
 
-  swayMaterials.push(material);
+  const p0 = makeMatPair(tex0, false, 1 / 3.5);
+  const p1 = makeMatPair(tex1, true, 1 / 3.5);
+  const p2 = makeMatPair(tex2, true, 1 / 3.5);
+  const p3 = makeMatPair(tex3, false, 1 / 4.0);
+  const p4 = makeMatPair(tex4, false, 1 / 3.5);
+  const p5 = makeMatPair(tex5, true, 1 / 3.7);
+  const p6 = makeMatPair(tex6, true, 1 / 1.15);
+
+  const mat7 = createWoodCutRingMaterial();
+  if (mat7.map) {
+    disposableTextures.push(mat7.map);
+  }
+  disposableMaterials.push(mat7);
+
+  return {
+    gpuInstancedMaterials: {
+      0: p0.gpu,
+      1: p1.gpu,
+      2: p2.gpu,
+      3: p3.gpu,
+      4: p4.gpu,
+      5: p5.gpu,
+      6: p6.gpu,
+      7: mat7,
+    },
+    cpuPoolMaterials: {
+      0: p0.cpu,
+      1: p1.cpu,
+      2: p2.cpu,
+      3: p3.cpu,
+      4: p4.cpu,
+      5: p5.cpu,
+      6: p6.cpu,
+      7: mat7,
+    },
+  };
 }
 // #endregion
 
-// ======================== DYNAMIC TREE FELLING & WEATHER VISUAL SYNC ======================== \\
-// #region Dynamic Tree Felling & Weather Visual Sync
-function acquirePooledRig(
-  species: 'pine' | 'oak' | 'birch',
+// ======================== DYNAMIC TREE FELLING, GPU WIND & SECTOR LOD SYNC ======================== \\
+// #region Dynamic Tree Felling, GPU Wind & Sector LOD Sync
+function acquirePooledFloraTree(
+  floraKey: TreeFloraKey,
   obstacleIndex: number
-): IPooledSkeletalTree | null {
-  for (let i = 0; i < pooledSkeletalTrees.length; i++) {
-    const p = pooledSkeletalTrees[i];
-    if (p.species === species && p.assignedObstacleIndex === obstacleIndex) {
+): IPooledFloraTree | null {
+  for (let i = 0; i < pooledFloraTrees.length; i++) {
+    const p = pooledFloraTrees[i];
+    if (p.floraKey === floraKey && p.assignedObstacleIndex === obstacleIndex) {
       return p;
     }
   }
-  for (let i = 0; i < pooledSkeletalTrees.length; i++) {
-    const p = pooledSkeletalTrees[i];
-    if (p.species === species && p.assignedObstacleIndex === null) {
+  for (let i = 0; i < pooledFloraTrees.length; i++) {
+    const p = pooledFloraTrees[i];
+    if (p.floraKey === floraKey && p.assignedObstacleIndex === null) {
       p.assignedObstacleIndex = obstacleIndex;
       p.lastChopHits = 0;
-      p.instance.setState(currentWeatherPlantAnimationState);
+      p.instance.resetTree();
+      applyWeatherWindToFloraModel(p.instance, currentWeatherPlantAnimationState);
+      p.instance.update(0);
       p.instance.object.visible = true;
       return p;
     }
@@ -416,35 +742,53 @@ function applyFallbackMatrixTilt(handle: ITreeInstanceHandle, rec: ITreeFellingR
 }
 
 /**
- * Updates the shared weather-adaptive plant skeletal animations across all instanced
- * plant species (`PineTree`, `OakGreen`, `OakYellow`, `ForestBush`, `ForestFern`, `Cornflower`)
- * AND synchronizes chopped/falling/fallen/harvested trees with their pooled rigs.
+ * Updates:
+ * 1. The GPU vertex-shader wind uniform (`uFloraWindStrength`) across all standing flora materials (0 CPU vertex loops).
+ * 2. Sector-level LOD0 / LOD1 visibility based on camera/player distance (`< 95m` = LOD0 full detail, `>= 103m` = LOD1 low-poly).
+ * 3. Active chopped/falling/fallen trees using their pooled CPU `FloraModel` rigs (`hitTree()` & `fellTree()`).
  */
 export function updateChoppableTreesVisuals(
   dt: number,
-  weather?: IWeatherStateSnapshot
+  weather?: IWeatherStateSnapshot,
+  playerX = 0,
+  playerZ = 0
 ): void {
-  // 1. Adapt all 6 plant species' master skeletal animators to the current weather state
+  // 1. Update GPU wind shader uniform (standing trees & undergrowth animate 100% in GPU vertex shader)
   const targetWeatherAnimState = resolvePlantAnimationStateForWeather(weather);
   currentWeatherPlantAnimationState = targetWeatherAnimState;
-  const windStrength = weather?.windStrength ?? 0.35;
-  const animDt = dt * (0.78 + windStrength * 0.62);
+  currentGpuFloraWindStrength = computeFloraWindStrength(targetWeatherAnimState, weather);
 
-  for (let i = 0; i < masterSpeciesDrivers.length; i++) {
-    const drv = masterSpeciesDrivers[i];
-    if (drv.animatorA.state !== targetWeatherAnimState) {
-      drv.animatorA.setState(targetWeatherAnimState);
+  for (let i = 0; i < gpuFloraWindMaterials.length; i++) {
+    const mat = gpuFloraWindMaterials[i];
+    if (mat.userData.uFloraWindStrength) {
+      mat.userData.uFloraWindStrength.value = currentGpuFloraWindStrength;
     }
-    if (drv.animatorB.state !== targetWeatherAnimState) {
-      drv.animatorB.setState(targetWeatherAnimState);
-    }
-    drv.animatorA.update(animDt);
-    drv.animatorB.update(animDt);
-    drv.skeletonA.update();
-    drv.skeletonB.update();
   }
 
-  // 2. Sync chopped, falling, fallen, and harvested trees
+  // 2. Switch tree sectors between LOD0 (near, full detail) and LOD1 (far, ~55% fewer triangles) with hysteresis
+  const nearDist = activeSoftwareGlMode ? TREE_LOD_NEAR_DIST_SW : TREE_LOD_NEAR_DIST;
+  const farDist = activeSoftwareGlMode ? TREE_LOD_FAR_DIST_SW : TREE_LOD_FAR_DIST;
+  const nearDistSq = nearDist * nearDist;
+  const farDistSq = farDist * farDist;
+
+  for (let i = 0; i < treeSectorLodEntries.length; i++) {
+    const sec = treeSectorLodEntries[i];
+    if (!sec.rootGroup.visible) continue;
+    const dx = playerX - sec.cx;
+    const dz = playerZ - sec.cz;
+    const distSq = dx * dx + dz * dz;
+    if (sec.activeLod === 0 && distSq >= farDistSq) {
+      sec.activeLod = 1;
+      sec.lod0Group.visible = false;
+      sec.lod1Group.visible = true;
+    } else if (sec.activeLod === 1 && distSq <= nearDistSq) {
+      sec.activeLod = 0;
+      sec.lod0Group.visible = true;
+      sec.lod1Group.visible = false;
+    }
+  }
+
+  // 3. Sync chopped, falling, fallen, and harvested trees (CPU FloraModel runs ONLY on the tree being chopped)
   const activeRecords = getActiveTreeFellingRecords();
   const activeIndices = new Set<number>();
 
@@ -463,35 +807,30 @@ export function updateChoppableTreesVisuals(
       rec.status === 'fallen'
     ) {
       activeIndices.add(rec.obstacleIndex);
-      if (rec.kind === 'pine' || rec.kind === 'oak' || rec.kind === 'birch') {
-        const pooled = acquirePooledRig(rec.kind, rec.obstacleIndex);
+      if (handle.floraKey) {
+        const pooled = acquirePooledFloraTree(handle.floraKey, rec.obstacleIndex);
         if (pooled) {
           hideStaticTreeInstance(handle);
-          const baseScale =
-            rec.kind === 'pine'
-              ? PINE_MODEL_BASE_SCALE
-              : rec.kind === 'oak'
-                ? OAK_GREEN_MODEL_BASE_SCALE
-                : OAK_YELLOW_MODEL_BASE_SCALE;
-
-          const shakeAngle =
-            rec.shakeTimer > 0
-              ? Math.sin(rec.shakeTimer * 48.0) * 0.055 * (rec.shakeTimer / 0.38)
-              : 0;
+          applyWeatherWindToFloraModel(pooled.instance, targetWeatherAnimState, weather);
 
           pooled.instance.object.visible = true;
           pooled.instance.object.position.set(rec.x, rec.y - 0.08, rec.z);
+          // FloraModel's custom vertex felling rotates the upper trunk toward local +X.
+          // Rotating by (rec.fallYaw - Math.PI * 0.5) around Y aligns local +X with world (sin(fallYaw), cos(fallYaw)).
           pooled.instance.object.rotation.order = 'YXZ';
-          pooled.instance.object.rotation.set(shakeAngle, rec.fallYaw, 0);
-          pooled.instance.object.scale.setScalar(rec.scale * baseScale);
+          pooled.instance.object.rotation.set(0, rec.fallYaw - Math.PI * 0.5, 0);
+          pooled.instance.object.scale.setScalar(rec.scale * handle.unitScale);
 
           if (rec.status === 'falling' || rec.status === 'fallen') {
-            if (pooled.instance.getState() !== 'death') {
-              pooled.instance.setState('death');
+            if (
+              pooled.instance.chopState !== 'falling' &&
+              pooled.instance.chopState !== 'fallen'
+            ) {
+              pooled.instance.fellTree();
             }
           } else if (rec.chops !== pooled.lastChopHits) {
             pooled.lastChopHits = rec.chops;
-            pooled.instance.setState('attack');
+            pooled.instance.hitTree();
           }
 
           pooled.instance.update(dt);
@@ -499,20 +838,21 @@ export function updateChoppableTreesVisuals(
         }
       }
 
-      // Fallback for palm/acacia or if skeletal pool is full: tilt instance matrix directly
+      // Fallback for palm/acacia or if flora pool is full: tilt instance matrix directly
       applyFallbackMatrixTilt(handle, rec);
     }
   }
 
   // Release any pooled rigs whose trees have been harvested or reset
-  for (let i = 0; i < pooledSkeletalTrees.length; i++) {
-    const p = pooledSkeletalTrees[i];
+  for (let i = 0; i < pooledFloraTrees.length; i++) {
+    const p = pooledFloraTrees[i];
     if (
       p.assignedObstacleIndex !== null &&
       !activeIndices.has(p.assignedObstacleIndex)
     ) {
       p.assignedObstacleIndex = null;
       p.instance.object.visible = false;
+      p.instance.resetTree();
     }
   }
 }
@@ -521,8 +861,8 @@ export function updateChoppableTreesVisuals(
 // ======================== BUILD VEGETATION MODELS ======================== \\
 // #region Build Vegetation Models
 /**
- * Summary: Constructs spatially sectorized, frustum-culled instanced forest trees, bushes,
- *          ferns, waterside cornflowers, boulders, palms, acacias, and swaying ground grass.
+ * Summary: Constructs spatially sectorized, frustum-culled instanced forest trees (with LOD0/LOD1),
+ *          bushes, ferns, waterside cornflowers & whiteflowers, boulders, palms, acacias, and swaying ground grass.
  * @param ctx Shared build context (scene, textures, disposal lists).
  */
 export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
@@ -538,36 +878,60 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     distanceCulledObjects,
   } = ctx;
 
+  activeSoftwareGlMode = isSoftwareGl;
   treeInstanceRegistry.clear();
-  pooledSkeletalTrees.length = 0;
-  masterSpeciesDrivers.length = 0;
+  pooledFloraTrees.length = 0;
+  masterFloraDrivers.clear();
+  treeSectorLodEntries.length = 0;
+  gpuFloraWindMaterials.length = 0;
 
   const treeMaxDist = isSoftwareGl ? TREE_SECTOR_MAX_DIST_SW : TREE_SECTOR_MAX_DIST;
   const undergrowthMaxDist = isSoftwareGl
     ? UNDERGROWTH_SECTOR_MAX_DIST_SW
     : UNDERGROWTH_SECTOR_MAX_DIST;
 
-  // Separate spatial sector registries for tall trees (230m range) vs small undergrowth/grass (112m range)
-  const treeSectorGroups = new Map<string, THREE.Group>();
-  const getTreeSectorGroup = (x: number, z: number): THREE.Group => {
+  // Separate spatial sector registries for tall trees (230m range, with LOD0 + LOD1 sub-groups) vs undergrowth (112m range)
+  const treeSectorMap = new Map<string, ITreeSectorLodEntry>();
+  const getTreeSectorLodEntry = (x: number, z: number): ITreeSectorLodEntry => {
     const gx = Math.round(x / VEG_SECTOR_SIZE);
     const gz = Math.round(z / VEG_SECTOR_SIZE);
     const key = `${gx},${gz}`;
-    let grp = treeSectorGroups.get(key);
-    if (!grp) {
-      grp = new THREE.Group();
-      scene.add(grp);
-      treeSectorGroups.set(key, grp);
+    let entry = treeSectorMap.get(key);
+    if (!entry) {
+      const rootGroup = new THREE.Group();
+      const lod0Group = new THREE.Group();
+      const lod1Group = new THREE.Group();
+      lod0Group.visible = true;
+      lod1Group.visible = false;
+      rootGroup.add(lod0Group, lod1Group);
+      scene.add(rootGroup);
+
+      const cx = gx * VEG_SECTOR_SIZE;
+      const cz = gz * VEG_SECTOR_SIZE;
+      entry = {
+        key,
+        cx,
+        cz,
+        rootGroup,
+        lod0Group,
+        lod1Group,
+        activeLod: 0,
+      };
+      treeSectorMap.set(key, entry);
+      treeSectorLodEntries.push(entry);
       distanceCulledObjects.push({
-        obj: grp,
-        cx: gx * VEG_SECTOR_SIZE,
-        cz: gz * VEG_SECTOR_SIZE,
+        obj: rootGroup,
+        cx,
+        cz,
         radius: VEG_SECTOR_RADIUS,
         maxDist: treeMaxDist,
       });
     }
-    return grp;
+    return entry;
   };
+
+  const getTreeSectorRootGroup = (x: number, z: number): THREE.Group =>
+    getTreeSectorLodEntry(x, z).rootGroup;
 
   const undergrowthSectorGroups = new Map<string, THREE.Group>();
   const getUndergrowthSectorGroup = (x: number, z: number): THREE.Group => {
@@ -590,11 +954,11 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     return grp;
   };
 
-  const groupBySector = <T extends { x: number; z: number }>(
+  const groupBySector = <T extends { x: number; z: number }, G>(
     items: readonly T[],
-    getGroupFn: (x: number, z: number) => THREE.Group
-  ): Map<THREE.Group, T[]> => {
-    const map = new Map<THREE.Group, T[]>();
+    getGroupFn: (x: number, z: number) => G
+  ): Map<G, T[]> => {
+    const map = new Map<G, T[]>();
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const grp = getGroupFn(item.x, item.z);
@@ -633,6 +997,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     scale: number;
     seed: number;
     kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia' | 'boulder';
+    floraKey?: TreeFloraKey;
   }
 
   const pines: IIndexedObstacle[] = [];
@@ -654,12 +1019,23 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       seed: o.seed,
       kind: o.kind,
     };
-    if (o.kind === 'pine') pines.push(entry);
-    else if (o.kind === 'oak') oaks.push(entry);
-    else if (o.kind === 'birch') birches.push(entry);
-    else if (o.kind === 'palm') palms.push(entry);
-    else if (o.kind === 'acacia') acacias.push(entry);
-    else if (o.kind === 'boulder') boulders.push(entry);
+    if (o.kind === 'pine') {
+      entry.floraKey = 'pinetree';
+      pines.push(entry);
+    } else if (o.kind === 'oak') {
+      // Distribute broadleaf oaks across all 4 custom broadleaf tree models
+      entry.floraKey = OAK_FLORA_VARIANTS[idx % OAK_FLORA_VARIANTS.length];
+      oaks.push(entry);
+    } else if (o.kind === 'birch') {
+      entry.floraKey = 'oakyellow';
+      birches.push(entry);
+    } else if (o.kind === 'palm') {
+      palms.push(entry);
+    } else if (o.kind === 'acacia') {
+      acacias.push(entry);
+    } else if (o.kind === 'boulder') {
+      boulders.push(entry);
+    }
   }
 
   // Broad canopy shade disc on the forest floor beneath every tall tree
@@ -678,415 +1054,224 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   shadowDiscGeo.rotateX(-Math.PI / 2);
   disposableGeometries.push(shadowDiscGeo);
 
-  // --- 1. UNPACK SINGLE PROTOTYPE GEOMETRY, RIG & MATERIAL PER PLANT SPECIES ---
-  const pineData = unpackPineTreeBundle(PINE_TREE_EMBEDDED_PACK_B64);
-  const oakGreenData = unpackOakGreenBundle(OAK_GREEN_EMBEDDED_PACK_B64);
-  const oakYellowData = unpackOakYellowBundle(OAK_YELLOW_EMBEDDED_PACK_B64);
-  const forestBushData = unpackForestBushBundle(FOREST_BUSH_EMBEDDED_PACK_B64);
-  const forestFernData = unpackForestFernBundle(FOREST_FERN_EMBEDDED_PACK_B64);
-  const cornflowerData = unpackCornflowerBundle(CORNFLOWER_EMBEDDED_PACK_B64);
+  // --- 1. UNPACK ALL 10 PLANT BUNDLES & BUILD STATIC GPU GEOMETRIES (LOD0 + LOD1) ---
+  const { gpuInstancedMaterials, cpuPoolMaterials } = buildSharedFloraMaterials(
+    disposableTextures,
+    disposableMaterials,
+    swayMaterials
+  );
+  const unpackedSubmeshesByKey = new Map<FloraKey, FloraSubmeshData[]>();
 
-  const pineTex = createPlantTexture(PINE_TREE_EMBEDDED_TEXTURE_URI, disposableTextures);
-  const oakGreenTex = createPlantTexture(OAK_GREEN_EMBEDDED_TEXTURE_URI, disposableTextures);
-  const oakYellowTex = createPlantTexture(OAK_YELLOW_EMBEDDED_TEXTURE_URI, disposableTextures);
-  const forestBushTex = createPlantTexture(FOREST_BUSH_EMBEDDED_TEXTURE_URI, disposableTextures);
-  const forestFernTex = createPlantTexture(FOREST_FERN_EMBEDDED_TEXTURE_URI, disposableTextures);
-  const cornflowerTex = createPlantTexture(CORNFLOWER_EMBEDDED_TEXTURE_URI, disposableTextures);
-
-  // Build optimized skinned geometries (stripping microscopic sub-centimeter triangles while keeping skinning weights)
-  const pineSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    pineData,
-    isSoftwareGl ? 0.0012 : 0.0008,
-    disposableGeometries
-  );
-  const oakGreenSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    oakGreenData,
-    isSoftwareGl ? 0.0009 : 0.0005,
-    disposableGeometries
-  );
-  const oakYellowSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    oakYellowData,
-    isSoftwareGl ? 0.0009 : 0.0005,
-    disposableGeometries
-  );
-  const forestBushSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    forestBushData,
-    0,
-    disposableGeometries
-  );
-  const forestFernSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    forestFernData,
-    0,
-    disposableGeometries
-  );
-  const cornflowerSkinnedGeo = buildOptimizedSkinnedPlantGeometry(
-    cornflowerData,
-    0,
-    disposableGeometries
-  );
-
-  // Create 1 pair of master skeletal animators per species (phase A + phase B offset by 1.6s)
-  const registerMasterDriver = (
-    speciesKey: IMasterSpeciesAnimationDriver['speciesKey'],
-    rigA: { skeleton: THREE.Skeleton },
-    animA: IMasterSpeciesAnimationDriver['animatorA'],
-    rigB: { skeleton: THREE.Skeleton },
-    animB: IMasterSpeciesAnimationDriver['animatorB']
-  ): IMasterSpeciesAnimationDriver => {
-    animA.setState('idle');
-    animB.setState('idle');
-    animB.time = 1.6;
-    animA.update(0);
-    animB.update(0);
-    rigA.skeleton.update();
-    rigB.skeleton.update();
-    const driver: IMasterSpeciesAnimationDriver = {
-      speciesKey,
-      animatorA: animA,
-      animatorB: animB,
-      skeletonA: rigA.skeleton,
-      skeletonB: rigB.skeleton,
-    };
-    masterSpeciesDrivers.push(driver);
-    return driver;
-  };
-
-  const pineRigA = new PineTreeRig(pineData);
-  const pineRigB = new PineTreeRig(pineData);
-  const pineDriver = registerMasterDriver(
-    'pine',
-    pineRigA,
-    new PineTreeAnimator(pineRigA, pineData),
-    pineRigB,
-    new PineTreeAnimator(pineRigB, pineData)
-  );
-
-  const oakGreenRigA = new OakGreenRig(oakGreenData);
-  const oakGreenRigB = new OakGreenRig(oakGreenData);
-  const oakGreenDriver = registerMasterDriver(
-    'oak',
-    oakGreenRigA,
-    new OakGreenAnimator(oakGreenRigA, oakGreenData),
-    oakGreenRigB,
-    new OakGreenAnimator(oakGreenRigB, oakGreenData)
-  );
-
-  const oakYellowRigA = new OakYellowRig(oakYellowData);
-  const oakYellowRigB = new OakYellowRig(oakYellowData);
-  const oakYellowDriver = registerMasterDriver(
-    'birch',
-    oakYellowRigA,
-    new OakYellowAnimator(oakYellowRigA, oakYellowData),
-    oakYellowRigB,
-    new OakYellowAnimator(oakYellowRigB, oakYellowData)
-  );
-
-  const bushRigA = new ForestBushRig(forestBushData);
-  const bushRigB = new ForestBushRig(forestBushData);
-  const bushDriver = registerMasterDriver(
-    'bush',
-    bushRigA,
-    new ForestBushAnimator(bushRigA, forestBushData),
-    bushRigB,
-    new ForestBushAnimator(bushRigB, forestBushData)
-  );
-
-  const fernRigA = new ForestFernRig(forestFernData);
-  const fernRigB = new ForestFernRig(forestFernData);
-  const fernDriver = registerMasterDriver(
-    'fern',
-    fernRigA,
-    new ForestFernAnimator(fernRigA, forestFernData),
-    fernRigB,
-    new ForestFernAnimator(fernRigB, forestFernData)
-  );
-
-  const flowerRigA = new CornflowerRig(cornflowerData);
-  const flowerRigB = new CornflowerRig(cornflowerData);
-  const flowerDriver = registerMasterDriver(
+  const allFloraKeys: FloraKey[] = [
+    'pinetree',
+    'oakgreen',
+    'oakyellow',
+    'animtree',
+    'animtree_wide',
+    'animtree_compact',
+    'forestbush',
+    'forestfern',
     'cornflower',
-    flowerRigA,
-    new CornflowerAnimator(flowerRigA, cornflowerData),
-    flowerRigB,
-    new CornflowerAnimator(flowerRigB, cornflowerData)
-  );
+    'whiteflower',
+  ];
 
-  const pinePlantMat = new THREE.MeshStandardMaterial({
-    map: pineTex,
-    alphaTest: 0.35,
-    roughness: 0.82,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
-  const oakGreenPlantMat = new THREE.MeshStandardMaterial({
-    map: oakGreenTex,
-    alphaTest: 0.35,
-    roughness: 0.82,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
-  const oakYellowPlantMat = new THREE.MeshStandardMaterial({
-    map: oakYellowTex,
-    alphaTest: 0.35,
-    roughness: 0.82,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
-  const forestBushPlantMat = new THREE.MeshStandardMaterial({
-    map: forestBushTex,
-    alphaTest: 0.35,
-    roughness: 0.84,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
-  const forestFernPlantMat = new THREE.MeshStandardMaterial({
-    map: forestFernTex,
-    alphaTest: 0.35,
-    roughness: 0.8,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
-  const cornflowerPlantMat = new THREE.MeshStandardMaterial({
-    map: cornflowerTex,
-    alphaTest: 0.35,
-    roughness: 0.78,
-    metalness: 0.02,
-    side: THREE.DoubleSide,
-  });
+  for (let k = 0; k < allFloraKeys.length; k++) {
+    const key = allFloraKeys[k];
+    const spec = FLORA_SPECS[key];
+    const isTree = spec.category !== 'vegetation';
+    const submeshes = unpackFloraBundle(spec.packB64);
+    unpackedSubmeshesByKey.set(key, submeshes);
 
-  attachPlantSkeletalAnimationShader(
-    pinePlantMat,
-    pineDriver.skeletonA,
-    pineDriver.skeletonB,
-    swayMaterials
-  );
-  attachPlantSkeletalAnimationShader(
-    oakGreenPlantMat,
-    oakGreenDriver.skeletonA,
-    oakGreenDriver.skeletonB,
-    swayMaterials
-  );
-  attachPlantSkeletalAnimationShader(
-    oakYellowPlantMat,
-    oakYellowDriver.skeletonA,
-    oakYellowDriver.skeletonB,
-    swayMaterials
-  );
-  attachPlantSkeletalAnimationShader(
-    forestBushPlantMat,
-    bushDriver.skeletonA,
-    bushDriver.skeletonB,
-    swayMaterials
-  );
-  attachPlantSkeletalAnimationShader(
-    forestFernPlantMat,
-    fernDriver.skeletonA,
-    fernDriver.skeletonB,
-    swayMaterials
-  );
-  attachPlantSkeletalAnimationShader(
-    cornflowerPlantMat,
-    flowerDriver.skeletonA,
-    flowerDriver.skeletonB,
-    swayMaterials
-  );
+    const submeshProtos: IFloraSubmeshProto[] = [];
+    let lod0TotalTriangles = 0;
+    let lod1TotalTriangles = 0;
 
-  disposableMaterials.push(
-    pinePlantMat,
-    oakGreenPlantMat,
-    oakYellowPlantMat,
-    forestBushPlantMat,
-    forestFernPlantMat,
-    cornflowerPlantMat
-  );
+    for (let m = 0; m < submeshes.length; m++) {
+      const sub = submeshes[m];
+      if (sub.matId === 7) continue; // Wood-cut ring is only needed on chopped CPU pool instances
 
-  // Create small pool of animated skeletal trees for active chopping & felling animations
-  const POOL_PER_SPECIES = 3;
-  for (let i = 0; i < POOL_PER_SPECIES; i++) {
-    const pRig = new PineTree(pineData, pineTex, {
-      scale: PINE_MODEL_BASE_SCALE,
-      castShadow: false,
-      receiveShadow: !isSoftwareGl,
-    });
-    pRig.object.visible = false;
-    scene.add(pRig.object);
-    pooledSkeletalTrees.push({
-      species: 'pine',
-      instance: pRig,
-      assignedObstacleIndex: null,
-      lastChopHits: 0,
-    });
+      const lod0 = buildStaticFloraSubmeshGeometry(
+        sub,
+        isTree,
+        spec.maxY,
+        false,
+        disposableGeometries
+      );
+      const lod1 = isTree
+        ? buildStaticFloraSubmeshGeometry(
+            sub,
+            true,
+            spec.maxY,
+            true,
+            disposableGeometries
+          )
+        : lod0;
 
-    const ogRig = new OakGreen(oakGreenData, oakGreenTex, {
-      scale: OAK_GREEN_MODEL_BASE_SCALE,
-      castShadow: false,
-      receiveShadow: !isSoftwareGl,
-    });
-    ogRig.object.visible = false;
-    scene.add(ogRig.object);
-    pooledSkeletalTrees.push({
-      species: 'oak',
-      instance: ogRig,
-      assignedObstacleIndex: null,
-      lastChopHits: 0,
-    });
+      lod0TotalTriangles += lod0.triangleCount;
+      lod1TotalTriangles += lod1.triangleCount;
 
-    const oyRig = new OakYellow(oakYellowData, oakYellowTex, {
-      scale: OAK_YELLOW_MODEL_BASE_SCALE,
-      castShadow: false,
-      receiveShadow: !isSoftwareGl,
+      submeshProtos.push({
+        matId: sub.matId,
+        material: gpuInstancedMaterials[sub.matId],
+        lod0Geometry: lod0.geometry,
+        lod1Geometry: lod1.geometry,
+        lod0Triangles: lod0.triangleCount,
+        lod1Triangles: lod1.triangleCount,
+      });
+    }
+
+    masterFloraDrivers.set(key, {
+      key,
+      submeshProtos,
+      lod0TotalTriangles,
+      lod1TotalTriangles,
     });
-    oyRig.object.visible = false;
-    scene.add(oyRig.object);
-    pooledSkeletalTrees.push({
-      species: 'birch',
-      instance: oyRig,
-      assignedObstacleIndex: null,
-      lastChopHits: 0,
-    });
+  }
+
+  // Create pool of animated CPU FloraModel trees exclusively for active chopping (hitTree) & felling (fellTree + wood-cut ring)
+  const treeFloraKeys: TreeFloraKey[] = [
+    'pinetree',
+    'oakgreen',
+    'oakyellow',
+    'animtree',
+    'animtree_wide',
+    'animtree_compact',
+  ];
+  const POOL_PER_TREE_VARIANT = 2;
+  for (let k = 0; k < treeFloraKeys.length; k++) {
+    const floraKey = treeFloraKeys[k];
+    const spec = FLORA_SPECS[floraKey];
+    const submeshes = unpackedSubmeshesByKey.get(floraKey)!;
+
+    for (let i = 0; i < POOL_PER_TREE_VARIANT; i++) {
+      const instance = new FloraModel(
+        `${floraKey}_pool_${i}`,
+        submeshes,
+        cpuPoolMaterials,
+        spec.baseScale
+      );
+      for (let m = 0; m < instance.meshes.length; m++) {
+        instance.meshes[m].castShadow = false;
+        instance.meshes[m].receiveShadow = !isSoftwareGl;
+        disposableGeometries.push(instance.meshes[m].geometry);
+      }
+      instance.object.visible = false;
+      scene.add(instance.object);
+      pooledFloraTrees.push({
+        floraKey,
+        instance,
+        assignedObstacleIndex: null,
+        lastChopHits: 0,
+      });
+    }
   }
 
   const cullDummy = new THREE.Object3D();
   const shadowDummy = new THREE.Object3D();
   const cullTint = new THREE.Color();
 
-  // --- A. TALL FOREST PINES (Single Skinned InstancedMesh per sector from PineTree_Complete) ---
-  for (const [sectorGrp, sectorPines] of groupBySector(pines, getTreeSectorGroup)) {
-    const n = sectorPines.length;
-    const mPine = new THREE.InstancedMesh(pineSkinnedGeo, pinePlantMat, n);
+  /**
+   * Helper to build multi-submesh InstancedMeshes for both LOD0 (near) and LOD1 (far)
+   * inside a single spatial tree sector.
+   */
+  const buildSectorTreeBatch = (
+    sectorEntry: ITreeSectorLodEntry,
+    sectorTrees: IIndexedObstacle[],
+    floraKey: TreeFloraKey,
+    shadowScaleFactor: number,
+    tintHueBase: number,
+    tintHueSpread: number,
+    tintSat: number
+  ): void => {
+    const n = sectorTrees.length;
+    if (n === 0) return;
+    const driver = masterFloraDrivers.get(floraKey)!;
+    const spec = FLORA_SPECS[floraKey];
+    const unitScale = spec.baseScale;
+
+    const lod0InstancedMeshes: THREE.InstancedMesh[] = [];
+    const lod1InstancedMeshes: THREE.InstancedMesh[] = [];
+    for (let m = 0; m < driver.submeshProtos.length; m++) {
+      const proto = driver.submeshProtos[m];
+      lod0InstancedMeshes.push(
+        new THREE.InstancedMesh(proto.lod0Geometry, proto.material, n)
+      );
+      lod1InstancedMeshes.push(
+        new THREE.InstancedMesh(proto.lod1Geometry, proto.material, n)
+      );
+    }
     const mShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
 
     for (let i = 0; i < n; i++) {
-      const p = sectorPines[i];
-      const gy = groundHeightAt(p.x, p.z);
-      cullDummy.position.set(p.x, gy - 0.08, p.z);
+      const t = sectorTrees[i];
+      const gy = groundHeightAt(t.x, t.z);
+      const tiltAmp = t.kind === 'pine' ? 0.04 : 0.02;
+      cullDummy.position.set(t.x, gy - 0.08, t.z);
       cullDummy.rotation.set(
-        (p.seed - 0.5) * 0.04,
-        p.seed * Math.PI * 2,
-        (p.seed - 0.5) * 0.04
+        (t.seed - 0.5) * tiltAmp,
+        t.seed * Math.PI * 2,
+        (t.seed - 0.5) * tiltAmp
       );
-      cullDummy.scale.setScalar(p.scale * PINE_MODEL_BASE_SCALE);
+      cullDummy.scale.setScalar(t.scale * unitScale);
       cullDummy.updateMatrix();
-      mPine.setMatrixAt(i, cullDummy.matrix);
 
       cullTint.setHSL(
-        0.28 + (p.seed - 0.5) * 0.03,
-        0.12,
-        0.92 + (p.seed - 0.5) * 0.12
+        tintHueBase + (t.seed - 0.5) * tintHueSpread,
+        tintSat,
+        0.92 + (t.seed - 0.5) * 0.12
       );
-      mPine.setColorAt(i, cullTint);
 
-      shadowDummy.position.set(p.x, gy + 0.03, p.z);
+      for (let m = 0; m < lod0InstancedMeshes.length; m++) {
+        lod0InstancedMeshes[m].setMatrixAt(i, cullDummy.matrix);
+        lod0InstancedMeshes[m].setColorAt(i, cullTint);
+        lod1InstancedMeshes[m].setMatrixAt(i, cullDummy.matrix);
+        lod1InstancedMeshes[m].setColorAt(i, cullTint);
+      }
+
+      shadowDummy.position.set(t.x, gy + 0.03, t.z);
       shadowDummy.rotation.set(0, 0, 0);
-      shadowDummy.scale.setScalar(p.scale * 1.35);
+      shadowDummy.scale.setScalar(t.scale * shadowScaleFactor);
       shadowDummy.updateMatrix();
       mShadow.setMatrixAt(i, shadowDummy.matrix);
 
-      treeInstanceRegistry.set(p.obstacleIndex, {
-        obstacleIndex: p.obstacleIndex,
-        kind: 'pine',
-        meshes: [mPine],
+      treeInstanceRegistry.set(t.obstacleIndex, {
+        obstacleIndex: t.obstacleIndex,
+        kind: t.kind as 'pine' | 'oak' | 'birch',
+        floraKey,
+        meshes: [...lod0InstancedMeshes, ...lod1InstancedMeshes],
         shadowMesh: mShadow,
         instanceIndex: i,
         baseMatrix: cullDummy.matrix.clone(),
         baseShadowMatrix: shadowDummy.matrix.clone(),
-        unitScale: PINE_MODEL_BASE_SCALE,
+        unitScale,
         isHiddenInInstancedMesh: false,
       });
     }
 
-    finalizeInstancedMesh(mPine, n, false, true, sectorGrp);
-    finalizeInstancedMesh(mShadow, n, false, false, sectorGrp);
+    for (let m = 0; m < lod0InstancedMeshes.length; m++) {
+      finalizeInstancedMesh(lod0InstancedMeshes[m], n, false, true, sectorEntry.lod0Group);
+      finalizeInstancedMesh(lod1InstancedMeshes[m], n, false, false, sectorEntry.lod1Group);
+    }
+    finalizeInstancedMesh(mShadow, n, false, false, sectorEntry.lod0Group);
+  };
+
+  // --- A. TALL FOREST PINES (Multi-submesh LOD0/LOD1 InstancedMeshes from PineTree_Complete) ---
+  for (const [sectorEntry, sectorPines] of groupBySector(pines, getTreeSectorLodEntry)) {
+    buildSectorTreeBatch(sectorEntry, sectorPines, 'pinetree', 1.35, 0.28, 0.03, 0.12);
   }
 
-  // --- B. MATURE GREEN OAKS (Single Skinned InstancedMesh per sector from OakGreen_Complete) ---
-  for (const [sectorGrp, sectorOaks] of groupBySector(oaks, getTreeSectorGroup)) {
-    const n = sectorOaks.length;
-    const oMesh = new THREE.InstancedMesh(oakGreenSkinnedGeo, oakGreenPlantMat, n);
-    const oShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
-
-    for (let i = 0; i < n; i++) {
-      const o = sectorOaks[i];
-      const gy = groundHeightAt(o.x, o.z);
-      cullDummy.position.set(o.x, gy - 0.08, o.z);
-      cullDummy.rotation.set(0, o.seed * Math.PI * 2, 0);
-      cullDummy.scale.setScalar(o.scale * OAK_GREEN_MODEL_BASE_SCALE);
-      cullDummy.updateMatrix();
-      oMesh.setMatrixAt(i, cullDummy.matrix);
-
-      cullTint.setHSL(
-        0.25 + (o.seed - 0.5) * 0.04,
-        0.14,
-        0.92 + (o.seed - 0.5) * 0.12
-      );
-      oMesh.setColorAt(i, cullTint);
-
-      shadowDummy.position.set(o.x, gy + 0.03, o.z);
-      shadowDummy.rotation.set(0, 0, 0);
-      shadowDummy.scale.setScalar(o.scale * 1.55);
-      shadowDummy.updateMatrix();
-      oShadow.setMatrixAt(i, shadowDummy.matrix);
-
-      treeInstanceRegistry.set(o.obstacleIndex, {
-        obstacleIndex: o.obstacleIndex,
-        kind: 'oak',
-        meshes: [oMesh],
-        shadowMesh: oShadow,
-        instanceIndex: i,
-        baseMatrix: cullDummy.matrix.clone(),
-        baseShadowMatrix: shadowDummy.matrix.clone(),
-        unitScale: OAK_GREEN_MODEL_BASE_SCALE,
-        isHiddenInInstancedMesh: false,
-      });
+  // --- B. BROADLEAF FOREST TREES (OakGreen, AnimTree, AnimTreeWide, AnimTreeCompact with LOD0/LOD1) ---
+  for (const [sectorEntry, sectorOaks] of groupBySector(oaks, getTreeSectorLodEntry)) {
+    for (let v = 0; v < OAK_FLORA_VARIANTS.length; v++) {
+      const variantKey = OAK_FLORA_VARIANTS[v];
+      const variantTrees = sectorOaks.filter((o) => o.floraKey === variantKey);
+      buildSectorTreeBatch(sectorEntry, variantTrees, variantKey, 1.55, 0.25, 0.04, 0.14);
     }
-
-    finalizeInstancedMesh(oMesh, n, false, true, sectorGrp);
-    finalizeInstancedMesh(oShadow, n, false, false, sectorGrp);
   }
 
-  // --- C. GOLDEN AUTUMN TREES (Single Skinned InstancedMesh per sector from OakYellow_Complete) ---
-  for (const [sectorGrp, sectorBirches] of groupBySector(birches, getTreeSectorGroup)) {
-    const n = sectorBirches.length;
-    const brMesh = new THREE.InstancedMesh(oakYellowSkinnedGeo, oakYellowPlantMat, n);
-    const brShadow = new THREE.InstancedMesh(shadowDiscGeo, contactShadowMat, n);
-
-    for (let i = 0; i < n; i++) {
-      const br = sectorBirches[i];
-      const gy = groundHeightAt(br.x, br.z);
-      cullDummy.position.set(br.x, gy - 0.08, br.z);
-      cullDummy.rotation.set(0, br.seed * Math.PI * 2, 0);
-      cullDummy.scale.setScalar(br.scale * OAK_YELLOW_MODEL_BASE_SCALE);
-      cullDummy.updateMatrix();
-      brMesh.setMatrixAt(i, cullDummy.matrix);
-
-      cullTint.setHSL(
-        0.1 + (br.seed - 0.5) * 0.04,
-        0.18,
-        0.92 + (br.seed - 0.5) * 0.12
-      );
-      brMesh.setColorAt(i, cullTint);
-
-      shadowDummy.position.set(br.x, gy + 0.03, br.z);
-      shadowDummy.rotation.set(0, 0, 0);
-      shadowDummy.scale.setScalar(br.scale * 1.35);
-      shadowDummy.updateMatrix();
-      brShadow.setMatrixAt(i, shadowDummy.matrix);
-
-      treeInstanceRegistry.set(br.obstacleIndex, {
-        obstacleIndex: br.obstacleIndex,
-        kind: 'birch',
-        meshes: [brMesh],
-        shadowMesh: brShadow,
-        instanceIndex: i,
-        baseMatrix: cullDummy.matrix.clone(),
-        baseShadowMatrix: shadowDummy.matrix.clone(),
-        unitScale: OAK_YELLOW_MODEL_BASE_SCALE,
-        isHiddenInInstancedMesh: false,
-      });
-    }
-
-    finalizeInstancedMesh(brMesh, n, false, true, sectorGrp);
-    finalizeInstancedMesh(brShadow, n, false, false, sectorGrp);
+  // --- C. GOLDEN AUTUMN TREES (Multi-submesh LOD0/LOD1 InstancedMeshes from OakYellow_Complete) ---
+  for (const [sectorEntry, sectorBirches] of groupBySector(birches, getTreeSectorLodEntry)) {
+    buildSectorTreeBatch(sectorEntry, sectorBirches, 'oakyellow', 1.35, 0.1, 0.04, 0.18);
   }
 
   // --- D. BOULDER 3-PART GEOMETRIES ---
@@ -1140,7 +1325,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
 
   disposableGeometries.push(boulderMainGeo, boulderSideGeo, boulderMossGeo);
 
-  for (const [sectorGrp, sectorBoulders] of groupBySector(boulders, getTreeSectorGroup)) {
+  for (const [sectorGrp, sectorBoulders] of groupBySector(boulders, getTreeSectorRootGroup)) {
     const n = sectorBoulders.length;
     const bMain = new THREE.InstancedMesh(boulderMainGeo, rockMat, n);
     const bSide = new THREE.InstancedMesh(boulderSideGeo, rockMat, n);
@@ -1227,7 +1412,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     instAcaciaTier2Geo
   );
 
-  for (const [sectorGrp, sectorPalms] of groupBySector(palms, getTreeSectorGroup)) {
+  for (const [sectorGrp, sectorPalms] of groupBySector(palms, getTreeSectorRootGroup)) {
     const n = sectorPalms.length;
     const pTrunkIM = new THREE.InstancedMesh(instPalmTrunkGeo, barkMat, n);
     const pCrown1IM = new THREE.InstancedMesh(instPalmCrownGeo, palmCrownMat, n);
@@ -1268,7 +1453,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     finalizeInstancedMesh(pShadowIM, n, false, false, sectorGrp);
   }
 
-  for (const [sectorGrp, sectorAcacias] of groupBySector(acacias, getTreeSectorGroup)) {
+  for (const [sectorGrp, sectorAcacias] of groupBySector(acacias, getTreeSectorRootGroup)) {
     const n = sectorAcacias.length;
     const acTrunkIM = new THREE.InstancedMesh(instAcaciaTrunkGeo, barkMat, n);
     const acBrLIM = new THREE.InstancedMesh(instAcaciaBranchLGeo, barkMat, n);
@@ -1315,7 +1500,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     finalizeInstancedMesh(acShadowIM, n, false, false, sectorGrp);
   }
 
-  // --- F. BOTANICAL UNDERGROWTH & WATERSIDE CORNFLOWER WILDFLOWERS ---
+  // --- F. BOTANICAL UNDERGROWTH (ForestBush, ForestFern) & WILDFLOWERS (Cornflower, WhiteFlower) ---
   interface IFloraSample {
     x: number;
     z: number;
@@ -1324,9 +1509,10 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   const bushSamples: IFloraSample[] = [];
   const fernSamples: IFloraSample[] = [];
   const cornflowerSamples: IFloraSample[] = [];
+  const whiteflowerSamples: IFloraSample[] = [];
   const fDummy = new THREE.Object3D();
 
-  // Place ForestBushes and ForestFerns near woodland trees
+  // Place ForestBushes, ForestFerns, and woodland-edge WhiteFlowers near woodland trees
   const woodlandTrees = [...pines, ...oaks, ...birches];
   const bushStride = isSoftwareGl ? 4 : 3;
   for (let i = 0; i < woodlandTrees.length; i += bushStride) {
@@ -1358,44 +1544,90 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       fDummy.updateMatrix();
       fernSamples.push({ x: fx, z: fz, matrix: fDummy.matrix.clone() });
     }
+
+    // Place WhiteFlower clusters along sunlit glades near every 2nd woodland stride
+    if (i % (bushStride * 2) === 0) {
+      const wang = ang + 4.05;
+      const wdist = 3.0 + r2 * 3.8;
+      const wx = t.x + Math.cos(wang) * wdist;
+      const wz = t.z + Math.sin(wang) * wdist;
+      const wy = groundHeightAt(wx, wz);
+      if (wy > WATER_LEVEL + 0.3 && trailFactorAt(wx, wz) < 0.25 && isInsideBearCave(wx, wz) === null) {
+        fDummy.position.set(wx, wy - 0.02, wz);
+        fDummy.rotation.set(0, (r1 + r2) * Math.PI, 0);
+        fDummy.scale.setScalar((0.82 + r2 * 0.42) * WHITE_FLOWER_BASE_SCALE);
+        fDummy.updateMatrix();
+        whiteflowerSamples.push({ x: wx, z: wz, matrix: fDummy.matrix.clone() });
+      }
+    }
   }
 
-  // Place Cornflowers strictly in waterside habitats (lake shores, waterfall pool, riverbanks, oasis lagoon)
+  // Place Cornflowers & WhiteFlowers in waterside habitats (lake shores, waterfall pool, riverbanks, oasis lagoon)
   const watersideFlowers = generateWatersideCornflowerPositions(isSoftwareGl ? 150 : 280);
   for (let i = 0; i < watersideFlowers.length; i++) {
     const wf = watersideFlowers[i];
     fDummy.position.set(wf.x, wf.y, wf.z);
     fDummy.rotation.set(0, wf.yaw, 0);
-    fDummy.scale.setScalar(wf.scale * CORNFLOWER_BASE_SCALE);
-    fDummy.updateMatrix();
-    cornflowerSamples.push({ x: wf.x, z: wf.z, matrix: fDummy.matrix.clone() });
+    if (i % 3 === 2) {
+      fDummy.scale.setScalar(wf.scale * WHITE_FLOWER_BASE_SCALE);
+      fDummy.updateMatrix();
+      whiteflowerSamples.push({ x: wf.x, z: wf.z, matrix: fDummy.matrix.clone() });
+    } else {
+      fDummy.scale.setScalar(wf.scale * CORNFLOWER_BASE_SCALE);
+      fDummy.updateMatrix();
+      cornflowerSamples.push({ x: wf.x, z: wf.z, matrix: fDummy.matrix.clone() });
+    }
   }
 
+  const bushProto = masterFloraDrivers.get('forestbush')!.submeshProtos[0];
   for (const [sectorGrp, sectorBushes] of groupBySector(bushSamples, getUndergrowthSectorGroup)) {
     const n = sectorBushes.length;
-    const bushIM = new THREE.InstancedMesh(forestBushSkinnedGeo, forestBushPlantMat, n);
+    const bushIM = new THREE.InstancedMesh(bushProto.lod0Geometry, bushProto.material, n);
     for (let i = 0; i < n; i++) {
       bushIM.setMatrixAt(i, sectorBushes[i].matrix);
     }
     finalizeInstancedMesh(bushIM, n, false, false, sectorGrp);
   }
 
+  const fernProto = masterFloraDrivers.get('forestfern')!.submeshProtos[0];
   for (const [sectorGrp, sectorFerns] of groupBySector(fernSamples, getUndergrowthSectorGroup)) {
     const n = sectorFerns.length;
-    const fernIM = new THREE.InstancedMesh(forestFernSkinnedGeo, forestFernPlantMat, n);
+    const fernIM = new THREE.InstancedMesh(fernProto.lod0Geometry, fernProto.material, n);
     for (let i = 0; i < n; i++) {
       fernIM.setMatrixAt(i, sectorFerns[i].matrix);
     }
     finalizeInstancedMesh(fernIM, n, false, false, sectorGrp);
   }
 
+  const cornflowerProto = masterFloraDrivers.get('cornflower')!.submeshProtos[0];
   for (const [sectorGrp, sectorFlowers] of groupBySector(cornflowerSamples, getUndergrowthSectorGroup)) {
     const n = sectorFlowers.length;
-    const flowerIM = new THREE.InstancedMesh(cornflowerSkinnedGeo, cornflowerPlantMat, n);
+    const flowerIM = new THREE.InstancedMesh(
+      cornflowerProto.lod0Geometry,
+      cornflowerProto.material,
+      n
+    );
     for (let i = 0; i < n; i++) {
       flowerIM.setMatrixAt(i, sectorFlowers[i].matrix);
     }
     finalizeInstancedMesh(flowerIM, n, false, false, sectorGrp);
+  }
+
+  const whiteflowerProto = masterFloraDrivers.get('whiteflower')!.submeshProtos[0];
+  for (const [sectorGrp, sectorWhiteFlowers] of groupBySector(
+    whiteflowerSamples,
+    getUndergrowthSectorGroup
+  )) {
+    const n = sectorWhiteFlowers.length;
+    const whiteFlowerIM = new THREE.InstancedMesh(
+      whiteflowerProto.lod0Geometry,
+      whiteflowerProto.material,
+      n
+    );
+    for (let i = 0; i < n; i++) {
+      whiteFlowerIM.setMatrixAt(i, sectorWhiteFlowers[i].matrix);
+    }
+    finalizeInstancedMesh(whiteFlowerIM, n, false, false, sectorGrp);
   }
 
   // --- G. SWAYING MEADOW GRASS TUFTS & WATERSIDE REEDS (Sectorized with 112m distance culling) ---
