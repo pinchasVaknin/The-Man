@@ -174,13 +174,13 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   },
   {
     id: 'hunter-lodge-starter-chest',
-    minX: HUNTER_LODGE_POS.x + 2.4 - 0.68,
-    maxX: HUNTER_LODGE_POS.x + 2.4 + 0.68,
-    minZ: HUNTER_LODGE_POS.z + 0.8 - 0.44,
-    maxZ: HUNTER_LODGE_POS.z + 0.8 + 0.44,
+    minX: HUNTER_LODGE_POS.x + 3.55 - 0.68,
+    maxX: HUNTER_LODGE_POS.x + 3.55 + 0.68,
+    minZ: HUNTER_LODGE_POS.z + 2.95 - 0.44,
+    maxZ: HUNTER_LODGE_POS.z + 2.95 + 0.44,
     minY: HUNTER_LODGE_POS.height + 0.18,
     maxY: HUNTER_LODGE_POS.height + 1.15,
-    yaw: 0.35,
+    yaw: 0,
   },
   {
     id: 'hunter-water-trough',
@@ -1011,8 +1011,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'sw-alchemist-east-south', minX: SOUTHWEST_OASIS_POS.pavilionX + 4.9, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.5, minZ: SOUTHWEST_OASIS_POS.pavilionZ + 1.35, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.6, maxY: 11.2 },
   // Oasis Fountain central sculpted spire (outer rim & basin are climbable in walkableHeightAt!)
   { id: 'sw-oasis-fountain-center-spire', minX: SOUTHWEST_OASIS_POS.fountainX - 0.75, maxX: SOUTHWEST_OASIS_POS.fountainX + 0.75, minZ: SOUTHWEST_OASIS_POS.fountainZ - 0.75, maxZ: SOUTHWEST_OASIS_POS.fountainZ + 0.75, maxY: 8.8 },
-  // Market Stall solid counters & full Oriented Bounding Box (OBB) booth frames (including all 6 Harbor Market Stalls rotated toward Harbor Fountain)
-  { id: 'market-stall-counter-fortress', minX: -19.6, maxX: -16.4, minZ: -102.0, maxZ: -100.2, maxY: 28.2 },
+  // Market Stall solid counters & full Oriented Bounding Box (OBB) booth frames (all 6 Harbor Market Stalls rotated toward Harbor Fountain)
   {
     id: 'market-stall-counter-harbor-1',
     minX: 212.0 - 2.15,
@@ -1073,7 +1072,6 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxY: 6.2,
     yaw: Math.atan2(SOUTHEAST_HARBOR_POS.fountainX - 246.0, SOUTHEAST_HARBOR_POS.fountainZ - 246.0),
   },
-  { id: 'market-stall-counter-oasis', minX: -299.6, maxX: -296.4, minZ: 295.2, maxZ: 296.8, maxY: 6.9 },
   ...DWARVEN_GUARDIAN_STATUES.map((st) => ({
     id: `${st.id}-pedestal`,
     minX: st.x - st.pedestalHalfSize,
@@ -1887,6 +1885,22 @@ export function getObstacleColliderMetrics(obs: IObstacleCylinder): {
   readonly radius: number;
   readonly height: number;
 } {
+  if (obs.treeVariant) {
+    switch (obs.treeVariant) {
+      case 'pinetree':
+        return { radius: obs.radius, height: 14.5 * obs.scale };
+      case 'oakgreen':
+        return { radius: obs.radius, height: 11.0 * obs.scale };
+      case 'oakyellow':
+        return { radius: obs.radius, height: 10.8 * obs.scale };
+      case 'animtree':
+        return { radius: obs.radius, height: 10.0 * obs.scale };
+      case 'animtree_wide':
+        return { radius: obs.radius, height: 8.8 * obs.scale };
+      case 'animtree_compact':
+        return { radius: obs.radius, height: 7.9 * obs.scale };
+    }
+  }
   switch (obs.kind) {
     case 'pine':
       return { radius: obs.radius, height: 12.4 * obs.scale };
@@ -1903,6 +1917,76 @@ export function getObstacleColliderMetrics(obs: IObstacleCylinder): {
     case 'pillar':
       return { radius: obs.radius, height: 3.5 * obs.scale };
   }
+}
+
+const SOLID_BOX_GRID_CELL_SIZE = 32.0;
+const EMPTY_SOLID_BOX_LIST: readonly ISolidBuildingBox[] = [];
+const _nearbySolidBoxesScratch: ISolidBuildingBox[] = [];
+let cachedSolidBoxGrid: Map<number, ISolidBuildingBox[]> | null = null;
+
+function encodeSolidBoxCellKey(cx: number, cz: number): number {
+  return ((cx + 512) << 10) | ((cz + 512) & 1023);
+}
+
+function getOrBuildSolidBoxGrid(): Map<number, ISolidBuildingBox[]> {
+  if (cachedSolidBoxGrid) return cachedSolidBoxGrid;
+  const grid = new Map<number, ISolidBuildingBox[]>();
+  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
+    const box = SOLID_BUILDING_BOXES[i];
+    const aabb = getSolidBuildingWorldAABB(box);
+    const minCx = Math.floor(aabb.minX / SOLID_BOX_GRID_CELL_SIZE);
+    const maxCx = Math.floor(aabb.maxX / SOLID_BOX_GRID_CELL_SIZE);
+    const minCz = Math.floor(aabb.minZ / SOLID_BOX_GRID_CELL_SIZE);
+    const maxCz = Math.floor(aabb.maxZ / SOLID_BOX_GRID_CELL_SIZE);
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cz = minCz; cz <= maxCz; cz++) {
+        const key = encodeSolidBoxCellKey(cx, cz);
+        let bucket = grid.get(key);
+        if (!bucket) {
+          bucket = [];
+          grid.set(key, bucket);
+        }
+        bucket.push(box);
+      }
+    }
+  }
+  cachedSolidBoxGrid = grid;
+  return grid;
+}
+
+/**
+ * Summary: O(1) spatial hash query returning candidate `SOLID_BUILDING_BOXES` overlapping `(x ± radius, z ± radius)`.
+ * Design: Eliminates linear scans over all 400+ world building boxes during per-frame wildlife and player collision checks.
+ */
+export function getNearbySolidBuildingBoxes(
+  x: number,
+  z: number,
+  radius = 1.5
+): readonly ISolidBuildingBox[] {
+  const grid = getOrBuildSolidBoxGrid();
+  const minCx = Math.floor((x - radius) / SOLID_BOX_GRID_CELL_SIZE);
+  const maxCx = Math.floor((x + radius) / SOLID_BOX_GRID_CELL_SIZE);
+  const minCz = Math.floor((z - radius) / SOLID_BOX_GRID_CELL_SIZE);
+  const maxCz = Math.floor((z + radius) / SOLID_BOX_GRID_CELL_SIZE);
+
+  if (minCx === maxCx && minCz === maxCz) {
+    return grid.get(encodeSolidBoxCellKey(minCx, minCz)) ?? EMPTY_SOLID_BOX_LIST;
+  }
+
+  _nearbySolidBoxesScratch.length = 0;
+  for (let cx = minCx; cx <= maxCx; cx++) {
+    for (let cz = minCz; cz <= maxCz; cz++) {
+      const bucket = grid.get(encodeSolidBoxCellKey(cx, cz));
+      if (!bucket) continue;
+      for (let i = 0; i < bucket.length; i++) {
+        const b = bucket[i];
+        if (!_nearbySolidBoxesScratch.includes(b)) {
+          _nearbySolidBoxesScratch.push(b);
+        }
+      }
+    }
+  }
+  return _nearbySolidBoxesScratch;
 }
 // #endregion
 

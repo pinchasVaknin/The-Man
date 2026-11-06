@@ -2900,7 +2900,7 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
     'Expected Hunter Cabin exterior stone chimney (-97.2, 73.2) to have accurate collision'
   );
   const hunterChest = SOLID_BUILDING_BOXES.find((b) => b.id === 'hunter-lodge-starter-chest')!;
-  assert.equal(hunterChest.yaw, 0.35, 'Expected Hunter Cabin starter chest to use rotated OBB matching yaw=0.35');
+  assert.equal(hunterChest.yaw, 0, 'Expected Hunter Cabin starter chest to match visual chest yaw=0');
   assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-lodge-bed'), 'Expected Hunter Cabin bed hitbox');
   assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-lodge-table'), 'Expected Hunter Cabin table hitbox');
   assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'hunter-water-pump'), 'Expected Hunter Cabin water pump hitbox');

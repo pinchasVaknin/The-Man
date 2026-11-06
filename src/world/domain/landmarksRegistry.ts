@@ -133,6 +133,7 @@ export {
   getSolidBuildingWorldAABB,
   pointInsideSolidBuildingBox,
   resolveHorizontalBoxCollision,
+  getNearbySolidBuildingBoxes,
   COLLIDABLE_WORLD_ENTITY_REGISTRY,
   validateWorldEntityColliders,
   getObstacleColliderMetrics,
