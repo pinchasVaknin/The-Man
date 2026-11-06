@@ -321,6 +321,13 @@ export interface IObstacleCylinder {
   readonly kind: 'pine' | 'oak' | 'birch' | 'palm' | 'acacia' | 'boulder' | 'pillar';
   readonly scale: number;
   readonly seed: number;
+  readonly treeVariant?:
+    | 'pinetree'
+    | 'oakgreen'
+    | 'oakyellow'
+    | 'animtree'
+    | 'animtree_wide'
+    | 'animtree_compact';
 }
 
 /**

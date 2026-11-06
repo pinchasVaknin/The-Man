@@ -20,6 +20,7 @@ import {
   SOUTHERN_DRAGON_RUINS_POS,
   SOLID_BUILDING_BOXES,
   resolveHorizontalBoxCollision,
+  getNearbySolidBuildingBoxes,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
 import { t } from '../../locales';
@@ -1493,9 +1494,10 @@ function resolveAnimalObstacleCollision(
   let z = nextZ;
   let hitObstacle = false;
 
-  // 1. Solid building & carved mountain cave cliff walls (SOLID_BUILDING_BOXES, including rotated OBBs)
-  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
-    const b = SOLID_BUILDING_BOXES[i];
+  // 1. Solid building & carved mountain cave cliff walls (O(1) spatial hash lookup via getNearbySolidBuildingBoxes)
+  const nearbyBoxes = getNearbySolidBuildingBoxes(x, z, radius + 1.0);
+  for (let i = 0; i < nearbyBoxes.length; i++) {
+    const b = nearbyBoxes[i];
     const resolved = resolveHorizontalBoxCollision(x, z, radius, b);
     if (resolved.collided) {
       x = resolved.x;
@@ -1582,9 +1584,16 @@ function advanceAnimalWithWaterShoreRecovery(
     }
   }
 
-  const nextWalkableY = walkableHeightAt(nextX, nextZ, a.y).height;
-  const currentWalkableY = walkableHeightAt(a.x, a.z, a.y).height;
+  const movedHorizontally = Math.abs(nextX - a.x) > 1e-5 || Math.abs(nextZ - a.z) > 1e-5;
   const dryLandThreshold = WATER_LEVEL + 0.12;
+  if (!movedHorizontally && !isCroc && !a.inWater && a.y > dryLandThreshold) {
+    return;
+  }
+
+  const nextWalkableY = walkableHeightAt(nextX, nextZ, a.y).height;
+  const currentWalkableY = movedHorizontally
+    ? walkableHeightAt(a.x, a.z, a.y).height
+    : nextWalkableY;
 
   if (isCroc) {
     const inWaterNow = nextWalkableY <= dryLandThreshold || currentWalkableY <= dryLandThreshold;
@@ -1749,13 +1758,15 @@ export function stepSmallAnimals(
 
     // Dead animals stay anchored on top of the terrain. Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
     if (a.isDead) {
-      a.vx = 0;
-      a.vz = 0;
-      a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
-      a.isResting = false;
-      a.isSeekingShelter = false;
-      a.isFleeing = false;
-      a.aiBehavior = 'dead';
+      if (a.aiBehavior !== 'dead' || a.vx !== 0 || a.vz !== 0) {
+        a.vx = 0;
+        a.vz = 0;
+        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
+        a.isResting = false;
+        a.isSeekingShelter = false;
+        a.isFleeing = false;
+        a.aiBehavior = 'dead';
+      }
       if (a.isBoss || a.species === 'dragon') {
         a.respawnTimer = undefined;
         continue;
@@ -1831,9 +1842,19 @@ export function stepSmallAnimals(
       continue;
     }
 
-    // Fast path while player is flying high/fast: skip full AI and terrain/obstacle queries for distant off-screen animals (> 210m)
-    if (playerStateRef?.isFlying && distP > 210.0 && !a.isMountedByPlayer) {
-      continue;
+    // Fast path in live gameplay: throttle full AI and terrain/obstacle queries for distant off-screen unprovoked animals (> 185m)
+    if (
+      playerStateRef &&
+      distP > 185.0 &&
+      !a.isMountedByPlayer &&
+      !a.isTamed &&
+      (a.wokenUpTimer ?? 0) <= 0 &&
+      a.fleeCooldown <= 0 &&
+      a.alertLevel === 'grazing'
+    ) {
+      if (playerStateRef.isFlying || ((i + Math.floor(elapsedTime * 60)) & 7) !== 0) {
+        continue;
+      }
     }
 
     // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,

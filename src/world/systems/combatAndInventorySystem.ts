@@ -30,6 +30,7 @@ import {
   getObstacleColliderMetrics,
   getSolidBuildingWorldAABB,
   pointInsideSolidBuildingBox,
+  getNearbySolidBuildingBoxes,
   ARCHERY_TARGETS,
   MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
@@ -174,17 +175,6 @@ export const ARCHERY_TARGETS_SPATIAL_GRID = new SpatialHashGrid2D<IArcheryTarget
 for (const tgt of ARCHERY_TARGETS) {
   const r = tgt.bullseyeRadius + 1.0;
   ARCHERY_TARGETS_SPATIAL_GRID.insert(tgt, tgt.x - r, tgt.x + r, tgt.z - r, tgt.z + r);
-}
-
-/**
- * Summary: Get nearby solid building boxes.
- * Design: Standard function implementing domain specifications and behavioral contracts.
- * @param x World X in meters.
- * @param z World Z in meters.
- * @returns Building collision boxes close to the point.
- */
-export function getNearbySolidBuildingBoxes(x: number, z: number): readonly ISolidBuildingBox[] {
-  return SOLID_BUILDING_SPATIAL_GRID.query(x, z);
 }
 
 /**

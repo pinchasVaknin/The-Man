@@ -133,6 +133,24 @@ export function unpackFloraBundle(b64: string): FloraSubmeshData[] {
       indices: idx.slice(),
     });
   }
+
+  // Center tree geometry around the actual lower trunk center (stored in matId === 7 wood-cut ring center vertex 0)
+  // so every standing tree's trunk sits at exact local (0, 0) matching its physics cylinder collider and squirrel climb path.
+  const cutRingSub = subs.find((s) => s.matId === 7);
+  if (cutRingSub && cutRingSub.positions.length >= 3) {
+    const trunkCx = cutRingSub.positions[0];
+    const trunkCz = cutRingSub.positions[2];
+    if (Math.abs(trunkCx) > 1e-4 || Math.abs(trunkCz) > 1e-4) {
+      for (let s = 0; s < subs.length; s++) {
+        const pos = subs[s].positions;
+        for (let i = 0; i < pos.length; i += 3) {
+          pos[i] -= trunkCx;
+          pos[i + 2] -= trunkCz;
+        }
+      }
+    }
+  }
+
   return subs;
 }
 

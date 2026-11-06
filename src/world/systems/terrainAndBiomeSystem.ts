@@ -2727,6 +2727,27 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
   }
 
   const hillRings = [13.5, 19.0, 25.0, 31.0];
+  const OAK_VARIANTS = [
+    'oakgreen',
+    'animtree',
+    'animtree_wide',
+    'animtree_compact',
+  ] as const;
+  const getOakTrunkRadiusFactor = (
+    variant: (typeof OAK_VARIANTS)[number]
+  ): number => {
+    switch (variant) {
+      case 'oakgreen':
+        return 0.68;
+      case 'animtree':
+        return 0.26;
+      case 'animtree_wide':
+        return 0.41;
+      case 'animtree_compact':
+        return 0.28;
+    }
+  };
+
   for (let rIdx = 0; rIdx < hillRings.length; rIdx++) {
     const rad = hillRings[rIdx];
     const count = 12 + rIdx * 4;
@@ -2745,13 +2766,15 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
       if (pathDist < 4.4) continue;
       const isOak = (i + rIdx) % 3 === 0;
       const scale = 0.96 + ((i * 7 + rIdx * 3) % 5) * 0.08;
+      const oakVariant = OAK_VARIANTS[obstacles.length % OAK_VARIANTS.length];
       obstacles.push({
         x: tx,
         z: tz,
-        radius: isOak ? 0.52 * scale : 0.42 * scale,
+        radius: (isOak ? getOakTrunkRadiusFactor(oakVariant) : 0.43) * scale,
         kind: isOak ? 'oak' : 'pine',
         scale,
         seed: ((i * 13 + rIdx * 29) % 100) / 100,
+        treeVariant: isOak ? oakVariant : 'pinetree',
       });
     }
   }
@@ -2799,6 +2822,7 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
           kind: 'birch',
           scale,
           seed: r3,
+          treeVariant: 'oakyellow',
         });
       }
     }
@@ -2861,13 +2885,16 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
       const normal = getSurfaceNormalAt(x, z);
       if (normal.ny < 0.76 || h > 16.5) {
         if (r3 > 0.72) {
+          const isSlopeBoulder = h > 21.0 || normal.ny < 0.7;
+          const slopeScale = 0.85 + r2 * 0.6;
           obstacles.push({
             x,
             z,
-            radius: 0.9 + r1 * 0.65,
-            kind: h > 21.0 || normal.ny < 0.7 ? 'boulder' : 'pine',
-            scale: 0.85 + r2 * 0.6,
+            radius: isSlopeBoulder ? 0.9 + r1 * 0.65 : 0.43 * slopeScale,
+            kind: isSlopeBoulder ? 'boulder' : 'pine',
+            scale: slopeScale,
             seed: r3,
+            treeVariant: isSlopeBoulder ? undefined : 'pinetree',
           });
         }
         continue;
@@ -2908,13 +2935,15 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
       if (r3 < spawnChance) {
         const scale = 0.95 + r1 * 0.48;
         const isOak = (x < -10 && r2 > 0.35 && h < 8.5) || (z > 135 && r2 > 0.38) || (r2 > 0.72 && h < 7.0);
+        const oakVariant = OAK_VARIANTS[obstacles.length % OAK_VARIANTS.length];
         obstacles.push({
           x,
           z,
-          radius: isOak ? 0.54 * scale : 0.42 * scale,
+          radius: (isOak ? getOakTrunkRadiusFactor(oakVariant) : 0.43) * scale,
           kind: isOak ? 'oak' : 'pine',
           scale,
           seed: r3,
+          treeVariant: isOak ? oakVariant : 'pinetree',
         });
       } else if (regDensity > 0.55 && r3 > 0.965) {
         obstacles.push({

@@ -75,18 +75,18 @@ import {
 
 // ======================== CONSTANTS & HELPERS ======================== \\
 // #region Constants & Helpers
-const VEG_SECTOR_SIZE = 120;
-const VEG_SECTOR_RADIUS = 88;
-const TREE_SECTOR_MAX_DIST = 230;
-const TREE_SECTOR_MAX_DIST_SW = 155;
-const UNDERGROWTH_SECTOR_MAX_DIST = 112;
-const UNDERGROWTH_SECTOR_MAX_DIST_SW = 74;
+const VEG_SECTOR_SIZE = 80;
+const VEG_SECTOR_RADIUS = 56;
+const TREE_SECTOR_MAX_DIST = 165;
+const TREE_SECTOR_MAX_DIST_SW = 125;
+const UNDERGROWTH_SECTOR_MAX_DIST = 85;
+const UNDERGROWTH_SECTOR_MAX_DIST_SW = 62;
 
 /** Distance thresholds (with hysteresis) for switching tree sectors between LOD0 (full) and LOD1 (low-poly). */
-const TREE_LOD_NEAR_DIST = 95;
-const TREE_LOD_FAR_DIST = 103;
-const TREE_LOD_NEAR_DIST_SW = 68;
-const TREE_LOD_FAR_DIST_SW = 75;
+const TREE_LOD_NEAR_DIST = 62;
+const TREE_LOD_FAR_DIST = 68;
+const TREE_LOD_NEAR_DIST_SW = 48;
+const TREE_LOD_FAR_DIST_SW = 54;
 
 const PINE_MODEL_BASE_SCALE = 3.85;
 const OAK_GREEN_MODEL_BASE_SCALE = 3.65;
@@ -492,7 +492,7 @@ function buildStaticFloraSubmeshGeometry(
   let areaThreshold = 0;
   const trunkKeepY = maxY * 0.36;
 
-  if (isLod1 && isTree && numTris > 80) {
+  if (isTree && ((isLod1 && numTris > 60) || (!isLod1 && isBark && numTris > 1200))) {
     // Compute triangle areas to determine the adaptive cutoff threshold for this submesh
     const areas = new Float32Array(numTris);
     for (let t = 0; t < numTris; t++) {
@@ -511,8 +511,9 @@ function buildStaticFloraSubmeshGeometry(
         Math.hypot(by * cz - bz * cy, bz * cx - bx * cz, bx * cy - by * cx);
     }
     const sorted = Array.from(areas).sort((x, y) => x - y);
-    // Strip ~58% smallest twig triangles on bark, and ~48% smallest interior leaf triangles on foliage
-    const dropFraction = isBark ? 0.58 : 0.48;
+    // In LOD0: strip 42% smallest sub-centimeter upper bark twigs on heavy trees (>1200 bark tris).
+    // In LOD1: strip 74% smallest upper bark twigs and 62% smallest interior leaf cards.
+    const dropFraction = isLod1 ? (isBark ? 0.74 : 0.62) : 0.42;
     areaThreshold = sorted[Math.floor(sorted.length * dropFraction)] ?? 0;
   }
 
@@ -1020,14 +1021,15 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       kind: o.kind,
     };
     if (o.kind === 'pine') {
-      entry.floraKey = 'pinetree';
+      entry.floraKey = o.treeVariant ?? 'pinetree';
       pines.push(entry);
     } else if (o.kind === 'oak') {
       // Distribute broadleaf oaks across all 4 custom broadleaf tree models
-      entry.floraKey = OAK_FLORA_VARIANTS[idx % OAK_FLORA_VARIANTS.length];
+      entry.floraKey =
+        o.treeVariant ?? OAK_FLORA_VARIANTS[idx % OAK_FLORA_VARIANTS.length];
       oaks.push(entry);
     } else if (o.kind === 'birch') {
-      entry.floraKey = 'oakyellow';
+      entry.floraKey = o.treeVariant ?? 'oakyellow';
       birches.push(entry);
     } else if (o.kind === 'palm') {
       palms.push(entry);
@@ -1205,13 +1207,8 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     for (let i = 0; i < n; i++) {
       const t = sectorTrees[i];
       const gy = groundHeightAt(t.x, t.z);
-      const tiltAmp = t.kind === 'pine' ? 0.04 : 0.02;
       cullDummy.position.set(t.x, gy - 0.08, t.z);
-      cullDummy.rotation.set(
-        (t.seed - 0.5) * tiltAmp,
-        t.seed * Math.PI * 2,
-        (t.seed - 0.5) * tiltAmp
-      );
+      cullDummy.rotation.set(0, t.seed * Math.PI * 2, 0);
       cullDummy.scale.setScalar(t.scale * unitScale);
       cullDummy.updateMatrix();
 
@@ -1422,7 +1419,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       const p = sectorPalms[i];
       const gy = groundHeightAt(p.x, p.z);
       cullDummy.position.set(p.x, gy - 0.1, p.z);
-      cullDummy.rotation.set((p.seed - 0.5) * 0.12, p.seed * Math.PI * 2, (p.seed - 0.5) * 0.12);
+      cullDummy.rotation.set(0, p.seed * Math.PI * 2, 0);
       cullDummy.scale.setScalar(p.scale);
       cullDummy.updateMatrix();
       pTrunkIM.setMatrixAt(i, cullDummy.matrix);

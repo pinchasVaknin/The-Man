@@ -307,7 +307,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const tmpDesertColor = new THREE.Color();
 
   const chunkSize = 220;
-  const chunkSegs = isSoftwareGl ? 38 : 54;
+  const chunkSegs = isSoftwareGl ? 34 : 44;
   const gridRadius = 4;
 
   for (let gx = -gridRadius; gx <= gridRadius; gx++) {
@@ -320,17 +320,27 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
       disposableGeometries.push(chunkGeo);
 
       const posAttr = chunkGeo.attributes.position;
-      const colors = new Float32Array(posAttr.count * 3);
+      const vertCount = posAttr.count;
+      const colors = new Float32Array(vertCount * 3);
 
-      for (let i = 0; i < posAttr.count; i++) {
-        const lx = posAttr.getX(i);
-        const lz = posAttr.getZ(i);
-        const wx = cx + lx;
-        const wz = cz + lz;
-        const y = groundHeightAt(wx, wz);
-        posAttr.setY(i, y);
+      // Pass 1: Sample ground height once per vertex
+      for (let i = 0; i < vertCount; i++) {
+        const wx = cx + posAttr.getX(i);
+        const wz = cz + posAttr.getZ(i);
+        posAttr.setY(i, groundHeightAt(wx, wz));
+      }
 
-        const normal = getSurfaceNormalAt(wx, wz);
+      // Compute analytical mesh normals directly from the height grid instead of 4 extra groundHeightAt calls per vertex
+      chunkGeo.computeVertexNormals();
+      const normalAttr = chunkGeo.attributes.normal;
+
+      // Pass 2: Compute biome vertex colors using precomputed y and normal.ny
+      for (let i = 0; i < vertCount; i++) {
+        const wx = cx + posAttr.getX(i);
+        const wz = cz + posAttr.getZ(i);
+        const y = posAttr.getY(i);
+        const ny = normalAttr.getY(i);
+
         const tf = trailFactorAt(wx, wz);
         const bf = birchGroveFactorAt(wx, wz);
         const swDesert = southwestOasisBiomeFactorAt(wx, wz);
@@ -373,8 +383,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           tmpColor.lerp(cTrail, tf * 0.85);
         }
 
-        if (normal.ny < 0.82 || y > 10.5) {
-          const slopeFactor = Math.min(1, Math.max(0, (0.83 - normal.ny) * 5.5));
+        if (ny < 0.82 || y > 10.5) {
+          const slopeFactor = Math.min(1, Math.max(0, (0.83 - ny) * 5.5));
           const heightFactor = Math.min(1, Math.max(0, (y - 10.5) / 16.0));
           const rockMix = Math.max(slopeFactor, heightFactor);
           if (swDesert > 0.35) {
@@ -386,7 +396,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         }
 
         // Blend alpine snow frost onto high northern mountains & ridges
-        if (snowFactor > 0.15 && normal.ny > 0.62) {
+        if (snowFactor > 0.15 && ny > 0.62) {
           tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
         }
 
@@ -414,7 +424,6 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
       }
 
       chunkGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      chunkGeo.computeVertexNormals();
       chunkGeo.computeBoundingSphere();
 
       const chunkMesh = new THREE.Mesh(chunkGeo, terrainMat);

@@ -148,15 +148,55 @@ export function buildEnvironmentAtmosphereModels(
     // Find connected pairs/clusters of trees within 3.5m..22.0m of each other
     const nodes: ISquirrelTreeNode[] = candidateTreeObstacles.map((o) => {
       const sc = o.scale ?? 1.0;
-      const isOak = o.kind === 'oak';
-      const isPine = o.kind === 'pine';
+      const variant =
+        o.treeVariant ??
+        (o.kind === 'pine'
+          ? 'pinetree'
+          : o.kind === 'birch'
+            ? 'oakyellow'
+            : 'oakgreen');
+      let perchHeight = 3.2 * sc;
+      let baseTrunkRadius = 0.44 * sc + 0.05;
+      let topTrunkRadius = 0.38 * sc + 0.05;
+      switch (variant) {
+        case 'pinetree':
+          perchHeight = 3.2 * sc;
+          baseTrunkRadius = 0.44 * sc + 0.05;
+          topTrunkRadius = 0.39 * sc + 0.05;
+          break;
+        case 'oakgreen':
+          perchHeight = 2.6 * sc;
+          baseTrunkRadius = 0.69 * sc + 0.05;
+          topTrunkRadius = 0.63 * sc + 0.05;
+          break;
+        case 'oakyellow':
+          perchHeight = 2.7 * sc;
+          baseTrunkRadius = 0.43 * sc + 0.05;
+          topTrunkRadius = 0.40 * sc + 0.05;
+          break;
+        case 'animtree':
+          perchHeight = 2.25 * sc;
+          baseTrunkRadius = 0.27 * sc + 0.05;
+          topTrunkRadius = 0.22 * sc + 0.05;
+          break;
+        case 'animtree_wide':
+          perchHeight = 2.35 * sc;
+          baseTrunkRadius = 0.42 * sc + 0.05;
+          topTrunkRadius = 0.31 * sc + 0.05;
+          break;
+        case 'animtree_compact':
+          perchHeight = 2.0 * sc;
+          baseTrunkRadius = 0.29 * sc + 0.05;
+          topTrunkRadius = 0.22 * sc + 0.05;
+          break;
+      }
       return {
         x: o.x,
         z: o.z,
-        baseY: groundHeightAt(o.x, o.z) - 0.12,
-        perchHeight: (isOak ? 3.2 : 4.2) * sc,
-        baseTrunkRadius: (isOak ? 0.42 : isPine ? 0.34 : 0.25) * sc + 0.04,
-        topTrunkRadius: (isOak ? 0.25 : isPine ? 0.20 : 0.16) * sc + 0.04,
+        baseY: groundHeightAt(o.x, o.z) - 0.08,
+        perchHeight,
+        baseTrunkRadius,
+        topTrunkRadius,
         neighborIndices: [],
       };
     });
@@ -700,7 +740,16 @@ export function buildEnvironmentAtmosphereModels(
   const rainSplashesGroup = new THREE.Group();
   rainSplashesGroup.visible = false;
   const splashMeshes: THREE.Mesh[] = [];
-  const splashOffsets: { dx: number; dz: number; phase: number; speed: number }[] = [];
+  const splashOffsets: {
+    dx: number;
+    dz: number;
+    phase: number;
+    speed: number;
+    cachedGroundY: number;
+    cachedRoofHidden: boolean;
+  }[] = [];
+  let lastSplashCachePlayerX = Number.NaN;
+  let lastSplashCachePlayerZ = Number.NaN;
   for (let i = 0; i < splashCount; i++) {
     const sm = new THREE.Mesh(splashGeo, splashMat);
     rainSplashesGroup.add(sm);
@@ -712,6 +761,8 @@ export function buildEnvironmentAtmosphereModels(
       dz: Math.sin(angle) * dist,
       phase: hash2D(i, 647),
       speed: 2.2 + hash2D(i, 653) * 1.4,
+      cachedGroundY: WATER_LEVEL + 0.03,
+      cachedRoofHidden: false,
     });
   }
   scene.add(rainSplashesGroup);
@@ -862,6 +913,14 @@ export function buildEnvironmentAtmosphereModels(
     const lightningFlash = weather ? (weather.lightningFlash ?? 0) : 0;
 
     // 9A & 9B: Falling Rain Streaks & Ground/Water Splash Ripples
+    // Fast coarse check: only query per-particle getRoofHeightAt(wx, wz) when the player is within 42m of any roofed structure
+    const playerNearRoofZone =
+      getRoofHeightAt(playerX, playerZ) !== null ||
+      getRoofHeightAt(playerX + 18, playerZ) !== null ||
+      getRoofHeightAt(playerX - 18, playerZ) !== null ||
+      getRoofHeightAt(playerX, playerZ + 18) !== null ||
+      getRoofHeightAt(playerX, playerZ - 18) !== null;
+
     if (rainIntensity > 0.01) {
       rainLines.visible = true;
       rainMat.opacity = Math.min(0.82, 0.25 + rainIntensity * 0.58);
@@ -882,7 +941,7 @@ export function buildEnvironmentAtmosphereModels(
         const wz = playerZ + seedZ + localY * windSlantZ;
         const wy = playerY + localY;
 
-        const roofY = getRoofHeightAt(wx, wz);
+        const roofY = playerNearRoofZone ? getRoofHeightAt(wx, wz) : null;
         const pIdx = i * 6;
         if (roofY !== null && wy < roofY) {
           rainPositions[pIdx] = wx;
@@ -905,20 +964,36 @@ export function buildEnvironmentAtmosphereModels(
       if (rainIntensity > 0.05) {
         rainSplashesGroup.visible = true;
         splashMat.opacity = Math.min(0.65, rainIntensity * 0.65);
+        const needRefreshSplashHeights =
+          Number.isNaN(lastSplashCachePlayerX) ||
+          Math.abs(playerX - lastSplashCachePlayerX) > 0.45 ||
+          Math.abs(playerZ - lastSplashCachePlayerZ) > 0.45;
+        if (needRefreshSplashHeights) {
+          lastSplashCachePlayerX = playerX;
+          lastSplashCachePlayerZ = playerZ;
+          for (let i = 0; i < splashCount; i++) {
+            const off = splashOffsets[i];
+            const sx = playerX + off.dx;
+            const sz = playerZ + off.dz;
+            const roofY = playerNearRoofZone ? getRoofHeightAt(sx, sz) : null;
+            off.cachedRoofHidden = roofY !== null;
+            if (!off.cachedRoofHidden) {
+              off.cachedGroundY = Math.max(WATER_LEVEL, groundHeightAt(sx, sz)) + 0.03;
+            }
+          }
+        }
         for (let i = 0; i < splashCount; i++) {
           const off = splashOffsets[i];
           const sm = splashMeshes[i];
-          const sx = playerX + off.dx;
-          const sz = playerZ + off.dz;
-          const roofY = getRoofHeightAt(sx, sz);
-          if (roofY !== null) {
+          if (off.cachedRoofHidden) {
             sm.visible = false;
             continue;
           }
           sm.visible = true;
-          const sy = Math.max(WATER_LEVEL, groundHeightAt(sx, sz)) + 0.03;
+          const sx = playerX + off.dx;
+          const sz = playerZ + off.dz;
           const rippleProg = (elapsedTime * off.speed + off.phase) % 1.0;
-          sm.position.set(sx, sy, sz);
+          sm.position.set(sx, off.cachedGroundY, sz);
           sm.scale.setScalar(0.35 + rippleProg * 1.45);
         }
       } else {
@@ -946,7 +1021,7 @@ export function buildEnvironmentAtmosphereModels(
         const wz = playerZ + seedZ + Math.cos(swirl * 0.85) * (0.9 + windStr * 1.4);
         const wy = playerY + localY;
 
-        const roofY = getRoofHeightAt(wx, wz);
+        const roofY = playerNearRoofZone ? getRoofHeightAt(wx, wz) : null;
         const pIdx = i * 3;
         snowPositions[pIdx] = wx;
         snowPositions[pIdx + 1] = roofY !== null && wy < roofY ? -999 : wy;
@@ -1056,6 +1131,11 @@ export function buildEnvironmentAtmosphereModels(
       const sq = forestSquirrels[i];
       const currTree = squirrelTrees[sq.currentTreeIdx];
       const targTree = squirrelTrees[sq.targetTreeIdx];
+      if (!isWithinViewDistance(currTree.x, currTree.z, playerX, playerZ, 28, 125)) {
+        sq.root.visible = false;
+        continue;
+      }
+      sq.root.visible = true;
       const stateElapsed = elapsedTime - sq.stateStartTime;
       const p = Math.max(0, Math.min(1, stateElapsed / Math.max(0.1, sq.stateDuration)));
 
@@ -1064,8 +1144,10 @@ export function buildEnvironmentAtmosphereModels(
         const sx = currTree.x + Math.cos(perchAng) * currTree.topTrunkRadius;
         const sz = currTree.z + Math.sin(perchAng) * currTree.topTrunkRadius;
         sq.root.position.set(sx, currTree.baseY + currTree.perchHeight, sz);
+        // Cling vertically to the bark facing up/inward along the tree trunk
+        const inYaw = Math.atan2(-Math.cos(perchAng), -Math.sin(perchAng));
         sq.root.rotation.order = 'YXZ';
-        sq.root.rotation.set(0, Math.atan2(Math.cos(perchAng), Math.sin(perchAng)), 0);
+        sq.root.rotation.set(-Math.PI * 0.38, inYaw, Math.sin(elapsedTime * 2.4 + i) * 0.05);
         sq.tailMesh.rotation.x = -0.72 + Math.sin(elapsedTime * 9.5 + i) * 0.22;
 
         if (p >= 1.0) {
