@@ -305,7 +305,7 @@ export function buildRealisticWorld(
       // 5. Wildlife, boids and footprint meshes (the simulation runs in simulateWildlife)
       const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
       lastTime = elapsedTime;
-      updateChoppableTreesVisuals(dt, weather);
+      updateChoppableTreesVisuals(dt, weather, playerX, playerZ);
       if (playerState) {
         wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, playerState);
       }
