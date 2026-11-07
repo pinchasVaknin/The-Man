@@ -1,654 +1,1018 @@
 // ============================================================================
-// MODULE: World / Models / Oasis Models
-// DESIGN: Grand southwest terraced desert oasis, observatory, and lagoon (SRP)
-// SUMMARY: Constructs the southwest oasis courtyard, rotating celestial astrolabe,
-//          alchemist pavilion, swimmable turquoise lagoon, and desert date palms.
+// MODULE: World / Models / Southwest Desert Oasis Village & Lagoon
+// DESIGN: Authentic Sandstone/Adobe Oasis Village & Turquoise Lagoon (SRP)
+// SUMMARY: Constructs the Southwest Desert Oasis at (-310, 300) matching the
+//          4-panel desert oasis reference village:
+//          - Natural central swimmable turquoise lagoon with sandy shoals,
+//            shoreline sandstone boulders, and lush waterside reed clumps
+//          - Two timber fishing piers/docks jutting out into the lagoon on pilings
+//          - Northeast Grand Adobe Citadel & Domed Bell-Watchtower compound
+//            with arched ground portico, rooftop vigas, enterable hall & ladder
+//          - West Enterable Adobe Merchant House with terracotta fabric canopy,
+//            low dry-stone sandstone courtyard walls, barrels, crates & amphorae
+//          - Crescent of 7 flat-roofed sandstone/mudbrick village houses (1 & 2 story)
+//            with parapet roofs, protruding timber beams, shutters, and awnings
+//          - 24 tall curved multi-segment Date Palms with rich feather-frond crowns
 // ============================================================================
 
-// ======================== IMPORTS & DEPENDENCIES ======================== \\
-// #region Imports & Dependencies
 import * as THREE from 'three';
 import {
   SOUTHWEST_OASIS_POS,
-  groundHeightAt,
-} from '../terrainMath';
+  SOUTHWEST_OASIS_VILLAGE_HOUSES,
+  SOUTHWEST_OASIS_STONE_WALLS,
+  SOUTHWEST_OASIS_PALMS,
+  type OasisVillageHouseSpec,
+} from '../domain/landmarks/oasisAndHarborLandmarks';
+import { groundHeightAt } from '../terrainMath';
 import { attachWindSwayShader } from '../builders/shaderAndMaterialBuilders';
-import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
-import { createArchitecturalSharedAssets } from './architecturalHelpers';
 import type { IWorldModelBuildContext } from './types';
-// #endregion
 
-// ======================== OASIS MODEL INTERFACE ======================== \\
-// #region Oasis Model Interface
-/**
- * Summary: Handles to animated features within the southwest desert oasis.
- * Design: Encapsulates water lagoon ripple planes and desert camp visual markers.
- */
-export interface IOasisModelHandles {
-  readonly oasisGroup: THREE.Group;
-  readonly updateOasis: (elapsedTime: number) => void;
+export interface IOasisModelsResult {
+  updateOasis: (elapsedTime: number) => void;
 }
-// #endregion
 
-// ======================== BUILD OASIS MODELS ======================== \\
-// #region Build Oasis Models
-/**
- * Summary: Constructs the grand southwest desert oasis complex, celestial observatory, and palm grove.
- * @param ctx Shared build context (scene, textures, disposal lists).
- * @returns Handles for animating the oasis each frame.
- */
-export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelHandles {
+export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResult {
   const {
     scene,
     textures,
-    isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
     swayMaterials,
+    lanternLights,
     distanceCulledObjects,
+    doorPivotHandles,
+    archAssets,
   } = ctx;
 
-  const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
-  const {
-    imperialGoldMat,
-    imperialCrimsonMat,
-    mineGoldOreMat,
-    createInteractiveDoubleDoor,
-    createRedChineseLantern,
-  } = archAssets;
+  if (!archAssets) {
+    throw new Error('buildOasisModels requires ctx.archAssets to be initialized first');
+  }
 
   const swOasisGroup = new THREE.Group();
-  const swCx = SOUTHWEST_OASIS_POS.x;
-  const swCz = SOUTHWEST_OASIS_POS.z;
-  const swY = SOUTHWEST_OASIS_POS.terraceY;
+  swOasisGroup.position.set(
+    SOUTHWEST_OASIS_POS.x,
+    SOUTHWEST_OASIS_POS.terraceY,
+    SOUTHWEST_OASIS_POS.z
+  );
 
-  const oasisSandstoneMat = new THREE.MeshStandardMaterial({
-    color: 0xe6ccb2,
+  // ======================== SHARED OASIS MATERIALS ======================== \\
+  const adobeWallMat = new THREE.MeshStandardMaterial({
+    color: 0xd8b88c,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.04,
+    roughness: 0.9,
+    metalness: 0.02,
+  });
+  const adobeWarmMat = new THREE.MeshStandardMaterial({
+    color: 0xcfa978,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.04,
+    roughness: 0.92,
+    metalness: 0.02,
+  });
+  const sandstoneTrimMat = new THREE.MeshStandardMaterial({
+    color: 0xbe9663,
+    map: textures.rockAlbedo,
+    roughness: 0.86,
+    metalness: 0.04,
+  });
+  const dryStoneWallMat = new THREE.MeshStandardMaterial({
+    color: 0xb58e5d,
     map: textures.rockAlbedo,
     bumpMap: textures.rockBump,
     bumpScale: 0.06,
-    roughness: 0.74,
+    roughness: 0.92,
+    metalness: 0.03,
   });
-  const oasisLapisMat = new THREE.MeshStandardMaterial({
-    color: 0x1d4ed8,
-    roughness: 0.28,
-    metalness: 0.35,
+  const domePlasterMat = new THREE.MeshStandardMaterial({
+    color: 0xe3c79c,
+    roughness: 0.82,
+    metalness: 0.03,
   });
-  const oasisTurquoiseWaterMat = new THREE.MeshPhysicalMaterial({
-    color: 0x06b6d4,
-    emissive: 0x0891b2,
-    emissiveIntensity: 0.28,
-    roughness: 0.06,
-    metalness: 0.14,
-    clearcoat: isSoftwareGl ? 0 : 0.92,
+  const darkTimberMat = new THREE.MeshStandardMaterial({
+    color: 0x5c3e26,
+    map: textures.timberAlbedo,
+    roughness: 0.88,
+    metalness: 0.04,
+  });
+  const weatheredPierWoodMat = new THREE.MeshStandardMaterial({
+    color: 0x6e4e32,
+    map: textures.timberAlbedo,
+    roughness: 0.86,
+    metalness: 0.04,
+  });
+  const terracottaAwningMat = new THREE.MeshStandardMaterial({
+    color: 0xa84832,
+    roughness: 0.82,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const ochreAwningMat = new THREE.MeshStandardMaterial({
+    color: 0xd4a454,
+    roughness: 0.82,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const sandAwningMat = new THREE.MeshStandardMaterial({
+    color: 0xdcc39a,
+    roughness: 0.84,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const crateWoodMat = new THREE.MeshStandardMaterial({
+    color: 0x8c6239,
+    map: textures.timberAlbedo,
+    roughness: 0.85,
+    metalness: 0.04,
+  });
+  const barrelWoodMat = new THREE.MeshStandardMaterial({
+    color: 0x6b4728,
+    map: textures.timberAlbedo,
+    roughness: 0.84,
+    metalness: 0.06,
+  });
+  const clayPotMat = new THREE.MeshStandardMaterial({
+    color: 0xb5633c,
+    roughness: 0.76,
+    metalness: 0.04,
+  });
+  const desertRockMat = new THREE.MeshStandardMaterial({
+    color: 0xa88355,
+    map: textures.rockAlbedo,
+    roughness: 0.92,
+    metalness: 0.03,
+  });
+  const windowRecessMat = new THREE.MeshStandardMaterial({
+    color: 0x2c2016,
+    roughness: 0.9,
+  });
+  const oasisLagoonWaterMat = new THREE.MeshStandardMaterial({
+    color: 0x168b96,
+    emissive: 0x0a4854,
+    emissiveIntensity: 0.25,
+    roughness: 0.12,
+    metalness: 0.18,
     transparent: true,
     opacity: 0.86,
   });
-  attachAnimatedWaterWaveShader(oasisTurquoiseWaterMat, 0.042, 0.085, ctx.animatedWaterMaterials);
-
-  const palmFrondMat = new THREE.MeshStandardMaterial({
-    color: 0x2d6a4f,
-    roughness: 0.65,
+  const oasisReedMat = new THREE.MeshStandardMaterial({
+    color: 0x4f7d3a,
+    roughness: 0.8,
+    metalness: 0.02,
     side: THREE.DoubleSide,
   });
-  attachWindSwayShader(palmFrondMat, 0.14, 1.8, swayMaterials);
+  attachWindSwayShader(oasisReedMat, 0.08, 1.5, swayMaterials);
 
-  const furnitureWoodMat = new THREE.MeshStandardMaterial({
-    color: 0x5c3a21,
+  const palmTrunkMat = new THREE.MeshStandardMaterial({
+    color: 0x6e4f35,
     map: textures.timberAlbedo,
     bumpMap: textures.barkBump,
-    roughness: 0.72,
+    bumpScale: 0.08,
+    roughness: 0.92,
   });
-  const timberMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    map: textures.timberAlbedo,
-    bumpMap: textures.barkBump,
-    bumpScale: 0.05,
-    roughness: 0.76,
+  const palmRingMat = new THREE.MeshStandardMaterial({
+    color: 0x543a24,
+    roughness: 0.95,
   });
-  const imperialWoodFloorMat = new THREE.MeshStandardMaterial({
-    color: 0x78350f,
-    map: textures.timberAlbedo,
-    bumpMap: textures.barkBump,
+  const palmFrondMat = new THREE.MeshStandardMaterial({
+    color: 0x437c30,
     roughness: 0.68,
+    side: THREE.DoubleSide,
   });
-  const mineSapphireCrystalMat = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
-    emissive: 0x0284c7,
-    emissiveIntensity: 0.8,
-    roughness: 0.12,
-    metalness: 0.1,
-  });
-  const mineEmeraldCrystalMat = new THREE.MeshStandardMaterial({
-    color: 0x10b981,
-    emissive: 0x059669,
-    emissiveIntensity: 0.75,
-    roughness: 0.15,
-  });
-  const mineAmethystCrystalMat = new THREE.MeshStandardMaterial({
-    color: 0xa855f7,
-    emissive: 0x7e22ce,
-    emissiveIntensity: 0.75,
-    roughness: 0.15,
-  });
-  const barkMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    map: textures.barkAlbedo,
-    bumpMap: textures.barkBump,
-    bumpScale: 0.07,
-    roughness: 0.88,
-  });
+  attachWindSwayShader(palmFrondMat, 0.13, 1.4, swayMaterials);
 
   disposableMaterials.push(
-    oasisSandstoneMat,
-    oasisLapisMat,
-    oasisTurquoiseWaterMat,
-    palmFrondMat,
-    furnitureWoodMat,
-    timberMat,
-    imperialWoodFloorMat,
-    mineSapphireCrystalMat,
-    mineEmeraldCrystalMat,
-    mineAmethystCrystalMat,
-    barkMat
+    adobeWallMat,
+    adobeWarmMat,
+    sandstoneTrimMat,
+    dryStoneWallMat,
+    domePlasterMat,
+    darkTimberMat,
+    weatheredPierWoodMat,
+    terracottaAwningMat,
+    ochreAwningMat,
+    sandAwningMat,
+    crateWoodMat,
+    barrelWoodMat,
+    clayPotMat,
+    desertRockMat,
+    windowRecessMat,
+    oasisLagoonWaterMat,
+    oasisReedMat,
+    palmTrunkMat,
+    palmRingMat,
+    palmFrondMat
   );
 
-  // 1) Oasis Courtyard Sandstone & Lapis-Lazuli Plaza Floor & Central Star Fountain
-  const oasisPlazaDiscGeo = new THREE.CylinderGeometry(34.0, 36.0, 0.34, 32);
-  const oasisInnerMosaicGeo = new THREE.CylinderGeometry(14.5, 14.5, 0.38, 16);
-  const starFntWallSegGeo = new THREE.BoxGeometry(1.65, 0.96, 0.44);
-  const starFntWaterGeo = new THREE.CylinderGeometry(3.15, 3.15, 0.12, 16);
-  const obeliskShaftGeo = new THREE.CylinderGeometry(0.45, 0.88, 9.6, 4);
-  obeliskShaftGeo.translate(0, 4.8, 0);
-  const obeliskTipGeo = new THREE.ConeGeometry(0.64, 1.6, 4);
-  obeliskTipGeo.translate(0, 10.4, 0);
+  // Helper to attach wooden roof vigas (protruding ceiling beams) along flat adobe walls
+  const addRoofVigas = (
+    parent: THREE.Group,
+    w: number,
+    d: number,
+    yBeam: number
+  ): void => {
+    const beamCountX = Math.max(2, Math.floor(w / 1.8));
+    for (let i = 0; i < beamCountX; i++) {
+      const bx = -w * 0.4 + (i / Math.max(1, beamCountX - 1)) * (w * 0.8);
+      const vigaGeo = new THREE.BoxGeometry(0.16, 0.16, d + 0.65);
+      disposableGeometries.push(vigaGeo);
+      const viga = new THREE.Mesh(vigaGeo, darkTimberMat);
+      viga.position.set(bx, yBeam, 0);
+      viga.castShadow = true;
+      parent.add(viga);
+    }
+    const beamCountZ = Math.max(2, Math.floor(d / 1.9));
+    for (let i = 0; i < beamCountZ; i++) {
+      const bz = -d * 0.38 + (i / Math.max(1, beamCountZ - 1)) * (d * 0.76);
+      const vigaGeo = new THREE.BoxGeometry(w + 0.65, 0.16, 0.16);
+      disposableGeometries.push(vigaGeo);
+      const viga = new THREE.Mesh(vigaGeo, darkTimberMat);
+      viga.position.set(0, yBeam - 0.08, bz);
+      viga.castShadow = true;
+      parent.add(viga);
+    }
+  };
 
-  const fountainPillarGeo = new THREE.CylinderGeometry(0.45, 0.65, 1.8, 8);
-  const fountainUpperBowlGeo = new THREE.CylinderGeometry(1.6, 1.0, 0.45, 12);
-  const mineCrystalClusterGeo = new THREE.OctahedronGeometry(0.46, 0);
+  // Helper to add a cloth market/porch awning supported by timber poles + crates/barrels underneath
+  const addClothAwning = (
+    parent: THREE.Group,
+    side: 'north' | 'south' | 'east' | 'west',
+    colorType: 'terracotta' | 'ochre' | 'sand',
+    houseW: number,
+    houseD: number,
+    awningW: number,
+    awningD: number,
+    attachY: number
+  ): void => {
+    const awningMat =
+      colorType === 'terracotta'
+        ? terracottaAwningMat
+        : colorType === 'ochre'
+          ? ochreAwningMat
+          : sandAwningMat;
+    const awningGroup = new THREE.Group();
+    if (side === 'south') {
+      awningGroup.rotation.y = 0;
+      awningGroup.position.set(0, 0, houseD * 0.5);
+    } else if (side === 'north') {
+      awningGroup.rotation.y = Math.PI;
+      awningGroup.position.set(0, 0, -houseD * 0.5);
+    } else if (side === 'east') {
+      awningGroup.rotation.y = Math.PI * 0.5;
+      awningGroup.position.set(houseW * 0.5, 0, 0);
+    } else {
+      awningGroup.rotation.y = -Math.PI * 0.5;
+      awningGroup.position.set(-houseW * 0.5, 0, 0);
+    }
 
-  disposableGeometries.push(
-    oasisPlazaDiscGeo,
-    oasisInnerMosaicGeo,
-    starFntWallSegGeo,
-    starFntWaterGeo,
-    obeliskShaftGeo,
-    obeliskTipGeo,
-    fountainPillarGeo,
-    fountainUpperBowlGeo,
-    mineCrystalClusterGeo
+    // Sloped cloth canopy
+    const canopyGeo = new THREE.BoxGeometry(awningW, 0.08, awningD);
+    disposableGeometries.push(canopyGeo);
+    const canopy = new THREE.Mesh(canopyGeo, awningMat);
+    canopy.position.set(0, attachY - 0.25, awningD * 0.5);
+    canopy.rotation.x = 0.16;
+    canopy.castShadow = true;
+    canopy.receiveShadow = true;
+    awningGroup.add(canopy);
+
+    // Front drape valance
+    const valanceGeo = new THREE.BoxGeometry(awningW, 0.28, 0.06);
+    disposableGeometries.push(valanceGeo);
+    const valance = new THREE.Mesh(valanceGeo, awningMat);
+    valance.position.set(0, attachY - 0.52, awningD - 0.04);
+    awningGroup.add(valance);
+
+    // Support timber poles at outer corners
+    const poleH = attachY - 0.45;
+    const poleGeo = new THREE.CylinderGeometry(0.08, 0.09, poleH, 8);
+    disposableGeometries.push(poleGeo);
+    for (const px of [-awningW * 0.46, awningW * 0.46]) {
+      const pole = new THREE.Mesh(poleGeo, darkTimberMat);
+      pole.position.set(px, poleH * 0.5, awningD - 0.15);
+      pole.castShadow = true;
+      awningGroup.add(pole);
+    }
+
+    // Props under the shaded awning: wooden barrel, crate, and clay amphora
+    const crateGeo = new THREE.BoxGeometry(0.85, 0.75, 0.85);
+    const barrelGeo = new THREE.CylinderGeometry(0.36, 0.34, 0.92, 10);
+    const potGeo = new THREE.CylinderGeometry(0.18, 0.26, 0.62, 10);
+    disposableGeometries.push(crateGeo, barrelGeo, potGeo);
+
+    const crate = new THREE.Mesh(crateGeo, crateWoodMat);
+    crate.position.set(-awningW * 0.28, 0.375, 0.85);
+    crate.rotation.y = 0.18;
+    crate.castShadow = true;
+    crate.receiveShadow = true;
+    awningGroup.add(crate);
+
+    const barrel = new THREE.Mesh(barrelGeo, barrelWoodMat);
+    barrel.position.set(awningW * 0.3, 0.46, 0.9);
+    barrel.castShadow = true;
+    barrel.receiveShadow = true;
+    awningGroup.add(barrel);
+
+    const pot = new THREE.Mesh(potGeo, clayPotMat);
+    pot.position.set(awningW * 0.12, 0.31, 1.15);
+    pot.castShadow = true;
+    awningGroup.add(pot);
+
+    parent.add(awningGroup);
+  };
+
+  // ======================== 1. CENTRAL TURQUOISE OASIS LAGOON ======================== \\
+  const lagLocalX = SOUTHWEST_OASIS_POS.lagoonX - SOUTHWEST_OASIS_POS.x;
+  const lagLocalZ = SOUTHWEST_OASIS_POS.lagoonZ - SOUTHWEST_OASIS_POS.z;
+  const lagWaterLocalY = SOUTHWEST_OASIS_POS.lagoonWaterY - SOUTHWEST_OASIS_POS.terraceY;
+
+  const lagoonGeo = new THREE.CircleGeometry(1.0, 48);
+  disposableGeometries.push(lagoonGeo);
+  const lagoonWaterMesh = new THREE.Mesh(lagoonGeo, oasisLagoonWaterMat);
+  lagoonWaterMesh.rotation.x = -Math.PI / 2;
+  lagoonWaterMesh.scale.set(
+    SOUTHWEST_OASIS_POS.lagoonRadiusX,
+    SOUTHWEST_OASIS_POS.lagoonRadiusZ,
+    1.0
   );
+  lagoonWaterMesh.position.set(lagLocalX, lagWaterLocalY, lagLocalZ);
+  lagoonWaterMesh.receiveShadow = true;
+  swOasisGroup.add(lagoonWaterMesh);
 
-  const oasisPlazaMesh = new THREE.Mesh(oasisPlazaDiscGeo, oasisSandstoneMat);
-  oasisPlazaMesh.position.set(swCx, swY - 0.15, swCz - 15.0);
-  const oasisMosaicMesh = new THREE.Mesh(oasisInnerMosaicGeo, oasisLapisMat);
-  oasisMosaicMesh.position.set(swCx, swY - 0.14, swCz);
-  swOasisGroup.add(oasisPlazaMesh, oasisMosaicMesh);
+  // Shoreline boulders & natural reed clusters around the lagoon perimeter
+  const reedBladeGeo = new THREE.ConeGeometry(0.07, 1.0, 4);
+  disposableGeometries.push(reedBladeGeo);
 
-  const swFntGroup = new THREE.Group();
-  swFntGroup.position.set(SOUTHWEST_OASIS_POS.fountainX, swY, SOUTHWEST_OASIS_POS.fountainZ);
-  for (let w = 0; w < 12; w++) {
-    const ang = (w / 12) * Math.PI * 2;
-    const seg = new THREE.Mesh(starFntWallSegGeo, oasisSandstoneMat);
-    seg.position.set(Math.sin(ang) * 3.35, 0.48, Math.cos(ang) * 3.35);
-    seg.rotation.y = ang;
-    swFntGroup.add(seg);
+  for (let i = 0; i < 36; i++) {
+    const ang = (i / 36) * Math.PI * 2;
+    const edgeX = lagLocalX + Math.cos(ang) * (SOUTHWEST_OASIS_POS.lagoonRadiusX - 0.6);
+    const edgeZ = lagLocalZ + Math.sin(ang) * (SOUTHWEST_OASIS_POS.lagoonRadiusZ - 0.6);
+    const worldEdgeX = SOUTHWEST_OASIS_POS.x + edgeX;
+    const worldEdgeZ = SOUTHWEST_OASIS_POS.z + edgeZ;
+    if (
+      Math.hypot(worldEdgeX - SOUTHWEST_OASIS_POS.gazeboX, worldEdgeZ - SOUTHWEST_OASIS_POS.gazeboZ) < 4.2 ||
+      Math.hypot(worldEdgeX - SOUTHWEST_OASIS_POS.eastPierX, worldEdgeZ - SOUTHWEST_OASIS_POS.eastPierZ) < 4.2
+    ) {
+      continue;
+    }
+
+    // Shoreline sandstone rocks every few steps
+    if (i % 2 === 0) {
+      const rockScale = 0.55 + ((i * 7) % 5) * 0.22;
+      const rockGeo = new THREE.DodecahedronGeometry(rockScale, 1);
+      disposableGeometries.push(rockGeo);
+      const rock = new THREE.Mesh(rockGeo, desertRockMat);
+      const rx = lagLocalX + Math.cos(ang) * (SOUTHWEST_OASIS_POS.lagoonRadiusX + 0.5 + (i % 3) * 0.6);
+      const rz = lagLocalZ + Math.sin(ang) * (SOUTHWEST_OASIS_POS.lagoonRadiusZ + 0.5 + (i % 3) * 0.6);
+      const ry = groundHeightAt(SOUTHWEST_OASIS_POS.x + rx, SOUTHWEST_OASIS_POS.z + rz) - SOUTHWEST_OASIS_POS.terraceY;
+      rock.position.set(rx, ry + rockScale * 0.25, rz);
+      rock.scale.set(1.3, 0.62, 1.1);
+      rock.rotation.y = i * 1.1;
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      swOasisGroup.add(rock);
+    }
+
+    // Lush lakeside reed/water-grass clumps in the shallow water rim
+    const reedCluster = new THREE.Group();
+    reedCluster.position.set(edgeX, lagWaterLocalY - 0.08, edgeZ);
+    const bladeCount = 5 + (i % 4);
+    for (let b = 0; b < bladeCount; b++) {
+      const bladeH = 0.85 + ((i + b) % 4) * 0.24;
+      const blade = new THREE.Mesh(reedBladeGeo, oasisReedMat);
+      blade.scale.set(1.0, bladeH, 1.0);
+      blade.position.set(
+        Math.cos(b * 1.7) * 0.35,
+        bladeH * 0.48,
+        Math.sin(b * 1.7) * 0.35
+      );
+      blade.rotation.z = (b % 2 === 0 ? 1 : -1) * 0.14;
+      blade.castShadow = true;
+      reedCluster.add(blade);
+    }
+    swOasisGroup.add(reedCluster);
   }
-  const swFntWater = new THREE.Mesh(starFntWaterGeo, oasisTurquoiseWaterMat);
-  swFntWater.position.y = 0.68;
-  const swFntPillar = new THREE.Mesh(fountainPillarGeo, oasisLapisMat);
-  swFntPillar.position.y = 1.25;
-  const swFntBowl = new THREE.Mesh(fountainUpperBowlGeo, imperialGoldMat);
-  swFntBowl.position.y = 2.15;
-  const swFntSunOrb = new THREE.Mesh(mineCrystalClusterGeo, mineGoldOreMat);
-  swFntSunOrb.scale.setScalar(1.45);
-  swFntSunOrb.position.y = 3.15;
-  swFntGroup.add(swFntWater, swFntPillar, swFntBowl, swFntSunOrb);
-  swOasisGroup.add(swFntGroup);
 
-  // 2) CLIMBABLE 24m ANCIENT CELESTIAL OBSERVATORY & GOLDEN ASTROLABE TOWER
-  const obsX = SOUTHWEST_OASIS_POS.observatoryX;
-  const obsZ = SOUTHWEST_OASIS_POS.observatoryZ;
-  const obsBaseY = SOUTHWEST_OASIS_POS.observatoryBaseY;
-  const obsTopY = SOUTHWEST_OASIS_POS.observatoryTopDeckY;
-  const obsH = obsTopY - obsBaseY;
-  const obsTowerGroup = new THREE.Group();
-  obsTowerGroup.position.set(obsX, obsBaseY, obsZ);
+  // ======================== 2. TWO WOODEN FISHING PIERS / JETTIES ======================== \\
+  const buildWoodenPier = (
+    worldCenterX: number,
+    worldCenterZ: number,
+    worldDeckY: number,
+    lengthX: number,
+    widthZ: number
+  ): void => {
+    const pierGroup = new THREE.Group();
+    pierGroup.position.set(
+      worldCenterX - SOUTHWEST_OASIS_POS.x,
+      worldDeckY - SOUTHWEST_OASIS_POS.terraceY,
+      worldCenterZ - SOUTHWEST_OASIS_POS.z
+    );
 
-  const obsWallNGeo = new THREE.BoxGeometry(9.6, obsH, 0.58);
-  const obsWallSideGeo = new THREE.BoxGeometry(0.58, obsH, 9.6);
-  const obsWallDoorFlankGeo = new THREE.BoxGeometry(3.55, obsH, 0.58);
-  const obsWallDoorLintelGeo = new THREE.BoxGeometry(2.5, obsH - 3.2, 0.58);
-  const obsOuterTrimZGeo = new THREE.BoxGeometry(10.1, 0.85, 0.16);
-  const obsOuterTrimXGeo = new THREE.BoxGeometry(0.16, 0.85, 10.1);
-  const obsDeckSouthGeo = new THREE.BoxGeometry(10.4, 0.34, 7.2);
-  const obsDeckNorthSideGeo = new THREE.BoxGeometry(4.2, 0.34, 3.2);
-  const astrolabeRing1Geo = new THREE.TorusGeometry(2.85, 0.14, 10, 28);
-  const astrolabeRing2Geo = new THREE.TorusGeometry(2.25, 0.12, 10, 24);
-  const astrolabeRing3Geo = new THREE.TorusGeometry(1.65, 0.10, 8, 20);
-  const telescopeTubeGeo = new THREE.CylinderGeometry(0.18, 0.28, 3.2, 10);
-  telescopeTubeGeo.rotateX(Math.PI * 0.32);
+    const beamGeo = new THREE.BoxGeometry(lengthX, 0.16, 0.18);
+    const plankGeo = new THREE.BoxGeometry(0.36, 0.08, widthZ);
+    const postGeo = new THREE.CylinderGeometry(0.11, 0.12, 2.3, 8);
+    disposableGeometries.push(beamGeo, plankGeo, postGeo);
 
-  const tableTopGeo = new THREE.BoxGeometry(2.1, 0.1, 1.25);
-  const whRackShelfGeo = new THREE.BoxGeometry(2.4, 3.2, 0.65);
-  const lhLadderRailGeo = new THREE.BoxGeometry(0.1, obsH, 0.1);
-  const hwLadderRungGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.62, 6);
-  hwLadderRungGeo.rotateZ(Math.PI / 2);
-  const lhTopRailZGeo = new THREE.BoxGeometry(9.0, 0.96, 0.24);
-  const lhTopRailXGeo = new THREE.BoxGeometry(0.24, 0.96, 9.0);
-  const binnacleStandGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.95, 8);
+    for (const sz of [-widthZ * 0.38, widthZ * 0.38]) {
+      const beam = new THREE.Mesh(beamGeo, darkTimberMat);
+      beam.position.set(0, -0.1, sz);
+      beam.castShadow = true;
+      pierGroup.add(beam);
+    }
 
-  disposableGeometries.push(
-    obsWallNGeo,
-    obsWallSideGeo,
-    obsWallDoorFlankGeo,
-    obsWallDoorLintelGeo,
-    obsOuterTrimZGeo,
-    obsOuterTrimXGeo,
-    obsDeckSouthGeo,
-    obsDeckNorthSideGeo,
-    astrolabeRing1Geo,
-    astrolabeRing2Geo,
-    astrolabeRing3Geo,
-    telescopeTubeGeo,
-    tableTopGeo,
-    whRackShelfGeo,
-    lhLadderRailGeo,
-    hwLadderRungGeo,
-    lhTopRailZGeo,
-    lhTopRailXGeo,
-    binnacleStandGeo
+    const plankCount = Math.floor(lengthX / 0.42);
+    for (let p = 0; p < plankCount; p++) {
+      const px = -lengthX * 0.5 + 0.22 + p * 0.42;
+      const plank = new THREE.Mesh(plankGeo, weatheredPierWoodMat);
+      plank.position.set(px, 0, 0);
+      plank.castShadow = true;
+      plank.receiveShadow = true;
+      pierGroup.add(plank);
+    }
+
+    const postPositions = [-lengthX * 0.44, -lengthX * 0.15, lengthX * 0.15, lengthX * 0.44];
+    for (let idx = 0; idx < postPositions.length; idx++) {
+      const px = postPositions[idx];
+      for (const pz of [-widthZ * 0.44, widthZ * 0.44]) {
+        const post = new THREE.Mesh(postGeo, darkTimberMat);
+        post.position.set(px, -0.65, pz);
+        post.castShadow = true;
+        pierGroup.add(post);
+      }
+      if (idx < postPositions.length - 1) {
+        const nextPx = postPositions[idx + 1];
+        const span = nextPx - px;
+        const railGeo = new THREE.CylinderGeometry(0.035, 0.035, span, 6);
+        disposableGeometries.push(railGeo);
+        for (const pz of [-widthZ * 0.44, widthZ * 0.44]) {
+          const rail = new THREE.Mesh(railGeo, ochreAwningMat);
+          rail.rotation.z = Math.PI * 0.5;
+          rail.position.set((px + nextPx) * 0.5, 0.36, pz);
+          pierGroup.add(rail);
+        }
+      }
+    }
+
+    swOasisGroup.add(pierGroup);
+  };
+
+  buildWoodenPier(
+    SOUTHWEST_OASIS_POS.gazeboX,
+    SOUTHWEST_OASIS_POS.gazeboZ,
+    SOUTHWEST_OASIS_POS.gazeboDeckY,
+    8.2,
+    2.9
+  );
+  buildWoodenPier(
+    SOUTHWEST_OASIS_POS.eastPierX,
+    SOUTHWEST_OASIS_POS.eastPierZ,
+    SOUTHWEST_OASIS_POS.eastPierDeckY,
+    7.4,
+    2.6
   );
 
-  const obsWallN = new THREE.Mesh(obsWallNGeo, oasisSandstoneMat);
-  obsWallN.position.set(0, obsH * 0.5, -4.85);
-  const obsWallW = new THREE.Mesh(obsWallSideGeo, oasisSandstoneMat);
-  obsWallW.position.set(-4.85, obsH * 0.5, 0);
-  const obsWallE = new THREE.Mesh(obsWallSideGeo, oasisSandstoneMat);
-  obsWallE.position.set(4.85, obsH * 0.5, 0);
-  const obsFlankL = new THREE.Mesh(obsWallDoorFlankGeo, oasisSandstoneMat);
-  obsFlankL.position.set(-3.02, obsH * 0.5, 4.85);
-  const obsFlankR = new THREE.Mesh(obsWallDoorFlankGeo, oasisSandstoneMat);
-  obsFlankR.position.set(3.02, obsH * 0.5, 4.85);
-  const obsLintel = new THREE.Mesh(obsWallDoorLintelGeo, oasisLapisMat);
-  obsLintel.position.set(0, (3.2 + obsH) * 0.5, 4.85);
+  // ======================== 3. NORTHEAST GRAND ADOBE CITADEL & DOMED WATCHTOWER ======================== \\
+  const obsGroup = new THREE.Group();
+  obsGroup.position.set(
+    SOUTHWEST_OASIS_POS.observatoryX - SOUTHWEST_OASIS_POS.x,
+    0,
+    SOUTHWEST_OASIS_POS.observatoryZ - SOUTHWEST_OASIS_POS.z
+  );
 
-  for (const [sy, bandMat] of [
-    [5.0, oasisLapisMat],
-    [10.2, imperialGoldMat],
-    [15.2, oasisLapisMat],
+  const obsPlinthGeo = new THREE.BoxGeometry(10.6, 0.36, 10.6);
+  const lowerH = 8.0;
+  const wallThick = 0.65;
+  const obsNorthGeo = new THREE.BoxGeometry(9.8, lowerH, wallThick);
+  const obsSideGeo = new THREE.BoxGeometry(wallThick, lowerH, 9.8);
+  const southFlankGeo = new THREE.BoxGeometry(3.25, lowerH, wallThick);
+  const southHeaderGeo = new THREE.BoxGeometry(3.4, lowerH - 3.2, wallThick);
+  disposableGeometries.push(obsPlinthGeo, obsNorthGeo, obsSideGeo, southFlankGeo, southHeaderGeo);
+
+  const obsPlinth = new THREE.Mesh(obsPlinthGeo, sandstoneTrimMat);
+  obsPlinth.position.set(0, 0.18, 0);
+  obsPlinth.receiveShadow = true;
+  obsGroup.add(obsPlinth);
+
+  const obsNorthLower = new THREE.Mesh(obsNorthGeo, adobeWallMat);
+  obsNorthLower.position.set(0, lowerH * 0.5, -4.65);
+  obsNorthLower.castShadow = true;
+  obsNorthLower.receiveShadow = true;
+  obsGroup.add(obsNorthLower);
+
+  const obsWestLower = new THREE.Mesh(obsSideGeo, adobeWallMat);
+  obsWestLower.position.set(-4.65, lowerH * 0.5, 0);
+  obsWestLower.castShadow = true;
+  obsWestLower.receiveShadow = true;
+  obsGroup.add(obsWestLower);
+
+  const obsEastLower = new THREE.Mesh(obsSideGeo, adobeWallMat);
+  obsEastLower.position.set(4.65, lowerH * 0.5, 0);
+  obsEastLower.castShadow = true;
+  obsEastLower.receiveShadow = true;
+  obsGroup.add(obsEastLower);
+
+  for (const side of [-1, 1]) {
+    const southFlank = new THREE.Mesh(southFlankGeo, adobeWallMat);
+    southFlank.position.set(side * 3.15, lowerH * 0.5, 4.65);
+    southFlank.castShadow = true;
+    southFlank.receiveShadow = true;
+    obsGroup.add(southFlank);
+  }
+  const southHeader = new THREE.Mesh(southHeaderGeo, adobeWallMat);
+  southHeader.position.set(0, 3.2 + (lowerH - 3.2) * 0.5, 4.65);
+  southHeader.castShadow = true;
+  obsGroup.add(southHeader);
+
+  addRoofVigas(obsGroup, 9.8, 9.8, lowerH - 0.35);
+
+  // Upper Square Bell/Watchtower Shaft (y = 8.0..14.0m)
+  const upperTowerH = 6.0;
+  for (const [tx, tz, tw, td] of [
+    [0, -4.45, 9.2, 0.6],
+    [0, 4.45, 9.2, 0.6],
+    [-4.45, 0, 0.6, 9.2],
+    [4.45, 0, 0.6, 9.2],
   ] as const) {
-    for (const sz of [-5.18, 5.18]) {
-      const bz = new THREE.Mesh(obsOuterTrimZGeo, bandMat);
-      bz.position.set(0, sy, sz);
-      obsTowerGroup.add(bz);
+    const shaftGeo = new THREE.BoxGeometry(tw, upperTowerH, td);
+    disposableGeometries.push(shaftGeo);
+    const shaftWall = new THREE.Mesh(shaftGeo, adobeWarmMat);
+    shaftWall.position.set(tx, lowerH + upperTowerH * 0.5, tz);
+    shaftWall.castShadow = true;
+    shaftWall.receiveShadow = true;
+    obsGroup.add(shaftWall);
+  }
+
+  // Arched dark window recesses on all 4 faces of the watchtower
+  const winArchGeo = new THREE.BoxGeometry(1.35, 2.1, 0.18);
+  const sillGeo = new THREE.BoxGeometry(1.65, 0.18, 0.32);
+  disposableGeometries.push(winArchGeo, sillGeo);
+  for (const wy of [5.4, 11.2]) {
+    for (let f = 0; f < 4; f++) {
+      const fGroup = new THREE.Group();
+      fGroup.rotation.y = (f * Math.PI) / 2;
+      const winArch = new THREE.Mesh(winArchGeo, windowRecessMat);
+      winArch.position.set(0, wy, 4.72);
+      fGroup.add(winArch);
+
+      const sill = new THREE.Mesh(sillGeo, sandstoneTrimMat);
+      sill.position.set(0, wy - 1.08, 4.76);
+      fGroup.add(sill);
+      obsGroup.add(fGroup);
     }
-    for (const sx of [-5.18, 5.18]) {
-      const bx = new THREE.Mesh(obsOuterTrimXGeo, bandMat);
-      bx.position.set(sx, sy, 0);
-      obsTowerGroup.add(bx);
+  }
+
+  // Watchtower Observation Deck at y = 14.0m (world Y = 19.5m) with ladder hatch cutout
+  const deckY = SOUTHWEST_OASIS_POS.observatoryTopDeckY - SOUTHWEST_OASIS_POS.terraceY;
+  const deckFrontGeo = new THREE.BoxGeometry(9.6, 0.35, 6.2);
+  const deckSideGeo = new THREE.BoxGeometry(3.4, 0.35, 3.4);
+  disposableGeometries.push(deckFrontGeo, deckSideGeo);
+
+  const deckFront = new THREE.Mesh(deckFrontGeo, sandstoneTrimMat);
+  deckFront.position.set(0, deckY - 0.15, 1.5);
+  deckFront.receiveShadow = true;
+  obsGroup.add(deckFront);
+
+  for (const side of [-1, 1]) {
+    const deckSide = new THREE.Mesh(deckSideGeo, sandstoneTrimMat);
+    deckSide.position.set(side * 3.1, deckY - 0.15, -3.1);
+    obsGroup.add(deckSide);
+  }
+
+  for (const [px, pz, pw, pd] of [
+    [0, -4.85, 9.8, 0.42],
+    [0, 4.85, 9.8, 0.42],
+    [-4.85, 0, 0.42, 9.8],
+    [4.85, 0, 0.42, 9.8],
+  ] as const) {
+    const paraGeo = new THREE.BoxGeometry(pw, 1.15, pd);
+    disposableGeometries.push(paraGeo);
+    const para = new THREE.Mesh(paraGeo, sandstoneTrimMat);
+    para.position.set(px, deckY + 0.55, pz);
+    para.castShadow = true;
+    obsGroup.add(para);
+  }
+
+  // 4 Corner Belfry Pillars + Rounded Sandstone Dome Crown
+  const belfryPillarGeo = new THREE.BoxGeometry(0.85, 3.4, 0.85);
+  const domeDrumGeo = new THREE.BoxGeometry(7.8, 0.65, 7.8);
+  const sandstoneDomeGeo = new THREE.SphereGeometry(3.55, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.52);
+  const domeFinialGeo = new THREE.CylinderGeometry(0.08, 0.22, 0.95, 8);
+  disposableGeometries.push(belfryPillarGeo, domeDrumGeo, sandstoneDomeGeo, domeFinialGeo);
+
+  for (const cx of [-3.4, 3.4]) {
+    for (const cz of [-3.4, 3.4]) {
+      const belfryPillar = new THREE.Mesh(belfryPillarGeo, adobeWallMat);
+      belfryPillar.position.set(cx, deckY + 1.7, cz);
+      belfryPillar.castShadow = true;
+      obsGroup.add(belfryPillar);
     }
   }
+  const domeDrum = new THREE.Mesh(domeDrumGeo, sandstoneTrimMat);
+  domeDrum.position.set(0, deckY + 3.65, 0);
+  domeDrum.castShadow = true;
+  obsGroup.add(domeDrum);
 
-  const obsDeckS = new THREE.Mesh(obsDeckSouthGeo, oasisSandstoneMat);
-  obsDeckS.position.set(0, obsH - 0.17, 1.6);
-  const obsDeckNW = new THREE.Mesh(obsDeckNorthSideGeo, oasisSandstoneMat);
-  obsDeckNW.position.set(-3.1, obsH - 0.17, -3.6);
-  const obsDeckNE = new THREE.Mesh(obsDeckNorthSideGeo, oasisSandstoneMat);
-  obsDeckNE.position.set(3.1, obsH - 0.17, -3.6);
+  const sandstoneDome = new THREE.Mesh(sandstoneDomeGeo, domePlasterMat);
+  sandstoneDome.position.set(0, deckY + 3.9, 0);
+  sandstoneDome.castShadow = true;
+  sandstoneDome.receiveShadow = true;
+  obsGroup.add(sandstoneDome);
 
-  obsTowerGroup.add(
-    obsWallN,
-    obsWallW,
-    obsWallE,
-    obsFlankL,
-    obsFlankR,
-    obsLintel,
-    obsDeckS,
-    obsDeckNW,
-    obsDeckNE,
-    createInteractiveDoubleDoor(SOUTHWEST_OASIS_POS.observatoryDoorId, 0, 0.08, 4.85, 2.4, 3.2)
+  const domeFinial = new THREE.Mesh(domeFinialGeo, sandstoneTrimMat);
+  domeFinial.position.set(0, deckY + 7.65, 0);
+  obsGroup.add(domeFinial);
+
+  // Interactive Double Door ('sw-observatory-door')
+  const obsDoor = archAssets.createInteractiveDoubleDoor(
+    SOUTHWEST_OASIS_POS.observatoryDoorId,
+    0,
+    0.2,
+    4.65,
+    2.5,
+    3.0
   );
+  obsGroup.add(obsDoor);
 
-  const astroTable = new THREE.Mesh(tableTopGeo, furnitureWoodMat);
-  astroTable.scale.set(1.3, 1.0, 1.3);
-  astroTable.position.set(0, 0.78, 0.4);
-  const starGlobe = new THREE.Mesh(mineCrystalClusterGeo, mineSapphireCrystalMat);
-  starGlobe.scale.setScalar(1.15);
-  starGlobe.position.set(0, 1.35, 0.4);
-  const scrollShelfW = new THREE.Mesh(whRackShelfGeo, furnitureWoodMat);
-  scrollShelfW.rotation.y = Math.PI / 2;
-  scrollShelfW.position.set(-3.8, 1.8, 0);
-  const scrollShelfE = new THREE.Mesh(whRackShelfGeo, furnitureWoodMat);
-  scrollShelfE.rotation.y = Math.PI / 2;
-  scrollShelfE.position.set(3.8, 1.8, 0);
-  obsTowerGroup.add(
-    astroTable,
-    starGlobe,
-    scrollShelfW,
-    scrollShelfE,
-    createRedChineseLantern(-2.8, 3.8, 1.5),
-    createRedChineseLantern(2.8, 3.8, 1.5)
+  // Interior Wooden Ladder ('sw-observatory-ladder') up to the 19.5m lookout deck
+  const ladderLocalZ = SOUTHWEST_OASIS_POS.observatoryLadderZ - SOUTHWEST_OASIS_POS.observatoryZ;
+  const railGeo = new THREE.CylinderGeometry(0.055, 0.055, deckY + 0.8, 8);
+  const rungGeo = new THREE.CylinderGeometry(0.038, 0.038, 0.84, 8);
+  disposableGeometries.push(railGeo, rungGeo);
+
+  for (const lx of [-0.42, 0.42]) {
+    const rail = new THREE.Mesh(railGeo, darkTimberMat);
+    rail.position.set(lx, (deckY + 0.8) * 0.5, ladderLocalZ);
+    obsGroup.add(rail);
+  }
+  for (let ry = 0.6; ry <= deckY + 0.4; ry += 0.52) {
+    const rung = new THREE.Mesh(rungGeo, darkTimberMat);
+    rung.rotation.z = Math.PI / 2;
+    rung.position.set(0, ry, ladderLocalZ);
+    obsGroup.add(rung);
+  }
+
+  // Citadel Southern Waterfront Shade Awning
+  addClothAwning(obsGroup, 'south', 'ochre', 9.8, 9.8, 6.2, 3.8, 3.85);
+
+  const citadelLight = new THREE.PointLight(0xffaa44, 1.8, 22);
+  citadelLight.position.set(
+    SOUTHWEST_OASIS_POS.observatoryX,
+    SOUTHWEST_OASIS_POS.terraceY + 4.5,
+    SOUTHWEST_OASIS_POS.observatoryZ + 5.2
   );
+  scene.add(citadelLight);
+  lanternLights.push(citadelLight);
 
-  const obsLadderGroup = new THREE.Group();
-  obsLadderGroup.position.set(0, obsH * 0.5, -3.7);
-  const obsRailL = new THREE.Mesh(lhLadderRailGeo, oasisLapisMat);
-  obsRailL.position.x = -0.35;
-  const obsRailR = new THREE.Mesh(lhLadderRailGeo, oasisLapisMat);
-  obsRailR.position.x = 0.35;
-  obsLadderGroup.add(obsRailL, obsRailR);
-  for (let r = 0; r <= 38; r++) {
-    const rung = new THREE.Mesh(hwLadderRungGeo, imperialGoldMat);
-    rung.position.y = -obsH * 0.5 + 0.35 + (r / 38) * (obsH - 0.4);
-    obsLadderGroup.add(rung);
-  }
-  obsTowerGroup.add(obsLadderGroup);
+  swOasisGroup.add(obsGroup);
 
-  for (const sz of [-5.0, 5.0]) {
-    const rZ = new THREE.Mesh(lhTopRailZGeo, imperialGoldMat);
-    rZ.scale.x = 1.12;
-    rZ.position.set(0, obsH + 0.48, sz);
-    obsTowerGroup.add(rZ);
-  }
-  for (const sx of [-5.0, 5.0]) {
-    const rX = new THREE.Mesh(lhTopRailXGeo, imperialGoldMat);
-    rX.scale.z = 1.12;
-    rX.position.set(sx, obsH + 0.48, 0);
-    obsTowerGroup.add(rX);
-  }
-
-  const telescopeMount = new THREE.Mesh(binnacleStandGeo, furnitureWoodMat);
-  telescopeMount.position.set(3.2, obsH + 0.52, 3.2);
-  const telescopeTube = new THREE.Mesh(telescopeTubeGeo, imperialGoldMat);
-  telescopeTube.position.set(3.2, obsH + 1.45, 3.4);
-  obsTowerGroup.add(telescopeMount, telescopeTube);
-
-  const swAstrolabeGroup = new THREE.Group();
-  swAstrolabeGroup.position.set(0, obsH + 3.6, 0.8);
-  const astroOuterRing = new THREE.Mesh(astrolabeRing1Geo, imperialGoldMat);
-  const astroMidRing = new THREE.Mesh(astrolabeRing2Geo, oasisLapisMat);
-  astroMidRing.rotation.x = Math.PI / 3;
-  const astroInnerRing = new THREE.Mesh(astrolabeRing3Geo, imperialGoldMat);
-  astroInnerRing.rotation.y = Math.PI / 4;
-  const astroCoreSun = new THREE.Mesh(new THREE.SphereGeometry(0.68, 14, 14), mineGoldOreMat);
-  swAstrolabeGroup.add(astroOuterRing, astroMidRing, astroInnerRing, astroCoreSun);
-  obsTowerGroup.add(swAstrolabeGroup);
-  swOasisGroup.add(obsTowerGroup);
-
-  // 3) ENTERABLE OASIS ALCHEMIST & SILK WEAVER'S PAVILION
+  // ======================== 4. WEST ENTERABLE ADOBE MERCHANT HOUSE & TERRACOTTA CANOPY ======================== \\
   const pavGroup = new THREE.Group();
   pavGroup.position.set(
-    SOUTHWEST_OASIS_POS.pavilionX,
-    SOUTHWEST_OASIS_POS.pavilionFloorY,
-    SOUTHWEST_OASIS_POS.pavilionZ
-  );
-  const pavFloorGeo = new THREE.BoxGeometry(10.8, 0.32, 13.2);
-  const pavWestWallGeo = new THREE.BoxGeometry(0.45, 5.2, 12.8);
-  const pavSideWallGeo = new THREE.BoxGeometry(10.4, 5.2, 0.45);
-  const pavEastFlankGeo = new THREE.BoxGeometry(0.45, 5.2, 5.15);
-  const pavEastLintelGeo = new THREE.BoxGeometry(0.48, 2.0, 2.5);
-  const pavDomeGeo = new THREE.SphereGeometry(4.6, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55);
-  disposableGeometries.push(
-    pavFloorGeo,
-    pavWestWallGeo,
-    pavSideWallGeo,
-    pavEastFlankGeo,
-    pavEastLintelGeo,
-    pavDomeGeo
+    SOUTHWEST_OASIS_POS.pavilionX - SOUTHWEST_OASIS_POS.x,
+    0,
+    SOUTHWEST_OASIS_POS.pavilionZ - SOUTHWEST_OASIS_POS.z
   );
 
-  const pavFloor = new THREE.Mesh(pavFloorGeo, oasisSandstoneMat);
-  pavFloor.position.y = -0.16;
-  const pavWestW = new THREE.Mesh(pavWestWallGeo, oasisSandstoneMat);
-  pavWestW.position.set(-5.2, 2.6, 0);
-  const pavNorthW = new THREE.Mesh(pavSideWallGeo, oasisSandstoneMat);
-  pavNorthW.position.set(0, 2.6, -6.4);
-  const pavSouthW = new THREE.Mesh(pavSideWallGeo, oasisSandstoneMat);
-  pavSouthW.position.set(0, 2.6, 6.4);
-  const pavEastN = new THREE.Mesh(pavEastFlankGeo, oasisSandstoneMat);
-  pavEastN.position.set(5.2, 2.6, -3.82);
-  const pavEastS = new THREE.Mesh(pavEastFlankGeo, oasisSandstoneMat);
-  pavEastS.position.set(5.2, 2.6, 3.82);
-  const pavLintel = new THREE.Mesh(pavEastLintelGeo, oasisLapisMat);
-  pavLintel.position.set(5.2, 4.2, 0);
-  const pavRoofSlab = new THREE.Mesh(pavFloorGeo, oasisLapisMat);
-  pavRoofSlab.position.y = 5.3;
-  const pavGoldenDome = new THREE.Mesh(pavDomeGeo, imperialGoldMat);
-  pavGoldenDome.position.y = 5.2;
+  const pavH = 4.9;
+  const pavFloorGeo = new THREE.BoxGeometry(10.8, 0.24, 13.0);
+  const pavWestGeo = new THREE.BoxGeometry(0.5, pavH, 12.8);
+  const pavNSGeo = new THREE.BoxGeometry(10.6, pavH, 0.5);
+  const eastFlankGeo = new THREE.BoxGeometry(0.5, pavH, 4.95);
+  const eastHeaderGeo = new THREE.BoxGeometry(0.5, pavH - 2.9, 2.8);
+  const pavRoofGeo = new THREE.BoxGeometry(10.8, 0.35, 13.0);
+  disposableGeometries.push(pavFloorGeo, pavWestGeo, pavNSGeo, eastFlankGeo, eastHeaderGeo, pavRoofGeo);
 
-  const alchDoor = createInteractiveDoubleDoor(
+  const pavFloor = new THREE.Mesh(pavFloorGeo, sandstoneTrimMat);
+  pavFloor.position.set(0, 0.12, 0);
+  pavFloor.receiveShadow = true;
+  pavGroup.add(pavFloor);
+
+  const pavWestWall = new THREE.Mesh(pavWestGeo, adobeWallMat);
+  pavWestWall.position.set(-5.15, pavH * 0.5, 0);
+  pavWestWall.castShadow = true;
+  pavWestWall.receiveShadow = true;
+  pavGroup.add(pavWestWall);
+
+  const pavNorthWall = new THREE.Mesh(pavNSGeo, adobeWallMat);
+  pavNorthWall.position.set(0, pavH * 0.5, -6.3);
+  pavNorthWall.castShadow = true;
+  pavNorthWall.receiveShadow = true;
+  pavGroup.add(pavNorthWall);
+
+  const pavSouthWall = new THREE.Mesh(pavNSGeo, adobeWallMat);
+  pavSouthWall.position.set(0, pavH * 0.5, 6.3);
+  pavSouthWall.castShadow = true;
+  pavSouthWall.receiveShadow = true;
+  pavGroup.add(pavSouthWall);
+
+  for (const side of [-1, 1]) {
+    const eastFlank = new THREE.Mesh(eastFlankGeo, adobeWallMat);
+    eastFlank.position.set(5.15, pavH * 0.5, side * 3.85);
+    eastFlank.castShadow = true;
+    eastFlank.receiveShadow = true;
+    pavGroup.add(eastFlank);
+  }
+  const eastHeader = new THREE.Mesh(eastHeaderGeo, adobeWallMat);
+  eastHeader.position.set(5.15, 2.9 + (pavH - 2.9) * 0.5, 0);
+  eastHeader.castShadow = true;
+  pavGroup.add(eastHeader);
+
+  const pavRoof = new THREE.Mesh(pavRoofGeo, adobeWarmMat);
+  pavRoof.position.set(0, pavH + 0.15, 0);
+  pavRoof.castShadow = true;
+  pavRoof.receiveShadow = true;
+  pavGroup.add(pavRoof);
+
+  addRoofVigas(pavGroup, 10.6, 12.8, pavH - 0.38);
+
+  // Interactive Double Door ('sw-alchemist-door') on East wall
+  const pavDoor = archAssets.createInteractiveDoubleDoor(
     SOUTHWEST_OASIS_POS.pavilionDoorId,
     0,
+    0.2,
     0,
-    0,
-    2.4,
-    3.2
+    2.5,
+    2.75
   );
-  alchDoor.position.set(5.2, 0, 0);
-  alchDoor.rotation.y = Math.PI / 2;
-  for (const ch of alchDoor.children) {
-    ch.position.z = 0;
+  pavDoor.position.set(5.15, 0, 0);
+  pavDoor.rotation.y = Math.PI / 2;
+  pavGroup.add(pavDoor);
+  void doorPivotHandles;
+
+  // Iconic Terracotta-Red Cloth Canopy & Market Crates/Barrels on the East facade
+  addClothAwning(pavGroup, 'east', 'terracotta', 10.6, 12.8, 8.6, 3.8, 4.1);
+
+  // Interior merchant worktable, spice jars & woven desert carpet
+  const rugGeo = new THREE.BoxGeometry(5.6, 0.04, 7.6);
+  const tableGeo = new THREE.BoxGeometry(1.5, 0.92, 4.4);
+  const jarGeo = new THREE.CylinderGeometry(0.16, 0.22, 0.48, 10);
+  disposableGeometries.push(rugGeo, tableGeo, jarGeo);
+
+  const rugMesh = new THREE.Mesh(rugGeo, terracottaAwningMat);
+  rugMesh.position.set(-0.6, 0.25, 0);
+  rugMesh.receiveShadow = true;
+  pavGroup.add(rugMesh);
+
+  const merchantTable = new THREE.Mesh(tableGeo, darkTimberMat);
+  merchantTable.position.set(-3.2, 0.68, 0);
+  merchantTable.castShadow = true;
+  pavGroup.add(merchantTable);
+
+  for (let j = -1; j <= 1; j++) {
+    const jar = new THREE.Mesh(jarGeo, clayPotMat);
+    jar.position.set(-3.2, 1.38, j * 1.15);
+    pavGroup.add(jar);
   }
 
-  const alchTable = new THREE.Mesh(tableTopGeo, furnitureWoodMat);
-  alchTable.scale.set(1.1, 1.0, 1.8);
-  alchTable.position.set(-2.2, 0.78, 0);
-  const potion1 = new THREE.Mesh(mineCrystalClusterGeo, mineEmeraldCrystalMat);
-  potion1.scale.setScalar(0.65);
-  potion1.position.set(-2.2, 1.15, -1.1);
-  const potion2 = new THREE.Mesh(mineCrystalClusterGeo, mineAmethystCrystalMat);
-  potion2.scale.setScalar(0.72);
-  potion2.position.set(-2.2, 1.18, 0);
-  const potion3 = new THREE.Mesh(mineCrystalClusterGeo, mineSapphireCrystalMat);
-  potion3.scale.setScalar(0.65);
-  potion3.position.set(-2.2, 1.15, 1.1);
-  const silkRug = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.04, 7.8), imperialCrimsonMat);
-  silkRug.position.set(0.4, 0.03, 0);
-
-  pavGroup.add(
-    pavFloor,
-    pavWestW,
-    pavNorthW,
-    pavSouthW,
-    pavEastN,
-    pavEastS,
-    pavLintel,
-    pavRoofSlab,
-    pavGoldenDome,
-    alchDoor,
-    alchTable,
-    potion1,
-    potion2,
-    potion3,
-    silkRug,
-    createRedChineseLantern(0, 4.2, -2.8),
-    createRedChineseLantern(0, 4.2, 2.8)
+  const pavLight = new THREE.PointLight(0xffaa44, 1.5, 18);
+  pavLight.position.set(
+    SOUTHWEST_OASIS_POS.pavilionX + 3.0,
+    SOUTHWEST_OASIS_POS.terraceY + 3.6,
+    SOUTHWEST_OASIS_POS.pavilionZ
   );
+  scene.add(pavLight);
+  lanternLights.push(pavLight);
+
   swOasisGroup.add(pavGroup);
 
-  // 4) SWIMMABLE TURQUOISE OASIS LAGOON, WALKABLE ARCHED CEDAR BRIDGE & OVER-WATER LOTUS GAZEBO
-  const oasisLagoonGeo = new THREE.PlaneGeometry(2.0, 2.0, 28, 28);
-  oasisLagoonGeo.rotateX(-Math.PI / 2);
-  const lagPosAttr = oasisLagoonGeo.attributes.position;
-  for (let i = 0; i < lagPosAttr.count; i++) {
-    const u = lagPosAttr.getX(i);
-    const v = lagPosAttr.getZ(i);
-    const ex = u * Math.sqrt(Math.max(0, 1.0 - (v * v) * 0.5)) * SOUTHWEST_OASIS_POS.lagoonRadiusX;
-    const ez = v * Math.sqrt(Math.max(0, 1.0 - (u * u) * 0.5)) * SOUTHWEST_OASIS_POS.lagoonRadiusZ;
-    lagPosAttr.setXYZ(i, ex, 0, ez);
-  }
-  oasisLagoonGeo.computeVertexNormals();
-  const oasisBridgeDeckGeo = new THREE.BoxGeometry(4.4, 0.28, 30.6);
-  const oasisBridgeRampGeo = new THREE.BoxGeometry(4.4, 0.24, 2.2);
-  const oasisBridgePostGeo = new THREE.BoxGeometry(0.24, 0.92, 0.24);
-  const oasisBridgeRailGeo = new THREE.BoxGeometry(0.16, 0.14, 10.6);
-  const oasisGazeboFloorGeo = new THREE.BoxGeometry(8.8, 0.32, 8.8);
-  const oasisGazeboDomeGeo = new THREE.ConeGeometry(6.4, 3.6, 8);
-  const amphColGeo = new THREE.CylinderGeometry(0.36, 0.42, 5.6, 12);
-  amphColGeo.translate(0, 2.8, 0);
-  const amphArchBeamGeo = new THREE.BoxGeometry(0.48, 0.45, 5.8);
-
-  disposableGeometries.push(
-    oasisLagoonGeo,
-    oasisBridgeDeckGeo,
-    oasisBridgeRampGeo,
-    oasisBridgePostGeo,
-    oasisBridgeRailGeo,
-    oasisGazeboFloorGeo,
-    oasisGazeboDomeGeo,
-    amphColGeo,
-    amphArchBeamGeo
-  );
-
-  const oasisLagoonWater = new THREE.Mesh(oasisLagoonGeo, oasisTurquoiseWaterMat);
-  oasisLagoonWater.position.set(
-    SOUTHWEST_OASIS_POS.lagoonX,
-    SOUTHWEST_OASIS_POS.lagoonWaterY,
-    SOUTHWEST_OASIS_POS.lagoonZ
-  );
-  const oasisBridgeDeck = new THREE.Mesh(oasisBridgeDeckGeo, timberMat);
-  oasisBridgeDeck.position.set(
-    SOUTHWEST_OASIS_POS.gazeboX,
-    SOUTHWEST_OASIS_POS.gazeboDeckY - 0.14,
-    SOUTHWEST_OASIS_POS.lagoonZ
-  );
-  for (const dirZ of [-1, 1]) {
-    const ramp = new THREE.Mesh(oasisBridgeRampGeo, timberMat);
-    ramp.position.set(
-      SOUTHWEST_OASIS_POS.gazeboX,
-      SOUTHWEST_OASIS_POS.gazeboDeckY - 0.26,
-      SOUTHWEST_OASIS_POS.lagoonZ + dirZ * 15.6
+  // ======================== 5. RING OF 7 SANDSTONE ADOBE VILLAGE HOUSES ======================== \\
+  const buildAdobeVillageHouse = (spec: OasisVillageHouseSpec): void => {
+    const hGroup = new THREE.Group();
+    hGroup.position.set(
+      spec.x - SOUTHWEST_OASIS_POS.x,
+      0,
+      spec.z - SOUTHWEST_OASIS_POS.z
     );
-    ramp.rotation.x = dirZ * 0.16;
-    swOasisGroup.add(ramp);
-  }
-  for (const xSide of [-2.05, 2.05]) {
-    for (const zSpanCenter of [-9.6, 9.6]) {
-      const rail = new THREE.Mesh(oasisBridgeRailGeo, timberMat);
-      rail.position.set(
-        SOUTHWEST_OASIS_POS.gazeboX + xSide,
-        SOUTHWEST_OASIS_POS.gazeboDeckY + 0.72,
-        SOUTHWEST_OASIS_POS.lagoonZ + zSpanCenter
+
+    const bodyGeo = new THREE.BoxGeometry(spec.w, spec.h, spec.d);
+    const parapetGeo = new THREE.BoxGeometry(spec.w + 0.18, 0.42, spec.d + 0.18);
+    disposableGeometries.push(bodyGeo, parapetGeo);
+
+    const mainBody = new THREE.Mesh(bodyGeo, adobeWallMat);
+    mainBody.position.set(0, spec.h * 0.5, 0);
+    mainBody.castShadow = true;
+    mainBody.receiveShadow = true;
+    hGroup.add(mainBody);
+
+    const parapet = new THREE.Mesh(parapetGeo, sandstoneTrimMat);
+    parapet.position.set(0, spec.h + 0.15, 0);
+    parapet.castShadow = true;
+    hGroup.add(parapet);
+
+    addRoofVigas(hGroup, spec.w, spec.d, spec.h - 0.35);
+
+    const doorSide = spec.awningSide ?? 'south';
+    const facadeGroup = new THREE.Group();
+    if (doorSide === 'north') facadeGroup.rotation.y = Math.PI;
+    else if (doorSide === 'east') facadeGroup.rotation.y = Math.PI * 0.5;
+    else if (doorSide === 'west') facadeGroup.rotation.y = -Math.PI * 0.5;
+
+    const frontDepth =
+      doorSide === 'east' || doorSide === 'west' ? spec.w * 0.5 : spec.d * 0.5;
+    const frontSpan =
+      doorSide === 'east' || doorSide === 'west' ? spec.d : spec.w;
+
+    const doorGeo = new THREE.BoxGeometry(1.25, 2.25, 0.12);
+    const winGeo = new THREE.BoxGeometry(0.95, 1.15, 0.12);
+    const winSillGeo = new THREE.BoxGeometry(1.15, 0.14, 0.22);
+    disposableGeometries.push(doorGeo, winGeo, winSillGeo);
+
+    const doorMesh = new THREE.Mesh(doorGeo, darkTimberMat);
+    doorMesh.position.set(0, 1.12, frontDepth + 0.03);
+    facadeGroup.add(doorMesh);
+
+    for (const wx of [-frontSpan * 0.28, frontSpan * 0.28]) {
+      const winMesh = new THREE.Mesh(winGeo, darkTimberMat);
+      winMesh.position.set(wx, 2.2, frontDepth + 0.03);
+      facadeGroup.add(winMesh);
+
+      const sillMesh = new THREE.Mesh(winSillGeo, sandstoneTrimMat);
+      sillMesh.position.set(wx, 1.58, frontDepth + 0.06);
+      facadeGroup.add(sillMesh);
+    }
+    hGroup.add(facadeGroup);
+
+    if (spec.secondStory) {
+      const s = spec.secondStory;
+      const upperGeo = new THREE.BoxGeometry(s.w, s.h, s.d);
+      const upperParapetGeo = new THREE.BoxGeometry(s.w + 0.16, 0.36, s.d + 0.16);
+      disposableGeometries.push(upperGeo, upperParapetGeo);
+
+      const upperBody = new THREE.Mesh(upperGeo, adobeWarmMat);
+      upperBody.position.set(s.offsetX, spec.h + s.h * 0.5, s.offsetZ);
+      upperBody.castShadow = true;
+      upperBody.receiveShadow = true;
+      hGroup.add(upperBody);
+
+      const upperParapet = new THREE.Mesh(upperParapetGeo, sandstoneTrimMat);
+      upperParapet.position.set(s.offsetX, spec.h + s.h + 0.14, s.offsetZ);
+      upperParapet.castShadow = true;
+      hGroup.add(upperParapet);
+
+      const upperVigaGroup = new THREE.Group();
+      upperVigaGroup.position.set(s.offsetX, 0, s.offsetZ);
+      addRoofVigas(upperVigaGroup, s.w, s.d, spec.h + s.h - 0.32);
+      hGroup.add(upperVigaGroup);
+    }
+
+    if (spec.awningSide && spec.awningW && spec.awningD) {
+      addClothAwning(
+        hGroup,
+        spec.awningSide,
+        spec.awningColor ?? 'ochre',
+        spec.w,
+        spec.d,
+        spec.awningW,
+        spec.awningD,
+        3.55
       );
-      swOasisGroup.add(rail);
     }
-    for (const zPost of [-14.8, -9.6, -4.6, 4.6, 9.6, 14.8]) {
-      const post = new THREE.Mesh(oasisBridgePostGeo, barkMat);
-      post.position.set(
-        SOUTHWEST_OASIS_POS.gazeboX + xSide,
-        SOUTHWEST_OASIS_POS.gazeboDeckY + 0.36,
-        SOUTHWEST_OASIS_POS.lagoonZ + zPost
+
+    swOasisGroup.add(hGroup);
+  };
+
+  for (const houseSpec of SOUTHWEST_OASIS_VILLAGE_HOUSES) {
+    buildAdobeVillageHouse(houseSpec);
+  }
+
+  // ======================== 6. LOW DRY-STONE SANDSTONE COURTYARD WALLS ======================== \\
+  for (const wallSpec of SOUTHWEST_OASIS_STONE_WALLS) {
+    const wallGroup = new THREE.Group();
+    wallGroup.position.set(
+      wallSpec.x - SOUTHWEST_OASIS_POS.x,
+      0,
+      wallSpec.z - SOUTHWEST_OASIS_POS.z
+    );
+
+    const wallBaseGeo = new THREE.BoxGeometry(wallSpec.w, wallSpec.h, wallSpec.d);
+    disposableGeometries.push(wallBaseGeo);
+    const wallBase = new THREE.Mesh(wallBaseGeo, dryStoneWallMat);
+    wallBase.position.set(0, wallSpec.h * 0.5, 0);
+    wallBase.castShadow = true;
+    wallBase.receiveShadow = true;
+    wallGroup.add(wallBase);
+
+    const isAlongZ = wallSpec.d > wallSpec.w;
+    const length = isAlongZ ? wallSpec.d : wallSpec.w;
+    const blockCount = Math.max(3, Math.floor(length / 1.1));
+    const capBlockGeo = new THREE.BoxGeometry(
+      isAlongZ ? wallSpec.w * 1.06 : 0.92,
+      0.26,
+      isAlongZ ? 0.92 : wallSpec.d * 1.06
+    );
+    disposableGeometries.push(capBlockGeo);
+
+    for (let b = 0; b < blockCount; b++) {
+      const offset = -length * 0.45 + (b / Math.max(1, blockCount - 1)) * (length * 0.9);
+      const capBlock = new THREE.Mesh(capBlockGeo, sandstoneTrimMat);
+      capBlock.position.set(
+        isAlongZ ? 0 : offset,
+        wallSpec.h + 0.08,
+        isAlongZ ? offset : 0
       );
-      swOasisGroup.add(post);
+      capBlock.rotation.y = ((b % 3) - 1) * 0.03;
+      capBlock.castShadow = true;
+      wallGroup.add(capBlock);
     }
-  }
-  const oasisGazeboFloor = new THREE.Mesh(oasisGazeboFloorGeo, imperialWoodFloorMat);
-  oasisGazeboFloor.position.set(
-    SOUTHWEST_OASIS_POS.gazeboX,
-    SOUTHWEST_OASIS_POS.gazeboDeckY - 0.12,
-    SOUTHWEST_OASIS_POS.gazeboZ
-  );
-  const oasisGazeboRoof = new THREE.Mesh(oasisGazeboDomeGeo, imperialGoldMat);
-  oasisGazeboRoof.position.set(
-    SOUTHWEST_OASIS_POS.gazeboX,
-    SOUTHWEST_OASIS_POS.gazeboDeckY + 4.8,
-    SOUTHWEST_OASIS_POS.gazeboZ
-  );
-  swOasisGroup.add(oasisLagoonWater, oasisBridgeDeck, oasisGazeboFloor, oasisGazeboRoof);
 
-  for (const gxOff of [-3.8, 3.8]) {
-    for (const gzOff of [-3.8, 3.8]) {
-      const gCol = new THREE.Mesh(amphColGeo, oasisSandstoneMat);
-      gCol.scale.set(0.85, 0.62, 0.85);
-      gCol.position.set(
-        SOUTHWEST_OASIS_POS.gazeboX + gxOff,
-        SOUTHWEST_OASIS_POS.gazeboDeckY,
-        SOUTHWEST_OASIS_POS.gazeboZ + gzOff
+    swOasisGroup.add(wallGroup);
+  }
+
+  // ======================== 7. LUSH OASIS DATE PALM GROVE (24 CURVED PALMS) ======================== \\
+  const crownBulbGeo = new THREE.SphereGeometry(0.42, 8, 6);
+  const innerFrondGeo = new THREE.BoxGeometry(0.72, 0.06, 2.2);
+  const outerFrondGeo = new THREE.ConeGeometry(0.46, 1.95, 4);
+  disposableGeometries.push(crownBulbGeo, innerFrondGeo, outerFrondGeo);
+
+  for (const palm of SOUTHWEST_OASIS_PALMS) {
+    const palmGroup = new THREE.Group();
+    const groundY =
+      groundHeightAt(SOUTHWEST_OASIS_POS.x + palm.dx, SOUTHWEST_OASIS_POS.z + palm.dz) -
+      SOUTHWEST_OASIS_POS.terraceY;
+    palmGroup.position.set(palm.dx, Math.max(-0.2, groundY), palm.dz);
+    palmGroup.scale.setScalar(palm.scale);
+
+    const segCount = 7;
+    const segH = 1.08;
+    let curX = 0;
+    let curY = 0;
+    let curZ = 0;
+    for (let s = 0; s < segCount; s++) {
+      const t = s / segCount;
+      const rBot = 0.36 * (1.0 - t * 0.38);
+      const rTop = 0.36 * (1.0 - ((s + 1) / segCount) * 0.38);
+      const stepX = palm.leanX * (t + 0.15) * 0.55;
+      const stepZ = palm.leanZ * (t + 0.15) * 0.55;
+
+      const segGeo = new THREE.CylinderGeometry(rTop, rBot, segH + 0.08, 9);
+      disposableGeometries.push(segGeo);
+      const segMesh = new THREE.Mesh(
+        segGeo,
+        s % 2 === 0 ? palmTrunkMat : palmRingMat
       );
-      swOasisGroup.add(gCol);
-    }
-  }
+      segMesh.position.set(curX + stepX * 0.5, curY + segH * 0.5, curZ + stepZ * 0.5);
+      segMesh.rotation.z = -palm.leanX * (0.25 + t * 0.35);
+      segMesh.rotation.x = palm.leanZ * (0.25 + t * 0.35);
+      segMesh.castShadow = true;
+      segMesh.receiveShadow = true;
+      palmGroup.add(segMesh);
 
-  // 5) ANCIENT SUNKEN MARBLE COLONNADE & TWIN GOLDEN SUN-OBELISKS
-  for (let c = 0; c < 6; c++) {
-    const cz = SOUTHWEST_OASIS_POS.z - 14.0 + c * 5.6;
-    const col = new THREE.Mesh(amphColGeo, oasisSandstoneMat);
-    col.position.set(SOUTHWEST_OASIS_POS.colonnadeX, swY, cz);
-    swOasisGroup.add(col);
-    if (c < 5) {
-      const lintel = new THREE.Mesh(amphArchBeamGeo, oasisSandstoneMat);
-      lintel.rotation.y = Math.PI / 2;
-      lintel.position.set(SOUTHWEST_OASIS_POS.colonnadeX, swY + 5.6, cz + 2.8);
-      swOasisGroup.add(lintel);
+      curX += stepX;
+      curY += segH;
+      curZ += stepZ;
     }
-  }
-  for (const oz of [SOUTHWEST_OASIS_POS.gateZ - 5.5, SOUTHWEST_OASIS_POS.gateZ + 5.5]) {
-    const obShaft = new THREE.Mesh(obeliskShaftGeo, oasisSandstoneMat);
-    obShaft.position.set(SOUTHWEST_OASIS_POS.gateX, swY, oz);
-    const obTip = new THREE.Mesh(obeliskTipGeo, mineGoldOreMat);
-    obTip.position.set(SOUTHWEST_OASIS_POS.gateX, swY, oz);
-    swOasisGroup.add(obShaft, obTip);
-  }
 
-  // 6) 14 LUSH OASIS DATE-PALM TREES
-  const palmTrunkGeo = new THREE.CylinderGeometry(0.24, 0.42, 8.8, 8);
-  palmTrunkGeo.translate(0, 4.4, 0);
-  const palmFrondGeo = new THREE.BoxGeometry(0.65, 0.08, 3.6);
-  palmFrondGeo.translate(0, 0, 1.8);
-  disposableGeometries.push(palmTrunkGeo, palmFrondGeo);
+    const crownGroup = new THREE.Group();
+    crownGroup.position.set(curX, curY, curZ);
 
-  const palmOffsets: Array<[number, number, number]> = [
-    [-20, 20, 1.05],
-    [-18, 30, 0.95],
-    [-10, 37, 1.12],
-    [10, 37, 1.08],
-    [18, 30, 0.98],
-    [20, 20, 1.10],
-    [-16, -16, 1.04],
-    [16, -16, 1.02],
-    [-34, 12, 0.96],
-    [-34, -12, 1.06],
-    [30, 12, 1.0],
-    [30, -16, 0.95],
-  ];
-  for (let p = 0; p < palmOffsets.length; p++) {
-    const [dx, dz, pScale] = palmOffsets[p];
-    const px = swCx + dx;
-    const pz = swCz + dz;
-    const pGroup = new THREE.Group();
-    pGroup.position.set(px, groundHeightAt(px, pz), pz);
-    pGroup.scale.setScalar(pScale);
-    const trunk = new THREE.Mesh(palmTrunkGeo, barkMat);
-    trunk.rotation.z = Math.sin(p * 1.7) * 0.08;
-    pGroup.add(trunk);
-    for (let f = 0; f < 7; f++) {
-      const fAng = (f / 7) * Math.PI * 2 + p * 0.4;
-      const frond = new THREE.Mesh(palmFrondGeo, palmFrondMat);
-      frond.position.set(0, 8.6, 0);
-      frond.rotation.y = fAng;
-      frond.rotation.x = 0.38;
-      pGroup.add(frond);
+    const crownBulb = new THREE.Mesh(crownBulbGeo, palmRingMat);
+    crownGroup.add(crownBulb);
+
+    for (let tier = 0; tier < 2; tier++) {
+      const frondCount = tier === 0 ? 8 : 6;
+      for (let f = 0; f < frondCount; f++) {
+        const fAng =
+          (f / frondCount) * Math.PI * 2 +
+          tier * 0.4 +
+          (palm.seed % 7) * 0.2;
+        const frondPivot = new THREE.Group();
+        frondPivot.rotation.y = fAng;
+
+        const pitch = tier === 0 ? 0.42 : 0.15;
+        const innerBlade = new THREE.Mesh(innerFrondGeo, palmFrondMat);
+        innerBlade.position.set(0, 0.35, 1.05);
+        innerBlade.rotation.x = pitch;
+        innerBlade.castShadow = true;
+        frondPivot.add(innerBlade);
+
+        const outerTip = new THREE.Mesh(outerFrondGeo, palmFrondMat);
+        outerTip.scale.set(1.0, 1.0, 0.22);
+        outerTip.position.set(0, 0.08 - tier * 0.12, 2.65);
+        outerTip.rotation.x = Math.PI * 0.58 + pitch * 0.5;
+        outerTip.castShadow = true;
+        frondPivot.add(outerTip);
+
+        crownGroup.add(frondPivot);
+      }
     }
-    swOasisGroup.add(pGroup);
+
+    palmGroup.add(crownGroup);
+    swOasisGroup.add(palmGroup);
   }
 
   scene.add(swOasisGroup);
   distanceCulledObjects.push({
     obj: swOasisGroup,
-    cx: swCx,
-    cz: swCz,
-    radius: 115,
+    cx: SOUTHWEST_OASIS_POS.x,
+    cz: SOUTHWEST_OASIS_POS.z,
+    radius: 75.0,
   });
 
-  const updateOasis = (elapsedTime: number) => {
-    if (swOasisGroup.visible) {
-      swAstrolabeGroup.rotation.y = elapsedTime * 0.55;
-      astroMidRing.rotation.z = elapsedTime * 0.8;
-      astroInnerRing.rotation.x = elapsedTime * 1.15;
-    }
+  return {
+    updateOasis: (elapsedTime: number) => {
+      oasisLagoonWaterMat.emissiveIntensity =
+        0.22 + Math.sin(elapsedTime * 2.2) * 0.06;
+    },
   };
-
-  return { oasisGroup: swOasisGroup, updateOasis };
 }
-// #endregion

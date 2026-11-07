@@ -43,6 +43,9 @@ import {
 import {
   SOUTHEAST_HARBOR_POS,
   SOUTHWEST_OASIS_POS,
+  SOUTHWEST_OASIS_VILLAGE_HOUSES,
+  SOUTHWEST_OASIS_STONE_WALLS,
+  SOUTHWEST_OASIS_PALMS,
 } from './oasisAndHarborLandmarks';
 import {
   CHINESE_FORTRESS_POS,
@@ -995,22 +998,21 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'galleon-office-drafting-stbd', minX: 286.67, maxX: 287.63, minZ: 262.1, maxZ: 267.9, minY: 3.65, maxY: 4.95 },
   { id: 'galleon-office-strongbox', minX: 277.45, maxX: 278.95, minZ: 269.87, maxZ: 270.93, minY: 3.65, maxY: 4.75 },
   { id: 'galleon-office-globe', minX: 285.25, maxX: 286.35, minZ: 269.65, maxZ: 270.75, minY: 3.65, maxY: 5.48 },
-  { id: 'sw-observatory-north-wall', minX: SOUTHWEST_OASIS_POS.observatoryX - 4.8, maxX: SOUTHWEST_OASIS_POS.observatoryX + 4.8, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.1, maxZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.65, maxY: 21.4 },
-  { id: 'sw-observatory-west-wall', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.1, maxX: SOUTHWEST_OASIS_POS.observatoryX - 4.4, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.9, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.9, maxY: 21.4 },
-  { id: 'sw-observatory-east-wall', minX: SOUTHWEST_OASIS_POS.observatoryX + 4.4, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.1, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.9, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.9, maxY: 21.4 },
-  { id: 'sw-observatory-south-left', minX: SOUTHWEST_OASIS_POS.observatoryX - 4.8, maxX: SOUTHWEST_OASIS_POS.observatoryX - 1.35, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.5, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.2, maxY: 21.4 },
-  { id: 'sw-observatory-south-right', minX: SOUTHWEST_OASIS_POS.observatoryX + 1.35, maxX: SOUTHWEST_OASIS_POS.observatoryX + 4.8, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.5, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.2, maxY: 21.4 },
-  { id: 'sw-observatory-top-rail-n', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.2, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.2, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.4, maxZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.0, minY: 21.0, maxY: 22.45 },
-  { id: 'sw-observatory-top-rail-s', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.2, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.2, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.0, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.4, minY: 21.0, maxY: 22.45 },
-  { id: 'sw-observatory-top-rail-w', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.4, maxX: SOUTHWEST_OASIS_POS.observatoryX - 5.0, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.4, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.4, minY: 21.0, maxY: 22.45 },
-  { id: 'sw-observatory-top-rail-e', minX: SOUTHWEST_OASIS_POS.observatoryX + 5.0, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.4, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.4, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.4, minY: 21.0, maxY: 22.45 },
-  { id: 'sw-alchemist-west-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.5, maxX: SOUTHWEST_OASIS_POS.pavilionX - 4.9, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.6, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.6, maxY: 11.2 },
-  { id: 'sw-alchemist-north-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.4, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.4, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.7, maxZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.1, maxY: 11.2 },
-  { id: 'sw-alchemist-south-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.4, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.4, minZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.1, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.7, maxY: 11.2 },
-  { id: 'sw-alchemist-east-north', minX: SOUTHWEST_OASIS_POS.pavilionX + 4.9, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.5, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.6, maxZ: SOUTHWEST_OASIS_POS.pavilionZ - 1.35, maxY: 11.2 },
-  { id: 'sw-alchemist-east-south', minX: SOUTHWEST_OASIS_POS.pavilionX + 4.9, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.5, minZ: SOUTHWEST_OASIS_POS.pavilionZ + 1.35, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.6, maxY: 11.2 },
-  // Oasis Fountain central sculpted spire (outer rim & basin are climbable in walkableHeightAt!)
-  { id: 'sw-oasis-fountain-center-spire', minX: SOUTHWEST_OASIS_POS.fountainX - 0.75, maxX: SOUTHWEST_OASIS_POS.fountainX + 0.75, minZ: SOUTHWEST_OASIS_POS.fountainZ - 0.75, maxZ: SOUTHWEST_OASIS_POS.fountainZ + 0.75, maxY: 8.8 },
+  // Southwest Oasis Domed Adobe Citadel & Watchtower (observatoryX/Z) + Enterable West Adobe Merchant House (pavilionX/Z)
+  { id: 'sw-observatory-north-wall', minX: SOUTHWEST_OASIS_POS.observatoryX - 4.8, maxX: SOUTHWEST_OASIS_POS.observatoryX + 4.8, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.1, maxZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.5, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 19.6 },
+  { id: 'sw-observatory-west-wall', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.1, maxX: SOUTHWEST_OASIS_POS.observatoryX - 4.5, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.9, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.9, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 19.6 },
+  { id: 'sw-observatory-east-wall', minX: SOUTHWEST_OASIS_POS.observatoryX + 4.5, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.1, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.9, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.9, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 19.6 },
+  { id: 'sw-observatory-south-left', minX: SOUTHWEST_OASIS_POS.observatoryX - 4.8, maxX: SOUTHWEST_OASIS_POS.observatoryX - 1.35, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.5, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.1, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 19.6 },
+  { id: 'sw-observatory-south-right', minX: SOUTHWEST_OASIS_POS.observatoryX + 1.35, maxX: SOUTHWEST_OASIS_POS.observatoryX + 4.8, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.5, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.1, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 19.6 },
+  { id: 'sw-observatory-top-rail-n', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.0, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.0, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.2, maxZ: SOUTHWEST_OASIS_POS.observatoryZ - 4.75, minY: 19.4, maxY: 20.65 },
+  { id: 'sw-observatory-top-rail-s', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.0, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.0, minZ: SOUTHWEST_OASIS_POS.observatoryZ + 4.75, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.2, minY: 19.4, maxY: 20.65 },
+  { id: 'sw-observatory-top-rail-w', minX: SOUTHWEST_OASIS_POS.observatoryX - 5.2, maxX: SOUTHWEST_OASIS_POS.observatoryX - 4.75, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.2, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.2, minY: 19.4, maxY: 20.65 },
+  { id: 'sw-observatory-top-rail-e', minX: SOUTHWEST_OASIS_POS.observatoryX + 4.75, maxX: SOUTHWEST_OASIS_POS.observatoryX + 5.2, minZ: SOUTHWEST_OASIS_POS.observatoryZ - 5.2, maxZ: SOUTHWEST_OASIS_POS.observatoryZ + 5.2, minY: 19.4, maxY: 20.65 },
+  { id: 'sw-alchemist-west-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.4, maxX: SOUTHWEST_OASIS_POS.pavilionX - 4.85, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.5, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.5, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 10.6 },
+  { id: 'sw-alchemist-north-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.3, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.3, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.6, maxZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.05, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 10.6 },
+  { id: 'sw-alchemist-south-wall', minX: SOUTHWEST_OASIS_POS.pavilionX - 5.3, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.3, minZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.05, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.6, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 10.6 },
+  { id: 'sw-alchemist-east-north', minX: SOUTHWEST_OASIS_POS.pavilionX + 4.85, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.4, minZ: SOUTHWEST_OASIS_POS.pavilionZ - 6.5, maxZ: SOUTHWEST_OASIS_POS.pavilionZ - 1.35, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 10.6 },
+  { id: 'sw-alchemist-east-south', minX: SOUTHWEST_OASIS_POS.pavilionX + 4.85, maxX: SOUTHWEST_OASIS_POS.pavilionX + 5.4, minZ: SOUTHWEST_OASIS_POS.pavilionZ + 1.35, maxZ: SOUTHWEST_OASIS_POS.pavilionZ + 6.5, minY: SOUTHWEST_OASIS_POS.terraceY, maxY: 10.6 },
   // Market Stall solid counters & full Oriented Bounding Box (OBB) booth frames (all 6 Harbor Market Stalls rotated toward Harbor Fountain)
   {
     id: 'market-stall-counter-harbor-1',
@@ -1237,52 +1239,56 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'desert-pyramid-obelisk-south', minX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 - 1.4, maxX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 + 1.4, minZ: DESERT_PYRAMID_SANCTUARY_POS.z + 10.5 - 1.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.z + 10.5 + 1.4, maxY: 18.5 },
   { id: 'desert-pyramid-sphinx', minX: DESERT_PYRAMID_SANCTUARY_POS.sphinxX - 5.2, maxX: DESERT_PYRAMID_SANCTUARY_POS.sphinxX + 5.2, minZ: DESERT_PYRAMID_SANCTUARY_POS.sphinxZ - 14.0 - 2.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.sphinxZ - 14.0 + 2.4, maxY: 10.5 },
 
-  // 7) Southwest Oasis Amphitheater Colonnade, Twin Obelisks, and Date Palms (oasisModels.ts)
-  ...[0, 1, 2, 3, 4, 5].map((c) => {
-    const ang = Math.PI * 0.1 + (c / 5) * (Math.PI * 0.8);
-    const cx = SOUTHWEST_OASIS_POS.x + Math.sin(ang) * 10.5;
-    const cz = SOUTHWEST_OASIS_POS.z - 22.0 - Math.cos(ang) * 10.5;
+  // 7) Southwest Oasis Sandstone Adobe Village Houses, Low Stone Courtyard Walls, and Date Palm Trunks (oasisModels.ts)
+  ...SOUTHWEST_OASIS_VILLAGE_HOUSES.flatMap((h) => {
+    const boxes: ISolidBuildingBox[] = [
+      {
+        id: h.id,
+        minX: h.x - h.w * 0.5,
+        maxX: h.x + h.w * 0.5,
+        minZ: h.z - h.d * 0.5,
+        maxZ: h.z + h.d * 0.5,
+        minY: SOUTHWEST_OASIS_POS.terraceY,
+        maxY: SOUTHWEST_OASIS_POS.terraceY + h.h,
+      },
+    ];
+    if (h.secondStory) {
+      const s = h.secondStory;
+      boxes.push({
+        id: `${h.id}-upper`,
+        minX: h.x + s.offsetX - s.w * 0.5,
+        maxX: h.x + s.offsetX + s.w * 0.5,
+        minZ: h.z + s.offsetZ - s.d * 0.5,
+        maxZ: h.z + s.offsetZ + s.d * 0.5,
+        minY: SOUTHWEST_OASIS_POS.terraceY + h.h,
+        maxY: SOUTHWEST_OASIS_POS.terraceY + h.h + s.h,
+      });
+    }
+    return boxes;
+  }),
+  ...SOUTHWEST_OASIS_STONE_WALLS.map((w) => ({
+    id: w.id,
+    minX: w.x - w.w * 0.5,
+    maxX: w.x + w.w * 0.5,
+    minZ: w.z - w.d * 0.5,
+    maxZ: w.z + w.d * 0.5,
+    minY: SOUTHWEST_OASIS_POS.terraceY,
+    maxY: SOUTHWEST_OASIS_POS.terraceY + w.h,
+  })),
+  ...SOUTHWEST_OASIS_PALMS.map((p) => {
+    const wx = SOUTHWEST_OASIS_POS.x + p.dx;
+    const wz = SOUTHWEST_OASIS_POS.z + p.dz;
+    const r = 0.42 * p.scale;
     return {
-      id: `sw-oasis-colonnade-${c + 1}`,
-      minX: cx - 0.55,
-      maxX: cx + 0.55,
-      minZ: cz - 0.55,
-      maxZ: cz + 0.55,
+      id: p.id,
+      minX: wx - r,
+      maxX: wx + r,
+      minZ: wz - r,
+      maxZ: wz + r,
       minY: SOUTHWEST_OASIS_POS.terraceY,
-      maxY: SOUTHWEST_OASIS_POS.terraceY + 5.2,
+      maxY: SOUTHWEST_OASIS_POS.terraceY + 8.8 * p.scale,
     };
   }),
-  ...[-8.5, 8.5].map((ox, idx) => ({
-    id: `sw-oasis-obelisk-${idx + 1}`,
-    minX: SOUTHWEST_OASIS_POS.x + ox - 0.9,
-    maxX: SOUTHWEST_OASIS_POS.x + ox + 0.9,
-    minZ: SOUTHWEST_OASIS_POS.z + 24.0 - 0.9,
-    maxZ: SOUTHWEST_OASIS_POS.z + 24.0 + 0.9,
-    minY: SOUTHWEST_OASIS_POS.terraceY,
-    maxY: SOUTHWEST_OASIS_POS.terraceY + 7.2,
-  })),
-  ...[
-    [-16, -8, 1.15],
-    [-19, 4, 1.0],
-    [-15, 16, 1.2],
-    [-26, -16, 0.95],
-    [-28, 12, 1.1],
-    [16, -6, 1.1],
-    [18, 6, 1.25],
-    [14, 18, 1.0],
-    [25, -14, 1.05],
-    [27, 14, 0.95],
-    [-6, 20, 1.15],
-    [6, 20, 1.1],
-  ].map(([px, pz, pScale], idx) => ({
-    id: `sw-oasis-palm-${idx + 1}`,
-    minX: SOUTHWEST_OASIS_POS.x + px - 0.45 * pScale,
-    maxX: SOUTHWEST_OASIS_POS.x + px + 0.45 * pScale,
-    minZ: SOUTHWEST_OASIS_POS.z + pz - 0.45 * pScale,
-    maxZ: SOUTHWEST_OASIS_POS.z + pz + 0.45 * pScale,
-    minY: SOUTHWEST_OASIS_POS.terraceY,
-    maxY: SOUTHWEST_OASIS_POS.terraceY + 9.2 * pScale,
-  })),
 
   // 8) Sakura Sanctuary Blossom Trees (sanctuaryAndDragonModels.ts)
   ...[
@@ -1438,7 +1444,7 @@ export const FLAT_BUILDING_TERRACES = [
   { x: VALLEY_FARMS[1].x, z: VALLEY_FARMS[1].z, innerR: 25.0, outerR: 36.0, targetH: VALLEY_FARMS[1].height },
   { x: VALLEY_FARMS[2].x, z: VALLEY_FARMS[2].z, innerR: 25.0, outerR: 36.0, targetH: VALLEY_FARMS[2].height },
   { x: SOUTHEAST_HARBOR_POS.lighthouseX, z: SOUTHEAST_HARBOR_POS.lighthouseZ, innerR: 8.5, outerR: 18.0, targetH: SOUTHEAST_HARBOR_POS.lighthouseBaseY },
-  { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z, innerR: 46.0, outerR: 66.0, targetH: SOUTHWEST_OASIS_POS.terraceY },
+  { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z + 12.0, innerR: 54.0, outerR: 74.0, targetH: SOUTHWEST_OASIS_POS.terraceY },
   { x: 152.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
   { x: 204.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
   { x: 105.0, z: 715.0, innerR: 26.0, outerR: 42.0, targetH: 2.15 },

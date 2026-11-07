@@ -990,26 +990,19 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
     'Expected all 10 new plant species from world/models/plants to be registered'
   );
 
-  // 3) Verify automatic in-code LOD1 triangle reduction (~50%+ fewer triangles on all 6 tree species) and GPU wind shaders
+  // 3) Verify embedded Low-Quality (LOD1) models (< 50% triangles across all 10 plant species) and GPU wind shaders
   const initialStats = getFloraLodAndShaderStats();
   assert.equal(
     initialStats.gpuWindMaterialCount,
     7,
     'Expected all 7 standing plant material slots (0..6) to have GPU wind shaders attached'
   );
-  for (const treeKey of [
-    'pinetree',
-    'oakgreen',
-    'oakyellow',
-    'animtree',
-    'animtree_wide',
-    'animtree_compact',
-  ]) {
-    const counts = initialStats.speciesTriangleCounts[treeKey];
-    assert.ok(counts, `Expected triangle counts for ${treeKey}`);
+  for (const floraKey of registeredKeys) {
+    const counts = initialStats.speciesTriangleCounts[floraKey];
+    assert.ok(counts, `Expected triangle counts for ${floraKey}`);
     assert.ok(
-      counts.lod1 < counts.lod0 * 0.6,
-      `Expected ${treeKey} LOD1 triangles (${counts.lod1}) to be < 60% of LOD0 (${counts.lod0})`
+      counts.lod1 < counts.lod0 * 0.5,
+      `Expected ${floraKey} LOD1 triangles (${counts.lod1}) to be < 50% of LOD0 (${counts.lod0})`
     );
   }
   assert.equal(initialStats.sectorLodStates[0]?.activeLod, 0, 'Sector should start in LOD0 when near');

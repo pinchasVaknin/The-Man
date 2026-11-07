@@ -28,45 +28,59 @@ import {
 import type { IWorldModelBuildContext } from './types';
 import {
   FloraModel,
+  FloraLODPair,
   createWoodCutRingMaterial,
   unpackFloraBundle,
   type FloraCategory,
   type FloraKey,
+  type FloraQuality,
   type FloraSubmeshData,
   type FloraWindState,
   ANIMTREE_PACK_B64,
+  ANIMTREE_LOD_PACK_B64,
   ANIMTREE_TEXTURES,
 } from './plants/AnimTree_Complete';
 import {
   ANIMTREEWIDE_PACK_B64,
+  ANIMTREEWIDE_LOD_PACK_B64,
 } from './plants/AnimTreeWide_Complete';
 import {
   ANIMTREECOMPACT_PACK_B64,
+  ANIMTREECOMPACT_LOD_PACK_B64,
 } from './plants/AnimTreeCompact_Complete';
 import {
   PINETREE_PACK_B64,
+  PINETREE_LOD_PACK_B64,
   PINETREE_TEXTURES,
 } from './plants/PineTree_Complete';
 import {
   OAKGREEN_PACK_B64,
+  OAKGREEN_LOD_PACK_B64,
   OAKGREEN_TEXTURES,
 } from './plants/OakGreen_Complete';
 import {
   OAKYELLOW_PACK_B64,
+  OAKYELLOW_LOD_PACK_B64,
 } from './plants/OakYellow_Complete';
 import {
   FORESTBUSH_PACK_B64,
+  FORESTBUSH_LOD_PACK_B64,
   FORESTBUSH_TEXTURES,
 } from './plants/ForestBush_Complete';
 import {
   FORESTFERN_PACK_B64,
+  FORESTFERN_LOD_PACK_B64,
 } from './plants/ForestFern_Complete';
 import {
   CORNFLOWER_PACK_B64,
+  CORNFLOWER_LOD_PACK_B64,
 } from './plants/Cornflower_Complete';
 import {
   WHITEFLOWER_PACK_B64,
+  WHITEFLOWER_LOD_PACK_B64,
 } from './plants/WhiteFlower_Complete';
+
+export { FloraLODPair, type FloraQuality };
 import {
   getActiveTreeFellingRecords,
   type ITreeFellingRecord,
@@ -82,11 +96,15 @@ const TREE_SECTOR_MAX_DIST_SW = 125;
 const UNDERGROWTH_SECTOR_MAX_DIST = 85;
 const UNDERGROWTH_SECTOR_MAX_DIST_SW = 62;
 
-/** Distance thresholds (with hysteresis) for switching tree sectors between LOD0 (full) and LOD1 (low-poly). */
+/** Distance thresholds (with hysteresis) for switching tree & undergrowth sectors between LOD0 (High Quality) and LOD1 (Low Quality). */
 const TREE_LOD_NEAR_DIST = 62;
 const TREE_LOD_FAR_DIST = 68;
 const TREE_LOD_NEAR_DIST_SW = 48;
 const TREE_LOD_FAR_DIST_SW = 54;
+const UNDERGROWTH_LOD_NEAR_DIST = 34;
+const UNDERGROWTH_LOD_FAR_DIST = 40;
+const UNDERGROWTH_LOD_NEAR_DIST_SW = 26;
+const UNDERGROWTH_LOD_FAR_DIST_SW = 32;
 
 const PINE_MODEL_BASE_SCALE = 3.85;
 const OAK_GREEN_MODEL_BASE_SCALE = 3.65;
@@ -126,6 +144,7 @@ interface IFloraSpec {
   key: FloraKey;
   category: FloraCategory;
   packB64: string;
+  lodPackB64: string;
   baseScale: number;
   maxY: number;
 }
@@ -135,6 +154,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'pinetree',
     category: 'other_trees',
     packB64: PINETREE_PACK_B64,
+    lodPackB64: PINETREE_LOD_PACK_B64,
     baseScale: PINE_MODEL_BASE_SCALE,
     maxY: 4.0,
   },
@@ -142,6 +162,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'oakgreen',
     category: 'other_trees',
     packB64: OAKGREEN_PACK_B64,
+    lodPackB64: OAKGREEN_LOD_PACK_B64,
     baseScale: OAK_GREEN_MODEL_BASE_SCALE,
     maxY: 3.5,
   },
@@ -149,6 +170,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'oakyellow',
     category: 'other_trees',
     packB64: OAKYELLOW_PACK_B64,
+    lodPackB64: OAKYELLOW_LOD_PACK_B64,
     baseScale: OAK_YELLOW_MODEL_BASE_SCALE,
     maxY: 3.4,
   },
@@ -156,6 +178,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'animtree',
     category: 'trees',
     packB64: ANIMTREE_PACK_B64,
+    lodPackB64: ANIMTREE_LOD_PACK_B64,
     baseScale: ANIM_TREE_MODEL_BASE_SCALE,
     maxY: 3.6,
   },
@@ -163,6 +186,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'animtree_wide',
     category: 'trees',
     packB64: ANIMTREEWIDE_PACK_B64,
+    lodPackB64: ANIMTREEWIDE_LOD_PACK_B64,
     baseScale: ANIM_TREE_WIDE_MODEL_BASE_SCALE,
     maxY: 3.3,
   },
@@ -170,6 +194,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'animtree_compact',
     category: 'trees',
     packB64: ANIMTREECOMPACT_PACK_B64,
+    lodPackB64: ANIMTREECOMPACT_LOD_PACK_B64,
     baseScale: ANIM_TREE_COMPACT_MODEL_BASE_SCALE,
     maxY: 2.9,
   },
@@ -177,6 +202,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'forestbush',
     category: 'vegetation',
     packB64: FORESTBUSH_PACK_B64,
+    lodPackB64: FORESTBUSH_LOD_PACK_B64,
     baseScale: FOREST_BUSH_BASE_SCALE,
     maxY: 1.25,
   },
@@ -184,6 +210,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'forestfern',
     category: 'vegetation',
     packB64: FORESTFERN_PACK_B64,
+    lodPackB64: FORESTFERN_LOD_PACK_B64,
     baseScale: FOREST_FERN_BASE_SCALE,
     maxY: 0.85,
   },
@@ -191,6 +218,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'cornflower',
     category: 'vegetation',
     packB64: CORNFLOWER_PACK_B64,
+    lodPackB64: CORNFLOWER_LOD_PACK_B64,
     baseScale: CORNFLOWER_BASE_SCALE,
     maxY: 1.15,
   },
@@ -198,6 +226,7 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
     key: 'whiteflower',
     category: 'vegetation',
     packB64: WHITEFLOWER_PACK_B64,
+    lodPackB64: WHITEFLOWER_LOD_PACK_B64,
     baseScale: WHITE_FLOWER_BASE_SCALE,
     maxY: 1.2,
   },
@@ -253,6 +282,7 @@ const treeInstanceRegistry = new Map<number, ITreeInstanceHandle>();
 const pooledFloraTrees: IPooledFloraTree[] = [];
 const masterFloraDrivers = new Map<FloraKey, IMasterFloraDriver>();
 const treeSectorLodEntries: ITreeSectorLodEntry[] = [];
+const undergrowthSectorLodEntries: ITreeSectorLodEntry[] = [];
 const gpuFloraWindMaterials: THREE.MeshStandardMaterial[] = [];
 let currentWeatherPlantAnimationState: PlantWeatherAnimationState = 'idle';
 let currentGpuFloraWindStrength = 0.55;
@@ -470,16 +500,12 @@ function attachFloraGpuWindShader(
 }
 
 /**
- * Builds static `BufferGeometry` from unpacked `FloraSubmeshData`:
- * - Welds the pre-sliced `0.318..0.322` cut seam on tree bark submeshes to `0.32` so standing trees have zero visible line.
- * - When `isLod1 === true`, strips sub-pixel upper twigs and smaller interior leaf cards (`~50%-58%` triangle reduction)
- *   while preserving 100% of the lower/mid trunk silhouette (`y < maxY * 0.38`) and outer canopy volume.
+ * Builds static `BufferGeometry` directly from an unpacked High-Quality or Low-Quality (LOD) `FloraSubmeshData`
+ * (welding the pre-sliced `0.318..0.322` cut seam on standing tree bark submeshes to `0.32` so standing trees have zero visible line).
  */
 function buildStaticFloraSubmeshGeometry(
   sub: FloraSubmeshData,
   isTree: boolean,
-  maxY: number,
-  isLod1: boolean,
   disposableGeometries: THREE.BufferGeometry[]
 ): { geometry: THREE.BufferGeometry; triangleCount: number } {
   const srcPos = sub.positions;
@@ -487,120 +513,33 @@ function buildStaticFloraSubmeshGeometry(
   const srcUv = sub.uvs;
   const srcIndices = sub.indices;
   const isBark = sub.matId === 0 || sub.matId === 3 || sub.matId === 4;
-  const numTris = Math.floor(srcIndices.length / 3);
+  const totalVerts = srcPos.length / 3;
 
-  let areaThreshold = 0;
-  const trunkKeepY = maxY * 0.36;
-
-  if (isTree && ((isLod1 && numTris > 60) || (!isLod1 && isBark && numTris > 1200))) {
-    // Compute triangle areas to determine the adaptive cutoff threshold for this submesh
-    const areas = new Float32Array(numTris);
-    for (let t = 0; t < numTris; t++) {
-      const i = t * 3;
-      const a = srcIndices[i] * 3;
-      const b = srcIndices[i + 1] * 3;
-      const c = srcIndices[i + 2] * 3;
-      const bx = srcPos[b] - srcPos[a];
-      const by = srcPos[b + 1] - srcPos[a + 1];
-      const bz = srcPos[b + 2] - srcPos[a + 2];
-      const cx = srcPos[c] - srcPos[a];
-      const cy = srcPos[c + 1] - srcPos[a + 1];
-      const cz = srcPos[c + 2] - srcPos[a + 2];
-      areas[t] =
-        0.5 *
-        Math.hypot(by * cz - bz * cy, bz * cx - bx * cz, bx * cy - by * cx);
-    }
-    const sorted = Array.from(areas).sort((x, y) => x - y);
-    // In LOD0: strip 42% smallest sub-centimeter upper bark twigs on heavy trees (>1200 bark tris).
-    // In LOD1: strip 74% smallest upper bark twigs and 62% smallest interior leaf cards.
-    const dropFraction = isLod1 ? (isBark ? 0.74 : 0.62) : 0.42;
-    areaThreshold = sorted[Math.floor(sorted.length * dropFraction)] ?? 0;
-  }
-
-  const keptIndices: number[] = [];
-  const totalSrcVerts = srcPos.length / 3;
-  const oldToNewVert = new Int32Array(totalSrcVerts).fill(-1);
-  let newVertCount = 0;
-
-  for (let t = 0; t < numTris; t++) {
-    const i = t * 3;
-    const va = srcIndices[i];
-    const vb = srcIndices[i + 1];
-    const vc = srcIndices[i + 2];
-
-    if (areaThreshold > 0) {
-      const a3 = va * 3;
-      const b3 = vb * 3;
-      const c3 = vc * 3;
-      const minY = Math.min(srcPos[a3 + 1], srcPos[b3 + 1], srcPos[c3 + 1]);
-      // Always keep lower trunk triangles on bark so the main trunk base never develops gaps
-      const isLowerTrunk = isBark && minY < trunkKeepY;
-      if (!isLowerTrunk) {
-        const bx = srcPos[b3] - srcPos[a3];
-        const by = srcPos[b3 + 1] - srcPos[a3 + 1];
-        const bz = srcPos[b3 + 2] - srcPos[a3 + 2];
-        const cx = srcPos[c3] - srcPos[a3];
-        const cy = srcPos[c3 + 1] - srcPos[a3 + 1];
-        const cz = srcPos[c3 + 2] - srcPos[a3 + 2];
-        const area =
-          0.5 *
-          Math.hypot(by * cz - bz * cy, bz * cx - bx * cz, bx * cy - by * cx);
-        if (area < areaThreshold) {
-          continue;
-        }
-      }
-    }
-
-    if (oldToNewVert[va] === -1) oldToNewVert[va] = newVertCount++;
-    if (oldToNewVert[vb] === -1) oldToNewVert[vb] = newVertCount++;
-    if (oldToNewVert[vc] === -1) oldToNewVert[vc] = newVertCount++;
-    keptIndices.push(oldToNewVert[va], oldToNewVert[vb], oldToNewVert[vc]);
-  }
-
-  const positions = new Float32Array(newVertCount * 3);
-  const normals = new Float32Array(newVertCount * 3);
-  const uvs = new Float32Array(newVertCount * 2);
-
-  for (let oldV = 0; oldV < totalSrcVerts; oldV++) {
-    const newV = oldToNewVert[oldV];
-    if (newV === -1) continue;
-    const o3 = oldV * 3;
-    const n3 = newV * 3;
-    const o2 = oldV * 2;
-    const n2 = newV * 2;
-
-    const rx = srcPos[o3];
-    const ryRaw = srcPos[o3 + 1];
-    const rz = srcPos[o3 + 2];
+  const positions = new Float32Array(srcPos.length);
+  for (let v = 0; v < totalVerts; v++) {
+    const v3 = v * 3;
+    const ryRaw = srcPos[v3 + 1];
     // Weld the pre-sliced 0.318..0.322 cut gap on standing bark geometry
     const ry =
       isTree && isBark && Math.abs(ryRaw - TREE_CUT_Y) < 0.0035
         ? TREE_CUT_Y
         : ryRaw;
-
-    positions[n3] = rx;
-    positions[n3 + 1] = ry;
-    positions[n3 + 2] = rz;
-
-    normals[n3] = srcNorm[o3];
-    normals[n3 + 1] = srcNorm[o3 + 1];
-    normals[n3 + 2] = srcNorm[o3 + 2];
-
-    uvs[n2] = srcUv[o2];
-    uvs[n2 + 1] = srcUv[o2 + 1];
+    positions[v3] = srcPos[v3];
+    positions[v3 + 1] = ry;
+    positions[v3 + 2] = srcPos[v3 + 2];
   }
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
-  geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-  geo.setIndex(new THREE.BufferAttribute(new Uint16Array(keptIndices), 1));
+  geo.setAttribute('normal', new THREE.BufferAttribute(srcNorm.slice(), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(srcUv.slice(), 2));
+  geo.setIndex(new THREE.BufferAttribute(srcIndices.slice(), 1));
   geo.computeBoundingSphere();
   disposableGeometries.push(geo);
 
   return {
     geometry: geo,
-    triangleCount: Math.floor(keptIndices.length / 3),
+    triangleCount: Math.floor(srcIndices.length / 3),
   };
 }
 
@@ -766,7 +705,7 @@ export function updateChoppableTreesVisuals(
     }
   }
 
-  // 2. Switch tree sectors between LOD0 (near, full detail) and LOD1 (far, ~55% fewer triangles) with hysteresis
+  // 2. Switch tree and undergrowth sectors between LOD0 (near, High-Quality model) and LOD1 (far, embedded Low-Quality model) with hysteresis
   const nearDist = activeSoftwareGlMode ? TREE_LOD_NEAR_DIST_SW : TREE_LOD_NEAR_DIST;
   const farDist = activeSoftwareGlMode ? TREE_LOD_FAR_DIST_SW : TREE_LOD_FAR_DIST;
   const nearDistSq = nearDist * nearDist;
@@ -783,6 +722,32 @@ export function updateChoppableTreesVisuals(
       sec.lod0Group.visible = false;
       sec.lod1Group.visible = true;
     } else if (sec.activeLod === 1 && distSq <= nearDistSq) {
+      sec.activeLod = 0;
+      sec.lod0Group.visible = true;
+      sec.lod1Group.visible = false;
+    }
+  }
+
+  const uNearDist = activeSoftwareGlMode
+    ? UNDERGROWTH_LOD_NEAR_DIST_SW
+    : UNDERGROWTH_LOD_NEAR_DIST;
+  const uFarDist = activeSoftwareGlMode
+    ? UNDERGROWTH_LOD_FAR_DIST_SW
+    : UNDERGROWTH_LOD_FAR_DIST;
+  const uNearDistSq = uNearDist * uNearDist;
+  const uFarDistSq = uFarDist * uFarDist;
+
+  for (let i = 0; i < undergrowthSectorLodEntries.length; i++) {
+    const sec = undergrowthSectorLodEntries[i];
+    if (!sec.rootGroup.visible) continue;
+    const dx = playerX - sec.cx;
+    const dz = playerZ - sec.cz;
+    const distSq = dx * dx + dz * dz;
+    if (sec.activeLod === 0 && distSq >= uFarDistSq) {
+      sec.activeLod = 1;
+      sec.lod0Group.visible = false;
+      sec.lod1Group.visible = true;
+    } else if (sec.activeLod === 1 && distSq <= uNearDistSq) {
       sec.activeLod = 0;
       sec.lod0Group.visible = true;
       sec.lod1Group.visible = false;
@@ -884,6 +849,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   pooledFloraTrees.length = 0;
   masterFloraDrivers.clear();
   treeSectorLodEntries.length = 0;
+  undergrowthSectorLodEntries.length = 0;
   gpuFloraWindMaterials.length = 0;
 
   const treeMaxDist = isSoftwareGl ? TREE_SECTOR_MAX_DIST_SW : TREE_SECTOR_MAX_DIST;
@@ -891,7 +857,7 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     ? UNDERGROWTH_SECTOR_MAX_DIST_SW
     : UNDERGROWTH_SECTOR_MAX_DIST;
 
-  // Separate spatial sector registries for tall trees (230m range, with LOD0 + LOD1 sub-groups) vs undergrowth (112m range)
+  // Separate spatial sector registries for tall trees (with LOD0 + LOD1 sub-groups) vs undergrowth (also with LOD0 + LOD1 sub-groups)
   const treeSectorMap = new Map<string, ITreeSectorLodEntry>();
   const getTreeSectorLodEntry = (x: number, z: number): ITreeSectorLodEntry => {
     const gx = Math.round(x / VEG_SECTOR_SIZE);
@@ -934,26 +900,47 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
   const getTreeSectorRootGroup = (x: number, z: number): THREE.Group =>
     getTreeSectorLodEntry(x, z).rootGroup;
 
-  const undergrowthSectorGroups = new Map<string, THREE.Group>();
-  const getUndergrowthSectorGroup = (x: number, z: number): THREE.Group => {
+  const undergrowthSectorMap = new Map<string, ITreeSectorLodEntry>();
+  const getUndergrowthSectorLodEntry = (x: number, z: number): ITreeSectorLodEntry => {
     const gx = Math.round(x / VEG_SECTOR_SIZE);
     const gz = Math.round(z / VEG_SECTOR_SIZE);
     const key = `${gx},${gz}`;
-    let grp = undergrowthSectorGroups.get(key);
-    if (!grp) {
-      grp = new THREE.Group();
-      scene.add(grp);
-      undergrowthSectorGroups.set(key, grp);
+    let entry = undergrowthSectorMap.get(key);
+    if (!entry) {
+      const rootGroup = new THREE.Group();
+      const lod0Group = new THREE.Group();
+      const lod1Group = new THREE.Group();
+      lod0Group.visible = true;
+      lod1Group.visible = false;
+      rootGroup.add(lod0Group, lod1Group);
+      scene.add(rootGroup);
+
+      const cx = gx * VEG_SECTOR_SIZE;
+      const cz = gz * VEG_SECTOR_SIZE;
+      entry = {
+        key,
+        cx,
+        cz,
+        rootGroup,
+        lod0Group,
+        lod1Group,
+        activeLod: 0,
+      };
+      undergrowthSectorMap.set(key, entry);
+      undergrowthSectorLodEntries.push(entry);
       distanceCulledObjects.push({
-        obj: grp,
-        cx: gx * VEG_SECTOR_SIZE,
-        cz: gz * VEG_SECTOR_SIZE,
+        obj: rootGroup,
+        cx,
+        cz,
         radius: VEG_SECTOR_RADIUS,
         maxDist: undergrowthMaxDist,
       });
     }
-    return grp;
+    return entry;
   };
+
+  const getUndergrowthSectorGroup = (x: number, z: number): THREE.Group =>
+    getUndergrowthSectorLodEntry(x, z).rootGroup;
 
   const groupBySector = <T extends { x: number; z: number }, G>(
     items: readonly T[],
@@ -1081,40 +1068,39 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     const key = allFloraKeys[k];
     const spec = FLORA_SPECS[key];
     const isTree = spec.category !== 'vegetation';
-    const submeshes = unpackFloraBundle(spec.packB64);
-    unpackedSubmeshesByKey.set(key, submeshes);
+    const lod0Submeshes = unpackFloraBundle(spec.packB64);
+    const lod1Submeshes = unpackFloraBundle(spec.lodPackB64);
+    unpackedSubmeshesByKey.set(key, lod0Submeshes);
 
     const submeshProtos: IFloraSubmeshProto[] = [];
     let lod0TotalTriangles = 0;
     let lod1TotalTriangles = 0;
 
-    for (let m = 0; m < submeshes.length; m++) {
-      const sub = submeshes[m];
-      if (sub.matId === 7) continue; // Wood-cut ring is only needed on chopped CPU pool instances
+    for (let m = 0; m < lod0Submeshes.length; m++) {
+      const sub0 = lod0Submeshes[m];
+      if (sub0.matId === 7) continue; // Wood-cut ring is only needed on chopped CPU pool instances
+      const sub1 =
+        lod1Submeshes.find((s) => s.matId === sub0.matId) ??
+        lod1Submeshes[m] ??
+        sub0;
 
       const lod0 = buildStaticFloraSubmeshGeometry(
-        sub,
+        sub0,
         isTree,
-        spec.maxY,
-        false,
         disposableGeometries
       );
-      const lod1 = isTree
-        ? buildStaticFloraSubmeshGeometry(
-            sub,
-            true,
-            spec.maxY,
-            true,
-            disposableGeometries
-          )
-        : lod0;
+      const lod1 = buildStaticFloraSubmeshGeometry(
+        sub1,
+        isTree,
+        disposableGeometries
+      );
 
       lod0TotalTriangles += lod0.triangleCount;
       lod1TotalTriangles += lod1.triangleCount;
 
       submeshProtos.push({
-        matId: sub.matId,
-        material: gpuInstancedMaterials[sub.matId],
+        matId: sub0.matId,
+        material: gpuInstancedMaterials[sub0.matId],
         lod0Geometry: lod0.geometry,
         lod1Geometry: lod1.geometry,
         lod0Triangles: lod0.triangleCount,
@@ -1576,56 +1562,32 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     }
   }
 
-  const bushProto = masterFloraDrivers.get('forestbush')!.submeshProtos[0];
-  for (const [sectorGrp, sectorBushes] of groupBySector(bushSamples, getUndergrowthSectorGroup)) {
-    const n = sectorBushes.length;
-    const bushIM = new THREE.InstancedMesh(bushProto.lod0Geometry, bushProto.material, n);
-    for (let i = 0; i < n; i++) {
-      bushIM.setMatrixAt(i, sectorBushes[i].matrix);
+  const buildUndergrowthSectorLodBatch = (
+    samples: readonly IFloraSample[],
+    floraKey: FloraKey
+  ): void => {
+    const proto = masterFloraDrivers.get(floraKey)!.submeshProtos[0];
+    for (const [sectorEntry, sectorItems] of groupBySector(
+      samples,
+      getUndergrowthSectorLodEntry
+    )) {
+      const n = sectorItems.length;
+      if (n === 0) continue;
+      const lod0IM = new THREE.InstancedMesh(proto.lod0Geometry, proto.material, n);
+      const lod1IM = new THREE.InstancedMesh(proto.lod1Geometry, proto.material, n);
+      for (let i = 0; i < n; i++) {
+        lod0IM.setMatrixAt(i, sectorItems[i].matrix);
+        lod1IM.setMatrixAt(i, sectorItems[i].matrix);
+      }
+      finalizeInstancedMesh(lod0IM, n, false, false, sectorEntry.lod0Group);
+      finalizeInstancedMesh(lod1IM, n, false, false, sectorEntry.lod1Group);
     }
-    finalizeInstancedMesh(bushIM, n, false, false, sectorGrp);
-  }
+  };
 
-  const fernProto = masterFloraDrivers.get('forestfern')!.submeshProtos[0];
-  for (const [sectorGrp, sectorFerns] of groupBySector(fernSamples, getUndergrowthSectorGroup)) {
-    const n = sectorFerns.length;
-    const fernIM = new THREE.InstancedMesh(fernProto.lod0Geometry, fernProto.material, n);
-    for (let i = 0; i < n; i++) {
-      fernIM.setMatrixAt(i, sectorFerns[i].matrix);
-    }
-    finalizeInstancedMesh(fernIM, n, false, false, sectorGrp);
-  }
-
-  const cornflowerProto = masterFloraDrivers.get('cornflower')!.submeshProtos[0];
-  for (const [sectorGrp, sectorFlowers] of groupBySector(cornflowerSamples, getUndergrowthSectorGroup)) {
-    const n = sectorFlowers.length;
-    const flowerIM = new THREE.InstancedMesh(
-      cornflowerProto.lod0Geometry,
-      cornflowerProto.material,
-      n
-    );
-    for (let i = 0; i < n; i++) {
-      flowerIM.setMatrixAt(i, sectorFlowers[i].matrix);
-    }
-    finalizeInstancedMesh(flowerIM, n, false, false, sectorGrp);
-  }
-
-  const whiteflowerProto = masterFloraDrivers.get('whiteflower')!.submeshProtos[0];
-  for (const [sectorGrp, sectorWhiteFlowers] of groupBySector(
-    whiteflowerSamples,
-    getUndergrowthSectorGroup
-  )) {
-    const n = sectorWhiteFlowers.length;
-    const whiteFlowerIM = new THREE.InstancedMesh(
-      whiteflowerProto.lod0Geometry,
-      whiteflowerProto.material,
-      n
-    );
-    for (let i = 0; i < n; i++) {
-      whiteFlowerIM.setMatrixAt(i, sectorWhiteFlowers[i].matrix);
-    }
-    finalizeInstancedMesh(whiteFlowerIM, n, false, false, sectorGrp);
-  }
+  buildUndergrowthSectorLodBatch(bushSamples, 'forestbush');
+  buildUndergrowthSectorLodBatch(fernSamples, 'forestfern');
+  buildUndergrowthSectorLodBatch(cornflowerSamples, 'cornflower');
+  buildUndergrowthSectorLodBatch(whiteflowerSamples, 'whiteflower');
 
   // --- G. SWAYING MEADOW GRASS TUFTS & WATERSIDE REEDS (Sectorized with 112m distance culling) ---
   const grassCount = isSoftwareGl ? 750 : 1550;

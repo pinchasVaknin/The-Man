@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mountReadySaddleOnCreature } from '../equipment/Saddle_Complete';
 
 export type StagState =
   | 'idle'
@@ -413,6 +414,7 @@ export class StagAnimator {
 export class Stag {
   readonly object: THREE.Group;
   readonly mesh: THREE.SkinnedMesh;
+  readonly saddleMesh: THREE.SkinnedMesh;
   readonly rig: StagRig;
   readonly animator: StagAnimator;
 
@@ -454,6 +456,12 @@ export class Stag {
 
     this.mesh.bind(this.rig.skeleton, new THREE.Matrix4());
     this.object.add(this.mesh);
+
+    this.saddleMesh = mountReadySaddleOnCreature(this, 'stag', {
+      castShadow,
+      receiveShadow,
+      wireframe: options.wireframe,
+    });
 
     this.object.scale.setScalar(scale);
     this.animator = new StagAnimator(this.rig, data);
@@ -505,6 +513,12 @@ export class Stag {
       this.mesh.material.forEach((m) => m.dispose());
     } else {
       this.mesh.material.dispose();
+    }
+    this.saddleMesh.geometry.dispose();
+    if (Array.isArray(this.saddleMesh.material)) {
+      this.saddleMesh.material.forEach((m) => m.dispose());
+    } else {
+      this.saddleMesh.material.dispose();
     }
   }
 }

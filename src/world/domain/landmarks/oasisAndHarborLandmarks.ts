@@ -9,50 +9,232 @@ import { t } from '../../../locales';
 
 // ======================== SOUTHWEST OASIS ======================== \\
 // #region Southwest Oasis
-/** Summary: Spatial parameters for the southwest desert oasis, lagoon, and observatory. */
+export interface OasisVillageHouseSpec {
+  id: string;
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  h: number;
+  secondStory?: {
+    offsetX: number;
+    offsetZ: number;
+    w: number;
+    d: number;
+    h: number;
+  };
+  awningSide?: 'north' | 'south' | 'east' | 'west';
+  awningColor?: 'terracotta' | 'ochre' | 'sand';
+  awningW?: number;
+  awningD?: number;
+}
+
+export interface OasisStoneWallSpec {
+  id: string;
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  h: number;
+}
+
+export interface OasisPalmSpec {
+  id: string;
+  dx: number;
+  dz: number;
+  scale: number;
+  leanX: number;
+  leanZ: number;
+  seed: number;
+}
+
+/** Summary: Spatial parameters for the southwest desert oasis lagoon and sandstone adobe village. */
 export const SOUTHWEST_OASIS_POS = {
   x: -310.0,
   z: 300.0,
   terraceY: 5.5,
-  clearRadius: 56.0,
-  observatoryX: -310.0,
-  observatoryZ: 280.0,
+  clearRadius: 64.0,
+  // Northeast Grand Adobe Citadel & Domed Bell-Watchtower overlooking the lagoon
+  observatoryX: -288.5,
+  observatoryZ: 294.0,
   observatoryBaseY: 5.5,
-  observatoryTopDeckY: 21.5,
+  observatoryTopDeckY: 19.5,
   observatoryRadius: 5.0,
   observatoryDoorId: 'sw-observatory-door',
-  observatoryDoorZ: 284.85,
+  observatoryDoorZ: 298.85,
   observatoryLadderId: 'sw-observatory-ladder',
-  observatoryLadderX: -310.0,
-  observatoryLadderZ: 276.3,
-  observatoryStandX: -310.0,
-  observatoryStandZ: 276.85,
-  pavilionX: -336.0,
-  pavilionZ: 300.0,
-  pavilionFloorY: 5.68,
+  observatoryLadderX: -288.5,
+  observatoryLadderZ: 290.3,
+  observatoryStandX: -288.5,
+  observatoryStandZ: 290.85,
+  // West Enterable Adobe Merchant House & Terracotta Canopy Street
+  pavilionX: -339.5,
+  pavilionZ: 307.0,
+  pavilionFloorY: 5.62,
   pavilionHalfW: 5.2,
   pavilionHalfD: 6.4,
   pavilionDoorId: 'sw-alchemist-door',
-  pavilionDoorX: -330.8,
+  pavilionDoorX: -334.3,
+  // Village square center (flat sandy terrace at (-310, 300))
   fountainX: -310.0,
-  fountainZ: 300.0,
+  fountainZ: 294.0,
+  // Central Turquoise Oasis Lagoon in the heart of the village crescent
   lagoonX: -310.0,
-  lagoonZ: 324.0,
-  lagoonRadiusX: 19.0,
-  lagoonRadiusZ: 13.5,
-  lagoonWaterY: 5.35,
-  gazeboX: -310.0,
-  gazeboZ: 324.0,
-  gazeboDeckY: 5.85,
-  gazeboHalfSize: 4.4,
-  bridgeMinZ: 309.5,
-  bridgeMaxZ: 338.5,
-  bridgeHalfW: 2.2,
-  colonnadeX: -286.0,
-  colonnadeZ: 300.0,
+  lagoonZ: 319.0,
+  lagoonRadiusX: 19.5,
+  lagoonRadiusZ: 14.5,
+  lagoonWaterY: 5.3,
+  // South-East Wooden Fishing Pier jutting into the lagoon (mapped to gazeboX/Z)
+  gazeboX: -294.5,
+  gazeboZ: 325.5,
+  gazeboDeckY: 5.72,
+  gazeboHalfSize: 3.6,
+  // East Shoreline Wooden Fishing Dock jutting into the lagoon
+  eastPierX: -292.0,
+  eastPierZ: 314.5,
+  eastPierDeckY: 5.72,
+  bridgeMinZ: 323.5,
+  bridgeMaxZ: 327.5,
+  bridgeHalfW: 1.8,
+  colonnadeX: -280.0,
+  colonnadeZ: 298.0,
   gateX: -274.0,
   gateZ: 296.0,
 } as const;
+
+export const SOUTHWEST_OASIS_VILLAGE_HOUSES: readonly OasisVillageHouseSpec[] = [
+  // 1) North-West Two-Story Adobe Residence overlooking the northern palm grove
+  {
+    id: 'sw-oasis-house-nw',
+    x: -327.5,
+    z: 290.0,
+    w: 9.2,
+    d: 7.4,
+    h: 4.7,
+    secondStory: { offsetX: -1.4, offsetZ: -0.6, w: 5.6, d: 5.4, h: 3.6 },
+    awningSide: 'south',
+    awningColor: 'ochre',
+    awningW: 5.4,
+    awningD: 3.2,
+  },
+  // 2) North Central Adobe Courtyard House
+  {
+    id: 'sw-oasis-house-n',
+    x: -309.5,
+    z: 287.5,
+    w: 10.4,
+    d: 7.2,
+    h: 4.8,
+    secondStory: { offsetX: 1.8, offsetZ: -0.5, w: 5.8, d: 5.2, h: 3.5 },
+    awningSide: 'south',
+    awningColor: 'terracotta',
+    awningW: 6.0,
+    awningD: 3.0,
+  },
+  // 3) Citadel Annex Hall (East arched wing of the Domed Watchtower Compound)
+  {
+    id: 'sw-oasis-citadel-annex',
+    x: -278.0,
+    z: 297.5,
+    w: 8.8,
+    d: 9.6,
+    h: 5.5,
+    awningSide: 'south',
+    awningColor: 'ochre',
+    awningW: 5.6,
+    awningD: 3.4,
+  },
+  // 4) East Shore Fisherman's Adobe House (right bank of lagoon near the wooden docks)
+  {
+    id: 'sw-oasis-house-e',
+    x: -278.5,
+    z: 318.5,
+    w: 8.4,
+    d: 7.4,
+    h: 4.5,
+    awningSide: 'west',
+    awningColor: 'terracotta',
+    awningW: 4.8,
+    awningD: 3.0,
+  },
+  // 5) South-West Stepped Adobe Dwelling along the western sandy lane (with wide sandy shore before the lagoon)
+  {
+    id: 'sw-oasis-house-sw',
+    x: -340.5,
+    z: 323.5,
+    w: 9.0,
+    d: 7.8,
+    h: 4.7,
+    secondStory: { offsetX: -1.2, offsetZ: 0.8, w: 5.4, d: 5.0, h: 3.4 },
+    awningSide: 'east',
+    awningColor: 'ochre',
+    awningW: 5.2,
+    awningD: 3.2,
+  },
+  // 6) South-Southwest Single-Story Mudbrick House (foreground left in aerial reference view)
+  {
+    id: 'sw-oasis-house-ssw',
+    x: -327.0,
+    z: 339.5,
+    w: 8.2,
+    d: 6.8,
+    h: 4.3,
+    awningSide: 'north',
+    awningColor: 'sand',
+    awningW: 4.6,
+    awningD: 2.8,
+  },
+  // 7) South-East Shore Adobe Cottage near the southern wooden pier
+  {
+    id: 'sw-oasis-house-se',
+    x: -291.5,
+    z: 341.0,
+    w: 7.8,
+    d: 6.6,
+    h: 4.2,
+    awningSide: 'north',
+    awningColor: 'terracotta',
+    awningW: 4.5,
+    awningD: 2.8,
+  },
+] as const;
+
+export const SOUTHWEST_OASIS_STONE_WALLS: readonly OasisStoneWallSpec[] = [
+  // Low sandstone compound walls along the village lanes (matching bottom-left and aerial reference panels)
+  { id: 'sw-oasis-wall-west-lane-1', x: -328.5, z: 304.5, w: 1.0, d: 7.5, h: 1.25 },
+  { id: 'sw-oasis-wall-west-lane-2', x: -331.5, z: 315.5, w: 1.0, d: 6.5, h: 1.25 },
+  { id: 'sw-oasis-wall-north-courtyard', x: -318.5, z: 292.5, w: 5.8, d: 1.0, h: 1.25 },
+  { id: 'sw-oasis-wall-citadel-south', x: -298.5, z: 301.0, w: 5.8, d: 1.0, h: 1.3 },
+  { id: 'sw-oasis-wall-ssw-yard', x: -334.5, z: 332.0, w: 1.0, d: 6.0, h: 1.25 },
+] as const;
+
+export const SOUTHWEST_OASIS_PALMS: readonly OasisPalmSpec[] = [
+  // Shoreline & village date palms framing the lagoon and adobe buildings (zero building overlap)
+  { id: 'sw-oasis-palm-1', dx: -21.0, dz: 6.5, scale: 1.22, leanX: 0.14, leanZ: 0.08, seed: 11 },
+  { id: 'sw-oasis-palm-2', dx: -17.0, dz: 9.0, scale: 1.08, leanX: 0.10, leanZ: 0.12, seed: 12 },
+  { id: 'sw-oasis-palm-3', dx: -11.5, dz: 3.5, scale: 1.26, leanX: -0.08, leanZ: 0.14, seed: 13 },
+  { id: 'sw-oasis-palm-4', dx: -5.5, dz: 2.5, scale: 1.15, leanX: 0.06, leanZ: 0.12, seed: 14 },
+  { id: 'sw-oasis-palm-5', dx: 4.0, dz: 1.5, scale: 1.28, leanX: -0.10, leanZ: 0.10, seed: 15 },
+  { id: 'sw-oasis-palm-6', dx: 9.5, dz: -6.0, scale: 1.18, leanX: 0.12, leanZ: 0.06, seed: 16 },
+  { id: 'sw-oasis-palm-7', dx: 11.5, dz: 3.5, scale: 1.12, leanX: -0.14, leanZ: 0.08, seed: 17 },
+  { id: 'sw-oasis-palm-8', dx: 27.5, dz: -10.5, scale: 1.24, leanX: 0.09, leanZ: -0.11, seed: 18 },
+  { id: 'sw-oasis-palm-9', dx: 39.0, dz: -2.0, scale: 1.16, leanX: 0.15, leanZ: 0.05, seed: 19 },
+  { id: 'sw-oasis-palm-10', dx: 23.0, dz: 9.5, scale: 1.10, leanX: -0.12, leanZ: 0.09, seed: 20 },
+  { id: 'sw-oasis-palm-11', dx: 38.5, dz: 14.5, scale: 1.20, leanX: 0.11, leanZ: -0.08, seed: 21 },
+  { id: 'sw-oasis-palm-12', dx: 23.5, dz: 26.5, scale: 1.06, leanX: -0.14, leanZ: -0.07, seed: 22 },
+  { id: 'sw-oasis-palm-13', dx: 11.0, dz: 35.5, scale: 1.14, leanX: -0.08, leanZ: -0.14, seed: 23 },
+  { id: 'sw-oasis-palm-14', dx: 1.5, dz: 36.5, scale: 1.04, leanX: 0.06, leanZ: -0.16, seed: 24 },
+  { id: 'sw-oasis-palm-15', dx: -8.5, dz: 35.5, scale: 1.22, leanX: 0.12, leanZ: -0.11, seed: 25 },
+  { id: 'sw-oasis-palm-16', dx: -17.5, dz: 31.5, scale: 1.16, leanX: 0.15, leanZ: -0.09, seed: 26 },
+  { id: 'sw-oasis-palm-17', dx: -21.5, dz: 24.5, scale: 1.08, leanX: 0.18, leanZ: -0.04, seed: 27 },
+  { id: 'sw-oasis-palm-18', dx: -21.5, dz: 16.0, scale: 1.25, leanX: 0.14, leanZ: 0.05, seed: 28 },
+  { id: 'sw-oasis-palm-19', dx: -38.5, dz: 15.0, scale: 1.18, leanX: -0.11, leanZ: 0.09, seed: 29 },
+  { id: 'sw-oasis-palm-20', dx: -38.5, dz: -2.0, scale: 1.20, leanX: -0.14, leanZ: -0.08, seed: 30 },
+  { id: 'sw-oasis-palm-21', dx: -24.5, dz: -17.5, scale: 1.15, leanX: -0.07, leanZ: -0.12, seed: 31 },
+  { id: 'sw-oasis-palm-22', dx: 1.5, dz: -19.0, scale: 1.24, leanX: 0.08, leanZ: -0.14, seed: 32 },
+  { id: 'sw-oasis-palm-23', dx: 16.0, dz: -16.5, scale: 1.19, leanX: 0.12, leanZ: -0.10, seed: 33 },
+  { id: 'sw-oasis-palm-24', dx: -35.0, dz: 35.0, scale: 1.12, leanX: -0.10, leanZ: 0.12, seed: 34 },
+] as const;
 // #endregion
 
 // ======================== SOUTHEAST HARBOR ======================== \\

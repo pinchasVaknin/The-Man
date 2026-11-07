@@ -29,6 +29,7 @@ import { createReadyWolf, type Wolf, type WolfState } from '../models/Wolf';
 import { createReadyRhino, type Rhino, type RhinoState } from '../models/Rhino';
 import { createReadyCatLion, type CatLion, type CatLionState } from '../models/CatLion';
 import { createReadyStag, type Stag, type StagState } from '../models/Stag';
+import { createReadyDove, type DoveController } from '../models/Dove';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
@@ -83,27 +84,10 @@ export function buildWildlifeAndFootprintsLayer(
   layerGroup.name = 'WildlifeAndFootprintsLayer';
   scene.add(layerGroup);
 
-  // --- 1. FLOCKING BOID BIRDS (3D Articulated Wings) ---
-  const birdBodyMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
-    roughness: 0.75,
-  });
-  const birdWingMat = new THREE.MeshStandardMaterial({
-    color: 0x475569,
-    roughness: 0.8,
-    side: THREE.DoubleSide,
-  });
-  disposableMaterials.push(birdBodyMat, birdWingMat);
-
-  const birdBodyGeo = new THREE.ConeGeometry(0.11, 0.44, 5);
-  birdBodyGeo.rotateX(Math.PI * 0.5);
-  const birdWingGeo = new THREE.BoxGeometry(0.38, 0.02, 0.18);
-  disposableGeometries.push(birdBodyGeo, birdWingGeo);
-
+  // --- 1. FLOCKING BOID BIRDS / DOVES (Rigged 75-joint Dove_Complete.ts) ---
   const birdMeshes: Array<{
     root: THREE.Group;
-    leftWing: THREE.Mesh;
-    rightWing: THREE.Mesh;
+    doveCtrl: DoveController;
   }> = [];
 
   for (let i = 0; i < birds.length; i++) {
@@ -111,15 +95,25 @@ export function buildWildlifeAndFootprintsLayer(
     const root = new THREE.Group();
     root.position.set(b.x, b.y, b.z);
 
-    const body = new THREE.Mesh(birdBodyGeo, birdBodyMat);
-    const leftWing = new THREE.Mesh(birdWingGeo, birdWingMat);
-    leftWing.position.set(-0.18, 0, 0);
-    const rightWing = new THREE.Mesh(birdWingGeo, birdWingMat);
-    rightWing.position.set(0.18, 0, 0);
+    const doveCtrl = createReadyDove({
+      scale: 0.42,
+      castShadow: false,
+      receiveShadow: false,
+    });
+    doveCtrl.setState('fly');
+    doveCtrl.animator.time = (i * 0.19) % 0.77;
 
-    root.add(body, leftWing, rightWing);
+    const doveMat = doveCtrl.mesh.material;
+    if (Array.isArray(doveMat)) {
+      for (const m of doveMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(doveMat);
+    }
+    disposableGeometries.push(doveCtrl.mesh.geometry);
+
+    root.add(doveCtrl.object);
     layerGroup.add(root);
-    birdMeshes.push({ root, leftWing, rightWing });
+    birdMeshes.push({ root, doveCtrl });
   }
 
   // --- 2. GROUND ANIMALS (Rabbits, Squirrels, Forest Deer & Grazing Sheep) ---
@@ -271,7 +265,10 @@ export function buildWildlifeAndFootprintsLayer(
   };
 
   /** Registers a model's material(s) and geometry for disposal once it has attached. */
-  const registerModelDisposables = (model: { readonly mesh: THREE.SkinnedMesh }): void => {
+  const registerModelDisposables = (model: {
+    readonly mesh: THREE.SkinnedMesh;
+    readonly saddleMesh?: THREE.SkinnedMesh;
+  }): void => {
     const material = model.mesh.material;
     if (Array.isArray(material)) {
       for (const m of material) disposableMaterials.push(m);
@@ -279,6 +276,16 @@ export function buildWildlifeAndFootprintsLayer(
       disposableMaterials.push(material);
     }
     disposableGeometries.push(model.mesh.geometry);
+
+    if (model.saddleMesh) {
+      const saddleMaterial = model.saddleMesh.material;
+      if (Array.isArray(saddleMaterial)) {
+        for (const m of saddleMaterial) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(saddleMaterial);
+      }
+      disposableGeometries.push(model.saddleMesh.geometry);
+    }
   };
 
   for (let i = 0; i < animals.length; i++) {
@@ -661,22 +668,48 @@ export function buildWildlifeAndFootprintsLayer(
       }
     },
     syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => {
-      // Sync bird meshes
+      // Sync bird meshes (with distance + camera frustum culling & full sleep state)
       for (let i = 0; i < birds.length; i++) {
         const b = birds[i];
         const m = birdMeshes[i];
-        m.root.visible = !b.roosting;
-        if (b.roosting) continue;
+        if (b.roosting) {
+          m.root.visible = false;
+          continue;
+        }
 
+        if (renderPlayer) {
+          const dxCam = b.x - renderPlayer.x;
+          const dzCam = b.z - renderPlayer.z;
+          const distSq = dxCam * dxCam + dzCam * dzCam;
+          if (distSq > 170 * 170) {
+            m.root.visible = false;
+            continue;
+          }
+          if (distSq > 28 * 28) {
+            const camFwdX = -Math.sin(renderPlayer.yaw);
+            const camFwdZ = -Math.cos(renderPlayer.yaw);
+            const invDist = 1 / Math.sqrt(distSq);
+            const dot = (dxCam * camFwdX + dzCam * camFwdZ) * invDist;
+            if (dot < -0.25) {
+              m.root.visible = false;
+              continue;
+            }
+          }
+        }
+
+        m.root.visible = true;
         m.root.position.set(b.x, b.y, b.z);
         const yaw = Math.atan2(b.vx, b.vz);
         const horizSpd = Math.hypot(b.vx, b.vz) || 1;
         const pitch = -Math.atan2(b.vy, horizSpd) * 0.5;
         m.root.rotation.set(pitch, yaw, 0, 'YXZ');
 
-        const flap = Math.sin(b.wingPhase) * 0.65;
-        m.leftWing.rotation.z = flap;
-        m.rightWing.rotation.z = -flap;
+        m.doveCtrl.setState(b.startleTimer > 0 ? 'flee' : 'fly');
+        if (dt > 0) {
+          m.doveCtrl.update(dt * (b.startleTimer > 0 ? 1.35 : 1.0));
+          m.doveCtrl.object.position.set(0, 0, 0);
+          m.doveCtrl.object.rotation.set(0, 0, 0);
+        }
       }
 
       // Sync ground animal meshes (Rabbits, Squirrels, Deer, Sheep, Bears, Crocodiles, Jaguars, Wolves, Stags, CatLions)
