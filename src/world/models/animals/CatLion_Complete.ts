@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mountReadyWesternSaddleOnCreature } from '../equipment/WesternSaddle_Complete';
 
 export type CatLionState =
   | 'idle'
@@ -422,6 +423,7 @@ export class CatLionAnimator {
 export class CatLion {
   readonly object: THREE.Group;
   readonly mesh: THREE.SkinnedMesh;
+  readonly saddleMesh: THREE.SkinnedMesh;
   readonly rig: CatLionRig;
   readonly animator: CatLionAnimator;
 
@@ -463,6 +465,12 @@ export class CatLion {
 
     this.mesh.bind(this.rig.skeleton, new THREE.Matrix4());
     this.object.add(this.mesh);
+
+    this.saddleMesh = mountReadyWesternSaddleOnCreature(this, 'catlion', {
+      castShadow,
+      receiveShadow,
+      wireframe: options.wireframe,
+    });
 
     this.object.scale.setScalar(scale);
     this.animator = new CatLionAnimator(this.rig, data);
@@ -514,6 +522,12 @@ export class CatLion {
       this.mesh.material.forEach((m) => m.dispose());
     } else {
       this.mesh.material.dispose();
+    }
+    this.saddleMesh.geometry.dispose();
+    if (Array.isArray(this.saddleMesh.material)) {
+      this.saddleMesh.material.forEach((m) => m.dispose());
+    } else {
+      this.saddleMesh.material.dispose();
     }
   }
 }

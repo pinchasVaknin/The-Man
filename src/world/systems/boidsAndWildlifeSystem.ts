@@ -1820,6 +1820,12 @@ export function stepSmallAnimals(
 
     if (safeDt <= 0) continue;
 
+    // Logic Culling (Sleep State): completely freeze simulation for any animal outside the 180m fog/active radius
+    // until the player approaches its radius again.
+    if (playerStateRef && distP > 180.0 && !a.isMountedByPlayer) {
+      continue;
+    }
+
     const prevActionTimer = a.actionTimer ?? 0;
     if ((a.wokenUpTimer ?? 0) > 0) {
       a.wokenUpTimer = Math.max(0, (a.wokenUpTimer ?? 0) - safeDt);
@@ -1840,21 +1846,6 @@ export function stepSmallAnimals(
     // The Southern Ruins Dragon's 3D flight/landing/resting/fire-breathing trajectory is driven by sanctuaryAndDragonModels.ts
     if (a.species === 'dragon') {
       continue;
-    }
-
-    // Fast path in live gameplay: throttle full AI and terrain/obstacle queries for distant off-screen unprovoked animals (> 185m)
-    if (
-      playerStateRef &&
-      distP > 185.0 &&
-      !a.isMountedByPlayer &&
-      !a.isTamed &&
-      (a.wokenUpTimer ?? 0) <= 0 &&
-      a.fleeCooldown <= 0 &&
-      a.alertLevel === 'grazing'
-    ) {
-      if (playerStateRef.isFlying || ((i + Math.floor(elapsedTime * 60)) & 7) !== 0) {
-        continue;
-      }
     }
 
     // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
@@ -3187,6 +3178,11 @@ export function stepBoidsAndWildlife(
     }
 
     if (safeDt <= 0) continue;
+
+    // Logic Culling (Sleep State): completely freeze simulation for bird boids outside the 180m active radius
+    if (playerStateRef && distToPlayer > 180.0) {
+      continue;
+    }
 
     const birdStartleDist = isPlayerSneaking ? 4.5 : 14.0;
     if (

@@ -19,6 +19,7 @@ import {
 } from '../terrainMath';
 import type { IWorldModelBuildContext } from './types';
 import { attachDeerGlbModel } from './deerGlbLoader';
+import { createReadyDove, type DoveController } from './Dove';
 // #endregion
 
 // ======================== TYPES & INTERFACES ======================== \\
@@ -540,84 +541,33 @@ export function buildEnvironmentAtmosphereModels(
   const starsPoints = new THREE.Points(starsGeo, starsMaterial);
   scene.add(starsPoints);
 
-  // 6. Soaring Ambient Birds Flock (Full Sculpted 3D Anatomy with Articulated Shoulder Wings)
+  // 6. Soaring Ambient Birds / Doves Flock (Rigged 75-joint Dove_Complete.ts)
   const birdsGroup = new THREE.Group();
-  const birdBodyMat = new THREE.MeshStandardMaterial({
-    color: 0x2b2623,
-    roughness: 0.62,
-  });
-  const birdBreastMat = new THREE.MeshStandardMaterial({
-    color: 0x4d433c,
-    roughness: 0.72,
-  });
-  const birdBeakMat = new THREE.MeshStandardMaterial({
-    color: 0xd99b26,
-    roughness: 0.42,
-  });
-  disposableMaterials.push(birdBodyMat, birdBreastMat, birdBeakMat);
-
-  const birdTorsoGeo = new THREE.ConeGeometry(0.14, 0.68, 6);
-  birdTorsoGeo.rotateX(Math.PI / 2);
-  const birdBreastGeo = new THREE.SphereGeometry(0.125, 6, 5);
-  birdBreastGeo.scale(0.95, 0.85, 1.35);
-  birdBreastGeo.translate(0, -0.02, 0.12);
-  const birdHeadGeo = new THREE.SphereGeometry(0.095, 6, 5);
-  birdHeadGeo.translate(0, 0.05, 0.36);
-  const birdBeakGeo = new THREE.ConeGeometry(0.035, 0.16, 5);
-  birdBeakGeo.rotateX(Math.PI / 2);
-  birdBeakGeo.translate(0, 0.04, 0.48);
-  const birdTailGeo = new THREE.ConeGeometry(0.16, 0.34, 5);
-  birdTailGeo.rotateX(-Math.PI / 2);
-  birdTailGeo.scale(1.25, 0.22, 1.0);
-  birdTailGeo.translate(0, 0.01, -0.42);
-  const wingInnerGeo = new THREE.BoxGeometry(0.52, 0.032, 0.24);
-  const wingOuterGeo = new THREE.BoxGeometry(0.48, 0.024, 0.18);
-  disposableGeometries.push(
-    birdTorsoGeo,
-    birdBreastGeo,
-    birdHeadGeo,
-    birdBeakGeo,
-    birdTailGeo,
-    wingInnerGeo,
-    wingOuterGeo
-  );
-
   for (let b = 0; b < 16; b++) {
     const bird = new THREE.Group();
-    const torso = new THREE.Mesh(birdTorsoGeo, birdBodyMat);
-    const breast = new THREE.Mesh(birdBreastGeo, birdBreastMat);
-    const head = new THREE.Mesh(birdHeadGeo, birdBodyMat);
-    const beak = new THREE.Mesh(birdBeakGeo, birdBeakMat);
-    const tail = new THREE.Mesh(birdTailGeo, birdBodyMat);
+    const doveCtrl = createReadyDove({
+      scale: 0.45,
+      castShadow: false,
+      receiveShadow: false,
+    });
+    doveCtrl.setState('fly');
+    doveCtrl.animator.time = (b * 0.23) % 0.77;
 
-    const leftWingPivot = new THREE.Group();
-    leftWingPivot.position.set(-0.09, 0.02, 0.04);
-    const lwInner = new THREE.Mesh(wingInnerGeo, birdBodyMat);
-    lwInner.position.set(-0.24, 0, 0);
-    const lwOuter = new THREE.Mesh(wingOuterGeo, birdBreastMat);
-    lwOuter.position.set(-0.68, 0.01, -0.03);
-    lwOuter.rotation.y = 0.14;
-    lwOuter.rotation.z = 0.08;
-    leftWingPivot.add(lwInner, lwOuter);
+    const doveMat = doveCtrl.mesh.material;
+    if (Array.isArray(doveMat)) {
+      for (const m of doveMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(doveMat);
+    }
+    disposableGeometries.push(doveCtrl.mesh.geometry);
 
-    const rightWingPivot = new THREE.Group();
-    rightWingPivot.position.set(0.09, 0.02, 0.04);
-    const rwInner = new THREE.Mesh(wingInnerGeo, birdBodyMat);
-    rwInner.position.set(0.24, 0, 0);
-    const rwOuter = new THREE.Mesh(wingOuterGeo, birdBreastMat);
-    rwOuter.position.set(0.68, 0.01, -0.03);
-    rwOuter.rotation.y = -0.14;
-    rwOuter.rotation.z = -0.08;
-    rightWingPivot.add(rwInner, rwOuter);
-
-    bird.add(torso, breast, head, beak, tail, leftWingPivot, rightWingPivot);
+    bird.add(doveCtrl.object);
     bird.userData = {
       orbitRadius: 28 + (b % 5) * 18,
       orbitSpeed: 0.14 + (b % 3) * 0.03,
       phase: (b / 16) * Math.PI * 2,
       altitude: 26 + (b % 5) * 3.0,
-      leftWingPivot,
-      rightWingPivot,
+      doveCtrl,
     };
     birdsGroup.add(bird);
   }
@@ -1103,26 +1053,40 @@ export function buildEnvironmentAtmosphereModels(
       lightningLight.visible = false;
     }
 
-    // Update Ambient Birds (with 3D Wing Flapping, Banking & Forward Heading)
+    // Update Ambient Doves (with skeletal wing flapping, banking & view distance freeze)
     const birdChildren = birdsGroup.children;
     for (let b = 0; b < birdChildren.length; b++) {
       const bird = birdChildren[b];
-      const ud = bird.userData;
+      const ud = bird.userData as {
+        orbitRadius: number;
+        orbitSpeed: number;
+        phase: number;
+        altitude: number;
+        doveCtrl?: DoveController;
+      };
       const angle = elapsedTime * ud.orbitSpeed + ud.phase;
-      const flap = Math.sin(elapsedTime * 6.5 + b * 0.9) * 0.48;
+      const bx = Math.cos(angle) * ud.orbitRadius;
+      const bz = Math.sin(angle) * ud.orbitRadius;
+      if (!isWithinViewDistance(bx, bz, playerX, playerZ, 35, 175)) {
+        bird.visible = false;
+        continue;
+      }
+      bird.visible = true;
       const liftBob = Math.cos(elapsedTime * 6.5 + b * 0.9) * 0.08;
       bird.position.set(
-        Math.cos(angle) * ud.orbitRadius,
+        bx,
         ud.altitude + Math.sin(angle * 2.0) * 1.5 + liftBob,
-        Math.sin(angle) * ud.orbitRadius
+        bz
       );
       bird.rotation.order = 'YXZ';
       bird.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle));
       bird.rotation.x = Math.cos(angle * 2.0) * 0.08;
       bird.rotation.z = -0.18;
-      if (ud.leftWingPivot && ud.rightWingPivot) {
-        ud.leftWingPivot.rotation.z = flap;
-        ud.rightWingPivot.rotation.z = -flap;
+      if (ud.doveCtrl && dt > 0) {
+        ud.doveCtrl.setState('fly');
+        ud.doveCtrl.update(dt);
+        ud.doveCtrl.object.position.set(0, 0, 0);
+        ud.doveCtrl.object.rotation.set(0, 0, 0);
       }
     }
 

@@ -1864,18 +1864,10 @@ export function walkableHeightAt(
     }
   }
 
-  // Climbable Harbor Fountain (232, 252) & Oasis Fountain (-310, 300) stepped outer rims and basins
+  // Climbable Harbor Fountain (232, 252) stepped outer rim and basin
   const harborFountainDist = Math.hypot(x - 232.0, z - 252.0);
   if (harborFountainDist <= 4.25 && harborFountainDist > 0.72) {
     const fTopY = harborFountainDist <= 2.3 ? SOUTHEAST_HARBOR_POS.plazaY + 1.02 : SOUTHEAST_HARBOR_POS.plazaY + 0.54;
-    if (currentY === undefined || currentY >= fTopY - 0.82) {
-      return { height: fTopY, surface: 'pier' };
-    }
-  }
-
-  const oasisFountainDist = Math.hypot(x - -310.0, z - 300.0);
-  if (oasisFountainDist <= 3.55 && oasisFountainDist > 0.68) {
-    const fTopY = oasisFountainDist <= 1.95 ? SOUTHWEST_OASIS_POS.terraceY + 0.92 : SOUTHWEST_OASIS_POS.terraceY + 0.48;
     if (currentY === undefined || currentY >= fTopY - 0.82) {
       return { height: fTopY, surface: 'pier' };
     }
@@ -2062,12 +2054,17 @@ export function walkableHeightAt(
     return { height: SOUTHWEST_OASIS_POS.pavilionFloorY, surface: 'cabin' };
   }
 
+  // Southwest Oasis Shoreline Wooden Fishing Piers (South-East Pier at gazeboX/Z & East Pier at eastPierX/Z)
+  const onSouthEastOasisPier =
+    x >= SOUTHWEST_OASIS_POS.gazeboX - 3.8 &&
+    x <= SOUTHWEST_OASIS_POS.gazeboX + 4.8 &&
+    Math.abs(z - SOUTHWEST_OASIS_POS.gazeboZ) <= 1.75;
+  const onEastOasisPier =
+    x >= SOUTHWEST_OASIS_POS.eastPierX - 3.6 &&
+    x <= SOUTHWEST_OASIS_POS.eastPierX + 4.2 &&
+    Math.abs(z - SOUTHWEST_OASIS_POS.eastPierZ) <= 1.65;
   if (
-    ((Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.gazeboHalfSize + 0.2 &&
-      Math.abs(z - SOUTHWEST_OASIS_POS.gazeboZ) <= SOUTHWEST_OASIS_POS.gazeboHalfSize + 0.2) ||
-      (Math.abs(x - SOUTHWEST_OASIS_POS.gazeboX) <= SOUTHWEST_OASIS_POS.bridgeHalfW + 0.15 &&
-        z >= SOUTHWEST_OASIS_POS.bridgeMinZ - 0.2 &&
-        z <= SOUTHWEST_OASIS_POS.bridgeMaxZ + 0.2)) &&
+    (onSouthEastOasisPier || onEastOasisPier) &&
     (currentY === undefined || currentY >= SOUTHWEST_OASIS_POS.gazeboDeckY - 0.85)
   ) {
     return { height: SOUTHWEST_OASIS_POS.gazeboDeckY, surface: 'pier' };

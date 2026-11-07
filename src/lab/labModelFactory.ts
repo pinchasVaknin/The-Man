@@ -9,7 +9,6 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
-import { computeHorseBiomechanicalPose } from '../world/systems/horsePhysicsSystem';
 import {
   computeFirstPersonSwordAttackPose,
   LOCKED_SWORD_GRIP_TRANSFORM,
@@ -25,6 +24,8 @@ import { createReadyCatLion, type CatLionState } from '../world/models/CatLion';
 import { createReadyStag, type StagState } from '../world/models/Stag';
 import { createReadyForestDragon, type ForestDragonState } from '../world/models/ForestDragon';
 import { createReadyDemonDragon, type DemonDragonState } from '../world/models/DemonDragon';
+import { createReadyHorse, type HorseState } from '../world/models/Horse';
+import { createReadyDove, type DoveState } from '../world/models/Dove';
 // #endregion
 
 // ======================== RIG CONTRACT ======================== \\
@@ -1637,189 +1638,116 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // 7. RIDEABLE HORSE (kinematics from horsePhysicsSystem)
+  // 7. RIDEABLE HORSE (full 53-joint Horse_Complete.ts skeleton + 14 animations + saddle gear)
   else if (entityId === 'rideable_horse') {
-    const coatMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x7c3f1d, roughness: 0.62 }));
-    const maneMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x26150b, roughness: 0.78 }));
-    const saddleMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 }));
-    const hoofMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.45 }));
-    const goldMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 })
-    );
+    const horseRoot = new THREE.Group();
+    root.add(horseRoot);
 
-    const bodyPivot = new THREE.Group();
-    bodyPivot.position.set(0, 1.18, 0);
+    const horse = createReadyHorse({
+      scale: 1.05,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    horse.animator.loopDeath = true;
+    horseRoot.add(horse.object);
 
-    // Sculpted Barrel Chest, Flank & Croup
-    const torso = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.36, 0.38, 1.32, 14)),
-      coatMat
-    );
-    torso.rotation.x = Math.PI / 2;
-    const chestSphere = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.38, 14, 12)), coatMat);
-    chestSphere.position.set(0, 0.02, 0.56);
-    const rumpSphere = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.37, 14, 12)), coatMat);
-    rumpSphere.position.set(0, 0.04, -0.56);
+    const horseMat = horse.mesh.material;
+    if (Array.isArray(horseMat)) {
+      for (const m of horseMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(horseMat);
+    }
+    disposableGeometries.push(horse.mesh.geometry);
 
-    // Saddle, Blanket & Stirrups
-    const saddleBlanket = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.82, 0.28, 0.68)),
-      saddleMat
-    );
-    saddleBlanket.position.set(0, 0.28, 0.05);
-    const pommel = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.32, 0.16, 0.14)), goldMat);
-    pommel.position.set(0, 0.44, 0.3);
-    const cantle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.36, 0.14, 0.16)), saddleMat);
-    cantle.position.set(0, 0.43, -0.2);
+    const horseSaddleMat = horse.saddleMesh.material;
+    if (Array.isArray(horseSaddleMat)) {
+      for (const m of horseSaddleMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(horseSaddleMat);
+    }
+    disposableGeometries.push(horse.saddleMesh.geometry);
 
-    // Neck & Head Group
-    const neckPivot = new THREE.Group();
-    neckPivot.position.set(0, 0.24, 0.68);
-    neckPivot.rotation.x = 0.32;
-    const neckMesh = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.18, 0.28, 0.78, 12)),
-      coatMat
-    );
-    neckMesh.position.set(0, 0.32, 0.12);
-    const maneMesh = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.08, 0.72, 0.18)), maneMat);
-    maneMesh.position.set(0, 0.34, 0.0);
-
-    const headPivot = new THREE.Group();
-    headPivot.position.set(0, 0.68, 0.22);
-    headPivot.rotation.x = -0.16;
-    const skull = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.26, 0.26, 0.38)), coatMat);
-    const muzzle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.19, 0.18, 0.36)), coatMat);
-    muzzle.position.set(0, -0.05, 0.28);
-    const bridle = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(0.21, 0.2, 0.06)), goldMat);
-    bridle.position.set(0, -0.04, 0.22);
-    const earGeo = trackGeo(new THREE.ConeGeometry(0.048, 0.16, 6));
-    const earL = new THREE.Mesh(earGeo, coatMat);
-    earL.position.set(-0.09, 0.18, -0.04);
-    const earR = new THREE.Mesh(earGeo, coatMat);
-    earR.position.set(0.09, 0.18, -0.04);
-    headPivot.add(skull, muzzle, bridle, earL, earR);
-    neckPivot.add(neckMesh, maneMesh, headPivot);
-
-    // Tail Pivot
-    const tailPivot = new THREE.Group();
-    tailPivot.position.set(0, 0.14, -0.84);
-    const tailMesh = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.12, 0.78, 8)),
-      maneMat
-    );
-    tailMesh.rotation.x = Math.PI - 0.25;
-    tailMesh.position.set(0, -0.34, -0.1);
-    tailPivot.add(tailMesh);
-
-    // 4 Articulated 3-Segment Equine Limbs
-    const uLimbGeo = trackGeo(new THREE.CylinderGeometry(0.105, 0.078, 0.56, 10));
-    uLimbGeo.translate(0, -0.28, 0);
-    const lLimbGeo = trackGeo(new THREE.CylinderGeometry(0.072, 0.056, 0.48, 10));
-    lLimbGeo.translate(0, -0.24, 0);
-    const hoofGeo = trackGeo(new THREE.CylinderGeometry(0.068, 0.082, 0.14, 10));
-    hoofGeo.translate(0, -0.07, 0.01);
-
-    const buildEquineLeg = (lx: number, lz: number) => {
-      const upper = new THREE.Group();
-      upper.position.set(lx, -0.08, lz);
-      upper.add(new THREE.Mesh(uLimbGeo, coatMat));
-      const lower = new THREE.Group();
-      lower.position.set(0, -0.54, 0);
-      lower.add(new THREE.Mesh(lLimbGeo, coatMat));
-      const hoof = new THREE.Group();
-      hoof.position.set(0, -0.46, 0);
-      hoof.add(new THREE.Mesh(hoofGeo, hoofMat));
-      lower.add(hoof);
-      upper.add(lower);
-      bodyPivot.add(upper);
-      return { upper, lower, hoof };
-    };
-
-    const fl = buildEquineLeg(-0.22, 0.54);
-    const fr = buildEquineLeg(0.22, 0.54);
-    const bl = buildEquineLeg(-0.22, -0.54);
-    const br = buildEquineLeg(0.22, -0.54);
-
-    bodyPivot.add(
-      torso,
-      chestSphere,
-      rumpSphere,
-      saddleBlanket,
-      pommel,
-      cantle,
-      neckPivot,
-      tailPivot
-    );
-    root.add(bodyPivot);
-
-    editableRigTargets.weaponNodes.push(tailPivot);
-    editableRigTargets.leftWeaponNodes.push(saddleBlanket, pommel, cantle);
-    editableRigTargets.rightLimbNodes.push(fr.upper, br.upper);
-    editableRigTargets.leftLimbNodes.push(fl.upper, bl.upper);
-    editableRigTargets.headNodes.push(neckPivot, headPivot);
-    editableRigTargets.bodyNodes.push(bodyPivot);
+    const bones = horse.rig.bones;
+    editableRigTargets.weaponNodes.push(bones[3]);
+    editableRigTargets.leftWeaponNodes.push(horse.saddleMesh);
+    editableRigTargets.rightLimbNodes.push(bones[32], bones[14]);
+    editableRigTargets.leftLimbNodes.push(bones[26], bones[9]);
+    editableRigTargets.headNodes.push(bones[41], bones[45]);
+    editableRigTargets.bodyNodes.push(horseRoot);
 
     customApplySkin = (skin) => {
-      coatMat.color.setHex(skin.palette.primaryHex);
-      maneMat.color.setHex(skin.palette.secondaryHex);
-      saddleMat.color.setHex(skin.palette.accentHex);
+      const tintHex =
+        skin.id === 'horse_bay_stallion' ? 0xffffff : skin.palette.primaryHex;
+      const mat = horse.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
     };
 
+    let lastHorseAnimTime = 0;
+    let lastHorseAnimId = '';
     customApplyAnimation = (animId, t, p) => {
-      // Static neutral pose
-      bodyPivot.position.set(0, 1.18, 0);
-      bodyPivot.rotation.set(0, 0, 0);
-      neckPivot.rotation.set(0.32, 0, 0);
-      headPivot.rotation.set(-0.16, 0, 0);
-      tailPivot.rotation.set(0.14, 0, 0);
-      for (const leg of [fl, fr, bl, br]) {
-        leg.upper.rotation.set(0, 0, 0);
-        leg.lower.rotation.set(0, 0, 0);
-        leg.hoof.rotation.set(0, 0, 0);
-      }
+      const rawDt = t >= lastHorseAnimTime ? t - lastHorseAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastHorseAnimTime = t;
 
-      if (animId === 'none') return;
+      horseRoot.position.set(0, 0, 0);
+      horseRoot.rotation.set(0, 0, 0);
 
-      if (animId === 'horse_rear') {
-        const rear = Math.sin(p * Math.PI);
-        bodyPivot.rotation.x = -rear * 0.68;
-        bodyPivot.position.y = 1.18 + rear * 0.35;
-        fl.upper.rotation.x = -rear * 0.95;
-        fl.lower.rotation.x = rear * 0.85;
-        fr.upper.rotation.x = -rear * 0.75 + Math.sin(p * Math.PI * 4) * 0.25;
-        fr.lower.rotation.x = rear * 0.75;
-        bl.upper.rotation.x = rear * 0.55;
-        br.upper.rotation.x = rear * 0.55;
+      if (animId === 'none') {
+        if (lastHorseAnimId !== 'none') {
+          horse.rig.resetToRest();
+          horse.object.position.set(0, 0, 0);
+          horse.object.rotation.set(0, 0, 0);
+          horse.setState('idle');
+          lastHorseAnimId = 'none';
+        }
         return;
       }
 
-      const simSpeed =
-        animId === 'horse_idle'
-          ? 0
-          : animId === 'horse_walk'
-            ? 2.2
-            : animId === 'horse_trot'
-              ? 4.8
-              : 8.5;
-      const gaitPhase = p * Math.PI * 2;
-      const pose = computeHorseBiomechanicalPose(simSpeed, gaitPhase, t, 0);
-
-      bodyPivot.position.y = 1.18 + pose.bodyLiftY;
-      bodyPivot.rotation.x = pose.bodyPitch;
-      neckPivot.rotation.x = pose.neckPitch;
-      headPivot.rotation.x = pose.headPitch;
-      tailPivot.rotation.x = pose.tailPitch;
-      tailPivot.rotation.y = pose.tailSwayY;
-
-      const applyLeg = (leg: typeof fl, angles: typeof pose.frontLeft) => {
-        leg.upper.rotation.x = angles.upperPitch;
-        leg.lower.rotation.x = angles.lowerPitch;
-        leg.hoof.rotation.x = angles.hoofPitch;
+      const legacyAliasMap: Record<string, HorseState> = {
+        horse_idle: 'idle',
+        horse_walk: 'walk',
+        horse_trot: 'trot',
+        horse_gallop: 'run',
+        horse_rear: 'buck_attack',
       };
-      applyLeg(fl, pose.frontLeft);
-      applyLeg(fr, pose.frontRight);
-      applyLeg(bl, pose.backLeft);
-      applyLeg(br, pose.backRight);
+      const validHorseStates: ReadonlySet<HorseState> = new Set<HorseState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'buck_attack',
+        'roar',
+        'attack',
+        'sit',
+        'lie',
+        'death',
+      ]);
+      const mappedState: HorseState =
+        legacyAliasMap[animId] ??
+        (validHorseStates.has(animId as HorseState) ? (animId as HorseState) : 'idle');
+
+      if (lastHorseAnimId !== animId) {
+        if (mappedState === 'death') {
+          horse.restartState('death');
+        } else {
+          horse.setState(mappedState);
+        }
+        lastHorseAnimId = animId;
+      }
+
+      if (dt > 0) {
+        horse.update(dt);
+      } else {
+        horse.animator.setNormalizedPhase(p);
+      }
+      horse.object.position.set(0, 0, 0);
+      horse.object.rotation.set(0, 0, 0);
     };
   }
 
@@ -2370,6 +2298,15 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     }
     disposableGeometries.push(lion.mesh.geometry);
 
+    const lionSaddleMat = lion.saddleMesh.material;
+    if (Array.isArray(lionSaddleMat)) {
+      for (const m of lionSaddleMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(lionSaddleMat);
+    }
+    disposableGeometries.push(lion.saddleMesh.geometry);
+
+    editableRigTargets.leftWeaponNodes.push(lion.saddleMesh);
     editableRigTargets.bodyNodes.push(lionRoot);
 
     customApplySkin = (skin) => {
@@ -2456,6 +2393,15 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     }
     disposableGeometries.push(stag.mesh.geometry);
 
+    const stagSaddleMat = stag.saddleMesh.material;
+    if (Array.isArray(stagSaddleMat)) {
+      for (const m of stagSaddleMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(stagSaddleMat);
+    }
+    disposableGeometries.push(stag.saddleMesh.geometry);
+
+    editableRigTargets.leftWeaponNodes.push(stag.saddleMesh);
     editableRigTargets.bodyNodes.push(stagRoot);
 
     customApplySkin = (skin) => {
@@ -2895,27 +2841,26 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // 12 & 13. GOLDEN MOUNTAIN EAGLE & FLOCK BIRD
-  else if (entityId === 'mountain_eagle' || entityId === 'flock_bird') {
-    const isEagle = entityId === 'mountain_eagle';
+  // 12. GOLDEN MOUNTAIN EAGLE
+  else if (entityId === 'mountain_eagle') {
     const bodyMat = trackMat(
       new THREE.MeshStandardMaterial({
-        color: isEagle ? 0x3b2616 : 0x3a4450,
+        color: 0x3b2616,
         roughness: 0.6,
         side: THREE.DoubleSide,
       })
     );
     const headMat = trackMat(
       new THREE.MeshStandardMaterial({
-        color: isEagle ? 0xc8963e : 0xc8beae,
+        color: 0xc8963e,
         roughness: 0.55,
       })
     );
     const beakMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4 }));
 
     const birdGroup = new THREE.Group();
-    birdGroup.position.y = isEagle ? 0.85 : 0.65;
-    birdGroup.scale.setScalar(isEagle ? 1.35 : 1.75);
+    birdGroup.position.y = 0.85;
+    birdGroup.scale.setScalar(1.35);
 
     const bodyGeo = trackGeo(new THREE.ConeGeometry(0.14, 0.56, 10));
     bodyGeo.rotateX(Math.PI / 2);
@@ -2932,14 +2877,14 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     const tailFan = new THREE.Mesh(tailGeo, bodyMat);
     tailFan.position.set(0, 0.02, -0.34);
 
-    const wingInnerGeo = trackGeo(new THREE.BoxGeometry(isEagle ? 0.85 : 0.45, 0.03, 0.26));
-    wingInnerGeo.translate(isEagle ? -0.42 : -0.22, 0, 0);
+    const wingInnerGeo = trackGeo(new THREE.BoxGeometry(0.85, 0.03, 0.26));
+    wingInnerGeo.translate(-0.42, 0, 0);
     const leftWing = new THREE.Group();
     leftWing.position.set(-0.08, 0.04, 0.04);
     leftWing.add(new THREE.Mesh(wingInnerGeo, bodyMat));
 
-    const rightWingGeo = trackGeo(new THREE.BoxGeometry(isEagle ? 0.85 : 0.45, 0.03, 0.26));
-    rightWingGeo.translate(isEagle ? 0.42 : 0.22, 0, 0);
+    const rightWingGeo = trackGeo(new THREE.BoxGeometry(0.85, 0.03, 0.26));
+    rightWingGeo.translate(0.42, 0, 0);
     const rightWing = new THREE.Group();
     rightWing.position.set(0.08, 0.04, 0.04);
     rightWing.add(new THREE.Mesh(rightWingGeo, bodyMat));
@@ -2961,7 +2906,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
 
     customApplyAnimation = (animId, _t, p) => {
-      birdGroup.position.set(0, isEagle ? 0.85 : 0.65, 0);
+      birdGroup.position.set(0, 0.85, 0);
       birdGroup.rotation.set(0, 0, 0);
       leftWing.rotation.set(0, 0, 0.06);
       rightWing.rotation.set(0, 0, -0.06);
@@ -2970,24 +2915,124 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
       if (animId === 'none') return;
       const phase = p * Math.PI * 2;
 
-      if (animId === 'eagle_soar' || animId === 'bird_cruise') {
-        const flap = Math.sin(phase) * (isEagle ? 0.35 : 0.55);
+      if (animId === 'eagle_soar') {
+        const flap = Math.sin(phase) * 0.35;
         leftWing.rotation.z = flap;
         rightWing.rotation.z = -flap;
-        birdGroup.position.y = (isEagle ? 0.85 : 0.65) + Math.cos(phase) * 0.08;
+        birdGroup.position.y = 0.85 + Math.cos(phase) * 0.08;
       } else if (animId === 'eagle_dive') {
         birdGroup.rotation.x = 0.45;
         leftWing.rotation.set(0, 0.35, -0.2);
         rightWing.rotation.set(0, -0.35, 0.2);
-      } else if (animId === 'eagle_power_flap' || animId === 'bird_startled') {
+      } else if (animId === 'eagle_power_flap') {
         const flap = Math.sin(phase * 2) * 0.72;
         leftWing.rotation.z = flap;
         rightWing.rotation.z = -flap;
         tailFan.scale.x = 1.45;
-      } else if (animId === 'bird_glide_bank') {
-        birdGroup.rotation.z = Math.sin(phase) * 0.38;
-        birdGroup.rotation.y = Math.cos(phase) * 0.25;
       }
+    };
+  }
+
+  // 13. FLOCK BIRD / DOVE (full 75-joint Dove_Complete.ts skeleton + 14 animations)
+  else if (entityId === 'flock_bird') {
+    const doveRoot = new THREE.Group();
+    root.add(doveRoot);
+
+    const dove = createReadyDove({
+      scale: 0.95,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    dove.animator.loopDeath = true;
+    doveRoot.add(dove.object);
+
+    const doveMat = dove.mesh.material;
+    if (Array.isArray(doveMat)) {
+      for (const m of doveMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(doveMat);
+    }
+    disposableGeometries.push(dove.mesh.geometry);
+
+    const bones = dove.rig.bones;
+    editableRigTargets.weaponNodes.push(bones[23]);
+    editableRigTargets.leftWeaponNodes.push(bones[43]);
+    editableRigTargets.rightLimbNodes.push(bones[48]);
+    editableRigTargets.leftLimbNodes.push(bones[37]);
+    editableRigTargets.headNodes.push(bones[43]);
+    editableRigTargets.bodyNodes.push(doveRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'bird_forest_swallow' ? 0xffffff : skin.palette.primaryHex;
+      const mat = dove.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastDoveAnimTime = 0;
+    let lastDoveAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastDoveAnimTime ? t - lastDoveAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastDoveAnimTime = t;
+
+      doveRoot.position.set(0, 0, 0);
+      doveRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastDoveAnimId !== 'none') {
+          dove.rig.resetToRest();
+          dove.object.position.set(0, 0, 0);
+          dove.object.rotation.set(0, 0, 0);
+          dove.setState('idle');
+          lastDoveAnimId = 'none';
+        }
+        return;
+      }
+
+      const legacyBirdMap: Record<string, DoveState> = {
+        bird_cruise: 'fly',
+        bird_startled: 'flee',
+        bird_glide_bank: 'fly',
+      };
+      const validDoveStates: ReadonlySet<DoveState> = new Set<DoveState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'roar',
+        'attack',
+        'sit',
+        'lie',
+        'death',
+        'fly',
+      ]);
+      const mappedState: DoveState =
+        legacyBirdMap[animId] ??
+        (validDoveStates.has(animId as DoveState) ? (animId as DoveState) : 'fly');
+
+      if (lastDoveAnimId !== animId) {
+        if (mappedState === 'death') {
+          dove.restartState('death');
+        } else {
+          dove.setState(mappedState);
+        }
+        lastDoveAnimId = animId;
+      }
+
+      if (dt > 0) {
+        dove.update(dt);
+      } else {
+        dove.animator.setNormalizedPhase(p);
+      }
+      dove.object.position.set(0, 0, 0);
+      dove.object.rotation.set(0, 0, 0);
     };
   }
 

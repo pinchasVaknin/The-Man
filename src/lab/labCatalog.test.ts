@@ -363,8 +363,15 @@ describe('Character & Animation Lab Catalog', () => {
     rhinoLabRig.dispose();
     rhino.dispose();
 
-    // Verify CatLion, Stag, ForestDragon, and DemonDragon Lab rigs
-    for (const entityId of ['savanna_lion', 'royal_stag', 'forest_dragon', 'demon_dragon']) {
+    // Verify CatLion, Stag, ForestDragon, DemonDragon, Horse, and Dove Lab rigs
+    for (const entityId of [
+      'savanna_lion',
+      'royal_stag',
+      'forest_dragon',
+      'demon_dragon',
+      'rideable_horse',
+      'flock_bird',
+    ]) {
       const entity = getLabEntityById(entityId);
       const rig = buildLabEntityRig(entityId, entity.skins[0]);
       assert.ok(rig.stats.triangleCount > 1000, `${entityId} should have a valid 3D mesh`);
