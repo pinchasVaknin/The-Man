@@ -80,6 +80,7 @@ export interface ITelemetrySnapshot {
   activeEnemyHealthBar?: {
     id: number;
     name: string;
+    level?: number;
     hp: number;
     maxHp: number;
     isBoss: boolean;
@@ -113,6 +114,43 @@ export interface ITelemetrySnapshot {
   nearbyBed?: {
     id: string;
     name: string;
+  } | null;
+  nearbyTrapWorkbench?: {
+    id: string;
+    name: string;
+    nameHe: string;
+  } | null;
+  nearbyPlacedTrap?: {
+    id: string;
+    kind: string;
+    status: 'armed' | 'sprung';
+    sprung?: boolean;
+    caughtSpecies?: string;
+    caughtAnimalName?: string;
+    caughtAnimalLevel?: number;
+    x: number;
+    y: number;
+    z: number;
+  } | null;
+  targetedCreature?: {
+    id: number;
+    species: string;
+    speciesName: string;
+    level: number;
+    hp: number;
+    maxHp: number;
+    alertLevel: string;
+    threatRating: 'easy' | 'moderate' | 'dangerous' | 'deadly';
+    isBoss: boolean;
+  } | null;
+  placedTrapsCount?: number;
+  sprungTrapsCount?: number;
+  heldTrapStatus?: {
+    readonly itemId: InventoryItemId;
+    readonly name: string;
+    readonly count: number;
+    readonly valid: boolean;
+    readonly reason: string;
   } | null;
   isSleepingInBed?: boolean;
   worldHours?: number;

@@ -121,6 +121,9 @@ export {
   findNearestWorldChest,
   computeInteractableGazeScore,
   resolveBestLookedAtInteraction,
+  WORLD_TRAP_WORKBENCHES,
+  findNearestTrapWorkbench,
+  type ITrapWorkbench,
 } from './landmarks/interactionLandmarks';
 // #endregion
 

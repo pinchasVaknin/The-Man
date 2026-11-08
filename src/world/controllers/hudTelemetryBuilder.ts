@@ -24,9 +24,22 @@ import {
   getMerchantStallStock,
   getTreeDisplayName,
   resolveBestLookedAtInteraction,
+  walkableHeightAt,
 } from '../terrainMath';
+import { WATER_LEVEL } from '../domain/landmarksRegistry';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
-import { findNearestDeadLootableAnimal, getAnimalSpeciesName } from '../systems/boidsAndWildlifeSystem';
+import {
+  findNearestDeadLootableAnimal,
+  findTargetedLiveAnimal,
+  getAnimalSpeciesName,
+  getAnimalStrengthAndLevel,
+  type ISmallAnimalState,
+} from '../systems/boidsAndWildlifeSystem';
+import {
+  computeTrapPlacementPreview,
+  findNearestPlacedTrap,
+  type IPlacedTrap,
+} from '../systems/animalTrapsSystem';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -52,6 +65,7 @@ export interface IHudTelemetryInput {
   readonly activeEnemyHealthBar?: {
     readonly id: number;
     readonly name: string;
+    readonly level?: number;
     readonly hp: number;
     readonly maxHp: number;
     readonly isBoss: boolean;
@@ -60,6 +74,8 @@ export interface IHudTelemetryInput {
   readonly isSleepingInBed: boolean;
   readonly worldHours: number;
   readonly forcedSeason: SeasonType | 'auto';
+  readonly placedTraps?: readonly IPlacedTrap[];
+  readonly activeAnimals?: readonly ISmallAnimalState[];
 }
 // #endregion
 
@@ -82,6 +98,61 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const nearDoor = lookedAt.kind === 'door' ? lookedAt.door : null;
   const nearBed = lookedAt.kind === 'bed' ? lookedAt.bed : null;
   const nearChest = lookedAt.kind === 'chest' ? lookedAt.chest : null;
+  const nearTrapWorkbench =
+    lookedAt.kind === 'trap_workbench' && lookedAt.trapWorkbench
+      ? {
+          id: lookedAt.trapWorkbench.id,
+          name: lookedAt.trapWorkbench.name,
+          nameHe: lookedAt.trapWorkbench.nameHe,
+        }
+      : null;
+
+  const nearTrap = input.placedTraps
+    ? findNearestPlacedTrap(player.x, player.y, player.z, input.placedTraps, 3.2)
+    : null;
+  const nearbyPlacedTrap = nearTrap
+    ? {
+        id: nearTrap.id,
+        kind: nearTrap.kind,
+        status: nearTrap.status,
+        sprung: nearTrap.status === 'sprung',
+        caughtSpecies: nearTrap.caughtSpecies,
+        caughtAnimalName: nearTrap.caughtAnimalName,
+        caughtAnimalLevel: nearTrap.caughtAnimalLevel,
+        x: nearTrap.x,
+        y: nearTrap.y,
+        z: nearTrap.z,
+      }
+    : null;
+
+  const targetedLive = input.activeAnimals
+    ? findTargetedLiveAnimal(
+        player.x,
+        player.y,
+        player.z,
+        player.yaw,
+        player.pitch,
+        5.5,
+        input.activeAnimals
+      )
+    : null;
+  const targetedCreature = targetedLive
+    ? (() => {
+        const stats = getAnimalStrengthAndLevel(targetedLive);
+        return {
+          id: targetedLive.id,
+          species: targetedLive.species,
+          speciesName: getAnimalSpeciesName(targetedLive.species),
+          level: stats.level,
+          hp: targetedLive.hp ?? stats.level,
+          maxHp: targetedLive.maxHp ?? stats.level,
+          alertLevel: targetedLive.aiBehavior ?? targetedLive.alertLevel,
+          threatRating: stats.threatRating,
+          isBoss: Boolean(targetedLive.isBoss),
+        };
+      })()
+    : null;
+
   const nearLadder = findLookedAtWatchtowerLadder(
     player.x,
     player.y,
@@ -198,6 +269,44 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           name: nearBed.name,
         }
       : null,
+    ...(nearTrapWorkbench ? { nearbyTrapWorkbench: nearTrapWorkbench } : {}),
+    ...(nearbyPlacedTrap ? { nearbyPlacedTrap } : {}),
+    ...(player.heldTrapItemId
+      ? (() => {
+          const ownedCount = (player.ownedItemIds ?? []).filter(
+            (id) => id === player.heldTrapItemId
+          ).length;
+          if (ownedCount <= 0) return {};
+          const preview = computeTrapPlacementPreview(
+            input.placedTraps ?? [],
+            player.heldTrapItemId,
+            player.x,
+            player.y,
+            player.z,
+            player.yaw,
+            (gx, gz) => walkableHeightAt(gx, gz).height,
+            WATER_LEVEL,
+            player.pitch
+          );
+          if (!preview) return {};
+          return {
+            heldTrapStatus: {
+              itemId: player.heldTrapItemId,
+              name: preview.trapName,
+              count: ownedCount,
+              valid: preview.valid,
+              reason: preview.reason,
+            },
+          };
+        })()
+      : {}),
+    ...(targetedCreature ? { targetedCreature } : {}),
+    ...(input.placedTraps
+      ? {
+          placedTrapsCount: input.placedTraps.length,
+          sprungTrapsCount: input.placedTraps.filter((t) => t.status === 'sprung').length,
+        }
+      : {}),
     isSleepingInBed: input.isSleepingInBed,
     worldHours: input.worldHours,
     season: input.weather.season,

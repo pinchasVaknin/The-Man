@@ -70,6 +70,89 @@ ICON_STRATEGIES.set('arrow_normal', arrowIcon);
 ICON_STRATEGIES.set('arrow_fire', arrowIcon);
 ICON_STRATEGIES.set('arrow_wind', arrowIcon);
 
+const cageTrapIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <line x1="8" y1="5" x2="8" y2="19" />
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="16" y1="5" x2="16" y2="19" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+  </svg>
+);
+ICON_STRATEGIES.set('trap_cage_small', cageTrapIcon);
+
+const snareIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <line x1="5" y1="21" x2="9" y2="9" />
+    <circle cx="15" cy="8" r="6" />
+    <path d="M9 9c2-1 4-1 6 0" />
+  </svg>
+);
+ICON_STRATEGIES.set('trap_snare', snareIcon);
+
+const bearJawIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M4 14c2-5 7-7 16 0" />
+    <path d="M4 14c2 5 7 7 16 0" />
+    <line x1="6" y1="13" x2="7" y2="15" />
+    <line x1="10" y1="12" x2="11" y2="16" />
+    <line x1="14" y1="12" x2="15" y2="16" />
+    <line x1="18" y1="13" x2="19" y2="15" />
+    <circle cx="12" cy="14" r="2" />
+  </svg>
+);
+ICON_STRATEGIES.set('trap_bear_jaw', bearJawIcon);
+
+const netTrapIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M4 4l16 16M20 4L4 20" />
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="4" cy="4" r="1.5" />
+    <circle cx="20" cy="4" r="1.5" />
+    <circle cx="20" cy="20" r="1.5" />
+    <circle cx="4" cy="20" r="1.5" />
+  </svg>
+);
+ICON_STRATEGIES.set('trap_net', netTrapIcon);
+
+const fishTrapIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <ellipse cx="12" cy="12" rx="9" ry="6" />
+    <path d="M3 9l5 3-5 3" />
+    <line x1="11" y1="6" x2="11" y2="18" />
+    <line x1="15" y1="6.5" x2="15" y2="17.5" />
+    <path d="M7 12h11" />
+  </svg>
+);
+ICON_STRATEGIES.set('trap_fish', fishTrapIcon);
+
+const twineIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M12 2a5 5 0 0 0-5 5c0 4 5 7 5 11 0-4 5-7 5-11a5 5 0 0 0-5-5z" />
+    <path d="M9 7c1 2 4 4 6 5" />
+  </svg>
+);
+ICON_STRATEGIES.set('twine_fiber', twineIcon);
+
+const berriesIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <circle cx="9" cy="14" r="4" />
+    <circle cx="15" cy="14" r="4" />
+    <circle cx="12" cy="8" r="4" />
+    <path d="M12 4v2" />
+  </svg>
+);
+ICON_STRATEGIES.set('wild_berries', berriesIcon);
+
+const seedsIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <ellipse cx="8" cy="12" rx="3" ry="5" transform="rotate(-25 8 12)" />
+    <ellipse cx="16" cy="12" rx="3" ry="5" transform="rotate(25 16 12)" />
+    <ellipse cx="12" cy="16" rx="3" ry="5" />
+  </svg>
+);
+ICON_STRATEGIES.set('grain_seeds', seedsIcon);
+
 // Register Artwork Strategies
 const createBowArtwork = (bowColor: string, trimColor: string): ArtworkRenderStrategy => (sizeClass) => (
   <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
@@ -151,6 +234,151 @@ ARTWORK_STRATEGIES.set('oak_timber', (sizeClass) => (
     <rect x="42" y="38" width="76" height="22" rx="5" fill="#d97706" stroke="#fde68a" strokeWidth="2.5" />
     <line x1="44" y1="100" x2="116" y2="100" stroke="#fde68a" strokeWidth="2" strokeOpacity="0.5" />
     <line x1="48" y1="74" x2="112" y2="74" stroke="#fde68a" strokeWidth="2" strokeOpacity="0.5" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('trap_cage_small', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#d97706" fillOpacity="0.2" />
+    <rect x="30" y="44" width="100" height="84" rx="6" fill="#78350f" fillOpacity="0.4" stroke="#d97706" strokeWidth="4" />
+    <line x1="50" y1="44" x2="50" y2="128" stroke="#f59e0b" strokeWidth="3" />
+    <line x1="70" y1="44" x2="70" y2="128" stroke="#f59e0b" strokeWidth="3" />
+    <line x1="90" y1="44" x2="90" y2="128" stroke="#f59e0b" strokeWidth="3" />
+    <line x1="110" y1="44" x2="110" y2="128" stroke="#f59e0b" strokeWidth="3" />
+    <line x1="30" y1="72" x2="130" y2="72" stroke="#b45309" strokeWidth="3" />
+    <line x1="30" y1="100" x2="130" y2="100" stroke="#b45309" strokeWidth="3" />
+    {/* Trap door propped open */}
+    <rect x="32" y="22" width="44" height="24" rx="3" fill="#92400e" stroke="#fbbf24" strokeWidth="2.5" />
+    <line x1="54" y1="46" x2="68" y2="30" stroke="#fde68a" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="80" cy="116" r="5" fill="#facc15" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('trap_snare', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#a16207" fillOpacity="0.18" />
+    {/* Wooden peg */}
+    <polygon points="34,136 48,136 44,70 38,70" fill="#92400e" stroke="#fbbf24" strokeWidth="2.5" />
+    {/* Tension stick */}
+    <path d="M42 80 Q64 40 102 44" stroke="#d97706" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+    {/* Wire loop */}
+    <ellipse cx="106" cy="86" rx="34" ry="26" fill="#fef08a" fillOpacity="0.08" stroke="#f8fafc" strokeWidth="3.5" strokeDasharray="6 2" />
+    <line x1="102" y1="44" x2="106" y2="60" stroke="#94a3b8" strokeWidth="2.5" />
+    <ellipse cx="108" cy="110" rx="4" ry="2" fill="#22c55e" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('trap_bear_jaw', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#475569" fillOpacity="0.25" />
+    {/* Base plate */}
+    <ellipse cx="80" cy="94" rx="52" ry="18" fill="#334155" stroke="#94a3b8" strokeWidth="3" />
+    {/* Center pressure trigger plate */}
+    <circle cx="80" cy="94" r="14" fill="#64748b" stroke="#e2e8f0" strokeWidth="2.5" />
+    {/* Serrated curved jaws */}
+    <path d="M30 90 C34 50, 126 50, 130 90" stroke="#cbd5e1" strokeWidth="5" strokeLinecap="round" fill="none" />
+    <path d="M32 94 C36 130, 124 130, 128 94" stroke="#94a3b8" strokeWidth="5" strokeLinecap="round" fill="none" />
+    {/* Teeth */}
+    <polygon points="50,78 54,64 58,77" fill="#f8fafc" />
+    <polygon points="70,72 74,58 78,71" fill="#f8fafc" />
+    <polygon points="90,72 94,58 98,71" fill="#f8fafc" />
+    <polygon points="110,78 114,64 118,77" fill="#f8fafc" />
+    {/* Anchor chain */}
+    <path d="M30 92 Q20 114 16 134" stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" strokeDasharray="4 4" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('trap_net', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#047857" fillOpacity="0.18" />
+    {/* Net lattice */}
+    <ellipse cx="80" cy="80" rx="54" ry="46" fill="#065f46" fillOpacity="0.2" stroke="#10b981" strokeWidth="3" />
+    <line x1="36" y1="60" x2="124" y2="100" stroke="#6ee7b7" strokeWidth="2" />
+    <line x1="42" y1="80" x2="118" y2="80" stroke="#6ee7b7" strokeWidth="2" />
+    <line x1="36" y1="100" x2="124" y2="60" stroke="#6ee7b7" strokeWidth="2" />
+    <line x1="60" y1="40" x2="100" y2="120" stroke="#a7f3d0" strokeWidth="2" />
+    <line x1="80" y1="36" x2="80" y2="124" stroke="#a7f3d0" strokeWidth="2.5" />
+    <line x1="100" y1="40" x2="60" y2="120" stroke="#a7f3d0" strokeWidth="2" />
+    {/* Center bird bait tray (berries & golden seeds) */}
+    <circle cx="80" cy="80" r="14" fill="#78350f" stroke="#fbbf24" strokeWidth="2" />
+    <circle cx="76" cy="77" r="3.5" fill="#ef4444" />
+    <circle cx="84" cy="79" r="3.5" fill="#dc2626" />
+    <circle cx="79" cy="84" r="3" fill="#facc15" />
+    <circle cx="83" cy="74" r="2.5" fill="#fde047" />
+    {/* Lead weights */}
+    <circle cx="32" cy="74" r="5" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+    <circle cx="128" cy="74" r="5" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+    <circle cx="80" cy="126" r="5" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+    <circle cx="80" cy="34" r="5" fill="#475569" stroke="#94a3b8" strokeWidth="1.5" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('trap_fish', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#0284c7" fillOpacity="0.22" />
+    {/* Water ripples */}
+    <path d="M26 118 Q54 110 80 118 Q106 126 134 118" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeOpacity="0.7" />
+    <path d="M36 128 Q64 122 86 128 Q108 134 126 128" stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.5" />
+    {/* Woven cylindrical reed basket */}
+    <rect x="34" y="52" width="92" height="54" rx="24" fill="#78350f" fillOpacity="0.55" stroke="#f59e0b" strokeWidth="3.5" />
+    {/* Funnel cone entrance */}
+    <polygon points="36,58 64,79 36,100" fill="#92400e" fillOpacity="0.65" stroke="#fbbf24" strokeWidth="2.5" />
+    {/* Woven vertical hoops & horizontal slats */}
+    <line x1="66" y1="52" x2="66" y2="106" stroke="#fbbf24" strokeWidth="3" />
+    <line x1="90" y1="52" x2="90" y2="106" stroke="#fbbf24" strokeWidth="3" />
+    <line x1="112" y1="55" x2="112" y2="103" stroke="#fbbf24" strokeWidth="3" />
+    <line x1="46" y1="68" x2="122" y2="68" stroke="#d97706" strokeWidth="2" />
+    <line x1="56" y1="79" x2="124" y2="79" stroke="#d97706" strokeWidth="2" />
+    <line x1="46" y1="90" x2="122" y2="90" stroke="#d97706" strokeWidth="2" />
+    {/* Silver fish silhouette inside */}
+    <ellipse cx="94" cy="79" rx="14" ry="7" fill="#38bdf8" stroke="#e0f2fe" strokeWidth="2" />
+    <polygon points="108,79 116,73 116,85" fill="#7dd3fc" />
+    {/* Wooden float buoy */}
+    <line x1="80" y1="52" x2="80" y2="30" stroke="#e2e8f0" strokeWidth="2" strokeDasharray="3 3" />
+    <ellipse cx="80" cy="28" rx="9" ry="5" fill="#ef4444" stroke="#fef08a" strokeWidth="2" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('twine_fiber', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#eab308" fillOpacity="0.16" />
+    {/* Coiled rope/twine bundle */}
+    <ellipse cx="80" cy="86" rx="44" ry="26" fill="#a16207" stroke="#facc15" strokeWidth="4" />
+    <ellipse cx="80" cy="76" rx="40" ry="24" fill="#ca8a04" stroke="#fde047" strokeWidth="3.5" />
+    <ellipse cx="80" cy="66" rx="36" ry="20" fill="#eab308" stroke="#fef08a" strokeWidth="3" />
+    {/* Tie wrap */}
+    <rect x="74" y="52" width="12" height="46" rx="3" fill="#713f12" stroke="#fbbf24" strokeWidth="2" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('wild_berries', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#dc2626" fillOpacity="0.22" />
+    {/* Leaves */}
+    <path d="M80 60 C70 42, 54 44, 48 56 C62 64, 72 62, 80 60 Z" fill="#16a34a" stroke="#86efac" strokeWidth="2" />
+    <path d="M80 60 C90 42, 106 44, 112 56 C98 64, 88 62, 80 60 Z" fill="#22c55e" stroke="#bbf7d0" strokeWidth="2" />
+    {/* Berries */}
+    <circle cx="64" cy="88" r="22" fill="#b91c1c" stroke="#fca5a5" strokeWidth="3" />
+    <circle cx="96" cy="88" r="22" fill="#dc2626" stroke="#fecaca" strokeWidth="3" />
+    <circle cx="80" cy="72" r="20" fill="#991b1b" stroke="#f87171" strokeWidth="3" />
+    <circle cx="80" cy="106" r="18" fill="#7f1d1d" stroke="#fca5a5" strokeWidth="3" />
+    <circle cx="60" cy="82" r="3" fill="#ffffff" fillOpacity="0.7" />
+    <circle cx="92" cy="82" r="3" fill="#ffffff" fillOpacity="0.7" />
+    <circle cx="76" cy="68" r="3" fill="#ffffff" fillOpacity="0.7" />
+  </svg>
+));
+
+ARTWORK_STRATEGIES.set('grain_seeds', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f59e0b" fillOpacity="0.2" />
+    {/* Wheat sprig stalk and kernels */}
+    <line x1="40" y1="130" x2="118" y2="42" stroke="#b45309" strokeWidth="4" strokeLinecap="round" />
+    <ellipse cx="64" cy="98" rx="8" ry="16" transform="rotate(-35 64 98)" fill="#f59e0b" stroke="#fef08a" strokeWidth="2.5" />
+    <ellipse cx="82" cy="106" rx="8" ry="16" transform="rotate(35 82 106)" fill="#d97706" stroke="#fde68a" strokeWidth="2.5" />
+    <ellipse cx="80" cy="80" rx="8" ry="16" transform="rotate(-35 80 80)" fill="#fbbf24" stroke="#fef3c7" strokeWidth="2.5" />
+    <ellipse cx="98" cy="88" rx="8" ry="16" transform="rotate(35 98 88)" fill="#f59e0b" stroke="#fef08a" strokeWidth="2.5" />
+    <ellipse cx="96" cy="62" rx="7" ry="14" transform="rotate(-35 96 62)" fill="#fde047" stroke="#ffffff" strokeWidth="2.5" />
+    <ellipse cx="114" cy="70" rx="7" ry="14" transform="rotate(35 114 70)" fill="#fbbf24" stroke="#fef3c7" strokeWidth="2.5" />
   </svg>
 ));
 

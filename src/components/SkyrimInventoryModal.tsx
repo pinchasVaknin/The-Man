@@ -39,6 +39,7 @@ export type InventoryCategoryTab =
   | 'all'
   | 'weapons'
   | 'clothing'
+  | 'traps'
   | 'materials'
   | 'food'
   | 'ammo'
@@ -158,6 +159,14 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   dragon_horn: t('items.dragon_horn.short'),
   dragon_claws: t('items.dragon_claws.short'),
   dragon_bone: t('items.dragon_bone.short'),
+  trap_cage_small: t('items.trap_cage_small.short'),
+  trap_snare: t('items.trap_snare.short'),
+  trap_bear_jaw: t('items.trap_bear_jaw.short'),
+  trap_net: t('items.trap_net.short'),
+  trap_fish: t('items.trap_fish.short'),
+  twine_fiber: t('items.twine_fiber.short'),
+  wild_berries: t('items.wild_berries.short'),
+  grain_seeds: t('items.grain_seeds.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];
@@ -259,8 +268,8 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
   const pendingRareSaleItem = pendingRareSaleId ? INVENTORY_ITEM_MAP.get(pendingRareSaleId) : undefined;
   const [tradeSide, setTradeSide] = useState<'player' | 'merchant'>('merchant');
-  const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'clothing' | 'materials' | 'food'>('all');
-  const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'clothing' | 'materials' | 'food'>('all');
+  const [playerMarketCat, setPlayerMarketCat] = useState<'all' | 'weapons' | 'clothing' | 'traps' | 'materials' | 'food'>('all');
+  const [merchantMarketCat, setMerchantMarketCat] = useState<'all' | 'weapons' | 'clothing' | 'traps' | 'materials' | 'food'>('all');
 
   const s: ICharacterSkillsState = skills ?? {
     archeryLevel: 1,
@@ -301,14 +310,16 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const dockBlockingShip = isShipwrightMarket ? isHarborShipDockOccupied(18.0) : null;
 
   // Personal Inventory Mode (Outside Market/Chest): ONLY show items currently owned by the player!
-  const activePersonalTab: 'weapons' | 'clothing' | 'materials' | 'food' =
+  const activePersonalTab: 'weapons' | 'clothing' | 'traps' | 'materials' | 'food' =
     selectedCategory === 'food'
       ? 'food'
       : selectedCategory === 'clothing'
         ? 'clothing'
-        : selectedCategory === 'materials' || selectedCategory === 'treasures'
-          ? 'materials'
-          : 'weapons';
+        : selectedCategory === 'traps' || selectedCategory === 'gear'
+          ? 'traps'
+          : selectedCategory === 'materials' || selectedCategory === 'treasures'
+            ? 'materials'
+            : 'weapons';
 
   const ownedPersonalItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (!isItemOwned(item.id)) return false;
@@ -317,6 +328,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
     }
     if (activePersonalTab === 'clothing') {
       return item.category === 'clothing';
+    }
+    if (activePersonalTab === 'traps') {
+      return item.id.startsWith('trap_');
     }
     if (activePersonalTab === 'materials') {
       return item.category === 'materials';
@@ -332,6 +346,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
     }
     if (playerMarketCat === 'clothing') {
       return item.category === 'clothing';
+    }
+    if (playerMarketCat === 'traps') {
+      return item.id.startsWith('trap_');
     }
     if (playerMarketCat === 'materials') {
       return item.category === 'materials';
@@ -360,6 +377,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
       }
       if (merchantMarketCat === 'clothing') {
         return item.category === 'clothing';
+      }
+      if (merchantMarketCat === 'traps') {
+        return item.id.startsWith('trap_');
       }
       if (merchantMarketCat === 'materials') {
         return item.category === 'materials';
@@ -589,6 +609,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                       ['all', t('ui.all_filter')],
                       ['weapons', t('ui.weapons_filter')],
                       ['clothing', t('ui.clothing_filter')],
+                      ['traps', t('ui.traps_filter')],
                       ['materials', t('ui.materials_filter')],
                       ['food', t('ui.food_filter')],
                     ] as const
@@ -1162,6 +1183,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                       ['all', t('ui.all_filter')],
                       ['weapons', t('ui.weapons_filter')],
                       ['clothing', t('ui.clothing_filter')],
+                      ['traps', t('ui.traps_filter')],
                       ['materials', t('ui.materials_filter')],
                       ['food', t('ui.food_filter')],
                     ] as const
@@ -1316,6 +1338,25 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
 
               <button
                 type="button"
+                data-testid="cat-tab-traps"
+                onClick={() => {
+                  onSelectCategory('traps');
+                  const firstOwnedTrap = Array.from(INVENTORY_ITEM_MAP.values()).find(
+                    (i) => isItemOwned(i.id) && i.id.startsWith('trap_')
+                  );
+                  if (firstOwnedTrap) onSelectItem(firstOwnedTrap.id);
+                }}
+                className={`text-right font-display-he text-2xl sm:text-3xl font-bold transition-all cursor-pointer ${
+                  activePersonalTab === 'traps'
+                    ? 'text-amber-300 translate-x-[-4px]'
+                    : 'text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                {t('ui.traps_tab')}
+              </button>
+
+              <button
+                type="button"
                 data-testid="cat-tab-materials"
                 onClick={() => {
                   onSelectCategory('materials');
@@ -1360,9 +1401,11 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   ? t('ui.owned_weapons_desc')
                   : activePersonalTab === 'clothing'
                     ? t('ui.owned_clothing_desc')
-                    : activePersonalTab === 'food'
-                      ? t('ui.owned_food_desc')
-                      : t('ui.owned_materials_desc')}
+                    : activePersonalTab === 'traps'
+                      ? t('ui.owned_traps_desc')
+                      : activePersonalTab === 'food'
+                        ? t('ui.owned_food_desc')
+                        : t('ui.owned_materials_desc')}
               </div>
 
               <div
@@ -1384,6 +1427,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                       }}
                       onClick={() => {
                         onSelectItem(item.id);
+                        if (item.id.startsWith('trap_')) {
+                          onEquipItem(item.id);
+                        }
                       }}
                       onDoubleClick={() => {
                         onEquipItem(item.id);
@@ -1457,9 +1503,11 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                     >
                       {inspectedItem.category === 'food'
                         ? `Eat (${inspectedItem.name}) [${interactKeyLabel}]`
-                        : inspectedEquipped
-                          ? t('interactions.equipped_now', { key: interactKeyLabel })
-                          : t('interactions.equip_action', { key: interactKeyLabel })}
+                        : inspectedItem.id.startsWith('trap_')
+                          ? `Hold Trap in Hands (${inspectedItem.name}) [${interactKeyLabel}]`
+                          : inspectedEquipped
+                            ? t('interactions.equipped_now', { key: interactKeyLabel })
+                            : t('interactions.equip_action', { key: interactKeyLabel })}
                     </button>
                   )}
 

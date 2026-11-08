@@ -30,6 +30,7 @@ import { createReadyRhino, type Rhino, type RhinoState } from '../models/Rhino';
 import { createReadyCatLion, type CatLion, type CatLionState } from '../models/CatLion';
 import { createReadyStag, type Stag, type StagState } from '../models/Stag';
 import { createReadyDove, type DoveController } from '../models/Dove';
+import { buildBearPawClampedTrapMesh } from '../models/placedTrapModels';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
@@ -216,8 +217,11 @@ export function buildWildlifeAndFootprintsLayer(
     prevYaw?: number;
     lastAnimState?: string;
     stateHoldTimer?: number;
+    pawBearTrapGroup?: THREE.Group;
+    tailMesh?: THREE.Mesh;
   }
   const animalMeshes: IAnimalMeshRig[] = [];
+  const tmpPawWorldPos = new THREE.Vector3();
 
   const isStationaryActionClip = (st: string): boolean =>
     st === 'attack' || st === 'roar' || st === 'stomp' || st === 'howl';
@@ -323,6 +327,8 @@ export function buildWildlifeAndFootprintsLayer(
         registerModelDisposables
       );
       posePivot.add(bearCtrl.object);
+      const pawBearTrapGroup = buildBearPawClampedTrapMesh();
+      root.add(pawBearTrapGroup);
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
@@ -331,6 +337,7 @@ export function buildWildlifeAndFootprintsLayer(
         root,
         posePivot,
         bearCtrl,
+        pawBearTrapGroup,
         smoothHeadDip: 0,
         smoothLegAmp: 0,
       });
@@ -519,6 +526,7 @@ export function buildWildlifeAndFootprintsLayer(
       head.position.set(0, 0.24, 0.18);
       posePivot.add(body, head);
 
+      let tailMesh: THREE.Mesh | undefined;
       if (a.species === 'rabbit') {
         const earL = new THREE.Mesh(rabbitEarGeo, mat);
         earL.position.set(-0.045, 0.36, 0.16);
@@ -528,16 +536,32 @@ export function buildWildlifeAndFootprintsLayer(
         earR.rotation.x = -0.15;
         posePivot.add(earL, earR);
       } else {
+        const sqEarGeo = new THREE.ConeGeometry(0.032, 0.075, 5);
+        const sqPawGeo = new THREE.CapsuleGeometry(0.024, 0.075, 4, 6);
+        disposableGeometries.push(sqEarGeo, sqPawGeo);
+        for (const side of [-1, 1]) {
+          const ear = new THREE.Mesh(sqEarGeo, mat);
+          ear.position.set(side * 0.052, 0.33, 0.18);
+          posePivot.add(ear);
+          const frontPaw = new THREE.Mesh(sqPawGeo, mat);
+          frontPaw.position.set(side * 0.08, 0.06, 0.12);
+          frontPaw.rotation.x = 0.35;
+          const backPaw = new THREE.Mesh(sqPawGeo, mat);
+          backPaw.position.set(side * 0.09, 0.06, -0.11);
+          backPaw.rotation.x = -0.25;
+          posePivot.add(frontPaw, backPaw);
+        }
         const tail = new THREE.Mesh(squirrelTailGeo, mat);
         tail.position.set(0, 0.26, -0.22);
         tail.rotation.x = 0.45;
         posePivot.add(tail);
+        tailMesh = tail;
       }
 
       root.position.set(a.x, a.y, a.z);
       root.rotation.y = a.yaw;
       layerGroup.add(root);
-      animalMeshes.push({ root, posePivot, smoothHeadDip: 0, smoothLegAmp: 0 });
+      animalMeshes.push({ root, posePivot, smoothHeadDip: 0, smoothLegAmp: 0, tailMesh });
     }
   }
 
@@ -668,11 +692,11 @@ export function buildWildlifeAndFootprintsLayer(
       }
     },
     syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => {
-      // Sync bird meshes (with distance + camera frustum culling & full sleep state)
+      // Sync bird meshes (with distance + camera frustum culling, ground walking/eating, and death state)
       for (let i = 0; i < birds.length; i++) {
         const b = birds[i];
         const m = birdMeshes[i];
-        if (b.roosting) {
+        if (b.roosting || b.isLooted) {
           m.root.visible = false;
           continue;
         }
@@ -685,7 +709,7 @@ export function buildWildlifeAndFootprintsLayer(
             m.root.visible = false;
             continue;
           }
-          if (distSq > 28 * 28) {
+          if (distSq > 28 * 28 && !b.isDead && b.groundState === 'flying') {
             const camFwdX = -Math.sin(renderPlayer.yaw);
             const camFwdZ = -Math.cos(renderPlayer.yaw);
             const invDist = 1 / Math.sqrt(distSq);
@@ -699,7 +723,42 @@ export function buildWildlifeAndFootprintsLayer(
 
         m.root.visible = true;
         m.root.position.set(b.x, b.y, b.z);
-        const yaw = Math.atan2(b.vx, b.vz);
+
+        if (b.isDead) {
+          m.root.rotation.set(0, b.yaw ?? 0, 0, 'YXZ');
+          m.doveCtrl.setState('death');
+          if (dt > 0) {
+            m.doveCtrl.update(dt);
+            m.doveCtrl.object.position.set(0, 0, 0);
+            m.doveCtrl.object.rotation.set(0, 0, 0);
+          }
+          continue;
+        }
+
+        if (b.groundState === 'walking_to_bait') {
+          const walkYaw = b.yaw ?? Math.atan2(b.vx, b.vz);
+          m.root.rotation.set(0, walkYaw, 0, 'YXZ');
+          m.doveCtrl.setState('walk');
+          if (dt > 0) {
+            m.doveCtrl.update(dt * 1.18);
+            m.doveCtrl.object.position.set(0, 0, 0);
+            m.doveCtrl.object.rotation.set(0, 0, 0);
+          }
+          continue;
+        }
+
+        if (b.groundState === 'eating_bait') {
+          m.root.rotation.set(0, b.yaw ?? 0, 0, 'YXZ');
+          m.doveCtrl.setState('eat');
+          if (dt > 0) {
+            m.doveCtrl.update(dt * 1.05);
+            m.doveCtrl.object.position.set(0, 0, 0);
+            m.doveCtrl.object.rotation.set(0, 0, 0);
+          }
+          continue;
+        }
+
+        const yaw = b.yaw ?? Math.atan2(b.vx, b.vz);
         const horizSpd = Math.hypot(b.vx, b.vz) || 1;
         const pitch = -Math.atan2(b.vy, horizSpd) * 0.5;
         m.root.rotation.set(pitch, yaw, 0, 'YXZ');
@@ -809,6 +868,7 @@ export function buildWildlifeAndFootprintsLayer(
             continue;
           }
           if (a.species === 'bear' && rig.bearCtrl) {
+            if (rig.pawBearTrapGroup) rig.pawBearTrapGroup.visible = false;
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
             const spd = getEffectiveLabAnimationSpeed(
@@ -1058,6 +1118,40 @@ export function buildWildlifeAndFootprintsLayer(
             (a.inWater ? 0.78 : 1.0);
           rig.bearCtrl.setState(bearState);
           rig.bearCtrl.update(dt * spd, turnAmount);
+
+          // Sync Heavy Steel Bear Trap clamped onto Bear's front paw during the 4-legged roar animation!
+          if (rig.pawBearTrapGroup) {
+            const isPawTrapped = (a.trappedByBearJawTimer ?? 0) > 0 && !a.isDead;
+            rig.pawBearTrapGroup.visible = isPawTrapped;
+            if (isPawTrapped) {
+              const pawBone =
+                rig.bearCtrl.rig?.bones[17] ??
+                rig.bearCtrl.rig?.bones[16] ??
+                rig.bearCtrl.rig?.bones[15];
+              if (pawBone) {
+                pawBone.updateWorldMatrix(true, false);
+                pawBone.getWorldPosition(tmpPawWorldPos);
+                rig.root.updateWorldMatrix(true, false);
+                rig.root.worldToLocal(tmpPawWorldPos);
+                rig.pawBearTrapGroup.position.set(
+                  tmpPawWorldPos.x,
+                  Math.max(0.04, tmpPawWorldPos.y),
+                  tmpPawWorldPos.z
+                );
+              } else {
+                rig.pawBearTrapGroup.position.set(
+                  0.26,
+                  0.14 + Math.abs(Math.sin(elapsedTime * 7.5)) * 0.08,
+                  0.65
+                );
+              }
+              rig.pawBearTrapGroup.rotation.set(
+                Math.sin(elapsedTime * 9.0) * 0.16,
+                0.22,
+                Math.cos(elapsedTime * 7.0) * 0.14
+              );
+            }
+          }
         } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
           rig.root.position.set(a.x, a.y, a.z);
           rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
@@ -1417,16 +1511,35 @@ export function buildWildlifeAndFootprintsLayer(
             }
           }
         } else {
+          const climbPitch = a.species === 'squirrel' ? (a.treeClimbPitch ?? 0) : 0;
+          const isClimbingTree = Math.abs(climbPitch) > 0.05;
           const hopHeight =
-            !a.inWater && moveSpd > 0.35 ? Math.max(0, Math.sin(a.hopPhase)) * 0.22 : 0;
+            !isClimbingTree && !a.inWater && moveSpd > 0.35
+              ? Math.max(0, Math.sin(a.hopPhase)) * 0.22
+              : 0;
           const swimPitch = a.inWater ? -0.10 : 0;
           rig.root.position.set(a.x, a.y + hopHeight, a.z);
-          rig.root.rotation.set(
-            slope.pitch + swimPitch + (hopHeight > 0.02 ? -0.18 : 0),
-            a.yaw,
-            slope.roll,
-            'YXZ'
-          );
+          if (isClimbingTree) {
+            rig.root.rotation.set(
+              climbPitch,
+              a.yaw,
+              Math.sin(elapsedTime * 5.5 + i) * 0.06,
+              'YXZ'
+            );
+          } else {
+            rig.root.rotation.set(
+              slope.pitch + swimPitch + (hopHeight > 0.02 ? -0.18 : 0),
+              a.yaw,
+              slope.roll,
+              'YXZ'
+            );
+          }
+          if (rig.tailMesh) {
+            rig.tailMesh.rotation.x =
+              0.42 +
+              Math.sin(elapsedTime * (isClimbingTree ? 11.5 : 8.5) + i) *
+                (isClimbingTree ? 0.24 : 0.16);
+          }
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
         }

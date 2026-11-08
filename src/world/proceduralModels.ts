@@ -283,7 +283,8 @@ export function buildRealisticWorld(
         playerX,
         playerZ,
         openDoorIds,
-        playerState?.openedChestIds
+        playerState?.openedChestIds,
+        playerState
       );
       updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
       updateFortress(elapsedTime, playerX, playerZ);

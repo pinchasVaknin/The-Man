@@ -761,8 +761,115 @@ export function findNearestWorldChest(
   return best;
 }
 
+/** Summary: Trapper's Workbench landmark contract. */
+export interface ITrapWorkbench {
+  readonly id: string;
+  readonly name: string;
+  readonly nameHe: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly interactRadius: number;
+}
+
+/** Summary: Registry of interactive crafting workbenches across the world. */
+export const WORLD_TRAP_WORKBENCHES: readonly ITrapWorkbench[] = [
+  {
+    id: 'trapper-workbench-cabin',
+    name: "Trapper's Workbench",
+    nameHe: "Trapper's Workbench",
+    x: HUNTER_LODGE_POS.x - 0.2,
+    y: HUNTER_LODGE_POS.height + 0.2,
+    z: HUNTER_LODGE_POS.z + 2.55,
+    minX: HUNTER_LODGE_POS.x - 1.25,
+    maxX: HUNTER_LODGE_POS.x + 0.85,
+    minZ: HUNTER_LODGE_POS.z + 1.9,
+    maxZ: HUNTER_LODGE_POS.z + 3.2,
+    interactRadius: 3.8,
+  },
+] as const;
+
 /**
- * Summary: Resolves the single best interactive object (chest, bed, or door) that the player
+ * Summary: Computes gaze & proximity score against a workbench bounding box so standing
+ * anywhere around the 2m wide workbench table and looking at any part of it registers cleanly.
+ */
+function computeWorkbenchBoxGazeScore(
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  pitch: number,
+  wb: ITrapWorkbench,
+  maxDist: number
+): number {
+  if (Math.abs(y - wb.y) > 2.4) return -Infinity;
+  if (Math.abs(pitch) > 1.38) return -Infinity;
+  const clampedX = Math.max(wb.minX, Math.min(wb.maxX, x));
+  const clampedZ = Math.max(wb.minZ, Math.min(wb.maxZ, z));
+  const boxDist = Math.hypot(x - clampedX, z - clampedZ);
+  const centerDist = Math.hypot(x - wb.x, z - wb.z);
+  if (centerDist > maxDist && boxDist > maxDist - 0.5) return -Infinity;
+
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  const lookTargetX = Math.max(wb.minX, Math.min(wb.maxX, x + fwdX * Math.max(0.8, centerDist)));
+  const lookTargetZ = Math.max(wb.minZ, Math.min(wb.maxZ, z + fwdZ * Math.max(0.8, centerDist)));
+  const dx = lookTargetX - x;
+  const dz = lookTargetZ - z;
+  const len = Math.hypot(dx, dz);
+  const horizDot = len > 0.12 ? (dx * fwdX + dz * fwdZ) / len : 1.0;
+
+  // Allow generous gaze cone toward any part of the workbench, or very close proximity (< 1.15m from table edge)
+  if (horizDot < 0.28 && !(boxDist <= 1.15 && horizDot >= -0.05)) {
+    return -Infinity;
+  }
+  return Math.max(0.4, horizDot) * 2.6 - boxDist / Math.max(1.0, maxDist);
+}
+
+/**
+ * Summary: Finds the nearest interactive trap workbench within interaction range and gaze cone.
+ */
+export function findNearestTrapWorkbench(
+  x: number,
+  y: number,
+  z: number,
+  maxDist = 3.8,
+  yaw?: number,
+  pitch = 0
+): ITrapWorkbench | null {
+  let best: ITrapWorkbench | null = null;
+  let bestDist = Infinity;
+  let bestScore = -Infinity;
+  const hasGaze = yaw !== undefined;
+  for (let i = 0; i < WORLD_TRAP_WORKBENCHES.length; i++) {
+    const wb = WORLD_TRAP_WORKBENCHES[i];
+    if (Math.abs(y - wb.y) > 2.4) continue;
+    const maxR = Math.min(maxDist, wb.interactRadius);
+    if (hasGaze) {
+      const score = computeWorkbenchBoxGazeScore(x, y, z, yaw, pitch, wb, maxR);
+      if (score > bestScore) {
+        bestScore = score;
+        best = wb;
+      }
+    } else {
+      const clampedX = Math.max(wb.minX, Math.min(wb.maxX, x));
+      const clampedZ = Math.max(wb.minZ, Math.min(wb.maxZ, z));
+      const d = Math.hypot(x - clampedX, z - clampedZ);
+      if (d <= maxR && d < bestDist) {
+        bestDist = d;
+        best = wb;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Summary: Resolves the single best interactive object (chest, bed, door, or trap workbench) that the player
  * is standing close to AND looking directly at, preventing nearby chests/beds behind or beside
  * the player from hijacking door interactions.
  */
@@ -773,20 +880,25 @@ export function resolveBestLookedAtInteraction(
   yaw: number,
   pitch = 0
 ): {
-  kind: 'chest' | 'bed' | 'door' | 'none';
+  kind: 'chest' | 'bed' | 'door' | 'trap_workbench' | 'none';
   chest: IWorldChest | null;
   bed: IWorldBedDef | null;
   door: IFortressDoorDef | null;
+  trapWorkbench: ITrapWorkbench | null;
 } {
   const chest = findNearestWorldChest(x, y, z, undefined, undefined, yaw, pitch);
   const bed = findNearestBed(x, y, z, undefined, yaw, pitch);
   const door = findNearestFortressDoor(x, y, z, yaw, pitch);
+  const trapWorkbench = findNearestTrapWorkbench(x, y, z, 3.8, yaw, pitch);
 
   const chestScore = chest
     ? computeInteractableGazeScore(x, y, z, yaw, pitch, chest.x, chest.y, chest.z, 2.8)
     : -Infinity;
   const bedScore = bed
     ? computeInteractableGazeScore(x, y, z, yaw, pitch, bed.x, bed.y, bed.z, 2.7)
+    : -Infinity;
+  const trapWorkbenchScore = trapWorkbench
+    ? computeWorkbenchBoxGazeScore(x, y, z, yaw, pitch, trapWorkbench, trapWorkbench.interactRadius)
     : -Infinity;
 
   let doorScore = -Infinity;
@@ -804,19 +916,23 @@ export function resolveBestLookedAtInteraction(
     doorScore = horizDot * 2.5 - distCenter / maxDoorDist;
   }
 
-  if (chestScore === -Infinity && bedScore === -Infinity && doorScore === -Infinity) {
-    return { kind: 'none', chest: null, bed: null, door: null };
+  const maxScore = Math.max(chestScore, bedScore, doorScore, trapWorkbenchScore);
+  if (maxScore === -Infinity) {
+    return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null };
   }
-  if (doorScore >= chestScore && doorScore >= bedScore && door) {
-    return { kind: 'door', chest: null, bed: null, door };
+  if (maxScore === doorScore && door) {
+    return { kind: 'door', chest: null, bed: null, door, trapWorkbench: null };
   }
-  if (chestScore >= bedScore && chest) {
-    return { kind: 'chest', chest, bed: null, door: null };
+  if (maxScore === trapWorkbenchScore && trapWorkbench) {
+    return { kind: 'trap_workbench', chest: null, bed: null, door: null, trapWorkbench };
+  }
+  if (maxScore === chestScore && chest) {
+    return { kind: 'chest', chest, bed: null, door: null, trapWorkbench: null };
   }
   if (bed) {
-    return { kind: 'bed', chest: null, bed, door: null };
+    return { kind: 'bed', chest: null, bed, door: null, trapWorkbench: null };
   }
-  return { kind: 'none', chest: null, bed: null, door: null };
+  return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null };
 }
 // #endregion
 

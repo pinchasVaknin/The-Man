@@ -425,12 +425,77 @@ export const en = {
       "stat": "Loot · 260 Gold",
       "description": "Dragon bone.",
       "lore": "A heavy bone from a dragon."
+    },
+    "trap_cage_small": {
+      "name": "Small Cage Trap",
+      "short": "Cage Trap",
+      "category": "Gear",
+      "stat": "Traps Small Game (Squirrels, Rabbits, Fowl)",
+      "description": "Wooden slatted box trap with sensitive trip-wire. Safely captures small woodland critters without damaging meat or hide.",
+      "lore": "Hand-carved wooden trap crafted at the Trapper's Workbench."
+    },
+    "trap_snare": {
+      "name": "Wire Snare Trap",
+      "short": "Snare",
+      "category": "Gear",
+      "stat": "Lightweight Snare · Rabbits & Critters",
+      "description": "Tension-sprung wire loop pegged securely to the ground. Catches rabbits and quick woodland critters on game trails.",
+      "lore": "A simple yet lethal wire snare favored by frontier trappers."
+    },
+    "trap_bear_jaw": {
+      "name": "Heavy Steel Bear Trap",
+      "short": "Bear Trap",
+      "category": "Traps",
+      "stat": "Clamps onto Bear Paw · Deal Damage + 10% Slow (7s)",
+      "description": "Tempered steel double-spring jaw trap. Snaps onto a bear's paw, forcing it to stop and roar on all fours, dealing damage and reducing its speed by 10% for 7 seconds.",
+      "lore": "High-tension spring steel forged to clamp onto the front leg of ferocious forest beasts."
+    },
+    "trap_net": {
+      "name": "Baited Bird Net Trap",
+      "short": "Bird Trap",
+      "category": "Traps",
+      "stat": "Baited Drop Net · Lures & Captures Birds",
+      "description": "Woven drop net baited with golden seeds and wild berries. Flying birds land nearby, walk up to the bait to eat, and trigger the net.",
+      "lore": "Woven from supple flax fibers with a central seed tray that draws wild doves down from the sky."
+    },
+    "trap_fish": {
+      "name": "Woven Fish Trap",
+      "short": "Fish Trap",
+      "category": "Traps",
+      "stat": "Shoreline & River Basket · Captures Fresh Fish",
+      "description": "Conical woven willow-reed funnel basket baited with grain. Place in shallow water along a river, lake, or harbor shoreline to catch fish.",
+      "lore": "Traditional river-fisher funnel basket that lets trout and salmon swim in toward the bait but prevents escape."
+    },
+    "twine_fiber": {
+      "name": "Twine & Sinew",
+      "short": "Twine",
+      "category": "Materials",
+      "stat": "Crafting Material · Traps & Nets",
+      "description": "Braided plant fibers and animal sinew used for triggers, snares, and cordage.",
+      "lore": "Sturdy cords essential for crafting intricate traps and survival gear."
+    },
+    "wild_berries": {
+      "name": "Wild Forest Berries",
+      "short": "Berries",
+      "category": "Food",
+      "stat": "Sweet Bait & Snack · +12 Food",
+      "description": "Plump aromatic forest berries. Irresistible bait for squirrels, birds, and small herbivores.",
+      "lore": "Foraged ripe from brambles along the shaded woodland paths."
+    },
+    "grain_seeds": {
+      "name": "Grain & Bird Seeds",
+      "short": "Seeds",
+      "category": "Materials",
+      "stat": "Critter Bait · Traps & Attracting Wildlife",
+      "description": "Dried grains and wildflower seeds used to bait bird, fish, and small cage traps.",
+      "lore": "Harvested from golden wheat fields and prairie grasses."
     }
   },
   "categories": {
     "all": "All",
     "weapons": "Weapons",
     "clothing": "Clothing",
+    "traps": "Traps",
     "materials": "Materials",
     "food": "Food",
     "ammo": "Ammo",
@@ -636,6 +701,7 @@ export const en = {
     "all_filter": "All",
     "weapons_filter": "Weapons",
     "clothing_filter": "Clothing",
+    "traps_filter": "Traps",
     "materials_filter": "Materials",
     "food_filter": "Food",
     "selected_from_my_list": "Inventory Item · Equip or Sell",
@@ -646,10 +712,12 @@ export const en = {
     "merchant_goods_hint": "Select an item to buy",
     "weapons_tab": "Weapons",
     "clothing_tab": "Clothing",
+    "traps_tab": "Traps",
     "materials_tab": "Materials",
     "food_tab": "Food",
     "owned_weapons_desc": "Owned weapons & gear",
     "owned_clothing_desc": "Owned clothing & armor",
+    "owned_traps_desc": "Crafted hunting & fishing traps",
     "owned_materials_desc": "Owned materials & hunting loot",
     "owned_food_desc": "Owned food & meat",
     "category_owned_by_hero": "{category} · Owned",

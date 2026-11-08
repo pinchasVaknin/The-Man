@@ -89,7 +89,13 @@ import { GameLoop } from '../core/gameLoop';
 import { lerp, lerpAngle } from '../core/interpolation';
 import type { IWildlifeSoundCallbacks } from '../world/builders/wildlifeAndFootprintsBuilder';
 import type { IPlayerState } from '../world/domain/worldTypes';
-import type { ISmallAnimalState } from '../world/systems/boidsAndWildlifeSystem';
+import {
+  getAnimalStrengthAndLevel,
+  getActiveWorldBirds,
+  resetActiveWorldBirds,
+  type ISmallAnimalState,
+} from '../world/systems/boidsAndWildlifeSystem';
+import { WATER_LEVEL } from '../world/domain/landmarksRegistry';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldScene } from '../world/builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../world/soundEngine';
@@ -100,6 +106,29 @@ import {
   createGpuFencePacedScheduler,
 } from '../world/controllers/frameSchedulers';
 import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
+import {
+  type IPlacedTrap,
+  type IWorkbenchStash,
+  DEFAULT_TRAP_WORKBENCH_STASH,
+  TRAP_RECIPES,
+  computeTrapPlacementPreview,
+  placeTrapOnGround,
+  craftTrapAtWorkbench,
+  tickPlacedAnimalTraps,
+  findNearestPlacedTrap,
+  harvestPlacedTrap,
+  pickupPlacedTrap,
+} from '../world/systems/animalTrapsSystem';
+import {
+  buildTrapPlacementPreviewGhost,
+  createPlacedTrapMesh,
+  type ITrapPlacementPreviewGhost,
+} from '../world/models/placedTrapModels';
+import {
+  INVENTORY_ITEMS,
+  INVENTORY_ITEM_MAP,
+  type InventoryItemId,
+} from '../world/domain/worldTypes';
 import {
   computeTargetFov,
   createCameraPose,
@@ -249,6 +278,154 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let lastHitAnimalTimer = 0;
     let lastLootNotification: string | null = null;
     let lastLootNotificationTimer = 0;
+
+    // Animal Trapping & Workbench Stash
+    const worldPlacedTraps: IPlacedTrap[] = [];
+    const worldTrapsGroup = new THREE.Group();
+    worldTrapsGroup.name = 'world-placed-traps';
+    scene.add(worldTrapsGroup);
+    const trapMeshesMap = new Map<string, { mesh: THREE.Group; sprung: boolean }>();
+    const workbenchStash: IWorkbenchStash = {
+      materials: { ...DEFAULT_TRAP_WORKBENCH_STASH },
+    };
+
+    let activeTrapPlacementGhost: ITrapPlacementPreviewGhost | null = null;
+
+    const placeHeldTrapAtPreview = (): boolean => {
+      const heldTrap = playerState.heldTrapItemId;
+      if (!heldTrap) return false;
+      const owned = playerState.ownedItemIds ?? [];
+      if (!owned.includes(heldTrap)) {
+        playerState.heldTrapItemId = null;
+        emitHudSnapshot();
+        return false;
+      }
+      const res = placeTrapOnGround(
+        worldPlacedTraps,
+        heldTrap,
+        playerState.x,
+        playerState.y,
+        playerState.z,
+        playerState.yaw,
+        (gx: number, gz: number) => walkableHeightAt(gx, gz).height,
+        WATER_LEVEL,
+        playerState.pitch
+      );
+      if (!res.success || !res.placedTrap) {
+        if (res.error) {
+          lastLootNotification = res.error;
+          lastLootNotificationTimer = 3.5;
+          soundEngine.playSwordClash(false);
+          emitHudSnapshot();
+        }
+        return true;
+      }
+      worldPlacedTraps.push(res.placedTrap);
+      const itemIdx = owned.indexOf(heldTrap);
+      if (itemIdx !== -1) {
+        owned.splice(itemIdx, 1);
+      }
+      const remainingSame = owned.filter((id) => id === heldTrap).length;
+      if (remainingSame <= 0) {
+        playerState.heldTrapItemId = null;
+      }
+      const trapName = INVENTORY_ITEM_MAP.get(heldTrap)?.name ?? 'Trap';
+      lastLootNotification =
+        remainingSame > 0
+          ? `Placed ${trapName}! (${remainingSame} left in hands — Left-Click to place another)`
+          : `Placed ${trapName}! Wildlife will notice the bait after a short time.`;
+      lastLootNotificationTimer = 4.0;
+      soundEngine.playFootstep('cabin', 0.95);
+      emitHudSnapshot();
+      return true;
+    };
+
+    const deployTrapFromInventory = (
+      specificTrapItem?: InventoryItemId,
+      forceHoldInHands = false
+    ) => {
+      const owned = playerState.ownedItemIds ?? [];
+      const trapOrder: InventoryItemId[] = [
+        'trap_cage_small',
+        'trap_snare',
+        'trap_bear_jaw',
+        'trap_net',
+        'trap_fish',
+      ];
+      const trapToHold =
+        specificTrapItem && owned.includes(specificTrapItem)
+          ? specificTrapItem
+          : trapOrder.find((id) => owned.includes(id));
+      if (!trapToHold) {
+        playerState.heldTrapItemId = null;
+        lastLootNotification =
+          "No traps in your inventory. Craft traps at the Trapper's Workbench in the Hunter's Cabin!";
+        lastLootNotificationTimer = 3.5;
+        emitHudSnapshot();
+        return;
+      }
+
+      const win = window as unknown as {
+        openInventoryModal?: (open?: boolean, cat?: string) => void;
+      };
+      const wasModalOpen = document.body.dataset.skyrimModalOpen === 'true';
+      if (wasModalOpen) {
+        win.openInventoryModal?.(false);
+      }
+
+      // If already holding this trap outdoors (and not just selecting from Inventory), pressing [T] places it immediately
+      if (
+        !forceHoldInHands &&
+        !wasModalOpen &&
+        playerState.heldTrapItemId === trapToHold
+      ) {
+        placeHeldTrapAtPreview();
+        return;
+      }
+
+      cancelBowDraw(playerState);
+      isMouseBowHeld = false;
+      playerState.heldTrapItemId = trapToHold;
+      const trapName = INVENTORY_ITEM_MAP.get(trapToHold)?.name ?? 'Trap';
+      const count = owned.filter((id) => id === trapToHold).length;
+      lastLootNotification = `Holding ${trapName} (x${count}) — Aim at ground (Green = Valid, Red = Invalid) and Left-Click to place!`;
+      lastLootNotificationTimer = 4.2;
+      soundEngine.playFootstep('trail', 1.12);
+      emitHudSnapshot();
+    };
+
+    const harvestOrPickupNearbyTrap = (): boolean => {
+      const nearTrap = findNearestPlacedTrap(
+        playerState.x,
+        playerState.y,
+        playerState.z,
+        worldPlacedTraps,
+        3.5
+      );
+      if (!nearTrap) return false;
+      if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+      const isSprung = nearTrap.status === 'sprung' || Boolean(nearTrap.sprung);
+      if (isSprung) {
+        const harvestRes = harvestPlacedTrap(nearTrap, playerState.ownedItemIds);
+        awardSkillXp(playerState, 'archery', harvestRes.xpGained);
+        lastLootNotification = harvestRes.notification;
+        lastLootNotificationTimer = 4.5;
+        soundEngine.playFootstep('bridge', 1.2);
+        const idx = worldPlacedTraps.findIndex((t) => t.id === nearTrap.id);
+        if (idx !== -1) worldPlacedTraps.splice(idx, 1);
+        emitHudSnapshot();
+        return true;
+      }
+      const pickupRes = pickupPlacedTrap(nearTrap, playerState.ownedItemIds);
+      const trapName = INVENTORY_ITEM_MAP.get(pickupRes.returnedTrapItem)?.name ?? 'Trap';
+      lastLootNotification = `Picked up ${trapName} and returned it to your inventory.`;
+      lastLootNotificationTimer = 3.0;
+      soundEngine.playFootstep('bridge', 0.9);
+      const idx = worldPlacedTraps.findIndex((t) => t.id === nearTrap.id);
+      if (idx !== -1) worldPlacedTraps.splice(idx, 1);
+      emitHudSnapshot();
+      return true;
+    };
 
     let activeWeatherMode: WeatherCycleMode = DEFAULT_WEATHER_CYCLE_MODE;
     let urlForcedWeatherKind: WeatherKind | null = null;
@@ -519,6 +696,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     const gameActions: IGameActions = {
       onEquipItem: (itemId) => {
+        if (itemId.startsWith('trap_')) {
+          deployTrapFromInventory(itemId, true);
+          return;
+        }
+        playerState.heldTrapItemId = null;
         equipInventoryItem(playerState, itemId);
         soundEngine.playFootstep('trail', 1.15);
         emitHudSnapshot();
@@ -768,6 +950,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           activeSleepingBed = null;
           preSleepPlayerPos = null;
           activeArrows.length = 0;
+          worldPlacedTraps.length = 0;
+          playerState.heldTrapItemId = null;
+          if (activeTrapPlacementGhost) {
+            activeTrapPlacementGhost.group.visible = false;
+          }
+          for (const entry of trapMeshesMap.values()) {
+            worldTrapsGroup.remove(entry.mesh);
+          }
+          trapMeshesMap.clear();
+          workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
+          resetActiveWorldBirds();
           resetLiveWorldToFreshBaseline(
             activeWorldMode,
             playerState,
@@ -821,7 +1014,109 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         handleReacquirePointerLock();
         emitHudSnapshot();
       },
+      onCraftTrap: (recipeId) => {
+        const recipe = TRAP_RECIPES.find((r) => r.kind === recipeId || r.itemId === recipeId);
+        if (!recipe) return;
+        const craftRes = craftTrapAtWorkbench(
+          recipe.kind,
+          playerState.ownedItemIds ?? [],
+          workbenchStash.materials
+        );
+        if (!craftRes.success) return;
+        playerState.ownedItemIds = craftRes.updatedPlayerItems;
+        workbenchStash.materials = craftRes.updatedWorkbenchStash;
+        awardSkillXp(playerState, 'archery', 35);
+        lastLootNotification = `Crafted ${recipe.name}! Press [T] outdoors to place it.`;
+        lastLootNotificationTimer = 4.5;
+        soundEngine.playFootstep('bridge', 1.1);
+        emitHudSnapshot();
+      },
+      onDeployTrap: () => {
+        deployTrapFromInventory();
+      },
+      onHarvestNearbyTrap: () => {
+        harvestOrPickupNearbyTrap();
+      },
+      onDepositWorkbenchMaterial: (itemId, count) => {
+        if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+        let transferred = 0;
+        for (let i = playerState.ownedItemIds.length - 1; i >= 0 && transferred < count; i--) {
+          if (playerState.ownedItemIds[i] === itemId) {
+            playerState.ownedItemIds.splice(i, 1);
+            transferred++;
+          }
+        }
+        if (transferred > 0) {
+          workbenchStash.materials[itemId] = (workbenchStash.materials[itemId] ?? 0) + transferred;
+          emitHudSnapshot();
+        }
+      },
+      onWithdrawWorkbenchMaterial: (itemId, count) => {
+        if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+        const inStash = workbenchStash.materials[itemId] ?? 0;
+        const transfer = Math.min(inStash, count);
+        if (transfer > 0) {
+          workbenchStash.materials[itemId] = inStash - transfer;
+          if (workbenchStash.materials[itemId]! <= 0) delete workbenchStash.materials[itemId];
+          for (let i = 0; i < transfer; i++) {
+            playerState.ownedItemIds.push(itemId);
+          }
+          emitHudSnapshot();
+        }
+      },
+      onDepositAllWorkbenchMaterials: () => {
+        if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+        const craftableMats = new Set<InventoryItemId>([
+          'oak_timber',
+          'twine_fiber',
+          'iron_ingots',
+          'wild_berries',
+          'grain_seeds',
+          'raw_game_meat',
+          'small_hide',
+          'animal_bone',
+          'animal_fat',
+        ]);
+        for (let i = playerState.ownedItemIds.length - 1; i >= 0; i--) {
+          const itemId = playerState.ownedItemIds[i];
+          if (craftableMats.has(itemId)) {
+            workbenchStash.materials[itemId] = (workbenchStash.materials[itemId] ?? 0) + 1;
+            playerState.ownedItemIds.splice(i, 1);
+          }
+        }
+        emitHudSnapshot();
+      },
+      onTakeAllFromWorkbenchStash: () => {
+        if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+        for (const [id, count] of Object.entries(workbenchStash.materials)) {
+          const itemId = id as InventoryItemId;
+          if (count && count > 0) {
+            for (let i = 0; i < count; i++) {
+              playerState.ownedItemIds.push(itemId);
+            }
+            delete workbenchStash.materials[itemId];
+          }
+        }
+        emitHudSnapshot();
+      },
+      onOpenTrapWorkbench: () => {
+        const win = window as unknown as { openTrapCraftingModal?: (open?: boolean) => void };
+        win.openTrapCraftingModal?.(true);
+      },
+      onCloseTrapWorkbench: () => {
+        const win = window as unknown as { openTrapCraftingModal?: (open?: boolean) => void };
+        win.openTrapCraftingModal?.(false);
+        handleReacquirePointerLock();
+      },
     };
+    // Expose helpers for modal access
+    const winRef = window as unknown as {
+      getWorkbenchStash?: () => IWorkbenchStash;
+      getPlacedTraps?: () => IPlacedTrap[];
+    };
+    winRef.getWorkbenchStash = () => workbenchStash;
+    winRef.getPlacedTraps = () => worldPlacedTraps;
+
     onRegisterGameActions?.(gameActions);
 
     let unregisterDebugBridge: (() => void) | undefined;
@@ -915,6 +1210,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         playerState.cameraPerspective =
           playerState.cameraPerspective === 'third_person' ? 'first_person' : 'third_person';
       }
+      // Deploy Animal Trap on [T] key
+      if (e.code === 'KeyT' && !e.repeat && gameStateRef.current === 'playing') {
+        deployTrapFromInventory();
+      }
       // Toggle Visual Collider Wireframes Debug Mode on F3
       if (e.code === 'F3' && !e.repeat) {
         e.preventDefault();
@@ -940,8 +1239,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 : 3;
         const boundItem = playerState.hotbarSlots?.[slotIdx];
         if (boundItem) {
-          equipInventoryItem(playerState, boundItem);
-          soundEngine.playFootstep('trail', 1.15);
+          if (boundItem.startsWith('trap_')) {
+            deployTrapFromInventory(boundItem);
+          } else {
+            playerState.heldTrapItemId = null;
+            equipInventoryItem(playerState, boundItem);
+            soundEngine.playFootstep('trail', 1.15);
+            emitHudSnapshot();
+          }
         }
       }
       // Cycle Arrow Element: Normal Steel -> Fire Arrow -> Wind Storm Arrow
@@ -958,6 +1263,21 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           playerState.dashCooldown = 1.4;
           soundEngine.playFootstep(playerState.isSwimming ? 'water' : playerState.currentBiome, 1.25);
         }
+      }
+      // Put away held trap with [R] key
+      if (
+        e.code === 'KeyR' &&
+        !e.repeat &&
+        gameStateRef.current === 'playing' &&
+        playerState.heldTrapItemId
+      ) {
+        e.preventDefault();
+        playerState.heldTrapItemId = null;
+        lastLootNotification = 'Put trap away.';
+        lastLootNotificationTimer = 2.0;
+        soundEngine.playFootstep('trail', 0.88);
+        emitHudSnapshot();
+        return;
       }
       // Cancel bow draw with [R] key (or trigger sword attack when holding a sword)
       if (
@@ -1107,6 +1427,37 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         document.body.dataset.worldMapModalOpen === 'true'
       ) {
         return;
+      }
+
+      // When holding a trap in hands: Left-Click places it immediately (and keeps holding if more remain), Right-Click puts it away
+      if (playerState.heldTrapItemId) {
+        if (e.button === 0) {
+          isDraggingLook = true;
+          placeHeldTrapAtPreview();
+          if (
+            document.pointerLockElement !== renderer.domElement &&
+            performance.now() - lastPointerLockExitTimeMs > 1500
+          ) {
+            try {
+              const lockPromise = renderer.domElement.requestPointerLock?.() as
+                | Promise<void>
+                | undefined;
+              if (lockPromise && typeof lockPromise.catch === 'function') {
+                lockPromise.catch(() => {});
+              }
+            } catch {
+              // ignore
+            }
+          }
+          return;
+        } else if (e.button === 2) {
+          playerState.heldTrapItemId = null;
+          lastLootNotification = 'Put trap away.';
+          lastLootNotificationTimer = 2.0;
+          soundEngine.playFootstep('trail', 0.88);
+          emitHudSnapshot();
+          return;
+        }
       }
 
       if (e.button === 2 && !playerState.isSwimming) {
@@ -1301,7 +1652,16 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     };
 
     /** Player pose at the start of the latest simulation step, for render interpolation. */
-    const previousPlayerPose = { x: playerState.x, y: playerState.y, z: playerState.z, yaw: playerState.yaw, pitch: playerState.pitch };
+    const previousPlayerPose = {
+      x: playerState.x,
+      y: playerState.y,
+      z: playerState.z,
+      yaw: playerState.yaw,
+      pitch: playerState.pitch,
+      mountedHorseYaw: playerState.mountedHorseYaw ?? playerState.yaw,
+      bobPhase: playerState.bobPhase,
+      bobAmount: playerState.bobAmount,
+    };
     /** Interpolated copy of the player that the camera and meshes render from. */
     const renderPlayer: IPlayerState = { ...playerState };
 
@@ -1311,6 +1671,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       previousPlayerPose.z = playerState.z;
       previousPlayerPose.yaw = playerState.yaw;
       previousPlayerPose.pitch = playerState.pitch;
+      previousPlayerPose.mountedHorseYaw = playerState.mountedHorseYaw ?? playerState.yaw;
+      previousPlayerPose.bobPhase = playerState.bobPhase;
+      previousPlayerPose.bobAmount = playerState.bobAmount;
     }
 
     /** Fills renderPlayer with the live state, blending the pose between the last two steps. */
@@ -1321,6 +1684,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderPlayer.z = lerp(previousPlayerPose.z, playerState.z, alpha);
       renderPlayer.yaw = lerpAngle(previousPlayerPose.yaw, playerState.yaw, alpha);
       renderPlayer.pitch = lerp(previousPlayerPose.pitch, playerState.pitch, alpha);
+      if (playerState.mountedHorseYaw !== undefined) {
+        renderPlayer.mountedHorseYaw = lerpAngle(
+          previousPlayerPose.mountedHorseYaw,
+          playerState.mountedHorseYaw,
+          alpha
+        );
+      }
+      const bobDelta = playerState.bobPhase - previousPlayerPose.bobPhase;
+      if (bobDelta >= 0 && bobDelta < Math.PI * 2) {
+        renderPlayer.bobPhase = lerp(previousPlayerPose.bobPhase, playerState.bobPhase, alpha);
+      }
+      renderPlayer.bobAmount = lerp(previousPlayerPose.bobAmount, playerState.bobAmount, alpha);
     }
 
     /** Advances the game simulation by exactly one fixed step. */
@@ -1424,106 +1799,131 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           preSleepPlayerPos = null;
         }
 
-        // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, OR Door Toggle when pressing interactDoor ([E])
+        // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, Trapper's Workbench, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
-          const nearDeadAnimal = findNearestDeadLootableAnimal(
-            playerState.x,
-            playerState.z
-          );
-          if (nearDeadAnimal) {
-            const lootRes = lootDeadAnimal(playerState, nearDeadAnimal, activeArrows);
-            if (lootRes.addedItems.length > 0 && lootRes.notification) {
-              lastLootNotification = lootRes.notification;
+          if (harvestOrPickupNearbyTrap()) {
+            // Handled placed trap!
+          } else {
+            const nearDeadAnimal = findNearestDeadLootableAnimal(
+              playerState.x,
+              playerState.z
+            );
+            const nearDeadBird = getActiveWorldBirds().find(
+              (b) =>
+                b.isDead &&
+                !b.isLooted &&
+                Math.hypot(b.x - playerState.x, b.z - playerState.z) <= 3.5
+            );
+            if (nearDeadAnimal) {
+              const lootRes = lootDeadAnimal(playerState, nearDeadAnimal, activeArrows);
+              if (lootRes.addedItems.length > 0 && lootRes.notification) {
+                lastLootNotification = lootRes.notification;
+                lastLootNotificationTimer = 4.5;
+                soundEngine.playFootstep('trail', 1.18);
+                emitHudSnapshot();
+              }
+            } else if (nearDeadBird) {
+              nearDeadBird.isLooted = true;
+              if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+              playerState.ownedItemIds.push('raw_game_meat', 'raw_game_meat', 'animal_bone');
+              awardSkillXp(playerState, 'archery', 24);
+              lastLootNotification = 'Harvested Wild Dove: Raw Game Meat ×2, Animal Bone ×1';
               lastLootNotificationTimer = 4.5;
               soundEngine.playFootstep('trail', 1.18);
               emitHudSnapshot();
-            }
-          } else {
-            const nearFallenTree = findNearestFallenTree(
-              playerState.x,
-              playerState.z,
-              4.4
-            );
-            if (nearFallenTree) {
-              const harvestRes = harvestFallenTree(
-                playerState,
-                nearFallenTree,
-                obstacles
-              );
-              if (harvestRes.ok && harvestRes.notification) {
-                lastLootNotification = harvestRes.notification;
-                lastLootNotificationTimer = 4.2;
-                soundEngine.playFootstep('bridge', 1.12);
-                emitHudSnapshot();
-              }
             } else {
               const bestInteract = resolveBestLookedAtInteraction(
-              playerState.x,
-              playerState.y,
-              playerState.z,
-              playerState.yaw,
-              playerState.pitch
-            );
-            if (bestInteract.kind === 'chest' && bestInteract.chest) {
-              const nearChest = bestInteract.chest;
-              openDoorIds.add(nearChest.id);
-              if (!playerState.openedChestIds) playerState.openedChestIds = [];
-              if (!playerState.openedChestIds.includes(nearChest.id)) {
-                playerState.openedChestIds.push(nearChest.id);
-              }
-              soundEngine.playFootstep('bridge', 1.15);
-              emitHudSnapshot();
-              const win = window as unknown as {
-                openInventoryModal?: (open?: boolean, cat?: string) => void;
-              };
-              win.openInventoryModal?.(true, 'chest');
-            } else if (bestInteract.kind === 'bed' && bestInteract.bed) {
-              const nearBed = bestInteract.bed;
-              const dangerNearby = getActiveWorldAnimals().some(
-                (a) =>
-                  !a.isDead &&
-                  isPredatorSpecies(a.species) &&
-                  Math.hypot(a.x - playerState.x, a.z - playerState.z) < 24.0
+                playerState.x,
+                playerState.y,
+                playerState.z,
+                playerState.yaw,
+                playerState.pitch
               );
-              const isNightTime = isSleepingAllowedAt(worldHours);
-              if (dangerNearby) {
-                lastLootNotification = t('notifications.sleep_danger');
-                lastLootNotificationTimer = 3.2;
-                emitHudSnapshot();
-              } else if (!isNightTime) {
-                lastLootNotification = t('notifications.sleep_day_only');
-                lastLootNotificationTimer = 3.2;
-                emitHudSnapshot();
-              } else {
-                preSleepPlayerPos = { x: playerState.x, y: playerState.y, z: playerState.z };
-                activeSleepingBed = nearBed;
-                isSleepingInBed = true;
-                // Place player directly onto the bed mattress while sleeping!
-                playerState.x = nearBed.x;
-                playerState.z = nearBed.z;
-                playerState.y = nearBed.y + 0.45;
-                playerState.vx = 0;
-                playerState.vy = 0;
-                playerState.vz = 0;
-                if (nearBed.yaw !== undefined) {
-                  playerState.yaw = nearBed.yaw;
+              if (bestInteract.kind === 'trap_workbench') {
+                soundEngine.playFootstep('cabin', 1.05);
+                const win = window as unknown as {
+                  openTrapCraftingModal?: (open?: boolean) => void;
+                };
+                win.openTrapCraftingModal?.(true);
+              } else if (bestInteract.kind === 'chest' && bestInteract.chest) {
+                const nearChest = bestInteract.chest;
+                openDoorIds.add(nearChest.id);
+                if (!playerState.openedChestIds) playerState.openedChestIds = [];
+                if (!playerState.openedChestIds.includes(nearChest.id)) {
+                  playerState.openedChestIds.push(nearChest.id);
                 }
-                // Lying on back on the bed / sleeping bag looking straight up at the ceiling!
-                playerState.pitch = 1.42;
-                lastLootNotification = t('notifications.sleeping');
-                lastLootNotificationTimer = 3.5;
-                soundEngine.playFootstep('cabin', 0.8);
+                soundEngine.playFootstep('bridge', 1.15);
                 emitHudSnapshot();
-              }
-            } else if (bestInteract.kind === 'door' && bestInteract.door) {
-              const nearDoor = bestInteract.door;
-              if (openDoorIds.has(nearDoor.id)) {
-                openDoorIds.delete(nearDoor.id);
+                const win = window as unknown as {
+                  openInventoryModal?: (open?: boolean, cat?: string) => void;
+                };
+                win.openInventoryModal?.(true, 'chest');
+              } else if (bestInteract.kind === 'bed' && bestInteract.bed) {
+                const nearBed = bestInteract.bed;
+                const dangerNearby = getActiveWorldAnimals().some(
+                  (a) =>
+                    !a.isDead &&
+                    isPredatorSpecies(a.species) &&
+                    Math.hypot(a.x - playerState.x, a.z - playerState.z) < 24.0
+                );
+                const isNightTime = isSleepingAllowedAt(worldHours);
+                if (dangerNearby) {
+                  lastLootNotification = t('notifications.sleep_danger');
+                  lastLootNotificationTimer = 3.2;
+                  emitHudSnapshot();
+                } else if (!isNightTime) {
+                  lastLootNotification = t('notifications.sleep_day_only');
+                  lastLootNotificationTimer = 3.2;
+                  emitHudSnapshot();
+                } else {
+                  preSleepPlayerPos = { x: playerState.x, y: playerState.y, z: playerState.z };
+                  activeSleepingBed = nearBed;
+                  isSleepingInBed = true;
+                  // Place player directly onto the bed mattress while sleeping!
+                  playerState.x = nearBed.x;
+                  playerState.z = nearBed.z;
+                  playerState.y = nearBed.y + 0.45;
+                  playerState.vx = 0;
+                  playerState.vy = 0;
+                  playerState.vz = 0;
+                  if (nearBed.yaw !== undefined) {
+                    playerState.yaw = nearBed.yaw;
+                  }
+                  // Lying on back on the bed / sleeping bag looking straight up at the ceiling!
+                  playerState.pitch = 1.42;
+                  lastLootNotification = t('notifications.sleeping');
+                  lastLootNotificationTimer = 3.5;
+                  soundEngine.playFootstep('cabin', 0.8);
+                  emitHudSnapshot();
+                }
+              } else if (bestInteract.kind === 'door' && bestInteract.door) {
+                const nearDoor = bestInteract.door;
+                if (openDoorIds.has(nearDoor.id)) {
+                  openDoorIds.delete(nearDoor.id);
+                } else {
+                  openDoorIds.add(nearDoor.id);
+                }
+                soundEngine.playFootstep('bridge', 0.85);
               } else {
-                openDoorIds.add(nearDoor.id);
+                const nearFallenTree = findNearestFallenTree(
+                  playerState.x,
+                  playerState.z,
+                  4.4
+                );
+                if (nearFallenTree) {
+                  const harvestRes = harvestFallenTree(
+                    playerState,
+                    nearFallenTree,
+                    obstacles
+                  );
+                  if (harvestRes.ok && harvestRes.notification) {
+                    lastLootNotification = harvestRes.notification;
+                    lastLootNotificationTimer = 4.2;
+                    soundEngine.playFootstep('bridge', 1.12);
+                    emitHudSnapshot();
+                  }
+                }
               }
-              soundEngine.playFootstep('bridge', 0.85);
-            }
             }
           }
         }
@@ -1577,6 +1977,28 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             `Crushed by falling tree! (-${treeStepRes.damageAmount} HP)`;
           lastLootNotificationTimer = 4.0;
           soundEngine.playSwordClash(true);
+          emitHudSnapshot();
+        }
+
+        // Tick deployed hunting traps against wildlife
+        const liveWildlife = getActiveWorldAnimals();
+        const trapTickRes = tickPlacedAnimalTraps(
+          worldPlacedTraps,
+          liveWildlife,
+          rawDt,
+          inGameHoursElapsed * 3600
+        );
+        if (trapTickRes.bearTrapNotifications.length > 0) {
+          lastLootNotification = trapTickRes.bearTrapNotifications[0];
+          lastLootNotificationTimer = 4.5;
+          soundEngine.playSwordClash(true);
+          emitHudSnapshot();
+        } else if (trapTickRes.newlySprungTraps.length > 0) {
+          const sprungTrap = trapTickRes.newlySprungTraps[0];
+          const trapDef = TRAP_RECIPES.find((r) => r.kind === sprungTrap.kind);
+          lastLootNotification = `${trapDef?.name ?? 'Trap'} caught a Lv.${sprungTrap.caughtAnimalLevel ?? 1} ${sprungTrap.caughtAnimalName ?? 'Animal'}! Press [E] near trap to harvest.`;
+          lastLootNotificationTimer = 4.5;
+          soundEngine.playFootstep('bridge', 1.15);
           emitHudSnapshot();
         }
         if (playerState.lastLootNotification && playerState.lastLootNotification.timer > 0) {
@@ -1913,6 +2335,71 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         );
       }
 
+      // Synchronize 3D meshes for placed traps
+      const activeTrapIds = new Set(worldPlacedTraps.map((t) => t.id));
+      for (const [id, entry] of trapMeshesMap.entries()) {
+        if (!activeTrapIds.has(id)) {
+          worldTrapsGroup.remove(entry.mesh);
+          trapMeshesMap.delete(id);
+        }
+      }
+      for (const trap of worldPlacedTraps) {
+        const isSprung = trap.status === 'sprung' || Boolean(trap.sprung);
+        const existing = trapMeshesMap.get(trap.id);
+        if (!existing || existing.sprung !== isSprung) {
+          if (existing) {
+            worldTrapsGroup.remove(existing.mesh);
+          }
+          const mesh = createPlacedTrapMesh(trap);
+          worldTrapsGroup.add(mesh);
+          trapMeshesMap.set(trap.id, { mesh, sprung: isSprung });
+        }
+      }
+
+      // Synchronize 3D Green/Red Trap Placement Preview Ghost when holding a trap in hands
+      if (
+        gameStateRef.current === 'playing' &&
+        playerState.heldTrapItemId &&
+        (playerState.ownedItemIds ?? []).includes(playerState.heldTrapItemId)
+      ) {
+        const preview = computeTrapPlacementPreview(
+          worldPlacedTraps,
+          playerState.heldTrapItemId,
+          renderPlayer.x,
+          renderPlayer.y,
+          renderPlayer.z,
+          renderPlayer.yaw,
+          (gx: number, gz: number) => walkableHeightAt(gx, gz).height,
+          WATER_LEVEL,
+          renderPlayer.pitch
+        );
+        if (preview) {
+          if (!activeTrapPlacementGhost || activeTrapPlacementGhost.kind !== preview.kind) {
+            if (activeTrapPlacementGhost) {
+              worldTrapsGroup.remove(activeTrapPlacementGhost.group);
+            }
+            activeTrapPlacementGhost = buildTrapPlacementPreviewGhost(preview.kind);
+            worldTrapsGroup.add(activeTrapPlacementGhost.group);
+          }
+          activeTrapPlacementGhost.group.visible = true;
+          activeTrapPlacementGhost.group.position.set(preview.x, preview.y, preview.z);
+          activeTrapPlacementGhost.group.rotation.y = preview.yaw;
+          activeTrapPlacementGhost.setValid(preview.valid);
+        } else if (activeTrapPlacementGhost) {
+          activeTrapPlacementGhost.group.visible = false;
+        }
+      } else {
+        if (activeTrapPlacementGhost) {
+          activeTrapPlacementGhost.group.visible = false;
+        }
+        if (
+          playerState.heldTrapItemId &&
+          !(playerState.ownedItemIds ?? []).includes(playerState.heldTrapItemId)
+        ) {
+          playerState.heldTrapItemId = null;
+        }
+      }
+
       if (now - lastHudEmitTime > 100) {
         lastHudEmitTime = now;
         emitHudSnapshot();
@@ -1947,6 +2434,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                   name: lastHitAnimal.isBoss
                     ? `King ${getAnimalSpeciesName(lastHitAnimal.species)}`
                     : getAnimalSpeciesName(lastHitAnimal.species),
+                  level: getAnimalStrengthAndLevel(lastHitAnimal).level,
                   hp: Math.max(0, lastHitAnimal.hp ?? 0),
                   maxHp: Math.max(1, lastHitAnimal.maxHp ?? 1),
                   isBoss: Boolean(lastHitAnimal.isBoss || lastHitAnimal.species === 'dragon'),
@@ -1956,6 +2444,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           isSleepingInBed,
           worldHours,
           forcedSeason,
+          placedTraps: worldPlacedTraps,
+          activeAnimals: getActiveWorldAnimals(),
         })
       );
     }
