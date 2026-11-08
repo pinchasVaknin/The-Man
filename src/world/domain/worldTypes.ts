@@ -115,7 +115,15 @@ export type InventoryItemId =
   | 'dragon_scales'
   | 'dragon_horn'
   | 'dragon_claws'
-  | 'dragon_bone';
+  | 'dragon_bone'
+  | 'trap_cage_small'
+  | 'trap_snare'
+  | 'trap_bear_jaw'
+  | 'trap_net'
+  | 'trap_fish'
+  | 'twine_fiber'
+  | 'wild_berries'
+  | 'grain_seeds';
 
 export type IObstacle = IObstacleCylinder;
 // #endregion
@@ -246,6 +254,14 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('dragon_horn', 'materials', 3.2, 380, 1, { rarity: 'legendary', lootOnly: true }),
   createCatalogItem('dragon_claws', 'materials', 1.8, 300, 1, { rarity: 'epic', lootOnly: true }),
   createCatalogItem('dragon_bone', 'materials', 3.0, 260, 1, { rarity: 'epic', lootOnly: true }),
+  createCatalogItem('trap_cage_small', 'gear', 1.6, 75, 1, { rarity: 'refined' }),
+  createCatalogItem('trap_snare', 'gear', 0.8, 45, 1, { rarity: 'common' }),
+  createCatalogItem('trap_bear_jaw', 'gear', 3.8, 160, 1, { rarity: 'epic' }),
+  createCatalogItem('trap_net', 'gear', 2.2, 95, 1, { rarity: 'refined' }),
+  createCatalogItem('trap_fish', 'gear', 1.4, 65, 1, { rarity: 'common' }),
+  createCatalogItem('twine_fiber', 'materials', 0.4, 15, 1, { rarity: 'common' }),
+  createCatalogItem('wild_berries', 'food', 0.3, 10, 1, { rarity: 'common' }),
+  createCatalogItem('grain_seeds', 'materials', 0.3, 8, 1, { rarity: 'common' }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
 
@@ -374,6 +390,7 @@ export interface IPlayerState {
   goldCoins?: number;
   ownedItemIds?: InventoryItemId[];
   activeWeaponId?: InventoryItemId;
+  heldTrapItemId?: InventoryItemId | null;
   equippedClothingId?: InventoryItemId;
   openedChestIds?: string[];
   chestContentsById?: Record<string, InventoryItemId[]>;
@@ -912,6 +929,15 @@ export interface IGameActions {
   readonly onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
   readonly onApplyGameMode?: (survivalMode: boolean) => void;
   readonly onResetWorld?: (mode: 'survival' | 'creative' | 'both') => { ok: boolean; message: string };
+  readonly onCraftTrap?: (recipeId: InventoryItemId) => void;
+  readonly onDeployTrap?: () => void;
+  readonly onHarvestNearbyTrap?: () => void;
+  readonly onDepositWorkbenchMaterial?: (itemId: InventoryItemId, count: number) => void;
+  readonly onWithdrawWorkbenchMaterial?: (itemId: InventoryItemId, count: number) => void;
+  readonly onDepositAllWorkbenchMaterials?: () => void;
+  readonly onTakeAllFromWorkbenchStash?: () => void;
+  readonly onOpenTrapWorkbench?: () => void;
+  readonly onCloseTrapWorkbench?: () => void;
 }
 // #endregion
 // #endregion

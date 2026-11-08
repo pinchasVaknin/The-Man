@@ -1030,11 +1030,11 @@ export function stepPlayerPhysics(
     state.isCrouching = !isMountedOnHorse && !state.isSwimming;
   } else if (input.sprint && canSprint) {
     paceMultiplier = isMountedOnLion
-      ? 1.48
+      ? 1.58
       : isMountedOnStag
-        ? 1.58
+        ? 1.68
         : isMountedOnHorse
-          ? 1.55
+          ? 1.70
           : 1.75;
     state.walkPace = 'fast';
     state.isCrouching = false;
@@ -1044,17 +1044,17 @@ export function stepPlayerPhysics(
     state.isCrouching = false;
   }
 
-  // Strict mount speed hierarchy:
-  // 1) Royal Stag ('mount-stag-') fastest (7.4 normal, ~11.7 gallop)
-  // 2) Horse ('horse-') medium pace (6.2 normal, ~9.6 gallop)
-  // 3) Boss CatLion ('mount-lion-') slowest mount, slightly faster than human (5.3 normal, ~7.84 run)
+  // Elevated mount speed hierarchy:
+  // 1) Royal Stag ('mount-stag-') fastest (10.2 normal, ~17.1 gallop)
+  // 2) Horse ('horse-') fast pace (9.2 normal, ~15.6 gallop) - clearly swifter than human on foot!
+  // 3) Boss CatLion ('mount-lion-') heavy predator mount (7.8 normal, ~12.3 run)
   // 4) Unmounted human (5.0 normal, 8.75 sprint)
   const baseWalkSpeed = isMountedOnStag
-    ? 7.4
+    ? 10.2
     : isMountedOnHorse && !isMountedOnLion
-      ? 6.2
+      ? 9.2
       : isMountedOnLion
-        ? 5.3
+        ? 7.8
         : 5.0;
   const waterSlowdown = state.inWater ? 0.68 : 1.0;
   const dashMultiplier = isDashing ? (state.isSwimming ? 2.45 : isMountedOnHorse ? 1.45 : 2.35) : 1.0;
@@ -1723,15 +1723,15 @@ export function stepPlayerPhysics(
       const mountDrainRate = isMountedOnLion
         ? 4.2
         : isMountedOnStag
-          ? 9.5
-          : 16.5;
+          ? 8.5
+          : 11.0;
       curMountStam = Math.max(0, curMountStam - mountDrainRate * dt);
       if (curMountStam <= 0.5) {
         curMountStam = 0;
         mountExhausted = true;
       }
     } else {
-      const mountRegenRate = input.sprint && !mountExhausted ? 3.5 : 16.0;
+      const mountRegenRate = input.sprint && !mountExhausted ? 4.0 : 15.0;
       curMountStam = Math.min(mountMaxStam, curMountStam + mountRegenRate * dt);
       if (mountExhausted && curMountStam >= mountRecoveryGate) {
         mountExhausted = false;

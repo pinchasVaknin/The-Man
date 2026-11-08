@@ -262,7 +262,10 @@ export function buildEnvironmentAtmosphereModels(
   }
 
   const forestSquirrels: IForestSquirrel[] = [];
-  for (let i = 0; i < Math.min(8, squirrelTrees.length); i++) {
+  // All world tree-climbing squirrels are spawned and simulated via boidsAndWildlifeSystem.ts
+  // and wildlifeAndFootprintsBuilder.ts so every squirrel has smart AI and is 100% vulnerable/huntable!
+  const decorativeSquirrelCount = 0;
+  for (let i = 0; i < Math.min(decorativeSquirrelCount, squirrelTrees.length); i++) {
     const root = new THREE.Group();
     const body = new THREE.Mesh(sqBodyGeo, squirrelMat);
     const head = new THREE.Mesh(sqHeadGeo, squirrelMat);
@@ -541,9 +544,10 @@ export function buildEnvironmentAtmosphereModels(
   const starsPoints = new THREE.Points(starsGeo, starsMaterial);
   scene.add(starsPoints);
 
-  // 6. Soaring Ambient Birds / Doves Flock (Rigged 75-joint Dove_Complete.ts)
+  // 6. Soaring Ambient Birds / Doves Flock (All active doves are simulated in boidsAndWildlifeSystem.ts so every bird is huntable and interacts with traps)
   const birdsGroup = new THREE.Group();
-  for (let b = 0; b < 16; b++) {
+  const decorativeBirdCount = 0;
+  for (let b = 0; b < decorativeBirdCount; b++) {
     const bird = new THREE.Group();
     const doveCtrl = createReadyDove({
       scale: 0.45,

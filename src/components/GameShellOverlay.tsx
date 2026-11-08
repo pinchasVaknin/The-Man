@@ -21,6 +21,7 @@ import {
   DEFAULT_STARTER_OWNED_ITEM_IDS,
   FIRST_MARKET_CATALOG_ITEM,
   RUINED_ATLANTIS_POS,
+  getAnimalSpeciesName,
 } from '../world/terrainMath';
 import { Result } from '../core/Result';
 import { t } from '../locales';
@@ -31,6 +32,12 @@ import {
   InventoryCategoryTab,
   ITEM_SHORT_NAMES,
 } from './SkyrimInventoryModal';
+import { TrapCraftingModal } from './TrapCraftingModal';
+import {
+  type IWorkbenchStash,
+  type IPlacedTrap,
+  DEFAULT_TRAP_WORKBENCH_STASH,
+} from '../world/systems/animalTrapsSystem';
 import { renderItemSvgIcon } from './itemArtworkRegistry';
 import { useTelemetry } from '../core/telemetryStore';
 import {
@@ -114,6 +121,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   const storeTelemetry = useTelemetry();
   const telemetry = externalTelemetry ?? storeTelemetry;
   const [skyrimModal, setSkyrimModal] = useState<SkyrimModalMode>('none');
+  const [isTrapModalOpen, setIsTrapModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<InventoryCategoryTab>('all');
   const [selectedItemId, setSelectedItemId] = useState<InventoryItemId>('bow');
   const [, setUiTick] = useState(0);
@@ -253,14 +261,14 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     gameActions?.onResumeGameControl?.();
   };
 
-  const prevSkyrimModalRef = useRef(skyrimModal);
-  // Sync body dataset flag so WorldCanvas knows when Radial Inventory [Tab] or Favorites [Q] is open
+  const prevModalOpenRef = useRef(false);
+  // Sync body dataset flag so WorldCanvas knows when Radial Inventory [Tab], Favorites [Q], or Trap Workbench is open
   useEffect(() => {
-    const isOpen = gameState === 'playing' && skyrimModal !== 'none';
+    const isOpen = gameState === 'playing' && (skyrimModal !== 'none' || isTrapModalOpen);
     document.body.dataset.skyrimModalOpen = isOpen ? 'true' : 'false';
     if (isOpen && document.pointerLockElement) {
       document.exitPointerLock?.();
-    } else if (!isOpen && prevSkyrimModalRef.current !== 'none' && gameState === 'playing') {
+    } else if (!isOpen && prevModalOpenRef.current && gameState === 'playing') {
       // Auto-close chest when exiting inventory or chest modal
       if (selectedCategory === 'chest' || telemetry.nearbyChest) {
         gameActions?.onCloseChest?.(telemetry.nearbyChest?.id ?? 'chest-hunter-lodge');
@@ -269,11 +277,11 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
       window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
       gameActions?.onResumeGameControl?.();
     }
-    prevSkyrimModalRef.current = skyrimModal;
+    prevModalOpenRef.current = isOpen;
     return () => {
       document.body.dataset.skyrimModalOpen = 'false';
     };
-  }, [gameState, skyrimModal, selectedCategory, telemetry.nearbyChest, gameActions]);
+  }, [gameState, skyrimModal, isTrapModalOpen, selectedCategory, telemetry.nearbyChest, gameActions]);
 
   // Expose helper hooks for WorldCanvas chest interaction & automated tests
   useEffect(() => {
@@ -302,9 +310,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         open === undefined ? (prev === 'favorites' ? 'none' : 'favorites') : open ? 'favorites' : 'none'
       );
     };
+    win.openTrapCraftingModal = (open?: boolean) => {
+      setIsTrapModalOpen((prev) => (open === undefined ? !prev : open));
+    };
     return () => {
       delete win.openInventoryModal;
       delete win.openFavoritesModal;
+      delete win.openTrapCraftingModal;
     };
   }, [telemetry.nearbyChest]);
 
@@ -312,10 +324,19 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameState !== 'playing') return;
 
-      if (e.code === 'Escape' && skyrimModal !== 'none') {
-        e.preventDefault();
-        closeSkyrimModal();
-        return;
+      if (e.code === 'Escape') {
+        if (isTrapModalOpen) {
+          e.preventDefault();
+          setIsTrapModalOpen(false);
+          window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
+          gameActions?.onResumeGameControl?.();
+          return;
+        }
+        if (skyrimModal !== 'none') {
+          e.preventDefault();
+          closeSkyrimModal();
+          return;
+        }
       }
 
       if (e.code === kb.inventoryModal) {
@@ -333,6 +354,21 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
       if (
         skyrimModal === 'none' &&
+        !isTrapModalOpen &&
+        e.code === kb.interactDoor &&
+        !e.repeat &&
+        telemetry.nearbyTrapWorkbench &&
+        !telemetry.nearbyDeadAnimal &&
+        !telemetry.nearbyPlacedTrap
+      ) {
+        e.preventDefault();
+        setIsTrapModalOpen(true);
+        return;
+      }
+
+      if (
+        skyrimModal === 'none' &&
+        !isTrapModalOpen &&
         e.code === kb.interactDoor &&
         !e.repeat &&
         telemetry.nearbyChest &&
@@ -442,10 +478,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   }, [
     gameState,
     skyrimModal,
+    isTrapModalOpen,
     selectedCategory,
     selectedItemId,
     telemetry.nearbyMarket,
     telemetry.nearbyChest,
+    telemetry.nearbyTrapWorkbench,
+    telemetry.nearbyPlacedTrap,
     telemetry.nearbyDeadAnimal,
     ownedItemIds,
     gameActions,
@@ -1008,6 +1047,60 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         />
       )}
 
+      {/* Trapper's Workbench Modal */}
+      {gameState === 'playing' && isTrapModalOpen && (
+        <TrapCraftingModal
+          isOpen={isTrapModalOpen}
+          onClose={() => {
+            setIsTrapModalOpen(false);
+            window.dispatchEvent(new CustomEvent('reacquire-pointer-lock'));
+            gameActions?.onResumeGameControl?.();
+          }}
+          playerInventory={ownedItemIds.reduce<Partial<Record<InventoryItemId, number>>>(
+            (acc, id) => {
+              acc[id] = (acc[id] ?? 0) + 1;
+              return acc;
+            },
+            {}
+          )}
+          workbenchStash={
+            (
+              window as unknown as {
+                getWorkbenchStash?: () => IWorkbenchStash;
+              }
+            ).getWorkbenchStash?.() ?? { materials: { ...DEFAULT_TRAP_WORKBENCH_STASH } }
+          }
+          placedTraps={
+            (
+              window as unknown as {
+                getPlacedTraps?: () => IPlacedTrap[];
+              }
+            ).getPlacedTraps?.() ?? []
+          }
+          onCraftTrap={(recipeId) => {
+            gameActions?.onCraftTrap?.(recipeId);
+            setUiTick((n) => n + 1);
+          }}
+          onDepositMaterial={(itemId, count) => {
+            gameActions?.onDepositWorkbenchMaterial?.(itemId, count);
+            setUiTick((n) => n + 1);
+          }}
+          onWithdrawMaterial={(itemId, count) => {
+            gameActions?.onWithdrawWorkbenchMaterial?.(itemId, count);
+            setUiTick((n) => n + 1);
+          }}
+          onDepositAllMaterials={() => {
+            gameActions?.onDepositAllWorkbenchMaterials?.();
+            setUiTick((n) => n + 1);
+          }}
+          onTakeAllFromStash={() => {
+            gameActions?.onTakeAllFromWorkbenchStash?.();
+            setUiTick((n) => n + 1);
+          }}
+          playerCoords={{ x: telemetry.x, y: telemetry.y, z: telemetry.z }}
+        />
+      )}
+
       {/* ============================================================================ */}
       {/* 2C. SKYRIM-STYLE QUICK-FAVORITES MENU ([Q])                                  */}
       {/* ============================================================================ */}
@@ -1177,6 +1270,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
 
           {/* Top-Center Visual Enemy Health Bar & Combat/Loot Toasts (No numeric HP text!) */}
           {(telemetry.activeEnemyHealthBar ||
+            telemetry.targetedCreature ||
             telemetry.lastArrowHitTargetName ||
             telemetry.lootNotification ||
             telemetry.skills?.lastLevelUpTitle) && (
@@ -1184,6 +1278,83 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               className="fixed left-1/2 top-16 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-2 z-20"
               aria-hidden="true"
             >
+              {telemetry.targetedCreature && !telemetry.activeEnemyHealthBar && (
+                <div
+                  data-testid="targeted-creature-hud"
+                  className="w-64 sm:w-80 px-3.5 py-2 rounded-xl flex flex-col gap-1.5 shadow-2xl backdrop-blur-md"
+                  style={{
+                    backgroundColor: 'rgba(15, 12, 10, 0.94)',
+                    border:
+                      telemetry.targetedCreature.threatRating === 'deadly'
+                        ? '1px solid rgba(239, 68, 68, 0.85)'
+                        : telemetry.targetedCreature.threatRating === 'dangerous'
+                          ? '1px solid rgba(245, 158, 11, 0.75)'
+                          : '1px solid rgba(52, 211, 153, 0.55)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold ${
+                          telemetry.targetedCreature.level >= 10
+                            ? 'bg-rose-500/25 text-rose-300 border border-rose-500/50'
+                            : telemetry.targetedCreature.level >= 7
+                              ? 'bg-amber-500/25 text-amber-300 border border-amber-500/50'
+                              : telemetry.targetedCreature.level >= 4
+                                ? 'bg-sky-500/25 text-sky-300 border border-sky-500/50'
+                                : 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
+                        }`}
+                      >
+                        Lv. {telemetry.targetedCreature.level}
+                      </span>
+                      <span className="text-xs font-bold text-amber-100 uppercase tracking-wide">
+                        {telemetry.targetedCreature.speciesName ||
+                          getAnimalSpeciesName(telemetry.targetedCreature.species as never)}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-wider ${
+                        telemetry.targetedCreature.threatRating === 'deadly'
+                          ? 'text-rose-400'
+                          : telemetry.targetedCreature.threatRating === 'dangerous'
+                            ? 'text-amber-400'
+                            : 'text-emerald-400'
+                      }`}
+                    >
+                      {telemetry.targetedCreature.threatRating}
+                    </span>
+                  </div>
+                  <div
+                    className="w-full h-2 rounded-full overflow-hidden"
+                    style={{
+                      backgroundColor: 'rgba(28, 22, 18, 0.95)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                    }}
+                  >
+                    <div
+                      className="h-full transition-all duration-150"
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (telemetry.targetedCreature.hp /
+                              Math.max(1, telemetry.targetedCreature.maxHp)) *
+                              100
+                          )
+                        )}%`,
+                        backgroundColor:
+                          telemetry.targetedCreature.threatRating === 'deadly'
+                            ? '#dc2626'
+                            : telemetry.targetedCreature.threatRating === 'dangerous'
+                              ? '#f59e0b'
+                              : '#10b981',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {telemetry.activeEnemyHealthBar && (
                 <div
                   data-testid="enemy-health-bar"
@@ -1196,9 +1367,16 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   }}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold tracking-wide text-stone-100 uppercase">
-                      {telemetry.activeEnemyHealthBar.name}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {telemetry.activeEnemyHealthBar.level !== undefined && (
+                        <span className="px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-500/25 text-rose-300 border border-rose-500/50">
+                          Lv. {telemetry.activeEnemyHealthBar.level}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold tracking-wide text-stone-100 uppercase">
+                        {telemetry.activeEnemyHealthBar.name}
+                      </span>
+                    </div>
                     {telemetry.activeEnemyHealthBar.isSubdued && (
                       <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-bold">
                         SUBDUED
@@ -1483,6 +1661,120 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                 </div>
               )}
 
+            {/* Trapper's Workbench Prompt */}
+            {telemetry.nearbyTrapWorkbench && (
+              <div
+                data-testid="trap-workbench-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(28, 18, 10, 0.94)',
+                  border: '1px solid rgba(245, 158, 11, 0.75)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-amber-200">
+                  {telemetry.nearbyTrapWorkbench.name || "Trapper's Workbench"}
+                </span>
+              </div>
+            )}
+
+            {/* Placed Trap Interaction Prompt */}
+            {telemetry.nearbyPlacedTrap && (
+              <div
+                data-testid="placed-trap-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor:
+                    telemetry.nearbyPlacedTrap.status === 'sprung' || telemetry.nearbyPlacedTrap.sprung
+                      ? 'rgba(6, 44, 28, 0.95)'
+                      : 'rgba(28, 18, 10, 0.94)',
+                  border:
+                    telemetry.nearbyPlacedTrap.status === 'sprung' || telemetry.nearbyPlacedTrap.sprung
+                      ? '1px solid rgba(52, 211, 153, 0.85)'
+                      : '1px solid rgba(245, 158, 11, 0.65)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-stone-100">
+                  {telemetry.nearbyPlacedTrap.status === 'sprung' || telemetry.nearbyPlacedTrap.sprung
+                    ? `Harvest Trap: Caught ${telemetry.nearbyPlacedTrap.caughtAnimalName ?? 'Game'} (Lv. ${telemetry.nearbyPlacedTrap.caughtAnimalLevel ?? 1})! (+XP)`
+                    : 'Pick Up Armed Trap'}
+                </span>
+              </div>
+            )}
+
+            {/* Active Held Trap Placement Mode Banner (Green = Valid, Red = Invalid) */}
+            {telemetry.heldTrapStatus && (
+              <div
+                data-testid="held-trap-placement-banner"
+                className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl shadow-2xl text-xs"
+                style={{
+                  backgroundColor: telemetry.heldTrapStatus.valid
+                    ? 'rgba(6, 44, 28, 0.94)'
+                    : 'rgba(68, 12, 12, 0.94)',
+                  border: telemetry.heldTrapStatus.valid
+                    ? '1.5px solid rgba(34, 197, 94, 0.9)'
+                    : '1.5px solid rgba(239, 68, 68, 0.9)',
+                }}
+              >
+                <div className="flex items-center gap-2 font-bold text-sm text-white">
+                  <span>{telemetry.heldTrapStatus.name}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-black/50 text-amber-300 font-mono-tabular text-xs">
+                    ×{telemetry.heldTrapStatus.count}
+                  </span>
+                </div>
+                <div
+                  className={`font-semibold tracking-wide ${
+                    telemetry.heldTrapStatus.valid ? 'text-emerald-300' : 'text-rose-300'
+                  }`}
+                >
+                  {telemetry.heldTrapStatus.valid
+                    ? 'Valid Placement — Left-Click to Place Trap'
+                    : telemetry.heldTrapStatus.reason}
+                </div>
+                <div className="text-[11px] text-stone-300/90 font-mono">
+                  [Left-Click] Place • [Right-Click / R] Put Away
+                </div>
+              </div>
+            )}
+
+            {/* Trap Deploy Hint when carrying traps in inventory and not currently holding one */}
+            {!telemetry.heldTrapStatus &&
+              (() => {
+                const hasTrap = [
+                  'trap_cage_small',
+                  'trap_snare',
+                  'trap_bear_jaw',
+                  'trap_net',
+                  'trap_fish',
+                ].some((id) => ownedItemIds.includes(id as InventoryItemId));
+                if (!hasTrap) return null;
+                return (
+                  <div
+                    data-testid="deploy-trap-hint"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-amber-200 shadow-lg text-xs"
+                    style={{
+                      backgroundColor: 'rgba(20, 15, 10, 0.92)',
+                      border: '1px solid rgba(245, 158, 11, 0.55)',
+                    }}
+                  >
+                    <kbd className="px-1.5 py-0.5 rounded bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                      T
+                    </kbd>
+                    <span className="font-semibold">Hold Trap</span>
+                    {(telemetry.placedTrapsCount ?? 0) > 0 && (
+                      <span className="text-[11px] text-amber-400/80 font-mono">
+                        ({telemetry.placedTrapsCount} active)
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
             {telemetry.isSwimming && (
               <div
                 data-testid="swim-dive-prompt"
@@ -1547,28 +1839,27 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             className="fixed left-1/2 bottom-4 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5 z-20"
             aria-hidden="true"
           >
-            {/* Stamina Bar (shows player stamina on foot, or mount stamina when riding) */}
+            {/* Clean Stamina Bar (Mount Stamina when riding, Player Stamina when on foot — no text explanation above it) */}
             {(() => {
-              const isMountedView = Boolean(telemetry.mountedHorseId);
-              const curStamina = isMountedView
-                ? (telemetry.mountStamina ?? telemetry.stamina)
-                : telemetry.stamina;
-              const curMaxStamina = isMountedView
-                ? (telemetry.mountMaxStamina ?? telemetry.maxStamina)
+              const isMountedOnBeast =
+                Boolean(telemetry.mountedHorseId) && telemetry.mountedHorseId !== 'sailable-ship';
+              const curStamina = isMountedOnBeast ? telemetry.mountStamina : telemetry.stamina;
+              const curMaxStamina = isMountedOnBeast
+                ? telemetry.mountMaxStamina
                 : telemetry.maxStamina;
-              const curExhausted = isMountedView
+              const curExhausted = isMountedOnBeast
                 ? Boolean(telemetry.mountStaminaExhausted)
                 : Boolean(telemetry.staminaExhausted);
               if (
                 curStamina === undefined ||
                 curMaxStamina === undefined ||
-                curStamina >= curMaxStamina - 0.5
+                (!isMountedOnBeast && curStamina >= curMaxStamina - 0.5)
               ) {
                 return null;
               }
               return (
                 <div
-                  data-testid="hud-stamina-bar"
+                  data-testid={isMountedOnBeast ? 'hud-horse-stamina' : 'hud-stamina-bar'}
                   className="w-52 h-2 rounded-full overflow-hidden shadow-lg"
                   style={{
                     backgroundColor: 'rgba(12, 10, 9, 0.85)',
@@ -1578,6 +1869,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                   }}
                 >
                   <div
+                    data-testid={isMountedOnBeast ? 'hud-horse-stamina-fill' : undefined}
                     className={`h-full transition-all duration-100 ${
                       curExhausted ? 'animate-pulse' : ''
                     }`}

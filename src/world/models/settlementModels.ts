@@ -27,6 +27,7 @@ import {
   computeSlopePitchAndRoll,
   isWithinViewDistance,
   type IRideableHorseState,
+  type IPlayerState,
 } from '../terrainMath';
 import { createBirchBarkTexture } from '../builders/shaderAndMaterialBuilders';
 import { createReadyHorse, type HorseController, type HorseState } from './Horse';
@@ -48,7 +49,8 @@ export interface ISettlementModelHandles {
     playerX?: number,
     playerZ?: number,
     openDoorIds?: ReadonlySet<string>,
-    openedChestIds?: readonly string[]
+    openedChestIds?: readonly string[],
+    playerState?: IPlayerState
   ) => void;
 }
 // #endregion
@@ -799,22 +801,125 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   lodgeBedGroup.add(bedFrameMesh, mattressMesh, pillowMesh);
   hunterCompound.add(lodgeBedGroup);
 
-  const lodgeTableGroup = new THREE.Group();
-  lodgeTableGroup.position.set(0.2, 0.48, -2.55);
-  const tableTop = new THREE.Mesh(lodgeTableTopGeo, timberMat);
-  tableTop.position.y = 0.82;
-  lodgeTableGroup.add(tableTop);
-  for (const [tx, tz] of [
-    [-0.75, -0.42],
-    [0.75, -0.42],
-    [-0.75, 0.42],
-    [0.75, 0.42],
+  // Dedicated Trapper's Workbench inside starting Hunter's Lodge cabin at local (0.2, 0.48, -2.55) -> world (-92.2, 2.63, 74.55)
+  const trapperWorkbenchGroup = new THREE.Group();
+  trapperWorkbenchGroup.name = 'trapper-workbench-cabin';
+  trapperWorkbenchGroup.position.set(0.2, 0.48, -2.55);
+
+  const wbTopGeo = new THREE.BoxGeometry(2.0, 0.14, 1.15);
+  const wbLegGeo = new THREE.BoxGeometry(0.14, 0.82, 0.14);
+  const wbShelfGeo = new THREE.BoxGeometry(1.72, 0.05, 0.92);
+  const wbViseGeo = new THREE.BoxGeometry(0.12, 0.26, 0.34);
+  const wbScrewGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.36, 8);
+  wbScrewGeo.rotateZ(Math.PI / 2);
+
+  // Tabletop craft items: miniature wooden cage trap under construction, iron bear jaw, coils of twine, mallet & work lamp
+  const miniCageGeo = new THREE.BoxGeometry(0.44, 0.28, 0.36);
+  const miniCageDoorGeo = new THREE.BoxGeometry(0.04, 0.28, 0.32);
+  miniCageDoorGeo.rotateZ(0.35); // Propped open!
+  const miniJawGeo = new THREE.TorusGeometry(0.15, 0.025, 6, 12, Math.PI);
+  miniJawGeo.rotateX(Math.PI / 2);
+  const twineRollGeo = new THREE.TorusGeometry(0.09, 0.032, 8, 16);
+  twineRollGeo.rotateX(Math.PI / 2);
+  const malletHeadGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.12, 8);
+  malletHeadGeo.rotateZ(Math.PI / 2);
+  const malletHandleGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.26, 8);
+  const brassLampGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.20, 8);
+  const brassLampCapGeo = new THREE.ConeGeometry(0.08, 0.08, 8);
+  const workbenchPlaqueGeo = new THREE.BoxGeometry(1.25, 0.14, 0.04);
+
+  disposableGeometries.push(
+    wbTopGeo,
+    wbLegGeo,
+    wbShelfGeo,
+    wbViseGeo,
+    wbScrewGeo,
+    miniCageGeo,
+    miniCageDoorGeo,
+    miniJawGeo,
+    twineRollGeo,
+    malletHeadGeo,
+    malletHandleGeo,
+    brassLampGeo,
+    brassLampCapGeo,
+    workbenchPlaqueGeo
+  );
+
+  const fiberRopeMat = new THREE.MeshStandardMaterial({ color: 0x856846, roughness: 0.92 });
+  const copperBrassMat = new THREE.MeshStandardMaterial({
+    color: 0xca8a04,
+    metalness: 0.85,
+    roughness: 0.35,
+  });
+  disposableMaterials.push(fiberRopeMat, copperBrassMat);
+
+  // 1. Table Top & Legs
+  const wbTopMesh = new THREE.Mesh(wbTopGeo, timberMat);
+  wbTopMesh.position.y = 0.82;
+  wbTopMesh.castShadow = !isSoftwareGl;
+  trapperWorkbenchGroup.add(wbTopMesh);
+
+  const wbShelfMesh = new THREE.Mesh(wbShelfGeo, timberMat);
+  wbShelfMesh.position.y = 0.22;
+  trapperWorkbenchGroup.add(wbShelfMesh);
+
+  for (const [lx, lz] of [
+    [-0.82, -0.44],
+    [0.82, -0.44],
+    [-0.82, 0.44],
+    [0.82, 0.44],
   ]) {
-    const leg = new THREE.Mesh(lodgeTableLegGeo, barkMat);
-    leg.position.set(tx, 0.39, tz);
-    lodgeTableGroup.add(leg);
+    const leg = new THREE.Mesh(wbLegGeo, barkMat);
+    leg.position.set(lx, 0.41, lz);
+    leg.castShadow = !isSoftwareGl;
+    trapperWorkbenchGroup.add(leg);
   }
-  hunterCompound.add(lodgeTableGroup);
+
+  // 2. Carpenter Vise on Left Corner
+  const viseMesh = new THREE.Mesh(wbViseGeo, lodgeChestIronMat);
+  viseMesh.position.set(-0.95, 0.78, 0.28);
+  const viseScrew = new THREE.Mesh(wbScrewGeo, copperBrassMat);
+  viseScrew.position.set(-1.02, 0.78, 0.28);
+  trapperWorkbenchGroup.add(viseMesh, viseScrew);
+
+  // 3. Tabletop Props: Miniature Cage Trap, Iron Bear Jaw, Twine & Tools
+  const miniCageMesh = new THREE.Mesh(miniCageGeo, timberMat);
+  miniCageMesh.position.set(0.48, 0.96, -0.15);
+  const miniCageDoorMesh = new THREE.Mesh(miniCageDoorGeo, barkMat);
+  miniCageDoorMesh.position.set(0.68, 1.05, -0.15);
+  trapperWorkbenchGroup.add(miniCageMesh, miniCageDoorMesh);
+
+  const bearJawMesh = new THREE.Mesh(miniJawGeo, lodgeChestIronMat);
+  bearJawMesh.position.set(-0.15, 0.90, -0.18);
+  trapperWorkbenchGroup.add(bearJawMesh);
+
+  const twineMesh = new THREE.Mesh(twineRollGeo, fiberRopeMat);
+  twineMesh.position.set(-0.55, 0.91, -0.22);
+  const twineMesh2 = new THREE.Mesh(twineRollGeo, fiberRopeMat);
+  twineMesh2.position.set(-0.55, 0.96, -0.22);
+  trapperWorkbenchGroup.add(twineMesh, twineMesh2);
+
+  // Mallet on table
+  const malletHandle = new THREE.Mesh(malletHandleGeo, timberMat);
+  malletHandle.rotation.x = Math.PI / 2;
+  malletHandle.position.set(-0.18, 0.90, 0.24);
+  const malletHead = new THREE.Mesh(malletHeadGeo, barkMat);
+  malletHead.position.set(-0.18, 0.92, 0.12);
+  trapperWorkbenchGroup.add(malletHandle, malletHead);
+
+  // Warm Brass Oil Work Lamp
+  const brassLamp = new THREE.Mesh(brassLampGeo, copperBrassMat);
+  brassLamp.position.set(0.78, 0.98, 0.32);
+  const lampGlow = new THREE.Mesh(brassLampCapGeo, warmLanternMat);
+  lampGlow.position.set(0.78, 1.10, 0.32);
+  trapperWorkbenchGroup.add(brassLamp, lampGlow);
+
+  // Carved Sign Plaque on Front
+  const signPlaque = new THREE.Mesh(workbenchPlaqueGeo, barkMat);
+  signPlaque.position.set(0, 0.82, 0.58);
+  trapperWorkbenchGroup.add(signPlaque);
+
+  hunterCompound.add(trapperWorkbenchGroup);
 
   // Starter Gear Chest tucked neatly into the cabin corner at local (-3.55, 0.48, -2.95) -> world (-88.45, 2.35, 74.95)
   const starterChestGroup = new THREE.Group();
@@ -2087,6 +2192,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     readonly root: THREE.Group;
     readonly horseCtrl: HorseController;
     lastYaw: number;
+    smoothTurn: number;
   }
 
   const horseRigs: IHorseMeshRig[] = [];
@@ -2136,6 +2242,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       root,
       horseCtrl,
       lastYaw: def.homeYaw,
+      smoothTurn: 0,
     });
   }
 
@@ -2148,7 +2255,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     playerX = 0,
     playerZ = 0,
     openDoorIds?: ReadonlySet<string>,
-    openedChestIds?: readonly string[]
+    openedChestIds?: readonly string[],
+    playerState?: IPlayerState
   ) => {
     const rawDt = lastHorseUpdateTime > 0 ? elapsedTime - lastHorseUpdateTime : 0.016;
     const dt = rawDt > 0 && rawDt < 0.25 ? rawDt : 0.016;
@@ -2198,16 +2306,38 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     for (let i = 0; i < horseRigs.length; i++) {
       const rig = horseRigs[i];
       const state = rideableHorses && rideableHorses[i] ? rideableHorses[i] : null;
-      const hx = state ? state.x : RIDEABLE_HORSES[i].homeX;
-      const hz = state ? state.z : RIDEABLE_HORSES[i].homeZ;
       const isMounted = mountedHorseId === rig.id;
+      // When mounted by the player, lock the horse's render coordinates and yaw directly to the
+      // interpolated renderPlayer so there is zero frame-interpolation lag or jitter between rider, camera, and horse!
+      const hx =
+        isMounted && playerState
+          ? playerState.x
+          : state
+            ? state.x
+            : RIDEABLE_HORSES[i].homeX;
+      const hz =
+        isMounted && playerState
+          ? playerState.z
+          : state
+            ? state.z
+            : RIDEABLE_HORSES[i].homeZ;
       const inView = isMounted || isWithinViewDistance(hx, hz, playerX, playerZ, 24, 165);
       rig.root.visible = inView;
       if (!inView) continue;
 
       const walkSurf = walkableHeightAt(hx, hz);
-      const hy = state ? state.y : walkSurf.height;
-      const hyaw = state ? state.yaw : RIDEABLE_HORSES[i].homeYaw;
+      const hy =
+        isMounted && playerState
+          ? playerState.y
+          : state
+            ? state.y
+            : walkSurf.height;
+      const hyaw =
+        isMounted && playerState
+          ? (playerState.mountedHorseYaw ?? state?.yaw ?? playerState.yaw)
+          : state
+            ? state.yaw
+            : RIDEABLE_HORSES[i].homeYaw;
       const hspeed = state ? state.speed : 0;
 
       rig.root.position.set(hx, hy, hz);
@@ -2244,10 +2374,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
       while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
       rig.lastYaw = hyaw;
-      const turnRate = Math.max(-1, Math.min(1, (yawDelta / Math.max(0.008, dt)) * 0.35));
+      const rawTurnRate = Math.max(-1, Math.min(1, (yawDelta / Math.max(0.008, dt)) * 0.35));
+      rig.smoothTurn += (rawTurnRate - rig.smoothTurn) * Math.min(1, dt * 8.0);
 
       rig.horseCtrl.setState(targetState);
-      rig.horseCtrl.update(dt, turnRate);
+      rig.horseCtrl.update(dt, rig.smoothTurn);
       rig.horseCtrl.object.position.set(0, 0, 0);
       rig.horseCtrl.object.rotation.set(0, 0, 0);
     }

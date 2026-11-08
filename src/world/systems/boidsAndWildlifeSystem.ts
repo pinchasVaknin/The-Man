@@ -37,6 +37,10 @@ import {
   sailableShipDeckHeightAt,
 } from './sailableShipSystem';
 import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
+import {
+  getActivePlacedTrapsRef,
+  generateCaughtAnimalLoot,
+} from './animalTrapsSystem';
 import type {
   IArrowProjectile,
   InventoryItemId,
@@ -101,12 +105,24 @@ export interface IBoidBirdState {
   vx: number;
   vy: number;
   vz: number;
+  yaw?: number;
   wingPhase: number;
   startleTimer: number; // > 0 when scattering away from player/horse
   fleeTimer: number;    // alias synced with startleTimer for backwards compatibility
   roosting: boolean;    // true when resting at night
   homeX: number;
   homeZ: number;
+  level?: number;
+  hp?: number;
+  maxHp?: number;
+  isDead?: boolean;
+  isLooted?: boolean;
+  hitReactionTimer?: number;
+  groundState?: 'flying' | 'descending' | 'walking_to_bait' | 'eating_bait';
+  groundTimer?: number;
+  targetTrapId?: string;
+  landingX?: number;
+  landingZ?: number;
 }
 
 /**
@@ -166,6 +182,29 @@ export interface ISmallAnimalState {
   canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
   isSubdued?: boolean; // true when the Volcano Boss CatLion is beaten to low HP and awaits meat taming
   respawnTimer?: number; // seconds remaining before a killed animal respawns at its home territory
+  trappedByBearJawTimer?: number; // > 0 while Heavy Steel Bear Trap is clamped onto bear's front paw during 4-legged roar
+  bearTrapSlowTimer?: number; // > 0 while bear's movement speed is reduced by 10% for 7s after bear trap roar finishes
+  treeState?: 'ground_forage' | 'running_to_tree' | 'climb_up' | 'perched' | 'climb_down' | 'canopy_leap';
+  treeObstacleX?: number;
+  treeObstacleZ?: number;
+  treeBaseY?: number;
+  treeTrunkRadius?: number;
+  treeTargetHeight?: number;
+  treeClimbAngle?: number;
+  treeClimbPitch?: number;
+  treeStateTimer?: number;
+  lastTreeX?: number;
+  lastTreeZ?: number;
+  leapStartX?: number;
+  leapStartY?: number;
+  leapStartZ?: number;
+  leapEndX?: number;
+  leapEndY?: number;
+  leapEndZ?: number;
+  leapDuration?: number;
+  forageTargetX?: number;
+  forageTargetZ?: number;
+  decisionCounter?: number;
 }
 
 /** Time in seconds before a hunted/killed regular animal respawns at its home territory. */
@@ -205,12 +244,44 @@ export const WILDLIFE_SHELTER_TREES: ReadonlyArray<{ x: number; z: number }> = [
 ];
 
 let activeWorldAnimalsRegistry: ISmallAnimalState[] = [];
+let activeWorldBirdsRegistry: IBoidBirdState[] = [];
 
 /**
  * Summary: Returns the active live world ground animals registry for combat hit checks and [E] looting.
  */
 export function getActiveWorldAnimals(): ISmallAnimalState[] {
   return activeWorldAnimalsRegistry;
+}
+
+/**
+ * Summary: Returns the active live world birds registry for bow/sword hit checks and [E] looting.
+ */
+export function getActiveWorldBirds(): IBoidBirdState[] {
+  return activeWorldBirdsRegistry;
+}
+
+/**
+ * Summary: Resets all world birds back to healthy flying state when the world is reset.
+ */
+export function resetActiveWorldBirds(): void {
+  for (let i = 0; i < activeWorldBirdsRegistry.length; i++) {
+    const b = activeWorldBirdsRegistry[i];
+    const gy = Math.max(WATER_LEVEL, groundHeightAt(b.homeX, b.homeZ));
+    b.x = b.homeX;
+    b.z = b.homeZ;
+    b.y = gy + 14 + (i % 4) * 1.4;
+    b.vx = 6.5;
+    b.vy = 0;
+    b.vz = 3.5;
+    b.isDead = false;
+    b.isLooted = false;
+    b.hp = b.maxHp ?? 25;
+    b.groundState = 'flying';
+    b.groundTimer = 0;
+    b.targetTrapId = undefined;
+    b.startleTimer = 0;
+    b.fleeTimer = 0;
+  }
 }
 
 /**
@@ -221,41 +292,72 @@ export function getAnimalStrengthAndLevel(animal: ISmallAnimalState): {
   readonly level: number;
   readonly baseStrength: number;
   readonly attackDamage: number;
+  readonly speedMultiplier: number;
+  readonly defenseReduction: number;
+  readonly xpRewardMultiplier: number;
+  readonly threatRating: 'easy' | 'moderate' | 'dangerous' | 'deadly';
 } {
   let defaultLevel = 1;
   let baseStrength = 6;
   if (animal.species === 'dragon') {
-    defaultLevel = 12;
-    baseStrength = 34;
+    defaultLevel = 18;
+    baseStrength = 36;
   } else if (animal.species === 'lion' && animal.isBoss) {
-    defaultLevel = 10;
-    baseStrength = 26;
+    defaultLevel = 15;
+    baseStrength = 28;
   } else if (animal.species === 'lion') {
-    defaultLevel = 6;
-    baseStrength = 17;
+    defaultLevel = 8;
+    baseStrength = 18;
   } else if (animal.species === 'bear') {
-    defaultLevel = 5;
-    baseStrength = 20;
+    defaultLevel = 7;
+    baseStrength = 22;
   } else if (animal.species === 'rhino') {
-    defaultLevel = 5;
-    baseStrength = 19;
+    defaultLevel = 7;
+    baseStrength = 20;
   } else if (animal.species === 'crocodile') {
-    defaultLevel = 4;
-    baseStrength = 15;
+    defaultLevel = 5;
+    baseStrength = 16;
   } else if (animal.species === 'stag') {
-    defaultLevel = 4;
-    baseStrength = 13;
+    defaultLevel = 6;
+    baseStrength = 14;
   } else if (animal.species === 'jaguar') {
-    defaultLevel = 3;
-    baseStrength = 12;
+    defaultLevel = 5;
+    baseStrength = 13;
   } else if (animal.species === 'wolf') {
+    defaultLevel = 3;
+    baseStrength = 10;
+  } else if (animal.species === 'deer' || animal.species === 'sheep') {
     defaultLevel = 2;
-    baseStrength = 9;
+    baseStrength = 4;
+  } else {
+    defaultLevel = 1;
+    baseStrength = 2;
   }
   const level = Math.max(1, animal.level ?? defaultLevel + (animal.id % 2));
-  const levelMult = 1 + (level - 1) * 0.14;
+  const levelMult = 1 + (level - 1) * 0.16;
   const attackDamage = Math.round(baseStrength * levelMult);
-  return { level, baseStrength, attackDamage };
+  const speedMultiplier = 1 + Math.min(0.40, (level - 1) * 0.04);
+  const defenseReduction = Math.min(0.30, (level - 1) * 0.025);
+  const xpRewardMultiplier = 1 + (level - 1) * 0.25;
+
+  let threatRating: 'easy' | 'moderate' | 'dangerous' | 'deadly' = 'easy';
+  if (level >= 14 || animal.species === 'dragon' || animal.isBoss) {
+    threatRating = 'deadly';
+  } else if (level >= 7 || ['bear', 'rhino', 'lion'].includes(animal.species)) {
+    threatRating = 'dangerous';
+  } else if (level >= 4 || ['wolf', 'jaguar', 'crocodile', 'stag'].includes(animal.species)) {
+    threatRating = 'moderate';
+  }
+
+  return {
+    level,
+    baseStrength,
+    attackDamage,
+    speedMultiplier,
+    defenseReduction,
+    xpRewardMultiplier,
+    threatRating,
+  };
 }
 
 // #endregion
@@ -460,12 +562,20 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
 }
 
 /**
- * Summary: Returns the maximum invisible health points (`maxHp`, in arrow hits) for each species.
- * Design: The Southern Dragon has a colossal boss health pool (250), bears require 8, rhinos (7),
- *         crocodiles (6), jaguars (4), wolves (3), deer (3), sheep (2), and small critters (1).
+ * Summary: Returns the maximum health points (`maxHp`, in arrow hits) for each species,
+ * scaled by animal level and boss status. Higher level creatures have significantly tougher health pools.
  */
-export function getAnimalMaxHp(species: GroundAnimalSpecies): number {
-  return SPECIES_PROFILES[species].maxHp;
+export function getAnimalMaxHp(
+  species: GroundAnimalSpecies,
+  level = 1,
+  isBoss = false
+): number {
+  if (species === 'lion' && isBoss) {
+    return Math.round(360 * (1 + (Math.max(1, level) - 1) * 0.12));
+  }
+  const baseHp = SPECIES_PROFILES[species].maxHp;
+  const levelMult = 1 + (Math.max(1, level) - 1) * 0.18;
+  return Math.round(baseHp * levelMult);
 }
 
 /**
@@ -482,11 +592,66 @@ export function killGroundAnimal(animal: ISmallAnimalState): void {
     animal.isBoss || animal.species === 'dragon' ? undefined : ANIMAL_RESPAWN_DELAY_SECONDS;
   animal.vx = 0;
   animal.vz = 0;
+  animal.treeClimbPitch = 0;
+  if (
+    animal.species === 'squirrel' &&
+    animal.treeObstacleX !== undefined &&
+    animal.treeObstacleZ !== undefined
+  ) {
+    const dx = animal.x - animal.treeObstacleX;
+    const dz = animal.z - animal.treeObstacleZ;
+    const d = Math.hypot(dx, dz) || 1;
+    const safeDropRad = (animal.treeTrunkRadius ?? 0.42) + 0.42;
+    if (d < safeDropRad) {
+      animal.x = animal.treeObstacleX + (dx / d) * safeDropRad;
+      animal.z = animal.treeObstacleZ + (dz / d) * safeDropRad;
+    }
+  }
+  animal.treeState = 'ground_forage';
   animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
   animal.isResting = false;
   animal.isSeekingShelter = false;
   animal.isFleeing = false;
   animal.aiBehavior = 'dead';
+}
+
+/**
+ * Summary: Finds the nearest live animal within very close proximity (`maxDist <= 5.5m`) and view cone,
+ * for displaying overhead level badge, health bar, and combat threat rating when right next to a creature.
+ */
+export function findTargetedLiveAnimal(
+  playerX: number,
+  playerY: number,
+  playerZ: number,
+  playerYaw: number,
+  playerPitch = 0,
+  maxDist = 5.5,
+  animals: readonly ISmallAnimalState[] = activeWorldAnimalsRegistry
+): ISmallAnimalState | null {
+  const fwdX = -Math.sin(playerYaw);
+  const fwdZ = -Math.cos(playerYaw);
+  let best: ISmallAnimalState | null = null;
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < animals.length; i++) {
+    const a = animals[i];
+    if (a.isDead || a.isLooted || a.isMountedByPlayer) continue;
+    const dx = a.x - playerX;
+    const dy = a.y - playerY;
+    const dz = a.z - playerZ;
+    const dist = Math.hypot(dx, dz);
+    if (dist > maxDist || Math.abs(dy) > 4.5) continue;
+
+    const dot = (dx * fwdX + dz * fwdZ) / (dist || 1);
+    if (dot > 0.55 || dist <= 2.8) {
+      const score = dot * 2.0 - dist / maxDist;
+      if (score > bestScore) {
+        bestScore = score;
+        best = a;
+      }
+    }
+  }
+  return best;
 }
 
 /**
@@ -537,7 +702,8 @@ export function damageGroundAnimal(
   readonly remainingHp: number;
   readonly maxHp: number;
 } {
-  const maxHp = animal.maxHp ?? getAnimalMaxHp(animal.species);
+  const animalLevel = animal.level ?? 1;
+  const maxHp = animal.maxHp ?? getAnimalMaxHp(animal.species, animalLevel, animal.isBoss);
   animal.maxHp = maxHp;
   if (animal.isTamed || animal.isMountedByPlayer) {
     return { killed: false, remainingHp: animal.hp ?? maxHp, maxHp };
@@ -546,7 +712,8 @@ export function damageGroundAnimal(
     return { killed: true, remainingHp: 0, maxHp };
   }
   const currentHp = animal.hp ?? maxHp;
-  const effectiveDamage = Math.max(1, damage);
+  const { defenseReduction } = getAnimalStrengthAndLevel(animal);
+  const effectiveDamage = Math.max(1, Math.round(damage * (1 - defenseReduction)));
   let remainingHp = Math.max(0, currentHp - effectiveDamage);
 
   // Giant Volcano Boss CatLion:
@@ -1133,9 +1300,17 @@ export function createInitialBoidBirds(): IBoidBirdState[] {
         roosting: false,
         homeX: hx,
         homeZ: hz,
+        level: 1 + (i % 3),
+        hp: 25,
+        maxHp: 25,
+        isDead: false,
+        isLooted: false,
+        groundState: 'flying',
+        groundTimer: 0,
       });
     }
   }
+  activeWorldBirdsRegistry = birds;
   return birds;
 }
 
@@ -1162,7 +1337,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     species: GroundAnimalSpecies;
     caveIndex?: number;
   }> = [
-    // Rabbits in rural meadows & pastoral trails outside safe radius & view cone (8)
+    // Rabbits in rural meadows & Hunter's Lodge woods (8)
     { x: 68, z: 26, species: 'rabbit' },
     { x: -66, z: 18, species: 'rabbit' },
     { x: 62, z: -22, species: 'rabbit' },
@@ -1171,7 +1346,10 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -72, z: 58, species: 'rabbit' },
     { x: 84, z: 48, species: 'rabbit' },
     { x: -84, z: 48, species: 'rabbit' },
-    // Squirrels in eastern birch grove & woodland trees (8)
+    // Squirrels in birch grove & woodland trees (11)
+    { x: -48, z: 14, species: 'squirrel' },
+    { x: -36, z: -24, species: 'squirrel' },
+    { x: 32, z: -28, species: 'squirrel' },
     { x: 148, z: 112, species: 'squirrel' },
     { x: 162, z: 124, species: 'squirrel' },
     { x: 138, z: 98, species: 'squirrel' },
@@ -1245,6 +1423,14 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -442, z: 318, species: 'rhino' },
     // Colossal Ancient Dragon Ruins Dragon (250 HP, vulnerable to arrows & sword)
     { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z - 2, species: 'dragon' },
+    // Additional Hunter's Lodge & Meadow Rabbits and Tree-Climbing Squirrels (7)
+    { x: -42, z: 34, species: 'rabbit' },
+    { x: -18, z: 46, species: 'rabbit' },
+    { x: 44, z: 38, species: 'rabbit' },
+    { x: -78, z: 54, species: 'squirrel' },
+    { x: -86, z: 62, species: 'squirrel' },
+    { x: -68, z: 42, species: 'squirrel' },
+    { x: -58, z: 26, species: 'squirrel' },
   ];
 
   for (let i = 0; i < spawnCandidates.length; i++) {
@@ -1254,7 +1440,26 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     const isVolcanoSanctumMysticLion =
       c.species === 'lion' &&
       Math.hypot(c.x - VOLCANO_SANCTUM_POS.x, c.z - VOLCANO_SANCTUM_POS.z) < 10.0;
-    const maxHp = isVolcanoSanctumMysticLion ? 360 : getAnimalMaxHp(c.species);
+    const level = isVolcanoSanctumMysticLion
+      ? 15
+      : c.species === 'dragon'
+        ? 18
+        : c.species === 'lion'
+          ? 8 + (i % 3)
+          : c.species === 'bear' || c.species === 'rhino'
+            ? 7 + (i % 3)
+            : c.species === 'crocodile' || c.species === 'stag'
+              ? 5 + (i % 3)
+              : c.species === 'jaguar'
+                ? 5 + (i % 3)
+                : c.species === 'wolf'
+                  ? 3 + (i % 3)
+                  : c.species === 'deer'
+                    ? 2 + (i % 3)
+                    : c.species === 'sheep'
+                      ? 2 + (i % 2)
+                      : 1 + (i % 3);
+    const maxHp = getAnimalMaxHp(c.species, level, isVolcanoSanctumMysticLion);
     animals.push({
       id: i,
       species: c.species,
@@ -1285,21 +1490,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       wokenUpTimer: 0,
       hp: maxHp,
       maxHp,
-      level: isVolcanoSanctumMysticLion
-        ? 10
-        : c.species === 'dragon'
-          ? 12
-          : c.species === 'lion'
-            ? 6 + (i % 2)
-            : c.species === 'bear' || c.species === 'rhino'
-              ? 5 + (i % 2)
-              : c.species === 'crocodile' || c.species === 'stag'
-                ? 4 + (i % 2)
-                : c.species === 'jaguar'
-                  ? 3 + (i % 2)
-                  : c.species === 'wolf'
-                    ? 2 + (i % 2)
-                    : 1,
+      level,
       hitReactionTimer: 0,
       isDead: false,
       isLooted: false,
@@ -1841,6 +2032,42 @@ export function stepSmallAnimals(
     }
     if ((a.attackHitCooldownTimer ?? 0) > 0) {
       a.attackHitCooldownTimer = Math.max(0, (a.attackHitCooldownTimer ?? 0) - safeDt);
+    }
+    if ((a.bearTrapSlowTimer ?? 0) > 0) {
+      a.bearTrapSlowTimer = Math.max(0, (a.bearTrapSlowTimer ?? 0) - safeDt);
+    }
+
+    // Heavy Steel Bear Trap (`trap_bear_jaw`) clamped to Bear's front paw:
+    // Bear stops in place and plays its 4-legged roar animation (`aiBehavior = 'roaring'`) for 2.4s.
+    // Once the roar animation finishes, the trap disappears and the bear immediately resumes chasing with -10% speed for 7s!
+    if ((a.trappedByBearJawTimer ?? 0) > 0) {
+      a.trappedByBearJawTimer = Math.max(0, (a.trappedByBearJawTimer ?? 0) - safeDt);
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'curious';
+      a.pounceHeight = 0;
+      a.vx = 0;
+      a.vz = 0;
+      if ((a.trappedByBearJawTimer ?? 0) > 0) {
+        a.aiBehavior = 'roaring';
+        a.actionTimer = a.trappedByBearJawTimer;
+        if (distP > 0.35) {
+          const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+          a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 4.0, safeDt);
+        }
+        continue;
+      } else {
+        // Roar finished -> trap vanishes from paw and bear resumes chasing the player!
+        a.aiBehavior = 'charging';
+        a.actionTimer = 0;
+        a.roarWarningDone = true;
+        a.stompWarningDone = true;
+        a.wokenUpTimer = 22.0;
+        a.stimulusX = playerX;
+        a.stimulusZ = playerZ;
+      }
     }
 
     // The Southern Ruins Dragon's 3D flight/landing/resting/fire-breathing trajectory is driven by sanctuaryAndDragonModels.ts
@@ -2737,6 +2964,12 @@ export function stepSmallAnimals(
         }
       }
 
+      // Apply 10% speed reduction for 7 seconds after a Bear Trap (`trap_bear_jaw`) finishes its roar on a Bear
+      if (a.species === 'bear' && (a.bearTrapSlowTimer ?? 0) > 0) {
+        a.vx *= 0.90;
+        a.vz *= 0.90;
+      }
+
       if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
         const rawNextX = a.x + a.vx * safeDt;
         const rawNextZ = a.z + a.vz * safeDt;
@@ -2859,9 +3092,71 @@ export function stepSmallAnimals(
 
     // -------------------------------------------------------------------------
     // 3. HERBIVORE & SMALL WILDLIFE AI (DEER, SHEEP, RABBIT, SQUIRREL)
-    //    Includes Deer upright listening/evaluating behavior before deciding
-    //    whether to return to grazing or flee!
+    //    Includes Realistic Baited Trap Scent Delay & Cautious Approach for
+    //    Rabbits & Squirrels, Smart Tree-Climbing Squirrel AI, and Deer listening!
     // -------------------------------------------------------------------------
+    if (a.species === 'rabbit' || a.species === 'squirrel') {
+      const placedTraps = getActivePlacedTrapsRef();
+      let nearestBaitedTrap: { x: number; z: number; dist: number } | null = null;
+      for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
+        const tr = placedTraps[tIdx];
+        if (tr.status !== 'armed') continue;
+        if (tr.kind !== 'trap_cage_small' && tr.kind !== 'trap_snare') continue;
+        // Require trap to sit armed for at least 10 seconds before wildlife notices the bait scent!
+        if (tr.armedDuration < 10.0) continue;
+        const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
+        if (dTrap <= 34.0 && (!nearestBaitedTrap || dTrap < nearestBaitedTrap.dist)) {
+          nearestBaitedTrap = { x: tr.x, z: tr.z, dist: dTrap };
+        }
+      }
+      if (nearestBaitedTrap && nearestBaitedTrap.dist > 0.05) {
+        a.isResting = false;
+        a.isSeekingShelter = false;
+        a.isFleeing = false;
+        a.fleeCooldown = 0;
+        // If this is a squirrel currently up on a tree trunk, make it climb down the trunk first!
+        if (
+          a.species === 'squirrel' &&
+          (a.treeState === 'perched' || a.treeState === 'climb_up' || a.treeState === 'canopy_leap')
+        ) {
+          a.treeState = 'climb_down';
+        }
+        // Only walk along the ground toward the trap once on the ground
+        if (a.species !== 'squirrel' || !a.treeState || a.treeState === 'ground_forage' || a.treeState === 'running_to_tree') {
+          a.treeState = 'ground_forage';
+          a.treeClimbPitch = 0;
+          // Cautious foraging approach with periodic sniffing/hesitation pauses
+          const sniffWave = Math.sin(elapsedTime * 2.15 + a.id * 1.83);
+          const isSniffPausing = sniffWave > 0.54 && nearestBaitedTrap.dist > 1.25;
+          if (isSniffPausing) {
+            a.alertLevel = 'curious';
+            a.aiBehavior = 'listening';
+            a.vx = 0;
+            a.vz = 0;
+            const lookYaw = Math.atan2(nearestBaitedTrap.x - a.x, nearestBaitedTrap.z - a.z);
+            a.yaw = rotateYawSmoothlyToward(a.yaw, lookYaw, 5.0, safeDt);
+          } else {
+            a.alertLevel = 'grazing';
+            a.aiBehavior = 'wandering';
+            const lureSpd = 1.45;
+            const baseAng = Math.atan2(nearestBaitedTrap.x - a.x, nearestBaitedTrap.z - a.z);
+            const weave = nearestBaitedTrap.dist > 2.2 ? Math.sin(elapsedTime * 1.9 + a.id) * 0.22 : 0;
+            const moveAng = baseAng + weave;
+            a.vx = Math.sin(moveAng) * lureSpd;
+            a.vz = Math.cos(moveAng) * lureSpd;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, moveAng, 6.5, safeDt);
+            a.hopPhase += safeDt * 9.5;
+            const rawNextX = a.x + a.vx * safeDt;
+            const rawNextZ = a.z + a.vz * safeDt;
+            const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
+            const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+            advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+          }
+          continue;
+        }
+      }
+    }
+
     let nearestThreatX = playerX;
     let nearestThreatZ = playerZ;
     let minThreatDist = distP;
@@ -3004,7 +3299,378 @@ export function stepSmallAnimals(
       }
     }
 
+    // -------------------------------------------------------------------------
+    // SMART TREE-CLIMBING & FORAGING SQUIRREL AI
+    // Squirrels dynamically climb real woodland tree trunks, perch at varying
+    // heights/angles, leap across adjacent canopies, forage on the forest floor
+    // in curved non-repetitive patterns, and scramble up the nearest tree when startled!
+    // -------------------------------------------------------------------------
+    if (a.species === 'squirrel') {
+      const findCandidateTrees = (searchRad: number) => {
+        const obs = getNearbyWorldObstacles(a.x, a.z, searchRad);
+        const trees: Array<{
+          x: number;
+          z: number;
+          baseY: number;
+          trunkRad: number;
+          maxPerchH: number;
+          dist: number;
+        }> = [];
+        for (let oIdx = 0; oIdx < obs.length; oIdx++) {
+          const o = obs[oIdx];
+          if (o.kind !== 'pine' && o.kind !== 'oak' && o.kind !== 'birch') continue;
+          const by = groundHeightAt(o.x, o.z);
+          if (by <= WATER_LEVEL + 0.35) continue;
+          const sc = o.scale ?? 1.0;
+          const trRad = Math.max(0.28, (o.radius ?? 0.42) * 0.85);
+          const maxH = (o.kind === 'pine' ? 3.2 : 2.55) * sc;
+          trees.push({
+            x: o.x,
+            z: o.z,
+            baseY: by - 0.05,
+            trunkRad: trRad,
+            maxPerchH: Math.max(1.8, Math.min(3.6, maxH)),
+            dist: Math.hypot(o.x - a.x, o.z - a.z),
+          });
+        }
+        trees.sort((t1, t2) => t1.dist - t2.dist);
+        return trees;
+      };
+
+      // Initialize squirrel state on first tick near a real tree
+      if (!a.treeState) {
+        a.decisionCounter = a.id * 5;
+        const initTrees = findCandidateTrees(24.0);
+        if (initTrees.length > 0 && a.id % 2 === 0) {
+          const t0 = initTrees[0];
+          const ang = (a.id * 1.7) % (Math.PI * 2);
+          const perchH = 1.65 + hash2D(a.id, 31) * (t0.maxPerchH - 1.65);
+          a.treeState = 'perched';
+          a.treeObstacleX = t0.x;
+          a.treeObstacleZ = t0.z;
+          a.treeBaseY = t0.baseY;
+          a.treeTrunkRadius = t0.trunkRad;
+          a.treeTargetHeight = perchH;
+          a.treeClimbAngle = ang;
+          a.treeClimbPitch = -Math.PI * 0.38;
+          a.treeStateTimer = 2.0 + hash2D(a.id, 47) * 2.8;
+          a.x = t0.x + Math.cos(ang) * t0.trunkRad;
+          a.z = t0.z + Math.sin(ang) * t0.trunkRad;
+          a.y = t0.baseY + perchH;
+        } else {
+          a.treeState = 'ground_forage';
+          a.treeClimbPitch = 0;
+          a.treeStateTimer = 1.8 + hash2D(a.id, 59) * 2.2;
+        }
+      }
+
+      // If startled/fleeing while on the ground, bolt toward the safest nearby tree trunk and climb up!
+      if (a.alertLevel === 'fleeing') {
+        if (a.treeState === 'ground_forage' || a.treeState === 'running_to_tree') {
+          const fleeTrees = findCandidateTrees(18.0);
+          const awayX = a.x - nearestThreatX;
+          const awayZ = a.z - nearestThreatZ;
+          const awayLen = Math.hypot(awayX, awayZ) || 1;
+          let bestEscapeTree = fleeTrees[0];
+          let bestScore = -Infinity;
+          for (let tIdx = 0; tIdx < fleeTrees.length; tIdx++) {
+            const ft = fleeTrees[tIdx];
+            const toTreeX = ft.x - a.x;
+            const toTreeZ = ft.z - a.z;
+            const toTreeLen = Math.max(0.1, ft.dist);
+            const alignAway = (toTreeX * awayX + toTreeZ * awayZ) / (toTreeLen * awayLen);
+            const score = alignAway * 2.5 - ft.dist * 0.18;
+            if (score > bestScore) {
+              bestScore = score;
+              bestEscapeTree = ft;
+            }
+          }
+          if (bestEscapeTree && bestEscapeTree.dist <= 15.0 && bestEscapeTree.dist > bestEscapeTree.trunkRad + 0.25) {
+            a.treeState = 'running_to_tree';
+            a.treeObstacleX = bestEscapeTree.x;
+            a.treeObstacleZ = bestEscapeTree.z;
+            a.treeBaseY = bestEscapeTree.baseY;
+            a.treeTrunkRadius = bestEscapeTree.trunkRad;
+            a.treeTargetHeight = bestEscapeTree.maxPerchH;
+            a.treeClimbPitch = 0;
+            const dx = bestEscapeTree.x - a.x;
+            const dz = bestEscapeTree.z - a.z;
+            const d = Math.hypot(dx, dz) || 1;
+            const fleeSpd = SPECIES_PROFILES.squirrel.preyFleeSpeed;
+            a.vx = (dx / d) * fleeSpd;
+            a.vz = (dz / d) * fleeSpd;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 10.0, safeDt);
+            a.hopPhase += safeDt * 18.0;
+            const nextX = a.x + a.vx * safeDt;
+            const nextZ = a.z + a.vz * safeDt;
+            if (Math.hypot(bestEscapeTree.x - nextX, bestEscapeTree.z - nextZ) <= bestEscapeTree.trunkRad + 0.22) {
+              a.treeState = 'climb_up';
+              a.treeClimbAngle = Math.atan2(nextZ - bestEscapeTree.z, nextX - bestEscapeTree.x);
+              a.vx = 0;
+              a.vz = 0;
+            } else {
+              a.x = nextX;
+              a.z = nextZ;
+              a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
+            }
+            continue;
+          }
+        } else if (a.treeState === 'perched' || a.treeState === 'climb_down') {
+          // If startled while on a tree trunk, scramble up higher on the opposite side of the trunk away from the player!
+          a.treeState = 'climb_up';
+          a.treeTargetHeight = Math.max(a.treeTargetHeight ?? 2.6, 3.1);
+        }
+      }
+
+      // Execute vertical tree states ('climb_up', 'perched', 'canopy_leap', 'climb_down')
+      if (
+        a.treeState === 'climb_up' &&
+        a.treeObstacleX !== undefined &&
+        a.treeObstacleZ !== undefined
+      ) {
+        const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+        const trunkRad = a.treeTrunkRadius ?? 0.36;
+        const targetH = a.treeTargetHeight ?? 2.5;
+        const climbSpd = a.alertLevel === 'fleeing' ? 2.85 : 1.75;
+        const spiralDir = a.id % 2 === 0 ? 1 : -1;
+        a.treeClimbAngle = (a.treeClimbAngle ?? 0) + safeDt * 1.45 * spiralDir;
+        a.y = Math.min(baseY + targetH, a.y + climbSpd * safeDt);
+        a.x = a.treeObstacleX + Math.cos(a.treeClimbAngle) * trunkRad;
+        a.z = a.treeObstacleZ + Math.sin(a.treeClimbAngle) * trunkRad;
+        a.vx = 0;
+        a.vz = 0;
+        a.treeClimbPitch = -Math.PI * 0.42;
+        a.yaw = Math.atan2(-Math.cos(a.treeClimbAngle), -Math.sin(a.treeClimbAngle));
+        a.hopPhase += safeDt * 15.0;
+        if (a.y >= baseY + targetH - 0.04) {
+          a.treeState = 'perched';
+          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+          a.treeStateTimer = 2.4 + hash2D(a.decisionCounter, a.id + 19) * 3.2;
+        }
+        continue;
+      }
+
+      if (
+        a.treeState === 'perched' &&
+        a.treeObstacleX !== undefined &&
+        a.treeObstacleZ !== undefined
+      ) {
+        const trunkRad = a.treeTrunkRadius ?? 0.36;
+        const baseAng = a.treeClimbAngle ?? 0;
+        const swayAng = baseAng + Math.sin(elapsedTime * 1.1 + a.id) * 0.16;
+        a.x = a.treeObstacleX + Math.cos(swayAng) * trunkRad;
+        a.z = a.treeObstacleZ + Math.sin(swayAng) * trunkRad;
+        a.vx = 0;
+        a.vz = 0;
+        a.treeClimbPitch = -Math.PI * 0.36;
+        a.yaw = Math.atan2(-Math.cos(swayAng), -Math.sin(swayAng)) + Math.sin(elapsedTime * 2.2 + a.id) * 0.25;
+        a.treeStateTimer = (a.treeStateTimer ?? 2.5) - safeDt;
+        if (a.treeStateTimer <= 0) {
+          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+          const dc = a.decisionCounter;
+          const nearbyTrees = findCandidateTrees(14.0).filter(
+            (t) =>
+              Math.hypot(t.x - a.treeObstacleX!, t.z - a.treeObstacleZ!) > 2.2 &&
+              (a.lastTreeX === undefined || Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5)
+          );
+          if (nearbyTrees.length > 0 && nearbyTrees[0].dist <= 8.5 && dc % 3 === 0) {
+            // Agile canopy leap to a neighboring tree!
+            const pickIdx = dc % Math.min(3, nearbyTrees.length);
+            const nextTree = nearbyTrees[pickIdx];
+            const landAng = Math.atan2(a.z - nextTree.z, a.x - nextTree.x);
+            const nextPerchH = 1.6 + hash2D(dc, a.id + 71) * (nextTree.maxPerchH - 1.6);
+            a.lastTreeX = a.treeObstacleX;
+            a.lastTreeZ = a.treeObstacleZ;
+            a.leapStartX = a.x;
+            a.leapStartY = a.y;
+            a.leapStartZ = a.z;
+            a.leapEndX = nextTree.x + Math.cos(landAng) * nextTree.trunkRad;
+            a.leapEndY = nextTree.baseY + nextPerchH;
+            a.leapEndZ = nextTree.z + Math.sin(landAng) * nextTree.trunkRad;
+            a.treeObstacleX = nextTree.x;
+            a.treeObstacleZ = nextTree.z;
+            a.treeBaseY = nextTree.baseY;
+            a.treeTrunkRadius = nextTree.trunkRad;
+            a.treeTargetHeight = nextPerchH;
+            a.treeClimbAngle = landAng;
+            a.leapDuration = Math.max(0.55, Math.min(0.95, nextTree.dist * 0.11));
+            a.treeStateTimer = a.leapDuration;
+            a.treeState = 'canopy_leap';
+          } else if (dc % 4 === 1) {
+            // Scramble to a higher or different branch position on the same trunk
+            const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+            const newTargetH = 1.5 + hash2D(dc, a.id + 37) * 1.9;
+            a.treeTargetHeight = newTargetH;
+            if (newTargetH > a.y - baseY) {
+              a.treeState = 'climb_up';
+            } else {
+              a.treeState = 'climb_down';
+            }
+          } else {
+            // Climb down the trunk to forage on the ground
+            a.treeState = 'climb_down';
+          }
+        }
+        continue;
+      }
+
+      if (a.treeState === 'canopy_leap') {
+        const dur = Math.max(0.2, a.leapDuration ?? 0.75);
+        a.treeStateTimer = Math.max(0, (a.treeStateTimer ?? dur) - safeDt);
+        const p = 1.0 - (a.treeStateTimer ?? 0) / dur;
+        const sx = a.leapStartX ?? a.x;
+        const sy = a.leapStartY ?? a.y;
+        const sz = a.leapStartZ ?? a.z;
+        const ex = a.leapEndX ?? a.x;
+        const ey = a.leapEndY ?? a.y;
+        const ez = a.leapEndZ ?? a.z;
+        a.x = sx + (ex - sx) * p;
+        a.z = sz + (ez - sz) * p;
+        a.y = sy + (ey - sy) * p + Math.sin(p * Math.PI) * 1.35;
+        a.vx = 0;
+        a.vz = 0;
+        a.treeClimbPitch = (p - 0.5) * 0.85;
+        a.yaw = Math.atan2(ex - sx, ez - sz);
+        a.hopPhase += safeDt * 18.0;
+        if (p >= 1.0) {
+          a.treeState = 'perched';
+          a.treeStateTimer = 2.2 + hash2D(a.decisionCounter ?? 1, a.id + 53) * 2.8;
+        }
+        continue;
+      }
+
+      if (
+        a.treeState === 'climb_down' &&
+        a.treeObstacleX !== undefined &&
+        a.treeObstacleZ !== undefined
+      ) {
+        const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+        const trunkRad = a.treeTrunkRadius ?? 0.36;
+        const spiralDir = a.id % 2 === 0 ? -1 : 1;
+        a.treeClimbAngle = (a.treeClimbAngle ?? 0) + safeDt * 1.55 * spiralDir;
+        a.y = Math.max(baseY + 0.1, a.y - 2.05 * safeDt);
+        a.x = a.treeObstacleX + Math.cos(a.treeClimbAngle) * trunkRad;
+        a.z = a.treeObstacleZ + Math.sin(a.treeClimbAngle) * trunkRad;
+        a.vx = 0;
+        a.vz = 0;
+        a.treeClimbPitch = Math.PI * 0.42;
+        a.yaw = Math.atan2(Math.cos(a.treeClimbAngle), Math.sin(a.treeClimbAngle));
+        a.hopPhase += safeDt * 15.0;
+        if (a.y <= baseY + 0.14) {
+          // Step cleanly onto the forest floor outside the trunk collider and pick a smart foraging target
+          const outAng = a.treeClimbAngle + (hash2D(a.decisionCounter ?? 1, a.id) - 0.5) * 0.9;
+          const stepOut = trunkRad + 0.42;
+          a.lastTreeX = a.treeObstacleX;
+          a.lastTreeZ = a.treeObstacleZ;
+          a.x = a.treeObstacleX + Math.cos(outAng) * stepOut;
+          a.z = a.treeObstacleZ + Math.sin(outAng) * stepOut;
+          a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
+          a.treeClimbPitch = 0;
+          a.treeState = 'ground_forage';
+          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+          const forageDist = 3.2 + hash2D(a.decisionCounter, a.id + 83) * 5.2;
+          a.forageTargetX = a.x + Math.cos(outAng) * forageDist;
+          a.forageTargetZ = a.z + Math.sin(outAng) * forageDist;
+          a.treeStateTimer = 3.2 + hash2D(a.decisionCounter, a.id + 97) * 3.0;
+        }
+        continue;
+      }
+
+      if (
+        a.treeState === 'running_to_tree' &&
+        a.treeObstacleX !== undefined &&
+        a.treeObstacleZ !== undefined &&
+        a.alertLevel !== 'fleeing'
+      ) {
+        a.treeClimbPitch = 0;
+        const dx = a.treeObstacleX - a.x;
+        const dz = a.treeObstacleZ - a.z;
+        const distToTrunk = Math.hypot(dx, dz);
+        const trunkRad = a.treeTrunkRadius ?? 0.36;
+        if (distToTrunk <= trunkRad + 0.24) {
+          a.treeState = 'climb_up';
+          a.treeClimbAngle = Math.atan2(a.z - a.treeObstacleZ, a.x - a.treeObstacleX);
+          a.vx = 0;
+          a.vz = 0;
+          continue;
+        }
+        const runSpd = 2.85;
+        a.vx = (dx / (distToTrunk || 1)) * runSpd;
+        a.vz = (dz / (distToTrunk || 1)) * runSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
+        a.hopPhase += safeDt * 13.5;
+        a.x += a.vx * safeDt;
+        a.z += a.vz * safeDt;
+        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
+        continue;
+      }
+
+      // Ground foraging state ('ground_forage') when calm:
+      if (a.alertLevel !== 'fleeing' && !isRaining) {
+        a.treeClimbPitch = 0;
+        a.treeStateTimer = (a.treeStateTimer ?? 3.0) - safeDt;
+        if (a.treeStateTimer <= 0) {
+          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+          const dc = a.decisionCounter;
+          // Every 2nd or 3rd ground decision, pick a varied nearby tree (not the last tree!) and go climb it
+          const candidateTrees = findCandidateTrees(24.0).filter(
+            (t) =>
+              a.lastTreeX === undefined ||
+              Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5
+          );
+          if (candidateTrees.length > 0 && dc % 2 === 0) {
+            const pickIdx = dc % Math.min(4, candidateTrees.length);
+            const chosenTree = candidateTrees[pickIdx];
+            a.treeObstacleX = chosenTree.x;
+            a.treeObstacleZ = chosenTree.z;
+            a.treeBaseY = chosenTree.baseY;
+            a.treeTrunkRadius = chosenTree.trunkRad;
+            a.treeTargetHeight = 1.6 + hash2D(dc, a.id + 41) * (chosenTree.maxPerchH - 1.6);
+            a.treeState = 'running_to_tree';
+            continue;
+          } else {
+            // Pick a fresh curved ground foraging waypoint around the meadow/forest
+            const baseAng = hash2D(dc * 11, a.id + 23) * Math.PI * 2;
+            const dist = 2.8 + hash2D(dc * 17, a.id + 61) * 5.5;
+            a.forageTargetX = a.homeX + Math.cos(baseAng) * dist;
+            a.forageTargetZ = a.homeZ + Math.sin(baseAng) * dist;
+            a.treeStateTimer = 2.6 + hash2D(dc, a.id + 89) * 2.8;
+          }
+        }
+
+        const nibbleWave = Math.sin(elapsedTime * 2.3 + a.id * 1.4);
+        const fx = a.forageTargetX ?? a.homeX;
+        const fz = a.forageTargetZ ?? a.homeZ;
+        const df = Math.hypot(fx - a.x, fz - a.z);
+        if (nibbleWave > 0.35 || df < 0.45) {
+          // Pause to nibble an acorn & look around
+          a.aiBehavior = 'grazing';
+          a.vx = 0;
+          a.vz = 0;
+        } else {
+          a.aiBehavior = 'wandering';
+          const curveOffset = Math.sin(elapsedTime * 1.6 + a.id) * 0.45;
+          const dirAng = Math.atan2(fx - a.x, fz - a.z) + curveOffset;
+          const spd = SPECIES_PROFILES.squirrel.grazeSpeed;
+          a.vx = Math.sin(dirAng) * spd;
+          a.vz = Math.cos(dirAng) * spd;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, dirAng, 6.5, safeDt);
+          a.hopPhase += safeDt * SPECIES_PROFILES.squirrel.grazeHopRate;
+          const rawNextX = a.x + a.vx * safeDt;
+          const rawNextZ = a.z + a.vz * safeDt;
+          const resolved = resolveAnimalObstacleCollision(
+            rawNextX,
+            rawNextZ,
+            SPECIES_PROFILES.squirrel.preyBodyRadius
+          );
+          advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+        }
+        continue;
+      }
+    }
+
     if (a.alertLevel === 'fleeing') {
+      a.treeClimbPitch = 0;
       const awayX = a.x - nearestThreatX;
       const awayZ = a.z - nearestThreatZ;
       const len = Math.hypot(awayX, awayZ) || 1;
@@ -3166,12 +3832,74 @@ export function stepBoidsAndWildlife(
   let startledFlockCount = 0;
   let nearestBirdDist = Infinity;
 
-  // --- 1. STEP FLOCKING BIRDS (3D REYNOLDS BOIDS) ---
+  // --- 1. STEP FLOCKING BIRDS (3D REYNOLDS BOIDS + BAITED TRAP LANDING/WALKING/EATING) ---
+  activeWorldBirdsRegistry = birds;
   const perceptionRadius = 16.0;
   const separationDist = 3.8;
+  const placedTraps = getActivePlacedTrapsRef();
+
+  // Assign a live bird to any armed Baited Bird Net Trap (`trap_net`) after a realistic 9.0s notice delay
+  for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
+    const trap = placedTraps[tIdx];
+    if (trap.status !== 'armed' || trap.kind !== 'trap_net') continue;
+    if (trap.armedDuration < 9.0) continue;
+    let assignedBird: IBoidBirdState | null = null;
+    for (let bIdx = 0; bIdx < birds.length; bIdx++) {
+      const candidate = birds[bIdx];
+      if (!candidate.isDead && !candidate.isLooted && candidate.targetTrapId === trap.id) {
+        assignedBird = candidate;
+        break;
+      }
+    }
+    if (!assignedBird) {
+      let bestBird: IBoidBirdState | null = null;
+      let bestDist = Infinity;
+      for (let bIdx = 0; bIdx < birds.length; bIdx++) {
+        const candidate = birds[bIdx];
+        if (candidate.isDead || candidate.isLooted || candidate.targetTrapId) continue;
+        const d = Math.hypot(candidate.x - trap.x, candidate.z - trap.z);
+        if (d < bestDist) {
+          bestDist = d;
+          bestBird = candidate;
+        }
+      }
+      if (bestBird) {
+        const landAngle = (bestBird.id * 1.618) % (Math.PI * 2);
+        const landRadius = 4.4;
+        bestBird.targetTrapId = trap.id;
+        bestBird.groundState = 'descending';
+        bestBird.groundTimer = 0;
+        bestBird.landingX = trap.x + Math.cos(landAngle) * landRadius;
+        bestBird.landingZ = trap.z + Math.sin(landAngle) * landRadius;
+        bestBird.startleTimer = 0;
+        bestBird.fleeTimer = 0;
+        // If the bird was very far away across the map, bring it within 22m overhead so the player sees it glide down and land!
+        if (bestDist > 28.0) {
+          bestBird.x = trap.x + Math.cos(landAngle) * 18.0;
+          bestBird.z = trap.z + Math.sin(landAngle) * 18.0;
+          bestBird.y = trap.y + 12.0;
+        }
+      }
+    }
+  }
 
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
+    if (b.isLooted) continue;
+
+    if ((b.hitReactionTimer ?? 0) > 0 && safeDt > 0) {
+      b.hitReactionTimer = Math.max(0, (b.hitReactionTimer ?? 0) - safeDt);
+    }
+
+    // Dead birds rest on the ground waiting to be looted with [E]
+    if (b.isDead) {
+      b.vx = 0;
+      b.vy = 0;
+      b.vz = 0;
+      b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+      continue;
+    }
+
     const distToPlayer = Math.hypot(b.x - playerX, b.z - playerZ);
     if (distToPlayer < nearestBirdDist) {
       nearestBirdDist = distToPlayer;
@@ -3180,24 +3908,171 @@ export function stepBoidsAndWildlife(
     if (safeDt <= 0) continue;
 
     // Logic Culling (Sleep State): completely freeze simulation for bird boids outside the 180m active radius
-    if (playerStateRef && distToPlayer > 180.0) {
+    if (playerStateRef && distToPlayer > 180.0 && !b.targetTrapId) {
       continue;
+    }
+
+    // Check if this bird is lured by an armed Baited Bird Net Trap (`trap_net`):
+    // 1. Glides down from the sky and lands ~4.4m away from the trap
+    // 2. Walks cautiously on the ground (`'walking_to_bait'` -> `'walk'` animation) toward the grain/berry bait
+    // 3. Pecks at the food bait (`'eating_bait'` -> `'eat'` animation) for 2.2s, then triggers the net trap!
+    if (b.targetTrapId) {
+      const targetTrap = placedTraps.find(
+        (t) => t.id === b.targetTrapId && t.status === 'armed' && t.kind === 'trap_net'
+      );
+      if (!targetTrap) {
+        b.targetTrapId = undefined;
+        b.groundState = 'flying';
+      } else {
+        const landX = b.landingX ?? targetTrap.x + 4.4;
+        const landZ = b.landingZ ?? targetTrap.z;
+        const landGroundY = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(landX, landZ).height);
+
+        if (b.groundState === 'descending' || !b.groundState || b.groundState === 'flying') {
+          b.groundState = 'descending';
+          const dx = landX - b.x;
+          const dy = landGroundY - b.y;
+          const dz = landZ - b.z;
+          const dist3D = Math.hypot(dx, dy, dz);
+          if (dist3D <= 0.45) {
+            b.x = landX;
+            b.y = landGroundY;
+            b.z = landZ;
+            b.vy = 0;
+            b.groundState = 'walking_to_bait';
+          } else {
+            const swoopSpd = 4.8;
+            b.vx = (dx / dist3D) * swoopSpd;
+            b.vy = (dy / dist3D) * swoopSpd;
+            b.vz = (dz / dist3D) * swoopSpd;
+            b.x += b.vx * safeDt;
+            b.y += b.vy * safeDt;
+            b.z += b.vz * safeDt;
+            b.yaw = Math.atan2(b.vx, b.vz);
+            b.wingPhase += safeDt * 10.5;
+          }
+          continue;
+        }
+
+        if (b.groundState === 'walking_to_bait') {
+          const dx = targetTrap.x - b.x;
+          const dz = targetTrap.z - b.z;
+          const dist2D = Math.hypot(dx, dz);
+          const groundHere = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+          b.y = groundHere;
+          b.vy = 0;
+          if (dist2D <= 0.42) {
+            b.x = targetTrap.x;
+            b.z = targetTrap.z;
+            b.vx = 0;
+            b.vz = 0;
+            b.groundState = 'eating_bait';
+            b.groundTimer = 2.2;
+          } else {
+            const walkSpd = 1.25;
+            b.vx = (dx / dist2D) * walkSpd;
+            b.vz = (dz / dist2D) * walkSpd;
+            b.x += b.vx * safeDt;
+            b.z += b.vz * safeDt;
+            b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+            b.yaw = Math.atan2(b.vx, b.vz);
+            b.wingPhase += safeDt * 8.5;
+          }
+          continue;
+        }
+
+        if (b.groundState === 'eating_bait') {
+          b.vx = 0;
+          b.vy = 0;
+          b.vz = 0;
+          b.x = targetTrap.x;
+          b.z = targetTrap.z;
+          b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+          b.wingPhase += safeDt * 6.0;
+          b.groundTimer = (b.groundTimer ?? 2.2) - safeDt;
+          if ((b.groundTimer ?? 0) <= 0) {
+            const birdLevel = b.level ?? 1;
+            targetTrap.status = 'sprung';
+            targetTrap.sprung = true;
+            targetTrap.notifiedSprung = false; // tickPlacedAnimalTraps will emit the sprung notification
+            targetTrap.caughtSpecies = 'dove';
+            targetTrap.caughtAnimalLevel = birdLevel;
+            targetTrap.caughtAnimalName = 'Wild Dove';
+            targetTrap.loot = generateCaughtAnimalLoot('dove', birdLevel, 'trap_net');
+            targetTrap.xp = Math.round(38 * (1 + (birdLevel - 1) * 0.25));
+            b.isDead = true;
+            b.isLooted = true;
+            b.targetTrapId = undefined;
+          }
+          continue;
+        }
+      }
     }
 
     const birdStartleDist = isPlayerSneaking ? 4.5 : 14.0;
     if (
       distToPlayer < birdStartleDist &&
-      (playerSpeed > (isPlayerSneaking ? 3.5 : 2.5) || bowDrawn)
+      (playerSpeed > (isPlayerSneaking ? 3.5 : 2.5) || bowDrawn || isAttacking)
     ) {
       b.startleTimer = 4.0;
       b.fleeTimer = 4.0;
       b.roosting = false;
+      b.groundState = 'flying';
       startledFlockCount++;
     }
 
     if (b.startleTimer > 0) {
       b.startleTimer = Math.max(0, b.startleTimer - safeDt);
       b.fleeTimer = b.startleTimer;
+    }
+
+    // Periodic natural ground foraging for select flock birds (land, walk on ground, and eat seeds when calm)
+    if (
+      !isNightRest &&
+      b.startleTimer <= 0 &&
+      distToPlayer > birdStartleDist + 2.0 &&
+      b.id % 6 === 0
+    ) {
+      const cycle = (elapsedTime + b.id * 7.3) % 32.0;
+      const forageGroundY = walkableHeightAt(b.x, b.z).height;
+      if (cycle < 14.0 && forageGroundY > WATER_LEVEL + 0.4) {
+        if (b.y > forageGroundY + 0.35) {
+          b.groundState = 'descending';
+          b.vx = Math.cos(b.id) * 2.4;
+          b.vz = Math.sin(b.id) * 2.4;
+          b.vy = -4.8;
+          b.x += b.vx * safeDt;
+          b.z += b.vz * safeDt;
+          b.y = Math.max(forageGroundY, b.y + b.vy * safeDt);
+          b.yaw = Math.atan2(b.vx, b.vz);
+          b.wingPhase += safeDt * 10.0;
+          continue;
+        } else if (cycle < 9.0) {
+          b.groundState = 'walking_to_bait';
+          const walkAng = b.id * 1.7 + Math.floor(elapsedTime * 0.25);
+          b.vx = Math.cos(walkAng) * 1.4;
+          b.vz = Math.sin(walkAng) * 1.4;
+          b.vy = 0;
+          b.x += b.vx * safeDt;
+          b.z += b.vz * safeDt;
+          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightAt(b.x, b.z).height);
+          b.yaw = Math.atan2(b.vx, b.vz);
+          b.wingPhase += safeDt * 8.0;
+          continue;
+        } else {
+          b.groundState = 'eating_bait';
+          b.vx = 0;
+          b.vy = 0;
+          b.vz = 0;
+          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightAt(b.x, b.z).height);
+          b.wingPhase += safeDt * 5.0;
+          continue;
+        }
+      } else {
+        b.groundState = 'flying';
+      }
+    } else {
+      b.groundState = 'flying';
     }
 
     b.roosting = isNightRest && b.startleTimer <= 0;
@@ -3222,7 +4097,7 @@ export function stepBoidsAndWildlife(
     for (let j = 0; j < birds.length; j++) {
       if (i === j) continue;
       const other = birds[j];
-      if (other.roosting) continue;
+      if (other.roosting || other.isDead || other.groundState !== 'flying') continue;
       const dx = other.x - b.x;
       const dy = other.y - b.y;
       const dz = other.z - b.z;
@@ -3308,6 +4183,7 @@ export function stepBoidsAndWildlife(
     b.x += b.vx * safeDt;
     b.y += b.vy * safeDt;
     b.z += b.vz * safeDt;
+    b.yaw = Math.atan2(b.vx, b.vz);
     b.wingPhase += safeDt * (b.startleTimer > 0 ? 18.0 : 10.5);
   }
 

@@ -50,8 +50,10 @@ import {
 import {
   BASE_ARROW_HIT_DAMAGE,
   getActiveWorldAnimals,
+  getActiveWorldBirds,
   damageGroundAnimal,
   type ISmallAnimalState,
+  type IBoidBirdState,
 } from './boidsAndWildlifeSystem';
 // #endregion
 
@@ -415,6 +417,7 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
  * so multiple copies can be bought, stored, or carried.
  */
 export function isStackableInventoryItem(itemId: InventoryItemId): boolean {
+  if (itemId.startsWith('trap_')) return true;
   const def = INVENTORY_ITEM_MAP.get(itemId);
   if (!def) return false;
   return def.category === 'ammo' || def.category === 'materials' || def.category === 'food';
@@ -1209,7 +1212,7 @@ export function evaluateSwordStrikeWindowHit(
                         ? 1.48
                         : anim.species === 'sheep'
                           ? 1.15
-                          : 0.95;
+                          : 1.35;
       // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
       const animGroundY = anim.y ?? walkableHeightAt(anim.x, anim.z).height;
       const animCenterY =
@@ -1230,7 +1233,7 @@ export function evaluateSwordStrikeWindowHit(
                       ? 0.55
                       : anim.species === 'crocodile'
                         ? 0.65
-                        : 0.25);
+                        : 0.35);
       const animHalfH =
         anim.species === 'dragon'
           ? 4.2
@@ -1240,9 +1243,9 @@ export function evaluateSwordStrikeWindowHit(
               ? 2.25
               : anim.species === 'deer' || anim.species === 'stag'
                 ? 1.55
-                : 1.45;
+                : 1.65;
       if (
-        Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.2) &&
+        Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.25) &&
         Math.abs(sy - animCenterY) <= animHalfH
       ) {
         const dmgRes = damageGroundAnimal(
@@ -1262,6 +1265,34 @@ export function evaluateSwordStrikeWindowHit(
           hitTarget: null,
           hitAnimal: anim,
           killedAnimal: dmgRes.killed,
+          hitAnySurface: true,
+        };
+      }
+    }
+
+    const activeBirds = getActiveWorldBirds();
+    for (let bIdx = 0; bIdx < activeBirds.length; bIdx++) {
+      const bird = activeBirds[bIdx];
+      if (bird.isDead || bird.isLooted) continue;
+      if (
+        Math.hypot(sx - bird.x, sz - bird.z) <= 1.35 + (isHeavy ? 0.35 : 0.15) &&
+        Math.abs(sy - bird.y) <= 1.55
+      ) {
+        bird.hp = 0;
+        bird.isDead = true;
+        bird.vx = 0;
+        bird.vy = 0;
+        bird.vz = 0;
+        bird.y = walkableHeightAt(bird.x, bird.z).height;
+        state.lastSwordHitPoint = { x: bird.x, y: bird.y + 0.2, z: bird.z, age: 0, kind: 'target' };
+        state.swordHitStopTimer = 0.045;
+        awardSkillXp(state, 'swordsmanship', 22);
+        return {
+          comboIndex,
+          isHeavy,
+          hitKind: 'target',
+          hitTarget: null,
+          killedAnimal: true,
           hitAnySurface: true,
         };
       }
@@ -1648,8 +1679,8 @@ export function stepArrowsPhysics(
                         : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
                           ? 1.42
                           : anim.species === 'sheep'
-                            ? 0.92
-                            : 0.62;
+                            ? 1.05
+                            : 1.18;
         // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
         const animGroundY =
           (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);
@@ -1670,10 +1701,10 @@ export function stepArrowsPhysics(
                         ? 1.25
                         : anim.species === 'crocodile'
                           ? 1.55
-                          : 0.75;
+                          : 1.35;
         const animMaxY = animGroundY + animHeightSpan;
         const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
-        if (horizDist <= animRad && arr.y >= animGroundY - 0.2 && arr.y <= animMaxY) {
+        if (horizDist <= animRad && arr.y >= animGroundY - 0.35 && arr.y <= animMaxY) {
           const dmgRes = damageGroundAnimal(
             anim,
             BASE_ARROW_HIT_DAMAGE,
@@ -1702,6 +1733,35 @@ export function stepArrowsPhysics(
           arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
           hitAnimal = anim;
           killedAnimal = dmgRes.killed;
+          hitAnySurface = true;
+          struck = true;
+          break;
+        }
+      }
+      if (struck) break;
+
+      const activeBirds = getActiveWorldBirds();
+      for (let bIdx = 0; bIdx < activeBirds.length; bIdx++) {
+        const bird: IBoidBirdState = activeBirds[bIdx];
+        if (bird.isDead || bird.isLooted) continue;
+        const horizBirdDist = Math.hypot(arr.x - bird.x, arr.z - bird.z);
+        if (horizBirdDist <= 1.45 && Math.abs(arr.y - bird.y) <= 1.45) {
+          bird.hp = 0;
+          bird.isDead = true;
+          bird.vx = 0;
+          bird.vy = 0;
+          bird.vz = 0;
+          bird.y = walkableHeightAt(bird.x, bird.z).height;
+          arr.stuck = true;
+          arr.vx = 0;
+          arr.vy = 0;
+          arr.vz = 0;
+          arr.x = bird.x;
+          arr.y = bird.y + 0.12;
+          arr.z = bird.z;
+          arr.hitKind = 'ground';
+          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+          killedAnimal = true;
           hitAnySurface = true;
           struck = true;
           break;
