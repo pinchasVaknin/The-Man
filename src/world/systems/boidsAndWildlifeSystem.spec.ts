@@ -275,7 +275,10 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
         a.species === 'rhino' ||
         a.species === 'lion' ||
         a.species === 'stag' ||
-        a.species === 'dragon'
+        a.species === 'dragon' ||
+        a.species === 'hippo' ||
+        a.species === 'koifish' ||
+        a.species === 'dolphin'
     )
   );
   // Every animal must spawn outside the player's safe radius and outside the initial view cone!
@@ -294,6 +297,9 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   const rhinos = animals.filter((a) => a.species === 'rhino');
   const lions = animals.filter((a) => a.species === 'lion');
   const stags = animals.filter((a) => a.species === 'stag');
+  const hippos = animals.filter((a) => a.species === 'hippo');
+  const koifish = animals.filter((a) => a.species === 'koifish');
+  const dolphins = animals.filter((a) => a.species === 'dolphin');
   assert.equal(bears.length, 7, 'Expected 7 forest/mountain cavern bears (including multiple bears inside the caves)');
   assert.equal(jaguars.length, 4, 'Expected 4 jaguars in Southwest Desert & Southern Forest');
   assert.equal(crocodiles.length, 5, 'Expected 5 crocodiles at the remote Southern River Bend');
@@ -301,6 +307,9 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   assert.equal(rhinos.length, 3, 'Expected 3 savanna/oasis rhinos');
   assert.equal(lions.length, 7, 'Expected 7 Volcanic Badlands CatLions (1 Boss + 6 roaming)');
   assert.equal(stags.length, 4, 'Expected 4 royal woodland stags');
+  assert.equal(hippos.length, 5, 'Expected 5 hippos in Southwest Oasis and Southern River Wetland');
+  assert.equal(koifish.length, 7, 'Expected 7 ornamental koi fish in Lakeside Tea Pavilion and Oasis pools');
+  assert.equal(dolphins.length, 6, 'Expected 6 bottlenose dolphins in Southeast Harbor Bay and Southern Sea');
 
   // Verify Jaguars are in Southwest Desert (x < -200, z > 200) or Southern Forest (z > 200)
   for (const jag of jaguars) {
@@ -1828,6 +1837,55 @@ test('colossalVolcanoBaffledCorridorsBossArenaLockStagJumpMomentumAndSouthernMou
   assert.ok(groundHeightAt(185, 596) > 35.0, 'Eastern Mountain Range between River Gorge and Sea must be high');
   assert.ok(groundHeightAt(78, 596) > 35.0, 'Western Mountain Range immediately west of the Cliffside Pass Trail must be high');
 });
+
+test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAquaticAndSemiAquaticBiomes', () => {
+  const animals = createInitialSmallAnimals().filter(
+    (a) => a.species === 'hippo' || a.species === 'koifish' || a.species === 'dolphin'
+  );
+  assert.equal(animals.length, 18, 'Expected 5 hippos + 7 koi fish + 6 dolphins');
+
+  // Step 120 frames during daytime
+  for (let i = 0; i < 120; i++) {
+    stepSmallAnimals(animals, 0.05, i * 0.05, 0, 0, [], 1.0);
+  }
+
+  for (const a of animals) {
+    assert.ok(Number.isFinite(a.x) && Number.isFinite(a.y) && Number.isFinite(a.z));
+    if (a.species === 'koifish') {
+      const dPavilion = Math.hypot(a.x - -126, a.z - 48);
+      const dPlungePool = Math.hypot(a.x - -40, a.z - -30);
+      const dOasis = Math.hypot(a.x - -310, a.z - 319);
+      assert.ok(
+        dPavilion < 18 || dPlungePool < 18 || dOasis < 26,
+        `Koi fish at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Lakeside Pavilion pond, Waterfall Plunge Pool, or Oasis pool`
+      );
+      // Verify Koi fish always swim forward along their body heading (never sideways)
+      const spd = Math.hypot(a.vx, a.vz);
+      assert.ok(spd > 0.2, 'Koi fish must actively swim');
+      const forwardDot = (a.vx * Math.sin(a.yaw) + a.vz * Math.cos(a.yaw)) / spd;
+      assert.ok(
+        forwardDot > 0.98,
+        `Koi fish velocity must be strictly aligned with body yaw (got dot=${forwardDot.toFixed(3)})`
+      );
+    } else if (a.species === 'dolphin') {
+      const dHarborBay = Math.hypot(a.x - 330, a.z - 256);
+      const dShippingLane = Math.hypot(a.x - 465, a.z - 237);
+      const dAtlantis = Math.hypot(a.x - 862, a.z - 415);
+      assert.ok(
+        dHarborBay < 55 || dShippingLane < 55 || dAtlantis < 60,
+        `Dolphin at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Southeast Harbor Bay, Eastern Shipping Lane, or Atlantis Waters`
+      );
+    } else if (a.species === 'hippo') {
+      const dOasis = Math.hypot(a.x - -310, a.z - 319);
+      const dSwamp = Math.hypot(a.x - -175, a.z - 435);
+      assert.ok(
+        dOasis < 45 || dSwamp < 48,
+        `Hippo at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Southwest Oasis or Murky Swamp`
+      );
+    }
+  }
+});
 // #endregion
+
 
 

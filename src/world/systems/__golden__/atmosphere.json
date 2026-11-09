@@ -1328,21 +1328,21 @@
   {
    "boltOriginX": -193.494797,
    "boltOriginZ": -124.950414,
-   "cloudCoverage": 0.818723,
-   "cloudDarkness": 0.28,
-   "fogIntensity": 0,
+   "cloudCoverage": 0.86,
+   "cloudDarkness": 0.36,
+   "fogIntensity": 0.1248,
    "lightningFlash": 0,
    "mode": "seasonal",
-   "rainIntensity": 0,
+   "rainIntensity": 0.52,
    "sandWindIntensity": 0,
    "season": "spring",
    "seasonLabel": "Spring",
-   "snowIntensity": 0.845536,
+   "snowIntensity": 0,
    "thunderTriggered": false,
-   "weatherKind": "mountain_snow",
-   "weatherLabel": "Mountain Snow",
-   "wetness": 0,
-   "windStrength": 0.578723
+   "weatherKind": "regional_rain",
+   "weatherLabel": "Rain",
+   "wetness": 0.598,
+   "windStrength": 0.68
   },
   {
    "boltOriginX": -151.825398,
@@ -1632,8 +1632,8 @@
   {
    "boltOriginX": -13.13942,
    "boltOriginZ": 15.025061,
-   "cloudCoverage": 0.865008,
-   "cloudDarkness": 0.28,
+   "cloudCoverage": 0.348896,
+   "cloudDarkness": 0.04,
    "fogIntensity": 0,
    "lightningFlash": 0,
    "mode": "seasonal",
@@ -1641,12 +1641,12 @@
    "sandWindIntensity": 0,
    "season": "spring",
    "seasonLabel": "Spring",
-   "snowIntensity": 0.88,
+   "snowIntensity": 0,
    "thunderTriggered": false,
-   "weatherKind": "mountain_snow",
-   "weatherLabel": "Mountain Snow",
+   "weatherKind": "clear_clouds",
+   "weatherLabel": "Clear Sky",
    "wetness": 0,
-   "windStrength": 0.625008
+   "windStrength": 0.336672
   },
   {
    "boltOriginX": 55.390276,

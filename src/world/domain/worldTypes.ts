@@ -30,6 +30,7 @@ export type BiomeType =
   | 'meadow'
   | 'forest'
   | 'birch_grove'
+  | 'swamp'
   | 'desert'
   | 'highland'
   | 'rock';
