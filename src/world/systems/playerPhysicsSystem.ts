@@ -77,6 +77,15 @@ const GRAVITY = 14.8;
 /** Minimum stamina required after hitting 0 before sprinting is allowed again (prevents run-walk-run stutter). */
 export const STAMINA_EXHAUSTION_RECOVERY_THRESHOLD = 24;
 
+let activePlayerStateRegistry: IPlayerState | null = null;
+
+/**
+ * Summary: Returns the currently active player state instance (if initialized).
+ */
+export function getPlayerState(): IPlayerState | null {
+  return activePlayerStateRegistry;
+}
+
 /**
  * Summary: Configures a player state for Survival Mode (waking up inside the Hunter's Lodge cabin
  * with simple clothes, bare hands, 0 gold, no weapons, and no food) vs God Mode (classic full gear).
@@ -443,6 +452,7 @@ export function createInitialPlayerState(options?: { survivalMode?: boolean }): 
   if (options?.survivalMode) {
     applyGameModeToPlayerState(state, true);
   }
+  activePlayerStateRegistry = state;
   return state;
 }
 
@@ -640,6 +650,7 @@ export function stepPlayerPhysics(
   openDoorIds?: ReadonlySet<string>,
   horses?: IRideableHorseState[]
 ): { steppedFoot: boolean; landedImpact: number } {
+  activePlayerStateRegistry = state;
   const dt = Math.min(Math.max(rawDt, 0.001), 0.11);
 
   if (state.deathRespawnPhase) {

@@ -412,7 +412,7 @@ export class HippoAnimator {
       this.qA.set(jr[o0], jr[o0 + 1], jr[o0 + 2], jr[o0 + 3]);
       this.qB.set(jr[o1], jr[o1 + 1], jr[o1 + 2], jr[o1 + 3]);
       if (this.qA.dot(this.qB) < 0) {
-        this.qB.negate();
+        this.qB.set(-this.qB.x, -this.qB.y, -this.qB.z, -this.qB.w);
       }
       outQuats[j].slerpQuaternions(this.qA, this.qB, alpha);
     }
@@ -513,7 +513,7 @@ export class HippoAnimator {
         this.qA.copy(this.prevQuats[j]);
         this.qB.copy(this.curQuats[j]);
         if (this.qA.dot(this.qB) < 0) {
-          this.qB.negate();
+          this.qB.set(-this.qB.x, -this.qB.y, -this.qB.z, -this.qB.w);
         }
         this.rig.bones[j].quaternion.slerpQuaternions(this.qA, this.qB, blendAlpha);
       }

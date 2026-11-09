@@ -18,9 +18,9 @@ import {
   CHINESE_FORTRESS_POS,
   SAKURA_SANCTUARY_POS,
   SAKURA_SANCTUARY_YAW,
+  isWithinViewDistance,
 } from '../domain/landmarksRegistry';
 import { walkableHeightAt } from './terrainAndBiomeSystem';
-import { isWithinViewDistance } from './boidsAndWildlifeSystem';
 import { getPlayerState } from './combatAndInventorySystem';
 
 export type MonkRole =
@@ -476,7 +476,7 @@ export function updateMonkTempleSystem(
           // Apply light stamina/health pressure when striking the player in melee range
           if (playerState && dPlayer <= 2.45 && Math.abs(playerY - mk.y) <= 2.4) {
             playerState.stamina = Math.max(0, (playerState.stamina ?? 100) - 10);
-            playerState.health = Math.max(1, (playerState.health ?? 100) - 6);
+            playerState.hp = Math.max(1, (playerState.hp ?? 100) - 6);
           }
         } else {
           mk.ctrl.setState(mk.currentAttackClip, 0.12);
