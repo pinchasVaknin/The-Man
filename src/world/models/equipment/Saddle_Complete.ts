@@ -187,8 +187,8 @@ export function createSkinnedSaddleMesh(
     color: options.tintHex ?? 0xffffff,
     roughness: 0.76,
     metalness: 0.08,
-    wireframe: options.wireframe ?? false,
     side: THREE.DoubleSide,
+    wireframe: options.wireframe ?? false,
   });
 
   const mesh = new THREE.SkinnedMesh(geom, mat);
@@ -227,9 +227,11 @@ export class Saddle {
 
     const mat = new THREE.MeshStandardMaterial({
       map: texture,
+      color: options.tintHex ?? 0xffffff,
       roughness: 0.76,
       metalness: 0.08,
       side: THREE.DoubleSide,
+      wireframe: options.wireframe ?? false,
     });
 
     this.mesh = new THREE.Mesh(geom, mat);
@@ -242,8 +244,9 @@ export class Saddle {
   public mountOnCreature(
     creature: { object: THREE.Group; rig: { skeleton: THREE.Skeleton } },
     target: SaddleMountTarget | SaddleMountPreset,
+    options: SaddleOptions = {},
   ): THREE.SkinnedMesh {
-    const skinnedSaddle = createSkinnedSaddleMesh(this.data, this.texture, creature.rig.skeleton, target);
+    const skinnedSaddle = createSkinnedSaddleMesh(this.data, this.texture, creature.rig.skeleton, target, options);
     creature.object.add(skinnedSaddle);
     return skinnedSaddle;
   }
@@ -273,19 +276,24 @@ let cachedSaddleData: UnpackedSaddleData | null = null;
 let cachedSaddleTexture: THREE.Texture | null = null;
 
 function getReadySaddleAssets(): { data: UnpackedSaddleData; texture: THREE.Texture } {
-  cachedSaddleData ??= unpackSaddleBundle(SADDLE_PACK_B64);
+  if (!cachedSaddleData) {
+    cachedSaddleData = unpackSaddleBundle(SADDLE_PACK_B64);
+  }
   if (!cachedSaddleTexture) {
-    if (typeof Image === 'undefined') {
-      cachedSaddleTexture = new THREE.Texture();
-    } else {
+    if (typeof Image !== 'undefined') {
       const img = new Image();
       img.src = SADDLE_TEX_B64;
       const tex = new THREE.Texture(img);
-      tex.colorSpace = THREE.SRGBColorSpace;
       tex.flipY = false;
+      tex.colorSpace = THREE.SRGBColorSpace;
       img.onload = () => {
         tex.needsUpdate = true;
       };
+      cachedSaddleTexture = tex;
+    } else {
+      const tex = new THREE.DataTexture(new Uint8Array([122, 80, 48, 255]), 1, 1);
+      tex.flipY = false;
+      tex.needsUpdate = true;
       cachedSaddleTexture = tex;
     }
   }
@@ -297,9 +305,13 @@ export function createStandaloneSaddle(options: SaddleOptions = {}): Saddle {
   return new Saddle(data, texture, options);
 }
 
+export function createReadySaddle(options: SaddleOptions = {}): Saddle {
+  return createStandaloneSaddle(options);
+}
+
 export function mountReadySaddleOnCreature(
   creature: { object: THREE.Group; rig: { skeleton: THREE.Skeleton } },
-  target: SaddleMountTarget | SaddleMountPreset = 'stag',
+  target: SaddleMountTarget | SaddleMountPreset,
   options: SaddleOptions = {},
 ): THREE.SkinnedMesh {
   const { data, texture } = getReadySaddleAssets();
@@ -307,4 +319,3 @@ export function mountReadySaddleOnCreature(
   creature.object.add(skinnedSaddle);
   return skinnedSaddle;
 }
-

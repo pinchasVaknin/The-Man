@@ -654,6 +654,7 @@ export const en = {
     "meadow": "Valley Meadow",
     "forest": "Deep Forest",
     "birch_grove": "Birch Grove",
+    "swamp": "Murky Swamp",
     "desert": "Desert & Oasis",
     "highland": "Highland Ridge",
     "rock": "Mountain Peaks"
@@ -921,7 +922,10 @@ export const en = {
       "rhino": "Rhino",
       "lion": "Lion",
       "stag": "Stag",
-      "dragon": "Dragon"
+      "dragon": "Dragon",
+      "hippo": "Hippopotamus",
+      "koifish": "Royal Koi Fish",
+      "dolphin": "Ocean Dolphin"
     },
     "loot_toast": "Looted {species}: {items}"
   },
@@ -1160,6 +1164,50 @@ export const en = {
           "shaolin_salute": {
             "name": "Shaolin order salute bow",
             "description": "Fist pressed to palm and the traditional martial artists' bow."
+          },
+          "idle": {
+            "name": "Combat guard stance (Idle)",
+            "description": "Balanced martial arts breathing stance with the fighting staff at the ready."
+          },
+          "walk": {
+            "name": "Monastery patrol stride (Walk)",
+            "description": "Measured, disciplined walking stride across the temple courtyard."
+          },
+          "run": {
+            "name": "Swift martial charge (Run)",
+            "description": "Agile, high-speed sprint with the staff held at the side."
+          },
+          "attack1": {
+            "name": "Forward staff strike (Attack 1)",
+            "description": "Explosive overhead and forward staff strike against the wooden training dummy."
+          },
+          "attack2": {
+            "name": "Sweeping combo strike (Attack 2)",
+            "description": "Wide horizontal staff sweep and counter-thrust after teleporting."
+          },
+          "attack3": {
+            "name": "Leaping whirlwind finisher (Attack 3)",
+            "description": "Acrobatic spinning martial arts strike."
+          },
+          "staff_spin": {
+            "name": "Arrow-deflecting staff spin (Staff Spin)",
+            "description": "Rapid 360-degree staff rotation that deflects incoming arrows."
+          },
+          "pray_kneel": {
+            "name": "Kneeling temple prayer (Pray / Kneel)",
+            "description": "Reverent kneeling bow before the Sacred Golden Guardian Statue."
+          },
+          "sit": {
+            "name": "Lotus meditation (Sit)",
+            "description": "Cross-legged zen meditation on the temple flagstones."
+          },
+          "sleep": {
+            "name": "Deep slumber rest (Sleep)",
+            "description": "Peaceful resting posture between temple training drills."
+          },
+          "death": {
+            "name": "Fallen warrior collapse (Death)",
+            "description": "Built-in collapse animation (unused in world combat since monks are invulnerable)."
           }
         },
         "skins": {
@@ -1209,6 +1257,50 @@ export const en = {
           "crane_balance": {
             "name": "Lotus crane balance",
             "description": "Lift one leg and open both arms like crane wings above the springs."
+          },
+          "idle": {
+            "name": "Sanctuary zen stance (Idle)",
+            "description": "Calm, centered breathing posture beside the Sakura hot springs."
+          },
+          "walk": {
+            "name": "Sanctuary garden walk (Walk)",
+            "description": "Unhurried meditative walk beneath the cherry blossoms."
+          },
+          "run": {
+            "name": "Temple guardian dash (Run)",
+            "description": "Fast pursuit run when the Sacred Buddha Statue is struck."
+          },
+          "attack1": {
+            "name": "Palm & staff strike I (Attack 1)",
+            "description": "Direct martial arts strike."
+          },
+          "attack2": {
+            "name": "Teleport counter-strike II (Attack 2)",
+            "description": "Sweeping counter-attack after teleporting behind an attacker."
+          },
+          "attack3": {
+            "name": "Spinning lotus strike III (Attack 3)",
+            "description": "Acrobatic martial arts finisher."
+          },
+          "staff_spin": {
+            "name": "Projectile deflection spin (Staff Spin)",
+            "description": "High-speed staff barrier that deflects incoming arrows."
+          },
+          "pray_kneel": {
+            "name": "Kneeling Buddha devotion (Pray / Kneel)",
+            "description": "Deep kneeling reverence before the Golden Buddha Statue."
+          },
+          "sit": {
+            "name": "Hot-spring lotus meditation (Sit)",
+            "description": "Seated zen meditation by the steaming waters."
+          },
+          "sleep": {
+            "name": "Tranquil sanctuary rest (Sleep)",
+            "description": "Reclining rest beneath falling sakura petals."
+          },
+          "death": {
+            "name": "Defeated collapse (Death)",
+            "description": "Built-in collapse animation (unused in world combat)."
           }
         },
         "skins": {
@@ -2268,22 +2360,82 @@ export const en = {
         }
       },
       "koi_fish": {
-        "name": "Royal koi fish",
-        "subtitle": "Japanese koi swimming among the lotus flowers in the tea house pond",
+        "name": "Royal koi fish (KoiFish)",
+        "subtitle": "55-joint rigged Japanese koi swimming among the lotus flowers in the tea house pond and oasis lagoon",
         "category_label": "Animals",
-        "world_location": "The lotus pond at the lakeside tea house",
-        "description": "The twelve royal koi swimming in circular paths among the water lilies and lotus flowers around the lake's tea house — with a tapered body, a dorsal fin, a pair of pectoral fins, barbels and a flexible fan tail.",
+        "world_location": "The lotus pond at the lakeside tea house, waterfall pool and southwest oasis lagoon",
+        "description": "The royal Japanese koi (KoiFish_Complete) — built on a 55-joint articulated skeleton with flowing dorsal, pectoral, pelvic, anal and caudal fins, sensory barbels and 14 smooth swimming, darting, feeding and surface-breach animations.",
         "anatomy_tags": {
-          "0": "Sculpted koi body",
-          "1": "Upper dorsal fin",
-          "2": "Moving pectoral fins",
-          "3": "Two-lobed fan tail",
-          "4": "Front barbels"
+          "0": "55-joint aquatic skeleton",
+          "1": "Flowing dorsal & caudal fins",
+          "2": "Articulated pectoral & pelvic fins",
+          "3": "Sensory barbels & gill covers",
+          "4": "14 aquatic animations"
         },
         "animations": {
           "none": {
             "name": "No animation (base pose in the water)",
-            "description": "The koi aligned in a static base pose for inspecting its fins and pattern."
+            "description": "The koi aligned in a static base pose for inspecting its 55-joint rig, fins and pattern."
+          },
+          "idle": {
+            "name": "Gentle pond hover (Idle)",
+            "description": "Calm hovering in clear water with gentle gill and pectoral fin fanning."
+          },
+          "walk": {
+            "name": "Lotus pond cruise (Swim / Walk)",
+            "description": "Smooth sinusoidal body and tail propulsion among the lily pads."
+          },
+          "trot": {
+            "name": "Brisk schooling swim (Trot)",
+            "description": "Rhythmic medium-speed swimming with coordinated caudal sweeps."
+          },
+          "run": {
+            "name": "Rapid water surge (Run)",
+            "description": "Fast, powerful tail thrusts darting across the lagoon."
+          },
+          "stalk": {
+            "name": "Shallow reed glide (Stalk)",
+            "description": "Low, quiet gliding along the pond floor."
+          },
+          "flee": {
+            "name": "Startled splash escape (Flee)",
+            "description": "High-frequency evasive tail burst away from danger."
+          },
+          "skip": {
+            "name": "Surface arc leap (Skip)",
+            "description": "Playful arching leap breaking the surface of the lotus pond."
+          },
+          "fly": {
+            "name": "High waterfall leap (Fly)",
+            "description": "Soaring aerial breach above the water with flared fins."
+          },
+          "eat": {
+            "name": "Surface nibbling & feeding (Eat)",
+            "description": "Rise toward floating seeds and lily pads with mouth and barbels working."
+          },
+          "call": {
+            "name": "Bubble ring & fin flare (Call)",
+            "description": "Flare pectoral and dorsal fins while pulsing the mouth."
+          },
+          "roar": {
+            "name": "Splash display (Roar)",
+            "description": "Vigorous body wave and fin display."
+          },
+          "sit": {
+            "name": "Pebble bed rest (Sit)",
+            "description": "Hover low above the smooth pond stones."
+          },
+          "lie": {
+            "name": "Bottom slumber (Lie)",
+            "description": "Quiet rest at the bottom of the sanctuary pond."
+          },
+          "attack": {
+            "name": "Bait strike lunge (Attack)",
+            "description": "Quick forward snap at a floating insect or bait."
+          },
+          "death": {
+            "name": "Motionless float (Death)",
+            "description": "Roll onto the side and come to rest."
           },
           "koi_pond_swim": {
             "name": "Wave-like swimming in the lotus pond",
@@ -2598,6 +2750,194 @@ export const en = {
           }
         }
       },
+      "oasis_hippo": {
+        "name": "Oasis & river hippopotamus (Hippo)",
+        "subtitle": "Colossal 52-joint amphibious pachyderm wallowing in the oasis lagoon and southern river wetlands",
+        "category_label": "Animals",
+        "world_location": "South-western oasis lagoon and southern river wetlands",
+        "world_coordinates": "(-310, 319) & (168, 375)",
+        "description": "The amphibious hippopotamus (Hippo_Complete) — built on a 52-joint skeleton with barrel-shaped hide, periscopic eyes, twitching ears, massive tusked jaws and 13 animations including wading, charging, grazing, wide warning yawn and jaw crush.",
+        "anatomy_tags": {
+          "0": "52-joint amphibious skeleton",
+          "1": "Cavernous tusked jaws",
+          "2": "Periscopic eyes & ears",
+          "3": "Heavy columnar legs"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Static stance for inspecting the hippo's proportions and tusks."
+          },
+          "idle": {
+            "name": "Lagoon wallow & breathing (Idle)",
+            "description": "Heavy amphibious breathing with subtle ear flicks and jaw movement."
+          },
+          "walk": {
+            "name": "Riverbed & bank stride (Walk)",
+            "description": "Heavy four-beat walk along the muddy lagoon bank."
+          },
+          "trot": {
+            "name": "Lumbering wetland trot (Trot)",
+            "description": "Quickened rhythmic advance across the shallows."
+          },
+          "run": {
+            "name": "Territorial thunder charge (Run)",
+            "description": "Surprisingly fast, earth-shaking charge."
+          },
+          "stalk": {
+            "name": "Submerged prowl (Stalk)",
+            "description": "Low, deliberate wading through the murky water."
+          },
+          "flee": {
+            "name": "Splash retreat to deep water (Flee)",
+            "description": "Heavy bounding retreat into the lagoon."
+          },
+          "skip": {
+            "name": "Underwater bound (Skip)",
+            "description": "Buoyant bounding stride across the riverbed."
+          },
+          "eat": {
+            "name": "Grazing bank reeds & lotus (Eat)",
+            "description": "Lower the broad muzzle to crop reeds and river grass."
+          },
+          "call": {
+            "name": "Honking river wheeze (Call)",
+            "description": "Resonant bellowing grunt across the water."
+          },
+          "roar": {
+            "name": "Colossal tusk yawn display (Roar)",
+            "description": "Throw the jaws open wide to display the lower tusks in warning."
+          },
+          "sit": {
+            "name": "Mud wallow sit (Sit)",
+            "description": "Settle the heavy hindquarters into the cool mud."
+          },
+          "lie": {
+            "name": "Sun-basking on the sandbar (Lie)",
+            "description": "Lie down peacefully on the warm oasis bank."
+          },
+          "attack": {
+            "name": "Crushing jaw lunge (Attack)",
+            "description": "Explosive forward lunge and devastating tusk bite."
+          },
+          "bite_attack": {
+            "name": "Savage tusk snap (Bite Attack)",
+            "description": "Wide-jawed snapping bite that crushes anything in front of the hippo."
+          },
+          "death": {
+            "name": "Heavy collapse (Death)",
+            "description": "Collapse onto the side on the riverbank."
+          }
+        },
+        "skins": {
+          "hippo_river_slate": {
+            "name": "River slate & rose-grey hide (original)",
+            "subtitle": "Natural amphibious slate-violet skin with warm pink creases"
+          },
+          "hippo_mud_bronze": {
+            "name": "Oasis mud & bronze wallow",
+            "subtitle": "Sun-baked umber and muddy wetland tones"
+          },
+          "hippo_nile_obsidian": {
+            "name": "Deep river basalt bull",
+            "subtitle": "Dark charcoal hide of the dominant lagoon bull"
+          }
+        }
+      },
+      "ocean_dolphin": {
+        "name": "Coastal & ocean bottlenose dolphin (Dolphin)",
+        "subtitle": "59-joint marine dolphin swimming and leaping in pods across the harbor bay and eastern ocean",
+        "category_label": "Animals",
+        "world_location": "South-east harbor bay, shipping lane and ruined Atlantis waters",
+        "world_coordinates": "(328, 255) & (860, 415)",
+        "description": "The marine bottlenose dolphin (Dolphin_Complete) — built on a 59-joint skeleton with sleek counter-shaded skin, curved dorsal fin, pectoral flippers, horizontal tail flukes and 14 animations including wave-riding, high aerial leaps and sonar clicks.",
+        "anatomy_tags": {
+          "0": "59-joint cetacean skeleton",
+          "1": "Horizontal tail flukes",
+          "2": "Curved dorsal fin & flippers",
+          "3": "Articulated rostrum & jaw"
+        },
+        "animations": {
+          "none": {
+            "name": "No animation (base pose)",
+            "description": "Streamlined neutral pose for inspecting the dolphin rig."
+          },
+          "idle": {
+            "name": "Surface float & blowhole breath (Idle)",
+            "description": "Gentle buoyancy wave near the ocean surface."
+          },
+          "walk": {
+            "name": "Calm bay cruise (Swim / Walk)",
+            "description": "Smooth vertical tail-fluke oscillations through the water."
+          },
+          "trot": {
+            "name": "Pod formation swim (Trot)",
+            "description": "Brisk synchronized swimming alongside the ship."
+          },
+          "run": {
+            "name": "High-speed ocean sprint (Run)",
+            "description": "Powerful fluke strokes cutting rapidly through the waves."
+          },
+          "stalk": {
+            "name": "Deep reef glide (Stalk)",
+            "description": "Sleek underwater glide above the seabed."
+          },
+          "flee": {
+            "name": "Rapid deep-water dash (Flee)",
+            "description": "Fast evasive burst through the surf."
+          },
+          "skip": {
+            "name": "Porpoising wave hop (Skip)",
+            "description": "Rhythmic skimming leaps across the harbor swells."
+          },
+          "fly": {
+            "name": "Acrobatic ocean breach (Fly)",
+            "description": "High parabolic arc above the waves before diving cleanly back in."
+          },
+          "eat": {
+            "name": "Schooling fish catch (Eat)",
+            "description": "Quick rostrum snap while feeding on small fish."
+          },
+          "call": {
+            "name": "Echolocation clicks & whistle (Call)",
+            "description": "Head nod and cheerful pod vocalization."
+          },
+          "roar": {
+            "name": "Tail-slap surface display (Roar)",
+            "description": "Energetic arching display and fluke splash."
+          },
+          "sit": {
+            "name": "Vertical spy-hop (Sit)",
+            "description": "Rise upright in the water to look around the harbor."
+          },
+          "lie": {
+            "name": "Half-brain surface rest (Lie)",
+            "description": "Drifting rest in the calm bay."
+          },
+          "attack": {
+            "name": "Ramming defense strike (Attack)",
+            "description": "Swift forward thrust with the rostrum."
+          },
+          "death": {
+            "name": "Still drift (Death)",
+            "description": "Motionless floating rest."
+          }
+        },
+        "skins": {
+          "dolphin_ocean_classic": {
+            "name": "Coastal bottlenose slate-blue (original)",
+            "subtitle": "Classic counter-shaded ocean grey-blue back and pearl belly"
+          },
+          "dolphin_atlantis_azure": {
+            "name": "Atlantis turquoise dolphin",
+            "subtitle": "Luminous cerulean and silver tones of the sunken ruins"
+          },
+          "dolphin_sunset_pearl": {
+            "name": "Harbor sunset pearl dolphin",
+            "subtitle": "Warm rose-silver sheen in the evening bay"
+          }
+        }
+      },
       "dwarven_king_statue": {
         "name": "Giant dwarf king guardian",
         "subtitle": "The mighty monolith guardian standing at the gate of the dwarven kingdom with a double-bladed axe and lantern",
@@ -2822,6 +3162,20 @@ export const en = {
         "right_limb_title": "Right wing and legs",
         "left_limb_title": "Left wing and legs",
         "head_title": "Dragon head and crown"
+      },
+      "oasis_hippo": {
+        "weapon_group_title": "Cavernous jaws and tusks",
+        "left_weapon_group_title": "Hippo tail and ears",
+        "right_limb_title": "Hippo's right legs",
+        "left_limb_title": "Hippo's left legs",
+        "head_title": "Hippo's head and muzzle"
+      },
+      "ocean_dolphin": {
+        "weapon_group_title": "Horizontal tail flukes (propulsion)",
+        "left_weapon_group_title": "Curved dorsal fin",
+        "right_limb_title": "Right pectoral flipper",
+        "left_limb_title": "Left pectoral flipper",
+        "head_title": "Rostrum, melon and jaw"
       },
       "default": {
         "weapon_group_title": "Tail / main accessory",

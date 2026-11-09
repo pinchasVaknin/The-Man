@@ -182,6 +182,19 @@ export const CROCODILE_RIVER_BEND_POS = {
 } as const;
 
 /**
+ * Summary: Murky Swamp & Hippo Marshland Biome in the South-Southwest lowlands,
+ *          featuring shallow water channels, wallowing mud pools, mossy peat hummocks,
+ *          gnarled swamp cypress trees, cattail reed beds, and a resident hippo pod.
+ */
+export const MURKY_SWAMP_BIOME_POS = {
+  x: -175.0,
+  z: 435.0,
+  innerRadius: 72.0,
+  outerRadius: 105.0,
+  waterY: 0.0,
+} as const;
+
+/**
  * Summary: Colossal Volcanic Mountain & Enterable Mystical CatLion Sanctum in the Western Badlands.
  * Design: Features 3 cardinal baffled obsidian entrance corridors (East +X, North -Z, South +Z)
  *         with chicane baffle walls blocking exterior line-of-sight, leading into a colossal vaulted

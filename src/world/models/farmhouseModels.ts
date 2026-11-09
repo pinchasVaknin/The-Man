@@ -1284,11 +1284,11 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const westRoomNorthFloorGeo = new THREE.BoxGeometry(28.0, 0.8, 6.0);
   const westRoomEastWalkwayGeo = new THREE.BoxGeometry(7.5, 0.8, 44.0);
   const westLakeBasinFloorGeo = new THREE.BoxGeometry(20.0, 0.8, 46.0);
-  const cCeilingGeo = new THREE.BoxGeometry(108.0, 1.4, 80.0);
-  const cSideWallGeo = new THREE.BoxGeometry(2.4, cavernHeight + 1.2, 64.0);
-  const rRoomWallGeo = new THREE.BoxGeometry(28.0, cavernHeight + 1.2, 2.2);
-  const cBackWallGeo = new THREE.BoxGeometry(36.0, cavernHeight + 1.2, 2.6);
-  const cNorthFlankWallGeo = new THREE.BoxGeometry(11.6, cavernHeight + 1.2, 2.4);
+  const cCeilingGeo = new THREE.BoxGeometry(104.0, 1.2, 79.0);
+  const cSideWallGeo = new THREE.BoxGeometry(2.4, cavernHeight + 0.2, 64.0);
+  const rRoomWallGeo = new THREE.BoxGeometry(28.0, cavernHeight + 0.2, 2.2);
+  const cBackWallGeo = new THREE.BoxGeometry(36.0, cavernHeight + 0.2, 2.6);
+  const cNorthFlankWallGeo = new THREE.BoxGeometry(11.6, cavernHeight + 0.2, 2.4);
 
   disposableGeometries.push(
     mainEastFloorGeo,
@@ -1315,26 +1315,26 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   westLakeBasinFloorMesh.position.set(-42.0, cavernFloorY - 2.25, 62.5);
 
   const cCeiling = new THREE.Mesh(cCeilingGeo, mineDeepSlateMat);
-  cCeiling.position.set(0, cavernFloorY + cavernHeight + 0.65, cavernMidLocalZ);
+  cCeiling.position.set(1.0, cavernFloorY + cavernHeight - 0.25, cavernMidLocalZ);
 
   const cWestWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
-  cWestWall.position.set(-53.0, cavernFloorY + cavernHeight * 0.5, 66.0);
+  cWestWall.position.set(-51.5, cavernFloorY + cavernHeight * 0.5 - 0.5, 66.0);
   const cEastWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
-  cEastWall.position.set(53.0, cavernFloorY + cavernHeight * 0.5, 66.0);
+  cEastWall.position.set(52.5, cavernFloorY + cavernHeight * 0.5 - 0.5, 66.0);
   const r2NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r2NorthWall.position.set(-39.0, cavernFloorY + cavernHeight * 0.5, 35.0);
+  r2NorthWall.position.set(-38.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 35.0);
   const r2SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r2SouthWall.position.set(-39.0, cavernFloorY + cavernHeight * 0.5, 97.0);
+  r2SouthWall.position.set(-38.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 97.0);
   const r3NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r3NorthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5, 35.0);
+  r3NorthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 35.0);
   const r3SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r3SouthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5, 97.0);
+  r3SouthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 97.0);
   const cBackWall = new THREE.Mesh(cBackWallGeo, mineDeepSlateMat);
-  cBackWall.position.set(0, cavernFloorY + cavernHeight * 0.5, cavernEndLocalZ + 1.0);
+  cBackWall.position.set(0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernEndLocalZ + 1.0);
   const cNorthWestWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
-  cNorthWestWall.position.set(-9.0, cavernFloorY + cavernHeight * 0.5, cavernStartLocalZ);
+  cNorthWestWall.position.set(-9.0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernStartLocalZ);
   const cNorthEastWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
-  cNorthEastWall.position.set(9.0, cavernFloorY + cavernHeight * 0.5, cavernStartLocalZ);
+  cNorthEastWall.position.set(9.0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernStartLocalZ);
   const cNorthUpperWall = new THREE.Mesh(cavernNorthUpperWallGeo, mineDeepSlateMat);
   cNorthUpperWall.position.set(0, cavernFloorY + cavernHeight - 2.4, cavernStartLocalZ);
 

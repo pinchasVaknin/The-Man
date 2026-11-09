@@ -23,7 +23,8 @@ import {
   SOUTHWEST_OASIS_PALMS,
   type OasisVillageHouseSpec,
 } from '../domain/landmarks/oasisAndHarborLandmarks';
-import { groundHeightAt } from '../terrainMath';
+import { MURKY_SWAMP_BIOME_POS } from '../domain/landmarks/coreLandmarks';
+import { groundHeightAt, WATER_LEVEL } from '../terrainMath';
 import { attachWindSwayShader } from '../builders/shaderAndMaterialBuilders';
 import type { IWorldModelBuildContext } from './types';
 
@@ -1001,6 +1002,124 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     swOasisGroup.add(palmGroup);
   }
 
+  // ======================== 7. OASIS HIPPO MUD WALLOW, PAPYRUS REEDS & LOTUS PADS ======================== \\
+  const hippoMudMat = new THREE.MeshStandardMaterial({
+    color: 0x5c432c,
+    roughness: 0.94,
+    metalness: 0.04,
+  });
+  const papyrusGreenMat = new THREE.MeshStandardMaterial({
+    color: 0x3f6e2a,
+    roughness: 0.85,
+  });
+  const lilyPadMat = new THREE.MeshStandardMaterial({
+    color: 0x2d6a36,
+    roughness: 0.78,
+  });
+  const lotusPetalPinkMat = new THREE.MeshStandardMaterial({
+    color: 0xf472b6,
+    roughness: 0.65,
+  });
+  const lotusCenterGoldMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    roughness: 0.55,
+  });
+  const mudBankGeo = new THREE.CylinderGeometry(2.4, 3.2, 0.28, 12);
+  const baskingStoneGeo = new THREE.DodecahedronGeometry(0.95, 1);
+  baskingStoneGeo.scale(1.45, 0.52, 1.15);
+  const papyrusStemGeo = new THREE.CylinderGeometry(0.035, 0.055, 2.2, 5);
+  papyrusStemGeo.translate(0, 1.1, 0);
+  const papyrusCrownGeo = new THREE.ConeGeometry(0.32, 0.42, 6);
+  papyrusCrownGeo.rotateX(Math.PI);
+  papyrusCrownGeo.translate(0, 2.22, 0);
+  const lilyPadGeo = new THREE.CylinderGeometry(0.58, 0.58, 0.03, 12);
+  const lotusBlossomGeo = new THREE.DodecahedronGeometry(0.18, 0);
+  const lotusCoreGeo = new THREE.SphereGeometry(0.08, 6, 6);
+  disposableMaterials.push(
+    hippoMudMat,
+    papyrusGreenMat,
+    lilyPadMat,
+    lotusPetalPinkMat,
+    lotusCenterGoldMat
+  );
+  disposableGeometries.push(
+    mudBankGeo,
+    baskingStoneGeo,
+    papyrusStemGeo,
+    papyrusCrownGeo,
+    lilyPadGeo,
+    lotusBlossomGeo,
+    lotusCoreGeo
+  );
+
+  const oasisWaterY = SOUTHWEST_OASIS_POS.lagoonWaterY;
+  const mudBankOffsets: ReadonlyArray<readonly [number, number, number]> = [
+    [-7.5, -2.5, 1.15],
+    [7.2, 3.4, 1.05],
+    [-2.8, 7.8, 1.25],
+    [4.6, -7.2, 0.95],
+  ];
+  for (let i = 0; i < mudBankOffsets.length; i++) {
+    const [mx, mz, mScale] = mudBankOffsets[i];
+    const wy = groundHeightAt(SOUTHWEST_OASIS_POS.x + mx, SOUTHWEST_OASIS_POS.z + mz);
+    const mudMesh = new THREE.Mesh(mudBankGeo, hippoMudMat);
+    mudMesh.position.set(mx, Math.max(wy - 0.05, oasisWaterY - 0.08), mz);
+    mudMesh.scale.set(mScale, 1, mScale * 0.88);
+    mudMesh.rotation.y = i * 1.1;
+    mudMesh.receiveShadow = true;
+    swOasisGroup.add(mudMesh);
+
+    const baskRock = new THREE.Mesh(baskingStoneGeo, dryStoneWallMat);
+    baskRock.position.set(mx * 0.88, oasisWaterY + 0.06, mz * 0.88);
+    baskRock.rotation.y = i * 1.7;
+    baskRock.castShadow = true;
+    baskRock.receiveShadow = true;
+    swOasisGroup.add(baskRock);
+  }
+
+  // Papyrus reed clumps along the oasis lagoon perimeter
+  for (let p = 0; p < 14; p++) {
+    const ang = (p / 14) * Math.PI * 2 + 0.22;
+    const rad = 8.2 + (p % 3) * 1.4;
+    const px = Math.cos(ang) * rad;
+    const pz = Math.sin(ang) * rad;
+    const py = Math.max(
+      groundHeightAt(SOUTHWEST_OASIS_POS.x + px, SOUTHWEST_OASIS_POS.z + pz) - 0.1,
+      oasisWaterY - 0.18
+    );
+    for (let s = 0; s < 3; s++) {
+      const sx = px + (s - 1) * 0.24;
+      const sz = pz + ((s % 2) - 0.5) * 0.24;
+      const stem = new THREE.Mesh(papyrusStemGeo, papyrusGreenMat);
+      stem.position.set(sx, py, sz);
+      stem.rotation.z = (s - 1) * 0.09;
+      const crown = new THREE.Mesh(papyrusCrownGeo, palmFrondMat);
+      crown.position.set(sx, py, sz);
+      crown.rotation.z = (s - 1) * 0.09;
+      swOasisGroup.add(stem, crown);
+    }
+  }
+
+  // Floating Lotus Lily Pads in the Oasis Lagoon (for Oasis Koi Fish & Hippos)
+  for (let l = 0; l < 16; l++) {
+    const lang = l * 1.37;
+    const lrad = 2.4 + (l % 5) * 1.35;
+    const lx = Math.cos(lang) * lrad;
+    const lz = Math.sin(lang) * lrad;
+    const pad = new THREE.Mesh(lilyPadGeo, lilyPadMat);
+    pad.position.set(lx, oasisWaterY + 0.025, lz);
+    const padScale = 0.75 + (l % 3) * 0.22;
+    pad.scale.set(padScale, 1, padScale);
+    swOasisGroup.add(pad);
+    if (l % 2 === 0) {
+      const blossom = new THREE.Mesh(lotusBlossomGeo, lotusPetalPinkMat);
+      blossom.position.set(lx, oasisWaterY + 0.11, lz);
+      const core = new THREE.Mesh(lotusCoreGeo, lotusCenterGoldMat);
+      core.position.set(lx, oasisWaterY + 0.17, lz);
+      swOasisGroup.add(blossom, core);
+    }
+  }
+
   scene.add(swOasisGroup);
   distanceCulledObjects.push({
     obj: swOasisGroup,
@@ -1009,6 +1128,275 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     radius: 75.0,
   });
 
+  // ======================== 8. MURKY SWAMP & HIPPO MARSH BIOME (-175, 435) ======================== \\
+  const murkySwampGroup = new THREE.Group();
+  murkySwampGroup.position.set(MURKY_SWAMP_BIOME_POS.x, 0, MURKY_SWAMP_BIOME_POS.z);
+
+  const swampCypressBarkMat = new THREE.MeshStandardMaterial({
+    color: 0x3b3126,
+    roughness: 0.92,
+  });
+  const swampCanopyMat = new THREE.MeshStandardMaterial({
+    color: 0x2e4a21,
+    roughness: 0.85,
+  });
+  const spanishMossMat = new THREE.MeshStandardMaterial({
+    color: 0x657d52,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+  });
+  const cattailHeadMat = new THREE.MeshStandardMaterial({
+    color: 0x4a2c18,
+    roughness: 0.88,
+  });
+  const swampMossRockMat = new THREE.MeshStandardMaterial({
+    color: 0x364231,
+    roughness: 0.9,
+  });
+  attachWindSwayShader(swampCanopyMat, 0.14, 1.3, swayMaterials);
+  attachWindSwayShader(spanishMossMat, 0.22, 1.7, swayMaterials);
+
+  const cypressTrunkGeo = new THREE.CylinderGeometry(0.32, 0.72, 6.2, 8);
+  cypressTrunkGeo.translate(0, 3.1, 0);
+  const cypressRootGeo = new THREE.ConeGeometry(0.45, 1.8, 6);
+  cypressRootGeo.translate(0, 0.75, 0);
+  const cypressBranchGeo = new THREE.CylinderGeometry(0.12, 0.24, 3.2, 6);
+  cypressBranchGeo.translate(0, 1.6, 0);
+  const cypressCanopyGeo = new THREE.IcosahedronGeometry(2.35, 1);
+  cypressCanopyGeo.scale(1.35, 0.52, 1.35);
+  const spanishMossGeo = new THREE.ConeGeometry(0.26, 2.2, 5);
+  spanishMossGeo.translate(0, -1.1, 0);
+  const cattailSpikeGeo = new THREE.CylinderGeometry(0.055, 0.055, 0.38, 6);
+  cattailSpikeGeo.translate(0, 1.55, 0);
+  const fallenSwampLogGeo = new THREE.CylinderGeometry(0.32, 0.38, 4.8, 8);
+  fallenSwampLogGeo.rotateZ(Math.PI * 0.5);
+  const swampBoulderGeo = new THREE.DodecahedronGeometry(1.15, 1);
+
+  disposableGeometries.push(
+    cypressTrunkGeo,
+    cypressRootGeo,
+    cypressBranchGeo,
+    cypressCanopyGeo,
+    spanishMossGeo,
+    cattailSpikeGeo,
+    fallenSwampLogGeo,
+    swampBoulderGeo
+  );
+  disposableMaterials.push(
+    swampCypressBarkMat,
+    swampCanopyMat,
+    spanishMossMat,
+    cattailHeadMat,
+    swampMossRockMat
+  );
+
+  // Gnarled Bald-Cypress / Swamp Willow trees with buttress roots & hanging Spanish moss
+  const swampTreeOffsets: ReadonlyArray<readonly [number, number, number]> = [
+    [-22.0, -18.0, 1.15],
+    [-8.0, -28.0, 1.05],
+    [16.0, -24.0, 1.22],
+    [32.0, -10.0, 1.08],
+    [42.0, 8.0, 1.18],
+    [18.0, 34.0, 1.12],
+    [-12.0, 32.0, 1.25],
+    [-34.0, 16.0, 1.04],
+    [-46.0, -6.0, 1.16],
+    [6.0, -12.0, 0.96],
+    [-26.0, 4.0, 1.08],
+    [28.0, 26.0, 1.14],
+    [-4.0, 48.0, 1.1],
+    [-38.0, 38.0, 1.02],
+  ];
+
+  for (let t = 0; t < swampTreeOffsets.length; t++) {
+    const [lx, lz, tScale] = swampTreeOffsets[t];
+    const wx = MURKY_SWAMP_BIOME_POS.x + lx;
+    const wz = MURKY_SWAMP_BIOME_POS.z + lz;
+    const gy = groundHeightAt(wx, wz);
+    const baseY = Math.max(WATER_LEVEL - 0.35, gy - 0.12);
+
+    const treeGroup = new THREE.Group();
+    treeGroup.position.set(lx, baseY, lz);
+    treeGroup.scale.setScalar(tScale);
+    treeGroup.rotation.y = t * 1.17;
+
+    const trunk = new THREE.Mesh(cypressTrunkGeo, swampCypressBarkMat);
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    treeGroup.add(trunk);
+
+    for (let r = 0; r < 5; r++) {
+      const ang = (r / 5) * Math.PI * 2 + 0.3;
+      const root = new THREE.Mesh(cypressRootGeo, swampCypressBarkMat);
+      root.position.set(Math.cos(ang) * 0.55, 0, Math.sin(ang) * 0.55);
+      root.rotation.z = -Math.cos(ang) * 0.38;
+      root.rotation.x = Math.sin(ang) * 0.38;
+      treeGroup.add(root);
+    }
+
+    for (let b = 0; b < 4; b++) {
+      const bAng = (b / 4) * Math.PI * 2 + (t % 2) * 0.5;
+      const branch = new THREE.Mesh(cypressBranchGeo, swampCypressBarkMat);
+      branch.position.set(0, 4.4 + (b % 2) * 0.65, 0);
+      branch.rotation.y = bAng;
+      branch.rotation.z = 0.72;
+      treeGroup.add(branch);
+
+      const cx = Math.sin(0.72) * Math.cos(bAng) * 2.55;
+      const cz = -Math.sin(0.72) * Math.sin(bAng) * 2.55;
+      const cy = 4.4 + (b % 2) * 0.65 + Math.cos(0.72) * 2.55;
+
+      const subCanopy = new THREE.Mesh(cypressCanopyGeo, swampCanopyMat);
+      subCanopy.position.set(cx, cy, cz);
+      subCanopy.scale.setScalar(0.78);
+      subCanopy.castShadow = true;
+      treeGroup.add(subCanopy);
+
+      const moss = new THREE.Mesh(spanishMossGeo, spanishMossMat);
+      moss.position.set(cx * 0.85, cy - 0.15, cz * 0.85);
+      treeGroup.add(moss);
+    }
+
+    const topCanopy = new THREE.Mesh(cypressCanopyGeo, swampCanopyMat);
+    topCanopy.position.set(0, 6.3, 0);
+    topCanopy.castShadow = true;
+    treeGroup.add(topCanopy);
+
+    murkySwampGroup.add(treeGroup);
+  }
+
+  // Fallen mossy swamp logs & shoreline cattail/reed clusters & floating lilypads
+  const swampLogSpots: ReadonlyArray<readonly [number, number, number]> = [
+    [-14.0, -6.0, 0.45],
+    [12.0, 6.0, -0.62],
+    [22.0, 14.0, 1.15],
+    [-20.0, 22.0, 0.28],
+    [4.0, 28.0, -0.35],
+    [-32.0, -14.0, 0.88],
+  ];
+  for (let l = 0; l < swampLogSpots.length; l++) {
+    const [lx, lz, rotY] = swampLogSpots[l];
+    const gy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + lx, MURKY_SWAMP_BIOME_POS.z + lz);
+    const logMesh = new THREE.Mesh(fallenSwampLogGeo, swampCypressBarkMat);
+    logMesh.position.set(lx, Math.max(WATER_LEVEL - 0.08, gy + 0.16), lz);
+    logMesh.rotation.y = rotY;
+    logMesh.rotation.z = 0.06;
+    logMesh.castShadow = true;
+    logMesh.receiveShadow = true;
+    murkySwampGroup.add(logMesh);
+  }
+
+  // Dense cattails, bulrushes, lilypad rafts & lotus blooms around the swamp lagoons
+  const swampFloraRings: ReadonlyArray<readonly [number, number, number]> = [
+    [0.0, 0.0, 16.5],
+    [27.0, 17.0, 15.0],
+    [-18.0, 14.0, 12.0],
+    [8.0, -18.0, 13.5],
+    [-24.0, -12.0, 12.5],
+  ];
+  for (let ringIdx = 0; ringIdx < swampFloraRings.length; ringIdx++) {
+    const [cx, cz, radius] = swampFloraRings[ringIdx];
+    const clusterCount = 12;
+    for (let c = 0; c < clusterCount; c++) {
+      const ang = (c / clusterCount) * Math.PI * 2 + ringIdx * 0.7;
+      const rDist = radius * (0.72 + ((c * 7 + ringIdx * 3) % 5) * 0.11);
+      const fx = cx + Math.cos(ang) * rDist;
+      const fz = cz + Math.sin(ang) * rDist;
+      const gy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + fx, MURKY_SWAMP_BIOME_POS.z + fz);
+
+      if (gy <= WATER_LEVEL - 0.12) {
+        // Floating lilypad & swamp blossom in open water pool
+        const pad = new THREE.Mesh(lilyPadGeo, lilyPadMat);
+        pad.position.set(fx, WATER_LEVEL + 0.025, fz);
+        pad.rotation.y = ang * 1.7;
+        pad.scale.setScalar(0.95 + (c % 3) * 0.25);
+        murkySwampGroup.add(pad);
+
+        if (c % 3 === 0) {
+          const blossom = new THREE.Mesh(lotusBlossomGeo, lotusPetalPinkMat);
+          blossom.position.set(fx, WATER_LEVEL + 0.11, fz);
+          murkySwampGroup.add(blossom);
+        }
+      } else if (gy <= WATER_LEVEL + 0.38) {
+        // Shoreline cattail & sedge reed clump
+        for (let s = 0; s < 3; s++) {
+          const sx = fx + Math.cos(ang + s * 2.1) * 0.42;
+          const sz = fz + Math.sin(ang + s * 2.1) * 0.42;
+          const stem = new THREE.Mesh(papyrusStemGeo, papyrusGreenMat);
+          stem.position.set(sx, gy - 0.08, sz);
+          murkySwampGroup.add(stem);
+
+          if (s === 0) {
+            const spike = new THREE.Mesh(cattailSpikeGeo, cattailHeadMat);
+            spike.position.set(sx, gy - 0.08, sz);
+            murkySwampGroup.add(spike);
+          } else {
+            const crown = new THREE.Mesh(papyrusCrownGeo, palmFrondMat);
+            crown.position.set(sx, gy - 0.08, sz);
+            murkySwampGroup.add(crown);
+          }
+        }
+      } else if (c % 4 === 0) {
+        // Mossy hummock boulder
+        const boulder = new THREE.Mesh(swampBoulderGeo, swampMossRockMat);
+        boulder.position.set(fx, gy + 0.12, fz);
+        boulder.scale.set(1.2, 0.68, 1.05);
+        boulder.rotation.y = ang;
+        murkySwampGroup.add(boulder);
+      }
+    }
+  }
+
+  scene.add(murkySwampGroup);
+  distanceCulledObjects.push({
+    obj: murkySwampGroup,
+    cx: MURKY_SWAMP_BIOME_POS.x,
+    cz: MURKY_SWAMP_BIOME_POS.z,
+    radius: 110.0,
+  });
+
+  // ======================== 9. SOUTHEAST HARBOR BAY & COASTAL DOLPHIN REEF (330, 256) ======================== \\
+  const dolphinReefGroup = new THREE.Group();
+  dolphinReefGroup.position.set(330, 0, 256);
+  const reefRockGeo = new THREE.DodecahedronGeometry(1.6, 1);
+  const kelpBladeGeo = new THREE.ConeGeometry(0.22, 2.4, 5);
+  kelpBladeGeo.translate(0, 1.2, 0);
+  const reefCoralMat = new THREE.MeshStandardMaterial({
+    color: 0x0ea5e9,
+    roughness: 0.65,
+  });
+  disposableGeometries.push(reefRockGeo, kelpBladeGeo);
+  disposableMaterials.push(reefCoralMat);
+
+  const reefSpots: ReadonlyArray<readonly [number, number, number]> = [
+    [-12.0, -14.0, 1.15],
+    [8.5, -6.0, 0.95],
+    [16.0, 14.0, 1.25],
+    [-6.5, 18.0, 1.05],
+  ];
+  for (let r = 0; r < reefSpots.length; r++) {
+    const [rx, rz, rScale] = reefSpots[r];
+    const seaStack = new THREE.Mesh(reefRockGeo, dryStoneWallMat);
+    seaStack.position.set(rx, WATER_LEVEL - 0.35, rz);
+    seaStack.scale.set(rScale * 1.3, rScale * 0.75, rScale * 1.1);
+    seaStack.rotation.y = r * 1.2;
+    dolphinReefGroup.add(seaStack);
+
+    const coral = new THREE.Mesh(lotusBlossomGeo, reefCoralMat);
+    coral.position.set(rx + 0.8, WATER_LEVEL - 0.18, rz - 0.6);
+    coral.scale.setScalar(2.1);
+    dolphinReefGroup.add(coral);
+
+    for (let k = 0; k < 3; k++) {
+      const kelp = new THREE.Mesh(kelpBladeGeo, papyrusGreenMat);
+      kelp.position.set(rx + (k - 1) * 0.7, WATER_LEVEL - 1.85, rz + (k % 2) * 0.6);
+      kelp.rotation.z = (k - 1) * 0.14;
+      dolphinReefGroup.add(kelp);
+    }
+  }
+  scene.add(dolphinReefGroup);
+  distanceCulledObjects.push({ obj: dolphinReefGroup, cx: 330, cz: 256, radius: 42 });
+
   return {
     updateOasis: (elapsedTime: number) => {
       oasisLagoonWaterMat.emissiveIntensity =
@@ -1016,3 +1404,4 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     },
   };
 }
+

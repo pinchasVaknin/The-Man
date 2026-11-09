@@ -18,6 +18,7 @@ import {
   easternCoastlineXAt,
   northernTundraFactorAt,
   southwestOasisBiomeFactorAt,
+  murkySwampBiomeFactorAt,
   volcanicBadlandsFactorAt,
   trailFactorAt,
   isNavigableOceanForShip,
@@ -29,6 +30,7 @@ import {
   DESERT_DRAGON_PASS_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
+  MURKY_SWAMP_BIOME_POS,
 } from '../domain/landmarksRegistry';
 import {
   getActiveSailableShip,
@@ -337,6 +339,40 @@ test('ruinedAtlantisAndSailableShip_WhenEvaluatedAndSailed_ShouldProvideFlatBoss
   assert.equal(disembark.y, RUINED_ATLANTIS_POS.arenaFloorY);
 
   resetSailableShipState();
+});
+
+test('murkySwampBiome_WhenEvaluatedAtSwampBasin_ShouldClassifySwampAndProvideWallowPoolsAndHummocks', () => {
+  const factor = murkySwampBiomeFactorAt(MURKY_SWAMP_BIOME_POS.x, MURKY_SWAMP_BIOME_POS.z);
+  assert.ok(factor > 0.95, `Expected full murky swamp factor at center, got ${factor}`);
+
+  const biome = getSurfaceBiomeAt(MURKY_SWAMP_BIOME_POS.x, MURKY_SWAMP_BIOME_POS.z);
+  assert.equal(biome, 'swamp', 'Murky Swamp center should classify as swamp biome');
+  assert.equal(getBiomeLabel('swamp'), 'Murky Swamp');
+
+  // Primary hippo wallow lagoon at (-175, 435) and secondary lagoon at (-148, 452) should be below WATER_LEVEL
+  const primaryPoolY = groundHeightAt(-175, 435);
+  const secondaryPoolY = groundHeightAt(-148, 452);
+  assert.ok(
+    primaryPoolY < WATER_LEVEL - 0.5,
+    `Expected submerged hippo wallow lagoon at (-175, 435), got ${primaryPoolY}`
+  );
+  assert.ok(
+    secondaryPoolY < WATER_LEVEL - 0.4,
+    `Expected submerged secondary swamp pool at (-148, 452), got ${secondaryPoolY}`
+  );
+
+  // Sample grid across swamp to confirm both water channels (< WATER_LEVEL) and raised peat hummocks (> WATER_LEVEL)
+  let waterChannelSamples = 0;
+  let raisedHummockSamples = 0;
+  for (let dx = -40; dx <= 40; dx += 8) {
+    for (let dz = -40; dz <= 40; dz += 8) {
+      const h = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + dx, MURKY_SWAMP_BIOME_POS.z + dz);
+      if (h < WATER_LEVEL - 0.1) waterChannelSamples++;
+      if (h > WATER_LEVEL + 0.08) raisedHummockSamples++;
+    }
+  }
+  assert.ok(waterChannelSamples >= 10, `Expected interwoven swamp water channels, got ${waterChannelSamples}`);
+  assert.ok(raisedHummockSamples >= 10, `Expected raised mossy peat hummocks, got ${raisedHummockSamples}`);
 });
 // #endregion
 

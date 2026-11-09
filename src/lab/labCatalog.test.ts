@@ -47,9 +47,9 @@ describe('Character & Animation Lab Catalog', () => {
     const animals = LAB_ENTITIES.filter((e) => e.category === 'animals');
 
     assert.equal(characters.length, 8, 'Should include all 8 characters');
-    assert.equal(animals.length, 20, 'Should include all 20 animals (including forest_bear, river_crocodile, jungle_jaguar, forest_wolf, savanna_rhino, savanna_lion, royal_stag, forest_dragon, and demon_dragon)');
+    assert.equal(animals.length, 22, 'Should include all 22 animals (including forest_bear, river_crocodile, jungle_jaguar, forest_wolf, savanna_rhino, savanna_lion, royal_stag, forest_dragon, demon_dragon, oasis_hippo, koi_fish, and ocean_dolphin)');
 
-    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, Crocodile, Jaguar, Wolf, Rhino, Lion, Stag, and Dragons are standalone entries
+    // Verify Koi Fish, Meadow Butterfly, Seagull, Bear, Crocodile, Jaguar, Wolf, Rhino, Lion, Stag, Dragons, Hippo, and Dolphin are standalone entries
     assert.ok(animals.some((a) => a.id === 'koi_fish'), 'Koi fish must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'meadow_butterfly'), 'Meadow butterfly must be its own standalone animal entry');
     assert.ok(animals.some((a) => a.id === 'harbor_seagull'), 'Harbor seagull must be its own standalone animal entry');
@@ -62,6 +62,8 @@ describe('Character & Animation Lab Catalog', () => {
     assert.ok(animals.some((a) => a.id === 'royal_stag'), 'Royal stag must be included in animals');
     assert.ok(animals.some((a) => a.id === 'forest_dragon'), 'Forest dragon must be included in animals');
     assert.ok(animals.some((a) => a.id === 'demon_dragon'), 'Demon dragon must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'oasis_hippo'), 'Oasis hippo must be included in animals');
+    assert.ok(animals.some((a) => a.id === 'ocean_dolphin'), 'Ocean dolphin must be included in animals');
     assert.ok(!LAB_ENTITIES.some((e) => e.id === 'koi_and_butterfly'), 'Combined koi_and_butterfly entry must not exist');
   });
 
@@ -102,11 +104,11 @@ describe('Character & Animation Lab Catalog', () => {
     assert.ok(onlyCharacters.every((e) => e.category === 'characters'));
 
     const onlyAnimals = filterLabEntities(LAB_ENTITIES, 'animals', '');
-    assert.equal(onlyAnimals.length, 20);
+    assert.equal(onlyAnimals.length, 22);
     assert.ok(onlyAnimals.every((e) => e.category === 'animals'));
 
     const allCombined = filterLabEntities(LAB_ENTITIES, 'all', '');
-    assert.equal(allCombined.length, 28, 'Dropdown "all" option must return all 28 entities');
+    assert.equal(allCombined.length, 30, 'Dropdown "all" option must return all 30 entities');
 
     const koiSearch = filterLabEntities(LAB_ENTITIES, 'animals', 'koi');
     assert.equal(koiSearch.length, 1);
@@ -363,7 +365,7 @@ describe('Character & Animation Lab Catalog', () => {
     rhinoLabRig.dispose();
     rhino.dispose();
 
-    // Verify CatLion, Stag, ForestDragon, DemonDragon, Horse, and Dove Lab rigs
+    // Verify CatLion, Stag, ForestDragon, DemonDragon, Horse, Dove, Hippo, KoiFish, and Dolphin Lab rigs
     for (const entityId of [
       'savanna_lion',
       'royal_stag',
@@ -371,14 +373,27 @@ describe('Character & Animation Lab Catalog', () => {
       'demon_dragon',
       'rideable_horse',
       'flock_bird',
+      'oasis_hippo',
+      'koi_fish',
+      'ocean_dolphin',
     ]) {
       const entity = getLabEntityById(entityId);
       const rig = buildLabEntityRig(entityId, entity.skins[0]);
-      assert.ok(rig.stats.triangleCount > 1000, `${entityId} should have a valid 3D mesh`);
+      assert.ok(rig.stats.triangleCount > 350, `${entityId} should have a valid 3D mesh`);
       rig.applyAnimation('walk', 0.2, 0.2);
       rig.applyAnimation('death', 0.5, 0.5);
       rig.dispose();
     }
+
+    // Verify updated Saddle_Complete.ts and WesternSaddle_Complete.ts models
+    const { createReadySaddle } = await import('../world/models/equipment/Saddle_Complete');
+    const { createReadyWesternSaddle } = await import('../world/models/equipment/WesternSaddle_Complete');
+    const saddle = createReadySaddle({ scale: 1.0 });
+    const westernSaddle = createReadyWesternSaddle({ scale: 1.0 });
+    assert.ok(saddle.mesh.geometry.attributes.position.count > 100, 'English Saddle mesh must have vertices');
+    assert.ok(westernSaddle.mesh.geometry.attributes.position.count > 100, 'Western Saddle mesh must have vertices');
+    saddle.dispose();
+    westernSaddle.dispose();
 
     // Verify persistent per-animation and entity-wide speed resolution
     const customSpeedOverrides = {

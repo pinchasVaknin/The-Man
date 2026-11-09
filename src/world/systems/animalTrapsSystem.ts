@@ -9,6 +9,19 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { INVENTORY_ITEM_MAP, type InventoryItemId } from '../domain/worldTypes';
+import { distToSegment } from '../domain/noiseAndMath';
+import {
+  getNearbySolidBuildingBoxes,
+  resolveHorizontalBoxCollision,
+} from '../domain/landmarksRegistry';
+import {
+  getNearbyWorldObstacles,
+  getRoofHeightAt,
+  isInsideBearCave,
+  isInsideVolcanoSanctum,
+  walkableHeightAt,
+} from './terrainAndBiomeSystem';
+import { findNearestFallenTree } from './treeFellingSystem';
 import type { GroundAnimalSpecies, ISmallAnimalState } from './boidsAndWildlifeSystem';
 // #endregion
 
@@ -72,6 +85,7 @@ export interface IPlacedTrap {
   xp?: number;
   notifiedSprung?: boolean;
   luredCritterAssigned?: boolean;
+  animalDecisions?: Record<number, { decision: 'approach' | 'ignore'; timer: number }>;
 }
 
 let activePlacedTrapsRef: IPlacedTrap[] = [];
@@ -199,8 +213,8 @@ export const TRAP_RECIPES: readonly ITrapRecipe[] = [
     subtitle: 'Willow-Reed Funnel Basket · River, Lake & Harbor Fish',
     description:
       'Conical woven reed funnel basket baited with grain seeds and tethered to a wooden float. Place in shallow water along any shoreline, river, or lake to catch fresh trout and salmon.',
-    targetAnimalsLabel: 'River Trout & Silver Salmon (Water Placement)',
-    targetSpecies: ['fish'],
+    targetAnimalsLabel: 'River Trout, Silver Salmon & Royal Koi (Water Placement)',
+    targetSpecies: ['fish', 'koifish'],
     ingredients: [
       { itemId: 'oak_timber', count: 1 },
       { itemId: 'twine_fiber', count: 2 },
@@ -339,10 +353,85 @@ export function craftTrapAtWorkbench(
 let nextTrapIdCounter = 1;
 
 /**
- * Minimum time (in seconds) an armed baited trap must sit on the ground before nearby
- * wildlife catches the scent and cautiously approaches.
+ * Legacy constant retained for backwards compatibility (traps now operate on range + random choice rather than a timer).
  */
-export const TRAP_SCENT_NOTICE_DELAY_SEC = 10.0;
+export const TRAP_SCENT_NOTICE_DELAY_SEC = 0.0;
+
+/** Probability (0..1) that an animal entering a trap's sight/scent range chooses to approach the bait. */
+export const TRAP_RANDOM_APPROACH_PROBABILITY = 0.62;
+
+/** Cooldown (seconds) before an animal re-evaluates its random choice while remaining inside trap range. */
+export const TRAP_DECISION_REROLL_SECONDS = 14.0;
+
+let trapRandomFn: () => number = () => Math.random();
+
+/**
+ * Summary: Overrides or resets the random number generator [0, 1) used for animal trap approach decisions.
+ */
+export function setTrapRandomGenerator(fn: (() => number) | null): void {
+  trapRandomFn = fn ?? (() => Math.random());
+}
+
+/**
+ * Summary: Returns the current random number generator [0, 1) used for animal trap approach decisions.
+ */
+export function getTrapRandomGenerator(): () => number {
+  return trapRandomFn;
+}
+
+/**
+ * Summary: Evaluates whether an animal within an armed trap's sight/scent range (`attractRadius`)
+ *          randomly chooses to approach the trap (`'approach'`) or ignore it (`'ignore'`).
+ */
+export function evaluateAnimalTrapChoice(
+  animal: ISmallAnimalState,
+  trap: IPlacedTrap,
+  dt: number,
+  customRandomFn?: () => number
+): 'out_of_range' | 'approach' | 'ignore' {
+  if (trap.status !== 'armed') return 'out_of_range';
+  if (animal.isDead || animal.isLooted || animal.isTamed || animal.isMountedByPlayer) {
+    return 'out_of_range';
+  }
+  const recipe = TRAP_RECIPES.find((r) => r.kind === trap.kind);
+  if (!recipe || !recipe.targetSpecies.includes(animal.species)) {
+    return 'out_of_range';
+  }
+
+  const dist = Math.hypot(animal.x - trap.x, animal.z - trap.z);
+  if (dist > recipe.attractRadius) {
+    if (dist > recipe.attractRadius + 2.5 && trap.animalDecisions?.[animal.id]) {
+      delete trap.animalDecisions[animal.id];
+    }
+    return 'out_of_range';
+  }
+
+  if (!trap.animalDecisions) {
+    trap.animalDecisions = {};
+  }
+
+  const existing = trap.animalDecisions[animal.id];
+  if (existing && existing.timer > 0) {
+    existing.timer = Math.max(0, existing.timer - Math.max(0, dt));
+    if (existing.timer > 0) {
+      animal.trapDecisionTrapId = trap.id;
+      animal.trapDecisionOutcome = existing.decision;
+      animal.trapDecisionTimer = existing.timer;
+      return existing.decision;
+    }
+  }
+
+  const rng = customRandomFn ?? trapRandomFn;
+  const roll = rng();
+  const decision: 'approach' | 'ignore' =
+    roll < TRAP_RANDOM_APPROACH_PROBABILITY ? 'approach' : 'ignore';
+  const timer = TRAP_DECISION_REROLL_SECONDS;
+  trap.animalDecisions[animal.id] = { decision, timer };
+  animal.trapDecisionTrapId = trap.id;
+  animal.trapDecisionOutcome = decision;
+  animal.trapDecisionTimer = timer;
+  return decision;
+}
 
 export interface ITrapPlacementPreview {
   readonly valid: boolean;
@@ -384,11 +473,20 @@ export function computeTrapPlacementPreview(
   const groundY = groundHeightFn(placeX, placeZ);
   const renderY = recipe.kind === 'trap_fish' ? Math.max(groundY + 0.04, waterLevel - 0.04) : groundY + 0.05;
 
-  // 1. Reject placing inside the starting Hunter's Lodge cabin interior
-  if (Math.abs(placeX - -92.2) < 4.2 && Math.abs(placeZ - 73.2) < 4.2) {
+  // 1. Reject placing inside the starting Hunter's Lodge cabin interior or any building interior / non-ground deck
+  const walkSurf = walkableHeightAt(placeX, placeZ, playerY);
+  const underBuildingRoof =
+    getRoofHeightAt(placeX, placeZ) !== null &&
+    isInsideBearCave(placeX, placeZ, playerY) === null &&
+    isInsideVolcanoSanctum(placeX, placeZ, playerY) === null;
+  if (
+    (Math.abs(placeX - -92.2) < 4.5 && Math.abs(placeZ - 73.2) < 4.5) ||
+    walkSurf.surface !== 'ground' ||
+    underBuildingRoof
+  ) {
     return {
       valid: false,
-      reason: 'Cannot place traps indoors',
+      reason: 'Cannot place traps indoors or on structures',
       x: placeX,
       y: renderY,
       z: placeZ,
@@ -399,7 +497,77 @@ export function computeTrapPlacementPreview(
     };
   }
 
-  // 2. Water vs dry land validation
+  // 2. Reject placing inside or on top of trees, boulders, rocks, pillars, or fallen trees
+  const nearbyObstacles = getNearbyWorldObstacles(placeX, placeZ, 3.4);
+  for (let i = 0; i < nearbyObstacles.length; i++) {
+    const obs = nearbyObstacles[i];
+    if (obs.radius <= 0.05) continue;
+    const isTree =
+      obs.kind === 'pine' ||
+      obs.kind === 'oak' ||
+      obs.kind === 'birch' ||
+      obs.kind === 'palm' ||
+      obs.kind === 'acacia';
+    const minClearance = obs.radius + (isTree ? 0.78 : 0.65);
+    const distToObs = Math.hypot(placeX - obs.x, placeZ - obs.z);
+    const rayBlockedByObs =
+      distToSegment(obs.x, obs.z, playerX, playerZ, placeX, placeZ) < obs.radius + 0.42;
+    if (distToObs < minClearance || rayBlockedByObs) {
+      return {
+        valid: false,
+        reason: isTree
+          ? 'Cannot place trap on or inside a tree'
+          : 'Cannot place trap on a rock or obstacle',
+        x: placeX,
+        y: renderY,
+        z: placeZ,
+        yaw: playerYaw,
+        kind: recipe.kind,
+        itemId: recipe.itemId,
+        trapName: recipe.name,
+      };
+    }
+  }
+
+  if (findNearestFallenTree(placeX, placeZ, 1.35) !== null) {
+    return {
+      valid: false,
+      reason: 'Cannot place trap on a fallen tree',
+      x: placeX,
+      y: renderY,
+      z: placeZ,
+      yaw: playerYaw,
+      kind: recipe.kind,
+      itemId: recipe.itemId,
+      trapName: recipe.name,
+    };
+  }
+
+  // 3. Reject placing inside solid walls, fences, or building colliders
+  const nearbyBoxes = getNearbySolidBuildingBoxes(placeX, placeZ, 2.0);
+  for (let i = 0; i < nearbyBoxes.length; i++) {
+    const box = nearbyBoxes[i];
+    const minY = box.minY ?? -Infinity;
+    const maxY = box.maxY ?? Infinity;
+    if (renderY >= minY - 0.5 && renderY <= maxY + 0.5) {
+      const col = resolveHorizontalBoxCollision(placeX, placeZ, 0.55, box);
+      if (col.collided) {
+        return {
+          valid: false,
+          reason: 'Cannot place trap inside a wall or structure',
+          x: placeX,
+          y: renderY,
+          z: placeZ,
+          yaw: playerYaw,
+          kind: recipe.kind,
+          itemId: recipe.itemId,
+          trapName: recipe.name,
+        };
+      }
+    }
+  }
+
+  // 4. Water vs dry land validation
   if (recipe.kind === 'trap_fish') {
     if (groundY > waterLevel + 0.45) {
       return {
@@ -443,7 +611,7 @@ export function computeTrapPlacementPreview(
     }
   }
 
-  // 3. Steepness / elevation difference check
+  // 5. Steepness / elevation difference check
   const sampleDx = groundHeightFn(placeX + 0.45, placeZ);
   const sampleDz = groundHeightFn(placeX, placeZ + 0.45);
   if (
@@ -464,7 +632,7 @@ export function computeTrapPlacementPreview(
     };
   }
 
-  // 4. Overlap with existing placed traps
+  // 6. Overlap with existing placed traps
   for (let i = 0; i < placedTraps.length; i++) {
     const existing = placedTraps[i];
     if (Math.hypot(existing.x - placeX, existing.z - placeZ) < 1.25) {
@@ -547,6 +715,7 @@ export function placeTrapOnGround(
     status: 'armed',
     sprung: false,
     armedDuration: 0,
+    animalDecisions: {},
   };
 
   return {
@@ -666,6 +835,7 @@ export function generateCaughtAnimalLoot(
       break;
 
     case 'fish':
+    case 'koifish':
       lootList.push({ itemId: 'raw_game_meat', quantity: 2 + (levelBonus > 0 ? 1 : 0) });
       lootList.push({ itemId: 'animal_fat', quantity: 1 + (levelBonus >= 2 ? 1 : 0) });
       break;
@@ -734,8 +904,8 @@ export interface ITickTrapsResult {
 
 /**
  * Summary: Updates placed traps every frame:
- *  - Attracts real world squirrels, rabbits, and predators toward armed traps.
- *  - Never triggers land traps empty without a real animal reaching the trap.
+ *  - Evaluates range-based random decisions (`evaluateAnimalTrapChoice`) when real wildlife enters `attractRadius`.
+ *  - Never teleports distant animals or triggers land traps on a timer without a real animal reaching `triggerRadius`.
  *  - When a bear steps on a Heavy Steel Bear Trap (`trap_bear_jaw`), clamps the trap onto
  *    the bear's front paw, deals damage, makes the bear stop and roar on all fours (`'roar'`),
  *    then removes the trap and slows the bear by 10% for 7 seconds as it resumes chasing!
@@ -765,13 +935,18 @@ export function tickPlacedAnimalTraps(
       continue;
     }
 
+    const prevArmed = trap.armedDuration;
     trap.armedDuration += dt;
     const recipe = TRAP_RECIPES.find((r) => r.kind === trap.kind);
     if (!recipe) continue;
 
-    // Fish Trap (`trap_fish`): catches swimming fish in water after baseCatchTimeSec
+    // Fish Trap (`trap_fish`): when a school of fish passes within water range, rolls a random decision
     if (trap.kind === 'trap_fish') {
-      if (trap.armedDuration >= recipe.baseCatchTimeSec) {
+      const crossedRollWindow = Math.floor(trap.armedDuration / 3.5) > Math.floor(prevArmed / 3.5);
+      const fishChoseToEnter =
+        (trap.armedDuration >= 3.5 && crossedRollWindow && trapRandomFn() < TRAP_RANDOM_APPROACH_PROBABILITY) ||
+        trap.armedDuration >= recipe.baseCatchTimeSec;
+      if (fishChoseToEnter) {
         const seed = Math.abs(Math.sin(trap.x * 12.9898 + trap.z * 78.233));
         const fishLevel = 1 + (Math.floor(seed * 10) % 3);
         const fishName = seed > 0.5 ? 'River Trout' : 'Silver Salmon';
@@ -788,64 +963,7 @@ export function tickPlacedAnimalTraps(
       continue;
     }
 
-    // For Small Cage Trap and Wire Snare: after TRAP_SCENT_NOTICE_DELAY_SEC (10s) of scent dispersal,
-    // ensure a woodland squirrel or rabbit notices the bait from a natural distance (~17.5m)
-    // and cautiously approaches over time instead of rushing in immediately!
-    if (
-      (trap.kind === 'trap_cage_small' || trap.kind === 'trap_snare') &&
-      trap.armedDuration >= TRAP_SCENT_NOTICE_DELAY_SEC
-    ) {
-      let hasNearbyCritter = false;
-      for (let i = 0; i < activeAnimals.length; i++) {
-        const a = activeAnimals[i];
-        if (a.isDead || a.isLooted) continue;
-        if (a.species !== 'squirrel' && a.species !== 'rabbit') continue;
-        if (Math.hypot(a.x - trap.x, a.z - trap.z) <= recipe.attractRadius) {
-          hasNearbyCritter = true;
-          break;
-        }
-      }
-
-      if (!hasNearbyCritter && !trap.luredCritterAssigned) {
-        // Pick a live squirrel or rabbit (preferring squirrel if trap x+z hash is odd, rabbit if even, so both are common)
-        const preferSquirrel = Math.abs(Math.round(trap.x + trap.z)) % 2 === 1;
-        let candidate: ISmallAnimalState | null = null;
-        for (let i = 0; i < activeAnimals.length; i++) {
-          const a = activeAnimals[i];
-          if (a.isDead || a.isLooted) continue;
-          if (preferSquirrel ? a.species === 'squirrel' : a.species === 'rabbit') {
-            candidate = a;
-            break;
-          }
-        }
-        if (!candidate) {
-          for (let i = 0; i < activeAnimals.length; i++) {
-            const a = activeAnimals[i];
-            if (!a.isDead && !a.isLooted && (a.species === 'squirrel' || a.species === 'rabbit')) {
-              candidate = a;
-              break;
-            }
-          }
-        }
-        if (candidate) {
-          const spawnAng = trap.yaw + Math.PI * 0.35;
-          const spawnDist = 17.5;
-          candidate.x = trap.x + Math.cos(spawnAng) * spawnDist;
-          candidate.z = trap.z + Math.sin(spawnAng) * spawnDist;
-          candidate.y = trap.y;
-          candidate.homeX = trap.x;
-          candidate.homeZ = trap.z;
-          candidate.isResting = false;
-          trap.luredCritterAssigned = true;
-        }
-      }
-    }
-
-    let triggered = false;
-    let nearestTargetAnimal: ISmallAnimalState | null = null;
-    let nearestTargetDist = Infinity;
-
-    // 1. Check live world animals entering trigger distance or attraction radius
+    // Check live world animals entering trigger distance or detection/attraction range
     for (let aIdx = 0; aIdx < activeAnimals.length; aIdx++) {
       const a = activeAnimals[aIdx];
       if (a.isDead || a.isLooted || a.isTamed || a.isMountedByPlayer) continue;
@@ -855,13 +973,8 @@ export function tickPlacedAnimalTraps(
       if (!recipe.targetSpecies.includes(speciesKey)) continue;
 
       const dist = Math.hypot(a.x - trap.x, a.z - trap.z);
-      if (dist < nearestTargetDist) {
-        nearestTargetDist = dist;
-        nearestTargetAnimal = a;
-      }
 
       if (dist <= recipe.triggerRadius) {
-        triggered = true;
         const animalLevel = a.level ?? 1;
 
         // Special behavior for Heavy Steel Bear Trap (`trap_bear_jaw`) on Bears:
@@ -907,33 +1020,9 @@ export function tickPlacedAnimalTraps(
         newlySprungTraps.push(trap);
         break;
       }
-    }
 
-    if (triggered) continue;
-
-    // Only begin luring wildlife once the trap has been armed for at least TRAP_SCENT_NOTICE_DELAY_SEC (10s),
-    // and only nudge predators here (squirrels & rabbits are cautiously steered in boidsAndWildlifeSystem.ts with sniffing pauses).
-    if (
-      trap.armedDuration >= TRAP_SCENT_NOTICE_DELAY_SEC &&
-      nearestTargetAnimal &&
-      nearestTargetDist <= recipe.attractRadius &&
-      nearestTargetDist > 0.05 &&
-      nearestTargetAnimal.species !== 'squirrel' &&
-      nearestTargetAnimal.species !== 'rabbit'
-    ) {
-      const a = nearestTargetAnimal;
-      const dirX = (trap.x - a.x) / nearestTargetDist;
-      const dirZ = (trap.z - a.z) / nearestTargetDist;
-      const lureSpeed =
-        a.species === 'bear'
-          ? 2.2 * ((a.bearTrapSlowTimer ?? 0) > 0 ? 0.9 : 1.0)
-          : 1.85;
-      a.isResting = false;
-      a.vx = dirX * lureSpeed;
-      a.vz = dirZ * lureSpeed;
-      a.x += a.vx * dt;
-      a.z += a.vz * dt;
-      a.yaw = Math.atan2(a.vx, a.vz);
+      // Evaluate or update random choice when animal is within the trap's detection radius
+      evaluateAnimalTrapChoice(a, trap, dt);
     }
   }
 

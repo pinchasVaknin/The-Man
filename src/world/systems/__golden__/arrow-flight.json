@@ -4,19 +4,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 0,
@@ -32,19 +32,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 15,
@@ -60,19 +60,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 30,
@@ -88,19 +88,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 45,
@@ -116,19 +116,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 60,
@@ -144,19 +144,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 75,
@@ -172,19 +172,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 90,
@@ -200,19 +200,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 105,
@@ -228,19 +228,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 120,
@@ -256,19 +256,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 135,
@@ -284,19 +284,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 150,
@@ -312,19 +312,19 @@
    {
     "age": 3,
     "arrowKind": "normal",
-    "hitKind": "ground",
+    "hitKind": "obstacle",
     "hitTargetId": null,
     "id": 1,
-    "pitch": -0.124582,
+    "pitch": -0.036958,
     "stuck": true,
     "trail": [],
     "vx": 0,
     "vy": 0,
     "vz": 0,
-    "x": -1.727687,
-    "y": 0.395264,
+    "x": -0.343434,
+    "y": 3.124924,
     "yaw": 0.04,
-    "z": -14.670083
+    "z": 19.917789
    }
   ],
   "frame": 165,

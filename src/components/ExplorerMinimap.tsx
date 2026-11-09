@@ -17,6 +17,7 @@ import {
   DESERT_PYRAMID_SANCTUARY_POS,
   FLOATING_BLOOMING_ISLANDS,
   HUNTER_LODGE_POS,
+  MURKY_SWAMP_BIOME_POS,
   NORDIC_FROST_SHRINE_POS,
   RUINED_ATLANTIS_POS,
   SMUGGLER_ISLAND_POS,
@@ -69,6 +70,7 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'sky_islands', label: 'Floating Sky Islands', x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z, color: '#e879f9' },
   { id: 'dwarven', label: 'Dwarven Kingdom', x: SOUTHERN_MINE_POS.x, z: SOUTHERN_MINE_POS.z, color: '#cbd5e1' },
   { id: 'dragon_ruins', label: 'Dragon Ruins (Desert Pass)', x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, color: '#ef4444' },
+  { id: 'murky_swamp', label: 'Murky Swamp & Hippo Marsh', x: MURKY_SWAMP_BIOME_POS.x, z: MURKY_SWAMP_BIOME_POS.z, color: '#4ade80' },
   { id: 'croc_lagoon', label: 'Crocodile River Bend', x: CROCODILE_RIVER_BEND_POS.x, z: CROCODILE_RIVER_BEND_POS.z, color: '#22c55e' },
   { id: 'bear_cave', label: 'Bear Mountain Caves', x: BEAR_MOUNTAIN_CAVES[0].x, z: BEAR_MOUNTAIN_CAVES[0].z, color: '#d97706' },
 ];

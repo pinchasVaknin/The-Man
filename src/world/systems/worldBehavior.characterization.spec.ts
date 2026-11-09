@@ -34,7 +34,7 @@ import type { IArrowProjectile, IPlayerInput } from '../domain/worldTypes';
 // ======================== FIXTURES ======================== \\
 // #region Fixtures
 const ALL_SPECIES: readonly GroundAnimalSpecies[] = [
-  'rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'lion', 'stag', 'dragon',
+  'rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'lion', 'stag', 'dragon', 'hippo', 'koifish', 'dolphin',
 ];
 const FRAME_DT = 1 / 60;
 

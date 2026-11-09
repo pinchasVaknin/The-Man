@@ -260,6 +260,26 @@
   }
  },
  {
+  "entityId": "oasis_hippo",
+  "labels": {
+   "headTitle": "Hippo's head and muzzle",
+   "leftLimbTitle": "Hippo's left legs",
+   "leftWeaponGroupTitle": "Hippo tail and ears",
+   "rightLimbTitle": "Hippo's right legs",
+   "weaponGroupTitle": "Cavernous jaws and tusks"
+  }
+ },
+ {
+  "entityId": "ocean_dolphin",
+  "labels": {
+   "headTitle": "Rostrum, melon and jaw",
+   "leftLimbTitle": "Left pectoral flipper",
+   "leftWeaponGroupTitle": "Curved dorsal fin",
+   "rightLimbTitle": "Right pectoral flipper",
+   "weaponGroupTitle": "Horizontal tail flukes (propulsion)"
+  }
+ },
+ {
   "entityId": "dwarven_king_statue",
   "labels": {
    "headTitle": "Crowned head and beard",

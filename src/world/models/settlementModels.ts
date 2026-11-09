@@ -31,6 +31,7 @@ import {
 } from '../terrainMath';
 import { createBirchBarkTexture } from '../builders/shaderAndMaterialBuilders';
 import { createReadyHorse, type HorseController, type HorseState } from './Horse';
+import { createReadyKoiFish, type KoiFish } from './KoiFish';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -460,30 +461,86 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     westPierGroup.add(lPad, lGlow);
   }
 
+  // Floating Zen Lily Pads & Blooming Lotus Flowers in the Tea Pavilion Koi Pond
+  const zenLilyPadGeo = new THREE.CylinderGeometry(0.52, 0.52, 0.025, 12);
+  const zenLotusBloomGeo = new THREE.DodecahedronGeometry(0.16, 0);
+  const zenLilyPadMat = new THREE.MeshStandardMaterial({
+    color: 0x2f6f3e,
+    roughness: 0.78,
+  });
+  const zenLotusPinkMat = new THREE.MeshStandardMaterial({
+    color: 0xf472b6,
+    roughness: 0.62,
+  });
+  disposableGeometries.push(zenLilyPadGeo, zenLotusBloomGeo);
+  disposableMaterials.push(zenLilyPadMat, zenLotusPinkMat);
+
+  for (let lp = 0; lp < 14; lp++) {
+    const lAng = lp * 1.28 + 0.4;
+    const lRad = 4.4 + (lp % 4) * 1.55;
+    const lx = -5.5 + Math.cos(lAng) * lRad;
+    const lz = Math.sin(lAng) * lRad;
+    const pad = new THREE.Mesh(zenLilyPadGeo, zenLilyPadMat);
+    pad.position.set(lx, WATER_LEVEL + 0.022, lz);
+    const s = 0.72 + (lp % 3) * 0.2;
+    pad.scale.set(s, 1, s);
+    westPierGroup.add(pad);
+    if (lp % 2 === 0) {
+      const bloom = new THREE.Mesh(zenLotusBloomGeo, lp % 4 === 0 ? koiWhiteMat : zenLotusPinkMat);
+      bloom.position.set(lx, WATER_LEVEL + 0.1, lz);
+      westPierGroup.add(bloom);
+    }
+  }
+
   interface ISwimmingKoi {
     mesh: THREE.Group;
+    ctrl: KoiFish;
     orbitCenterX: number;
     orbitCenterZ: number;
-    orbitRadius: number;
+    orbitRadiusX: number;
+    orbitRadiusZ: number;
+    wobbleRadius: number;
+    wobbleFreq: number;
     speed: number;
+    direction: 1 | -1;
     phase: number;
+    lastYaw: number;
   }
+  const koiTintPalette = [undefined, 0xffedd5, 0x93c5fd, 0xfde047] as const;
   const swimmingKoiList: ISwimmingKoi[] = [];
   for (let k = 0; k < 12; k++) {
     const koiGroup = new THREE.Group();
-    const kMat = k % 2 === 0 ? koiGoldMat : koiWhiteMat;
-    const kBody = new THREE.Mesh(koiBodyGeo, kMat);
-    const kTail = new THREE.Mesh(koiTailGeo, teaCrimsonMat);
-    kTail.position.set(0, 0, -0.36);
-    koiGroup.add(kBody, kTail);
+    const koiCtrl = createReadyKoiFish({
+      scale: 0.52 + (k % 3) * 0.08,
+      tintHex: koiTintPalette[k % koiTintPalette.length],
+      castShadow: false,
+      receiveShadow: false,
+    });
+    koiCtrl.setState(k % 3 === 0 ? 'trot' : 'walk');
+    koiCtrl.setNormalizedPhase((k * 0.17) % 1);
+    const koiMat = koiCtrl.mesh.material;
+    if (Array.isArray(koiMat)) {
+      for (const m of koiMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(koiMat);
+    }
+    disposableGeometries.push(koiCtrl.mesh.geometry);
+    koiGroup.add(koiCtrl.object);
     westPierGroup.add(koiGroup);
+    const dir: 1 | -1 = k % 4 === 3 ? -1 : 1;
     swimmingKoiList.push({
       mesh: koiGroup,
-      orbitCenterX: -6.0 + ((k % 3) - 1) * 3.2,
-      orbitCenterZ: ((k % 4) - 1.5) * 2.8,
-      orbitRadius: 4.8 + (k % 4) * 1.4,
-      speed: 0.42 + (k % 3) * 0.14,
+      ctrl: koiCtrl,
+      orbitCenterX: -5.6 + ((k % 3) - 1) * 2.4,
+      orbitCenterZ: ((k % 4) - 1.5) * 2.1,
+      orbitRadiusX: 4.1 + (k % 4) * 1.15,
+      orbitRadiusZ: 3.6 + ((k + 1) % 4) * 1.05,
+      wobbleRadius: 0.95 + (k % 3) * 0.38,
+      wobbleFreq: 2.0 + (k % 3) * 0.5,
+      speed: 0.34 + (k % 4) * 0.09,
+      direction: dir,
       phase: k * 0.95,
+      lastYaw: 0,
     });
   }
 
@@ -2291,14 +2348,57 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     }
 
     if (westPierGroup.visible) {
+      const dtKoi = 0.016;
       for (let k = 0; k < swimmingKoiList.length; k++) {
         const koi = swimmingKoiList[k];
-        const ang = elapsedTime * koi.speed + koi.phase;
-        const kx = koi.orbitCenterX + Math.cos(ang) * koi.orbitRadius;
-        const kz = koi.orbitCenterZ + Math.sin(ang) * koi.orbitRadius;
-        koi.mesh.position.set(kx, WATER_LEVEL - 0.22 + Math.sin(elapsedTime * 2.2 + koi.phase) * 0.04, kz);
-        koi.mesh.rotation.y = -ang + Math.PI / 2;
-        (koi.mesh.children[1] as THREE.Mesh).rotation.y = Math.sin(elapsedTime * 6.5 + koi.phase) * 0.35;
+        // Modulate swim speed smoothly so each koi alternates between gentle cruising, darting, and lily-pad nibbling
+        const speedMod = 1.0 + 0.28 * Math.sin(elapsedTime * 0.55 + koi.phase * 1.7);
+        const omega = koi.speed * koi.direction;
+        const ang = elapsedTime * omega + koi.phase + 0.32 * Math.sin(elapsedTime * 0.55 + koi.phase * 1.7);
+        const dAngDt = omega * speedMod;
+        const wobArg = ang * koi.wobbleFreq + koi.phase * 0.7;
+        const dWobDt = dAngDt * koi.wobbleFreq;
+
+        const kx =
+          koi.orbitCenterX +
+          Math.cos(ang) * koi.orbitRadiusX +
+          Math.cos(wobArg) * koi.wobbleRadius;
+        const kz =
+          koi.orbitCenterZ +
+          Math.sin(ang) * koi.orbitRadiusZ +
+          Math.sin(wobArg) * koi.wobbleRadius * 0.85;
+
+        // Exact tangent velocity (vx, vz) so the +Z nose of KoiFish always points strictly forward along its swim path
+        const vx =
+          -Math.sin(ang) * koi.orbitRadiusX * dAngDt -
+          Math.sin(wobArg) * koi.wobbleRadius * dWobDt;
+        const vz =
+          Math.cos(ang) * koi.orbitRadiusZ * dAngDt +
+          Math.cos(wobArg) * koi.wobbleRadius * 0.85 * dWobDt;
+
+        const swimSpd = Math.hypot(vx, vz);
+        const targetYaw = swimSpd > 0.01 ? Math.atan2(vx, vz) : koi.lastYaw;
+        let yawDiff = targetYaw - koi.lastYaw;
+        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+        koi.lastYaw = targetYaw;
+
+        const depthWave = Math.sin(elapsedTime * 1.45 + koi.phase * 1.3);
+        const ky = WATER_LEVEL - 0.22 + depthWave * 0.045;
+        koi.mesh.position.set(kx, ky, kz);
+        koi.mesh.rotation.y = targetYaw;
+        koi.mesh.rotation.x = THREE.MathUtils.clamp(-Math.cos(elapsedTime * 1.45 + koi.phase * 1.3) * 0.05, -0.08, 0.08);
+        const turnSignal = THREE.MathUtils.clamp((yawDiff / dtKoi) * 0.38, -1.0, 1.0);
+        koi.mesh.rotation.z = THREE.MathUtils.clamp(-turnSignal * 0.14, -0.16, 0.16);
+
+        if (depthWave > 0.82 && k % 3 === 1) {
+          koi.ctrl.setState('eat');
+        } else if (swimSpd > 2.15) {
+          koi.ctrl.setState('trot');
+        } else {
+          koi.ctrl.setState('walk');
+        }
+        koi.ctrl.update(dtKoi * THREE.MathUtils.clamp(swimSpd / 1.55, 0.72, 1.55), turnSignal);
       }
     }
 

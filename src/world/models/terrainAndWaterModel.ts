@@ -12,6 +12,7 @@ import {
   WATER_LEVEL,
   SOUTHERN_MINE_POS,
   VOLCANO_SANCTUM_POS,
+  MURKY_SWAMP_BIOME_POS,
   groundHeightAt,
   getSurfaceNormalAt,
   trailFactorAt,
@@ -24,6 +25,7 @@ import {
 import {
   volcanicBadlandsFactorAt,
   northernTundraFactorAt,
+  murkySwampBiomeFactorAt,
   easternCoastlineXAt,
 } from '../systems/terrainAndBiomeSystem';
 import type { IWorldModelBuildContext } from './types';
@@ -303,6 +305,9 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const cVolcanoBasalt = new THREE.Color(0x1d1716);
   const cVolcanoAsh = new THREE.Color(0x382e2b);
   const cVolcanoMagma = new THREE.Color(0xf24c13);
+  const cSwampPeatMud = new THREE.Color(0x2d271c);
+  const cSwampMoss = new THREE.Color(0x334d24);
+  const cSwampBogBed = new THREE.Color(0x1c2b1e);
   const tmpColor = new THREE.Color();
   const tmpDesertColor = new THREE.Color();
 
@@ -418,6 +423,20 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           }
         }
 
+        // Blend Murky Swamp dark peat mud, bog beds, and mossy hummocks
+        const swampFactor = murkySwampBiomeFactorAt(wx, wz);
+        if (swampFactor > 0.02) {
+          const swampMix = smoothstepLocal(0.02, 0.55, swampFactor);
+          if (y < WATER_LEVEL - 0.05) {
+            tmpColor.lerp(cSwampBogBed, swampMix * 0.92);
+          } else if (y < WATER_LEVEL + 0.22) {
+            tmpColor.lerp(cSwampPeatMud, swampMix * 0.88);
+          } else {
+            tmpColor.lerp(cSwampMoss, swampMix * 0.78);
+            tmpColor.lerp(cSwampPeatMud, (1.0 - macroNoise) * swampMix * 0.42);
+          }
+        }
+
         colors[i * 3] = tmpColor.r;
         colors[i * 3 + 1] = tmpColor.g;
         colors[i * 3 + 2] = tmpColor.b;
@@ -506,6 +525,37 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     cx: 760,
     cz: 0,
     radius: 1350,
+  });
+
+  // Murky Swamp & Hippo Marshland water surface (-175, 435)
+  const swampWaterSegs = isSoftwareGl ? 36 : 64;
+  const swampWaterGeo = new THREE.PlaneGeometry(210, 210, swampWaterSegs, swampWaterSegs);
+  swampWaterGeo.rotateX(-Math.PI / 2);
+  swampWaterGeo.computeBoundingSphere();
+  disposableGeometries.push(swampWaterGeo);
+
+  const swampWaterMat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(0x214432),
+    roughness: 0.14,
+    metalness: 0.12,
+    clearcoat: isSoftwareGl ? 0 : 0.88,
+    clearcoatRoughness: 0.1,
+    transparent: true,
+    opacity: 0.88,
+    envMapIntensity: 1.15,
+  });
+  attachAnimatedWaterWaveShader(swampWaterMat, 0.024, 0.065, animatedWaterMaterials);
+  disposableMaterials.push(swampWaterMat);
+
+  const swampWaterMesh = new THREE.Mesh(swampWaterGeo, swampWaterMat);
+  swampWaterMesh.position.set(MURKY_SWAMP_BIOME_POS.x, WATER_LEVEL, MURKY_SWAMP_BIOME_POS.z);
+  swampWaterMesh.receiveShadow = !isSoftwareGl;
+  scene.add(swampWaterMesh);
+  distanceCulledObjects.push({
+    obj: swampWaterMesh,
+    cx: MURKY_SWAMP_BIOME_POS.x,
+    cz: MURKY_SWAMP_BIOME_POS.z,
+    radius: 155,
   });
 
   return { waterMaterial: waterMat, terrainMaterial: terrainMat };

@@ -11,17 +11,26 @@
   },
   "isPredator": false,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "small_hide"
+   ],
    "itemIds": [
     "raw_game_meat",
     "small_hide"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×2",
     "Small Hide"
    ],
-   "notification": "Looted Rabbit: Game Meat, Small Hide"
+   "itemQuantities": {
+    "raw_game_meat": 2,
+    "small_hide": 1
+   },
+   "notification": "Looted Rabbit: Game Meat ×2, Small Hide"
   },
-  "maxHp": 1,
+  "maxHp": 30,
   "name": "Rabbit",
   "sizeRank": 1,
   "species": "rabbit",
@@ -39,17 +48,26 @@
   },
   "isPredator": false,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "small_hide"
+   ],
    "itemIds": [
     "raw_game_meat",
     "small_hide"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×2",
     "Small Hide"
    ],
-   "notification": "Looted Squirrel: Game Meat, Small Hide"
+   "itemQuantities": {
+    "raw_game_meat": 2,
+    "small_hide": 1
+   },
+   "notification": "Looted Squirrel: Game Meat ×2, Small Hide"
   },
-  "maxHp": 1,
+  "maxHp": 30,
   "name": "Squirrel",
   "sizeRank": 1,
   "species": "squirrel",
@@ -67,6 +85,17 @@
   },
   "isPredator": false,
   "loot": {
+   "expandedItemIds": [
+    "deer_meat",
+    "deer_meat",
+    "deer_meat",
+    "deer_hide",
+    "deer_antlers",
+    "deer_antlers",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "deer_meat",
     "deer_hide",
@@ -74,14 +103,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Deer Meat",
+    "Deer Meat ×3",
     "Deer Hide",
-    "Deer Antlers",
-    "Animal Bone"
+    "Deer Antlers ×2",
+    "Animal Bone ×3"
    ],
-   "notification": "Looted Deer: Deer Meat, Deer Hide, Deer Antlers, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 3,
+    "deer_antlers": 2,
+    "deer_hide": 1,
+    "deer_meat": 3
+   },
+   "notification": "Looted Deer: Deer Meat ×3, Deer Hide, Deer Antlers ×2, Animal Bone ×3"
   },
-  "maxHp": 3,
+  "maxHp": 90,
   "name": "Deer",
   "sizeRank": 2,
   "species": "deer",
@@ -99,19 +134,31 @@
   },
   "isPredator": false,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "sheep_hide",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "sheep_hide",
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×2",
     "Wool",
-    "Animal Bone"
+    "Animal Bone ×2"
    ],
-   "notification": "Looted Sheep: Game Meat, Wool, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 2,
+    "raw_game_meat": 2,
+    "sheep_hide": 1
+   },
+   "notification": "Looted Sheep: Game Meat ×2, Wool, Animal Bone ×2"
   },
-  "maxHp": 2,
+  "maxHp": 60,
   "name": "Sheep",
   "sizeRank": 2,
   "species": "sheep",
@@ -129,6 +176,24 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "bear_meat",
+    "bear_meat",
+    "bear_meat",
+    "bear_meat",
+    "bear_hide",
+    "bear_claws",
+    "bear_claws",
+    "bear_claws",
+    "bear_claws",
+    "animal_fat",
+    "animal_fat",
+    "animal_fat",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "bear_meat",
     "bear_hide",
@@ -137,15 +202,22 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Bear Meat",
+    "Bear Meat ×4",
     "Bear Hide",
-    "Bear Claws",
-    "Animal Fat",
-    "Animal Bone"
+    "Bear Claws ×4",
+    "Animal Fat ×3",
+    "Animal Bone ×4"
    ],
-   "notification": "Looted Bear: Bear Meat, Bear Hide, Bear Claws, Animal Fat, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 4,
+    "animal_fat": 3,
+    "bear_claws": 4,
+    "bear_hide": 1,
+    "bear_meat": 4
+   },
+   "notification": "Looted Bear: Bear Meat ×4, Bear Hide, Bear Claws ×4, Animal Fat ×3, Animal Bone ×4"
   },
-  "maxHp": 8,
+  "maxHp": 240,
   "name": "Bear",
   "sizeRank": 4,
   "species": "bear",
@@ -163,6 +235,18 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "crocodile_hide",
+    "crocodile_teeth",
+    "crocodile_teeth",
+    "crocodile_teeth",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "crocodile_hide",
@@ -170,14 +254,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×3",
     "Crocodile Hide",
-    "Crocodile Teeth",
-    "Animal Bone"
+    "Crocodile Teeth ×3",
+    "Animal Bone ×3"
    ],
-   "notification": "Looted Crocodile: Game Meat, Crocodile Hide, Crocodile Teeth, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 3,
+    "crocodile_hide": 1,
+    "crocodile_teeth": 3,
+    "raw_game_meat": 3
+   },
+   "notification": "Looted Crocodile: Game Meat ×3, Crocodile Hide, Crocodile Teeth ×3, Animal Bone ×3"
   },
-  "maxHp": 6,
+  "maxHp": 180,
   "name": "Crocodile",
   "sizeRank": 3.5,
   "species": "crocodile",
@@ -195,6 +285,16 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "jaguar_hide",
+    "wolf_fang",
+    "wolf_fang",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "jaguar_hide",
@@ -202,14 +302,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×3",
     "Jaguar Hide",
-    "Wolf Fang",
-    "Animal Bone"
+    "Wolf Fang ×2",
+    "Animal Bone ×2"
    ],
-   "notification": "Looted Jaguar: Game Meat, Jaguar Hide, Wolf Fang, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 2,
+    "jaguar_hide": 1,
+    "raw_game_meat": 3,
+    "wolf_fang": 2
+   },
+   "notification": "Looted Jaguar: Game Meat ×3, Jaguar Hide, Wolf Fang ×2, Animal Bone ×2"
   },
-  "maxHp": 4,
+  "maxHp": 120,
   "name": "Jaguar",
   "sizeRank": 3,
   "species": "jaguar",
@@ -227,6 +333,16 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "wolf_hide",
+    "wolf_fang",
+    "wolf_fang",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "wolf_hide",
@@ -234,14 +350,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×3",
     "Wolf Hide",
-    "Wolf Fang",
-    "Animal Bone"
+    "Wolf Fang ×2",
+    "Animal Bone ×2"
    ],
-   "notification": "Looted Wolf: Game Meat, Wolf Hide, Wolf Fang, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 2,
+    "raw_game_meat": 3,
+    "wolf_fang": 2,
+    "wolf_hide": 1
+   },
+   "notification": "Looted Wolf: Game Meat ×3, Wolf Hide, Wolf Fang ×2, Animal Bone ×2"
   },
-  "maxHp": 3,
+  "maxHp": 90,
   "name": "Wolf",
   "sizeRank": 2.5,
   "species": "wolf",
@@ -259,6 +381,19 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "rhino_hide",
+    "rhino_horn",
+    "animal_fat",
+    "animal_fat",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "rhino_hide",
@@ -267,15 +402,22 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×3",
     "Rhino Hide",
     "Rhino Horn",
-    "Animal Fat",
-    "Animal Bone"
+    "Animal Fat ×2",
+    "Animal Bone ×4"
    ],
-   "notification": "Looted Rhino: Game Meat, Rhino Hide, Rhino Horn, Animal Fat, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 4,
+    "animal_fat": 2,
+    "raw_game_meat": 3,
+    "rhino_hide": 1,
+    "rhino_horn": 1
+   },
+   "notification": "Looted Rhino: Game Meat ×3, Rhino Hide, Rhino Horn, Animal Fat ×2, Animal Bone ×4"
   },
-  "maxHp": 7,
+  "maxHp": 210,
   "name": "Rhino",
   "sizeRank": 4,
   "species": "rhino",
@@ -293,6 +435,16 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "jaguar_hide",
+    "wolf_fang",
+    "wolf_fang",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "raw_game_meat",
     "jaguar_hide",
@@ -300,14 +452,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Game Meat",
+    "Game Meat ×3",
     "Jaguar Hide",
-    "Wolf Fang",
-    "Animal Bone"
+    "Wolf Fang ×2",
+    "Animal Bone ×2"
    ],
-   "notification": "Looted Lion: Game Meat, Jaguar Hide, Wolf Fang, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 2,
+    "jaguar_hide": 1,
+    "raw_game_meat": 3,
+    "wolf_fang": 2
+   },
+   "notification": "Looted Lion: Game Meat ×3, Jaguar Hide, Wolf Fang ×2, Animal Bone ×2"
   },
-  "maxHp": 5,
+  "maxHp": 150,
   "name": "Lion",
   "sizeRank": 3.2,
   "species": "lion",
@@ -325,6 +483,17 @@
   },
   "isPredator": false,
   "loot": {
+   "expandedItemIds": [
+    "deer_meat",
+    "deer_meat",
+    "deer_meat",
+    "deer_hide",
+    "deer_antlers",
+    "deer_antlers",
+    "animal_bone",
+    "animal_bone",
+    "animal_bone"
+   ],
    "itemIds": [
     "deer_meat",
     "deer_hide",
@@ -332,14 +501,20 @@
     "animal_bone"
    ],
    "itemLabels": [
-    "Deer Meat",
+    "Deer Meat ×3",
     "Deer Hide",
-    "Deer Antlers",
-    "Animal Bone"
+    "Deer Antlers ×2",
+    "Animal Bone ×3"
    ],
-   "notification": "Looted Stag: Deer Meat, Deer Hide, Deer Antlers, Animal Bone"
+   "itemQuantities": {
+    "animal_bone": 3,
+    "deer_antlers": 2,
+    "deer_hide": 1,
+    "deer_meat": 3
+   },
+   "notification": "Looted Stag: Deer Meat ×3, Deer Hide, Deer Antlers ×2, Animal Bone ×3"
   },
-  "maxHp": 9,
+  "maxHp": 270,
   "name": "Stag",
   "sizeRank": 3.5,
   "species": "stag",
@@ -357,6 +532,25 @@
   },
   "isPredator": true,
   "loot": {
+   "expandedItemIds": [
+    "dragon_meat",
+    "dragon_meat",
+    "dragon_meat",
+    "dragon_meat",
+    "dragon_scales",
+    "dragon_scales",
+    "dragon_scales",
+    "dragon_scales",
+    "dragon_horn",
+    "dragon_horn",
+    "dragon_claws",
+    "dragon_claws",
+    "dragon_claws",
+    "dragon_claws",
+    "dragon_bone",
+    "dragon_bone",
+    "dragon_bone"
+   ],
    "itemIds": [
     "dragon_meat",
     "dragon_scales",
@@ -365,18 +559,157 @@
     "dragon_bone"
    ],
    "itemLabels": [
-    "Dragon Meat",
-    "Dragon Scales",
-    "Dragon Horn",
-    "Dragon Claws",
-    "Dragon Bone"
+    "Dragon Meat ×4",
+    "Dragon Scales ×4",
+    "Dragon Horn ×2",
+    "Dragon Claws ×4",
+    "Dragon Bone ×3"
    ],
-   "notification": "Looted Dragon: Dragon Meat, Dragon Scales, Dragon Horn, Dragon Claws, Dragon Bone"
+   "itemQuantities": {
+    "dragon_bone": 3,
+    "dragon_claws": 4,
+    "dragon_horn": 2,
+    "dragon_meat": 4,
+    "dragon_scales": 4
+   },
+   "notification": "Looted Dragon: Dragon Meat ×4, Dragon Scales ×4, Dragon Horn ×2, Dragon Claws ×4, Dragon Bone ×3"
   },
-  "maxHp": 250,
+  "maxHp": 7500,
   "name": "Dragon",
   "sizeRank": 10,
   "species": "dragon",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 11,
+   "visionRange": 0
+  },
+  "attackTrigger": 3.9,
+  "awake": {
+   "hearingRadius": 22,
+   "visionRange": 24
+  },
+  "isPredator": false,
+  "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "animal_fat",
+    "animal_fat",
+    "animal_bone",
+    "animal_bone"
+   ],
+   "itemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "animal_fat",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat ×3",
+    "Game Meat ×3",
+    "Animal Fat ×2",
+    "Animal Bone ×2"
+   ],
+   "itemQuantities": {
+    "animal_bone": 2,
+    "animal_fat": 2,
+    "raw_game_meat": 3
+   },
+   "notification": "Looted Hippopotamus: Game Meat ×3, Game Meat ×3, Animal Fat ×2, Animal Bone ×2"
+  },
+  "maxHp": 280,
+  "name": "Hippopotamus",
+  "sizeRank": 4.5,
+  "species": "hippo",
+  "standoff": 2.35
+ },
+ {
+  "asleep": {
+   "hearingRadius": 8,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 14,
+   "visionRange": 16
+  },
+  "isPredator": false,
+  "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "animal_fat",
+    "animal_fat"
+   ],
+   "itemIds": [
+    "raw_game_meat",
+    "animal_fat"
+   ],
+   "itemLabels": [
+    "Game Meat ×3",
+    "Animal Fat ×2"
+   ],
+   "itemQuantities": {
+    "animal_fat": 2,
+    "raw_game_meat": 3
+   },
+   "notification": "Looted Royal Koi Fish: Game Meat ×3, Animal Fat ×2"
+  },
+  "maxHp": 45,
+  "name": "Royal Koi Fish",
+  "sizeRank": 1,
+  "species": "koifish",
+  "standoff": 1.75
+ },
+ {
+  "asleep": {
+   "hearingRadius": 15,
+   "visionRange": 0
+  },
+  "attackTrigger": 2.4,
+  "awake": {
+   "hearingRadius": 30,
+   "visionRange": 32
+  },
+  "isPredator": false,
+  "loot": {
+   "expandedItemIds": [
+    "raw_game_meat",
+    "raw_game_meat",
+    "raw_game_meat",
+    "animal_fat",
+    "animal_fat",
+    "animal_bone",
+    "animal_bone"
+   ],
+   "itemIds": [
+    "raw_game_meat",
+    "animal_fat",
+    "animal_bone"
+   ],
+   "itemLabels": [
+    "Game Meat ×3",
+    "Animal Fat ×2",
+    "Animal Bone ×2"
+   ],
+   "itemQuantities": {
+    "animal_bone": 2,
+    "animal_fat": 2,
+    "raw_game_meat": 3
+   },
+   "notification": "Looted Ocean Dolphin: Game Meat ×3, Animal Fat ×2, Animal Bone ×2"
+  },
+  "maxHp": 180,
+  "name": "Ocean Dolphin",
+  "sizeRank": 3,
+  "species": "dolphin",
   "standoff": 1.75
  }
 ]

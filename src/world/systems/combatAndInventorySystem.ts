@@ -55,6 +55,11 @@ import {
   type ISmallAnimalState,
   type IBoidBirdState,
 } from './boidsAndWildlifeSystem';
+import {
+  checkArrowHitTempleStatue,
+  checkArrowHitMonk,
+  checkSwordHitMonk,
+} from './monkTempleSystem';
 // #endregion
 
 // ======================== CONSTANTS & LABELS ======================== \\
@@ -1190,6 +1195,14 @@ export function evaluateSwordStrikeWindowHit(
       }
     }
 
+    const hitMonk = checkSwordHitMonk(sx, sy, sz, state.x, state.y, state.z, state.yaw, isHeavy);
+    if (hitMonk) {
+      state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
+      state.swordHitStopTimer = 0.042;
+      awardSkillXp(state, 'swordsmanship', 12);
+      return { comboIndex, isHeavy, hitKind: 'obstacle', hitAnySurface: true };
+    }
+
     for (let a = 0; a < activeAnimals.length; a++) {
       const anim = activeAnimals[a];
       if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
@@ -1200,7 +1213,7 @@ export function evaluateSwordStrikeWindowHit(
             ? 2.35
             : anim.species === 'crocodile'
               ? 2.65
-              : anim.species === 'rhino'
+              : anim.species === 'rhino' || anim.species === 'hippo'
                 ? 2.65
                 : anim.species === 'stag'
                   ? 2.15
@@ -1223,7 +1236,7 @@ export function evaluateSwordStrikeWindowHit(
             ? 1.55
             : anim.species === 'bear'
               ? 1.45
-              : anim.species === 'rhino'
+              : anim.species === 'rhino' || anim.species === 'hippo'
                 ? 1.45
                 : anim.species === 'deer' || anim.species === 'stag'
                   ? 1.15
@@ -1239,7 +1252,7 @@ export function evaluateSwordStrikeWindowHit(
           ? 4.2
           : anim.species === 'lion' && anim.isBoss
             ? 2.35
-            : anim.species === 'bear' || anim.species === 'rhino'
+            : anim.species === 'bear' || anim.species === 'rhino' || anim.species === 'hippo'
               ? 2.25
               : anim.species === 'deer' || anim.species === 'stag'
                 ? 1.55
@@ -1658,6 +1671,31 @@ export function stepArrowsPhysics(
       }
       if (struck) break;
 
+      if (checkArrowHitTempleStatue(arr.x, arr.y, arr.z)) {
+        arr.stuck = true;
+        arr.vx = 0;
+        arr.vy = 0;
+        arr.vz = 0;
+        arr.hitKind = 'obstacle';
+        arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+        hitAnySurface = true;
+        struck = true;
+        break;
+      }
+
+      if (checkArrowHitMonk(arr.x, arr.y, arr.z)) {
+        arr.stuck = true;
+        arr.age = 999; // Deflected by the monk's spinning staff
+        arr.vx = 0;
+        arr.vy = 0;
+        arr.vz = 0;
+        arr.hitKind = 'obstacle';
+        arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+        hitAnySurface = true;
+        struck = true;
+        break;
+      }
+
       for (let a = 0; a < activeAnimals.length; a++) {
         const anim = activeAnimals[a];
         if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
@@ -1668,7 +1706,7 @@ export function stepArrowsPhysics(
               ? 2.45
               : anim.species === 'crocodile'
                 ? 2.65
-                : anim.species === 'rhino'
+                : anim.species === 'rhino' || anim.species === 'hippo'
                   ? 2.65
                   : anim.species === 'stag'
                     ? 2.05
@@ -1691,7 +1729,7 @@ export function stepArrowsPhysics(
               ? 3.15
               : anim.species === 'bear'
                 ? 3.05
-                : anim.species === 'rhino'
+                : anim.species === 'rhino' || anim.species === 'hippo'
                   ? 2.65
                   : anim.species === 'deer' || anim.species === 'stag'
                     ? 2.45

@@ -29,6 +29,9 @@ import { createReadyWolf, type Wolf, type WolfState } from '../models/Wolf';
 import { createReadyRhino, type Rhino, type RhinoState } from '../models/Rhino';
 import { createReadyCatLion, type CatLion, type CatLionState } from '../models/CatLion';
 import { createReadyStag, type Stag, type StagState } from '../models/Stag';
+import { createReadyHippo, type Hippo, type HippoState } from '../models/Hippo';
+import { createReadyKoiFish, type KoiFish, type KoiFishState } from '../models/KoiFish';
+import { createReadyDolphin, type Dolphin, type DolphinState } from '../models/Dolphin';
 import { createReadyDove, type DoveController } from '../models/Dove';
 import { buildBearPawClampedTrapMesh } from '../models/placedTrapModels';
 import {
@@ -208,6 +211,9 @@ export function buildWildlifeAndFootprintsLayer(
     rhinoCtrl?: DeferredAnimalModel<RhinoState, Rhino>;
     lionCtrl?: CatLion;
     stagCtrl?: Stag;
+    hippoCtrl?: Hippo;
+    koifishCtrl?: KoiFish;
+    dolphinCtrl?: Dolphin;
     smoothHeadDip: number;
     smoothLegAmp: number;
     smoothPitch?: number;
@@ -475,6 +481,64 @@ export function buildWildlifeAndFootprintsLayer(
         root,
         posePivot,
         stagCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'hippo') {
+      const hippoCtrl = createReadyHippo({
+        scale: 1.55,
+        castShadow: true,
+        receiveShadow: true,
+      });
+      registerModelDisposables(hippoCtrl);
+      posePivot.add(hippoCtrl.object);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        hippoCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'koifish') {
+      const koifishCtrl = createReadyKoiFish({
+        scale: 0.62,
+        tintHex: i % 3 === 1 ? 0xffedd5 : i % 3 === 2 ? 0x93c5fd : undefined,
+        castShadow: false,
+        receiveShadow: false,
+      });
+      registerModelDisposables(koifishCtrl);
+      posePivot.add(koifishCtrl.object);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        koifishCtrl,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+      });
+    } else if (a.species === 'dolphin') {
+      const dolphinCtrl = createReadyDolphin({
+        scale: 1.45,
+        castShadow: true,
+        receiveShadow: true,
+      });
+      registerModelDisposables(dolphinCtrl);
+      posePivot.add(dolphinCtrl.object);
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        dolphinCtrl,
         smoothHeadDip: 0,
         smoothLegAmp: 0,
       });
@@ -953,6 +1017,42 @@ export function buildWildlifeAndFootprintsLayer(
             rig.stagCtrl.update(dt * spd);
             continue;
           }
+          if (a.species === 'hippo' && rig.hippoCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['oasis_hippo'],
+              'death',
+              1.0
+            );
+            rig.hippoCtrl.setState('death');
+            rig.hippoCtrl.update(dt * spd);
+            continue;
+          }
+          if (a.species === 'koifish' && rig.koifishCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['koi_fish'],
+              'death',
+              1.0
+            );
+            rig.koifishCtrl.setState('death');
+            rig.koifishCtrl.update(dt * spd);
+            continue;
+          }
+          if (a.species === 'dolphin' && rig.dolphinCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['ocean_dolphin'],
+              'death',
+              1.0
+            );
+            rig.dolphinCtrl.setState('death');
+            rig.dolphinCtrl.update(dt * spd);
+            continue;
+          }
           // Fallback procedural corpse pose
           if (a.species === 'deer') {
             rig.posePivot.position.set(1.05, 0.32, 0);
@@ -1063,6 +1163,16 @@ export function buildWildlifeAndFootprintsLayer(
             );
             rig.stagCtrl.setState('lie');
             rig.stagCtrl.update(dt * spd, 0);
+          } else if (a.species === 'hippo' && rig.hippoCtrl) {
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            const spd = getEffectiveLabAnimationSpeed(
+              liveLabOverrides['oasis_hippo'],
+              'lie',
+              1.0
+            );
+            rig.hippoCtrl.setState('lie');
+            rig.hippoCtrl.update(dt * spd, 0);
           } else {
             const sleepDrop = a.species === 'deer' ? -0.46 : a.species === 'sheep' ? -0.22 : -0.05;
             rig.posePivot.position.set(0, sleepDrop, 0);
@@ -1428,6 +1538,108 @@ export function buildWildlifeAndFootprintsLayer(
             (a.inWater ? 0.72 : 1.0);
           rig.stagCtrl.setState(stagState);
           rig.stagCtrl.update(dt * spd, turnAmount);
+        } else if (a.species === 'hippo' && rig.hippoCtrl) {
+          const swimPitch = a.inWater && moveSpd > 0.15 ? -0.06 : 0;
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const cycleSlot = (elapsedTime * 0.08 + i * 1.51) % 1;
+          const desiredHippoState: HippoState =
+            ai === 'attacking'
+              ? (Math.floor(elapsedTime * 0.45 + i) % 2 === 0 ? 'attack' : 'bite_attack')
+              : ai === 'roaring'
+                ? 'roar'
+                : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
+                  ? 'flee'
+                  : ai === 'charging' || moveSpd > 3.2
+                    ? 'run'
+                    : moveSpd > 1.8
+                      ? 'trot'
+                      : moveSpd > 0.12
+                        ? 'walk'
+                        : ai === 'sitting'
+                          ? (i % 2 === 0 ? 'lie' : 'sit')
+                          : ai === 'grazing' && cycleSlot < 0.68
+                            ? 'eat'
+                            : cycleSlot > 0.9
+                              ? 'call'
+                              : 'idle';
+          const isUrgentHippo =
+            desiredHippoState === 'attack' ||
+            desiredHippoState === 'bite_attack' ||
+            desiredHippoState === 'roar' ||
+            desiredHippoState === 'flee' ||
+            desiredHippoState === 'run';
+          const hippoState = selectStabilizedState(rig, desiredHippoState, dt, isUrgentHippo);
+          const spd =
+            getEffectiveLabAnimationSpeed(liveLabOverrides['oasis_hippo'], hippoState, 1.0) *
+            (a.inWater && moveSpd > 0.12 ? 0.92 : 1.0);
+          rig.hippoCtrl.setState(hippoState);
+          rig.hippoCtrl.update(dt * spd, turnAmount);
+        } else if (a.species === 'koifish' && rig.koifishCtrl) {
+          const breachY = a.pounceHeight ?? 0;
+          const swimPitch =
+            breachY > 0.04
+              ? -0.22 * (breachY / 0.34)
+              : ai === 'grazing'
+                ? -0.06
+                : 0;
+          const clampedBankRoll = Math.max(-0.1, Math.min(0.1, turnAmount * -0.07));
+          rig.root.position.set(a.x, a.y + breachY, a.z);
+          rig.root.rotation.set(swimPitch, a.yaw, clampedBankRoll, 'YXZ');
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const desiredKoiState: KoiFishState =
+            breachY > 0.08
+              ? 'skip'
+              : ai === 'fleeing' || a.alertLevel === 'fleeing'
+                ? 'flee'
+                : moveSpd > 2.2
+                  ? 'run'
+                  : moveSpd > 1.52
+                    ? 'trot'
+                    : ai === 'grazing'
+                      ? 'eat'
+                      : 'walk';
+          const isUrgentKoi = desiredKoiState === 'skip' || desiredKoiState === 'flee';
+          const koiState = selectStabilizedState(rig, desiredKoiState, dt, isUrgentKoi);
+          const spd = getEffectiveLabAnimationSpeed(liveLabOverrides['koi_fish'], koiState, 1.0);
+          rig.koifishCtrl.setState(koiState);
+          rig.koifishCtrl.update(dt * spd, turnAmount);
+        } else if (a.species === 'dolphin' && rig.dolphinCtrl) {
+          const leapY = a.pounceHeight ?? 0;
+          const leapCycle = (elapsedTime + a.id * 3.17) % 9.5;
+          const leapPitch =
+            leapY > 0.05 && leapCycle < 1.15
+              ? Math.cos((leapCycle / 1.15) * Math.PI) * -0.58
+              : Math.sin(elapsedTime * 2.1 + a.id) * -0.06;
+          rig.root.position.set(a.x, a.y + leapY, a.z);
+          rig.root.rotation.set(leapPitch, a.yaw, turnAmount * -0.25, 'YXZ');
+          rig.posePivot.position.set(0, 0, 0);
+          rig.posePivot.rotation.set(0, 0, 0);
+          const desiredDolphinState: DolphinState =
+            leapY > 0.08
+              ? 'fly'
+              : moveSpd > 5.0
+                ? 'run'
+                : moveSpd > 3.2
+                  ? 'trot'
+                  : 'walk';
+          const isUrgentDolphin = desiredDolphinState === 'fly' || desiredDolphinState === 'run';
+          const dolphinState = selectStabilizedState(
+            rig,
+            desiredDolphinState,
+            dt,
+            isUrgentDolphin
+          );
+          const spd = getEffectiveLabAnimationSpeed(
+            liveLabOverrides['ocean_dolphin'],
+            dolphinState,
+            1.0
+          );
+          rig.dolphinCtrl.setState(dolphinState);
+          rig.dolphinCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'deer' || a.species === 'sheep') {
           const swimPitch = a.inWater ? -0.10 : 0;
           rig.root.position.set(a.x, a.y, a.z);
@@ -1520,10 +1732,14 @@ export function buildWildlifeAndFootprintsLayer(
           const swimPitch = a.inWater ? -0.10 : 0;
           rig.root.position.set(a.x, a.y + hopHeight, a.z);
           if (isClimbingTree) {
+            const rollOsc =
+              a.treeState === 'climb_up' || a.treeState === 'climb_down'
+                ? Math.sin(elapsedTime * 5.5 + i) * 0.04
+                : 0;
             rig.root.rotation.set(
               climbPitch,
               a.yaw,
-              Math.sin(elapsedTime * 5.5 + i) * 0.06,
+              rollOsc,
               'YXZ'
             );
           } else {

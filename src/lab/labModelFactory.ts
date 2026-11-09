@@ -26,6 +26,9 @@ import { createReadyForestDragon, type ForestDragonState } from '../world/models
 import { createReadyDemonDragon, type DemonDragonState } from '../world/models/DemonDragon';
 import { createReadyHorse, type HorseState } from '../world/models/Horse';
 import { createReadyDove, type DoveState } from '../world/models/Dove';
+import { createReadyHippo, type HippoState } from '../world/models/Hippo';
+import { createReadyKoiFish, type KoiFishState } from '../world/models/KoiFish';
+import { createReadyDolphin, type DolphinState } from '../world/models/Dolphin';
 // #endregion
 
 // ======================== RIG CONTRACT ======================== \\
@@ -3162,22 +3165,28 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // 15. LAKESIDE KOI FISH — STANDALONE
+  // 15. LAKESIDE KOI FISH — ARTICULATED 29-BONE SKELETAL CARP
   else if (entityId === 'koi_fish') {
-    const koiBodyMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xff6b2b, roughness: 0.22, metalness: 0.12 })
-    );
-    const koiFinMat = trackMat(
-      new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        roughness: 0.28,
-        side: THREE.DoubleSide,
-      })
-    );
-    const koiSpotMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xfffbeb, roughness: 0.25 })
-    );
-    const eyeMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.15 }));
+    const koiRoot = new THREE.Group();
+    koiRoot.position.y = 0.44;
+    root.add(koiRoot);
+
+    const koi = createReadyKoiFish({
+      scale: 1.05,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    koi.loopDeath = true;
+    koiRoot.add(koi.object);
+
+    const koiMat = koi.mesh.material;
+    if (Array.isArray(koiMat)) {
+      for (const m of koiMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(koiMat);
+    }
+    disposableGeometries.push(koi.mesh.geometry);
+
     const rippleMat = trackMat(
       new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
@@ -3186,142 +3195,94 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         roughness: 0.2,
       })
     );
-
-    const koiGroup = new THREE.Group();
-    koiGroup.position.y = 0.44;
-    koiGroup.scale.setScalar(1.35);
-
-    // Sculpted Koi Carp Torso & Head
-    const kBodyGeo = trackGeo(new THREE.ConeGeometry(0.2, 0.82, 16));
-    kBodyGeo.rotateX(Math.PI / 2);
-    kBodyGeo.scale(0.88, 1.05, 1.0);
-    const kBody = new THREE.Mesh(kBodyGeo, koiBodyMat);
-
-    const kHeadGeo = trackGeo(new THREE.SphereGeometry(0.19, 14, 12));
-    kHeadGeo.scale(0.88, 0.96, 1.25);
-    const kHead = new THREE.Mesh(kHeadGeo, koiBodyMat);
-    kHead.position.z = 0.36;
-
-    // Decorative dorsal pattern patches
-    const patch1 = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.13, 10, 8)), koiSpotMat);
-    patch1.scale.set(0.95, 0.45, 1.35);
-    patch1.position.set(0, 0.15, 0.18);
-    const patch2 = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.1, 10, 8)), koiSpotMat);
-    patch2.scale.set(0.85, 0.4, 1.2);
-    patch2.position.set(0, 0.12, -0.08);
-
-    // Eyes & Carp Barbels (Whiskers)
-    const eyeGeo = trackGeo(new THREE.SphereGeometry(0.026, 8, 8));
-    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeL.position.set(-0.14, 0.05, 0.44);
-    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeR.position.set(0.14, 0.05, 0.44);
-
-    const barbelGeo = trackGeo(new THREE.ConeGeometry(0.014, 0.12, 6));
-    const barbelL = new THREE.Mesh(barbelGeo, koiFinMat);
-    barbelL.position.set(-0.1, -0.05, 0.56);
-    barbelL.rotation.set(0.6, 0, 0.45);
-    const barbelR = new THREE.Mesh(barbelGeo, koiFinMat);
-    barbelR.position.set(0.1, -0.05, 0.56);
-    barbelR.rotation.set(0.6, 0, -0.45);
-
-    // Dorsal Fin
-    const dorsalGeo = trackGeo(new THREE.BoxGeometry(0.025, 0.18, 0.38));
-    const dorsalFin = new THREE.Mesh(dorsalGeo, koiFinMat);
-    dorsalFin.position.set(0, 0.22, 0.02);
-    dorsalFin.rotation.x = -0.22;
-
-    // Articulated Tail Peduncle & Double-Lobed Caudal Fin
-    const tailPivot = new THREE.Group();
-    tailPivot.position.set(0, 0, -0.38);
-    const kTailGeo = trackGeo(new THREE.ConeGeometry(0.24, 0.38, 6));
-    kTailGeo.rotateX(-Math.PI / 2);
-    kTailGeo.scale(0.28, 1.25, 1.0);
-    const kTail = new THREE.Mesh(kTailGeo, koiFinMat);
-    kTail.position.z = -0.14;
-    tailPivot.add(kTail);
-
-    // Pectoral & Pelvic Fins
-    const sideFinGeo = trackGeo(new THREE.BoxGeometry(0.26, 0.02, 0.16));
-    sideFinGeo.translate(-0.12, 0, 0);
-    const finL = new THREE.Mesh(sideFinGeo, koiFinMat);
-    finL.position.set(-0.14, -0.06, 0.22);
-    finL.rotation.y = 0.35;
-
-    const sideFinRGeo = trackGeo(new THREE.BoxGeometry(0.26, 0.02, 0.16));
-    sideFinRGeo.translate(0.12, 0, 0);
-    const finR = new THREE.Mesh(sideFinRGeo, koiFinMat);
-    finR.position.set(0.14, -0.06, 0.22);
-    finR.rotation.y = -0.35;
-
-    // Subtle Pond Water Ripple Ring on the Floor
     const rippleRing = new THREE.Mesh(
       trackGeo(new THREE.RingGeometry(0.32, 0.52, 28)),
       rippleMat
     );
     rippleRing.rotation.x = -Math.PI / 2;
     rippleRing.position.y = 0.03;
+    root.add(rippleRing);
 
-    koiGroup.add(
-      kBody,
-      kHead,
-      patch1,
-      patch2,
-      eyeL,
-      eyeR,
-      barbelL,
-      barbelR,
-      dorsalFin,
-      tailPivot,
-      finL,
-      finR
-    );
-    root.add(koiGroup, rippleRing);
-
-    editableRigTargets.weaponNodes.push(tailPivot);
-    editableRigTargets.leftWeaponNodes.push(dorsalFin);
-    editableRigTargets.rightLimbNodes.push(finR);
-    editableRigTargets.leftLimbNodes.push(finL);
-    editableRigTargets.headNodes.push(kHead);
-    editableRigTargets.bodyNodes.push(koiGroup);
+    editableRigTargets.weaponNodes.push(koi.rig.bones[5] ?? koi.rig.root);
+    editableRigTargets.leftWeaponNodes.push(koi.rig.bones[6] ?? koi.rig.root);
+    editableRigTargets.rightLimbNodes.push(koi.rig.bones[7] ?? koi.rig.root);
+    editableRigTargets.leftLimbNodes.push(koi.rig.bones[8] ?? koi.rig.root);
+    editableRigTargets.headNodes.push(koi.rig.bones[1] ?? koi.rig.root);
+    editableRigTargets.bodyNodes.push(koiRoot);
 
     customApplySkin = (skin) => {
-      koiBodyMat.color.setHex(skin.palette.primaryHex);
-      koiFinMat.color.setHex(skin.palette.secondaryHex);
-      koiSpotMat.color.setHex(skin.palette.accentHex);
+      const tintHex =
+        skin.id === 'koi_imperial_gold' ? 0xffffff : skin.palette.primaryHex;
+      const mat = koi.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
     };
 
-    customApplyAnimation = (animId, _t, p) => {
-      koiGroup.position.set(0, 0.44, 0);
-      koiGroup.rotation.set(0, 0, 0);
-      tailPivot.rotation.set(0, 0, 0);
-      finL.rotation.set(0, 0.35, -0.15);
-      finR.rotation.set(0, -0.35, 0.15);
+    let lastKoiAnimTime = 0;
+    let lastKoiAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastKoiAnimTime ? t - lastKoiAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastKoiAnimTime = t;
+
+      koiRoot.position.set(0, 0.44, 0);
+      koiRoot.rotation.set(0, 0, 0);
       rippleRing.scale.setScalar(1.0);
 
-      if (animId === 'none') return;
-      const phase = p * Math.PI * 2;
-
-      if (animId === 'koi_pond_swim') {
-        koiGroup.rotation.y = Math.sin(phase) * 0.22;
-        koiGroup.position.x = Math.cos(phase) * 0.08;
-        tailPivot.rotation.y = Math.sin(phase * 2 - 0.8) * 0.48;
-        finL.rotation.z = -0.15 + Math.sin(phase * 2) * 0.22;
-        finR.rotation.z = 0.15 - Math.sin(phase * 2) * 0.22;
-        rippleRing.scale.setScalar(1.0 + Math.sin(phase * 2) * 0.12);
-      } else if (animId === 'koi_fast_dart') {
-        koiGroup.rotation.y = Math.sin(phase * 2) * 0.32;
-        koiGroup.rotation.z = Math.cos(phase * 2) * 0.12;
-        tailPivot.rotation.y = Math.sin(phase * 4) * 0.65;
-        finL.rotation.z = -0.2 + Math.sin(phase * 4) * 0.3;
-        finR.rotation.z = 0.2 - Math.sin(phase * 4) * 0.3;
-      } else if (animId === 'koi_surface_feed') {
-        const rise = Math.sin(phase) * 0.5 + 0.5;
-        koiGroup.position.y = 0.44 + rise * 0.16;
-        koiGroup.rotation.x = -rise * 0.35;
-        tailPivot.rotation.y = Math.sin(phase * 3) * 0.4;
-        rippleRing.scale.setScalar(0.85 + rise * 0.45);
+      if (animId === 'none') {
+        if (lastKoiAnimId !== 'none') {
+          koi.rig.resetToRest();
+          koi.object.position.set(0, 0, 0);
+          koi.object.rotation.set(0, 0, 0);
+          koi.setState('idle');
+          lastKoiAnimId = 'none';
+        }
+        return;
       }
+
+      const legacyMap: Readonly<Record<string, KoiFishState>> = {
+        koi_pond_swim: 'walk',
+        koi_fast_dart: 'run',
+        koi_surface_feed: 'eat',
+      };
+      const validKoiStates: ReadonlySet<KoiFishState> = new Set<KoiFishState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'stalk',
+        'flee',
+        'skip',
+        'fly',
+        'eat',
+        'call',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: KoiFishState =
+        legacyMap[animId] ??
+        (validKoiStates.has(animId as KoiFishState) ? (animId as KoiFishState) : 'idle');
+
+      if (lastKoiAnimId !== animId) {
+        koi.setState(mappedState);
+        if (mappedState === 'death') {
+          koi.restartState();
+        }
+        lastKoiAnimId = animId;
+      }
+
+      if (dt > 0) {
+        koi.update(dt);
+      } else {
+        koi.setNormalizedPhase(p);
+      }
+
+      const phase = p * Math.PI * 2;
+      rippleRing.scale.setScalar(1.0 + Math.sin(phase * 2) * 0.14);
     };
   }
 
@@ -3619,6 +3580,216 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
           segments[s].position.y = Math.sin(wave) * 0.9;
         }
       }
+    };
+  }
+
+  // 15B. OASIS & RIVER HIPPOPOTAMUS (full 48-joint skeleton + 14 animations)
+  else if (entityId === 'oasis_hippo') {
+    const hippoRoot = new THREE.Group();
+    root.add(hippoRoot);
+
+    const hippo = createReadyHippo({
+      scale: 0.72,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    hippo.loopDeath = true;
+    hippoRoot.add(hippo.object);
+
+    const hippoMat = hippo.mesh.material;
+    if (Array.isArray(hippoMat)) {
+      for (const m of hippoMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(hippoMat);
+    }
+    disposableGeometries.push(hippo.mesh.geometry);
+
+    editableRigTargets.weaponNodes.push(hippo.rig.bones[5] ?? hippo.rig.root);
+    editableRigTargets.leftWeaponNodes.push(hippo.rig.bones[6] ?? hippo.rig.root);
+    editableRigTargets.rightLimbNodes.push(hippo.rig.bones[8] ?? hippo.rig.root);
+    editableRigTargets.leftLimbNodes.push(hippo.rig.bones[12] ?? hippo.rig.root);
+    editableRigTargets.headNodes.push(hippo.rig.bones[3] ?? hippo.rig.root);
+    editableRigTargets.bodyNodes.push(hippoRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'hippo_oasis_slate' ? 0xffffff : skin.palette.primaryHex;
+      const mat = hippo.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastHippoAnimTime = 0;
+    let lastHippoAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastHippoAnimTime ? t - lastHippoAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastHippoAnimTime = t;
+
+      hippoRoot.position.set(0, 0, 0);
+      hippoRoot.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        if (lastHippoAnimId !== 'none') {
+          hippo.rig.resetToRest();
+          hippo.object.position.set(0, 0, 0);
+          hippo.object.rotation.set(0, 0, 0);
+          hippo.setState('idle');
+          lastHippoAnimId = 'none';
+        }
+        return;
+      }
+
+      const validHippoStates: ReadonlySet<HippoState> = new Set<HippoState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'stalk',
+        'flee',
+        'skip',
+        'eat',
+        'call',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: HippoState = validHippoStates.has(animId as HippoState)
+        ? (animId as HippoState)
+        : 'idle';
+
+      if (lastHippoAnimId !== animId) {
+        hippo.setState(mappedState);
+        if (mappedState === 'death') {
+          hippo.restartState();
+        }
+        lastHippoAnimId = animId;
+      }
+
+      if (dt > 0) {
+        hippo.update(dt);
+      } else {
+        hippo.setNormalizedPhase(p);
+      }
+    };
+  }
+
+  // 15C. COASTAL BOTTLENOSE DOLPHIN (full 25-joint skeleton + 14 animations)
+  else if (entityId === 'ocean_dolphin') {
+    const dolphinRoot = new THREE.Group();
+    dolphinRoot.position.y = 0.56;
+    root.add(dolphinRoot);
+
+    const dolphin = createReadyDolphin({
+      scale: 0.92,
+      castShadow: true,
+      receiveShadow: true,
+    });
+    dolphin.loopDeath = true;
+    dolphinRoot.add(dolphin.object);
+
+    const dolphinMat = dolphin.mesh.material;
+    if (Array.isArray(dolphinMat)) {
+      for (const m of dolphinMat) disposableMaterials.push(m);
+    } else {
+      disposableMaterials.push(dolphinMat);
+    }
+    disposableGeometries.push(dolphin.mesh.geometry);
+
+    const oceanRingMat = trackMat(
+      new THREE.MeshStandardMaterial({
+        color: 0x0ea5e9,
+        transparent: true,
+        opacity: 0.32,
+        roughness: 0.18,
+      })
+    );
+    const oceanRing = new THREE.Mesh(
+      trackGeo(new THREE.RingGeometry(0.45, 0.72, 32)),
+      oceanRingMat
+    );
+    oceanRing.rotation.x = -Math.PI / 2;
+    oceanRing.position.y = 0.03;
+    root.add(oceanRing);
+
+    editableRigTargets.weaponNodes.push(dolphin.rig.bones[6] ?? dolphin.rig.root);
+    editableRigTargets.leftWeaponNodes.push(dolphin.rig.bones[7] ?? dolphin.rig.root);
+    editableRigTargets.rightLimbNodes.push(dolphin.rig.bones[8] ?? dolphin.rig.root);
+    editableRigTargets.leftLimbNodes.push(dolphin.rig.bones[9] ?? dolphin.rig.root);
+    editableRigTargets.headNodes.push(dolphin.rig.bones[2] ?? dolphin.rig.root);
+    editableRigTargets.bodyNodes.push(dolphinRoot);
+
+    customApplySkin = (skin) => {
+      const tintHex =
+        skin.id === 'dolphin_bottlenose_classic' ? 0xffffff : skin.palette.primaryHex;
+      const mat = dolphin.mesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        mat.color.setHex(tintHex);
+      }
+    };
+
+    let lastDolphinAnimTime = 0;
+    let lastDolphinAnimId = '';
+    customApplyAnimation = (animId, t, p) => {
+      const rawDt = t >= lastDolphinAnimTime ? t - lastDolphinAnimTime : t;
+      const dt = rawDt > 0 ? Math.min(0.1, rawDt) : 0;
+      lastDolphinAnimTime = t;
+
+      dolphinRoot.position.set(0, 0.56, 0);
+      dolphinRoot.rotation.set(0, 0, 0);
+      oceanRing.scale.setScalar(1.0);
+
+      if (animId === 'none') {
+        if (lastDolphinAnimId !== 'none') {
+          dolphin.rig.resetToRest();
+          dolphin.object.position.set(0, 0, 0);
+          dolphin.object.rotation.set(0, 0, 0);
+          dolphin.setState('idle');
+          lastDolphinAnimId = 'none';
+        }
+        return;
+      }
+
+      const validDolphinStates: ReadonlySet<DolphinState> = new Set<DolphinState>([
+        'idle',
+        'walk',
+        'trot',
+        'run',
+        'stalk',
+        'flee',
+        'skip',
+        'fly',
+        'eat',
+        'call',
+        'roar',
+        'sit',
+        'lie',
+        'attack',
+        'death',
+      ]);
+      const mappedState: DolphinState = validDolphinStates.has(animId as DolphinState)
+        ? (animId as DolphinState)
+        : 'idle';
+
+      if (lastDolphinAnimId !== animId) {
+        dolphin.setState(mappedState);
+        if (mappedState === 'death') {
+          dolphin.restartState();
+        }
+        lastDolphinAnimId = animId;
+      }
+
+      if (dt > 0) {
+        dolphin.update(dt);
+      } else {
+        dolphin.setNormalizedPhase(p);
+      }
+
+      const phase = p * Math.PI * 2;
+      oceanRing.scale.setScalar(1.0 + Math.sin(phase * 2) * 0.16);
     };
   }
 

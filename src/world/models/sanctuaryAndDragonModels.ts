@@ -30,23 +30,15 @@ import {
   getActiveWorldAnimals,
   killGroundAnimal,
 } from '../systems/boidsAndWildlifeSystem';
+import {
+  registerTempleStatue,
+  spawnTempleMonk,
+} from '../systems/monkTempleSystem';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== INTERFACES & TYPES ======================== \\
 // #region Interfaces & Types
-interface ITaiChiMonk {
-  group: THREE.Group;
-  leftArm: THREE.Group;
-  rightArm: THREE.Group;
-  leftLeg: THREE.Group;
-  rightLeg: THREE.Group;
-  homeX: number;
-  homeY: number;
-  homeZ: number;
-  baseYaw: number;
-  phase: number;
-}
 
 /**
  * Summary: Handles to hot spring steam particles and dormant mountain dragon statue.
@@ -885,22 +877,6 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     transparent: true,
     opacity: 0.88,
   });
-  const monkRobeMat = new THREE.MeshStandardMaterial({
-    color: 0xea580c,
-    roughness: 0.65,
-  });
-  const monkSkinMat = new THREE.MeshStandardMaterial({
-    color: 0xf1c27d,
-    roughness: 0.55,
-  });
-  const monkPantsMat = new THREE.MeshStandardMaterial({
-    color: 0x27272a,
-    roughness: 0.78,
-  });
-  const monkWrapMat = new THREE.MeshStandardMaterial({
-    color: 0xf4f4f5,
-    roughness: 0.82,
-  });
   const darkIronMat = new THREE.MeshStandardMaterial({
     color: 0x2d3748,
     roughness: 0.45,
@@ -918,10 +894,6 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   disposableMaterials.push(
     sakuraBlossomMat,
     hotSpringWaterMat,
-    monkRobeMat,
-    monkSkinMat,
-    monkPantsMat,
-    monkWrapMat,
     darkIronMat,
     sanctuaryStoneMat
   );
@@ -1049,6 +1021,24 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   );
   sakuraSanctuaryGroup.add(buddhaGroup);
 
+  const cosSakura = Math.cos(SAKURA_SANCTUARY_YAW);
+  const sinSakura = Math.sin(SAKURA_SANCTUARY_YAW);
+  const toSakuraWorld = (lx: number, lz: number): [number, number] => [
+    sCx + lx * cosSakura + lz * sinSakura,
+    sCz - lx * sinSakura + lz * cosSakura,
+  ];
+  const [bWx, bWz] = toSakuraWorld(0, -14.0);
+  registerTempleStatue({
+    id: 'sakura_golden_buddha',
+    x: bWx,
+    baseY: sY,
+    z: bWz,
+    radius: 4.5,
+    height: 12.2,
+    hitFlashTimer: 0,
+    group: buddhaGroup,
+  });
+
   const sanctuaryGate = archAssets.createOrnatePaifangGate(22.5, 0);
   sakuraSanctuaryGroup.add(sanctuaryGate);
 
@@ -1086,98 +1076,35 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     radius: 54,
   });
 
-  // --- 3) 4 TAI-CHI MONKS AROUND SAKURA SANCTUARY ---
-  const monkTorsoGeo = new THREE.CylinderGeometry(0.24, 0.31, 0.82, 8);
-  monkTorsoGeo.translate(0, 1.08, 0);
-  const monkHeadGeo = new THREE.SphereGeometry(0.2, 10, 10);
-  monkHeadGeo.translate(0, 1.68, 0);
-  const monkSashGeo = new THREE.BoxGeometry(0.54, 0.14, 0.54);
-  const monkArmGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.68, 6);
-  monkArmGeo.translate(0, -0.28, 0);
-  const monkUpperLegGeo = new THREE.CylinderGeometry(0.105, 0.088, 0.46, 7);
-  monkUpperLegGeo.translate(0, -0.22, 0);
-  const monkLowerLegGeo = new THREE.CylinderGeometry(0.082, 0.068, 0.38, 7);
-  monkLowerLegGeo.translate(0, -0.56, 0);
-  const monkShoeGeo = new THREE.BoxGeometry(0.15, 0.1, 0.28);
-  monkShoeGeo.translate(0, -0.74, 0.05);
-
-  disposableGeometries.push(
-    monkTorsoGeo,
-    monkHeadGeo,
-    monkSashGeo,
-    monkArmGeo,
-    monkUpperLegGeo,
-    monkLowerLegGeo,
-    monkShoeGeo
-  );
-
-  const cosSakura = Math.cos(SAKURA_SANCTUARY_YAW);
-  const sinSakura = Math.sin(SAKURA_SANCTUARY_YAW);
-  const toSakuraWorld = (lx: number, lz: number): [number, number] => [
-    sCx + lx * cosSakura + lz * sinSakura,
-    sCz - lx * sinSakura + lz * cosSakura,
-  ];
+  // --- 3) 4 WARRIOR MONKS AROUND SAKURA SANCTUARY ---
   const [m1x, m1z] = toSakuraWorld(-8.5, -6.5);
   const [m2x, m2z] = toSakuraWorld(8.5, -6.5);
   const [m3x, m3z] = toSakuraWorld(-6.5, 16.5);
   const [m4x, m4z] = toSakuraWorld(6.5, 16.5);
 
-  const taiChiMonks: ITaiChiMonk[] = [];
-  const monkPlacements: Array<[number, number, number, number]> = [
-    [m1x, sY, m1z, SAKURA_SANCTUARY_YAW],
-    [m2x, sY, m2z, SAKURA_SANCTUARY_YAW],
-    [m3x, sY, m3z, SAKURA_SANCTUARY_YAW + Math.PI],
-    [m4x, sY, m4z, SAKURA_SANCTUARY_YAW + Math.PI],
+  const monkPlacements: Array<[number, number, number, number, 'shrine_devotee' | 'sanctuary_master']> = [
+    [m1x, sY, m1z, SAKURA_SANCTUARY_YAW + Math.PI, 'shrine_devotee'],
+    [m2x, sY, m2z, SAKURA_SANCTUARY_YAW + Math.PI, 'shrine_devotee'],
+    [m3x, sY, m3z, SAKURA_SANCTUARY_YAW, 'sanctuary_master'],
+    [m4x, sY, m4z, SAKURA_SANCTUARY_YAW, 'sanctuary_master'],
   ];
 
   for (let m = 0; m < monkPlacements.length; m++) {
-    const [mx, my, mz, myaw] = monkPlacements[m];
-    const mGroup = new THREE.Group();
-    mGroup.position.set(mx, my, mz);
-    mGroup.rotation.y = myaw;
-
-    const torso = new THREE.Mesh(monkTorsoGeo, monkRobeMat);
-    const head = new THREE.Mesh(monkHeadGeo, monkSkinMat);
-    const sash = new THREE.Mesh(monkSashGeo, archAssets.imperialCrimsonMat);
-    sash.position.y = 0.88;
-
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.32, 1.38, 0);
-    leftArm.add(new THREE.Mesh(monkArmGeo, monkRobeMat));
-
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.32, 1.38, 0);
-    rightArm.add(new THREE.Mesh(monkArmGeo, monkRobeMat));
-
-    const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.14, 0.78, 0);
-    leftLeg.add(
-      new THREE.Mesh(monkUpperLegGeo, monkPantsMat),
-      new THREE.Mesh(monkLowerLegGeo, monkWrapMat),
-      new THREE.Mesh(monkShoeGeo, monkPantsMat)
-    );
-
-    const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.14, 0.78, 0);
-    rightLeg.add(
-      new THREE.Mesh(monkUpperLegGeo, monkPantsMat),
-      new THREE.Mesh(monkLowerLegGeo, monkWrapMat),
-      new THREE.Mesh(monkShoeGeo, monkPantsMat)
-    );
-
-    mGroup.add(torso, head, sash, leftArm, rightArm, leftLeg, rightLeg);
-    scene.add(mGroup);
-    taiChiMonks.push({
-      group: mGroup,
-      leftArm,
-      rightArm,
-      leftLeg,
-      rightLeg,
+    const [mx, my, mz, myaw, role] = monkPlacements[m];
+    spawnTempleMonk({
+      id: `sakura_monk_${m}`,
+      role,
+      parent: scene,
       homeX: mx,
       homeY: my,
       homeZ: mz,
       baseYaw: myaw,
-      phase: (m + 4) * 0.85,
+      phaseOffset: (m + 4) * 0.85,
+      weaponVisible: true,
+      tintHex: 0x0d9488,
+      isSoftwareGl: ctx.isSoftwareGl,
+      disposableGeometries,
+      disposableMaterials,
     });
   }
 
@@ -1648,24 +1575,6 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
         }
           }
         }
-      }
-
-      // Tai-Chi monks animation
-      for (let m = 0; m < taiChiMonks.length; m++) {
-        const mk = taiChiMonks[m];
-        const vis = isWithinViewDistance(mk.homeX, mk.homeZ, playerX, playerZ, 8, 125);
-        mk.group.visible = vis;
-        if (!vis) continue;
-        const formT = elapsedTime * 1.85 + mk.phase;
-        mk.group.position.y = mk.homeY + Math.abs(Math.sin(formT)) * 0.05;
-        mk.group.rotation.y = mk.baseYaw + Math.sin(formT * 0.5) * 0.38;
-        mk.leftArm.rotation.x = -0.65 + Math.sin(formT) * 0.75;
-        mk.leftArm.rotation.z = 0.25 + Math.cos(formT * 0.7) * 0.25;
-        mk.rightArm.rotation.x = -0.85 + Math.cos(formT) * 0.85;
-        mk.rightArm.rotation.z = -0.25 + Math.sin(formT * 0.7) * 0.32;
-        const legStance = Math.sin(formT * 0.5) * 0.26;
-        mk.leftLeg.rotation.x = legStance;
-        mk.rightLeg.rotation.x = -legStance;
       }
     },
   };

@@ -44,6 +44,7 @@ import {
   SOUTHERN_RIVER_WAYPOINTS,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
+  MURKY_SWAMP_BIOME_POS,
   VOLCANO_SANCTUM_POS,
   RUINED_ATLANTIS_POS,
   FLOATING_BLOOMING_ISLANDS,
@@ -168,13 +169,38 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
   );
   const pyramidDesertCore = 1.0 - smoothstep(105.0, 210.0, pyramidDist);
 
+  const swampSuppress = murkySwampBiomeFactorAt(x, z);
+
   return Math.max(
     0,
     Math.min(
       1,
-      Math.max(regionalExpanse, oasisCore, dragonDesertCore, pyramidDesertCore) * (1.0 - farmProtect)
+      Math.max(regionalExpanse, oasisCore, dragonDesertCore, pyramidDesertCore) *
+        (1.0 - farmProtect) *
+        (1.0 - swampSuppress * 0.96)
     )
   );
+}
+
+/**
+ * Summary: Evaluates radial transition factor for the Murky Swamp & Hippo Marshland Biome (-175, 435).
+ * @param x World X in meters.
+ * @param z World Z in meters.
+ * @returns 0 outside the swamp, ramping smoothly to 1 inside the marshland basin.
+ */
+export function murkySwampBiomeFactorAt(x: number, z: number): number {
+  const dx = x - MURKY_SWAMP_BIOME_POS.x;
+  const dz = z - MURKY_SWAMP_BIOME_POS.z;
+  if (Math.abs(dx) > MURKY_SWAMP_BIOME_POS.outerRadius + 24.0 || Math.abs(dz) > MURKY_SWAMP_BIOME_POS.outerRadius + 24.0) {
+    return 0;
+  }
+  const d = Math.hypot(dx * 0.95, dz * 1.04);
+  if (d > MURKY_SWAMP_BIOME_POS.outerRadius + 20.0) return 0;
+  const warp = fbm2D(x * 0.028 + 3.7, z * 0.028 - 2.1, 2) * 14.0;
+  const radial = 1.0 - smoothstep(MURKY_SWAMP_BIOME_POS.innerRadius * 0.55, MURKY_SWAMP_BIOME_POS.outerRadius, d + warp);
+  // Keep the swamp factor at 0 across the Southern Dwarven Mine mountain footprint (x >= -112) so the underground cavern roof never pokes out
+  const mineClearance = 1.0 - smoothstep(-126.0, -112.0, x);
+  return radial * mineClearance;
 }
 
 /**
@@ -1292,6 +1318,28 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
+  // Murky Swamp & Hippo Marshland Basin (-175, 435): interwoven shallow water channels, hippo wallow lagoons, and mossy peat hummocks
+  const swampF = murkySwampBiomeFactorAt(x, z);
+  if (swampF > 0.01) {
+    const sx = x - MURKY_SWAMP_BIOME_POS.x;
+    const sz = z - MURKY_SWAMP_BIOME_POS.z;
+    const rawChannelWave =
+      Math.sin(sx * 0.082 + Math.cos(sz * 0.074) * 1.55) * 0.48 +
+      Math.cos(sz * 0.088 - Math.sin(sx * 0.068) * 1.45) * 0.42 +
+      fbm2D(x * 0.042 + 4.1, z * 0.042 - 1.8, 2) * 0.35;
+    // Two primary deeper hippo wallow pools at (-175, 435) and (-148, 452)
+    const mainPoolDist = Math.hypot(sx * 0.92, sz * 1.08);
+    const eastPoolDist = Math.hypot(x - (MURKY_SWAMP_BIOME_POS.x + 27.0), z - (MURKY_SWAMP_BIOME_POS.z + 17.0));
+    const mainPoolW = 1.0 - smoothstep(10.0, 23.0, mainPoolDist);
+    const eastPoolW = 1.0 - smoothstep(7.5, 16.5, eastPoolDist);
+    const poolSuppress = Math.max(mainPoolW, eastPoolW);
+    const channelWave = rawChannelWave * (1.0 - poolSuppress * 0.92);
+    const poolCarve = mainPoolW * 0.72 + eastPoolW * 0.62;
+    const swampTargetH = WATER_LEVEL - 0.16 + channelWave - poolCarve;
+    const blendW = smoothstep(0.02, 0.48, swampF);
+    h = h * (1.0 - blendW) + swampTargetH * blendW;
+  }
+
   // Mountain Bear Caves: tall natural mountain peak rising over the subterranean tunnel & cavern,
   // with a flat forest clearing outside the tunnel portal mouth (lz >= 2.0) and craggy cliff shoulders.
   // Evaluated last so nearby farm terraces or desert dunes never create a step at the cave entrance!
@@ -2168,6 +2216,8 @@ export function getSurfaceBiomeAt(x: number, z: number, currentY?: number): Biom
   if (walk.surface === 'tower') return 'highland';
 
   const h = walk.height;
+  if (murkySwampBiomeFactorAt(x, z) > 0.35) return 'swamp';
+
   const waterY = getWaterSurfaceHeightAt(x, z, currentY);
   if (waterY !== null && h < waterY - 0.08) return 'water';
   if (waterY !== null && h < waterY + 0.42) return 'shore';
@@ -2455,6 +2505,21 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   }
 
   const h = walk.height;
+
+  // Murky Swamp & Hippo Marshland Biome (-175, 435) minimap tinting
+  const swampMapF = murkySwampBiomeFactorAt(x, z);
+  if (swampMapF > 0.18) {
+    if (h < WATER_LEVEL + 0.04) {
+      // Murky olive-teal swamp water channels & wallow pools
+      return [38, 96, 74];
+    }
+    if (h < WATER_LEVEL + 0.24) {
+      // Wet peat mudflats & sedge banks
+      return [76, 70, 48];
+    }
+    // Mossy swamp hummock islands
+    return [58, 102, 52];
+  }
 
   // Multi-stop water depth gradient: Turquoise Shoal -> Vibrant Azure Sea -> Deep Navy Ocean
   if (h < WATER_LEVEL) {

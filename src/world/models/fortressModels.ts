@@ -18,24 +18,18 @@ import {
 } from '../domain/landmarksRegistry';
 import { groundHeightAt, isWithinViewDistance, chineseFortressStairHeightAt } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
+import {
+  resetMonkTempleSystem,
+  registerWoodenDummy,
+  registerTempleStatue,
+  spawnTempleMonk,
+  updateMonkTempleSystem,
+} from '../systems/monkTempleSystem';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
 // ======================== INTERFACES & TYPES ======================== \\
 // #region Interfaces & Types
-interface IMartialArtsMonk {
-  group: THREE.Group;
-  leftArm: THREE.Group;
-  rightArm: THREE.Group;
-  leftLeg: THREE.Group;
-  rightLeg: THREE.Group;
-  homeX: number;
-  homeY: number;
-  homeZ: number;
-  baseYaw: number;
-  phase: number;
-}
-
 /**
  * Summary: Structural handles and door pivots for the Northern Chinese Mountain Fortress.
  * Design: Bundles rampart meshes, corner bastion watchtowers, and main hall entrance doors.
@@ -57,6 +51,7 @@ export interface IFortressModelResult {
 export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressModelResult {
   const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
+  resetMonkTempleSystem();
 
   const FZ = FORTRESS_Z_OFFSET;
   const fortressGroup = new THREE.Group();
@@ -123,23 +118,6 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     roughness: 0.9,
   });
 
-  const monkPantsMat = new THREE.MeshStandardMaterial({
-    color: 0x27272a,
-    roughness: 0.78,
-  });
-  const monkWrapMat = new THREE.MeshStandardMaterial({
-    color: 0xf4f4f5,
-    roughness: 0.82,
-  });
-  const monkRobeMat = new THREE.MeshStandardMaterial({
-    color: 0xea580c,
-    roughness: 0.65,
-  });
-  const monkSkinMat = new THREE.MeshStandardMaterial({
-    color: 0xf1c27d,
-    roughness: 0.55,
-  });
-
   disposableMaterials.push(
     fortressStoneMat,
     imperialWoodFloorMat,
@@ -148,11 +126,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     pillowClothMat,
     blanketClothMat,
     timberMat,
-    barkMat,
-    monkPantsMat,
-    monkWrapMat,
-    monkRobeMat,
-    monkSkinMat
+    barkMat
   );
 
   // --- 1) GRAND STONE STAIRCASE ---
@@ -617,6 +591,61 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const throneScreen = new THREE.Mesh(hallThroneScreenGeo, archAssets.imperialGoldMat);
   throneScreen.position.set(0, hallFloor1Y + 2.5, -213.2 + FZ);
   fortressGroup.add(throneDais, throneScreen);
+
+  // Sacred Golden Guardian Statue inside the Temple Palace Hall (shooting this statue provokes all monks!)
+  const palaceStatueGroup = new THREE.Group();
+  palaceStatueGroup.position.set(0, hallFloor1Y + 0.72, -210.8 + FZ);
+  const statuePedestalGeo = new THREE.CylinderGeometry(1.45, 1.75, 0.72, 14);
+  const statueLotusGeo = new THREE.CylinderGeometry(1.25, 0.95, 0.42, 14);
+  const statueLegsGeo = new THREE.CylinderGeometry(0.95, 1.18, 0.75, 12);
+  const statueTorsoGeo = new THREE.CylinderGeometry(0.68, 0.88, 1.85, 12);
+  const statueShouldersGeo = new THREE.SphereGeometry(0.92, 12, 10);
+  statueShouldersGeo.scale(1.22, 0.55, 0.8);
+  const statueHeadGeo = new THREE.SphereGeometry(0.54, 12, 12);
+  const statueCrownGeo = new THREE.ConeGeometry(0.42, 0.65, 10);
+  const statueHaloGeo = new THREE.TorusGeometry(1.38, 0.09, 8, 28);
+  const statueStaffGeo = new THREE.CylinderGeometry(0.055, 0.055, 4.2, 8);
+  disposableGeometries.push(
+    statuePedestalGeo,
+    statueLotusGeo,
+    statueLegsGeo,
+    statueTorsoGeo,
+    statueShouldersGeo,
+    statueHeadGeo,
+    statueCrownGeo,
+    statueHaloGeo,
+    statueStaffGeo
+  );
+  const stPedestal = new THREE.Mesh(statuePedestalGeo, archAssets.carvedMarbleMat);
+  stPedestal.position.y = 0.36;
+  const stLotus = new THREE.Mesh(statueLotusGeo, archAssets.imperialCrimsonMat);
+  stLotus.position.y = 0.92;
+  const stLegs = new THREE.Mesh(statueLegsGeo, archAssets.imperialGoldMat);
+  stLegs.position.y = 1.48;
+  const stTorso = new THREE.Mesh(statueTorsoGeo, archAssets.imperialGoldMat);
+  stTorso.position.y = 2.65;
+  const stShoulders = new THREE.Mesh(statueShouldersGeo, archAssets.imperialGoldMat);
+  stShoulders.position.y = 3.38;
+  const stHead = new THREE.Mesh(statueHeadGeo, archAssets.imperialGoldMat);
+  stHead.position.y = 4.05;
+  const stCrown = new THREE.Mesh(statueCrownGeo, archAssets.imperialGoldMat);
+  stCrown.position.y = 4.65;
+  const stHalo = new THREE.Mesh(statueHaloGeo, archAssets.imperialGoldMat);
+  stHalo.position.set(0, 3.85, -0.52);
+  const stStaff = new THREE.Mesh(statueStaffGeo, archAssets.imperialGoldMat);
+  stStaff.position.set(0.95, 2.55, 0.35);
+  palaceStatueGroup.add(stPedestal, stLotus, stLegs, stTorso, stShoulders, stHead, stCrown, stHalo, stStaff);
+  fortressGroup.add(palaceStatueGroup);
+  registerTempleStatue({
+    id: 'palace_golden_guardian',
+    x: 0,
+    baseY: hallFloor1Y + 0.36,
+    z: -210.8 + FZ,
+    radius: 2.4,
+    height: 5.8,
+    hitFlashTimer: 0,
+    group: palaceStatueGroup,
+  });
 
   for (let px = -21.0; px <= 21.0; px += 5.25) {
     if (Math.abs(px) < 2.5) continue;
@@ -1396,6 +1425,15 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       dummyGroup.add(armPeg);
     }
     fortressGroup.add(dummyGroup);
+    registerWoodenDummy({
+      group: dummyGroup,
+      x: dx,
+      y: summitY,
+      z: dz,
+      baseYaw: dyaw,
+      hitImpulse: 0,
+      hitPhase: 0,
+    });
   }
 
   for (const [tx, tz] of [
@@ -1420,95 +1458,136 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     fortressGroup.add(targetGroup);
   }
 
-  // --- 8) 4 SHAOLIN MONKS PRACTICING KUNG-FU IN COURTYARD ---
-  const monkTorsoGeo = new THREE.CylinderGeometry(0.24, 0.31, 0.82, 8);
-  monkTorsoGeo.translate(0, 1.08, 0);
-  const monkHeadGeo = new THREE.SphereGeometry(0.2, 10, 10);
-  monkHeadGeo.translate(0, 1.68, 0);
-  const monkSashGeo = new THREE.BoxGeometry(0.54, 0.14, 0.54);
-  const monkArmGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.68, 6);
-  monkArmGeo.translate(0, -0.28, 0);
-  const monkUpperLegGeo = new THREE.CylinderGeometry(0.105, 0.088, 0.46, 7);
-  monkUpperLegGeo.translate(0, -0.22, 0);
-  const monkLowerLegGeo = new THREE.CylinderGeometry(0.082, 0.068, 0.38, 7);
-  monkLowerLegGeo.translate(0, -0.56, 0);
-  const monkShoeGeo = new THREE.BoxGeometry(0.15, 0.1, 0.28);
-  monkShoeGeo.translate(0, -0.74, 0.05);
-  const monkStaffGeo = new THREE.CylinderGeometry(0.032, 0.032, 2.1, 6);
+  // --- 8) WARRIOR MONKS: 2 ENTRANCE GUARDS, 4 DUMMY TRAINERS, 2 SHRINE DEVOTEES & 2 COURTYARD PATROLS ---
+  // 2 Entrance Guards at the Temple Palace Upper Gate (crossing staffs until the player approaches)
+  spawnTempleMonk({
+    id: 'gate_guard_left',
+    role: 'entrance_guard_left',
+    parent: fortressGroup,
+    homeX: -1.65,
+    homeY: summitY,
+    homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
+    baseYaw: 0,
+    phaseOffset: 0.0,
+    weaponVisible: true,
+    tintHex: 0xd97706,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'gate_guard_right',
+    role: 'entrance_guard_right',
+    parent: fortressGroup,
+    homeX: 1.65,
+    homeY: summitY,
+    homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
+    baseYaw: 0,
+    phaseOffset: 0.45,
+    weaponVisible: true,
+    tintHex: 0xd97706,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
 
-  disposableGeometries.push(
-    monkTorsoGeo,
-    monkHeadGeo,
-    monkSashGeo,
-    monkArmGeo,
-    monkUpperLegGeo,
-    monkLowerLegGeo,
-    monkShoeGeo,
-    monkStaffGeo
-  );
-
-  const shaolinMonks: IMartialArtsMonk[] = [];
-  const monkPlacements: Array<[number, number, number, number]> = [
-    [-14.5, summitY, -146.0 + FZ, 0],
-    [14.5, summitY, -146.0 + FZ, 0],
-    [-14.5, summitY, -162.0 + FZ, 0],
-    [14.5, summitY, -162.0 + FZ, 0],
+  // 4 Dummy-Training Monks practicing attacks against the 4 wooden dummies
+  const dummyMonkPlacements: Array<[number, number, number, number, number]> = [
+    [-14.5, summitY, -145.65 + FZ, 0, 0],
+    [14.5, summitY, -145.65 + FZ, 0, 1],
+    [-14.5, summitY, -161.65 + FZ, 0, 2],
+    [14.5, summitY, -161.65 + FZ, 0, 3],
   ];
-
-  for (let m = 0; m < monkPlacements.length; m++) {
-    const [mx, my, mz, myaw] = monkPlacements[m];
-    const mGroup = new THREE.Group();
-    mGroup.position.set(mx, my, mz);
-    mGroup.rotation.y = myaw;
-
-    const torso = new THREE.Mesh(monkTorsoGeo, monkRobeMat);
-    const head = new THREE.Mesh(monkHeadGeo, monkSkinMat);
-    const sash = new THREE.Mesh(monkSashGeo, archAssets.imperialCrimsonMat);
-    sash.position.y = 0.88;
-
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.32, 1.38, 0);
-    leftArm.add(new THREE.Mesh(monkArmGeo, monkRobeMat));
-
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.32, 1.38, 0);
-    rightArm.add(new THREE.Mesh(monkArmGeo, monkRobeMat));
-    const staff = new THREE.Mesh(monkStaffGeo, archAssets.imperialGoldMat);
-    staff.position.set(0, -0.52, 0.18);
-    staff.rotation.x = Math.PI * 0.35;
-    rightArm.add(staff);
-
-    const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.14, 0.78, 0);
-    leftLeg.add(
-      new THREE.Mesh(monkUpperLegGeo, monkPantsMat),
-      new THREE.Mesh(monkLowerLegGeo, monkWrapMat),
-      new THREE.Mesh(monkShoeGeo, monkPantsMat)
-    );
-
-    const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.14, 0.78, 0);
-    rightLeg.add(
-      new THREE.Mesh(monkUpperLegGeo, monkPantsMat),
-      new THREE.Mesh(monkLowerLegGeo, monkWrapMat),
-      new THREE.Mesh(monkShoeGeo, monkPantsMat)
-    );
-
-    mGroup.add(torso, head, sash, leftArm, rightArm, leftLeg, rightLeg);
-    fortressGroup.add(mGroup);
-    shaolinMonks.push({
-      group: mGroup,
-      leftArm,
-      rightArm,
-      leftLeg,
-      rightLeg,
+  for (let m = 0; m < dummyMonkPlacements.length; m++) {
+    const [mx, my, mz, myaw, dIdx] = dummyMonkPlacements[m];
+    spawnTempleMonk({
+      id: `dummy_monk_${m}`,
+      role: 'dummy_trainer',
+      parent: fortressGroup,
       homeX: mx,
       homeY: my,
       homeZ: mz,
       baseYaw: myaw,
-      phase: m * 0.85,
+      phaseOffset: m * 0.85,
+      dummyIndex: dIdx,
+      weaponVisible: true,
+      isSoftwareGl,
+      disposableGeometries,
+      disposableMaterials,
     });
   }
+
+  // 2 Shrine Devotees inside the Main Citadel Hall before the Sacred Golden Guardian Statue
+  spawnTempleMonk({
+    id: 'shrine_devotee_west',
+    role: 'shrine_devotee',
+    parent: fortressGroup,
+    homeX: -3.2,
+    homeY: hallFloor1Y,
+    homeZ: -203.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 1.1,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'shrine_devotee_east',
+    role: 'shrine_devotee',
+    parent: fortressGroup,
+    homeX: 3.2,
+    homeY: hallFloor1Y,
+    homeZ: -203.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 2.3,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // 2 Courtyard Patrol Monks walking, jogging, and practicing staff drills across the courtyard
+  spawnTempleMonk({
+    id: 'courtyard_patrol_west',
+    role: 'courtyard_patrol',
+    parent: fortressGroup,
+    homeX: -8.5,
+    homeY: summitY,
+    homeZ: -152.0 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 0.7,
+    patrolWaypoints: [
+      [-8.5, summitY, -152.0 + FZ],
+      [-8.5, summitY, -176.0 + FZ],
+      [-3.5, summitY, -176.0 + FZ],
+      [-3.5, summitY, -152.0 + FZ],
+    ],
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'courtyard_patrol_east',
+    role: 'courtyard_patrol',
+    parent: fortressGroup,
+    homeX: 8.5,
+    homeY: summitY,
+    homeZ: -176.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 1.9,
+    patrolWaypoints: [
+      [8.5, summitY, -176.0 + FZ],
+      [8.5, summitY, -152.0 + FZ],
+      [3.5, summitY, -152.0 + FZ],
+      [3.5, summitY, -176.0 + FZ],
+    ],
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
 
   scene.add(fortressGroup);
   distanceCulledObjects.push({
@@ -1814,25 +1893,17 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     radius: 120,
   });
 
+  let lastMonkElapsedTime = 0;
+
   return {
     fortressGroup,
     updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => {
-      for (let m = 0; m < shaolinMonks.length; m++) {
-        const mk = shaolinMonks[m];
-        const vis = isWithinViewDistance(mk.homeX, mk.homeZ, playerX, playerZ, 8, 125);
-        mk.group.visible = vis;
-        if (!vis) continue;
-        const formT = elapsedTime * 1.85 + mk.phase;
-        mk.group.position.y = mk.homeY + Math.abs(Math.sin(formT)) * 0.05;
-        mk.group.rotation.y = mk.baseYaw + Math.sin(formT * 0.5) * 0.38;
-        mk.leftArm.rotation.x = -0.65 + Math.sin(formT) * 0.75;
-        mk.leftArm.rotation.z = 0.25 + Math.cos(formT * 0.7) * 0.25;
-        mk.rightArm.rotation.x = -0.85 + Math.cos(formT) * 0.85;
-        mk.rightArm.rotation.z = -0.25 + Math.sin(formT * 0.7) * 0.32;
-        const legStance = Math.sin(formT * 0.5) * 0.26;
-        mk.leftLeg.rotation.x = legStance;
-        mk.rightLeg.rotation.x = -legStance;
-      }
+      const dt =
+        lastMonkElapsedTime > 0
+          ? Math.min(0.1, Math.max(0.001, elapsedTime - lastMonkElapsedTime))
+          : 1 / 60;
+      lastMonkElapsedTime = elapsedTime;
+      updateMonkTempleSystem(dt, elapsedTime, playerX, playerZ);
     },
   };
 }
