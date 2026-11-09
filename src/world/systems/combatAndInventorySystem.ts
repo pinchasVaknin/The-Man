@@ -37,7 +37,8 @@ import {
   getMarketStallCatalogItems,
 } from '../domain/landmarksRegistry';
 import { groundHeightAt, walkableHeightAt } from './terrainAndBiomeSystem';
-import { awardSkillXp, getPlayerHeroLevel } from './playerPhysicsSystem';
+import { awardSkillXp, getPlayerHeroLevel, getPlayerState } from './playerPhysicsSystem';
+export { getPlayerState };
 import {
   SWORD_ACTIVE_STRIKE_WINDOW_START,
   SWORD_ACTIVE_STRIKE_WINDOW_END,
@@ -1200,7 +1201,7 @@ export function evaluateSwordStrikeWindowHit(
       state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
       state.swordHitStopTimer = 0.042;
       awardSkillXp(state, 'swordsmanship', 12);
-      return { comboIndex, isHeavy, hitKind: 'obstacle', hitAnySurface: true };
+      return { comboIndex, isHeavy, hitKind: 'obstacle', hitTarget: null, hitAnySurface: true };
     }
 
     for (let a = 0; a < activeAnimals.length; a++) {
