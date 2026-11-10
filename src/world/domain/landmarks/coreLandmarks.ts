@@ -127,13 +127,26 @@ export const SOUTHERN_RIVER_WAYPOINTS = [
   { x: 258.0, z: 785.0 },
 ] as const;
 
+/**
+ * Summary: Centerline waypoints for the western/central river branch splitting off the Southern River
+ *          after passing the Mountain Gorge Ridge and flowing south of the extended mountain ridge
+ *          into the vast Murky Swamp & Hippo Marshland at (-95, 785).
+ */
+export const SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS = [
+  { x: 132.0, z: 678.0 },
+  { x: 122.0, z: 748.0 },
+  { x: 58.0, z: 772.0 },
+  { x: -18.0, z: 784.0 },
+  { x: -95.0, z: 790.0 },
+] as const;
+
 /** Summary: Secluded valley glade & traveler camp south of the Mountain Gorge Pass. */
 export const SOUTHERN_PASS_VALLEY_POS = {
   x: 105.0,
   z: 715.0,
   height: 2.15,
   floorY: 2.15,
-  radius: 36.0,
+  radius: 22.0,
 } as const;
 
 /**
@@ -182,15 +195,15 @@ export const CROCODILE_RIVER_BEND_POS = {
 } as const;
 
 /**
- * Summary: Murky Swamp & Hippo Marshland Biome in the South-Southwest lowlands,
- *          featuring shallow water channels, wallowing mud pools, mossy peat hummocks,
- *          gnarled swamp cypress trees, cattail reed beds, and a resident hippo pod.
+ * Summary: Vast Murky Swamp & Hippo Marshland Biome south of the extended Mountain Ridge,
+ *          fed by the Southern River fork branch and featuring 10 expansive hippo wallow lagoons,
+ *          interwoven water channels, mossy peat hummocks, gnarled swamp cypress groves, fallen logs, and reed beds.
  */
 export const MURKY_SWAMP_BIOME_POS = {
-  x: -175.0,
-  z: 435.0,
-  innerRadius: 72.0,
-  outerRadius: 105.0,
+  x: -95.0,
+  z: 790.0,
+  innerRadius: 175.0,
+  outerRadius: 235.0,
   waterY: 0.0,
 } as const;
 

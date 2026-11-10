@@ -658,12 +658,21 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'fortress-incense-west', minX: -10.4, maxX: -8.6, minZ: -152.9 + FZ, maxZ: -151.1 + FZ, maxY: 27.15 + FY },
   { id: 'fortress-incense-east', minX: 8.6, maxX: 10.4, minZ: -152.9 + FZ, maxZ: -151.1 + FZ, maxY: 27.15 + FY },
   {
+    id: 'palace-golden-statue-pedestal',
+    minX: -1.65,
+    maxX: 1.65,
+    minZ: -210.8 + FZ - 1.65,
+    maxZ: -210.8 + FZ + 1.65,
+    minY: 28.0 + FY,
+    maxY: 29.55 + FY,
+  },
+  {
     id: 'sakura-buddha-pedestal',
-    minX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 - 4.2,
-    maxX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 + 4.2,
-    minZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 - 4.2,
-    maxZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 + 4.2,
-    maxY: SAKURA_SANCTUARY_POS.height + 10.5,
+    minX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 - 1.65,
+    maxX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 + 1.65,
+    minZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 - 1.65,
+    maxZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 + 1.65,
+    maxY: SAKURA_SANCTUARY_POS.height + 1.55,
   },
   { id: 'harbor-tavern-back-wall', minX: 215.8, maxX: 232.2, minZ: 223.75, maxZ: 224.25, minY: 3.2, maxY: 8.6 },
   { id: 'harbor-tavern-west-wall', minX: 215.75, maxX: 216.25, minZ: 223.8, maxZ: 236.2, minY: 3.2, maxY: 8.6 },
@@ -1231,8 +1240,44 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'volcano-chamber-east-north', minX: VOLCANO_SANCTUM_POS.x + 28.5, maxX: VOLCANO_SANCTUM_POS.x + 31.5, minZ: VOLCANO_SANCTUM_POS.z - 29.0, maxZ: VOLCANO_SANCTUM_POS.z - 4.8, maxY: 22.0 },
   { id: 'volcano-chamber-east-south', minX: VOLCANO_SANCTUM_POS.x + 28.5, maxX: VOLCANO_SANCTUM_POS.x + 31.5, minZ: VOLCANO_SANCTUM_POS.z + 4.8, maxZ: VOLCANO_SANCTUM_POS.z + 29.0, maxY: 22.0 },
 
-  // 5) Southern Cliffside Mountain Pass Guardrail Fence along the River Gorge drop-off (x = 101.35, z = 516..678)
-  { id: 'southern-cliff-pass-guardrail', minX: 101.1, maxX: 101.7, minZ: 516.0, maxZ: 678.0, maxY: 14.0 },
+  // 5) Southern Cliffside Mountain Pass Guardrail Fence & Mountain Retaining Wall (40 sloped 4m segments along z = 516..676)
+  ...Array.from({ length: 40 }, (_, segIdx) => {
+    const z0 = 516.0 + segIdx * 4.0;
+    const z1 = z0 + 4.0;
+    const evalPassH = (z: number): number => {
+      if (z <= 512.0 || z >= 682.0) return 2.15;
+      const tN = Math.max(0, Math.min(1, (z - 512.0) / 44.0));
+      const northClimb = tN * tN * (3 - 2 * tN);
+      const tS = Math.max(0, Math.min(1, (z - 638.0) / 44.0));
+      const southDescent = 1.0 - tS * tS * (3 - 2 * tS);
+      const passArch = Math.sin(Math.max(0, Math.min(1, (z - 550.0) / 94.0)) * Math.PI) * 1.15;
+      return 2.15 + northClimb * southDescent * (9.25 + passArch);
+    };
+    const py0 = evalPassH(z0);
+    const py1 = evalPassH(z1);
+    const minY = Math.min(py0, py1);
+    const maxY = Math.max(py0, py1);
+    return [
+      {
+        id: segIdx === 0 ? 'southern-cliff-pass-guardrail' : `southern-cliff-pass-guardrail-seg-${segIdx}`,
+        minX: 101.2,
+        maxX: 101.5,
+        minZ: z0,
+        maxZ: z1,
+        minY: minY - 0.1,
+        maxY: maxY + 1.28,
+      },
+      {
+        id: `southern-cliff-pass-mountain-wall-seg-${segIdx}`,
+        minX: 93.65,
+        maxX: 94.65,
+        minZ: z0,
+        maxZ: z1,
+        minY: minY - 0.2,
+        maxY: maxY + 3.65,
+      },
+    ];
+  }).flat(),
 
   // 6) Desert Sun Pyramid Twin Obelisks & Guardian Sphinx Pedestal
   { id: 'desert-pyramid-obelisk-north', minX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 - 1.4, maxX: DESERT_PYRAMID_SANCTUARY_POS.x + 28.0 + 1.4, minZ: DESERT_PYRAMID_SANCTUARY_POS.z - 10.5 - 1.4, maxZ: DESERT_PYRAMID_SANCTUARY_POS.z - 10.5 + 1.4, maxY: 18.5 },
@@ -1447,7 +1492,7 @@ export const FLAT_BUILDING_TERRACES = [
   { x: SOUTHWEST_OASIS_POS.x, z: SOUTHWEST_OASIS_POS.z + 12.0, innerR: 54.0, outerR: 74.0, targetH: SOUTHWEST_OASIS_POS.terraceY },
   { x: 152.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
   { x: 204.0, z: 378.0, innerR: 6.5, outerR: 14.0, targetH: 1.85 },
-  { x: 105.0, z: 715.0, innerR: 26.0, outerR: 42.0, targetH: 2.15 },
+  { x: 105.0, z: 715.0, innerR: 12.0, outerR: 20.0, targetH: 2.15 },
   { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, innerR: 54.0, outerR: 68.0, targetH: SOUTHERN_DRAGON_RUINS_POS.height },
   { x: VOLCANO_SANCTUM_POS.entranceX + 8.0, z: VOLCANO_SANCTUM_POS.entranceZ, innerR: 14.0, outerR: 26.0, targetH: VOLCANO_SANCTUM_POS.floorY },
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z - 103.0, innerR: 12.0, outerR: 24.0, targetH: VOLCANO_SANCTUM_POS.floorY },
@@ -1497,10 +1542,18 @@ export const CLEAR_ZONES = [
   { x: 178.0, z: 378.0, r: 26.0 },
   { x: 202.0, z: 378.0, r: 14.0 },
   { x: 132.0, z: 475.0, r: 30.0 },
-  { x: 100.0, z: 545.0, r: 14.0 },
-  { x: 100.0, z: 580.0, r: 14.0 },
-  { x: 100.0, z: 615.0, r: 14.0 },
-  { x: 100.0, z: 650.0, r: 14.0 },
+  { x: 99.0, z: 512.0, r: 18.0 },
+  { x: 99.0, z: 528.0, r: 18.0 },
+  { x: 99.0, z: 544.0, r: 18.0 },
+  { x: 99.0, z: 560.0, r: 18.0 },
+  { x: 99.0, z: 576.0, r: 18.0 },
+  { x: 99.0, z: 592.0, r: 18.0 },
+  { x: 99.0, z: 608.0, r: 18.0 },
+  { x: 99.0, z: 624.0, r: 18.0 },
+  { x: 99.0, z: 640.0, r: 18.0 },
+  { x: 99.0, z: 656.0, r: 18.0 },
+  { x: 99.0, z: 672.0, r: 18.0 },
+  { x: 99.0, z: 686.0, r: 18.0 },
   { x: 105.0, z: 715.0, r: 22.0 },
   { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, r: 62.0 },
   { x: DESERT_DRAGON_PASS_POS.entryX, z: DESERT_DRAGON_PASS_POS.entryZ, r: 16.0 },

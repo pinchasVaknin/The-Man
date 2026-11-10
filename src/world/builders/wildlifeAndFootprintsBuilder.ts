@@ -38,7 +38,9 @@ import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
   walkableHeightAt,
+  groundHeightAt,
 } from '../systems/terrainAndBiomeSystem';
+import { WATER_LEVEL } from '../domain/landmarksRegistry';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
 import type { ILogger } from '../../core/ILogger';
@@ -1030,8 +1032,11 @@ export function buildWildlifeAndFootprintsLayer(
             continue;
           }
           if (a.species === 'koifish' && rig.koifishCtrl) {
-            rig.posePivot.position.set(0, 0, 0);
-            rig.posePivot.rotation.set(0, 0, 0);
+            const lakeBedY = Math.max(groundHeightAt(a.x, a.z) + 0.14, WATER_LEVEL - 1.15);
+            const sunkY = Math.min(a.y, WATER_LEVEL - 0.55);
+            rig.root.position.set(a.x, Math.max(lakeBedY, sunkY), a.z);
+            rig.posePivot.position.set(0, -0.08, 0);
+            rig.posePivot.rotation.set(0, 0, Math.PI * 0.5);
             const spd = getEffectiveLabAnimationSpeed(
               liveLabOverrides['koi_fish'],
               'death',
@@ -1173,6 +1178,14 @@ export function buildWildlifeAndFootprintsLayer(
             );
             rig.hippoCtrl.setState('lie');
             rig.hippoCtrl.update(dt * spd, 0);
+          } else if (a.species === 'koifish' && rig.koifishCtrl) {
+            const sleepUnderwaterY = Math.min(a.y, WATER_LEVEL - 0.62);
+            rig.root.position.set(a.x, sleepUnderwaterY, a.z);
+            rig.root.rotation.set(0, a.yaw, 0, 'YXZ');
+            rig.posePivot.position.set(0, 0, 0);
+            rig.posePivot.rotation.set(0, 0, 0);
+            rig.koifishCtrl.setState('idle');
+            rig.koifishCtrl.update(dt * 0.22, 0);
           } else {
             const sleepDrop = a.species === 'deer' ? -0.46 : a.species === 'sheep' ? -0.22 : -0.05;
             rig.posePivot.position.set(0, sleepDrop, 0);
@@ -1547,7 +1560,7 @@ export function buildWildlifeAndFootprintsLayer(
           const cycleSlot = (elapsedTime * 0.08 + i * 1.51) % 1;
           const desiredHippoState: HippoState =
             ai === 'attacking'
-              ? (Math.floor(elapsedTime * 0.45 + i) % 2 === 0 ? 'attack' : 'bite_attack')
+              ? 'attack'
               : ai === 'roaring'
                 ? 'roar'
                 : (ai === 'fleeing' || a.alertLevel === 'fleeing') && moveSpd > 0.14
@@ -1567,7 +1580,6 @@ export function buildWildlifeAndFootprintsLayer(
                               : 'idle';
           const isUrgentHippo =
             desiredHippoState === 'attack' ||
-            desiredHippoState === 'bite_attack' ||
             desiredHippoState === 'roar' ||
             desiredHippoState === 'flee' ||
             desiredHippoState === 'run';
@@ -1575,6 +1587,7 @@ export function buildWildlifeAndFootprintsLayer(
           const spd =
             getEffectiveLabAnimationSpeed(liveLabOverrides['oasis_hippo'], hippoState, 1.0) *
             (a.inWater && moveSpd > 0.12 ? 0.92 : 1.0);
+          rig.hippoCtrl.moveSpeed = moveSpd;
           rig.hippoCtrl.setState(hippoState);
           rig.hippoCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'koifish' && rig.koifishCtrl) {

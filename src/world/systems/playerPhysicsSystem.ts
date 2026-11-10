@@ -273,6 +273,7 @@ export function stepSurvivalVitals(
       a.species === 'jaguar' ||
       a.species === 'crocodile' ||
       a.species === 'rhino' ||
+      a.species === 'hippo' ||
       a.species === 'stag' ||
       a.species === 'lion' ||
       a.species === 'dragon';
@@ -286,8 +287,8 @@ export function stepSurvivalVitals(
     const strikeReach =
       a.isBoss || a.species === 'dragon'
         ? 4.4
-        : a.species === 'rhino' || a.species === 'bear' || a.species === 'crocodile'
-          ? 3.1
+        : a.species === 'rhino' || a.species === 'hippo' || a.species === 'bear' || a.species === 'crocodile'
+          ? 3.2
           : 2.6;
     if (
       dist <= strikeReach &&
@@ -1353,8 +1354,10 @@ export function stepPlayerPhysics(
             CHINESE_FORTRESS_POS.summitHeight +
             tStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
           effectiveMaxY = stairY + 0.95;
-        } else if (box.id === 'southern-cliff-pass-guardrail') {
+        } else if (box.id.startsWith('southern-cliff-pass-guardrail')) {
           effectiveMaxY = southernCliffsidePassTrailHeightAt(nextZ) + 1.25;
+        } else if (box.id.startsWith('southern-cliff-pass-mountain-wall')) {
+          effectiveMaxY = southernCliffsidePassTrailHeightAt(nextZ) + 3.6;
         } else if (
           box.id.startsWith('galleon-port-stair-side-') ||
           box.id.startsWith('galleon-stbd-stair-side-')

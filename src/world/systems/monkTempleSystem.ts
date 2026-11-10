@@ -42,7 +42,7 @@ export interface IWoodenDummyHandle {
 }
 
 export interface ITempleStatueTarget {
-  id: 'palace_golden_guardian' | 'sakura_golden_buddha';
+  id: string;
   x: number;
   baseY: number;
   z: number;
@@ -50,6 +50,35 @@ export interface ITempleStatueTarget {
   height: number;
   hitFlashTimer: number;
   group?: THREE.Group;
+}
+
+export interface IMonkTeleportShard {
+  mesh: THREE.Mesh;
+  baseOffX: number;
+  baseOffY: number;
+  baseOffZ: number;
+  scatterX: number;
+  scatterY: number;
+  scatterZ: number;
+  spinX: number;
+  spinY: number;
+  spinZ: number;
+  stagger: number;
+}
+
+export interface IMonkTeleportSequence {
+  elapsed: number;
+  duration: number;
+  startX: number;
+  startY: number;
+  startZ: number;
+  ctrlX: number;
+  ctrlY: number;
+  ctrlZ: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  targetYaw: number;
 }
 
 export interface IActiveTempleMonk {
@@ -72,13 +101,18 @@ export interface IActiveTempleMonk {
   scheduleTimer: number;
   scheduleStage: number;
   isAggro: boolean;
+  isLeashedReturning?: boolean;
   aggroTimer: number;
+  forgetTimer: number;
   deflectTimer: number;
   teleportFlashTimer: number;
   attackCooldown: number;
   currentAttackClip: 'attack1' | 'attack2' | 'attack3' | 'staff_spin';
   guardCrossFactor: number;
   teleportRingMesh?: THREE.Mesh;
+  teleportPartsGroup?: THREE.Group;
+  teleportShards?: IMonkTeleportShard[];
+  teleportState?: IMonkTeleportSequence | null;
 }
 
 const activeTempleMonks: IActiveTempleMonk[] = [];
@@ -96,6 +130,66 @@ export function resetMonkTempleSystem(): void {
   templeStatues.length = 0;
   allMonksProvoked = false;
   allMonksAggroTimer = 0;
+}
+
+/**
+ * Summary: Resets all existing live monks, temple statues, and wooden dummies back to their peaceful
+ *          starting positions and states without destroying their Three.js scene meshes.
+ *          Called on every world reset (Survival, Creative/God Mode, or New Game).
+ */
+export function resetActiveTempleMonksState(): void {
+  allMonksProvoked = false;
+  allMonksAggroTimer = 0;
+
+  for (let s = 0; s < templeStatues.length; s++) {
+    const st = templeStatues[s];
+    st.hitFlashTimer = 0;
+    if (st.group) {
+      st.group.rotation.z = 0;
+    }
+  }
+
+  for (let d = 0; d < woodenDummies.length; d++) {
+    const dm = woodenDummies[d];
+    dm.hitImpulse = 0;
+    dm.hitPhase = 0;
+    dm.group.rotation.set(0, dm.baseYaw, 0);
+  }
+
+  for (let i = 0; i < activeTempleMonks.length; i++) {
+    const mk = activeTempleMonks[i];
+    mk.x = mk.homeX;
+    mk.y = mk.homeY;
+    mk.z = mk.homeZ;
+    mk.yaw = mk.baseYaw;
+    mk.waypointIndex = 0;
+    mk.scheduleTimer = (mk.phaseOffset * 1.7) % 3.2;
+    mk.scheduleStage = Math.floor(mk.phaseOffset * 3) % 5;
+    mk.isAggro = false;
+    mk.isLeashedReturning = false;
+    mk.aggroTimer = 0;
+    mk.forgetTimer = 0;
+    mk.deflectTimer = 0;
+    mk.teleportFlashTimer = 0;
+    mk.attackCooldown = 0;
+    mk.currentAttackClip = 'attack1';
+    mk.guardCrossFactor =
+      mk.role === 'entrance_guard_left' || mk.role === 'entrance_guard_right' ? 1.0 : 0.0;
+    mk.teleportState = null;
+    if (mk.teleportPartsGroup) {
+      mk.teleportPartsGroup.visible = false;
+    }
+    if (mk.teleportRingMesh) {
+      mk.teleportRingMesh.visible = false;
+    }
+      mk.ctrl.group.visible = true;
+    mk.ctrl.group.scale.setScalar(1.0);
+    mk.ctrl.group.rotation.set(0, 0, 0);
+    mk.ctrl.speed = 0;
+    mk.ctrl.setState('idle', 0.05);
+    mk.group.position.set(mk.homeX, mk.homeY, mk.homeZ);
+    mk.group.rotation.set(0, mk.baseYaw, 0);
+  }
 }
 
 /**
@@ -128,7 +222,7 @@ export function registerWoodenDummy(handle: IWoodenDummyHandle): number {
 }
 
 /**
- * Summary: Registers a sacred temple statue that provokes all monks when struck by an arrow.
+ * Summary: Registers a sacred temple statue that provokes nearby monks when struck by an arrow or sword.
  */
 export function registerTempleStatue(statue: ITempleStatueTarget): void {
   const existingIdx = templeStatues.findIndex((s) => s.id === statue.id);
@@ -190,8 +284,54 @@ export function spawnTempleMonk(config: {
   ringMesh.visible = false;
   wrapper.add(ringMesh);
 
+  // Disassembly teleport shards group (24 anatomical, staff & golden trajectory-ribbon fragments that stream along the path behind the player)
+  const teleportPartsGroup = new THREE.Group();
+  teleportPartsGroup.name = `TempleMonkTeleportShards_${config.id}`;
+  teleportPartsGroup.visible = false;
+  wrapper.add(teleportPartsGroup);
+
+  const robeShardMat = new THREE.MeshStandardMaterial({
+    color: config.tintHex ?? 0xd97706,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.65,
+    roughness: 0.35,
+  });
+  const crimsonShardMat = new THREE.MeshStandardMaterial({
+    color: 0xdc2626,
+    emissive: 0xb91c1c,
+    emissiveIntensity: 0.6,
+    roughness: 0.35,
+  });
+  const goldShardMat = new THREE.MeshStandardMaterial({
+    color: 0xfbbf24,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 0.95,
+    metalness: 0.7,
+    roughness: 0.2,
+  });
+  const skinShardMat = new THREE.MeshStandardMaterial({
+    color: 0xe6b88a,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 0.42,
+    roughness: 0.45,
+  });
+
+  const headShardGeo = new THREE.SphereGeometry(0.23, 8, 8);
+  const torsoShardGeo = new THREE.BoxGeometry(0.38, 0.34, 0.26);
+  const limbShardGeo = new THREE.CylinderGeometry(0.095, 0.08, 0.44, 7);
+  const staffShardGeo = new THREE.CylinderGeometry(0.042, 0.042, 0.72, 6);
+  const chiStreakGeo = new THREE.BoxGeometry(0.14, 0.14, 0.78);
+
   if (config.disposableGeometries) {
-    config.disposableGeometries.push(ctrl.skinnedMesh.geometry, ringGeo);
+    config.disposableGeometries.push(
+      ctrl.skinnedMesh.geometry,
+      ringGeo,
+      headShardGeo,
+      torsoShardGeo,
+      limbShardGeo,
+      staffShardGeo,
+      chiStreakGeo
+    );
   }
   if (config.disposableMaterials) {
     const mat = ctrl.skinnedMesh.material;
@@ -200,7 +340,77 @@ export function spawnTempleMonk(config: {
     } else {
       config.disposableMaterials.push(mat);
     }
-    config.disposableMaterials.push(ringMat);
+    config.disposableMaterials.push(
+      ringMat,
+      robeShardMat,
+      crimsonShardMat,
+      goldShardMat,
+      skinShardMat
+    );
+  }
+
+  const shardDefs: ReadonlyArray<{
+    geo: THREE.BufferGeometry;
+    mat: THREE.Material;
+    ox: number;
+    oy: number;
+    oz: number;
+    sx: number;
+    sy: number;
+    sz: number;
+    stagger: number;
+  }> = [
+    // Head & golden prayer beads / crown
+    { geo: headShardGeo, mat: skinShardMat, ox: 0, oy: 1.62, oz: 0, sx: 0.18, sy: 0.58, sz: 0.14, stagger: 0.0 },
+    { geo: torsoShardGeo, mat: goldShardMat, ox: 0, oy: 1.76, oz: 0, sx: -0.22, sy: 0.72, sz: -0.18, stagger: 0.03 },
+    // Upper, middle, and lower robe torso
+    { geo: torsoShardGeo, mat: robeShardMat, ox: -0.14, oy: 1.28, oz: 0.05, sx: -0.58, sy: 0.38, sz: 0.32, stagger: 0.06 },
+    { geo: torsoShardGeo, mat: crimsonShardMat, ox: 0.14, oy: 1.24, oz: -0.05, sx: 0.62, sy: 0.42, sz: -0.28, stagger: 0.09 },
+    { geo: torsoShardGeo, mat: robeShardMat, ox: 0, oy: 0.96, oz: 0, sx: 0.26, sy: 0.22, sz: 0.48, stagger: 0.12 },
+    // Arms & forearms
+    { geo: limbShardGeo, mat: robeShardMat, ox: -0.34, oy: 1.32, oz: 0, sx: -0.82, sy: 0.45, sz: 0.25, stagger: 0.15 },
+    { geo: limbShardGeo, mat: skinShardMat, ox: -0.42, oy: 1.02, oz: 0.14, sx: -0.96, sy: 0.28, sz: 0.52, stagger: 0.18 },
+    { geo: limbShardGeo, mat: robeShardMat, ox: 0.34, oy: 1.32, oz: 0, sx: 0.82, sy: 0.46, sz: -0.25, stagger: 0.21 },
+    { geo: limbShardGeo, mat: skinShardMat, ox: 0.42, oy: 1.02, oz: 0.14, sx: 0.96, sy: 0.30, sz: 0.52, stagger: 0.24 },
+    // Legs & greaves
+    { geo: limbShardGeo, mat: crimsonShardMat, ox: -0.16, oy: 0.62, oz: 0, sx: -0.62, sy: -0.12, sz: -0.38, stagger: 0.27 },
+    { geo: limbShardGeo, mat: robeShardMat, ox: -0.16, oy: 0.28, oz: 0, sx: -0.48, sy: -0.22, sz: 0.35, stagger: 0.30 },
+    { geo: limbShardGeo, mat: crimsonShardMat, ox: 0.16, oy: 0.62, oz: 0, sx: 0.62, sy: -0.12, sz: -0.38, stagger: 0.33 },
+    { geo: limbShardGeo, mat: robeShardMat, ox: 0.16, oy: 0.28, oz: 0, sx: 0.48, sy: -0.22, sz: 0.35, stagger: 0.36 },
+    // 3 Golden Staff segments
+    { geo: staffShardGeo, mat: goldShardMat, ox: 0.38, oy: 1.52, oz: 0.24, sx: 0.88, sy: 0.68, sz: 0.58, stagger: 0.08 },
+    { geo: staffShardGeo, mat: goldShardMat, ox: 0.38, oy: 1.02, oz: 0.24, sx: 1.08, sy: 0.28, sz: 0.38, stagger: 0.20 },
+    { geo: staffShardGeo, mat: goldShardMat, ox: 0.38, oy: 0.52, oz: 0.24, sx: 0.78, sy: -0.16, sz: 0.65, stagger: 0.32 },
+    // 8 Radiant Chi Trajectory Streaks distributed along the full flight path so the player clearly sees the teleport trail
+    { geo: chiStreakGeo, mat: goldShardMat, ox: -0.18, oy: 1.38, oz: -0.12, sx: -0.32, sy: 0.25, sz: -0.28, stagger: 0.04 },
+    { geo: chiStreakGeo, mat: crimsonShardMat, ox: 0.18, oy: 1.22, oz: 0.12, sx: 0.32, sy: 0.18, sz: 0.28, stagger: 0.11 },
+    { geo: chiStreakGeo, mat: goldShardMat, ox: -0.22, oy: 1.08, oz: -0.16, sx: -0.38, sy: 0.15, sz: -0.32, stagger: 0.17 },
+    { geo: chiStreakGeo, mat: robeShardMat, ox: 0.22, oy: 0.95, oz: 0.16, sx: 0.38, sy: 0.12, sz: 0.32, stagger: 0.23 },
+    { geo: chiStreakGeo, mat: goldShardMat, ox: -0.16, oy: 1.18, oz: 0.08, sx: -0.28, sy: 0.20, sz: 0.22, stagger: 0.29 },
+    { geo: chiStreakGeo, mat: crimsonShardMat, ox: 0.16, oy: 0.82, oz: -0.08, sx: 0.28, sy: 0.08, sz: -0.22, stagger: 0.35 },
+    { geo: chiStreakGeo, mat: goldShardMat, ox: -0.12, oy: 1.02, oz: -0.14, sx: -0.22, sy: 0.14, sz: -0.18, stagger: 0.41 },
+    { geo: chiStreakGeo, mat: goldShardMat, ox: 0.12, oy: 0.74, oz: 0.14, sx: 0.22, sy: 0.06, sz: 0.18, stagger: 0.46 },
+  ];
+
+  const teleportShards: IMonkTeleportShard[] = [];
+  for (let sIdx = 0; sIdx < shardDefs.length; sIdx++) {
+    const d = shardDefs[sIdx];
+    const m = new THREE.Mesh(d.geo, d.mat);
+    m.position.set(d.ox, d.oy, d.oz);
+    teleportPartsGroup.add(m);
+    teleportShards.push({
+      mesh: m,
+      baseOffX: d.ox,
+      baseOffY: d.oy,
+      baseOffZ: d.oz,
+      scatterX: d.sx,
+      scatterY: d.sy,
+      scatterZ: d.sz,
+      spinX: (sIdx % 2 === 0 ? 1 : -1) * (5.5 + (sIdx % 5) * 1.2),
+      spinY: (sIdx % 3 === 0 ? -1 : 1) * (7.0 + (sIdx % 4) * 1.4),
+      spinZ: (sIdx % 2 === 1 ? 1 : -1) * (4.8 + (sIdx % 3) * 1.3),
+      stagger: d.stagger,
+    });
   }
 
   config.parent.add(wrapper);
@@ -226,12 +436,16 @@ export function spawnTempleMonk(config: {
     scheduleStage: Math.floor(config.phaseOffset * 3) % 5,
     isAggro: false,
     aggroTimer: 0,
+    forgetTimer: 0,
     deflectTimer: 0,
     teleportFlashTimer: 0,
     attackCooldown: 0,
     currentAttackClip: 'attack1',
     guardCrossFactor: config.role === 'entrance_guard_left' || config.role === 'entrance_guard_right' ? 1.0 : 0.0,
     teleportRingMesh: ringMesh,
+    teleportPartsGroup,
+    teleportShards,
+    teleportState: null,
   };
 
   activeTempleMonks.push(monk);
@@ -239,15 +453,39 @@ export function spawnTempleMonk(config: {
 }
 
 /**
- * Summary: Provokes ALL monks across the Temple Palace and Sanctuary (triggered when shooting the Sacred Temple Statue).
+ * Summary: Provokes monks within `radius` (default 34m) of a specific point (e.g. a Sacred Temple Statue).
+ *          Only monks close enough to that statue charge the player!
+ */
+export function provokeMonksNearStatue(statueX: number, statueZ: number, radius = 34.0): number {
+  let count = 0;
+  for (let i = 0; i < activeTempleMonks.length; i++) {
+    const mk = activeTempleMonks[i];
+    const d = Math.hypot(mk.x - statueX, mk.z - statueZ);
+    const dHome = Math.hypot(mk.homeX - statueX, mk.homeZ - statueZ);
+    if (d <= radius || dHome <= radius) {
+      mk.isAggro = true;
+      mk.isLeashedReturning = false;
+      mk.aggroTimer = 60.0;
+      mk.forgetTimer = 0;
+      mk.ctrl.setWeaponVisible(true);
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Summary: Legacy helper — provokes all monks across the world.
  */
 export function provokeAllMonks(): void {
   allMonksProvoked = true;
-  allMonksAggroTimer = 45.0;
+  allMonksAggroTimer = 60.0;
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
     mk.isAggro = true;
-    mk.aggroTimer = 45.0;
+    mk.isLeashedReturning = false;
+    mk.aggroTimer = 60.0;
+    mk.forgetTimer = 0;
     mk.ctrl.setWeaponVisible(true);
   }
 }
@@ -257,20 +495,46 @@ export function provokeAllMonks(): void {
  */
 export function provokeSingleMonk(monk: IActiveTempleMonk): void {
   monk.isAggro = true;
-  monk.aggroTimer = 35.0;
+  monk.isLeashedReturning = false;
+  monk.aggroTimer = 60.0;
+  monk.forgetTimer = 0;
   monk.ctrl.setWeaponVisible(true);
 }
 
 /**
- * Summary: Checks if a flying arrow hit a Sacred Temple Statue. If so, provokes ALL monks!
+ * Summary: Checks if a flying arrow hit a Sacred Temple Statue using a tight 2-tier silhouette hitbox
+ *          (pedestal base 0..1.55m at st.radius, sculpted guardian figure 1.55..5.1m at 1.05m radius).
+ *          If so, flashes the statue and provokes ONLY the monks close to that statue (<= 34m)!
  */
 export function checkArrowHitTempleStatue(arrowX: number, arrowY: number, arrowZ: number): boolean {
   for (let i = 0; i < templeStatues.length; i++) {
     const st = templeStatues[i];
+    const relY = arrowY - st.baseY;
+    if (relY < -0.25 || relY > st.height) continue;
     const dHoriz = Math.hypot(arrowX - st.x, arrowZ - st.z);
-    if (dHoriz <= st.radius && arrowY >= st.baseY - 0.5 && arrowY <= st.baseY + st.height) {
+    const effectiveRadius = relY <= 1.55 ? st.radius : Math.min(st.radius, 1.05);
+    if (dHoriz <= effectiveRadius) {
       st.hitFlashTimer = 1.2;
-      provokeAllMonks();
+      provokeMonksNearStatue(st.x, st.z, 34.0);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Checks if a sword slash hit a Sacred Temple Statue using a tight silhouette hitbox.
+ *          Provokes ONLY the monks within proximity (<= 34m) of that statue.
+ */
+export function checkSwordHitTempleStatue(strikeX: number, strikeY: number, strikeZ: number): boolean {
+  for (let i = 0; i < templeStatues.length; i++) {
+    const st = templeStatues[i];
+    const relY = strikeY - st.baseY;
+    if (relY < -0.45 || relY > st.height) continue;
+    const dHoriz = Math.hypot(strikeX - st.x, strikeZ - st.z);
+    if (dHoriz <= st.radius + 0.55) {
+      st.hitFlashTimer = 1.2;
+      provokeMonksNearStatue(st.x, st.z, 34.0);
       return true;
     }
   }
@@ -284,8 +548,9 @@ export function checkArrowHitTempleStatue(arrowX: number, arrowY: number, arrowZ
 export function checkArrowHitMonk(arrowX: number, arrowY: number, arrowZ: number): IActiveTempleMonk | null {
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
+    if (mk.teleportState) continue;
     const dHoriz = Math.hypot(arrowX - mk.x, arrowZ - mk.z);
-    if (dHoriz <= 1.25 && arrowY >= mk.y - 0.25 && arrowY <= mk.y + 2.25) {
+    if (dHoriz <= 1.45 && arrowY >= mk.y - 0.35 && arrowY <= mk.y + 2.45) {
       provokeSingleMonk(mk);
       mk.deflectTimer = 1.35;
       mk.teleportFlashTimer = 0.65;
@@ -303,8 +568,8 @@ export function checkArrowHitMonk(arrowX: number, arrowY: number, arrowZ: number
 
 /**
  * Summary: Checks if a player sword strike hit any monk.
- *          Monks are invulnerable: when struck with a sword, the monk teleports behind the player,
- *          faces the player's back, and counter-attacks! Only that monk becomes hostile.
+ *          Monks are invulnerable: when struck with a sword, the monk disassembles into 3D body & staff fragments
+ *          that stream along a clearly visible curved trajectory to behind the player over ~0.92s, then reassembles and counter-attacks!
  */
 export function checkSwordHitMonk(
   strikeX: number,
@@ -319,30 +584,47 @@ export function checkSwordHitMonk(
   const hitRadius = isHeavy ? 2.35 : 1.95;
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
+    if (mk.teleportState) continue;
     const dHoriz = Math.hypot(strikeX - mk.x, strikeZ - mk.z);
     const dPlayer = Math.hypot(playerX - mk.x, playerZ - mk.z);
     if ((dHoriz <= hitRadius || dPlayer <= 2.4) && Math.abs(strikeY - (mk.y + 1.0)) <= 2.1) {
       provokeSingleMonk(mk);
-      // Teleport directly behind the player relative to the player's facing direction
-      // Note: player forward direction in combatAndInventorySystem is (-Math.sin(playerYaw), -Math.cos(playerYaw)),
-      // so behind the player is (+Math.sin(playerYaw), +Math.cos(playerYaw))!
-      const behindDist = 2.15;
+      // Destination behind the player relative to player's facing direction
+      const behindDist = 2.45;
       const targetX = playerX + Math.sin(playerYaw) * behindDist;
       const targetZ = playerZ + Math.cos(playerYaw) * behindDist;
       const walkInfo = walkableHeightAt(targetX, targetZ);
-      mk.x = targetX;
-      mk.z = targetZ;
-      mk.y = Math.max(walkInfo.height, playerY - 0.6);
-      mk.yaw = Math.atan2(playerX - mk.x, playerZ - mk.z);
-      mk.group.position.set(mk.x, mk.y, mk.z);
-      mk.group.rotation.y = mk.yaw;
+      const targetY = Math.max(walkInfo.height, playerY - 0.6);
+      const targetYaw = Math.atan2(playerX - targetX, playerZ - targetZ);
 
-      mk.teleportFlashTimer = 0.85;
+      // Compute a curved side control point around the player so the flying parts stream visibly across the camera arc
+      const sideSign = i % 2 === 0 ? 1 : -1;
+      const rightX = Math.cos(playerYaw) * sideSign;
+      const rightZ = -Math.sin(playerYaw) * sideSign;
+      const midX = (mk.x + targetX) * 0.5 + rightX * 3.1;
+      const midZ = (mk.z + targetZ) * 0.5 + rightZ * 3.1;
+      const midY = Math.max(mk.y, targetY) + 0.65;
+
+      mk.teleportState = {
+        elapsed: 0,
+        duration: 0.92,
+        startX: mk.x,
+        startY: mk.y,
+        startZ: mk.z,
+        ctrlX: midX,
+        ctrlY: midY,
+        ctrlZ: midZ,
+        targetX,
+        targetY,
+        targetZ,
+        targetYaw,
+      };
+
+      mk.teleportFlashTimer = 0.95;
       mk.deflectTimer = 0;
-      mk.attackCooldown = 1.05;
+      mk.attackCooldown = 1.25;
       mk.currentAttackClip = 'attack2';
       mk.ctrl.setWeaponVisible(true);
-      mk.ctrl.setState('attack2', 0.06);
       return mk;
     }
   }
@@ -355,6 +637,28 @@ function rotateAngleToward(current: number, target: number, maxStep: number): nu
   while (diff < -Math.PI) diff += Math.PI * 2;
   if (Math.abs(diff) <= maxStep) return target;
   return current + Math.sign(diff) * maxStep;
+}
+
+/**
+ * Summary: Returns true if the given coordinates (x, z) are inside the monk's home territory
+ *          (either the Northern Monastery/Castle compound inside the gate walls, or the Sakura Sanctuary Pond area).
+ */
+export function isPlayerInsideMonkTerritory(
+  playerX: number,
+  playerZ: number,
+  monk: IActiveTempleMonk
+): boolean {
+  const isSanctuaryMonk =
+    monk.role === 'sanctuary_master' ||
+    Math.hypot(monk.homeX - SAKURA_SANCTUARY_POS.x, monk.homeZ - SAKURA_SANCTUARY_POS.z) < 48.0;
+  if (isSanctuaryMonk) {
+    return Math.hypot(playerX - SAKURA_SANCTUARY_POS.x, playerZ - SAKURA_SANCTUARY_POS.z) <= 32.0;
+  }
+  return (
+    Math.abs(playerX - CHINESE_FORTRESS_POS.x) <= 52.0 &&
+    playerZ >= CHINESE_FORTRESS_POS.plazaMinZ - 8.0 &&
+    playerZ <= CHINESE_FORTRESS_POS.upperGateZ + 6.0
+  );
 }
 
 /**
@@ -396,14 +700,14 @@ export function updateMonkTempleSystem(
     const mk = activeTempleMonks[i];
     const vis = isWithinViewDistance(mk.x, mk.z, playerX, playerZ, 12, 145);
     mk.group.visible = vis;
-    if (!vis) continue;
+    if (!vis && !mk.isAggro && Math.hypot(mk.x - mk.homeX, mk.z - mk.homeZ) < 0.5) continue;
 
     // Update golden chi ring flash
     if (mk.teleportFlashTimer > 0) {
       mk.teleportFlashTimer = Math.max(0, mk.teleportFlashTimer - safeDt);
       if (mk.teleportRingMesh) {
         mk.teleportRingMesh.visible = true;
-        const prog = 1.0 - mk.teleportFlashTimer / 0.85;
+        const prog = 1.0 - mk.teleportFlashTimer / 0.95;
         mk.teleportRingMesh.scale.setScalar(0.85 + prog * 1.45);
         const rMat = mk.teleportRingMesh.material as THREE.MeshBasicMaterial;
         rMat.opacity = Math.max(0, mk.teleportFlashTimer * 0.95);
@@ -419,23 +723,141 @@ export function updateMonkTempleSystem(
       mk.attackCooldown = Math.max(0, mk.attackCooldown - safeDt);
     }
 
-    // Check if aggro expired or player moved very far away (> 95m)
-    const distToPlayer = Math.hypot(playerX - mk.x, playerZ - mk.z);
-    if (mk.isAggro && !allMonksProvoked) {
-      mk.aggroTimer = Math.max(0, mk.aggroTimer - safeDt);
-      if (mk.aggroTimer <= 0 || distToPlayer > 95.0) {
-        mk.isAggro = false;
+    // =========================================================================
+    // 0. ACTIVE DISASSEMBLY & PARTICLE-STREAM TELEPORT ANIMATION
+    // =========================================================================
+    if (mk.teleportState) {
+      const ts = mk.teleportState;
+      ts.elapsed += safeDt;
+      const rawNorm = Math.min(1.0, ts.elapsed / ts.duration);
+
+      // Lead point along quadratic Bezier trajectory from start -> ctrl -> target
+      const invL = 1.0 - rawNorm;
+      const leadX = invL * invL * ts.startX + 2 * invL * rawNorm * ts.ctrlX + rawNorm * rawNorm * ts.targetX;
+      const leadY = invL * invL * ts.startY + 2 * invL * rawNorm * ts.ctrlY + rawNorm * rawNorm * ts.targetY;
+      const leadZ = invL * invL * ts.startZ + 2 * invL * rawNorm * ts.ctrlZ + rawNorm * rawNorm * ts.targetZ;
+
+      mk.x = leadX;
+      mk.y = leadY;
+      mk.z = leadZ;
+      mk.yaw = rotateAngleToward(mk.yaw, ts.targetYaw, safeDt * 9.0);
+      // Keep wrapper un-rotated in world space during disassembly so all 24 flying shards follow exact world-space Bezier coordinates!
+      mk.group.position.set(leadX, leadY, leadZ);
+      mk.group.rotation.y = 0;
+      mk.ctrl.group.rotation.y = mk.yaw;
+
+      if (rawNorm < 1.0) {
+        // Disassemble solid monk at start (0..0.16) and reassemble at destination (0.84..1.0)
+        if (rawNorm < 0.16) {
+          mk.ctrl.group.visible = true;
+          mk.ctrl.group.scale.setScalar(Math.max(0.12, 1.0 - rawNorm / 0.16));
+        } else if (rawNorm > 0.84) {
+          mk.ctrl.group.visible = true;
+          mk.ctrl.group.scale.setScalar(Math.min(1.0, (rawNorm - 0.84) / 0.16));
+        } else {
+          mk.ctrl.group.visible = false;
+        }
+
+        if (mk.teleportPartsGroup && mk.teleportShards) {
+          mk.teleportPartsGroup.visible = true;
+          for (let sIdx = 0; sIdx < mk.teleportShards.length; sIdx++) {
+            const sh = mk.teleportShards[sIdx];
+            const span = Math.max(0.38, 1.0 - sh.stagger);
+            const uRaw = Math.max(0, Math.min(1, (rawNorm - sh.stagger) / span));
+            const uSmooth = uRaw * uRaw * (3.0 - 2.0 * uRaw);
+            const invU = 1.0 - uSmooth;
+
+            // World position of this specific fragment along the Bezier trajectory
+            const wx = invU * invU * ts.startX + 2 * invU * uSmooth * ts.ctrlX + uSmooth * uSmooth * ts.targetX;
+            const wy = invU * invU * ts.startY + 2 * invU * uSmooth * ts.ctrlY + uSmooth * uSmooth * ts.targetY;
+            const wz = invU * invU * ts.startZ + 2 * invU * uSmooth * ts.ctrlZ + uSmooth * uSmooth * ts.targetZ;
+
+            const dxW = wx - leadX;
+            const dyW = wy - leadY;
+            const dzW = wz - leadZ;
+
+            const burstEnv = Math.sin(uSmooth * Math.PI);
+            sh.mesh.position.set(
+              dxW + sh.baseOffX + sh.scatterX * burstEnv,
+              dyW + sh.baseOffY + sh.scatterY * burstEnv,
+              dzW + sh.baseOffZ + sh.scatterZ * burstEnv
+            );
+            sh.mesh.rotation.set(
+              sh.spinX * burstEnv,
+              sh.spinY * burstEnv,
+              sh.spinZ * burstEnv
+            );
+          }
+        }
+        continue;
+      } else {
+        // Teleport complete: reassemble solid monk behind the player and unleash counter-attack!
+        mk.teleportState = null;
+        if (mk.teleportPartsGroup) {
+          mk.teleportPartsGroup.visible = false;
+        }
+        mk.ctrl.group.visible = true;
+        mk.ctrl.group.scale.setScalar(1.0);
+        mk.ctrl.group.rotation.y = 0;
+        mk.x = ts.targetX;
+        mk.y = ts.targetY;
+        mk.z = ts.targetZ;
+        mk.yaw = ts.targetYaw;
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        mk.teleportFlashTimer = 0.65;
+        mk.ctrl.setState('attack2', 0.06);
       }
-    } else if (allMonksProvoked) {
-      mk.isAggro = true;
     }
 
-    // =========================================================================
-    // A. HOSTILE / AGGRO COMBAT AI
-    // =========================================================================
+    // Check territory leash & aggro grudge memory rules:
+    // A monk ONLY stops chasing when BOTH:
+    //   1) The player has moved far outside the monk's large chase range (`distToPlayer > 52.0`)
+    //   2) AND the monk itself is outside its home territory (`!monkInTerritory && distToHome > 44.0`) AND the player is outside the territory (`!playerInTerritory`).
+    // When it stops chasing and walks back to its post, it remembers for 45 seconds (`forgetTimer < 45.0`) that it hates the player —
+    // so if the player returns to the territory or comes back within 42m during that time, it immediately resumes chasing!
+    const distToPlayer = Math.hypot(playerX - mk.x, playerZ - mk.z);
+    const distToHome = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
+    const playerInTerritory = isPlayerInsideMonkTerritory(playerX, playerZ, mk);
+    const monkInTerritory = isPlayerInsideMonkTerritory(mk.x, mk.z, mk);
+
     if (mk.isAggro) {
+      if (!mk.isLeashedReturning) {
+        if (!playerInTerritory && !monkInTerritory && distToHome > 44.0 && distToPlayer > 52.0) {
+          mk.isLeashedReturning = true;
+        }
+      } else {
+        // Monk is walking back with a grudge: if player returns to territory or within 42m of the monk, immediately resume chasing!
+        if (playerInTerritory || distToPlayer <= 42.0) {
+          mk.isLeashedReturning = false;
+          mk.forgetTimer = 0;
+        }
+      }
+
+      if (mk.isLeashedReturning || (!playerInTerritory && distToPlayer > 52.0)) {
+        mk.forgetTimer += safeDt;
+        if (mk.forgetTimer >= 45.0) {
+          mk.isAggro = false;
+          mk.isLeashedReturning = false;
+          mk.aggroTimer = 0;
+          mk.forgetTimer = 0;
+        }
+      } else {
+        mk.forgetTimer = Math.max(0, mk.forgetTimer - safeDt * 2.0);
+      }
+    } else if (allMonksProvoked && (playerInTerritory || distToPlayer <= 42.0)) {
+      mk.isAggro = true;
+      mk.isLeashedReturning = false;
+    }
+
+    const leashedOutOfTerritory = Boolean(mk.isLeashedReturning);
+
+    // =========================================================================
+    // A. HOSTILE / AGGRO COMBAT AI (Chases until BOTH out of range AND out of territory!)
+    // =========================================================================
+    if (mk.isAggro && !leashedOutOfTerritory) {
       mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
-      mk.ctrl.group.rotation.z = 0;
+      mk.ctrl.group.rotation.set(0, 0, 0);
       const toPx = playerX - mk.x;
       const toPz = playerZ - mk.z;
       const dPlayer = Math.hypot(toPx, toPz) || 0.001;
@@ -490,17 +912,18 @@ export function updateMonkTempleSystem(
     }
 
     // =========================================================================
-    // B. PEACEFUL RETURN TO HOME POST (if returning from aggro)
+    // B. PEACEFUL / LEASHED RETURN TO HOME POST (if returning from aggro)
     // =========================================================================
-    const distToHome = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
-    if (mk.role !== 'courtyard_patrol' && distToHome > 0.35) {
+    if ((mk.role !== 'courtyard_patrol' || leashedOutOfTerritory) && distToHome > 0.35) {
       const toHx = mk.homeX - mk.x;
       const toHz = mk.homeZ - mk.z;
-      const moveSpd = distToHome > 4.0 ? 4.2 : 1.85;
+      const moveSpd = distToHome > 4.0 ? 4.4 : 1.85;
       const step = Math.min(distToHome, moveSpd * safeDt);
       mk.x += (toHx / distToHome) * step;
       mk.z += (toHz / distToHome) * step;
-      mk.y += (mk.homeY - mk.y) * Math.min(1, safeDt * 10.0);
+      const walkInfo = walkableHeightAt(mk.x, mk.z);
+      const targetGroundY = distToHome < 3.5 ? mk.homeY : walkInfo.height;
+      mk.y += (targetGroundY - mk.y) * Math.min(1, safeDt * 10.0);
       mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(toHx, toHz), safeDt * 6.0);
       mk.ctrl.speed = moveSpd;
       mk.ctrl.setState(distToHome > 4.0 ? 'run' : 'walk', 0.2);

@@ -612,6 +612,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     const saveCurrentWorld = () => {
+      if (gameStateRef.current === 'title' && !loadWorldSnapshot(activeWorldMode)) {
+        return;
+      }
       const snap = captureCurrentWorldSnapshot(
         activeWorldMode,
         playerState,
@@ -881,16 +884,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         activeSleepingBed = null;
         preSleepPlayerPos = null;
 
-        // 1. Persist current mode's world snapshot before switching
-        const currentSnap = captureCurrentWorldSnapshot(
-          activeWorldMode,
-          playerState,
-          rideableHorses,
-          getActiveWorldAnimals(),
-          openDoorIds,
-          worldHours
-        );
-        saveWorldSnapshot(activeWorldMode, currentSnap);
+        // 1. Persist current mode's world snapshot before switching (only if a save already exists for that mode or we were actively playing it)
+        if (loadWorldSnapshot(activeWorldMode) !== null) {
+          const currentSnap = captureCurrentWorldSnapshot(
+            activeWorldMode,
+            playerState,
+            rideableHorses,
+            getActiveWorldAnimals(),
+            openDoorIds,
+            worldHours
+          );
+          saveWorldSnapshot(activeWorldMode, currentSnap);
+        }
 
         // 2. Switch world mode and restore target snapshot (or fresh baseline if no save exists)
         const targetMode: GameWorldMode = survivalMode ? 'survival' : 'creative';
@@ -908,6 +913,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             worldHours = savedSnap.timeOfDayHours;
           }
         } else {
+          activeArrows.length = 0;
+          worldPlacedTraps.length = 0;
+          playerState.heldTrapItemId = null;
+          if (activeTrapPlacementGhost) {
+            activeTrapPlacementGhost.group.visible = false;
+          }
+          for (const entry of trapMeshesMap.values()) {
+            worldTrapsGroup.remove(entry.mesh);
+          }
+          trapMeshesMap.clear();
+          workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
+          resetTreeFellingSystem(obstacles);
           resetLiveWorldToFreshBaseline(
             targetMode,
             playerState,
@@ -918,6 +935,16 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           if (urlWorldHour === null) {
             worldHours = survivalMode ? 9 : 12;
           }
+          // Immediately persist the newly created game so returning to the Main Menu shows Continue & New Game
+          const freshSnap = captureCurrentWorldSnapshot(
+            targetMode,
+            playerState,
+            rideableHorses,
+            getActiveWorldAnimals(),
+            openDoorIds,
+            worldHours
+          );
+          saveWorldSnapshot(targetMode, freshSnap);
         }
 
         openDoorIds.delete('chest-hunter-lodge');
@@ -945,54 +972,54 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           clearWorldSave('creative');
         }
 
-        if (mode === 'both' || mode === activeWorldMode) {
-          isSleepingInBed = false;
-          activeSleepingBed = null;
-          preSleepPlayerPos = null;
-          activeArrows.length = 0;
-          worldPlacedTraps.length = 0;
-          playerState.heldTrapItemId = null;
-          if (activeTrapPlacementGhost) {
-            activeTrapPlacementGhost.group.visible = false;
-          }
-          for (const entry of trapMeshesMap.values()) {
-            worldTrapsGroup.remove(entry.mesh);
-          }
-          trapMeshesMap.clear();
-          workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
-          resetActiveWorldBirds();
-          resetLiveWorldToFreshBaseline(
-            activeWorldMode,
-            playerState,
-            rideableHorses,
-            getActiveWorldAnimals(),
-            openDoorIds
-          );
-          resetTreeFellingSystem(obstacles);
-          inGameHoursElapsed = 0;
-          seasonTimeOffset = 180.0;
-          if (urlWorldHour === null) {
-            worldHours = activeWorldMode === 'survival' ? 9 : 12;
-          }
-          if (activeWorldMode === 'survival') {
-            forcedSeason = 'auto';
-            activeWeatherMode = DEFAULT_WEATHER_CYCLE_MODE;
-          }
-          currentWeather = computeWeatherState(
-            getSeasonClockSeconds(),
-            playerState.x,
-            playerState.z,
-            activeWeatherMode,
-            getEffectiveForcedWeather(),
-            forcedSeason === 'auto' ? null : forcedSeason
-          );
-          currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
-          capturePreviousPlayerPose();
-          window.dispatchEvent(new CustomEvent('reset-world-minimap'));
-          emitHudSnapshot();
-        } else {
-          window.dispatchEvent(new CustomEvent('reset-world-minimap'));
+        const resetTargetMode: GameWorldMode =
+          mode === 'both' ? activeWorldMode : mode;
+        activeWorldMode = resetTargetMode;
+
+        // Always reset ALL live world entities and subsystems (monks, traps, birds, animals, horses, trees, arrows, doors/chests)
+        isSleepingInBed = false;
+        activeSleepingBed = null;
+        preSleepPlayerPos = null;
+        activeArrows.length = 0;
+        worldPlacedTraps.length = 0;
+        playerState.heldTrapItemId = null;
+        if (activeTrapPlacementGhost) {
+          activeTrapPlacementGhost.group.visible = false;
         }
+        for (const entry of trapMeshesMap.values()) {
+          worldTrapsGroup.remove(entry.mesh);
+        }
+        trapMeshesMap.clear();
+        workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
+        resetActiveWorldBirds();
+        resetLiveWorldToFreshBaseline(
+          resetTargetMode,
+          playerState,
+          rideableHorses,
+          getActiveWorldAnimals(),
+          openDoorIds
+        );
+        resetTreeFellingSystem(obstacles);
+        inGameHoursElapsed = 0;
+        seasonTimeOffset = 180.0;
+        if (urlWorldHour === null) {
+          worldHours = resetTargetMode === 'survival' ? 9 : 12;
+        }
+        if (resetTargetMode === 'survival') {
+          forcedSeason = 'auto';
+          activeWeatherMode = DEFAULT_WEATHER_CYCLE_MODE;
+        }
+        currentWeather = computeWeatherState(
+          getSeasonClockSeconds(),
+          playerState.x,
+          playerState.z,
+          activeWeatherMode,
+          getEffectiveForcedWeather(),
+          forcedSeason === 'auto' ? null : forcedSeason
+        );
+        currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
+        capturePreviousPlayerPose();
+        window.dispatchEvent(new CustomEvent('reset-world-minimap'));
 
         const message =
           mode === 'survival'

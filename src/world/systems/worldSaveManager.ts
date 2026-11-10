@@ -7,6 +7,8 @@ import type {
 } from '../domain/worldTypes';
 import { DEFAULT_STARTER_OWNED_ITEM_IDS } from '../domain/worldTypes';
 import type { ISmallAnimalState } from './boidsAndWildlifeSystem';
+import { resetActiveWorldBirds } from './boidsAndWildlifeSystem';
+import { resetActiveTempleMonksState } from './monkTempleSystem';
 import {
   configureSailableShipsForGameMode,
   getActiveSailableShip,
@@ -177,6 +179,10 @@ export function clearWorldSave(mode: GameWorldMode): void {
     // ignore
   }
   delete memoryStorage[key];
+}
+
+export function hasSavedWorldSnapshot(mode: GameWorldMode): boolean {
+  return loadWorldSnapshot(mode) !== null;
 }
 
 /**
@@ -484,10 +490,18 @@ export function applyWorldSnapshotToLiveSystems(
       const aAny = a as ISmallAnimalState & { tamedTier?: number; customName?: string };
       const saved = savedMap.get(String(a.id));
       if (saved) {
-        a.x = saved.x;
-        a.y = saved.y;
-        a.z = saved.z;
-        a.yaw = saved.yaw;
+        const isRelocatedBiomeHome =
+          !saved.isTamed && Math.hypot(saved.x - a.homeX, saved.z - a.homeZ) > 110.0;
+        if (isRelocatedBiomeHome) {
+          a.x = a.homeX;
+          a.z = a.homeZ;
+          a.y = walkableHeightAt(a.homeX, a.homeZ).height;
+        } else {
+          a.x = saved.x;
+          a.y = saved.y;
+          a.z = saved.z;
+          a.yaw = saved.yaw;
+        }
         a.hp = saved.hp;
         a.maxHp = saved.maxHp;
         a.isTamed = Boolean(saved.isTamed);
@@ -496,6 +510,9 @@ export function applyWorldSnapshotToLiveSystems(
         a.isLooted = Boolean(saved.isLooted);
         a.isDead = Boolean(saved.isDead || saved.hp <= 0);
         a.isSubdued = Boolean(saved.isTamed);
+        if (a.isDead && !a.isBoss && a.species !== 'dragon') {
+          a.respawnTimer = 45.0;
+        }
       } else {
         a.isTamed = false;
         aAny.tamedTier = undefined;
@@ -524,6 +541,12 @@ export function applyWorldSnapshotToLiveSystems(
       a.alertLevel = 'grazing';
       a.aiBehavior = 'grazing';
       a.respawnTimer = 0;
+      a.wokenUpTimer = 0;
+      a.actionTimer = 0;
+      a.trappedByBearJawTimer = 0;
+      a.bearTrapSlowTimer = 0;
+      a.roarWarningDone = false;
+      a.stompWarningDone = false;
     }
   }
 
@@ -619,11 +642,13 @@ export function resetLiveWorldToFreshBaseline(
       h.y = walkableHeightAt(def.homeX, def.homeZ).height;
       h.yaw = def.homeYaw;
       h.speed = 0;
+      h.stamina = h.maxStamina ?? 100;
     }
   }
 
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
+    const aAny = a as ISmallAnimalState & { tamedTier?: number; customName?: string };
     a.x = a.homeX;
     a.z = a.homeZ;
     a.y = walkableHeightAt(a.homeX, a.homeZ).height;
@@ -631,6 +656,8 @@ export function resetLiveWorldToFreshBaseline(
     a.vz = 0;
     a.hp = a.maxHp ?? 50;
     a.isTamed = false;
+    aAny.tamedTier = undefined;
+    aAny.customName = undefined;
     a.isSubdued = false;
     a.isDead = false;
     a.isLooted = false;
@@ -638,7 +665,16 @@ export function resetLiveWorldToFreshBaseline(
     a.alertLevel = 'grazing';
     a.aiBehavior = 'grazing';
     a.respawnTimer = 0;
+    a.wokenUpTimer = 0;
+    a.actionTimer = 0;
+    a.trappedByBearJawTimer = 0;
+    a.bearTrapSlowTimer = 0;
+    a.roarWarningDone = false;
+    a.stompWarningDone = false;
   }
+
+  resetActiveWorldBirds();
+  resetActiveTempleMonksState();
 
   openDoorIds.clear();
 }

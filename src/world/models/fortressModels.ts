@@ -25,6 +25,7 @@ import {
   spawnTempleMonk,
   updateMonkTempleSystem,
 } from '../systems/monkTempleSystem';
+import { createReadyWarriorMonk } from './Characters/WarriorMonk_Complete';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -586,63 +587,72 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       fortressGroup.add(col);
     }
   }
-  const throneDais = new THREE.Mesh(hallThroneDaisGeo, archAssets.imperialGoldMat);
-  throneDais.position.set(0, hallFloor1Y + 0.36, -210.8 + FZ);
-  const throneScreen = new THREE.Mesh(hallThroneScreenGeo, archAssets.imperialGoldMat);
-  throneScreen.position.set(0, hallFloor1Y + 2.5, -213.2 + FZ);
-  fortressGroup.add(throneDais, throneScreen);
-
-  // Sacred Golden Guardian Statue inside the Temple Palace Hall (shooting this statue provokes all monks!)
+  // Sacred Grandmaster Monk Statue inside the Great Monastery Hall (replaces the old flat gold dais/screen)
   const palaceStatueGroup = new THREE.Group();
-  palaceStatueGroup.position.set(0, hallFloor1Y + 0.72, -210.8 + FZ);
-  const statuePedestalGeo = new THREE.CylinderGeometry(1.45, 1.75, 0.72, 14);
-  const statueLotusGeo = new THREE.CylinderGeometry(1.25, 0.95, 0.42, 14);
-  const statueLegsGeo = new THREE.CylinderGeometry(0.95, 1.18, 0.75, 12);
-  const statueTorsoGeo = new THREE.CylinderGeometry(0.68, 0.88, 1.85, 12);
-  const statueShouldersGeo = new THREE.SphereGeometry(0.92, 12, 10);
-  statueShouldersGeo.scale(1.22, 0.55, 0.8);
-  const statueHeadGeo = new THREE.SphereGeometry(0.54, 12, 12);
-  const statueCrownGeo = new THREE.ConeGeometry(0.42, 0.65, 10);
-  const statueHaloGeo = new THREE.TorusGeometry(1.38, 0.09, 8, 28);
-  const statueStaffGeo = new THREE.CylinderGeometry(0.055, 0.055, 4.2, 8);
+  palaceStatueGroup.position.set(0, hallFloor1Y, -210.8 + FZ);
+
+  const statueBaseOctGeo = new THREE.CylinderGeometry(2.35, 2.75, 0.52, 8);
+  const statueMidLotusGeo = new THREE.CylinderGeometry(1.78, 2.12, 0.36, 8);
+  const statueTopJadeGeo = new THREE.CylinderGeometry(1.52, 1.68, 0.24, 12);
+  const statueHaloRingGeo = new THREE.TorusGeometry(1.65, 0.085, 10, 32);
+  const statueIncenseBrazierGeo = new THREE.CylinderGeometry(0.36, 0.28, 0.58, 10);
   disposableGeometries.push(
-    statuePedestalGeo,
-    statueLotusGeo,
-    statueLegsGeo,
-    statueTorsoGeo,
-    statueShouldersGeo,
-    statueHeadGeo,
-    statueCrownGeo,
-    statueHaloGeo,
-    statueStaffGeo
+    statueBaseOctGeo,
+    statueMidLotusGeo,
+    statueTopJadeGeo,
+    statueHaloRingGeo,
+    statueIncenseBrazierGeo
   );
-  const stPedestal = new THREE.Mesh(statuePedestalGeo, archAssets.carvedMarbleMat);
-  stPedestal.position.y = 0.36;
-  const stLotus = new THREE.Mesh(statueLotusGeo, archAssets.imperialCrimsonMat);
-  stLotus.position.y = 0.92;
-  const stLegs = new THREE.Mesh(statueLegsGeo, archAssets.imperialGoldMat);
-  stLegs.position.y = 1.48;
-  const stTorso = new THREE.Mesh(statueTorsoGeo, archAssets.imperialGoldMat);
-  stTorso.position.y = 2.65;
-  const stShoulders = new THREE.Mesh(statueShouldersGeo, archAssets.imperialGoldMat);
-  stShoulders.position.y = 3.38;
-  const stHead = new THREE.Mesh(statueHeadGeo, archAssets.imperialGoldMat);
-  stHead.position.y = 4.05;
-  const stCrown = new THREE.Mesh(statueCrownGeo, archAssets.imperialGoldMat);
-  stCrown.position.y = 4.65;
-  const stHalo = new THREE.Mesh(statueHaloGeo, archAssets.imperialGoldMat);
-  stHalo.position.set(0, 3.85, -0.52);
-  const stStaff = new THREE.Mesh(statueStaffGeo, archAssets.imperialGoldMat);
-  stStaff.position.set(0.95, 2.55, 0.35);
-  palaceStatueGroup.add(stPedestal, stLotus, stLegs, stTorso, stShoulders, stHead, stCrown, stHalo, stStaff);
+
+  const stBaseOct = new THREE.Mesh(statueBaseOctGeo, fortressStoneMat);
+  stBaseOct.position.y = 0.26;
+  const stMidLotus = new THREE.Mesh(statueMidLotusGeo, archAssets.imperialCrimsonMat);
+  stMidLotus.position.y = 0.70;
+  const stTopJade = new THREE.Mesh(statueTopJadeGeo, archAssets.jadeBeamMat);
+  stTopJade.position.y = 1.00;
+  const stHalo = new THREE.Mesh(statueHaloRingGeo, archAssets.imperialGoldMat);
+  stHalo.position.set(0, 3.15, -0.42);
+  palaceStatueGroup.add(stBaseOct, stMidLotus, stTopJade, stHalo);
+
+  for (const sideX of [-1.95, 1.95]) {
+    const brazier = new THREE.Mesh(statueIncenseBrazierGeo, darkIronMat);
+    brazier.position.set(sideX, 0.29, 1.15);
+    palaceStatueGroup.add(brazier, archAssets.createRedChineseLantern(sideX * 1.15, 3.6, 0.65));
+  }
+
+  // Sculpted 3D Grandmaster Monk figure in antique gilded bronze & carved stone
+  const sculptedStatueMonk = createReadyWarriorMonk({
+    weaponVisible: true,
+    tintHex: 0xd4af37,
+    scale: 2.15,
+    castShadow: !isSoftwareGl,
+    receiveShadow: !isSoftwareGl,
+  });
+  sculptedStatueMonk.driveRootMotion = false;
+  sculptedStatueMonk.setState('pray_kneel', 0.01);
+  sculptedStatueMonk.update(0.35);
+  sculptedStatueMonk.group.position.set(0, 1.12, 0);
+  sculptedStatueMonk.group.rotation.y = 0; // Faces +Z toward the Great Hall entrance doors
+  const bronzeStatueMat = new THREE.MeshStandardMaterial({
+    color: 0xd4af37,
+    emissive: 0x451a03,
+    emissiveIntensity: 0.22,
+    metalness: 0.72,
+    roughness: 0.28,
+  });
+  sculptedStatueMonk.skinnedMesh.material = bronzeStatueMat;
+  disposableGeometries.push(sculptedStatueMonk.skinnedMesh.geometry);
+  disposableMaterials.push(bronzeStatueMat);
+  palaceStatueGroup.add(sculptedStatueMonk.group);
+
   fortressGroup.add(palaceStatueGroup);
   registerTempleStatue({
     id: 'palace_golden_guardian',
     x: 0,
-    baseY: hallFloor1Y + 0.36,
+    baseY: hallFloor1Y,
     z: -210.8 + FZ,
-    radius: 2.4,
-    height: 5.8,
+    radius: 1.85,
+    height: 5.2,
     hitFlashTimer: 0,
     group: palaceStatueGroup,
   });
