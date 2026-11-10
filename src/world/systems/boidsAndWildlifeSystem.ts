@@ -1377,7 +1377,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: 84, z: 48, species: 'rabbit' },
     { x: -84, z: 48, species: 'rabbit' },
     // Squirrels in birch grove & woodland trees (11)
-    { x: -48, z: 14, species: 'squirrel' },
+    { x: -68, z: 12, species: 'squirrel' },
     { x: -36, z: -24, species: 'squirrel' },
     { x: 32, z: -28, species: 'squirrel' },
     { x: 148, z: 112, species: 'squirrel' },
@@ -1454,9 +1454,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     // Colossal Ancient Dragon Ruins Dragon (250 HP, vulnerable to arrows & sword)
     { x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z - 2, species: 'dragon' },
     // Additional Hunter's Lodge & Meadow Rabbits and Tree-Climbing Squirrels (7)
-    { x: -42, z: 34, species: 'rabbit' },
-    { x: -18, z: 46, species: 'rabbit' },
-    { x: 44, z: 38, species: 'rabbit' },
+    { x: -74, z: 34, species: 'rabbit' },
+    { x: -68, z: -32, species: 'rabbit' },
+    { x: 64, z: -36, species: 'rabbit' },
     { x: -78, z: 54, species: 'squirrel' },
     { x: -86, z: 62, species: 'squirrel' },
     { x: -68, z: 42, species: 'squirrel' },
@@ -1474,7 +1474,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: MURKY_SWAMP_BIOME_POS.x - 28, z: MURKY_SWAMP_BIOME_POS.z + 112, species: 'hippo' },
     { x: MURKY_SWAMP_BIOME_POS.x + 18, z: MURKY_SWAMP_BIOME_POS.z - 20, species: 'hippo' },
     { x: MURKY_SWAMP_BIOME_POS.x - 38, z: MURKY_SWAMP_BIOME_POS.z + 36, species: 'hippo' },
-    // Royal Koi Fish — Western Lagoon Lake near Starting Cabin, Central Lake, Waterfall Plunge Pool & Southwest Oasis Lagoon (15)
+    // Royal Koi Fish — Western Lagoon Lake near Starting Cabin, Waterfall Plunge Pool & Southwest Oasis Lagoon (15)
     { x: -128, z: 46, species: 'koifish' },
     { x: -136, z: 38, species: 'koifish' },
     { x: -146, z: 44, species: 'koifish' },
@@ -1483,9 +1483,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -152, z: 36, species: 'koifish' },
     { x: -124, z: 35, species: 'koifish' },
     { x: -144, z: 52, species: 'koifish' },
-    { x: -6, z: 2, species: 'koifish' },
-    { x: 4, z: -3, species: 'koifish' },
-    { x: -2, z: 8, species: 'koifish' },
+    { x: -45, z: -30, species: 'koifish' },
+    { x: -36, z: -34, species: 'koifish' },
+    { x: -48, z: -35, species: 'koifish' },
     { x: -42, z: -28, species: 'koifish' },
     { x: -38, z: -32, species: 'koifish' },
     { x: -308, z: 316, species: 'koifish' },
@@ -3344,27 +3344,28 @@ export function stepSmallAnimals(
       const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
       const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
       const playerDistFromHippoHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
-      const hippoTerritoryRad = 52.0;
-      const hippoChaseRange = 54.0;
-      const hippoReaggroRange = 42.0;
+      const hippoTerritoryRad = 28.0;
+      const hippoChaseRange = 26.0;
+      const hippoReaggroRange = 14.0;
 
-      // Dual-condition leash: Hippo ONLY stops chasing when BOTH the player is far outside its chase range (> 54m)
-      // AND the Hippo itself has left its marshland territory (> 52m) AND the player is outside the territory!
-      // While returning home, it remembers its grudge (wokenUpTimer) for 45 seconds!
+      // Territory boundary leash: Hippo stops chasing as soon as the player leaves its marshland boundary (> 28m from home),
+      // OR the Hippo itself has chased > 28m from home, OR the player is > 26m away from the Hippo!
       if (!a.isLeashedReturning) {
         if (
-          playerDistFromHippoHome > hippoTerritoryRad &&
-          hippoDistFromHome > hippoTerritoryRad &&
+          playerDistFromHippoHome > hippoTerritoryRad ||
+          hippoDistFromHome > hippoTerritoryRad ||
           dPlayer > hippoChaseRange
         ) {
           a.isLeashedReturning = true;
-          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+          a.wokenUpTimer = 0;
+          a.actionTimer = 0;
+          a.aiBehavior = 'wandering';
           a.alertLevel = 'grazing';
         }
-      } else if (playerDistFromHippoHome <= hippoTerritoryRad || dPlayer <= hippoReaggroRange) {
-        a.isLeashedReturning = false;
-        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
-      } else if (hippoDistFromHome <= 6.5 && (a.wokenUpTimer ?? 0) <= 0) {
+      } else if (
+        hippoDistFromHome <= 6.5 ||
+        (playerDistFromHippoHome <= hippoTerritoryRad - 6.0 && dPlayer <= hippoReaggroRange)
+      ) {
         a.isLeashedReturning = false;
       }
 
@@ -3372,9 +3373,10 @@ export function stepSmallAnimals(
       const isProvokedHippo =
         !isHippoLeashedOut &&
         (a.wokenUpTimer ?? 0) > 0 &&
-        ((a.hp ?? a.maxHp ?? 280) < (a.maxHp ?? 280) || dPlayer <= hippoReaggroRange);
-      const warnRadius = isPlayerSneaking ? 8.5 : 16.5;
-      const chargeRadius = isPlayerSneaking ? 5.5 : 11.5;
+        playerDistFromHippoHome <= hippoTerritoryRad &&
+        dPlayer <= hippoChaseRange;
+      const warnRadius = isPlayerSneaking ? 8.5 : 15.0;
+      const chargeRadius = isPlayerSneaking ? 5.5 : 10.5;
       const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
       const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
       const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
@@ -3383,12 +3385,16 @@ export function stepSmallAnimals(
       const isCommittedYawn =
         !isHippoLeashedOut && a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02;
 
-      if (isCommittedAttack || isProvokedHippo || (!isHippoLeashedOut && dPlayer <= chargeRadius)) {
+      if (
+        isCommittedAttack ||
+        isProvokedHippo ||
+        (!isHippoLeashedOut && playerDistFromHippoHome <= hippoTerritoryRad && dPlayer <= chargeRadius)
+      ) {
         a.isResting = false;
         a.isSeekingShelter = false;
         a.isFleeing = false;
         a.alertLevel = 'curious';
-        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
         if (isCommittedAttack || dPlayer <= attackTriggerDist) {
           if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
             a.aiBehavior = 'attacking';
@@ -3431,7 +3437,10 @@ export function stepSmallAnimals(
           a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
           a.hopPhase += safeDt * 13.0;
         }
-      } else if (isCommittedYawn || (!isHippoLeashedOut && dPlayer <= warnRadius)) {
+      } else if (
+        isCommittedYawn ||
+        (!isHippoLeashedOut && playerDistFromHippoHome <= hippoTerritoryRad && dPlayer <= warnRadius)
+      ) {
         // Territorial tusk-yawn warning display in place!
         a.isResting = false;
         a.alertLevel = 'curious';
@@ -3443,7 +3452,7 @@ export function stepSmallAnimals(
         a.vz = 0;
         a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
       } else if (hippoDistFromHome > 6.5) {
-        // Return to lagoon/marsh home territory while keeping grudge memory (wokenUpTimer) active!
+        // Return peacefully to lagoon/marsh home territory
         a.alertLevel = 'grazing';
         a.isResting = false;
         a.aiBehavior = 'wandering';
@@ -3453,22 +3462,24 @@ export function stepSmallAnimals(
         a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.5, safeDt);
         a.hopPhase += safeDt * 7.5;
       } else {
-        // Peaceful amphibious lagoon/river wallowing and reed grazing
+        // Peaceful amphibious lagoon/river wallowing, sleeping ('lie'), and reed grazing
         a.alertLevel = 'grazing';
-        a.isResting = false;
-        const timeWindow = Math.floor(elapsedTime * 0.16 + a.id * 1.43);
+        const timeWindow = Math.floor(elapsedTime * 0.004 + a.id * 1.43);
         const seed = hash2D(a.id * 17.1, timeWindow);
-        if (seed > 0.76) {
-          a.aiBehavior = 'sitting';
+        if (isNightRest || seed > 0.62) {
+          a.isResting = true;
+          a.aiBehavior = 'sleeping';
           a.vx = 0;
           a.vz = 0;
-        } else if (seed > 0.48) {
+        } else if (seed > 0.36) {
+          a.isResting = false;
           a.aiBehavior = 'grazing';
           a.vx = 0;
           a.vz = 0;
         } else {
+          a.isResting = false;
           a.aiBehavior = 'wandering';
-          const targetAng = (seed / 0.48) * Math.PI * 2;
+          const targetAng = (seed / 0.36) * Math.PI * 2;
           const goalX = a.homeX + Math.cos(targetAng) * 6.5;
           const goalZ = a.homeZ + Math.sin(targetAng) * 6.5;
           const toGoalX = goalX - a.x;

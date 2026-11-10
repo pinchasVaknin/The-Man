@@ -406,5 +406,80 @@ describe('Character & Animation Lab Catalog', () => {
     assert.equal(getEffectiveLabAnimationSpeed(customSpeedOverrides, 'run', 1.0), 1.5);
     assert.ok(countActivePoseOverrides(customSpeedOverrides) >= 3);
   });
+
+  it('wires WarriorMonk_Complete (with death), DwarfWarrior_Complete (with mine1/mine2 & attack1..3), and Hippo sleep tail-loop', async () => {
+    const { createReadyWarriorMonk, MONK_CLIP_NAMES } = await import(
+      '../world/models/Characters/WarriorMonk_Complete'
+    );
+    const { createReadyDwarfWarrior, DWARF_CLIP_NAMES } = await import(
+      '../world/models/Characters/DwarfWarrior_Complete'
+    );
+    const { createReadyHippo } = await import('../world/models/Hippo');
+    const { buildLabEntityRig } = await import('./labModelFactory');
+
+    // 1. WarriorMonk_Complete: all 11 built-in clips including 'death'
+    const monk = createReadyWarriorMonk({ driveRootMotion: false });
+    assert.equal(monk.bones.length, 26, 'WarriorMonk must have 26 joints');
+    for (const clip of MONK_CLIP_NAMES) {
+      monk.setState(clip, 0);
+      monk.update(0.1);
+      assert.equal(monk.state, clip);
+    }
+    const monkEntity = getLabEntityById('shaolin_monk');
+    const monkLabRig = buildLabEntityRig('shaolin_monk', monkEntity.skins[0]);
+    assert.ok(monkLabRig.stats.triangleCount > 25000, 'WarriorMonk mesh should have >25k triangles');
+    monkLabRig.applyAnimation('staff_spin', 0.2, 0.35);
+    monkLabRig.applyAnimation('death', 0.5, 0.75);
+    monkLabRig.dispose();
+
+    // 2. DwarfWarrior_Complete: all 11 built-in clips including 'mine1', 'mine2', 'attack1..3', 'death'
+    const dwarf = createReadyDwarfWarrior({ driveRootMotion: false });
+    assert.equal(dwarf.bones.length, 22, 'DwarfWarrior must have 22 joints');
+    for (const clip of DWARF_CLIP_NAMES) {
+      dwarf.setState(clip, 0);
+      dwarf.update(0.1);
+      assert.equal(dwarf.state, clip);
+    }
+    const dwarfEntity = getLabEntityById('dwarven_miner');
+    const dwarfLabRig = buildLabEntityRig('dwarven_miner', dwarfEntity.skins[0]);
+    assert.ok(dwarfLabRig.stats.triangleCount > 10000, 'DwarfWarrior mesh should have >10k triangles');
+    dwarfLabRig.applyAnimation('mine1', 0.2, 0.4);
+    dwarfLabRig.applyAnimation('mine2', 0.4, 0.6);
+    dwarfLabRig.applyAnimation('attack1', 0.6, 0.5);
+    dwarfLabRig.applyAnimation('death', 0.8, 0.8);
+    dwarfLabRig.dispose();
+
+    // 3. Hippo_Complete 'lie' (sleep) animation: first cycle transitions standing -> lying down,
+    //    and repeat cycles stay near the lying-down end of the clip without standing back up at frame 0!
+    const hippo = createReadyHippo();
+    hippo.restartState('idle');
+    hippo.update(0.05);
+    const standingQuats = hippo.rig.bones.map((b) => b.quaternion.clone());
+
+    hippo.restartState('lie');
+    // Advance to the end of the first 'lie' cycle (duration = 1.8s)
+    for (let i = 0; i < 18; i++) {
+      hippo.setState('lie');
+      hippo.update(0.1);
+    }
+    const lyingEndQuats = hippo.rig.bones.map((b) => b.quaternion.clone());
+
+    // Advance into the repeat cycle (t = 1.95s, which previously wrapped to t = 0.15s standing!)
+    hippo.setState('lie');
+    hippo.update(0.15);
+    const repeatCycleQuats = hippo.rig.bones.map((b) => b.quaternion.clone());
+
+    const quatDist = (a: typeof standingQuats, b: typeof standingQuats) =>
+      a.reduce((sum, q, idx) => sum + (1 - Math.abs(q.dot(b[idx]))), 0);
+
+    const distStandingToLying = quatDist(standingQuats, lyingEndQuats);
+    const distRepeatToLying = quatDist(repeatCycleQuats, lyingEndQuats);
+
+    assert.ok(
+      distStandingToLying > 0.05 && distRepeatToLying < distStandingToLying * 0.25,
+      `Hippo sleep ('lie') repeat cycle must stay near lying pose (distRepeatToLying=${distRepeatToLying.toFixed(4)} vs distStandingToLying=${distStandingToLying.toFixed(4)})`
+    );
+    hippo.dispose();
+  });
 });
 // #endregion

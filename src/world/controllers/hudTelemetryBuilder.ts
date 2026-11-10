@@ -40,6 +40,7 @@ import {
   findNearestPlacedTrap,
   type IPlacedTrap,
 } from '../systems/animalTrapsSystem';
+import { findTargetedLiveDwarf } from '../builders/dwarvenKingdomBuilder';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -136,6 +137,9 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
         input.activeAnimals
       )
     : null;
+  const targetedDwarf = !targetedLive
+    ? findTargetedLiveDwarf(player.x, player.y, player.z, player.yaw, player.pitch, 18.0)
+    : null;
   const targetedCreature = targetedLive
     ? (() => {
         const stats = getAnimalStrengthAndLevel(targetedLive);
@@ -151,7 +155,19 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           isBoss: Boolean(targetedLive.isBoss),
         };
       })()
-    : null;
+    : targetedDwarf
+      ? {
+          id: 9000 + targetedDwarf.id,
+          species: 'dwarf_warrior',
+          speciesName: `${targetedDwarf.name} (Dwarven Miner)`,
+          level: targetedDwarf.level,
+          hp: Math.max(0, targetedDwarf.hp),
+          maxHp: Math.max(1, targetedDwarf.maxHp),
+          alertLevel: targetedDwarf.isAggro ? 'attacking' : 'mining',
+          threatRating: 'dangerous' as const,
+          isBoss: false,
+        }
+      : null;
 
   const nearLadder = findLookedAtWatchtowerLadder(
     player.x,

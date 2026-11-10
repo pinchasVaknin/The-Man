@@ -1275,11 +1275,21 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     radius: 54,
   });
 
-  // --- 3) 4 WARRIOR MONKS AROUND SAKURA SANCTUARY ---
+  // --- 3) 4 WARRIOR MONKS AROUND SAKURA SANCTUARY (WITH WOODEN BENCHES) ---
   const [m1x, m1z] = toSakuraWorld(-8.5, -6.5);
   const [m2x, m2z] = toSakuraWorld(8.5, -6.5);
   const [m3x, m3z] = toSakuraWorld(-6.5, 16.5);
   const [m4x, m4z] = toSakuraWorld(6.5, 16.5);
+
+  const sakuraBenchSeatGeo = new THREE.BoxGeometry(1.95, 0.08, 0.64);
+  const sakuraBenchLegGeo = new THREE.BoxGeometry(0.14, 0.44, 0.56);
+  const sakuraBenchMat = new THREE.MeshStandardMaterial({
+    color: 0x5c2c16,
+    roughness: 0.78,
+    metalness: 0.06,
+  });
+  disposableGeometries.push(sakuraBenchSeatGeo, sakuraBenchLegGeo);
+  disposableMaterials.push(sakuraBenchMat);
 
   const monkPlacements: Array<[number, number, number, number, 'shrine_devotee' | 'sanctuary_master']> = [
     [m1x, sY, m1z, SAKURA_SANCTUARY_YAW + Math.PI, 'shrine_devotee'],
@@ -1290,6 +1300,26 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
 
   for (let m = 0; m < monkPlacements.length; m++) {
     const [mx, my, mz, myaw, role] = monkPlacements[m];
+    const bGrp = new THREE.Group();
+    bGrp.position.set(mx, my, mz);
+    bGrp.rotation.y = myaw;
+    const seat = new THREE.Mesh(sakuraBenchSeatGeo, sakuraBenchMat);
+    seat.position.y = 0.44;
+    seat.castShadow = !ctx.isSoftwareGl;
+    seat.receiveShadow = !ctx.isSoftwareGl;
+    const legL = new THREE.Mesh(sakuraBenchLegGeo, sakuraBenchMat);
+    legL.position.set(-0.76, 0.22, 0);
+    const legR = new THREE.Mesh(sakuraBenchLegGeo, sakuraBenchMat);
+    legR.position.set(0.76, 0.22, 0);
+    bGrp.add(seat, legL, legR);
+    scene.add(bGrp);
+    distanceCulledObjects.push({
+      obj: bGrp,
+      cx: mx,
+      cz: mz,
+      radius: 4,
+    });
+
     spawnTempleMonk({
       id: `sakura_monk_${m}`,
       role,

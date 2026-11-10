@@ -1110,6 +1110,50 @@ export const en = {
           "celebrate_gold": {
             "name": "Gold strike cheer!",
             "description": "Raise the axe and lantern high in joy at finding a royal gold vein."
+          },
+          "idle": {
+            "name": "Dwarven guard stance (Idle)",
+            "description": "Balanced breathing stance holding the dwarven pickaxe/battleaxe."
+          },
+          "walk": {
+            "name": "Caravan march stride (Walk)",
+            "description": "Sturdy dwarven walking gait along the mountain road."
+          },
+          "run": {
+            "name": "Battle charge sprint (Run)",
+            "description": "Fast, heavy-booted dwarven charge when provoked in combat."
+          },
+          "mine1": {
+            "name": "Overhead rock strike (Mine 1)",
+            "description": "Powerful overhead pickaxe swing into the cavern rock wall."
+          },
+          "mine2": {
+            "name": "Diagonal ore cleave (Mine 2)",
+            "description": "Angled side-to-downward mining strike to shatter crystal and gold veins."
+          },
+          "attack1": {
+            "name": "Heavy battleaxe chop (Attack 1)",
+            "description": "Retaliation combat strike when the player attacks a dwarf."
+          },
+          "attack2": {
+            "name": "Horizontal cleave (Attack 2)",
+            "description": "Wide sweeping axe strike in close-quarters combat."
+          },
+          "attack3": {
+            "name": "Crushing overhead finisher (Attack 3)",
+            "description": "Devastating two-handed dwarven overhead slam."
+          },
+          "sit": {
+            "name": "Hearthside bench rest (Sit)",
+            "description": "Seated rest inside the dwarven stone house after the mining shift."
+          },
+          "sleep": {
+            "name": "Deep mountain slumber (Sleep)",
+            "description": "Sleeping posture during the night hours in the dwarven home."
+          },
+          "death": {
+            "name": "Fallen warrior collapse (Death)",
+            "description": "Built-in collapse animation for the Dwarven Warrior rig."
           }
         },
         "skins": {

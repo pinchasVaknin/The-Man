@@ -21,6 +21,11 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
+import {
+  DWARVEN_MINER_STATIONS,
+  DWARVEN_MINECART_ROUTES,
+  evaluateMinecartTrackState,
+} from '../systems/dwarvenMineAndCaravanSystem';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -1658,22 +1663,27 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   lanternLights.push(foundryLight);
   mineGroup.add(foundryLight);
 
-  const forgeGroup = new THREE.Group();
-  forgeGroup.position.set(0, cavernFloorY, 50.0);
-  const brazierBase = new THREE.Mesh(forgeBrazierBaseGeo, darkIronMat);
-  const coalMound = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
-  coalMound.position.y = 0.92;
-  forgeGroup.add(brazierBase, coalMound);
-  for (let g = 0; g < 12; g++) {
-    const ingot = new THREE.Mesh(goldIngotGeo, mineGoldOreMat);
-    ingot.position.set(-2.1 + (g % 4) * 0.52, 0.09 + Math.floor(g / 4) * 0.18, -0.85);
-    forgeGroup.add(ingot);
+  // Twin Room 1 Forge Braziers flanking the Central N-S Rail Track at (-5.2, 50.0) & (+5.2, 50.0) so the rail track at x=0 is 100% clear!
+  for (const fx of [-5.2, 5.2]) {
+    const forgeGroup = new THREE.Group();
+    forgeGroup.position.set(fx, cavernFloorY, 50.0);
+    const brazierBase = new THREE.Mesh(forgeBrazierBaseGeo, darkIronMat);
+    const coalMound = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
+    coalMound.position.y = 0.92;
+    forgeGroup.add(brazierBase, coalMound);
+    for (let g = 0; g < 6; g++) {
+      const ingot = new THREE.Mesh(goldIngotGeo, mineGoldOreMat);
+      ingot.position.set(-0.8 + (g % 3) * 0.52, 0.09 + Math.floor(g / 3) * 0.18, -0.85);
+      forgeGroup.add(ingot);
+    }
+    if (fx < 0) {
+      const cavernPointLight = new THREE.PointLight(0xff9933, 3.4, 42, 1.35);
+      cavernPointLight.position.set(5.2, 4.2, 0);
+      forgeGroup.add(cavernPointLight);
+      lanternLights.push(cavernPointLight);
+    }
+    mineGroup.add(forgeGroup);
   }
-  const cavernPointLight = new THREE.PointLight(0xff9933, 3.4, 42, 1.35);
-  cavernPointLight.position.set(0, 4.2, 0);
-  forgeGroup.add(cavernPointLight);
-  lanternLights.push(cavernPointLight);
-  mineGroup.add(forgeGroup);
 
   const vaultLight = new THREE.PointLight(0xfbbf24, 3.4, 38, 1.35);
   vaultLight.position.set(0, cavernFloorY + 4.8, 98.0);
@@ -1687,6 +1697,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(chest, chestGold);
   }
 
+  // 1) Central North-South Iron Rail Track (x = 0, z = 34.5 .. 100.5)
   for (const rx of [-0.55, 0.55]) {
     const cRail = new THREE.Mesh(cavernRailStraightGeo, darkIronMat);
     cRail.position.set(rx, cavernFloorY + 0.06, 67.0);
@@ -1697,53 +1708,177 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     sleeper.position.set(0, cavernFloorY + 0.03, sz);
     mineGroup.add(sleeper);
   }
+
+  // 2) Cross-Cavern East-West Iron Rail Track (z = 49.0, x = -29.5 .. +31.5)
   const ewTrackGeo = new THREE.BoxGeometry(62.0, 0.11, 0.11);
   disposableGeometries.push(ewTrackGeo);
   for (const rz of [48.45, 49.55]) {
     const ewRail = new THREE.Mesh(ewTrackGeo, darkIronMat);
-    ewRail.position.set(2.0, cavernFloorY + 0.06, rz);
+    ewRail.position.set(1.0, cavernFloorY + 0.06, rz);
     mineGroup.add(ewRail);
   }
+  for (let sx = -29.0; sx <= 30.5; sx += 1.4) {
+    if (Math.abs(sx) < 1.1) continue;
+    const ewSleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
+    ewSleeper.rotation.y = Math.PI / 2;
+    ewSleeper.position.set(sx, cavernFloorY + 0.03, 49.0);
+    mineGroup.add(ewSleeper);
+  }
 
-  const cartConfigs: Array<[number, number, number, THREE.Material]> = [
-    [0, 40.5, 0, mineGoldOreMat],
-    [0, 60.0, 0, mineEmeraldCrystalMat],
-    [0, 72.0, 0, mineGoldOreMat],
-    [0, 96.5, 0, mineSapphireCrystalMat],
-    [-20.0, 49.0, Math.PI / 2, mineAmethystCrystalMat],
-    [20.0, 49.0, Math.PI / 2, mineSapphireCrystalMat],
-    [32.5, 62.0, 0, mineEmeraldCrystalMat],
-    [32.5, 76.0, 0, mineGoldOreMat],
-  ];
-  for (let c = 0; c < cartConfigs.length; c++) {
-    const [cx, cz, cyaw, oreMat] = cartConfigs[c];
+  // 3) Room 3 Foundry North-South Iron Rail Track (x = 32.5, z = 41.5 .. 86.5)
+  const foundryRailGeo = new THREE.BoxGeometry(0.11, 0.11, 46.0);
+  disposableGeometries.push(foundryRailGeo);
+  for (const rx of [32.5 - 0.55, 32.5 + 0.55]) {
+    const fRail = new THREE.Mesh(foundryRailGeo, darkIronMat);
+    fRail.position.set(rx, cavernFloorY + 0.06, 64.0);
+    mineGroup.add(fRail);
+  }
+  for (let sz = 41.8; sz <= 86.2; sz += 1.35) {
+    const fSleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
+    fSleeper.position.set(32.5, cavernFloorY + 0.03, sz);
+    mineGroup.add(fSleeper);
+  }
+
+  const oreKindToMat = (kind: 'gold' | 'emerald' | 'sapphire' | 'amethyst'): THREE.Material => {
+    switch (kind) {
+      case 'emerald':
+        return mineEmeraldCrystalMat;
+      case 'sapphire':
+        return mineSapphireCrystalMat;
+      case 'amethyst':
+        return mineAmethystCrystalMat;
+      default:
+        return mineGoldOreMat;
+    }
+  };
+
+  // 4) 8 Sculptural Dwarven Mining Rock & Glowing Crystal/Gold Wall Veins directly in front of each Dwarf's pickaxe!
+  const rockBoulderGeo = new THREE.DodecahedronGeometry(1.15, 1);
+  perturbGeometryVertices(rockBoulderGeo, 0.18, 1.4);
+  const sparkChunkGeo = new THREE.OctahedronGeometry(0.085, 0);
+  disposableGeometries.push(rockBoulderGeo, sparkChunkGeo);
+
+  const stationSparkClusters: THREE.Group[] = [];
+  for (let stIdx = 0; stIdx < DWARVEN_MINER_STATIONS.length; stIdx++) {
+    const stCfg = DWARVEN_MINER_STATIONS[stIdx];
+    const oreMat = oreKindToMat(stCfg.oreKind);
+    const veinGroup = new THREE.Group();
+    veinGroup.position.set(stCfg.rockLocalX, cavernFloorY, stCfg.rockLocalZ);
+
+    // Rugged multi-tiered dark-slate rock mass anchored against the cavern wall
+    const mainRock = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+    mainRock.position.set(0, 0.95, 0);
+    mainRock.scale.set(1.12, 1.35, 1.12);
+    mainRock.castShadow = true;
+    mainRock.receiveShadow = true;
+    veinGroup.add(mainRock);
+
+    const upperRock = new THREE.Mesh(rockBoulderGeo, mineDeepSlateMat);
+    upperRock.position.set(0, 2.05, 0);
+    upperRock.scale.set(0.88, 1.05, 0.88);
+    upperRock.rotation.y = stIdx * 1.1;
+    veinGroup.add(upperRock);
+
+    // Rich glowing gold & crystal seams embedded across the rock face where the pickaxe strikes
+    for (let v = 0; v < 7; v++) {
+      const ang = (v / 7) * Math.PI * 2 + stIdx * 0.5;
+      const seamMesh = new THREE.Mesh(
+        v % 2 === 0 ? mineGoldOreGeo : crystalSpireGeo,
+        v % 3 === 0 ? mineGoldOreMat : oreMat
+      );
+      seamMesh.position.set(
+        Math.cos(ang) * 0.72,
+        0.55 + (v % 3) * 0.48,
+        Math.sin(ang) * 0.72
+      );
+      seamMesh.rotation.set(Math.sin(ang) * 0.45, ang, Math.cos(ang) * 0.45);
+      seamMesh.scale.setScalar(v % 2 === 0 ? 1.45 : 1.15);
+      veinGroup.add(seamMesh);
+    }
+
+    // Scattered freshly hewn ore chunks at the base of the rock face
+    for (let c = 0; c < 5; c++) {
+      const chipAng = (c / 5) * Math.PI * 2 + 0.3;
+      const chip = new THREE.Mesh(
+        c % 2 === 0 ? mineGoldOreGeo : mineCrystalClusterGeo,
+        c % 2 === 0 ? mineGoldOreMat : oreMat
+      );
+      chip.position.set(Math.cos(chipAng) * 1.02, 0.14, Math.sin(chipAng) * 1.02);
+      chip.scale.setScalar(0.68);
+      veinGroup.add(chip);
+    }
+
+    // Animated pickaxe-impact spark burst right at the Dwarf's strike contact point
+    const sparkGroup = new THREE.Group();
+    const toDwarfX = stCfg.workLocalX - stCfg.rockLocalX;
+    const toDwarfZ = stCfg.workLocalZ - stCfg.rockLocalZ;
+    const toDwarfLen = Math.hypot(toDwarfX, toDwarfZ) || 1;
+    sparkGroup.position.set(
+      (toDwarfX / toDwarfLen) * 0.82,
+      1.05,
+      (toDwarfZ / toDwarfLen) * 0.82
+    );
+    for (let sp = 0; sp < 5; sp++) {
+      const spMesh = new THREE.Mesh(sparkChunkGeo, sp % 2 === 0 ? mineGoldOreMat : oreMat);
+      const spAng = (sp / 5) * Math.PI * 2;
+      spMesh.position.set(Math.cos(spAng) * 0.18, (sp % 2) * 0.12, Math.sin(spAng) * 0.18);
+      sparkGroup.add(spMesh);
+    }
+    veinGroup.add(sparkGroup);
+    stationSparkClusters.push(sparkGroup);
+
+    mineGroup.add(veinGroup);
+  }
+
+  // 5) 6 Animated Moving Minecarts rolling along the 3 rail lines + pausing for Dwarf loading
+  interface IAnimatedMinecartRig {
+    readonly group: THREE.Group;
+    readonly wheels: THREE.Mesh[];
+    readonly oreGroup: THREE.Group;
+  }
+  const animatedMinecarts: IAnimatedMinecartRig[] = [];
+
+  for (let c = 0; c < DWARVEN_MINECART_ROUTES.length; c++) {
+    const route = DWARVEN_MINECART_ROUTES[c];
+    const oreMat = oreKindToMat(route.oreKind);
     const cartGroup = new THREE.Group();
-    cartGroup.position.set(cx, cavernFloorY, cz);
-    cartGroup.rotation.y = cyaw;
+    cartGroup.position.set(route.startLocalX, cavernFloorY, route.startLocalZ);
+    cartGroup.rotation.y = route.yaw;
+
     const body = new THREE.Mesh(mineCartBodyGeo, darkIronMat);
     body.position.set(0, 0.64, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
     cartGroup.add(body);
+
+    const wheels: THREE.Mesh[] = [];
     for (const wx of [-0.7, 0.7]) {
       for (const wz of [-0.65, 0.65]) {
         const wheel = new THREE.Mesh(mineCartWheelGeo, darkIronMat);
         wheel.position.set(wx, 0.25, wz);
         cartGroup.add(wheel);
+        wheels.push(wheel);
       }
     }
-    for (let o = 0; o < 7; o++) {
+
+    const oreGroup = new THREE.Group();
+    oreGroup.position.set(0, 0.95, 0);
+    for (let o = 0; o < 8; o++) {
       const ore = new THREE.Mesh(
         o % 2 === 0 ? mineGoldOreGeo : mineCrystalClusterGeo,
         o % 3 === 0 ? mineGoldOreMat : oreMat
       );
       ore.position.set(
         ((o % 3) - 1) * 0.36,
-        1.12 + (o % 2) * 0.14,
-        (Math.floor(o / 3) - 0.5) * 0.62
+        0.16 + (o % 2) * 0.14,
+        (Math.floor(o / 3) - 0.8) * 0.56
       );
-      ore.scale.setScalar(0.82);
-      cartGroup.add(ore);
+      ore.scale.setScalar(0.84);
+      oreGroup.add(ore);
     }
+    cartGroup.add(oreGroup);
     mineGroup.add(cartGroup);
+    animatedMinecarts.push({ group: cartGroup, wheels, oreGroup });
   }
 
   const crystalMats = [
@@ -1834,6 +1969,38 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
     if (mineGroup.visible) {
       mineOreWheelGroup.rotation.z = elapsedTime * 0.85;
+
+      // Animate the 6 Moving Minecarts along the iron rails & dynamic ore pile loading!
+      for (let c = 0; c < animatedMinecarts.length; c++) {
+        const cartRig = animatedMinecarts[c];
+        const st = evaluateMinecartTrackState(c, elapsedTime);
+        cartRig.group.position.set(st.localX, cavernFloorY, st.localZ);
+        cartRig.group.rotation.y = st.yaw;
+        cartRig.oreGroup.scale.set(1.0, st.oreFillScale, 1.0);
+        for (let w = 0; w < cartRig.wheels.length; w++) {
+          cartRig.wheels[w].rotation.x = st.wheelAngle;
+        }
+      }
+
+      // Pulse pickaxe-strike ore sparks at each of the 8 mining rock veins during daytime mining hours
+      const hNorm = ((worldHours % 24) + 24) % 24;
+      const isMiningHours = hNorm > 7.6 && hNorm < 17.8;
+      for (let stIdx = 0; stIdx < stationSparkClusters.length; stIdx++) {
+        const sparkGrp = stationSparkClusters[stIdx];
+        const stCfg = DWARVEN_MINER_STATIONS[stIdx];
+        const isCartLoadingNow =
+          stCfg.pairedCartIdx !== undefined &&
+          evaluateMinecartTrackState(stCfg.pairedCartIdx, elapsedTime).isLoadingAtStart;
+        if (isMiningHours && !isCartLoadingNow) {
+          const strikeWave = Math.max(0, Math.sin(elapsedTime * 5.2 + stIdx * 1.3));
+          const burst = Math.pow(strikeWave, 4);
+          sparkGrp.visible = burst > 0.08;
+          sparkGrp.scale.setScalar(0.35 + burst * 1.45);
+          sparkGrp.rotation.y = elapsedTime * 6.0 + stIdx;
+        } else {
+          sparkGrp.visible = false;
+        }
+      }
     }
     if (updateDwarvenMiners) {
       updateDwarvenMiners(worldHours ?? 12, elapsedTime, playerX, playerZ);

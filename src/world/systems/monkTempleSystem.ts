@@ -16,6 +16,7 @@ import {
 } from '../models/Characters/WarriorMonk_Complete';
 import {
   CHINESE_FORTRESS_POS,
+  FORTRESS_Z_OFFSET,
   SAKURA_SANCTUARY_POS,
   SAKURA_SANCTUARY_YAW,
   isWithinViewDistance,
@@ -26,6 +27,8 @@ import { getPlayerState } from './combatAndInventorySystem';
 export type MonkRole =
   | 'entrance_guard_left'
   | 'entrance_guard_right'
+  | 'tower_guard'
+  | 'courtyard_bench'
   | 'dummy_trainer'
   | 'shrine_devotee'
   | 'courtyard_patrol'
@@ -81,6 +84,12 @@ export interface IMonkTeleportSequence {
   targetYaw: number;
 }
 
+export type GuardShiftState =
+  | 'on_post'
+  | 'sleeping_in_bed'
+  | 'relieving_to_post'
+  | 'returning_to_bed';
+
 export interface IActiveTempleMonk {
   id: string;
   role: MonkRole;
@@ -94,6 +103,19 @@ export interface IActiveTempleMonk {
   homeY: number;
   homeZ: number;
   baseYaw: number;
+  postId?: string;
+  shiftStartOnDuty?: boolean;
+  shiftState?: GuardShiftState;
+  nextShiftChangeTime?: number;
+  routeToPost?: ReadonlyArray<readonly [number, number, number]>;
+  routeCursor?: number;
+  bedX?: number;
+  bedY?: number;
+  bedZ?: number;
+  bedYaw?: number;
+  doorWaypointX?: number;
+  doorWaypointZ?: number;
+  isReturningFromAggro?: boolean;
   patrolWaypoints?: ReadonlyArray<readonly [number, number, number]>;
   waypointIndex: number;
   dummyIndex?: number;
@@ -120,6 +142,34 @@ const woodenDummies: IWoodenDummyHandle[] = [];
 const templeStatues: ITempleStatueTarget[] = [];
 let allMonksProvoked = false;
 let allMonksAggroTimer = 0;
+let westBarracksDoorOpenTimer = 0;
+let eastBarracksDoorOpenTimer = 0;
+const _guardCrossQuat = new THREE.Quaternion();
+const _guardAxisZ = new THREE.Vector3(0, 0, 1);
+
+/**
+ * Summary: Returns true when any monk is walking through or near the West or East Barracks Pavilion doorway.
+ */
+export function isMonkDoorwayActive(doorId: string): boolean {
+  const FZ = FORTRESS_Z_OFFSET;
+  if (doorId === 'west-pavilion-door') {
+    if (westBarracksDoorOpenTimer > 0) return true;
+    for (let i = 0; i < activeTempleMonks.length; i++) {
+      const mk = activeTempleMonks[i];
+      if (Math.hypot(mk.x - -30.0, mk.z - (-156.5 + FZ)) <= 4.8) return true;
+    }
+    return false;
+  }
+  if (doorId === 'east-pavilion-door') {
+    if (eastBarracksDoorOpenTimer > 0) return true;
+    for (let i = 0; i < activeTempleMonks.length; i++) {
+      const mk = activeTempleMonks[i];
+      if (Math.hypot(mk.x - 30.0, mk.z - (-156.5 + FZ)) <= 4.8) return true;
+    }
+    return false;
+  }
+  return false;
+}
 
 /**
  * Summary: Resets and clears all registered monks, dummies, and statues when rebuilding the world scene.
@@ -130,6 +180,8 @@ export function resetMonkTempleSystem(): void {
   templeStatues.length = 0;
   allMonksProvoked = false;
   allMonksAggroTimer = 0;
+  westBarracksDoorOpenTimer = 0;
+  eastBarracksDoorOpenTimer = 0;
 }
 
 /**
@@ -140,6 +192,8 @@ export function resetMonkTempleSystem(): void {
 export function resetActiveTempleMonksState(): void {
   allMonksProvoked = false;
   allMonksAggroTimer = 0;
+  westBarracksDoorOpenTimer = 0;
+  eastBarracksDoorOpenTimer = 0;
 
   for (let s = 0; s < templeStatues.length; s++) {
     const st = templeStatues[s];
@@ -158,15 +212,26 @@ export function resetActiveTempleMonksState(): void {
 
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
-    mk.x = mk.homeX;
-    mk.y = mk.homeY;
-    mk.z = mk.homeZ;
-    mk.yaw = mk.baseYaw;
+    const startsInBed =
+      mk.shiftStartOnDuty === false &&
+      mk.bedX !== undefined &&
+      mk.bedY !== undefined &&
+      mk.bedZ !== undefined;
+    mk.x = startsInBed ? mk.bedX! : mk.homeX;
+    mk.y = startsInBed ? mk.bedY! : mk.homeY;
+    mk.z = startsInBed ? mk.bedZ! : mk.homeZ;
+    mk.yaw = startsInBed ? (mk.bedYaw ?? mk.baseYaw) : mk.baseYaw;
+    if (mk.shiftStartOnDuty !== undefined) {
+      mk.shiftState = startsInBed ? 'sleeping_in_bed' : 'on_post';
+      mk.nextShiftChangeTime = 14.0 + mk.phaseOffset * 6.0;
+      mk.routeCursor = startsInBed ? 0 : Math.max(0, (mk.routeToPost?.length ?? 1) - 1);
+    }
     mk.waypointIndex = 0;
     mk.scheduleTimer = (mk.phaseOffset * 1.7) % 3.2;
     mk.scheduleStage = Math.floor(mk.phaseOffset * 3) % 5;
     mk.isAggro = false;
     mk.isLeashedReturning = false;
+    mk.isReturningFromAggro = false;
     mk.aggroTimer = 0;
     mk.forgetTimer = 0;
     mk.deflectTimer = 0;
@@ -174,7 +239,7 @@ export function resetActiveTempleMonksState(): void {
     mk.attackCooldown = 0;
     mk.currentAttackClip = 'attack1';
     mk.guardCrossFactor =
-      mk.role === 'entrance_guard_left' || mk.role === 'entrance_guard_right' ? 1.0 : 0.0;
+      (mk.role === 'entrance_guard_left' || mk.role === 'entrance_guard_right') && !startsInBed ? 1.0 : 0.0;
     mk.teleportState = null;
     if (mk.teleportPartsGroup) {
       mk.teleportPartsGroup.visible = false;
@@ -182,13 +247,13 @@ export function resetActiveTempleMonksState(): void {
     if (mk.teleportRingMesh) {
       mk.teleportRingMesh.visible = false;
     }
-      mk.ctrl.group.visible = true;
+    mk.ctrl.group.visible = true;
     mk.ctrl.group.scale.setScalar(1.0);
     mk.ctrl.group.rotation.set(0, 0, 0);
     mk.ctrl.speed = 0;
-    mk.ctrl.setState('idle', 0.05);
-    mk.group.position.set(mk.homeX, mk.homeY, mk.homeZ);
-    mk.group.rotation.set(0, mk.baseYaw, 0);
+    mk.ctrl.setState(startsInBed ? 'sleep' : mk.role === 'courtyard_bench' ? 'sit' : 'idle', 0.05);
+    mk.group.position.set(mk.x, mk.y, mk.z);
+    mk.group.rotation.set(0, mk.yaw, 0);
   }
 }
 
@@ -245,6 +310,15 @@ export function spawnTempleMonk(config: {
   homeZ: number;
   baseYaw: number;
   phaseOffset: number;
+  postId?: string;
+  shiftStartOnDuty?: boolean;
+  routeToPost?: ReadonlyArray<readonly [number, number, number]>;
+  bedX?: number;
+  bedY?: number;
+  bedZ?: number;
+  bedYaw?: number;
+  doorWaypointX?: number;
+  doorWaypointZ?: number;
   weaponVisible?: boolean;
   tintHex?: number;
   scale?: number;
@@ -263,10 +337,35 @@ export function spawnTempleMonk(config: {
   });
   ctrl.driveRootMotion = false;
 
+  const startsInBed =
+    config.shiftStartOnDuty === false &&
+    config.bedX !== undefined &&
+    config.bedY !== undefined &&
+    config.bedZ !== undefined;
+  const initX = startsInBed ? config.bedX! : config.homeX;
+  const initY = startsInBed ? config.bedY! : config.homeY;
+  const initZ = startsInBed ? config.bedZ! : config.homeZ;
+  const initYaw = startsInBed ? (config.bedYaw ?? config.baseYaw) : config.baseYaw;
+
+  // Build default routeToPost if bedX/bedZ are provided without an explicit routeToPost
+  const FZ = FORTRESS_Z_OFFSET;
+  const sideSign = (config.bedX ?? config.homeX) < 0 ? -1 : 1;
+  const doorX = config.doorWaypointX ?? sideSign * 30.0;
+  const computedRouteToPost: ReadonlyArray<readonly [number, number, number]> | undefined =
+    config.routeToPost ??
+    (config.bedX !== undefined && config.bedY !== undefined && config.bedZ !== undefined
+      ? [
+          [config.bedX, config.bedY, config.bedZ],
+          [doorX, config.bedY, -159.0 + FZ],
+          [doorX, config.homeY, -153.5 + FZ],
+          [config.homeX, config.homeY, config.homeZ],
+        ]
+      : undefined);
+
   const wrapper = new THREE.Group();
   wrapper.name = `TempleMonk_${config.id}`;
-  wrapper.position.set(config.homeX, config.homeY, config.homeZ);
-  wrapper.rotation.y = config.baseYaw;
+  wrapper.position.set(initX, initY, initZ);
+  wrapper.rotation.y = initYaw;
   wrapper.add(ctrl.group);
 
   // Subtle golden chi ring shown briefly when teleporting behind the player or deflecting arrows
@@ -420,14 +519,32 @@ export function spawnTempleMonk(config: {
     role: config.role,
     ctrl,
     group: wrapper,
-    x: config.homeX,
-    y: config.homeY,
-    z: config.homeZ,
-    yaw: config.baseYaw,
+    x: initX,
+    y: initY,
+    z: initZ,
+    yaw: initYaw,
     homeX: config.homeX,
     homeY: config.homeY,
     homeZ: config.homeZ,
     baseYaw: config.baseYaw,
+    postId: config.postId,
+    shiftStartOnDuty: config.shiftStartOnDuty,
+    shiftState:
+      config.shiftStartOnDuty !== undefined
+        ? startsInBed
+          ? 'sleeping_in_bed'
+          : 'on_post'
+        : undefined,
+    nextShiftChangeTime: 14.0 + config.phaseOffset * 6.0,
+    routeToPost: computedRouteToPost,
+    routeCursor: startsInBed ? 0 : Math.max(0, (computedRouteToPost?.length ?? 1) - 1),
+    bedX: config.bedX,
+    bedY: config.bedY,
+    bedZ: config.bedZ,
+    bedYaw: config.bedYaw,
+    doorWaypointX: config.doorWaypointX,
+    doorWaypointZ: config.doorWaypointZ,
+    isReturningFromAggro: false,
     patrolWaypoints: config.patrolWaypoints,
     waypointIndex: 0,
     dummyIndex: config.dummyIndex,
@@ -441,12 +558,19 @@ export function spawnTempleMonk(config: {
     teleportFlashTimer: 0,
     attackCooldown: 0,
     currentAttackClip: 'attack1',
-    guardCrossFactor: config.role === 'entrance_guard_left' || config.role === 'entrance_guard_right' ? 1.0 : 0.0,
+    guardCrossFactor:
+      (config.role === 'entrance_guard_left' || config.role === 'entrance_guard_right') && !startsInBed ? 1.0 : 0.0,
     teleportRingMesh: ringMesh,
     teleportPartsGroup,
     teleportShards,
     teleportState: null,
   };
+
+  if (startsInBed) {
+    ctrl.setState('sleep', 0.01);
+  } else if (config.role === 'courtyard_bench') {
+    ctrl.setState('sit', 0.01);
+  }
 
   activeTempleMonks.push(monk);
   return monk;
@@ -673,6 +797,10 @@ export function updateMonkTempleSystem(
   const safeDt = Math.min(0.1, Math.max(0.001, dt));
   const playerState = getPlayerState();
   const playerY = playerState ? playerState.y : walkableHeightAt(playerX, playerZ).height;
+  const FZ = FORTRESS_Z_OFFSET;
+
+  westBarracksDoorOpenTimer = Math.max(0, westBarracksDoorOpenTimer - safeDt);
+  eastBarracksDoorOpenTimer = Math.max(0, eastBarracksDoorOpenTimer - safeDt);
 
   if (allMonksProvoked) {
     allMonksAggroTimer = Math.max(0, allMonksAggroTimer - safeDt);
@@ -698,9 +826,25 @@ export function updateMonkTempleSystem(
   // 2. Step each monk's AI and skeletal animations
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
-    const vis = isWithinViewDistance(mk.x, mk.z, playerX, playerZ, 12, 145);
+    const vis = isWithinViewDistance(mk.x, mk.z, playerX, playerZ, 12, 165);
     mk.group.visible = vis;
-    if (!vis && !mk.isAggro && Math.hypot(mk.x - mk.homeX, mk.z - mk.homeZ) < 0.5) continue;
+    if (
+      !vis &&
+      !mk.isAggro &&
+      mk.shiftState !== 'relieving_to_post' &&
+      mk.shiftState !== 'returning_to_bed' &&
+      Math.hypot(mk.x - mk.homeX, mk.z - mk.homeZ) < 0.5
+    ) {
+      continue;
+    }
+
+    // Automatically hold open the West or East Barracks Pavilion doors when a monk is walking through
+    if (Math.hypot(mk.x - -30.0, mk.z - (-156.5 + FZ)) <= 4.8) {
+      westBarracksDoorOpenTimer = 0.65;
+    }
+    if (Math.hypot(mk.x - 30.0, mk.z - (-156.5 + FZ)) <= 4.8) {
+      eastBarracksDoorOpenTimer = 0.65;
+    }
 
     // Update golden chi ring flash
     if (mk.teleportFlashTimer > 0) {
@@ -810,24 +954,18 @@ export function updateMonkTempleSystem(
       }
     }
 
-    // Check territory leash & aggro grudge memory rules:
-    // A monk ONLY stops chasing when BOTH:
-    //   1) The player has moved far outside the monk's large chase range (`distToPlayer > 52.0`)
-    //   2) AND the monk itself is outside its home territory (`!monkInTerritory && distToHome > 44.0`) AND the player is outside the territory (`!playerInTerritory`).
-    // When it stops chasing and walks back to its post, it remembers for 45 seconds (`forgetTimer < 45.0`) that it hates the player —
-    // so if the player returns to the territory or comes back within 42m during that time, it immediately resumes chasing!
     const distToPlayer = Math.hypot(playerX - mk.x, playerZ - mk.z);
     const distToHome = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
     const playerInTerritory = isPlayerInsideMonkTerritory(playerX, playerZ, mk);
     const monkInTerritory = isPlayerInsideMonkTerritory(mk.x, mk.z, mk);
 
     if (mk.isAggro) {
+      mk.isReturningFromAggro = true;
       if (!mk.isLeashedReturning) {
         if (!playerInTerritory && !monkInTerritory && distToHome > 44.0 && distToPlayer > 52.0) {
           mk.isLeashedReturning = true;
         }
       } else {
-        // Monk is walking back with a grudge: if player returns to territory or within 42m of the monk, immediately resume chasing!
         if (playerInTerritory || distToPlayer <= 42.0) {
           mk.isLeashedReturning = false;
           mk.forgetTimer = 0;
@@ -848,12 +986,13 @@ export function updateMonkTempleSystem(
     } else if (allMonksProvoked && (playerInTerritory || distToPlayer <= 42.0)) {
       mk.isAggro = true;
       mk.isLeashedReturning = false;
+      mk.isReturningFromAggro = true;
     }
 
     const leashedOutOfTerritory = Boolean(mk.isLeashedReturning);
 
     // =========================================================================
-    // A. HOSTILE / AGGRO COMBAT AI (Chases until BOTH out of range AND out of territory!)
+    // A. HOSTILE / AGGRO COMBAT AI
     // =========================================================================
     if (mk.isAggro && !leashedOutOfTerritory) {
       mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
@@ -865,23 +1004,20 @@ export function updateMonkTempleSystem(
       mk.yaw = rotateAngleToward(mk.yaw, targetYaw, safeDt * 7.5);
 
       if (mk.deflectTimer > 0) {
-        // Deflecting incoming arrow with rapid staff spin
         mk.ctrl.speed = 0;
         mk.ctrl.setState('staff_spin', 0.08);
       } else if (dPlayer > 2.25) {
-        // Chase player with `run` animation
         const runSpd = 5.4;
         const stepDist = Math.min(dPlayer - 1.85, runSpd * safeDt);
         const nx = mk.x + (toPx / dPlayer) * stepDist;
         const nz = mk.z + (toPz / dPlayer) * stepDist;
-        const walkInfo = walkableHeightAt(nx, nz);
+        const walkInfo = walkableHeightAt(nx, nz, mk.y);
         mk.x = nx;
         mk.z = nz;
         mk.y += (walkInfo.height - mk.y) * Math.min(1, safeDt * 12.0);
         mk.ctrl.speed = runSpd;
         mk.ctrl.setState('run', 0.16);
       } else {
-        // In melee range: cycle through attack1, attack2, attack3, and staff_spin
         mk.ctrl.speed = 0;
         if (mk.attackCooldown <= 0) {
           const attackChoices: ReadonlyArray<'attack1' | 'attack2' | 'attack3' | 'staff_spin'> = [
@@ -895,7 +1031,6 @@ export function updateMonkTempleSystem(
           mk.attackCooldown = mk.currentAttackClip === 'staff_spin' ? 1.25 : 0.95;
           mk.ctrl.setState(mk.currentAttackClip, 0.12);
 
-          // Apply light stamina/health pressure when striking the player in melee range
           if (playerState && dPlayer <= 2.45 && Math.abs(playerY - mk.y) <= 2.4) {
             playerState.stamina = Math.max(0, (playerState.stamina ?? 100) - 10);
             playerState.hp = Math.max(1, (playerState.hp ?? 100) - 6);
@@ -912,32 +1047,205 @@ export function updateMonkTempleSystem(
     }
 
     // =========================================================================
-    // B. PEACEFUL / LEASHED RETURN TO HOME POST (if returning from aggro)
+    // B. LEASHED RETURN TO HOME POST (ONLY when returning from aggro)
     // =========================================================================
-    if ((mk.role !== 'courtyard_patrol' || leashedOutOfTerritory) && distToHome > 0.35) {
-      const toHx = mk.homeX - mk.x;
-      const toHz = mk.homeZ - mk.z;
-      const moveSpd = distToHome > 4.0 ? 4.4 : 1.85;
-      const step = Math.min(distToHome, moveSpd * safeDt);
-      mk.x += (toHx / distToHome) * step;
-      mk.z += (toHz / distToHome) * step;
-      const walkInfo = walkableHeightAt(mk.x, mk.z);
-      const targetGroundY = distToHome < 3.5 ? mk.homeY : walkInfo.height;
-      mk.y += (targetGroundY - mk.y) * Math.min(1, safeDt * 10.0);
-      mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(toHx, toHz), safeDt * 6.0);
-      mk.ctrl.speed = moveSpd;
-      mk.ctrl.setState(distToHome > 4.0 ? 'run' : 'walk', 0.2);
-      mk.group.position.set(mk.x, mk.y, mk.z);
-      mk.group.rotation.y = mk.yaw;
-      mk.ctrl.update(safeDt);
-      continue;
+    if (mk.isReturningFromAggro || leashedOutOfTerritory) {
+      if (distToHome > 0.35) {
+        const toHx = mk.homeX - mk.x;
+        const toHz = mk.homeZ - mk.z;
+        const moveSpd = distToHome > 4.0 ? 4.4 : 1.85;
+        const step = Math.min(distToHome, moveSpd * safeDt);
+        mk.x += (toHx / distToHome) * step;
+        mk.z += (toHz / distToHome) * step;
+        const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
+        const targetGroundY = distToHome < 3.5 ? mk.homeY : walkInfo.height;
+        mk.y += (targetGroundY - mk.y) * Math.min(1, safeDt * 10.0);
+        mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(toHx, toHz), safeDt * 6.0);
+        mk.ctrl.speed = moveSpd;
+        mk.ctrl.setState(distToHome > 4.0 ? 'run' : 'walk', 0.2);
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        mk.ctrl.update(safeDt);
+        continue;
+      } else {
+        mk.isReturningFromAggro = false;
+      }
     }
 
     // =========================================================================
-    // C. NORMAL PEACEFUL ROLE AI (Uses all 10 non-death animations!)
+    // C. NORMAL PEACEFUL ROLE AI (With Pairwise Guard Handover & Straw Beds!)
+    //    - Relief guard wakes up in the barracks straw bed, walks out through the
+    //      barracks door, and walks all the way to the guard post (gate or upper watchtower).
+    //    - ONLY AFTER the relief guard arrives at the post does the on-duty guard
+    //      leave the post and walk back into the barracks house to sleep!
+    //    - No guard post is EVER left unguarded!
     // =========================================================================
-    if (mk.role === 'entrance_guard_left' || mk.role === 'entrance_guard_right') {
-      // 2 Entrance Guards at the Temple Palace Upper Gate (similar to Floating Islands guards)
+    if (
+      mk.role === 'entrance_guard_left' ||
+      mk.role === 'entrance_guard_right' ||
+      mk.role === 'tower_guard'
+    ) {
+      const route = mk.routeToPost;
+      if (route && route.length >= 2 && mk.shiftState !== undefined) {
+        // 1) SLEEPING IN BARRACKS STRAW BED: wait until nextShiftChangeTime, then wake up to relieve partner!
+        if (mk.shiftState === 'sleeping_in_bed') {
+          mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
+          const bedWp = route[0];
+          mk.x = bedWp[0];
+          mk.y = bedWp[1];
+          mk.z = bedWp[2];
+          mk.yaw = rotateAngleToward(mk.yaw, mk.bedYaw ?? mk.baseYaw, safeDt * 5.5);
+          mk.ctrl.speed = 0;
+          mk.ctrl.setState('sleep', 0.25);
+
+          // Check if partner is currently on_post and it is time to wake up and relieve them
+          if (elapsedTime >= (mk.nextShiftChangeTime ?? 20.0)) {
+            const partnerOnPost = activeTempleMonks.find(
+              (other) =>
+                other !== mk &&
+                ((mk.postId !== undefined && other.postId === mk.postId) ||
+                  (mk.postId === undefined &&
+                    other.role === mk.role &&
+                    Math.hypot(other.homeX - mk.homeX, other.homeZ - mk.homeZ) < 1.0)) &&
+                other.shiftState === 'on_post' &&
+                !other.isAggro
+            );
+            if (partnerOnPost) {
+              mk.shiftState = 'relieving_to_post';
+              mk.routeCursor = 1;
+            } else {
+              mk.nextShiftChangeTime = elapsedTime + 8.0;
+            }
+          }
+
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          mk.ctrl.update(safeDt);
+          continue;
+        }
+
+        // 2) RELIEVING TO POST: walk along route[1..N-1] from barracks straw bed to guard post.
+        //    Partner stays ON POST until this relief guard physically arrives at the final waypoint!
+        if (mk.shiftState === 'relieving_to_post') {
+          mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
+          const cursor = Math.min(route.length - 1, Math.max(0, mk.routeCursor ?? 1));
+          const wp = route[cursor];
+          const dx = wp[0] - mk.x;
+          const dy = wp[1] - mk.y;
+          const dz = wp[2] - mk.z;
+          const distHoriz = Math.hypot(dx, dz);
+
+          if (distHoriz <= 0.35 && Math.abs(dy) <= 0.65) {
+            if (cursor < route.length - 1) {
+              mk.routeCursor = cursor + 1;
+            } else {
+              // Relief guard has arrived at the post! Hand over duty NOW so the post is never unguarded!
+              mk.shiftState = 'on_post';
+              mk.x = mk.homeX;
+              mk.y = mk.homeY;
+              mk.z = mk.homeZ;
+              for (let p = 0; p < activeTempleMonks.length; p++) {
+                const other = activeTempleMonks[p];
+                if (
+                  other !== mk &&
+                  ((mk.postId !== undefined && other.postId === mk.postId) ||
+                    (mk.postId === undefined &&
+                      other.role === mk.role &&
+                      Math.hypot(other.homeX - mk.homeX, other.homeZ - mk.homeZ) < 1.0)) &&
+                  other.shiftState === 'on_post'
+                ) {
+                  other.shiftState = 'returning_to_bed';
+                  other.routeCursor = Math.max(0, (other.routeToPost?.length ?? 2) - 2);
+                }
+              }
+            }
+          } else {
+            const walkSpd = 2.25;
+            const step = Math.min(distHoriz, walkSpd * safeDt);
+            if (distHoriz > 0.001) {
+              mk.x += (dx / distHoriz) * step;
+              mk.z += (dz / distHoriz) * step;
+              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            }
+            const prevWp = route[Math.max(0, cursor - 1)];
+            const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+            const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distHoriz / segLen)) : 1.0;
+            const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+            mk.y += (interpY - mk.y) * Math.min(1, safeDt * 12.0);
+            mk.ctrl.speed = walkSpd;
+            mk.ctrl.setState('walk', 0.18);
+          }
+
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          mk.ctrl.update(safeDt);
+          continue;
+        }
+
+        // 3) RETURNING TO BED: previous on-duty guard (relieved at post) walks back along route[N-2..0] into the barracks straw bed!
+        if (mk.shiftState === 'returning_to_bed') {
+          mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
+          const cursor = Math.max(0, Math.min(route.length - 1, mk.routeCursor ?? 0));
+          const wp = route[cursor];
+          const dx = wp[0] - mk.x;
+          const dy = wp[1] - mk.y;
+          const dz = wp[2] - mk.z;
+          const distHoriz = Math.hypot(dx, dz);
+
+          if (distHoriz <= 0.35 && Math.abs(dy) <= 0.65) {
+            if (cursor > 0) {
+              mk.routeCursor = cursor - 1;
+            } else {
+              // Arrived at the Straw Bed inside the barracks house: lie down and sleep!
+              mk.shiftState = 'sleeping_in_bed';
+              mk.nextShiftChangeTime = elapsedTime + 32.0;
+              mk.x = wp[0];
+              mk.y = wp[1];
+              mk.z = wp[2];
+            }
+          } else {
+            const walkSpd = 2.15;
+            const step = Math.min(distHoriz, walkSpd * safeDt);
+            if (distHoriz > 0.001) {
+              mk.x += (dx / distHoriz) * step;
+              mk.z += (dz / distHoriz) * step;
+              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            }
+            const prevWp = route[Math.min(route.length - 1, cursor + 1)];
+            const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+            const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distHoriz / segLen)) : 1.0;
+            const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+            mk.y += (interpY - mk.y) * Math.min(1, safeDt * 12.0);
+            mk.ctrl.speed = walkSpd;
+            mk.ctrl.setState('walk', 0.18);
+          }
+
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          mk.ctrl.update(safeDt);
+          continue;
+        }
+      }
+
+      // Stationed on Upper Floor of Watchtower Post (`tower_guard` — stands calm sentinel watch, never attacks empty air!)
+      if (mk.role === 'tower_guard') {
+        mk.x = mk.homeX;
+        mk.y = mk.homeY;
+        mk.z = mk.homeZ;
+        mk.yaw = rotateAngleToward(
+          mk.yaw,
+          mk.baseYaw + Math.sin(elapsedTime * 0.4 + mk.phaseOffset) * 0.28,
+          safeDt * 4.0
+        );
+        mk.ctrl.speed = 0;
+        mk.ctrl.setState('idle', 0.22);
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        mk.ctrl.update(safeDt);
+        continue;
+      }
+
+      // Stationed at Temple Palace Entrance Gate (`entrance_guard_left` / `entrance_guard_right`)
       const isLeft = mk.role === 'entrance_guard_left';
       const gateCenterX = CHINESE_FORTRESS_POS.x;
       const gateCenterZ = CHINESE_FORTRESS_POS.upperGateZ;
@@ -947,41 +1255,32 @@ export function updateMonkTempleSystem(
       const targetCross = playerApproaching ? 0.0 : 1.0;
       mk.guardCrossFactor += (targetCross - mk.guardCrossFactor) * Math.min(1.0, safeDt * 6.0);
 
-      mk.x = mk.homeX;
+      const sideShift = (isLeft ? -0.32 : 0.32) * (1.0 - mk.guardCrossFactor);
+      mk.x = mk.homeX + sideShift;
       mk.y = mk.homeY;
       mk.z = mk.homeZ;
-
-      if (playerApproaching) {
-        // Step slightly aside, uncross staffs, and perform a respectful temple salute (`pray_kneel` / `idle`)
-        const sideShift = (isLeft ? -0.42 : 0.42) * (1.0 - mk.guardCrossFactor);
-        mk.x = mk.homeX + sideShift;
-        mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(playerX - mk.x, playerZ - mk.z), safeDt * 5.0);
-        mk.ctrl.speed = 0;
-        mk.ctrl.setState(distPlayerToGate < 3.4 ? 'pray_kneel' : 'idle', 0.22);
-      } else {
-        // Stand guard facing outward (+Z) with staffs tilted inward to form an "X" barrier across the entrance
-        mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
-        mk.ctrl.speed = 0;
-        mk.ctrl.setState('idle', 0.22);
-      }
+      mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
+      mk.ctrl.speed = 0;
+      mk.ctrl.setState('idle', 0.22);
 
       mk.group.position.set(mk.x, mk.y, mk.z);
       mk.group.rotation.y = mk.yaw;
       mk.ctrl.update(safeDt);
 
-      // Tilt the right forearm/hand joint slightly when `guardCrossFactor > 0` so the two staffs cross in an "X" in front of the gate
-      if (mk.guardCrossFactor > 0.01 && mk.ctrl.bones.length > 18) {
-        const crossAngle = (isLeft ? -0.52 : 0.52) * mk.guardCrossFactor;
+      // Apply pure quaternion multiplication on the right forearm/hand joint after `mk.ctrl.update(safeDt)`
+      if (mk.guardCrossFactor > 0.01 && mk.ctrl.bones.length > 15) {
+        const crossAngle = (isLeft ? -0.48 : 0.48) * mk.guardCrossFactor;
         const armBone = mk.ctrl.bones[15] ?? mk.ctrl.bones[14];
         if (armBone) {
-          armBone.rotation.z += crossAngle;
+          _guardCrossQuat.setFromAxisAngle(_guardAxisZ, crossAngle);
+          armBone.quaternion.multiply(_guardCrossQuat);
         }
       }
       continue;
     }
 
     if (mk.role === 'dummy_trainer') {
-      // 4 Courtyard Monks training on the wooden dummies using attack1, attack2, attack3, staff_spin, and idle
+      // ONLY the 4 Courtyard Monks standing directly in front of the wooden dummies practice combat strikes!
       mk.x = mk.homeX;
       mk.y = mk.homeY;
       mk.z = mk.homeZ;
@@ -998,11 +1297,11 @@ export function updateMonkTempleSystem(
       ];
       if (mk.scheduleTimer <= 0) {
         mk.scheduleStage = (mk.scheduleStage + 1) % dummyStages.length;
-        const st = dummyStages[mk.scheduleStage];
+        const st = dummyStages[mk.scheduleStage % dummyStages.length];
         mk.scheduleTimer = st.dur;
         mk.ctrl.setState(st.state, 0.14);
       } else {
-        const st = dummyStages[mk.scheduleStage];
+        const st = dummyStages[mk.scheduleStage % dummyStages.length];
         mk.ctrl.setState(st.state, 0.14);
         if (st.hitsDummy && mk.dummyIndex !== undefined && woodenDummies[mk.dummyIndex]) {
           // Trigger dummy impact shudder during the middle of each strike
@@ -1021,14 +1320,13 @@ export function updateMonkTempleSystem(
     }
 
     if (mk.role === 'courtyard_patrol') {
-      // Patrol monk cycling through walk, run, staff_spin kata, sit meditation, and pray_kneel
+      // Patrol monk cycling through walk, run, pray_kneel, and idle (never attacking empty air or sitting on pavement!)
       const waypoints = mk.patrolWaypoints;
       if (waypoints && waypoints.length >= 2) {
         mk.scheduleTimer -= safeDt;
-        // Pause at waypoint for kata / prayer before walking/running to next waypoint
         if (mk.scheduleTimer > 0) {
           mk.ctrl.speed = 0;
-          const pauseAnims: ReadonlyArray<WarriorMonkState> = ['staff_spin', 'pray_kneel', 'sit', 'idle'];
+          const pauseAnims: ReadonlyArray<WarriorMonkState> = ['idle', 'pray_kneel'];
           const pauseState = pauseAnims[mk.waypointIndex % pauseAnims.length];
           mk.ctrl.setState(pauseState, 0.22);
           mk.group.position.set(mk.x, mk.y, mk.z);
@@ -1042,11 +1340,11 @@ export function updateMonkTempleSystem(
         const dz = targetWp[2] - mk.z;
         const distWp = Math.hypot(dx, dz);
         const isJogLeg = mk.waypointIndex % 2 === 1;
-        const moveSpd = isJogLeg ? 3.8 : 1.75;
+        const moveSpd = isJogLeg ? 3.4 : 1.75;
 
         if (distWp <= 0.35) {
           mk.waypointIndex = (mk.waypointIndex + 1) % waypoints.length;
-          mk.scheduleTimer = 2.8;
+          mk.scheduleTimer = 2.6;
         } else {
           const step = Math.min(distWp, moveSpd * safeDt);
           mk.x += (dx / distWp) * step;
@@ -1063,7 +1361,33 @@ export function updateMonkTempleSystem(
       continue;
     }
 
-    // `shrine_devotee` & `sanctuary_master`: cycle through `pray_kneel`, `sit`, `sleep`, `staff_spin`, `attack1`, `idle`
+    if (mk.role === 'courtyard_bench') {
+      // Seated courtyard monk on a wooden monastery bench (`sit`, `pray_kneel`, `idle`)
+      mk.x = mk.homeX;
+      mk.y = mk.homeY;
+      mk.z = mk.homeZ;
+      mk.yaw = mk.baseYaw;
+      mk.ctrl.speed = 0;
+
+      mk.scheduleTimer -= safeDt;
+      const benchStages: ReadonlyArray<{ state: WarriorMonkState; dur: number }> = [
+        { state: 'sit', dur: 7.5 },
+        { state: 'pray_kneel', dur: 3.0 },
+        { state: 'sit', dur: 6.5 },
+        { state: 'idle', dur: 2.2 },
+      ];
+      if (mk.scheduleTimer <= 0) {
+        mk.scheduleStage = (mk.scheduleStage + 1) % benchStages.length;
+        mk.scheduleTimer = benchStages[mk.scheduleStage % benchStages.length].dur;
+      }
+      mk.ctrl.setState(benchStages[mk.scheduleStage % benchStages.length].state, 0.24);
+      mk.group.position.set(mk.x, mk.y, mk.z);
+      mk.group.rotation.y = mk.yaw;
+      mk.ctrl.update(safeDt);
+      continue;
+    }
+
+    // `shrine_devotee` & `sanctuary_master`: positioned at wooden monastery benches so `sit` rests directly on a bench (never attacking empty air!)
     mk.x = mk.homeX;
     mk.y = mk.homeY;
     mk.z = mk.homeZ;
@@ -1071,29 +1395,18 @@ export function updateMonkTempleSystem(
     mk.ctrl.speed = 0;
 
     mk.scheduleTimer -= safeDt;
-    const devoteeStages: ReadonlyArray<{ state: WarriorMonkState; dur: number }> =
-      mk.role === 'shrine_devotee'
-        ? [
-            { state: 'pray_kneel', dur: 4.2 },
-            { state: 'sit', dur: 4.5 },
-            { state: 'sleep', dur: 4.0 },
-            { state: 'idle', dur: 2.4 },
-          ]
-        : [
-            { state: 'pray_kneel', dur: 3.4 },
-            { state: 'staff_spin', dur: 2.2 },
-            { state: 'sit', dur: 3.8 },
-            { state: 'attack1', dur: 1.4 },
-            { state: 'attack2', dur: 1.4 },
-            { state: 'attack3', dur: 1.5 },
-            { state: 'idle', dur: 2.2 },
-          ];
+    const devoteeStages: ReadonlyArray<{ state: WarriorMonkState; dur: number }> = [
+      { state: 'sit', dur: 6.0 },
+      { state: 'pray_kneel', dur: 4.5 },
+      { state: 'sit', dur: 5.5 },
+      { state: 'idle', dur: 2.4 },
+    ];
 
     if (mk.scheduleTimer <= 0) {
       mk.scheduleStage = (mk.scheduleStage + 1) % devoteeStages.length;
-      mk.scheduleTimer = devoteeStages[mk.scheduleStage].dur;
+      mk.scheduleTimer = devoteeStages[mk.scheduleStage % devoteeStages.length].dur;
     }
-    mk.ctrl.setState(devoteeStages[mk.scheduleStage].state, 0.24);
+    mk.ctrl.setState(devoteeStages[mk.scheduleStage % devoteeStages.length].state, 0.24);
     mk.group.position.set(mk.x, mk.y, mk.z);
     mk.group.rotation.y = mk.yaw;
     mk.ctrl.update(safeDt);

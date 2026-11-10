@@ -16,26 +16,197 @@ import {
 } from '../domain/landmarksRegistry';
 import {
   DWARVEN_MINERS_COUNT,
+  DWARVEN_MINER_STATIONS,
   computeDwarvenMinerCaravanState,
+  evaluateMinecartTrackState,
 } from '../systems/dwarvenMineAndCaravanSystem';
 import {
   walkableHeightAt,
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
 } from '../systems/terrainAndBiomeSystem';
+import { getPlayerState } from '../systems/playerPhysicsSystem';
+import {
+  createReadyDwarfWarrior,
+  type IDwarfWarriorRig,
+  type DwarfWarriorState,
+} from '../models/Characters/DwarfWarrior_Complete';
 
 /**
  * Summary: Rig representation for an individual animated dwarven miner mesh.
- * Design: Encapsulates Three.js group, pickaxe pivot, and temporal offset for rhythmic swings.
+ * Design: Encapsulates Three.js group, skeletal DwarfWarrior rig, and retaliation combat state.
  */
 export interface IDwarvenMinerRig {
+  id: number;
+  name: string;
+  level: number;
   root: THREE.Group;
+  ctrl: IDwarfWarriorRig;
   leftLeg: THREE.Group;
   rightLeg: THREE.Group;
   leftArm: THREE.Group;
   rightArm: THREE.Group;
   torsoPivot: THREE.Group;
   lanternGlow: THREE.Mesh;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+  hp: number;
+  maxHp: number;
+  isDead: boolean;
+  deathTimer: number;
+  hitFlashTimer: number;
+  hitBarTimer: number;
+  isAggro: boolean;
+  aggroTimer: number;
+  attackCooldown: number;
+  currentAttackClip: 'attack1' | 'attack2' | 'attack3';
+  lastElapsedTime: number;
+}
+
+const activeDwarvenMiners: IDwarvenMinerRig[] = [];
+
+export function getActiveDwarvenMiners(): readonly IDwarvenMinerRig[] {
+  return activeDwarvenMiners;
+}
+
+/**
+ * Summary: Returns the Dwarven Miner currently in active combat or recently hit by the player,
+ *          used to display the top-center Enemy Health Bar & Level in the HUD.
+ */
+export function findActiveCombatDwarf(
+  playerX: number,
+  playerZ: number
+): IDwarvenMinerRig | null {
+  let best: IDwarvenMinerRig | null = null;
+  let bestScore = -1;
+  for (let i = 0; i < activeDwarvenMiners.length; i++) {
+    const dm = activeDwarvenMiners[i];
+    const dist = Math.hypot(dm.x - playerX, dm.z - playerZ);
+    if (dm.hitBarTimer > 0) {
+      const score = 100 + dm.hitBarTimer - dist * 0.1;
+      if (score > bestScore) {
+        bestScore = score;
+        best = dm;
+      }
+    } else if (dm.isAggro && !dm.isDead && dist <= 28.0) {
+      const score = 50 - dist;
+      if (score > bestScore) {
+        bestScore = score;
+        best = dm;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * Summary: Finds a live Dwarven Miner that the player is aiming/looking at within `maxRange`,
+ *          used to display the targeted creature HUD badge with name, level, and HP bar.
+ */
+export function findTargetedLiveDwarf(
+  playerX: number,
+  playerY: number,
+  playerZ: number,
+  playerYaw: number,
+  playerPitch: number,
+  maxRange = 18.0
+): IDwarvenMinerRig | null {
+  const fwdX = -Math.sin(playerYaw) * Math.cos(playerPitch);
+  const fwdY = Math.sin(playerPitch);
+  const fwdZ = -Math.cos(playerYaw) * Math.cos(playerPitch);
+  const eyeY = playerY + 1.55;
+
+  let best: IDwarvenMinerRig | null = null;
+  let bestDot = 0.92;
+  for (let i = 0; i < activeDwarvenMiners.length; i++) {
+    const dm = activeDwarvenMiners[i];
+    if (dm.isDead) continue;
+    const dx = dm.x - playerX;
+    const dy = dm.y + 0.9 - eyeY;
+    const dz = dm.z - playerZ;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist < 0.2 || dist > maxRange) continue;
+    const dot = (dx * fwdX + dy * fwdY + dz * fwdZ) / dist;
+    if (dot > bestDot) {
+      bestDot = dot;
+      best = dm;
+    }
+  }
+  return best;
+}
+
+/**
+ * Summary: Checks if a player sword strike hits any Dwarven Miner, applies damage, and provokes or kills that dwarf.
+ */
+export function checkSwordHitDwarf(
+  strikeX: number,
+  strikeY: number,
+  strikeZ: number,
+  damage = 35
+): IDwarvenMinerRig | null {
+  for (let i = 0; i < activeDwarvenMiners.length; i++) {
+    const dm = activeDwarvenMiners[i];
+    if (dm.isDead) continue;
+    const dHoriz = Math.hypot(strikeX - dm.x, strikeZ - dm.z);
+    const inVert = strikeY >= dm.y - 0.35 && strikeY <= dm.y + 2.15;
+    if (dHoriz <= 1.55 && inVert) {
+      dm.hp = Math.max(0, dm.hp - Math.max(1, damage));
+      dm.hitFlashTimer = 0.35;
+      if (dm.hp <= 0) {
+        dm.isDead = true;
+        dm.isAggro = false;
+        dm.aggroTimer = 0;
+        dm.deathTimer = 999999.0;
+        dm.hitBarTimer = 2.4;
+        dm.ctrl.speed = 0;
+        dm.ctrl.setState('death', 0.12);
+      } else {
+        dm.isAggro = true;
+        dm.aggroTimer = 40.0;
+        dm.hitBarTimer = 8.0;
+      }
+      return dm;
+    }
+  }
+  return null;
+}
+
+/**
+ * Summary: Checks if a flying arrow hits any Dwarven Miner, applies damage, and provokes or kills that dwarf.
+ */
+export function checkArrowHitDwarf(
+  arrowX: number,
+  arrowY: number,
+  arrowZ: number,
+  damage = 35
+): IDwarvenMinerRig | null {
+  for (let i = 0; i < activeDwarvenMiners.length; i++) {
+    const dm = activeDwarvenMiners[i];
+    if (dm.isDead) continue;
+    const dHoriz = Math.hypot(arrowX - dm.x, arrowZ - dm.z);
+    const inVert = arrowY >= dm.y - 0.35 && arrowY <= dm.y + 2.15;
+    if (dHoriz <= 1.42 && inVert) {
+      dm.hp = Math.max(0, dm.hp - Math.max(1, damage));
+      dm.hitFlashTimer = 0.35;
+      if (dm.hp <= 0) {
+        dm.isDead = true;
+        dm.isAggro = false;
+        dm.aggroTimer = 0;
+        dm.deathTimer = 999999.0;
+        dm.hitBarTimer = 2.4;
+        dm.ctrl.speed = 0;
+        dm.ctrl.setState('death', 0.12);
+      } else {
+        dm.isAggro = true;
+        dm.aggroTimer = 40.0;
+        dm.hitBarTimer = 8.0;
+      }
+      return dm;
+    }
+  }
+  return null;
 }
 
 /**
@@ -333,8 +504,37 @@ export function buildDwarvenKingdomAndMiners(
   const dhStepSlabGeo = new THREE.BoxGeometry(1.6, 0.16, 3.2);
   const dhCapGeo = new THREE.BoxGeometry(1.08, 0.28, 1.08);
   const dhRidgeCrestGeo = new THREE.BoxGeometry(6.8, 0.36, 0.36);
-  const dhTableGeo = new THREE.BoxGeometry(2.2, 0.78, 1.2);
+  const dhTableTopGeo = new THREE.BoxGeometry(2.1, 0.1, 0.85);
+  const dhTableLegGeo = new THREE.BoxGeometry(0.12, 0.68, 0.12);
   const dhOutdoorAnvilGeo = new THREE.BoxGeometry(0.95, 0.75, 0.52);
+
+  // Dwarven Bed geometries (2 beds per house along the South wall)
+  const dhBedFrameGeo = new THREE.BoxGeometry(1.55, 0.26, 2.32);
+  const dhBedHeadboardGeo = new THREE.BoxGeometry(1.58, 0.78, 0.14);
+  const dhBedPostGeo = new THREE.BoxGeometry(0.16, 0.92, 0.16);
+  const dhBedMattressGeo = new THREE.BoxGeometry(1.38, 0.18, 2.12);
+  const dhBedBlanketGeo = new THREE.BoxGeometry(1.4, 0.08, 1.38);
+  const dhBedPillowGeo = new THREE.BoxGeometry(0.96, 0.14, 0.42);
+
+  // Proper Dwarven Wooden Bench geometries (`ספסלים נורמליים` with seat, 4 legs, stretcher & backrest)
+  const dhBenchSeatGeo = new THREE.BoxGeometry(1.85, 0.09, 0.54);
+  const dhBenchBackGeo = new THREE.BoxGeometry(1.85, 0.46, 0.08);
+  const dhBenchLegGeo = new THREE.BoxGeometry(0.11, 0.44, 0.11);
+  const dhBenchStretcherGeo = new THREE.BoxGeometry(1.62, 0.07, 0.08);
+
+  const dhMattressMat = new THREE.MeshStandardMaterial({
+    color: 0xd6cfc2,
+    roughness: 0.88,
+  });
+  const dhBlanketMat = new THREE.MeshStandardMaterial({
+    color: 0x7c2d12,
+    roughness: 0.84,
+  });
+  const dhPillowMat = new THREE.MeshStandardMaterial({
+    color: 0xf1ede4,
+    roughness: 0.82,
+  });
+  disposableMaterials.push(dhMattressMat, dhBlanketMat, dhPillowMat);
 
   disposableGeometries.push(
     dhWallFBGeo,
@@ -351,9 +551,62 @@ export function buildDwarvenKingdomAndMiners(
     dhStepSlabGeo,
     dhCapGeo,
     dhRidgeCrestGeo,
-    dhTableGeo,
-    dhOutdoorAnvilGeo
+    dhTableTopGeo,
+    dhTableLegGeo,
+    dhOutdoorAnvilGeo,
+    dhBedFrameGeo,
+    dhBedHeadboardGeo,
+    dhBedPostGeo,
+    dhBedMattressGeo,
+    dhBedBlanketGeo,
+    dhBedPillowGeo,
+    dhBenchSeatGeo,
+    dhBenchBackGeo,
+    dhBenchLegGeo,
+    dhBenchStretcherGeo
   );
+
+  const createDwarvenWoodenBench = (): THREE.Group => {
+    const bench = new THREE.Group();
+    const seat = new THREE.Mesh(dhBenchSeatGeo, timberMat);
+    seat.position.set(0, 0.46, 0);
+    const back = new THREE.Mesh(dhBenchBackGeo, timberMat);
+    back.position.set(0, 0.72, -0.23);
+    const stretcher = new THREE.Mesh(dhBenchStretcherGeo, barkMat);
+    stretcher.position.set(0, 0.18, 0);
+    bench.add(seat, back, stretcher);
+    for (const lx of [-0.8, 0.8]) {
+      for (const lz of [-0.19, 0.19]) {
+        const leg = new THREE.Mesh(dhBenchLegGeo, barkMat);
+        leg.position.set(lx, 0.22, lz);
+        bench.add(leg);
+      }
+    }
+    return bench;
+  };
+
+  const createDwarvenBed = (): THREE.Group => {
+    const bed = new THREE.Group();
+    const frame = new THREE.Mesh(dhBedFrameGeo, barkMat);
+    frame.position.set(0, 0.22, 0);
+    const headboard = new THREE.Mesh(dhBedHeadboardGeo, timberMat);
+    headboard.position.set(0, 0.56, 1.12);
+    const mattress = new THREE.Mesh(dhBedMattressGeo, dhMattressMat);
+    mattress.position.set(0, 0.4, -0.04);
+    const blanket = new THREE.Mesh(dhBedBlanketGeo, dhBlanketMat);
+    blanket.position.set(0, 0.48, -0.38);
+    const pillow = new THREE.Mesh(dhBedPillowGeo, dhPillowMat);
+    pillow.position.set(0, 0.52, 0.74);
+    bed.add(frame, headboard, mattress, blanket, pillow);
+    for (const px of [-0.72, 0.72]) {
+      for (const pz of [-1.1, 1.1]) {
+        const post = new THREE.Mesh(dhBedPostGeo, barkMat);
+        post.position.set(px, 0.46, pz);
+        bed.add(post);
+      }
+    }
+    return bed;
+  };
 
   for (let hIdx = 0; hIdx < DWARVEN_STONE_HOUSES.length; hIdx++) {
     const dh = DWARVEN_STONE_HOUSES[hIdx];
@@ -424,14 +677,50 @@ export function buildDwarvenKingdomAndMiners(
     const hearthCoals = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
     hearthCoals.scale.set(0.75, 0.45, 0.75);
     hearthCoals.position.set(-dh.dirX * 2.8, 0.72, -1.8);
-    const table = new THREE.Mesh(dhTableGeo, timberMat);
-    table.position.set(-dh.dirX * 0.8, 0.56, 1.6);
+
+    // 2 Real Dwarven Beds along the South interior wall (`lz = 2.55`, `lx = -2.0` and `lx = +2.0`)
+    for (const bedLx of [-2.0, 2.0]) {
+      const bed = createDwarvenBed();
+      bed.position.set(bedLx, 0.18, 2.55);
+      dhGroup.add(bed);
+    }
+
+    // 2 Proper Indoor Wooden Benches (`ספסלים נורמליים`) + 4-Legged Oak Table in the North-Front nook
+    const benchNorth = createDwarvenWoodenBench();
+    benchNorth.position.set(dh.dirX * 1.55, 0.18, -2.55);
+    benchNorth.rotation.y = 0; // Backrest toward North (-Z), faces South (+Z)
+
+    const benchSouth = createDwarvenWoodenBench();
+    benchSouth.position.set(dh.dirX * 1.55, 0.18, -0.75);
+    benchSouth.rotation.y = Math.PI; // Backrest toward South (+Z), faces North (-Z)
+
+    const oakTableGroup = new THREE.Group();
+    oakTableGroup.position.set(dh.dirX * 1.55, 0.18, -1.65);
+    const tableTop = new THREE.Mesh(dhTableTopGeo, timberMat);
+    tableTop.position.set(0, 0.72, 0);
+    oakTableGroup.add(tableTop);
+    for (const tlx of [-0.9, 0.9]) {
+      for (const tlz of [-0.32, 0.32]) {
+        const tLeg = new THREE.Mesh(dhTableLegGeo, barkMat);
+        tLeg.position.set(tlx, 0.34, tlz);
+        oakTableGroup.add(tLeg);
+      }
+    }
+
+    // Outdoor Porch Wooden Bench (`ספסל עץ נורמלי`) facing the Dwarven King's Road
+    const porchBench = createDwarvenWoodenBench();
+    porchBench.position.set(dh.dirX * (dh.halfW + 1.35), 0.02, -2.45);
+    porchBench.rotation.y = dh.dirX === 1 ? Math.PI / 2 : -Math.PI / 2;
+
     const outdoorAnvil = new THREE.Mesh(dhOutdoorAnvilGeo, darkIronMat);
     outdoorAnvil.position.set(dh.dirX * (dh.halfW + 1.8), 0.38, 2.8);
     dhGroup.add(
       hearthRing,
       hearthCoals,
-      table,
+      benchNorth,
+      benchSouth,
+      oakTableGroup,
+      porchBench,
       outdoorAnvil,
       createLanternAssembly(dh.dirX * (dh.halfW + 0.65), 3.1, -1.65, hIdx === 0),
       createLanternAssembly(dh.dirX * (dh.halfW + 0.65), 3.1, 1.65, false)
@@ -531,138 +820,100 @@ export function buildDwarvenKingdomAndMiners(
   );
 
   const dwarvenMiners: IDwarvenMinerRig[] = [];
+  activeDwarvenMiners.length = 0;
+
+  const dwarfTintPalette = [
+    0xd97706,
+    0xb45309,
+    0x92400e,
+    0x78350f,
+    0xb91c1c,
+    0x0f766e,
+    0x4338ca,
+    0xa16207,
+  ];
 
   for (let d = 0; d < DWARVEN_MINERS_COUNT; d++) {
     const dwRoot = new THREE.Group();
-    const torsoPivot = new THREE.Group();
-    torsoPivot.position.set(0, 0.44, 0);
+    const ctrl = createReadyDwarfWarrior({
+      initialState: 'idle',
+      weaponVisible: true,
+      tintHex: dwarfTintPalette[d % dwarfTintPalette.length],
+      driveRootMotion: false,
+    });
+    // Orient glTF +Z forward rig to match the dwarven caravan -Z yaw convention
+    ctrl.group.rotation.y = Math.PI;
+    ctrl.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+      }
+    });
+    dwRoot.add(ctrl.group);
 
-    const tunicMat = dwarfTunicMats[d % dwarfTunicMats.length];
-    const beardMat = dwarfBeardMats[d % dwarfBeardMats.length];
-
-    const mailSkirt = new THREE.Mesh(dwMailSkirtGeo, dwarvenScaleArmorMat);
-    const torsoMesh = new THREE.Mesh(dwTorsoGeo, tunicMat);
-    const hemTrim = new THREE.Mesh(dwHemTrimGeo, dwarvenBronzeMat);
-    const shoulderMesh = new THREE.Mesh(dwShoulderGeo, dwarvenScaleArmorMat);
-    const cloakBack = new THREE.Mesh(dwCloakBackGeo, dwarfCloakMat);
-    cloakBack.position.set(0, 0.28, 0.24);
-    cloakBack.rotation.x = 0.08;
-
-    const broochL = new THREE.Mesh(dwBroochGeo, dwarvenBronzeMat);
-    broochL.position.set(-0.19, 0.52, -0.22);
-    const broochR = new THREE.Mesh(dwBroochGeo, dwarvenBronzeMat);
-    broochR.position.set(0.19, 0.52, -0.22);
-
-    const beltMesh = new THREE.Mesh(dwBeltGeo, dwarfLeatherMat);
-    beltMesh.position.y = 0.16;
-    const buckle = new THREE.Mesh(dwBuckleGeo, dwarvenBronzeMat);
-    buckle.position.set(0, 0.16, -0.305);
-    buckle.rotation.z = Math.PI / 4; // Signature LOTR Dwarf Diamond Buckle
-
-    const headMesh = new THREE.Mesh(dwHeadGeo, dwarfSkinMat);
-    headMesh.position.z = -0.085;
-    const hairCap = new THREE.Mesh(dwHairCapGeo, beardMat);
-    hairCap.position.set(0, 0.76, -0.07);
-    hairCap.rotation.x = -0.22;
-    const backBraid = new THREE.Mesh(dwBackBraidGeo, beardMat);
-    backBraid.position.set(0, 0.56, 0.16);
-
-    const noseMesh = new THREE.Mesh(dwNoseGeo, dwarfSkinMat);
-    noseMesh.position.set(0, 0.73, -0.27);
-
-    const mustacheL = new THREE.Mesh(dwMustacheGeo, beardMat);
-    mustacheL.position.set(-0.06, 0.67, -0.265);
-    mustacheL.rotation.set(-0.2, 0, -1.12);
-    const mustacheR = new THREE.Mesh(dwMustacheGeo, beardMat);
-    mustacheR.position.set(0.06, 0.67, -0.265);
-    mustacheR.rotation.set(-0.2, 0, 1.12);
-
-    const beardCenter = new THREE.Mesh(dwBeardMainGeo, beardMat);
-    beardCenter.position.set(0, 0.44, -0.305);
-    beardCenter.rotation.x = 0.12;
-    const braidL = new THREE.Mesh(dwBeardBraidGeo, beardMat);
-    braidL.position.set(-0.12, 0.41, -0.32);
-    braidL.rotation.set(0.12, 0, -0.1);
-    const braidR = new THREE.Mesh(dwBeardBraidGeo, beardMat);
-    braidR.position.set(0.12, 0.41, -0.32);
-    braidR.rotation.set(0.12, 0, 0.1);
-    const beardRing = new THREE.Mesh(dwBeardRingGeo, mineGoldOreMat);
-    beardRing.rotation.x = Math.PI / 2;
-    beardRing.position.set(0, 0.32, -0.325);
-
-    torsoPivot.add(
-      mailSkirt,
-      torsoMesh,
-      hemTrim,
-      shoulderMesh,
-      cloakBack,
-      broochL,
-      broochR,
-      beltMesh,
-      buckle,
-      headMesh,
-      hairCap,
-      backBraid,
-      noseMesh,
-      mustacheL,
-      mustacheR,
-      beardCenter,
-      braidL,
-      braidR,
-      beardRing
-    );
-
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.34, 0.50, 0);
-    const lArmMesh = new THREE.Mesh(dwArmGeo, dwarfLeatherMat);
+    // Miner's belt lantern glow mesh
     const lanternMesh = new THREE.Mesh(dwLanternBodyGeo, mineGoldOreMat);
-    lanternMesh.position.set(0, -0.44, -0.10);
-    leftArm.add(lArmMesh, lanternMesh);
-    torsoPivot.add(leftArm);
+    lanternMesh.position.set(-0.28, 0.62, -0.18);
+    dwRoot.add(lanternMesh);
 
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.34, 0.50, 0);
-    const rArmMesh = new THREE.Mesh(dwArmGeo, dwarfLeatherMat);
-    const pickGroup = new THREE.Group();
-    pickGroup.position.set(0, -0.38, -0.06);
-    // Point pickaxe shaft forward toward -Z (the dwarf's facing direction)
-    pickGroup.rotation.x = -Math.PI / 2;
-    const pickShaft = new THREE.Mesh(dwPickHandleGeo, timberMat);
-    const bladeFront = new THREE.Mesh(dwAxeBladeGeo, dwarvenScaleArmorMat);
-    bladeFront.rotation.set(0, Math.PI / 2, Math.PI / 2);
-    bladeFront.position.set(0, 0.34, -0.12);
-    const bladeBack = new THREE.Mesh(dwAxeBladeGeo, dwarvenScaleArmorMat);
-    bladeBack.rotation.set(0, Math.PI / 2, -Math.PI / 2);
-    bladeBack.position.set(0, 0.34, 0.12);
-    pickGroup.add(pickShaft, bladeFront, bladeBack);
-    rightArm.add(rArmMesh, pickGroup);
-    torsoPivot.add(rightArm);
-
+    const torsoPivot = new THREE.Group();
     const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.14, 0.44, 0);
-    leftLeg.add(
-      new THREE.Mesh(dwLegGeo, dwarfDarkLeatherMat),
-      new THREE.Mesh(dwBootGeo, dwarfLeatherMat)
-    );
     const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.14, 0.44, 0);
-    rightLeg.add(
-      new THREE.Mesh(dwLegGeo, dwarfDarkLeatherMat),
-      new THREE.Mesh(dwBootGeo, dwarfLeatherMat)
-    );
+    const leftArm = new THREE.Group();
+    const rightArm = new THREE.Group();
 
-    dwRoot.add(torsoPivot, leftLeg, rightLeg);
+    const initSt = computeDwarvenMinerCaravanState(8.5, d, 0);
+    dwRoot.position.set(initSt.x, initSt.y, initSt.z);
+    dwRoot.rotation.order = 'YXZ';
+    dwRoot.rotation.y = initSt.yaw;
+
     scene.add(dwRoot);
-    dwarvenMiners.push({
+    const rigEntry: IDwarvenMinerRig = {
+      id: d,
+      name: initSt.name,
+      level: 6 + (d % 3),
       root: dwRoot,
+      ctrl,
       leftLeg,
       rightLeg,
       leftArm,
       rightArm,
       torsoPivot,
       lanternGlow: lanternMesh,
-    });
+      x: initSt.x,
+      y: initSt.y,
+      z: initSt.z,
+      yaw: initSt.yaw,
+      hp: 100 + (d % 3) * 15,
+      maxHp: 100 + (d % 3) * 15,
+      isDead: false,
+      deathTimer: 0,
+      hitFlashTimer: 0,
+      hitBarTimer: 0,
+      isAggro: false,
+      aggroTimer: 0,
+      attackCooldown: 0,
+      currentAttackClip: 'attack1',
+      lastElapsedTime: 0,
+    };
+    dwarvenMiners.push(rigEntry);
+    activeDwarvenMiners.push(rigEntry);
   }
+
+  const rotateAngleToward = (curr: number, target: number, maxStep: number): number => {
+    let diff = ((target - curr + Math.PI) % (Math.PI * 2)) - Math.PI;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    if (Math.abs(diff) <= maxStep) return target;
+    return curr + Math.sign(diff) * maxStep;
+  };
+
+  // Map each of the 8 dwarves to their house (0..3) and resident slot (0 or 1)
+  const getDwarfHomeAssignment = (d: number): { houseIdx: number; slot: 0 | 1 } => {
+    const houseIdx = d === 0 || d === 2 ? 0 : d === 1 || d === 4 ? 1 : d === 3 || d === 6 ? 2 : 3;
+    const slot: 0 | 1 = d === 0 || d === 1 || d === 3 || d === 5 ? 0 : 1;
+    return { houseIdx, slot };
+  };
 
   const updateDwarvenMiners = (
     worldHours: number,
@@ -670,20 +921,206 @@ export function buildDwarvenKingdomAndMiners(
     playerX: number,
     playerZ: number
   ) => {
+    const playerState = getPlayerState();
+    const playerY = playerState ? playerState.y : walkableHeightAt(playerX, playerZ).height;
+
     for (let d = 0; d < dwarvenMiners.length; d++) {
       const dm = dwarvenMiners[d];
-      const st = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime);
-      const vis = isWithinViewDistance(st.x, st.z, playerX, playerZ, 18, VIEW_DISTANCE);
-      dm.root.visible = vis;
-      if (!vis) continue;
+      const safeDt =
+        dm.lastElapsedTime > 0
+          ? Math.min(0.1, Math.max(0.001, elapsedTime - dm.lastElapsedTime))
+          : 1 / 60;
+      dm.lastElapsedTime = elapsedTime;
 
-      dm.root.position.set(st.x, st.y, st.z);
+      if (dm.hitFlashTimer > 0) {
+        dm.hitFlashTimer = Math.max(0, dm.hitFlashTimer - safeDt);
+      }
+      if (dm.hitBarTimer > 0) {
+        dm.hitBarTimer = Math.max(0, dm.hitBarTimer - safeDt);
+      }
+
+      // 0. Dead State: play death animation once and stay locked on the final frame!
+      if (dm.isDead) {
+        const vis = isWithinViewDistance(dm.x, dm.z, playerX, playerZ, 18, VIEW_DISTANCE);
+        dm.root.visible = vis;
+        dm.lanternGlow.visible = false;
+        dm.ctrl.speed = 0;
+        if (dm.ctrl.state !== 'death') {
+          dm.ctrl.setState('death', 0.12);
+        }
+        dm.ctrl.update(safeDt);
+        continue;
+      }
+
+      const st = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime);
+
+      // Always keep dm.x, dm.y, dm.z updated even when culled so flying arrows hit accurately at long range
+      if (!dm.isAggro) {
+        dm.x = st.x;
+        dm.y = st.y;
+        dm.z = st.z;
+        dm.yaw = st.yaw;
+      }
+
+      const vis = isWithinViewDistance(dm.x, dm.z, playerX, playerZ, 18, VIEW_DISTANCE);
+      dm.root.visible = vis;
+      if (!vis && !dm.isAggro) continue;
+
+      if (dm.attackCooldown > 0) {
+        dm.attackCooldown = Math.max(0, dm.attackCooldown - safeDt);
+      }
+
+      // 1. Retaliation Combat AI (ONLY active when the player has attacked this dwarf!)
+      if (dm.isAggro) {
+        dm.aggroTimer = Math.max(0, dm.aggroTimer - safeDt);
+        const toPx = playerX - dm.x;
+        const toPz = playerZ - dm.z;
+        const dPlayer = Math.hypot(toPx, toPz) || 0.001;
+
+        if (dm.aggroTimer <= 0 || dPlayer > 48.0) {
+          dm.isAggro = false;
+        } else {
+          dm.hitBarTimer = Math.max(dm.hitBarTimer, 1.5);
+          // Remember `dwRoot` uses -Z forward convention because `ctrl.group.rotation.y = Math.PI`
+          const targetYaw = Math.atan2(-toPx, -toPz);
+          dm.yaw = rotateAngleToward(dm.yaw, targetYaw, safeDt * 7.5);
+
+          if (dPlayer > 2.05) {
+            const runSpd = 4.5;
+            const step = Math.min(dPlayer - 1.75, runSpd * safeDt);
+            dm.x += (toPx / dPlayer) * step;
+            dm.z += (toPz / dPlayer) * step;
+            const walkInfo = walkableHeightAt(dm.x, dm.z, dm.y);
+            dm.y += (walkInfo.height - dm.y) * Math.min(1, safeDt * 12.0);
+            dm.ctrl.speed = runSpd;
+            dm.ctrl.setState('run', 0.16);
+          } else {
+            dm.ctrl.speed = 0;
+            if (dm.attackCooldown <= 0) {
+              const attackClips: ReadonlyArray<'attack1' | 'attack2' | 'attack3'> = [
+                'attack1',
+                'attack2',
+                'attack3',
+              ];
+              const nextIdx = (attackClips.indexOf(dm.currentAttackClip) + 1) % attackClips.length;
+              dm.currentAttackClip = attackClips[nextIdx];
+              dm.attackCooldown = 1.05;
+              dm.ctrl.setState(dm.currentAttackClip, 0.12);
+
+              if (playerState && dPlayer <= 2.35 && Math.abs(playerY - dm.y) <= 2.3) {
+                playerState.stamina = Math.max(0, (playerState.stamina ?? 100) - 9);
+                playerState.hp = Math.max(1, (playerState.hp ?? 100) - 7);
+              }
+            } else {
+              dm.ctrl.setState(dm.currentAttackClip, 0.12);
+            }
+          }
+
+          dm.root.position.set(dm.x, dm.y, dm.z);
+          dm.root.rotation.order = 'YXZ';
+          dm.root.rotation.y = dm.yaw;
+          dm.root.rotation.x *= 0.8;
+          dm.root.rotation.z *= 0.8;
+          dm.lanternGlow.visible = true;
+          dm.ctrl.update(safeDt);
+          continue;
+        }
+      }
+
+      // 2. Peaceful Scheduled Caravan, Mining Rock Walls (`mine1` / `mine2`) + Loading Minecarts, & Home Rest
+      let targetAnim: DwarfWarriorState = 'idle';
+      if (st.activity === 'caravan_to_mine' || st.activity === 'caravan_to_home') {
+        const isMoving = st.walkCycle > 0;
+        if (isMoving) {
+          dm.ctrl.speed = 2.1;
+          targetAnim = 'walk';
+        } else if (st.miningSwing > 0) {
+          dm.ctrl.speed = 0;
+          targetAnim = d % 2 === 0 ? 'mine1' : 'mine2';
+        } else {
+          dm.ctrl.speed = 0;
+          targetAnim = 'idle';
+        }
+      } else if (st.activity === 'mining_work') {
+        const stCfg = DWARVEN_MINER_STATIONS[d];
+        const cartIdx = stCfg.pairedCartIdx;
+        const cartSt =
+          cartIdx !== undefined ? evaluateMinecartTrackState(cartIdx, elapsedTime) : null;
+
+        if (
+          cartSt &&
+          cartSt.isLoadingAtStart &&
+          stCfg.cartLoadLocalX !== undefined &&
+          stCfg.cartLoadLocalZ !== undefined &&
+          stCfg.cartLoadYaw !== undefined
+        ) {
+          const loadWorldX = mineX + stCfg.cartLoadLocalX;
+          const loadWorldZ = mineEntZ + stCfg.cartLoadLocalZ;
+          const lp = cartSt.loadingProgress;
+          if (lp < 0.22) {
+            const walkT = lp / 0.22;
+            dm.x = st.x + (loadWorldX - st.x) * walkT;
+            dm.z = st.z + (loadWorldZ - st.z) * walkT;
+            dm.yaw = Math.atan2(-(loadWorldX - st.x), -(loadWorldZ - st.z));
+            dm.ctrl.speed = 2.1;
+            targetAnim = 'walk';
+          } else if (lp <= 0.78) {
+            dm.x = loadWorldX;
+            dm.z = loadWorldZ;
+            dm.yaw = stCfg.cartLoadYaw;
+            dm.ctrl.speed = 0;
+            targetAnim = 'mine1';
+          } else {
+            const walkBackT = (lp - 0.78) / 0.22;
+            dm.x = loadWorldX + (st.x - loadWorldX) * walkBackT;
+            dm.z = loadWorldZ + (st.z - loadWorldZ) * walkBackT;
+            dm.yaw = Math.atan2(-(st.x - loadWorldX), -(st.z - loadWorldZ));
+            dm.ctrl.speed = 2.1;
+            targetAnim = 'walk';
+          }
+        } else {
+          // Strike directly into the glowing rock / crystal / gold wall vein right in front of the dwarf!
+          dm.ctrl.speed = 0;
+          const mineCycle = Math.floor((elapsedTime * 0.35 + d * 0.7) % 2);
+          targetAnim = mineCycle === 0 ? 'mine1' : 'mine2';
+        }
+      } else {
+        // Resting at home inside the Dwarven Stone Houses:
+        // Place sleeping dwarves directly on their Bed and sitting dwarves directly on their Wooden Bench!
+        dm.ctrl.speed = 0;
+        const { houseIdx, slot } = getDwarfHomeAssignment(d);
+        const house = DWARVEN_STONE_HOUSES[houseIdx];
+        const hNorm = ((worldHours % 24) + 24) % 24;
+        const isDeepNight = hNorm >= 21.2 || hNorm < 5.2;
+        const slowRestFlip = Math.floor((elapsedTime * 0.02 + houseIdx * 0.7) % 2);
+        const shouldSleep = isDeepNight || (slot === 0 ? slowRestFlip === 0 : slowRestFlip === 1);
+
+        if (shouldSleep) {
+          targetAnim = 'sleep';
+          const bedLocalX = slot === 0 ? -2.0 : 2.0;
+          dm.x = house.x + bedLocalX;
+          dm.y = house.floorY + 0.34;
+          dm.z = house.z + 2.55;
+          dm.yaw = 0; // Head toward headboard (+Z), feet toward -Z
+        } else {
+          targetAnim = 'sit';
+          const benchLocalZ = slot === 0 ? -2.55 : -0.75;
+          dm.x = house.x + house.dirX * 1.55;
+          dm.y = house.floorY;
+          dm.z = house.z + benchLocalZ;
+          // dwRoot uses -Z forward convention (ctrl.group.rotation.y = Math.PI):
+          // Bench at -2.55 faces South (+Z -> yaw = Math.PI), Bench at -0.75 faces North (-Z -> yaw = 0)
+          dm.yaw = slot === 0 ? Math.PI : 0;
+        }
+      }
+
+      dm.root.position.set(dm.x, dm.y, dm.z);
       dm.root.rotation.order = 'YXZ';
-      dm.root.rotation.y = st.yaw;
-      const dwSurf = walkableHeightAt(st.x, st.z, st.y);
-      if (dwSurf.surface === 'ground') {
-        const n = getSurfaceNormalAt(st.x, st.z);
-        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, st.yaw, 0.42);
+      dm.root.rotation.y = dm.yaw;
+      const dwSurf = walkableHeightAt(dm.x, dm.z, dm.y);
+      if (st.activity !== 'resting_home' && dwSurf.surface === 'ground') {
+        const n = getSurfaceNormalAt(dm.x, dm.z);
+        const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, dm.yaw, 0.42);
         dm.root.rotation.x += (slope.pitch - dm.root.rotation.x) * 0.25;
         dm.root.rotation.z += (slope.roll - dm.root.rotation.z) * 0.25;
       } else {
@@ -692,33 +1129,32 @@ export function buildDwarvenKingdomAndMiners(
       }
       dm.lanternGlow.visible = st.lanternLit;
 
-      // Note: Dwarf rig faces -Z locally, so:
-      // - Leaning torso FORWARD toward -Z is NEGATIVE rotation.x
-      // - Raising arm FORWARD/UP toward -Z is POSITIVE rotation.x, and striking DOWNWARD is decreasing rotation.x!
-      if (st.activity === 'caravan_to_mine' || st.activity === 'caravan_to_home') {
-        const stride = Math.sin(st.walkCycle) * 0.52;
-        const bob = Math.abs(Math.cos(st.walkCycle)) * 0.04;
-        dm.torsoPivot.position.y = 0.44 + bob;
-        dm.torsoPivot.rotation.set(-0.08, 0, Math.sin(st.walkCycle) * 0.05);
-        dm.leftLeg.rotation.x = stride;
-        dm.rightLeg.rotation.x = -stride;
-        dm.leftArm.rotation.set(0.45 - stride * 0.25, 0, 0);
-        dm.rightArm.rotation.set(0.35 + stride * 0.45, 0, 0);
-      } else if (st.activity === 'mining_work') {
-        const strikeWave = Math.sin(st.miningSwing * Math.PI * 2);
-        dm.torsoPivot.position.y = 0.44;
-        dm.torsoPivot.rotation.set(-Math.max(0, strikeWave) * 0.24, 0, 0);
-        dm.leftLeg.rotation.x = 0.15;
-        dm.rightLeg.rotation.x = -0.18;
-        dm.leftArm.rotation.set(0.35, 0, 0.12);
-        dm.rightArm.rotation.set(1.12 - strikeWave * 1.15, 0, -0.08);
-      } else {
-        dm.torsoPivot.position.y = 0.44;
-        dm.torsoPivot.rotation.set(0, Math.sin(elapsedTime * 1.2 + d) * 0.12, 0);
-        dm.leftLeg.rotation.x = 0;
-        dm.rightLeg.rotation.x = 0;
-        dm.leftArm.rotation.set(0.15, 0, 0.08);
-        dm.rightArm.rotation.set(0.20, 0, -0.08);
+      dm.ctrl.setState(targetAnim, 0.22);
+      dm.ctrl.update(safeDt);
+    }
+
+    // Automatically swing open Dwarven Stone House doors when a dwarf walks through the doorway
+    for (let hIdx = 0; hIdx < DWARVEN_STONE_HOUSES.length; hIdx++) {
+      const dh = DWARVEN_STONE_HOUSES[hIdx];
+      let dwarfNearDoor = false;
+      for (let d = 0; d < dwarvenMiners.length; d++) {
+        const dm = dwarvenMiners[d];
+        if (dm.isDead) continue;
+        if (Math.hypot(dm.x - dh.doorX, dm.z - dh.doorZ) <= 3.6) {
+          dwarfNearDoor = true;
+          break;
+        }
+      }
+      if (dwarfNearDoor) {
+        for (let p = 0; p < doorPivotHandles.length; p++) {
+          const dp = doorPivotHandles[p];
+          if (dp.id === dh.doorId) {
+            const openAngle = Math.PI * 0.48;
+            dp.currentAngle += (openAngle - dp.currentAngle) * 0.18;
+            dp.leftPivot.rotation.y = -dp.currentAngle;
+            dp.rightPivot.rotation.y = dp.currentAngle;
+          }
+        }
       }
     }
   };

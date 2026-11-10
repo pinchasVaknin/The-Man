@@ -48,6 +48,7 @@ import type {
   IDoorPivotHandle,
   IWorldModelBuildContext,
 } from './models/types';
+import { isMonkDoorwayActive } from './systems/monkTempleSystem';
 // #endregion
 
 // ======================== INTERFACES & CONTRACTS ======================== \\
@@ -239,10 +240,10 @@ export function buildRealisticWorld(
         );
       }
 
-      // 2. Smoothly animate interactive double doors swinging on hinges
+      // 2. Smoothly animate interactive double doors swinging on hinges (also opens for monk guard shift rotation!)
       for (let i = 0; i < doorPivotHandles.length; i++) {
         const dh = doorPivotHandles[i];
-        const isOpen = openDoorIds ? openDoorIds.has(dh.id) : false;
+        const isOpen = (openDoorIds ? openDoorIds.has(dh.id) : false) || isMonkDoorwayActive(dh.id);
         const targetAngle = isOpen ? 1.52 : 0.0;
         if (Math.abs(targetAngle - dh.currentAngle) > 0.001) {
           dh.currentAngle += (targetAngle - dh.currentAngle) * 0.55;

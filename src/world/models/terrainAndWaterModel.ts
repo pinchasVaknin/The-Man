@@ -67,6 +67,9 @@ export function attachAnimatedWaterWaveShader(
       shader.fragmentShader.replace(
         '#include <normal_fragment_maps>',
         `
+        if (vWaterWorldPos.y > -2.0 && vWaterWorldPos.x > -115.0 && vWaterWorldPos.x < -1.0 && vWaterWorldPos.z > 414.0 && vWaterWorldPos.z < 535.0) {
+          discard;
+        }
         #include <normal_fragment_maps>
         float rx = cos(vWaterWorldPos.x * 2.8 + uTime * 2.6) * ${rippleStrength.toFixed(4)} + sin(vWaterWorldPos.z * 3.5 - uTime * 2.1) * ${(rippleStrength * 0.68).toFixed(4)};
         float rz = sin(vWaterWorldPos.z * 3.0 + uTime * 2.3) * ${rippleStrength.toFixed(4)} + cos(vWaterWorldPos.x * 3.3 + uTime * 2.9) * ${(rippleStrength * 0.68).toFixed(4)};
@@ -77,6 +80,26 @@ export function attachAnimatedWaterWaveShader(
   if (animatedWaterMaterials) {
     animatedWaterMaterials.push(mat);
   }
+}
+
+function depressWaterPlaneUnderSouthernMine(
+  geo: THREE.PlaneGeometry,
+  meshCenterX: number,
+  meshCenterZ: number
+): void {
+  const pos = geo.attributes.position;
+  const minX = SOUTHERN_MINE_POS.x - 62.0;
+  const maxX = SOUTHERN_MINE_POS.x + 62.0;
+  const minZ = SOUTHERN_MINE_POS.entranceZ - 14.0;
+  const maxZ = SOUTHERN_MINE_POS.cavernEndZ + 18.0;
+  for (let i = 0; i < pos.count; i++) {
+    const wx = meshCenterX + pos.getX(i);
+    const wz = meshCenterZ + pos.getZ(i);
+    if (wx >= minX && wx <= maxX && wz >= minZ && wz <= maxZ) {
+      pos.setY(i, -28.0);
+    }
+  }
+  pos.needsUpdate = true;
 }
 
 function smoothstepLocal(edge0: number, edge1: number, val: number): number {
@@ -494,6 +517,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const southRiverWaterSegs = isSoftwareGl ? 56 : 96;
   const southRiverWaterGeo = new THREE.PlaneGeometry(520, 600, southRiverWaterSegs, southRiverWaterSegs);
   southRiverWaterGeo.rotateX(-Math.PI / 2);
+  depressWaterPlaneUnderSouthernMine(southRiverWaterGeo, 85, 595);
   southRiverWaterGeo.computeBoundingSphere();
   disposableGeometries.push(southRiverWaterGeo);
 
@@ -531,6 +555,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const swampWaterSegs = isSoftwareGl ? 56 : 96;
   const swampWaterGeo = new THREE.PlaneGeometry(490, 490, swampWaterSegs, swampWaterSegs);
   swampWaterGeo.rotateX(-Math.PI / 2);
+  depressWaterPlaneUnderSouthernMine(swampWaterGeo, MURKY_SWAMP_BIOME_POS.x, MURKY_SWAMP_BIOME_POS.z);
   swampWaterGeo.computeBoundingSphere();
   disposableGeometries.push(swampWaterGeo);
 

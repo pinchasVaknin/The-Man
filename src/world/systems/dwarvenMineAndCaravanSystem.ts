@@ -36,7 +36,7 @@ const CATWALK_STAIR_SPAN = CATWALK_STAIR_END_LZ - CATWALK_STAIR_START_LZ;
 const DOCK_PIER_HEIGHT_OFFSET = 0.14;
 const CRYSTAL_LAKE_DEPTH = 1.9;
 
-interface IMinerStationConfig {
+export interface IMinerStationConfig {
   readonly name: string;
   readonly houseIdx: number;
   readonly homeOffsetX: number;
@@ -45,23 +45,309 @@ interface IMinerStationConfig {
   readonly workLocalX: number;
   readonly workLocalZ: number;
   readonly workYaw: number;
+  readonly rockLocalX: number;
+  readonly rockLocalZ: number;
+  readonly rockRadius: number;
+  readonly oreKind: 'gold' | 'emerald' | 'sapphire' | 'amethyst';
+  readonly pairedCartIdx?: number;
+  readonly cartLoadLocalX?: number;
+  readonly cartLoadLocalZ?: number;
+  readonly cartLoadYaw?: number;
 }
 type MinerStationConfig = IMinerStationConfig;
 
-const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
-  // Room 1 (Central Junction Hall) ore veins
-  { name: t('dwarven.miners.durin'), houseIdx: 0, homeOffsetX: -1.6, homeOffsetZ: -1.4, laneOffsetX: -1.25, workLocalX: -8.2, workLocalZ: 41.5, workYaw: Math.PI / 2 },
-  { name: t('dwarven.miners.balin'), houseIdx: 1, homeOffsetX: 1.6, homeOffsetZ: -1.4, laneOffsetX: 1.25, workLocalX: 8.2, workLocalZ: 42.5, workYaw: -Math.PI / 2 },
-  // Room 2 (West Crystal Lake Chamber) crystal veins
-  { name: t('dwarven.miners.dwalin'), houseIdx: 0, homeOffsetX: -1.6, homeOffsetZ: 1.4, laneOffsetX: -1.25, workLocalX: -30.5, workLocalZ: 49.0, workYaw: Math.PI / 2 },
-  { name: t('dwarven.miners.gloin'), houseIdx: 2, homeOffsetX: -1.6, homeOffsetZ: -1.4, laneOffsetX: 1.25, workLocalX: -30.5, workLocalZ: 56.5, workYaw: Math.PI / 2 },
-  // Room 3 (East Dwarven Smelting Foundry) anvils & furnace ore
-  { name: t('dwarven.miners.oin'), houseIdx: 1, homeOffsetX: 1.6, homeOffsetZ: 1.4, laneOffsetX: -1.25, workLocalX: 33.5, workLocalZ: 49.0, workYaw: -Math.PI / 2 },
-  { name: t('dwarven.miners.bifur'), houseIdx: 3, homeOffsetX: 1.6, homeOffsetZ: -1.4, laneOffsetX: 1.25, workLocalX: 35.5, workLocalZ: 60.0, workYaw: 0 },
-  // Room 4 (Deep South Royal Treasure Vault) dragon-gold veins
-  { name: t('dwarven.miners.bofur'), houseIdx: 2, homeOffsetX: -1.6, homeOffsetZ: 1.4, laneOffsetX: -1.25, workLocalX: -9.5, workLocalZ: 88.0, workYaw: Math.PI / 2 },
-  { name: t('dwarven.miners.bombur'), houseIdx: 3, homeOffsetX: 1.6, homeOffsetZ: 1.4, laneOffsetX: 1.25, workLocalX: 9.5, workLocalZ: 88.0, workYaw: -Math.PI / 2 },
+export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
+  // Room 1 (Central Junction Hall) West & East rock wall ore veins + Minecart loading
+  {
+    name: t('dwarven.miners.durin'),
+    houseIdx: 0,
+    homeOffsetX: -1.6,
+    homeOffsetZ: -1.4,
+    laneOffsetX: -1.25,
+    workLocalX: -11.4,
+    workLocalZ: 41.5,
+    workYaw: Math.PI / 2,
+    rockLocalX: -12.75,
+    rockLocalZ: 41.5,
+    rockRadius: 1.15,
+    oreKind: 'gold',
+    pairedCartIdx: 0,
+    cartLoadLocalX: -1.15,
+    cartLoadLocalZ: 41.5,
+    cartLoadYaw: -Math.PI / 2,
+  },
+  {
+    name: t('dwarven.miners.balin'),
+    houseIdx: 1,
+    homeOffsetX: 1.6,
+    homeOffsetZ: -1.4,
+    laneOffsetX: 1.25,
+    workLocalX: 11.4,
+    workLocalZ: 42.5,
+    workYaw: -Math.PI / 2,
+    rockLocalX: 12.75,
+    rockLocalZ: 42.5,
+    rockRadius: 1.15,
+    oreKind: 'emerald',
+    pairedCartIdx: 1,
+    cartLoadLocalX: 8.5,
+    cartLoadLocalZ: 47.75,
+    cartLoadYaw: Math.PI,
+  },
+  // Room 2 (West Crystal Lake Chamber) East rock partition sapphire & amethyst veins
+  {
+    name: t('dwarven.miners.dwalin'),
+    houseIdx: 0,
+    homeOffsetX: -1.6,
+    homeOffsetZ: 1.4,
+    laneOffsetX: -1.25,
+    workLocalX: -27.8,
+    workLocalZ: 41.5,
+    workYaw: -Math.PI / 2,
+    rockLocalX: -26.5,
+    rockLocalZ: 41.5,
+    rockRadius: 1.15,
+    oreKind: 'sapphire',
+    pairedCartIdx: 2,
+    cartLoadLocalX: -28.0,
+    cartLoadLocalZ: 47.75,
+    cartLoadYaw: Math.PI,
+  },
+  {
+    name: t('dwarven.miners.gloin'),
+    houseIdx: 2,
+    homeOffsetX: -1.6,
+    homeOffsetZ: -1.4,
+    laneOffsetX: 1.25,
+    workLocalX: -27.8,
+    workLocalZ: 56.5,
+    workYaw: -Math.PI / 2,
+    rockLocalX: -26.5,
+    rockLocalZ: 56.5,
+    rockRadius: 1.15,
+    oreKind: 'amethyst',
+  },
+  // Room 3 (East Dwarven Smelting Foundry) West rock wall vein & Blast-Furnace ore boulder
+  {
+    name: t('dwarven.miners.oin'),
+    houseIdx: 1,
+    homeOffsetX: 1.6,
+    homeOffsetZ: 1.4,
+    laneOffsetX: -1.25,
+    workLocalX: 27.8,
+    workLocalZ: 42.5,
+    workYaw: Math.PI / 2,
+    rockLocalX: 26.5,
+    rockLocalZ: 42.5,
+    rockRadius: 1.15,
+    oreKind: 'gold',
+    pairedCartIdx: 3,
+    cartLoadLocalX: 31.3,
+    cartLoadLocalZ: 43.5,
+    cartLoadYaw: -Math.PI / 2,
+  },
+  {
+    name: t('dwarven.miners.bifur'),
+    houseIdx: 3,
+    homeOffsetX: 1.6,
+    homeOffsetZ: -1.4,
+    laneOffsetX: 1.25,
+    workLocalX: 38.2,
+    workLocalZ: 64.5,
+    workYaw: -Math.PI / 2,
+    rockLocalX: 39.6,
+    rockLocalZ: 64.5,
+    rockRadius: 1.25,
+    oreKind: 'gold',
+    pairedCartIdx: 4,
+    cartLoadLocalX: 33.7,
+    cartLoadLocalZ: 65.5,
+    cartLoadYaw: Math.PI / 2,
+  },
+  // Room 4 (Deep South Royal Treasure Vault) West & East dragon-gold wall veins
+  {
+    name: t('dwarven.miners.bofur'),
+    houseIdx: 2,
+    homeOffsetX: -1.6,
+    homeOffsetZ: 1.4,
+    laneOffsetX: -1.25,
+    workLocalX: -13.8,
+    workLocalZ: 88.0,
+    workYaw: Math.PI / 2,
+    rockLocalX: -15.15,
+    rockLocalZ: 88.0,
+    rockRadius: 1.2,
+    oreKind: 'gold',
+    pairedCartIdx: 5,
+    cartLoadLocalX: -1.15,
+    cartLoadLocalZ: 88.0,
+    cartLoadYaw: -Math.PI / 2,
+  },
+  {
+    name: t('dwarven.miners.bombur'),
+    houseIdx: 3,
+    homeOffsetX: 1.6,
+    homeOffsetZ: 1.4,
+    laneOffsetX: 1.25,
+    workLocalX: 13.8,
+    workLocalZ: 88.0,
+    workYaw: -Math.PI / 2,
+    rockLocalX: 15.15,
+    rockLocalZ: 88.0,
+    rockRadius: 1.2,
+    oreKind: 'sapphire',
+  },
 ];
+
+export interface IMinecartRouteConfig {
+  readonly id: string;
+  readonly startLocalX: number;
+  readonly startLocalZ: number;
+  readonly endLocalX: number;
+  readonly endLocalZ: number;
+  readonly yaw: number;
+  readonly cycleDuration: number;
+  readonly phaseOffset: number;
+  readonly oreKind: 'gold' | 'emerald' | 'sapphire' | 'amethyst';
+}
+
+export const DWARVEN_MINECART_ROUTES: readonly IMinecartRouteConfig[] = [
+  // Cart 0: Room 1 North Central Track (loads from Durin at z=41.5, hauls South to z=57.5)
+  {
+    id: 'minecart-central-north',
+    startLocalX: 0,
+    startLocalZ: 41.5,
+    endLocalX: 0,
+    endLocalZ: 57.5,
+    yaw: 0,
+    cycleDuration: 22.0,
+    phaseOffset: 0.0,
+    oreKind: 'gold',
+  },
+  // Cart 1: East Cross-Corridor Track (loads from Balin at x=8.5, z=49.0, hauls East into Room 3 Foundry at x=28.5, z=49.0)
+  {
+    id: 'minecart-east-corridor',
+    startLocalX: 8.5,
+    startLocalZ: 49.0,
+    endLocalX: 28.5,
+    endLocalZ: 49.0,
+    yaw: Math.PI / 2,
+    cycleDuration: 24.0,
+    phaseOffset: 0.35,
+    oreKind: 'emerald',
+  },
+  // Cart 2: West Cross-Corridor Track (loads from Dwalin at x=-28.0, z=49.0, hauls East into Room 1 at x=-8.5, z=49.0)
+  {
+    id: 'minecart-west-corridor',
+    startLocalX: -28.0,
+    startLocalZ: 49.0,
+    endLocalX: -8.5,
+    endLocalZ: 49.0,
+    yaw: Math.PI / 2,
+    cycleDuration: 25.0,
+    phaseOffset: 0.65,
+    oreKind: 'sapphire',
+  },
+  // Cart 3: Room 3 Foundry North Track (loads from Oin at x=32.5, z=43.5, hauls South to Blast Furnace 1 at x=32.5, z=58.5)
+  {
+    id: 'minecart-foundry-north',
+    startLocalX: 32.5,
+    startLocalZ: 43.5,
+    endLocalX: 32.5,
+    endLocalZ: 58.5,
+    yaw: 0,
+    cycleDuration: 21.0,
+    phaseOffset: 0.18,
+    oreKind: 'gold',
+  },
+  // Cart 4: Room 3 Foundry South Track (loads from Bifur at x=32.5, z=65.5, hauls South to Blast Furnace 2 at x=32.5, z=84.5)
+  {
+    id: 'minecart-foundry-south',
+    startLocalX: 32.5,
+    startLocalZ: 65.5,
+    endLocalX: 32.5,
+    endLocalZ: 84.5,
+    yaw: 0,
+    cycleDuration: 23.0,
+    phaseOffset: 0.52,
+    oreKind: 'emerald',
+  },
+  // Cart 5: Deep South Vault Track (loads from Bofur at x=0, z=88.0, hauls North/South to Royal Treasury at x=0, z=98.5)
+  {
+    id: 'minecart-vault-south',
+    startLocalX: 0,
+    startLocalZ: 88.0,
+    endLocalX: 0,
+    endLocalZ: 98.5,
+    yaw: 0,
+    cycleDuration: 20.0,
+    phaseOffset: 0.82,
+    oreKind: 'sapphire',
+  },
+];
+
+export function evaluateMinecartTrackState(
+  cartIndex: number,
+  elapsedTime: number
+): {
+  localX: number;
+  localZ: number;
+  yaw: number;
+  travelProgress: number;
+  isLoadingAtStart: boolean;
+  loadingProgress: number;
+  oreFillScale: number;
+  wheelAngle: number;
+} {
+  const route = DWARVEN_MINECART_ROUTES[cartIndex % DWARVEN_MINECART_ROUTES.length];
+  const rawPhase = ((elapsedTime / route.cycleDuration + route.phaseOffset) % 1.0 + 1.0) % 1.0;
+
+  // Phase breakdown:
+  // [0.00 .. 0.24]: Parked at start station while Dwarf loads ore into the cart
+  // [0.24 .. 0.52]: Rolling smoothly along iron rails from start -> end
+  // [0.52 .. 0.68]: Parked at end station unloading into smelter/vault
+  // [0.68 .. 1.00]: Rolling smoothly back along iron rails from end -> start
+  let u = 0;
+  let isLoadingAtStart = false;
+  let loadingProgress = 0;
+  let oreFillScale = 0.65;
+
+  if (rawPhase < 0.24) {
+    u = 0;
+    isLoadingAtStart = true;
+    loadingProgress = rawPhase / 0.24;
+    oreFillScale = 0.55 + 0.6 * loadingProgress;
+  } else if (rawPhase < 0.52) {
+    const t = (rawPhase - 0.24) / 0.28;
+    u = t * t * (3 - 2 * t);
+    oreFillScale = 1.15;
+  } else if (rawPhase < 0.68) {
+    u = 1;
+    const unloadT = (rawPhase - 0.52) / 0.16;
+    oreFillScale = 1.15 - 0.6 * unloadT;
+  } else {
+    const t = (rawPhase - 0.68) / 0.32;
+    const smoothT = t * t * (3 - 2 * t);
+    u = 1 - smoothT;
+    oreFillScale = 0.55;
+  }
+
+  const localX = route.startLocalX + (route.endLocalX - route.startLocalX) * u;
+  const localZ = route.startLocalZ + (route.endLocalZ - route.startLocalZ) * u;
+  const distFromStart = Math.hypot(localX - route.startLocalX, localZ - route.startLocalZ);
+  const wheelAngle = distFromStart / 0.25;
+
+  return {
+    localX,
+    localZ,
+    yaw: route.yaw,
+    travelProgress: u,
+    isLoadingAtStart,
+    loadingProgress,
+    oreFillScale,
+    wheelAngle,
+  };
+}
 // #endregion
 
 // ======================== WAYPOINT MATH ======================== \\
