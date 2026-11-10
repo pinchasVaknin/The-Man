@@ -56,7 +56,9 @@ export interface IGameShellOverlayProps {
   muted: boolean;
   weatherToggle: WeatherToggleOption;
   gameSettings?: IGameSettingsConfig;
+  hasSurvivalSave?: boolean;
   onStartGame: () => void;
+  onNewGame?: () => void;
   onStartGodMode?: () => void;
   onResumeGame: () => void;
   onReturnToTitle: () => void;
@@ -106,7 +108,9 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
   telemetry: externalTelemetry,
   weatherToggle,
   gameSettings = SAVED_GAME_SETTINGS,
+  hasSurvivalSave = false,
   onStartGame,
+  onNewGame,
   onStartGodMode,
   onResumeGame,
   onReturnToTitle,
@@ -552,38 +556,103 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
             aria-label={t('title.main_menu_aria')}
             className="flex flex-col items-start w-full gap-1.5 pointer-events-auto"
           >
-            {/* 1. Start Game (Survival Mode) Text Button */}
-            <button
-              type="button"
-              data-start="true"
-              data-testid="start-survival-btn"
-              onClick={(e) => {
-                e.currentTarget.blur();
-                onStartGame();
-              }}
-              className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
-            >
-              {/* Hover gradient fading toward the inner screen (right) */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
-                style={{
-                  background:
-                    'linear-gradient(to right, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
+            {/* 1. Survival Mode: Start Game (when no save exists) OR Continue + New Game (when save exists) */}
+            {!hasSurvivalSave ? (
+              <button
+                type="button"
+                data-start="true"
+                data-testid="start-survival-btn"
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  onStartGame();
                 }}
-              />
-              {/* Left edge active indicator bar on hover */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
-              />
-              <span
-                className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
-                style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+                className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
               >
-                {t('title.start_game')}
-              </span>
-            </button>
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                  style={{
+                    background:
+                      'linear-gradient(to right, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
+                  }}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                />
+                <span
+                  className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
+                  style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+                >
+                  {t('title.start_game')}
+                </span>
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  data-start="true"
+                  data-testid="continue-survival-btn"
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    onStartGame();
+                  }}
+                  className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                    style={{
+                      background:
+                        'linear-gradient(to right, rgba(245, 158, 11, 0.34) 0%, rgba(217, 119, 6, 0.14) 55%, rgba(217, 119, 6, 0) 100%)',
+                    }}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                  />
+                  <span
+                    className="relative z-10 block font-display-he text-2xl sm:text-3xl font-bold tracking-wide text-stone-100 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
+                    style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+                  >
+                    Continue
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="new-survival-game-btn"
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    if (onNewGame) {
+                      onNewGame();
+                    } else {
+                      onStartGame();
+                    }
+                  }}
+                  className="group relative w-80 sm:w-96 py-3.5 pl-5 pr-12 text-left bg-transparent border-0 outline-none cursor-pointer overflow-hidden"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                    style={{
+                      background:
+                        'linear-gradient(to right, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.11) 55%, rgba(217, 119, 6, 0) 100%)',
+                    }}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-amber-400/90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-200"
+                  />
+                  <span
+                    className="relative z-10 block font-display-he text-xl sm:text-2xl font-semibold tracking-wide text-stone-200 group-hover:text-amber-200 transition-all duration-200 group-hover:translate-x-1.5"
+                    style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.9)' }}
+                  >
+                    New Game
+                  </span>
+                </button>
+              </>
+            )}
 
             {/* 1B. God Mode Text Button */}
             <button

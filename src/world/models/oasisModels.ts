@@ -1190,22 +1190,70 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     swampMossRockMat
   );
 
-  // Gnarled Bald-Cypress / Swamp Willow trees with buttress roots & hanging Spanish moss
+  // Gnarled Bald-Cypress / Swamp Willow trees with buttress roots & hanging Spanish moss spread across the vast marshland (64 trees)
   const swampTreeOffsets: ReadonlyArray<readonly [number, number, number]> = [
-    [-22.0, -18.0, 1.15],
-    [-8.0, -28.0, 1.05],
-    [16.0, -24.0, 1.22],
-    [32.0, -10.0, 1.08],
-    [42.0, 8.0, 1.18],
-    [18.0, 34.0, 1.12],
-    [-12.0, 32.0, 1.25],
-    [-34.0, 16.0, 1.04],
-    [-46.0, -6.0, 1.16],
-    [6.0, -12.0, 0.96],
-    [-26.0, 4.0, 1.08],
-    [28.0, 26.0, 1.14],
-    [-4.0, 48.0, 1.1],
-    [-38.0, 38.0, 1.02],
+    [-26.0, -22.0, 1.18],
+    [-10.0, -34.0, 1.08],
+    [18.0, -28.0, 1.24],
+    [36.0, -14.0, 1.12],
+    [46.0, 12.0, 1.2],
+    [22.0, 38.0, 1.15],
+    [-14.0, 36.0, 1.28],
+    [-38.0, 18.0, 1.06],
+    [-52.0, -8.0, 1.18],
+    [8.0, -14.0, 0.98],
+    [-28.0, 6.0, 1.1],
+    [32.0, 28.0, 1.16],
+    [-6.0, 54.0, 1.12],
+    [-42.0, 42.0, 1.05],
+    [74.0, -24.0, 1.22],
+    [86.0, 8.0, 1.14],
+    [68.0, 44.0, 1.18],
+    [38.0, 74.0, 1.1],
+    [-18.0, 84.0, 1.24],
+    [-64.0, 68.0, 1.16],
+    [-96.0, 36.0, 1.2],
+    [-112.0, -4.0, 1.15],
+    [-98.0, -48.0, 1.22],
+    [-62.0, -68.0, 1.12],
+    [-12.0, -76.0, 1.18],
+    [42.0, -64.0, 1.14],
+    [-76.0, -14.0, 1.08],
+    [62.0, -42.0, 1.16],
+    // Outer & Extended Marshland Ring (covers the enlarged 350m..450m swamp expanse)
+    [118.0, -36.0, 1.24],
+    [134.0, -4.0, 1.16],
+    [126.0, 38.0, 1.2],
+    [108.0, 74.0, 1.14],
+    [82.0, 104.0, 1.22],
+    [44.0, 122.0, 1.18],
+    [4.0, 134.0, 1.26],
+    [-42.0, 138.0, 1.15],
+    [-84.0, 124.0, 1.2],
+    [-118.0, 96.0, 1.16],
+    [-142.0, 58.0, 1.24],
+    [-154.0, 14.0, 1.18],
+    [-148.0, -34.0, 1.12],
+    [-132.0, -78.0, 1.22],
+    [-96.0, -108.0, 1.16],
+    [-52.0, -124.0, 1.2],
+    [-4.0, -118.0, 1.14],
+    [46.0, -108.0, 1.18],
+    [92.0, -92.0, 1.24],
+    [122.0, -68.0, 1.12],
+    [-128.0, 26.0, 1.15],
+    [-114.0, 62.0, 1.22],
+    [-74.0, 98.0, 1.14],
+    [-22.0, 108.0, 1.18],
+    [28.0, 98.0, 1.12],
+    [68.0, 82.0, 1.2],
+    [96.0, 52.0, 1.16],
+    [112.0, 12.0, 1.08],
+    [94.0, -54.0, 1.22],
+    [54.0, -86.0, 1.15],
+    [-34.0, -96.0, 1.18],
+    [-82.0, -84.0, 1.12],
+    [-124.0, -52.0, 1.2],
   ];
 
   for (let t = 0; t < swampTreeOffsets.length; t++) {
@@ -1265,82 +1313,186 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     murkySwampGroup.add(treeGroup);
   }
 
-  // Fallen mossy swamp logs & shoreline cattail/reed clusters & floating lilypads
+  // 48 Fallen mossy swamp logs (with moss strips & sprouting reeds) across all 10 lagoons & islands
   const swampLogSpots: ReadonlyArray<readonly [number, number, number]> = [
-    [-14.0, -6.0, 0.45],
-    [12.0, 6.0, -0.62],
-    [22.0, 14.0, 1.15],
-    [-20.0, 22.0, 0.28],
-    [4.0, 28.0, -0.35],
-    [-32.0, -14.0, 0.88],
+    [-18.0, -8.0, 0.45],
+    [16.0, 8.0, -0.62],
+    [28.0, 18.0, 1.15],
+    [-24.0, 26.0, 0.28],
+    [6.0, 34.0, -0.35],
+    [-38.0, -18.0, 0.88],
+    [64.0, -18.0, 0.52],
+    [-72.0, 22.0, -0.44],
+    [-54.0, -42.0, 1.05],
+    [34.0, 56.0, -0.78],
+    [-88.0, -12.0, 0.34],
+    [12.0, -58.0, -0.55],
+    // Extended logs around all 10 lagoons and outer swamp banks
+    [44.0, -24.0, 0.92],
+    [76.0, -4.0, -0.38],
+    [-46.0, 8.0, 1.24],
+    [-78.0, 4.0, -0.85],
+    [-8.0, -42.0, 0.64],
+    [-28.0, -72.0, -0.42],
+    [8.0, 74.0, 0.76],
+    [38.0, 48.0, -1.12],
+    [-118.0, -16.0, 0.58],
+    [-96.0, -38.0, -0.67],
+    [92.0, 18.0, 0.84],
+    [116.0, 34.0, -0.48],
+    [-104.0, 62.0, 1.08],
+    [-78.0, 84.0, -0.54],
+    [64.0, -62.0, 0.36],
+    [88.0, -82.0, -0.94],
+    [-42.0, 98.0, 0.72],
+    [-14.0, 122.0, -0.32],
+    [-134.0, 8.0, 0.95],
+    [-126.0, 44.0, -0.64],
+    [-112.0, -68.0, 0.42],
+    [-68.0, -92.0, -1.04],
+    [-18.0, -98.0, 0.82],
+    [28.0, -88.0, -0.52],
+    [106.0, -42.0, 0.68],
+    [128.0, -12.0, -0.76],
+    [118.0, 58.0, 0.48],
+    [84.0, 78.0, -0.88],
+    [54.0, 96.0, 1.14],
+    [18.0, 108.0, -0.44],
+    [-58.0, 114.0, 0.62],
+    [-92.0, 102.0, -0.72],
+    [48.0, 4.0, 0.28],
+    [-12.0, 18.0, -0.92],
+    [26.0, -36.0, 0.74],
+    [-52.0, 46.0, -0.36],
   ];
   for (let l = 0; l < swampLogSpots.length; l++) {
     const [lx, lz, rotY] = swampLogSpots[l];
     const gy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + lx, MURKY_SWAMP_BIOME_POS.z + lz);
+    const logY = Math.max(WATER_LEVEL - 0.05, gy + 0.16);
+    const logScale = 0.92 + ((l * 7) % 5) * 0.14;
     const logMesh = new THREE.Mesh(fallenSwampLogGeo, swampCypressBarkMat);
-    logMesh.position.set(lx, Math.max(WATER_LEVEL - 0.08, gy + 0.16), lz);
+    logMesh.position.set(lx, logY, lz);
+    logMesh.scale.set(logScale, logScale, logScale * (1.0 + (l % 3) * 0.18));
     logMesh.rotation.y = rotY;
-    logMesh.rotation.z = 0.06;
+    logMesh.rotation.z = 0.05;
     logMesh.castShadow = true;
     logMesh.receiveShadow = true;
     murkySwampGroup.add(logMesh);
+
+    // Add a mossy boulder or sprouting cattail/reed clump beside every fallen log
+    if (l % 2 === 0) {
+      const reedX = lx + Math.cos(rotY + 1.2) * 1.15;
+      const reedZ = lz + Math.sin(rotY + 1.2) * 1.15;
+      const reedBaseY = Math.max(WATER_LEVEL - 0.12, gy - 0.06);
+      for (let s = 0; s < 3; s++) {
+        const sx = reedX + Math.cos(rotY + s * 2.1) * 0.38;
+        const sz = reedZ + Math.sin(rotY + s * 2.1) * 0.38;
+        const stem = new THREE.Mesh(papyrusStemGeo, papyrusGreenMat);
+        stem.position.set(sx, reedBaseY, sz);
+        murkySwampGroup.add(stem);
+        if (s === 0) {
+          const spike = new THREE.Mesh(cattailSpikeGeo, cattailHeadMat);
+          spike.position.set(sx, reedBaseY, sz);
+          murkySwampGroup.add(spike);
+        } else {
+          const crown = new THREE.Mesh(papyrusCrownGeo, palmFrondMat);
+          crown.position.set(sx, reedBaseY, sz);
+          murkySwampGroup.add(crown);
+        }
+      }
+    } else {
+      const boulder = new THREE.Mesh(swampBoulderGeo, swampMossRockMat);
+      boulder.position.set(
+        lx - Math.cos(rotY) * 1.4,
+        Math.max(WATER_LEVEL - 0.08, gy + 0.08),
+        lz - Math.sin(rotY) * 1.4
+      );
+      boulder.scale.set(1.15, 0.65, 1.0);
+      boulder.rotation.y = rotY * 1.7;
+      murkySwampGroup.add(boulder);
+    }
   }
 
-  // Dense cattails, bulrushes, lilypad rafts & lotus blooms around the swamp lagoons
+  // Dense cattails, bulrushes, sedge reeds, lilypad rafts & lotus blooms around all 10 swamp lagoons & 12 marsh rings
   const swampFloraRings: ReadonlyArray<readonly [number, number, number]> = [
-    [0.0, 0.0, 16.5],
-    [27.0, 17.0, 15.0],
-    [-18.0, 14.0, 12.0],
-    [8.0, -18.0, 13.5],
-    [-24.0, -12.0, 12.5],
+    // 10 Primary Hippo Wallow Lagoon Perimeters
+    [0.0, 0.0, 29.0],
+    [58.0, -12.0, 25.0],
+    [-62.0, 16.0, 27.0],
+    [-16.0, -58.0, 23.0],
+    [22.0, 62.0, 25.0],
+    [-108.0, -28.0, 23.0],
+    [104.0, 26.0, 23.0],
+    [-92.0, 74.0, 22.0],
+    [76.0, -72.0, 22.0],
+    [-28.0, 112.0, 24.0],
+    // 12 Inner & Outer Marshland Reed/Lilypad Rings across the enlarged basin
+    [28.0, 24.0, 18.0],
+    [-34.0, -22.0, 19.0],
+    [-52.0, 54.0, 20.0],
+    [54.0, 32.0, 19.0],
+    [-68.0, -48.0, 20.0],
+    [32.0, -42.0, 18.0],
+    [88.0, -22.0, 21.0],
+    [-128.0, 22.0, 21.0],
+    [66.0, 88.0, 22.0],
+    [-66.0, 108.0, 21.0],
+    [14.0, -96.0, 21.0],
+    [118.0, -28.0, 20.0],
   ];
   for (let ringIdx = 0; ringIdx < swampFloraRings.length; ringIdx++) {
     const [cx, cz, radius] = swampFloraRings[ringIdx];
-    const clusterCount = 12;
+    const clusterCount = 18;
     for (let c = 0; c < clusterCount; c++) {
       const ang = (c / clusterCount) * Math.PI * 2 + ringIdx * 0.7;
-      const rDist = radius * (0.72 + ((c * 7 + ringIdx * 3) % 5) * 0.11);
-      const fx = cx + Math.cos(ang) * rDist;
-      const fz = cz + Math.sin(ang) * rDist;
-      const gy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + fx, MURKY_SWAMP_BIOME_POS.z + fz);
-
-      if (gy <= WATER_LEVEL - 0.12) {
-        // Floating lilypad & swamp blossom in open water pool
+      // 1) Inner water ring: floating lilypad rafts & pink lotus blossoms
+      const padDist = radius * (0.48 + ((c * 5 + ringIdx * 3) % 5) * 0.08);
+      const px = cx + Math.cos(ang) * padDist;
+      const pz = cz + Math.sin(ang) * padDist;
+      const pGy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + px, MURKY_SWAMP_BIOME_POS.z + pz);
+      if (pGy <= WATER_LEVEL + 0.02) {
         const pad = new THREE.Mesh(lilyPadGeo, lilyPadMat);
-        pad.position.set(fx, WATER_LEVEL + 0.025, fz);
+        pad.position.set(px, WATER_LEVEL + 0.025, pz);
         pad.rotation.y = ang * 1.7;
-        pad.scale.setScalar(0.95 + (c % 3) * 0.25);
+        pad.scale.setScalar(0.95 + (c % 3) * 0.28);
         murkySwampGroup.add(pad);
 
         if (c % 3 === 0) {
           const blossom = new THREE.Mesh(lotusBlossomGeo, lotusPetalPinkMat);
-          blossom.position.set(fx, WATER_LEVEL + 0.11, fz);
+          blossom.position.set(px, WATER_LEVEL + 0.11, pz);
           murkySwampGroup.add(blossom);
         }
-      } else if (gy <= WATER_LEVEL + 0.38) {
-        // Shoreline cattail & sedge reed clump
+      }
+
+      // 2) Outer shoreline ring: tall emergent cattails, bulrushes, sedge reeds & mossy boulders
+      const rDist = radius * (0.88 + ((c * 7 + ringIdx * 3) % 5) * 0.09);
+      const fx = cx + Math.cos(ang + 0.16) * rDist;
+      const fz = cz + Math.sin(ang + 0.16) * rDist;
+      const gy = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + fx, MURKY_SWAMP_BIOME_POS.z + fz);
+      const reedBaseY = Math.max(WATER_LEVEL - 0.16, Math.min(WATER_LEVEL + 0.45, gy - 0.06));
+
+      if (c % 5 !== 4) {
         for (let s = 0; s < 3; s++) {
-          const sx = fx + Math.cos(ang + s * 2.1) * 0.42;
-          const sz = fz + Math.sin(ang + s * 2.1) * 0.42;
+          const sx = fx + Math.cos(ang + s * 2.1) * 0.45;
+          const sz = fz + Math.sin(ang + s * 2.1) * 0.45;
           const stem = new THREE.Mesh(papyrusStemGeo, papyrusGreenMat);
-          stem.position.set(sx, gy - 0.08, sz);
+          stem.position.set(sx, reedBaseY, sz);
           murkySwampGroup.add(stem);
 
           if (s === 0) {
             const spike = new THREE.Mesh(cattailSpikeGeo, cattailHeadMat);
-            spike.position.set(sx, gy - 0.08, sz);
+            spike.position.set(sx, reedBaseY, sz);
             murkySwampGroup.add(spike);
           } else {
             const crown = new THREE.Mesh(papyrusCrownGeo, palmFrondMat);
-            crown.position.set(sx, gy - 0.08, sz);
+            crown.position.set(sx, reedBaseY, sz);
             murkySwampGroup.add(crown);
           }
         }
-      } else if (c % 4 === 0) {
-        // Mossy hummock boulder
+      } else {
         const boulder = new THREE.Mesh(swampBoulderGeo, swampMossRockMat);
-        boulder.position.set(fx, gy + 0.12, fz);
-        boulder.scale.set(1.2, 0.68, 1.05);
+        boulder.position.set(fx, Math.max(WATER_LEVEL - 0.06, gy + 0.1), fz);
+        boulder.scale.set(1.25, 0.72, 1.08);
         boulder.rotation.y = ang;
         murkySwampGroup.add(boulder);
       }
@@ -1352,7 +1504,7 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     obj: murkySwampGroup,
     cx: MURKY_SWAMP_BIOME_POS.x,
     cz: MURKY_SWAMP_BIOME_POS.z,
-    radius: 110.0,
+    radius: 340.0,
   });
 
   // ======================== 9. SOUTHEAST HARBOR BAY & COASTAL DOLPHIN REEF (330, 256) ======================== \\

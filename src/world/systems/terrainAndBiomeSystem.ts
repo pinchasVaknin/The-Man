@@ -42,6 +42,7 @@ import {
   SMALL_MEADOW_HILLS,
   BEAR_MOUNTAIN_CAVES,
   SOUTHERN_RIVER_WAYPOINTS,
+  SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS,
   SOUTHERN_RIVER_BRIDGE_POS,
   CROCODILE_RIVER_BEND_POS,
   MURKY_SWAMP_BIOME_POS,
@@ -198,8 +199,9 @@ export function murkySwampBiomeFactorAt(x: number, z: number): number {
   if (d > MURKY_SWAMP_BIOME_POS.outerRadius + 20.0) return 0;
   const warp = fbm2D(x * 0.028 + 3.7, z * 0.028 - 2.1, 2) * 14.0;
   const radial = 1.0 - smoothstep(MURKY_SWAMP_BIOME_POS.innerRadius * 0.55, MURKY_SWAMP_BIOME_POS.outerRadius, d + warp);
-  // Keep the swamp factor at 0 across the Southern Dwarven Mine mountain footprint (x >= -112) so the underground cavern roof never pokes out
-  const mineClearance = 1.0 - smoothstep(-126.0, -112.0, x);
+  // Keep the swamp factor at 0 across the Southern Dwarven Mine mountain footprint so the underground cavern roof never pokes out
+  const distToMine = Math.hypot(x - SOUTHERN_MINE_POS.x, z - SOUTHERN_MINE_POS.z);
+  const mineClearance = smoothstep(52.0, 68.0, distToMine);
   return radial * mineClearance;
 }
 
@@ -316,14 +318,21 @@ export function regionalForestDensityAt(x: number, z: number): number {
 }
 
 /**
- * Summary: Computes minimum distance from (x, z) to the Southern River centerline segments.
+ * Summary: Computes minimum distance from (x, z) to the Southern River centerline segments,
+ *          including the fork after the Mountain Gorge Pass that branches both to the Sea and into the Hippo Swamp.
  */
 export function southernRiverDistanceAt(x: number, z: number): number {
-  if (x < 60 || x > 285 || z < 310 || z > 820) return 999;
+  if (x < -340 || x > 285 || z < 310 || z > 1040) return 999;
   let minD = 999;
   for (let i = 0; i < SOUTHERN_RIVER_WAYPOINTS.length - 1; i++) {
     const a = SOUTHERN_RIVER_WAYPOINTS[i];
     const b = SOUTHERN_RIVER_WAYPOINTS[i + 1];
+    const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
+    if (d < minD) minD = d;
+  }
+  for (let i = 0; i < SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS.length - 1; i++) {
+    const a = SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS[i];
+    const b = SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS[i + 1];
     const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
     if (d < minD) minD = d;
   }
@@ -874,9 +883,11 @@ export function groundHeightAt(x: number, z: number): number {
 
   // Southern River flowing from the Sea at (256, 330) south-southwest through the Grand Bridge (178, 378),
   // into the Crocodile River Bend Lagoon at (132, 475), south through the Mountain Gorge Pass (118, 545..655),
-  // and curving east-southeast back to the Sea at (258, 785)
+  // and splitting after the Mountain Gorge Ridge into:
+  //   1) East-Southeast branch back to the Sea at (258, 785)
+  //   2) West-Central branch flowing south of the extended mountain ridge into the vast Hippo Swamp at (-95, 785)
   let southRiverDepth = 0;
-  if (x >= 60 && x <= 285 && z >= 315 && z <= 815) {
+  if (x >= -340 && x <= 285 && z >= 315 && z <= 1040) {
     const sDist = southernRiverDistanceAt(x, z);
     const bridgeKeepStraight =
       Math.abs(z - SOUTHERN_RIVER_BRIDGE_POS.z) < 22.0
@@ -974,14 +985,20 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // 2) Western Gorge Mountain Ridge: Natural craggy mountain ridge immediately West of the
-  //    Cliffside Mountain Pass Trail (x = 94.5) tapering organically into foothills South of the Dwarven Kingdom.
-  if (x >= -65.0 && x <= 102.0 && z >= 522.0 && z <= 685.0) {
+  // 2) Extended Western Gorge Mountain Ridge: Continuous craggy mountain ridge running West from the
+  //    Cliffside Mountain Pass Trail (x = 94.5) all the way across the central-south border (x = 88..-260, z ≈ 592..610),
+  //    bounding the vast southern Hippo Marshland on its northern side!
+  if (x >= -315.0 && x <= 102.0 && z >= 522.0 && z <= 685.0) {
     const warpZ = Math.sin(x * 0.042) * 12.0 + fbm2D(x * 0.025 + 1.4, z * 0.025 - 2.1, 2) * 18.0;
-    const barrierDist = distToSegment(x, z + warpZ * (x < 68.0 ? 1.0 : 0.0), 88.0, 596.0, -18.0, 612.0);
+    const warpedZ = z + warpZ * (x < 68.0 ? 1.0 : 0.0);
+    const barrierDist = Math.min(
+      distToSegment(x, warpedZ, 88.0, 596.0, -18.0, 610.0),
+      distToSegment(x, warpedZ, -18.0, 610.0, -145.0, 604.0),
+      distToSegment(x, warpedZ, -145.0, 604.0, -260.0, 592.0)
+    );
     // Keep the east end of the Western Range sharply bounded at x <= 94.8 right beside the Cliffside Pass Trail!
     const trailSideCutoff = x > 84.0 ? 1.0 - smoothstep(84.0, 94.8, x) : 1.0;
-    const westTaper = 1.0 - smoothstep(-5.0, -58.0, x);
+    const westTaper = 1.0 - smoothstep(-235.0, -305.0, x);
     const westBarrierW = (1.0 - smoothstep(14.0, 58.0, barrierDist)) * trailSideCutoff * westTaper;
     if (westBarrierW > 0.005) {
       const crag =
@@ -1318,25 +1335,62 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // Murky Swamp & Hippo Marshland Basin (-175, 435): interwoven shallow water channels, hippo wallow lagoons, and mossy peat hummocks
+  // Vast Murky Swamp & Hippo Marshland Basin (-95, 790) south of the extended Mountain Ridge:
+  // interwoven shallow water channels, 10 large hippo wallow lagoons, shoreline reed shelves, and mossy peat hummock islands
   const swampF = murkySwampBiomeFactorAt(x, z);
   if (swampF > 0.01) {
     const sx = x - MURKY_SWAMP_BIOME_POS.x;
     const sz = z - MURKY_SWAMP_BIOME_POS.z;
     const rawChannelWave =
-      Math.sin(sx * 0.082 + Math.cos(sz * 0.074) * 1.55) * 0.48 +
-      Math.cos(sz * 0.088 - Math.sin(sx * 0.068) * 1.45) * 0.42 +
-      fbm2D(x * 0.042 + 4.1, z * 0.042 - 1.8, 2) * 0.35;
-    // Two primary deeper hippo wallow pools at (-175, 435) and (-148, 452)
-    const mainPoolDist = Math.hypot(sx * 0.92, sz * 1.08);
-    const eastPoolDist = Math.hypot(x - (MURKY_SWAMP_BIOME_POS.x + 27.0), z - (MURKY_SWAMP_BIOME_POS.z + 17.0));
-    const mainPoolW = 1.0 - smoothstep(10.0, 23.0, mainPoolDist);
-    const eastPoolW = 1.0 - smoothstep(7.5, 16.5, eastPoolDist);
-    const poolSuppress = Math.max(mainPoolW, eastPoolW);
+      Math.sin(sx * 0.058 + Math.cos(sz * 0.052) * 1.65) * 0.52 +
+      Math.cos(sz * 0.062 - Math.sin(sx * 0.048) * 1.55) * 0.48 +
+      fbm2D(x * 0.034 + 4.1, z * 0.034 - 1.8, 2) * 0.42;
+
+    // 10 expansive hippo wallow lagoons spread across the giant marshland basin
+    const d0 = Math.hypot(sx * 0.92, sz * 1.04);
+    const d1 = Math.hypot(sx - 58.0, sz + 12.0);
+    const d2 = Math.hypot(sx + 62.0, sz - 16.0);
+    const d3 = Math.hypot(sx + 16.0, sz + 58.0);
+    const d4 = Math.hypot(sx - 22.0, sz - 62.0);
+    const d5 = Math.hypot(sx + 108.0, sz + 28.0);
+    const d6 = Math.hypot(sx - 104.0, sz - 26.0);
+    const d7 = Math.hypot(sx + 92.0, sz - 74.0);
+    const d8 = Math.hypot(sx - 76.0, sz + 72.0);
+    const d9 = Math.hypot(sx + 28.0, sz - 112.0);
+
+    const w0 = 1.0 - smoothstep(14.0, 32.0, d0);
+    const w1 = 1.0 - smoothstep(12.0, 28.0, d1);
+    const w2 = 1.0 - smoothstep(13.0, 30.0, d2);
+    const w3 = 1.0 - smoothstep(11.0, 26.0, d3);
+    const w4 = 1.0 - smoothstep(12.0, 28.0, d4);
+    const w5 = 1.0 - smoothstep(11.0, 26.0, d5);
+    const w6 = 1.0 - smoothstep(11.0, 26.0, d6);
+    const w7 = 1.0 - smoothstep(10.0, 25.0, d7);
+    const w8 = 1.0 - smoothstep(10.0, 25.0, d8);
+    const w9 = 1.0 - smoothstep(11.0, 27.0, d9);
+
+    const poolSuppress = Math.max(w0, w1, w2, w3, w4, w5, w6, w7, w8, w9);
+
+    // Shoreline reed rings around each lagoon (creates natural +0.05..+0.32m shallow shelves for cattails, bulrushes & logs)
+    const minLagoonDist = Math.min(d0, d1, d2, d3, d4, d5, d6, d7, d8, d9);
+    const shoreRingBoost =
+      smoothstep(18.0, 27.0, minLagoonDist) * (1.0 - smoothstep(30.0, 44.0, minLagoonDist)) * 0.34;
+
     const channelWave = rawChannelWave * (1.0 - poolSuppress * 0.92);
-    const poolCarve = mainPoolW * 0.72 + eastPoolW * 0.62;
-    const swampTargetH = WATER_LEVEL - 0.16 + channelWave - poolCarve;
-    const blendW = smoothstep(0.02, 0.48, swampF);
+    const poolCarve = Math.max(
+      w0 * 0.92,
+      w1 * 0.85,
+      w2 * 0.88,
+      w3 * 0.82,
+      w4 * 0.84,
+      w5 * 0.8,
+      w6 * 0.8,
+      w7 * 0.78,
+      w8 * 0.78,
+      w9 * 0.82
+    );
+    const swampTargetH = WATER_LEVEL - 0.12 + channelWave + shoreRingBoost - poolCarve;
+    const blendW = smoothstep(0.02, 0.45, swampF);
     h = h * (1.0 - blendW) + swampTargetH * blendW;
   }
 
@@ -2920,6 +2974,8 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
         }
       }
       if (inClearZone) continue;
+      // Never spawn trees or boulders on the Southern Cliffside Mountain Pass corridor
+      if (x >= 88.0 && x <= 116.0 && z >= 504.0 && z <= 692.0) continue;
       if (x >= 195 && z >= 85 && z <= 325) continue;
       if (x >= 245 && z > 325) continue;
 
@@ -3208,28 +3264,32 @@ export function generateWatersideCornflowerPositions(
     tryAddCandidate(cx, cz, r1, r2);
   }
 
-  // 2) Southern River & Crocodile River Bend banks
-  for (let w = 0; w < SOUTHERN_RIVER_WAYPOINTS.length - 1 && placements.length < targetCount; w++) {
-    const p0 = SOUTHERN_RIVER_WAYPOINTS[w];
-    const p1 = SOUTHERN_RIVER_WAYPOINTS[w + 1];
-    const segSamples = 36;
-    for (let s = 0; s < segSamples && placements.length < targetCount; s++) {
-      const idx = w * 100 + s;
-      const r1 = hash2D(idx * 19 + 5, idx * 47 + 11);
-      const r2 = hash2D(idx * 73 + 23, idx * 37 + 7);
-      const t = (s + r1 * 0.8) / segSamples;
-      const rx = p0.x + (p1.x - p0.x) * t;
-      const rz = p0.z + (p1.z - p0.z) * t;
-      const side = s % 2 === 0 ? 1 : -1;
-      const bankOffset = 10.5 + r2 * 4.6;
-      const segDx = p1.x - p0.x;
-      const segDz = p1.z - p0.z;
-      const segLen = Math.max(0.001, Math.hypot(segDx, segDz));
-      const perpX = -segDz / segLen;
-      const perpZ = segDx / segLen;
-      const cx = rx + perpX * side * bankOffset;
-      const cz = rz + perpZ * side * bankOffset;
-      tryAddCandidate(cx, cz, r1, r2);
+  // 2) Southern River, Crocodile River Bend, and Swamp Fork Branch banks
+  const allRiverBranchLists = [SOUTHERN_RIVER_WAYPOINTS, SOUTHERN_RIVER_SWAMP_BRANCH_WAYPOINTS];
+  for (let bIdx = 0; bIdx < allRiverBranchLists.length; bIdx++) {
+    const branch = allRiverBranchLists[bIdx];
+    for (let w = 0; w < branch.length - 1 && placements.length < targetCount; w++) {
+      const p0 = branch[w];
+      const p1 = branch[w + 1];
+      const segSamples = 28;
+      for (let s = 0; s < segSamples && placements.length < targetCount; s++) {
+        const idx = bIdx * 1000 + w * 100 + s;
+        const r1 = hash2D(idx * 19 + 5, idx * 47 + 11);
+        const r2 = hash2D(idx * 73 + 23, idx * 37 + 7);
+        const t = (s + r1 * 0.8) / segSamples;
+        const rx = p0.x + (p1.x - p0.x) * t;
+        const rz = p0.z + (p1.z - p0.z) * t;
+        const side = s % 2 === 0 ? 1 : -1;
+        const bankOffset = 10.5 + r2 * 4.6;
+        const segDx = p1.x - p0.x;
+        const segDz = p1.z - p0.z;
+        const segLen = Math.max(0.001, Math.hypot(segDx, segDz));
+        const perpX = -segDz / segLen;
+        const perpZ = segDx / segLen;
+        const cx = rx + perpX * side * bankOffset;
+        const cz = rz + perpZ * side * bankOffset;
+        tryAddCandidate(cx, cz, r1, r2);
+      }
     }
   }
 

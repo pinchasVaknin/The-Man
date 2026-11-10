@@ -15,6 +15,7 @@ import type { IWeatherStateSnapshot } from '../domain/worldTypes';
 import {
   WATER_LEVEL,
   SOUTHERN_MINE_POS,
+  MURKY_SWAMP_BIOME_POS,
   groundHeightAt,
   isInsideBearCave,
   trailFactorAt,
@@ -1562,6 +1563,42 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     }
   }
 
+  // Populate the vast Southern Hippo Marshland (-95, 790) with lush ForestBushes, ForestFerns & marsh flowers
+  const swampBotanicalCount = isSoftwareGl ? 110 : 210;
+  for (let s = 0; s < swampBotanicalCount; s++) {
+    const r1 = hash2D(s * 31 + 7, s * 59 + 13);
+    const r2 = hash2D(s * 73 + 19, s * 43 + 29);
+    const ang = r1 * Math.PI * 2;
+    const dist = 12.0 + Math.sqrt(r2) * (MURKY_SWAMP_BIOME_POS.innerRadius + 15.0);
+    const sx = MURKY_SWAMP_BIOME_POS.x + Math.cos(ang) * dist;
+    const sz = MURKY_SWAMP_BIOME_POS.z + Math.sin(ang) * dist;
+    const sy = groundHeightAt(sx, sz);
+    const plantY = Math.max(WATER_LEVEL + 0.02, sy - 0.03);
+    if (sy >= WATER_LEVEL - 0.08 && sy <= WATER_LEVEL + 1.8) {
+      fDummy.position.set(sx, plantY, sz);
+      fDummy.rotation.set(0, r2 * Math.PI * 2, 0);
+      if (s % 3 === 0) {
+        fDummy.scale.setScalar((0.92 + r1 * 0.55) * FOREST_BUSH_BASE_SCALE);
+        fDummy.updateMatrix();
+        bushSamples.push({ x: sx, z: sz, matrix: fDummy.matrix.clone() });
+      } else {
+        fDummy.scale.setScalar((0.95 + r2 * 0.6) * FOREST_FERN_BASE_SCALE);
+        fDummy.updateMatrix();
+        fernSamples.push({ x: sx, z: sz, matrix: fDummy.matrix.clone() });
+      }
+      if (s % 4 === 0) {
+        fDummy.position.set(sx + 0.85, plantY + 0.01, sz - 0.65);
+        fDummy.scale.setScalar((0.88 + r1 * 0.45) * (s % 8 === 0 ? WHITE_FLOWER_BASE_SCALE : CORNFLOWER_BASE_SCALE));
+        fDummy.updateMatrix();
+        if (s % 8 === 0) {
+          whiteflowerSamples.push({ x: sx + 0.85, z: sz - 0.65, matrix: fDummy.matrix.clone() });
+        } else {
+          cornflowerSamples.push({ x: sx + 0.85, z: sz - 0.65, matrix: fDummy.matrix.clone() });
+        }
+      }
+    }
+  }
+
   const buildUndergrowthSectorLodBatch = (
     samples: readonly IFloraSample[],
     floraKey: FloraKey
@@ -1643,6 +1680,30 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
       gDummy.scale.set(0.85 + r1 * 0.45, 0.7 + r2 * 0.65, 0.85 + r1 * 0.45);
       gColor.setHSL(0.26 + (r1 - 0.5) * 0.06, 0.48, 0.38 + (r2 - 0.5) * 0.1);
     }
+    gDummy.updateMatrix();
+    grassSamples.push({
+      x: gx,
+      z: gz,
+      matrix: gDummy.matrix.clone(),
+      color: gColor.clone(),
+    });
+  }
+
+  // Add dense swaying marsh reeds & sedge grass tufts across the enlarged Southern Hippo Swamp (-95, 790)
+  const swampReedCount = isSoftwareGl ? 220 : 420;
+  for (let s = 0; s < swampReedCount; s++) {
+    const r1 = hash2D(s * 17 + 101, s * 37 + 211);
+    const r2 = hash2D(s * 61 + 307, s * 89 + 401);
+    const ang = r1 * Math.PI * 2;
+    const dist = 8.0 + Math.sqrt(r2) * (MURKY_SWAMP_BIOME_POS.innerRadius + 20.0);
+    const gx = MURKY_SWAMP_BIOME_POS.x + Math.cos(ang) * dist;
+    const gz = MURKY_SWAMP_BIOME_POS.z + Math.sin(ang) * dist;
+    const gy = groundHeightAt(gx, gz);
+    if (gy < WATER_LEVEL - 0.14 || gy > WATER_LEVEL + 1.6) continue;
+    gDummy.position.set(gx, Math.max(WATER_LEVEL - 0.02, gy - 0.02), gz);
+    gDummy.rotation.set(0, r1 * Math.PI * 2, 0);
+    gDummy.scale.set(0.95 + r1 * 0.45, 1.55 + r2 * 0.65, 0.95 + r1 * 0.45);
+    gColor.setHex(s % 2 === 0 ? 0x4e6e2e : 0x5c7536);
     gDummy.updateMatrix();
     grassSamples.push({
       x: gx,

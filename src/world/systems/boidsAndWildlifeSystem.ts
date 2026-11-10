@@ -19,6 +19,7 @@ import {
   FLOATING_BLOOMING_ISLANDS,
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHWEST_OASIS_POS,
+  MURKY_SWAMP_BIOME_POS,
   SOLID_BUILDING_BOXES,
   resolveHorizontalBoxCollision,
   getNearbySolidBuildingBoxes,
@@ -169,7 +170,8 @@ export interface ISmallAnimalState {
   fleeCooldown: number;
   isResting: boolean;
   wakeMeter: number; // 0..1 invisible noise wake-up meter while sleeping at night
-  wokenUpTimer: number; // > 0 when awakened by player noise at night
+  wokenUpTimer: number; // > 0 when awakened by player noise at night or holding a grudge
+  isLeashedReturning?: boolean; // true when walking back to territory after BOTH out of chase range AND out of territory
   hp?: number; // Current invisible health points (multi-arrow survival)
   maxHp?: number; // Maximum invisible health points for this species
   hitReactionTimer?: number; // Brief flinch/aggro timer when struck by an arrow or sword
@@ -630,7 +632,11 @@ export function killGroundAnimal(animal: ISmallAnimalState): void {
     }
   }
   animal.treeState = 'ground_forage';
-  animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
+  if (animal.species === 'koifish') {
+    animal.y = Math.min(animal.y ?? WATER_LEVEL - 0.38, WATER_LEVEL - 0.42);
+  } else {
+    animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
+  }
   animal.isResting = false;
   animal.isSeekingShelter = false;
   animal.isFleeing = false;
@@ -695,7 +701,8 @@ export function triggerCrocodilePackAggro(
     c.fleeCooldown = 0;
     c.alertLevel = 'curious';
     c.aiBehavior = 'charging';
-    c.wokenUpTimer = 14.0;
+    c.isLeashedReturning = false;
+    c.wokenUpTimer = 45.0;
     if (attackerX !== undefined && attackerZ !== undefined) {
       c.stimulusX = attackerX;
       c.stimulusZ = attackerZ;
@@ -796,12 +803,13 @@ export function damageGroundAnimal(
     return { killed: true, remainingHp: 0, maxHp };
   }
 
-  // Wounded but still alive: wake immediately and react to the attacker
+  // Wounded but still alive: wake immediately, clear any leash, and remember the grudge for 45s!
   animal.isResting = false;
   animal.isSeekingShelter = false;
+  animal.isLeashedReturning = false;
   animal.wokenUpTimer =
     animal.species === 'stag'
-      ? 28.0
+      ? 45.0
       : SPECIES_PROFILES[animal.species].woundedAlertSeconds;
   if (attackerX !== undefined && attackerZ !== undefined) {
     animal.stimulusX = attackerX;
@@ -1453,16 +1461,31 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: -86, z: 62, species: 'squirrel' },
     { x: -68, z: 42, species: 'squirrel' },
     { x: -58, z: 26, species: 'squirrel' },
-    // Semi-Aquatic Hippopotamuses — Southwest Oasis Lagoon & Murky Swamp Marsh (5)
-    { x: -312, z: 318, species: 'hippo' },
-    { x: -303, z: 323, species: 'hippo' },
-    { x: -318, z: 314, species: 'hippo' },
-    { x: -175, z: 435, species: 'hippo' },
-    { x: -148, z: 452, species: 'hippo' },
-    // Royal Koi Fish — Lakeside Tea Pavilion Zen Pond, Waterfall Plunge Pool & Southwest Oasis Lagoon (7)
+    // Semi-Aquatic Hippopotamuses — Vast Southern Murky Swamp & Hippo Marshland south of the extended Mountain Ridge (12)
+    { x: MURKY_SWAMP_BIOME_POS.x, z: MURKY_SWAMP_BIOME_POS.z, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x + 58, z: MURKY_SWAMP_BIOME_POS.z - 12, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 62, z: MURKY_SWAMP_BIOME_POS.z + 16, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 16, z: MURKY_SWAMP_BIOME_POS.z - 58, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x + 22, z: MURKY_SWAMP_BIOME_POS.z + 62, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 108, z: MURKY_SWAMP_BIOME_POS.z - 28, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x + 104, z: MURKY_SWAMP_BIOME_POS.z + 26, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 92, z: MURKY_SWAMP_BIOME_POS.z + 74, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x + 76, z: MURKY_SWAMP_BIOME_POS.z - 72, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 28, z: MURKY_SWAMP_BIOME_POS.z + 112, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x + 18, z: MURKY_SWAMP_BIOME_POS.z - 20, species: 'hippo' },
+    { x: MURKY_SWAMP_BIOME_POS.x - 38, z: MURKY_SWAMP_BIOME_POS.z + 36, species: 'hippo' },
+    // Royal Koi Fish — Western Lagoon Lake near Starting Cabin, Central Lake, Waterfall Plunge Pool & Southwest Oasis Lagoon (15)
     { x: -128, z: 46, species: 'koifish' },
-    { x: -132, z: 50, species: 'koifish' },
-    { x: -124, z: 53, species: 'koifish' },
+    { x: -136, z: 38, species: 'koifish' },
+    { x: -146, z: 44, species: 'koifish' },
+    { x: -140, z: 29, species: 'koifish' },
+    { x: -132, z: 54, species: 'koifish' },
+    { x: -152, z: 36, species: 'koifish' },
+    { x: -124, z: 35, species: 'koifish' },
+    { x: -144, z: 52, species: 'koifish' },
+    { x: -6, z: 2, species: 'koifish' },
+    { x: 4, z: -3, species: 'koifish' },
+    { x: -2, z: 8, species: 'koifish' },
     { x: -42, z: -28, species: 'koifish' },
     { x: -38, z: -32, species: 'koifish' },
     { x: -308, z: 316, species: 'koifish' },
@@ -1513,7 +1536,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       (c.species === 'hippo' && gy <= waterSurfY + 0.15);
     const initY =
       c.species === 'koifish'
-        ? waterSurfY - 0.22
+        ? waterSurfY - 0.38
         : c.species === 'dolphin'
           ? c.x > 650
             ? WATER_LEVEL - 1.56
@@ -2008,16 +2031,22 @@ export function stepSmallAnimals(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
 
-    // Dead animals stay anchored on top of the terrain. Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
+    // Dead animals stay anchored on top of the terrain (while dead fish sink into the water!). Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
     if (a.isDead) {
       if (a.aiBehavior !== 'dead' || a.vx !== 0 || a.vz !== 0) {
         a.vx = 0;
         a.vz = 0;
-        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
+        if (a.species !== 'koifish') {
+          a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
+        }
         a.isResting = false;
         a.isSeekingShelter = false;
         a.isFleeing = false;
         a.aiBehavior = 'dead';
+      }
+      if (a.species === 'koifish') {
+        const lakeBedY = Math.max(groundHeightAt(a.x, a.z) + 0.14, WATER_LEVEL - 1.15);
+        a.y = Math.max(lakeBedY, (a.y ?? WATER_LEVEL - 0.38) - Math.max(0.016, dt) * 0.65);
       }
       if (a.isBoss || a.species === 'dragon') {
         a.respawnTimer = undefined;
@@ -2028,9 +2057,10 @@ export function stepSmallAnimals(
         const toHomeDx = a.homeX - playerX;
         const toHomeDz = a.homeZ - playerZ;
         const distPlayerToHome = Math.hypot(toHomeDx, toHomeDz);
-        let canRespawnOffscreen = distPlayerToHome > 38.0;
+        const distPlayerToCorpse = Math.hypot(a.x - playerX, a.z - playerZ);
+        let canRespawnOffscreen = distPlayerToHome > 38.0 && distPlayerToCorpse > 38.0;
         if (playerStateRef) {
-          // When actively playing, only respawn when the player is far away (> 95m) AND not looking toward the spawn spot!
+          // Respawn once the player is outside the animal's territory/radius (> 62m) and either not staring directly at a close spawn spot or > 125m away!
           const lookX = -Math.sin(playerStateRef.yaw);
           const lookZ = -Math.cos(playerStateRef.yaw);
           const dot =
@@ -2038,13 +2068,28 @@ export function stepSmallAnimals(
               ? (toHomeDx * lookX + toHomeDz * lookZ) / distPlayerToHome
               : 1.0;
           canRespawnOffscreen =
-            distPlayerToHome > 95.0 && (dot < 0.15 || distPlayerToHome > 195.0);
+            distPlayerToHome > 62.0 &&
+            distPlayerToCorpse > 56.0 &&
+            (dot < 0.35 || distPlayerToHome > 125.0);
         }
         if (a.respawnTimer <= 0 && canRespawnOffscreen) {
           const homeWalk = walkableHeightAt(a.homeX, a.homeZ);
           a.x = a.homeX;
           a.z = a.homeZ;
-          a.y = Math.max(WATER_LEVEL + 0.08, homeWalk.height);
+          const isAquaticOrSemiAquatic =
+            a.species === 'hippo' ||
+            a.species === 'crocodile' ||
+            a.species === 'koifish' ||
+            a.species === 'dolphin';
+          if (isAquaticOrSemiAquatic && homeWalk.height <= WATER_LEVEL + 0.15) {
+            a.inWater = true;
+            const depth = Math.max(0, WATER_LEVEL - homeWalk.height);
+            const submerge = Math.min(depth, getAnimalWaterSubmergenceDepth(a.species));
+            a.y = Math.max(homeWalk.height, WATER_LEVEL - submerge);
+          } else {
+            a.inWater = false;
+            a.y = Math.max(WATER_LEVEL + 0.08, homeWalk.height);
+          }
           a.vx = 0;
           a.vz = 0;
           a.isDead = false;
@@ -2056,6 +2101,10 @@ export function stepSmallAnimals(
           a.wokenUpTimer = 0;
           a.hitReactionTimer = 0;
           a.fleeCooldown = 0;
+          a.roarWarningDone = false;
+          a.stompWarningDone = false;
+          a.trappedByBearJawTimer = 0;
+          a.bearTrapSlowTimer = 0;
           a.alertLevel = 'grazing';
           a.aiBehavior = 'grazing';
         }
@@ -2458,6 +2507,12 @@ export function stepSmallAnimals(
           if (i === j) continue;
           const other = animals[j];
           if (other.isDead || isPredatorSpecies(other.species)) continue;
+          if (
+            a.species === 'crocodile' &&
+            Math.hypot(other.x - a.homeX, other.z - a.homeZ) > 22.0
+          ) {
+            continue;
+          }
           const dPrey = Math.hypot(other.x - a.x, other.z - a.z);
           if (dPrey < bestPreyDist) {
             bestPreyDist = dPrey;
@@ -2477,10 +2532,52 @@ export function stepSmallAnimals(
         const playerInVolcanoSanctum =
           isBossLion && Boolean(isInsideVolcanoSanctum(playerX, playerZ));
 
+        // Universal Predator Dual-Condition Territory Leash & Grudge Memory Rule:
+        // A creature ONLY stops chasing (`a.isLeashedReturning = true`) when BOTH:
+        //   1) The player has moved far outside the creature's large chase range (`distP > 54.0`)
+        //   2) AND the creature itself is outside its home territory (`animalDistFromHome > territoryRadius`) AND the player is outside its territory (`!playerInsideCreatureTerritory`).
+        // When it stops chasing and walks back to its territory, it RETAINS `a.wokenUpTimer` (45s grudge memory)
+        // so if the player returns to the area or comes within 42m during that time, it immediately resumes attacking!
+        const animalDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+        const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+        const territoryRadius = a.species === 'crocodile' ? 42.0 : 48.0;
+        const chaseRange = 54.0;
+        const reaggroRange = 42.0;
+        const playerInsideCreatureTerritory =
+          playerDistFromHome <= territoryRadius ||
+          (a.species === 'bear' && a.caveIndex !== undefined && playerDistFromHome <= 52.0) ||
+          playerInBossChamber ||
+          (isBossLion && playerInVolcanoSanctum);
+
+        if (!a.isLeashedReturning) {
+          if (
+            !playerInsideCreatureTerritory &&
+            animalDistFromHome > territoryRadius &&
+            distP > chaseRange
+          ) {
+            a.isLeashedReturning = true;
+            a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+            a.alertLevel = 'grazing';
+            a.stimulusX = undefined;
+            a.stimulusZ = undefined;
+          }
+        } else {
+          // Creature is walking back home with a grudge: if player returns to territory or within 42m, immediately resume chasing!
+          if (playerInsideCreatureTerritory || distP <= reaggroRange) {
+            a.isLeashedReturning = false;
+            a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+          } else if (animalDistFromHome <= 6.0 && (a.wokenUpTimer ?? 0) <= 0) {
+            a.isLeashedReturning = false;
+          }
+        }
+
+        const isCreatureLeashedOutOfTerritory = Boolean(a.isLeashedReturning);
+
         const provokedByShot =
+          !isCreatureLeashedOutOfTerritory &&
           (a.wokenUpTimer ?? 0) > 0 &&
           ((a.hp ?? a.maxHp ?? 1) < (a.maxHp ?? 1) || a.species === 'crocodile');
-        const alreadyChasingPlayer = a.alertLevel === 'curious';
+        const alreadyChasingPlayer = !isCreatureLeashedOutOfTerritory && a.alertLevel === 'curious';
         const basePlayerDetectRange = alreadyChasingPlayer
           ? SPECIES_PROFILES[a.species].playerDetectRangeWhileChasing
           : SPECIES_PROFILES[a.species].playerDetectRange;
@@ -2499,6 +2596,7 @@ export function stepSmallAnimals(
         const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
         const canReachPlayerVertically = playerVertDiff <= (isBossLion ? 5.2 : 3.4);
         if (
+          !isCreatureLeashedOutOfTerritory &&
           !playerRidingMysticalLion &&
           canReachPlayerVertically &&
           (!isBossLion || playerInBossChamber || (provokedByShot && playerInVolcanoSanctum)) &&
@@ -2517,6 +2615,7 @@ export function stepSmallAnimals(
         // it CANNOT cancel or interrupt the animation mid-way (even if prey moves out of range),
         // and it CANNOT begin moving until the full animation finishes and transitions to a locomotion state!
         const hasActiveCommittedAction =
+          !isCreatureLeashedOutOfTerritory &&
           (a.actionTimer ?? 0) > 0 &&
           (a.aiBehavior === 'attacking' || a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping');
 
@@ -3009,13 +3108,19 @@ export function stepSmallAnimals(
               a.vz = 0;
               a.yaw = rotateYawSmoothlyToward(a.yaw, Math.PI / 2, 4.0, safeDt);
             }
-          } else if (a.species === 'crocodile' && distFromHome > 4.5) {
-            a.wokenUpTimer = 0;
+          } else if (distFromHome > (a.species === 'crocodile' ? 4.5 : 14.0)) {
             a.isResting = false;
             a.aiBehavior = 'wandering';
-            const returnSpd = 3.2;
-            a.vx = ((a.homeX - a.x) / distFromHome) * returnSpd;
-            a.vz = ((a.homeZ - a.z) / distFromHome) * returnSpd;
+            const steeredHome =
+              a.species === 'bear'
+                ? steerBearThroughCavePortal(a.x, a.z, a.homeX, a.homeZ, a.caveIndex)
+                : { x: a.homeX, z: a.homeZ };
+            const toHomeX = steeredHome.x - a.x;
+            const toHomeZ = steeredHome.z - a.z;
+            const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
+            const returnSpd = a.species === 'crocodile' ? 3.2 : 3.4;
+            a.vx = (toHomeX / dHome) * returnSpd;
+            a.vz = (toHomeZ / dHome) * returnSpd;
             a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.5, safeDt);
             a.hopPhase += safeDt * 9.0;
           } else {
@@ -3100,8 +3205,21 @@ export function stepSmallAnimals(
     //       and retaliates with powerful antler-gore attack animations!
     // -------------------------------------------------------------------------
     if (a.species === 'stag') {
+      const stagDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+      const playerDistFromStagHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+      if (!a.isLeashedReturning) {
+        if (playerDistFromStagHome > 42.0 && stagDistFromHome > 38.0 && distP > 48.0) {
+          a.isLeashedReturning = true;
+          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+          a.alertLevel = 'grazing';
+        }
+      } else if (playerDistFromStagHome <= 38.0 || distP <= 38.0) {
+        a.isLeashedReturning = false;
+      }
+      const isStagLeashedOut = Boolean(a.isLeashedReturning);
       const isProvokedStag =
         !a.isTamed &&
+        !isStagLeashedOut &&
         (a.wokenUpTimer ?? 0) > 0 &&
         (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9);
 
@@ -3176,7 +3294,14 @@ export function stepSmallAnimals(
       const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
       const wanderSeed = hash2D(a.id * 13.7, timeWindow);
       const pauseThreshold = SPECIES_PROFILES.stag.grazePauseThreshold;
-      if (wanderSeed > pauseThreshold) {
+      if (stagDistFromHome > 10.0) {
+        a.aiBehavior = 'wandering';
+        const returnSpd = 2.8;
+        a.vx = ((a.homeX - a.x) / stagDistFromHome) * returnSpd;
+        a.vz = ((a.homeZ - a.z) / stagDistFromHome) * returnSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+        a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
+      } else if (wanderSeed > pauseThreshold) {
         a.aiBehavior = 'grazing';
         a.vx = 0;
         a.vz = 0;
@@ -3214,39 +3339,78 @@ export function stepSmallAnimals(
         Math.hypot(a.x - SOUTHWEST_OASIS_POS.x, a.z - SOUTHWEST_OASIS_POS.z) <= 13.5
           ? SOUTHWEST_OASIS_POS.lagoonWaterY
           : WATER_LEVEL;
-      const isProvokedHippo =
-        (a.wokenUpTimer ?? 0) > 0 && (a.hp ?? a.maxHp ?? 280) < (a.maxHp ?? 280);
-      const warnRadius = isPlayerSneaking ? 6.5 : 13.5;
-      const chargeRadius = isPlayerSneaking ? 4.2 : 8.5;
-      const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
-      const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
       const toPlayerX = playerX - a.x;
       const toPlayerZ = playerZ - a.z;
       const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
-      const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
-      const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
-      const isCommittedYawn = a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02;
+      const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+      const playerDistFromHippoHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+      const hippoTerritoryRad = 52.0;
+      const hippoChaseRange = 54.0;
+      const hippoReaggroRange = 42.0;
 
-      if (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius) {
+      // Dual-condition leash: Hippo ONLY stops chasing when BOTH the player is far outside its chase range (> 54m)
+      // AND the Hippo itself has left its marshland territory (> 52m) AND the player is outside the territory!
+      // While returning home, it remembers its grudge (wokenUpTimer) for 45 seconds!
+      if (!a.isLeashedReturning) {
+        if (
+          playerDistFromHippoHome > hippoTerritoryRad &&
+          hippoDistFromHome > hippoTerritoryRad &&
+          dPlayer > hippoChaseRange
+        ) {
+          a.isLeashedReturning = true;
+          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+          a.alertLevel = 'grazing';
+        }
+      } else if (playerDistFromHippoHome <= hippoTerritoryRad || dPlayer <= hippoReaggroRange) {
+        a.isLeashedReturning = false;
+        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+      } else if (hippoDistFromHome <= 6.5 && (a.wokenUpTimer ?? 0) <= 0) {
+        a.isLeashedReturning = false;
+      }
+
+      const isHippoLeashedOut = Boolean(a.isLeashedReturning);
+      const isProvokedHippo =
+        !isHippoLeashedOut &&
+        (a.wokenUpTimer ?? 0) > 0 &&
+        ((a.hp ?? a.maxHp ?? 280) < (a.maxHp ?? 280) || dPlayer <= hippoReaggroRange);
+      const warnRadius = isPlayerSneaking ? 8.5 : 16.5;
+      const chargeRadius = isPlayerSneaking ? 5.5 : 11.5;
+      const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
+      const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
+      const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
+      const isCommittedAttack =
+        !isHippoLeashedOut && a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
+      const isCommittedYawn =
+        !isHippoLeashedOut && a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02;
+
+      if (isCommittedAttack || isProvokedHippo || (!isHippoLeashedOut && dPlayer <= chargeRadius)) {
         a.isResting = false;
         a.isSeekingShelter = false;
         a.isFleeing = false;
         a.alertLevel = 'curious';
+        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
         if (isCommittedAttack || dPlayer <= attackTriggerDist) {
           if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
             a.aiBehavior = 'attacking';
-            a.actionTimer = 1.65;
+            a.actionTimer = 1.25;
           }
-          a.vx = 0;
-          a.vz = 0;
+          // Hippo keeps running/charging forward while executing its leg-moving attack whenever the player backs away,
+          // while strictly maintaining a 2.65m body gap so the player camera never enters inside the Hippo's 3D body!
+          const chargeSpd = SPECIES_PROFILES.hippo.chargeSpeed;
+          const minBodyGap = standoffDist;
+          const maxStepNoOverlap = Math.max(0, dPlayer - minBodyGap) / Math.max(safeDt, 0.016);
+          const attackMoveSpd = dPlayer > minBodyGap ? Math.min(chargeSpd, maxStepNoOverlap) : 0;
           if (dPlayer > 0.35) {
-            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.5, safeDt);
+            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
           }
+          a.vx = (toPlayerX / dPlayer) * attackMoveSpd;
+          a.vz = (toPlayerZ / dPlayer) * attackMoveSpd;
+          a.hopPhase += safeDt * 14.5;
           if (
             playerStateRef &&
-            prevActionTimer > 0.85 &&
-            (a.actionTimer ?? 0) <= 0.85 &&
-            dPlayer <= attackTriggerDist + 0.75
+            prevActionTimer > 0.62 &&
+            (a.actionTimer ?? 0) <= 0.62 &&
+            dPlayer <= attackTriggerDist + 1.25
           ) {
             playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 24);
             playerStateRef.vx += (toPlayerX / dPlayer) * 4.4;
@@ -3264,10 +3428,10 @@ export function stepSmallAnimals(
           const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
           a.vx = (toPlayerX / dPlayer) * effChargeSpd;
           a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
-          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
-          a.hopPhase += safeDt * 12.0;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
+          a.hopPhase += safeDt * 13.0;
         }
-      } else if (isCommittedYawn || dPlayer <= warnRadius) {
+      } else if (isCommittedYawn || (!isHippoLeashedOut && dPlayer <= warnRadius)) {
         // Territorial tusk-yawn warning display in place!
         a.isResting = false;
         a.alertLevel = 'curious';
@@ -3278,6 +3442,16 @@ export function stepSmallAnimals(
         a.vx = 0;
         a.vz = 0;
         a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
+      } else if (hippoDistFromHome > 6.5) {
+        // Return to lagoon/marsh home territory while keeping grudge memory (wokenUpTimer) active!
+        a.alertLevel = 'grazing';
+        a.isResting = false;
+        a.aiBehavior = 'wandering';
+        const returnSpd = 2.6;
+        a.vx = ((a.homeX - a.x) / hippoDistFromHome) * returnSpd;
+        a.vz = ((a.homeZ - a.z) / hippoDistFromHome) * returnSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.5, safeDt);
+        a.hopPhase += safeDt * 7.5;
       } else {
         // Peaceful amphibious lagoon/river wallowing and reed grazing
         a.alertLevel = 'grazing';
@@ -3326,6 +3500,24 @@ export function stepSmallAnimals(
       );
       a.x = resolved.x;
       a.z = resolved.z;
+
+      // Hard physical body separation between Hippo and Player so the player/camera can NEVER enter inside the Hippo's 3D body!
+      if (playerStateRef) {
+        const sepDx = playerStateRef.x - a.x;
+        const sepDz = playerStateRef.z - a.z;
+        const sepDist = Math.hypot(sepDx, sepDz);
+        const minPlayerGap = 2.55;
+        if (sepDist < minPlayerGap) {
+          const nx = sepDist > 0.001 ? sepDx / sepDist : Math.sin(a.yaw);
+          const nz = sepDist > 0.001 ? sepDz / sepDist : Math.cos(a.yaw);
+          const overlap = minPlayerGap - sepDist;
+          a.x -= nx * overlap * 0.45;
+          a.z -= nz * overlap * 0.45;
+          playerStateRef.x += nx * overlap * 0.55;
+          playerStateRef.z += nz * overlap * 0.55;
+        }
+      }
+
       const nextGroundY = walkableHeightAt(a.x, a.z, a.y).height;
       if (nextGroundY <= localWaterY + 0.15) {
         a.inWater = true;
@@ -3341,11 +3533,9 @@ export function stepSmallAnimals(
 
     // -------------------------------------------------------------------------
     // 2D. AQUATIC KOI FISH AI ('koifish'):
-    //     - Swims in schools in the Lakeside Tea Pavilion Zen Pond, Waterfall Plunge Pool,
-    //       and Southwest Oasis Lagoon.
-    //     - Darts away rapidly ('fleeing') when the player splashes nearby, occasionally
-    //       performs playful surface breaches ('pounceHeight > 0'), and can choose to enter
-    //       nearby armed Woven Fish Traps ('trap_fish').
+    //     - Swims underwater in schools in the Western Lagoon Lake, Central Lake,
+    //       Waterfall Plunge Pool, and Southwest Oasis Lagoon.
+    //     - Sleeps underwater at night (`localWaterY - 0.65`) and darts away when startled.
     // -------------------------------------------------------------------------
     if (a.species === 'koifish') {
       const localWaterY =
@@ -3353,7 +3543,6 @@ export function stepSmallAnimals(
           ? SOUTHWEST_OASIS_POS.lagoonWaterY
           : WATER_LEVEL;
       a.inWater = true;
-      a.isResting = false;
       a.isSeekingShelter = false;
       a.pounceHeight = 0;
 
@@ -3362,6 +3551,8 @@ export function stepSmallAnimals(
         if (a.alertLevel !== 'fleeing') {
           scamperedCritterCount++;
         }
+        a.isResting = false;
+        a.wokenUpTimer = 8.0;
         a.alertLevel = 'fleeing';
         a.aiBehavior = 'fleeing';
         a.isFleeing = true;
@@ -3373,6 +3564,18 @@ export function stepSmallAnimals(
           a.alertLevel = 'grazing';
         }
       }
+
+      // Nighttime underwater sleeping for lake fish:
+      if (isNightRest && a.alertLevel !== 'fleeing' && (a.wokenUpTimer ?? 0) <= 0) {
+        a.isResting = true;
+        a.aiBehavior = 'sleeping';
+        a.vx = 0;
+        a.vz = 0;
+        const sleepTargetY = Math.max(groundHeightAt(a.x, a.z) + 0.16, localWaterY - 0.65);
+        a.y += (sleepTargetY - (a.y ?? sleepTargetY)) * Math.min(1, safeDt * 3.0);
+        continue;
+      }
+      a.isResting = false;
 
       // Check if an armed Woven Fish Trap ('trap_fish') is in range in the same pond/lagoon
       let chosenFishTrap: { x: number; z: number; dist: number } | null = null;
@@ -3445,26 +3648,40 @@ export function stepSmallAnimals(
         maxTurnRate = 4.8;
       } else {
         a.alertLevel = 'grazing';
-        // Smooth figure-8 / wandering school current around home pond center
-        const schoolPhase = elapsedTime * 0.34 + a.id * 0.95;
-        const patrolTargetX = a.homeX + Math.cos(schoolPhase) * 4.2;
-        const patrolTargetZ = a.homeZ + Math.sin(schoolPhase * 0.75) * 3.8;
+        // Determine whether this fish belongs to the large Western Lagoon Lake (-138, 42) near the starting cabin,
+        // the Central Lake (-2, 1.5), or a smaller pond/lagoon, so lake fish roam across the ENTIRE lake!
+        const inWestLagoonLake = Math.hypot(a.homeX - -138.0, a.homeZ - 42.0) <= 28.0;
+        const inCentralLake = Math.hypot(a.homeX - -2.0, a.homeZ - 1.5) <= 22.0;
+        const basinCenterX = inWestLagoonLake ? -138.0 : inCentralLake ? -2.0 : a.homeX;
+        const basinCenterZ = inWestLagoonLake ? 42.0 : inCentralLake ? 1.5 : a.homeZ;
+        const patrolRadX = inWestLagoonLake ? 16.5 : inCentralLake ? 12.5 : 4.2;
+        const patrolRadZ = inWestLagoonLake ? 14.0 : inCentralLake ? 11.5 : 3.8;
+        const maxBasinRadius = inWestLagoonLake ? 21.0 : inCentralLake ? 15.5 : 4.8;
+
+        // Smooth figure-8 / wandering school current across the entire lake basin
+        const schoolPhase = elapsedTime * 0.24 + a.id * 1.15;
+        const patrolTargetX =
+          basinCenterX +
+          Math.cos(schoolPhase) * patrolRadX * (0.65 + 0.35 * Math.sin(schoolPhase * 0.43 + a.id));
+        const patrolTargetZ =
+          basinCenterZ +
+          Math.sin(schoolPhase * 0.78) * patrolRadZ * (0.65 + 0.35 * Math.cos(schoolPhase * 0.37 + a.id));
         let steerX = (patrolTargetX - a.x) * 0.45 + sepX * 1.35;
         let steerZ = (patrolTargetZ - a.z) * 0.45 + sepZ * 1.35;
 
         if (neighborCount > 0) {
           const avgCohX = cohX / neighborCount - a.x;
           const avgCohZ = cohZ / neighborCount - a.z;
-          steerX += (alignSin / neighborCount) * 0.85 + avgCohX * 0.28;
-          steerZ += (alignCos / neighborCount) * 0.85 + avgCohZ * 0.28;
+          steerX += (alignSin / neighborCount) * 0.85 + avgCohX * 0.22;
+          steerZ += (alignCos / neighborCount) * 0.85 + avgCohZ * 0.22;
         }
 
-        // Keep fish gently within their pond radius without hard perimeter clamping
-        const distHomeNow = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-        if (distHomeNow > 4.8) {
-          const pullStrength = (distHomeNow - 4.8) * 0.65;
-          steerX += ((a.homeX - a.x) / distHomeNow) * pullStrength;
-          steerZ += ((a.homeZ - a.z) / distHomeNow) * pullStrength;
+        // Keep fish gently within their lake/pond basin radius without hard perimeter clamping
+        const distBasinNow = Math.hypot(a.x - basinCenterX, a.z - basinCenterZ);
+        if (distBasinNow > maxBasinRadius) {
+          const pullStrength = (distBasinNow - maxBasinRadius) * 0.65;
+          steerX += ((basinCenterX - a.x) / distBasinNow) * pullStrength;
+          steerZ += ((basinCenterZ - a.z) / distBasinNow) * pullStrength;
         }
 
         desiredDirX = steerX;
@@ -3540,12 +3757,15 @@ export function stepSmallAnimals(
 
       a.x = nextX;
       a.z = nextZ;
-      const nibbleOffset = a.aiBehavior === 'grazing' ? 0.06 : 0;
-      a.y =
+      const nibbleOffset = a.aiBehavior === 'grazing' ? 0.04 : 0;
+      const minBedY = groundHeightAt(a.x, a.z) + 0.16;
+      a.y = Math.max(
+        minBedY,
         localWaterY -
-        0.22 +
-        nibbleOffset +
-        Math.sin(elapsedTime * 2.1 + a.id * 1.3) * 0.025;
+          0.38 +
+          nibbleOffset +
+          Math.sin(elapsedTime * 2.1 + a.id * 1.3) * 0.025
+      );
       continue;
     }
 

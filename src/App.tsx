@@ -8,7 +8,11 @@
 // ======================== IMPORTS & CONSTANTS ======================== \\
 // #region Imports & Constants
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
-import { WeatherToggleOption, type IGameActions } from './world/terrainMath';
+import {
+  WeatherToggleOption,
+  hasSavedWorldSnapshot,
+  type IGameActions,
+} from './world/terrainMath';
 import { WorldCanvas } from './components/WorldCanvas';
 import type { GameStateMode, IVirtualMoveState } from './world/domain/gameShellTypes';
 import { GameShellOverlay } from './components/GameShellOverlay';
@@ -75,6 +79,9 @@ export default function App() {
   const [muted, setMuted] = useState<boolean>(() => loadActiveGameSettings(logger).defaultMuted);
   const [weatherToggle, setWeatherToggle] = useState<WeatherToggleOption>('auto');
   const [gameActions, setGameActions] = useState<IGameActions | null>(null);
+  const [hasSurvivalSave, setHasSurvivalSave] = useState<boolean>(() =>
+    hasSavedWorldSnapshot('survival')
+  );
 
   const virtualMoveRef = useRef<IVirtualMoveState>({
     forward: 0,
@@ -87,12 +94,29 @@ export default function App() {
   // Sync game state to document.body.dataset.state
   useEffect(() => {
     document.body.dataset.state = isLabOpen ? 'lab' : gameState;
+    if (gameState === 'title') {
+      setHasSurvivalSave(hasSavedWorldSnapshot('survival'));
+    }
   }, [gameState, isLabOpen]);
 
   const handleStartGame = useCallback(() => {
     setGameSettings((prev) => ({ ...prev, godMode: false }));
     setWeatherToggle('auto');
     gameActions?.onApplyGameMode?.(true);
+    setHasSurvivalSave(true);
+    document.body.dataset.state = 'playing';
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setGameState('playing');
+  }, [gameActions]);
+
+  const handleNewSurvivalGame = useCallback(() => {
+    setGameSettings((prev) => ({ ...prev, godMode: false }));
+    setWeatherToggle('auto');
+    gameActions?.onResetWorld?.('survival');
+    gameActions?.onApplyGameMode?.(true);
+    setHasSurvivalSave(true);
     document.body.dataset.state = 'playing';
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -119,6 +143,8 @@ export default function App() {
   }, []);
 
   const handleReturnToTitle = useCallback(() => {
+    (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__?.();
+    setHasSurvivalSave(hasSavedWorldSnapshot('survival'));
     document.body.dataset.state = 'title';
     setGameState('title');
   }, []);
@@ -197,7 +223,9 @@ export default function App() {
         muted={muted}
         weatherToggle={weatherToggle}
         gameSettings={gameSettings}
+        hasSurvivalSave={hasSurvivalSave}
         onStartGame={handleStartGame}
+        onNewGame={handleNewSurvivalGame}
         onStartGodMode={handleStartGodMode}
         onResumeGame={handleResumeGame}
         onReturnToTitle={handleReturnToTitle}
@@ -223,7 +251,11 @@ export default function App() {
             gameActions?.onApplyGameMode?.(nextSurvival);
           }
         }}
-        onResetWorld={(mode) => gameActions?.onResetWorld?.(mode)}
+        onResetWorld={(mode) => {
+          const res = gameActions?.onResetWorld?.(mode);
+          setHasSurvivalSave(hasSavedWorldSnapshot('survival'));
+          return res;
+        }}
         onClose={() => setIsSettingsOpen(false)}
       />
     </div>

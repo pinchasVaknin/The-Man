@@ -490,22 +490,22 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     radius: 300,
   });
 
-  // Southern River, Crocodile Lagoon & Mountain Gorge Pass water surface (flowing from Sea at z=330 through Gorge down to z=805)
-  const southRiverWaterSegs = isSoftwareGl ? 44 : 78;
-  const southRiverWaterGeo = new THREE.PlaneGeometry(290, 520, southRiverWaterSegs, southRiverWaterSegs);
+  // Southern River, Crocodile Lagoon, Mountain Gorge Pass & Forked Swamp Branch water surface
+  const southRiverWaterSegs = isSoftwareGl ? 56 : 96;
+  const southRiverWaterGeo = new THREE.PlaneGeometry(520, 600, southRiverWaterSegs, southRiverWaterSegs);
   southRiverWaterGeo.rotateX(-Math.PI / 2);
   southRiverWaterGeo.computeBoundingSphere();
   disposableGeometries.push(southRiverWaterGeo);
 
   const southRiverWaterMesh = new THREE.Mesh(southRiverWaterGeo, waterMat);
-  southRiverWaterMesh.position.set(172, WATER_LEVEL, 565);
+  southRiverWaterMesh.position.set(85, WATER_LEVEL, 595);
   southRiverWaterMesh.receiveShadow = !isSoftwareGl;
   scene.add(southRiverWaterMesh);
   distanceCulledObjects.push({
     obj: southRiverWaterMesh,
-    cx: 172,
-    cz: 565,
-    radius: 340,
+    cx: 85,
+    cz: 595,
+    radius: 460,
   });
 
   // Continuous North-to-South Eastern Sea water surface (z = -900..+900, x = 180..1340)
@@ -527,9 +527,9 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     radius: 1350,
   });
 
-  // Murky Swamp & Hippo Marshland water surface (-175, 435)
-  const swampWaterSegs = isSoftwareGl ? 36 : 64;
-  const swampWaterGeo = new THREE.PlaneGeometry(210, 210, swampWaterSegs, swampWaterSegs);
+  // Vast Murky Swamp & Hippo Marshland water surface (-95, 790) south of the extended Mountain Ridge
+  const swampWaterSegs = isSoftwareGl ? 56 : 96;
+  const swampWaterGeo = new THREE.PlaneGeometry(490, 490, swampWaterSegs, swampWaterSegs);
   swampWaterGeo.rotateX(-Math.PI / 2);
   swampWaterGeo.computeBoundingSphere();
   disposableGeometries.push(swampWaterGeo);
@@ -555,7 +555,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     obj: swampWaterMesh,
     cx: MURKY_SWAMP_BIOME_POS.x,
     cz: MURKY_SWAMP_BIOME_POS.z,
-    radius: 155,
+    radius: 360,
   });
 
   return { waterMaterial: waterMat, terrainMaterial: terrainMat };

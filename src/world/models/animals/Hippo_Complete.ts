@@ -477,9 +477,10 @@ export class HippoAnimator {
       outRootPos.x = this.rig.restRootPos.x;
       outRootPos.z = this.rig.restRootPos.z;
     } else if (st === 'attack' || st === 'bite_attack') {
-      // If attacking while moving fast, blend the baked attack upper-body gore/bite onto the locomotion legs
-      if (this.moveSpeed > 0.35 && (this.prevState === 'run' || this.prevState === 'trot' || this.prevState === 'walk')) {
-        const baseClipIdx = this.getClipIndex(this.prevState);
+      // If attacking while moving forward, blend the baked attack upper-body gore/bite onto the running legs
+      // and anchor root X/Z at restRootPos so world AI velocity moves the Hippo cleanly forward!
+      if (this.moveSpeed > 0.35) {
+        const baseClipIdx = this.getClipIndex(this.moveSpeed > 2.6 ? 'run' : 'trot');
         this.sampleBakedClipPose(baseClipIdx, t, true, this.atkRootPos, this.atkQuats);
         for (let j = 0; j < NUM_JOINTS; j++) {
           if (!HIPPO_UPPER_BODY_JOINTS.has(j)) {
@@ -487,6 +488,7 @@ export class HippoAnimator {
           }
         }
         outRootPos.x = this.rig.restRootPos.x;
+        outRootPos.z = this.rig.restRootPos.z;
         outRootPos.y = Math.max(outRootPos.y, this.atkRootPos.y);
       }
       // Accentuate lower jaw gape during peak lunge of attack / bite_attack so the tusks & open mouth read unmistakably

@@ -34,6 +34,7 @@ import {
   registerTempleStatue,
   spawnTempleMonk,
 } from '../systems/monkTempleSystem';
+import { createReadyWarriorMonk } from './Characters/WarriorMonk_Complete';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -61,7 +62,7 @@ export interface ISanctuaryAndDragonResult {
  * @returns Sanctuary and dragon handles for per-frame updates.
  */
 export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISanctuaryAndDragonResult {
-  const { scene, textures, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
+  const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 
   // --- 1) TWO DISTINCT 3D DRAGONS ---
@@ -714,15 +715,99 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     color: 0x6b4c35,
     roughness: 0.84,
   });
+  // Stone-Brick Retaining Wall & Mountain Wall Geometries + Procedural Brick Material
+  const brickCanvas = document.createElement('canvas');
+  brickCanvas.width = 256;
+  brickCanvas.height = 256;
+  const bCtx = brickCanvas.getContext('2d');
+  if (bCtx) {
+    // Warm mortar base
+    bCtx.fillStyle = '#58534c';
+    bCtx.fillRect(0, 0, 256, 256);
+    const rows = 8;
+    const cols = 4;
+    const rowH = 256 / rows;
+    const colW = 256 / cols;
+    for (let r = 0; r < rows; r++) {
+      const offsetX = (r % 2) * (colW * 0.5);
+      for (let c = -1; c <= cols; c++) {
+        const bx = c * colW + offsetX;
+        const by = r * rowH;
+        const shade = 112 + ((r * 17 + c * 31) % 28) - 14;
+        const warm = ((r * 7 + c * 13) % 10) - 5;
+        bCtx.fillStyle = `rgb(${shade + 6 + warm}, ${shade + 2}, ${shade - 6})`;
+        bCtx.fillRect(bx + 2, by + 2, colW - 4, rowH - 4);
+        // Subtle top highlight & bottom bevel on each stone brick
+        bCtx.fillStyle = 'rgba(255, 248, 230, 0.14)';
+        bCtx.fillRect(bx + 2, by + 2, colW - 4, 3);
+        bCtx.fillStyle = 'rgba(20, 18, 15, 0.24)';
+        bCtx.fillRect(bx + 2, by + rowH - 5, colW - 4, 3);
+      }
+    }
+  }
+  const stoneBrickTex = new THREE.CanvasTexture(brickCanvas);
+  stoneBrickTex.wrapS = THREE.RepeatWrapping;
+  stoneBrickTex.wrapT = THREE.RepeatWrapping;
+  stoneBrickTex.repeat.set(2.5, 3.5);
+
+  const stoneBrickWallMat = new THREE.MeshStandardMaterial({
+    map: stoneBrickTex,
+    roughness: 0.88,
+    metalness: 0.06,
+  });
+  const torchFlameCoreMat = new THREE.MeshBasicMaterial({
+    color: 0xfff3b0,
+  });
+
+  // River-side retaining wall geometries (holds the pass above the river so nothing floats)
+  const riverWallSpanGeo = new THREE.BoxGeometry(7.05, 1.0, 4.06);
+  const riverWallCopingGeo = new THREE.BoxGeometry(7.22, 0.24, 4.08);
+  const riverButtressPierGeo = new THREE.BoxGeometry(0.68, 1.0, 0.72);
+  const riverButtressCapGeo = new THREE.BoxGeometry(0.82, 0.28, 0.86);
+
+  // Mountain-side stone-brick retaining wall geometries (right/west side of pass at x ≈ 94.15)
+  const mountainWallSpanGeo = new THREE.BoxGeometry(1.15, 4.8, 4.08);
+  const mountainWallCopingGeo = new THREE.BoxGeometry(1.32, 0.28, 4.1);
+  const mountainWallPilasterGeo = new THREE.BoxGeometry(0.42, 3.85, 0.68);
+  const mountainWallPilasterCapGeo = new THREE.BoxGeometry(0.54, 0.26, 0.8);
+
+  // Angled Wall-Mounted Torch geometries
+  const torchWallPlateGeo = new THREE.BoxGeometry(0.08, 0.42, 0.22);
+  const torchWallBraceGeo = new THREE.BoxGeometry(0.32, 0.07, 0.08);
+  const torchShaftGeo = new THREE.CylinderGeometry(0.048, 0.036, 0.88, 8);
+  const torchBasketGeo = new THREE.CylinderGeometry(0.11, 0.065, 0.18, 8);
+  const torchFlameOuterGeo = new THREE.ConeGeometry(0.11, 0.34, 8);
+  const torchFlameInnerGeo = new THREE.ConeGeometry(0.065, 0.22, 6);
+
   disposableGeometries.push(
     fencePostStoneBaseGeo,
     fencePostTimberGeo,
     fencePostCapGeo,
-    fenceRailBeamGeo
+    fenceRailBeamGeo,
+    riverWallSpanGeo,
+    riverWallCopingGeo,
+    riverButtressPierGeo,
+    riverButtressCapGeo,
+    mountainWallSpanGeo,
+    mountainWallCopingGeo,
+    mountainWallPilasterGeo,
+    mountainWallPilasterCapGeo,
+    torchWallPlateGeo,
+    torchWallBraceGeo,
+    torchShaftGeo,
+    torchBasketGeo,
+    torchFlameOuterGeo,
+    torchFlameInnerGeo
   );
-  disposableMaterials.push(fencePostTimberMat, fenceRailWoodMat);
+  disposableMaterials.push(
+    fencePostTimberMat,
+    fenceRailWoodMat,
+    stoneBrickWallMat,
+    torchFlameCoreMat
+  );
 
   const fenceX = 101.35;
+  const mountainWallX = 94.12;
   const fenceStartZ = 516.0;
   const fenceEndZ = 678.0;
   const fenceStepZ = 4.0;
@@ -732,27 +817,86 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     const pz = fenceStartZ + p * fenceStepZ;
     const py = southernCliffsidePassTrailHeightAt(pz);
 
+    // Guardrail post sitting flush on the stone-brick coping ledge
     const stoneBase = new THREE.Mesh(fencePostStoneBaseGeo, ruinsStoneMat);
-    stoneBase.position.set(fenceX, py + 0.22, pz);
+    stoneBase.position.set(fenceX, py + 0.18, pz);
     stoneBase.castShadow = !ctx.isSoftwareGl;
     stoneBase.receiveShadow = !ctx.isSoftwareGl;
     cliffPassFenceGroup.add(stoneBase);
 
     const timberPost = new THREE.Mesh(fencePostTimberGeo, fencePostTimberMat);
-    timberPost.position.set(fenceX, py + 0.65, pz);
+    timberPost.position.set(fenceX, py + 0.62, pz);
     timberPost.castShadow = !ctx.isSoftwareGl;
     cliffPassFenceGroup.add(timberPost);
 
     const postCap = new THREE.Mesh(fencePostCapGeo, ruinsDarkCarvedMat);
-    postCap.position.set(fenceX, py + 1.42, pz);
+    postCap.position.set(fenceX, py + 1.38, pz);
     cliffPassFenceGroup.add(postCap);
 
-    // Add glowing trail guide-crystals at the North entry, Mid-pass crest, and South exit
-    if (p === 0 || p === Math.floor(numPosts / 2) || p === numPosts - 1) {
-      const lanternCrystal = new THREE.Mesh(brazierCrystalGeo, emberGlowMat);
-      lanternCrystal.scale.setScalar(0.45);
-      lanternCrystal.position.set(fenceX, py + 1.72, pz);
-      cliffPassFenceGroup.add(lanternCrystal);
+    // Every 8m (every 2nd post), add a river-side masonry buttress pier + mountain-side pilaster
+    if (p % 2 === 0) {
+      const pierBottomY = -2.2;
+      const pierHeight = Math.max(2.5, py - pierBottomY);
+      const riverPier = new THREE.Mesh(riverButtressPierGeo, stoneBrickWallMat);
+      riverPier.scale.set(1, pierHeight, 1);
+      riverPier.position.set(101.48, pierBottomY + pierHeight * 0.5, pz);
+      riverPier.castShadow = !ctx.isSoftwareGl;
+      riverPier.receiveShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(riverPier);
+
+      const riverPierCap = new THREE.Mesh(riverButtressCapGeo, ruinsDarkCarvedMat);
+      riverPierCap.position.set(101.48, py - 0.04, pz);
+      cliffPassFenceGroup.add(riverPierCap);
+
+      const mtnPilaster = new THREE.Mesh(mountainWallPilasterGeo, ruinsStoneMat);
+      mtnPilaster.position.set(mountainWallX + 0.52, py + 1.65, pz);
+      mtnPilaster.castShadow = !ctx.isSoftwareGl;
+      mtnPilaster.receiveShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(mtnPilaster);
+
+      const mtnPilasterCap = new THREE.Mesh(mountainWallPilasterCapGeo, ruinsDarkCarvedMat);
+      mtnPilasterCap.position.set(mountainWallX + 0.52, py + 3.65, pz);
+      cliffPassFenceGroup.add(mtnPilasterCap);
+    }
+
+    // Angled Wall-Mounted Torches on the Mountain Retaining Wall (right side of pass, tilted outward)
+    if (p > 0 && p < numPosts - 1 && p % 3 === 1) {
+      const torchMountGroup = new THREE.Group();
+      torchMountGroup.position.set(mountainWallX + 0.62, py + 2.05, pz);
+
+      const wallPlate = new THREE.Mesh(torchWallPlateGeo, ruinsDarkCarvedMat);
+      wallPlate.position.set(0.0, 0.0, 0.0);
+      torchMountGroup.add(wallPlate);
+
+      const wallBrace = new THREE.Mesh(torchWallBraceGeo, ruinsDarkCarvedMat);
+      wallBrace.position.set(0.14, -0.06, 0.0);
+      wallBrace.rotation.z = 0.25;
+      torchMountGroup.add(wallBrace);
+
+      // Tilted torch assembly (~30 degrees outward toward the pass)
+      const tiltedTorch = new THREE.Group();
+      tiltedTorch.position.set(0.08, -0.08, 0.0);
+      tiltedTorch.rotation.z = -0.52;
+
+      const shaft = new THREE.Mesh(torchShaftGeo, fencePostTimberMat);
+      shaft.position.set(0.0, 0.42, 0.0);
+      shaft.castShadow = !ctx.isSoftwareGl;
+      tiltedTorch.add(shaft);
+
+      const basket = new THREE.Mesh(torchBasketGeo, ruinsDarkCarvedMat);
+      basket.position.set(0.0, 0.84, 0.0);
+      tiltedTorch.add(basket);
+
+      const flameOuter = new THREE.Mesh(torchFlameOuterGeo, emberGlowMat);
+      flameOuter.position.set(0.0, 1.06, 0.0);
+      tiltedTorch.add(flameOuter);
+
+      const flameInner = new THREE.Mesh(torchFlameInnerGeo, torchFlameCoreMat);
+      flameInner.position.set(0.0, 1.03, 0.0);
+      tiltedTorch.add(flameInner);
+
+      torchMountGroup.add(tiltedTorch);
+      cliffPassFenceGroup.add(torchMountGroup);
     }
 
     if (p < numPosts - 1) {
@@ -762,14 +906,45 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
       const midY = (py + nextY) * 0.5;
       const slopePitch = -Math.atan2(nextY - py, fenceStepZ);
 
+      // 1. River-side Stone-Brick Retaining Wall Span (supports the entire pass down to the river floor)
+      const wallBottomY = -2.2;
+      const wallSpanHeight = Math.max(2.5, midY - wallBottomY);
+      const riverWallSpan = new THREE.Mesh(riverWallSpanGeo, stoneBrickWallMat);
+      riverWallSpan.scale.set(1, wallSpanHeight, 1);
+      riverWallSpan.position.set(98.06, wallBottomY + wallSpanHeight * 0.5, midZ);
+      riverWallSpan.receiveShadow = !ctx.isSoftwareGl;
+      riverWallSpan.castShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(riverWallSpan);
+
+      // Sloped stone-brick coping deck at the top of the river retaining wall so fence & path never float
+      const riverCoping = new THREE.Mesh(riverWallCopingGeo, ruinsStoneMat);
+      riverCoping.position.set(98.08, midY - 0.08, midZ);
+      riverCoping.rotation.x = slopePitch;
+      riverCoping.receiveShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(riverCoping);
+
+      // 2. Mountain-side Stone-Brick Retaining Wall Span (holds the mountain on the right side of the pass)
+      const mountainWallSpan = new THREE.Mesh(mountainWallSpanGeo, stoneBrickWallMat);
+      mountainWallSpan.position.set(mountainWallX, midY + 1.15, midZ);
+      mountainWallSpan.rotation.x = slopePitch;
+      mountainWallSpan.castShadow = !ctx.isSoftwareGl;
+      mountainWallSpan.receiveShadow = !ctx.isSoftwareGl;
+      cliffPassFenceGroup.add(mountainWallSpan);
+
+      const mountainWallCoping = new THREE.Mesh(mountainWallCopingGeo, ruinsDarkCarvedMat);
+      mountainWallCoping.position.set(mountainWallX + 0.04, midY + 3.55, midZ);
+      mountainWallCoping.rotation.x = slopePitch;
+      cliffPassFenceGroup.add(mountainWallCoping);
+
+      // 3. Guardrail wooden rails
       const upperRail = new THREE.Mesh(fenceRailBeamGeo, fenceRailWoodMat);
-      upperRail.position.set(fenceX, midY + 1.08, midZ);
+      upperRail.position.set(fenceX, midY + 1.04, midZ);
       upperRail.rotation.x = slopePitch;
       upperRail.castShadow = !ctx.isSoftwareGl;
       cliffPassFenceGroup.add(upperRail);
 
       const lowerRail = new THREE.Mesh(fenceRailBeamGeo, fenceRailWoodMat);
-      lowerRail.position.set(fenceX, midY + 0.62, midZ);
+      lowerRail.position.set(fenceX, midY + 0.58, midZ);
       lowerRail.rotation.x = slopePitch;
       lowerRail.castShadow = !ctx.isSoftwareGl;
       cliffPassFenceGroup.add(lowerRail);
@@ -779,9 +954,9 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   scene.add(cliffPassFenceGroup);
   distanceCulledObjects.push({
     obj: cliffPassFenceGroup,
-    cx: 101.35,
+    cx: 98.0,
     cz: 597.0,
-    radius: 115,
+    radius: 135,
   });
 
   // Dragon #2: Colossal Forest Dragon (scale: 7.8 -> ~14.5m long, ~7m tall!) patrolling & soaring over the Ancient Southern Citadel Ruins
@@ -975,49 +1150,73 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     sakuraSanctuaryGroup.add(pad, blossom);
   }
 
-  // Golden Buddha Statue
+  // Sacred Golden Guardian Monk Statue on Octagonal Stone & Lotus Pedestal (matching the Great Monastery Hall Statue)
   const buddhaGroup = new THREE.Group();
   buddhaGroup.position.set(0, 0, -14.0);
-  const bTier1 = new THREE.Mesh(buddhaLotusTier1Geo, archAssets.carvedMarbleMat);
-  bTier1.position.y = 0.65;
-  const bTier2 = new THREE.Mesh(buddhaLotusTier2Geo, archAssets.imperialCrimsonMat);
-  bTier2.position.y = 1.85;
-  const bTier3 = new THREE.Mesh(buddhaLotusTier3Geo, archAssets.carvedMarbleMat);
-  bTier3.position.y = 2.85;
 
-  const bLegs = new THREE.Mesh(buddhaLegsGeo, archAssets.imperialGoldMat);
-  bLegs.position.y = 4.2;
-  const bTorso = new THREE.Mesh(buddhaTorsoGeo, archAssets.imperialGoldMat);
-  bTorso.position.y = 6.9;
-  const bShoulders = new THREE.Mesh(buddhaShouldersGeo, archAssets.imperialGoldMat);
-  bShoulders.position.y = 8.6;
-  const bHead = new THREE.Mesh(buddhaHeadGeo, archAssets.imperialGoldMat);
-  bHead.position.y = 10.35;
-  const bUshnisha = new THREE.Mesh(buddhaUshnishaGeo, archAssets.imperialGoldMat);
-  bUshnisha.position.y = 11.75;
-  const bHalo = new THREE.Mesh(buddhaHaloRingGeo, archAssets.imperialGoldMat);
-  bHalo.position.set(0, 9.6, -1.35);
+  const statuePedestalTier1Geo = new THREE.CylinderGeometry(2.15, 2.45, 0.55, 8);
+  const statuePedestalTier2Geo = new THREE.CylinderGeometry(1.65, 1.95, 0.52, 8);
+  const statuePedestalTier3Geo = new THREE.CylinderGeometry(1.25, 1.45, 0.42, 12);
+  const statueHaloRingGeo = new THREE.TorusGeometry(1.55, 0.085, 12, 32);
+  const statueBrazierBowlGeo = new THREE.CylinderGeometry(0.38, 0.24, 0.68, 8);
+  disposableGeometries.push(
+    statuePedestalTier1Geo,
+    statuePedestalTier2Geo,
+    statuePedestalTier3Geo,
+    statueHaloRingGeo,
+    statueBrazierBowlGeo
+  );
+
+  const pTier1 = new THREE.Mesh(statuePedestalTier1Geo, archAssets.carvedMarbleMat);
+  pTier1.position.y = 0.275;
+  pTier1.castShadow = !isSoftwareGl;
+  pTier1.receiveShadow = !isSoftwareGl;
+  const pTier2 = new THREE.Mesh(statuePedestalTier2Geo, archAssets.imperialCrimsonMat);
+  pTier2.position.y = 0.81;
+  pTier2.castShadow = !isSoftwareGl;
+  const pTier3 = new THREE.Mesh(statuePedestalTier3Geo, archAssets.jadeBeamMat);
+  pTier3.position.y = 1.28;
+  pTier3.castShadow = !isSoftwareGl;
+  const pHalo = new THREE.Mesh(statueHaloRingGeo, archAssets.imperialGoldMat);
+  pHalo.position.set(0, 3.25, -0.48);
+
+  const goldenStatueMonk = createReadyWarriorMonk({
+    weaponVisible: true,
+    tintHex: 0xfbbf24,
+    scale: 1.85,
+    castShadow: !isSoftwareGl,
+    receiveShadow: !isSoftwareGl,
+  });
+  goldenStatueMonk.driveRootMotion = false;
+  goldenStatueMonk.setState('pray_kneel', 0.01);
+  goldenStatueMonk.update(0.25);
+  goldenStatueMonk.group.position.set(0, 1.49, 0);
+  const bronzeStatueMat = new THREE.MeshStandardMaterial({
+    color: 0xd4af37,
+    emissive: 0x451a03,
+    emissiveIntensity: 0.22,
+    metalness: 0.72,
+    roughness: 0.28,
+  });
+  goldenStatueMonk.skinnedMesh.material = bronzeStatueMat;
+  disposableGeometries.push(goldenStatueMonk.skinnedMesh.geometry);
+  disposableMaterials.push(bronzeStatueMat);
 
   for (const side of [-1, 1]) {
-    const bArm = new THREE.Mesh(buddhaArmGeo, archAssets.imperialGoldMat);
-    bArm.position.set(side * 2.05, 6.7, 0.55);
-    bArm.rotation.z = side * 0.42;
-    bArm.rotation.x = -0.35;
-    buddhaGroup.add(bArm);
+    const brazier = new THREE.Mesh(statueBrazierBowlGeo, archAssets.imperialGoldMat);
+    brazier.position.set(side * 2.25, 0.34, 1.45);
+    brazier.castShadow = !isSoftwareGl;
+    buddhaGroup.add(brazier);
   }
 
   buddhaGroup.add(
-    bTier1,
-    bTier2,
-    bTier3,
-    bLegs,
-    bTorso,
-    bShoulders,
-    bHead,
-    bUshnisha,
-    bHalo,
-    archAssets.createRedChineseLantern(-4.8, 3.8, 3.2),
-    archAssets.createRedChineseLantern(4.8, 3.8, 3.2)
+    pTier1,
+    pTier2,
+    pTier3,
+    pHalo,
+    goldenStatueMonk.group,
+    archAssets.createRedChineseLantern(-2.8, 3.4, 1.6),
+    archAssets.createRedChineseLantern(2.8, 3.4, 1.6)
   );
   sakuraSanctuaryGroup.add(buddhaGroup);
 
@@ -1033,8 +1232,8 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     x: bWx,
     baseY: sY,
     z: bWz,
-    radius: 4.5,
-    height: 12.2,
+    radius: 1.85,
+    height: 5.2,
     hitFlashTimer: 0,
     group: buddhaGroup,
   });

@@ -26,12 +26,12 @@ import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
   isWithinViewDistance,
+  hash2D,
   type IRideableHorseState,
   type IPlayerState,
 } from '../terrainMath';
 import { createBirchBarkTexture } from '../builders/shaderAndMaterialBuilders';
 import { createReadyHorse, type HorseController, type HorseState } from './Horse';
-import { createReadyKoiFish, type KoiFish } from './KoiFish';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -492,60 +492,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     }
   }
 
-  interface ISwimmingKoi {
-    mesh: THREE.Group;
-    ctrl: KoiFish;
-    orbitCenterX: number;
-    orbitCenterZ: number;
-    orbitRadiusX: number;
-    orbitRadiusZ: number;
-    wobbleRadius: number;
-    wobbleFreq: number;
-    speed: number;
-    direction: 1 | -1;
-    phase: number;
-    lastYaw: number;
-  }
-  const koiTintPalette = [undefined, 0xffedd5, 0x93c5fd, 0xfde047] as const;
-  const swimmingKoiList: ISwimmingKoi[] = [];
-  for (let k = 0; k < 12; k++) {
-    const koiGroup = new THREE.Group();
-    const koiCtrl = createReadyKoiFish({
-      scale: 0.52 + (k % 3) * 0.08,
-      tintHex: koiTintPalette[k % koiTintPalette.length],
-      castShadow: false,
-      receiveShadow: false,
-    });
-    koiCtrl.setState(k % 3 === 0 ? 'trot' : 'walk');
-    koiCtrl.setNormalizedPhase((k * 0.17) % 1);
-    const koiMat = koiCtrl.mesh.material;
-    if (Array.isArray(koiMat)) {
-      for (const m of koiMat) disposableMaterials.push(m);
-    } else {
-      disposableMaterials.push(koiMat);
-    }
-    disposableGeometries.push(koiCtrl.mesh.geometry);
-    koiGroup.add(koiCtrl.object);
-    westPierGroup.add(koiGroup);
-    const dir: 1 | -1 = k % 4 === 3 ? -1 : 1;
-    swimmingKoiList.push({
-      mesh: koiGroup,
-      ctrl: koiCtrl,
-      orbitCenterX: -5.6 + ((k % 3) - 1) * 2.4,
-      orbitCenterZ: ((k % 4) - 1.5) * 2.1,
-      orbitRadiusX: 4.1 + (k % 4) * 1.15,
-      orbitRadiusZ: 3.6 + ((k + 1) % 4) * 1.05,
-      wobbleRadius: 0.95 + (k % 3) * 0.38,
-      wobbleFreq: 2.0 + (k % 3) * 0.5,
-      speed: 0.34 + (k % 4) * 0.09,
-      direction: dir,
-      phase: k * 0.95,
-      lastYaw: 0,
-    });
-  }
-
   scene.add(westPierGroup);
-  distanceCulledObjects.push({ obj: westPierGroup, cx: -123.0, cz: 48.0, radius: 28 });
+  distanceCulledObjects.push({ obj: westPierGroup, cx: -136.0, cz: 43.0, radius: 56 });
 
   // --- B. CENTRAL ARCHED STONE FOOTBRIDGE at (18.0, 2.0) ---
   const bridgeGroup = new THREE.Group();
@@ -2224,17 +2172,6 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
   const fireEmber = new THREE.Mesh(lanternHousingGeo, warmLanternMat);
   fireEmber.position.set(spX + 5.5, spY + 0.28, spZ - 3.5);
   southPassGroup.add(fireRing, fireEmber);
-
-  // Gorge Guide Cairn Lanterns along the narrow Mountain Pass footpath (x ≈ 97.5, z = 540, 600, 660)
-  for (const gz of [540, 600, 660]) {
-    const gy = groundHeightAt(97.5, gz);
-    const lPost = new THREE.Mesh(lanternPostGeo, darkIronMat);
-    lPost.position.set(97.5, gy + 1.15, gz);
-    const lGlow = new THREE.Mesh(lanternHousingGeo, warmLanternMat);
-    lGlow.position.set(97.5, gy + 2.35, gz);
-    southPassGroup.add(lPost, lGlow);
-  }
-
   scene.add(southPassGroup);
   distanceCulledObjects.push({
     obj: southPassGroup,
@@ -2345,61 +2282,6 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       const bob = Math.sin(elapsedTime * 2.2 + m * 1.3);
       mist.position.y = 1.2 + bob * 0.24;
       mist.scale.set(1.35 + bob * 0.12, 0.78 + Math.abs(bob) * 0.1, 1.15 + bob * 0.12);
-    }
-
-    if (westPierGroup.visible) {
-      const dtKoi = 0.016;
-      for (let k = 0; k < swimmingKoiList.length; k++) {
-        const koi = swimmingKoiList[k];
-        // Modulate swim speed smoothly so each koi alternates between gentle cruising, darting, and lily-pad nibbling
-        const speedMod = 1.0 + 0.28 * Math.sin(elapsedTime * 0.55 + koi.phase * 1.7);
-        const omega = koi.speed * koi.direction;
-        const ang = elapsedTime * omega + koi.phase + 0.32 * Math.sin(elapsedTime * 0.55 + koi.phase * 1.7);
-        const dAngDt = omega * speedMod;
-        const wobArg = ang * koi.wobbleFreq + koi.phase * 0.7;
-        const dWobDt = dAngDt * koi.wobbleFreq;
-
-        const kx =
-          koi.orbitCenterX +
-          Math.cos(ang) * koi.orbitRadiusX +
-          Math.cos(wobArg) * koi.wobbleRadius;
-        const kz =
-          koi.orbitCenterZ +
-          Math.sin(ang) * koi.orbitRadiusZ +
-          Math.sin(wobArg) * koi.wobbleRadius * 0.85;
-
-        // Exact tangent velocity (vx, vz) so the +Z nose of KoiFish always points strictly forward along its swim path
-        const vx =
-          -Math.sin(ang) * koi.orbitRadiusX * dAngDt -
-          Math.sin(wobArg) * koi.wobbleRadius * dWobDt;
-        const vz =
-          Math.cos(ang) * koi.orbitRadiusZ * dAngDt +
-          Math.cos(wobArg) * koi.wobbleRadius * 0.85 * dWobDt;
-
-        const swimSpd = Math.hypot(vx, vz);
-        const targetYaw = swimSpd > 0.01 ? Math.atan2(vx, vz) : koi.lastYaw;
-        let yawDiff = targetYaw - koi.lastYaw;
-        while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
-        while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
-        koi.lastYaw = targetYaw;
-
-        const depthWave = Math.sin(elapsedTime * 1.45 + koi.phase * 1.3);
-        const ky = WATER_LEVEL - 0.22 + depthWave * 0.045;
-        koi.mesh.position.set(kx, ky, kz);
-        koi.mesh.rotation.y = targetYaw;
-        koi.mesh.rotation.x = THREE.MathUtils.clamp(-Math.cos(elapsedTime * 1.45 + koi.phase * 1.3) * 0.05, -0.08, 0.08);
-        const turnSignal = THREE.MathUtils.clamp((yawDiff / dtKoi) * 0.38, -1.0, 1.0);
-        koi.mesh.rotation.z = THREE.MathUtils.clamp(-turnSignal * 0.14, -0.16, 0.16);
-
-        if (depthWave > 0.82 && k % 3 === 1) {
-          koi.ctrl.setState('eat');
-        } else if (swimSpd > 2.15) {
-          koi.ctrl.setState('trot');
-        } else {
-          koi.ctrl.setState('walk');
-        }
-        koi.ctrl.update(dtKoi * THREE.MathUtils.clamp(swimSpd / 1.55, 0.72, 1.55), turnSignal);
-      }
     }
 
     // Update 5 Rideable Horses (Position, Yaw, Terrain Slope Alignment, and Skeletal Animation)

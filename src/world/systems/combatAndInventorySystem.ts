@@ -58,6 +58,7 @@ import {
 } from './boidsAndWildlifeSystem';
 import {
   checkArrowHitTempleStatue,
+  checkSwordHitTempleStatue,
   checkArrowHitMonk,
   checkSwordHitMonk,
 } from './monkTempleSystem';
@@ -1196,6 +1197,13 @@ export function evaluateSwordStrikeWindowHit(
       }
     }
 
+    if (checkSwordHitTempleStatue(sx, sy, sz)) {
+      state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
+      state.swordHitStopTimer = 0.048;
+      awardSkillXp(state, 'swordsmanship', 10);
+      return { comboIndex, isHeavy, hitKind: 'obstacle', hitTarget: null, hitAnySurface: true };
+    }
+
     const hitMonk = checkSwordHitMonk(sx, sy, sz, state.x, state.y, state.z, state.yaw, isHeavy);
     if (hitMonk) {
       state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'obstacle' };
@@ -1226,7 +1234,9 @@ export function evaluateSwordStrikeWindowHit(
                         ? 1.48
                         : anim.species === 'sheep'
                           ? 1.15
-                          : 1.35;
+                          : anim.species === 'koifish'
+                            ? 0.62
+                            : 1.35;
       // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
       const animGroundY = anim.y ?? walkableHeightAt(anim.x, anim.z).height;
       const animCenterY =
@@ -1247,7 +1257,9 @@ export function evaluateSwordStrikeWindowHit(
                       ? 0.55
                       : anim.species === 'crocodile'
                         ? 0.65
-                        : 0.35);
+                        : anim.species === 'koifish'
+                          ? 0.05
+                          : 0.35);
       const animHalfH =
         anim.species === 'dragon'
           ? 4.2
@@ -1257,7 +1269,9 @@ export function evaluateSwordStrikeWindowHit(
               ? 2.25
               : anim.species === 'deer' || anim.species === 'stag'
                 ? 1.55
-                : 1.65;
+                : anim.species === 'koifish'
+                  ? 0.95
+                  : 1.65;
       if (
         Math.hypot(sx - anim.x, sz - anim.z) <= animRad + (isHeavy ? 0.45 : 0.25) &&
         Math.abs(sy - animCenterY) <= animHalfH
@@ -1625,199 +1639,56 @@ export function stepArrowsPhysics(
       continue;
     }
 
-    const grav = arr.arrowKind === 'wind' ? 2.6 : 9.8;
-    const subSteps = 4;
-    const subDt = dt / subSteps;
-    for (let s = 0; s < subSteps; s++) {
-      const prevY = arr.y;
-      arr.vy -= grav * subDt;
-      arr.x += arr.vx * subDt;
-      arr.y += arr.vy * subDt;
-      arr.z += arr.vz * subDt;
+      const arrExt = arr as IArrowProjectile & { deflectedByMonk?: boolean };
+      const grav = arrExt.deflectedByMonk ? 15.2 : arr.arrowKind === 'wind' ? 2.6 : 9.8;
+      const subSteps = 4;
+      const subDt = dt / subSteps;
+      for (let s = 0; s < subSteps; s++) {
+        const prevY = arr.y;
+        arr.vy -= grav * subDt;
+        arr.x += arr.vx * subDt;
+        arr.y += arr.vy * subDt;
+        arr.z += arr.vz * subDt;
 
-      const lastPt = arr.trail[arr.trail.length - 1];
-      if (!lastPt || Math.hypot(arr.x - lastPt.x, arr.y - lastPt.y, arr.z - lastPt.z) >= 0.42) {
-        arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-        if (arr.trail.length > 26) {
-          arr.trail.shift();
-        }
-      }
-
-      const spd = Math.hypot(arr.vx, arr.vy, arr.vz);
-      if (spd > 0.01) {
-        arr.yaw = Math.atan2(-arr.vx, -arr.vz);
-        arr.pitch = Math.asin(Math.max(-0.99, Math.min(0.99, arr.vy / spd)));
-      }
-
-      let struck = false;
-      const nearbyTargets = getNearbyArcheryTargets(arr.x, arr.z);
-      for (let t = 0; t < nearbyTargets.length; t++) {
-        const tgt = nearbyTargets[t];
-        const baseY = walkableHeightAt(tgt.x, tgt.z).height;
-        const centerY = baseY + 1.35;
-        const d3 = Math.hypot(arr.x - tgt.x, arr.y - centerY, arr.z - tgt.z);
-        if (d3 <= tgt.bullseyeRadius) {
-          arr.stuck = true;
-          arr.vx = 0;
-          arr.vy = 0;
-          arr.vz = 0;
-          arr.hitKind = 'target';
-          arr.hitTargetId = tgt.id;
+        const lastPt = arr.trail[arr.trail.length - 1];
+        if (!lastPt || Math.hypot(arr.x - lastPt.x, arr.y - lastPt.y, arr.z - lastPt.z) >= 0.42) {
           arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-          hitTarget = tgt;
-          hitAnySurface = true;
-          struck = true;
-          break;
+          if (arr.trail.length > 26) {
+            arr.trail.shift();
+          }
         }
-      }
-      if (struck) break;
 
-      if (checkArrowHitTempleStatue(arr.x, arr.y, arr.z)) {
-        arr.stuck = true;
-        arr.vx = 0;
-        arr.vy = 0;
-        arr.vz = 0;
-        arr.hitKind = 'obstacle';
-        arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-        hitAnySurface = true;
-        struck = true;
-        break;
-      }
-
-      if (checkArrowHitMonk(arr.x, arr.y, arr.z)) {
-        arr.stuck = true;
-        arr.age = 999; // Deflected by the monk's spinning staff
-        arr.vx = 0;
-        arr.vy = 0;
-        arr.vz = 0;
-        arr.hitKind = 'obstacle';
-        arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-        hitAnySurface = true;
-        struck = true;
-        break;
-      }
-
-      for (let a = 0; a < activeAnimals.length; a++) {
-        const anim = activeAnimals[a];
-        if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
-        const animRad =
-          anim.species === 'dragon'
-            ? 5.2
-            : anim.species === 'bear'
-              ? 2.45
-              : anim.species === 'crocodile'
-                ? 2.65
-                : anim.species === 'rhino' || anim.species === 'hippo'
-                  ? 2.65
-                  : anim.species === 'stag'
-                    ? 2.05
-                    : anim.species === 'deer'
-                      ? 1.45
-                      : anim.species === 'lion' && anim.isBoss
-                        ? 3.10
-                        : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                          ? 1.42
-                          : anim.species === 'sheep'
-                            ? 1.05
-                            : 1.18;
-        // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
-        const animGroundY =
-          (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);
-        const animHeightSpan =
-          anim.species === 'dragon'
-            ? 6.5
-            : anim.species === 'lion' && anim.isBoss
-              ? 3.15
-              : anim.species === 'bear'
-                ? 3.05
-                : anim.species === 'rhino' || anim.species === 'hippo'
-                  ? 2.65
-                  : anim.species === 'deer' || anim.species === 'stag'
-                    ? 2.45
-                    : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                      ? 1.75
-                      : anim.species === 'sheep'
-                        ? 1.25
-                        : anim.species === 'crocodile'
-                          ? 1.55
-                          : 1.35;
-        const animMaxY = animGroundY + animHeightSpan;
-        const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
-        if (horizDist <= animRad && arr.y >= animGroundY - 0.35 && arr.y <= animMaxY) {
-          const dmgRes = damageGroundAnimal(
-            anim,
-            BASE_ARROW_HIT_DAMAGE,
-            arr.x - arr.vx * 0.25,
-            arr.z - arr.vz * 0.25
-          );
-          arr.stuck = true;
-          arr.vx = 0;
-          arr.vy = 0;
-          arr.vz = 0;
-          arr.hitKind = 'animal';
-          arr.hitTargetId = String(anim.id);
-          arr.attachedAnimalId = anim.id;
-          // Embed arrow slightly inside animal body in animal-local coordinates so it moves with running/falling animal
-          const cosY = Math.cos(anim.yaw);
-          const sinY = Math.sin(anim.yaw);
-          const dx = (arr.x - anim.x) * 0.52;
-          const dz = (arr.z - anim.z) * 0.52;
-          arr.localOffsetX = dx * cosY - dz * sinY;
-          arr.localOffsetZ = dx * sinY + dz * cosY;
-          arr.localOffsetY = Math.max(
-            0.25,
-            Math.min(animHeightSpan * 0.78, arr.y - animGroundY)
-          );
-          arr.localYawOffset = arr.yaw - anim.yaw;
-          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-          hitAnimal = anim;
-          killedAnimal = dmgRes.killed;
-          hitAnySurface = true;
-          struck = true;
-          break;
+        const spd = Math.hypot(arr.vx, arr.vy, arr.vz);
+        if (spd > 0.01) {
+          arr.yaw = Math.atan2(-arr.vx, -arr.vz);
+          arr.pitch = Math.asin(Math.max(-0.99, Math.min(0.99, arr.vy / spd)));
         }
-      }
-      if (struck) break;
 
-      const activeBirds = getActiveWorldBirds();
-      for (let bIdx = 0; bIdx < activeBirds.length; bIdx++) {
-        const bird: IBoidBirdState = activeBirds[bIdx];
-        if (bird.isDead || bird.isLooted) continue;
-        const horizBirdDist = Math.hypot(arr.x - bird.x, arr.z - bird.z);
-        if (horizBirdDist <= 1.45 && Math.abs(arr.y - bird.y) <= 1.45) {
-          bird.hp = 0;
-          bird.isDead = true;
-          bird.vx = 0;
-          bird.vy = 0;
-          bird.vz = 0;
-          bird.y = walkableHeightAt(bird.x, bird.z).height;
-          arr.stuck = true;
-          arr.vx = 0;
-          arr.vy = 0;
-          arr.vz = 0;
-          arr.x = bird.x;
-          arr.y = bird.y + 0.12;
-          arr.z = bird.z;
-          arr.hitKind = 'ground';
-          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-          killedAnimal = true;
-          hitAnySurface = true;
-          struck = true;
-          break;
-        }
-      }
-      if (struck) break;
+        let struck = false;
+        if (!arrExt.deflectedByMonk) {
+          const nearbyTargets = getNearbyArcheryTargets(arr.x, arr.z);
+          for (let t = 0; t < nearbyTargets.length; t++) {
+            const tgt = nearbyTargets[t];
+            const baseY = walkableHeightAt(tgt.x, tgt.z).height;
+            const centerY = baseY + 1.35;
+            const d3 = Math.hypot(arr.x - tgt.x, arr.y - centerY, arr.z - tgt.z);
+            if (d3 <= tgt.bullseyeRadius) {
+              arr.stuck = true;
+              arr.vx = 0;
+              arr.vy = 0;
+              arr.vz = 0;
+              arr.hitKind = 'target';
+              arr.hitTargetId = tgt.id;
+              arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+              hitTarget = tgt;
+              hitAnySurface = true;
+              struck = true;
+              break;
+            }
+          }
+          if (struck) break;
 
-      for (let o = 0; o < obstacles.length; o++) {
-        const obs = obstacles[o];
-        if (Math.abs(arr.x - obs.x) > 1.8 || Math.abs(arr.z - obs.z) > 1.8) continue;
-        const obsGroundY = groundHeightAt(obs.x, obs.z);
-        const metrics = getObstacleColliderMetrics(obs);
-        const obsMaxH = obsGroundY + metrics.height;
-        const hitRad = metrics.radius;
-        if (arr.y >= obsGroundY && arr.y <= obsMaxH) {
-          const d2 = Math.hypot(arr.x - obs.x, arr.z - obs.z);
-          if (d2 <= hitRad) {
+          if (checkArrowHitTempleStatue(arr.x, arr.y, arr.z)) {
             arr.stuck = true;
             arr.vx = 0;
             arr.vy = 0;
@@ -1828,28 +1699,202 @@ export function stepArrowsPhysics(
             struck = true;
             break;
           }
-        }
-      }
-      if (struck) break;
 
-      const nearbyBoxes = getNearbySolidBuildingBoxes(arr.x, arr.z);
-      for (let b = 0; b < nearbyBoxes.length; b++) {
-        const box = nearbyBoxes[b];
-        if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
-          if (box.minY !== undefined && arr.y < box.minY) continue;
-          if (box.maxY !== undefined && arr.y > box.maxY) continue;
-          arr.stuck = true;
-          arr.vx = 0;
-          arr.vy = 0;
-          arr.vz = 0;
-          arr.hitKind = 'building';
-          arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
-          hitAnySurface = true;
-          struck = true;
-          break;
+          const hitMonk = checkArrowHitMonk(arr.x, arr.y, arr.z);
+          if (hitMonk) {
+            // Deflect the arrow off the monk's spinning staff so it flies backward/sideways and falls all the way to the ground!
+            const horizSpd = Math.hypot(arr.vx, arr.vz) || 14.0;
+            const inYaw = Math.atan2(arr.vx, arr.vz);
+            const deflectSign = arr.id % 2 === 0 ? 1 : -1;
+            const bounceYaw = inYaw + Math.PI + deflectSign * (0.55 + (arr.id % 4) * 0.14);
+            const bounceHorizSpd = Math.max(6.2, Math.min(11.0, horizSpd * 0.32));
+            arr.x = hitMonk.x + Math.sin(bounceYaw) * 1.48;
+            arr.z = hitMonk.z + Math.cos(bounceYaw) * 1.48;
+            arr.vx = Math.sin(bounceYaw) * bounceHorizSpd;
+            arr.vz = Math.cos(bounceYaw) * bounceHorizSpd;
+            arr.vy = 2.6 + (arr.id % 3) * 0.65;
+            arrExt.deflectedByMonk = true;
+            arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+            hitAnySurface = true;
+            struck = true;
+            break;
+          }
+
+          for (let a = 0; a < activeAnimals.length; a++) {
+            const anim = activeAnimals[a];
+            if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
+            const animRad =
+              anim.species === 'dragon'
+                ? 5.2
+                : anim.species === 'bear'
+                  ? 2.45
+                  : anim.species === 'crocodile'
+                    ? 2.65
+                    : anim.species === 'rhino' || anim.species === 'hippo'
+                      ? 2.65
+                      : anim.species === 'stag'
+                        ? 2.05
+                        : anim.species === 'deer'
+                          ? 1.45
+                          : anim.species === 'lion' && anim.isBoss
+                            ? 3.10
+                            : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                              ? 1.42
+                              : anim.species === 'sheep'
+                                ? 1.05
+                                : anim.species === 'koifish'
+                                  ? 0.56
+                                  : 1.18;
+            // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
+            const rawAnimY =
+              (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);
+            const animGroundY = anim.species === 'koifish' ? rawAnimY - 0.26 : rawAnimY;
+            const animHeightSpan =
+              anim.species === 'dragon'
+                ? 6.5
+                : anim.species === 'lion' && anim.isBoss
+                  ? 3.15
+                  : anim.species === 'bear'
+                    ? 3.05
+                    : anim.species === 'rhino' || anim.species === 'hippo'
+                      ? 2.65
+                      : anim.species === 'deer' || anim.species === 'stag'
+                        ? 2.45
+                        : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
+                          ? 1.75
+                          : anim.species === 'sheep'
+                            ? 1.25
+                            : anim.species === 'crocodile'
+                              ? 1.55
+                              : anim.species === 'koifish'
+                                ? 0.54
+                                : 1.35;
+            const animMaxY = animGroundY + animHeightSpan;
+            const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
+            const minHitY = anim.species === 'koifish' ? animGroundY : animGroundY - 0.35;
+            if (horizDist <= animRad && arr.y >= minHitY && arr.y <= animMaxY) {
+              const dmgRes = damageGroundAnimal(
+                anim,
+                BASE_ARROW_HIT_DAMAGE,
+                arr.x - arr.vx * 0.25,
+                arr.z - arr.vz * 0.25
+              );
+              arr.stuck = true;
+              arr.vx = 0;
+              arr.vy = 0;
+              arr.vz = 0;
+              arr.hitKind = 'animal';
+              arr.hitTargetId = String(anim.id);
+              arr.attachedAnimalId = anim.id;
+              // Embed arrow slightly inside animal body in animal-local coordinates so it moves with running/falling animal
+              const cosY = Math.cos(anim.yaw);
+              const sinY = Math.sin(anim.yaw);
+              const dx = (arr.x - anim.x) * 0.52;
+              const dz = (arr.z - anim.z) * 0.52;
+              arr.localOffsetX = dx * cosY - dz * sinY;
+              arr.localOffsetZ = dx * sinY + dz * cosY;
+              arr.localOffsetY =
+                anim.species === 'koifish'
+                  ? 0.05
+                  : Math.max(0.25, Math.min(animHeightSpan * 0.78, arr.y - animGroundY));
+              arr.localYawOffset = arr.yaw - anim.yaw;
+              arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+              hitAnimal = anim;
+              killedAnimal = dmgRes.killed;
+              hitAnySurface = true;
+              struck = true;
+              break;
+            }
+          }
+          if (struck) break;
+
+          const activeBirds = getActiveWorldBirds();
+          for (let bIdx = 0; bIdx < activeBirds.length; bIdx++) {
+            const bird: IBoidBirdState = activeBirds[bIdx];
+            if (bird.isDead || bird.isLooted) continue;
+            const horizBirdDist = Math.hypot(arr.x - bird.x, arr.z - bird.z);
+            if (horizBirdDist <= 1.45 && Math.abs(arr.y - bird.y) <= 1.45) {
+              bird.hp = 0;
+              bird.isDead = true;
+              bird.vx = 0;
+              bird.vy = 0;
+              bird.vz = 0;
+              bird.y = walkableHeightAt(bird.x, bird.z).height;
+              arr.stuck = true;
+              arr.vx = 0;
+              arr.vy = 0;
+              arr.vz = 0;
+              arr.x = bird.x;
+              arr.y = bird.y + 0.12;
+              arr.z = bird.z;
+              arr.hitKind = 'ground';
+              arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+              killedAnimal = true;
+              hitAnySurface = true;
+              struck = true;
+              break;
+            }
+          }
+          if (struck) break;
+
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            if (Math.abs(arr.x - obs.x) > 1.8 || Math.abs(arr.z - obs.z) > 1.8) continue;
+            const obsGroundY = groundHeightAt(obs.x, obs.z);
+            const metrics = getObstacleColliderMetrics(obs);
+            const obsMaxH = obsGroundY + metrics.height;
+            const hitRad = metrics.radius;
+            if (arr.y >= obsGroundY && arr.y <= obsMaxH) {
+              const d2 = Math.hypot(arr.x - obs.x, arr.z - obs.z);
+              if (d2 <= hitRad) {
+                arr.stuck = true;
+                arr.vx = 0;
+                arr.vy = 0;
+                arr.vz = 0;
+                arr.hitKind = 'obstacle';
+                arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+                hitAnySurface = true;
+                struck = true;
+                break;
+              }
+            }
+          }
+          if (struck) break;
+
+          const nearbyBoxes = getNearbySolidBuildingBoxes(arr.x, arr.z);
+          for (let b = 0; b < nearbyBoxes.length; b++) {
+            const box = nearbyBoxes[b];
+            if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
+              if (box.minY !== undefined && arr.y < box.minY) continue;
+              if (box.maxY !== undefined && arr.y > box.maxY) continue;
+              arr.stuck = true;
+              arr.vx = 0;
+              arr.vy = 0;
+              arr.vz = 0;
+              arr.hitKind = 'building';
+              arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+              hitAnySurface = true;
+              struck = true;
+              break;
+            }
+          }
+          if (struck) break;
+        } else {
+          // Deflected arrow: never stick in mid-air on walls/obstacles — bounce off walls and keep falling until hitting the ground!
+          const nearbyBoxes = getNearbySolidBuildingBoxes(arr.x, arr.z);
+          for (let b = 0; b < nearbyBoxes.length; b++) {
+            const box = nearbyBoxes[b];
+            if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
+              if (box.minY !== undefined && arr.y < box.minY) continue;
+              if (box.maxY !== undefined && arr.y > box.maxY) continue;
+              arr.x -= arr.vx * subDt * 1.5;
+              arr.z -= arr.vz * subDt * 1.5;
+              arr.vx = -arr.vx * 0.45;
+              arr.vz = -arr.vz * 0.45;
+              break;
+            }
+          }
         }
-      }
-      if (struck) break;
 
       const rawGroundY = groundHeightAt(arr.x, arr.z);
       const walkSurface = walkableHeightAt(arr.x, arr.z, prevY);
