@@ -1607,12 +1607,15 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
  * @returns Water surface height in meters, or null where there is no water.
  */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
+  const lx = x - SOUTHERN_MINE_POS.x;
+  const lz = z - SOUTHERN_MINE_POS.entranceZ;
   if (currentY !== undefined && currentY < -3.5) {
-    const lx = x - SOUTHERN_MINE_POS.x;
-    const lz = z - SOUTHERN_MINE_POS.entranceZ;
     if (lx >= -50.5 && lx <= -32.5 && lz >= 40.5 && lz <= 84.5) {
       return -9.3;
     }
+  }
+  if (isInsideSouthernMine(x, z, currentY)) {
+    return null;
   }
   const lagNorm = Math.hypot(
     (x - SOUTHWEST_OASIS_POS.lagoonX) / SOUTHWEST_OASIS_POS.lagoonRadiusX,

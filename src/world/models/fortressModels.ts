@@ -1153,14 +1153,12 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       fortressGroup.add(pStep);
     }
 
-    buildWallFlushTableAndChairs(px + innerDir * 1.2, pavFloor1Y, pavBackZ + 0.85, 0);
     buildWallFlushTableAndChairs(
       px + innerDir * 8.05,
       pavFloor1Y,
       pavCenterZ + 0.8,
       isWest ? -Math.PI / 2 : Math.PI / 2
     );
-    buildPavilionWardrobe(px + innerDir * 5.6, pavFloor1Y, pavBackZ + 0.68, 0);
     buildPavilionWardrobe(
       px + innerDir * 8.22,
       pavFloor1Y,
@@ -1175,28 +1173,72 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     pInner.position.set(pavCarpetCenterX, pavFloor2Y + 0.025, pavCenterZ);
     fortressGroup.add(pBorder, pInner);
 
+    // Straw Beds (מיטות קש) on the 1st Floor Barracks (for the Guard Shift Rotation monks) and 2nd Floor Dormitory
+    const strawMat = new THREE.MeshStandardMaterial({
+      color: 0xd9a441,
+      roughness: 0.92,
+      metalness: 0.02,
+    });
+    const strawDarkMat = new THREE.MeshStandardMaterial({
+      color: 0xb88328,
+      roughness: 0.95,
+      metalness: 0.02,
+    });
+    const bedWoodFrameMat = new THREE.MeshStandardMaterial({
+      color: 0x4a2511,
+      roughness: 0.82,
+      metalness: 0.05,
+    });
+    disposableMaterials.push(strawMat, strawDarkMat, bedWoodFrameMat);
+
+    const bedFrameGeo = new THREE.BoxGeometry(1.38, 0.24, 2.25);
+    const strawMattressGeo = new THREE.BoxGeometry(1.26, 0.16, 2.08);
+    const strawRidgeGeo = new THREE.CylinderGeometry(0.06, 0.07, 1.24, 6);
+    strawRidgeGeo.rotateZ(Math.PI / 2);
+    const strawPillowGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.96, 8);
+    strawPillowGeo.rotateZ(Math.PI / 2);
+    disposableGeometries.push(bedFrameGeo, strawMattressGeo, strawRidgeGeo, strawPillowGeo);
+
+    const buildStrawBed = (bx: number, by: number, bz: number, byaw: number) => {
+      const bedGrp = new THREE.Group();
+      bedGrp.position.set(bx, by, bz);
+      bedGrp.rotation.y = byaw;
+      const frame = new THREE.Mesh(bedFrameGeo, bedWoodFrameMat);
+      frame.position.y = 0.12;
+      frame.castShadow = !isSoftwareGl;
+      frame.receiveShadow = !isSoftwareGl;
+      const mattress = new THREE.Mesh(strawMattressGeo, strawMat);
+      mattress.position.y = 0.28;
+      mattress.castShadow = !isSoftwareGl;
+      mattress.receiveShadow = !isSoftwareGl;
+      bedGrp.add(frame, mattress);
+      for (let sr = -3; sr <= 3; sr++) {
+        const ridge = new THREE.Mesh(strawRidgeGeo, sr % 2 === 0 ? strawMat : strawDarkMat);
+        ridge.position.set(0, 0.36, sr * 0.26);
+        bedGrp.add(ridge);
+      }
+      const pillow = new THREE.Mesh(strawPillowGeo, strawDarkMat);
+      pillow.position.set(0, 0.41, -0.72);
+      bedGrp.add(pillow);
+      fortressGroup.add(bedGrp);
+    };
+
+    // 3 Spacious 1st Floor Barracks Straw Beds along the back wall (where off-duty Gate & Watchtower guards sleep!)
+    buildStrawBed(px + innerDir * -2.2, pavFloor1Y, -168.5 + FZ, 0);
+    buildStrawBed(px + innerDir * 1.4, pavFloor1Y, -168.5 + FZ, 0);
+    buildStrawBed(px + innerDir * 5.0, pavFloor1Y, -168.5 + FZ, 0);
+
+    // 2nd Floor Barracks Straw Beds along back and inner walls
     for (let r = 0; r < 5; r++) {
       const sbX = px + innerDir * (-2.6 + r * 2.1);
       const sbZ = pavBackZ + 1.32;
-      const bagMat = sleepingBagColors[(r + (isWest ? 0 : 1)) % sleepingBagColors.length];
-      const sbBody = new THREE.Mesh(fSleepingBagGeo, bagMat);
-      sbBody.position.set(sbX, pavFloor2Y + 0.03, sbZ);
-      const sbPillow = new THREE.Mesh(fSleepingPillowGeo, pillowClothMat);
-      sbPillow.position.set(sbX, pavFloor2Y + 0.03, sbZ - 0.65);
-      fortressGroup.add(sbBody, sbPillow);
+      buildStrawBed(sbX, pavFloor2Y, sbZ, 0);
     }
 
     for (let r = 0; r < 4; r++) {
       const sbX = px + innerDir * 7.62;
       const sbZ = pavCenterZ - 2.6 + r * 1.95;
-      const bagMat = sleepingBagColors[(r + (isWest ? 2 : 3)) % sleepingBagColors.length];
-      const sbBody = new THREE.Mesh(fSleepingBagGeo, bagMat);
-      sbBody.position.set(sbX, pavFloor2Y + 0.03, sbZ);
-      sbBody.rotation.y = isWest ? -Math.PI / 2 : Math.PI / 2;
-      const sbPillow = new THREE.Mesh(fSleepingPillowGeo, pillowClothMat);
-      sbPillow.position.set(sbX + innerDir * 0.65, pavFloor2Y + 0.03, sbZ);
-      sbPillow.rotation.y = isWest ? -Math.PI / 2 : Math.PI / 2;
-      fortressGroup.add(sbBody, sbPillow);
+      buildStrawBed(sbX, pavFloor2Y, sbZ, isWest ? -Math.PI / 2 : Math.PI / 2);
     }
 
     for (let w = 0; w < 4; w++) {
@@ -1468,10 +1510,68 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     fortressGroup.add(targetGroup);
   }
 
-  // --- 8) WARRIOR MONKS: 2 ENTRANCE GUARDS, 4 DUMMY TRAINERS, 2 SHRINE DEVOTEES & 2 COURTYARD PATROLS ---
-  // 2 Entrance Guards at the Temple Palace Upper Gate (crossing staffs until the player approaches)
+  // --- 8) MONASTERY WOODEN BENCHES (ספסלים) & WARRIOR MONKS WITH GUARD SHIFT ROTATION (שומרים בחילוף) ---
+  const monkBenchWoodMat = new THREE.MeshStandardMaterial({
+    color: 0x5c2c16,
+    roughness: 0.78,
+    metalness: 0.06,
+  });
+  const monkBenchTrimMat = new THREE.MeshStandardMaterial({
+    color: 0xb45309,
+    roughness: 0.55,
+    metalness: 0.25,
+  });
+  disposableMaterials.push(monkBenchWoodMat, monkBenchTrimMat);
+
+  const benchSeatGeo = new THREE.BoxGeometry(2.1, 0.09, 0.68);
+  const benchApronGeo = new THREE.BoxGeometry(1.96, 0.08, 0.54);
+  const benchLegGeo = new THREE.BoxGeometry(0.14, 0.44, 0.58);
+  const benchStretcherGeo = new THREE.BoxGeometry(1.78, 0.07, 0.12);
+  disposableGeometries.push(benchSeatGeo, benchApronGeo, benchLegGeo, benchStretcherGeo);
+
+  const buildMonasteryBench = (bx: number, by: number, bz: number, byaw: number) => {
+    const bGrp = new THREE.Group();
+    bGrp.position.set(bx, by, bz);
+    bGrp.rotation.y = byaw;
+    const seat = new THREE.Mesh(benchSeatGeo, monkBenchWoodMat);
+    seat.position.y = 0.44;
+    seat.castShadow = !isSoftwareGl;
+    seat.receiveShadow = !isSoftwareGl;
+    const apron = new THREE.Mesh(benchApronGeo, monkBenchTrimMat);
+    apron.position.y = 0.37;
+    const legL = new THREE.Mesh(benchLegGeo, monkBenchWoodMat);
+    legL.position.set(-0.82, 0.22, 0);
+    legL.castShadow = !isSoftwareGl;
+    const legR = new THREE.Mesh(benchLegGeo, monkBenchWoodMat);
+    legR.position.set(0.82, 0.22, 0);
+    legR.castShadow = !isSoftwareGl;
+    const stretcher = new THREE.Mesh(benchStretcherGeo, monkBenchTrimMat);
+    stretcher.position.set(0, 0.14, 0);
+    bGrp.add(seat, apron, legL, legR, stretcher);
+    fortressGroup.add(bGrp);
+  };
+
+  // Wooden benches inside the Main Hall under the 2 Shrine Devotees (so they sit on benches, never in mid-air!)
+  buildMonasteryBench(-3.2, hallFloor1Y, -203.5 + FZ, Math.PI);
+  buildMonasteryBench(3.2, hallFloor1Y, -203.5 + FZ, Math.PI);
+
+  // Wooden benches along the Courtyard sides for seated meditation monks
+  buildMonasteryBench(-11.2, summitY, -152.0 + FZ, Math.PI / 2);
+  buildMonasteryBench(11.2, summitY, -152.0 + FZ, -Math.PI / 2);
+  buildMonasteryBench(-11.2, summitY, -168.0 + FZ, Math.PI / 2);
+  buildMonasteryBench(11.2, summitY, -168.0 + FZ, -Math.PI / 2);
+
+  // 1) 2 Entrance Guards at the Temple Palace Upper Gate + 2 Sleeping Relief Entrance Guards in the Barracks Straw Beds
+  const gateLeftRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [-32.2, pavFloor1Y, -168.5 + FZ],
+    [-30.0, pavFloor1Y, -158.8 + FZ],
+    [-30.0, summitY, -153.5 + FZ],
+    [-6.0, summitY, -138.0 + FZ],
+    [-1.65, summitY, CHINESE_FORTRESS_POS.upperGateZ - 0.35],
+  ];
   spawnTempleMonk({
     id: 'gate_guard_left',
+    postId: 'gate_left',
     role: 'entrance_guard_left',
     parent: fortressGroup,
     homeX: -1.65,
@@ -1479,23 +1579,323 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
     baseYaw: 0,
     phaseOffset: 0.0,
+    shiftStartOnDuty: true,
+    routeToPost: gateLeftRoute,
+    bedX: -32.2,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
     weaponVisible: true,
-    tintHex: 0xd97706,
     isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
   });
   spawnTempleMonk({
+    id: 'gate_guard_left_relief',
+    postId: 'gate_left',
+    role: 'entrance_guard_left',
+    parent: fortressGroup,
+    homeX: -1.65,
+    homeY: summitY,
+    homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
+    baseYaw: 0,
+    phaseOffset: 0.2,
+    shiftStartOnDuty: false,
+    routeToPost: gateLeftRoute,
+    bedX: -32.2,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  const gateRightRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [32.2, pavFloor1Y, -168.5 + FZ],
+    [30.0, pavFloor1Y, -158.8 + FZ],
+    [30.0, summitY, -153.5 + FZ],
+    [6.0, summitY, -138.0 + FZ],
+    [1.65, summitY, CHINESE_FORTRESS_POS.upperGateZ - 0.35],
+  ];
+  spawnTempleMonk({
     id: 'gate_guard_right',
+    postId: 'gate_right',
     role: 'entrance_guard_right',
     parent: fortressGroup,
     homeX: 1.65,
     homeY: summitY,
     homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
     baseYaw: 0,
-    phaseOffset: 0.45,
+    phaseOffset: 0.9,
+    shiftStartOnDuty: true,
+    routeToPost: gateRightRoute,
+    bedX: 32.2,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
     weaponVisible: true,
-    tintHex: 0xd97706,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'gate_guard_right_relief',
+    postId: 'gate_right',
+    role: 'entrance_guard_right',
+    parent: fortressGroup,
+    homeX: 1.65,
+    homeY: summitY,
+    homeZ: CHINESE_FORTRESS_POS.upperGateZ - 0.35,
+    baseYaw: 0,
+    phaseOffset: 1.1,
+    shiftStartOnDuty: false,
+    routeToPost: gateRightRoute,
+    bedX: 32.2,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // 2) 4 Upper-Floor Watchtower Guards (on `wtFloor2Y` in SW, SE, NW, NE Watchtowers) + 4 Sleeping Relief Watchtower Guards in the Barracks Straw Beds!
+  const swTowerRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [-28.6, pavFloor1Y, -168.5 + FZ],
+    [-30.0, pavFloor1Y, -158.8 + FZ],
+    [-30.0, summitY, -153.5 + FZ],
+    [-46.0, summitY, -141.0 + FZ],
+    [-46.0, wtFloor2Y, -153.8 + FZ],
+    [-48.6, wtFloor2Y, -135.5 + FZ],
+    [-45.5, wtFloor2Y, -129.0 + FZ],
+  ];
+  spawnTempleMonk({
+    id: 'tower_guard_west',
+    postId: 'wt_sw',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: -45.5,
+    homeY: wtFloor2Y,
+    homeZ: -129.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 1.6,
+    shiftStartOnDuty: true,
+    routeToPost: swTowerRoute,
+    bedX: -28.6,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'tower_guard_west_relief',
+    postId: 'wt_sw',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: -45.5,
+    homeY: wtFloor2Y,
+    homeZ: -129.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 1.8,
+    shiftStartOnDuty: false,
+    routeToPost: swTowerRoute,
+    bedX: -28.6,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  const seTowerRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [28.6, pavFloor1Y, -168.5 + FZ],
+    [30.0, pavFloor1Y, -158.8 + FZ],
+    [30.0, summitY, -153.5 + FZ],
+    [46.0, summitY, -141.0 + FZ],
+    [46.0, wtFloor2Y, -153.8 + FZ],
+    [48.6, wtFloor2Y, -135.5 + FZ],
+    [45.5, wtFloor2Y, -129.0 + FZ],
+  ];
+  spawnTempleMonk({
+    id: 'tower_guard_east',
+    postId: 'wt_se',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: 45.5,
+    homeY: wtFloor2Y,
+    homeZ: -129.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 2.3,
+    shiftStartOnDuty: true,
+    routeToPost: seTowerRoute,
+    bedX: 28.6,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'tower_guard_east_relief',
+    postId: 'wt_se',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: 45.5,
+    homeY: wtFloor2Y,
+    homeZ: -129.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 2.5,
+    shiftStartOnDuty: false,
+    routeToPost: seTowerRoute,
+    bedX: 28.6,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  const nwTowerRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [-25.0, pavFloor1Y, -168.5 + FZ],
+    [-30.0, pavFloor1Y, -158.8 + FZ],
+    [-30.0, summitY, -153.5 + FZ],
+    [-46.0, summitY, -141.0 + FZ],
+    [-46.0, wtFloor2Y, -153.8 + FZ],
+    [-48.6, wtFloor2Y, -205.5 + FZ],
+    [-45.5, wtFloor2Y, -211.5 + FZ],
+  ];
+  spawnTempleMonk({
+    id: 'tower_guard_nw',
+    postId: 'wt_nw',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: -45.5,
+    homeY: wtFloor2Y,
+    homeZ: -211.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 3.1,
+    shiftStartOnDuty: true,
+    routeToPost: nwTowerRoute,
+    bedX: -25.0,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'tower_guard_nw_relief',
+    postId: 'wt_nw',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: -45.5,
+    homeY: wtFloor2Y,
+    homeZ: -211.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 3.3,
+    shiftStartOnDuty: false,
+    routeToPost: nwTowerRoute,
+    bedX: -25.0,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  const neTowerRoute: ReadonlyArray<readonly [number, number, number]> = [
+    [25.0, pavFloor1Y, -168.5 + FZ],
+    [30.0, pavFloor1Y, -158.8 + FZ],
+    [30.0, summitY, -153.5 + FZ],
+    [46.0, summitY, -141.0 + FZ],
+    [46.0, wtFloor2Y, -153.8 + FZ],
+    [48.6, wtFloor2Y, -205.5 + FZ],
+    [45.5, wtFloor2Y, -211.5 + FZ],
+  ];
+  spawnTempleMonk({
+    id: 'tower_guard_ne',
+    postId: 'wt_ne',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: 45.5,
+    homeY: wtFloor2Y,
+    homeZ: -211.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 3.8,
+    shiftStartOnDuty: true,
+    routeToPost: neTowerRoute,
+    bedX: 25.0,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'tower_guard_ne_relief',
+    postId: 'wt_ne',
+    role: 'tower_guard',
+    parent: fortressGroup,
+    homeX: 45.5,
+    homeY: wtFloor2Y,
+    homeZ: -211.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 4.0,
+    shiftStartOnDuty: false,
+    routeToPost: neTowerRoute,
+    bedX: 25.0,
+    bedY: pavFloor1Y,
+    bedZ: -168.5 + FZ,
+    bedYaw: 0,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // 2 Seated Courtyard Bench Monks resting and meditating on the wooden courtyard benches
+  spawnTempleMonk({
+    id: 'courtyard_bench_west',
+    role: 'courtyard_bench',
+    parent: fortressGroup,
+    homeX: -11.2,
+    homeY: summitY,
+    homeZ: -152.0 + FZ,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 0.6,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'courtyard_bench_east',
+    role: 'courtyard_bench',
+    parent: fortressGroup,
+    homeX: 11.2,
+    homeY: summitY,
+    homeZ: -152.0 + FZ,
+    baseYaw: -Math.PI / 2,
+    phaseOffset: 1.5,
+    weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
@@ -1527,7 +1927,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     });
   }
 
-  // 2 Shrine Devotees inside the Main Citadel Hall before the Sacred Golden Guardian Statue
+  // 2 Shrine Devotees inside the Main Citadel Hall seated on wooden benches before the Sacred Golden Guardian Statue
   spawnTempleMonk({
     id: 'shrine_devotee_west',
     role: 'shrine_devotee',

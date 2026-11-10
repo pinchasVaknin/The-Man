@@ -29,6 +29,14 @@ import { createReadyDove, type DoveState } from '../world/models/Dove';
 import { createReadyHippo, type HippoState } from '../world/models/Hippo';
 import { createReadyKoiFish, type KoiFishState } from '../world/models/KoiFish';
 import { createReadyDolphin, type DolphinState } from '../world/models/Dolphin';
+import {
+  createReadyWarriorMonk,
+  type WarriorMonkState,
+} from '../world/models/Characters/WarriorMonk_Complete';
+import {
+  createReadyDwarfWarrior,
+  type DwarfWarriorState,
+} from '../world/models/Characters/DwarfWarrior_Complete';
 // #endregion
 
 // ======================== RIG CONTRACT ======================== \\
@@ -938,36 +946,32 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
   }
 
-  // 3. DWARVEN MINER
+  // 3. DWARVEN MINER (Full Skinned DwarfWarrior_Complete Model + 11 Built-in Animations)
   else if (entityId === 'dwarven_miner') {
-    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdca482, roughness: 0.56 }));
-    const tunicMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x333629, roughness: 0.72 }));
-    const beardMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x8c3b16, roughness: 0.8 }));
-    const armorMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x9e7b42, roughness: 0.3, metalness: 0.82 })
-    );
-    const ironMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.34, metalness: 0.85 })
-    );
-    const chainmailMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.36, metalness: 0.82 })
-    );
-    const leatherMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x472814, roughness: 0.55 })
-    );
-    const darkLeatherMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x2b190d, roughness: 0.62 })
-    );
-    const cloakMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0x2d241c, roughness: 0.84, side: THREE.DoubleSide })
-    );
-    const lanternGlowMat = trackMat(
-      new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        emissive: 0xf59e0b,
-        emissiveIntensity: 1.3,
-      })
-    );
+    const dwarfWrapper = new THREE.Group();
+    root.add(dwarfWrapper);
+
+    const dwarfCtrl = createReadyDwarfWarrior({
+      initialState: 'idle',
+      weaponVisible: true,
+      driveRootMotion: false,
+    });
+    dwarfCtrl.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        disposableGeometries.push(m.geometry);
+        if (Array.isArray(m.material)) {
+          for (const mat of m.material) disposableMaterials.push(mat);
+        } else if (m.material) {
+          disposableMaterials.push(m.material);
+        }
+      }
+    });
+    dwarfWrapper.add(dwarfCtrl.group);
+
+    // Crystal Vein Prop (shown during mining animation)
     const crystalMat = trackMat(
       new THREE.MeshStandardMaterial({
         color: 0x10b981,
@@ -976,364 +980,39 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
         roughness: 0.18,
       })
     );
-
-    const bodyPivot = new THREE.Group();
-
-    // Lower Riveted Chainmail Skirt Hem peeking beneath the Tunic
-    const chainmailSkirt = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.285, 0.31, 0.22, 14)),
-      chainmailMat
-    );
-    chainmailSkirt.position.y = 0.36;
-
-    // Stocky Dark Olive-Charcoal Tunic with Ornate Bronze Geometric Trim
-    const torso = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.27, 0.305, 0.6, 14)),
-      tunicMat
-    );
-    torso.position.y = 0.68;
-
-    const tunicHemTrim = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.308, 0.312, 0.045, 14)),
-      armorMat
-    );
-    tunicHemTrim.position.y = 0.4;
-
-    const tunicFrontSeam = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.055, 0.56, 0.025)),
-      armorMat
-    );
-    tunicFrontSeam.position.set(0, 0.66, 0.288);
-
-    // Wide Leather Belt + Signature Diamond (Rhombus) Buckle + Belt Pouches
-    const belt = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.298, 0.298, 0.11, 14)),
-      leatherMat
-    );
-    belt.position.y = 0.54;
-
-    const diamondBuckleGroup = new THREE.Group();
-    diamondBuckleGroup.position.set(0, 0.54, 0.298);
-    const buckleOuter = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.115, 0.115, 0.036)),
-      armorMat
-    );
-    buckleOuter.rotation.z = Math.PI / 4;
-    const buckleInner = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.068, 0.068, 0.042)),
-      ironMat
-    );
-    buckleInner.rotation.z = Math.PI / 4;
-    diamondBuckleGroup.add(buckleOuter, buckleInner);
-
-    const dwarfPouchGeo = trackGeo(new THREE.BoxGeometry(0.085, 0.11, 0.07));
-    const dwarfPouchL = new THREE.Mesh(dwarfPouchGeo, darkLeatherMat);
-    dwarfPouchL.position.set(-0.22, 0.5, 0.21);
-    dwarfPouchL.rotation.y = -0.55;
-    const dwarfPouchR = new THREE.Mesh(dwarfPouchGeo, darkLeatherMat);
-    dwarfPouchR.position.set(0.22, 0.5, 0.21);
-    dwarfPouchR.rotation.y = 0.55;
-
-    // Chainmail Shoulders + Hooded Cloak Mantle + Twin Nordic Star Brooches + Back Cloak
-    const mailShoulderGeo = trackGeo(
-      new THREE.SphereGeometry(0.165, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.62)
-    );
-    const mailShoulderL = new THREE.Mesh(mailShoulderGeo, chainmailMat);
-    mailShoulderL.position.set(-0.28, 0.92, 0);
-    mailShoulderL.rotation.z = 0.45;
-    const mailShoulderR = new THREE.Mesh(mailShoulderGeo, chainmailMat);
-    mailShoulderR.position.set(0.28, 0.92, 0);
-    mailShoulderR.rotation.z = -0.45;
-
-    const cloakMantle = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.265, 0.305, 0.16, 14)),
-      cloakMat
-    );
-    cloakMantle.position.set(0, 0.94, -0.045);
-
-    const broochDiscGeo = trackGeo(new THREE.CylinderGeometry(0.048, 0.048, 0.02, 12));
-    broochDiscGeo.rotateX(Math.PI / 2);
-    const broochStarGeo = trackGeo(new THREE.OctahedronGeometry(0.036, 0));
-    const broochL = new THREE.Mesh(broochDiscGeo, ironMat);
-    broochL.position.set(-0.19, 0.89, 0.25);
-    broochL.rotation.y = -0.35;
-    const broochStarL = new THREE.Mesh(broochStarGeo, armorMat);
-    broochStarL.scale.set(1, 1, 0.35);
-    broochStarL.position.set(-0.19, 0.89, 0.262);
-    const broochR = new THREE.Mesh(broochDiscGeo, ironMat);
-    broochR.position.set(0.19, 0.89, 0.25);
-    broochR.rotation.y = 0.35;
-    const broochStarR = new THREE.Mesh(broochStarGeo, armorMat);
-    broochStarR.scale.set(1, 1, 0.35);
-    broochStarR.position.set(0.19, 0.89, 0.262);
-
-    const cloakHoodBack = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.22, 0.34, 8)),
-      cloakMat
-    );
-    cloakHoodBack.rotation.x = Math.PI * 0.78;
-    cloakHoodBack.position.set(0, 0.85, -0.26);
-
-    const cloakBack = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.56, 0.68, 0.035)),
-      cloakMat
-    );
-    cloakBack.position.set(0, 0.62, -0.29);
-    cloakBack.rotation.x = -0.06;
-
-    // Dwarven Head, Crown Braids, Back Braid Ponytail, Sweeping Mustache & 3-Braided Beard
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.15, 0.09);
-    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.195, 16, 14)), skinMat);
-    head.scale.set(1.04, 0.98, 1.0);
-
-    const browRidge = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.16, 0.032, 0.045)),
-      skinMat
-    );
-    browRidge.position.set(0, 0.055, 0.178);
-
-    const nose = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.052, 10, 10)), skinMat);
-    nose.scale.set(1.05, 0.92, 1.12);
-    nose.position.set(0, 0.01, 0.195);
-
-    const dwarfEyeGeo = trackGeo(new THREE.SphereGeometry(0.018, 8, 8));
-    const dwarfEyeMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x1e293b }));
-    const eyeL = new THREE.Mesh(dwarfEyeGeo, dwarfEyeMat);
-    eyeL.position.set(-0.055, 0.035, 0.178);
-    const eyeR = new THREE.Mesh(dwarfEyeGeo, dwarfEyeMat);
-    eyeR.position.set(0.055, 0.035, 0.178);
-
-    // Rich Auburn Hair Cap + Crown Braids + Long Braided Back Ponytail
-    const hairCap = new THREE.Mesh(
-      trackGeo(new THREE.SphereGeometry(0.206, 14, 12, 0, Math.PI * 2, 0, Math.PI * 0.58)),
-      beardMat
-    );
-    hairCap.position.set(0, 0.02, -0.015);
-    hairCap.rotation.x = 0.24;
-
-    const templeBraidGeo = trackGeo(new THREE.CylinderGeometry(0.032, 0.028, 0.24, 8));
-    templeBraidGeo.rotateX(Math.PI / 2);
-    const crownBraidL = new THREE.Mesh(templeBraidGeo, beardMat);
-    crownBraidL.position.set(-0.14, 0.08, -0.04);
-    crownBraidL.rotation.y = 0.28;
-    const crownBraidR = new THREE.Mesh(templeBraidGeo, beardMat);
-    crownBraidR.position.set(0.14, 0.08, -0.04);
-    crownBraidR.rotation.y = -0.28;
-
-    const backHairMane = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.32, 0.34, 0.11)),
-      beardMat
-    );
-    backHairMane.position.set(0, -0.08, -0.18);
-    const backPonytailBraid = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.042, 0.024, 0.42, 8)),
-      beardMat
-    );
-    backPonytailBraid.position.set(0, -0.22, -0.24);
-    const backBraidClasp = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.034, 0.034, 0.028, 8)),
-      armorMat
-    );
-    backBraidClasp.position.set(0, -0.34, -0.24);
-
-    // Thick Sweeping Split Mustache
-    const mustacheGeo = trackGeo(new THREE.ConeGeometry(0.052, 0.17, 6));
-    const mustacheL = new THREE.Mesh(mustacheGeo, beardMat);
-    mustacheL.position.set(-0.068, -0.048, 0.198);
-    mustacheL.rotation.set(0.2, 0, -1.12);
-    const mustacheR = new THREE.Mesh(mustacheGeo, beardMat);
-    mustacheR.position.set(0.068, -0.048, 0.198);
-    mustacheR.rotation.set(0.2, 0, 1.12);
-
-    // Long 3-Braided Auburn Beard with Multiple Bronze/Silver Clasps (hanging over front of chest)
-    const beardCenter = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.165, 0.54, 10)),
-      beardMat
-    );
-    beardCenter.rotation.x = Math.PI - 0.18;
-    beardCenter.position.set(0, -0.25, 0.245);
-
-    const longSideBraidGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.026, 0.56, 8));
-    const beardBraidL = new THREE.Mesh(longSideBraidGeo, beardMat);
-    beardBraidL.position.set(-0.128, -0.27, 0.26);
-    beardBraidL.rotation.set(-0.16, 0, -0.08);
-    const beardBraidR = new THREE.Mesh(longSideBraidGeo, beardMat);
-    beardBraidR.position.set(0.128, -0.27, 0.26);
-    beardBraidR.rotation.set(-0.16, 0, 0.08);
-
-    const claspRingGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.04, 0.034, 8));
-    const centerRing = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.064, 0.064, 0.04, 10)),
-      armorMat
-    );
-    centerRing.position.set(0, -0.37, 0.275);
-    const sideClaspL1 = new THREE.Mesh(claspRingGeo, armorMat);
-    sideClaspL1.position.set(-0.118, -0.21, 0.245);
-    const sideClaspL2 = new THREE.Mesh(claspRingGeo, armorMat);
-    sideClaspL2.position.set(-0.134, -0.41, 0.28);
-    const sideClaspR1 = new THREE.Mesh(claspRingGeo, armorMat);
-    sideClaspR1.position.set(0.118, -0.21, 0.245);
-    const sideClaspR2 = new THREE.Mesh(claspRingGeo, armorMat);
-    sideClaspR2.position.set(0.134, -0.41, 0.28);
-
-    headGroup.add(
-      head,
-      browRidge,
-      nose,
-      eyeL,
-      eyeR,
-      hairCap,
-      crownBraidL,
-      crownBraidR,
-      backHairMane,
-      backPonytailBraid,
-      backBraidClasp,
-      mustacheL,
-      mustacheR,
-      beardCenter,
-      beardBraidL,
-      beardBraidR,
-      centerRing,
-      sideClaspL1,
-      sideClaspL2,
-      sideClaspR1,
-      sideClaspR2
-    );
-
-    // Left Arm + Chainmail Upper Sleeve + Embossed Leather Vambrace + Miner Lantern
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.31, 0.92, 0);
-    const upperSleeveGeo = trackGeo(new THREE.CylinderGeometry(0.088, 0.078, 0.22, 10));
-    upperSleeveGeo.translate(0, -0.1, 0);
-    const vambraceGeo = trackGeo(new THREE.CylinderGeometry(0.078, 0.068, 0.22, 10));
-    vambraceGeo.translate(0, -0.28, 0);
-    const vambraceTrimGeo = trackGeo(new THREE.CylinderGeometry(0.082, 0.072, 0.035, 10));
-    vambraceTrimGeo.translate(0, -0.2, 0);
-    const gauntletGeo = trackGeo(new THREE.SphereGeometry(0.062, 10, 10));
-    gauntletGeo.translate(0, -0.4, 0);
-
-    leftArm.add(
-      new THREE.Mesh(upperSleeveGeo, chainmailMat),
-      new THREE.Mesh(vambraceGeo, leatherMat),
-      new THREE.Mesh(vambraceTrimGeo, armorMat),
-      new THREE.Mesh(gauntletGeo, darkLeatherMat)
-    );
-    const lantern = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.065, 0.055, 0.16, 8)),
-      lanternGlowMat
-    );
-    lantern.position.set(0, -0.46, 0.14);
-    leftArm.add(lantern);
-
-    // Right Arm + Chainmail Upper Sleeve + Embossed Vambrace + Dwarven Double-Bitted Battleaxe / Pickaxe
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.31, 0.92, 0);
-    rightArm.add(
-      new THREE.Mesh(upperSleeveGeo, chainmailMat),
-      new THREE.Mesh(vambraceGeo, leatherMat),
-      new THREE.Mesh(vambraceTrimGeo, armorMat),
-      new THREE.Mesh(gauntletGeo, darkLeatherMat)
-    );
-    const pickGroup = new THREE.Group();
-    pickGroup.position.set(0, -0.38, 0.12);
-    pickGroup.rotation.set(-0.28, -0.22, -0.15);
-    const pickHandle = new THREE.Mesh(
-      trackGeo(new THREE.CylinderGeometry(0.024, 0.026, 0.72, 8)),
-      leatherMat
-    );
-    pickHandle.rotation.x = Math.PI / 2;
-    pickHandle.position.z = 0.22;
-    const axeCollar = new THREE.Mesh(
-      trackGeo(new THREE.BoxGeometry(0.065, 0.065, 0.12)),
-      armorMat
-    );
-    axeCollar.position.set(0, 0, 0.5);
-    const axeBladeGeo = trackGeo(new THREE.ConeGeometry(0.14, 0.24, 4));
-    axeBladeGeo.scale(0.24, 1.0, 1.15);
-    const bladeLeft = new THREE.Mesh(axeBladeGeo, ironMat);
-    bladeLeft.rotation.z = Math.PI / 2;
-    bladeLeft.position.set(-0.12, 0, 0.5);
-    const bladeRight = new THREE.Mesh(axeBladeGeo, ironMat);
-    bladeRight.rotation.z = -Math.PI / 2;
-    bladeRight.position.set(0.12, 0, 0.5);
-    const axeSpike = new THREE.Mesh(
-      trackGeo(new THREE.ConeGeometry(0.028, 0.11, 6)),
-      armorMat
-    );
-    axeSpike.rotation.x = Math.PI / 2;
-    axeSpike.position.set(0, 0, 0.6);
-    pickGroup.add(pickHandle, axeCollar, bladeLeft, bladeRight, axeSpike);
-    rightArm.add(pickGroup);
-
-    // Stocky Legs & Heavy Cuffed Dwarven Leather Boots
-    const legGeo = trackGeo(new THREE.CylinderGeometry(0.105, 0.095, 0.36, 10));
-    legGeo.translate(0, -0.18, 0);
-    const bootCuffGeo = trackGeo(new THREE.CylinderGeometry(0.112, 0.102, 0.09, 10));
-    bootCuffGeo.translate(0, -0.26, 0);
-    const bootGeo = trackGeo(new THREE.BoxGeometry(0.165, 0.12, 0.26));
-    bootGeo.translate(0, -0.36, 0.04);
-    const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.135, 0.4, 0);
-    leftLeg.add(
-      new THREE.Mesh(legGeo, darkLeatherMat),
-      new THREE.Mesh(bootCuffGeo, leatherMat),
-      new THREE.Mesh(bootGeo, darkLeatherMat)
-    );
-    const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.135, 0.4, 0);
-    rightLeg.add(
-      new THREE.Mesh(legGeo, darkLeatherMat),
-      new THREE.Mesh(bootCuffGeo, leatherMat),
-      new THREE.Mesh(bootGeo, darkLeatherMat)
-    );
-
-    // Crystal Vein Prop (shown during mining animation)
     const crystalProp = new THREE.Group();
-    crystalProp.position.set(0.22, 0, 0.68);
+    crystalProp.position.set(0.15, 0, 0.78);
     for (let c = 0; c < 3; c++) {
-      const spire = new THREE.Mesh(trackGeo(new THREE.ConeGeometry(0.14, 0.55 - c * 0.1, 6)), crystalMat);
+      const spire = new THREE.Mesh(
+        trackGeo(new THREE.ConeGeometry(0.14, 0.55 - c * 0.1, 6)),
+        crystalMat
+      );
       spire.position.set((c - 1) * 0.14, 0.25, 0);
       spire.rotation.z = (c - 1) * 0.25;
       crystalProp.add(spire);
     }
     crystalProp.visible = false;
+    dwarfWrapper.add(crystalProp);
 
-    bodyPivot.add(
-      chainmailSkirt,
-      torso,
-      tunicHemTrim,
-      tunicFrontSeam,
-      belt,
-      diamondBuckleGroup,
-      dwarfPouchL,
-      dwarfPouchR,
-      mailShoulderL,
-      mailShoulderR,
-      cloakMantle,
-      broochL,
-      broochStarL,
-      broochR,
-      broochStarR,
-      cloakHoodBack,
-      cloakBack,
-      headGroup,
-      leftArm,
-      rightArm
-    );
-    root.add(bodyPivot, leftLeg, rightLeg, crystalProp);
-
-    editableRigTargets.weaponNodes.push(pickGroup);
-    editableRigTargets.leftWeaponNodes.push(lantern);
-    editableRigTargets.rightLimbNodes.push(rightArm);
-    editableRigTargets.leftLimbNodes.push(leftArm);
-    editableRigTargets.headNodes.push(headGroup);
-    editableRigTargets.bodyNodes.push(bodyPivot);
+    if (dwarfCtrl.weaponNode) {
+      editableRigTargets.weaponNodes.push(dwarfCtrl.weaponNode);
+    }
+    if (dwarfCtrl.bones.length > 0) {
+      editableRigTargets.rightLimbNodes.push(dwarfCtrl.bones[14] ?? dwarfCtrl.bones[0]);
+      editableRigTargets.leftLimbNodes.push(dwarfCtrl.bones[9] ?? dwarfCtrl.bones[0]);
+      editableRigTargets.headNodes.push(dwarfCtrl.bones[4] ?? dwarfCtrl.bones[0]);
+    }
+    editableRigTargets.bodyNodes.push(dwarfWrapper);
 
     customApplySkin = (skin) => {
-      tunicMat.color.setHex(skin.palette.primaryHex);
-      beardMat.color.setHex(skin.palette.secondaryHex);
-      armorMat.color.setHex(skin.palette.accentHex);
+      const mat = dwarfCtrl.skinnedMesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        if (skin.id === 'dwarf_thorin_red') {
+          mat.color.setHex(0xffffff);
+        } else {
+          mat.color.setHex(0xffffff).lerp(new THREE.Color(skin.palette.primaryHex), 0.35);
+        }
+      }
       if (skin.palette.trimHex) {
         crystalMat.color.setHex(skin.palette.trimHex);
         crystalMat.emissive.setHex(skin.palette.trimHex);
@@ -1341,187 +1020,118 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
     };
 
     customApplyAnimation = (animId, _t, p) => {
-      bodyPivot.position.set(0, 0, 0);
-      bodyPivot.rotation.set(0, 0, 0);
-      headGroup.rotation.set(0, 0, 0);
-      leftArm.rotation.set(-0.28, 0.18, 0.12);
-      rightArm.rotation.set(-0.28, -0.22, -0.14);
-      leftLeg.rotation.set(0, 0, 0);
-      rightLeg.rotation.set(0, 0, 0);
+      dwarfWrapper.position.set(0, 0, 0);
+      dwarfWrapper.rotation.set(0, 0, 0);
       crystalProp.visible = false;
 
-      if (animId === 'none') return;
-      const phase = p * Math.PI * 2;
-
-      if (animId === 'mining_work') {
-        crystalProp.visible = true;
-        const strike = Math.sin(phase);
-        bodyPivot.rotation.x = Math.max(0, strike) * 0.22;
-        rightArm.rotation.x = -1.1 + strike * 1.15;
-        leftArm.rotation.x = -0.55 - strike * 0.2;
-        headGroup.rotation.x = strike * 0.15;
-      } else if (animId === 'caravan_march') {
-        const swing = Math.sin(phase);
-        bodyPivot.position.y = Math.abs(Math.cos(phase)) * 0.04;
-        bodyPivot.rotation.z = swing * 0.06;
-        leftLeg.rotation.x = swing * 0.6;
-        rightLeg.rotation.x = -swing * 0.6;
-        leftArm.rotation.x = -0.5 - swing * 0.35;
-        rightArm.rotation.x = -0.4 + swing * 0.45;
-      } else if (animId === 'miner_idle') {
-        bodyPivot.position.y = Math.sin(phase) * 0.015;
-        headGroup.rotation.y = Math.sin(phase) * 0.22;
-        leftArm.rotation.x = -0.45 + Math.cos(phase) * 0.1;
-      } else if (animId === 'celebrate_gold') {
-        const jump = Math.abs(Math.sin(phase * 2));
-        bodyPivot.position.y = jump * 0.18;
-        leftArm.rotation.x = -2.4 + Math.sin(phase * 2) * 0.3;
-        rightArm.rotation.x = -2.5 - Math.sin(phase * 2) * 0.3;
+      if (animId === 'none') {
+        dwarfCtrl.resetToRest();
+        return;
       }
+
+      const animMap: Readonly<Record<string, DwarfWarriorState>> = {
+        mining_work: 'mine1',
+        caravan_march: 'walk',
+        miner_idle: 'idle',
+        celebrate_gold: 'attack3',
+        idle: 'idle',
+        walk: 'walk',
+        run: 'run',
+        sleep: 'sleep',
+        sit: 'sit',
+        attack1: 'attack1',
+        attack2: 'attack2',
+        attack3: 'attack3',
+        mine1: 'mine1',
+        mine2: 'mine2',
+        death: 'death',
+      };
+      const targetState: DwarfWarriorState = animMap[animId] ?? 'idle';
+      if (animId === 'mining_work' || animId === 'mine1' || animId === 'mine2') {
+        crystalProp.visible = true;
+      }
+      dwarfCtrl.setNormalizedPhase(targetState, p);
     };
   }
 
-  // 4 & 5. SHAOLIN MONK & TAI-CHI MONK
+  // 4 & 5. SHAOLIN MONK & TAI-CHI MONK (Full Skinned WarriorMonk_Complete Model + 11 Built-in Animations)
   else if (entityId === 'shaolin_monk' || entityId === 'tai_chi_monk') {
     const hasStaff = entityId === 'shaolin_monk';
-    const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xe2b897, roughness: 0.6 }));
-    const robeMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xd96b27, roughness: 0.78 }));
-    const pantsMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x262626, roughness: 0.85 }));
-    const sashMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 }));
-    const wrapMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xf5f0e6, roughness: 0.8 }));
-    const staffMat = trackMat(
-      new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.82 })
-    );
+    const monkWrapper = new THREE.Group();
+    root.add(monkWrapper);
 
-    const bodyGroup = new THREE.Group();
-    const torsoGeo = trackGeo(new THREE.CylinderGeometry(0.24, 0.31, 0.82, 12));
-    torsoGeo.translate(0, 1.08, 0);
-    const headGeo = trackGeo(new THREE.SphereGeometry(0.2, 14, 14));
-    headGeo.translate(0, 1.68, 0);
-    const sashGeo = trackGeo(new THREE.BoxGeometry(0.54, 0.14, 0.54));
+    const monkCtrl = createReadyWarriorMonk({
+      initialState: 'idle',
+      weaponVisible: hasStaff,
+      driveRootMotion: false,
+    });
+    monkCtrl.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.castShadow = true;
+        m.receiveShadow = true;
+        disposableGeometries.push(m.geometry);
+        if (Array.isArray(m.material)) {
+          for (const mat of m.material) disposableMaterials.push(mat);
+        } else if (m.material) {
+          disposableMaterials.push(m.material);
+        }
+      }
+    });
+    monkWrapper.add(monkCtrl.group);
 
-    const torso = new THREE.Mesh(torsoGeo, robeMat);
-    const head = new THREE.Mesh(headGeo, skinMat);
-    const sash = new THREE.Mesh(sashGeo, sashMat);
-    sash.position.y = 0.88;
-
-    const armGeo = trackGeo(new THREE.CylinderGeometry(0.075, 0.065, 0.68, 10));
-    armGeo.translate(0, -0.28, 0);
-    const leftArm = new THREE.Group();
-    leftArm.position.set(-0.32, 1.38, 0);
-    leftArm.add(new THREE.Mesh(armGeo, robeMat));
-
-    const rightArm = new THREE.Group();
-    rightArm.position.set(0.32, 1.38, 0);
-    rightArm.add(new THREE.Mesh(armGeo, robeMat));
-
-    let staffMesh: THREE.Mesh | null = null;
-    if (hasStaff) {
-      const staffGeo = trackGeo(new THREE.CylinderGeometry(0.026, 0.026, 2.25, 10));
-      staffMesh = new THREE.Mesh(staffGeo, staffMat);
-      staffMesh.position.set(0, -0.52, 0.16);
-      staffMesh.rotation.x = Math.PI * 0.38;
-      rightArm.add(staffMesh);
+    if (monkCtrl.weaponNode) {
+      editableRigTargets.weaponNodes.push(monkCtrl.weaponNode);
     }
-
-    const uLegGeo = trackGeo(new THREE.CylinderGeometry(0.105, 0.088, 0.46, 10));
-    uLegGeo.translate(0, -0.22, 0);
-    const lLegGeo = trackGeo(new THREE.CylinderGeometry(0.082, 0.068, 0.38, 10));
-    lLegGeo.translate(0, -0.56, 0);
-    const shoeGeo = trackGeo(new THREE.BoxGeometry(0.15, 0.1, 0.28));
-    shoeGeo.translate(0, -0.74, 0.05);
-
-    const leftLeg = new THREE.Group();
-    leftLeg.position.set(-0.14, 0.78, 0);
-    leftLeg.add(
-      new THREE.Mesh(uLegGeo, pantsMat),
-      new THREE.Mesh(lLegGeo, wrapMat),
-      new THREE.Mesh(shoeGeo, pantsMat)
-    );
-
-    const rightLeg = new THREE.Group();
-    rightLeg.position.set(0.14, 0.78, 0);
-    rightLeg.add(
-      new THREE.Mesh(uLegGeo, pantsMat),
-      new THREE.Mesh(lLegGeo, wrapMat),
-      new THREE.Mesh(shoeGeo, pantsMat)
-    );
-
-    bodyGroup.add(torso, head, sash, leftArm, rightArm, leftLeg, rightLeg);
-    root.add(bodyGroup);
-
-    if (staffMesh) {
-      editableRigTargets.weaponNodes.push(staffMesh);
-      editableRigTargets.leftWeaponNodes.push(sash);
-    } else {
-      editableRigTargets.weaponNodes.push(sash);
-      editableRigTargets.leftWeaponNodes.push(leftLeg);
+    if (monkCtrl.bones.length > 0) {
+      editableRigTargets.rightLimbNodes.push(monkCtrl.bones[14] ?? monkCtrl.bones[0]);
+      editableRigTargets.leftLimbNodes.push(monkCtrl.bones[9] ?? monkCtrl.bones[0]);
+      editableRigTargets.headNodes.push(monkCtrl.bones[4] ?? monkCtrl.bones[0]);
     }
-    editableRigTargets.rightLimbNodes.push(rightArm);
-    editableRigTargets.leftLimbNodes.push(leftArm);
-    editableRigTargets.headNodes.push(head);
-    editableRigTargets.bodyNodes.push(bodyGroup);
+    editableRigTargets.bodyNodes.push(monkWrapper);
 
     customApplySkin = (skin) => {
-      robeMat.color.setHex(skin.palette.primaryHex);
-      pantsMat.color.setHex(skin.palette.secondaryHex);
-      sashMat.color.setHex(skin.palette.accentHex);
-      if (skin.palette.trimHex) staffMat.color.setHex(skin.palette.trimHex);
+      const mat = monkCtrl.skinnedMesh.material as THREE.MeshStandardMaterial;
+      if (mat && mat.color) {
+        if (skin.id === 'monk_saffron_classic' || skin.id === 'taichi_sunrise_orange') {
+          mat.color.setHex(0xffffff);
+        } else {
+          mat.color.setHex(0xffffff).lerp(new THREE.Color(skin.palette.primaryHex), 0.35);
+        }
+      }
     };
 
     customApplyAnimation = (animId, _t, p) => {
-      bodyGroup.position.set(0, 0, 0);
-      bodyGroup.rotation.set(0, 0, 0);
-      leftArm.rotation.set(-0.15, 0, 0.12);
-      rightArm.rotation.set(-0.25, 0, -0.12);
-      leftLeg.rotation.set(0, 0, 0);
-      rightLeg.rotation.set(0, 0, 0);
-      if (staffMesh) {
-        staffMesh.rotation.set(Math.PI * 0.38, 0, 0);
+      monkWrapper.position.set(0, 0, 0);
+      monkWrapper.rotation.set(0, 0, 0);
+
+      if (animId === 'none') {
+        monkCtrl.resetToRest();
+        return;
       }
 
-      if (animId === 'none') return;
-      const phase = p * Math.PI * 2;
-
-      if (animId === 'kung_fu_form' || animId === 'tai_chi_flow') {
-        bodyGroup.position.y = Math.abs(Math.sin(phase)) * 0.05;
-        bodyGroup.rotation.y = Math.sin(phase * 0.5) * 0.38;
-        leftArm.rotation.x = -0.65 + Math.sin(phase) * 0.75;
-        leftArm.rotation.z = 0.25 + Math.cos(phase * 0.7) * 0.25;
-        rightArm.rotation.x = -0.85 + Math.cos(phase) * 0.85;
-        rightArm.rotation.z = -0.25 + Math.sin(phase * 0.7) * 0.32;
-        const legStance = Math.sin(phase * 0.5) * 0.26;
-        leftLeg.rotation.x = legStance;
-        rightLeg.rotation.x = -legStance;
-      } else if (animId === 'staff_whirlwind') {
-        bodyGroup.rotation.y = Math.sin(phase) * 0.45;
-        rightArm.rotation.x = -1.2;
-        if (staffMesh) {
-          staffMesh.rotation.z = phase * 2;
-        }
-        leftArm.rotation.set(-0.8, 0, 0.55);
-      } else if (animId === 'horse_stance_strike') {
-        const dip = Math.sin(phase) * 0.5 + 0.5;
-        bodyGroup.position.y = -dip * 0.14;
-        leftLeg.rotation.z = dip * 0.22;
-        rightLeg.rotation.z = -dip * 0.22;
-        rightArm.rotation.x = -0.4 - Math.sin(phase) * 0.9;
-        leftArm.rotation.x = -0.8 + Math.sin(phase) * 0.6;
-      } else if (animId === 'shaolin_salute') {
-        const bow = Math.sin(phase * 0.5);
-        bodyGroup.rotation.x = bow * 0.35;
-        leftArm.rotation.set(-1.1, 0.4, 0.45);
-        rightArm.rotation.set(-1.1, -0.4, -0.45);
-      } else if (animId === 'cloud_hands') {
-        bodyGroup.rotation.y = Math.sin(phase) * 0.32;
-        leftArm.rotation.set(-1.0 + Math.sin(phase) * 0.35, 0, 0.35 + Math.cos(phase) * 0.35);
-        rightArm.rotation.set(-1.0 - Math.sin(phase) * 0.35, 0, -0.35 + Math.cos(phase) * 0.35);
-      } else if (animId === 'crane_balance') {
-        const lift = Math.sin(phase * 0.5);
-        leftLeg.rotation.x = -lift * 0.85;
-        leftArm.rotation.z = 0.3 + lift * 0.95;
-        rightArm.rotation.z = -0.3 - lift * 0.95;
-      }
+      const animMap: Readonly<Record<string, WarriorMonkState>> = {
+        kung_fu_form: 'attack3',
+        staff_whirlwind: 'staff_spin',
+        horse_stance_strike: 'attack1',
+        shaolin_salute: 'pray_kneel',
+        tai_chi_flow: 'attack2',
+        cloud_hands: 'staff_spin',
+        crane_balance: 'pray_kneel',
+        idle: 'idle',
+        walk: 'walk',
+        run: 'run',
+        sleep: 'sleep',
+        sit: 'sit',
+        pray_kneel: 'pray_kneel',
+        attack1: 'attack1',
+        attack2: 'attack2',
+        attack3: 'attack3',
+        staff_spin: 'staff_spin',
+        death: 'death',
+      };
+      const targetState: WarriorMonkState = animMap[animId] ?? 'idle';
+      monkCtrl.setNormalizedPhase(targetState, p);
     };
   }
 
@@ -3593,7 +3203,7 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
       castShadow: true,
       receiveShadow: true,
     });
-    hippo.loopDeath = true;
+    hippo.loopDeath = false;
     hippoRoot.add(hippo.object);
 
     const hippoMat = hippo.mesh.material;
@@ -3663,8 +3273,8 @@ export function buildLabEntityRig(entityId: string, initialSkin: ILabSkinDef): I
 
       if (lastHippoAnimId !== animId) {
         hippo.setState(mappedState);
-        if (mappedState === 'death') {
-          hippo.restartState();
+        if (mappedState === 'death' || mappedState === 'lie') {
+          hippo.restartState(mappedState);
         }
         lastHippoAnimId = animId;
       }

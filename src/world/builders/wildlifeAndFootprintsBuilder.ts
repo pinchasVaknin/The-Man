@@ -1571,8 +1571,8 @@ export function buildWildlifeAndFootprintsLayer(
                       ? 'trot'
                       : moveSpd > 0.12
                         ? 'walk'
-                        : ai === 'sitting'
-                          ? (i % 2 === 0 ? 'lie' : 'sit')
+                        : (ai as string) === 'sleeping' || ai === 'sitting' || a.isResting
+                          ? 'lie'
                           : ai === 'grazing' && cycleSlot < 0.68
                             ? 'eat'
                             : cycleSlot > 0.9

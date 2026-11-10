@@ -150,6 +150,22 @@ export function unpackHippoBundle(b64: string): UnpackedHippoData {
     clipJointRotations[i] = clipJointRotsI16[i] / 32767.0;
   }
 
+  // Fix exported loop-back artifact on Clip 4 ('lie' / sleep): Frame 15 in the raw bundle duplicated Frame 0 (standing).
+  // Copy Frame 14 (true lying-down final pose) into Frame 15 so the final frame of 'lie' is lying down!
+  const lieClipIdx = 4;
+  const rSrc = (lieClipIdx * NUM_FRAMES + 14) * 3;
+  const rDst = (lieClipIdx * NUM_FRAMES + 15) * 3;
+  clipRootTranslations[rDst] = clipRootTranslations[rSrc];
+  clipRootTranslations[rDst + 1] = clipRootTranslations[rSrc + 1];
+  clipRootTranslations[rDst + 2] = clipRootTranslations[rSrc + 2];
+
+  const jStride = NUM_JOINTS * 4;
+  const jSrc = (lieClipIdx * NUM_FRAMES + 14) * jStride;
+  const jDst = (lieClipIdx * NUM_FRAMES + 15) * jStride;
+  for (let k = 0; k < jStride; k++) {
+    clipJointRotations[jDst + k] = clipJointRotations[jSrc + k];
+  }
+
   return {
     positions,
     normals,
@@ -281,6 +297,9 @@ export class HippoAnimator {
     this.applyBlendedPose(0, 1.0, false);
   }
 
+  public lieLoopCount = 0;
+  private lastNormPhase = 0;
+
   public setState(next: HippoState): void {
     if (next === this.state) return;
     for (let j = 0; j < NUM_JOINTS; j++) {
@@ -293,13 +312,16 @@ export class HippoAnimator {
     this.blend = 0.0;
     this.blendDuration = next === 'attack' || next === 'bite_attack' ? 0.14 : next === 'death' ? 0.22 : 0.24;
     this.moveSpeed = HIPPO_GAITS[next] ? HIPPO_GAITS[next].speed : 0.0;
+    this.lieLoopCount = 0;
+    this.lastNormPhase = 0;
     if (
       next === 'call' ||
       next === 'roar' ||
       next === 'attack' ||
       next === 'bite_attack' ||
       next === 'death' ||
-      next === 'skip'
+      next === 'skip' ||
+      next === 'lie'
     ) {
       this.time = 0.0;
     }
@@ -315,6 +337,8 @@ export class HippoAnimator {
     this.state = next;
     this.blend = 0.0;
     this.time = 0.0;
+    this.lieLoopCount = 0;
+    this.lastNormPhase = 0;
     this.moveSpeed = HIPPO_GAITS[next] ? HIPPO_GAITS[next].speed : 0.0;
   }
 
@@ -322,7 +346,15 @@ export class HippoAnimator {
     this.blend = 1.0;
     const dur = this.getStateDuration(this.state);
     const wrapped = ((phase01 % 1) + 1) % 1;
-    this.time = wrapped * dur;
+    if (this.state === 'lie' || this.state === 'death') {
+      if (wrapped < 0.25 && this.lastNormPhase > 0.75) {
+        this.lieLoopCount++;
+      }
+      this.lastNormPhase = wrapped;
+      this.time = this.lieLoopCount > 0 ? dur : wrapped * dur;
+    } else {
+      this.time = wrapped * dur;
+    }
     this.applyBlendedPose(this.time, 1.0, false);
     this.rig.root.updateMatrixWorld(true);
   }
@@ -380,7 +412,15 @@ export class HippoAnimator {
   ): void {
     const dur = Math.max(0.05, this.data.clipDurations[clipIdx] || 1.0);
     let norm = localTime / dur;
-    if (loop) {
+    if (clipIdx === 4 || clipIdx === 12) {
+      // Clip 4 ('lie' / sleep) and Clip 12 ('death') transition from standing (0.0) to lying down (1.0).
+      // Play once from 0.0 -> 1.0 and stay clamped on the final frame (1.0) so the Hippo never stands back up!
+      if (localTime < dur && this.lieLoopCount === 0) {
+        norm = Math.min(1.0, Math.max(0.0, norm));
+      } else {
+        norm = 1.0;
+      }
+    } else if (loop) {
       norm = norm - Math.floor(norm);
     } else {
       norm = Math.min(1.0, Math.max(0.0, norm));
@@ -388,7 +428,8 @@ export class HippoAnimator {
 
     const fExact = norm * (NUM_FRAMES - 1);
     const f0 = Math.min(NUM_FRAMES - 1, Math.floor(fExact));
-    const f1 = loop ? (f0 + 1) % NUM_FRAMES : Math.min(NUM_FRAMES - 1, f0 + 1);
+    const noWrapToZero = !loop || clipIdx === 4 || clipIdx === 12;
+    const f1 = noWrapToZero ? Math.min(NUM_FRAMES - 1, f0 + 1) : (f0 + 1) % NUM_FRAMES;
     const alpha = fExact - f0;
 
     const rBase0 = (clipIdx * NUM_FRAMES + f0) * 3;
@@ -468,7 +509,7 @@ export class HippoAnimator {
     }
 
     const clipIdx = this.getClipIndex(st);
-    const loop = st !== 'death' || this.loopDeath;
+    const loop = st !== 'death' && st !== 'lie';
     this.sampleBakedClipPose(clipIdx, t, loop, outRootPos, outQuats);
 
     // Keep horizontal root translation anchored at restRootPos for locomotion loops so world AI drives position cleanly,

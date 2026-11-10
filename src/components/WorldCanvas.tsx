@@ -106,6 +106,7 @@ import {
   createGpuFencePacedScheduler,
 } from '../world/controllers/frameSchedulers';
 import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
+import { findActiveCombatDwarf } from '../world/builders/dwarvenKingdomBuilder';
 import {
   type IPlacedTrap,
   type IWorkbenchStash,
@@ -2443,6 +2444,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         lastHitAnimalTimer > 0 &&
         lastHitAnimal !== null &&
         (!lastHitAnimal.isDead || lastHitAnimalTimer > 0.3);
+      const combatDwarf = !showEnemyBar
+        ? findActiveCombatDwarf(playerState.x, playerState.z)
+        : null;
       onTelemetryUpdateRef.current(
         buildTelemetrySnapshot({
           player: playerState,
@@ -2467,7 +2471,17 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                   isBoss: Boolean(lastHitAnimal.isBoss || lastHitAnimal.species === 'dragon'),
                   isSubdued: Boolean(lastHitAnimal.isSubdued),
                 }
-              : null,
+              : combatDwarf
+                ? {
+                    id: 9000 + combatDwarf.id,
+                    name: `${combatDwarf.name} (Dwarven Warrior)`,
+                    level: combatDwarf.level,
+                    hp: Math.max(0, combatDwarf.hp),
+                    maxHp: Math.max(1, combatDwarf.maxHp),
+                    isBoss: false,
+                    isSubdued: false,
+                  }
+                : null,
           isSleepingInBed,
           worldHours,
           forcedSeason,

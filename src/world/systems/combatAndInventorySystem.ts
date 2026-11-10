@@ -62,6 +62,11 @@ import {
   checkArrowHitMonk,
   checkSwordHitMonk,
 } from './monkTempleSystem';
+import {
+  checkSwordHitDwarf,
+  checkArrowHitDwarf,
+  getActiveDwarvenMiners,
+} from '../builders/dwarvenKingdomBuilder';
 // #endregion
 
 // ======================== CONSTANTS & LABELS ======================== \\
@@ -1212,6 +1217,27 @@ export function evaluateSwordStrikeWindowHit(
       return { comboIndex, isHeavy, hitKind: 'obstacle', hitTarget: null, hitAnySurface: true };
     }
 
+    const hitDwarf = checkSwordHitDwarf(
+      sx,
+      sy,
+      sz,
+      isHeavy ? BASE_ARROW_HIT_DAMAGE * 2 : BASE_ARROW_HIT_DAMAGE
+    );
+    if (hitDwarf) {
+      state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'target' };
+      state.lastArrowHitTarget = `dwarf_${hitDwarf.id}`;
+      state.swordHitStopTimer = 0.045;
+      awardSkillXp(state, 'swordsmanship', hitDwarf.isDead ? 28 : 14);
+      return {
+        comboIndex,
+        isHeavy,
+        hitKind: 'target',
+        hitTarget: null,
+        killedAnimal: hitDwarf.isDead,
+        hitAnySurface: true,
+      };
+    }
+
     for (let a = 0; a < activeAnimals.length; a++) {
       const anim = activeAnimals[a];
       if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
@@ -1635,6 +1661,36 @@ export function stepArrowsPhysics(
           arr.y = baseAnimY + loy;
         }
         arr.yaw = hostAnim.yaw + (arr.localYawOffset ?? 0);
+      } else if (arr.hitTargetId?.startsWith('dwarf_')) {
+        const dwarfId = Number(arr.hitTargetId.slice(6));
+        const activeDwarves = getActiveDwarvenMiners();
+        let hostDwarf = null;
+        for (let d = 0; d < activeDwarves.length; d++) {
+          if (activeDwarves[d].id === dwarfId) {
+            hostDwarf = activeDwarves[d];
+            break;
+          }
+        }
+        if (!hostDwarf || (!hostDwarf.isDead && hostDwarf.hp >= hostDwarf.maxHp)) {
+          arrows.splice(i, 1);
+          i--;
+          continue;
+        }
+        const cosY = Math.cos(hostDwarf.yaw);
+        const sinY = Math.sin(hostDwarf.yaw);
+        const lox = arr.localOffsetX ?? 0;
+        const loz = arr.localOffsetZ ?? 0;
+        const loy = arr.localOffsetY ?? 0.85;
+        if (hostDwarf.isDead) {
+          arr.x = hostDwarf.x + lox * 0.45 * cosY + loz * sinY;
+          arr.z = hostDwarf.z - lox * 0.45 * sinY + loz * cosY;
+          arr.y = hostDwarf.y + Math.max(0.18, loy * 0.35);
+        } else {
+          arr.x = hostDwarf.x + lox * cosY + loz * sinY;
+          arr.z = hostDwarf.z - lox * sinY + loz * cosY;
+          arr.y = hostDwarf.y + loy;
+        }
+        arr.yaw = hostDwarf.yaw + (arr.localYawOffset ?? 0);
       }
       continue;
     }
@@ -1644,7 +1700,9 @@ export function stepArrowsPhysics(
       const subSteps = 4;
       const subDt = dt / subSteps;
       for (let s = 0; s < subSteps; s++) {
+        const prevX = arr.x;
         const prevY = arr.y;
+        const prevZ = arr.z;
         arr.vy -= grav * subDt;
         arr.x += arr.vx * subDt;
         arr.y += arr.vy * subDt;
@@ -1715,6 +1773,39 @@ export function stepArrowsPhysics(
             arr.vy = 2.6 + (arr.id % 3) * 0.65;
             arrExt.deflectedByMonk = true;
             arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+            hitAnySurface = true;
+            struck = true;
+            break;
+          }
+
+          const arrowDmg =
+            arr.arrowKind === 'fire'
+              ? Math.round(BASE_ARROW_HIT_DAMAGE * 1.35)
+              : BASE_ARROW_HIT_DAMAGE;
+          const hitDwarf =
+            checkArrowHitDwarf(
+              (prevX + arr.x) * 0.5,
+              (prevY + arr.y) * 0.5,
+              (prevZ + arr.z) * 0.5,
+              arrowDmg
+            ) ?? checkArrowHitDwarf(arr.x, arr.y, arr.z, arrowDmg);
+          if (hitDwarf) {
+            arr.stuck = true;
+            arr.vx = 0;
+            arr.vy = 0;
+            arr.vz = 0;
+            arr.hitKind = 'obstacle';
+            arr.hitTargetId = `dwarf_${hitDwarf.id}`;
+            const dx = arr.x - hitDwarf.x;
+            const dz = arr.z - hitDwarf.z;
+            const cosY = Math.cos(hitDwarf.yaw);
+            const sinY = Math.sin(hitDwarf.yaw);
+            arr.localOffsetX = Math.max(-0.35, Math.min(0.35, dx * cosY - dz * sinY));
+            arr.localOffsetZ = Math.max(-0.35, Math.min(0.35, dx * sinY + dz * cosY));
+            arr.localOffsetY = Math.max(0.25, Math.min(1.45, arr.y - hitDwarf.y));
+            arr.localYawOffset = arr.yaw - hitDwarf.yaw;
+            arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+            killedAnimal = hitDwarf.isDead;
             hitAnySurface = true;
             struck = true;
             break;
