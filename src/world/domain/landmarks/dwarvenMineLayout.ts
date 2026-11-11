@@ -426,6 +426,50 @@ export const DWARVEN_MINECART_ROUTES: readonly IMinecartRouteConfig[] = [
 export const MINE_CART_BODY = { halfX: 0.71, halfZ: 1.025, bottomDy: 0.2, topDy: 1.08 } as const;
 // #endregion
 
+// ======================== TIMBER ARCHES ======================== \\
+// #region Timber Arches
+/**
+ * Summary: Timber tunnel arches. Each arch has two posts at local x = +-postOffset (rotated by the arch's yaw).
+ * Design: The posts are 0.68 m square and reach postTop above the arch's floor. The model draws the arch from the same
+ *         sites (createTimberTunnelArch), and the collider table places one box per post at the same spots.
+ */
+export const MINE_TIMBER_ARCH = { postOffset: 2.75, postHalf: 0.34, postTop: 5.9 } as const;
+
+/** Summary: The three arches of Room 1 (world-local lx/lz; the floor is the cavern floor). */
+export const MINE_ROOM1_ARCHES: ReadonlyArray<{ readonly lx: number; readonly lz: number; readonly yaw: number }> = [
+  { lx: 0.0, lz: 35.0, yaw: 0 },
+  { lx: -47.5, lz: 64.0, yaw: Math.PI / 2 },
+  { lx: 47.5, lz: 64.0, yaw: -Math.PI / 2 },
+];
+
+export interface IMineTunnelArchSite {
+  readonly side: 'west' | 'east';
+  readonly f: number;
+  readonly lx: number;
+  readonly ly: number;
+  readonly lz: number;
+  readonly yaw: number;
+}
+
+/** Summary: Four arches along each rail tunnel, from the cavern floor down (or across) to the chamber floor. */
+export function mineTunnelArchSites(): IMineTunnelArchSite[] {
+  const sites: IMineTunnelArchSite[] = [];
+  const cavern = SOUTHERN_MINE_POS.cavernFloorY;
+  for (let f = 1; f <= 4; f++) {
+    const u = f / 5;
+    sites.push({
+      side: 'west', f, lx: -48.0 - u * 40.0,
+      ly: cavern - u * (cavern - SOUTHERN_MINE_POS.westLagoonFloorY), lz: 64.0, yaw: Math.PI / 2,
+    });
+    sites.push({
+      side: 'east', f, lx: 48.0 + u * 40.0,
+      ly: cavern - u * (cavern - SOUTHERN_MINE_POS.eastFoundryFloorY), lz: 64.0, yaw: -Math.PI / 2,
+    });
+  }
+  return sites;
+}
+// #endregion
+
 // ======================== ENTRANCE PORTAL ======================== \
 // #region Entrance Portal
 /**
