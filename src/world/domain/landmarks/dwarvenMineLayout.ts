@@ -28,6 +28,37 @@ export function mineFloorY(level: MineFloorLevel): number {
 }
 // #endregion
 
+// ======================== MESS HALL ======================== \\
+// #region Mess Hall
+/**
+ * Summary: Room 1 mess hall: two long dining tables (with benches) and the stew cauldron on its brazier.
+ * Design: lx/lz are local to the mine group. Table collider and model share lx, tableZs and tableHalfDepth.
+ */
+export const MINE_MESS_HALL = {
+  lx: -14.0,
+  tableZs: [56.0, 68.0],
+  tableHalfLen: 4.6,
+  tableHalfDepth: 1.8,
+  tableHeight: 1.05,
+  cauldron: { lz: 62.0, halfSize: 1.1, height: 1.65 },
+} as const;
+// #endregion
+
+// ======================== MESS HALL SUPPLY CRATES ======================== \\
+// #region Mess Hall Supply Crates
+/**
+ * Summary: The provisions and quartermaster supply crates beside the mess hall tables.
+ * Design: Centres and footprints follow the model's loot crate (1.35 m square, 1.05 m tall, from lootCrateGeo).
+ */
+export const MINE_SUPPLY_CRATES = {
+  lx: -22.5,
+  halfX: 0.675,
+  height: 1.05,
+  provisions: { lz: 56.0, halfZ: 0.675 },
+  quartermaster: { lz: 68.0, halfZ: 0.675 },
+} as const;
+// #endregion
+
 // ======================== CHAMBER BOUNDS ======================== \\
 // #region Chamber Bounds
 /**
