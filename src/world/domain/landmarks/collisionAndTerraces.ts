@@ -2732,9 +2732,19 @@ const SOLID_BOX_GRID_CELL_SIZE = 32.0;
 const EMPTY_SOLID_BOX_LIST: readonly ISolidBuildingBox[] = [];
 const _nearbySolidBoxesScratch: ISolidBuildingBox[] = [];
 let cachedSolidBoxGrid: Map<number, ISolidBuildingBox[]> | null = null;
+let cachedSolidBoxIndex: Map<ISolidBuildingBox, number> | null = null;
 
 function encodeSolidBoxCellKey(cx: number, cz: number): number {
   return ((cx + 512) << 10) | ((cz + 512) & 1023);
+}
+
+/** Position of each box in SOLID_BUILDING_BOXES, so multi-cell queries can return them in the same order as a full scan. */
+function getSolidBoxIndex(): Map<ISolidBuildingBox, number> {
+  if (cachedSolidBoxIndex) return cachedSolidBoxIndex;
+  const index = new Map<ISolidBuildingBox, number>();
+  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) index.set(SOLID_BUILDING_BOXES[i], i);
+  cachedSolidBoxIndex = index;
+  return index;
 }
 
 function getOrBuildSolidBoxGrid(): Map<number, ISolidBuildingBox[]> {
@@ -2795,6 +2805,9 @@ export function getNearbySolidBuildingBoxes(
       }
     }
   }
+  // Sort by index in SOLID_BUILDING_BOXES so the result is identical to a full scan in array order.
+  const index = getSolidBoxIndex();
+  _nearbySolidBoxesScratch.sort((a, b) => (index.get(a) ?? 0) - (index.get(b) ?? 0));
   return _nearbySolidBoxesScratch;
 }
 // #endregion
