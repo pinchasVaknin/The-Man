@@ -5,6 +5,31 @@
 //          Offsets are relative to SOUTHERN_MINE_POS (x, entranceZ), in metres.
 // ============================================================================
 
+// ======================== SCAFFOLD LEGS ======================== \\
+// #region Scaffold Legs
+/**
+ * Summary: Ground legs of the north-east and north-west catwalk scaffold.
+ * Design: Each leg stands on the cavern floor and reaches the catwalk. Positions are local to the mine
+ *         group (x from SOUTHERN_MINE_POS.x, z from SOUTHERN_MINE_POS.entranceZ); radius is the base radius.
+ */
+export const MINE_SCAFFOLD_LEGS = {
+  radius: 0.24,
+  height: 3.8,
+  positions: [
+    [8.5, 38.2],
+    [15.5, 38.2],
+    [23.5, 38.2],
+    [8.5, 48.5],
+    [15.5, 48.5],
+    [23.5, 48.5],
+    [-17.5, 36.5],
+    [-9.5, 36.5],
+    [-17.5, 40.5],
+    [-9.5, 40.5],
+  ] as const,
+} as const;
+// #endregion
+
 // ======================== HOIST CRANE ======================== \\
 // #region Hoist Crane
 /**
