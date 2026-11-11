@@ -28,6 +28,34 @@ export function mineFloorY(level: MineFloorLevel): number {
 }
 // #endregion
 
+// ======================== CHAMBER BOUNDS ======================== \\
+// #region Chamber Bounds
+/**
+ * Summary: Footprint of each mine chamber, in local mine coordinates (lx from SOUTHERN_MINE_POS.x, lz from entranceZ).
+ * Design: One table for both the "is the player inside the mine" test and the walkable-height function.
+ *         These are the walkable-height numbers, which match where players actually stand. Before this table the
+ *         two functions disagreed by 0.5–1.0 m at chamber edges.
+ */
+export const MINE_CHAMBER_BOUNDS = {
+  /** Main entrance shaft: |lx| <= halfW, lzMin <= lz < lzMax. */
+  shaft: { halfW: 4.5, lzMin: -1.2, lzMax: 34.0 },
+  /** Room 1 (entry staging and mess hall). */
+  room1: { halfW: 48.0, lzMin: 34.0, lzMax: 95.5 },
+  /** West rail tunnel to the lagoon chamber. */
+  westTunnel: { lxMin: -88.0, lxMax: -48.0, lzMin: 58.0, lzMax: 70.0 },
+  /** Chamber 2: the lagoon cavern. */
+  lagoonChamber: { lxMin: -148.5, lxMax: -88.0, lzMin: 38.0, lzMax: 112.0 },
+  /** East rail tunnel to the foundry. */
+  eastTunnel: { lxMin: 48.0, lxMax: 88.0, lzMin: 58.0, lzMax: 70.0 },
+  /** Chamber 3: the foundry and treasury. */
+  foundryChamber: { lxMin: 88.0, lxMax: 144.5, lzMin: 40.0, lzMax: 108.0 },
+  /** South Grand Moria descent gallery: |lx| <= halfW. */
+  southGallery: { halfW: 16.5, lzMin: 95.0, lzMax: 145.0 },
+  /** Chamber 4: the Great Hall of Khazad-dûm and its abyss: |lx| <= halfW. */
+  moriaHall: { halfW: 64.5, lzMin: 145.0, lzMax: 255.5 },
+} as const;
+// #endregion
+
 // ======================== FLOOR TORCH STANDS ======================== \\
 // #region Floor Torch Stands
 /** Summary: One floor-standing lantern post: a 2.75 m post with a 0.52 m plinth a player can walk into. */
