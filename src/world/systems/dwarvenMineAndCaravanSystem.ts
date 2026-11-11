@@ -10,6 +10,7 @@
 import { t } from '../../locales';
 import type { IDwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
+import { MINE_NW_GALLERY } from '../domain/landmarks/dwarvenMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -965,6 +966,29 @@ export function southernMineWalkableHeightAt(
       tStair * (SOUTHERN_MINE_POS.catwalkY - SOUTHERN_MINE_POS.cavernFloorY);
     if (currentY === undefined || currentY <= stairH + 2.2) {
       return stairH;
+    }
+  }
+
+  //    North-West Gallery Stairs (a sloped walkable ramp from the cavern floor up to the gallery top),
+  //    then the gallery itself, from MINE_NW_GALLERY. Steps are not boxes: a box above the feet is a wall.
+  {
+    const nwWestEdge = MINE_NW_GALLERY.lx - MINE_NW_GALLERY.width / 2;
+    const nwStairStart = nwWestEdge - MINE_NW_GALLERY.stepCount * MINE_NW_GALLERY.stepRun;
+    const inNwZ = Math.abs(lz - MINE_NW_GALLERY.lz) <= MINE_NW_GALLERY.depth / 2;
+    if (inNwZ && lx >= nwStairStart && lx < nwWestEdge) {
+      const tStair = (lx - nwStairStart) / (nwWestEdge - nwStairStart);
+      return (
+        SOUTHERN_MINE_POS.cavernFloorY + tStair * (MINE_NW_GALLERY.topY - SOUTHERN_MINE_POS.cavernFloorY)
+      );
+    }
+    if (
+      inNwZ &&
+      lx >= nwWestEdge &&
+      lx <= nwWestEdge + MINE_NW_GALLERY.width &&
+      currentY !== undefined &&
+      currentY >= MINE_NW_GALLERY.topY - 1.6
+    ) {
+      return MINE_NW_GALLERY.topY;
     }
   }
 

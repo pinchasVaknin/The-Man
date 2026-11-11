@@ -43,7 +43,9 @@ import {
 import {
   MINE_FLOOR_TORCH_STANDS,
   MINE_HOIST_CRANE,
+  MINE_KHAZAD_BRIDGE,
   MINE_SCAFFOLD_LEGS,
+  khazadBridgeSegment,
   mineFloorY,
 } from './dwarvenMineLayout';
 import {
@@ -503,6 +505,26 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       maxY: baseY + 2.75,
     };
   }),
+  // The north-west gallery and its stairs are walkable heights (southernMineWalkableHeightAt), not boxes:
+  // a box above the feet would block the climb. Rails on both edges of the Bridge of Khazad-dûm, one pair per deck segment, from MINE_KHAZAD_BRIDGE.
+  ...Array.from({ length: MINE_KHAZAD_BRIDGE.segments }, (_, s) => {
+    const seg = khazadBridgeSegment(s);
+    const z = SOUTHERN_MINE_POS.entranceZ + seg.bz;
+    const half = 2.0;
+    return ([-1, 1] as const).map((side) => {
+      const x = SOUTHERN_MINE_POS.x + side * MINE_KHAZAD_BRIDGE.railX;
+      const t = MINE_KHAZAD_BRIDGE.railHalfThickness;
+      return {
+        id: `southern-mine-khazad-rail-${side < 0 ? 'w' : 'e'}-${s}`,
+        minX: x - t,
+        maxX: x + t,
+        minZ: z - half,
+        maxZ: z + half,
+        minY: seg.deckY,
+        maxY: seg.deckY + MINE_KHAZAD_BRIDGE.railHeight,
+      };
+    });
+  }).flat(),
   // Scaffold legs under the catwalk, from MINE_SCAFFOLD_LEGS (the model draws the same positions).
   ...MINE_SCAFFOLD_LEGS.positions.map(([lx, lz], i) => {
     const cx = SOUTHERN_MINE_POS.x + lx;

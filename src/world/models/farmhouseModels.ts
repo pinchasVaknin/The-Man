@@ -24,7 +24,12 @@ import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder'
 import {
   MINE_GROUND_TORCHES,
   MINE_HOIST_CRANE,
+  MINE_KHAZAD_BRIDGE,
   MINE_LAGOON_DOCK_TORCH,
+  MINE_NW_GALLERY,
+  khazadBridgeSegment,
+  mineNwGalleryStepRise,
+  mineNwGalleryStepX,
   MINE_MORIA_SANCTUARY_TORCHES,
   MINE_SCAFFOLD_LEGS,
   mineFloorY,
@@ -1722,8 +1727,19 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const nePlatformMesh = new THREE.Mesh(nePlatformGeo, timberMat);
   nePlatformMesh.position.set(16.0, scaffoldPlatformY - 0.14, 43.25);
   const nwGalleryMesh = new THREE.Mesh(nwGalleryGeo, timberMat);
-  nwGalleryMesh.position.set(-13.5, scaffoldPlatformY - 0.13, 38.5);
+  nwGalleryMesh.position.set(MINE_NW_GALLERY.lx, scaffoldPlatformY - 0.13, MINE_NW_GALLERY.lz);
   mineGroup.add(nePlatformMesh, nwGalleryMesh);
+  // Walkable stairs up to the north-west gallery (see MINE_NW_GALLERY): one solid step per rise
+  const nwStepRise = mineNwGalleryStepRise();
+  const nwStepGeo = new THREE.BoxGeometry(MINE_NW_GALLERY.stepRun, 1, MINE_NW_GALLERY.stepWidth);
+  disposableGeometries.push(nwStepGeo);
+  for (let k = 1; k <= MINE_NW_GALLERY.stepCount; k++) {
+    const h = k * nwStepRise;
+    const step = new THREE.Mesh(nwStepGeo, timberMat);
+    step.scale.y = h;
+    step.position.set(mineNwGalleryStepX(k), cavernFloorY + h / 2, MINE_NW_GALLERY.lz);
+    mineGroup.add(step);
+  }
 
   for (const [lx, lz] of MINE_SCAFFOLD_LEGS.positions) {
     const leg = new THREE.Mesh(scaffoldLegGeo, barkMat);
@@ -2331,21 +2347,32 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   }
 
   // A) THE BRIDGE OF KHAZAD-DÛM: Narrow Arched Stone Span over the Bottomless Abyss (lx in [-3.4, 3.4], lz in [178, 218])
-  for (let s = 0; s < 10; s++) {
-    const u0 = s / 10;
-    const u1 = (s + 1) / 10;
-    const um = (u0 + u1) * 0.5;
-    const bz = 178.0 + um * 40.0;
-    const archY = moriaFloorY + Math.sin(um * Math.PI) * 1.15;
+  const khazadRailBarGeo = new THREE.BoxGeometry(2 * MINE_KHAZAD_BRIDGE.railHalfThickness, 0.2, 4.0);
+  const khazadRailPostGeo = new THREE.BoxGeometry(0.2, MINE_KHAZAD_BRIDGE.railHeight, 0.2);
+  disposableGeometries.push(khazadRailBarGeo, khazadRailPostGeo);
+  for (let s = 0; s < MINE_KHAZAD_BRIDGE.segments; s++) {
+    const seg = khazadBridgeSegment(s);
+    const u0 = s / MINE_KHAZAD_BRIDGE.segments;
+    const u1 = (s + 1) / MINE_KHAZAD_BRIDGE.segments;
     const slopePitch =
       Math.atan2(
-        (Math.sin(u1 * Math.PI) - Math.sin(u0 * Math.PI)) * 1.15,
+        (Math.sin(u1 * Math.PI) - Math.sin(u0 * Math.PI)) * MINE_KHAZAD_BRIDGE.archHeight,
         4.0
       );
     const segMesh = new THREE.Mesh(khazadBridgeSegGeo, mineDarkRockMat);
-    segMesh.position.set(0, archY - 0.4, bz);
+    segMesh.position.set(0, seg.deckY - 0.4, seg.bz);
     segMesh.rotation.x = -slopePitch;
     mineGroup.add(segMesh);
+    // Rails on both deck edges: a top bar and a post, as in the layout
+    for (const side of [-1, 1]) {
+      const railX = side * MINE_KHAZAD_BRIDGE.railX;
+      const bar = new THREE.Mesh(khazadRailBarGeo, timberMat);
+      bar.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight, seg.bz);
+      bar.rotation.x = -slopePitch;
+      const post = new THREE.Mesh(khazadRailPostGeo, timberMat);
+      post.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight / 2, seg.bz);
+      mineGroup.add(bar, post);
+    }
   }
 
   // B) WEST TIMBER & IRON MINECART TRESTLE BRIDGE OVER THE ABYSS (lx in [-15.0, -8.0], lz in [178, 218])
