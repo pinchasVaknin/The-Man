@@ -28,6 +28,7 @@ import {
   HILL_WATCHTOWERS,
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
+  getNearbySolidBuildingBoxes,
   resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
@@ -1320,8 +1321,10 @@ export function stepPlayerPhysics(
 
   if (!onLadderVolume) {
     for (let pass = 0; pass < 2; pass++) {
-      for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
-        const box = SOLID_BUILDING_BOXES[i];
+      // Only boxes near the player can collide; the query returns them in SOLID_BUILDING_BOXES order.
+      const nearbyBoxes = getNearbySolidBuildingBoxes(nextX, nextZ, playerRadius + 3.0);
+      for (let i = 0; i < nearbyBoxes.length; i++) {
+        const box = nearbyBoxes[i];
         if (!box.yaw) {
           const expMinX = box.minX - playerRadius;
           const expMaxX = box.maxX + playerRadius;
