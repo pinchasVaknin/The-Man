@@ -177,13 +177,6 @@ export class SpatialHashGrid2D<T> {
   }
 }
 
-/** Precomputed spatial grid for all static solid building collision boxes (including rotated OBBs). */
-export const SOLID_BUILDING_SPATIAL_GRID = new SpatialHashGrid2D<ISolidBuildingBox>(32);
-for (const box of SOLID_BUILDING_BOXES) {
-  const aabb = getSolidBuildingWorldAABB(box);
-  SOLID_BUILDING_SPATIAL_GRID.insert(box, aabb.minX, aabb.maxX, aabb.minZ, aabb.maxZ);
-}
-
 /** Precomputed spatial grid for archery targets. */
 export const ARCHERY_TARGETS_SPATIAL_GRID = new SpatialHashGrid2D<IArcheryTargetDef>(32);
 for (const tgt of ARCHERY_TARGETS) {
