@@ -38,6 +38,17 @@ describe('colliderAudit - coverage report', () => {
     assert.deepEqual(report.unmatchedMeshes, []);
   });
 
+  it('should audit long walls up to 150 m, such as the 78 m mine chamber walls', () => {
+    const scene = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.2, 15, 100));
+    wall.position.set(0, 5, 0);
+    scene.add(wall);
+
+    const report = auditColliderCoverage(scene, []);
+    assert.equal(report.checkedMeshes, 1);
+    assert.equal(report.unmatchedMeshes.length, 1);
+  });
+
   it('should ignore terrain-sized meshes', () => {
     const scene = new THREE.Group();
     const terrain = new THREE.Mesh(new THREE.BoxGeometry(400, 2, 400));

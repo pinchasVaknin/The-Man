@@ -1195,6 +1195,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // --- 4) BRAND-NEW SUBTERRANEAN CAVERN MINE & TURQUOISE WATERFALL LAGOON ---
   const mineGroup = new THREE.Group();
+  // Named so the collider audit (window.auditColliders) attributes unnamed meshes to the mine.
+  mineGroup.name = 'southern-mine';
   const mineX = SOUTHERN_MINE_POS.x;
   const mineEntY = SOUTHERN_MINE_POS.entranceY;
   const mineEntZ = SOUTHERN_MINE_POS.entranceZ;
