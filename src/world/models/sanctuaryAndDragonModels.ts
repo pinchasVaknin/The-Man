@@ -1232,8 +1232,8 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     x: bWx,
     baseY: sY,
     z: bWz,
-    radius: 1.85,
-    height: 5.2,
+    radius: 2.25,
+    height: 5.6,
     hitFlashTimer: 0,
     group: buddhaGroup,
   });

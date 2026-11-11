@@ -1766,7 +1766,14 @@ export function stepArrowsPhysics(
           }
           if (struck) break;
 
-          if (checkArrowHitTempleStatue(arr.x, arr.y, arr.z)) {
+          if (
+            checkArrowHitTempleStatue(
+              (prevX + arr.x) * 0.5,
+              (prevY + arr.y) * 0.5,
+              (prevZ + arr.z) * 0.5
+            ) ||
+            checkArrowHitTempleStatue(arr.x, arr.y, arr.z)
+          ) {
             arr.stuck = true;
             arr.vx = 0;
             arr.vy = 0;
@@ -1978,6 +1985,12 @@ export function stepArrowsPhysics(
             if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
               if (box.minY !== undefined && arr.y < box.minY) continue;
               if (box.maxY !== undefined && arr.y > box.maxY) continue;
+              if (
+                box.id === 'palace-golden-statue-pedestal' ||
+                box.id === 'sakura-buddha-pedestal'
+              ) {
+                checkArrowHitTempleStatue(arr.x, arr.y, arr.z);
+              }
               arr.stuck = true;
               arr.vx = 0;
               arr.vy = 0;

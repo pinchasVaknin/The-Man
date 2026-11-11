@@ -455,7 +455,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     }
 
     const bGroup = new THREE.Group();
-    bGroup.position.set(hx, summitY, -152.0 + FZ);
+    bGroup.position.set(hx < 0 ? -8.2 : 8.2, summitY, -132.5 + FZ);
     bGroup.add(new THREE.Mesh(burnerCauldronGeo, darkIronMat));
     for (const [lx, lz] of [
       [-0.48, -0.48],
@@ -491,7 +491,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const hallWallSideGeo = new THREE.BoxGeometry(0.6, hallH1 + hallH2, 26.0);
   const hallWallFrontFlankGeo = new THREE.BoxGeometry(20.0, hallH1, 0.6);
   const hallWallFrontUpperFlankGeo = new THREE.BoxGeometry(17.5, hallH2, 0.6);
-  const hallWindowSillWallGeo = new THREE.BoxGeometry(9.0, 2.4, 0.6);
+  const hallWindowSillWallGeo = new THREE.BoxGeometry(9.0, 1.85, 0.6);
   const hallWindowSillCapGeo = new THREE.BoxGeometry(9.2, 0.14, 0.72);
   const hallWindowHeaderGeo = new THREE.BoxGeometry(9.0, 0.85, 0.6);
   const hallPillarGeo = new THREE.CylinderGeometry(0.4, 0.44, hallH1 + hallH2, 12);
@@ -561,9 +561,9 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   }
 
   const hallWinSill = new THREE.Mesh(hallWindowSillWallGeo, archAssets.imperialCrimsonMat);
-  hallWinSill.position.set(0, hallFloor2Y - 0.25, hallFrontZ);
+  hallWinSill.position.set(0, hallFloor2Y - 0.52, hallFrontZ);
   const hallWinCap = new THREE.Mesh(hallWindowSillCapGeo, archAssets.imperialGoldMat);
-  hallWinCap.position.set(0, hallFloor2Y + 0.95, hallFrontZ);
+  hallWinCap.position.set(0, hallFloor2Y + 0.42, hallFrontZ);
   const hallWinHeader = new THREE.Mesh(hallWindowHeaderGeo, archAssets.jadeBeamMat);
   hallWinHeader.position.set(0, hallFloor2Y + hallH2 - 0.42, hallFrontZ);
   fortressGroup.add(hallWinSill, hallWinCap, hallWinHeader);
@@ -651,8 +651,8 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     x: 0,
     baseY: hallFloor1Y,
     z: -210.8 + FZ,
-    radius: 1.85,
-    height: 5.2,
+    radius: 2.45,
+    height: 5.8,
     hitFlashTimer: 0,
     group: palaceStatueGroup,
   });

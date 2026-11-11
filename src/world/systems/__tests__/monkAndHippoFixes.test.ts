@@ -298,12 +298,12 @@ describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixe
       'Charging hippo must actively run toward the player'
     );
 
-    // 3) Move player 28m away from hippo (> 26.0m hippoChaseRange): hippo stops chasing
-    stepSmallAnimals(animals, 0.1, 10.4, 140.0, 168.0, [], 1.0);
+    // 3) Move player 60m away from hippo (> 55.0m hippoChaseRange): hippo stops chasing
+    stepSmallAnimals(animals, 0.1, 10.4, 140.0, 200.0, [], 1.0);
     assert.equal(
       hippo.aiBehavior,
       'wandering',
-      'Hippo should stop charging and return to wandering when relative distance to player exceeds 26m'
+      'Hippo should stop charging and return to wandering when relative distance to player exceeds 55m'
     );
     assert.equal(hippo.alertLevel, 'grazing');
   });
@@ -326,15 +326,11 @@ describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixe
       );
     }
 
-    // Follow-up 5: Minecarts move along their rail tracks and pause at loading stations
+    // Ore loading carts stay parked at loading stations while rideable passenger carts move along tracks
     const c0Start = evaluateMinecartTrackState(0, 0.5);
-    const c0Moving = evaluateMinecartTrackState(0, 8.0);
-    assert.equal(c0Start.isLoadingAtStart, true, 'Cart 0 pauses for loading at t=0.5');
-    assert.equal(c0Moving.isLoadingAtStart, false, 'Cart 0 moves along track at t=8.0');
-    assert.ok(
-      Math.hypot(c0Moving.localX - c0Start.localX, c0Moving.localZ - c0Start.localZ) > 2.0,
-      'Minecart position changes along track'
-    );
+    const c0Later = evaluateMinecartTrackState(0, 8.0);
+    assert.equal(c0Start.localX, c0Later.localX, 'Stationary ore cart 0 stays parked at start of track');
+    assert.equal(c0Start.localZ, c0Later.localZ, 'Stationary ore cart 0 stays parked at start of track');
 
     const scene = new THREE.Scene();
     const mineGroup = new THREE.Group();

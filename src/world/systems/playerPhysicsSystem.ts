@@ -39,6 +39,7 @@ import {
   findLookedAtWatchtowerLadder,
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
+import { isMonkDoorwayActive } from './monkTempleSystem';
 import {
   groundHeightAt,
   isChineseFortressWalkableZone,
@@ -1466,7 +1467,7 @@ export function stepPlayerPhysics(
   for (let i = 0; i < FORTRESS_DOORS.length; i++) {
     const door = FORTRESS_DOORS[i];
     if (door.id.startsWith('hill-watchtower-')) continue;
-    if (openDoorIds?.has(door.id)) continue;
+    if (openDoorIds?.has(door.id) || isMonkDoorwayActive(door.id)) continue;
     if (state.y >= door.y + 3.6 || state.y + 1.6 < door.y) continue;
     const expMinX = door.minX - playerRadius;
     const expMaxX = door.maxX + playerRadius;
