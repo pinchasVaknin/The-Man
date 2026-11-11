@@ -1339,6 +1339,8 @@ export function stepPlayerPhysics(
   }
 
   if (!onLadderVolume) {
+    // Pushes the point out of the nearby solid boxes (two passes), against the current nextX/nextZ.
+    const resolveAgainstBoxes = (): void => {
     for (let pass = 0; pass < 2; pass++) {
       // Only boxes near the player can collide; the query returns them in SOLID_BUILDING_BOXES order.
       const nearbyBoxes = getNearbySolidBuildingBoxes(nextX, nextZ, playerRadius + 3.0);
@@ -1402,6 +1404,16 @@ export function stepPlayerPhysics(
         }
       }
     }
+    };
+
+    // H5, axis by axis: the X move is resolved against the boxes with Z held at its old value, then the Z move
+    // is resolved from the resolved X. A diagonal walk into a wall therefore slides along it instead of being pinned
+    // by the shallowest push-out of the combined move.
+    const targetZ = nextZ;
+    nextZ = state.z;
+    resolveAgainstBoxes();
+    nextZ = targetZ;
+    resolveAgainstBoxes();
 
     for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
       const hw = HILL_WATCHTOWERS[i];
