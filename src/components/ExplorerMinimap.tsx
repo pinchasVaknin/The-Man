@@ -9,7 +9,12 @@
 // #region Imports & Props
 import { t } from '../locales';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { getSpawnedSailableShips, sampleMinimapColorAt } from '../world/terrainMath';
+import {
+  getSpawnedSailableShips,
+  isPlayerInsideUndergroundMine,
+  sampleMinimapColorAt,
+  sampleUndergroundMineMapColorAt,
+} from '../world/terrainMath';
 import {
   BEAR_MOUNTAIN_CAVES,
   CHINESE_FORTRESS_POS,
@@ -34,11 +39,16 @@ import {
  */
 export interface IExplorerMinimapProps {
   playerX: number;
+  playerY?: number;
   playerZ: number;
   yawDeg: number;
   isPlaying?: boolean;
   godMode?: boolean;
-  onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
+  onTeleportToWorldPos?: (
+    worldX: number,
+    worldZ: number,
+    targetLayer?: 'surface' | 'mine'
+  ) => void;
 }
 
 const MAP_WORLD_HALF = 1080; // -1080m .. +1080m covers the expanded world & deep-sea Ruined Atlantis at (980, 420)
@@ -68,11 +78,56 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'sun_pyramid', label: 'Ancient Sun Pyramid & Sphinx', x: DESERT_PYRAMID_SANCTUARY_POS.x, z: DESERT_PYRAMID_SANCTUARY_POS.z, color: '#eab308' },
   { id: 'volcano', label: 'Volcano Sanctum (King Lion)', x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z, color: '#f97316' },
   { id: 'sky_islands', label: 'Floating Sky Islands', x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z, color: '#e879f9' },
-  { id: 'dwarven', label: 'Dwarven Kingdom', x: SOUTHERN_MINE_POS.x, z: SOUTHERN_MINE_POS.z, color: '#cbd5e1' },
+  { id: 'dwarven_entrance', label: 'Dwarven Mine Entrance', x: SOUTHERN_MINE_POS.x, z: SOUTHERN_MINE_POS.entranceZ, color: '#cbd5e1' },
   { id: 'dragon_ruins', label: 'Dragon Ruins (Desert Pass)', x: SOUTHERN_DRAGON_RUINS_POS.x, z: SOUTHERN_DRAGON_RUINS_POS.z, color: '#ef4444' },
   { id: 'murky_swamp', label: 'Murky Swamp & Hippo Marsh', x: MURKY_SWAMP_BIOME_POS.x, z: MURKY_SWAMP_BIOME_POS.z, color: '#4ade80' },
   { id: 'croc_lagoon', label: 'Crocodile River Bend', x: CROCODILE_RIVER_BEND_POS.x, z: CROCODILE_RIVER_BEND_POS.z, color: '#22c55e' },
   { id: 'bear_cave', label: 'Bear Mountain Caves', x: BEAR_MOUNTAIN_CAVES[0].x, z: BEAR_MOUNTAIN_CAVES[0].z, color: '#d97706' },
+];
+
+const UNDERGROUND_MINE_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
+  {
+    id: 'mine_portal',
+    label: 'Mine Entrance Portal (Surface Exit)',
+    x: SOUTHERN_MINE_POS.x,
+    z: SOUTHERN_MINE_POS.entranceZ,
+    color: '#fbbf24',
+  },
+  {
+    id: 'mine_room1',
+    label: 'Room 1 · Dwarven Mess Hall & Rail Hub',
+    x: SOUTHERN_MINE_POS.x,
+    z: SOUTHERN_MINE_POS.entranceZ + 48,
+    color: '#f59e0b',
+  },
+  {
+    id: 'mine_lagoon',
+    label: 'Chamber 2 · Waterfall Lagoon & Bridge',
+    x: SOUTHERN_MINE_POS.x - 118,
+    z: SOUTHERN_MINE_POS.entranceZ + 73,
+    color: '#22d3ee',
+  },
+  {
+    id: 'mine_foundry',
+    label: 'Chamber 3 · Smelting Foundry',
+    x: SOUTHERN_MINE_POS.x + 96,
+    z: SOUTHERN_MINE_POS.entranceZ + 73,
+    color: '#f97316',
+  },
+  {
+    id: 'mine_moria_bridge',
+    label: 'Chamber 4 · Bridge of Khazad-dûm',
+    x: SOUTHERN_MINE_POS.x,
+    z: SOUTHERN_MINE_POS.entranceZ + 198,
+    color: '#e879f9',
+  },
+  {
+    id: 'mine_sanctuary',
+    label: 'Royal Dwarven Sanctuary (Deep Moria)',
+    x: SOUTHERN_MINE_POS.x,
+    z: SOUTHERN_MINE_POS.entranceZ + 238,
+    color: '#facc15',
+  },
 ];
 // #endregion
 
@@ -80,6 +135,7 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
 // #region Explorer Minimap Component
 export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   playerX,
+  playerY = 0,
   playerZ,
   yawDeg,
   isPlaying = true,
@@ -90,13 +146,18 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   const fullMapCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fullWorldTerrainCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const undergroundMineCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenImgDataRef = useRef<ImageData | null>(null);
   const revealedLevelRef = useRef<Uint8Array | null>(null);
   const cachedColorsRef = useRef<Uint8Array | null>(null);
   const hasCachedColorRef = useRef<Uint8Array | null>(null);
   const lastRevealPosRef = useRef<{ x: number; z: number }>({ x: 99999, z: 99999 });
 
+  const isPlayerInMine = isPlayerInsideUndergroundMine(playerX, playerY, playerZ);
   const [isFullScreenMapOpen, setIsFullScreenMapOpen] = useState(false);
+  const [mapLayer, setMapLayer] = useState<'surface' | 'mine'>(() =>
+    isPlayerInMine ? 'mine' : 'surface'
+  );
   const [showFullMap, setShowFullMap] = useState<boolean>(true);
   const [mapZoom, setMapZoom] = useState<number>(1.05);
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -134,11 +195,49 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     []
   );
 
+  const centerMapOnMineComplex = useCallback(() => {
+    const w = fullMapCanvasRef.current?.width || window.innerWidth;
+    const h = fullMapCanvasRef.current?.height || window.innerHeight - 60;
+    const targetZoom = 2.35;
+    const mapDrawSize = Math.max(w, h) * targetZoom;
+    const mineCenterX = SOUTHERN_MINE_POS.x;
+    const mineCenterZ = SOUTHERN_MINE_POS.entranceZ + 115;
+    const normX = (mineCenterX + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+    const normZ = (mineCenterZ + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+    const desiredPanX = (0.5 - normX) * mapDrawSize;
+    const desiredPanY = (0.5 - normZ) * mapDrawSize;
+    const clamped = clampPanOffset(desiredPanX, desiredPanY, w, h, targetZoom);
+    setMapZoom(targetZoom);
+    setPanOffset({ x: clamped.x, y: clamped.y });
+  }, [clampPanOffset]);
+
+  // Automatically sync active map layer when the player enters or exits the underground mine
+  const prevInMineRef = useRef(isPlayerInMine);
+  useEffect(() => {
+    if (prevInMineRef.current !== isPlayerInMine) {
+      prevInMineRef.current = isPlayerInMine;
+      setMapLayer(isPlayerInMine ? 'mine' : 'surface');
+      if (isPlayerInMine) {
+        centerMapOnMineComplex();
+      } else {
+        setMapZoom(1.05);
+        setPanOffset({ x: 0, y: 0 });
+      }
+    }
+  }, [isPlayerInMine, centerMapOnMineComplex]);
+
   const prevMapOpenRef = useRef(isFullScreenMapOpen);
   // Sync body dataset flag so WorldCanvas ignores gameplay clicks/movement while Full-Screen Map is open
   useEffect(() => {
     const active = isPlaying && isFullScreenMapOpen;
     document.body.dataset.worldMapModalOpen = active ? 'true' : 'false';
+    if (active && !prevMapOpenRef.current) {
+      const targetLayer = isPlayerInMine ? 'mine' : 'surface';
+      setMapLayer(targetLayer);
+      if (targetLayer === 'mine') {
+        centerMapOnMineComplex();
+      }
+    }
     if (active && document.pointerLockElement) {
       document.exitPointerLock?.();
     } else if (!active && prevMapOpenRef.current && isPlaying) {
@@ -148,7 +247,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     return () => {
       document.body.dataset.worldMapModalOpen = 'false';
     };
-  }, [isPlaying, isFullScreenMapOpen]);
+  }, [isPlaying, isFullScreenMapOpen, isPlayerInMine, centerMapOnMineComplex]);
 
   // Listen for [M] key to toggle the Full-Screen World Map
   useEffect(() => {
@@ -231,6 +330,43 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     return fullOff;
   }, []);
 
+  // Lazily build the dedicated Underground Dwarven Mine (Moria) floorplan canvas
+  const ensureUndergroundMineCanvas = useCallback(() => {
+    if (undergroundMineCanvasRef.current) return undergroundMineCanvasRef.current;
+    const mineOff = document.createElement('canvas');
+    mineOff.width = GRID_SIZE;
+    mineOff.height = GRID_SIZE;
+    const ctx = mineOff.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.fillStyle = '#121014';
+    ctx.fillRect(0, 0, GRID_SIZE, GRID_SIZE);
+
+    const img = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
+    const data = img.data;
+    const minCx = Math.max(0, Math.floor((-240 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const maxCx = Math.min(GRID_SIZE - 1, Math.ceil((120 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const minCz = Math.max(0, Math.floor((420 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const maxCz = Math.min(GRID_SIZE - 1, Math.ceil((730 + MAP_WORLD_HALF) / METERS_PER_CELL));
+
+    for (let cz = minCz; cz <= maxCz; cz++) {
+      const wz = (cz + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
+      const rowOffset = cz * GRID_SIZE;
+      for (let cx = minCx; cx <= maxCx; cx++) {
+        const wx = (cx + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
+        const [r, g, b] = sampleUndergroundMineMapColorAt(wx, wz);
+        const pIdx = (rowOffset + cx) * 4;
+        data[pIdx] = r;
+        data[pIdx + 1] = g;
+        data[pIdx + 2] = b;
+        data[pIdx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    undergroundMineCanvasRef.current = mineOff;
+    return mineOff;
+  }, []);
+
   useEffect(() => {
     const displayCanvas = displayCanvasRef.current;
     const offCanvas = offscreenCanvasRef.current;
@@ -242,12 +378,12 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     const dispCtx = displayCanvas.getContext('2d');
     if (!offCtx || !dispCtx) return;
 
-    // 1. Reveal cells within DISCOVERY_RADIUS_M around (playerX, playerZ) when player moves >= 6.0m
+    // 1. Reveal surface cells within DISCOVERY_RADIUS_M around (playerX, playerZ) when on the surface
     const movedDist = Math.hypot(
       playerX - lastRevealPosRef.current.x,
       playerZ - lastRevealPosRef.current.z
     );
-    if (movedDist >= 6.0) {
+    if (!isPlayerInMine && movedDist >= 6.0) {
       lastRevealPosRef.current = { x: playerX, z: playerZ };
 
       const centerCellX = Math.floor((playerX + MAP_WORLD_HALF) / METERS_PER_CELL);
@@ -332,7 +468,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       }
     }
 
-    // 2. Render Player-Centered Scrolling Viewport on Display Canvas
+    // 2. Render Player-Centered Scrolling Viewport on Display Canvas (automatically switches to Underground Mine Map when inside the mine!)
     const w = displayCanvas.width;
     const h = displayCanvas.height;
     const halfW = w / 2;
@@ -347,17 +483,20 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     dispCtx.clip();
 
     // Base unexplored background
-    dispCtx.fillStyle = '#151310';
+    dispCtx.fillStyle = isPlayerInMine ? '#121014' : '#151310';
     dispCtx.fillRect(0, 0, w, h);
 
     // Source crop rectangle in offscreen canvas centered on player
+    const activeRadarCanvas = isPlayerInMine
+      ? ensureUndergroundMineCanvas() ?? offCanvas
+      : offCanvas;
     const playerOffX = (playerX + MAP_WORLD_HALF) / METERS_PER_CELL;
     const playerOffZ = (playerZ + MAP_WORLD_HALF) / METERS_PER_CELL;
     const windowCells = VIEW_WINDOW_M / METERS_PER_CELL;
     const halfWindowCells = windowCells / 2;
 
     dispCtx.drawImage(
-      offCanvas,
+      activeRadarCanvas,
       playerOffX - halfWindowCells,
       playerOffZ - halfWindowCells,
       windowCells,
@@ -378,22 +517,24 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       dispCtx.stroke();
     }
 
-    // 2B. Draw Owned Sailable Ships on Minimap Radar
-    const ownedShips = getSpawnedSailableShips();
-    for (let i = 0; i < ownedShips.length; i++) {
-      const sh = ownedShips[i];
-      const dxM = sh.x - playerX;
-      const dzM = sh.z - playerZ;
-      const sx = halfW + (dxM / VIEW_WINDOW_M) * w;
-      const sz = halfH + (dzM / VIEW_WINDOW_M) * h;
-      if (Math.hypot(sx - halfW, sz - halfH) <= halfW - 6) {
-        dispCtx.fillStyle = '#38bdf8';
-        dispCtx.strokeStyle = '#0c0a09';
-        dispCtx.lineWidth = 1.8;
-        dispCtx.beginPath();
-        dispCtx.arc(sx, sz, 4.2, 0, Math.PI * 2);
-        dispCtx.fill();
-        dispCtx.stroke();
+    // 2B. Draw Owned Sailable Ships on Minimap Radar (only on surface)
+    if (!isPlayerInMine) {
+      const ownedShips = getSpawnedSailableShips();
+      for (let i = 0; i < ownedShips.length; i++) {
+        const sh = ownedShips[i];
+        const dxM = sh.x - playerX;
+        const dzM = sh.z - playerZ;
+        const sx = halfW + (dxM / VIEW_WINDOW_M) * w;
+        const sz = halfH + (dzM / VIEW_WINDOW_M) * h;
+        if (Math.hypot(sx - halfW, sz - halfH) <= halfW - 6) {
+          dispCtx.fillStyle = '#38bdf8';
+          dispCtx.strokeStyle = '#0c0a09';
+          dispCtx.lineWidth = 1.8;
+          dispCtx.beginPath();
+          dispCtx.arc(sx, sz, 4.2, 0, Math.PI * 2);
+          dispCtx.fill();
+          dispCtx.stroke();
+        }
       }
     }
 
@@ -447,7 +588,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     dispCtx.fillRect(0, 0, w, h);
 
     dispCtx.restore();
-  }, [playerX, playerZ, yawDeg]);
+  }, [playerX, playerZ, yawDeg, isPlayerInMine, ensureUndergroundMineCanvas]);
 
   // Render the Full-Screen Interactive World Map whenever it is open
   useEffect(() => {
@@ -468,14 +609,19 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     if (!ctx) return;
 
     const effectiveShowFullMap = godMode ? showFullMap : false;
-    const sourceCanvas = effectiveShowFullMap ? ensureFullWorldTerrainCanvas() : offscreenCanvasRef.current;
+    const sourceCanvas =
+      mapLayer === 'mine'
+        ? ensureUndergroundMineCanvas()
+        : effectiveShowFullMap
+          ? ensureFullWorldTerrainCanvas()
+          : offscreenCanvasRef.current;
     const w = fullCanvas.width;
     const h = fullCanvas.height;
     const halfW = w / 2;
     const halfH = h / 2;
 
     ctx.save();
-    ctx.fillStyle = '#151310';
+    ctx.fillStyle = mapLayer === 'mine' ? '#121014' : '#151310';
     ctx.fillRect(0, 0, w, h);
 
     // Cover-mode sizing: mapDrawSize is always >= w and >= h so there are NEVER black bars on any side,
@@ -506,12 +652,14 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       ctx.stroke();
     }
 
-    // Draw Landmark Pins & Labels (when in Discovered-Only mode, only show landmarks that have been explored!)
+    // Draw Landmark Pins & Labels for the active map layer (Surface vs Underground Mine)
+    const activeLandmarks =
+      mapLayer === 'mine' ? UNDERGROUND_MINE_LANDMARKS : WORLD_MAP_LANDMARKS;
     const revealed = revealedLevelRef.current;
     ctx.font = 'bold 12px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    for (const lm of WORLD_MAP_LANDMARKS) {
-      if (!effectiveShowFullMap && revealed) {
+    for (const lm of activeLandmarks) {
+      if (mapLayer === 'surface' && !effectiveShowFullMap && revealed) {
         const cx = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((lm.x + MAP_WORLD_HALF) / METERS_PER_CELL)));
         const cz = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((lm.z + MAP_WORLD_HALF) / METERS_PER_CELL)));
         if (revealed[cz * GRID_SIZE + cx] < 35) {
@@ -534,36 +682,38 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
 
       // Label backdrop pill
       const textWidth = ctx.measureText(lm.label).width;
-      ctx.fillStyle = 'rgba(12, 10, 8, 0.78)';
+      ctx.fillStyle = 'rgba(12, 10, 8, 0.82)';
       ctx.fillRect(px - textWidth / 2 - 5, pz + 8, textWidth + 10, 17);
       ctx.fillStyle = '#f5f5f4';
       ctx.fillText(lm.label, px, pz + 20);
     }
 
-    // Always draw Owned/Spawned Sailable Ships on the Full-Screen World Map (even in Survival Mode!)
-    const spawnedShips = getSpawnedSailableShips();
-    for (let i = 0; i < spawnedShips.length; i++) {
-      const sh = spawnedShips[i];
-      const nx = (sh.x + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
-      const nz = (sh.z + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
-      const px = mapLeft + nx * mapDrawSize;
-      const pz = mapTop + nz * mapDrawSize;
-      if (px < -60 || px > w + 60 || pz < -40 || pz > h + 40) continue;
+    // Always draw Owned/Spawned Sailable Ships on the Surface Map
+    if (mapLayer === 'surface') {
+      const spawnedShips = getSpawnedSailableShips();
+      for (let i = 0; i < spawnedShips.length; i++) {
+        const sh = spawnedShips[i];
+        const nx = (sh.x + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+        const nz = (sh.z + MAP_WORLD_HALF) / (MAP_WORLD_HALF * 2);
+        const px = mapLeft + nx * mapDrawSize;
+        const pz = mapTop + nz * mapDrawSize;
+        if (px < -60 || px > w + 60 || pz < -40 || pz > h + 40) continue;
 
-      ctx.fillStyle = '#f59e0b';
-      ctx.strokeStyle = '#0c0a09';
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.arc(px, pz, 6.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+        ctx.fillStyle = '#f59e0b';
+        ctx.strokeStyle = '#0c0a09';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.arc(px, pz, 6.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
 
-      const shipLabel = `⚓ ${sh.name.split(' · ')[0]}`;
-      const textWidth = ctx.measureText(shipLabel).width;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-      ctx.fillRect(px - textWidth / 2 - 5, pz - 24, textWidth + 10, 17);
-      ctx.fillStyle = '#fde68a';
-      ctx.fillText(shipLabel, px, pz - 12);
+        const shipLabel = `⚓ ${sh.name.split(' · ')[0]}`;
+        const textWidth = ctx.measureText(shipLabel).width;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.fillRect(px - textWidth / 2 - 5, pz - 24, textWidth + 10, 17);
+        ctx.fillStyle = '#fde68a';
+        ctx.fillText(shipLabel, px, pz - 12);
+      }
     }
 
     // Draw Player Position & Heading Chevron
@@ -592,6 +742,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     ctx.restore();
   }, [
     isFullScreenMapOpen,
+    mapLayer,
     showFullMap,
     godMode,
     mapZoom,
@@ -600,6 +751,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     playerZ,
     yawDeg,
     ensureFullWorldTerrainCanvas,
+    ensureUndergroundMineCanvas,
     clampPanOffset,
   ]);
 
@@ -660,7 +812,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       if (normX >= 0 && normX <= 1 && normZ >= 0 && normZ <= 1) {
         const worldX = Math.round(normX * (MAP_WORLD_HALF * 2) - MAP_WORLD_HALF);
         const worldZ = Math.round(normZ * (MAP_WORLD_HALF * 2) - MAP_WORLD_HALF);
-        onTeleportToWorldPos(worldX, worldZ);
+        onTeleportToWorldPos(worldX, worldZ, mapLayer);
         setIsFullScreenMapOpen(false);
       }
     }
@@ -673,6 +825,19 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     setPanOffset((prev) => {
       const clamped = clampPanOffset(prev.x + dx, prev.y + dy, w, h, mapZoom);
       return { x: clamped.x, y: clamped.y };
+    });
+  };
+
+  const handleToggleMapLayer = () => {
+    setMapLayer((prev) => {
+      const next = prev === 'mine' ? 'surface' : 'mine';
+      if (next === 'mine') {
+        centerMapOnMineComplex();
+      } else {
+        setMapZoom(1.05);
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return next;
     });
   };
 
@@ -695,7 +860,9 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
           className="relative w-full h-full rounded-full flex items-center justify-center transition-transform group-hover:scale-[1.03]"
           style={{
             backgroundColor: 'rgba(18, 16, 13, 0.92)',
-            border: '2px solid rgba(217, 119, 6, 0.48)',
+            border: isPlayerInMine
+              ? '2px solid rgba(56, 189, 248, 0.65)'
+              : '2px solid rgba(217, 119, 6, 0.48)',
             boxShadow: '0 10px 28px rgba(0, 0, 0, 0.65)',
           }}
         >
@@ -719,13 +886,13 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
 
           {/* [M] Full Map Shortcut Hint Badge */}
           <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold text-stone-200 leading-none"
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold text-stone-200 leading-none whitespace-nowrap"
             style={{
               backgroundColor: 'rgba(18, 16, 13, 0.95)',
               border: '1px solid rgba(217, 119, 6, 0.45)',
             }}
           >
-            [M] Map
+            {isPlayerInMine ? '[M] Mine Map' : '[M] Map'}
           </div>
         </div>
       </div>
@@ -750,18 +917,37 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
               </span>
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-stone-100 leading-tight">
-                  World Explorer Map
+                  {mapLayer === 'mine'
+                    ? 'Underground Dwarven Mine Map (Moria Layer)'
+                    : 'World Explorer Map (Surface Layer)'}
                 </h2>
                 <p className="text-xs text-stone-400">
-                  Drag to pan to map edges
-                  {godMode ? ' · GOD MODE: Click anywhere on the map to teleport immediately!' : ''}
+                  {mapLayer === 'mine'
+                    ? 'Subterranean Floorplan · Tunnels, Rail Lines, Lagoon & Great Hall of Khazad-dûm'
+                    : 'Overworld Surface Map · Drag to pan'}
+                  {godMode ? ' · GOD MODE: Click anywhere on this layer to teleport!' : ''}
                 </p>
               </div>
             </div>
 
-            {/* Fog-of-War Toggle & Pan/Zoom Controls */}
+            {/* Layer Switch, Fog-of-War Toggle & Pan/Zoom Controls */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {godMode && (
+              <button
+                type="button"
+                data-testid="fullmap-switch-layer"
+                onClick={handleToggleMapLayer}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                  mapLayer === 'mine'
+                    ? 'bg-sky-500/25 border border-sky-400/60 text-sky-200 hover:bg-sky-500/35'
+                    : 'bg-purple-500/25 border border-purple-400/60 text-purple-200 hover:bg-purple-500/35'
+                }`}
+              >
+                {mapLayer === 'mine'
+                  ? '↑ Switch to Surface Map (Overworld)'
+                  : '↓ Switch to Underground Mine Map'}
+              </button>
+
+              {godMode && mapLayer === 'surface' && (
                 <button
                   type="button"
                   data-testid="fullmap-toggle-fog"
@@ -843,8 +1029,12 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
                 type="button"
                 data-testid="fullmap-reset-view"
                 onClick={() => {
-                  setPanOffset({ x: 0, y: 0 });
-                  setMapZoom(1.05);
+                  if (mapLayer === 'mine') {
+                    centerMapOnMineComplex();
+                  } else {
+                    setPanOffset({ x: 0, y: 0 });
+                    setMapZoom(1.05);
+                  }
                 }}
                 className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-amber-300 cursor-pointer"
               >
@@ -888,7 +1078,8 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
               }}
             >
               <span>
-                Player: ({Math.round(playerX)}, {Math.round(playerZ)})
+                Player: ({Math.round(playerX)}, {Math.round(playerZ)}) ·{' '}
+                {mapLayer === 'mine' ? 'Underground Layer' : 'Surface Layer'}
               </span>
               {godMode && (
                 <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">
@@ -904,4 +1095,5 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
 });
 ExplorerMinimap.displayName = 'ExplorerMinimap';
 // #endregion
+
 

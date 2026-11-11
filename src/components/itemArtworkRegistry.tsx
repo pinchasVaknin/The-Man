@@ -618,6 +618,23 @@ ICON_STRATEGIES.set('simple_tunic', clothingIcon);
 ICON_STRATEGIES.set('ranger_garb', clothingIcon);
 ICON_STRATEGIES.set('elven_cloak', clothingIcon);
 ICON_STRATEGIES.set('imperial_armor', clothingIcon);
+ICON_STRATEGIES.set('dwarven_miner_tunic', clothingIcon);
+ICON_STRATEGIES.set('dwarven_iron_boots', clothingIcon);
+ICON_STRATEGIES.set('dwarven_pickaxe', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M14 4c3 1 5 3 6 6M4 10c1-3 3-5 6-6m2 2L5 19" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+ICON_STRATEGIES.set('amethyst_gem', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <polygon points="12 2 19 8 16 21 8 21 5 8 12 2" />
+  </svg>
+));
+ICON_STRATEGIES.set('sapphire_gem', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <polygon points="12 2 19 8 16 21 8 21 5 8 12 2" />
+  </svg>
+));
 
 const createClothingArtwork = (
   mainFill: string,
@@ -646,6 +663,38 @@ ARTWORK_STRATEGIES.set('simple_tunic', createClothingArtwork('#a89882', '#786c5c
 ARTWORK_STRATEGIES.set('ranger_garb', createClothingArtwork('#3e2a1b', '#2e3627', '#fbbf24'));
 ARTWORK_STRATEGIES.set('elven_cloak', createClothingArtwork('#1b4332', '#14532d', '#6ee7b7'));
 ARTWORK_STRATEGIES.set('imperial_armor', createClothingArtwork('#7f1d1d', '#450a0a', '#facc15'));
+ARTWORK_STRATEGIES.set('dwarven_miner_tunic', createClothingArtwork('#5c4028', '#3b2818', '#d97706'));
+ARTWORK_STRATEGIES.set('dwarven_iron_boots', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#d97706" fillOpacity="0.16" />
+    <path d="M46 48 L74 48 L76 96 L94 108 L94 124 L42 124 L42 96 Z" fill="#4b3621" stroke="#fbbf24" strokeWidth="3" />
+    <path d="M84 44 L112 44 L114 92 L132 104 L132 120 L80 120 L80 92 Z" fill="#5c4028" stroke="#fbbf24" strokeWidth="3" />
+    <rect x="42" y="114" width="52" height="10" rx="2" fill="#52525b" stroke="#d4d4d8" strokeWidth="2" />
+    <rect x="80" y="110" width="52" height="10" rx="2" fill="#52525b" stroke="#d4d4d8" strokeWidth="2" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dwarven_pickaxe', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fbbf24" fillOpacity="0.16" />
+    <line x1="38" y1="126" x2="112" y2="52" stroke="#78350f" strokeWidth="11" strokeLinecap="round" />
+    <path d="M68 28 Q108 36 132 88 Q106 60 88 52 Q76 44 68 28 Z" fill="#9ca3af" stroke="#f3f4f6" strokeWidth="3" />
+    <rect x="92" y="42" width="18" height="18" rx="3" transform="rotate(45 101 51)" fill="#d97706" stroke="#fde68a" strokeWidth="2.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('amethyst_gem', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#9333ea" fillOpacity="0.22" />
+    <polygon points="80,22 122,58 106,130 54,130 38,58" fill="#7e22ce" stroke="#e9d5ff" strokeWidth="3.5" />
+    <polygon points="80,32 106,62 94,118 66,118 54,62" fill="#a855f7" opacity="0.65" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('sapphire_gem', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#0284c7" fillOpacity="0.22" />
+    <polygon points="80,22 122,58 106,130 54,130 38,58" fill="#0369a1" stroke="#bae6fd" strokeWidth="3.5" />
+    <polygon points="80,32 106,62 94,118 66,118 54,62" fill="#38bdf8" opacity="0.65" />
+  </svg>
+));
 // #endregion
 
 // ======================== PUBLIC RENDER FUNCTIONS ======================== \\

@@ -62,10 +62,12 @@ import {
   CLEAR_ZONES,
 } from '../domain/landmarksRegistry';
 import {
-  southernMineFloorHeightAt,
+  southernMineCeilingHeightAt,
   southernMineWalkableHeightAt,
   isInsideSouthernMine,
   isInsideSouthernMineLagoonBasin,
+  DWARVEN_RIDEABLE_MINECART_LINES,
+  DWARVEN_MINECART_ROUTES,
 } from './dwarvenMineAndCaravanSystem';
 import {
   getActiveSailableShip,
@@ -530,11 +532,7 @@ export function getRoofHeightAt(x: number, z: number): number | null {
     }
   }
   if (isInsideSouthernMine(x, z)) {
-    const floorH = southernMineFloorHeightAt(z);
-    const lz = z - SOUTHERN_MINE_POS.entranceZ;
-    return lz < 34.0
-      ? floorH + SOUTHERN_MINE_POS.corridorHeight
-      : floorH + SOUTHERN_MINE_POS.cavernHeight;
+    return southernMineCeilingHeightAt(x, z);
   }
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.tavernX) <= SOUTHEAST_HARBOR_POS.tavernHalfW + 0.8 &&
@@ -1607,13 +1605,12 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
-  if (currentY !== undefined && currentY < -3.5) {
+  if (currentY !== undefined && currentY < -8.0) {
     const onMineBridgeOrDock =
-      (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) ||
-      (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0) ||
-      (lx >= -23.5 && lx <= -16.5 && lz >= 67.0 && lz <= 73.5);
+      (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) ||
+      (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0);
     if (!onMineBridgeOrDock && isInsideSouthernMineLagoonBasin(lx, lz)) {
-      return -9.3;
+      return SOUTHERN_MINE_POS.westLagoonWaterY;
     }
   }
   if (isInsideSouthernMine(x, z, currentY)) {
@@ -2390,19 +2387,13 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   if (ropeBridgePointInfoAt(x, z) !== null) {
     return [184, 134, 78];
   }
-  if (isInsideSouthernMine(x, z)) {
-    const lx = x - SOUTHERN_MINE_POS.x;
-    const lz = z - SOUTHERN_MINE_POS.entranceZ;
-    if (
-      (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) ||
-      (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0)
-    ) {
-      return [168, 118, 68];
-    }
-    if (isInsideSouthernMineLagoonBasin(lx, lz)) {
-      return [38, 196, 212];
-    }
-    return [102, 88, 76];
+  // Surface Map shows only the Dwarven Mine Entrance Portal forecourt (not the underground tunnels!)
+  if (
+    Math.abs(x - SOUTHERN_MINE_POS.x) <= 5.2 &&
+    z >= SOUTHERN_MINE_POS.entranceZ - 3.5 &&
+    z <= SOUTHERN_MINE_POS.entranceZ + 4.0
+  ) {
+    return [132, 112, 92];
   }
   for (let i = 0; i < DWARVEN_GUARDIAN_STATUES.length; i++) {
     const st = DWARVEN_GUARDIAN_STATUES[i];
@@ -2570,7 +2561,8 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     return [226, 202, 152];
   }
 
-  const walk = walkableHeightAt(x, z);
+  const surfaceGroundH = groundHeightAt(x, z);
+  const walk = walkableHeightAt(x, z, surfaceGroundH);
   if (walk.surface === 'pier' || walk.surface === 'cabin') {
     return [192, 138, 82];
   }
@@ -2779,6 +2771,130 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     Math.min(255, Math.round(136 * shade)),
     Math.min(255, Math.round(68 * shade)),
   ];
+}
+
+/**
+ * Summary: Returns true when the player is underground inside the Dwarven Mine complex.
+ */
+export function isPlayerInsideUndergroundMine(x: number, y: number, z: number): boolean {
+  return y < -1.4 && isInsideSouthernMine(x, z, y);
+}
+
+/**
+ * Summary: Dedicated architectural floorplan sampler for the Underground Dwarven Mine (Moria) Map Layer.
+ */
+export function sampleUndergroundMineMapColorAt(x: number, z: number): [number, number, number] {
+  const lx = x - SOUTHERN_MINE_POS.x;
+  const lz = z - SOUTHERN_MINE_POS.entranceZ;
+
+  // Entrance approach steps just outside the portal
+  if (Math.abs(lx) <= 6.2 && lz >= -5.5 && lz <= 1.0) {
+    return [142, 124, 102];
+  }
+
+  if (!isInsideSouthernMine(x, z)) {
+    // Subterranean bedrock wall rim & dark slate background
+    if (
+      isInsideSouthernMine(x - 1.8, z) ||
+      isInsideSouthernMine(x + 1.8, z) ||
+      isInsideSouthernMine(x, z - 1.8) ||
+      isInsideSouthernMine(x, z + 1.8)
+    ) {
+      return [62, 54, 48];
+    }
+    return [18, 16, 20];
+  }
+
+  // 1) Rideable Minecart Rail Lines (Golden-Iron Tracks)
+  for (let l = 0; l < DWARVEN_RIDEABLE_MINECART_LINES.length; l++) {
+    const wps = DWARVEN_RIDEABLE_MINECART_LINES[l].localWaypoints;
+    for (let i = 0; i < wps.length - 1; i++) {
+      const d = distToSegment(lx, lz, wps[i][0], wps[i][2], wps[i + 1][0], wps[i + 1][2]);
+      if (d <= 0.95) {
+        return [238, 186, 74];
+      }
+    }
+  }
+  for (let r = 0; r < DWARVEN_MINECART_ROUTES.length; r++) {
+    const rt = DWARVEN_MINECART_ROUTES[r];
+    const d = distToSegment(
+      lx,
+      lz,
+      rt.startLocalX,
+      rt.startLocalZ,
+      rt.endLocalX,
+      rt.endLocalZ
+    );
+    if (d <= 0.85) {
+      return [182, 148, 92];
+    }
+  }
+
+  // 2) Bridges & Jetties (Lagoon Bridge, South Jetty, Khazad-dûm Central & West Bridges)
+  if (
+    (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) ||
+    (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0) ||
+    (lx >= -15.0 && lx <= -8.0 && lz >= 178.0 && lz <= 218.0)
+  ) {
+    return [188, 134, 76];
+  }
+  if (lx >= -3.5 && lx <= 3.5 && lz >= 178.0 && lz <= 218.0) {
+    return [222, 192, 126];
+  }
+
+  // 3) Chamber 2 Turquoise Waterfall Lagoon
+  if (isInsideSouthernMineLagoonBasin(lx, lz)) {
+    if (Math.hypot(lx - -118.0, lz - 102.0) <= 5.2) {
+      return [168, 244, 252];
+    }
+    return [38, 204, 220];
+  }
+
+  // 4) Chamber 4 Bottomless Abyss of Khazad-dûm
+  if (lz > 180.0 && lz < 216.0 && Math.abs(lx) <= 64.0) {
+    if (Math.abs(lz - 198.0) <= 2.4) {
+      return [118, 36, 22];
+    }
+    return [28, 16, 22];
+  }
+
+  // 5) Chamber 4 Colossal Pillars & Royal Sanctuary Dais
+  if (lz >= 158.0 && lz <= 248.0 && Math.abs(lx) <= 64.0) {
+    for (const px of [-48, -32, -16, 16, 32, 48]) {
+      for (const pz of [170, 192, 214, 236]) {
+        if (Math.abs(lx - px) <= 2.4 && Math.abs(lz - pz) <= 2.4) {
+          return [218, 174, 84];
+        }
+      }
+    }
+    if (Math.abs(lx) <= 12.0 && lz >= 230.0 && lz <= 246.0) {
+      return [198, 164, 96];
+    }
+  }
+
+  // 6) Chamber 3 Smelting Foundry Blast Furnaces
+  if (
+    lx >= 114.5 &&
+    lx <= 123.5 &&
+    (Math.abs(lz - 64.0) <= 3.8 || Math.abs(lz - 82.0) <= 3.8)
+  ) {
+    return [244, 108, 36];
+  }
+
+  // 7) Room 1 Mess Hall Banquet Tables
+  if (
+    lx >= -27.5 &&
+    lx <= -14.5 &&
+    (Math.abs(lz - 38.0) <= 1.3 || Math.abs(lz - 43.0) <= 1.3)
+  ) {
+    return [172, 118, 66];
+  }
+
+  // 8) Carved Subterranean Stone Floor
+  if (Math.abs(lx) <= 38.0 && lz >= 28.0 && lz <= 68.0) {
+    return [122, 106, 92];
+  }
+  return [106, 92, 80];
 }
 
 // #endregion

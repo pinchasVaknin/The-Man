@@ -369,6 +369,7 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['woodcutter_axe', swordStrategy],
   ['katana_imperial', swordStrategy],
   ['dwarven_warhammer', swordStrategy],
+  ['dwarven_pickaxe', swordStrategy],
   ['celestial_jin_sword', swordStrategy],
 
   ['torch', torchStrategy],
@@ -399,6 +400,8 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['marble_pillar_stone', materialStrategy],
   ['dwarven_gold_ore', materialStrategy],
   ['crystal_gem', materialStrategy],
+  ['amethyst_gem', materialStrategy],
+  ['sapphire_gem', materialStrategy],
   ['small_hide', materialStrategy],
   ['deer_hide', materialStrategy],
   ['sheep_hide', materialStrategy],
@@ -425,13 +428,15 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
 // ======================== INVENTORY & MARKET OPERATIONS ======================== \\
 // #region Inventory & Market Operations
 /**
- * Summary: Returns true when an inventory item is stackable (arrows, materials, food)
+ * Summary: Returns true when an inventory item is stackable (arrows, materials, food, or lootable dwarven gear)
  * so multiple copies can be bought, stored, or carried.
  */
 export function isStackableInventoryItem(itemId: InventoryItemId): boolean {
   if (itemId.startsWith('trap_')) return true;
+  if (itemId === 'dwarven_pickaxe' || itemId === 'dwarven_warhammer') return true;
   const def = INVENTORY_ITEM_MAP.get(itemId);
   if (!def) return false;
+  if (def.nonWearableByPlayer) return true;
   return def.category === 'ammo' || def.category === 'materials' || def.category === 'food';
 }
 
@@ -483,9 +488,10 @@ export function syncEquippedItemsAfterRemoval(
   }
 
   if (state.equippedClothingId === removedItemId) {
-    const fallbackClothing = state.ownedItemIds?.find(
-      (id) => INVENTORY_ITEM_MAP.get(id)?.category === 'clothing'
-    );
+    const fallbackClothing = state.ownedItemIds?.find((id) => {
+      const candidate = INVENTORY_ITEM_MAP.get(id);
+      return candidate?.category === 'clothing' && !candidate.nonWearableByPlayer;
+    });
     state.equippedClothingId = fallbackClothing ?? 'simple_tunic';
   }
 }
@@ -869,6 +875,15 @@ export function takeItemFromWorldChest(
   if (!state.openedChestIds.includes(chest.id)) {
     state.openedChestIds.push(chest.id);
   }
+  if ((itemId as string) === '__gold_coins__') {
+    const g = Math.max(0, chest.goldCoins || 0);
+    if (g > 0) {
+      state.goldCoins = (state.goldCoins ?? 280) + g;
+      chest.goldCoins = 0;
+      return { ok: true, takenCount: 1 };
+    }
+    return { ok: false, takenCount: 0 };
+  }
   const maxTake = Math.max(1, Math.floor(quantity || 1));
   let takenCount = 0;
   for (let i = 0; i < maxTake; i++) {
@@ -930,7 +945,8 @@ export function takeAllFromWorldChest(
   chest: IWorldChest
 ): { ok: boolean; takenCount: number } {
   const contents = getChestContents(state, chest);
-  if (contents.length === 0) {
+  const goldToTake = Math.max(0, chest.goldCoins || 0);
+  if (contents.length === 0 && goldToTake === 0) {
     return { ok: false, takenCount: 0 };
   }
   if (!state.ownedItemIds) {
@@ -945,7 +961,11 @@ export function takeAllFromWorldChest(
   if (!state.openedChestIds.includes(chest.id)) {
     state.openedChestIds.push(chest.id);
   }
-  const takenCount = contents.length;
+  if (goldToTake > 0) {
+    state.goldCoins = (state.goldCoins ?? 280) + goldToTake;
+    chest.goldCoins = 0;
+  }
+  const takenCount = contents.length + (goldToTake > 0 ? 1 : 0);
   for (let i = 0; i < contents.length; i++) {
     const id = contents[i];
     state.ownedItemIds.push(id);

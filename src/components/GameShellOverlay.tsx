@@ -376,10 +376,8 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         e.code === kb.interactDoor &&
         !e.repeat &&
         telemetry.nearbyChest &&
-        !telemetry.nearbyDeadAnimal &&
-        !telemetry.nearbyFallenTree &&
-        !telemetry.nearbyDoor &&
-        !telemetry.nearbyBed
+        (telemetry.nearbyChest.isCorpse ||
+          (!telemetry.nearbyFallenTree && !telemetry.nearbyDoor && !telemetry.nearbyBed))
       ) {
         e.preventDefault();
         gameActions?.onOpenChest?.(telemetry.nearbyChest.id);
@@ -1677,6 +1675,26 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {(telemetry.drivingMinecart || telemetry.nearbyMinecart) && (
+              <div
+                data-testid="minecart-drive-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(15, 13, 10, 0.92)',
+                  border: '1px solid rgba(251, 191, 36, 0.72)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-amber-100">
+                  {telemetry.drivingMinecart
+                    ? 'Exit · [W/S] Drive'
+                    : 'Drive'}
+                </span>
+              </div>
+            )}
+
             {telemetry.mountedHorseId === 'sailable-ship' && (() => {
               const distToAtlantis = Math.round(
                 Math.hypot(
@@ -2018,12 +2036,13 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
       {/* Bottom-Left Fog-of-War Explorer Minimap & [M] Full-Screen Interactive World Map */}
       <ExplorerMinimap
         playerX={telemetry.x}
+        playerY={telemetry.y}
         playerZ={telemetry.z}
         yawDeg={telemetry.yawDeg}
         isPlaying={gameState === 'playing'}
         godMode={gameSettings.godMode !== false}
-        onTeleportToWorldPos={(wx, wz) => {
-          gameActions?.onTeleportToWorldPos?.(wx, wz);
+        onTeleportToWorldPos={(wx, wz, layer) => {
+          gameActions?.onTeleportToWorldPos?.(wx, wz, layer);
         }}
       />
 

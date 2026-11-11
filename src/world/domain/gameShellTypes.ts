@@ -76,6 +76,8 @@ export interface ITelemetrySnapshot {
     name: string;
     isOpened: boolean;
     contents: InventoryItemId[];
+    isCorpse?: boolean;
+    goldCoins?: number;
   } | null;
   activeEnemyHealthBar?: {
     id: number;
@@ -159,6 +161,16 @@ export interface ITelemetrySnapshot {
   forcedSeason?: SeasonType | 'auto';
   nearbyLadder?: boolean;
   climbingLadder?: boolean;
+  nearbyMinecart?: {
+    lineId: string;
+    lineName: string;
+    destinationName: string;
+  } | null;
+  drivingMinecart?: {
+    lineId: string;
+    lineName: string;
+    speed: number;
+  } | null;
   stamina?: number;
   maxStamina?: number;
   staminaExhausted?: boolean;

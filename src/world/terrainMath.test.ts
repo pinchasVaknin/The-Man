@@ -993,46 +993,61 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
   const {
     SOUTHWEST_OASIS_POS,
     southwestOasisBiomeFactorAt,
+    getWaterSurfaceHeightAt,
   } = await import('./terrainMath');
   const obstacles = generateWorldObstacles();
   // Act
 
-  // 1) Subterranean Cavern Mine with Central Waterfall, Turquoise Lagoon, Wooden Bridge, Lakeside Dock, and NE Cliffside Scaffolding
+  // 1) Moria-Scale Subterranean Dwarven Mine Network (Room 1 Mess Hall, Chamber 2 Deep Waterfall Lagoon, Chamber 3 Smelting Foundry, Chamber 4 Great Hall of Khazad-dûm)
   // Assert
   assert.equal(SOUTHERN_MINE_POS.entranceZ, 420.0);
   assert.equal(SOUTHERN_MINE_POS.cavernHalfW, 52.0);
   assert.equal(SOUTHERN_MINE_POS.cavernEndZ, 530.0);
 
-  // Verify dry cavern floor areas across the entry plaza, NW tunnel, West Amethyst hall, East Ore loop, and SE Gold crystal bay are walkable
+  // Verify Room 1 is completely dry and orderly (even where the old lagoon used to be at lx = -7.0, lz = 52.0)
   for (const [mx, mz] of [
     [-58.0, 458.0], // Entry Plaza (lx = 0, lz = 38)
-    [-81.5, 463.0], // NW Tunnel Arch (lx = -23.5, lz = 43)
-    [-86.0, 486.0], // West Amethyst Crystal Track (lx = -28.0, lz = 66)
-    [-24.0, 488.0], // East Circular Track Loop (lx = 34.0, lz = 68)
-    [-46.0, 492.0], // SE Gold Crystal Path (lx = 12.0, lz = 72)
+    [-65.0, 472.0], // Room 1 Mess Hall Center (lx = -7.0, lz = 52.0) — now dry flagstone floor!
+    [-86.0, 486.0], // Room 1 West Staging (lx = -28.0, lz = 66)
+    [-24.0, 488.0], // Room 1 East Staging (lx = 34.0, lz = 68)
+    [-46.0, 492.0], // Room 1 SE Crystal Path (lx = 12.0, lz = 72)
   ]) {
     const walk = walkableHeightAt(mx, mz, SOUTHERN_MINE_POS.cavernFloorY);
-    assert.equal(walk.surface, 'bridge', `Expected underground mine floor at (${mx}, ${mz})`);
+    assert.equal(walk.surface, 'bridge', `Expected dry Room 1 floor at (${mx}, ${mz})`);
     assert.ok(
       Math.abs(walk.height - SOUTHERN_MINE_POS.cavernFloorY) < 0.05,
       `Expected cavernFloorY (${SOUTHERN_MINE_POS.cavernFloorY}) at (${mx}, ${mz}), got ${walk.height}`
     );
+    assert.equal(
+      getWaterSurfaceHeightAt(mx, mz, SOUTHERN_MINE_POS.cavernFloorY),
+      null,
+      `Expected NO water in Room 1 at (${mx}, ${mz})`
+    );
   }
 
-  // Verify wooden plank bridge across the lagoon (lx = -7.0, lz = 62.5), lakeside dock (lx = -5.0, lz = 86.0), and NE scaffolding platform (lx = 16.0, lz = 43.0)
-  const bridgeWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 7.0, SOUTHERN_MINE_POS.entranceZ + 62.5, SOUTHERN_MINE_POS.cavernFloorY + 0.32);
-  assert.ok(Math.abs(bridgeWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 0.32)) < 0.05, `Expected wooden plank bridge height at ${SOUTHERN_MINE_POS.cavernFloorY + 0.32}, got ${bridgeWalk.height}`);
+  // Verify Chamber 2 (Deep Waterfall Lagoon at y = -15.55m): wooden plank bridge (lx = -118.0, lz = 73.0), lakeside dock (lx = -118.0, lz = 96.0), and Room 1 NE scaffolding platform (lx = 16.0, lz = 43.0)
+  const bridgeWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 118.0, SOUTHERN_MINE_POS.entranceZ + 73.0, -15.23);
+  assert.ok(Math.abs(bridgeWalk.height - (-15.55 + 0.32)) < 0.05, `Expected Chamber 2 wooden plank bridge height at ${-15.55 + 0.32}, got ${bridgeWalk.height}`);
 
-  const dockWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 5.0, SOUTHERN_MINE_POS.entranceZ + 86.0, SOUTHERN_MINE_POS.cavernFloorY + 0.28);
-  assert.ok(Math.abs(dockWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 0.28)) < 0.05, `Expected lakeside dock height at ${SOUTHERN_MINE_POS.cavernFloorY + 0.28}, got ${dockWalk.height}`);
+  const dockWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 118.0, SOUTHERN_MINE_POS.entranceZ + 96.0, -15.27);
+  assert.ok(Math.abs(dockWalk.height - (-15.55 + 0.28)) < 0.05, `Expected Chamber 2 lakeside dock height at ${-15.55 + 0.28}, got ${dockWalk.height}`);
 
   const nePlatWalk = walkableHeightAt(SOUTHERN_MINE_POS.x + 16.0, SOUTHERN_MINE_POS.entranceZ + 43.0, SOUTHERN_MINE_POS.cavernFloorY + 3.8);
   assert.ok(Math.abs(nePlatWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 3.8)) < 0.05, `Expected NE cliffside scaffolding platform at ${SOUTHERN_MINE_POS.cavernFloorY + 3.8}, got ${nePlatWalk.height}`);
 
-  // Verify West cavern perimeter wall blocks walking past lx = -47.5, while walking West across the wooden plank bridge (lz = 62.5) passes smoothly over the lagoon!
+  // Verify Chamber 3 (Smelting Foundry at lx = 112.0, lz = 72.0, y = -14.35m) and Chamber 4 (Great Hall of Khazad-dûm & Bridge of Khazad-dûm at lx = 0, lz = 198.0, y = -18.0m)
+  const foundryWalk = walkableHeightAt(SOUTHERN_MINE_POS.x + 112.0, SOUTHERN_MINE_POS.entranceZ + 72.0, -14.35);
+  assert.ok(Math.abs(foundryWalk.height - (-14.35)) < 0.05, `Expected Chamber 3 Smelting Foundry floor at -14.35m, got ${foundryWalk.height}`);
+
+  const moriaBridgeWalk = walkableHeightAt(SOUTHERN_MINE_POS.x, SOUTHERN_MINE_POS.entranceZ + 198.0, -17.2);
+  assert.ok(Math.abs(moriaBridgeWalk.height - (-17.2)) < 0.25, `Expected Bridge of Khazad-dûm arch apex over the Abyss at ~-17.2m, got ${moriaBridgeWalk.height}`);
+  const moriaAbyssWalk = walkableHeightAt(SOUTHERN_MINE_POS.x + 25.0, SOUTHERN_MINE_POS.entranceZ + 198.0, -46.0);
+  assert.equal(moriaAbyssWalk.height, -46.0, 'Expected Moria Bottomless Abyss to drop to -46.0m away from the bridges');
+
+  // Verify Room 1 West cavern wall blocks walking past lx = -47.5 at lz = 46.0, while the West Tunnel at lz = 64.0 is open and leads into Chamber 2!
   const blockedWallState = createInitialPlayerState();
   blockedWallState.x = SOUTHERN_MINE_POS.x - 46.0;
-  blockedWallState.z = SOUTHERN_MINE_POS.entranceZ + 66.0;
+  blockedWallState.z = SOUTHERN_MINE_POS.entranceZ + 46.0;
   blockedWallState.y = SOUTHERN_MINE_POS.cavernFloorY;
   blockedWallState.yaw = Math.PI / 2; // Facing West (-X)
   for (let s = 0; s < 20; s++) {
@@ -1046,13 +1061,13 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
   }
   assert.ok(
     blockedWallState.x > SOUTHERN_MINE_POS.x - 47.6,
-    `Expected West cavern rock wall to block player, got x=${blockedWallState.x}`
+    `Expected West cavern rock wall at lz=46 to block player, got x=${blockedWallState.x}`
   );
 
   const bridgePassState = createInitialPlayerState();
-  bridgePassState.x = SOUTHERN_MINE_POS.x + 4.0; // East end of wooden plank bridge
-  bridgePassState.z = SOUTHERN_MINE_POS.entranceZ + 62.5; // Center of wooden plank bridge
-  bridgePassState.y = SOUTHERN_MINE_POS.cavernFloorY + 0.32;
+  bridgePassState.x = SOUTHERN_MINE_POS.x - 103.0; // East end of Chamber 2 wooden plank bridge
+  bridgePassState.z = SOUTHERN_MINE_POS.entranceZ + 73.0; // Center of Chamber 2 wooden plank bridge
+  bridgePassState.y = -15.55 + 0.32;
   bridgePassState.yaw = Math.PI / 2; // Facing West (-X) across the bridge
   for (let s = 0; s < 35; s++) {
     stepPlayerPhysics(
@@ -1064,8 +1079,8 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
     );
   }
   assert.ok(
-    bridgePassState.x < SOUTHERN_MINE_POS.x - 10.0 && !bridgePassState.isSwimming,
-    `Expected player to walk dry across the wooden plank bridge over the lagoon, got x=${bridgePassState.x}, isSwimming=${bridgePassState.isSwimming}`
+    bridgePassState.x < SOUTHERN_MINE_POS.x - 115.0 && !bridgePassState.isSwimming,
+    `Expected player to walk dry across Chamber 2 wooden plank bridge over the lagoon, got x=${bridgePassState.x}, isSwimming=${bridgePassState.isSwimming}`
   );
 
   // 2) Relocated Far South-West Terraced Oasis at (-310, 300) & Vast Regional Desert/Savanna Biome
@@ -1895,21 +1910,21 @@ test('swimmingPhysics_WhenEnteringWaterBasins_ShouldApplyBuoyancyAndWaterMovemen
   }
   assert.equal(swimmerOasis.isSwimming, true, 'Expected player in SW Oasis Lagoon to swim');
 
-  // 3) Underground Mine Central-West Bioluminescent Turquoise Lagoon (lx = -7.0 -> x = -65.0, lz = 52.0 -> z = 472.0) is swimmable!
-  const mineLakeX = SOUTHERN_MINE_POS.x - 7.0;
-  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 52.0;
-  const mineWaterY = getWaterSurfaceHeightAt(mineLakeX, mineLakeZ, -10.2);
-  assert.equal(mineWaterY, -9.3);
-  const mineLakeWalk = walkableHeightAt(mineLakeX, mineLakeZ, -10.2);
+  // 3) Underground Mine Chamber 2 Deep Bioluminescent Turquoise Lagoon (lx = -118.0 -> x = -176.0, lz = 62.0 -> z = 482.0) is swimmable at -15.50m!
+  const mineLakeX = SOUTHERN_MINE_POS.x - 118.0;
+  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 62.0;
+  const mineWaterY = getWaterSurfaceHeightAt(mineLakeX, mineLakeZ, -16.4);
+  assert.equal(mineWaterY, -15.5);
+  const mineLakeWalk = walkableHeightAt(mineLakeX, mineLakeZ, -16.4);
   assert.ok(
-    mineLakeWalk.height < -10.5,
-    `Expected Underground Mine Crystal Lake basin floor (${mineLakeWalk.height}) to be carved deep below -9.3m water level`
+    mineLakeWalk.height < -16.5,
+    `Expected Underground Mine Chamber 2 Lagoon basin floor (${mineLakeWalk.height}) to be carved deep below -15.5m water level`
   );
 
   const swimmerMine = createInitialPlayerState();
   swimmerMine.x = mineLakeX;
   swimmerMine.z = mineLakeZ;
-  swimmerMine.y = -10.35;
+  swimmerMine.y = -16.55;
   for (let i = 0; i < 12; i++) {
     stepPlayerPhysics(
       swimmerMine,
@@ -1918,7 +1933,7 @@ test('swimmingPhysics_WhenEnteringWaterBasins_ShouldApplyBuoyancyAndWaterMovemen
       0.05
     );
   }
-  assert.equal(swimmerMine.isSwimming, true, 'Expected player in Underground Mine Crystal Lake to swim');
+  assert.equal(swimmerMine.isSwimming, true, 'Expected player in Underground Mine Chamber 2 Lagoon to swim');
 });
 
 test('footprintTrailSystem_WhenEntitiesTraverseTerrain_ShouldSpawnFadingFootprintsWithBoundedBuffer', async () => {
@@ -2951,10 +2966,10 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
   // Verify new Subterranean Cavern Mine, Dwarven Village, and Palace Statue/Object hitboxes exist:
   for (const requiredBoxId of [
     'southern-mine-amethyst-cluster-west',
-    'southern-mine-amber-crystal-cluster-east',
+    'southern-mine-stationary-cart-0',
     'southern-mine-lagoon-bridge-rail-north',
     'southern-mine-lagoon-bridge-rail-south',
-    'southern-mine-dock-crane-mast',
+    'southern-mine-crane-mast',
     'southern-mine-hoist-crane-tower',
     'dwarven-statue-west-pedestal',
     'dwarven-statue-east-pedestal',
@@ -2977,5 +2992,170 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
     );
   }
 });
+
+test('hippoProvokedAggroAndDwarfLootAndMoriaMinecarts_WhenTested_ShouldRespectTerritoryLeashAndRandomizedLootAndRailNetwork', async () => {
+  const {
+    createInitialWildlifeState,
+    damageGroundAnimal,
+    stepBoidsAndWildlife,
+  } = await import('./systems/boidsAndWildlifeSystem');
+  const {
+    generateRandomDwarfLoot,
+  } = await import('./builders/dwarvenKingdomBuilder');
+  const {
+    DWARVEN_RIDEABLE_MINECART_LINES,
+    evaluateMinecartTrackState,
+    evaluateRideableMinecartPose,
+    findNearestRideableMinecartStation,
+  } = await import('./systems/dwarvenMineAndCaravanSystem');
+
+  // 1) Hippo provoked aggro from long distance (e.g. 38m away) & territory leash return
+  const wildlife = createInitialWildlifeState();
+  const hippo = wildlife.animals.find((a) => a.species === 'hippo')!;
+  assert.ok(hippo, 'Expected hippo in wildlife state');
+  const homeX = hippo.homeX;
+  const homeZ = hippo.homeZ;
+  hippo.x = homeX;
+  hippo.z = homeZ;
+
+  // Player shoots hippo from 38m away (well outside normal 16m passive proximity aggro)
+  const playerX = homeX + 38.0;
+  const playerZ = homeZ;
+  damageGroundAnimal(hippo, 15);
+  assert.ok((hippo.wokenUpTimer ?? 0) >= 40, 'Expected damaged hippo to have wokenUpTimer set');
+
+  stepBoidsAndWildlife(wildlife.birds, [hippo], playerX, 0, playerZ, 0, 0.1);
+  assert.equal(hippo.aiBehavior, 'charging', 'Expected provoked hippo to aggro and charge toward player from 38m away');
+  assert.ok(hippo.vx > 1.0, 'Expected provoked hippo to charge toward distant attacker');
+
+  // Now move hippo 25m away from home, and move player far outside BOTH hippo territory (>65m from home) AND chase proximity (>42m from hippo)
+  hippo.x = homeX + 25.0;
+  hippo.z = homeZ;
+  const escapedPlayerX = homeX + 80.0; // 80m from home (>65m), 55m from hippo (>42m)
+  const escapedPlayerZ = homeZ;
+  stepBoidsAndWildlife(wildlife.birds, [hippo], escapedPlayerX, 0, escapedPlayerZ, 0, 0.1);
+  assert.equal(hippo.wokenUpTimer, 0, 'Expected hippo to clear wokenUpTimer once player exits both territory and proximity range');
+  assert.equal(hippo.isLeashedReturning, true, 'Expected hippo to enter territory leash return state');
+  assert.ok(hippo.vx < -1.0, 'Expected leashed hippo to run back toward its home territory');
+
+  // 2) Dwarf randomized corpse loot: mutually exclusive pickaxe vs warhammer, small non-wearable garment, random gold
+  for (let seed = 1; seed <= 12; seed++) {
+    const drop = generateRandomDwarfLoot(seed);
+    assert.ok(drop.goldDrop >= 7 && drop.goldDrop <= 22, `Expected dwarf gold in [7, 22], got ${drop.goldDrop}`);
+    const hasPickaxe = drop.lootItems.includes('dwarven_pickaxe');
+    const hasHammer = drop.lootItems.includes('dwarven_warhammer');
+    assert.equal(
+      hasPickaxe && hasHammer,
+      false,
+      'Expected dwarf corpse never to drop both pickaxe and warhammer simultaneously'
+    );
+    const hasSmallClothing =
+      drop.lootItems.includes('dwarven_miner_tunic') || drop.lootItems.includes('dwarven_iron_boots');
+    assert.equal(hasSmallClothing, true, 'Expected dwarf corpse to include a small dwarven garment');
+  }
+
+  // 3) Stationary Gold & Silver Ore Carts + Interactive Rideable Passenger Minecart Rail Lines
+  for (const t of [0, 5.5, 18.2, 42.0]) {
+    const oreState = evaluateMinecartTrackState(0, t);
+    assert.equal(oreState.travelProgress, 0, 'Expected gold/silver ore carts to remain stationary on their tracks');
+    assert.equal(oreState.wheelAngle, 0, 'Expected gold/silver ore cart wheels not to spin on their own');
+  }
+  assert.equal(DWARVEN_RIDEABLE_MINECART_LINES.length, 3, 'Expected 3 rideable passenger minecart rail lines');
+  const startPose = evaluateRideableMinecartPose('minecart-line-moria', 0);
+  const endPose = evaluateRideableMinecartPose('minecart-line-moria', 1);
+  assert.ok(endPose.z > startPose.z + 120.0, 'Expected Moria Express line to travel >120m South into the Great Hall of Khazad-dûm');
+  const nearStation = findNearestRideableMinecartStation(startPose.x, startPose.y, startPose.z, 3.0);
+  assert.ok(nearStation && nearStation.lineId === 'minecart-line-moria', 'Expected station lookup at Moria Express start platform');
+});
+
+test('minecartSlopePhysicsAndMultiLayerMineMap_WhenTested_ShouldSlideDownhillStallWithoutMomentumAndSeparateMapLayers', async () => {
+  const {
+    stepRideableMinecartPhysics,
+    setRideableMinecartVisualProgress,
+  } = await import('./systems/dwarvenMineAndCaravanSystem');
+  const {
+    sampleMinimapColorAt,
+    sampleUndergroundMineMapColorAt,
+    isPlayerInsideUndergroundMine,
+    SOLID_BUILDING_BOXES,
+    SOUTHERN_MINE_POS,
+  } = await import('./terrainMath');
+
+  // 1) Downhill automatic sliding on the South Moria Express slope (u = 0.25) with zero throttle
+  const downhillStep = stepRideableMinecartPhysics('minecart-line-moria', 0.25, 0, 0, 0, 0.2);
+  assert.ok(
+    downhillStep.velocity > 0.3 && downhillStep.u > 0.25,
+    `Expected minecart on downhill slope to slide automatically by gravity, got v=${downhillStep.velocity}, u=${downhillStep.u}`
+  );
+
+  // 2) Uphill stall when trying to climb the steep slope from rest (velocity = 0, throttleAlongU = -1) without momentum
+  const uphillStall = stepRideableMinecartPhysics('minecart-line-moria', 0.25, 0, 0, -1, 0.2);
+  assert.equal(
+    uphillStall.stalledOnUphill,
+    true,
+    'Expected minecart attempting steep uphill climb without momentum to stall'
+  );
+  assert.ok(
+    uphillStall.velocity > 0,
+    `Expected stalled uphill minecart to roll backward down the slope, got v=${uphillStall.velocity}`
+  );
+
+  // 3) Uphill climb succeeds when entering the slope with momentum built on the flat run-up (velocity = -11.5, throttleAlongU = -1)
+  const uphillWithMomentum = stepRideableMinecartPhysics('minecart-line-moria', 0.25, -11.5, 0, -1, 0.2);
+  assert.equal(
+    uphillWithMomentum.stalledOnUphill,
+    false,
+    'Expected minecart with momentum to climb the uphill without stalling'
+  );
+  assert.ok(
+    uphillWithMomentum.u < 0.25,
+    `Expected minecart with momentum to advance uphill toward u=0, got u=${uphillWithMomentum.u}`
+  );
+  setRideableMinecartVisualProgress('minecart-line-moria', 0, 0);
+
+  // 4) Multi-layer map separation: Surface Map vs Underground Mine Map
+  assert.equal(
+    isPlayerInsideUndergroundMine(SOUTHERN_MINE_POS.x, -6.8, SOUTHERN_MINE_POS.entranceZ + 48),
+    true,
+    'Expected player at y=-6.8 inside Room 1 to be detected as underground in the mine'
+  );
+  assert.equal(
+    isPlayerInsideUndergroundMine(SOUTHERN_MINE_POS.x, 16.0, SOUTHERN_MINE_POS.entranceZ + 48),
+    false,
+    'Expected player on the mountain surface (y=16) above Room 1 not to be detected as underground'
+  );
+
+  const lagoonWorldX = SOUTHERN_MINE_POS.x - 118.0;
+  const lagoonWorldZ = SOUTHERN_MINE_POS.entranceZ + 82.0;
+  const surfaceColorAtLagoon = sampleMinimapColorAt(lagoonWorldX, lagoonWorldZ);
+  const mineColorAtLagoon = sampleUndergroundMineMapColorAt(lagoonWorldX, lagoonWorldZ);
+  assert.deepEqual(
+    mineColorAtLagoon,
+    [38, 204, 220],
+    'Expected Underground Mine Map to render Chamber 2 Turquoise Lagoon'
+  );
+  assert.notDeepEqual(
+    surfaceColorAtLagoon,
+    [38, 204, 220],
+    'Expected Surface Map above Chamber 2 NOT to leak the underground lagoon'
+  );
+
+  // 5) Verify orphan hitboxes were removed from SOLID_BUILDING_BOXES
+  for (const removedId of [
+    'southern-mine-amber-crystal-cluster-east',
+    'southern-mine-east-loop-ore-mound',
+    'southern-mine-dock-crane-mast',
+    'southern-mine-cliff-platform-ledge-wall',
+    'southern-mine-cliff-platform-west-wall',
+  ]) {
+    assert.equal(
+      SOLID_BUILDING_BOXES.some((b) => b.id === removedId),
+      false,
+      `Expected orphan hitbox ${removedId} to be removed`
+    );
+  }
+});
 // #endregion
+
+
 

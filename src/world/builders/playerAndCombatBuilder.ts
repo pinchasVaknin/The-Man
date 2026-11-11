@@ -1481,8 +1481,9 @@ export function buildPlayerAndCombatSystems(
     }
 
     if (torchActive || fireArrowActive) {
-      playerTorchLight.intensity = (torchActive ? 3.8 : 2.6) * flameFlicker;
-      playerTorchLight.color.setHex(torchActive ? 0xff8c24 : 0xff6b00);
+      playerTorchLight.intensity = (torchActive ? 5.6 : 2.8) * flameFlicker;
+      playerTorchLight.distance = torchActive ? 30 : 18;
+      playerTorchLight.color.setHex(torchActive ? 0xff9436 : 0xff6b00);
       const fwdX = -Math.sin(playerState.yaw);
       const fwdZ = -Math.cos(playerState.yaw);
       playerTorchLight.position.set(
