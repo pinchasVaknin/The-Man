@@ -67,6 +67,9 @@ import {
   MINE_TUNNEL_WALLS,
   MINE_SHAFT_WALLS,
   MINE_TRESTLE,
+  MINE_ROOM1_ARCHES,
+  MINE_TIMBER_ARCH,
+  mineTunnelArchSites,
   MINE_PORTAL,
   MINE_SOUTH_GALLERY,
   MINE_SUPPLY_CRATES,
@@ -237,6 +240,21 @@ function chamberAndTunnelWallBoxes(): ISolidBuildingBox[] {
     return out;
   };
   return [...lagoon, ...foundry, ...tunnel('west'), ...tunnel('east')];
+}
+
+/**
+ * Summary: The two posts of one timber arch, as axis-aligned boxes, rotated by the arch's yaw (the model's own rule).
+ */
+function archPostBoxes(floorY: number, lx: number, lz: number, yaw: number): ISolidBuildingBox[] {
+  const cx = SOUTHERN_MINE_POS.x + lx;
+  const cz = SOUTHERN_MINE_POS.entranceZ + lz;
+  const h = MINE_TIMBER_ARCH.postHalf;
+  return [-1, 1].map((side) => {
+    const ox = side * MINE_TIMBER_ARCH.postOffset;
+    const wx = cx + ox * Math.cos(yaw);
+    const wz = cz - ox * Math.sin(yaw);
+    return { id: 'arch-post', minX: wx - h, maxX: wx + h, minZ: wz - h, maxZ: wz + h, minY: floorY, maxY: floorY + MINE_TIMBER_ARCH.postTop };
+  });
 }
 
 /** Summary: Global collection of axis-aligned 3D obstacle bounding boxes across the entire world. */
@@ -489,33 +507,6 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   // 2) Sloped Entrance Shaft Walls & Timber Support Posts (lz = -0.5..34.2, |lx| = 2.95..4.8)
   // 3) Room 1 Perimeter Rock Walls with Tunnel Openings (West/East at lz in [58.5, 69.5], South at lx in [-16.0, 16.0])
   // 4) Room 1 Timber Arch Posts & Mess Hall Dining Tables, Cauldron, and Lootable Supply Crates
-  ...[-2.75, 2.75].map((ox, idx) => ({
-    id: `southern-mine-arch-north-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x + ox - 0.34,
-    maxX: SOUTHERN_MINE_POS.x + ox + 0.34,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 35.0 - 0.34,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 35.0 + 0.34,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
-  })),
-  ...[-2.75, 2.75].map((oz, idx) => ({
-    id: `southern-mine-arch-west-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x - 47.5 - 0.34,
-    maxX: SOUTHERN_MINE_POS.x - 47.5 + 0.34,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
-  })),
-  ...[-2.75, 2.75].map((oz, idx) => ({
-    id: `southern-mine-arch-east-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x + 47.5 - 0.34,
-    maxX: SOUTHERN_MINE_POS.x + 47.5 + 0.34,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
-  })),
   // Mess hall dining tables and stew cauldron, from MINE_MESS_HALL (the model draws the same positions).
   ...MINE_MESS_HALL.tableZs.map((tz, i) => {
     const cx = SOUTHERN_MINE_POS.x + MINE_MESS_HALL.lx;
@@ -628,6 +619,14 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   ...cavernWallBoxes(),
   ...moriaAndGalleryWallBoxes(),
   ...chamberAndTunnelWallBoxes(),
+  // Timber arch posts: two per arch, at the drawn post spots (MINE_ROOM1_ARCHES and mineTunnelArchSites).
+  ...MINE_ROOM1_ARCHES.flatMap((a, i) => {
+    const prefix = i === 0 ? 'southern-mine-arch-north-post' : i === 1 ? 'southern-mine-arch-west-post' : 'southern-mine-arch-east-post';
+    return archPostBoxes(SOUTHERN_MINE_POS.cavernFloorY, a.lx, a.lz, a.yaw).map((b, k) => ({ ...b, id: `${prefix}-${k}` }));
+  }),
+  ...mineTunnelArchSites().flatMap((s) =>
+    archPostBoxes(s.ly, s.lx, s.lz, s.yaw).map((b, k) => ({ ...b, id: `southern-mine-${s.side}-tunnel-arch-${s.f}-${k}` }))
+  ),
   // Stationary ore carts, one box per route, rotated by its yaw (the model draws the same cart body).
   ...DWARVEN_MINECART_ROUTES.map((route, i) => {
     const floorY = SOUTHERN_MINE_POS.cavernFloorY + (route.baseYOffset ?? 0);
@@ -773,31 +772,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   ),
   // 6) Stationary Ore Carts in Room 1 & Chamber 3 (matching DWARVEN_MINECART_ROUTES 1-to-1)
   // 7) West Rail Tunnel & Chamber 2 (Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern: lx in [-148, -88], lz in [38, 112], y = -15.55)
-  ...[1, 2, 3, 4].flatMap((f) => {
-    const fx = -48.0 - (f / 5) * 40.0;
-    return [-2.75, 2.75].map((oz, idx) => ({
-      id: `southern-mine-west-tunnel-arch-${f}-${idx}`,
-      minX: SOUTHERN_MINE_POS.x + fx - 0.34,
-      maxX: SOUTHERN_MINE_POS.x + fx + 0.34,
-      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
-      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
-      minY: -16.0,
-      maxY: -3.5,
-    }));
-  }),
   // 8) East Smelting Tunnel & Chamber 3 (Dwarven Gold & Silver Smelting Foundry: lx in [88, 144], lz in [40, 108], y = -14.35)
-  ...[1, 2, 3, 4].flatMap((f) => {
-    const fx = 48.0 + (f / 5) * 40.0;
-    return [-2.75, 2.75].map((oz, idx) => ({
-      id: `southern-mine-east-tunnel-arch-${f}-${idx}`,
-      minX: SOUTHERN_MINE_POS.x + fx - 0.34,
-      maxX: SOUTHERN_MINE_POS.x + fx + 0.34,
-      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
-      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
-      minY: -15.0,
-      maxY: -3.5,
-    }));
-  }),
   // 9) South Grand Moria Descent Gallery & Chamber 4 (Great Hall of Khazad-dûm: lx in [-64, 64], lz in [145, 255], y = -18.35)
   // West Trestle Bridge Side Guardrails over the Abyss (lx = -14.85 / -8.15, lz in [178, 218])
   // 10) 8 Sculptural Miner Ore Veins in Room 1 (matching DWARVEN_MINER_STATIONS rockLocalX/rockLocalZ 1-to-1!)

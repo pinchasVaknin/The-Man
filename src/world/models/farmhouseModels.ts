@@ -45,7 +45,10 @@ import {
   MINE_TUNNEL_WALLS,
   MINE_PORTAL,
   MINE_SOUTH_GALLERY,
+  MINE_ROOM1_ARCHES,
+  MINE_TIMBER_ARCH,
   MINE_TRESTLE,
+  mineTunnelArchSites,
   MINE_SUPPLY_CRATES,
   MINE_NW_GALLERY,
   khazadBridgeSegment,
@@ -1568,9 +1571,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     archGrp.rotation.y = yaw;
     for (const side of [-1, 1]) {
       const plinth = new THREE.Mesh(archBasePlinthGeo, mineDarkRockMat);
-      plinth.position.set(side * 2.75, 0, 0);
+      plinth.position.set(side * MINE_TIMBER_ARCH.postOffset, 0, 0);
       const pillar = new THREE.Mesh(archPillarGeo, timberMat);
-      pillar.position.set(side * 2.75, 0.5, 0);
+      pillar.position.set(side * MINE_TIMBER_ARCH.postOffset, 0.5, 0);
       const brace = new THREE.Mesh(archKneeBraceGeo, barkMat);
       brace.position.set(side * 2.05, 4.45, 0);
       brace.rotation.z = side * 0.68;
@@ -1595,9 +1598,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   };
 
   mineGroup.add(
-    createTimberTunnelArch(0, cavernFloorY, 35.0, 0, true),
-    createTimberTunnelArch(-47.5, cavernFloorY, 64.0, Math.PI / 2, true),
-    createTimberTunnelArch(47.5, cavernFloorY, 64.0, -Math.PI / 2, true)
+    ...MINE_ROOM1_ARCHES.map((a) => createTimberTunnelArch(a.lx, cavernFloorY, a.lz, a.yaw, true))
   );
 
   // 4) ROOM 1 MESS HALL: Two Long Dwarven Dining Tables, Benches, Tankards, Feast Platters & Cooking Cauldron
@@ -1847,11 +1848,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   westTunnelWallS.rotation.z = westTunnelPitch;
   mineGroup.add(westTunnelFloor, westTunnelCeiling, westTunnelWallN, westTunnelWallS);
 
-  for (let f = 1; f <= 4; f++) {
-    const u = f / 5;
-    const tx = -48.0 - u * 40.0;
-    const ty = cavernFloorY - u * westTunnelDrop;
-    mineGroup.add(createTimberTunnelArch(tx, ty, 64.0, Math.PI / 2, f === 2));
+  for (const s of mineTunnelArchSites().filter((a) => a.side === 'west')) {
+    mineGroup.add(createTimberTunnelArch(s.lx, s.ly, s.lz, s.yaw, s.f === 2));
   }
 
   // Chamber 2 Floors, Lagoon Basin, Walls, Ceiling, Plunging Turquoise Waterfall, Wooden Plank Bridge & Lakeside Dock
@@ -2142,11 +2140,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   eastTunnelWallS.rotation.z = eastTunnelPitch;
   mineGroup.add(eastTunnelFloor, eastTunnelCeiling, eastTunnelWallN, eastTunnelWallS);
 
-  for (let f = 1; f <= 4; f++) {
-    const u = f / 5;
-    const tx = 48.0 + u * 40.0;
-    const ty = cavernFloorY - u * eastTunnelDrop;
-    mineGroup.add(createTimberTunnelArch(tx, ty, 64.0, -Math.PI / 2, f === 2));
+  for (const s of mineTunnelArchSites().filter((a) => a.side === 'east')) {
+    mineGroup.add(createTimberTunnelArch(s.lx, s.ly, s.lz, s.yaw, s.f === 2));
   }
 
   const ch3FloorGeo = new THREE.BoxGeometry(60.0, 0.8, 72.0);
