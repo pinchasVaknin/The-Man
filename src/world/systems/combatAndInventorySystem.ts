@@ -1893,7 +1893,7 @@ export function stepArrowsPhysics(
             if (horizDist <= animRad && arr.y >= minHitY && arr.y <= animMaxY) {
               const dmgRes = damageGroundAnimal(
                 anim,
-                BASE_ARROW_HIT_DAMAGE,
+                arrowDmg,
                 arr.x - arr.vx * 0.25,
                 arr.z - arr.vz * 0.25
               );
