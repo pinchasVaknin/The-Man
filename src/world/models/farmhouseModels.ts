@@ -21,6 +21,7 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
+import { MINE_HOIST_CRANE } from '../domain/landmarks/dwarvenMineLayout';
 import {
   DWARVEN_MINER_STATIONS,
   DWARVEN_MINECART_ROUTES,
@@ -1733,9 +1734,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   }
 
   const craneTowerGroup = new THREE.Group();
-  craneTowerGroup.position.set(21.5, scaffoldPlatformY, 44.0);
-  for (const tx of [-2.4, 2.4]) {
-    for (const tz of [-2.4, 2.4]) {
+  craneTowerGroup.position.set(MINE_HOIST_CRANE.offsetX, scaffoldPlatformY, MINE_HOIST_CRANE.offsetZ);
+  for (const tx of [-MINE_HOIST_CRANE.postSpan, MINE_HOIST_CRANE.postSpan]) {
+    for (const tz of [-MINE_HOIST_CRANE.postSpan, MINE_HOIST_CRANE.postSpan]) {
       const tPost = new THREE.Mesh(craneTowerPostGeo, barkMat);
       tPost.position.set(tx, 0, tz);
       craneTowerGroup.add(tPost);
