@@ -1910,5 +1910,27 @@ test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAqua
 });
 // #endregion
 
+test('bear_WhenRainingOutsideItsCave_ShouldWalkInsideAndShelter', () => {
+  // Regression: bears used to stop at the cave mouth (lz ~12) and never go in.
+  const animals = createInitialSmallAnimals();
+  const bear = animals.find((a) => a.species === 'bear' && a.caveIndex !== undefined)!;
+  const cave = BEAR_MOUNTAIN_CAVES[bear.caveIndex!];
+  const sin = Math.sin(cave.facingYaw);
+  const cos = Math.cos(cave.facingYaw);
+  bear.x = cave.x + 6 * cos + 30 * sin;
+  bear.z = cave.z - 6 * sin + 30 * cos;
+  bear.y = walkableHeightAt(bear.x, bear.z).height;
+  const player = createInitialPlayerState();
+  player.x = cave.x + 120 * cos + 60 * sin;
+  player.z = cave.z - 120 * sin + 60 * cos;
+  player.y = walkableHeightAt(player.x, player.z).height;
 
+  let elapsed = 0;
+  for (let i = 0; i < 120 * 60; i++) {
+    stepSmallAnimals(animals, 1 / 60, elapsed, player.x, player.z, [], 1.0, undefined, 0, true, false, 0.8, player);
+    elapsed += 1 / 60;
+  }
 
+  const localZ = (bear.x - cave.x) * sin + (bear.z - cave.z) * cos;
+  assert.ok(localZ < -5, `Rain-sheltering bear must end inside its cave, got local z ${localZ.toFixed(1)}`);
+});

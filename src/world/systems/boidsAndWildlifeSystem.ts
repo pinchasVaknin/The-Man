@@ -1146,7 +1146,8 @@ function findNearestShelterPoint(
     const lx = dx * cosY - dz * sinY;
     const lz = dx * sinY + dz * cosY;
 
-    if (lz > 4.2 || (lz > -5.0 && Math.abs(lx) > 3.4)) {
+    // Only head for the mouth while still outside it; once the bear is at the mouth (lz <= 13.5) it walks in.
+    if (lz > 13.5 || (lz > -5.0 && Math.abs(lx) > 3.4)) {
       return { x: targetCave.entranceX, z: targetCave.entranceZ };
     }
     if (lz > -10.5) {
@@ -1224,7 +1225,8 @@ function steerBearThroughCavePortal(
   const bearOutsideCave = bLz >= 4.5 || Math.abs(bLx) > 4.2;
   const targetInsideCave = tLz < -2.0 && tLz > -25.5 && Math.abs(tLx) < 12.0;
   if (bearOutsideCave && targetInsideCave) {
-    if (bLz > 5.0 || Math.abs(bLx) > 2.2) {
+    // Waypoint at lz 6.5 is reached before this threshold, so the bear advances inward instead of re-targeting it forever.
+    if (bLz > 7.5 || Math.abs(bLx) > 2.2) {
       return caveLocalToWorld(cIdx, 0, 6.5);
     }
     return caveLocalToWorld(cIdx, 0, -6.5);

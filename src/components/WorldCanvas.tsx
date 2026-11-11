@@ -1850,6 +1850,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
     renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: true });
     renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: true });
+    renderer.domElement.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     // 8. Main Animation Loop with Software-WebGL Pacing Guard
     let elapsedTotal = 0;
@@ -2799,6 +2800,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.domElement.removeEventListener('touchstart', onTouchStart);
       renderer.domElement.removeEventListener('touchmove', onTouchMove);
+      renderer.domElement.removeEventListener('touchend', onTouchEnd);
+      renderer.domElement.removeEventListener('touchcancel', onTouchEnd);
       window.removeEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
       saveCurrentWorld();
       onRegisterGameActions?.(null);

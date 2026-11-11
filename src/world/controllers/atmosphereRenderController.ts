@@ -103,6 +103,8 @@ export function applyDynamicAtmosphereToScene(
     sky.visible = false;
     sunDiscMesh.visible = false;
     sunLight.intensity = 0;
+    // The sun contributes nothing underground, so skip re-rendering its shadow map until the player surfaces.
+    renderer.shadowMap.autoUpdate = false;
 
     hemiLight.color.setHex(0x52607a);
     hemiLight.groundColor.setHex(0x332214);
@@ -114,6 +116,7 @@ export function applyDynamicAtmosphereToScene(
     bgColor.setHex(0x0d1017);
     renderer.toneMappingExposure = 1.26;
   } else {
+    renderer.shadowMap.autoUpdate = true;
     // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
     sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
     sunDiscMesh.visible = stormDark < 0.65 && fogStrength < 0.55;
