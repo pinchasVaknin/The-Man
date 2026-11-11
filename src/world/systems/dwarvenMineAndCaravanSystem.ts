@@ -10,7 +10,7 @@
 import { t } from '../../locales';
 import type { IDwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
-import { MINE_NW_GALLERY } from '../domain/landmarks/dwarvenMineLayout';
+import { MINE_CHAMBER_BOUNDS, MINE_NW_GALLERY } from '../domain/landmarks/dwarvenMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -868,12 +868,13 @@ export function southernMineWalkableHeightAt(
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
   // 0) North Entrance Shaft (lz < 34.0, |lx| <= 3.8)
-  if (lz < 34.0 && Math.abs(lx) <= 4.5) {
+  if (lz < MINE_CHAMBER_BOUNDS.shaft.lzMax && Math.abs(lx) <= MINE_CHAMBER_BOUNDS.shaft.halfW) {
     return southernMineFloorHeightAt(z);
   }
 
-  // 1) West Rail Tunnel (lx in [-88.0, -48.0], lz in [58.5, 69.5]) sloping from -9.35m down to -15.55m
-  if (lx >= -88.0 && lx < -48.0 && lz >= 58.0 && lz <= 70.0) {
+  // 1) West Rail Tunnel (MINE_CHAMBER_BOUNDS.westTunnel) sloping from -9.35m down to -15.55m
+  const westT = MINE_CHAMBER_BOUNDS.westTunnel;
+  if (lx >= westT.lxMin && lx < westT.lxMax && lz >= westT.lzMin && lz <= westT.lzMax) {
     const t = Math.max(0, Math.min(1, (-48.0 - lx) / 40.0));
     return (
       SOUTHERN_MINE_POS.cavernFloorY +
@@ -881,8 +882,9 @@ export function southernMineWalkableHeightAt(
     );
   }
 
-  // 2) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (lx in [-148.0, -88.0], lz in [38.0, 112.0])
-  if (lx < -88.0 && lx >= -148.5 && lz >= 38.0 && lz <= 112.0) {
+  // 2) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
+  const lagoonC = MINE_CHAMBER_BOUNDS.lagoonChamber;
+  if (lx < lagoonC.lxMax && lx >= lagoonC.lxMin && lz >= lagoonC.lzMin && lz <= lagoonC.lzMax) {
     const ch2Floor = SOUTHERN_MINE_POS.westLagoonFloorY;
     // Wooden Plank Bridge across Chamber 2 Lagoon (lx in [-135.0, -101.0], lz in [70.5, 75.5])
     if (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) {
@@ -909,22 +911,25 @@ export function southernMineWalkableHeightAt(
     return ch2Floor;
   }
 
-  // 3) East Smelting Rail Tunnel (lx in [48.0, 88.0], lz in [58.5, 69.5]) sloping from -9.35m down to -14.35m
-  if (lx > 48.0 && lx <= 88.0 && lz >= 58.0 && lz <= 70.0) {
-    const t = Math.max(0, Math.min(1, (lx - 48.0) / 40.0));
+  // 3) East Smelting Rail Tunnel (MINE_CHAMBER_BOUNDS.eastTunnel) sloping from -9.35m down to -14.35m
+  const eastT = MINE_CHAMBER_BOUNDS.eastTunnel;
+  if (lx > eastT.lxMin && lx <= eastT.lxMax && lz >= eastT.lzMin && lz <= eastT.lzMax) {
+    const t = Math.max(0, Math.min(1, (lx - eastT.lxMin) / (eastT.lxMax - eastT.lxMin)));
     return (
       SOUTHERN_MINE_POS.cavernFloorY +
       t * (SOUTHERN_MINE_POS.eastFoundryFloorY - SOUTHERN_MINE_POS.cavernFloorY)
     );
   }
 
-  // 4) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (lx in [88.0, 144.0], lz in [40.0, 108.0])
-  if (lx > 88.0 && lx <= 144.5 && lz >= 40.0 && lz <= 108.0) {
+  // 4) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (MINE_CHAMBER_BOUNDS.foundryChamber)
+  const foundryC = MINE_CHAMBER_BOUNDS.foundryChamber;
+  if (lx > foundryC.lxMin && lx <= foundryC.lxMax && lz >= foundryC.lzMin && lz <= foundryC.lzMax) {
     return SOUTHERN_MINE_POS.eastFoundryFloorY;
   }
 
   // 5) South Grand Moria Descent Gallery (lx in [-16.0, 16.0], lz in [95.0, 145.0]) sloping from -9.35m down to -18.35m
-  if (lz > 95.0 && lz < 145.0 && Math.abs(lx) <= 16.5) {
+  const southG = MINE_CHAMBER_BOUNDS.southGallery;
+  if (lz > southG.lzMin && lz < southG.lzMax && Math.abs(lx) <= southG.halfW) {
     const t = Math.max(0, Math.min(1, (lz - 95.0) / 50.0));
     return (
       SOUTHERN_MINE_POS.cavernFloorY +
@@ -933,7 +938,8 @@ export function southernMineWalkableHeightAt(
   }
 
   // 6) Chamber 4 — The Great Hall of Khazad-dûm & Bridge Over the Bottomless Abyss (lx in [-64.0, 64.0], lz in [145.0, 255.0])
-  if (lz >= 145.0 && lz <= 255.5 && Math.abs(lx) <= 64.5) {
+  const moriaC = MINE_CHAMBER_BOUNDS.moriaHall;
+  if (lz >= moriaC.lzMin && lz <= moriaC.lzMax && Math.abs(lx) <= moriaC.halfW) {
     const moriaFloor = SOUTHERN_MINE_POS.moriaHallFloorY;
     // A) Central Narrow Arched Stone Bridge of Khazad-dûm (lx in [-3.5, 3.5], lz in [178.0, 218.0])
     if (lx >= -3.5 && lx <= 3.5 && lz >= 178.0 && lz <= 218.0) {
@@ -1044,51 +1050,53 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
-  // 1) Main entrance tunnel shaft (lx in [-3.4, 3.4], lz in [-1.2, 34.5])
-  if (Math.abs(lx) <= SOUTHERN_MINE_POS.tunnelHalfW && lz >= -1.2 && lz <= 34.5) {
+  const B = MINE_CHAMBER_BOUNDS;
+
+  // 1) Main entrance tunnel shaft (MINE_CHAMBER_BOUNDS.shaft)
+  if (Math.abs(lx) <= B.shaft.halfW && lz >= B.shaft.lzMin && lz <= B.shaft.lzMax) {
     const shaftFloorY = southernMineFloorHeightAt(z);
     if (currentY !== undefined && currentY > shaftFloorY + 5.4) return false;
     return true;
   }
 
-  // 2) Room 1 — Entry Staging & Mess Hall (lx in [-48.0, 48.0], lz in [34.0, 95.5])
-  if (Math.abs(lx) <= 48.0 && lz >= 34.0 && lz <= 95.5) {
+  // 2) Room 1 — Entry Staging & Mess Hall (MINE_CHAMBER_BOUNDS.room1)
+  if (Math.abs(lx) <= B.room1.halfW && lz >= B.room1.lzMin && lz <= B.room1.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 12.2) return false;
     return true;
   }
 
-  // 3) West Rail Tunnel (lx in [-88.5, -48.0], lz in [58.5, 69.5])
-  if (lx >= -88.5 && lx <= -48.0 && lz >= 58.5 && lz <= 69.5) {
+  // 3) West Rail Tunnel (MINE_CHAMBER_BOUNDS.westTunnel)
+  if (lx >= B.westTunnel.lxMin && lx <= B.westTunnel.lxMax && lz >= B.westTunnel.lzMin && lz <= B.westTunnel.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 6.5) return false;
     return true;
   }
 
-  // 4) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (lx in [-148.0, -88.0], lz in [38.0, 112.0])
-  if (lx >= -148.0 && lx <= -88.0 && lz >= 38.0 && lz <= 112.0) {
+  // 4) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
+  if (lx >= B.lagoonChamber.lxMin && lx <= B.lagoonChamber.lxMax && lz >= B.lagoonChamber.lzMin && lz <= B.lagoonChamber.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.westLagoonFloorY + 13.0) return false;
     return true;
   }
 
-  // 5) East Smelting Rail Tunnel (lx in [48.0, 88.5], lz in [58.5, 69.5])
-  if (lx >= 48.0 && lx <= 88.5 && lz >= 58.5 && lz <= 69.5) {
+  // 5) East Smelting Rail Tunnel (MINE_CHAMBER_BOUNDS.eastTunnel)
+  if (lx >= B.eastTunnel.lxMin && lx <= B.eastTunnel.lxMax && lz >= B.eastTunnel.lzMin && lz <= B.eastTunnel.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 6.5) return false;
     return true;
   }
 
-  // 6) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (lx in [88.0, 144.0], lz in [40.0, 108.0])
-  if (lx >= 88.0 && lx <= 144.0 && lz >= 40.0 && lz <= 108.0) {
+  // 6) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (MINE_CHAMBER_BOUNDS.foundryChamber)
+  if (lx >= B.foundryChamber.lxMin && lx <= B.foundryChamber.lxMax && lz >= B.foundryChamber.lzMin && lz <= B.foundryChamber.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.eastFoundryFloorY + 12.5) return false;
     return true;
   }
 
-  // 7) South Grand Moria Descent Gallery (lx in [-16.0, 16.0], lz in [95.0, 145.5])
-  if (Math.abs(lx) <= 16.0 && lz >= 95.0 && lz <= 145.5) {
+  // 7) South Grand Moria Descent Gallery (MINE_CHAMBER_BOUNDS.southGallery)
+  if (Math.abs(lx) <= B.southGallery.halfW && lz >= B.southGallery.lzMin && lz <= B.southGallery.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 7.5) return false;
     return true;
   }
 
-  // 8) Chamber 4 — The Great Hall of Khazad-dûm & Bridge Over the Bottomless Abyss (lx in [-64.0, 64.0], lz in [145.0, 255.0])
-  if (Math.abs(lx) <= 64.0 && lz >= 145.0 && lz <= 255.0) {
+  // 8) Chamber 4 — The Great Hall of Khazad-dûm & Bridge Over the Bottomless Abyss (MINE_CHAMBER_BOUNDS.moriaHall)
+  if (Math.abs(lx) <= B.moriaHall.halfW && lz >= B.moriaHall.lzMin && lz <= B.moriaHall.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 16.5) return false;
     return true;
   }
