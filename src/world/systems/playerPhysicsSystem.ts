@@ -29,6 +29,7 @@ import {
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
   getNearbySolidBuildingBoxes,
+  getHillWatchtowerLocalWalls,
   resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
@@ -1396,47 +1397,7 @@ export function stepPlayerPhysics(
       const doorOpen = Boolean(openDoorIds?.has(hw.doorId));
       const onUpperDeck = state.y >= hw.deckY - 1.2;
 
-      interface ILocalBox {
-        minX: number;
-        maxX: number;
-        minZ: number;
-        maxZ: number;
-        maxY?: number;
-      }
-      const localWalls: ILocalBox[] = [];
-      if (!onUpperDeck) {
-        localWalls.push(
-          { minX: -3.75, maxX: -3.25, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 },
-          { minX: 3.25, maxX: 3.75, minZ: -3.7, maxZ: 3.7, maxY: hw.baseY + 5.2 }
-        );
-        const backZ = -hw.doorSideLocalZ * 3.5;
-        const doorZ = hw.doorSideLocalZ * 3.5;
-        localWalls.push({ minX: -3.7, maxX: 3.7, minZ: backZ - 0.25, maxZ: backZ + 0.25, maxY: hw.baseY + 5.2 });
-        localWalls.push(
-          { minX: -3.7, maxX: -1.15, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 },
-          { minX: 1.15, maxX: 3.7, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: hw.baseY + 5.2 }
-        );
-        if (!doorOpen) {
-          localWalls.push({ minX: -1.15, maxX: 1.15, minZ: doorZ - 0.22, maxZ: doorZ + 0.22, maxY: hw.baseY + 3.8 });
-        }
-      } else {
-        const pMaxY = hw.deckY + 0.96;
-        localWalls.push(
-          { minX: -3.65, maxX: -3.35, minZ: -3.6, maxZ: 3.6, maxY: pMaxY },
-          { minX: 3.35, maxX: 3.65, minZ: -3.6, maxZ: 3.6, maxY: pMaxY }
-        );
-        for (const sideZ of [-1, 1] as const) {
-          const zCenter = sideZ * 3.5;
-          if (hw.bridgeSideLocalZ === sideZ) {
-            localWalls.push(
-              { minX: -3.6, maxX: -1.65, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY },
-              { minX: 1.65, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY }
-            );
-          } else {
-            localWalls.push({ minX: -3.6, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY });
-          }
-        }
-      }
+      const localWalls = getHillWatchtowerLocalWalls(hw, onUpperDeck, doorOpen);
 
       let modifiedLocal = false;
       for (let w = 0; w < localWalls.length; w++) {

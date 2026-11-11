@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import {
   SOLID_BUILDING_BOXES,
+  getHillWatchtowerLocalWalls,
   FORTRESS_DOORS,
   HILL_WATCHTOWERS,
   CHINESE_FORTRESS_POS,
@@ -134,32 +135,27 @@ export function buildColliderDebugWireframes(
     group.add(mesh);
   }
 
-  // 3. HILL_WATCHTOWERS local wall segments (Orange — exact match with fortressModels.ts & playerPhysicsSystem.ts)
-  for (let t = 0; t < HILL_WATCHTOWERS.length; t++) {
-    const tw = HILL_WATCHTOWERS[t];
-    const towerGroup = new THREE.Group();
-    towerGroup.position.set(tw.x, tw.baseY, tw.z);
-    towerGroup.rotation.y = tw.yaw;
-
-    const deckH = tw.deckY - tw.baseY;
-    const doorZ = tw.doorSideLocalZ * 3.45;
-    const nonDoorZ = -tw.doorSideLocalZ * 3.45;
-    const wallDefs: Array<[number, number, number, number, number, number]> = [
-      [-3.45, deckH * 0.5, 0, 0.36, deckH, 7.2],
-      [3.45, deckH * 0.5, 0, 0.36, deckH, 7.2],
-      [0, deckH * 0.5, nonDoorZ, 7.2, deckH, 0.36],
-      [-2.35, deckH * 0.5, doorZ, 2.5, deckH, 0.36],
-      [2.35, deckH * 0.5, doorZ, 2.5, deckH, 0.36],
-      [0, deckH, 0, 7.5, 0.28, 7.5],
-    ];
-    for (const [wx, wy, wz, ww, wh, wd] of wallDefs) {
-      const geo = new THREE.BoxGeometry(ww, wh, wd);
-      disposableGeometries.push(geo);
-      const m = new THREE.Mesh(geo, stairGuardWireMat);
-      m.position.set(wx, wy, wz);
-      towerGroup.add(m);
+  // 3. HILL_WATCHTOWERS walls: the same local walls the physics blocks on (lower deck, and upper deck)
+  for (const tw of HILL_WATCHTOWERS) {
+    const cosY = Math.cos(tw.yaw);
+    const sinY = Math.sin(tw.yaw);
+    for (const onUpper of [false, true]) {
+      const bottom = onUpper ? tw.deckY : tw.baseY;
+      for (const wall of getHillWatchtowerLocalWalls(tw, onUpper, false)) {
+        const height = Math.max(0.12, (wall.maxY ?? bottom) - bottom);
+        const width = Math.max(0.08, wall.maxX - wall.minX);
+        const depth = Math.max(0.08, wall.maxZ - wall.minZ);
+        const geo = new THREE.BoxGeometry(width, height, depth);
+        disposableGeometries.push(geo);
+        const lx = (wall.minX + wall.maxX) * 0.5;
+        const lz = (wall.minZ + wall.maxZ) * 0.5;
+        const mesh = new THREE.Mesh(geo, stairGuardWireMat);
+        // Same transform as the physics: local (lx, lz) -> world offset via the tower yaw.
+        mesh.position.set(tw.x + lx * cosY + lz * sinY, bottom + height * 0.5, tw.z - lx * sinY + lz * cosY);
+        mesh.rotation.y = tw.yaw;
+        group.add(mesh);
+      }
     }
-    group.add(towerGroup);
   }
 
   // 4. OBSTACLE CYLINDERS (Green — 100% of world obstacles using exact getObstacleColliderMetrics)
