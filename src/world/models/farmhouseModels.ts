@@ -21,7 +21,7 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
-import { MINE_HOIST_CRANE } from '../domain/landmarks/dwarvenMineLayout';
+import { MINE_HOIST_CRANE, MINE_SCAFFOLD_LEGS } from '../domain/landmarks/dwarvenMineLayout';
 import {
   DWARVEN_MINER_STATIONS,
   DWARVEN_MINECART_ROUTES,
@@ -1706,18 +1706,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   nwGalleryMesh.position.set(-13.5, scaffoldPlatformY - 0.13, 38.5);
   mineGroup.add(nePlatformMesh, nwGalleryMesh);
 
-  for (const [lx, lz] of [
-    [8.5, 38.2],
-    [15.5, 38.2],
-    [23.5, 38.2],
-    [8.5, 48.5],
-    [15.5, 48.5],
-    [23.5, 48.5],
-    [-17.5, 36.5],
-    [-9.5, 36.5],
-    [-17.5, 40.5],
-    [-9.5, 40.5],
-  ] as const) {
+  for (const [lx, lz] of MINE_SCAFFOLD_LEGS.positions) {
     const leg = new THREE.Mesh(scaffoldLegGeo, barkMat);
     leg.position.set(lx, cavernFloorY, lz);
     mineGroup.add(leg);

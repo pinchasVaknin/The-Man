@@ -20,13 +20,24 @@ export interface IColliderAuditReport {
   /** Collider ids with no visible mesh covering at least `minCoverage` of their footprint. */
   readonly unmatchedBoxes: readonly string[];
   /** Tall meshes with no collider overlapping their footprint. */
-  readonly unmatchedMeshes: readonly { readonly name: string; readonly x: number; readonly z: number; readonly height: number }[];
+  readonly unmatchedMeshes: readonly {
+    readonly name: string;
+    readonly x: number;
+    readonly z: number;
+    readonly height: number;
+    /** Footprint size along x and z, so a reader can tell a post from a wall without the scene. */
+    readonly width: number;
+    readonly depth: number;
+    /** Three.js geometry class, e.g. BoxGeometry or CylinderGeometry. */
+    readonly geometry: string;
+  }[];
   /** Number of meshes that were considered (after size filters). */
   readonly checkedMeshes: number;
 }
 
 interface IFootprint {
   readonly name: string;
+  readonly geometry: string;
   readonly minX: number;
   readonly maxX: number;
   readonly minZ: number;
@@ -89,6 +100,7 @@ export function auditColliderCoverage(
     if (size.x > MAX_AUDITED_FOOTPRINT_M || size.z > MAX_AUDITED_FOOTPRINT_M || size.y < 0.5) return;
     footprints.push({
       name: nearestNamedName(mesh),
+      geometry: mesh.geometry.type,
       minX: bounds.min.x,
       maxX: bounds.max.x,
       minZ: bounds.min.z,
@@ -111,7 +123,7 @@ export function auditColliderCoverage(
     if (best < minCoverage) unmatchedBoxes.push(box.id);
   }
 
-  const unmatchedMeshes: { name: string; x: number; z: number; height: number }[] = [];
+  const unmatchedMeshes: IColliderAuditReport['unmatchedMeshes'][number][] = [];
   for (const f of footprints) {
     const height = f.maxY - f.minY;
     if (height < 0.5) continue;
@@ -120,7 +132,15 @@ export function auditColliderCoverage(
       return overlapArea(aabb.minX - 0.5, aabb.maxX + 0.5, aabb.minZ - 0.5, aabb.maxZ + 0.5, f.minX, f.maxX, f.minZ, f.maxZ) > 0;
     });
     if (!hasCollider) {
-      unmatchedMeshes.push({ name: f.name, x: (f.minX + f.maxX) / 2, z: (f.minZ + f.maxZ) / 2, height });
+      unmatchedMeshes.push({
+        name: f.name,
+        x: (f.minX + f.maxX) / 2,
+        z: (f.minZ + f.maxZ) / 2,
+        height,
+        width: f.maxX - f.minX,
+        depth: f.maxZ - f.minZ,
+        geometry: f.geometry,
+      });
     }
   }
 

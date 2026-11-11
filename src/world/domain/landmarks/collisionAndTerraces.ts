@@ -40,7 +40,7 @@ import {
   DWARVEN_STONE_HOUSES,
   SOUTHERN_MINE_POS,
 } from './dwarvenLandmarks';
-import { MINE_HOIST_CRANE } from './dwarvenMineLayout';
+import { MINE_HOIST_CRANE, MINE_SCAFFOLD_LEGS } from './dwarvenMineLayout';
 import {
   SOUTHEAST_HARBOR_POS,
   SOUTHWEST_OASIS_POS,
@@ -483,6 +483,21 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.45,
   },
   // 5) Room 1 Hoist Crane Tower on NE Scaffolding Platform & Crane Mast at (16.0, 76.0)
+  // Scaffold legs under the catwalk, from MINE_SCAFFOLD_LEGS (the model draws the same positions).
+  ...MINE_SCAFFOLD_LEGS.positions.map(([lx, lz], i) => {
+    const cx = SOUTHERN_MINE_POS.x + lx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + lz;
+    const r = MINE_SCAFFOLD_LEGS.radius;
+    return {
+      id: `southern-mine-scaffold-leg-${i}`,
+      minX: cx - r,
+      maxX: cx + r,
+      minZ: cz - r,
+      maxZ: cz + r,
+      minY: SOUTHERN_MINE_POS.cavernFloorY,
+      maxY: SOUTHERN_MINE_POS.cavernFloorY + MINE_SCAFFOLD_LEGS.height,
+    };
+  }),
   // Four corner posts of the open crane lattice. One 4.9 m box here blocked the air inside the frame (H6a).
   // Positions and sizes come from MINE_HOIST_CRANE, the same numbers the model uses.
   ...[-MINE_HOIST_CRANE.postSpan, MINE_HOIST_CRANE.postSpan].flatMap((px) =>
