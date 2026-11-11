@@ -21,7 +21,15 @@ import {
 } from '../builders/shaderAndMaterialBuilders';
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
-import { MINE_HOIST_CRANE, MINE_SCAFFOLD_LEGS } from '../domain/landmarks/dwarvenMineLayout';
+import {
+  MINE_GROUND_TORCHES,
+  MINE_HOIST_CRANE,
+  MINE_LAGOON_DOCK_TORCH,
+  MINE_MORIA_SANCTUARY_TORCHES,
+  MINE_SCAFFOLD_LEGS,
+  mineFloorY,
+  type IMineFloorTorch,
+} from '../domain/landmarks/dwarvenMineLayout';
 import {
   DWARVEN_MINER_STATIONS,
   DWARVEN_MINECART_ROUTES,
@@ -319,6 +327,17 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       createLanternAssembly(0, 2.64, 0.52, addLight)
     );
     return g;
+  }
+
+  /** Summary: Places one layout torch stand on its named floor (MINE_FLOOR_TORCH_STANDS) at its lift. */
+  function placeFloorTorch(torch: IMineFloorTorch): THREE.Group {
+    return createStandingLanternPost(
+      torch.lx,
+      mineFloorY(torch.floor) + torch.lift,
+      torch.lz,
+      torch.light,
+      torch.yaw
+    );
   }
 
   function createWallTorchSconce(
@@ -2042,7 +2061,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   mineGroup.add(
     ch2DockMesh,
     createInteractiveSupplyCrate(-112.0, ch2DockY, 95.5, true),
-    createStandingLanternPost(-128.0, ch2DockY, 92.2, true, Math.PI)
+    placeFloorTorch(MINE_LAGOON_DOCK_TORCH)
   );
 
   // Giant Glowing Amethyst & Sapphire Crystal Clusters in Chamber 2 West Shore (-141.0, 73.0)
@@ -2355,8 +2374,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     royalDiasMesh,
     royalChestMesh,
     sanctuaryLight,
-    createStandingLanternPost(-8.5, moriaFloorY + 0.8, 239.0, true, Math.PI),
-    createStandingLanternPost(8.5, moriaFloorY + 0.8, 239.0, false, Math.PI)
+    ...MINE_MORIA_SANCTUARY_TORCHES.map(placeFloorTorch)
   );
 
   // ============================================================================
@@ -2591,17 +2609,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   }
 
   // Grounded Standing Lantern Posts & Wall Torch Sconces across Room 1, Tunnels, Chamber 2, Chamber 3 & Chamber 4
-  for (const [lx, ly, lz, addPt, yaw] of [
-    [-25.0, cavernFloorY, 50.0, true, 0],
-    [-35.0, cavernFloorY, 61.5, true, Math.PI / 2],
-    [35.0, cavernFloorY, 61.5, true, -Math.PI / 2],
-    [4.0, cavernFloorY, 48.0, true, 0],
-    [22.0, cavernFloorY, 68.0, true, -Math.PI / 2],
-    [-9.5, cavernFloorY, 85.0, true, 0],
-    [-3.5, moriaFloorY, 177.5, true, 0],
-    [3.5, moriaFloorY, 218.5, true, Math.PI],
-  ] as const) {
-    mineGroup.add(createStandingLanternPost(lx, ly, lz, addPt, yaw));
+  for (const torch of MINE_GROUND_TORCHES) {
+    mineGroup.add(placeFloorTorch(torch));
   }
 
   // Wall-mounted iron torch sconces along Room 1, South Moria Descent Gallery, Chamber 2 & Chamber 3
