@@ -45,6 +45,7 @@ import {
   MINE_HOIST_CRANE,
   MINE_KHAZAD_BRIDGE,
   MINE_MESS_HALL,
+  MINE_PORTAL,
   MINE_SUPPLY_CRATES,
   MINE_SCAFFOLD_LEGS,
   khazadBridgeSegment,
@@ -290,33 +291,35 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   // SUBTERRANEAN DWARVEN MINE & MORIA NETWORK HITBOXES (Room 1 + Chambers 2, 3, 4)
   // ============================================================================
   // 1) Entrance Portal Arch Pillars & Header at lz = -0.35
-  {
-    id: 'southern-mine-portal-pillar-west',
-    minX: SOUTHERN_MINE_POS.x - 3.85 - 0.8,
-    maxX: SOUTHERN_MINE_POS.x - 3.85 + 0.8,
-    minZ: SOUTHERN_MINE_POS.entranceZ - 1.15,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 0.45,
-    minY: SOUTHERN_MINE_POS.entranceFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.entranceFloorY + 5.6,
-  },
-  {
-    id: 'southern-mine-portal-pillar-east',
-    minX: SOUTHERN_MINE_POS.x + 3.85 - 0.8,
-    maxX: SOUTHERN_MINE_POS.x + 3.85 + 0.8,
-    minZ: SOUTHERN_MINE_POS.entranceZ - 1.15,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 0.45,
-    minY: SOUTHERN_MINE_POS.entranceFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.entranceFloorY + 5.6,
-  },
-  {
-    id: 'southern-mine-portal-header',
-    minX: SOUTHERN_MINE_POS.x - 4.8,
-    maxX: SOUTHERN_MINE_POS.x + 4.8,
-    minZ: SOUTHERN_MINE_POS.entranceZ - 1.2,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 0.5,
-    minY: SOUTHERN_MINE_POS.entranceFloorY + 4.45,
-    maxY: SOUTHERN_MINE_POS.entranceFloorY + 6.0,
-  },
+  // Entrance portal: four pillars and two lintels at the drawn positions, from MINE_PORTAL.
+  ...[-MINE_PORTAL.pillarX, MINE_PORTAL.pillarX].flatMap((px) =>
+    MINE_PORTAL.pillarZs.map((pz) => {
+      const cx = SOUTHERN_MINE_POS.x + px;
+      const cz = SOUTHERN_MINE_POS.entranceZ + pz;
+      const h = MINE_PORTAL.pillarHalf;
+      return {
+        id: `southern-mine-portal-pillar-${px < 0 ? 'w' : 'e'}${pz < 1 ? 'n' : 's'}`,
+        minX: cx - h,
+        maxX: cx + h,
+        minZ: cz - h,
+        maxZ: cz + h,
+        minY: SOUTHERN_MINE_POS.entranceY,
+        maxY: SOUTHERN_MINE_POS.entranceY + MINE_PORTAL.pillarHeight,
+      };
+    })
+  ),
+  ...MINE_PORTAL.pillarZs.map((pz) => {
+    const cz = SOUTHERN_MINE_POS.entranceZ + pz;
+    return {
+      id: `southern-mine-portal-lintel-${pz < 1 ? 'n' : 's'}`,
+      minX: SOUTHERN_MINE_POS.x - MINE_PORTAL.lintelHalfW,
+      maxX: SOUTHERN_MINE_POS.x + MINE_PORTAL.lintelHalfW,
+      minZ: cz - MINE_PORTAL.lintelHalfD,
+      maxZ: cz + MINE_PORTAL.lintelHalfD,
+      minY: SOUTHERN_MINE_POS.entranceY + MINE_PORTAL.lintelCentreY - MINE_PORTAL.lintelHalfH,
+      maxY: SOUTHERN_MINE_POS.entranceY + MINE_PORTAL.lintelCentreY + MINE_PORTAL.lintelHalfH,
+    };
+  }),
   // 2) Sloped Entrance Shaft Walls & Timber Support Posts (lz = -0.5..34.2, |lx| = 2.95..4.8)
   {
     id: 'southern-mine-shaft-west-wall',

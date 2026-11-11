@@ -27,6 +27,7 @@ import {
   MINE_KHAZAD_BRIDGE,
   MINE_LAGOON_DOCK_TORCH,
   MINE_MESS_HALL,
+  MINE_PORTAL,
   MINE_SUPPLY_CRATES,
   MINE_NW_GALLERY,
   khazadBridgeSegment,
@@ -1239,9 +1240,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const portalVestibuleFloorGeo = new THREE.BoxGeometry(7.2, 0.4, 5.8);
   const portalSideWallGeo = new THREE.BoxGeometry(0.55, 4.6, 4.8);
   const portalHeadwallRockGeo = new THREE.BoxGeometry(7.2, 0.55, 4.8);
-  const portalTimberPillarGeo = new THREE.BoxGeometry(0.58, 4.5, 0.58);
-  portalTimberPillarGeo.translate(0, 2.25, 0);
-  const portalTimberLintelGeo = new THREE.BoxGeometry(7.4, 0.62, 0.72);
+  const portalTimberPillarGeo = new THREE.BoxGeometry(MINE_PORTAL.pillarHalf * 2, MINE_PORTAL.pillarHeight, MINE_PORTAL.pillarHalf * 2);
+  portalTimberPillarGeo.translate(0, MINE_PORTAL.pillarHeight / 2, 0);
+  const portalTimberLintelGeo = new THREE.BoxGeometry(MINE_PORTAL.lintelHalfW * 2, MINE_PORTAL.lintelHalfH * 2, MINE_PORTAL.lintelHalfD * 2);
   const portalSignBoardGeo = new THREE.BoxGeometry(3.6, 0.72, 0.18);
 
   const shaftSlopeFloorGeo = new THREE.BoxGeometry(7.6, 0.45, shaftSlopeLen + 2.4);
@@ -1322,14 +1323,14 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   portalHeadwall.position.set(0, mineEntY + 4.38, 2.4);
   mineGroup.add(vestibuleFloor, portalWestWall, portalEastWall, portalHeadwall);
 
-  for (const pz of [0.2, 2.0]) {
-    for (const px of [-3.15, 3.15]) {
+  for (const pz of MINE_PORTAL.pillarZs) {
+    for (const px of [-MINE_PORTAL.pillarX, MINE_PORTAL.pillarX]) {
       const pPost = new THREE.Mesh(portalTimberPillarGeo, barkMat);
       pPost.position.set(px, mineEntY, pz);
       mineGroup.add(pPost);
     }
     const pLintel = new THREE.Mesh(portalTimberLintelGeo, timberMat);
-    pLintel.position.set(0, mineEntY + 4.35, pz);
+    pLintel.position.set(0, mineEntY + MINE_PORTAL.lintelCentreY, pz);
     mineGroup.add(pLintel);
   }
   const portalSign = new THREE.Mesh(portalSignBoardGeo, mineGoldOreMat);

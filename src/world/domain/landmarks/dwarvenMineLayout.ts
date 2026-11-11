@@ -44,6 +44,25 @@ export const MINE_MESS_HALL = {
 } as const;
 // #endregion
 
+// ======================== ENTRANCE PORTAL ======================== \\
+// #region Entrance Portal
+/**
+ * Summary: Timber portal at the mine entrance: four pillars in two rows, each row capped by a lintel.
+ * Design: lx is local to the mine group (x from SOUTHERN_MINE_POS.x); z values are local to entranceZ; heights are
+ *         above SOUTHERN_MINE_POS.entranceY. The lintel bottom is 4.04 m above the entrance, so a walker passes under it.
+ */
+export const MINE_PORTAL = {
+  pillarX: 3.15,
+  pillarZs: [0.2, 2.0],
+  pillarHalf: 0.29,
+  pillarHeight: 4.5,
+  lintelHalfW: 3.7,
+  lintelHalfD: 0.36,
+  lintelHalfH: 0.31,
+  lintelCentreY: 4.35,
+} as const;
+// #endregion
+
 // ======================== MESS HALL SUPPLY CRATES ======================== \\
 // #region Mess Hall Supply Crates
 /**
