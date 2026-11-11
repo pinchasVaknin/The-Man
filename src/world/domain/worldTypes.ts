@@ -70,6 +70,7 @@ export type InventoryItemId =
   | 'katana_imperial'
   | 'elven_longbow'
   | 'dwarven_warhammer'
+  | 'dwarven_pickaxe'
   | 'dragonbone_bow'
   | 'celestial_jin_sword'
   | 'torch'
@@ -84,11 +85,15 @@ export type InventoryItemId =
   | 'marble_pillar_stone'
   | 'dwarven_gold_ore'
   | 'crystal_gem'
+  | 'amethyst_gem'
+  | 'sapphire_gem'
   | 'ancient_dwarven_horn'
   | 'simple_tunic'
   | 'ranger_garb'
   | 'elven_cloak'
   | 'imperial_armor'
+  | 'dwarven_miner_tunic'
+  | 'dwarven_iron_boots'
   | 'raw_game_meat'
   | 'roasted_meat'
   | 'fresh_bread_loaf'
@@ -151,6 +156,8 @@ export interface IInventoryItemDef {
   readonly rarity?: 'common' | 'refined' | 'epic' | 'legendary';
   /** True when the item can only be obtained as loot and is never sold by merchants. */
   readonly lootOnly?: boolean;
+  /** True when a garment is sized for dwarves and cannot be worn by the human player. */
+  readonly nonWearableByPlayer?: boolean;
 }
 
 export interface IWorldChest {
@@ -161,6 +168,8 @@ export interface IWorldChest {
   readonly z: number;
   readonly interactRadius: number;
   readonly contents: readonly InventoryItemId[];
+  readonly isCorpse?: boolean;
+  goldCoins?: number;
 }
 
 function createCatalogItem(
@@ -174,6 +183,7 @@ function createCatalogItem(
     starterOwned?: boolean;
     rarity?: 'common' | 'refined' | 'epic' | 'legendary';
     lootOnly?: boolean;
+    nonWearableByPlayer?: boolean;
   }
 ): IInventoryItemDef {
   const name = t(`items.${id}.name`);
@@ -196,6 +206,7 @@ function createCatalogItem(
     starterOwned: options?.starterOwned,
     rarity: options?.rarity,
     lootOnly: options?.lootOnly,
+    nonWearableByPlayer: options?.nonWearableByPlayer,
     description,
     lore,
   };
@@ -209,6 +220,7 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('katana_imperial', 'weapons', 3, 220, 1, { weaponRole: 'sword', rarity: 'refined' }),
   createCatalogItem('elven_longbow', 'weapons', 2.8, 480, 2, { weaponRole: 'bow', rarity: 'epic' }),
   createCatalogItem('dwarven_warhammer', 'weapons', 6.2, 720, 3, { weaponRole: 'sword', rarity: 'epic' }),
+  createCatalogItem('dwarven_pickaxe', 'weapons', 4.6, 260, 1, { weaponRole: 'sword', rarity: 'refined', lootOnly: true }),
   createCatalogItem('dragonbone_bow', 'weapons', 3.2, 980, 4, { weaponRole: 'bow', rarity: 'legendary' }),
   createCatalogItem('celestial_jin_sword', 'weapons', 3.8, 1450, 5, { weaponRole: 'sword', rarity: 'legendary' }),
   createCatalogItem('torch', 'gear', 1.5, 45, 1, { starterOwned: true, rarity: 'common' }),
@@ -222,11 +234,15 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('marble_pillar_stone', 'materials', 10, 260, 1, { starterOwned: true, rarity: 'epic' }),
   createCatalogItem('dwarven_gold_ore', 'materials', 6, 220, 1, { starterOwned: true, rarity: 'epic' }),
   createCatalogItem('crystal_gem', 'materials', 2, 350, 1, { starterOwned: true, rarity: 'legendary' }),
+  createCatalogItem('amethyst_gem', 'materials', 1.2, 240, 1, { rarity: 'epic', lootOnly: true }),
+  createCatalogItem('sapphire_gem', 'materials', 1.4, 290, 1, { rarity: 'epic', lootOnly: true }),
   createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
   createCatalogItem('simple_tunic', 'clothing', 0.8, 25, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('ranger_garb', 'clothing', 1.8, 140, 1, { starterOwned: true, rarity: 'refined' }),
   createCatalogItem('elven_cloak', 'clothing', 1.2, 190, 1, { rarity: 'refined' }),
   createCatalogItem('imperial_armor', 'clothing', 4.5, 360, 2, { rarity: 'epic' }),
+  createCatalogItem('dwarven_miner_tunic', 'clothing', 1.4, 85, 1, { rarity: 'common', lootOnly: true, nonWearableByPlayer: true }),
+  createCatalogItem('dwarven_iron_boots', 'clothing', 2.2, 110, 1, { rarity: 'refined', lootOnly: true, nonWearableByPlayer: true }),
   createCatalogItem('raw_game_meat', 'food', 1.0, 45, 1, { rarity: 'common' }),
   createCatalogItem('deer_meat', 'food', 1.2, 55, 1, { rarity: 'common' }),
   createCatalogItem('bear_meat', 'food', 1.5, 70, 1, { rarity: 'refined' }),
@@ -927,7 +943,11 @@ export interface IGameActions {
   readonly onToggleFavorite: (id: InventoryItemId) => void;
   readonly onSetWorldHours?: (hours: number) => void;
   readonly onSetSeason?: (season: SeasonType | 'auto') => void;
-  readonly onTeleportToWorldPos?: (worldX: number, worldZ: number) => void;
+  readonly onTeleportToWorldPos?: (
+    worldX: number,
+    worldZ: number,
+    targetLayer?: 'surface' | 'mine'
+  ) => void;
   readonly onApplyGameMode?: (survivalMode: boolean) => void;
   readonly onResetWorld?: (mode: 'survival' | 'creative' | 'both') => { ok: boolean; message: string };
   readonly onCraftTrap?: (recipeId: InventoryItemId) => void;

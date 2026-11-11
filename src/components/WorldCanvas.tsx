@@ -32,6 +32,7 @@ import {
   spawnArrowProjectile,
   stepArrowsPhysics,
   computeWeatherState,
+  groundHeightAt,
   walkableHeightAt,
   getWaterSurfaceHeightAt,
   isPositionUnderRoof,
@@ -92,6 +93,7 @@ import type { IPlayerState } from '../world/domain/worldTypes';
 import {
   getAnimalStrengthAndLevel,
   getActiveWorldBirds,
+  getOrInitAnimalCorpseLoot,
   resetActiveWorldBirds,
   type ISmallAnimalState,
 } from '../world/systems/boidsAndWildlifeSystem';
@@ -109,8 +111,19 @@ import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder
 import {
   findActiveCombatDwarf,
   findNearestDeadLootableDwarf,
+  getActiveDwarvenMiners,
+  getOrInitDwarfCorpseLoot,
   lootDeadDwarf,
 } from '../world/builders/dwarvenKingdomBuilder';
+import {
+  DWARVEN_RIDEABLE_MINECART_LINES,
+  evaluateRideableMinecartPose,
+  findNearestRideableMinecartStation,
+  isInsideSouthernMine,
+  setRideableMinecartVisualProgress,
+  southernMineWalkableHeightAt,
+  stepRideableMinecartPhysics,
+} from '../world/systems/dwarvenMineAndCaravanSystem';
 import {
   type IPlacedTrap,
   type IWorkbenchStash,
@@ -597,7 +610,55 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let isSleepingInBed = false;
     let activeSleepingBed: { x: number; y: number; z: number; yaw?: number } | null = null;
     let preSleepPlayerPos: { x: number; y: number; z: number } | null = null;
+    let activeMinecartRide: {
+      lineId: string;
+      lineName: string;
+      u: number;
+      velocity: number;
+      wheelAngle: number;
+    } | null = null;
     let worldSaveTimer = 0;
+
+    function tryBoardOrExitMinecart(): boolean {
+      if (activeMinecartRide) {
+        activeMinecartRide = null;
+        playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+        soundEngine.playFootstep('bridge', 1.05);
+        emitHudSnapshot();
+        return true;
+      }
+      const station = findNearestRideableMinecartStation(
+        playerState.x,
+        playerState.y,
+        playerState.z,
+        4.2
+      );
+      if (!station) return false;
+      const line = DWARVEN_RIDEABLE_MINECART_LINES.find((l) => l.id === station.lineId);
+      if (!line) return false;
+      const startU = station.initialU;
+      const pose = evaluateRideableMinecartPose(line.id, startU);
+      activeMinecartRide = {
+        lineId: line.id,
+        lineName: line.name,
+        u: startU,
+        velocity: 0,
+        wheelAngle: 0,
+      };
+      setRideableMinecartVisualProgress(line.id, startU, 0);
+      playerState.x = pose.x;
+      playerState.y = pose.y + 0.55;
+      playerState.z = pose.z;
+      playerState.yaw = station.startAtEnd ? pose.yaw + Math.PI : pose.yaw;
+      playerState.vx = 0;
+      playerState.vy = 0;
+      playerState.vz = 0;
+      lastLootNotification = `Driving ${line.name} — [W/S] Drive Forward/Back · [E] Exit`;
+      lastLootNotificationTimer = 4.0;
+      soundEngine.playFootstep('bridge', 1.2);
+      emitHudSnapshot();
+      return true;
+    }
 
     // Isolate Survival vs Creative (God Mode) save slots so changes never bleed across worlds!
     let activeWorldMode: GameWorldMode =
@@ -649,7 +710,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           lanternLights: worldHandles.lanternLights,
         },
         hours,
-        weather
+        weather,
+        { x: playerState.x, y: playerState.y, z: playerState.z }
       );
     }
 
@@ -730,6 +792,64 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         return res;
       },
       onTakeChestItem: (chestId, itemId, quantity = 1) => {
+        if (chestId.startsWith('corpse-dwarf-')) {
+          const dwarfId = Number(chestId.replace('corpse-dwarf-', ''));
+          const dwarf = getActiveDwarvenMiners().find((d) => d.id === dwarfId);
+          if (dwarf && dwarf.isDead && !dwarf.isLooted) {
+            const lootList = getOrInitDwarfCorpseLoot(dwarf, activeArrows);
+            if ((itemId as string) === '__gold_coins__') {
+              const g = Math.max(0, dwarf.goldDrop || 0);
+              if (g > 0) {
+                playerState.goldCoins = (playerState.goldCoins ?? 280) + g;
+                dwarf.goldDrop = 0;
+              }
+            } else {
+              if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+              if (!playerState.favoriteIds) playerState.favoriteIds = [];
+              const maxTake = Math.max(1, Math.floor(quantity || 1));
+              for (let i = 0; i < maxTake; i++) {
+                const idx = lootList.indexOf(itemId);
+                if (idx === -1) break;
+                lootList.splice(idx, 1);
+                playerState.ownedItemIds.push(itemId);
+                if (!playerState.favoriteIds.includes(itemId)) {
+                  playerState.favoriteIds.push(itemId);
+                }
+              }
+            }
+            if ((dwarf.goldDrop ?? 0) <= 0 && lootList.length === 0) {
+              dwarf.isLooted = true;
+            }
+            soundEngine.playFootstep('trail', 1.15);
+            emitHudSnapshot();
+          }
+          return;
+        }
+        if (chestId.startsWith('corpse-animal-')) {
+          const animId = Number(chestId.replace('corpse-animal-', ''));
+          const anim = getActiveWorldAnimals().find((a) => a.id === animId);
+          if (anim && anim.isDead && !anim.isLooted) {
+            const lootList = getOrInitAnimalCorpseLoot(anim, activeArrows);
+            if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+            if (!playerState.favoriteIds) playerState.favoriteIds = [];
+            const maxTake = Math.max(1, Math.floor(quantity || 1));
+            for (let i = 0; i < maxTake; i++) {
+              const idx = lootList.indexOf(itemId);
+              if (idx === -1) break;
+              lootList.splice(idx, 1);
+              playerState.ownedItemIds.push(itemId);
+              if (!playerState.favoriteIds.includes(itemId)) {
+                playerState.favoriteIds.push(itemId);
+              }
+            }
+            if (lootList.length === 0) {
+              anim.isLooted = true;
+            }
+            soundEngine.playFootstep('trail', 1.15);
+            emitHudSnapshot();
+          }
+          return;
+        }
         const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
         if (chest && chest.id === chestId) {
           openDoorIds.add(chest.id);
@@ -739,6 +859,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
       },
       onStoreChestItem: (chestId, itemId, quantity = 1) => {
+        if (chestId.startsWith('corpse-')) return;
         const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
         if (chest && chest.id === chestId) {
           openDoorIds.add(chest.id);
@@ -748,6 +869,44 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
       },
       onTakeAllChestItems: (chestId) => {
+        if (chestId.startsWith('corpse-dwarf-')) {
+          const dwarfId = Number(chestId.replace('corpse-dwarf-', ''));
+          const dwarf = getActiveDwarvenMiners().find((d) => d.id === dwarfId);
+          if (dwarf && dwarf.isDead && !dwarf.isLooted) {
+            const res = lootDeadDwarf(playerState, dwarf, activeArrows);
+            const totalTaken = res.addedItems.length + (res.goldAdded > 0 ? 1 : 0);
+            if (totalTaken > 0) {
+              soundEngine.playFootstep('trail', 1.18);
+            }
+            emitHudSnapshot();
+            return totalTaken;
+          }
+          return 0;
+        }
+        if (chestId.startsWith('corpse-animal-')) {
+          const animId = Number(chestId.replace('corpse-animal-', ''));
+          const anim = getActiveWorldAnimals().find((a) => a.id === animId);
+          if (anim && anim.isDead && !anim.isLooted) {
+            const lootList = getOrInitAnimalCorpseLoot(anim, activeArrows);
+            const takenCount = lootList.length;
+            if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+            if (!playerState.favoriteIds) playerState.favoriteIds = [];
+            for (const itemId of lootList) {
+              playerState.ownedItemIds.push(itemId);
+              if (!playerState.favoriteIds.includes(itemId)) {
+                playerState.favoriteIds.push(itemId);
+              }
+            }
+            lootList.length = 0;
+            anim.isLooted = true;
+            if (takenCount > 0) {
+              soundEngine.playFootstep('trail', 1.18);
+            }
+            emitHudSnapshot();
+            return takenCount;
+          }
+          return 0;
+        }
         const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
         if (chest && chest.id === chestId) {
           openDoorIds.add(chest.id);
@@ -822,11 +981,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         currentAtmo = applyDynamicAtmosphere(worldHours, currentWeather);
         emitHudSnapshot();
       },
-      onTeleportToWorldPos: (worldX, worldZ) => {
+      onTeleportToWorldPos: (worldX, worldZ, targetLayer) => {
         if (gameSettingsRef.current.godMode === false) return;
         isSleepingInBed = false;
         activeSleepingBed = null;
         preSleepPlayerPos = null;
+        activeMinecartRide = null;
         if (playerState.mountedHorseId?.startsWith('sailable-ship')) {
           if (isNavigableOceanForShip(worldX, worldZ)) {
             setSailableShipTransform(
@@ -852,7 +1012,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           }
           playerState.mountedHorseId = null;
         }
-        const targetY = walkableHeightAt(worldX, worldZ).height;
+        const targetY =
+          targetLayer === 'mine' && isInsideSouthernMine(worldX, worldZ)
+            ? southernMineWalkableHeightAt(worldX, worldZ)
+            : targetLayer === 'surface'
+              ? walkableHeightAt(worldX, worldZ, groundHeightAt(worldX, worldZ)).height
+              : walkableHeightAt(worldX, worldZ).height;
         playerState.x = worldX;
         playerState.z = worldZ;
         playerState.y = targetY;
@@ -1853,9 +2018,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           preSleepPlayerPos = null;
         }
 
-        // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, Trapper's Workbench, OR Door Toggle when pressing interactDoor ([E])
+        // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, Trapper's Workbench, Minecart Driving, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
-          if (harvestOrPickupNearbyTrap()) {
+          if (activeMinecartRide && tryBoardOrExitMinecart()) {
+            // Exited active minecart via [E]
+          } else if (harvestOrPickupNearbyTrap()) {
             // Handled placed trap!
           } else {
             const nearDeadAnimal = findNearestDeadLootableAnimal(
@@ -1877,21 +2044,22 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                 Math.hypot(b.x - playerState.x, b.z - playerState.z) <= 3.5
             );
             if (nearDeadAnimal) {
-              const lootRes = lootDeadAnimal(playerState, nearDeadAnimal, activeArrows);
-              if (lootRes.addedItems.length > 0 && lootRes.notification) {
-                lastLootNotification = lootRes.notification;
-                lastLootNotificationTimer = 4.5;
-                soundEngine.playFootstep('trail', 1.18);
-                emitHudSnapshot();
-              }
+              getOrInitAnimalCorpseLoot(nearDeadAnimal, activeArrows);
+              openDoorIds.add(`corpse-animal-${nearDeadAnimal.id}`);
+              soundEngine.playFootstep('trail', 1.15);
+              emitHudSnapshot();
+              const win = window as unknown as {
+                openInventoryModal?: (open?: boolean, cat?: string) => void;
+              };
+              win.openInventoryModal?.(true, 'chest');
             } else if (nearDeadDwarf) {
-              const dwLoot = lootDeadDwarf(playerState, nearDeadDwarf, activeArrows);
-              if (dwLoot.looted && dwLoot.notification) {
-                lastLootNotification = dwLoot.notification;
-                lastLootNotificationTimer = 4.5;
-                soundEngine.playFootstep('trail', 1.18);
-                emitHudSnapshot();
-              }
+              getOrInitDwarfCorpseLoot(nearDeadDwarf, activeArrows);
+              soundEngine.playFootstep('trail', 1.15);
+              emitHudSnapshot();
+              const win = window as unknown as {
+                openInventoryModal?: (open?: boolean, cat?: string) => void;
+              };
+              win.openInventoryModal?.(true, 'chest');
             } else if (nearDeadBird) {
               nearDeadBird.isLooted = true;
               if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
@@ -1992,6 +2160,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
                     soundEngine.playFootstep('bridge', 1.12);
                     emitHudSnapshot();
                   }
+                } else {
+                  tryBoardOrExitMinecart();
                 }
               }
             }
@@ -2137,6 +2307,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const jumpHeld =
           virtualMoveRef.current.jump || keysPressed.has(kb.jump);
         const toggleMountHorsePressed = keysJustPressed.has(kb.mountHorse);
+        if (toggleMountHorsePressed && tryBoardOrExitMinecart()) {
+          // Handled rideable minecart boarding/exiting via [F]
+        }
 
         const triggerFlyToggle = pendingFlyToggle;
         pendingFlyToggle = false;
@@ -2148,7 +2321,49 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         let maxLandedImpact = 0;
 
         playerState.isSleeping = isSleepingInBed;
-        if (isSleepingInBed && activeSleepingBed) {
+        if (activeMinecartRide) {
+          if (jumpPressed) {
+            activeMinecartRide = null;
+            playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+            soundEngine.playFootstep('bridge', 1.08);
+            emitHudSnapshot();
+          } else {
+            const pose0 = evaluateRideableMinecartPose(
+              activeMinecartRide.lineId,
+              activeMinecartRide.u
+            );
+            const lookDot =
+              -Math.sin(playerState.yaw) * Math.sin(pose0.yaw) -
+              Math.cos(playerState.yaw) * Math.cos(pose0.yaw);
+            const facingSign = lookDot >= -0.15 ? 1 : -1;
+            const throttleAlongU = Math.max(-1, Math.min(1, forward)) * facingSign;
+            const stepRes = stepRideableMinecartPhysics(
+              activeMinecartRide.lineId,
+              activeMinecartRide.u,
+              activeMinecartRide.velocity,
+              activeMinecartRide.wheelAngle,
+              throttleAlongU,
+              rawDt
+            );
+            activeMinecartRide.u = stepRes.u;
+            activeMinecartRide.velocity = stepRes.velocity;
+            activeMinecartRide.wheelAngle = stepRes.wheelAngle;
+            playerState.x = stepRes.pose.x;
+            playerState.y = stepRes.pose.y + 0.55;
+            playerState.z = stepRes.pose.z;
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.vz = 0;
+            playerState.yaw += accumYawDelta;
+            playerState.pitch = Math.max(-1.35, Math.min(1.35, playerState.pitch + accumPitchDelta));
+            if (stepRes.stalledOnUphill && lastLootNotificationTimer <= 0.4) {
+              lastLootNotification =
+                'Slope too steep without momentum! Roll back to the flat track and build speed with [W].';
+              lastLootNotificationTimer = 3.2;
+              emitHudSnapshot();
+            }
+          }
+        } else if (isSleepingInBed && activeSleepingBed) {
           playerState.x = activeSleepingBed.x;
           playerState.z = activeSleepingBed.z;
           playerState.y = activeSleepingBed.y + 0.45;
@@ -2529,6 +2744,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           forcedSeason,
           placedTraps: worldPlacedTraps,
           activeAnimals: getActiveWorldAnimals(),
+          drivingMinecart: activeMinecartRide
+            ? {
+                lineId: activeMinecartRide.lineId,
+                lineName: activeMinecartRide.lineName,
+                speed: Math.round(Math.abs(activeMinecartRide.velocity) * 10) / 10,
+              }
+            : null,
         })
       );
     }

@@ -13,7 +13,7 @@ import { CHINESE_FORTRESS_POS, CORNER_WATCHTOWERS, FORTRESS_Z_OFFSET } from './f
 import { HILL_WATCHTOWERS } from './highlandBridgeLandmarks';
 import { SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS } from './oasisAndHarborLandmarks';
 import { HUNTER_LODGE_POS, VALLEY_FARMS } from './settlementLandmarks';
-import { DWARVEN_STONE_HOUSES } from './dwarvenLandmarks';
+import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -723,6 +723,70 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     z: HUNTER_LODGE_POS.z + 2.95,
     interactRadius: 4.2,
     contents: ['ranger_garb', 'sword', 'woodcutter_axe'],
+  },
+  // Room 1 — Orderly Dwarven Entry Staging & Mess Hall Supply Crates
+  {
+    id: 'crate-mine-mess-provisions',
+    name: 'Mess Hall Provisions Crate',
+    x: SOUTHERN_MINE_POS.x - 22.5,
+    y: SOUTHERN_MINE_POS.cavernFloorY,
+    z: SOUTHERN_MINE_POS.entranceZ + 56.0,
+    interactRadius: 4.2,
+    goldCoins: 14,
+    contents: ['fresh_bread_loaf', 'harbor_cheese_wheel', 'roasted_meat', 'dwarven_miner_tunic'],
+  },
+  {
+    id: 'crate-mine-quartermaster-tools',
+    name: "Quartermaster's Tool & Ore Crate",
+    x: SOUTHERN_MINE_POS.x - 22.5,
+    y: SOUTHERN_MINE_POS.cavernFloorY,
+    z: SOUTHERN_MINE_POS.entranceZ + 68.0,
+    interactRadius: 4.2,
+    goldCoins: 19,
+    contents: ['dwarven_pickaxe', 'iron_ingots', 'dwarven_gold_ore', 'dwarven_iron_boots'],
+  },
+  {
+    id: 'crate-mine-staging-gems',
+    name: "Foreman's Sealed Supply Crate",
+    x: SOUTHERN_MINE_POS.x + 11.5,
+    y: SOUTHERN_MINE_POS.cavernFloorY,
+    z: SOUTHERN_MINE_POS.entranceZ + 62.0,
+    interactRadius: 4.2,
+    goldCoins: 24,
+    contents: ['amethyst_gem', 'sapphire_gem', 'dwarven_gold_ore', 'oak_timber'],
+  },
+  // Chamber 2 — Deep Waterfall & Bioluminescent Lagoon Lakeside Dock Crate
+  {
+    id: 'crate-mine-lagoon-dock',
+    name: 'Lagoon Expedition Crystal Crate',
+    x: SOUTHERN_MINE_POS.x - 112.0,
+    y: SOUTHERN_MINE_POS.westLagoonFloorY + 0.28,
+    z: SOUTHERN_MINE_POS.entranceZ + 95.5,
+    interactRadius: 4.2,
+    goldCoins: 28,
+    contents: ['sapphire_gem', 'amethyst_gem', 'crystal_gem', 'fresh_bread_loaf'],
+  },
+  // Chamber 3 — Dwarven Gold & Silver Smelting Foundry Vault Crate
+  {
+    id: 'crate-mine-foundry-vault',
+    name: 'Smelting Foundry Bullion Crate',
+    x: SOUTHERN_MINE_POS.x + 122.0,
+    y: SOUTHERN_MINE_POS.eastFoundryFloorY,
+    z: SOUTHERN_MINE_POS.entranceZ + 66.0,
+    interactRadius: 4.2,
+    goldCoins: 45,
+    contents: ['dwarven_gold_ore', 'iron_ingots', 'dwarven_warhammer', 'sapphire_gem'],
+  },
+  // Chamber 4 — Great Hall of Khazad-dûm South Royal Sanctuary Treasury Chest
+  {
+    id: 'chest-moria-royal-sanctuary',
+    name: 'Royal Treasury Chest of Khazad-dûm',
+    x: SOUTHERN_MINE_POS.x,
+    y: SOUTHERN_MINE_POS.moriaHallFloorY + 0.8,
+    z: SOUTHERN_MINE_POS.entranceZ + 242.5,
+    interactRadius: 4.4,
+    goldCoins: 85,
+    contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'amethyst_gem', 'sapphire_gem', 'crystal_gem'],
   },
 ] as const;
 

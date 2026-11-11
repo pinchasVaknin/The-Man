@@ -187,6 +187,7 @@ export interface ISmallAnimalState {
   level?: number;
   isDead?: boolean; // true when hunted/killed after hp reaches 0
   isLooted?: boolean; // true after player collects loot with [E]
+  corpseLootItems?: InventoryItemId[]; // remaining items inside animal corpse container
   isTamed?: boolean; // true after player tames & mounts a Royal Stag or Mystical CatLion
   isMountedByPlayer?: boolean; // true while actively ridden by the player
   isBoss?: boolean; // true for the giant central Volcano Sanctum Boss CatLion
@@ -1046,6 +1047,7 @@ export function lootDeadAnimal(
     }
   }
 
+  animal.corpseLootItems = [];
   return {
     ok: true,
     species: animal.species,
@@ -1057,6 +1059,43 @@ export function lootDeadAnimal(
         ? `${drops.notification} (+${recoveredArrowCount} Arrows Recovered)`
         : drops.notification,
   };
+}
+
+/**
+ * Summary: Initializes (if needed) and returns the mutable array of loot items inside a dead animal's corpse container,
+ *          including any arrows stuck in the animal.
+ */
+export function getOrInitAnimalCorpseLoot(
+  animal: ISmallAnimalState,
+  activeArrows?: IArrowProjectile[]
+): InventoryItemId[] {
+  if (!animal.corpseLootItems) {
+    const drops = getAnimalLootDrops(animal.species);
+    animal.corpseLootItems = [...drops.expandedItemIds];
+  }
+  if (activeArrows && activeArrows.length > 0) {
+    for (let i = activeArrows.length - 1; i >= 0; i--) {
+      const arr = activeArrows[i];
+      const isAttached =
+        arr.attachedAnimalId === animal.id ||
+        (arr.hitKind === 'animal' && arr.hitTargetId === String(animal.id)) ||
+        (arr.stuck &&
+          arr.hitKind !== 'target' &&
+          arr.attachedAnimalId === undefined &&
+          Math.hypot(arr.x - animal.x, arr.z - animal.z) <= 2.8);
+      if (isAttached) {
+        const arrowItemId: InventoryItemId =
+          arr.arrowKind === 'fire'
+            ? 'arrow_fire'
+            : arr.arrowKind === 'wind'
+              ? 'arrow_wind'
+              : 'arrow_normal';
+        animal.corpseLootItems.push(arrowItemId);
+        activeArrows.splice(i, 1);
+      }
+    }
+  }
+  return animal.corpseLootItems;
 }
 // #endregion
 
@@ -3343,35 +3382,56 @@ export function stepSmallAnimals(
       const toPlayerZ = playerZ - a.z;
       const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
       const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-      const hippoChaseRange = 26.0;
+      const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+      const hippoTerritoryRadius = 65.0;
+      const hippoDisengageDist = 42.0;
 
-      // Relative-distance chase & reaction check:
-      // Reaction, warning, and pursuit depend purely on the direct relative distance (dPlayer)
-      // between the player and the hippo's current position (a.x, a.z), regardless of where the hippo is on the map.
-      if (dPlayer > hippoChaseRange) {
-        if ((a.wokenUpTimer ?? 0) > 0 || a.aiBehavior === 'charging' || a.aiBehavior === 'attacking') {
+      // Territory Leash & Provoked Pursuit Rule:
+      // 1) When attacked from ANY distance ((a.wokenUpTimer ?? 0) > 0), the hippo immediately aggros
+      //    and chases the player relentlessly until the player has BOTH exited the hippo's territory
+      //    (playerDistFromHome > hippoTerritoryRadius) AND moved far away from the hippo (dPlayer > hippoDisengageDist).
+      // 2) Once the player is outside BOTH the territory AND the proximity range, the hippo disengages
+      //    (isLeashedReturning = true) and runs back to its home territory (a.homeX, a.homeZ).
+      if (a.isLeashedReturning) {
+        if (hippoDistFromHome <= 6.5) {
+          a.isLeashedReturning = false;
+        }
+      } else if ((a.wokenUpTimer ?? 0) > 0) {
+        if (playerDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
           a.wokenUpTimer = 0;
           a.actionTimer = 0;
           a.aiBehavior = 'wandering';
           a.alertLevel = 'grazing';
+          a.isLeashedReturning = true;
+        } else {
+          // Keep grudge active while actively pursuing the player
+          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
         }
-        a.isLeashedReturning = false;
-      } else {
-        a.isLeashedReturning = false;
+      } else if (hippoDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
+        a.actionTimer = 0;
+        a.aiBehavior = 'wandering';
+        a.alertLevel = 'grazing';
+        a.isLeashedReturning = true;
       }
 
-      const isProvokedHippo = (a.wokenUpTimer ?? 0) > 0 && dPlayer <= hippoChaseRange;
+      const isProvokedHippo = !a.isLeashedReturning && (a.wokenUpTimer ?? 0) > 0;
       const warnRadius = isPlayerSneaking ? 8.5 : 15.0;
       const chargeRadius = isPlayerSneaking ? 5.5 : 10.5;
       const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
       const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
       const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
       const isCommittedAttack =
-        a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02 && dPlayer <= hippoChaseRange;
+        !a.isLeashedReturning &&
+        a.aiBehavior === 'attacking' &&
+        (a.actionTimer ?? 0) > 0.02 &&
+        (isProvokedHippo || dPlayer <= hippoDisengageDist);
       const isCommittedYawn =
-        a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02 && dPlayer <= hippoChaseRange;
+        !a.isLeashedReturning &&
+        a.aiBehavior === 'roaring' &&
+        (a.actionTimer ?? 0) > 0.02 &&
+        dPlayer <= warnRadius + 4.0;
 
-      if (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius) {
+      if (!a.isLeashedReturning && (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius)) {
         a.isResting = false;
         a.isSeekingShelter = false;
         a.isFleeing = false;
@@ -3419,7 +3479,7 @@ export function stepSmallAnimals(
           a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
           a.hopPhase += safeDt * 13.0;
         }
-      } else if (isCommittedYawn || dPlayer <= warnRadius) {
+      } else if (!a.isLeashedReturning && (isCommittedYawn || dPlayer <= warnRadius)) {
         // Territorial tusk-yawn warning display in place!
         a.isResting = false;
         a.alertLevel = 'curious';
@@ -3430,16 +3490,16 @@ export function stepSmallAnimals(
         a.vx = 0;
         a.vz = 0;
         a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
-      } else if (hippoDistFromHome > 6.5) {
-        // Return peacefully to lagoon/marsh home territory
+      } else if (a.isLeashedReturning || hippoDistFromHome > 6.5) {
+        // Run back to lagoon/marsh home territory when leashed, or stroll back when idle outside home core
         a.alertLevel = 'grazing';
         a.isResting = false;
-        a.aiBehavior = 'wandering';
-        const returnSpd = 2.6;
-        a.vx = ((a.homeX - a.x) / hippoDistFromHome) * returnSpd;
-        a.vz = ((a.homeZ - a.z) / hippoDistFromHome) * returnSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.5, safeDt);
-        a.hopPhase += safeDt * 7.5;
+        a.aiBehavior = a.isLeashedReturning ? 'charging' : 'wandering';
+        const returnSpd = a.isLeashedReturning ? 6.2 : 2.6;
+        a.vx = ((a.homeX - a.x) / (hippoDistFromHome || 1)) * returnSpd;
+        a.vz = ((a.homeZ - a.z) / (hippoDistFromHome || 1)) * returnSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.2, safeDt);
+        a.hopPhase += safeDt * (a.isLeashedReturning ? 12.5 : 7.5);
       } else {
         // Peaceful amphibious lagoon/river wallowing, sleeping ('lie'), and reed grazing
         a.alertLevel = 'grazing';

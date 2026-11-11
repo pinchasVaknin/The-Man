@@ -13,6 +13,7 @@ import {
   IDynamicAtmosphereState,
   IWeatherStateSnapshot,
   computeDynamicSolarCycle,
+  isInsideSouthernMine,
 } from '../terrainMath';
 
 const _stormFogColor = new THREE.Color(0x3a4759);
@@ -51,12 +52,14 @@ export interface IAtmosphereRenderContext {
  * @param ctx Shared build context (scene, textures, disposal lists).
  * @param hours Hour of day, 0-24.
  * @param weather Current weather snapshot (optional).
+ * @param playerPos Current player world position (optional) to isolate subterranean mine lighting.
  * @returns The atmosphere state that was applied (sun, sky and fog values).
  */
 export function applyDynamicAtmosphereToScene(
   ctx: IAtmosphereRenderContext,
   hours: number,
-  weather?: IWeatherStateSnapshot
+  weather?: IWeatherStateSnapshot,
+  playerPos?: { readonly x: number; readonly y: number; readonly z: number }
 ): IDynamicAtmosphereState {
   const {
     scene,
@@ -76,6 +79,10 @@ export function applyDynamicAtmosphereToScene(
   const atmo = computeDynamicSolarCycle(hours);
   sunVec.set(atmo.sunDirX, atmo.sunDirY, atmo.sunDirZ);
 
+  const isPlayerUndergroundInMine = Boolean(
+    playerPos && playerPos.y < -1.4 && isInsideSouthernMine(playerPos.x, playerPos.z)
+  );
+
   const stormDark = weather ? weather.cloudDarkness : 0;
   const sandHaze = weather ? weather.sandWindIntensity : 0;
   const fogStrength = weather ? weather.fogIntensity : 0;
@@ -90,62 +97,85 @@ export function applyDynamicAtmosphereToScene(
   skyUniforms['mieDirectionalG'].value = atmo.mieDirectionalG;
   skyUniforms['sunPosition'].value.copy(sunVec);
 
-  // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
-  sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
-  sunDiscMesh.visible = stormDark < 0.65 && fogStrength < 0.55;
-  sunDiscMat.color.setHex(atmo.isNight ? 0xdbeafe : 0xfff7d6);
+  if (isPlayerUndergroundInMine) {
+    // True Subterranean Mine Lighting: completely independent of outdoor Day/Night/Weather!
+    // No outdoor directional sunlight or white daytime fog; dim subterranean rock ambient
+    // so unlit areas are dark while torches, lanterns, braziers, furnaces, and crystals shine.
+    sky.visible = false;
+    sunDiscMesh.visible = false;
+    sunLight.intensity = 0;
 
-  sunLight.color.setHex(atmo.sunColorHex);
-  if (flash > 0.1) {
-    sunLight.color.lerp(_lightningColor, flash);
+    hemiLight.color.setHex(0x1b202b);
+    hemiLight.groundColor.setHex(0x090807);
+    hemiLight.intensity = 0.22;
+    scene.environmentIntensity = 0.06;
+
+    fog.color.setHex(0x07090e);
+    fog.density = 0.0048;
+    bgColor.setHex(0x07090e);
+    renderer.toneMappingExposure = 1.08;
+  } else {
+    // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
+    sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
+    sunDiscMesh.visible = stormDark < 0.65 && fogStrength < 0.55;
+    sunDiscMat.color.setHex(atmo.isNight ? 0xdbeafe : 0xfff7d6);
+
+    sunLight.color.setHex(atmo.sunColorHex);
+    if (flash > 0.1) {
+      sunLight.color.lerp(_lightningColor, flash);
+    }
+    sunLight.intensity =
+      atmo.sunIntensity * (1.0 - stormDark * 0.55) * (1.0 - fogStrength * 0.42) + flash * 4.2;
+
+    hemiLight.color.setHex(atmo.hemiSkyHex);
+    hemiLight.groundColor.setHex(atmo.hemiGroundHex);
+    hemiLight.intensity = atmo.hemiIntensity * (1.0 - stormDark * 0.35) + flash * 2.2;
+
+    const wetnessBoost = weather ? weather.wetness * 0.14 : 0;
+    scene.environmentIntensity = Math.max(
+      0.08,
+      (0.45 + wetnessBoost) * (1 - atmo.nightFactor * 0.82) * (1 - stormDark * 0.45) + flash * 0.35
+    );
+
+    fog.color.setHex(atmo.fogColorHex);
+    if (stormDark > 0.05) {
+      fog.color.lerp(_stormFogColor, stormDark * (1 - atmo.nightFactor * 0.7));
+    }
+    if (sandHaze > 0.05) {
+      fog.color.lerp(_sandFogColor, sandHaze * 0.65 * (1 - atmo.nightFactor * 0.7));
+    }
+    if (fogStrength > 0.05) {
+      fog.color.lerp(_denseFogColor, fogStrength * 0.78 * (1 - atmo.nightFactor * 0.65));
+    }
+    if (flash > 0.1) {
+      fog.color.lerp(_lightningColor, flash * 0.55);
+    }
+    fog.density =
+      atmo.fogDensity +
+      (weather
+        ? weather.rainIntensity * 0.0045 +
+          sandHaze * 0.0065 +
+          weather.snowIntensity * 0.0035 +
+          fogStrength * 0.022
+        : 0);
+    bgColor.copy(fog.color);
+
+    waterMaterial.color.setHex(atmo.waterDeepHex);
+    renderer.toneMappingExposure = atmo.exposure + flash * 0.35;
   }
-  sunLight.intensity =
-    atmo.sunIntensity * (1.0 - stormDark * 0.55) * (1.0 - fogStrength * 0.42) + flash * 4.2;
 
-  hemiLight.color.setHex(atmo.hemiSkyHex);
-  hemiLight.groundColor.setHex(atmo.hemiGroundHex);
-  hemiLight.intensity = atmo.hemiIntensity * (1.0 - stormDark * 0.35) + flash * 2.2;
-
-  const wetnessBoost = weather ? weather.wetness * 0.14 : 0;
-  scene.environmentIntensity = Math.max(
-    0.08,
-    (0.45 + wetnessBoost) * (1 - atmo.nightFactor * 0.82) * (1 - stormDark * 0.45) + flash * 0.35
-  );
-
-  fog.color.setHex(atmo.fogColorHex);
-  if (stormDark > 0.05) {
-    fog.color.lerp(_stormFogColor, stormDark * (1 - atmo.nightFactor * 0.7));
-  }
-  if (sandHaze > 0.05) {
-    fog.color.lerp(_sandFogColor, sandHaze * 0.65 * (1 - atmo.nightFactor * 0.7));
-  }
-  if (fogStrength > 0.05) {
-    fog.color.lerp(_denseFogColor, fogStrength * 0.78 * (1 - atmo.nightFactor * 0.65));
-  }
-  if (flash > 0.1) {
-    fog.color.lerp(_lightningColor, flash * 0.55);
-  }
-  fog.density =
-    atmo.fogDensity +
-    (weather
-      ? weather.rainIntensity * 0.0045 +
-        sandHaze * 0.0065 +
-        weather.snowIntensity * 0.0035 +
-        fogStrength * 0.022
-      : 0);
-  bgColor.copy(fog.color);
-
-  waterMaterial.color.setHex(atmo.waterDeepHex);
-  renderer.toneMappingExposure = atmo.exposure + flash * 0.35;
-
-  const lanternStrength =
+  const outdoorLanternStrength =
     atmo.isNight || stormDark > 0.6 || fogStrength > 0.6
       ? 6.5
       : atmo.sunElevationDeg < 16
         ? 3.2
         : 1.1;
   for (const pl of lanternLights) {
-    pl.intensity = lanternStrength;
+    if (pl.userData.isUndergroundMineLight) {
+      pl.intensity = (pl.userData.baseIntensity as number) ?? 4.2;
+    } else {
+      pl.intensity = outdoorLanternStrength;
+    }
   }
 
   return atmo;

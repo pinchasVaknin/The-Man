@@ -93,6 +93,8 @@ export interface ISkyrimInventoryModalProps {
     name: string;
     isOpened: boolean;
     contents: InventoryItemId[];
+    isCorpse?: boolean;
+    goldCoins?: number;
   } | null;
   skills?: ICharacterSkillsState;
   stamina?: number;
@@ -121,14 +123,19 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   marble_pillar_stone: t('items.marble_pillar_stone.short'),
   dwarven_gold_ore: t('items.dwarven_gold_ore.short'),
   crystal_gem: t('items.crystal_gem.short'),
+  amethyst_gem: t('items.amethyst_gem.short'),
+  sapphire_gem: t('items.sapphire_gem.short'),
   ancient_dwarven_horn: t('items.ancient_dwarven_horn.short'),
   simple_tunic: t('items.simple_tunic.short'),
   ranger_garb: t('items.ranger_garb.short'),
   elven_cloak: t('items.elven_cloak.short'),
   imperial_armor: t('items.imperial_armor.short'),
+  dwarven_miner_tunic: t('items.dwarven_miner_tunic.short'),
+  dwarven_iron_boots: t('items.dwarven_iron_boots.short'),
   katana_imperial: t('items.katana_imperial.short'),
   elven_longbow: t('items.elven_longbow.short'),
   dwarven_warhammer: t('items.dwarven_warhammer.short'),
+  dwarven_pickaxe: t('items.dwarven_pickaxe.short'),
   dragonbone_bow: t('items.dragonbone_bow.short'),
   celestial_jin_sword: t('items.celestial_jin_sword.short'),
   raw_game_meat: t('items.raw_game_meat.short'),
@@ -310,19 +317,24 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const dockBlockingShip = isShipwrightMarket ? isHarborShipDockOccupied(18.0) : null;
 
   // Personal Inventory Mode (Outside Market/Chest): ONLY show items currently owned by the player!
-  const activePersonalTab: 'weapons' | 'clothing' | 'traps' | 'materials' | 'food' =
-    selectedCategory === 'food'
-      ? 'food'
-      : selectedCategory === 'clothing'
-        ? 'clothing'
-        : selectedCategory === 'traps' || selectedCategory === 'gear'
-          ? 'traps'
-          : selectedCategory === 'materials' || selectedCategory === 'treasures'
-            ? 'materials'
-            : 'weapons';
+  const activePersonalTab: 'all' | 'weapons' | 'clothing' | 'traps' | 'materials' | 'food' =
+    selectedCategory === 'all'
+      ? 'all'
+      : selectedCategory === 'food'
+        ? 'food'
+        : selectedCategory === 'clothing'
+          ? 'clothing'
+          : selectedCategory === 'traps' || selectedCategory === 'gear'
+            ? 'traps'
+            : selectedCategory === 'materials' || selectedCategory === 'treasures'
+              ? 'materials'
+              : 'weapons';
 
   const ownedPersonalItems: readonly IInventoryItemDef[] = INVENTORY_ITEMS.filter((item) => {
     if (!isItemOwned(item.id)) return false;
+    if (activePersonalTab === 'all') {
+      return item.id !== 'unarmed';
+    }
     if (activePersonalTab === 'food') {
       return item.category === 'food';
     }
@@ -530,7 +542,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {inChestModal && nearbyChest && (
+                {inChestModal && nearbyChest && !nearbyChest.isCorpse && (
                   <button
                     type="button"
                     data-testid="chest-store-all-btn"
@@ -936,35 +948,44 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   {inChestModal ? (
                     tradeSide === 'player' ? (
                       <>
-                        {inspectedOwned && !NON_SELLABLE_STARTER_IDS.includes(inspectedItem.id) && (
-                          <button
-                            type="button"
-                            data-testid="chest-store-btn"
-                            onClick={() => {
-                              if (nearbyChest) {
-                                onStoreChestItem?.(nearbyChest.id, inspectedItem.id, 1);
-                                setTradeFeedback(`Stored ${inspectedItem.name} in chest.`);
-                              }
-                            }}
-                            className="w-full py-2.5 px-5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
-                          >
-                            Store in Chest [{interactKeyLabel}]
-                          </button>
+                        {inspectedOwned &&
+                          !nearbyChest?.isCorpse &&
+                          !NON_SELLABLE_STARTER_IDS.includes(inspectedItem.id) && (
+                            <button
+                              type="button"
+                              data-testid="chest-store-btn"
+                              onClick={() => {
+                                if (nearbyChest) {
+                                  onStoreChestItem?.(nearbyChest.id, inspectedItem.id, 1);
+                                  setTradeFeedback(`Stored ${inspectedItem.name} in chest.`);
+                                }
+                              }}
+                              className="w-full py-2.5 px-5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
+                            >
+                              Store in Chest [{interactKeyLabel}]
+                            </button>
+                          )}
+                        {inspectedOwned && inspectedItem.nonWearableByPlayer && (
+                          <div className="w-full py-2 px-4 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40">
+                            Dwarven Size — Too Small to Wear (Sellable at Market)
+                          </div>
                         )}
-                        {inspectedOwned && inspectedItem.category !== 'materials' && (
-                          <button
-                            type="button"
-                            data-testid="skyrim-equip-btn"
-                            onClick={() => onEquipItem(inspectedItem.id)}
-                            className="w-full py-2 px-4 text-xs font-bold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 transition-colors cursor-pointer"
-                          >
-                            {inspectedItem.category === 'food'
-                              ? `Eat (${inspectedItem.name}) [R]`
-                              : inspectedEquipped
-                                ? t('interactions.equipped_now', { key: 'R' })
-                                : t('interactions.equip_action', { key: 'R' })}
-                          </button>
-                        )}
+                        {inspectedOwned &&
+                          inspectedItem.category !== 'materials' &&
+                          !inspectedItem.nonWearableByPlayer && (
+                            <button
+                              type="button"
+                              data-testid="skyrim-equip-btn"
+                              onClick={() => onEquipItem(inspectedItem.id)}
+                              className="w-full py-2 px-4 text-xs font-bold text-stone-200 bg-stone-800 hover:bg-stone-700 border border-stone-600 transition-colors cursor-pointer"
+                            >
+                              {inspectedItem.category === 'food'
+                                ? `Eat (${inspectedItem.name}) [R]`
+                                : inspectedEquipped
+                                  ? t('interactions.equipped_now', { key: 'R' })
+                                  : t('interactions.equip_action', { key: 'R' })}
+                            </button>
+                          )}
                       </>
                     ) : (
                       <button
@@ -974,12 +995,12 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                         onClick={() => {
                           if (nearbyChest) {
                             onTakeChestItem?.(nearbyChest.id, inspectedItem.id, 1);
-                            setTradeFeedback(`Took ${inspectedItem.name} from chest.`);
+                            setTradeFeedback(`Took ${inspectedItem.name}.`);
                           }
                         }}
                         className="w-full py-2.5 px-5 text-sm font-bold text-stone-950 bg-emerald-400 hover:bg-emerald-300 transition-colors cursor-pointer"
                       >
-                        Take from Chest [{interactKeyLabel}]
+                        Take [{interactKeyLabel}]
                       </button>
                     )
                   ) : tradeSide === 'player' ? (
@@ -1104,21 +1125,24 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   <button
                     type="button"
                     data-testid="chest-take-all-btn"
-                    disabled={(nearbyChest.contents?.length ?? 0) === 0}
+                    disabled={
+                      (nearbyChest.contents?.length ?? 0) === 0 &&
+                      (nearbyChest.goldCoins ?? 0) <= 0
+                    }
                     onClick={() => {
                       const takenCount = onTakeAllChestItems?.(nearbyChest.id) ?? 0;
                       setTradeFeedback(
                         takenCount > 0
-                          ? `Took ${takenCount} item${takenCount === 1 ? '' : 's'} from the chest.`
-                          : 'Chest is empty.'
+                          ? `Took all loot (${takenCount} item${takenCount === 1 ? '' : 's'})!`
+                          : 'Container is empty.'
                       );
                     }}
                     className={`px-2.5 py-1 text-xs font-bold transition-colors ${
-                      (nearbyChest.contents?.length ?? 0) > 0
+                      (nearbyChest.contents?.length ?? 0) > 0 || (nearbyChest.goldCoins ?? 0) > 0
                         ? 'bg-emerald-400 hover:bg-emerald-300 text-stone-950 cursor-pointer'
                         : 'bg-stone-800 text-stone-500 cursor-not-allowed'
                     }`}
-                    title="Take all items from chest [T]"
+                    title="Take all items [T]"
                   >
                     Take All [T]
                   </button>
@@ -1126,7 +1150,11 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
                   {isShipwrightMarket
                     ? `${allShips.length} Ships`
-                    : t('ui.items_count', { count: rightColumnItems.length })}
+                    : t('ui.items_count', {
+                        count:
+                          rightColumnItems.length +
+                          (inChestModal && (nearbyChest?.goldCoins ?? 0) > 0 ? 1 : 0),
+                      })}
                 </span>
               </div>
             </div>
@@ -1176,7 +1204,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
               </div>
             ) : (
               <>
-                {/* Category Filter for Merchant / Chest */}
+                {/* Category Filter for Merchant / Chest / Corpse (First tab is ALL) */}
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   {(
                     [
@@ -1208,9 +1236,46 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                   data-testid="market-merchant-catalog-list"
                   className="flex-1 overflow-y-auto space-y-1.5 pr-1"
                 >
-                  {rightColumnItems.length === 0 ? (
+                  {inChestModal &&
+                    (nearbyChest?.goldCoins ?? 0) > 0 &&
+                    merchantMarketCat === 'all' && (
+                      <button
+                        type="button"
+                        data-testid="corpse-gold-coins-item"
+                        onClick={() => {
+                          if (nearbyChest) {
+                            const goldAmt = nearbyChest.goldCoins ?? 0;
+                            onTakeChestItem?.(
+                              nearbyChest.id,
+                              '__gold_coins__' as InventoryItemId,
+                              goldAmt
+                            );
+                            setTradeFeedback(`Collected ${goldAmt} Gold Coins!`);
+                          }
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-right transition-colors cursor-pointer border-r-2 border-amber-400 bg-amber-950/35 hover:bg-amber-900/45 text-amber-200 font-bold"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate text-sm sm:text-base">
+                            🪙 Gold Coins Pouch
+                          </span>
+                          <span className="px-1.5 py-0.5 text-[11px] font-mono-tabular font-bold bg-stone-800 text-amber-300">
+                            ×{nearbyChest?.goldCoins}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 text-xs font-mono-tabular">
+                          <span className="text-emerald-300">← Take</span>
+                        </div>
+                      </button>
+                    )}
+                  {rightColumnItems.length === 0 &&
+                  !(
+                    inChestModal &&
+                    (nearbyChest?.goldCoins ?? 0) > 0 &&
+                    merchantMarketCat === 'all'
+                  ) ? (
                     <div className="py-10 text-center text-xs text-stone-400">
-                      {inChestModal ? 'Chest is empty.' : 'No items in this category.'}
+                      {inChestModal ? 'Container is empty.' : 'No items in this category.'}
                     </div>
                   ) : (
                     rightColumnItems.map((item) => {
@@ -1294,8 +1359,27 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
           >
             <nav
               aria-label={t('ui.menu_topics_aria')}
-              className="w-40 sm:w-44 shrink-0 flex flex-col justify-center gap-6 border-r border-stone-700/60 pr-4"
+              className="w-40 sm:w-44 shrink-0 flex flex-col justify-center gap-5 border-r border-stone-700/60 pr-4"
             >
+              <button
+                type="button"
+                data-testid="cat-tab-all"
+                onClick={() => {
+                  onSelectCategory('all');
+                  const firstOwnedAny = Array.from(INVENTORY_ITEM_MAP.values()).find(
+                    (i) => isItemOwned(i.id) && i.id !== 'unarmed'
+                  );
+                  if (firstOwnedAny) onSelectItem(firstOwnedAny.id);
+                }}
+                className={`text-right font-display-he text-2xl sm:text-3xl font-bold transition-all cursor-pointer ${
+                  activePersonalTab === 'all'
+                    ? 'text-amber-300 translate-x-[-4px]'
+                    : 'text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                {t('ui.all_filter')}
+              </button>
+
               <button
                 type="button"
                 data-testid="cat-tab-weapons"
@@ -1397,15 +1481,17 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             {/* Scrollable Owned Item Names List */}
             <div className="flex-1 flex flex-col h-full max-h-[68vh] overflow-hidden">
               <div className="text-xs uppercase tracking-widest text-stone-400 pb-2 mb-2 border-b border-stone-800">
-                {activePersonalTab === 'weapons'
-                  ? t('ui.owned_weapons_desc')
-                  : activePersonalTab === 'clothing'
-                    ? t('ui.owned_clothing_desc')
-                    : activePersonalTab === 'traps'
-                      ? t('ui.owned_traps_desc')
-                      : activePersonalTab === 'food'
-                        ? t('ui.owned_food_desc')
-                        : t('ui.owned_materials_desc')}
+                {activePersonalTab === 'all'
+                  ? 'All Owned Equipment, Materials & Provisions'
+                  : activePersonalTab === 'weapons'
+                    ? t('ui.owned_weapons_desc')
+                    : activePersonalTab === 'clothing'
+                      ? t('ui.owned_clothing_desc')
+                      : activePersonalTab === 'traps'
+                        ? t('ui.owned_traps_desc')
+                        : activePersonalTab === 'food'
+                          ? t('ui.owned_food_desc')
+                          : t('ui.owned_materials_desc')}
               </div>
 
               <div
@@ -1494,45 +1580,58 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  {inspectedOwned && inspectedItem.category !== 'materials' && (
-                    <button
-                      type="button"
-                      data-testid="skyrim-equip-btn"
-                      onClick={() => onEquipItem(inspectedItem.id)}
-                      className="px-6 py-2.5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
+                  {inspectedOwned && inspectedItem.nonWearableByPlayer && (
+                    <div
+                      data-testid="non-wearable-dwarven-badge"
+                      className="px-4 py-2 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-500/40"
                     >
-                      {inspectedItem.category === 'food'
-                        ? `Eat (${inspectedItem.name}) [${interactKeyLabel}]`
-                        : inspectedItem.id.startsWith('trap_')
-                          ? `Hold Trap in Hands (${inspectedItem.name}) [${interactKeyLabel}]`
-                          : inspectedEquipped
-                            ? t('interactions.equipped_now', { key: interactKeyLabel })
-                            : t('interactions.equip_action', { key: interactKeyLabel })}
-                    </button>
-                  )}
-
-                  {inspectedOwned && inspectedItem.category !== 'materials' && (
-                    <div className="flex items-center gap-1.5 mr-2">
-                      {[0, 1, 2, 3].map((slotIdx) => {
-                        const isBound = hotbarSlots[slotIdx] === inspectedItem.id;
-                        return (
-                          <button
-                            key={slotIdx}
-                            type="button"
-                            onClick={() => onAssignHotbar(slotIdx, inspectedItem.id)}
-                            title={t('interactions.assign_hotbar_slot', { slot: slotIdx + 1 })}
-                            className={`w-8 h-8 text-xs font-mono-tabular font-bold transition-colors cursor-pointer ${
-                              isBound
-                                ? 'bg-amber-400 text-stone-950'
-                                : 'bg-stone-800/90 text-stone-300 hover:text-white border border-stone-700'
-                            }`}
-                          >
-                            {slotIdx + 1}
-                          </button>
-                        );
-                      })}
+                      Dwarven Size — Too Small for Humans to Wear (Sellable at Market)
                     </div>
                   )}
+
+                  {inspectedOwned &&
+                    inspectedItem.category !== 'materials' &&
+                    !inspectedItem.nonWearableByPlayer && (
+                      <button
+                        type="button"
+                        data-testid="skyrim-equip-btn"
+                        onClick={() => onEquipItem(inspectedItem.id)}
+                        className="px-6 py-2.5 text-sm font-bold text-stone-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer"
+                      >
+                        {inspectedItem.category === 'food'
+                          ? `Eat (${inspectedItem.name}) [${interactKeyLabel}]`
+                          : inspectedItem.id.startsWith('trap_')
+                            ? `Hold Trap in Hands (${inspectedItem.name}) [${interactKeyLabel}]`
+                            : inspectedEquipped
+                              ? t('interactions.equipped_now', { key: interactKeyLabel })
+                              : t('interactions.equip_action', { key: interactKeyLabel })}
+                      </button>
+                    )}
+
+                  {inspectedOwned &&
+                    inspectedItem.category !== 'materials' &&
+                    !inspectedItem.nonWearableByPlayer && (
+                      <div className="flex items-center gap-1.5 mr-2">
+                        {[0, 1, 2, 3].map((slotIdx) => {
+                          const isBound = hotbarSlots[slotIdx] === inspectedItem.id;
+                          return (
+                            <button
+                              key={slotIdx}
+                              type="button"
+                              onClick={() => onAssignHotbar(slotIdx, inspectedItem.id)}
+                              title={t('interactions.assign_hotbar_slot', { slot: slotIdx + 1 })}
+                              className={`w-8 h-8 text-xs font-mono-tabular font-bold transition-colors cursor-pointer ${
+                                isBound
+                                  ? 'bg-amber-400 text-stone-950'
+                                  : 'bg-stone-800/90 text-stone-300 hover:text-white border border-stone-700'
+                              }`}
+                            >
+                              {slotIdx + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                 </div>
               </>
             ) : null}

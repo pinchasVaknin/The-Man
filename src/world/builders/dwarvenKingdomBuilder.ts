@@ -32,7 +32,7 @@ import {
   type DwarfWarriorState,
 } from '../models/Characters/DwarfWarrior_Complete';
 
-import type { IPlayerState, IArrowProjectile } from '../domain/worldTypes';
+import type { IPlayerState, IArrowProjectile, InventoryItemId } from '../domain/worldTypes';
 
 /**
  * Summary: Rig representation for an individual animated dwarven miner mesh.
@@ -59,6 +59,7 @@ export interface IDwarvenMinerRig {
   isDead: boolean;
   isLooted: boolean;
   goldDrop: number;
+  lootItems: InventoryItemId[];
   outOfAreaRespawnTimer: number;
   deathTimer: number;
   hitFlashTimer: number;
@@ -71,6 +72,63 @@ export interface IDwarvenMinerRig {
 }
 
 const activeDwarvenMiners: IDwarvenMinerRig[] = [];
+
+/**
+ * Summary: Generates randomized loot for a Dwarven Miner:
+ * - Modest random gold coins (7–22 gold)
+ * - Strictly mutually exclusive tool/weapon: sometimes a Pickaxe ('dwarven_pickaxe'), sometimes a Warhammer ('dwarven_warhammer'), or neither (never both!)
+ * - Small Dwarven garment (non-wearable by the player): 'dwarven_miner_tunic' or 'dwarven_iron_boots'
+ * - 1–2 random gemstones, ores, or miner rations
+ */
+export function generateRandomDwarfLoot(seedOffset = 0): {
+  goldDrop: number;
+  lootItems: InventoryItemId[];
+} {
+  const r1 = Math.random();
+  const r2 = Math.random();
+  const r3 = Math.random();
+  const r4 = Math.random();
+  const r5 = Math.random();
+  const goldDrop = 7 + Math.floor(((r1 + seedOffset * 0.13) % 1) * 16);
+  const lootItems: InventoryItemId[] = [];
+
+  // 1. Tool/Weapon: Pickaxe OR Warhammer OR neither (strictly mutually exclusive — never both)
+  if (r2 < 0.45) {
+    lootItems.push('dwarven_pickaxe');
+  } else if (r2 < 0.82) {
+    lootItems.push('dwarven_warhammer');
+  }
+
+  // 2. Small Dwarven Garment (non-wearable by human player)
+  if (r3 < 0.55) {
+    lootItems.push('dwarven_miner_tunic');
+  } else {
+    lootItems.push('dwarven_iron_boots');
+  }
+
+  // 3. Gemstones / Ores / Supplies (1–2 random items)
+  const gemAndOrePool: readonly InventoryItemId[] = [
+    'amethyst_gem',
+    'sapphire_gem',
+    'crystal_gem',
+    'dwarven_gold_ore',
+    'iron_ingots',
+  ];
+  lootItems.push(gemAndOrePool[Math.floor(r4 * gemAndOrePool.length)]);
+
+  if (r5 < 0.65) {
+    const bonusPool: readonly InventoryItemId[] = [
+      'amethyst_gem',
+      'sapphire_gem',
+      'dwarven_gold_ore',
+      'fresh_bread_loaf',
+      'harbor_cheese_wheel',
+    ];
+    lootItems.push(bonusPool[Math.floor(((r5 * 10) % 1) * bonusPool.length)]);
+  }
+
+  return { goldDrop, lootItems };
+}
 
 export function getActiveDwarvenMiners(): readonly IDwarvenMinerRig[] {
   return activeDwarvenMiners;
@@ -101,7 +159,40 @@ export function findNearestDeadLootableDwarf(
 }
 
 /**
- * Summary: Loots a dead Dwarven Miner for a modest pouch of gold coins (6–14 gold)
+ * Summary: Initializes (if needed) and returns the mutable loot items array for a dead Dwarven Miner,
+ *          and recovers any arrows stuck near the dwarf into its corpse container.
+ */
+export function getOrInitDwarfCorpseLoot(
+  dwarf: IDwarvenMinerRig,
+  activeArrows?: IArrowProjectile[]
+): InventoryItemId[] {
+  if (!dwarf.lootItems) {
+    const generated = generateRandomDwarfLoot(dwarf.id);
+    dwarf.lootItems = generated.lootItems;
+    if (!dwarf.goldDrop || dwarf.goldDrop <= 0) {
+      dwarf.goldDrop = generated.goldDrop;
+    }
+  }
+  if (activeArrows && activeArrows.length > 0) {
+    for (let i = activeArrows.length - 1; i >= 0; i--) {
+      const arr = activeArrows[i];
+      if (arr.stuck && Math.hypot(arr.x - dwarf.x, arr.z - dwarf.z) <= 2.4) {
+        const arrowItemId: InventoryItemId =
+          arr.arrowKind === 'fire'
+            ? 'arrow_fire'
+            : arr.arrowKind === 'wind'
+              ? 'arrow_wind'
+              : 'arrow_normal';
+        dwarf.lootItems.push(arrowItemId);
+        activeArrows.splice(i, 1);
+      }
+    }
+  }
+  return dwarf.lootItems;
+}
+
+/**
+ * Summary: Loots a dead Dwarven Miner for all its gold coins and items
  *          and recovers any arrows stuck near the dwarf.
  */
 export function lootDeadDwarf(
@@ -111,36 +202,36 @@ export function lootDeadDwarf(
 ): {
   looted: boolean;
   goldAdded: number;
+  addedItems: InventoryItemId[];
   recoveredArrows: number;
   notification: string | null;
 } {
   if (!dwarf.isDead || dwarf.isLooted) {
-    return { looted: false, goldAdded: 0, recoveredArrows: 0, notification: null };
+    return { looted: false, goldAdded: 0, addedItems: [], recoveredArrows: 0, notification: null };
   }
+  const items = getOrInitDwarfCorpseLoot(dwarf, activeArrows);
+  const goldAdded = Math.max(0, dwarf.goldDrop || 0);
+  if (goldAdded > 0) {
+    playerState.goldCoins = (playerState.goldCoins ?? 280) + goldAdded;
+  }
+  if (!playerState.ownedItemIds) {
+    playerState.ownedItemIds = [];
+  }
+  const addedItems = [...items];
+  for (const itemId of addedItems) {
+    playerState.ownedItemIds.push(itemId);
+  }
+  dwarf.goldDrop = 0;
+  dwarf.lootItems = [];
   dwarf.isLooted = true;
-  const goldAdded = Math.max(4, Math.min(18, dwarf.goldDrop || 8));
-  playerState.goldCoins = (playerState.goldCoins ?? 280) + goldAdded;
 
-  let recoveredArrows = 0;
-  if (activeArrows) {
-    for (let i = activeArrows.length - 1; i >= 0; i--) {
-      const arr = activeArrows[i];
-      if (arr.stuck && Math.hypot(arr.x - dwarf.x, arr.z - dwarf.z) <= 2.4) {
-        activeArrows.splice(i, 1);
-        recoveredArrows++;
-      }
-    }
-  }
-  const arrowSuffix =
-    recoveredArrows > 0
-      ? ` (+${recoveredArrows} Recovered Arrow${recoveredArrows > 1 ? 's' : ''})`
-      : '';
-  const notification = `Looted ${dwarf.name}: +${goldAdded} Gold Coins${arrowSuffix}`;
+  const notification = `Looted ${dwarf.name}: +${goldAdded} Gold Coins${addedItems.length > 0 ? `, +${addedItems.length} Items` : ''}`;
   playerState.lastLootNotification = { text: notification, timer: 4.5 };
   return {
     looted: true,
     goldAdded,
-    recoveredArrows,
+    addedItems,
+    recoveredArrows: 0,
     notification,
   };
 }
@@ -229,8 +320,11 @@ export function checkSwordHitDwarf(
       dm.hp = Math.max(0, dm.hp - Math.max(1, damage));
       dm.hitFlashTimer = 0.35;
       if (dm.hp <= 0) {
+        const freshLoot = generateRandomDwarfLoot(dm.id);
         dm.isDead = true;
         dm.isLooted = false;
+        dm.goldDrop = freshLoot.goldDrop;
+        dm.lootItems = freshLoot.lootItems;
         dm.outOfAreaRespawnTimer = 0;
         dm.isAggro = false;
         dm.aggroTimer = 0;
@@ -267,8 +361,11 @@ export function checkArrowHitDwarf(
       dm.hp = Math.max(0, dm.hp - Math.max(1, damage));
       dm.hitFlashTimer = 0.35;
       if (dm.hp <= 0) {
+        const freshLoot = generateRandomDwarfLoot(dm.id);
         dm.isDead = true;
         dm.isLooted = false;
+        dm.goldDrop = freshLoot.goldDrop;
+        dm.lootItems = freshLoot.lootItems;
         dm.outOfAreaRespawnTimer = 0;
         dm.isAggro = false;
         dm.aggroTimer = 0;
@@ -421,8 +518,8 @@ export function buildDwarvenKingdomAndMiners(
   distanceCulledObjects.push({
     obj: mineGroup,
     cx: mineX,
-    cz: (mineEntZ + cavernBackZ) * 0.5, // 475.0
-    radius: 95,
+    cz: (mineEntZ + cavernBackZ) * 0.5 + 102.0,
+    radius: 280,
   });
 
   // 1) TWIN COLOSSAL LOTR-STYLE DWARVEN KING GUARDIAN STATUES FLANKING THE MINE ENTRANCE
@@ -975,6 +1072,7 @@ export function buildDwarvenKingdomAndMiners(
     dwRoot.rotation.y = initSt.yaw;
 
     scene.add(dwRoot);
+    const initLoot = generateRandomDwarfLoot(d);
     const rigEntry: IDwarvenMinerRig = {
       id: d,
       name: initSt.name,
@@ -995,7 +1093,8 @@ export function buildDwarvenKingdomAndMiners(
       maxHp: 100 + (d % 3) * 15,
       isDead: false,
       isLooted: false,
-      goldDrop: 6 + (d % 5) * 2,
+      goldDrop: initLoot.goldDrop,
+      lootItems: initLoot.lootItems,
       outOfAreaRespawnTimer: 0,
       deathTimer: 0,
       hitFlashTimer: 0,
@@ -1048,15 +1147,18 @@ export function buildDwarvenKingdomAndMiners(
         dm.hitBarTimer = Math.max(0, dm.hitBarTimer - safeDt);
       }
 
-      // 0. Dead State: play death animation once, allow gold looting, and respawn after 25s while player is out of area!
+      // 0. Dead State: play death animation once, allow corpse looting, and respawn after 25s while player is out of area!
       if (dm.isDead) {
         const distPlayerToDeadDwarf = Math.hypot(playerX - dm.x, playerZ - dm.z);
         if (distPlayerToDeadDwarf > 38.0) {
           dm.outOfAreaRespawnTimer += safeDt;
           if (dm.outOfAreaRespawnTimer >= 25.0) {
             const respawnSt = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime);
+            const respawnLoot = generateRandomDwarfLoot(d);
             dm.isDead = false;
             dm.isLooted = false;
+            dm.goldDrop = respawnLoot.goldDrop;
+            dm.lootItems = respawnLoot.lootItems;
             dm.outOfAreaRespawnTimer = 0;
             dm.deathTimer = 0;
             dm.hp = dm.maxHp;

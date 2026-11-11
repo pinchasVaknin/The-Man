@@ -155,6 +155,30 @@ export const en = {
       "description": "Crystal.",
       "lore": "Crystal."
     },
+    "amethyst_gem": {
+      "name": "Deep-Mine Amethyst",
+      "short": "Amethyst",
+      "category": "Materials",
+      "stat": "Gemstone · 240 Gold",
+      "description": "A faceted violet amethyst crystal pried from the deep caverns of the Dwarven Mine.",
+      "lore": "Prized by Dwarven lapidaries for its violet glow under lantern light."
+    },
+    "sapphire_gem": {
+      "name": "Cavern Sapphire",
+      "short": "Sapphire",
+      "category": "Materials",
+      "stat": "Gemstone · 290 Gold",
+      "description": "A luminous azure sapphire mined beside the underground waterfall.",
+      "lore": "Found only in the deepest subterranean veins of Khazad-dûm."
+    },
+    "dwarven_pickaxe": {
+      "name": "Dwarven Miner's Pickaxe",
+      "short": "Dwarven Pickaxe",
+      "category": "Weapons",
+      "stat": "Damage 64 · Heavy Pick",
+      "description": "Heavy steel-headed mining pickaxe balanced for both rock-breaking and close combat.",
+      "lore": "Standard issue tool of the Ironforge delve crews."
+    },
     "ancient_dwarven_horn": {
       "name": "War Horn",
       "short": "War Horn",
@@ -194,6 +218,22 @@ export const en = {
       "stat": "Clothing · Defense +24 · 360 Gold",
       "description": "Heavy crimson-and-gold lamellar armor.",
       "lore": "Forged for the elite guards of the northern fortress."
+    },
+    "dwarven_miner_tunic": {
+      "name": "Small Dwarven Miner's Tunic",
+      "short": "Dwarven Tunic",
+      "category": "Clothing",
+      "stat": "Dwarven Size · Cannot Be Worn · 85 Gold",
+      "description": "Sturdy leather-and-wool miner's vest tailored for a stocky dwarf. Too small for a human to wear, but valuable to merchants.",
+      "lore": "Stitched with brass rivets and coal-dust-resistant wool."
+    },
+    "dwarven_iron_boots": {
+      "name": "Small Dwarven Ironshod Boots",
+      "short": "Dwarven Boots",
+      "category": "Clothing",
+      "stat": "Dwarven Size · Cannot Be Worn · 110 Gold",
+      "description": "Compact iron-toed mining boots made for dwarven feet. Too small for a human to wear.",
+      "lore": "Hobnailed soles built to grip wet cavern stone."
     },
     "unarmed": {
       "name": "Unarmed",

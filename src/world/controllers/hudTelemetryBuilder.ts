@@ -33,6 +33,7 @@ import {
   findTargetedLiveAnimal,
   getAnimalSpeciesName,
   getAnimalStrengthAndLevel,
+  getOrInitAnimalCorpseLoot,
   type ISmallAnimalState,
 } from '../systems/boidsAndWildlifeSystem';
 import {
@@ -43,7 +44,9 @@ import {
 import {
   findNearestDeadLootableDwarf,
   findTargetedLiveDwarf,
+  getOrInitDwarfCorpseLoot,
 } from '../builders/dwarvenKingdomBuilder';
+import { findNearestRideableMinecartStation } from '../systems/dwarvenMineAndCaravanSystem';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -80,6 +83,11 @@ export interface IHudTelemetryInput {
   readonly forcedSeason: SeasonType | 'auto';
   readonly placedTraps?: readonly IPlacedTrap[];
   readonly activeAnimals?: readonly ISmallAnimalState[];
+  readonly drivingMinecart?: {
+    readonly lineId: string;
+    readonly lineName: string;
+    readonly speed: number;
+  } | null;
 }
 // #endregion
 
@@ -247,7 +255,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
         ? {
             id: `dwarf-${nearDeadDwarf.id}`,
             species: 'dwarf_warrior',
-            speciesName: `${nearDeadDwarf.name} (${nearDeadDwarf.goldDrop} Gold Coins)`,
+            speciesName: `${nearDeadDwarf.name}`,
           }
         : null,
     nearbyChest: nearChest
@@ -255,9 +263,28 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           id: nearChest.id,
           name: nearChest.name,
           isOpened: input.openDoorIds.has(nearChest.id),
+          ...(nearChest.goldCoins ? { goldCoins: nearChest.goldCoins } : {}),
           contents: [...getChestContents(player, nearChest)],
         }
-      : null,
+      : nearDeadDwarf
+        ? {
+            id: `corpse-dwarf-${nearDeadDwarf.id}`,
+            name: `${nearDeadDwarf.name} (Corpse)`,
+            isOpened: true,
+            isCorpse: true,
+            goldCoins: nearDeadDwarf.goldDrop,
+            contents: [...getOrInitDwarfCorpseLoot(nearDeadDwarf)],
+          }
+        : nearDeadAnimal && input.openDoorIds.has(`corpse-animal-${nearDeadAnimal.id}`)
+          ? {
+              id: `corpse-animal-${nearDeadAnimal.id}`,
+              name: `${getAnimalSpeciesName(nearDeadAnimal.species)} (Corpse)`,
+              isOpened: true,
+              isCorpse: true,
+              goldCoins: 0,
+              contents: [...getOrInitAnimalCorpseLoot(nearDeadAnimal)],
+            }
+          : null,
     nearbyFallenTree: nearFallenTree
       ? {
           id: nearFallenTree.id,
@@ -347,6 +374,10 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     forcedSeason: input.forcedSeason,
     nearbyLadder: Boolean(nearLadder),
     climbingLadder: Boolean(player.climbingLadderId),
+    nearbyMinecart: !input.drivingMinecart
+      ? findNearestRideableMinecartStation(player.x, player.y, player.z, 4.2)
+      : null,
+    drivingMinecart: input.drivingMinecart ? { ...input.drivingMinecart } : null,
     stamina: player.stamina,
     maxStamina: player.maxStamina,
     staminaExhausted: Boolean(player.staminaExhausted),
