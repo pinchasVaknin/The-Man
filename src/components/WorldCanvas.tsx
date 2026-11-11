@@ -10,6 +10,9 @@
 import { t } from '../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { PerfStats, formatPerfStats } from '../core/perfStats';
+import { auditColliderCoverage } from '../world/builders/colliderAudit';
+import { SOLID_BUILDING_BOXES } from '../world/terrainMath';
 import {
   WeatherKind,
   WeatherCycleMode,
@@ -698,6 +701,50 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       saveWorldSnapshot(activeWorldMode, snap);
     };
     (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = saveCurrentWorld;
+
+    /** Counts point lights in the scene (each adds per-pixel cost to every lit material). */
+    function countPointLights(): number {
+      let count = 0;
+      scene.traverse((obj) => {
+        if ((obj as THREE.PointLight).isPointLight) count++;
+      });
+      return count;
+    }
+    // Debug hooks for the performance overlay (F4) and the collider coverage audit.
+    (window as unknown as { getPerfStats?: () => unknown }).getPerfStats = () => ({
+      ...perfStats.snapshot(),
+      drawCalls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      programs: renderer.info.programs?.length ?? 0,
+      pointLights: countPointLights(),
+    });
+    (window as unknown as { auditColliders?: () => unknown }).auditColliders = () =>
+      auditColliderCoverage(scene, SOLID_BUILDING_BOXES);
+
+    /** Shows or hides a small text panel with frame, render, simulation and save timings. */
+    function togglePerfOverlay(): void {
+      if (perfOverlay.el) {
+        window.clearInterval(perfOverlay.timer);
+        perfOverlay.el.remove();
+        perfOverlay.el = null;
+        return;
+      }
+      const el = document.createElement('pre');
+      el.setAttribute('data-testid', 'perf-overlay');
+      el.style.cssText =
+        'position:fixed;top:8px;left:8px;z-index:9999;margin:0;padding:6px 8px;background:rgba(0,0,0,0.7);color:#e5e7eb;font:12px/1.4 monospace;pointer-events:none;border-radius:4px;';
+      document.body.appendChild(el);
+      perfOverlay.el = el;
+      const refresh = () => {
+        el.textContent = formatPerfStats(perfStats.snapshot(), {
+          drawCalls: renderer.info.render.calls,
+          triangles: renderer.info.render.triangles,
+          pointLights: countPointLights(),
+        });
+      };
+      refresh();
+      perfOverlay.timer = window.setInterval(refresh, 500);
+    }
     // Save when the page is hidden or closed, so a tab closed inside the autosave interval keeps its progress.
     const onPageHideSave = () => saveCurrentWorld();
     const onVisibilitySave = () => {
@@ -1452,6 +1499,11 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         worldHandles.colliderDebugHandles.toggle();
         emitHudSnapshot();
       }
+      // Performance overlay on F4
+      if (e.code === 'F4' && !e.repeat) {
+        e.preventDefault();
+        togglePerfOverlay();
+      }
       // Customizable Hotkey Slots [1], [2], [3], [4]
       if (
         (e.code === kb.hotbarSlot1 ||
@@ -1862,6 +1914,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     // 8. Main Animation Loop with Software-WebGL Pacing Guard
     let elapsedTotal = 0;
     let lastHudEmitTime = 0;
+    const perfStats = new PerfStats();
+    const perfOverlay: { el: HTMLPreElement | null; timer: number } = { el: null, timer: 0 };
 
     /** Copies a computed camera pose onto the three.js camera. */
     function applyCameraPose(pose: ICameraPose) {
@@ -2545,7 +2599,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         worldSaveTimer += rawDt;
         if (worldSaveTimer >= 30) {
           worldSaveTimer = 0;
+          const tSave = performance.now();
           saveCurrentWorld();
+          perfStats.record('save', performance.now() - tSave);
         }
       }
     }
@@ -2787,9 +2843,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       fixedStep: {
         stepSeconds: SIMULATION_STEP_SECONDS,
         maxStepsPerFrame: MAX_SIMULATION_STEPS_PER_FRAME,
-        onStep: simulateStep,
+        onStep: (stepSeconds: number) => {
+          const t0 = performance.now();
+          simulateStep(stepSeconds);
+          perfStats.record('sim', performance.now() - t0);
+        },
       },
-      onFrame: renderFrame,
+      onFrame: (frameDt: number, now: number, alpha: number) => {
+        perfStats.record('frame', frameDt * 1000);
+        const t0 = performance.now();
+        renderFrame(frameDt, now, alpha);
+        perfStats.record('render', performance.now() - t0);
+      },
       onFatalError: setFatalTickError,
     });
     gameLoop.start();
@@ -2811,6 +2876,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.domElement.removeEventListener('touchcancel', onTouchEnd);
       window.removeEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
       window.removeEventListener('pagehide', onPageHideSave);
+      window.clearInterval(perfOverlay.timer);
+      perfOverlay.el?.remove();
       document.removeEventListener('visibilitychange', onVisibilitySave);
       saveCurrentWorld();
       onRegisterGameActions?.(null);
