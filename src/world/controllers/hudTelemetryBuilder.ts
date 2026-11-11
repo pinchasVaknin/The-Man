@@ -40,7 +40,10 @@ import {
   findNearestPlacedTrap,
   type IPlacedTrap,
 } from '../systems/animalTrapsSystem';
-import { findTargetedLiveDwarf } from '../builders/dwarvenKingdomBuilder';
+import {
+  findNearestDeadLootableDwarf,
+  findTargetedLiveDwarf,
+} from '../builders/dwarvenKingdomBuilder';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -191,6 +194,14 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     3.4,
     player.isFlying ? player.y : undefined
   );
+  const nearDeadDwarf = !nearDeadAnimal
+    ? findNearestDeadLootableDwarf(
+        player.x,
+        player.z,
+        3.4,
+        player.isFlying ? player.y : undefined
+      )
+    : null;
   const nearFallenTree = findNearestFallenTree(player.x, player.z, 4.4);
   const resolvedLootNotification =
     input.lootNotification ??
@@ -232,7 +243,13 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
           species: nearDeadAnimal.species,
           speciesName: getAnimalSpeciesName(nearDeadAnimal.species),
         }
-      : null,
+      : nearDeadDwarf
+        ? {
+            id: `dwarf-${nearDeadDwarf.id}`,
+            species: 'dwarf_warrior',
+            speciesName: `${nearDeadDwarf.name} (${nearDeadDwarf.goldDrop} Gold Coins)`,
+          }
+        : null,
     nearbyChest: nearChest
       ? {
           id: nearChest.id,

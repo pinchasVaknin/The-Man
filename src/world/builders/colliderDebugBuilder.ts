@@ -232,16 +232,17 @@ export function buildColliderDebugWireframes(
 
   // Fortress Grand Approach Stairs & Main Hall Interior Stairs
   const fz = CHINESE_FORTRESS_POS.z - -170;
-  addSlopeRampWireframe(-9.5, 9.5, -132 + fz, -102 + fz, 26.0, 12.2);
-  addSlopeRampWireframe(13.55, 18.5, -206 + fz, -194 + fz, 27.6, 35.8);
-  addSlopeRampWireframe(-38.6, -35.15, -167.5 + fz, -159.5 + fz, 26.8, 32.8);
-  addSlopeRampWireframe(35.15, 38.6, -167.5 + fz, -159.5 + fz, 26.8, 32.8);
+  const fy = CHINESE_FORTRESS_POS.summitHeight - 26.0;
+  addSlopeRampWireframe(-4.2, 4.2, -122 + fz, -78 + fz, 26.0 + fy, 12.2 + fy);
+  addSlopeRampWireframe(13.55, 18.5, -206 + fz, -194 + fz, 34.15 + fy, 26.35 + fy);
+  addSlopeRampWireframe(-38.6, -35.15, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
+  addSlopeRampWireframe(35.15, 38.6, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
 
-  // Southern Mine Catwalk Stairs
+  // Southern Mine NE Cliffside Scaffolding Stairs
   const mx = SOUTHERN_MINE_POS.x;
   const mz = SOUTHERN_MINE_POS.entranceZ;
   const mfY = SOUTHERN_MINE_POS.cavernFloorY;
-  addSlopeRampWireframe(mx - 12.5, mx - 9.3, mz + 35.5, mz + 44.5, mfY, mfY + 4.2);
+  addSlopeRampWireframe(mx + 8.5, mx + 12.5, mz + 49.0, mz + 57.5, mfY + 3.8, mfY);
 
   scene.add(group);
 

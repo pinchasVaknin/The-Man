@@ -3343,53 +3343,35 @@ export function stepSmallAnimals(
       const toPlayerZ = playerZ - a.z;
       const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
       const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-      const playerDistFromHippoHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
-      const hippoTerritoryRad = 28.0;
       const hippoChaseRange = 26.0;
-      const hippoReaggroRange = 14.0;
 
-      // Territory boundary leash: Hippo stops chasing as soon as the player leaves its marshland boundary (> 28m from home),
-      // OR the Hippo itself has chased > 28m from home, OR the player is > 26m away from the Hippo!
-      if (!a.isLeashedReturning) {
-        if (
-          playerDistFromHippoHome > hippoTerritoryRad ||
-          hippoDistFromHome > hippoTerritoryRad ||
-          dPlayer > hippoChaseRange
-        ) {
-          a.isLeashedReturning = true;
+      // Relative-distance chase & reaction check:
+      // Reaction, warning, and pursuit depend purely on the direct relative distance (dPlayer)
+      // between the player and the hippo's current position (a.x, a.z), regardless of where the hippo is on the map.
+      if (dPlayer > hippoChaseRange) {
+        if ((a.wokenUpTimer ?? 0) > 0 || a.aiBehavior === 'charging' || a.aiBehavior === 'attacking') {
           a.wokenUpTimer = 0;
           a.actionTimer = 0;
           a.aiBehavior = 'wandering';
           a.alertLevel = 'grazing';
         }
-      } else if (
-        hippoDistFromHome <= 6.5 ||
-        (playerDistFromHippoHome <= hippoTerritoryRad - 6.0 && dPlayer <= hippoReaggroRange)
-      ) {
+        a.isLeashedReturning = false;
+      } else {
         a.isLeashedReturning = false;
       }
 
-      const isHippoLeashedOut = Boolean(a.isLeashedReturning);
-      const isProvokedHippo =
-        !isHippoLeashedOut &&
-        (a.wokenUpTimer ?? 0) > 0 &&
-        playerDistFromHippoHome <= hippoTerritoryRad &&
-        dPlayer <= hippoChaseRange;
+      const isProvokedHippo = (a.wokenUpTimer ?? 0) > 0 && dPlayer <= hippoChaseRange;
       const warnRadius = isPlayerSneaking ? 8.5 : 15.0;
       const chargeRadius = isPlayerSneaking ? 5.5 : 10.5;
       const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
       const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
       const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
       const isCommittedAttack =
-        !isHippoLeashedOut && a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
+        a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02 && dPlayer <= hippoChaseRange;
       const isCommittedYawn =
-        !isHippoLeashedOut && a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02;
+        a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0.02 && dPlayer <= hippoChaseRange;
 
-      if (
-        isCommittedAttack ||
-        isProvokedHippo ||
-        (!isHippoLeashedOut && playerDistFromHippoHome <= hippoTerritoryRad && dPlayer <= chargeRadius)
-      ) {
+      if (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius) {
         a.isResting = false;
         a.isSeekingShelter = false;
         a.isFleeing = false;
@@ -3437,10 +3419,7 @@ export function stepSmallAnimals(
           a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
           a.hopPhase += safeDt * 13.0;
         }
-      } else if (
-        isCommittedYawn ||
-        (!isHippoLeashedOut && playerDistFromHippoHome <= hippoTerritoryRad && dPlayer <= warnRadius)
-      ) {
+      } else if (isCommittedYawn || dPlayer <= warnRadius) {
         // Territorial tusk-yawn warning display in place!
         a.isResting = false;
         a.alertLevel = 'curious';

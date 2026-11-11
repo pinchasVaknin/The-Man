@@ -1085,7 +1085,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     radius: 42,
   });
 
-  // --- 4) UPGRADED SOUTHERN MOUNTAIN MINE & CRYSTAL CAVERN ---
+  // --- 4) BRAND-NEW SUBTERRANEAN CAVERN MINE & TURQUOISE WATERFALL LAGOON ---
   const mineGroup = new THREE.Group();
   const mineX = SOUTHERN_MINE_POS.x;
   const mineEntY = SOUTHERN_MINE_POS.entranceY;
@@ -1100,33 +1100,27 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const shaftAngle = Math.atan2(shaftDrop, shaftLen);
   mineGroup.position.set(mineX, 0, mineEntZ);
 
-  const portalVestibuleFloorGeo = new THREE.BoxGeometry(6.8, 0.4, 5.8);
-  const portalSideWallGeo = new THREE.BoxGeometry(0.45, 4.5, 4.6);
-  const portalHeadwallRockGeo = new THREE.BoxGeometry(6.8, 0.45, 4.8);
+  const portalVestibuleFloorGeo = new THREE.BoxGeometry(7.2, 0.4, 5.8);
+  const portalSideWallGeo = new THREE.BoxGeometry(0.55, 4.6, 4.8);
+  const portalHeadwallRockGeo = new THREE.BoxGeometry(7.2, 0.55, 4.8);
   const portalTimberPillarGeo = new THREE.BoxGeometry(0.58, 4.5, 0.58);
   portalTimberPillarGeo.translate(0, 2.25, 0);
-  const portalTimberLintelGeo = new THREE.BoxGeometry(7.2, 0.62, 0.72);
+  const portalTimberLintelGeo = new THREE.BoxGeometry(7.4, 0.62, 0.72);
   const portalSignBoardGeo = new THREE.BoxGeometry(3.6, 0.72, 0.18);
 
-  const shaftSlopeFloorGeo = new THREE.BoxGeometry(6.8, 0.45, shaftSlopeLen + 1.2);
-  const shaftSlopeCeilingGeo = new THREE.BoxGeometry(8.6, 1.8, shaftSlopeLen + 2.4);
+  const shaftSlopeFloorGeo = new THREE.BoxGeometry(7.2, 0.45, shaftSlopeLen + 1.4);
+  const shaftSlopeCeilingGeo = new THREE.BoxGeometry(8.8, 1.8, shaftSlopeLen + 2.4);
   const shaftSlopeWallGeo = new THREE.BoxGeometry(1.4, 6.2, shaftSlopeLen + 1.8);
   const shaftStepPlankGeo = new THREE.BoxGeometry(2.6, 0.22, 0.68);
   const shaftSlopeRailGeo = new THREE.BoxGeometry(0.11, 0.12, shaftSlopeLen + 3.2);
   const mineSleeperGeo = new THREE.BoxGeometry(1.85, 0.09, 0.26);
-  const mineTimberPostGeo = new THREE.BoxGeometry(0.42, 4.65, 0.42);
-  mineTimberPostGeo.translate(0, 2.325, 0);
-  const mineTimberBeamGeo = new THREE.BoxGeometry(6.7, 0.46, 0.46);
+  const mineTimberPostGeo = new THREE.BoxGeometry(0.46, 4.8, 0.46);
+  mineTimberPostGeo.translate(0, 2.4, 0);
+  const mineTimberBeamGeo = new THREE.BoxGeometry(7.1, 0.48, 0.48);
 
   const cavernHeight = SOUTHERN_MINE_POS.cavernHeight;
-  const cavernNorthUpperWallGeo = new THREE.BoxGeometry(7.2, 5.6, 2.4);
-  const cavernStonePillarGeo = new THREE.CylinderGeometry(1.15, 1.45, cavernHeight, 8);
-  cavernStonePillarGeo.translate(0, cavernHeight * 0.5, 0);
-  const cavernPillarCapGeo = new THREE.BoxGeometry(3.1, 0.68, 3.1);
-  const cavernRoofArchBeamGeo = new THREE.BoxGeometry(28.5, 0.58, 0.68);
-  const cavernStalactiteGeo = new THREE.ConeGeometry(0.82, 3.1, 6);
+  const cavernStalactiteGeo = new THREE.ConeGeometry(0.88, 3.2, 6);
   cavernStalactiteGeo.rotateX(Math.PI);
-  const cavernRailStraightGeo = new THREE.BoxGeometry(0.11, 0.11, 66.0);
   const mineCartBodyGeo = new THREE.BoxGeometry(1.42, 0.88, 2.05);
   const mineCartWheelGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 10);
   mineCartWheelGeo.rotateZ(Math.PI / 2);
@@ -1138,17 +1132,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   forgeBrazierBaseGeo.translate(0, 0.475, 0);
   const forgeCoalMoundGeo = new THREE.SphereGeometry(1.12, 10, 8);
   forgeCoalMoundGeo.scale(1.0, 0.45, 1.0);
-  const scaffoldDeckGeo = new THREE.BoxGeometry(4.5, 0.24, 18.0);
-  const crossBridgeDeckGeo = new THREE.BoxGeometry(27.0, 0.24, 4.5);
-  const scaffoldLegGeo = new THREE.CylinderGeometry(0.18, 0.22, 4.2, 8);
-  scaffoldLegGeo.translate(0, 2.1, 0);
-  const goldIngotGeo = new THREE.BoxGeometry(0.46, 0.18, 0.24);
-  const blastFurnaceBodyGeo = new THREE.CylinderGeometry(2.2, 2.8, 8.6, 10);
-  blastFurnaceBodyGeo.translate(0, 4.3, 0);
-  const moltenCrucibleGeo = new THREE.CylinderGeometry(1.6, 1.2, 1.4, 12);
-  moltenCrucibleGeo.translate(0, 0.7, 0);
-  const subWaterfallGeo = new THREE.PlaneGeometry(3.6, 9.2);
-  const oreWheelRimGeo = new THREE.TorusGeometry(2.6, 0.22, 8, 20);
+  const rockBoulderGeo = new THREE.DodecahedronGeometry(1.15, 1);
+  perturbGeometryVertices(rockBoulderGeo, 0.18, 1.4);
+  const sparkChunkGeo = new THREE.OctahedronGeometry(0.085, 0);
 
   disposableGeometries.push(
     portalVestibuleFloorGeo,
@@ -1165,12 +1151,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineSleeperGeo,
     mineTimberPostGeo,
     mineTimberBeamGeo,
-    cavernNorthUpperWallGeo,
-    cavernStonePillarGeo,
-    cavernPillarCapGeo,
-    cavernRoofArchBeamGeo,
     cavernStalactiteGeo,
-    cavernRailStraightGeo,
     mineCartBodyGeo,
     mineCartWheelGeo,
     crystalSpireGeo,
@@ -1178,28 +1159,23 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGoldOreGeo,
     forgeBrazierBaseGeo,
     forgeCoalMoundGeo,
-    scaffoldDeckGeo,
-    crossBridgeDeckGeo,
-    scaffoldLegGeo,
-    goldIngotGeo,
-    blastFurnaceBodyGeo,
-    moltenCrucibleGeo,
-    subWaterfallGeo,
-    oreWheelRimGeo
+    rockBoulderGeo,
+    sparkChunkGeo
   );
 
+  // 1) Entrance Portal & Sloping Timber-Shored Mine Shaft (lz = 0 .. 34.0)
   const vestibuleFloor = new THREE.Mesh(portalVestibuleFloorGeo, mineDarkRockMat);
   vestibuleFloor.position.set(0, mineEntY - 0.2, 1.8);
   const portalWestWall = new THREE.Mesh(portalSideWallGeo, mineDarkRockMat);
-  portalWestWall.position.set(-3.22, mineEntY + 2.15, 2.3);
+  portalWestWall.position.set(-3.45, mineEntY + 2.15, 2.3);
   const portalEastWall = new THREE.Mesh(portalSideWallGeo, mineDarkRockMat);
-  portalEastWall.position.set(3.22, mineEntY + 2.15, 2.3);
+  portalEastWall.position.set(3.45, mineEntY + 2.15, 2.3);
   const portalHeadwall = new THREE.Mesh(portalHeadwallRockGeo, mineDarkRockMat);
   portalHeadwall.position.set(0, mineEntY + 4.38, 2.4);
   mineGroup.add(vestibuleFloor, portalWestWall, portalEastWall, portalHeadwall);
 
   for (const pz of [0.2, 2.0]) {
-    for (const px of [-3.05, 3.05]) {
+    for (const px of [-3.15, 3.15]) {
       const pPost = new THREE.Mesh(portalTimberPillarGeo, barkMat);
       pPost.position.set(px, mineEntY, pz);
       mineGroup.add(pPost);
@@ -1212,8 +1188,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   portalSign.position.set(0, mineEntY + 4.38, -0.18);
   mineGroup.add(
     portalSign,
-    createLanternAssembly(-2.55, mineEntY + 3.1, 0.0, true),
-    createLanternAssembly(2.55, mineEntY + 3.1, 0.0, false)
+    createLanternAssembly(-2.65, mineEntY + 3.1, 0.0, true),
+    createLanternAssembly(2.65, mineEntY + 3.1, 0.0, false)
   );
 
   const shaftMidLocalZ = (3.5 + 34.0) * 0.5;
@@ -1228,11 +1204,11 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   shaftCeilingMesh.rotation.x = shaftAngle;
 
   const shaftWestWallMesh = new THREE.Mesh(shaftSlopeWallGeo, mineDarkRockMat);
-  shaftWestWallMesh.position.set(-3.65, shaftMidY + 2.35, shaftMidLocalZ);
+  shaftWestWallMesh.position.set(-3.85, shaftMidY + 2.35, shaftMidLocalZ);
   shaftWestWallMesh.rotation.x = shaftAngle;
 
   const shaftEastWallMesh = new THREE.Mesh(shaftSlopeWallGeo, mineDarkRockMat);
-  shaftEastWallMesh.position.set(3.65, shaftMidY + 2.35, shaftMidLocalZ);
+  shaftEastWallMesh.position.set(3.85, shaftMidY + 2.35, shaftMidLocalZ);
   shaftEastWallMesh.rotation.x = shaftAngle;
 
   mineGroup.add(shaftFloorMesh, shaftCeilingMesh, shaftWestWallMesh, shaftEastWallMesh);
@@ -1253,7 +1229,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(sleeper);
 
     if (s % 2 === 0) {
-      for (const sideX of [-1.85, 1.85]) {
+      for (const sideX of [-1.95, 1.95]) {
         const stepMesh = new THREE.Mesh(shaftStepPlankGeo, timberMat);
         stepMesh.position.set(sideX, sy - 0.04, sz);
         mineGroup.add(stepMesh);
@@ -1266,478 +1242,648 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     const fz = 3.8 + t * (shaftLen - 0.8);
     const fy = mineEntY - t * (shaftDrop - 0.3);
     const postL = new THREE.Mesh(mineTimberPostGeo, barkMat);
-    postL.position.set(-2.9, fy, fz);
+    postL.position.set(-3.05, fy, fz);
     const postR = new THREE.Mesh(mineTimberPostGeo, barkMat);
-    postR.position.set(2.9, fy, fz);
+    postR.position.set(3.05, fy, fz);
     const beamTop = new THREE.Mesh(mineTimberBeamGeo, timberMat);
-    beamTop.position.set(0, fy + 4.55, fz);
+    beamTop.position.set(0, fy + 4.65, fz);
     mineGroup.add(postL, postR, beamTop);
 
     if (f % 2 === 0) {
       mineGroup.add(
-        createLanternAssembly(f % 4 === 0 ? -2.35 : 2.35, fy + 3.25, fz, f === 4)
+        createLanternAssembly(f % 4 === 0 ? -2.45 : 2.45, fy + 3.25, fz, f === 4)
       );
     }
   }
 
-  const cavernStartLocalZ = 34.0;
-  const cavernEndLocalZ = 110.0;
-  const cavernMidLocalZ = (cavernStartLocalZ + cavernEndLocalZ) * 0.5;
-
-  const mainEastFloorGeo = new THREE.BoxGeometry(79.0, 0.8, 78.0);
-  const westRoomSouthFloorGeo = new THREE.BoxGeometry(28.0, 0.8, 13.0);
-  const westRoomNorthFloorGeo = new THREE.BoxGeometry(28.0, 0.8, 6.0);
-  const westRoomEastWalkwayGeo = new THREE.BoxGeometry(7.5, 0.8, 44.0);
-  const westLakeBasinFloorGeo = new THREE.BoxGeometry(20.0, 0.8, 46.0);
-  const cCeilingGeo = new THREE.BoxGeometry(104.0, 1.2, 79.0);
-  const cSideWallGeo = new THREE.BoxGeometry(2.4, cavernHeight + 0.2, 64.0);
-  const rRoomWallGeo = new THREE.BoxGeometry(28.0, cavernHeight + 0.2, 2.2);
-  const cBackWallGeo = new THREE.BoxGeometry(36.0, cavernHeight + 0.2, 2.6);
-  const cNorthFlankWallGeo = new THREE.BoxGeometry(11.6, cavernHeight + 0.2, 2.4);
+  // 2) Grand Organic Subterranean Cavern Floor, Carved Lagoon Basin, Craggy Perimeter Cliffs & Ceiling Dome
+  const cavernWestFloorGeo = new THREE.BoxGeometry(30.5, 0.8, 63.0);
+  const cavernEastFloorGeo = new THREE.BoxGeometry(44.5, 0.8, 63.0);
+  const cavernNorthFloorGeo = new THREE.BoxGeometry(27.0, 0.8, 11.0);
+  const cavernSouthFloorGeo = new THREE.BoxGeometry(27.0, 0.8, 15.0);
+  const lagoonBasinFloorGeo = new THREE.BoxGeometry(27.0, 0.8, 40.0);
+  const cavernCeilingGeo = new THREE.BoxGeometry(100.0, 1.4, 65.0);
+  const cavernSideWallGeo = new THREE.BoxGeometry(3.0, cavernHeight + 0.8, 64.0);
+  const cavernBackWallGeo = new THREE.BoxGeometry(100.0, cavernHeight + 0.8, 3.0);
+  const cavernNorthFlankGeo = new THREE.BoxGeometry(45.5, cavernHeight + 0.8, 3.0);
+  const cavernNorthUpperGeo = new THREE.BoxGeometry(8.0, 6.2, 2.8);
 
   disposableGeometries.push(
-    mainEastFloorGeo,
-    westRoomSouthFloorGeo,
-    westRoomNorthFloorGeo,
-    westRoomEastWalkwayGeo,
-    westLakeBasinFloorGeo,
-    cCeilingGeo,
-    cSideWallGeo,
-    rRoomWallGeo,
-    cBackWallGeo,
-    cNorthFlankWallGeo
+    cavernWestFloorGeo,
+    cavernEastFloorGeo,
+    cavernNorthFloorGeo,
+    cavernSouthFloorGeo,
+    lagoonBasinFloorGeo,
+    cavernCeilingGeo,
+    cavernSideWallGeo,
+    cavernBackWallGeo,
+    cavernNorthFlankGeo,
+    cavernNorthUpperGeo
   );
 
-  const mainEastFloorMesh = new THREE.Mesh(mainEastFloorGeo, mineDeepSlateMat);
-  mainEastFloorMesh.position.set(13.5, cavernFloorY - 0.4, 72.0);
-  const westRoomSouthFloorMesh = new THREE.Mesh(westRoomSouthFloorGeo, mineDeepSlateMat);
-  westRoomSouthFloorMesh.position.set(-39.0, cavernFloorY - 0.4, 90.5);
-  const westRoomNorthFloorMesh = new THREE.Mesh(westRoomNorthFloorGeo, mineDeepSlateMat);
-  westRoomNorthFloorMesh.position.set(-39.0, cavernFloorY - 0.4, 38.0);
-  const westRoomEastWalkwayMesh = new THREE.Mesh(westRoomEastWalkwayGeo, mineDeepSlateMat);
-  westRoomEastWalkwayMesh.position.set(-29.5, cavernFloorY - 0.4, 62.5);
-  const westLakeBasinFloorMesh = new THREE.Mesh(westLakeBasinFloorGeo, mineDeepSlateMat);
-  westLakeBasinFloorMesh.position.set(-42.0, cavernFloorY - 2.25, 62.5);
+  // Dry cavern floor slabs surrounding the central-west turquoise lagoon basin (lx in [-19.5, 5.5], lz in [44.0, 82.0])
+  const westFloorMesh = new THREE.Mesh(cavernWestFloorGeo, mineDeepSlateMat);
+  westFloorMesh.position.set(-34.25, cavernFloorY - 0.4, 65.0);
+  const eastFloorMesh = new THREE.Mesh(cavernEastFloorGeo, mineDeepSlateMat);
+  eastFloorMesh.position.set(27.25, cavernFloorY - 0.4, 65.0);
+  const northFloorMesh = new THREE.Mesh(cavernNorthFloorGeo, mineDeepSlateMat);
+  northFloorMesh.position.set(-7.0, cavernFloorY - 0.4, 39.0);
+  const southFloorMesh = new THREE.Mesh(cavernSouthFloorGeo, mineDeepSlateMat);
+  southFloorMesh.position.set(-7.0, cavernFloorY - 0.4, 89.0);
+  const lagoonBasinMesh = new THREE.Mesh(lagoonBasinFloorGeo, mineDeepSlateMat);
+  lagoonBasinMesh.position.set(-7.0, cavernFloorY - 2.3, 63.0);
 
-  const cCeiling = new THREE.Mesh(cCeilingGeo, mineDeepSlateMat);
-  cCeiling.position.set(1.0, cavernFloorY + cavernHeight - 0.25, cavernMidLocalZ);
-
-  const cWestWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
-  cWestWall.position.set(-51.5, cavernFloorY + cavernHeight * 0.5 - 0.5, 66.0);
-  const cEastWall = new THREE.Mesh(cSideWallGeo, mineDeepSlateMat);
-  cEastWall.position.set(52.5, cavernFloorY + cavernHeight * 0.5 - 0.5, 66.0);
-  const r2NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r2NorthWall.position.set(-38.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 35.0);
-  const r2SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r2SouthWall.position.set(-38.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 97.0);
-  const r3NorthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r3NorthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 35.0);
-  const r3SouthWall = new THREE.Mesh(rRoomWallGeo, mineDeepSlateMat);
-  r3SouthWall.position.set(39.0, cavernFloorY + cavernHeight * 0.5 - 0.5, 97.0);
-  const cBackWall = new THREE.Mesh(cBackWallGeo, mineDeepSlateMat);
-  cBackWall.position.set(0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernEndLocalZ + 1.0);
-  const cNorthWestWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
-  cNorthWestWall.position.set(-9.0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernStartLocalZ);
-  const cNorthEastWall = new THREE.Mesh(cNorthFlankWallGeo, mineDeepSlateMat);
-  cNorthEastWall.position.set(9.0, cavernFloorY + cavernHeight * 0.5 - 0.5, cavernStartLocalZ);
-  const cNorthUpperWall = new THREE.Mesh(cavernNorthUpperWallGeo, mineDeepSlateMat);
-  cNorthUpperWall.position.set(0, cavernFloorY + cavernHeight - 2.4, cavernStartLocalZ);
+  const cCeiling = new THREE.Mesh(cavernCeilingGeo, mineDeepSlateMat);
+  cCeiling.position.set(0, cavernFloorY + cavernHeight, 65.0);
+  const cWestWall = new THREE.Mesh(cavernSideWallGeo, mineDeepSlateMat);
+  cWestWall.position.set(-49.0, cavernFloorY + cavernHeight * 0.5, 65.0);
+  const cEastWall = new THREE.Mesh(cavernSideWallGeo, mineDeepSlateMat);
+  cEastWall.position.set(49.0, cavernFloorY + cavernHeight * 0.5, 65.0);
+  const cSouthWall = new THREE.Mesh(cavernBackWallGeo, mineDeepSlateMat);
+  cSouthWall.position.set(0, cavernFloorY + cavernHeight * 0.5, 96.0);
+  const cNorthWestWall = new THREE.Mesh(cavernNorthFlankGeo, mineDeepSlateMat);
+  cNorthWestWall.position.set(-26.15, cavernFloorY + cavernHeight * 0.5, 34.0);
+  const cNorthEastWall = new THREE.Mesh(cavernNorthFlankGeo, mineDeepSlateMat);
+  cNorthEastWall.position.set(26.15, cavernFloorY + cavernHeight * 0.5, 34.0);
+  const cNorthUpper = new THREE.Mesh(cavernNorthUpperGeo, mineDeepSlateMat);
+  cNorthUpper.position.set(0, cavernFloorY + cavernHeight - 2.7, 34.0);
 
   mineGroup.add(
-    mainEastFloorMesh,
-    westRoomSouthFloorMesh,
-    westRoomNorthFloorMesh,
-    westRoomEastWalkwayMesh,
-    westLakeBasinFloorMesh,
+    westFloorMesh,
+    eastFloorMesh,
+    northFloorMesh,
+    southFloorMesh,
+    lagoonBasinMesh,
     cCeiling,
     cWestWall,
     cEastWall,
-    r2NorthWall,
-    r2SouthWall,
-    r3NorthWall,
-    r3SouthWall,
-    cBackWall,
+    cSouthWall,
     cNorthWestWall,
     cNorthEastWall,
-    cNorthUpperWall
+    cNorthUpper
   );
 
-  const partitionBlocks: Array<[number, number, number, number]> = [
-    [-20.0, 39.5, 12.0, 11.0],
-    [-20.0, 69.0, 12.0, 32.0],
-    [-21.0, 101.8, 10.0, 17.5],
-    [20.0, 39.5, 12.0, 11.0],
-    [20.0, 69.0, 12.0, 32.0],
-    [21.0, 101.8, 10.0, 17.5],
-    [-10.25, 71.0, 11.5, 14.0],
-    [10.25, 71.0, 11.5, 14.0],
+  // Sculpted organic craggy rock buttresses along the cavern perimeter walls & ceiling stalactites
+  const perimeterCrags: Array<[number, number, number, number, number]> = [
+    [-46.5, 42.0, 2.8, 5.2, 2.6],
+    [-46.8, 55.0, 2.6, 5.6, 2.8],
+    [-46.5, 72.0, 2.8, 5.4, 2.6],
+    [-46.2, 88.0, 3.0, 5.2, 2.8],
+    [46.5, 40.0, 2.8, 5.2, 2.6],
+    [46.8, 58.0, 2.6, 5.6, 2.8],
+    [46.5, 76.0, 2.8, 5.4, 2.6],
+    [46.2, 90.0, 3.0, 5.2, 2.8],
+    [-36.0, 93.8, 3.2, 5.2, 2.4],
+    [-12.0, 94.0, 2.8, 4.8, 2.2],
+    [16.0, 94.0, 3.0, 5.0, 2.4],
+    [38.0, 93.8, 3.2, 5.2, 2.4],
+    [-36.0, 36.2, 3.0, 5.4, 2.4],
+    [32.0, 36.2, 3.0, 5.4, 2.4],
   ];
-  for (const [px, pz, pw, pd] of partitionBlocks) {
-    const pGeo = new THREE.BoxGeometry(pw, cavernHeight + 0.6, pd);
-    disposableGeometries.push(pGeo);
-    const pMesh = new THREE.Mesh(pGeo, mineDarkRockMat);
-    pMesh.position.set(px, cavernFloorY + cavernHeight * 0.5, pz);
-    mineGroup.add(pMesh);
+  for (let i = 0; i < perimeterCrags.length; i++) {
+    const [cx, cz, sx, sy, sz] = perimeterCrags[i];
+    const crag = new THREE.Mesh(rockBoulderGeo, i % 2 === 0 ? mineDarkRockMat : mineDeepSlateMat);
+    crag.position.set(cx, cavernFloorY + sy * 0.75, cz);
+    crag.scale.set(sx, sy, sz);
+    crag.rotation.y = i * 0.9;
+    mineGroup.add(crag);
   }
 
-  const corrHeaderH = cavernHeight - SOUTHERN_MINE_POS.corridorHeight;
-  const corridorHeaders: Array<[number, number, number, number]> = [
-    [-20.0, 49.0, 12.4, 8.2],
-    [20.0, 49.0, 12.4, 8.2],
-    [0.0, 71.0, 9.2, 14.4],
-    [-21.0, 89.0, 10.4, 8.2],
-    [21.0, 89.0, 10.4, 8.2],
-  ];
-  for (const [cx, cz, cw, cd] of corridorHeaders) {
-    const hGeo = new THREE.BoxGeometry(cw, corrHeaderH, cd);
-    disposableGeometries.push(hGeo);
-    const hMesh = new THREE.Mesh(hGeo, mineDeepSlateMat);
-    hMesh.position.set(cx, cavernFloorY + SOUTHERN_MINE_POS.corridorHeight + corrHeaderH * 0.5, cz);
-    mineGroup.add(hMesh);
-  }
-
-  const corrPostGeo = new THREE.BoxGeometry(0.55, 5.4, 0.55);
-  corrPostGeo.translate(0, 2.7, 0);
-  const corrBeamEWGeo = new THREE.BoxGeometry(0.58, 0.58, 8.0);
-  const corrBeamNSGeo = new THREE.BoxGeometry(9.0, 0.58, 0.58);
-  disposableGeometries.push(corrPostGeo, corrBeamEWGeo, corrBeamNSGeo);
-
-  for (const [cz, xList] of [
-    [49.0, [-25.2, -20.0, -14.8, 14.8, 20.0, 25.2]],
-    [89.0, [-25.2, -21.0, -16.8, 16.8, 21.0, 25.2]],
-  ] as const) {
-    for (const fx of xList) {
-      const pN = new THREE.Mesh(corrPostGeo, barkMat);
-      pN.position.set(fx, cavernFloorY, cz - 3.7);
-      const pS = new THREE.Mesh(corrPostGeo, barkMat);
-      pS.position.set(fx, cavernFloorY, cz + 3.7);
-      const bTop = new THREE.Mesh(corrBeamEWGeo, timberMat);
-      bTop.position.set(fx, cavernFloorY + 5.2, cz);
-      mineGroup.add(
-        pN,
-        pS,
-        bTop,
-        createLanternAssembly(fx, cavernFloorY + 3.8, cz - 3.2, Math.abs(fx) === 20.0)
-      );
-    }
-  }
-
-  for (const fz of [64.6, 68.8, 73.2, 77.4]) {
-    const pW = new THREE.Mesh(corrPostGeo, barkMat);
-    pW.position.set(-4.15, cavernFloorY, fz);
-    const pE = new THREE.Mesh(corrPostGeo, barkMat);
-    pE.position.set(4.15, cavernFloorY, fz);
-    const bTop = new THREE.Mesh(corrBeamNSGeo, timberMat);
-    bTop.position.set(0, cavernFloorY + 5.2, fz);
-    mineGroup.add(
-      pW,
-      pE,
-      bTop,
-      createLanternAssembly(fz % 2 > 1 ? -3.6 : 3.6, cavernFloorY + 3.8, fz, fz === 68.8)
-    );
-  }
-
-  for (const pzLocal of [39.0, 58.0, 84.0, 98.0]) {
-    const archBeam = new THREE.Mesh(cavernRoofArchBeamGeo, timberMat);
-    archBeam.position.set(0, cavernFloorY + cavernHeight - 0.35, pzLocal);
-    mineGroup.add(archBeam);
-    for (const px of [-12.6, 12.6]) {
-      const pillar = new THREE.Mesh(cavernStonePillarGeo, mineDarkRockMat);
-      pillar.position.set(px, cavernFloorY, pzLocal);
-      const baseCap = new THREE.Mesh(cavernPillarCapGeo, timberMat);
-      baseCap.position.set(px, cavernFloorY + 0.34, pzLocal);
-      const topCap = new THREE.Mesh(cavernPillarCapGeo, timberMat);
-      topCap.position.set(px, cavernFloorY + cavernHeight - 0.35, pzLocal);
-      mineGroup.add(
-        pillar,
-        baseCap,
-        topCap,
-        createLanternAssembly(px + (px < 0 ? 1.35 : -1.35), cavernFloorY + 3.4, pzLocal, false)
-      );
-    }
-  }
-
-  for (let st = 0; st < 42; st++) {
-    const stX = ((st * 19) % 94) - 47.0;
-    const stZ = cavernStartLocalZ + 4.0 + ((st * 17) % 70);
-    if (Math.abs(stX) < 5.0 && stZ < cavernStartLocalZ + 9.0) continue;
-    if (Math.abs(stX) >= 13.0 && Math.abs(stX) <= 27.0) continue;
-    const isCrystalStal = st % 4 === 0;
+  for (let st = 0; st < 36; st++) {
+    const stX = ((st * 19) % 86) - 43.0;
+    const stZ = 38.0 + ((st * 17) % 54);
+    if (Math.abs(stX) < 5.5 && stZ < 44.0) continue;
+    const isCrystalStal = st % 5 === 0;
     const stalactite = new THREE.Mesh(
       cavernStalactiteGeo,
       isCrystalStal
-        ? st % 8 === 0
+        ? st % 10 === 0
           ? mineSapphireCrystalMat
           : mineAmethystCrystalMat
         : mineDarkRockMat
     );
-    const sc = 0.85 + (st % 4) * 0.35;
+    const sc = 0.85 + (st % 4) * 0.32;
     stalactite.position.set(stX, cavernFloorY + cavernHeight - 0.95 * sc, stZ);
     stalactite.scale.set(sc, sc * 1.2, sc);
     mineGroup.add(stalactite);
   }
 
-  // Room 2 Subterranean Lake
+  // 3) Heavy Timber-Framed Tunnel Portal Arches (matching the reference image left & right tunnel portals!)
+  const archPillarGeo = new THREE.BoxGeometry(0.68, 5.4, 0.68);
+  archPillarGeo.translate(0, 2.7, 0);
+  const archBasePlinthGeo = new THREE.BoxGeometry(1.05, 0.65, 1.05);
+  archBasePlinthGeo.translate(0, 0.325, 0);
+  const archMainBeamGeo = new THREE.BoxGeometry(6.8, 0.58, 0.72);
+  const archKingPostGeo = new THREE.BoxGeometry(0.52, 1.25, 0.52);
+  const archRafterGeo = new THREE.BoxGeometry(3.8, 0.42, 0.56);
+  const archKneeBraceGeo = new THREE.BoxGeometry(1.65, 0.36, 0.44);
+  disposableGeometries.push(
+    archPillarGeo,
+    archBasePlinthGeo,
+    archMainBeamGeo,
+    archKingPostGeo,
+    archRafterGeo,
+    archKneeBraceGeo
+  );
+
+  const createTimberTunnelArch = (
+    cx: number,
+    cz: number,
+    yaw: number,
+    addPointLight: boolean
+  ): THREE.Group => {
+    const archGrp = new THREE.Group();
+    archGrp.position.set(cx, cavernFloorY, cz);
+    archGrp.rotation.y = yaw;
+    for (const side of [-1, 1]) {
+      const plinth = new THREE.Mesh(archBasePlinthGeo, mineDarkRockMat);
+      plinth.position.set(side * 2.75, 0, 0);
+      const pillar = new THREE.Mesh(archPillarGeo, timberMat);
+      pillar.position.set(side * 2.75, 0.5, 0);
+      const brace = new THREE.Mesh(archKneeBraceGeo, barkMat);
+      brace.position.set(side * 2.05, 4.45, 0);
+      brace.rotation.z = side * 0.68;
+      const rafter = new THREE.Mesh(archRafterGeo, timberMat);
+      rafter.position.set(side * 1.55, 5.65, 0);
+      rafter.rotation.z = -side * 0.32;
+      archGrp.add(plinth, pillar, brace, rafter);
+    }
+    const mainBeam = new THREE.Mesh(archMainBeamGeo, timberMat);
+    mainBeam.position.set(0, 5.15, 0);
+    const kingPost = new THREE.Mesh(archKingPostGeo, barkMat);
+    kingPost.position.set(0, 5.75, 0);
+    archGrp.add(
+      mainBeam,
+      kingPost,
+      createLanternAssembly(-2.15, 3.85, 0.38, addPointLight),
+      createLanternAssembly(2.15, 3.85, -0.38, false)
+    );
+    return archGrp;
+  };
+
+  // Place the 3 signature timber tunnel arches:
+  // - Entrance shaft bottom portal at (0, 35.0)
+  // - West Cavern tunnel arch at (-23.5, 43.0, yaw = 0.42)
+  // - East Cavern tunnel arch at (+36.5, 45.5, yaw = -0.52)
+  mineGroup.add(
+    createTimberTunnelArch(0, 35.0, 0, true),
+    createTimberTunnelArch(-23.5, 43.0, 0.42, true),
+    createTimberTunnelArch(36.5, 45.5, -0.52, false)
+  );
+
+  // 4) Central-North Plunging Turquoise Waterfall & Bioluminescent Underground Lagoon
   const subLakeMat = new THREE.MeshPhysicalMaterial({
-    color: 0x0ea5e9,
+    color: 0x06b6d4,
     emissive: 0x0284c7,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.62,
     roughness: 0.06,
-    metalness: 0.15,
+    metalness: 0.14,
     clearcoat: isSoftwareGl ? 0 : 0.92,
     transparent: true,
-    opacity: 0.86,
+    opacity: 0.84,
   });
   attachAnimatedWaterWaveShader(subLakeMat, 0.042, 0.085, ctx.animatedWaterMaterials);
+
   const subWaterfallMat = new THREE.MeshStandardMaterial({
     color: 0x7dd3fc,
     emissive: 0x38bdf8,
-    emissiveIntensity: 1.15,
-    roughness: 0.2,
+    emissiveIntensity: 1.25,
+    roughness: 0.18,
     transparent: true,
-    opacity: 0.84,
+    opacity: 0.88,
     side: THREE.DoubleSide,
   });
   disposableMaterials.push(subLakeMat, subWaterfallMat);
 
-  const subLakeAnimGeo = new THREE.PlaneGeometry(18.5, 44.0, 24, 36);
+  const subLakeAnimGeo = new THREE.PlaneGeometry(25.0, 38.0, 28, 36);
   subLakeAnimGeo.rotateX(-Math.PI / 2);
-  disposableGeometries.push(subLakeAnimGeo);
+  const mainWaterfallGeo = new THREE.CylinderGeometry(2.4, 3.1, 10.6, 16, 1, true, -Math.PI * 0.42, Math.PI * 0.84);
+  const sideCascadeGeo = new THREE.PlaneGeometry(1.4, 9.4);
+  const foamRingGeo = new THREE.RingGeometry(1.4, 3.8, 24);
+  foamRingGeo.rotateX(-Math.PI / 2);
+  disposableGeometries.push(subLakeAnimGeo, mainWaterfallGeo, sideCascadeGeo, foamRingGeo);
+
   const subLakeMesh = new THREE.Mesh(subLakeAnimGeo, subLakeMat);
-  subLakeMesh.position.set(-41.5, cavernFloorY + 0.05, 62.5);
+  subLakeMesh.position.set(-7.0, cavernFloorY + 0.05, 63.0);
   mineGroup.add(subLakeMesh);
 
-  for (let r = 0; r < 26; r++) {
-    const ang = (r / 26) * Math.PI * 2;
-    const rx = -41.5 + Math.cos(ang) * 8.6;
-    const rz = 62.5 + Math.sin(ang) * 21.8;
-    const rimRock = new THREE.Mesh(mineGoldOreGeo, mineDarkRockMat);
-    rimRock.scale.set(3.2, 1.2, 3.2);
-    rimRock.position.set(rx, cavernFloorY + 0.15, rz);
-    mineGroup.add(rimRock);
+  // Plunging main waterfall cliff formation & roaring cyan water curtain at (-5.5, 43.0)
+  for (const [rx, ry, rz, sx, sy, sz] of [
+    [-9.5, 4.2, 41.5, 2.4, 4.2, 2.2],
+    [-1.5, 4.2, 41.5, 2.4, 4.2, 2.2],
+    [-5.5, 8.8, 40.5, 3.2, 1.8, 2.0],
+  ] as const) {
+    const wfRock = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+    wfRock.position.set(rx, cavernFloorY + ry, rz);
+    wfRock.scale.set(sx, sy, sz);
+    mineGroup.add(wfRock);
   }
 
-  const subWaterfallMesh = new THREE.Mesh(subWaterfallGeo, subWaterfallMat);
-  subWaterfallMesh.position.set(-51.2, cavernFloorY + 4.6, 62.5);
-  subWaterfallMesh.rotation.y = Math.PI / 2;
-  subWaterfallMesh.rotation.z = -0.12;
-  const subPlungeFoam = new THREE.Mesh(forgeCoalMoundGeo, subWaterfallMat);
-  subPlungeFoam.scale.set(2.4, 0.35, 3.2);
-  subPlungeFoam.position.set(-49.6, cavernFloorY + 0.14, 62.5);
-  const subLakeLight = new THREE.PointLight(0x38bdf8, 3.2, 38, 1.35);
-  subLakeLight.position.set(-40.5, cavernFloorY + 4.2, 62.5);
-  lanternLights.push(subLakeLight);
-  mineGroup.add(subWaterfallMesh, subPlungeFoam, subLakeLight);
+  const mainWaterfallMesh = new THREE.Mesh(mainWaterfallGeo, subWaterfallMat);
+  mainWaterfallMesh.position.set(-5.5, cavernFloorY + 5.1, 42.6);
+  const sideCascadeMesh = new THREE.Mesh(sideCascadeGeo, subWaterfallMat);
+  sideCascadeMesh.position.set(-16.5, cavernFloorY + 4.7, 42.0);
+  sideCascadeMesh.rotation.y = 0.25;
 
-  const subPierDeckGeo = new THREE.BoxGeometry(6.8, 0.22, 3.6);
-  const wheelAxleGeo = new THREE.CylinderGeometry(0.22, 0.22, 1.8, 10);
-  const paddleGeo = new THREE.BoxGeometry(0.32, 0.85, 1.1);
-  const fBand1Geo = new THREE.CylinderGeometry(2.65, 2.7, 0.45, 10);
-  const fBand2Geo = new THREE.CylinderGeometry(2.4, 2.45, 0.45, 10);
-  const moltenGoldPoolGeo = new THREE.CylinderGeometry(1.38, 1.38, 0.25, 12);
-  const moltenStreamGeo = new THREE.CylinderGeometry(0.18, 0.24, 1.8, 8);
-  const chestGeo = new THREE.BoxGeometry(1.6, 1.05, 1.1);
+  const waterfallFoamMound = new THREE.Mesh(forgeCoalMoundGeo, subWaterfallMat);
+  waterfallFoamMound.scale.set(3.4, 0.45, 2.8);
+  waterfallFoamMound.position.set(-5.5, cavernFloorY + 0.14, 45.2);
+  const waterfallFoamRing = new THREE.Mesh(foamRingGeo, subWaterfallMat);
+  waterfallFoamRing.position.set(-5.5, cavernFloorY + 0.09, 45.4);
 
-  disposableGeometries.push(
-    subPierDeckGeo,
-    wheelAxleGeo,
-    paddleGeo,
-    fBand1Geo,
-    fBand2Geo,
-    moltenGoldPoolGeo,
-    moltenStreamGeo,
-    chestGeo
-  );
-
-  const subPierDeck = new THREE.Mesh(subPierDeckGeo, timberMat);
-  subPierDeck.position.set(-32.2, cavernFloorY + 0.32, 49.0);
+  const waterfallLight = new THREE.PointLight(0x38bdf8, 4.2, 46, 1.3);
+  waterfallLight.position.set(-5.5, cavernFloorY + 4.5, 48.0);
+  lanternLights.push(waterfallLight);
   mineGroup.add(
-    subPierDeck,
-    createLanternAssembly(-35.0, cavernFloorY + 1.6, 47.4, false),
-    createLanternAssembly(-35.0, cavernFloorY + 1.6, 50.6, false)
+    mainWaterfallMesh,
+    sideCascadeMesh,
+    waterfallFoamMound,
+    waterfallFoamRing,
+    waterfallLight
   );
 
-  const catwalkLocalY = 4.2;
-  for (let s = 0; s <= 18; s++) {
-    const t = s / 18;
+  // Natural shoreline rocks & glowing underwater crystals inside the turquoise lagoon
+  for (let r = 0; r < 28; r++) {
+    const ang = (r / 28) * Math.PI * 2;
+    const rx = -7.0 + Math.cos(ang) * 12.2;
+    const rz = 63.0 + Math.sin(ang) * 18.8;
+    // Leave clean openings at the wooden bridge crossings and foreground dock
+    if (rz >= 59.0 && rz <= 66.0 && (rx < -16.0 || rx > 2.0)) continue;
+    if (rz >= 80.0 && rx >= -17.0 && rx <= 7.0) continue;
+    const shoreRock = new THREE.Mesh(mineGoldOreGeo, mineDarkRockMat);
+    shoreRock.scale.set(2.8 + (r % 3) * 0.6, 1.1 + (r % 2) * 0.4, 2.8 + (r % 2) * 0.6);
+    shoreRock.position.set(rx, cavernFloorY + 0.12, rz);
+    shoreRock.rotation.y = r * 0.7;
+    mineGroup.add(shoreRock);
+  }
+  for (const [ux, uz, sc] of [
+    [-11.0, 54.0, 1.1],
+    [-4.5, 56.5, 0.95],
+    [-13.5, 69.5, 1.15],
+    [-6.0, 73.5, 1.05],
+    [-1.5, 68.5, 0.9],
+  ] as const) {
+    const subCryst = new THREE.Mesh(crystalSpireGeo, mineSapphireCrystalMat);
+    subCryst.position.set(ux, cavernFloorY - 1.55, uz);
+    subCryst.scale.setScalar(sc);
+    subCryst.rotation.z = 0.22;
+    mineGroup.add(subCryst);
+  }
+
+  // 5) Central Walkable Wooden Plank Bridge over the Turquoise Lagoon (lx in [-20.0, 6.0], lz in [60.0, 65.0])
+  const bridgePlankGeo = new THREE.BoxGeometry(0.75, 0.18, 4.8);
+  const bridgeBeamGeo = new THREE.BoxGeometry(26.0, 0.26, 0.32);
+  const bridgePostGeo = new THREE.BoxGeometry(0.28, 1.35, 0.28);
+  bridgePostGeo.translate(0, 0.675, 0);
+  const bridgePilingGeo = new THREE.CylinderGeometry(0.22, 0.24, 2.6, 8);
+  const bridgeRailRopeGeo = new THREE.CylinderGeometry(0.045, 0.045, 25.4, 8);
+  bridgeRailRopeGeo.rotateZ(Math.PI / 2);
+  disposableGeometries.push(
+    bridgePlankGeo,
+    bridgeBeamGeo,
+    bridgePostGeo,
+    bridgePilingGeo,
+    bridgeRailRopeGeo
+  );
+
+  const lagoonBridgeGroup = new THREE.Group();
+  const bridgeDeckY = cavernFloorY + 0.32;
+  for (const bz of [60.35, 62.5, 64.65]) {
+    const beam = new THREE.Mesh(bridgeBeamGeo, barkMat);
+    beam.position.set(-7.0, bridgeDeckY - 0.16, bz);
+    lagoonBridgeGroup.add(beam);
+  }
+  for (let px = -19.5; px <= 5.5; px += 0.92) {
+    const plank = new THREE.Mesh(bridgePlankGeo, timberMat);
+    plank.position.set(px, bridgeDeckY, 62.5);
+    lagoonBridgeGroup.add(plank);
+  }
+  for (const px of [-19.2, -15.0, -11.0, -7.0, -3.0, 1.0, 5.2]) {
+    for (const pz of [60.15, 64.85]) {
+      const post = new THREE.Mesh(bridgePostGeo, barkMat);
+      post.position.set(px, bridgeDeckY, pz);
+      const piling = new THREE.Mesh(bridgePilingGeo, barkMat);
+      piling.position.set(px, bridgeDeckY - 1.3, pz);
+      lagoonBridgeGroup.add(post, piling);
+    }
+  }
+  for (const pz of [60.15, 64.85]) {
+    const topRope = new THREE.Mesh(bridgeRailRopeGeo, timberMat);
+    topRope.position.set(-7.0, bridgeDeckY + 1.05, pz);
+    const midRope = new THREE.Mesh(bridgeRailRopeGeo, timberMat);
+    midRope.position.set(-7.0, bridgeDeckY + 0.58, pz);
+    lagoonBridgeGroup.add(topRope, midRope);
+  }
+  lagoonBridgeGroup.add(
+    createLanternAssembly(-15.0, bridgeDeckY + 1.45, 60.15, false),
+    createLanternAssembly(1.0, bridgeDeckY + 1.45, 64.85, false)
+  );
+  mineGroup.add(lagoonBridgeGroup);
+
+  // 6) Foreground Lakeside Wooden Dock (lx in [-18.0, 8.0], lz in [82.0, 90.0]) & West Jetty (lx in [-23.5, -16.5], lz in [67.0, 73.5])
+  const dockDeckGeo = new THREE.BoxGeometry(26.0, 0.24, 8.0);
+  const westJettyGeo = new THREE.BoxGeometry(7.0, 0.24, 6.5);
+  const dockBollardGeo = new THREE.BoxGeometry(0.42, 1.25, 0.42);
+  dockBollardGeo.translate(0, 0.625, 0);
+  const dockBarrelGeo = new THREE.CylinderGeometry(0.42, 0.38, 0.98, 10);
+  dockBarrelGeo.translate(0, 0.49, 0);
+  const dockCrateGeo = new THREE.BoxGeometry(1.15, 0.95, 1.15);
+  dockCrateGeo.translate(0, 0.475, 0);
+  disposableGeometries.push(
+    dockDeckGeo,
+    westJettyGeo,
+    dockBollardGeo,
+    dockBarrelGeo,
+    dockCrateGeo
+  );
+
+  const dockY = cavernFloorY + 0.28;
+  const lakesideDockMesh = new THREE.Mesh(dockDeckGeo, timberMat);
+  lakesideDockMesh.position.set(-5.0, dockY - 0.12, 86.0);
+  const westJettyMesh = new THREE.Mesh(westJettyGeo, timberMat);
+  westJettyMesh.position.set(-20.0, dockY - 0.12, 70.25);
+  mineGroup.add(lakesideDockMesh, westJettyMesh);
+
+  for (const bx of [-17.2, -12.0, -6.5, -1.0, 4.2, 7.4]) {
+    const bollard = new THREE.Mesh(dockBollardGeo, barkMat);
+    bollard.position.set(bx, dockY, 82.25);
+    mineGroup.add(bollard);
+  }
+  // Wooden barrels & supply crates on the lakeside dock (matching the bottom panel of the reference image)
+  for (const [bx, bz] of [
+    [-14.8, 83.2],
+    [-13.8, 83.4],
+    [2.8, 83.1],
+  ] as const) {
+    const barrel = new THREE.Mesh(dockBarrelGeo, barkMat);
+    barrel.position.set(bx, dockY, bz);
+    mineGroup.add(barrel);
+  }
+  for (const [cx, cz] of [
+    [4.6, 83.5],
+    [5.8, 83.6],
+  ] as const) {
+    const crate = new THREE.Mesh(dockCrateGeo, timberMat);
+    crate.position.set(cx, dockY, cz);
+    mineGroup.add(crate);
+  }
+  mineGroup.add(
+    createLanternAssembly(-17.2, dockY + 1.38, 82.25, false),
+    createLanternAssembly(7.4, dockY + 1.38, 82.25, true),
+    createLanternAssembly(-17.0, dockY + 1.38, 67.5, false)
+  );
+
+  // 7) Cliffside Wooden Scaffolding Platforms, Walkable Stairs & Tall Timber Hoist Crane Tower with Hanging Cage!
+  const nePlatformGeo = new THREE.BoxGeometry(16.0, 0.28, 11.5);
+  const nwGalleryGeo = new THREE.BoxGeometry(9.0, 0.26, 5.0);
+  const scaffoldLegGeo = new THREE.CylinderGeometry(0.2, 0.24, 3.8, 8);
+  scaffoldLegGeo.translate(0, 1.9, 0);
+  const craneTowerPostGeo = new THREE.BoxGeometry(0.38, 9.6, 0.38);
+  craneTowerPostGeo.translate(0, 4.8, 0);
+  const craneBraceGeo = new THREE.BoxGeometry(5.6, 0.26, 0.26);
+  const craneJibBeamGeo = new THREE.BoxGeometry(8.8, 0.42, 0.42);
+  const craneChainGeo = new THREE.CylinderGeometry(0.05, 0.05, 3.8, 6);
+  const craneCageGeo = new THREE.BoxGeometry(1.45, 1.65, 1.45);
+  disposableGeometries.push(
+    nePlatformGeo,
+    nwGalleryGeo,
+    scaffoldLegGeo,
+    craneTowerPostGeo,
+    craneBraceGeo,
+    craneJibBeamGeo,
+    craneChainGeo,
+    craneCageGeo
+  );
+
+  const scaffoldPlatformY = SOUTHERN_MINE_POS.catwalkY; // -5.55m (cavernFloorY + 3.8m)
+  const nePlatformMesh = new THREE.Mesh(nePlatformGeo, timberMat);
+  nePlatformMesh.position.set(16.0, scaffoldPlatformY - 0.14, 43.25);
+  const nwGalleryMesh = new THREE.Mesh(nwGalleryGeo, timberMat);
+  nwGalleryMesh.position.set(-13.5, scaffoldPlatformY - 0.13, 38.5);
+  mineGroup.add(nePlatformMesh, nwGalleryMesh);
+
+  // Support legs under NE Platform and NW Gallery
+  for (const [lx, lz] of [
+    [8.5, 38.2],
+    [15.5, 38.2],
+    [23.5, 38.2],
+    [8.5, 48.5],
+    [15.5, 48.5],
+    [23.5, 48.5],
+    [-17.5, 36.5],
+    [-9.5, 36.5],
+    [-17.5, 40.5],
+    [-9.5, 40.5],
+  ] as const) {
+    const leg = new THREE.Mesh(scaffoldLegGeo, barkMat);
+    leg.position.set(lx, cavernFloorY, lz);
+    mineGroup.add(leg);
+  }
+
+  // Walkable Wooden Staircase ascending from (lx = 10.5, lz = 57.5, y = cavernFloorY) to (lx = 10.5, lz = 49.0, y = scaffoldPlatformY)
+  for (let s = 0; s <= 16; s++) {
+    const t = s / 16;
     const stepMesh = new THREE.Mesh(shaftStepPlankGeo, timberMat);
-    stepMesh.scale.x = 1.22;
-    stepMesh.position.set(-10.9, cavernFloorY + t * catwalkLocalY - 0.08, 35.5 + t * 9.0);
+    stepMesh.scale.x = 1.45;
+    stepMesh.position.set(
+      10.5,
+      cavernFloorY + t * (scaffoldPlatformY - cavernFloorY) - 0.08,
+      57.5 - t * 8.5
+    );
     mineGroup.add(stepMesh);
   }
-  const westCatwalkDeck = new THREE.Mesh(scaffoldDeckGeo, timberMat);
-  westCatwalkDeck.position.set(-11.25, cavernFloorY + catwalkLocalY - 0.12, 53.5);
-  const eastCatwalkDeck = new THREE.Mesh(scaffoldDeckGeo, timberMat);
-  eastCatwalkDeck.position.set(11.25, cavernFloorY + catwalkLocalY - 0.12, 53.5);
-  const southCrossBridge = new THREE.Mesh(crossBridgeDeckGeo, timberMat);
-  southCrossBridge.position.set(0, cavernFloorY + catwalkLocalY - 0.12, 60.5);
-  mineGroup.add(westCatwalkDeck, eastCatwalkDeck, southCrossBridge);
 
-  const catwalkRailLongGeo = new THREE.BoxGeometry(0.14, 0.95, 18.0);
-  const catwalkRailCrossGeo = new THREE.BoxGeometry(22.0, 0.95, 0.14);
-  disposableGeometries.push(catwalkRailLongGeo, catwalkRailCrossGeo);
-  for (const side of [-1, 1]) {
-    const outerRail = new THREE.Mesh(catwalkRailLongGeo, barkMat);
-    outerRail.position.set(side * 13.35, cavernFloorY + catwalkLocalY + 0.45, 53.5);
-    mineGroup.add(outerRail);
-    for (const lz of [45.5, 53.5, 61.5]) {
-      for (const lxOff of [-1.8, 1.8]) {
-        const leg = new THREE.Mesh(scaffoldLegGeo, barkMat);
-        leg.position.set(side * 11.25 + lxOff, cavernFloorY, lz);
-        mineGroup.add(leg);
+  // Tall Cross-Braced Timber Hoist Crane Tower on the NE Platform (lx in [19.0, 24.0], lz in [41.5, 46.5])
+  const craneTowerGroup = new THREE.Group();
+  craneTowerGroup.position.set(21.5, scaffoldPlatformY, 44.0);
+  for (const tx of [-2.4, 2.4]) {
+    for (const tz of [-2.4, 2.4]) {
+      const tPost = new THREE.Mesh(craneTowerPostGeo, barkMat);
+      tPost.position.set(tx, 0, tz);
+      craneTowerGroup.add(tPost);
+    }
+  }
+  for (const by of [2.4, 4.8, 7.2, 9.2]) {
+    for (const tz of [-2.4, 2.4]) {
+      const hBeam = new THREE.Mesh(craneBraceGeo, timberMat);
+      hBeam.position.set(0, by, tz);
+      craneTowerGroup.add(hBeam);
+    }
+    const diagBrace = new THREE.Mesh(craneBraceGeo, barkMat);
+    diagBrace.position.set(0, by - 1.1, 2.4);
+    diagBrace.rotation.z = by % 4.8 === 0 ? 0.42 : -0.42;
+    craneTowerGroup.add(diagBrace);
+  }
+  mineGroup.add(craneTowerGroup);
+
+  // Projecting Timber Crane Jib & Hanging Iron/Wood Cage over the East Bank of the Lagoon (lx = 7.5, lz = 76.0)
+  const craneMast = new THREE.Mesh(craneTowerPostGeo, barkMat);
+  craneMast.position.set(9.8, cavernFloorY, 76.0);
+  const craneJib = new THREE.Mesh(craneJibBeamGeo, timberMat);
+  craneJib.position.set(6.4, cavernFloorY + 8.6, 76.0);
+  mineGroup.add(craneMast, craneJib);
+
+  const hangingOreCageGroup = new THREE.Group();
+  hangingOreCageGroup.position.set(3.2, cavernFloorY + 6.7, 76.0);
+  const cageChain = new THREE.Mesh(craneChainGeo, darkIronMat);
+  cageChain.position.set(0, 0, 0);
+  const cageBox = new THREE.Mesh(craneCageGeo, barkMat);
+  cageBox.position.set(0, -2.2, 0);
+  const cageGold = new THREE.Mesh(forgeCoalMoundGeo, mineGoldOreMat);
+  cageGold.scale.set(0.55, 0.45, 0.55);
+  cageGold.position.set(0, -2.55, 0);
+  hangingOreCageGroup.add(cageChain, cageBox, cageGold);
+  mineGroup.add(hangingOreCageGroup);
+
+  // 8) Signature Glowing Crystal Clusters & Central Ore Mounds (matching the top & bottom panels of the reference image!)
+  // A. Giant Glowing Purple Amethyst Crystal Cluster in the West Loop (lx = -35.0, lz = 66.0)
+  const amethystClusterGroup = new THREE.Group();
+  amethystClusterGroup.position.set(-35.0, cavernFloorY, 66.0);
+  const amethystBaseRock = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+  amethystBaseRock.position.set(0, 0.85, 0);
+  amethystBaseRock.scale.set(2.4, 1.2, 2.4);
+  amethystClusterGroup.add(amethystBaseRock);
+  for (let s = 0; s < 9; s++) {
+    const spire = new THREE.Mesh(crystalSpireGeo, mineAmethystCrystalMat);
+    const ang = (s / 9) * Math.PI * 2;
+    const rad = s === 0 ? 0 : 0.75 + (s % 2) * 0.45;
+    const tilt = s === 0 ? 0.04 : 0.34 + (s % 3) * 0.12;
+    spire.position.set(Math.cos(ang) * rad, 0.35, Math.sin(ang) * rad);
+    spire.rotation.set(Math.sin(ang) * tilt, ang, Math.cos(ang) * tilt);
+    const sc = s === 0 ? 1.85 : 1.05 + (s % 3) * 0.25;
+    spire.scale.set(sc * 0.82, sc * 1.25, sc * 0.82);
+    amethystClusterGroup.add(spire);
+  }
+  const amethystLight = new THREE.PointLight(0xa855f7, 3.8, 36, 1.35);
+  amethystLight.position.set(-35.0, cavernFloorY + 3.8, 66.0);
+  lanternLights.push(amethystLight);
+  mineGroup.add(amethystClusterGroup, amethystLight);
+
+  // B. Glowing Golden/Amber Crystal Cluster on the East Shore (lx = 15.5, lz = 72.5) + Cliffside Amber Crystals (lx = 12.5, lz = 45.0)
+  const goldenClusterGroup = new THREE.Group();
+  goldenClusterGroup.position.set(15.5, cavernFloorY, 72.5);
+  const goldenBaseRock = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+  goldenBaseRock.position.set(0, 0.7, 0);
+  goldenBaseRock.scale.set(1.8, 1.0, 1.8);
+  goldenClusterGroup.add(goldenBaseRock);
+  for (let s = 0; s < 7; s++) {
+    const spire = new THREE.Mesh(crystalSpireGeo, mineGoldOreMat);
+    const ang = (s / 7) * Math.PI * 2 + 0.3;
+    const rad = s === 0 ? 0 : 0.65 + (s % 2) * 0.35;
+    const tilt = s === 0 ? 0.05 : 0.32 + (s % 2) * 0.14;
+    spire.position.set(Math.cos(ang) * rad, 0.25, Math.sin(ang) * rad);
+    spire.rotation.set(Math.sin(ang) * tilt, ang, Math.cos(ang) * tilt);
+    const sc = s === 0 ? 1.55 : 0.95 + (s % 3) * 0.22;
+    spire.scale.set(sc * 0.78, sc * 1.18, sc * 0.78);
+    goldenClusterGroup.add(spire);
+  }
+  const goldenLight = new THREE.PointLight(0xf59e0b, 3.6, 38, 1.35);
+  goldenLight.position.set(15.5, cavernFloorY + 3.5, 72.5);
+  lanternLights.push(goldenLight);
+  mineGroup.add(goldenClusterGroup, goldenLight);
+
+  // Cliffside Golden Crystal Node on the elevated NE platform (lx = 13.0, lz = 43.0)
+  for (let s = 0; s < 4; s++) {
+    const topSpire = new THREE.Mesh(crystalSpireGeo, mineGoldOreMat);
+    topSpire.position.set(12.2 + s * 0.45, scaffoldPlatformY, 42.5 + (s % 2) * 0.4);
+    topSpire.scale.setScalar(0.75 + (s % 2) * 0.3);
+    topSpire.rotation.z = (s - 1.5) * 0.18;
+    mineGroup.add(topSpire);
+  }
+
+  // C. North-West Circular Ore Pit Rock Core (lx = -12.0, lz = 46.5) & East Circular Loop Gold Mound (lx = 31.0, lz = 68.0)
+  const nwPitCore = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+  nwPitCore.position.set(-12.0, cavernFloorY + 0.9, 46.5);
+  nwPitCore.scale.set(1.75, 1.35, 1.75);
+  const eastLoopMound = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
+  eastLoopMound.position.set(31.0, cavernFloorY + 1.25, 68.0);
+  eastLoopMound.scale.set(2.35, 1.65, 2.35);
+  mineGroup.add(nwPitCore, eastLoopMound);
+
+  // 9) Winding & Looping Iron Minecart Tracks on Wooden Sleepers
+  const railSegGeo = new THREE.BoxGeometry(0.11, 0.11, 1.45);
+  disposableGeometries.push(railSegGeo);
+
+  const buildTrackSegment = (
+    x0: number,
+    z0: number,
+    x1: number,
+    z1: number,
+    yBase: number = cavernFloorY
+  ) => {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const len = Math.hypot(dx, dz);
+    const steps = Math.max(2, Math.round(len / 1.25));
+    const yaw = Math.atan2(dx, dz);
+    const nx = Math.cos(yaw) * 0.55;
+    const nz = -Math.sin(yaw) * 0.55;
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const px = x0 + dx * u;
+      const pz = z0 + dz * u;
+      const sleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
+      sleeper.position.set(px, yBase + 0.03, pz);
+      sleeper.rotation.y = yaw;
+      mineGroup.add(sleeper);
+      if (i < steps) {
+        const mx = x0 + dx * ((i + 0.5) / steps);
+        const mz = z0 + dz * ((i + 0.5) / steps);
+        for (const side of [-1, 1]) {
+          const rMesh = new THREE.Mesh(railSegGeo, darkIronMat);
+          rMesh.position.set(mx + side * nx, yBase + 0.08, mz + side * nz);
+          rMesh.rotation.y = yaw;
+          mineGroup.add(rMesh);
+        }
       }
-      if (lz === 53.5) {
-        mineGroup.add(createLanternAssembly(side * 9.3, cavernFloorY + catwalkLocalY + 1.2, lz, false));
+    }
+  };
+
+  const buildCircularTrackLoop = (cx: number, cz: number, radius: number, segments: number) => {
+    for (let i = 0; i < segments; i++) {
+      const a0 = (i / segments) * Math.PI * 2;
+      const a1 = ((i + 1) / segments) * Math.PI * 2;
+      const x0 = cx + Math.cos(a0) * radius;
+      const z0 = cz + Math.sin(a0) * radius;
+      const x1 = cx + Math.cos(a1) * radius;
+      const z1 = cz + Math.sin(a1) * radius;
+      const mx = (x0 + x1) * 0.5;
+      const mz = (z0 + z1) * 0.5;
+      const yaw = Math.atan2(x1 - x0, z1 - z0);
+      const sleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
+      sleeper.position.set(mx, cavernFloorY + 0.03, mz);
+      sleeper.rotation.y = yaw;
+      mineGroup.add(sleeper);
+      const nx = Math.cos(yaw) * 0.55;
+      const nz = -Math.sin(yaw) * 0.55;
+      for (const side of [-1, 1]) {
+        const rMesh = new THREE.Mesh(railSegGeo, darkIronMat);
+        rMesh.position.set(mx + side * nx, cavernFloorY + 0.08, mz + side * nz);
+        rMesh.rotation.y = yaw;
+        mineGroup.add(rMesh);
       }
     }
-  }
-  const bridgeNorthRail = new THREE.Mesh(catwalkRailCrossGeo, barkMat);
-  bridgeNorthRail.position.set(0, cavernFloorY + catwalkLocalY + 0.45, 58.35);
-  const bridgeSouthRail = new THREE.Mesh(catwalkRailCrossGeo, barkMat);
-  bridgeSouthRail.position.set(0, cavernFloorY + catwalkLocalY + 0.45, 62.65);
-  mineGroup.add(bridgeNorthRail, bridgeSouthRail);
+  };
 
-  const waterwheelStandGroup = new THREE.Group();
-  waterwheelStandGroup.position.set(-48.2, cavernFloorY, 62.5);
-  for (const sideX of [-0.75, 0.75]) {
-    const standPost = new THREE.Mesh(scaffoldLegGeo, barkMat);
-    standPost.position.set(sideX, -1.2, 0);
-    waterwheelStandGroup.add(standPost);
-  }
-  const wheelAxleMesh = new THREE.Mesh(wheelAxleGeo, darkIronMat);
-  wheelAxleMesh.rotation.z = Math.PI / 2;
-  wheelAxleMesh.position.set(0, 3.0, 0);
-  waterwheelStandGroup.add(wheelAxleMesh);
-  mineGroup.add(waterwheelStandGroup);
-
-  const mineOreWheelGroup = new THREE.Group();
-  mineOreWheelGroup.position.set(-48.2, cavernFloorY + 3.0, 62.5);
-  mineOreWheelGroup.rotation.y = Math.PI / 2;
-  const wheelRim1 = new THREE.Mesh(oreWheelRimGeo, barkMat);
-  wheelRim1.position.z = -0.45;
-  const wheelRim2 = new THREE.Mesh(oreWheelRimGeo, barkMat);
-  wheelRim2.position.z = 0.45;
-  mineOreWheelGroup.add(wheelRim1, wheelRim2);
-  for (let sp = 0; sp < 8; sp++) {
-    const ang = (sp / 8) * Math.PI * 2;
-    const paddle = new THREE.Mesh(paddleGeo, timberMat);
-    paddle.position.set(Math.cos(ang) * 2.6, Math.sin(ang) * 2.6, 0);
-    paddle.rotation.z = ang;
-    mineOreWheelGroup.add(paddle);
-  }
-  mineGroup.add(mineOreWheelGroup);
-
-  for (const fz of [52.0, 78.0]) {
-    const furnaceGroup = new THREE.Group();
-    furnaceGroup.position.set(44.5, cavernFloorY, fz);
-    const fBody = new THREE.Mesh(blastFurnaceBodyGeo, mineDarkRockMat);
-    const fBand1 = new THREE.Mesh(fBand1Geo, darkIronMat);
-    fBand1.position.y = 2.4;
-    const fBand2 = new THREE.Mesh(fBand2Geo, darkIronMat);
-    fBand2.position.y = 5.8;
-    const fCoreGlow = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
-    fCoreGlow.scale.set(1.5, 1.2, 1.5);
-    fCoreGlow.position.set(-1.6, 1.1, 0);
-    const crucible = new THREE.Mesh(moltenCrucibleGeo, darkIronMat);
-    crucible.position.set(-3.8, 0, 0);
-    const moltenGoldPool = new THREE.Mesh(moltenGoldPoolGeo, mineGoldOreMat);
-    moltenGoldPool.position.set(-3.8, 1.32, 0);
-    const moltenStream = new THREE.Mesh(moltenStreamGeo, mineMoltenCoalMat);
-    moltenStream.position.set(-2.9, 1.45, 0);
-    moltenStream.rotation.z = 0.65;
-    furnaceGroup.add(fBody, fBand1, fBand2, fCoreGlow, crucible, moltenGoldPool, moltenStream);
-
-    for (let g = 0; g < 18; g++) {
-      const ingot = new THREE.Mesh(goldIngotGeo, mineGoldOreMat);
-      ingot.position.set(
-        -4.2 + (g % 3) * 0.55,
-        0.09 + Math.floor(g / 6) * 0.19,
-        2.6 + (Math.floor(g / 3) % 2) * 0.36
-      );
-      furnaceGroup.add(ingot);
-    }
-    mineGroup.add(furnaceGroup);
-  }
-  const foundryLight = new THREE.PointLight(0xff7b00, 3.6, 42, 1.35);
-  foundryLight.position.set(36.0, cavernFloorY + 4.5, 65.0);
-  lanternLights.push(foundryLight);
-  mineGroup.add(foundryLight);
-
-  // Twin Room 1 Forge Braziers flanking the Central N-S Rail Track at (-5.2, 50.0) & (+5.2, 50.0) so the rail track at x=0 is 100% clear!
-  for (const fx of [-5.2, 5.2]) {
-    const forgeGroup = new THREE.Group();
-    forgeGroup.position.set(fx, cavernFloorY, 50.0);
-    const brazierBase = new THREE.Mesh(forgeBrazierBaseGeo, darkIronMat);
-    const coalMound = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
-    coalMound.position.y = 0.92;
-    forgeGroup.add(brazierBase, coalMound);
-    for (let g = 0; g < 6; g++) {
-      const ingot = new THREE.Mesh(goldIngotGeo, mineGoldOreMat);
-      ingot.position.set(-0.8 + (g % 3) * 0.52, 0.09 + Math.floor(g / 3) * 0.18, -0.85);
-      forgeGroup.add(ingot);
-    }
-    if (fx < 0) {
-      const cavernPointLight = new THREE.PointLight(0xff9933, 3.4, 42, 1.35);
-      cavernPointLight.position.set(5.2, 4.2, 0);
-      forgeGroup.add(cavernPointLight);
-      lanternLights.push(cavernPointLight);
-    }
-    mineGroup.add(forgeGroup);
-  }
-
-  const vaultLight = new THREE.PointLight(0xfbbf24, 3.4, 38, 1.35);
-  vaultLight.position.set(0, cavernFloorY + 4.8, 98.0);
-  lanternLights.push(vaultLight);
-  mineGroup.add(vaultLight);
-  for (const vx of [-10.5, -5.5, 5.5, 10.5]) {
-    const chest = new THREE.Mesh(chestGeo, barkMat);
-    chest.position.set(vx, cavernFloorY + 0.52, 103.5);
-    const chestGold = new THREE.Mesh(forgeCoalMoundGeo, mineGoldOreMat);
-    chestGold.position.set(vx, cavernFloorY + 1.05, 103.5);
-    mineGroup.add(chest, chestGold);
-  }
-
-  // 1) Central North-South Iron Rail Track (x = 0, z = 34.5 .. 100.5)
-  for (const rx of [-0.55, 0.55]) {
-    const cRail = new THREE.Mesh(cavernRailStraightGeo, darkIronMat);
-    cRail.position.set(rx, cavernFloorY + 0.06, 67.0);
-    mineGroup.add(cRail);
-  }
-  for (let sz = 34.5; sz <= 99.5; sz += 1.3) {
-    const sleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
-    sleeper.position.set(0, cavernFloorY + 0.03, sz);
-    mineGroup.add(sleeper);
-  }
-
-  // 2) Cross-Cavern East-West Iron Rail Track (z = 49.0, x = -29.5 .. +31.5)
-  const ewTrackGeo = new THREE.BoxGeometry(62.0, 0.11, 0.11);
-  disposableGeometries.push(ewTrackGeo);
-  for (const rz of [48.45, 49.55]) {
-    const ewRail = new THREE.Mesh(ewTrackGeo, darkIronMat);
-    ewRail.position.set(1.0, cavernFloorY + 0.06, rz);
-    mineGroup.add(ewRail);
-  }
-  for (let sx = -29.0; sx <= 30.5; sx += 1.4) {
-    if (Math.abs(sx) < 1.1) continue;
-    const ewSleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
-    ewSleeper.rotation.y = Math.PI / 2;
-    ewSleeper.position.set(sx, cavernFloorY + 0.03, 49.0);
-    mineGroup.add(ewSleeper);
-  }
-
-  // 3) Room 3 Foundry North-South Iron Rail Track (x = 32.5, z = 41.5 .. 86.5)
-  const foundryRailGeo = new THREE.BoxGeometry(0.11, 0.11, 46.0);
-  disposableGeometries.push(foundryRailGeo);
-  for (const rx of [32.5 - 0.55, 32.5 + 0.55]) {
-    const fRail = new THREE.Mesh(foundryRailGeo, darkIronMat);
-    fRail.position.set(rx, cavernFloorY + 0.06, 64.0);
-    mineGroup.add(fRail);
-  }
-  for (let sz = 41.8; sz <= 86.2; sz += 1.35) {
-    const fSleeper = new THREE.Mesh(mineSleeperGeo, barkMat);
-    fSleeper.position.set(32.5, cavernFloorY + 0.03, sz);
-    mineGroup.add(fSleeper);
-  }
+  // Build all visual rail loops & tracks matching the top-down reference image:
+  // - West Amethyst Loop around (-35.0, 66.0, r = 8.4m)
+  buildCircularTrackLoop(-35.0, 66.0, 8.4, 34);
+  // - North-West Ore Pit Loop around (-12.0, 46.5, r = 4.6m)
+  buildCircularTrackLoop(-12.0, 46.5, 4.6, 20);
+  // - East Ore Mound Loop around (31.0, 68.0, r = 6.8m)
+  buildCircularTrackLoop(31.0, 68.0, 6.8, 28);
+  // - Central Wooden Bridge Track (-20.0 .. +6.0, z = 62.5) at bridgeDeckY
+  buildTrackSegment(-19.5, 62.5, 5.5, 62.5, bridgeDeckY);
+  // - East Cavern Track (+6.0 .. +24.2, z = 62.5)
+  buildTrackSegment(6.0, 62.5, 24.2, 62.5, cavernFloorY);
+  // - West Spur (-27.8 .. -20.5, z = 56.8)
+  buildTrackSegment(-27.8, 56.8, -20.5, 56.8, cavernFloorY);
+  // - South-West Haul Track (x = -21.0, z = 54.0 .. 86.0)
+  buildTrackSegment(-21.0, 54.0, -21.0, 86.0, cavernFloorY);
+  // - East Hoist Crane Spur (x = 13.5, z = 50.5 .. 62.0)
+  buildTrackSegment(13.5, 50.5, 13.5, 62.0, cavernFloorY);
+  // - East Tunnel Arch Spur (x = 34.5 .. 38.5, z = 46.0 .. 62.0)
+  buildTrackSegment(34.5, 61.5, 36.5, 46.0, cavernFloorY);
 
   const oreKindToMat = (kind: 'gold' | 'emerald' | 'sapphire' | 'amethyst'): THREE.Material => {
     switch (kind) {
@@ -1752,12 +1898,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     }
   };
 
-  // 4) 8 Sculptural Dwarven Mining Rock & Glowing Crystal/Gold Wall Veins directly in front of each Dwarf's pickaxe!
-  const rockBoulderGeo = new THREE.DodecahedronGeometry(1.15, 1);
-  perturbGeometryVertices(rockBoulderGeo, 0.18, 1.4);
-  const sparkChunkGeo = new THREE.OctahedronGeometry(0.085, 0);
-  disposableGeometries.push(rockBoulderGeo, sparkChunkGeo);
-
+  // 10) 8 Sculptural Dwarven Mining Rock & Glowing Crystal/Gold Wall Veins directly in front of each Dwarf's pickaxe!
   const stationSparkClusters: THREE.Group[] = [];
   for (let stIdx = 0; stIdx < DWARVEN_MINER_STATIONS.length; stIdx++) {
     const stCfg = DWARVEN_MINER_STATIONS[stIdx];
@@ -1765,7 +1906,6 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     const veinGroup = new THREE.Group();
     veinGroup.position.set(stCfg.rockLocalX, cavernFloorY, stCfg.rockLocalZ);
 
-    // Rugged multi-tiered dark-slate rock mass anchored against the cavern wall
     const mainRock = new THREE.Mesh(rockBoulderGeo, mineDarkRockMat);
     mainRock.position.set(0, 0.95, 0);
     mainRock.scale.set(1.12, 1.35, 1.12);
@@ -1779,7 +1919,6 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     upperRock.rotation.y = stIdx * 1.1;
     veinGroup.add(upperRock);
 
-    // Rich glowing gold & crystal seams embedded across the rock face where the pickaxe strikes
     for (let v = 0; v < 7; v++) {
       const ang = (v / 7) * Math.PI * 2 + stIdx * 0.5;
       const seamMesh = new THREE.Mesh(
@@ -1796,7 +1935,6 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       veinGroup.add(seamMesh);
     }
 
-    // Scattered freshly hewn ore chunks at the base of the rock face
     for (let c = 0; c < 5; c++) {
       const chipAng = (c / 5) * Math.PI * 2 + 0.3;
       const chip = new THREE.Mesh(
@@ -1808,7 +1946,6 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       veinGroup.add(chip);
     }
 
-    // Animated pickaxe-impact spark burst right at the Dwarf's strike contact point
     const sparkGroup = new THREE.Group();
     const toDwarfX = stCfg.workLocalX - stCfg.rockLocalX;
     const toDwarfZ = stCfg.workLocalZ - stCfg.rockLocalZ;
@@ -1830,7 +1967,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(veinGroup);
   }
 
-  // 5) 6 Animated Moving Minecarts rolling along the 3 rail lines + pausing for Dwarf loading
+  // 11) 6 Animated Moving Minecarts rolling along the new rail tracks
   interface IAnimatedMinecartRig {
     readonly group: THREE.Group;
     readonly wheels: THREE.Mesh[];
@@ -1842,7 +1979,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     const route = DWARVEN_MINECART_ROUTES[c];
     const oreMat = oreKindToMat(route.oreKind);
     const cartGroup = new THREE.Group();
-    cartGroup.position.set(route.startLocalX, cavernFloorY, route.startLocalZ);
+    const baseY = c === 0 ? bridgeDeckY : cavernFloorY;
+    cartGroup.position.set(route.startLocalX, baseY, route.startLocalZ);
     cartGroup.rotation.y = route.yaw;
 
     const body = new THREE.Mesh(mineCartBodyGeo, darkIronMat);
@@ -1881,46 +2019,18 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     animatedMinecarts.push({ group: cartGroup, wheels, oreGroup });
   }
 
-  const crystalMats = [
-    mineEmeraldCrystalMat,
-    mineAmethystCrystalMat,
-    mineSapphireCrystalMat,
-    mineGoldOreMat,
-  ];
-  const crystalSpots: Array<[number, number, number]> = [
-    [-49.5, 39.0, 1.85],
-    [-49.5, 52.0, 2.05],
-    [-49.5, 76.0, 2.15],
-    [-49.5, 92.0, 1.95],
-    [-28.5, 39.0, 1.65],
-    [-28.5, 93.0, 1.75],
-    [49.5, 39.0, 1.75],
-    [49.5, 65.0, 1.95],
-    [49.5, 92.0, 1.85],
-    [-12.5, 82.0, 1.95],
-    [12.5, 82.0, 1.95],
-    [-13.5, 106.5, 2.25],
-    [-7.0, 107.6, 2.55],
-    [0.0, 107.8, 3.10],
-    [7.0, 107.6, 2.55],
-    [13.5, 106.5, 2.25],
-  ];
-  for (let i = 0; i < crystalSpots.length; i++) {
-    const [cx, cz, scaleBase] = crystalSpots[i];
-    const cMat = crystalMats[i % crystalMats.length];
-    const cluster = new THREE.Group();
-    cluster.position.set(cx, cavernFloorY, cz);
-    for (let s = 0; s < 5; s++) {
-      const spire = new THREE.Mesh(crystalSpireGeo, s === 4 ? mineGoldOreMat : cMat);
-      const ang = (s / 5) * Math.PI * 2 + i * 0.7;
-      const tilt = s === 0 ? 0.06 : 0.28 + (s % 2) * 0.14;
-      spire.position.set(Math.cos(ang) * 0.55, 0, Math.sin(ang) * 0.55);
-      spire.rotation.set(Math.sin(ang) * tilt, ang, Math.cos(ang) * tilt);
-      const hScale = scaleBase * (s === 0 ? 1.38 : 0.78 + (s % 3) * 0.18);
-      spire.scale.set(scaleBase * 0.75, hScale, scaleBase * 0.75);
-      cluster.add(spire);
-    }
-    mineGroup.add(cluster);
+  // Warm lanterns placed along the cavern tracks and loops (matching the warm orange lantern glow in the reference image)
+  for (const [lx, lz, addPt] of [
+    [-25.0, 54.0, false],
+    [-42.5, 60.0, false],
+    [-42.5, 73.0, false],
+    [-19.5, 78.0, false],
+    [11.5, 58.0, false],
+    [25.0, 58.0, true],
+    [39.0, 68.0, false],
+    [25.0, 78.0, false],
+  ] as const) {
+    mineGroup.add(createLanternAssembly(lx, cavernFloorY + 1.35, lz, addPt));
   }
 
   const { updateDwarvenMiners } = buildDwarvenKingdomAndMiners({
@@ -1968,13 +2078,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     }
 
     if (mineGroup.visible) {
-      mineOreWheelGroup.rotation.z = elapsedTime * 0.85;
+      hangingOreCageGroup.rotation.z = Math.sin(elapsedTime * 1.35) * 0.06;
+      hangingOreCageGroup.position.y = cavernFloorY + 6.7 + Math.sin(elapsedTime * 0.9) * 0.22;
 
       // Animate the 6 Moving Minecarts along the iron rails & dynamic ore pile loading!
       for (let c = 0; c < animatedMinecarts.length; c++) {
         const cartRig = animatedMinecarts[c];
         const st = evaluateMinecartTrackState(c, elapsedTime);
-        cartRig.group.position.set(st.localX, cavernFloorY, st.localZ);
+        const cartBaseY = c === 0 ? bridgeDeckY : cavernFloorY;
+        cartRig.group.position.set(st.localX, cartBaseY, st.localZ);
         cartRig.group.rotation.y = st.yaw;
         cartRig.oreGroup.scale.set(1.0, st.oreFillScale, 1.0);
         for (let w = 0; w < cartRig.wheels.length; w++) {

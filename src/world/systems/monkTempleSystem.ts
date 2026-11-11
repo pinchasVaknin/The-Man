@@ -217,8 +217,14 @@ export function resetActiveTempleMonksState(): void {
       mk.bedX !== undefined &&
       mk.bedY !== undefined &&
       mk.bedZ !== undefined;
+    const effectiveBedY =
+      mk.bedY !== undefined &&
+      Math.abs(mk.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08
+        ? CHINESE_FORTRESS_POS.pavilionFloor1Y + 0.38
+        : mk.bedY;
+    mk.bedY = effectiveBedY;
     mk.x = startsInBed ? mk.bedX! : mk.homeX;
-    mk.y = startsInBed ? mk.bedY! : mk.homeY;
+    mk.y = startsInBed ? effectiveBedY! : mk.homeY;
     mk.z = startsInBed ? mk.bedZ! : mk.homeZ;
     mk.yaw = startsInBed ? (mk.bedYaw ?? mk.baseYaw) : mk.baseYaw;
     if (mk.shiftStartOnDuty !== undefined) {
@@ -337,13 +343,18 @@ export function spawnTempleMonk(config: {
   });
   ctrl.driveRootMotion = false;
 
+  const normalizedBedY =
+    config.bedY !== undefined &&
+    Math.abs(config.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08
+      ? CHINESE_FORTRESS_POS.pavilionFloor1Y + 0.38
+      : config.bedY;
   const startsInBed =
     config.shiftStartOnDuty === false &&
     config.bedX !== undefined &&
-    config.bedY !== undefined &&
+    normalizedBedY !== undefined &&
     config.bedZ !== undefined;
   const initX = startsInBed ? config.bedX! : config.homeX;
-  const initY = startsInBed ? config.bedY! : config.homeY;
+  const initY = startsInBed ? normalizedBedY! : config.homeY;
   const initZ = startsInBed ? config.bedZ! : config.homeZ;
   const initYaw = startsInBed ? (config.bedYaw ?? config.baseYaw) : config.baseYaw;
 
@@ -351,16 +362,23 @@ export function spawnTempleMonk(config: {
   const FZ = FORTRESS_Z_OFFSET;
   const sideSign = (config.bedX ?? config.homeX) < 0 ? -1 : 1;
   const doorX = config.doorWaypointX ?? sideSign * 30.0;
-  const computedRouteToPost: ReadonlyArray<readonly [number, number, number]> | undefined =
+  const rawRouteToPost: ReadonlyArray<readonly [number, number, number]> | undefined =
     config.routeToPost ??
-    (config.bedX !== undefined && config.bedY !== undefined && config.bedZ !== undefined
+    (config.bedX !== undefined && normalizedBedY !== undefined && config.bedZ !== undefined
       ? [
-          [config.bedX, config.bedY, config.bedZ],
-          [doorX, config.bedY, -159.0 + FZ],
+          [config.bedX, normalizedBedY, config.bedZ],
+          [doorX, CHINESE_FORTRESS_POS.pavilionFloor1Y, -158.0 + FZ],
           [doorX, config.homeY, -153.5 + FZ],
           [config.homeX, config.homeY, config.homeZ],
         ]
       : undefined);
+  const computedRouteToPost: ReadonlyArray<readonly [number, number, number]> | undefined =
+    rawRouteToPost && rawRouteToPost.length > 0 && normalizedBedY !== undefined
+      ? [
+          [rawRouteToPost[0][0], normalizedBedY, rawRouteToPost[0][2]],
+          ...rawRouteToPost.slice(1),
+        ]
+      : rawRouteToPost;
 
   const wrapper = new THREE.Group();
   wrapper.name = `TempleMonk_${config.id}`;
@@ -539,7 +557,7 @@ export function spawnTempleMonk(config: {
     routeToPost: computedRouteToPost,
     routeCursor: startsInBed ? 0 : Math.max(0, (computedRouteToPost?.length ?? 1) - 1),
     bedX: config.bedX,
-    bedY: config.bedY,
+    bedY: normalizedBedY,
     bedZ: config.bedZ,
     bedYaw: config.bedYaw,
     doorWaypointX: config.doorWaypointX,
@@ -761,6 +779,21 @@ function rotateAngleToward(current: number, target: number, maxStep: number): nu
   while (diff < -Math.PI) diff += Math.PI * 2;
   if (Math.abs(diff) <= maxStep) return target;
   return current + Math.sign(diff) * maxStep;
+}
+
+/**
+ * Summary: Computes the lateral standby offset (left or right of the guard post) where a relief
+ *          guard stops so the on-duty guard can step out first before the relief guard steps into place.
+ */
+function getGuardHandoverSideOffset(mk: IActiveTempleMonk): { dx: number; dz: number } {
+  if (mk.role === 'entrance_guard_left') {
+    return { dx: -0.95, dz: -0.35 };
+  }
+  if (mk.role === 'entrance_guard_right') {
+    return { dx: 0.95, dz: -0.35 };
+  }
+  const sideSign = mk.homeX < 0 ? -1 : 1;
+  return { dx: sideSign * 1.15, dz: 0 };
 }
 
 /**
@@ -1092,7 +1125,7 @@ export function updateMonkTempleSystem(
           mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
           const bedWp = route[0];
           mk.x = bedWp[0];
-          mk.y = bedWp[1];
+          mk.y = Math.max(bedWp[1], mk.bedY ?? bedWp[1]);
           mk.z = bedWp[2];
           mk.yaw = rotateAngleToward(mk.yaw, mk.bedYaw ?? mk.baseYaw, safeDt * 5.5);
           mk.ctrl.speed = 0;
@@ -1124,26 +1157,32 @@ export function updateMonkTempleSystem(
           continue;
         }
 
-        // 2) RELIEVING TO POST: walk along route[1..N-1] from barracks straw bed to guard post.
-        //    Partner stays ON POST until this relief guard physically arrives at the final waypoint!
+        // 2) RELIEVING TO POST: walk along route[1..N-1] from barracks straw bed to the lateral handover spot
+        //    beside the on-duty guard. Once arrived beside the guard, the on-duty guard leaves the post and
+        //    the relief guard steps sideways into the exact post coordinates!
         if (mk.shiftState === 'relieving_to_post') {
           mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
           const cursor = Math.min(route.length - 1, Math.max(0, mk.routeCursor ?? 1));
           const wp = route[cursor];
-          const dx = wp[0] - mk.x;
-          const dy = wp[1] - mk.y;
-          const dz = wp[2] - mk.z;
+          const isFinalPostWp = cursor === route.length - 1;
+          const sideOff = isFinalPostWp ? getGuardHandoverSideOffset(mk) : { dx: 0, dz: 0 };
+          const targetWpX = wp[0] + sideOff.dx;
+          const targetWpY = wp[1];
+          const targetWpZ = wp[2] + sideOff.dz;
+          const dx = targetWpX - mk.x;
+          const dy = targetWpY - mk.y;
+          const dz = targetWpZ - mk.z;
           const distHoriz = Math.hypot(dx, dz);
 
           if (distHoriz <= 0.35 && Math.abs(dy) <= 0.65) {
             if (cursor < route.length - 1) {
               mk.routeCursor = cursor + 1;
             } else {
-              // Relief guard has arrived at the post! Hand over duty NOW so the post is never unguarded!
+              // Relief guard has arrived beside the post! Trigger partner to leave, and then step into place!
               mk.shiftState = 'on_post';
-              mk.x = mk.homeX;
+              mk.x = targetWpX;
               mk.y = mk.homeY;
-              mk.z = mk.homeZ;
+              mk.z = targetWpZ;
               for (let p = 0; p < activeTempleMonks.length; p++) {
                 const other = activeTempleMonks[p];
                 if (
@@ -1168,10 +1207,12 @@ export function updateMonkTempleSystem(
               mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
             }
             const prevWp = route[Math.max(0, cursor - 1)];
-            const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+            const segLen = Math.hypot(targetWpX - prevWp[0], targetWpZ - prevWp[2]);
             const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distHoriz / segLen)) : 1.0;
-            const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
-            mk.y += (interpY - mk.y) * Math.min(1, safeDt * 12.0);
+            const interpY = prevWp[1] + (targetWpY - prevWp[1]) * prog;
+            const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+            const groundedY = Math.abs(walkInfo.height - interpY) <= 1.8 ? walkInfo.height : interpY;
+            mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
             mk.ctrl.speed = walkSpd;
             mk.ctrl.setState('walk', 0.18);
           }
@@ -1196,11 +1237,11 @@ export function updateMonkTempleSystem(
             if (cursor > 0) {
               mk.routeCursor = cursor - 1;
             } else {
-              // Arrived at the Straw Bed inside the barracks house: lie down and sleep!
+              // Arrived at the Straw Bed inside the barracks house: lie down ON TOP of the mattress and sleep!
               mk.shiftState = 'sleeping_in_bed';
               mk.nextShiftChangeTime = elapsedTime + 32.0;
               mk.x = wp[0];
-              mk.y = wp[1];
+              mk.y = Math.max(wp[1], mk.bedY ?? wp[1]);
               mk.z = wp[2];
             }
           } else {
@@ -1215,7 +1256,9 @@ export function updateMonkTempleSystem(
             const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
             const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distHoriz / segLen)) : 1.0;
             const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
-            mk.y += (interpY - mk.y) * Math.min(1, safeDt * 12.0);
+            const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+            const groundedY = Math.abs(walkInfo.height - interpY) <= 1.8 ? walkInfo.height : interpY;
+            mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
             mk.ctrl.speed = walkSpd;
             mk.ctrl.setState('walk', 0.18);
           }
@@ -1227,18 +1270,53 @@ export function updateMonkTempleSystem(
         }
       }
 
+      // Check if the departing partner is still vacating the exact post spot; once clear, step smoothly from the side handover spot into (homeX, homeZ)
+      const departingPartner = activeTempleMonks.find(
+        (other) =>
+          other !== mk &&
+          ((mk.postId !== undefined && other.postId === mk.postId) ||
+            (mk.postId === undefined &&
+              other.role === mk.role &&
+              Math.hypot(other.homeX - mk.homeX, other.homeZ - mk.homeZ) < 1.0)) &&
+          other.shiftState === 'returning_to_bed'
+      );
+      const partnerDistFromPost = departingPartner
+        ? Math.hypot(departingPartner.x - mk.homeX, departingPartner.z - mk.homeZ)
+        : 99.0;
+
       // Stationed on Upper Floor of Watchtower Post (`tower_guard` — stands calm sentinel watch, never attacks empty air!)
       if (mk.role === 'tower_guard') {
-        mk.x = mk.homeX;
+        const distFromExactPost = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
+        if (distFromExactPost > 0.04) {
+          if (partnerDistFromPost >= 0.45) {
+            const stepSpd = 1.65;
+            const step = Math.min(distFromExactPost, stepSpd * safeDt);
+            mk.x += ((mk.homeX - mk.x) / distFromExactPost) * step;
+            mk.z += ((mk.homeZ - mk.z) / distFromExactPost) * step;
+            mk.yaw = rotateAngleToward(
+              mk.yaw,
+              Math.atan2(mk.homeX - mk.x, mk.homeZ - mk.z),
+              safeDt * 6.0
+            );
+            mk.ctrl.speed = stepSpd;
+            mk.ctrl.setState('walk', 0.16);
+          } else {
+            mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
+            mk.ctrl.speed = 0;
+            mk.ctrl.setState('idle', 0.18);
+          }
+        } else {
+          mk.x = mk.homeX;
+          mk.z = mk.homeZ;
+          mk.yaw = rotateAngleToward(
+            mk.yaw,
+            mk.baseYaw + Math.sin(elapsedTime * 0.4 + mk.phaseOffset) * 0.28,
+            safeDt * 4.0
+          );
+          mk.ctrl.speed = 0;
+          mk.ctrl.setState('idle', 0.22);
+        }
         mk.y = mk.homeY;
-        mk.z = mk.homeZ;
-        mk.yaw = rotateAngleToward(
-          mk.yaw,
-          mk.baseYaw + Math.sin(elapsedTime * 0.4 + mk.phaseOffset) * 0.28,
-          safeDt * 4.0
-        );
-        mk.ctrl.speed = 0;
-        mk.ctrl.setState('idle', 0.22);
         mk.group.position.set(mk.x, mk.y, mk.z);
         mk.group.rotation.y = mk.yaw;
         mk.ctrl.update(safeDt);
@@ -1252,16 +1330,40 @@ export function updateMonkTempleSystem(
       const distPlayerToGate = Math.hypot(playerX - gateCenterX, playerZ - gateCenterZ);
       const playerApproaching = distPlayerToGate < 5.0 && Math.abs(playerY - mk.homeY) < 4.0;
 
-      const targetCross = playerApproaching ? 0.0 : 1.0;
-      mk.guardCrossFactor += (targetCross - mk.guardCrossFactor) * Math.min(1.0, safeDt * 6.0);
+      const sideShift = (isLeft ? -0.24 : 0.24) * (1.0 - mk.guardCrossFactor);
+      const desiredGateX = mk.homeX + sideShift;
+      const desiredGateZ = mk.homeZ;
+      const distFromGateSpot = Math.hypot(desiredGateX - mk.x, desiredGateZ - mk.z);
 
-      const sideShift = (isLeft ? -0.32 : 0.32) * (1.0 - mk.guardCrossFactor);
-      mk.x = mk.homeX + sideShift;
+      if (distFromGateSpot > 0.05) {
+        mk.guardCrossFactor = Math.max(0, mk.guardCrossFactor - safeDt * 5.0);
+        if (partnerDistFromPost >= 0.45) {
+          const stepSpd = 1.65;
+          const step = Math.min(distFromGateSpot, stepSpd * safeDt);
+          mk.x += ((desiredGateX - mk.x) / distFromGateSpot) * step;
+          mk.z += ((desiredGateZ - mk.z) / distFromGateSpot) * step;
+          mk.yaw = rotateAngleToward(
+            mk.yaw,
+            Math.atan2(desiredGateX - mk.x, desiredGateZ - mk.z),
+            safeDt * 6.0
+          );
+          mk.ctrl.speed = stepSpd;
+          mk.ctrl.setState('walk', 0.16);
+        } else {
+          mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
+          mk.ctrl.speed = 0;
+          mk.ctrl.setState('idle', 0.18);
+        }
+      } else {
+        const targetCross = playerApproaching ? 0.0 : 1.0;
+        mk.guardCrossFactor += (targetCross - mk.guardCrossFactor) * Math.min(1.0, safeDt * 6.0);
+        mk.x = desiredGateX;
+        mk.z = desiredGateZ;
+        mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
+        mk.ctrl.speed = 0;
+        mk.ctrl.setState('idle', 0.22);
+      }
       mk.y = mk.homeY;
-      mk.z = mk.homeZ;
-      mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
-      mk.ctrl.speed = 0;
-      mk.ctrl.setState('idle', 0.22);
 
       mk.group.position.set(mk.x, mk.y, mk.z);
       mk.group.rotation.y = mk.yaw;
@@ -1349,7 +1451,8 @@ export function updateMonkTempleSystem(
           const step = Math.min(distWp, moveSpd * safeDt);
           mk.x += (dx / distWp) * step;
           mk.z += (dz / distWp) * step;
-          mk.y = targetWp[1];
+          const walkInfo = walkableHeightAt(mk.x, mk.z, targetWp[1]);
+          mk.y = Math.abs(walkInfo.height - targetWp[1]) <= 1.2 ? walkInfo.height : targetWp[1];
           mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.0);
           mk.ctrl.speed = moveSpd;
           mk.ctrl.setState(isJogLeg ? 'run' : 'walk', 0.2);
@@ -1363,12 +1466,7 @@ export function updateMonkTempleSystem(
 
     if (mk.role === 'courtyard_bench') {
       // Seated courtyard monk on a wooden monastery bench (`sit`, `pray_kneel`, `idle`)
-      mk.x = mk.homeX;
-      mk.y = mk.homeY;
-      mk.z = mk.homeZ;
-      mk.yaw = mk.baseYaw;
-      mk.ctrl.speed = 0;
-
+      // Advances 0.78m forward clear of the bench before kneeling to pray or standing!
       mk.scheduleTimer -= safeDt;
       const benchStages: ReadonlyArray<{ state: WarriorMonkState; dur: number }> = [
         { state: 'sit', dur: 7.5 },
@@ -1380,20 +1478,22 @@ export function updateMonkTempleSystem(
         mk.scheduleStage = (mk.scheduleStage + 1) % benchStages.length;
         mk.scheduleTimer = benchStages[mk.scheduleStage % benchStages.length].dur;
       }
-      mk.ctrl.setState(benchStages[mk.scheduleStage % benchStages.length].state, 0.24);
+      const activeBenchState = benchStages[mk.scheduleStage % benchStages.length].state;
+      const forwardBenchOffset = activeBenchState === 'sit' ? 0.0 : 0.78;
+      mk.x = mk.homeX + Math.sin(mk.baseYaw) * forwardBenchOffset;
+      mk.y = mk.homeY;
+      mk.z = mk.homeZ + Math.cos(mk.baseYaw) * forwardBenchOffset;
+      mk.yaw = mk.baseYaw;
+      mk.ctrl.speed = 0;
+      mk.ctrl.setState(activeBenchState, 0.24);
       mk.group.position.set(mk.x, mk.y, mk.z);
       mk.group.rotation.y = mk.yaw;
       mk.ctrl.update(safeDt);
       continue;
     }
 
-    // `shrine_devotee` & `sanctuary_master`: positioned at wooden monastery benches so `sit` rests directly on a bench (never attacking empty air!)
-    mk.x = mk.homeX;
-    mk.y = mk.homeY;
-    mk.z = mk.homeZ;
-    mk.yaw = mk.baseYaw;
-    mk.ctrl.speed = 0;
-
+    // `shrine_devotee` & `sanctuary_master`: positioned at wooden monastery benches so `sit` rests directly on a bench,
+    // and advances 0.78m forward in front of the bench before kneeling to pray (`pray_kneel`) or standing (`idle`)!
     mk.scheduleTimer -= safeDt;
     const devoteeStages: ReadonlyArray<{ state: WarriorMonkState; dur: number }> = [
       { state: 'sit', dur: 6.0 },
@@ -1406,10 +1506,93 @@ export function updateMonkTempleSystem(
       mk.scheduleStage = (mk.scheduleStage + 1) % devoteeStages.length;
       mk.scheduleTimer = devoteeStages[mk.scheduleStage % devoteeStages.length].dur;
     }
-    mk.ctrl.setState(devoteeStages[mk.scheduleStage % devoteeStages.length].state, 0.24);
+    const activeDevoteeState = devoteeStages[mk.scheduleStage % devoteeStages.length].state;
+    const forwardDevoteeOffset =
+      mk.role === 'shrine_devotee' && activeDevoteeState !== 'sit' ? 0.78 : 0.0;
+    mk.x = mk.homeX + Math.sin(mk.baseYaw) * forwardDevoteeOffset;
+    mk.y = mk.homeY;
+    mk.z = mk.homeZ + Math.cos(mk.baseYaw) * forwardDevoteeOffset;
+    mk.yaw = mk.baseYaw;
+    mk.ctrl.speed = 0;
+    mk.ctrl.setState(activeDevoteeState, 0.24);
     mk.group.position.set(mk.x, mk.y, mk.z);
     mk.group.rotation.y = mk.yaw;
     mk.ctrl.update(safeDt);
+  }
+
+  // 2.5. Monk-to-Monk and Monk-to-Player Solid Hitbox Separation (prevents monks from stacking or clipping into each other or the player)
+  const minMonkSeparation = 0.88;
+  for (let i = 0; i < activeTempleMonks.length; i++) {
+    const a = activeTempleMonks[i];
+    if (a.teleportState || a.shiftState === 'sleeping_in_bed') continue;
+    for (let j = i + 1; j < activeTempleMonks.length; j++) {
+      const b = activeTempleMonks[j];
+      if (b.teleportState || b.shiftState === 'sleeping_in_bed') continue;
+      if (Math.abs(a.y - b.y) > 1.8) continue;
+
+      let dx = b.x - a.x;
+      let dz = b.z - a.z;
+      let dist = Math.hypot(dx, dz);
+      if (dist < minMonkSeparation) {
+        if (dist < 0.001) {
+          dx = 1.0;
+          dz = 0.0;
+          dist = 1.0;
+        }
+        const overlap = minMonkSeparation - dist;
+        const nx = dx / dist;
+        const nz = dz / dist;
+
+        const aMoving =
+          a.isAggro ||
+          a.shiftState === 'relieving_to_post' ||
+          a.shiftState === 'returning_to_bed' ||
+          a.role === 'courtyard_patrol' ||
+          Boolean(a.isReturningFromAggro);
+        const bMoving =
+          b.isAggro ||
+          b.shiftState === 'relieving_to_post' ||
+          b.shiftState === 'returning_to_bed' ||
+          b.role === 'courtyard_patrol' ||
+          Boolean(b.isReturningFromAggro);
+
+        const aWeight = aMoving && !bMoving ? 1.0 : !aMoving && bMoving ? 0.0 : 0.5;
+        const bWeight = 1.0 - aWeight;
+
+        a.x -= nx * overlap * aWeight;
+        a.z -= nz * overlap * aWeight;
+        b.x += nx * overlap * bWeight;
+        b.z += nz * overlap * bWeight;
+        a.group.position.set(a.x, a.y, a.z);
+        b.group.position.set(b.x, b.y, b.z);
+      }
+    }
+
+    // Separate monk and player horizontally when on the same floor
+    if (Math.abs(a.y - playerY) <= 1.8) {
+      let pdx = a.x - playerX;
+      let pdz = a.z - playerZ;
+      let pDist = Math.hypot(pdx, pdz);
+      const minPlayerMonkDist = 0.82;
+      if (pDist < minPlayerMonkDist) {
+        if (pDist < 0.001) {
+          pdx = Math.sin(a.yaw);
+          pdz = Math.cos(a.yaw);
+          pDist = 1.0;
+        }
+        const push = minPlayerMonkDist - pDist;
+        const pnx = pdx / pDist;
+        const pnz = pdz / pDist;
+        if (a.isAggro || a.ctrl.speed > 0.05) {
+          a.x += pnx * push;
+          a.z += pnz * push;
+          a.group.position.set(a.x, a.y, a.z);
+        } else if (playerState) {
+          playerState.x -= pnx * push;
+          playerState.z -= pnz * push;
+        }
+      }
+    }
   }
 
   // 3. Step wooden training dummy shudder / recoil physics

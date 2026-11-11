@@ -32,6 +32,8 @@ import {
   type DwarfWarriorState,
 } from '../models/Characters/DwarfWarrior_Complete';
 
+import type { IPlayerState, IArrowProjectile } from '../domain/worldTypes';
+
 /**
  * Summary: Rig representation for an individual animated dwarven miner mesh.
  * Design: Encapsulates Three.js group, skeletal DwarfWarrior rig, and retaliation combat state.
@@ -55,6 +57,9 @@ export interface IDwarvenMinerRig {
   hp: number;
   maxHp: number;
   isDead: boolean;
+  isLooted: boolean;
+  goldDrop: number;
+  outOfAreaRespawnTimer: number;
   deathTimer: number;
   hitFlashTimer: number;
   hitBarTimer: number;
@@ -69,6 +74,75 @@ const activeDwarvenMiners: IDwarvenMinerRig[] = [];
 
 export function getActiveDwarvenMiners(): readonly IDwarvenMinerRig[] {
   return activeDwarvenMiners;
+}
+
+/**
+ * Summary: Finds the nearest dead, unlooted Dwarven Miner within `maxRange` of the player.
+ */
+export function findNearestDeadLootableDwarf(
+  playerX: number,
+  playerZ: number,
+  maxRange = 3.4,
+  playerY?: number
+): IDwarvenMinerRig | null {
+  let best: IDwarvenMinerRig | null = null;
+  let bestDist = maxRange;
+  for (let i = 0; i < activeDwarvenMiners.length; i++) {
+    const dm = activeDwarvenMiners[i];
+    if (!dm.isDead || dm.isLooted) continue;
+    if (playerY !== undefined && Math.abs(playerY - dm.y) > 3.2) continue;
+    const d = Math.hypot(dm.x - playerX, dm.z - playerZ);
+    if (d <= bestDist) {
+      bestDist = d;
+      best = dm;
+    }
+  }
+  return best;
+}
+
+/**
+ * Summary: Loots a dead Dwarven Miner for a modest pouch of gold coins (6–14 gold)
+ *          and recovers any arrows stuck near the dwarf.
+ */
+export function lootDeadDwarf(
+  playerState: IPlayerState,
+  dwarf: IDwarvenMinerRig,
+  activeArrows?: IArrowProjectile[]
+): {
+  looted: boolean;
+  goldAdded: number;
+  recoveredArrows: number;
+  notification: string | null;
+} {
+  if (!dwarf.isDead || dwarf.isLooted) {
+    return { looted: false, goldAdded: 0, recoveredArrows: 0, notification: null };
+  }
+  dwarf.isLooted = true;
+  const goldAdded = Math.max(4, Math.min(18, dwarf.goldDrop || 8));
+  playerState.goldCoins = (playerState.goldCoins ?? 280) + goldAdded;
+
+  let recoveredArrows = 0;
+  if (activeArrows) {
+    for (let i = activeArrows.length - 1; i >= 0; i--) {
+      const arr = activeArrows[i];
+      if (arr.stuck && Math.hypot(arr.x - dwarf.x, arr.z - dwarf.z) <= 2.4) {
+        activeArrows.splice(i, 1);
+        recoveredArrows++;
+      }
+    }
+  }
+  const arrowSuffix =
+    recoveredArrows > 0
+      ? ` (+${recoveredArrows} Recovered Arrow${recoveredArrows > 1 ? 's' : ''})`
+      : '';
+  const notification = `Looted ${dwarf.name}: +${goldAdded} Gold Coins${arrowSuffix}`;
+  playerState.lastLootNotification = { text: notification, timer: 4.5 };
+  return {
+    looted: true,
+    goldAdded,
+    recoveredArrows,
+    notification,
+  };
 }
 
 /**
@@ -156,6 +230,8 @@ export function checkSwordHitDwarf(
       dm.hitFlashTimer = 0.35;
       if (dm.hp <= 0) {
         dm.isDead = true;
+        dm.isLooted = false;
+        dm.outOfAreaRespawnTimer = 0;
         dm.isAggro = false;
         dm.aggroTimer = 0;
         dm.deathTimer = 999999.0;
@@ -192,6 +268,8 @@ export function checkArrowHitDwarf(
       dm.hitFlashTimer = 0.35;
       if (dm.hp <= 0) {
         dm.isDead = true;
+        dm.isLooted = false;
+        dm.outOfAreaRespawnTimer = 0;
         dm.isAggro = false;
         dm.aggroTimer = 0;
         dm.deathTimer = 999999.0;
@@ -348,35 +426,44 @@ export function buildDwarvenKingdomAndMiners(
   });
 
   // 1) TWIN COLOSSAL LOTR-STYLE DWARVEN KING GUARDIAN STATUES FLANKING THE MINE ENTRANCE
+  const statuePlinthFoundationGeo = new THREE.BoxGeometry(5.1, 0.9, 5.1);
+  statuePlinthFoundationGeo.translate(0, 0.05, 0); // Extends -0.4m below baseY so it never floats on slopes
   const statuePedestalBaseGeo = new THREE.CylinderGeometry(2.35, 2.65, 2.4, 8);
-  statuePedestalBaseGeo.translate(0, 1.2, 0);
+  statuePedestalBaseGeo.translate(0, 1.35, 0);
   const statuePedestalCapGeo = new THREE.CylinderGeometry(2.55, 2.4, 0.42, 8);
-  statuePedestalCapGeo.translate(0, 2.55, 0);
-  const statueTorsoGeo = new THREE.CylinderGeometry(1.28, 1.48, 3.2, 8);
-  statueTorsoGeo.translate(0, 4.35, 0);
-  const statuePauldronGeo = new THREE.BoxGeometry(3.4, 0.95, 1.75);
-  statuePauldronGeo.translate(0, 5.55, 0);
-  const statueHeadGeo = new THREE.CylinderGeometry(0.76, 0.82, 1.25, 8);
-  statueHeadGeo.translate(0, 6.55, 0);
-  const statueHelmConeGeo = new THREE.ConeGeometry(0.95, 1.45, 8);
-  statueHelmConeGeo.translate(0, 7.65, 0);
-  const statueHelmCrestGeo = new THREE.BoxGeometry(0.28, 1.35, 1.65);
-  statueHelmCrestGeo.translate(0, 7.85, 0);
-  const statueBeardMainGeo = new THREE.ConeGeometry(0.92, 2.85, 6);
+  statuePedestalCapGeo.translate(0, 2.7, 0);
+  const statueGreaveGeo = new THREE.CylinderGeometry(0.54, 0.62, 1.45, 8);
+  statueGreaveGeo.translate(0, 3.45, 0);
+  const statueBootBlockGeo = new THREE.BoxGeometry(0.95, 0.46, 1.45);
+  statueBootBlockGeo.translate(0, 2.95, 0.22);
+  const statueTorsoGeo = new THREE.CylinderGeometry(1.32, 1.52, 2.85, 8);
+  statueTorsoGeo.translate(0, 5.15, 0);
+  const statuePauldronGeo = new THREE.BoxGeometry(3.55, 0.98, 1.82);
+  statuePauldronGeo.translate(0, 6.25, 0);
+  const statueHeadGeo = new THREE.CylinderGeometry(0.78, 0.84, 1.28, 8);
+  statueHeadGeo.translate(0, 7.25, 0);
+  const statueHelmConeGeo = new THREE.ConeGeometry(0.98, 1.48, 8);
+  statueHelmConeGeo.translate(0, 8.38, 0);
+  const statueHelmCrestGeo = new THREE.BoxGeometry(0.30, 1.38, 1.72);
+  statueHelmCrestGeo.translate(0, 8.58, 0);
+  const statueBeardMainGeo = new THREE.ConeGeometry(0.95, 2.95, 6);
   statueBeardMainGeo.rotateX(Math.PI);
-  const statueArmGeo = new THREE.CylinderGeometry(0.42, 0.38, 2.35, 8);
-  const statueAxeShaftGeo = new THREE.CylinderGeometry(0.12, 0.14, 5.6, 8);
-  statueAxeShaftGeo.translate(0, 2.8, 0);
-  const statueAxeBladeGeo = new THREE.ConeGeometry(1.15, 1.45, 4);
-  statueAxeBladeGeo.scale(0.24, 1.0, 1.15);
-  const statueBeltGeo = new THREE.CylinderGeometry(1.42, 1.42, 0.38, 8);
+  const statueArmGeo = new THREE.CylinderGeometry(0.44, 0.40, 2.4, 8);
+  const statueAxeShaftGeo = new THREE.CylinderGeometry(0.13, 0.15, 6.2, 8);
+  statueAxeShaftGeo.translate(0, 3.1, 0);
+  const statueAxeBladeGeo = new THREE.ConeGeometry(1.22, 1.55, 4);
+  statueAxeBladeGeo.scale(0.24, 1.0, 1.18);
+  const statueBeltGeo = new THREE.CylinderGeometry(1.48, 1.48, 0.42, 8);
   const statueNoseGuardGeo = new THREE.BoxGeometry(0.24, 0.58, 0.25);
   const statueEyeGeo = new THREE.BoxGeometry(0.22, 0.10, 0.12);
   const statueBeardRing1Geo = new THREE.TorusGeometry(0.52, 0.09, 6, 10);
   const statueBeardRing2Geo = new THREE.TorusGeometry(0.34, 0.08, 6, 10);
   disposableGeometries.push(
+    statuePlinthFoundationGeo,
     statuePedestalBaseGeo,
     statuePedestalCapGeo,
+    statueGreaveGeo,
+    statueBootBlockGeo,
     statueTorsoGeo,
     statuePauldronGeo,
     statueHeadGeo,
@@ -399,12 +486,22 @@ export function buildDwarvenKingdomAndMiners(
     stGroup.position.set(st.x, st.baseY, st.z);
     stGroup.rotation.y = st.yaw;
 
+    const plinthFoundation = new THREE.Mesh(statuePlinthFoundationGeo, dwarvenGraniteMat);
     const pedBase = new THREE.Mesh(statuePedestalBaseGeo, dwarvenGraniteMat);
     const pedCap = new THREE.Mesh(statuePedestalCapGeo, dwarvenBronzeMat);
-    const torso = new THREE.Mesh(statueTorsoGeo, dwarvenGraniteMat);
+
+    for (const legSide of [-1, 1]) {
+      const greave = new THREE.Mesh(statueGreaveGeo, dwarvenScaleArmorMat);
+      greave.position.set(legSide * 0.68, 0, 0.08);
+      const boot = new THREE.Mesh(statueBootBlockGeo, dwarvenBronzeMat);
+      boot.position.set(legSide * 0.68, 0, 0.12);
+      stGroup.add(greave, boot);
+    }
+
+    const torso = new THREE.Mesh(statueTorsoGeo, dwarvenScaleArmorMat);
     const pauldron = new THREE.Mesh(statuePauldronGeo, dwarvenBronzeMat);
     const belt = new THREE.Mesh(statueBeltGeo, mineGoldOreMat);
-    belt.position.y = 3.65;
+    belt.position.y = 4.35;
     const head = new THREE.Mesh(statueHeadGeo, dwarvenGraniteMat);
     head.position.z = 0.35;
     const helmCone = new THREE.Mesh(statueHelmConeGeo, dwarvenBronzeMat);
@@ -413,47 +510,48 @@ export function buildDwarvenKingdomAndMiners(
     helmCrest.position.z = 0.35;
 
     const noseGuard = new THREE.Mesh(statueNoseGuardGeo, dwarvenBronzeMat);
-    noseGuard.position.set(0, 6.62, 1.15);
+    noseGuard.position.set(0, 7.32, 1.15);
     const eyeL = new THREE.Mesh(statueEyeGeo, mineGoldOreMat);
-    eyeL.position.set(-0.32, 6.68, 1.10);
+    eyeL.position.set(-0.32, 7.38, 1.10);
     const eyeR = new THREE.Mesh(statueEyeGeo, mineGoldOreMat);
-    eyeR.position.set(0.32, 6.68, 1.10);
+    eyeR.position.set(0.32, 7.38, 1.10);
 
     const beardCenter = new THREE.Mesh(statueBeardMainGeo, dwarvenGraniteMat);
-    beardCenter.position.set(0, 4.95, 1.32);
+    beardCenter.position.set(0, 5.65, 1.32);
     const beardBraidL = new THREE.Mesh(statueBeardMainGeo, dwarvenGraniteMat);
     beardBraidL.scale.set(0.55, 0.88, 0.55);
-    beardBraidL.position.set(-0.55, 5.05, 1.28);
+    beardBraidL.position.set(-0.55, 5.75, 1.28);
     const beardBraidR = new THREE.Mesh(statueBeardMainGeo, dwarvenGraniteMat);
     beardBraidR.scale.set(0.55, 0.88, 0.55);
-    beardBraidR.position.set(0.55, 5.05, 1.28);
+    beardBraidR.position.set(0.55, 5.75, 1.28);
     const beardRing1 = new THREE.Mesh(statueBeardRing1Geo, mineGoldOreMat);
     beardRing1.rotation.x = Math.PI / 2;
-    beardRing1.position.set(0, 4.65, 1.40);
+    beardRing1.position.set(0, 5.35, 1.40);
     const beardRing2 = new THREE.Mesh(statueBeardRing2Geo, mineGoldOreMat);
     beardRing2.rotation.x = Math.PI / 2;
-    beardRing2.position.set(0, 3.92, 1.40);
+    beardRing2.position.set(0, 4.62, 1.40);
 
     for (const sideX of [-1, 1]) {
       const arm = new THREE.Mesh(statueArmGeo, dwarvenGraniteMat);
-      arm.position.set(sideX * 1.32, 4.68, 1.05);
+      arm.position.set(sideX * 1.38, 5.38, 1.05);
       arm.rotation.z = sideX * 0.42;
       arm.rotation.x = -0.58;
       stGroup.add(arm);
     }
 
     const axeShaft = new THREE.Mesh(statueAxeShaftGeo, dwarvenBronzeMat);
-    axeShaft.position.set(0, 2.65, 1.78);
+    axeShaft.position.set(0, 2.75, 1.78);
     const axeBladeL = new THREE.Mesh(statueAxeBladeGeo, dwarvenGraniteMat);
     axeBladeL.scale.set(0.30, 1.25, 1.35);
-    axeBladeL.position.set(-0.88, 4.65, 1.78);
+    axeBladeL.position.set(-0.92, 5.35, 1.78);
     axeBladeL.rotation.z = Math.PI / 2;
     const axeBladeR = new THREE.Mesh(statueAxeBladeGeo, dwarvenGraniteMat);
     axeBladeR.scale.set(0.30, 1.25, 1.35);
-    axeBladeR.position.set(0.88, 4.65, 1.78);
+    axeBladeR.position.set(0.92, 5.35, 1.78);
     axeBladeR.rotation.z = -Math.PI / 2;
 
     stGroup.add(
+      plinthFoundation,
       pedBase,
       pedCap,
       torso,
@@ -473,7 +571,7 @@ export function buildDwarvenKingdomAndMiners(
       axeShaft,
       axeBladeL,
       axeBladeR,
-      createLanternAssembly(0, 3.2, 2.25, s === 0)
+      createLanternAssembly(0, 3.35, 2.25, s === 0)
     );
     scene.add(stGroup);
     distanceCulledObjects.push({ obj: stGroup, cx: st.x, cz: st.z, radius: 28 });
@@ -498,15 +596,17 @@ export function buildDwarvenKingdomAndMiners(
   dhRoofTopGeo.translate(0, 5.8, 0);
   const dhChimneyGeo = new THREE.CylinderGeometry(0.55, 0.72, 2.6, 6);
   dhChimneyGeo.translate(0, 6.4, 0);
-  const dhFloorGeo = new THREE.BoxGeometry(10.6, 0.22, 8.8);
-  dhFloorGeo.translate(0, 0.09, 0);
+  const dhFloorGeo = new THREE.BoxGeometry(10.6, 0.52, 8.8);
+  dhFloorGeo.translate(0, -0.06, 0); // Grounded into terrace so house base never floats
   const dhDoorLeafGeo = new THREE.BoxGeometry(0.14, 2.85, 1.12);
-  const dhStepSlabGeo = new THREE.BoxGeometry(1.6, 0.16, 3.2);
+  const dhStepSlabGeo = new THREE.BoxGeometry(1.6, 0.36, 3.2);
   const dhCapGeo = new THREE.BoxGeometry(1.08, 0.28, 1.08);
   const dhRidgeCrestGeo = new THREE.BoxGeometry(6.8, 0.36, 0.36);
   const dhTableTopGeo = new THREE.BoxGeometry(2.1, 0.1, 0.85);
   const dhTableLegGeo = new THREE.BoxGeometry(0.12, 0.68, 0.12);
   const dhOutdoorAnvilGeo = new THREE.BoxGeometry(0.95, 0.75, 0.52);
+  const dhChestBodyGeo = new THREE.BoxGeometry(0.72, 0.56, 1.25);
+  dhChestBodyGeo.translate(0, 0.28, 0);
 
   // Dwarven Bed geometries (2 beds per house along the South wall)
   const dhBedFrameGeo = new THREE.BoxGeometry(1.55, 0.26, 2.32);
@@ -554,6 +654,7 @@ export function buildDwarvenKingdomAndMiners(
     dhTableTopGeo,
     dhTableLegGeo,
     dhOutdoorAnvilGeo,
+    dhChestBodyGeo,
     dhBedFrameGeo,
     dhBedHeadboardGeo,
     dhBedPostGeo,
@@ -615,7 +716,7 @@ export function buildDwarvenKingdomAndMiners(
 
     const floorSlab = new THREE.Mesh(dhFloorGeo, dwarvenGraniteMat);
     const stepSlab = new THREE.Mesh(dhStepSlabGeo, dwarvenGraniteMat);
-    stepSlab.position.set(dh.dirX * (dh.halfW + 0.55), 0.08, 0);
+    stepSlab.position.set(dh.dirX * (dh.halfW + 0.55), -0.02, 0);
     dhGroup.add(floorSlab, stepSlab);
 
     const backWall = new THREE.Mesh(dhWallFBGeo, dwarvenGraniteMat);
@@ -678,6 +779,10 @@ export function buildDwarvenKingdomAndMiners(
     hearthCoals.scale.set(0.75, 0.45, 0.75);
     hearthCoals.position.set(-dh.dirX * 2.8, 0.72, -1.8);
 
+    // Interior Iron-Bound Dwarven Storage Chest against back wall
+    const backChest = new THREE.Mesh(dhChestBodyGeo, timberMat);
+    backChest.position.set(-dh.dirX * 4.2, 0.18, 0.2);
+
     // 2 Real Dwarven Beds along the South interior wall (`lz = 2.55`, `lx = -2.0` and `lx = +2.0`)
     for (const bedLx of [-2.0, 2.0]) {
       const bed = createDwarvenBed();
@@ -717,6 +822,7 @@ export function buildDwarvenKingdomAndMiners(
     dhGroup.add(
       hearthRing,
       hearthCoals,
+      backChest,
       benchNorth,
       benchSouth,
       oakTableGroup,
@@ -888,6 +994,9 @@ export function buildDwarvenKingdomAndMiners(
       hp: 100 + (d % 3) * 15,
       maxHp: 100 + (d % 3) * 15,
       isDead: false,
+      isLooted: false,
+      goldDrop: 6 + (d % 5) * 2,
+      outOfAreaRespawnTimer: 0,
       deathTimer: 0,
       hitFlashTimer: 0,
       hitBarTimer: 0,
@@ -939,8 +1048,29 @@ export function buildDwarvenKingdomAndMiners(
         dm.hitBarTimer = Math.max(0, dm.hitBarTimer - safeDt);
       }
 
-      // 0. Dead State: play death animation once and stay locked on the final frame!
+      // 0. Dead State: play death animation once, allow gold looting, and respawn after 25s while player is out of area!
       if (dm.isDead) {
+        const distPlayerToDeadDwarf = Math.hypot(playerX - dm.x, playerZ - dm.z);
+        if (distPlayerToDeadDwarf > 38.0) {
+          dm.outOfAreaRespawnTimer += safeDt;
+          if (dm.outOfAreaRespawnTimer >= 25.0) {
+            const respawnSt = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime);
+            dm.isDead = false;
+            dm.isLooted = false;
+            dm.outOfAreaRespawnTimer = 0;
+            dm.deathTimer = 0;
+            dm.hp = dm.maxHp;
+            dm.isAggro = false;
+            dm.aggroTimer = 0;
+            dm.x = respawnSt.x;
+            dm.y = respawnSt.y;
+            dm.z = respawnSt.z;
+            dm.yaw = respawnSt.yaw;
+            dm.root.position.set(dm.x, dm.y, dm.z);
+            dm.ctrl.setState('idle', 0.12);
+            continue;
+          }
+        }
         const vis = isWithinViewDistance(dm.x, dm.z, playerX, playerZ, 18, VIEW_DISTANCE);
         dm.root.visible = vis;
         dm.lanternGlow.visible = false;
@@ -1086,7 +1216,7 @@ export function buildDwarvenKingdomAndMiners(
         }
       } else {
         // Resting at home inside the Dwarven Stone Houses:
-        // Place sleeping dwarves directly on their Bed and sitting dwarves directly on their Wooden Bench!
+        // Place sleeping dwarves ON TOP OF their Bed mattress (`house.floorY + 0.54`) and sitting dwarves on their Wooden Bench!
         dm.ctrl.speed = 0;
         const { houseIdx, slot } = getDwarfHomeAssignment(d);
         const house = DWARVEN_STONE_HOUSES[houseIdx];
@@ -1099,7 +1229,7 @@ export function buildDwarvenKingdomAndMiners(
           targetAnim = 'sleep';
           const bedLocalX = slot === 0 ? -2.0 : 2.0;
           dm.x = house.x + bedLocalX;
-          dm.y = house.floorY + 0.34;
+          dm.y = house.floorY + 0.54;
           dm.z = house.z + 2.55;
           dm.yaw = 0; // Head toward headboard (+Z), feet toward -Z
         } else {

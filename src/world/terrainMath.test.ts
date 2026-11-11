@@ -736,7 +736,7 @@ test('worldLandmarks_WhenEvaluatingOutpostsAndSuspensionBridge_ShouldVerifyHeigh
     shaftMidWalk.height < 0 && shaftMidWalk.height > SOUTHERN_MINE_POS.cavernFloorY,
     `Expected sloping underground mine shaft at z=${SOUTHERN_MINE_POS.entranceZ + 18.75} to be below ground (y=${shaftMidWalk.height.toFixed(2)})`
   );
-  const cavernWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 10.0, SOUTHERN_MINE_POS.entranceZ + 50.0, SOUTHERN_MINE_POS.cavernFloorY);
+  const cavernWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 28.0, SOUTHERN_MINE_POS.entranceZ + 58.0, SOUTHERN_MINE_POS.cavernFloorY);
   assert.equal(cavernWalk.surface, 'bridge');
   assert.ok(
     Math.abs(cavernWalk.height - SOUTHERN_MINE_POS.cavernFloorY) < 0.05,
@@ -997,24 +997,19 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
   const obstacles = generateWorldObstacles();
   // Act
 
-  // 1) Multi-Room & 5-Corridor Underground Southern Mine relocated far South (entranceZ = 420.0, cavernHalfW = 52.0, cavernEndZ = 530.0)
+  // 1) Subterranean Cavern Mine with Central Waterfall, Turquoise Lagoon, Wooden Bridge, Lakeside Dock, and NE Cliffside Scaffolding
   // Assert
   assert.equal(SOUTHERN_MINE_POS.entranceZ, 420.0);
   assert.equal(SOUTHERN_MINE_POS.cavernHalfW, 52.0);
   assert.equal(SOUTHERN_MINE_POS.cavernEndZ, 530.0);
 
-  // Room 1 (Central Junction: -58, 468), Corridor 1 (-78, 469), Room 2 East bank (-86, 483),
-  // Corridor 2 (-38, 469), Room 3 East Smelting Foundry (-20, 483), Corridor 3 (-58, 491), and Room 4 Deep South Vault (-58, 518) are all walkable!
+  // Verify dry cavern floor areas across the entry plaza, NW tunnel, West Amethyst hall, East Ore loop, and SE Gold crystal bay are walkable
   for (const [mx, mz] of [
-    [-58.0, 468.0], // Room 1: Central Junction Hall (lz = 48)
-    [-78.0, 469.0], // Corridor 1: West Shored Tunnel (lz = 49)
-    [-86.0, 483.0], // Room 2: West Crystal Lake Chamber (East dry bank, lz = 63)
-    [-38.0, 469.0], // Corridor 2: East Masonry Tunnel (lz = 49)
-    [-20.0, 483.0], // Room 3: East Smelting Foundry Hall (lz = 63)
-    [-58.0, 491.0], // Corridor 3: South Pillared Corridor (lz = 71)
-    [-58.0, 518.0], // Room 4: Deep South Treasure Vault (lz = 98)
-    [-79.0, 509.0], // Corridor 4: SW Loop Passage (lz = 89)
-    [-37.0, 509.0], // Corridor 5: SE Loop Passage (lz = 89)
+    [-58.0, 458.0], // Entry Plaza (lx = 0, lz = 38)
+    [-81.5, 463.0], // NW Tunnel Arch (lx = -23.5, lz = 43)
+    [-86.0, 486.0], // West Amethyst Crystal Track (lx = -28.0, lz = 66)
+    [-24.0, 488.0], // East Circular Track Loop (lx = 34.0, lz = 68)
+    [-46.0, 492.0], // SE Gold Crystal Path (lx = 12.0, lz = 72)
   ]) {
     const walk = walkableHeightAt(mx, mz, SOUTHERN_MINE_POS.cavernFloorY);
     assert.equal(walk.surface, 'bridge', `Expected underground mine floor at (${mx}, ${mz})`);
@@ -1024,11 +1019,20 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
     );
   }
 
-  // Verify solid rock partition wall between Room 1 and Room 2 blocks walking through at lz = 40 (z = 272),
-  // whereas walking West through Corridor 1 at lz = 49 (z = 281) passes freely from Room 1 into Room 2!
+  // Verify wooden plank bridge across the lagoon (lx = -7.0, lz = 62.5), lakeside dock (lx = -5.0, lz = 86.0), and NE scaffolding platform (lx = 16.0, lz = 43.0)
+  const bridgeWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 7.0, SOUTHERN_MINE_POS.entranceZ + 62.5, SOUTHERN_MINE_POS.cavernFloorY + 0.32);
+  assert.ok(Math.abs(bridgeWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 0.32)) < 0.05, `Expected wooden plank bridge height at ${SOUTHERN_MINE_POS.cavernFloorY + 0.32}, got ${bridgeWalk.height}`);
+
+  const dockWalk = walkableHeightAt(SOUTHERN_MINE_POS.x - 5.0, SOUTHERN_MINE_POS.entranceZ + 86.0, SOUTHERN_MINE_POS.cavernFloorY + 0.28);
+  assert.ok(Math.abs(dockWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 0.28)) < 0.05, `Expected lakeside dock height at ${SOUTHERN_MINE_POS.cavernFloorY + 0.28}, got ${dockWalk.height}`);
+
+  const nePlatWalk = walkableHeightAt(SOUTHERN_MINE_POS.x + 16.0, SOUTHERN_MINE_POS.entranceZ + 43.0, SOUTHERN_MINE_POS.cavernFloorY + 3.8);
+  assert.ok(Math.abs(nePlatWalk.height - (SOUTHERN_MINE_POS.cavernFloorY + 3.8)) < 0.05, `Expected NE cliffside scaffolding platform at ${SOUTHERN_MINE_POS.cavernFloorY + 3.8}, got ${nePlatWalk.height}`);
+
+  // Verify West cavern perimeter wall blocks walking past lx = -47.5, while walking West across the wooden plank bridge (lz = 62.5) passes smoothly over the lagoon!
   const blockedWallState = createInitialPlayerState();
-  blockedWallState.x = SOUTHERN_MINE_POS.x - 13.0; // lx = -13 (inside Room 1 near West wall)
-  blockedWallState.z = SOUTHERN_MINE_POS.entranceZ + 40.0; // lz = 40 (solid rock partition wall!)
+  blockedWallState.x = SOUTHERN_MINE_POS.x - 46.0;
+  blockedWallState.z = SOUTHERN_MINE_POS.entranceZ + 66.0;
   blockedWallState.y = SOUTHERN_MINE_POS.cavernFloorY;
   blockedWallState.yaw = Math.PI / 2; // Facing West (-X)
   for (let s = 0; s < 20; s++) {
@@ -1041,18 +1045,18 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
     );
   }
   assert.ok(
-    blockedWallState.x > SOUTHERN_MINE_POS.x - 14.5,
-    `Expected solid rock partition wall between Room 1 and Room 2 at lz=40 to block player, got x=${blockedWallState.x}`
+    blockedWallState.x > SOUTHERN_MINE_POS.x - 47.6,
+    `Expected West cavern rock wall to block player, got x=${blockedWallState.x}`
   );
 
-  const corridorPassState = createInitialPlayerState();
-  corridorPassState.x = SOUTHERN_MINE_POS.x - 12.0; // lx = -12 (inside Room 1 aligned with Corridor 1)
-  corridorPassState.z = SOUTHERN_MINE_POS.entranceZ + 49.0; // lz = 49 (center of Corridor 1)
-  corridorPassState.y = SOUTHERN_MINE_POS.cavernFloorY;
-  corridorPassState.yaw = Math.PI / 2; // Facing West (-X) through Corridor 1 into Room 2
+  const bridgePassState = createInitialPlayerState();
+  bridgePassState.x = SOUTHERN_MINE_POS.x + 4.0; // East end of wooden plank bridge
+  bridgePassState.z = SOUTHERN_MINE_POS.entranceZ + 62.5; // Center of wooden plank bridge
+  bridgePassState.y = SOUTHERN_MINE_POS.cavernFloorY + 0.32;
+  bridgePassState.yaw = Math.PI / 2; // Facing West (-X) across the bridge
   for (let s = 0; s < 35; s++) {
     stepPlayerPhysics(
-      corridorPassState,
+      bridgePassState,
       { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
       [],
       0.05,
@@ -1060,8 +1064,8 @@ test('undergroundMineAndOasis_WhenSamplingLocations_ShouldVerifyMineChambersAndD
     );
   }
   assert.ok(
-    corridorPassState.x < SOUTHERN_MINE_POS.x - 26.5,
-    `Expected player to walk freely through Corridor 1 from Room 1 into Room 2 (< ${SOUTHERN_MINE_POS.x - 26.5}), got x=${corridorPassState.x}`
+    bridgePassState.x < SOUTHERN_MINE_POS.x - 10.0 && !bridgePassState.isSwimming,
+    `Expected player to walk dry across the wooden plank bridge over the lagoon, got x=${bridgePassState.x}, isSwimming=${bridgePassState.isSwimming}`
   );
 
   // 2) Relocated Far South-West Terraced Oasis at (-310, 300) & Vast Regional Desert/Savanna Biome
@@ -1891,9 +1895,9 @@ test('swimmingPhysics_WhenEnteringWaterBasins_ShouldApplyBuoyancyAndWaterMovemen
   }
   assert.equal(swimmerOasis.isSwimming, true, 'Expected player in SW Oasis Lagoon to swim');
 
-  // 3) Underground Mine Room 2 Bioluminescent Crystal Lake (lx = -41.5 -> x = -99.5, lz = 63 -> z = 295) is swimmable!
-  const mineLakeX = SOUTHERN_MINE_POS.x - 41.5;
-  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 63.0;
+  // 3) Underground Mine Central-West Bioluminescent Turquoise Lagoon (lx = -7.0 -> x = -65.0, lz = 52.0 -> z = 472.0) is swimmable!
+  const mineLakeX = SOUTHERN_MINE_POS.x - 7.0;
+  const mineLakeZ = SOUTHERN_MINE_POS.entranceZ + 52.0;
   const mineWaterY = getWaterSurfaceHeightAt(mineLakeX, mineLakeZ, -10.2);
   assert.equal(mineWaterY, -9.3);
   const mineLakeWalk = walkableHeightAt(mineLakeX, mineLakeZ, -10.2);
@@ -2943,6 +2947,35 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
   // Verify Lakeside Tea Pavilion columns, rails, and center table exist:
   assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'tea-pavilion-table'), 'Expected Lakeside Tea Pavilion center table hitbox');
   assert.ok(SOLID_BUILDING_BOXES.some((b) => b.id === 'tea-pavilion-rail-west'), 'Expected Lakeside Tea Pavilion West railing hitbox');
+
+  // Verify new Subterranean Cavern Mine, Dwarven Village, and Palace Statue/Object hitboxes exist:
+  for (const requiredBoxId of [
+    'southern-mine-amethyst-cluster-west',
+    'southern-mine-amber-crystal-cluster-east',
+    'southern-mine-lagoon-bridge-rail-north',
+    'southern-mine-lagoon-bridge-rail-south',
+    'southern-mine-dock-crane-mast',
+    'southern-mine-hoist-crane-tower',
+    'dwarven-statue-west-pedestal',
+    'dwarven-statue-east-pedestal',
+    'dwarf-house-nw-hearth',
+    'dwarf-house-nw-oak-table',
+    'dwarf-house-nw-bed-west',
+    'dwarf-house-nw-back-chest',
+    'dwarf-house-nw-outdoor-anvil',
+    'palace-golden-statue-pedestal',
+    'sakura-buddha-pedestal',
+    'fortress-incense-west',
+    'palace-banquet-table',
+    'palace-shrine-bench-0',
+    'palace-west-pav-table-1f',
+    'palace-sw-wt-supply-crates',
+  ]) {
+    assert.ok(
+      SOLID_BUILDING_BOXES.some((b) => b.id === requiredBoxId),
+      `Expected SOLID_BUILDING_BOXES to include ${requiredBoxId}`
+    );
+  }
 });
 // #endregion
 
