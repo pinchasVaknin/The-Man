@@ -99,6 +99,72 @@ export const MINE_SCAFFOLD_LEGS = {
 } as const;
 // #endregion
 
+// ======================== NORTH-WEST GALLERY ACCESS ======================== \\
+// #region North-West Gallery
+/**
+ * Summary: North-west catwalk gallery and the stairs that reach it from the cavern floor.
+ * Design: The physics has no climbing, so the access is a walkable run of steps (a ladder would be drawn
+ *         but not usable). Each step is a solid box that rises by `rise`, so the top step meets the gallery.
+ *         Positions are local to the mine group (x from SOUTHERN_MINE_POS.x, z from SOUTHERN_MINE_POS.entranceZ).
+ */
+export const MINE_NW_GALLERY = {
+  lx: -13.5,
+  lz: 38.5,
+  width: 9.0,
+  depth: 5.0,
+  topY: SOUTHERN_MINE_POS.catwalkY,
+  /**
+   * Steps drawn from the cavern floor to the gallery top. The walkable surface is a sloped ramp over the same
+   * run (southernMineWalkableHeightAt), since a box above the feet blocks the player.
+   */
+  stepCount: 14,
+  stepRun: 0.4,
+  stepWidth: 4.0,
+} as const;
+
+/** Summary: Rise of one step (metres), from the cavern floor to the gallery top. */
+export function mineNwGalleryStepRise(): number {
+  return (MINE_NW_GALLERY.topY - SOUTHERN_MINE_POS.cavernFloorY) / MINE_NW_GALLERY.stepCount;
+}
+
+/** Summary: Local x of step k (1-based, k = 1 is the lowest, furthest west step). */
+export function mineNwGalleryStepX(k: number): number {
+  const westEdge = MINE_NW_GALLERY.lx - MINE_NW_GALLERY.width / 2;
+  return westEdge - MINE_NW_GALLERY.stepCount * MINE_NW_GALLERY.stepRun + (k - 0.5) * MINE_NW_GALLERY.stepRun;
+}
+// #endregion
+
+// ======================== KHAZAD BRIDGE RAILS ======================== \\
+// #region Khazad Bridge Rails
+/**
+ * Summary: The arched Bridge of Khazad-dûm across the Moria abyss, and its side rails.
+ * Design: The deck is split into `segments` pieces along z. Each piece sits on an arch whose height is
+ *         `archHeight` at mid-span; the rails sit on both edges of the deck, `railX` from the centre line.
+ */
+export const MINE_KHAZAD_BRIDGE = {
+  z0: 178.0,
+  length: 40.0,
+  segments: 10,
+  archHeight: 1.15,
+  deckHalfWidth: 3.4,
+  railX: 3.3,
+  railHalfThickness: 0.1,
+  railHeight: 1.0,
+} as const;
+
+/** Summary: Mid-z and deck y of bridge segment s (0-based), from the arch profile. */
+export function khazadBridgeSegment(s: number): { readonly bz: number; readonly um: number; readonly deckY: number } {
+  const u0 = s / MINE_KHAZAD_BRIDGE.segments;
+  const u1 = (s + 1) / MINE_KHAZAD_BRIDGE.segments;
+  const um = (u0 + u1) * 0.5;
+  return {
+    bz: MINE_KHAZAD_BRIDGE.z0 + um * MINE_KHAZAD_BRIDGE.length,
+    um,
+    deckY: mineFloorY('moria') + Math.sin(um * Math.PI) * MINE_KHAZAD_BRIDGE.archHeight,
+  };
+}
+// #endregion
+
 // ======================== HOIST CRANE ======================== \\
 // #region Hoist Crane
 /**
