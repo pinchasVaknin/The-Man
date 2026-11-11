@@ -1525,7 +1525,10 @@ export function stepPlayerPhysics(
   if (!state.isFlying && !onLadderVolume) {
     const currFloor = walkableHeightAt(state.x, state.z, state.y);
     const isSwimmingOrWading = Boolean(
-      state.isSwimming || state.inWater || currFloor.height <= WATER_LEVEL + 0.55
+      state.isSwimming ||
+        state.inWater ||
+        (currFloor.height <= WATER_LEVEL + 0.55 &&
+          getWaterSurfaceHeightAt(state.x, state.z, state.y) !== null)
     );
     const maxStepUp = isSwimmingOrWading ? 1.15 : 0.56;
     const refPlayerY = isSwimmingOrWading ? Math.max(state.y, WATER_LEVEL + 0.35) : state.y;

@@ -698,6 +698,13 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       saveWorldSnapshot(activeWorldMode, snap);
     };
     (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = saveCurrentWorld;
+    // Save when the page is hidden or closed, so a tab closed inside the autosave interval keeps its progress.
+    const onPageHideSave = () => saveCurrentWorld();
+    const onVisibilitySave = () => {
+      if (document.visibilityState === 'hidden') saveCurrentWorld();
+    };
+    window.addEventListener('pagehide', onPageHideSave);
+    document.addEventListener('visibilitychange', onVisibilitySave);
 
     function applyDynamicAtmosphere(hours: number, weather?: IWeatherStateSnapshot) {
       return applyDynamicAtmosphereToScene(
@@ -2536,7 +2543,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
         // Periodic auto-save to isolated world save slot (Survival vs Creative)
         worldSaveTimer += rawDt;
-        if (worldSaveTimer >= 2.5) {
+        if (worldSaveTimer >= 30) {
           worldSaveTimer = 0;
           saveCurrentWorld();
         }
@@ -2803,6 +2810,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       renderer.domElement.removeEventListener('touchend', onTouchEnd);
       renderer.domElement.removeEventListener('touchcancel', onTouchEnd);
       window.removeEventListener('reacquire-pointer-lock', handleReacquirePointerLock);
+      window.removeEventListener('pagehide', onPageHideSave);
+      document.removeEventListener('visibilitychange', onVisibilitySave);
       saveCurrentWorld();
       onRegisterGameActions?.(null);
       unregisterDebugBridge?.();

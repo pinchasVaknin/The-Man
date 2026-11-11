@@ -154,13 +154,26 @@ export function saveWorldSnapshot(mode: GameWorldMode, snapshot: IWorldSaveSnaps
   setStorageItem(key, JSON.stringify(data));
 }
 
+/**
+ * Summary: Checks that a parsed save has a known mode and finite player transform before it is applied.
+ * Design: Anything else is treated as missing, so a corrupt or old save falls back to the baseline world.
+ */
+function isUsableWorldSnapshot(value: unknown): value is IWorldSaveSnapshot {
+  if (!value || typeof value !== 'object') return false;
+  const snap = value as Partial<IWorldSaveSnapshot>;
+  if (snap.mode !== 'survival' && snap.mode !== 'creative') return false;
+  const p = snap.player as Partial<ISavedPlayerState> | undefined;
+  if (!p || typeof p !== 'object') return false;
+  return [p.x, p.y, p.z, p.yaw, p.pitch].every((v) => typeof v === 'number' && Number.isFinite(v));
+}
+
 export function loadWorldSnapshot(mode: GameWorldMode): IWorldSaveSnapshot | null {
   const key = getWorldSaveStorageKey(mode);
   const raw = getStorageItem(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as IWorldSaveSnapshot;
-    if (parsed && typeof parsed === 'object') {
+    if (isUsableWorldSnapshot(parsed)) {
       return parsed;
     }
   } catch {
