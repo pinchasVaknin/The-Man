@@ -349,16 +349,17 @@ test('murkySwampBiome_WhenEvaluatedAtSwampBasin_ShouldClassifySwampAndProvideWal
   assert.equal(biome, 'swamp', 'Murky Swamp center should classify as swamp biome');
   assert.equal(getBiomeLabel('swamp'), 'Murky Swamp');
 
-  // Primary hippo wallow lagoon at (-175, 435) and secondary lagoon at (-148, 452) should be below WATER_LEVEL
-  const primaryPoolY = groundHeightAt(-175, 435);
-  const secondaryPoolY = groundHeightAt(-148, 452);
+  // The swamp moved to (-95, 790) (commit bdd1f8d). Its primary wallow sits at the centre and its secondary
+  // wallow 58 m east / 12 m north of it. Both should be below WATER_LEVEL.
+  const primaryPoolY = groundHeightAt(MURKY_SWAMP_BIOME_POS.x, MURKY_SWAMP_BIOME_POS.z);
+  const secondaryPoolY = groundHeightAt(MURKY_SWAMP_BIOME_POS.x + 58, MURKY_SWAMP_BIOME_POS.z - 12);
   assert.ok(
     primaryPoolY < WATER_LEVEL - 0.5,
-    `Expected submerged hippo wallow lagoon at (-175, 435), got ${primaryPoolY}`
+    `Expected submerged hippo wallow lagoon at the swamp centre, got ${primaryPoolY}`
   );
   assert.ok(
     secondaryPoolY < WATER_LEVEL - 0.4,
-    `Expected submerged secondary swamp pool at (-148, 452), got ${secondaryPoolY}`
+    `Expected submerged secondary swamp pool at (-37, 778), got ${secondaryPoolY}`
   );
 
   // Sample grid across swamp to confirm both water channels (< WATER_LEVEL) and raised peat hummocks (> WATER_LEVEL)

@@ -192,6 +192,23 @@ export function southwestOasisBiomeFactorAt(x: number, z: number): number {
  * @param z World Z in meters.
  * @returns 0 outside the swamp, ramping smoothly to 1 inside the marshland basin.
  */
+/**
+ * Summary: Share of the terrain at (x, z) that a flat building terrace leaves to the terrace itself.
+ * Design: 0 inside a terrace's flat core, 1 outside every terrace. Broad basins (the Murky Swamp)
+ *         multiply their blend by this so they never overwrite a terrace footprint built on top of them.
+ */
+function terraceKeepAt(x: number, z: number): number {
+  let keep = 1.0;
+  for (let i = 0; i < FLAT_BUILDING_TERRACES.length; i++) {
+    const t = FLAT_BUILDING_TERRACES[i];
+    const td = Math.hypot(x - t.x, z - t.z);
+    if (td < t.outerR) {
+      keep = Math.min(keep, 1.0 - (1.0 - smoothstep(t.innerR, t.outerR, td)));
+    }
+  }
+  return keep;
+}
+
 export function murkySwampBiomeFactorAt(x: number, z: number): number {
   const dx = x - MURKY_SWAMP_BIOME_POS.x;
   const dz = z - MURKY_SWAMP_BIOME_POS.z;
@@ -1386,7 +1403,7 @@ export function groundHeightAt(x: number, z: number): number {
       w9 * 0.82
     );
     const swampTargetH = WATER_LEVEL - 0.12 + channelWave + shoreRingBoost - poolCarve;
-    const blendW = smoothstep(0.02, 0.45, swampF);
+    const blendW = smoothstep(0.02, 0.45, swampF) * terraceKeepAt(x, z);
     h = h * (1.0 - blendW) + swampTargetH * blendW;
   }
 

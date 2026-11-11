@@ -122,7 +122,27 @@ test('forestDragonModel_WhenBuiltAndAnimated_ShouldMatchGolden', () => {
   );
 });
 
+/**
+ * Summary: Runs `body` with Math.random replaced by a fixed-seed generator, then restores it.
+ * Design: The deer's ear and head-look timers draw from Math.random, so its golden is only stable with a fixed seed.
+ */
+function withSeededRandom<T>(seed: number, body: () => T): T {
+  const original = Math.random;
+  let state = seed >>> 0;
+  Math.random = () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  try {
+    return body();
+  } finally {
+    Math.random = original;
+  }
+}
+
 test('deerModel_WhenBuiltAndAnimated_ShouldMatchGolden', () => {
-  assertMatchesGolden(golden('deer'), fingerprint(createReadyDeer({ scale: 1 }) as unknown as IAnimatedModel, DEER_STATES));
+  withSeededRandom(1337, () => {
+    assertMatchesGolden(golden('deer'), fingerprint(createReadyDeer({ scale: 1 }) as unknown as IAnimatedModel, DEER_STATES));
+  });
 });
 // #endregion
