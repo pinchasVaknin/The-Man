@@ -230,8 +230,8 @@
   },
   "attackTrigger": 4.35,
   "awake": {
-   "hearingRadius": 16,
-   "visionRange": 15
+   "hearingRadius": 18,
+   "visionRange": 18
   },
   "isPredator": true,
   "loot": {
@@ -585,7 +585,7 @@
    "hearingRadius": 11,
    "visionRange": 0
   },
-  "attackTrigger": 3.9,
+  "attackTrigger": 4.3,
   "awake": {
    "hearingRadius": 22,
    "visionRange": 24
@@ -627,7 +627,7 @@
   "name": "Hippopotamus",
   "sizeRank": 4.5,
   "species": "hippo",
-  "standoff": 2.35
+  "standoff": 2.65
  },
  {
   "asleep": {

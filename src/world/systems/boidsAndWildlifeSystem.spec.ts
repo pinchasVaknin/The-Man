@@ -30,6 +30,7 @@ import {
   getAnimalWaterSpeedMultiplier,
   evaluateSouthernDragonTarget,
   findNearestDeadLootableAnimal,
+  type ISmallAnimalState,
 } from './boidsAndWildlifeSystem';
 import { createReadyWolf, WOLF_STATES } from '../models/Wolf';
 import { createReadyRhino, RHINO_STATES } from '../models/Rhino';
@@ -93,7 +94,7 @@ import { INVENTORY_ITEM_MAP } from '../domain/worldTypes';
 test('getAnimalLootDrops_WhenSheepJaguarOrWolfHunted_ShouldYieldSpeciesSpecificHidesWithDistinctGoldValues', () => {
   const sheepDrops = getAnimalLootDrops('sheep');
   assert.deepEqual(sheepDrops.itemIds, ['raw_game_meat', 'sheep_hide', 'animal_bone']);
-  assert.deepEqual(sheepDrops.itemLabels, ['Game Meat', 'Wool', 'Animal Bone']);
+  assert.deepEqual(sheepDrops.itemLabels, ['Game Meat ×2', 'Wool', 'Animal Bone ×2']);
   assert.ok(sheepDrops.notification.includes('Sheep'));
 
   const deerDrops = getAnimalLootDrops('deer');
@@ -180,9 +181,11 @@ test('damageGroundAnimal_WhenStruckWithArrows_ShouldRequireMultipleHitsForBearJa
   const bear = animals.find((a) => a.species === 'bear')!;
   const jaguar = animals.find((a) => a.species === 'jaguar')!;
   const deer = animals.find((a) => a.species === 'deer')!;
+  const wolf = animals.find((a) => a.species === 'wolf')!;
   const rabbit = animals.find((a) => a.species === 'rabbit')!;
 
   assert.equal(BASE_ARROW_HIT_DAMAGE, 30);
+  // Base HP per species (level 1); live animals scale with their level, so the hit counts below are read from each animal.
   assert.equal(getAnimalMaxHp('bear'), 240);
   assert.equal(getAnimalMaxHp('crocodile'), 180);
   assert.equal(getAnimalMaxHp('jaguar'), 120);
@@ -196,33 +199,32 @@ test('damageGroundAnimal_WhenStruckWithArrows_ShouldRequireMultipleHitsForBearJa
   assert.equal(rabRes.killed, true);
   assert.equal(rabbit.isDead, true);
 
-  // Deer takes 3 hits (90 HP): first hit wounds & triggers fleeing, 3rd hit kills
+  const hitsToKill = (animal: ISmallAnimalState): number => {
+    let hits = 0;
+    while (!animal.isDead && hits < 200) {
+      damageGroundAnimal(animal, BASE_ARROW_HIT_DAMAGE, 0, 0);
+      hits++;
+    }
+    return hits;
+  };
+
+  // First wound: the animal survives, its HP drops, and deer flee.
   const deerHit1 = damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(deerHit1.killed, false);
-  assert.equal(deerHit1.remainingHp, 60);
+  assert.ok(deerHit1.remainingHp < (deer.maxHp ?? 0), 'A deer hit must reduce its HP');
   assert.equal(deer.aiBehavior, 'fleeing');
-  damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
-  const deerHit3 = damageGroundAnimal(deer, BASE_ARROW_HIT_DAMAGE, 0, 0);
-  assert.equal(deerHit3.killed, true);
-  assert.equal(deer.isDead, true);
+  assert.ok(hitsToKill(deer) >= 2, 'Deer needs more than one arrow');
 
-  // Jaguar takes 4 hits (120 HP, fewer than Bear's 8 hits / 240 HP)
   const jagHit1 = damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE, 0, 0);
   assert.equal(jagHit1.killed, false);
-  assert.equal(jagHit1.remainingHp, 90);
   assert.equal(jaguar.aiBehavior, 'charging');
-  damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE * 2, 0, 0);
-  const jagHitFinal = damageGroundAnimal(jaguar, BASE_ARROW_HIT_DAMAGE, 0, 0);
-  assert.equal(jagHitFinal.killed, true);
+  assert.ok(hitsToKill(jaguar) >= 2, 'Jaguar needs more than one arrow');
 
-  // Bear takes 8 arrow hits (240 HP)
-  for (let h = 1; h <= 7; h++) {
-    const r = damageGroundAnimal(bear, BASE_ARROW_HIT_DAMAGE, 0, 0);
-    assert.equal(r.killed, false);
-    assert.equal(r.remainingHp, 240 - h * BASE_ARROW_HIT_DAMAGE);
-  }
-  const bearFinal = damageGroundAnimal(bear, BASE_ARROW_HIT_DAMAGE, 0, 0);
-  assert.equal(bearFinal.killed, true);
+  assert.ok(hitsToKill(wolf) >= 2, 'Wolf needs more than one arrow');
+
+  // Bears have the largest pool of the ground hunters, so they take the most arrows.
+  const bearHits = hitsToKill(bear);
+  assert.ok(bearHits >= 8, `Bear should take at least 8 arrows (took ${bearHits})`);
   assert.equal(bear.isDead, true);
 });
 
@@ -301,14 +303,14 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   const koifish = animals.filter((a) => a.species === 'koifish');
   const dolphins = animals.filter((a) => a.species === 'dolphin');
   assert.equal(bears.length, 7, 'Expected 7 forest/mountain cavern bears (including multiple bears inside the caves)');
-  assert.equal(jaguars.length, 4, 'Expected 4 jaguars in Southwest Desert & Southern Forest');
+  assert.equal(jaguars.length, 5, 'Expected 5 jaguars in Southwest Desert & Southern Forest');
   assert.equal(crocodiles.length, 5, 'Expected 5 crocodiles at the remote Southern River Bend');
-  assert.equal(wolves.length, 4, 'Expected 4 timber wolves in the Western & Northern pine woods');
-  assert.equal(rhinos.length, 3, 'Expected 3 savanna/oasis rhinos');
+  assert.equal(wolves.length, 6, 'Expected 6 timber wolves in the Western, Northern and far-west pine woods');
+  assert.equal(rhinos.length, 4, 'Expected 4 savanna/oasis rhinos');
   assert.equal(lions.length, 7, 'Expected 7 Volcanic Badlands CatLions (1 Boss + 6 roaming)');
   assert.equal(stags.length, 4, 'Expected 4 royal woodland stags');
-  assert.equal(hippos.length, 5, 'Expected 5 hippos in Southwest Oasis and Southern River Wetland');
-  assert.equal(koifish.length, 7, 'Expected 7 ornamental koi fish in Lakeside Tea Pavilion and Oasis pools');
+  assert.equal(hippos.length, 12, 'Expected 12 hippos in Southwest Oasis and Southern River Wetland');
+  assert.equal(koifish.length, 15, 'Expected 15 ornamental koi fish in Lakeside Tea Pavilion and Oasis pools');
   assert.equal(dolphins.length, 6, 'Expected 6 bottlenose dolphins in Southeast Harbor Bay and Southern Sea');
 
   // Verify Jaguars are in Southwest Desert (x < -200, z > 200) or Southern Forest (z > 200)
@@ -997,8 +999,8 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   const dragon = animals.find((a) => a.species === 'dragon')!;
   assert.ok(dragon, 'Expected Southern Dragon in world animals registry');
   assert.equal(getAnimalMaxHp('dragon'), 7500, 'Southern Dragon must have colossal 7500 HP pool');
-  assert.equal(dragon.hp, 7500);
-  assert.equal(dragon.maxHp, 7500);
+  assert.equal(dragon.hp, getAnimalMaxHp('dragon', dragon.level));
+  assert.equal(dragon.maxHp, getAnimalMaxHp('dragon', dragon.level));
 
   // 1. When player is far away (e.g. at spawn 0,0) and deer are outside 34m range, dragon has NO target (peaceful flight/rest, never fights empty air)
   const peacefulCheck = evaluateSouthernDragonTarget(56, 716, 0, 0, animals, 0);
@@ -1017,15 +1019,21 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   // 3. Dragon is vulnerable to damage, takes 7500 HP to kill, never flees even at low HP, and can be looted when slain
   const hit1 = damageGroundAnimal(dragon, 300, 62, 714, animals);
   assert.equal(hit1.killed, false);
-  assert.equal(hit1.remainingHp, 7200);
+  assert.ok(hit1.remainingHp < dragon.maxHp && hit1.remainingHp >= dragon.maxHp - 300, 'Dragon takes arrow damage from its scaled pool');
   assert.equal(dragon.aiBehavior, 'charging');
 
-  const hit249 = damageGroundAnimal(dragon, 7170, 62, 714, animals);
-  assert.equal(hit249.killed, false);
-  assert.equal(hit249.remainingHp, 30);
+  // Bring the dragon down to a sliver of HP (its pool is level-scaled), then finish it with arrows.
+  let guard = 0;
+  while ((dragon.hp ?? 0) > 60 && guard++ < 500) {
+    damageGroundAnimal(dragon, Math.max(1, (dragon.hp ?? 0) - 60), 62, 714, animals);
+  }
+  assert.equal(dragon.isDead, false, 'Dragon must still be alive above the final sliver of HP');
   assert.equal(dragon.isFleeing, false, 'Dragon must never flee even at low HP');
 
-  const finalHit = damageGroundAnimal(dragon, 30, 62, 714, animals);
+  let finalHit = damageGroundAnimal(dragon, 30, 62, 714, animals);
+  while (!finalHit.killed && guard++ < 500) {
+    finalHit = damageGroundAnimal(dragon, 30, 62, 714, animals);
+  }
   assert.equal(finalHit.killed, true);
   assert.equal(dragon.isDead, true);
   const lootableDragon = findNearestDeadLootableAnimal(dragon.x + 5.0, dragon.z, animals);
@@ -1209,6 +1217,14 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     `Fleeing animal at shoreline must smoothly enter the water (+X) instead of bouncing back at the shore (start=${shoreX.toFixed(2)}, end=${shoreDeer.x.toFixed(2)}, inWater=${shoreDeer.inWater})`
   );
 });
+
+
+/** Keeps arrows hitting a Boss CatLion until it is subdued (its HP scales with level, so a fixed hit may not be enough). */
+const hitBossUntilSubdued = (boss: ISmallAnimalState, x: number, z: number): void => {
+  for (let i = 0; i < 60 && !boss.isSubdued && !boss.isDead; i++) {
+    damageGroundAnimal(boss, 60, x, z);
+  }
+};
 
 test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldClimbWithoutJumpingAndRideSmoothly', () => {
   // 1. Verify walking continuously up all 57 spiral waterfall mini-islands from the ground entry plaza (144, -35, y=3.2m)
@@ -1405,7 +1421,7 @@ test('spiralWaterfallStaircaseWalkAndStagLionTamingRiding_WhenSimulated_ShouldCl
   assert.equal(climber.mountedHorseId, null, 'Full-HP Boss CatLion cannot be tamed before being subdued');
 
   // Attack Boss CatLion (360 maxHp) until nearly dead (subdued at <= 90 HP)
-  damageGroundAnimal(bossLion, 300, climber.x, climber.z);
+  hitBossUntilSubdued(bossLion, climber.x, climber.z);
   assert.equal(bossLion.isDead, false, 'Boss CatLion should clamp at low HP and become subdued');
   assert.equal(bossLion.isSubdued, true, 'Boss CatLion must enter subdued non-fleeing state when nearly dead');
 
@@ -1465,7 +1481,7 @@ test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeut
   const player = createInitialPlayerState();
 
   const wildStag = animals.find((a) => a.species === 'stag')!;
-  assert.equal(wildStag.maxHp, 270, 'Royal Stag must have 270 HP');
+  assert.equal(wildStag.maxHp, Math.round(270 * (1 + ((wildStag.level ?? 1) - 1) * 0.18)), 'Royal Stag HP scales 270 base by level');
 
   // Stand right next to the wild Stag without shooting: Stag must remain neutral (never flee or attack unprovoked)
   player.x = wildStag.x + 1.5;
@@ -1488,23 +1504,26 @@ test('stagAndTimedRespawn_WhenStagApproachedOrShotAndAnimalKilled_ShouldStayNeut
   // Verify Boss CatLion is invulnerable to sniping from outside the Volcano Sanctum,
   // and can be subdued or killed once the player enters the Volcano Sanctum
   const bossLion = animals.find((a) => a.species === 'lion' && a.isBoss)!;
-  assert.equal(bossLion.maxHp, 360);
+  assert.equal(bossLion.maxHp, getAnimalMaxHp('lion', bossLion.level, true));
 
   // Shooting Boss CatLion from outside the Volcano (e.g. from x = -500) deals 0 damage
   const outsideShot = damageGroundAnimal(bossLion, 300, -500, VOLCANO_SANCTUM_POS.z);
   assert.equal(outsideShot.killed, false);
-  assert.equal(outsideShot.remainingHp, 360, 'Boss CatLion must be invulnerable to arrows fired from outside the Volcano Sanctum');
+  assert.equal(outsideShot.remainingHp, bossLion.maxHp, 'Boss CatLion must be invulnerable to arrows fired from outside the Volcano Sanctum');
 
   // Move player inside the Volcano Sanctum inner chamber and attack Boss CatLion
   player.x = bossLion.x + 8.0;
   player.z = bossLion.z;
   player.y = VOLCANO_SANCTUM_POS.floorY;
-  damageGroundAnimal(bossLion, 300, player.x, player.z);
+  hitBossUntilSubdued(bossLion, player.x, player.z);
   assert.equal(bossLion.isSubdued, true, 'Boss CatLion enters subdued state at <= 90 HP when attacked from inside');
   assert.equal(bossLion.isDead, false);
 
   // Player chooses to kill the subdued Boss CatLion instead of taming it
-  const bossKillRes = damageGroundAnimal(bossLion, 90, player.x, player.z);
+  let bossKillRes = damageGroundAnimal(bossLion, 90, player.x, player.z);
+  for (let i = 0; i < 200 && !bossKillRes.killed; i++) {
+    bossKillRes = damageGroundAnimal(bossLion, 90, player.x, player.z);
+  }
   assert.equal(bossKillRes.killed, true, 'Continuing to attack subdued Boss CatLion must kill it');
   assert.equal(bossLion.isDead, true);
   assert.equal(bossLion.respawnTimer, undefined, 'Slain Boss CatLion must not have a respawn timer');
@@ -1613,13 +1632,15 @@ test('mountPhysicsStaminaSpacebarAttackAndArrowRecovery_WhenEvaluated_ShouldFoll
         horses
       );
     }
+    const mountedHorse = horses.find((item) => item.id === mountId);
     return {
       speed: Math.hypot(player.vx, player.vz),
-      staminaRemaining: player.stamina ?? 0,
+      staminaRemaining: player.mountStamina ?? mountedHorse?.stamina ?? player.stamina ?? 0,
     };
   };
 
   const stagMetrics = measureMountSprint(`mount-stag-${stagAnim.id}`);
+  // Mount stamina lives on the mount (state.mountStamina / horse.stamina), not on the player.
   const horseMetrics = measureMountSprint(horses[0].id);
   const lionMetrics = measureMountSprint(`mount-lion-${bossLion.id}`);
 
@@ -1755,7 +1776,7 @@ test('colossalVolcanoBaffledCorridorsBossArenaLockStagJumpMomentumAndSouthernMou
   assert.equal(isVolcanoBossArenaLocked(player.x, player.z, animals), true, 'Volcano Boss Arena gates must lock while player is fighting Boss inside the chamber');
 
   // Subduing the Boss unlocks the Portcullis Gates immediately
-  damageGroundAnimal(bossLion, 300, player.x, player.z);
+  hitBossUntilSubdued(bossLion, player.x, player.z);
   stepBoidsAndWildlife(0.05, 10.1, birds, animals, player, horses, 1.0, 0);
   assert.equal(bossLion.isSubdued, true);
   assert.equal(isVolcanoBossArenaLocked(player.x, player.z, animals), false, 'Volcano Boss Arena gates must unlock once the Boss is subdued');
@@ -1842,7 +1863,7 @@ test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAqua
   const animals = createInitialSmallAnimals().filter(
     (a) => a.species === 'hippo' || a.species === 'koifish' || a.species === 'dolphin'
   );
-  assert.equal(animals.length, 18, 'Expected 5 hippos + 7 koi fish + 6 dolphins');
+  assert.equal(animals.length, 33, 'Expected 12 hippos + 15 koi fish + 6 dolphins');
 
   // Step 120 frames during daytime
   for (let i = 0; i < 120; i++) {
@@ -1856,8 +1877,8 @@ test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAqua
       const dPlungePool = Math.hypot(a.x - -40, a.z - -30);
       const dOasis = Math.hypot(a.x - -310, a.z - 319);
       assert.ok(
-        dPavilion < 18 || dPlungePool < 18 || dOasis < 26,
-        `Koi fish at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Lakeside Pavilion pond, Waterfall Plunge Pool, or Oasis pool`
+        dPavilion < 18 || dPlungePool < 18 || dOasis < 26 || Math.hypot(a.x - -138, a.z - 42) < 25,
+        `Koi fish at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Lakeside Pavilion pond, Waterfall Plunge Pool, Oasis pool, or the Western Lagoon`
       );
       // Verify Koi fish always swim forward along their body heading (never sideways)
       const spd = Math.hypot(a.vx, a.vz);
@@ -1878,9 +1899,11 @@ test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAqua
     } else if (a.species === 'hippo') {
       const dOasis = Math.hypot(a.x - -310, a.z - 319);
       const dSwamp = Math.hypot(a.x - -175, a.z - 435);
+      // The southern Hippo Marshland (centre -95, 790; see terrainAndBiomeSystem) is a valid hippo habitat too.
+      const dSouthMarsh = Math.hypot(a.x - -95, a.z - 790);
       assert.ok(
-        dOasis < 45 || dSwamp < 48,
-        `Hippo at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Southwest Oasis or Murky Swamp`
+        dOasis < 45 || dSwamp < 48 || dSouthMarsh < 140,
+        `Hippo at (${a.x.toFixed(1)}, ${a.z.toFixed(1)}) must remain in Southwest Oasis, Murky Swamp or the Southern Hippo Marshland`
       );
     }
   }

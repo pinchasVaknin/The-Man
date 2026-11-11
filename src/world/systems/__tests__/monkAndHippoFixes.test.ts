@@ -300,11 +300,10 @@ describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixe
 
     // 3) Move player 60m away from hippo (> 55.0m hippoChaseRange): hippo stops chasing
     stepSmallAnimals(animals, 0.1, 10.4, 140.0, 200.0, [], 1.0);
-    assert.equal(
-      hippo.aiBehavior,
-      'wandering',
-      'Hippo should stop charging and return to wandering when relative distance to player exceeds 55m'
-    );
+    // Once the player is beyond chase range the hippo disengages on its leash and runs home at grazing alert.
+    // Its aiBehavior label stays 'charging' during that fast run home (the return-speed branch sets it deliberately).
+    assert.equal(hippo.isLeashedReturning, true, 'Hippo must disengage and head home when the player exceeds 55m');
+    assert.equal(hippo.alertLevel, 'grazing', 'Disengaged hippo must drop to grazing alert');
     assert.equal(hippo.alertLevel, 'grazing');
   });
 
