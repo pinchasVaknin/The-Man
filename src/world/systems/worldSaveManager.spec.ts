@@ -203,3 +203,28 @@ describe('worldSaveManager - Survival vs Creative Isolation', () => {
     assert.strictEqual(mockDoors.has('creative-gate'), false);
   });
 });
+
+describe('worldSaveManager - load validation', () => {
+  it('should refuse a save whose player position is not a finite number', () => {
+    clearWorldSave('survival');
+    const broken = { ...getDefaultWorldBaseline('survival'), player: { ...getDefaultWorldBaseline('survival').player, x: Number.NaN } };
+    saveWorldSnapshot('survival', broken as IWorldSaveSnapshot);
+    assert.strictEqual(loadWorldSnapshot('survival'), null);
+  });
+
+  it('should refuse a save with no player record', () => {
+    clearWorldSave('survival');
+    const noPlayer = { ...getDefaultWorldBaseline('survival'), player: undefined };
+    saveWorldSnapshot('survival', noPlayer as unknown as IWorldSaveSnapshot);
+    assert.strictEqual(loadWorldSnapshot('survival'), null);
+  });
+
+  it('should still load a valid save', () => {
+    clearWorldSave('survival');
+    saveWorldSnapshot('survival', getDefaultWorldBaseline('survival'));
+    const loaded = loadWorldSnapshot('survival');
+    assert.ok(loaded);
+    assert.strictEqual(loaded.mode, 'survival');
+    clearWorldSave('survival');
+  });
+});

@@ -2635,7 +2635,8 @@ export function stepSmallAnimals(
           playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
         );
         const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
-        const canReachPlayerVertically = playerVertDiff <= (isBossLion ? 5.2 : 3.4);
+        // Same vertical reach as the damage check, so an animal never picks a player it cannot hit (e.g. a hovering player).
+        const canReachPlayerVertically = playerVertDiff <= (a.isBoss || (a.species as string) === 'dragon' ? 4.2 : 2.6);
         if (
           !isCreatureLeashedOutOfTerritory &&
           !playerRidingMysticalLion &&

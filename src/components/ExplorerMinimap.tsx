@@ -58,6 +58,24 @@ const DISCOVERY_RADIUS_M = 46; // Reveal radius around the player in meters
 const VIEW_WINDOW_M = 180; // Visible meters across the minimap diameter
 const FULL_MAP_GRID_METERS = 4; // 4m per pixel cell for full-world overview texture (540x540)
 const FULL_MAP_GRID_SIZE = Math.floor((MAP_WORLD_HALF * 2) / FULL_MAP_GRID_METERS);
+/** Rows of the full-world terrain built per background slice, and the delay before the first slice. */
+const FULL_MAP_BUILD_ROWS_PER_SLICE = 2;
+const FULL_MAP_BUILD_START_DELAY_MS = 1500;
+
+/** Fills one row of the full-world terrain texture (RGBA) with sampled minimap colours. */
+function fillFullWorldTerrainRow(data: Uint8ClampedArray, cz: number): void {
+  const wz = (cz + 0.5) * FULL_MAP_GRID_METERS - MAP_WORLD_HALF;
+  const rowOffset = cz * FULL_MAP_GRID_SIZE;
+  for (let cx = 0; cx < FULL_MAP_GRID_SIZE; cx++) {
+    const wx = (cx + 0.5) * FULL_MAP_GRID_METERS - MAP_WORLD_HALF;
+    const [r, g, b] = sampleMinimapColorAt(wx, wz);
+    const pIdx = (rowOffset + cx) * 4;
+    data[pIdx] = r;
+    data[pIdx + 1] = g;
+    data[pIdx + 2] = b;
+    data[pIdx + 3] = 255;
+  }
+}
 
 interface IWorldMapLandmarkPin {
   readonly id: string;
@@ -311,23 +329,45 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     if (!ctx) return null;
 
     const img = ctx.createImageData(FULL_MAP_GRID_SIZE, FULL_MAP_GRID_SIZE);
-    const data = img.data;
-    for (let cz = 0; cz < FULL_MAP_GRID_SIZE; cz++) {
-      const wz = (cz + 0.5) * FULL_MAP_GRID_METERS - MAP_WORLD_HALF;
-      const rowOffset = cz * FULL_MAP_GRID_SIZE;
-      for (let cx = 0; cx < FULL_MAP_GRID_SIZE; cx++) {
-        const wx = (cx + 0.5) * FULL_MAP_GRID_METERS - MAP_WORLD_HALF;
-        const [r, g, b] = sampleMinimapColorAt(wx, wz);
-        const pIdx = (rowOffset + cx) * 4;
-        data[pIdx] = r;
-        data[pIdx + 1] = g;
-        data[pIdx + 2] = b;
-        data[pIdx + 3] = 255;
-      }
-    }
+    for (let cz = 0; cz < FULL_MAP_GRID_SIZE; cz++) fillFullWorldTerrainRow(img.data, cz);
     ctx.putImageData(img, 0, 0);
     fullWorldTerrainCanvasRef.current = fullOff;
     return fullOff;
+  }, []);
+
+  // Builds the full-world terrain in small slices after mount, so the first open of the full map does not freeze the game.
+  // If the map is opened before the slices finish, ensureFullWorldTerrainCanvas builds it synchronously instead.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let canvas: HTMLCanvasElement | null = null;
+    let img: ImageData | null = null;
+    let nextRow = 0;
+    const step = () => {
+      if (cancelled || fullWorldTerrainCanvasRef.current) return;
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.width = FULL_MAP_GRID_SIZE;
+        canvas.height = FULL_MAP_GRID_SIZE;
+        const c = canvas.getContext('2d');
+        if (!c) return;
+        img = c.createImageData(FULL_MAP_GRID_SIZE, FULL_MAP_GRID_SIZE);
+      }
+      const end = Math.min(FULL_MAP_GRID_SIZE, nextRow + FULL_MAP_BUILD_ROWS_PER_SLICE);
+      for (let cz = nextRow; cz < end; cz++) fillFullWorldTerrainRow(img!.data, cz);
+      nextRow = end;
+      if (nextRow >= FULL_MAP_GRID_SIZE) {
+        canvas!.getContext('2d')?.putImageData(img!, 0, 0);
+        fullWorldTerrainCanvasRef.current = canvas;
+        return;
+      }
+      timer = setTimeout(step, 0);
+    };
+    timer = setTimeout(step, FULL_MAP_BUILD_START_DELAY_MS);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   // Lazily build the dedicated Underground Dwarven Mine (Moria) floorplan canvas
