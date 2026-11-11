@@ -616,6 +616,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       u: number;
       velocity: number;
       wheelAngle: number;
+      facingSign: 1 | -1;
     } | null = null;
     let worldSaveTimer = 0;
 
@@ -623,6 +624,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (activeMinecartRide) {
         activeMinecartRide = null;
         playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+        capturePreviousPlayerPose();
         soundEngine.playFootstep('bridge', 1.05);
         emitHudSnapshot();
         return true;
@@ -638,21 +640,25 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       if (!line) return false;
       const startU = station.initialU;
       const pose = evaluateRideableMinecartPose(line.id, startU);
+      const initialFacingSign: 1 | -1 = station.startAtEnd ? -1 : 1;
       activeMinecartRide = {
         lineId: line.id,
         lineName: line.name,
         u: startU,
         velocity: 0,
         wheelAngle: 0,
+        facingSign: initialFacingSign,
       };
       setRideableMinecartVisualProgress(line.id, startU, 0);
       playerState.x = pose.x;
       playerState.y = pose.y + 0.55;
       playerState.z = pose.z;
-      playerState.yaw = station.startAtEnd ? pose.yaw + Math.PI : pose.yaw;
+      playerState.yaw = station.startAtEnd ? pose.yaw : pose.yaw + Math.PI;
+      playerState.pitch = -0.08;
       playerState.vx = 0;
       playerState.vy = 0;
       playerState.vz = 0;
+      capturePreviousPlayerPose();
       lastLootNotification = `Driving ${line.name} — [W/S] Drive Forward/Back · [E] Exit`;
       lastLootNotificationTimer = 4.0;
       soundEngine.playFootstep('bridge', 1.2);
@@ -2325,6 +2331,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           if (jumpPressed) {
             activeMinecartRide = null;
             playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+            capturePreviousPlayerPose();
             soundEngine.playFootstep('bridge', 1.08);
             emitHudSnapshot();
           } else {
@@ -2335,8 +2342,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             const lookDot =
               -Math.sin(playerState.yaw) * Math.sin(pose0.yaw) -
               Math.cos(playerState.yaw) * Math.cos(pose0.yaw);
-            const facingSign = lookDot >= -0.15 ? 1 : -1;
-            const throttleAlongU = Math.max(-1, Math.min(1, forward)) * facingSign;
+            if (Math.abs(lookDot) > 0.25) {
+              activeMinecartRide.facingSign = lookDot >= 0 ? 1 : -1;
+            }
+            let throttleAlongU =
+              Math.max(-1, Math.min(1, forward)) * activeMinecartRide.facingSign;
+            // At track endpoints, pressing [W] (forward > 0) always drives away from the bumper down the track
+            if (activeMinecartRide.u <= 0.03 && forward > 0.05 && throttleAlongU < 0) {
+              activeMinecartRide.facingSign = 1;
+              throttleAlongU = Math.min(1, Math.abs(forward));
+            } else if (activeMinecartRide.u >= 0.97 && forward > 0.05 && throttleAlongU > 0) {
+              activeMinecartRide.facingSign = -1;
+              throttleAlongU = -Math.min(1, Math.abs(forward));
+            }
             const stepRes = stepRideableMinecartPhysics(
               activeMinecartRide.lineId,
               activeMinecartRide.u,
@@ -2356,12 +2374,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
             playerState.vz = 0;
             playerState.yaw += accumYawDelta;
             playerState.pitch = Math.max(-1.35, Math.min(1.35, playerState.pitch + accumPitchDelta));
-            if (stepRes.stalledOnUphill && lastLootNotificationTimer <= 0.4) {
-              lastLootNotification =
-                'Slope too steep without momentum! Roll back to the flat track and build speed with [W].';
-              lastLootNotificationTimer = 3.2;
-              emitHudSnapshot();
-            }
           }
         } else if (isSleepingInBed && activeSleepingBed) {
           playerState.x = activeSleepingBed.x;

@@ -307,11 +307,11 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: SOUTHERN_MINE_POS.entranceFloorY + 4.45,
     maxY: SOUTHERN_MINE_POS.entranceFloorY + 6.0,
   },
-  // 2) Sloped Entrance Shaft Walls (lz = -0.5..34.2, |lx| = 3.4..4.8)
+  // 2) Sloped Entrance Shaft Walls & Timber Support Posts (lz = -0.5..34.2, |lx| = 2.95..4.8)
   {
     id: 'southern-mine-shaft-west-wall',
     minX: SOUTHERN_MINE_POS.x - SOUTHERN_MINE_POS.tunnelHalfW - 1.4,
-    maxX: SOUTHERN_MINE_POS.x - SOUTHERN_MINE_POS.tunnelHalfW,
+    maxX: SOUTHERN_MINE_POS.x - 2.95,
     minZ: SOUTHERN_MINE_POS.entranceZ - 0.5,
     maxZ: SOUTHERN_MINE_POS.entranceZ + 34.2,
     minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
@@ -319,7 +319,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   },
   {
     id: 'southern-mine-shaft-east-wall',
-    minX: SOUTHERN_MINE_POS.x + SOUTHERN_MINE_POS.tunnelHalfW,
+    minX: SOUTHERN_MINE_POS.x + 2.95,
     maxX: SOUTHERN_MINE_POS.x + SOUTHERN_MINE_POS.tunnelHalfW + 1.4,
     minZ: SOUTHERN_MINE_POS.entranceZ - 0.5,
     maxZ: SOUTHERN_MINE_POS.entranceZ + 34.2,
@@ -456,30 +456,30 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   },
   {
     id: 'southern-mine-crate-mess-provisions',
-    minX: SOUTHERN_MINE_POS.x - 23.2,
+    minX: SOUTHERN_MINE_POS.x - 23.45,
     maxX: SOUTHERN_MINE_POS.x - 21.8,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 55.3,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 53.55,
     maxZ: SOUTHERN_MINE_POS.entranceZ + 56.7,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.15,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.45,
   },
   {
     id: 'southern-mine-crate-quartermaster',
-    minX: SOUTHERN_MINE_POS.x - 23.2,
+    minX: SOUTHERN_MINE_POS.x - 23.45,
     maxX: SOUTHERN_MINE_POS.x - 21.8,
     minZ: SOUTHERN_MINE_POS.entranceZ + 67.3,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 68.7,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + 70.65,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.15,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.45,
   },
   {
     id: 'southern-mine-crate-staging-gems',
     minX: SOUTHERN_MINE_POS.x + 10.8,
-    maxX: SOUTHERN_MINE_POS.x + 12.2,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 61.3,
+    maxX: SOUTHERN_MINE_POS.x + 12.45,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 59.55,
     maxZ: SOUTHERN_MINE_POS.entranceZ + 62.7,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.15,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.45,
   },
   // 5) Room 1 Hoist Crane Tower on NE Scaffolding Platform & Crane Mast at (16.0, 76.0)
   {
@@ -653,8 +653,29 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minZ: SOUTHERN_MINE_POS.entranceZ + 94.8,
     maxZ: SOUTHERN_MINE_POS.entranceZ + 96.2,
     minY: -15.3,
-    maxY: -14.1,
+    maxY: -13.8,
   },
+  {
+    id: 'southern-mine-chamber2-waterfall-cliff',
+    minX: SOUTHERN_MINE_POS.x - 122.8,
+    maxX: SOUTHERN_MINE_POS.x - 113.2,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 47.5,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + 53.2,
+    minY: -15.6,
+    maxY: -3.0,
+  },
+  ...[1, 2, 3, 4].flatMap((f) => {
+    const fx = -48.0 - (f / 5) * 40.0;
+    return [-2.75, 2.75].map((oz, idx) => ({
+      id: `southern-mine-west-tunnel-arch-${f}-${idx}`,
+      minX: SOUTHERN_MINE_POS.x + fx - 0.35,
+      maxX: SOUTHERN_MINE_POS.x + fx + 0.35,
+      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.35,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.35,
+      minY: -16.0,
+      maxY: -3.5,
+    }));
+  }),
   // 8) East Smelting Tunnel & Chamber 3 (Dwarven Gold & Silver Smelting Foundry: lx in [88, 144], lz in [40, 108], y = -14.35)
   {
     id: 'southern-mine-east-tunnel-north-wall',
@@ -674,6 +695,18 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: -15.0,
     maxY: -2.3,
   },
+  ...[1, 2, 3, 4].flatMap((f) => {
+    const fx = 48.0 + (f / 5) * 40.0;
+    return [-2.75, 2.75].map((oz, idx) => ({
+      id: `southern-mine-east-tunnel-arch-${f}-${idx}`,
+      minX: SOUTHERN_MINE_POS.x + fx - 0.35,
+      maxX: SOUTHERN_MINE_POS.x + fx + 0.35,
+      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.35,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.35,
+      minY: -15.0,
+      maxY: -3.5,
+    }));
+  }),
   {
     id: 'southern-mine-chamber3-north-wall',
     minX: SOUTHERN_MINE_POS.x + 87.5,
@@ -999,9 +1032,12 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'main-hall-back-wall', minX: -22.3, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -215.2 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
   { id: 'main-hall-west-wall', minX: -22.3, maxX: -21.2, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
   { id: 'main-hall-east-wall', minX: 21.2, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-front-west', minX: -22.3, maxX: -2.2, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-front-east', minX: 2.2, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-front-window-sill', minX: -5.2, maxX: 5.2, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 31.2 + FY, maxY: 42.5 + FY },
+  { id: 'main-hall-front-west', minX: -22.3, maxX: -2.2, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 32.2 + FY },
+  { id: 'main-hall-front-east', minX: 2.2, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 32.2 + FY },
+  { id: 'main-hall-front-upper-west', minX: -22.3, maxX: -4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 42.5 + FY },
+  { id: 'main-hall-front-upper-east', minX: 4.5, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 42.5 + FY },
+  { id: 'main-hall-front-window-sill', minX: -4.5, maxX: 4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 30.8 + FY, maxY: 32.65 + FY },
+  { id: 'main-hall-front-window-header', minX: -4.5, maxX: 4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 36.55 + FY, maxY: 42.5 + FY },
   { id: 'west-pav-back-wall', minX: -39.3, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -170.9 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
   { id: 'west-pav-west-wall', minX: -39.3, maxX: -38.2, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
   { id: 'west-pav-east-wall', minX: -21.8, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
@@ -1082,8 +1118,8 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'fortress-stair-rail-east-lower', minX: 3.85, maxX: 4.7, minZ: -104.2 + FZ, maxZ: -77.8 + FZ, minY: 11.0 + FY, maxY: 23.0 + FY },
   { id: 'fortress-stair-rail-west-upper', minX: -4.7, maxX: -3.85, minZ: -122.2 + FZ, maxZ: -113.8 + FZ, minY: 21.0 + FY, maxY: 27.0 + FY },
   { id: 'fortress-stair-rail-east-upper', minX: 3.85, maxX: 4.7, minZ: -122.2 + FZ, maxZ: -113.8 + FZ, minY: 21.0 + FY, maxY: 27.0 + FY },
-  { id: 'fortress-incense-west', minX: -10.4, maxX: -8.6, minZ: -152.9 + FZ, maxZ: -151.1 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
-  { id: 'fortress-incense-east', minX: 8.6, maxX: 10.4, minZ: -152.9 + FZ, maxZ: -151.1 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
+  { id: 'fortress-incense-west', minX: -9.1, maxX: -7.3, minZ: -133.4 + FZ, maxZ: -131.6 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
+  { id: 'fortress-incense-east', minX: 7.3, maxX: 9.1, minZ: -133.4 + FZ, maxZ: -131.6 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
   // 4 Courtyard Huabiao Dragon Pillars
   ...[-9.5, 9.5].flatMap((hx) =>
     [-138.0 + FZ, -176.0 + FZ].map((hz) => ({
@@ -1261,24 +1297,24 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 26.35 + FY,
     maxY: 28.65 + FY,
   })),
-  // Palace & Sakura Sanctuary Statue Full-Height Pedestal & Figure Hitboxes
+  // Palace & Sakura Sanctuary Statue Low Pedestal Hitboxes (statue figures above pedestal are handled by checkArrowHitTempleStatue / checkSwordHitTempleStatue so arrows never get blocked by an outer wall box!)
   {
     id: 'palace-golden-statue-pedestal',
-    minX: -2.35,
-    maxX: 2.35,
-    minZ: -210.8 + FZ - 2.35,
-    maxZ: -210.8 + FZ + 2.35,
+    minX: -1.95,
+    maxX: 1.95,
+    minZ: -210.8 + FZ - 1.95,
+    maxZ: -210.8 + FZ + 1.95,
     minY: 26.35 + FY,
-    maxY: 31.8 + FY,
+    maxY: 27.65 + FY,
   },
   {
     id: 'sakura-buddha-pedestal',
-    minX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 - 2.15,
-    maxX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 + 2.15,
-    minZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 - 2.15,
-    maxZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 + 2.15,
+    minX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 - 1.85,
+    maxX: SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0 + 1.85,
+    minZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 - 1.85,
+    maxZ: SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0 + 1.85,
     minY: SAKURA_SANCTUARY_POS.height,
-    maxY: SAKURA_SANCTUARY_POS.height + 5.2,
+    maxY: SAKURA_SANCTUARY_POS.height + 1.55,
   },
   { id: 'harbor-tavern-back-wall', minX: 215.8, maxX: 232.2, minZ: 223.75, maxZ: 224.25, minY: 3.2, maxY: 8.6 },
   { id: 'harbor-tavern-west-wall', minX: 215.75, maxX: 216.25, minZ: 223.8, maxZ: 236.2, minY: 3.2, maxY: 8.6 },
@@ -1689,15 +1725,26 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxY: 6.2,
     yaw: Math.atan2(SOUTHEAST_HARBOR_POS.fountainX - 246.0, SOUTHEAST_HARBOR_POS.fountainZ - 246.0),
   },
-  ...DWARVEN_GUARDIAN_STATUES.map((st) => ({
-    id: `${st.id}-pedestal`,
-    minX: st.x - st.pedestalHalfSize,
-    maxX: st.x + st.pedestalHalfSize,
-    minZ: st.z - st.pedestalHalfSize,
-    maxZ: st.z + st.pedestalHalfSize,
-    minY: st.baseY - 0.4,
-    maxY: st.baseY + st.totalHeight,
-  })),
+  ...DWARVEN_GUARDIAN_STATUES.flatMap((st) => [
+    {
+      id: `${st.id}-pedestal`,
+      minX: st.x - 2.32,
+      maxX: st.x + 2.32,
+      minZ: st.z - 2.32,
+      maxZ: st.z + 2.32,
+      minY: st.baseY - 0.4,
+      maxY: st.baseY + 3.05,
+    },
+    {
+      id: `${st.id}-statue-body`,
+      minX: st.x - 1.35,
+      maxX: st.x + 1.35,
+      minZ: st.z - 1.35,
+      maxZ: st.z + 1.35,
+      minY: st.baseY + 3.05,
+      maxY: st.baseY + 9.45,
+    },
+  ]),
   ...DWARVEN_STONE_HOUSES.flatMap((dh) => {
     const backWallX = dh.x - dh.dirX * dh.halfW;
     const frontWallX = dh.x + dh.dirX * dh.halfW;

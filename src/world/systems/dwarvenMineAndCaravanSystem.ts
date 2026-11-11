@@ -501,23 +501,14 @@ export function stepRideableMinecartPhysics(
   let stalledOnUphill = false;
   if (Math.abs(throttleAlongU) > 0.01) {
     if (!isSteepSlope) {
-      // On flat run-up sections (Room 1 platform or deep chamber flat floor), player can pump strong acceleration to build momentum!
-      driveAccel = throttleAlongU * 10.8;
+      // On flat sections (Room 1 platform or deep chamber flat floor), player can accelerate briskly
+      driveAccel = throttleAlongU * 12.0;
     } else if (isTryingToDriveUphill) {
-      // On a steep uphill slope:
-      // Without momentum (uphillSpeed < 5.5 m/s), manual push (2.5 m/s^2) is WEAKER than gravity (4.0..5.7 m/s^2), so the cart stalls and rolls back down!
-      // With momentum built up from the flat run-up (uphillSpeed >= 5.5 m/s), momentum-assisted pumping (6.2 m/s^2) overcomes gravity and climbs the slope!
-      if (uphillSpeed >= 5.5) {
-        driveAccel = throttleAlongU * 6.2;
-      } else {
-        driveAccel = throttleAlongU * 2.5;
-        if (uphillSpeed <= 0.6) {
-          stalledOnUphill = true;
-        }
-      }
+      // Strong uphill drive power so the player can always climb back up to Room 1 from any chamber
+      driveAccel = throttleAlongU * 12.8;
     } else {
       // Driving/braking in the downhill direction on a slope
-      driveAccel = throttleAlongU * 7.5;
+      driveAccel = throttleAlongU * 9.5;
     }
   }
 
@@ -611,7 +602,9 @@ export function findNearestRideableMinecartStation(
           x: pose.x,
           y: pose.y,
           z: pose.z,
-          yaw: cand.startAtEnd ? pose.yaw + Math.PI : pose.yaw,
+          // Player camera looks along (-sin(yaw), -cos(yaw)); pose.yaw points along (+sin, +cos) (+u),
+          // so yaw = pose.yaw + PI faces +u (when starting at u=0) and yaw = pose.yaw faces -u (when starting at u=1)!
+          yaw: cand.startAtEnd ? pose.yaw : pose.yaw + Math.PI,
         };
       }
     }

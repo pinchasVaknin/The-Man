@@ -98,22 +98,21 @@ export function applyDynamicAtmosphereToScene(
   skyUniforms['sunPosition'].value.copy(sunVec);
 
   if (isPlayerUndergroundInMine) {
-    // True Subterranean Mine Lighting: completely independent of outdoor Day/Night/Weather!
-    // No outdoor directional sunlight or white daytime fog; dim subterranean rock ambient
-    // so unlit areas are dark while torches, lanterns, braziers, furnaces, and crystals shine.
+    // Subterranean Mine Lighting: warm torchlit ambient illumination with deep slate shadows
+    // so the entire mine is clearly visible while preserving an authentic underground cavern atmosphere.
     sky.visible = false;
     sunDiscMesh.visible = false;
     sunLight.intensity = 0;
 
-    hemiLight.color.setHex(0x1b202b);
-    hemiLight.groundColor.setHex(0x090807);
-    hemiLight.intensity = 0.22;
-    scene.environmentIntensity = 0.06;
+    hemiLight.color.setHex(0x52607a);
+    hemiLight.groundColor.setHex(0x332214);
+    hemiLight.intensity = 0.92;
+    scene.environmentIntensity = 0.28;
 
-    fog.color.setHex(0x07090e);
-    fog.density = 0.0048;
-    bgColor.setHex(0x07090e);
-    renderer.toneMappingExposure = 1.08;
+    fog.color.setHex(0x0d1017);
+    fog.density = 0.0022;
+    bgColor.setHex(0x0d1017);
+    renderer.toneMappingExposure = 1.26;
   } else {
     // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
     sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;

@@ -3072,6 +3072,8 @@ test('minecartSlopePhysicsAndMultiLayerMineMap_WhenTested_ShouldSlideDownhillSta
   const {
     stepRideableMinecartPhysics,
     setRideableMinecartVisualProgress,
+    evaluateRideableMinecartPose,
+    findNearestRideableMinecartStation,
   } = await import('./systems/dwarvenMineAndCaravanSystem');
   const {
     sampleMinimapColorAt,
@@ -3088,30 +3090,32 @@ test('minecartSlopePhysicsAndMultiLayerMineMap_WhenTested_ShouldSlideDownhillSta
     `Expected minecart on downhill slope to slide automatically by gravity, got v=${downhillStep.velocity}, u=${downhillStep.u}`
   );
 
-  // 2) Uphill stall when trying to climb the steep slope from rest (velocity = 0, throttleAlongU = -1) without momentum
-  const uphillStall = stepRideableMinecartPhysics('minecart-line-moria', 0.25, 0, 0, -1, 0.2);
+  // 2) Uphill climb from rest and with momentum both advance smoothly up the track without getting stuck
+  const uphillFromRest = stepRideableMinecartPhysics('minecart-line-moria', 0.25, 0, 0, -1, 0.2);
   assert.equal(
-    uphillStall.stalledOnUphill,
-    true,
-    'Expected minecart attempting steep uphill climb without momentum to stall'
-  );
-  assert.ok(
-    uphillStall.velocity > 0,
-    `Expected stalled uphill minecart to roll backward down the slope, got v=${uphillStall.velocity}`
-  );
-
-  // 3) Uphill climb succeeds when entering the slope with momentum built on the flat run-up (velocity = -11.5, throttleAlongU = -1)
-  const uphillWithMomentum = stepRideableMinecartPhysics('minecart-line-moria', 0.25, -11.5, 0, -1, 0.2);
-  assert.equal(
-    uphillWithMomentum.stalledOnUphill,
+    uphillFromRest.stalledOnUphill,
     false,
-    'Expected minecart with momentum to climb the uphill without stalling'
+    'Expected minecart uphill drive power to climb smoothly without stalling'
   );
+  const uphillWithMomentum = stepRideableMinecartPhysics('minecart-line-moria', 0.25, -11.5, 0, -1, 0.2);
   assert.ok(
     uphillWithMomentum.u < 0.25,
-    `Expected minecart with momentum to advance uphill toward u=0, got u=${uphillWithMomentum.u}`
+    `Expected minecart driving uphill to advance toward u=0, got u=${uphillWithMomentum.u}`
   );
   setRideableMinecartVisualProgress('minecart-line-moria', 0, 0);
+
+  // 3) Boarding station yaw aligns player camera look vector (-sin(yaw), -cos(yaw)) forward down the track (+u at start, -u at end)
+  const startPose = evaluateRideableMinecartPose('minecart-line-moria', 0);
+  const startStation = findNearestRideableMinecartStation(startPose.x, startPose.y, startPose.z, 3.0);
+  assert.ok(startStation, 'Expected start station for Moria line');
+  const camForwardX = -Math.sin(startStation.yaw);
+  const camForwardZ = -Math.cos(startStation.yaw);
+  const trackForwardX = Math.sin(startPose.yaw);
+  const trackForwardZ = Math.cos(startPose.yaw);
+  assert.ok(
+    camForwardX * trackForwardX + camForwardZ * trackForwardZ > 0.99,
+    'Expected boarding camera yaw at start station to face directly down the track (+u)'
+  );
 
   // 4) Multi-layer map separation: Surface Map vs Underground Mine Map
   assert.equal(
@@ -3155,7 +3159,234 @@ test('minecartSlopePhysicsAndMultiLayerMineMap_WhenTested_ShouldSlideDownhillSta
     );
   }
 });
+
+test('palaceAndMineFixes_WhenTestingStatuesMonkWallsDoorsCauldronsAnd2FWindow_ShouldSatisfyAllEightRequirements', async () => {
+  const THREE = await import('three');
+  const {
+    SOLID_BUILDING_BOXES,
+    FORTRESS_Z_OFFSET,
+    FORTRESS_Y_OFFSET,
+    CHINESE_FORTRESS_POS,
+    SAKURA_SANCTUARY_POS,
+    SAKURA_SANCTUARY_YAW,
+    DWARVEN_GUARDIAN_STATUES,
+    createInitialPlayerState,
+    stepPlayerPhysics,
+    stepArrowsPhysics,
+    pointInsideSolidBuildingBox,
+  } = await import('./terrainMath');
+  const {
+    resetMonkTempleSystem,
+    registerTempleStatue,
+    spawnTempleMonk,
+    checkArrowHitTempleStatue,
+    isMonkDoorwayActive,
+    isMonkPositionSafeOnPlatform,
+    updateMonkTempleSystem,
+    getActiveTempleMonks,
+  } = await import('./systems/monkTempleSystem');
+
+  const FZ = FORTRESS_Z_OFFSET;
+  const FY = FORTRESS_Y_OFFSET;
+
+  // 1) Dwarven Guardian Statues outside the mine have 2-tier hitboxes (pedestal + tighter statue body)
+  for (const st of DWARVEN_GUARDIAN_STATUES) {
+    const pedBox = SOLID_BUILDING_BOXES.find((b) => b.id === `${st.id}-pedestal`);
+    const bodyBox = SOLID_BUILDING_BOXES.find((b) => b.id === `${st.id}-statue-body`);
+    assert.ok(pedBox, `Expected pedestal hitbox for ${st.id}`);
+    assert.ok(bodyBox, `Expected sculpted statue body hitbox for ${st.id}`);
+    assert.ok(
+      bodyBox.maxX - bodyBox.minX < pedBox.maxX - pedBox.minX,
+      'Expected statue body hitbox to be narrower than stepped pedestal base'
+    );
+  }
+
+  // 2) Courtyard Iron Cauldrons (fortress-incense-west/east) are clear of the Courtyard Benches and praying monks
+  const incenseWest = SOLID_BUILDING_BOXES.find((b) => b.id === 'fortress-incense-west')!;
+  const benchWest = SOLID_BUILDING_BOXES.find((b) => b.id === 'fortress-courtyard-bench-0')!;
+  assert.ok(incenseWest && benchWest, 'Expected incense cauldron and courtyard bench hitboxes');
+  // Praying monk stands 0.78m inward (+X) from bench at (-11.2, -152.0 + FZ) -> (-10.42, -152.0 + FZ)
+  const prayingMonkX = -11.2 + 0.78;
+  const prayingMonkZ = -152.0 + FZ;
+  assert.equal(
+    pointInsideSolidBuildingBox(prayingMonkX, prayingMonkZ, 0.65, incenseWest),
+    false,
+    'Expected praying monk in front of courtyard bench to have complete clearance from iron burner cauldron'
+  );
+
+  // 3) Upper-floor (2F Dojo) Front Window of the Main Imperial Citadel Hall is open for shooting arrows through
+  const windowArrow = {
+    id: 9901,
+    x: 0,
+    y: CHINESE_FORTRESS_POS.mainHallFloor2Y + 1.35, // Eye/bow height on 2F Dojo floor (33.55 + FY)
+    z: -192.5 + FZ,
+    vx: 0,
+    vy: 0,
+    vz: 36.0, // Shooting South (+Z) out through the front window at z = -189.8 + FZ
+    yaw: Math.PI,
+    pitch: 0,
+    stuck: false,
+    age: 0,
+    arrowKind: 'normal' as const,
+    hitKind: 'none' as const,
+    hitTargetId: null,
+    trail: [],
+  };
+  stepArrowsPhysics([windowArrow], [], 0.18);
+  assert.equal(
+    windowArrow.stuck,
+    false,
+    `Expected arrow shot from 2F Dojo through front window to fly straight out without hitting a wall, stopped at z=${windowArrow.z - FZ}`
+  );
+  assert.ok(
+    windowArrow.z > -189.2 + FZ,
+    `Expected arrow to pass outside the front wall (z > ${-189.2 + FZ}), got z=${windowArrow.z}`
+  );
+
+  // 4) Statue Hitboxes & Provocation Scope: Palace statue provokes ALL Palace monks and ZERO Sakura monks;
+  //    Sakura statue provokes ONLY Sakura monks and ZERO Palace monks!
+  resetMonkTempleSystem();
+  const dummyScene = new THREE.Group();
+  const palaceStatueZ = -210.8 + FZ;
+  registerTempleStatue({
+    id: 'palace_golden_guardian',
+    x: 0,
+    baseY: CHINESE_FORTRESS_POS.mainHallFloor1Y,
+    z: palaceStatueZ,
+    radius: 2.45,
+    height: 5.8,
+    hitFlashTimer: 0,
+  });
+  const sakuraStatueX = SAKURA_SANCTUARY_POS.x + Math.sin(SAKURA_SANCTUARY_YAW) * -14.0;
+  const sakuraStatueZ = SAKURA_SANCTUARY_POS.z + Math.cos(SAKURA_SANCTUARY_YAW) * -14.0;
+  registerTempleStatue({
+    id: 'sakura_golden_buddha',
+    x: sakuraStatueX,
+    baseY: SAKURA_SANCTUARY_POS.height,
+    z: sakuraStatueZ,
+    radius: 2.25,
+    height: 5.6,
+    hitFlashTimer: 0,
+  });
+
+  // Spawn a distant Palace Gate Guard (at z = -121.5 + FZ, ~90m away from the Palace statue!) and a Sakura Sanctuary Monk
+  const gateMonk = spawnTempleMonk({
+    id: 'test-palace-gate-guard',
+    role: 'entrance_guard_left',
+    parent: dummyScene,
+    homeX: -1.65,
+    homeY: 26.0 + FY,
+    homeZ: -121.5 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0,
+  });
+  const towerMonk = spawnTempleMonk({
+    id: 'test-palace-tower-guard',
+    role: 'tower_guard',
+    parent: dummyScene,
+    homeX: -45.4,
+    homeY: 31.2 + FY,
+    homeZ: -129.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0,
+  });
+  const sakuraMonk = spawnTempleMonk({
+    id: 'test-sakura-master',
+    role: 'sanctuary_master',
+    parent: dummyScene,
+    homeX: SAKURA_SANCTUARY_POS.x,
+    homeY: SAKURA_SANCTUARY_POS.height,
+    homeZ: SAKURA_SANCTUARY_POS.z,
+    baseYaw: 0,
+    phaseOffset: 0,
+  });
+
+  // Shoot an arrow at the upper body of the Palace statue (y = baseY + 3.2m)
+  const hitPalaceStatue = checkArrowHitTempleStatue(
+    0.4,
+    CHINESE_FORTRESS_POS.mainHallFloor1Y + 3.2,
+    palaceStatueZ + 1.2
+  );
+  assert.equal(hitPalaceStatue, true, 'Expected arrow to hit the Palace Golden Guardian statue');
+  assert.equal(gateMonk.isAggro, true, 'Expected distant Palace gate monk (~90m away) to become aggro when Palace statue is hit');
+  assert.equal(towerMonk.isAggro, true, 'Expected Palace watchtower monk (~93m away) to become aggro when Palace statue is hit');
+  assert.equal(sakuraMonk.isAggro, false, 'Expected Sakura Sanctuary monk NOT to become aggro when Palace statue is hit');
+
+  // Reset aggro and shoot an arrow at the Sakura Sanctuary statue
+  gateMonk.isAggro = false;
+  towerMonk.isAggro = false;
+  const hitSakuraStatue = checkArrowHitTempleStatue(
+    sakuraStatueX + 0.3,
+    SAKURA_SANCTUARY_POS.height + 2.8,
+    sakuraStatueZ + 0.8
+  );
+  assert.equal(hitSakuraStatue, true, 'Expected arrow to hit the Sakura Golden Buddha statue');
+  assert.equal(sakuraMonk.isAggro, true, 'Expected Sakura Sanctuary monk to become aggro when Sakura statue is hit');
+  assert.equal(gateMonk.isAggro, false, 'Expected Palace gate monk NOT to become aggro when Sakura statue is hit');
+
+  // 5) Monks opening doors allow the player to walk straight through without pressing [E]
+  const barracksMonk = spawnTempleMonk({
+    id: 'test-west-door-monk',
+    role: 'courtyard_patrol',
+    parent: dummyScene,
+    homeX: -30.0,
+    homeY: 26.3 + FY,
+    homeZ: -156.5 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0,
+  });
+  assert.equal(
+    isMonkDoorwayActive('west-pavilion-door'),
+    true,
+    'Expected west-pavilion-door to be active when a monk is in the doorway'
+  );
+  const doorWalker = createInitialPlayerState();
+  doorWalker.x = -30.0;
+  doorWalker.y = 26.3 + FY;
+  doorWalker.z = -155.7 + FZ;
+  doorWalker.yaw = 0; // Facing North (-Z) into the West Pavilion doorway at z = -156.5 + FZ
+  for (let tick = 0; tick < 6; tick++) {
+    stepPlayerPhysics(
+      doorWalker,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.08,
+      new Set() // Empty openDoorIds — player did NOT press [E]!
+    );
+  }
+  assert.ok(
+    doorWalker.z < -156.8 + FZ,
+    `Expected player to walk through monk-opened West Pavilion doorway without pressing [E], got z=${doorWalker.z - FZ}`
+  );
+  barracksMonk.x = 0;
+  barracksMonk.z = -150.0 + FZ;
+
+  // 6) Monks on elevated walls/ramparts cannot be pushed off the wall edge into mid-air
+  const wallY = 30.6 + FY;
+  // Inner courtyard edge of the West Rampart walkway is around x = -48.0 (drops to 26.0 + FY at x > -47.7)
+  assert.equal(
+    isMonkPositionSafeOnPlatform(-49.5, -170.0 + FZ, wallY),
+    true,
+    'Expected center of West Rampart walkway (-49.5) to be safe on platform'
+  );
+  assert.equal(
+    isMonkPositionSafeOnPlatform(-46.8, -170.0 + FZ, wallY),
+    false,
+    'Expected air off the inner edge of West Rampart (-46.8) to be detected as off-platform'
+  );
+  towerMonk.x = -48.1;
+  towerMonk.y = wallY;
+  towerMonk.z = -170.0 + FZ;
+  towerMonk.isAggro = true;
+  // Player tries to push towerMonk off the inner wall edge toward +X (x = -47.0)
+  for (let step = 0; step < 15; step++) {
+    updateMonkTempleSystem(0.05, step * 0.05, -48.5, -170.0 + FZ);
+  }
+  assert.ok(
+    isMonkPositionSafeOnPlatform(towerMonk.x, towerMonk.z, wallY),
+    `Expected monk on rampart wall never to be pushed off the edge into mid-air, monk at (${towerMonk.x.toFixed(2)}, ${towerMonk.z.toFixed(2)})`
+  );
+  assert.ok(getActiveTempleMonks().length >= 4);
+  resetMonkTempleSystem();
+});
 // #endregion
-
-
-

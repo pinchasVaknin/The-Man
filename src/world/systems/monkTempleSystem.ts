@@ -144,11 +144,12 @@ let allMonksProvoked = false;
 let allMonksAggroTimer = 0;
 let westBarracksDoorOpenTimer = 0;
 let eastBarracksDoorOpenTimer = 0;
+let mainHallDoorOpenTimer = 0;
 const _guardCrossQuat = new THREE.Quaternion();
 const _guardAxisZ = new THREE.Vector3(0, 0, 1);
 
 /**
- * Summary: Returns true when any monk is walking through or near the West or East Barracks Pavilion doorway.
+ * Summary: Returns true when any monk is walking through or near the West/East Barracks Pavilion or Main Hall doorway.
  */
 export function isMonkDoorwayActive(doorId: string): boolean {
   const FZ = FORTRESS_Z_OFFSET;
@@ -168,6 +169,14 @@ export function isMonkDoorwayActive(doorId: string): boolean {
     }
     return false;
   }
+  if (doorId === 'main-hall-door') {
+    if (mainHallDoorOpenTimer > 0) return true;
+    for (let i = 0; i < activeTempleMonks.length; i++) {
+      const mk = activeTempleMonks[i];
+      if (Math.hypot(mk.x - 0.0, mk.z - (-189.8 + FZ)) <= 4.8) return true;
+    }
+    return false;
+  }
   return false;
 }
 
@@ -182,6 +191,7 @@ export function resetMonkTempleSystem(): void {
   allMonksAggroTimer = 0;
   westBarracksDoorOpenTimer = 0;
   eastBarracksDoorOpenTimer = 0;
+  mainHallDoorOpenTimer = 0;
 }
 
 /**
@@ -194,6 +204,7 @@ export function resetActiveTempleMonksState(): void {
   allMonksAggroTimer = 0;
   westBarracksDoorOpenTimer = 0;
   eastBarracksDoorOpenTimer = 0;
+  mainHallDoorOpenTimer = 0;
 
   for (let s = 0; s < templeStatues.length; s++) {
     const st = templeStatues[s];
@@ -595,20 +606,36 @@ export function spawnTempleMonk(config: {
 }
 
 /**
- * Summary: Provokes monks within `radius` (default 34m) of a specific point (e.g. a Sacred Temple Statue).
- *          Only monks close enough to that statue charge the player!
+ * Summary: Provokes monks belonging to the same sanctuary/palace as the struck statue:
+ *          - Hitting the Palace statue provokes EVERY monk in the entire Palace (and NEVER Sakura Sanctuary monks).
+ *          - Hitting the Sakura Hot-Spring Sanctuary statue provokes ONLY the Sakura Sanctuary monks.
  */
-export function provokeMonksNearStatue(statueX: number, statueZ: number, radius = 34.0): number {
+export function provokeMonksNearStatue(statueX: number, statueZ: number, radius = 160.0): number {
   let count = 0;
+  const isSakuraStatue =
+    Math.hypot(statueX - SAKURA_SANCTUARY_POS.x, statueZ - SAKURA_SANCTUARY_POS.z) < 60.0;
+  const effectiveRange = isSakuraStatue ? Math.max(radius, 48.0) : Math.max(radius, 180.0);
+
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
+    const isSakuraMonk =
+      mk.role === 'sanctuary_master' ||
+      Math.hypot(mk.homeX - SAKURA_SANCTUARY_POS.x, mk.homeZ - SAKURA_SANCTUARY_POS.z) < 60.0;
+
+    // Never cross-provoke between the Palace and the Sakura Hot-Spring Sanctuary!
+    if (isSakuraStatue !== isSakuraMonk) continue;
+
     const d = Math.hypot(mk.x - statueX, mk.z - statueZ);
     const dHome = Math.hypot(mk.homeX - statueX, mk.homeZ - statueZ);
-    if (d <= radius || dHome <= radius) {
+    if (!isSakuraStatue || d <= effectiveRange || dHome <= effectiveRange) {
       mk.isAggro = true;
       mk.isLeashedReturning = false;
       mk.aggroTimer = 60.0;
       mk.forgetTimer = 0;
+      if (mk.shiftState === 'sleeping_in_bed') {
+        mk.shiftState = 'relieving_to_post';
+        mk.routeCursor = 1;
+      }
       mk.ctrl.setWeaponVisible(true);
       count++;
     }
@@ -644,20 +671,21 @@ export function provokeSingleMonk(monk: IActiveTempleMonk): void {
 }
 
 /**
- * Summary: Checks if a flying arrow hit a Sacred Temple Statue using a tight 2-tier silhouette hitbox
- *          (pedestal base 0..1.55m at st.radius, sculpted guardian figure 1.55..5.1m at 1.05m radius).
- *          If so, flashes the statue and provokes ONLY the monks close to that statue (<= 34m)!
+ * Summary: Checks if a flying arrow hit a Sacred Temple Statue using an accurate 2-tier silhouette hitbox
+ *          covering both the pedestal base and the full sculpted guardian figure, staff, and halo ring.
+ *          If hit, flashes the statue and provokes all monks in that compound (all Palace monks for the Palace statue,
+ *          or Sakura Sanctuary monks for the Sakura statue).
  */
 export function checkArrowHitTempleStatue(arrowX: number, arrowY: number, arrowZ: number): boolean {
   for (let i = 0; i < templeStatues.length; i++) {
     const st = templeStatues[i];
     const relY = arrowY - st.baseY;
-    if (relY < -0.25 || relY > st.height) continue;
+    if (relY < -0.35 || relY > st.height + 0.45) continue;
     const dHoriz = Math.hypot(arrowX - st.x, arrowZ - st.z);
-    const effectiveRadius = relY <= 1.55 ? st.radius : Math.min(st.radius, 1.05);
+    const effectiveRadius = relY <= 1.65 ? st.radius : Math.max(1.75, st.radius * 0.8);
     if (dHoriz <= effectiveRadius) {
       st.hitFlashTimer = 1.2;
-      provokeMonksNearStatue(st.x, st.z, 34.0);
+      provokeMonksNearStatue(st.x, st.z, 180.0);
       return true;
     }
   }
@@ -665,18 +693,18 @@ export function checkArrowHitTempleStatue(arrowX: number, arrowY: number, arrowZ
 }
 
 /**
- * Summary: Checks if a sword slash hit a Sacred Temple Statue using a tight silhouette hitbox.
- *          Provokes ONLY the monks within proximity (<= 34m) of that statue.
+ * Summary: Checks if a sword slash hit a Sacred Temple Statue using an accurate silhouette hitbox.
+ *          Provokes all monks in that compound (entire Palace for the Palace statue, or Sakura Sanctuary for the Sakura statue).
  */
 export function checkSwordHitTempleStatue(strikeX: number, strikeY: number, strikeZ: number): boolean {
   for (let i = 0; i < templeStatues.length; i++) {
     const st = templeStatues[i];
     const relY = strikeY - st.baseY;
-    if (relY < -0.45 || relY > st.height) continue;
+    if (relY < -0.45 || relY > st.height + 0.45) continue;
     const dHoriz = Math.hypot(strikeX - st.x, strikeZ - st.z);
-    if (dHoriz <= st.radius + 0.55) {
+    if (dHoriz <= st.radius + 0.65) {
       st.hitFlashTimer = 1.2;
-      provokeMonksNearStatue(st.x, st.z, 34.0);
+      provokeMonksNearStatue(st.x, st.z, 180.0);
       return true;
     }
   }
@@ -809,13 +837,46 @@ export function isPlayerInsideMonkTerritory(
     monk.role === 'sanctuary_master' ||
     Math.hypot(monk.homeX - SAKURA_SANCTUARY_POS.x, monk.homeZ - SAKURA_SANCTUARY_POS.z) < 48.0;
   if (isSanctuaryMonk) {
-    return Math.hypot(playerX - SAKURA_SANCTUARY_POS.x, playerZ - SAKURA_SANCTUARY_POS.z) <= 32.0;
+    return Math.hypot(playerX - SAKURA_SANCTUARY_POS.x, playerZ - SAKURA_SANCTUARY_POS.z) <= 34.0;
   }
   return (
-    Math.abs(playerX - CHINESE_FORTRESS_POS.x) <= 52.0 &&
-    playerZ >= CHINESE_FORTRESS_POS.plazaMinZ - 8.0 &&
-    playerZ <= CHINESE_FORTRESS_POS.upperGateZ + 6.0
+    Math.abs(playerX - CHINESE_FORTRESS_POS.x) <= 64.0 &&
+    playerZ >= CHINESE_FORTRESS_POS.plazaMinZ - 24.0 &&
+    playerZ <= CHINESE_FORTRESS_POS.upperGateZ + 18.0
   );
+}
+
+/**
+ * Summary: Returns true if the given (x, z) coordinate remains safely on the monk's current walkable floor/wall/platform
+ *          without dropping off a wall, rampart, watchtower, or cliff edge.
+ */
+export function isMonkPositionSafeOnPlatform(x: number, z: number, currentY: number): boolean {
+  const centerFloorY = walkableHeightAt(x, z, currentY).height;
+  if (Math.abs(centerFloorY - currentY) > 0.72) return false;
+  // Probe 0.28m around the monk's feet so monks stop right at the edge of walls/ramparts before hanging in mid-air
+  const edgeProbeR = 0.28;
+  if (walkableHeightAt(x + edgeProbeR, z, currentY).height < currentY - 0.85) return false;
+  if (walkableHeightAt(x - edgeProbeR, z, currentY).height < currentY - 0.85) return false;
+  if (walkableHeightAt(x, z + edgeProbeR, currentY).height < currentY - 0.85) return false;
+  if (walkableHeightAt(x, z - edgeProbeR, currentY).height < currentY - 0.85) return false;
+  return true;
+}
+
+/**
+ * Summary: Clamps a monk's horizontal movement so they can never step or be pushed off an elevated wall, rampart, or platform.
+ */
+function clampMonkToPlatformEdge(mk: IActiveTempleMonk, prevX: number, prevZ: number): void {
+  if (isMonkPositionSafeOnPlatform(mk.x, mk.z, mk.y)) return;
+  if (isMonkPositionSafeOnPlatform(mk.x, prevZ, mk.y)) {
+    mk.z = prevZ;
+    return;
+  }
+  if (isMonkPositionSafeOnPlatform(prevX, mk.z, mk.y)) {
+    mk.x = prevX;
+    return;
+  }
+  mk.x = prevX;
+  mk.z = prevZ;
 }
 
 /**
@@ -834,6 +895,7 @@ export function updateMonkTempleSystem(
 
   westBarracksDoorOpenTimer = Math.max(0, westBarracksDoorOpenTimer - safeDt);
   eastBarracksDoorOpenTimer = Math.max(0, eastBarracksDoorOpenTimer - safeDt);
+  mainHallDoorOpenTimer = Math.max(0, mainHallDoorOpenTimer - safeDt);
 
   if (allMonksProvoked) {
     allMonksAggroTimer = Math.max(0, allMonksAggroTimer - safeDt);
@@ -871,12 +933,15 @@ export function updateMonkTempleSystem(
       continue;
     }
 
-    // Automatically hold open the West or East Barracks Pavilion doors when a monk is walking through
+    // Automatically hold open the West/East Barracks Pavilion or Main Hall doors when a monk is walking through
     if (Math.hypot(mk.x - -30.0, mk.z - (-156.5 + FZ)) <= 4.8) {
       westBarracksDoorOpenTimer = 0.65;
     }
     if (Math.hypot(mk.x - 30.0, mk.z - (-156.5 + FZ)) <= 4.8) {
       eastBarracksDoorOpenTimer = 0.65;
+    }
+    if (Math.hypot(mk.x - 0.0, mk.z - (-189.8 + FZ)) <= 4.8) {
+      mainHallDoorOpenTimer = 0.65;
     }
 
     // Update golden chi ring flash
@@ -994,18 +1059,29 @@ export function updateMonkTempleSystem(
 
     if (mk.isAggro) {
       mk.isReturningFromAggro = true;
+      const isSanctuaryMonk =
+        mk.role === 'sanctuary_master' ||
+        Math.hypot(mk.homeX - SAKURA_SANCTUARY_POS.x, mk.homeZ - SAKURA_SANCTUARY_POS.z) < 48.0;
+      const maxLeashHomeDist = isSanctuaryMonk ? 44.0 : 125.0;
+      const maxLeashPlayerDist = isSanctuaryMonk ? 52.0 : 135.0;
+
       if (!mk.isLeashedReturning) {
-        if (!playerInTerritory && !monkInTerritory && distToHome > 44.0 && distToPlayer > 52.0) {
+        if (
+          !playerInTerritory &&
+          !monkInTerritory &&
+          distToHome > maxLeashHomeDist &&
+          distToPlayer > maxLeashPlayerDist
+        ) {
           mk.isLeashedReturning = true;
         }
       } else {
-        if (playerInTerritory || distToPlayer <= 42.0) {
+        if (playerInTerritory || distToPlayer <= maxLeashPlayerDist - 8.0) {
           mk.isLeashedReturning = false;
           mk.forgetTimer = 0;
         }
       }
 
-      if (mk.isLeashedReturning || (!playerInTerritory && distToPlayer > 52.0)) {
+      if (mk.isLeashedReturning || (!playerInTerritory && distToPlayer > maxLeashPlayerDist)) {
         mk.forgetTimer += safeDt;
         if (mk.forgetTimer >= 45.0) {
           mk.isAggro = false;
@@ -1042,11 +1118,12 @@ export function updateMonkTempleSystem(
       } else if (dPlayer > 2.25) {
         const runSpd = 5.4;
         const stepDist = Math.min(dPlayer - 1.85, runSpd * safeDt);
-        const nx = mk.x + (toPx / dPlayer) * stepDist;
-        const nz = mk.z + (toPz / dPlayer) * stepDist;
-        const walkInfo = walkableHeightAt(nx, nz, mk.y);
-        mk.x = nx;
-        mk.z = nz;
+        const prevX = mk.x;
+        const prevZ = mk.z;
+        mk.x += (toPx / dPlayer) * stepDist;
+        mk.z += (toPz / dPlayer) * stepDist;
+        clampMonkToPlatformEdge(mk, prevX, prevZ);
+        const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
         mk.y += (walkInfo.height - mk.y) * Math.min(1, safeDt * 12.0);
         mk.ctrl.speed = runSpd;
         mk.ctrl.setState('run', 0.16);
@@ -1559,16 +1636,22 @@ export function updateMonkTempleSystem(
         const aWeight = aMoving && !bMoving ? 1.0 : !aMoving && bMoving ? 0.0 : 0.5;
         const bWeight = 1.0 - aWeight;
 
+        const aPrevX = a.x;
+        const aPrevZ = a.z;
+        const bPrevX = b.x;
+        const bPrevZ = b.z;
         a.x -= nx * overlap * aWeight;
         a.z -= nz * overlap * aWeight;
         b.x += nx * overlap * bWeight;
         b.z += nz * overlap * bWeight;
+        clampMonkToPlatformEdge(a, aPrevX, aPrevZ);
+        clampMonkToPlatformEdge(b, bPrevX, bPrevZ);
         a.group.position.set(a.x, a.y, a.z);
         b.group.position.set(b.x, b.y, b.z);
       }
     }
 
-    // Separate monk and player horizontally when on the same floor
+    // Separate monk and player horizontally when on the same floor, WITHOUT ever allowing the monk to be pushed off a wall or platform edge!
     if (Math.abs(a.y - playerY) <= 1.8) {
       let pdx = a.x - playerX;
       let pdz = a.z - playerZ;
@@ -1583,11 +1666,16 @@ export function updateMonkTempleSystem(
         const push = minPlayerMonkDist - pDist;
         const pnx = pdx / pDist;
         const pnz = pdz / pDist;
-        if (a.isAggro || a.ctrl.speed > 0.05) {
-          a.x += pnx * push;
-          a.z += pnz * push;
+        const candMonkX = a.x + pnx * push;
+        const candMonkZ = a.z + pnz * push;
+        const monkCanMoveWithoutFalling = isMonkPositionSafeOnPlatform(candMonkX, candMonkZ, a.y);
+
+        if ((a.isAggro || a.ctrl.speed > 0.05) && monkCanMoveWithoutFalling) {
+          a.x = candMonkX;
+          a.z = candMonkZ;
           a.group.position.set(a.x, a.y, a.z);
         } else if (playerState) {
+          // Monk is stationary OR has reached the edge of the wall/rampart — block the player from pushing the monk any further!
           playerState.x -= pnx * push;
           playerState.z -= pnz * push;
         }

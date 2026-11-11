@@ -258,13 +258,105 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     g.add(new THREE.Mesh(cageGeo, warmLanternMat));
     if (addLight) {
       const isUnderground = y < -1.0;
-      const baseIntensity = isUnderground ? 4.2 : 3.2;
-      const pl = new THREE.PointLight(0xffaa38, baseIntensity, isUnderground ? 28 : 18, 1.35);
+      const baseIntensity = isUnderground ? 5.8 : 3.2;
+      const pl = new THREE.PointLight(0xffaa38, baseIntensity, isUnderground ? 44 : 18, 1.2);
       pl.position.set(0, -0.49, 0);
       if (isUnderground) {
         pl.userData.isUndergroundMineLight = true;
         pl.userData.baseIntensity = baseIntensity;
       }
+      g.add(pl);
+      lanternLights.push(pl);
+    }
+    return g;
+  }
+
+  function createStandingTableLantern(x: number, y: number, z: number): THREE.Group {
+    const g = new THREE.Group();
+    g.position.set(x, y, z);
+    const baseGeo = new THREE.CylinderGeometry(0.14, 0.17, 0.06, 8);
+    baseGeo.translate(0, 0.03, 0);
+    const cageGeo = new THREE.CylinderGeometry(0.12, 0.1, 0.26, 6);
+    cageGeo.translate(0, 0.19, 0);
+    const capGeo = new THREE.ConeGeometry(0.16, 0.11, 6);
+    capGeo.translate(0, 0.37, 0);
+    disposableGeometries.push(baseGeo, cageGeo, capGeo);
+    g.add(
+      new THREE.Mesh(baseGeo, darkIronMat),
+      new THREE.Mesh(cageGeo, warmLanternMat),
+      new THREE.Mesh(capGeo, darkIronMat)
+    );
+    return g;
+  }
+
+  function createStandingLanternPost(
+    x: number,
+    floorY: number,
+    z: number,
+    addLight = false,
+    yaw = 0
+  ): THREE.Group {
+    const g = new THREE.Group();
+    g.position.set(x, floorY, z);
+    g.rotation.y = yaw;
+    const plinthGeo = new THREE.BoxGeometry(0.52, 0.34, 0.52);
+    plinthGeo.translate(0, 0.17, 0);
+    const postGeo = new THREE.CylinderGeometry(0.09, 0.11, 2.75, 8);
+    postGeo.translate(0, 1.38, 0);
+    const armGeo = new THREE.BoxGeometry(0.09, 0.09, 0.68);
+    armGeo.translate(0, 2.68, 0.26);
+    const braceGeo = new THREE.BoxGeometry(0.06, 0.46, 0.06);
+    disposableGeometries.push(plinthGeo, postGeo, armGeo, braceGeo);
+    const brace = new THREE.Mesh(braceGeo, darkIronMat);
+    brace.position.set(0, 2.48, 0.18);
+    brace.rotation.x = -0.65;
+    g.add(
+      new THREE.Mesh(plinthGeo, mineDarkRockMat),
+      new THREE.Mesh(postGeo, barkMat),
+      new THREE.Mesh(armGeo, darkIronMat),
+      brace,
+      createLanternAssembly(0, 2.64, 0.52, addLight)
+    );
+    return g;
+  }
+
+  function createWallTorchSconce(
+    x: number,
+    y: number,
+    z: number,
+    yaw = 0,
+    addLight = false
+  ): THREE.Group {
+    const g = new THREE.Group();
+    g.position.set(x, y, z);
+    g.rotation.y = yaw;
+    const plateGeo = new THREE.BoxGeometry(0.18, 0.36, 0.06);
+    const armGeo = new THREE.BoxGeometry(0.06, 0.06, 0.26);
+    armGeo.translate(0, -0.02, 0.13);
+    const stickGeo = new THREE.CylinderGeometry(0.048, 0.032, 0.62, 7);
+    const emberGeo = new THREE.SphereGeometry(0.09, 8, 6);
+    const flameGeo = new THREE.ConeGeometry(0.12, 0.36, 8);
+    disposableGeometries.push(plateGeo, armGeo, stickGeo, emberGeo, flameGeo);
+
+    const stick = new THREE.Mesh(stickGeo, barkMat);
+    stick.position.set(0, 0.14, 0.22);
+    stick.rotation.x = 0.28;
+    const ember = new THREE.Mesh(emberGeo, mineMoltenCoalMat);
+    ember.position.set(0, 0.42, 0.3);
+    const flame = new THREE.Mesh(flameGeo, warmLanternMat);
+    flame.position.set(0, 0.58, 0.32);
+    g.add(
+      new THREE.Mesh(plateGeo, darkIronMat),
+      new THREE.Mesh(armGeo, darkIronMat),
+      stick,
+      ember,
+      flame
+    );
+    if (addLight) {
+      const pl = new THREE.PointLight(0xff9828, 5.6, 44, 1.2);
+      pl.position.set(0, 0.55, 0.45);
+      pl.userData.isUndergroundMineLight = true;
+      pl.userData.baseIntensity = 5.6;
       g.add(pl);
       lanternLights.push(pl);
     }
@@ -1215,8 +1307,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   portalSign.position.set(0, mineEntY + 4.38, -0.18);
   mineGroup.add(
     portalSign,
-    createLanternAssembly(-2.65, mineEntY + 3.1, 0.0, true),
-    createLanternAssembly(2.65, mineEntY + 3.1, 0.0, false)
+    createLanternAssembly(-2.35, mineEntY + 4.12, 0.2, true),
+    createLanternAssembly(2.35, mineEntY + 4.12, 0.2, false)
   );
 
   const shaftMidLocalZ = (3.5 + 34.0) * 0.5;
@@ -1274,11 +1366,17 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     postR.position.set(3.05, fy, fz);
     const beamTop = new THREE.Mesh(mineTimberBeamGeo, timberMat);
     beamTop.position.set(0, fy + 4.65, fz);
-    mineGroup.add(postL, postR, beamTop);
+    mineGroup.add(
+      postL,
+      postR,
+      beamTop,
+      createWallTorchSconce(-2.82, fy + 2.45, fz, Math.PI / 2, f % 3 === 1),
+      createWallTorchSconce(2.82, fy + 2.45, fz, -Math.PI / 2, false)
+    );
 
     if (f % 2 === 0) {
       mineGroup.add(
-        createLanternAssembly(f % 4 === 0 ? -2.45 : 2.45, fy + 3.25, fz, f === 4)
+        createLanternAssembly(0, fy + 4.42, fz, f === 2 || f === 6)
       );
     }
   }
@@ -1440,8 +1538,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     archGrp.add(
       mainBeam,
       kingPost,
-      createLanternAssembly(-2.15, 3.85, 0.38, addPointLight),
-      createLanternAssembly(2.15, 3.85, -0.38, false)
+      createLanternAssembly(-2.05, 4.86, 0, addPointLight),
+      createLanternAssembly(2.05, 4.86, 0, false),
+      createWallTorchSconce(-2.45, 2.55, 0, Math.PI / 2, false),
+      createWallTorchSconce(2.45, 2.55, 0, -Math.PI / 2, false)
     );
     return archGrp;
   };
@@ -1551,7 +1651,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     bandTop.position.set(0, 0.92, 0);
     cGrp.add(box, bandBot, bandTop);
     if (addLantern) {
-      cGrp.add(createLanternAssembly(0, 1.42, 0, false));
+      cGrp.add(createStandingTableLantern(0, 1.05, 0));
     }
     return cGrp;
   };
@@ -1781,45 +1881,127 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   });
   attachAnimatedWaterWaveShader(subLakeMat, 0.042, 0.085, ctx.animatedWaterMaterials);
 
-  const subWaterfallMat = new THREE.MeshStandardMaterial({
+  const subWaterfallMat = new THREE.MeshPhysicalMaterial({
     color: 0x7dd3fc,
     emissive: 0x38bdf8,
-    emissiveIntensity: 1.25,
-    roughness: 0.18,
+    emissiveIntensity: 1.45,
+    roughness: 0.14,
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.9,
     side: THREE.DoubleSide,
   });
-  disposableMaterials.push(subLakeMat, subWaterfallMat);
+  attachAnimatedWaterWaveShader(subWaterfallMat, 0.14, 0.32, ctx.animatedWaterMaterials);
+
+  const subWaterfallCoreMat = new THREE.MeshPhysicalMaterial({
+    color: 0xe0f2fe,
+    emissive: 0xbae6fd,
+    emissiveIntensity: 1.65,
+    roughness: 0.1,
+    transparent: true,
+    opacity: 0.94,
+    side: THREE.DoubleSide,
+  });
+  attachAnimatedWaterWaveShader(subWaterfallCoreMat, 0.18, 0.42, ctx.animatedWaterMaterials);
+  disposableMaterials.push(subLakeMat, subWaterfallMat, subWaterfallCoreMat);
 
   const subLakeAnimGeo = new THREE.PlaneGeometry(32.0, 38.0, 28, 36);
   subLakeAnimGeo.rotateX(-Math.PI / 2);
   const mainWaterfallGeo = new THREE.CylinderGeometry(
-    2.6,
-    3.3,
-    11.5,
-    16,
-    1,
+    2.45,
+    3.65,
+    11.6,
+    20,
+    12,
     true,
-    -Math.PI * 0.42,
-    Math.PI * 0.84
+    -Math.PI * 0.44,
+    Math.PI * 0.88
   );
-  const foamRingGeo = new THREE.RingGeometry(1.6, 4.2, 24);
+  const innerWaterfallGeo = new THREE.CylinderGeometry(
+    1.85,
+    2.85,
+    11.4,
+    16,
+    8,
+    true,
+    -Math.PI * 0.36,
+    Math.PI * 0.72
+  );
+  const upperChuteWaterGeo = new THREE.BoxGeometry(4.4, 0.45, 5.2);
+  const foamRingGeo = new THREE.RingGeometry(1.4, 4.4, 28);
   foamRingGeo.rotateX(-Math.PI / 2);
-  disposableGeometries.push(subLakeAnimGeo, mainWaterfallGeo, foamRingGeo);
+  const outerFoamRingGeo = new THREE.RingGeometry(4.2, 6.4, 28);
+  outerFoamRingGeo.rotateX(-Math.PI / 2);
+  const waterfallCliffCoreGeo = new THREE.BoxGeometry(9.6, 12.6, 6.2);
+  disposableGeometries.push(
+    subLakeAnimGeo,
+    mainWaterfallGeo,
+    innerWaterfallGeo,
+    upperChuteWaterGeo,
+    foamRingGeo,
+    outerFoamRingGeo,
+    waterfallCliffCoreGeo
+  );
+
+  // Sculpted Subterranean Waterfall Rock Cliff & Spring Chute at the North end of the Lagoon (-118.0, z = 48.0..54.5)
+  const waterfallCliffGroup = new THREE.Group();
+  waterfallCliffGroup.position.set(-118.0, ch2FloorY, 50.8);
+  const cliffCoreMesh = new THREE.Mesh(waterfallCliffCoreGeo, mineDarkRockMat);
+  cliffCoreMesh.position.set(0, 6.1, -1.2);
+  waterfallCliffGroup.add(cliffCoreMesh);
+
+  for (const [bx, by, bz, sx, sy, sz] of [
+    [-3.8, 3.2, 0.8, 2.4, 3.8, 2.2],
+    [3.8, 3.2, 0.8, 2.4, 3.8, 2.2],
+    [-3.2, 7.6, 0.4, 2.1, 3.2, 1.9],
+    [3.2, 7.6, 0.4, 2.1, 3.2, 1.9],
+    [-4.8, 1.8, 2.2, 2.2, 2.2, 2.0],
+    [4.8, 1.8, 2.2, 2.2, 2.2, 2.0],
+    [-2.4, 10.8, 0.6, 1.8, 1.6, 1.8],
+    [2.4, 10.8, 0.6, 1.8, 1.6, 1.8],
+    [0.0, 5.2, 1.2, 2.2, 1.2, 1.6],
+  ] as const) {
+    const crag = new THREE.Mesh(rockBoulderGeo, mineDeepSlateMat);
+    crag.position.set(bx, by, bz);
+    crag.scale.set(sx, sy, sz);
+    waterfallCliffGroup.add(crag);
+  }
+  // Glowing sapphire crystals framing the high subterranean waterfall spring lip
+  for (const side of [-1, 1]) {
+    const springCrystal = new THREE.Mesh(crystalSpireGeo, mineSapphireCrystalMat);
+    springCrystal.position.set(side * 2.85, 10.4, 1.6);
+    springCrystal.scale.set(0.95, 1.45, 0.95);
+    springCrystal.rotation.z = -side * 0.28;
+    waterfallCliffGroup.add(springCrystal);
+  }
+  const upperChuteMesh = new THREE.Mesh(upperChuteWaterGeo, subWaterfallCoreMat);
+  upperChuteMesh.position.set(0, 10.65, 0.2);
+  upperChuteMesh.rotation.x = 0.22;
+  waterfallCliffGroup.add(upperChuteMesh);
+  mineGroup.add(waterfallCliffGroup);
 
   const subLakeMesh = new THREE.Mesh(subLakeAnimGeo, subLakeMat);
   subLakeMesh.position.set(-118.0, SOUTHERN_MINE_POS.westLagoonWaterY, 73.0);
   const mainWaterfallMesh = new THREE.Mesh(mainWaterfallGeo, subWaterfallMat);
-  mainWaterfallMesh.position.set(-118.0, ch2FloorY + 5.6, 51.5);
-  const waterfallFoamRing = new THREE.Mesh(foamRingGeo, subWaterfallMat);
-  waterfallFoamRing.position.set(-118.0, ch2FloorY + 0.08, 54.5);
-  const waterfallLight = new THREE.PointLight(0x38bdf8, 5.4, 56, 1.25);
-  waterfallLight.position.set(-118.0, ch2FloorY + 5.0, 62.0);
+  mainWaterfallMesh.position.set(-118.0, ch2FloorY + 5.4, 52.8);
+  const innerWaterfallMesh = new THREE.Mesh(innerWaterfallGeo, subWaterfallCoreMat);
+  innerWaterfallMesh.position.set(-118.0, ch2FloorY + 5.4, 53.05);
+  const waterfallFoamRing = new THREE.Mesh(foamRingGeo, subWaterfallCoreMat);
+  waterfallFoamRing.position.set(-118.0, SOUTHERN_MINE_POS.westLagoonWaterY + 0.06, 54.8);
+  const waterfallOuterFoamRing = new THREE.Mesh(outerFoamRingGeo, subWaterfallMat);
+  waterfallOuterFoamRing.position.set(-118.0, SOUTHERN_MINE_POS.westLagoonWaterY + 0.04, 54.8);
+  const waterfallLight = new THREE.PointLight(0x38bdf8, 6.4, 62, 1.2);
+  waterfallLight.position.set(-118.0, ch2FloorY + 5.5, 58.0);
   waterfallLight.userData.isUndergroundMineLight = true;
-  waterfallLight.userData.baseIntensity = 5.4;
+  waterfallLight.userData.baseIntensity = 6.4;
   lanternLights.push(waterfallLight);
-  mineGroup.add(subLakeMesh, mainWaterfallMesh, waterfallFoamRing, waterfallLight);
+  mineGroup.add(
+    subLakeMesh,
+    mainWaterfallMesh,
+    innerWaterfallMesh,
+    waterfallFoamRing,
+    waterfallOuterFoamRing,
+    waterfallLight
+  );
 
   // Chamber 2 Walkable Wooden Plank Bridge across the Lagoon (lx in [-135.0, -101.0], lz in [70.5, 75.5])
   const bridgePlankGeo = new THREE.BoxGeometry(0.85, 0.18, 4.8);
@@ -1868,7 +2050,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   mineGroup.add(
     ch2DockMesh,
     createInteractiveSupplyCrate(-112.0, ch2DockY, 95.5, true),
-    createLanternAssembly(-128.0, ch2DockY + 1.38, 92.2, true)
+    createStandingLanternPost(-128.0, ch2DockY, 92.2, true, Math.PI)
   );
 
   // Giant Glowing Amethyst & Sapphire Crystal Clusters in Chamber 2 West Shore (-141.0, 73.0)
@@ -2112,7 +2294,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   lanternLights.push(abyssDeepLight);
   mineGroup.add(abyssDeepLight);
 
-  // 16 Colossal Carved Stone Pillars of Khazad-dûm (8 in North Hall, 8 in South Hall)
+  // 16 Colossal Carved Stone Pillars of Khazad-dûm (8 in North Hall, 8 in South Hall) with Pillar Torch Sconces
   for (const pz of [154.0, 170.0, 224.0, 238.0]) {
     for (const px of [-38.0, -20.0, 20.0, 38.0]) {
       const pShaft = new THREE.Mesh(moriaPillarShaftGeo, mineDarkRockMat);
@@ -2124,7 +2306,16 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       const pGoldRing = new THREE.Mesh(moriaPillarCapitalGeo, mineGoldOreMat);
       pGoldRing.scale.set(0.88, 0.28, 0.88);
       pGoldRing.position.set(px, moriaFloorY + 3.2, pz);
-      mineGroup.add(pShaft, pBase, pCap, pGoldRing);
+      const faceCenterYaw = px < 0 ? Math.PI / 2 : -Math.PI / 2;
+      const sconceX = px + (px < 0 ? 1.98 : -1.98);
+      const addPillarLight = Math.abs(px) === 20.0;
+      mineGroup.add(
+        pShaft,
+        pBase,
+        pCap,
+        pGoldRing,
+        createWallTorchSconce(sconceX, moriaFloorY + 3.55, pz, faceCenterYaw, addPillarLight)
+      );
     }
   }
 
@@ -2163,17 +2354,17 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   royalDiasMesh.position.set(0, moriaFloorY + 0.4, 244.0);
   const royalChestMesh = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
   royalChestMesh.position.set(0, moriaFloorY + 0.8, 242.5);
-  const sanctuaryLight = new THREE.PointLight(0xfbbf24, 5.4, 56, 1.25);
+  const sanctuaryLight = new THREE.PointLight(0xfbbf24, 6.2, 62, 1.2);
   sanctuaryLight.position.set(0, moriaFloorY + 5.5, 242.5);
   sanctuaryLight.userData.isUndergroundMineLight = true;
-  sanctuaryLight.userData.baseIntensity = 5.4;
+  sanctuaryLight.userData.baseIntensity = 6.2;
   lanternLights.push(sanctuaryLight);
   mineGroup.add(
     royalDiasMesh,
     royalChestMesh,
     sanctuaryLight,
-    createLanternAssembly(-8.5, moriaFloorY + 2.2, 238.5, false),
-    createLanternAssembly(8.5, moriaFloorY + 2.2, 238.5, false)
+    createStandingLanternPost(-8.5, moriaFloorY + 0.8, 239.0, true, Math.PI),
+    createStandingLanternPost(8.5, moriaFloorY + 0.8, 239.0, false, Math.PI)
   );
 
   // ============================================================================
@@ -2381,8 +2572,18 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     seat.position.set(0, 0.58, -0.2);
     const grabBar = new THREE.Mesh(passengerHandleGeo, mineGoldOreMat);
     grabBar.position.set(0, 1.18, 0.85);
+    const headlampBracketGeo = new THREE.BoxGeometry(0.08, 0.08, 0.34);
+    disposableGeometries.push(headlampBracketGeo);
+    const headlampBracket = new THREE.Mesh(headlampBracketGeo, darkIronMat);
+    headlampBracket.position.set(0, 1.16, 0.92);
     cartGroup.rotation.order = 'YXZ';
-    cartGroup.add(body, seat, grabBar, createLanternAssembly(0, 1.15, 1.05, true));
+    cartGroup.add(
+      body,
+      seat,
+      grabBar,
+      headlampBracket,
+      createLanternAssembly(0, 1.15, 1.05, true)
+    );
 
     const wheels: THREE.Mesh[] = [];
     for (const wx of [-0.7, 0.7]) {
@@ -2397,16 +2598,38 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     rideablePassengerCarts.push({ lineId: line.id, group: cartGroup, wheels });
   }
 
-  // Warm lanterns placed along Room 1, Tunnels, and Chamber 4
-  for (const [lx, ly, lz, addPt] of [
-    [-25.0, cavernFloorY, 50.0, false],
-    [-35.0, cavernFloorY, 61.5, false],
-    [35.0, cavernFloorY, 61.5, false],
-    [-9.5, cavernFloorY, 85.0, true],
-    [-3.5, moriaFloorY, 177.5, true],
-    [3.5, moriaFloorY, 218.5, true],
+  // Grounded Standing Lantern Posts & Wall Torch Sconces across Room 1, Tunnels, Chamber 2, Chamber 3 & Chamber 4
+  for (const [lx, ly, lz, addPt, yaw] of [
+    [-25.0, cavernFloorY, 50.0, true, 0],
+    [-35.0, cavernFloorY, 61.5, true, Math.PI / 2],
+    [35.0, cavernFloorY, 61.5, true, -Math.PI / 2],
+    [4.0, cavernFloorY, 48.0, true, 0],
+    [22.0, cavernFloorY, 68.0, true, -Math.PI / 2],
+    [-9.5, cavernFloorY, 85.0, true, 0],
+    [-3.5, moriaFloorY, 177.5, true, 0],
+    [3.5, moriaFloorY, 218.5, true, Math.PI],
   ] as const) {
-    mineGroup.add(createLanternAssembly(lx, ly + 1.35, lz, addPt));
+    mineGroup.add(createStandingLanternPost(lx, ly, lz, addPt, yaw));
+  }
+
+  // Wall-mounted iron torch sconces along Room 1, South Moria Descent Gallery, Chamber 2 & Chamber 3
+  for (const [tx, ty, tz, tYaw, addLight] of [
+    [-47.2, cavernFloorY + 3.2, 46.0, Math.PI / 2, true],
+    [-47.2, cavernFloorY + 3.2, 82.0, Math.PI / 2, true],
+    [47.2, cavernFloorY + 3.2, 46.0, -Math.PI / 2, true],
+    [47.2, cavernFloorY + 3.2, 82.0, -Math.PI / 2, true],
+    [-28.0, cavernFloorY + 3.2, 94.2, Math.PI, false],
+    [28.0, cavernFloorY + 3.2, 94.2, Math.PI, false],
+    [-15.2, (cavernFloorY + moriaFloorY) * 0.5 + 2.8, 112.0, Math.PI / 2, true],
+    [15.2, (cavernFloorY + moriaFloorY) * 0.5 + 2.8, 112.0, -Math.PI / 2, false],
+    [-15.2, (cavernFloorY + moriaFloorY) * 0.5 + 1.2, 130.0, Math.PI / 2, false],
+    [15.2, (cavernFloorY + moriaFloorY) * 0.5 + 1.2, 130.0, -Math.PI / 2, true],
+    [-89.6, ch2FloorY + 3.2, 52.0, -Math.PI / 2, true],
+    [-89.6, ch2FloorY + 3.2, 88.0, -Math.PI / 2, true],
+    [89.6, ch3FloorY + 3.2, 52.0, Math.PI / 2, true],
+    [89.6, ch3FloorY + 3.2, 88.0, Math.PI / 2, true],
+  ] as const) {
+    mineGroup.add(createWallTorchSconce(tx, ty, tz, tYaw, addLight));
   }
 
   const { updateDwarvenMiners } = buildDwarvenKingdomAndMiners({
