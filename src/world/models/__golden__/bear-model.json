@@ -83,113 +83,113 @@
  "statePoses": [
   {
    "pose": {
-    "absSum": 1217.955687,
+    "absSum": 1217.158891,
     "count": 259,
-    "sum": 929.618
+    "sum": 931.654637
    },
    "state": "idle"
   },
   {
    "pose": {
-    "absSum": 1217.535584,
+    "absSum": 1221.522295,
     "count": 259,
-    "sum": 922.551012
+    "sum": 921.424497
    },
    "state": "walk"
   },
   {
    "pose": {
-    "absSum": 1216.690159,
+    "absSum": 1217.084485,
     "count": 259,
-    "sum": 928.245775
+    "sum": 930.032812
    },
    "state": "eat"
   },
   {
    "pose": {
-    "absSum": 1218.791127,
+    "absSum": 1220.349981,
     "count": 259,
-    "sum": 930.406359
+    "sum": 917.175331
    },
    "state": "call"
   },
   {
    "pose": {
-    "absSum": 1194.753192,
+    "absSum": 1190.575578,
     "count": 259,
-    "sum": 841.980388
+    "sum": 827.75929
    },
    "state": "lie"
   },
   {
    "pose": {
-    "absSum": 1111.138911,
+    "absSum": 1099.508124,
     "count": 259,
-    "sum": 814.254445
+    "sum": 807.709681
    },
    "state": "sit"
   },
   {
    "pose": {
-    "absSum": 1204.8225,
+    "absSum": 1215.06455,
     "count": 259,
-    "sum": 916.451199
+    "sum": 924.34877
    },
    "state": "trot"
   },
   {
    "pose": {
-    "absSum": 1207.067972,
+    "absSum": 1227.046108,
     "count": 259,
-    "sum": 919.414844
+    "sum": 931.18384
    },
    "state": "run"
   },
   {
    "pose": {
-    "absSum": 1208.940187,
+    "absSum": 1230.828207,
     "count": 259,
-    "sum": 919.26668
+    "sum": 937.699303
    },
    "state": "flee"
   },
   {
    "pose": {
-    "absSum": 1215.731315,
+    "absSum": 1192.938886,
     "count": 259,
-    "sum": 920.673584
+    "sum": 901.926784
    },
    "state": "skip"
   },
   {
    "pose": {
-    "absSum": 1181.164892,
+    "absSum": 1181.174903,
     "count": 259,
-    "sum": 887.623224
+    "sum": 884.82807
    },
    "state": "roar"
   },
   {
    "pose": {
-    "absSum": 1216.0704,
+    "absSum": 1220.459443,
     "count": 259,
-    "sum": 924.089182
+    "sum": 917.294593
    },
    "state": "stomp"
   },
   {
    "pose": {
-    "absSum": 1198.837549,
+    "absSum": 1188.176144,
     "count": 259,
-    "sum": 897.012814
+    "sum": 871.449096
    },
    "state": "attack"
   },
   {
    "pose": {
-    "absSum": 1199.191658,
+    "absSum": 1183.515542,
     "count": 259,
-    "sum": 885.742371
+    "sum": 856.606305
    },
    "state": "death"
   }

@@ -13,6 +13,7 @@
   "damageFlashIntensity": 0,
   "dashCooldown": 0,
   "distanceWalked": 0,
+  "drivingMinecart": null,
   "equippedClothingId": "ranger_garb",
   "equippedTool": "bow",
   "favoriteIds": [
@@ -56,6 +57,7 @@
   "nearbyHorse": null,
   "nearbyLadder": false,
   "nearbyMarket": null,
+  "nearbyMinecart": null,
   "ownedItemIds": [
    "bow",
    "sword",
@@ -129,6 +131,7 @@
   "damageFlashIntensity": 0,
   "dashCooldown": 0,
   "distanceWalked": 0,
+  "drivingMinecart": null,
   "equippedClothingId": "ranger_garb",
   "equippedTool": "bow",
   "favoriteIds": [
@@ -181,6 +184,7 @@
     "sword": 1
    }
   },
+  "nearbyMinecart": null,
   "ownedItemIds": [
    "bow",
    "sword",
@@ -254,6 +258,7 @@
   "damageFlashIntensity": 0,
   "dashCooldown": 0,
   "distanceWalked": 0,
+  "drivingMinecart": null,
   "equippedClothingId": "ranger_garb",
   "equippedTool": "bow",
   "favoriteIds": [
@@ -301,6 +306,7 @@
   "nearbyHorse": null,
   "nearbyLadder": false,
   "nearbyMarket": null,
+  "nearbyMinecart": null,
   "ownedItemIds": [
    "bow",
    "sword",
