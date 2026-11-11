@@ -142,6 +142,7 @@ export {
   COLLIDABLE_WORLD_ENTITY_REGISTRY,
   validateWorldEntityColliders,
   getObstacleColliderMetrics,
+  getHillWatchtowerLocalWalls,
 } from './landmarks/collisionAndTerraces';
 // #endregion
 

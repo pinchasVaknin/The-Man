@@ -8,7 +8,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
-import type { ICollidableWorldEntity, IObstacleCylinder, ISolidBuildingBox } from '../worldTypes';
+import type { ICollidableWorldEntity, IHillWatchtowerDef, IObstacleCylinder, ISolidBuildingBox } from '../worldTypes';
 import {
   MAGIC_STONE_CIRCLE_POS,
   WATERFALL_CLIFF_POS,
@@ -2812,3 +2812,60 @@ export function getNearbySolidBuildingBoxes(
 }
 // #endregion
 
+// ======================== HILL WATCHTOWER WALLS ======================== \
+// #region Hill Watchtower Walls
+/** Summary: An axis-aligned wall in a watchtower's local frame (before its yaw is applied). */
+export interface ILocalWallBox {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly maxY?: number;
+}
+
+/**
+ * Summary: Walls of one hill watchtower, in its local frame, for the given deck and door state.
+ * Design: Single source for the physics and the F3 collider overlay, so the drawn walls are the ones that block the player.
+ */
+export function getHillWatchtowerLocalWalls(
+  tower: Pick<IHillWatchtowerDef, 'doorSideLocalZ' | 'bridgeSideLocalZ' | 'baseY' | 'deckY'>,
+  onUpperDeck: boolean,
+  doorOpen: boolean
+): ILocalWallBox[] {
+  const walls: ILocalWallBox[] = [];
+  if (!onUpperDeck) {
+    walls.push(
+      { minX: -3.75, maxX: -3.25, minZ: -3.7, maxZ: 3.7, maxY: tower.baseY + 5.2 },
+      { minX: 3.25, maxX: 3.75, minZ: -3.7, maxZ: 3.7, maxY: tower.baseY + 5.2 }
+    );
+    const backZ = -tower.doorSideLocalZ * 3.5;
+    const doorZ = tower.doorSideLocalZ * 3.5;
+    walls.push({ minX: -3.7, maxX: 3.7, minZ: backZ - 0.25, maxZ: backZ + 0.25, maxY: tower.baseY + 5.2 });
+    walls.push(
+      { minX: -3.7, maxX: -1.15, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: tower.baseY + 5.2 },
+      { minX: 1.15, maxX: 3.7, minZ: doorZ - 0.25, maxZ: doorZ + 0.25, maxY: tower.baseY + 5.2 }
+    );
+    if (!doorOpen) {
+      walls.push({ minX: -1.15, maxX: 1.15, minZ: doorZ - 0.22, maxZ: doorZ + 0.22, maxY: tower.baseY + 3.8 });
+    }
+  } else {
+    const pMaxY = tower.deckY + 0.96;
+    walls.push(
+      { minX: -3.65, maxX: -3.35, minZ: -3.6, maxZ: 3.6, maxY: pMaxY },
+      { minX: 3.35, maxX: 3.65, minZ: -3.6, maxZ: 3.6, maxY: pMaxY }
+    );
+    for (const sideZ of [-1, 1] as const) {
+      const zCenter = sideZ * 3.5;
+      if (tower.bridgeSideLocalZ === sideZ) {
+        walls.push(
+          { minX: -3.6, maxX: -1.65, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY },
+          { minX: 1.65, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY }
+        );
+      } else {
+        walls.push({ minX: -3.6, maxX: 3.6, minZ: zCenter - 0.18, maxZ: zCenter + 0.18, maxY: pMaxY });
+      }
+    }
+  }
+  return walls;
+}
+// #endregion
