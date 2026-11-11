@@ -10,7 +10,7 @@
 import { t } from '../../locales';
 import type { IDwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
-import { MINE_CHAMBER_BOUNDS, MINE_NW_GALLERY } from '../domain/landmarks/dwarvenMineLayout';
+import { MINE_CHAMBER_BOUNDS, MINE_NW_GALLERY, MINE_ORE_ROCK_SITES } from '../domain/landmarks/dwarvenMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -69,8 +69,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: -28.0,
     workLocalZ: 44.5,
     workYaw: 0,
-    rockLocalX: -28.0,
-    rockLocalZ: 42.8,
+    rockLocalX: MINE_ORE_ROCK_SITES[0].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[0].lz,
     rockRadius: 1.2,
     oreKind: 'gold',
   },
@@ -84,8 +84,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: 22.0,
     workLocalZ: 78.5,
     workYaw: -Math.PI / 2,
-    rockLocalX: 24.2,
-    rockLocalZ: 78.5,
+    rockLocalX: MINE_ORE_ROCK_SITES[1].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[1].lz,
     rockRadius: 1.8,
     oreKind: 'gold',
   },
@@ -99,8 +99,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: -41.5,
     workLocalZ: 49.5,
     workYaw: Math.PI / 2,
-    rockLocalX: -43.2,
-    rockLocalZ: 49.5,
+    rockLocalX: MINE_ORE_ROCK_SITES[2].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[2].lz,
     rockRadius: 1.25,
     oreKind: 'amethyst',
   },
@@ -114,8 +114,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: -41.5,
     workLocalZ: 78.5,
     workYaw: Math.PI / 2,
-    rockLocalX: -43.2,
-    rockLocalZ: 78.5,
+    rockLocalX: MINE_ORE_ROCK_SITES[3].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[3].lz,
     rockRadius: 1.25,
     oreKind: 'silver',
   },
@@ -129,8 +129,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: 27.5,
     workLocalZ: 46.5,
     workYaw: 0,
-    rockLocalX: 27.5,
-    rockLocalZ: 44.8,
+    rockLocalX: MINE_ORE_ROCK_SITES[4].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[4].lz,
     rockRadius: 1.2,
     oreKind: 'gold',
   },
@@ -144,8 +144,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: 33.5,
     workLocalZ: 76.0,
     workYaw: -Math.PI / 2,
-    rockLocalX: 35.8,
-    rockLocalZ: 76.0,
+    rockLocalX: MINE_ORE_ROCK_SITES[5].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[5].lz,
     rockRadius: 2.1,
     oreKind: 'silver',
   },
@@ -159,8 +159,8 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: -28.5,
     workLocalZ: 87.5,
     workYaw: Math.PI,
-    rockLocalX: -28.5,
-    rockLocalZ: 89.2,
+    rockLocalX: MINE_ORE_ROCK_SITES[6].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[6].lz,
     rockRadius: 1.2,
     oreKind: 'sapphire',
   },
@@ -174,106 +174,17 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     workLocalX: 41.5,
     workLocalZ: 50.5,
     workYaw: -Math.PI / 2,
-    rockLocalX: 43.2,
-    rockLocalZ: 50.5,
+    rockLocalX: MINE_ORE_ROCK_SITES[7].lx,
+    rockLocalZ: MINE_ORE_ROCK_SITES[7].lz,
     rockRadius: 1.2,
     oreKind: 'emerald',
   },
 ];
 
-export interface IMinecartRouteConfig {
-  readonly id: string;
-  readonly startLocalX: number;
-  readonly startLocalZ: number;
-  readonly endLocalX: number;
-  readonly endLocalZ: number;
-  readonly baseYOffset?: number;
-  readonly yaw: number;
-  readonly cycleDuration: number;
-  readonly phaseOffset: number;
-  readonly oreKind: 'gold' | 'silver' | 'emerald' | 'sapphire' | 'amethyst';
-}
+export type { IMinecartRouteConfig } from '../domain/landmarks/dwarvenMineLayout';
+export { DWARVEN_MINECART_ROUTES } from '../domain/landmarks/dwarvenMineLayout';
+import { DWARVEN_MINECART_ROUTES } from '../domain/landmarks/dwarvenMineLayout';
 
-/**
- * Summary: Stationary Gold & Silver Ore Carts parked on sidings across Room 1, Chamber 3 (Foundry), and Chamber 4 (Moria).
- * Design: Ore carts never move automatically by themselves; only player-operated rideable minecarts move on the main tracks.
- */
-export const DWARVEN_MINECART_ROUTES: readonly IMinecartRouteConfig[] = [
-  // Cart 0: Stationary Gold Ore Cart on Room 1 Central North Siding
-  {
-    id: 'minecart-staging-gold-1',
-    startLocalX: 5.5,
-    startLocalZ: 50.0,
-    endLocalX: 5.5,
-    endLocalZ: 50.0,
-    yaw: 0,
-    cycleDuration: 22.0,
-    phaseOffset: 0.0,
-    oreKind: 'gold',
-  },
-  // Cart 1: Stationary Silver Ore Cart on Room 1 Central South Siding
-  {
-    id: 'minecart-staging-silver-1',
-    startLocalX: 5.5,
-    startLocalZ: 74.0,
-    endLocalX: 5.5,
-    endLocalZ: 74.0,
-    yaw: 0,
-    cycleDuration: 24.0,
-    phaseOffset: 0.35,
-    oreKind: 'silver',
-  },
-  // Cart 2: Stationary Gold Ore Cart near Room 1 Hoist Crane Spur
-  {
-    id: 'minecart-crane-gold-2',
-    startLocalX: 16.5,
-    startLocalZ: 56.0,
-    endLocalX: 16.5,
-    endLocalZ: 56.0,
-    yaw: 0,
-    cycleDuration: 25.0,
-    phaseOffset: 0.65,
-    oreKind: 'gold',
-  },
-  // Cart 3: Stationary Silver Ore Cart on Room 1 East Siding
-  {
-    id: 'minecart-east-siding-silver-2',
-    startLocalX: 26.5,
-    startLocalZ: 56.0,
-    endLocalX: 26.5,
-    endLocalZ: 56.0,
-    yaw: Math.PI / 2,
-    cycleDuration: 21.0,
-    phaseOffset: 0.18,
-    oreKind: 'silver',
-  },
-  // Cart 4: Stationary Gold Ore Cart in Chamber 3 (East Smelting Foundry)
-  {
-    id: 'minecart-foundry-gold',
-    startLocalX: 114.0,
-    startLocalZ: 56.0,
-    endLocalX: 114.0,
-    endLocalZ: 56.0,
-    baseYOffset: SOUTHERN_MINE_POS.eastFoundryFloorY - SOUTHERN_MINE_POS.cavernFloorY,
-    yaw: Math.PI / 2,
-    cycleDuration: 23.0,
-    phaseOffset: 0.52,
-    oreKind: 'gold',
-  },
-  // Cart 5: Stationary Silver Ore Cart in Chamber 3 (East Smelting Foundry)
-  {
-    id: 'minecart-foundry-silver',
-    startLocalX: 114.0,
-    startLocalZ: 76.0,
-    endLocalX: 114.0,
-    endLocalZ: 76.0,
-    baseYOffset: SOUTHERN_MINE_POS.eastFoundryFloorY - SOUTHERN_MINE_POS.cavernFloorY,
-    yaw: Math.PI / 2,
-    cycleDuration: 20.0,
-    phaseOffset: 0.82,
-    oreKind: 'silver',
-  },
-];
 
 /**
  * Summary: Returns stationary state for gold/silver ore carts so they never move by themselves.
