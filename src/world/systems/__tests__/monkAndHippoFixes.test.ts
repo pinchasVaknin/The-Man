@@ -391,16 +391,17 @@ describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixe
     assert.equal(d0.ctrl.state, 'death');
 
     // Verify dead dwarf can be found and looted for gold coins
-    const nearDeadDwarf = findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, d0.y);
+    const nearDeadDwarf = findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, 3.4, d0.y);
     assert.equal(nearDeadDwarf, d0, 'Dead unlooted dwarf should be detected within loot radius');
 
     const player = createInitialPlayerState();
     const startGold = player.goldCoins ?? 0;
     const lootRes = lootDeadDwarf(player, d0);
-    assert.ok(lootRes.goldAdded >= 6 && lootRes.goldAdded <= 14, `Expected modest gold drop (6..14), got ${lootRes.goldAdded}`);
+    // generateRandomDwarfLoot documents and implements 7–22 gold; the old 6–14 window made this test flaky.
+    assert.ok(lootRes.goldAdded >= 7 && lootRes.goldAdded <= 22, `Expected gold drop (7..22), got ${lootRes.goldAdded}`);
     assert.equal(player.goldCoins, startGold + lootRes.goldAdded, 'Looting dead dwarf must add gold coins to player purse');
     assert.equal(d0.isLooted, true, 'Dwarf should be marked isLooted = true after looting');
-    assert.equal(findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, d0.y), null, 'Looted dwarf should no longer prompt for looting');
+    assert.equal(findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, 3.4, d0.y), null, 'Looted dwarf should no longer prompt for looting');
 
     // Verify dead dwarf does NOT respawn while player remains close (< 38m), then respawns after 25s when player is out of the area (> 38m)
     handle.updateDwarvenMiners(12.0, 100.0, d0.x + 5.0, d0.z + 5.0);

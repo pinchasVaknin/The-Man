@@ -21,6 +21,7 @@ export interface IPersistedGameSettings {
   readonly jumpForceMultiplier: number;
   readonly firefliesMode: string;
   readonly defaultMuted: boolean;
+  readonly godMode?: boolean;
 }
 
 /** Summary: One lab entity's pose overrides as written to src/config/savedLabOverrides.ts. */
@@ -86,6 +87,7 @@ export function checkGameSettingsPayload(value: unknown): PayloadCheck<IPersiste
   const fireflies = value.firefliesMode;
   if (!isOneOf(perspective, CAMERA_PERSPECTIVES) || !isOneOf(fireflies, FIREFLIES_MODES)) return REJECTED;
   if (typeof value.defaultMuted !== 'boolean') return REJECTED;
+  if (value.godMode !== undefined && typeof value.godMode !== 'boolean') return REJECTED;
   if (
     !isNumberInRange(value.mouseSensitivity, MOUSE_SENSITIVITY_RANGE) ||
     !isNumberInRange(value.walkSpeedMultiplier, WALK_SPEED_RANGE) ||
@@ -103,6 +105,7 @@ export function checkGameSettingsPayload(value: unknown): PayloadCheck<IPersiste
       jumpForceMultiplier: value.jumpForceMultiplier,
       firefliesMode: fireflies,
       defaultMuted: value.defaultMuted,
+      ...(typeof value.godMode === 'boolean' ? { godMode: value.godMode } : {}),
     },
   };
 }
