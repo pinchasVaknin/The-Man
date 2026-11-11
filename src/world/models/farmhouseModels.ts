@@ -26,8 +26,26 @@ import {
   MINE_HOIST_CRANE,
   MINE_KHAZAD_BRIDGE,
   MINE_LAGOON_DOCK_TORCH,
+  MINE_AMETHYST,
+  MINE_CART_BODY,
+  MINE_CAVERN_WALLS,
+  MINE_DOCK_CRATE,
+  MINE_LAGOON_BRIDGE,
+  MINE_VAULT_CRATE,
+  MINE_WATERFALL_CLIFF,
+  mineAmethystSpires,
+  MINE_FOUNDRY_WALLS,
+  MINE_LAGOON_WALLS,
+  MINE_BLAST_FURNACES,
+  MINE_CRANE_MAST,
   MINE_MESS_HALL,
+  MINE_MORIA_PILLARS,
+  MINE_MORIA_WALLS,
+  MINE_ROYAL_CHEST,
+  MINE_TUNNEL_WALLS,
   MINE_PORTAL,
+  MINE_SOUTH_GALLERY,
+  MINE_TRESTLE,
   MINE_SUPPLY_CRATES,
   MINE_NW_GALLERY,
   khazadBridgeSegment,
@@ -1258,7 +1276,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const cavernHeight = SOUTHERN_MINE_POS.cavernHeight;
   const cavernStalactiteGeo = new THREE.ConeGeometry(0.88, 3.2, 6);
   cavernStalactiteGeo.rotateX(Math.PI);
-  const mineCartBodyGeo = new THREE.BoxGeometry(1.42, 0.88, 2.05);
+  const mineCartBodyGeo = new THREE.BoxGeometry(MINE_CART_BODY.halfX * 2, MINE_CART_BODY.topDy - MINE_CART_BODY.bottomDy, MINE_CART_BODY.halfZ * 2);
   const mineCartWheelGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 10);
   mineCartWheelGeo.rotateZ(Math.PI / 2);
   const crystalSpireGeo = new THREE.ConeGeometry(0.56, 2.8, 6);
@@ -1428,10 +1446,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const room1FloorGeo = new THREE.BoxGeometry(102.0, 0.8, 65.0);
   const room1PavedRunnerGeo = new THREE.BoxGeometry(28.0, 0.12, 56.0);
   const cavernCeilingGeo = new THREE.BoxGeometry(102.0, 1.6, 66.0);
-  const cavernSideWallNorthFlankGeo = new THREE.BoxGeometry(3.2, cavernHeight + 1.4, 26.0);
-  const cavernSideWallSouthFlankGeo = new THREE.BoxGeometry(3.2, cavernHeight + 1.4, 28.5);
-  const cavernSouthFlankGeo = new THREE.BoxGeometry(35.0, cavernHeight + 1.4, 3.2);
-  const cavernNorthFlankGeo = new THREE.BoxGeometry(46.5, cavernHeight + 1.4, 3.2);
+  const cavernSideWallNorthFlankGeo = new THREE.BoxGeometry(MINE_CAVERN_WALLS.thick, cavernHeight + 1.4, MINE_CAVERN_WALLS.sideWallNorthLength);
+  const cavernSideWallSouthFlankGeo = new THREE.BoxGeometry(MINE_CAVERN_WALLS.thick, cavernHeight + 1.4, MINE_CAVERN_WALLS.sideWallSouthLength);
+  const cavernSouthFlankGeo = new THREE.BoxGeometry(MINE_CAVERN_WALLS.southFlankLength, cavernHeight + 1.4, MINE_CAVERN_WALLS.thick);
+  const cavernNorthFlankGeo = new THREE.BoxGeometry(MINE_CAVERN_WALLS.northFlankLength, cavernHeight + 1.4, MINE_CAVERN_WALLS.thick);
   const cavernNorthUpperGeo = new THREE.BoxGeometry(9.0, 3.6, 3.2);
   const tunnelPortalHeaderGeo = new THREE.BoxGeometry(3.2, 3.2, 13.0);
   const southPortalHeaderGeo = new THREE.BoxGeometry(34.0, 2.8, 3.2);
@@ -1462,31 +1480,31 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // West & East perimeter walls split to leave 11m-wide tunnel openings at lz in [58.5, 69.5] with zero corner gaps
   const cWestWallNorth = new THREE.Mesh(cavernSideWallNorthFlankGeo, mineDeepSlateMat);
-  cWestWallNorth.position.set(-49.0, cavernFloorY + cavernHeight * 0.5, 45.8);
+  cWestWallNorth.position.set(-MINE_CAVERN_WALLS.sideWallX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.sideWallNorthLz);
   const cWestWallSouth = new THREE.Mesh(cavernSideWallSouthFlankGeo, mineDeepSlateMat);
-  cWestWallSouth.position.set(-49.0, cavernFloorY + cavernHeight * 0.5, 83.25);
+  cWestWallSouth.position.set(-MINE_CAVERN_WALLS.sideWallX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.sideWallSouthLz);
   const cWestWallHeader = new THREE.Mesh(tunnelPortalHeaderGeo, mineDeepSlateMat);
   cWestWallHeader.position.set(-49.0, cavernFloorY + cavernHeight - 1.0, 64.0);
 
   const cEastWallNorth = new THREE.Mesh(cavernSideWallNorthFlankGeo, mineDeepSlateMat);
-  cEastWallNorth.position.set(49.0, cavernFloorY + cavernHeight * 0.5, 45.8);
+  cEastWallNorth.position.set(MINE_CAVERN_WALLS.sideWallX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.sideWallNorthLz);
   const cEastWallSouth = new THREE.Mesh(cavernSideWallSouthFlankGeo, mineDeepSlateMat);
-  cEastWallSouth.position.set(49.0, cavernFloorY + cavernHeight * 0.5, 83.25);
+  cEastWallSouth.position.set(MINE_CAVERN_WALLS.sideWallX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.sideWallSouthLz);
   const cEastWallHeader = new THREE.Mesh(tunnelPortalHeaderGeo, mineDeepSlateMat);
   cEastWallHeader.position.set(49.0, cavernFloorY + cavernHeight - 1.0, 64.0);
 
   // South perimeter wall split to leave a grand 32m-wide Moria gallery opening at lx in [-16.0, 16.0]
   const cSouthWallWest = new THREE.Mesh(cavernSouthFlankGeo, mineDeepSlateMat);
-  cSouthWallWest.position.set(-33.2, cavernFloorY + cavernHeight * 0.5, 96.0);
+  cSouthWallWest.position.set(-MINE_CAVERN_WALLS.southFlankX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.southFlankLz);
   const cSouthWallEast = new THREE.Mesh(cavernSouthFlankGeo, mineDeepSlateMat);
-  cSouthWallEast.position.set(33.2, cavernFloorY + cavernHeight * 0.5, 96.0);
+  cSouthWallEast.position.set(MINE_CAVERN_WALLS.southFlankX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.southFlankLz);
   const cSouthWallHeader = new THREE.Mesh(southPortalHeaderGeo, mineDeepSlateMat);
   cSouthWallHeader.position.set(0, cavernFloorY + cavernHeight - 0.8, 96.0);
 
   const cNorthWestWall = new THREE.Mesh(cavernNorthFlankGeo, mineDeepSlateMat);
-  cNorthWestWall.position.set(-26.4, cavernFloorY + cavernHeight * 0.5, 34.0);
+  cNorthWestWall.position.set(-MINE_CAVERN_WALLS.northFlankX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.northFlankLz);
   const cNorthEastWall = new THREE.Mesh(cavernNorthFlankGeo, mineDeepSlateMat);
-  cNorthEastWall.position.set(26.4, cavernFloorY + cavernHeight * 0.5, 34.0);
+  cNorthEastWall.position.set(MINE_CAVERN_WALLS.northFlankX, cavernFloorY + cavernHeight * 0.5, MINE_CAVERN_WALLS.northFlankLz);
   const cNorthUpper = new THREE.Mesh(cavernNorthUpperGeo, mineDeepSlateMat);
   cNorthUpper.position.set(0, cavernFloorY + cavernHeight - 1.2, 34.0);
 
@@ -1785,7 +1803,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   mineGroup.add(craneTowerGroup);
 
   const craneMast = new THREE.Mesh(craneTowerPostGeo, barkMat);
-  craneMast.position.set(16.0, cavernFloorY, 76.0);
+  craneMast.position.set(MINE_CRANE_MAST.lx, cavernFloorY, MINE_CRANE_MAST.lz);
   const craneJib = new THREE.Mesh(craneJibBeamGeo, timberMat);
   craneJib.position.set(12.6, cavernFloorY + 8.6, 76.0);
   mineGroup.add(craneMast, craneJib);
@@ -1812,7 +1830,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const westTunnelPitch = Math.atan2(westTunnelDrop, westTunnelLen);
 
   const ewTunnelFloorGeo = new THREE.BoxGeometry(westTunnelHypot + 3.0, 0.8, 12.6);
-  const ewTunnelWallGeo = new THREE.BoxGeometry(westTunnelHypot + 3.0, 12.0, 1.4);
+  const ewTunnelWallGeo = new THREE.BoxGeometry(westTunnelHypot + 3.0, MINE_TUNNEL_WALLS.height, MINE_TUNNEL_WALLS.thick);
   disposableGeometries.push(ewTunnelFloorGeo, ewTunnelWallGeo);
 
   const westTunnelFloor = new THREE.Mesh(ewTunnelFloorGeo, mineDarkRockMat);
@@ -1822,10 +1840,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   westTunnelCeiling.position.set(-68.0, (cavernFloorY + ch2FloorY) * 0.5 + 5.6, 64.0);
   westTunnelCeiling.rotation.z = westTunnelPitch;
   const westTunnelWallN = new THREE.Mesh(ewTunnelWallGeo, mineDeepSlateMat);
-  westTunnelWallN.position.set(-68.0, (cavernFloorY + ch2FloorY) * 0.5 + 2.8, 58.3);
+  westTunnelWallN.position.set(MINE_TUNNEL_WALLS.westX, (cavernFloorY + ch2FloorY) * 0.5 + MINE_TUNNEL_WALLS.centreDy, MINE_TUNNEL_WALLS.wallLzs[0]);
   westTunnelWallN.rotation.z = westTunnelPitch;
   const westTunnelWallS = new THREE.Mesh(ewTunnelWallGeo, mineDeepSlateMat);
-  westTunnelWallS.position.set(-68.0, (cavernFloorY + ch2FloorY) * 0.5 + 2.8, 69.7);
+  westTunnelWallS.position.set(MINE_TUNNEL_WALLS.westX, (cavernFloorY + ch2FloorY) * 0.5 + MINE_TUNNEL_WALLS.centreDy, MINE_TUNNEL_WALLS.wallLzs[1]);
   westTunnelWallS.rotation.z = westTunnelPitch;
   mineGroup.add(westTunnelFloor, westTunnelCeiling, westTunnelWallN, westTunnelWallS);
 
@@ -1841,10 +1859,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const ch2NorthSouthFloorGeo = new THREE.BoxGeometry(34.0, 0.8, 18.0);
   const ch2BasinFloorGeo = new THREE.BoxGeometry(36.0, 0.8, 42.0);
   const ch2CeilingGeo = new THREE.BoxGeometry(64.0, 1.6, 78.0);
-  const ch2NorthSouthWallGeo = new THREE.BoxGeometry(64.0, 15.0, 3.2);
-  const ch2WestWallGeo = new THREE.BoxGeometry(3.2, 15.0, 78.0);
-  const ch2EastNorthFlankWallGeo = new THREE.BoxGeometry(3.2, 15.0, 22.5);
-  const ch2EastSouthFlankWallGeo = new THREE.BoxGeometry(3.2, 15.0, 44.5);
+  const ch2NorthSouthWallGeo = new THREE.BoxGeometry(MINE_LAGOON_WALLS.northSouthLength, MINE_LAGOON_WALLS.height, MINE_LAGOON_WALLS.thick);
+  const ch2WestWallGeo = new THREE.BoxGeometry(MINE_LAGOON_WALLS.thick, MINE_LAGOON_WALLS.height, MINE_LAGOON_WALLS.westLength);
+  const ch2EastNorthFlankWallGeo = new THREE.BoxGeometry(MINE_LAGOON_WALLS.thick, MINE_LAGOON_WALLS.height, MINE_LAGOON_WALLS.eastNorthFlank.length);
+  const ch2EastSouthFlankWallGeo = new THREE.BoxGeometry(MINE_LAGOON_WALLS.thick, MINE_LAGOON_WALLS.height, MINE_LAGOON_WALLS.eastSouthFlank.length);
   const ch2EastTunnelHeaderGeo = new THREE.BoxGeometry(3.2, 8.6, 13.0);
   disposableGeometries.push(
     ch2SideFloorGeo,
@@ -1871,15 +1889,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const ch2CeilingMesh = new THREE.Mesh(ch2CeilingGeo, mineDeepSlateMat);
   ch2CeilingMesh.position.set(-118.0, ch2FloorY + 12.5, 75.0);
   const ch2NorthWall = new THREE.Mesh(ch2NorthSouthWallGeo, mineDeepSlateMat);
-  ch2NorthWall.position.set(-118.0, ch2FloorY + 6.25, 38.0);
+  ch2NorthWall.position.set(MINE_LAGOON_WALLS.northSouthLx, ch2FloorY + MINE_LAGOON_WALLS.centreDy, MINE_LAGOON_WALLS.northLz);
   const ch2SouthWall = new THREE.Mesh(ch2NorthSouthWallGeo, mineDeepSlateMat);
-  ch2SouthWall.position.set(-118.0, ch2FloorY + 6.25, 112.0);
+  ch2SouthWall.position.set(MINE_LAGOON_WALLS.northSouthLx, ch2FloorY + MINE_LAGOON_WALLS.centreDy, MINE_LAGOON_WALLS.southLz);
   const ch2WestWall = new THREE.Mesh(ch2WestWallGeo, mineDeepSlateMat);
-  ch2WestWall.position.set(-148.5, ch2FloorY + 6.25, 75.0);
+  ch2WestWall.position.set(MINE_LAGOON_WALLS.westLx, ch2FloorY + MINE_LAGOON_WALLS.centreDy, MINE_LAGOON_WALLS.westLz);
   const ch2EastWallN = new THREE.Mesh(ch2EastNorthFlankWallGeo, mineDeepSlateMat);
-  ch2EastWallN.position.set(-88.0, ch2FloorY + 6.25, 47.8);
+  ch2EastWallN.position.set(MINE_LAGOON_WALLS.eastNorthFlank.lx, ch2FloorY + MINE_LAGOON_WALLS.centreDy, MINE_LAGOON_WALLS.eastNorthFlank.lz);
   const ch2EastWallS = new THREE.Mesh(ch2EastSouthFlankWallGeo, mineDeepSlateMat);
-  ch2EastWallS.position.set(-88.0, ch2FloorY + 6.25, 91.2);
+  ch2EastWallS.position.set(MINE_LAGOON_WALLS.eastSouthFlank.lx, ch2FloorY + MINE_LAGOON_WALLS.centreDy, MINE_LAGOON_WALLS.eastSouthFlank.lz);
   const ch2EastTunnelHeader = new THREE.Mesh(ch2EastTunnelHeaderGeo, mineDeepSlateMat);
   ch2EastTunnelHeader.position.set(-88.0, ch2FloorY + 9.4, 64.0);
 
@@ -1961,7 +1979,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   foamRingGeo.rotateX(-Math.PI / 2);
   const outerFoamRingGeo = new THREE.RingGeometry(4.2, 6.4, 28);
   outerFoamRingGeo.rotateX(-Math.PI / 2);
-  const waterfallCliffCoreGeo = new THREE.BoxGeometry(9.6, 12.6, 6.2);
+  const waterfallCliffCoreGeo = new THREE.BoxGeometry(MINE_WATERFALL_CLIFF.coreW, MINE_WATERFALL_CLIFF.coreH, MINE_WATERFALL_CLIFF.coreD);
   disposableGeometries.push(
     subLakeAnimGeo,
     mainWaterfallGeo,
@@ -1974,9 +1992,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // Sculpted Subterranean Waterfall Rock Cliff & Spring Chute at the North end of the Lagoon (-118.0, z = 48.0..54.5)
   const waterfallCliffGroup = new THREE.Group();
-  waterfallCliffGroup.position.set(-118.0, ch2FloorY, 50.8);
+  waterfallCliffGroup.position.set(MINE_WATERFALL_CLIFF.lx, ch2FloorY, MINE_WATERFALL_CLIFF.lz);
   const cliffCoreMesh = new THREE.Mesh(waterfallCliffCoreGeo, mineDarkRockMat);
-  cliffCoreMesh.position.set(0, 6.1, -1.2);
+  cliffCoreMesh.position.set(MINE_WATERFALL_CLIFF.coreLx, MINE_WATERFALL_CLIFF.coreY, MINE_WATERFALL_CLIFF.coreLz);
   waterfallCliffGroup.add(cliffCoreMesh);
 
   for (const [bx, by, bz, sx, sy, sz] of [
@@ -2038,7 +2056,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const bridgeBeamGeo = new THREE.BoxGeometry(34.0, 0.26, 0.32);
   const bridgePostGeo = new THREE.BoxGeometry(0.28, 1.35, 0.28);
   bridgePostGeo.translate(0, 0.675, 0);
-  const bridgeRailRopeGeo = new THREE.CylinderGeometry(0.045, 0.045, 33.4, 8);
+  const bridgeRailRopeGeo = new THREE.CylinderGeometry(MINE_LAGOON_BRIDGE.ropeRadius, MINE_LAGOON_BRIDGE.ropeRadius, MINE_LAGOON_BRIDGE.ropeLength, 8);
   bridgeRailRopeGeo.rotateZ(Math.PI / 2);
   const dockDeckGeo = new THREE.BoxGeometry(24.0, 0.24, 8.5);
   disposableGeometries.push(
@@ -2061,15 +2079,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(plank);
   }
   for (const px of [-134.2, -126.0, -118.0, -110.0, -101.8]) {
-    for (const pz of [70.65, 75.35]) {
+    for (const pz of MINE_LAGOON_BRIDGE.lzs) {
       const post = new THREE.Mesh(bridgePostGeo, barkMat);
       post.position.set(px, ch2BridgeDeckY, pz);
       mineGroup.add(post);
     }
   }
-  for (const pz of [70.65, 75.35]) {
+  for (const pz of MINE_LAGOON_BRIDGE.lzs) {
     const topRope = new THREE.Mesh(bridgeRailRopeGeo, timberMat);
-    topRope.position.set(-118.0, ch2BridgeDeckY + 1.05, pz);
+    topRope.position.set(MINE_LAGOON_BRIDGE.lx, ch2BridgeDeckY + MINE_LAGOON_BRIDGE.ropeDy, pz);
     mineGroup.add(topRope);
   }
 
@@ -2079,25 +2097,22 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   ch2DockMesh.position.set(-118.0, ch2DockY - 0.12, 95.75);
   mineGroup.add(
     ch2DockMesh,
-    createInteractiveSupplyCrate(-112.0, ch2DockY, 95.5, true),
+    createInteractiveSupplyCrate(MINE_DOCK_CRATE.lx, ch2DockY, MINE_DOCK_CRATE.lz, true),
     placeFloorTorch(MINE_LAGOON_DOCK_TORCH)
   );
 
   // Giant Glowing Amethyst & Sapphire Crystal Clusters in Chamber 2 West Shore (-141.0, 73.0)
   const amethystClusterGroup = new THREE.Group();
-  amethystClusterGroup.position.set(-141.0, ch2FloorY, 73.0);
-  for (let s = 0; s < 9; s++) {
+  amethystClusterGroup.position.set(MINE_AMETHYST.lx, ch2FloorY, MINE_AMETHYST.lz);
+  mineAmethystSpires().forEach((sp, s) => {
     const spire = new THREE.Mesh(
       crystalSpireGeo,
       s % 2 === 0 ? mineAmethystCrystalMat : mineSapphireCrystalMat
     );
-    const ang = (s / 9) * Math.PI * 2;
-    const rad = s === 0 ? 0 : 0.85 + (s % 2) * 0.45;
-    spire.position.set(Math.cos(ang) * rad, 0.35, Math.sin(ang) * rad);
-    const sc = s === 0 ? 2.1 : 1.15 + (s % 3) * 0.25;
-    spire.scale.set(sc * 0.85, sc * 1.35, sc * 0.85);
+    spire.position.set(sp.x, sp.y, sp.z);
+    spire.scale.set(sp.sx, sp.sy, sp.sz);
     amethystClusterGroup.add(spire);
-  }
+  });
   const amethystLight = new THREE.PointLight(0xa855f7, 4.8, 46, 1.3);
   amethystLight.position.set(-141.0, ch2FloorY + 4.2, 73.0);
   amethystLight.userData.isUndergroundMineLight = true;
@@ -2120,10 +2135,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   eastTunnelCeiling.position.set(68.0, (cavernFloorY + ch3FloorY) * 0.5 + 5.6, 64.0);
   eastTunnelCeiling.rotation.z = eastTunnelPitch;
   const eastTunnelWallN = new THREE.Mesh(ewTunnelWallGeo, mineDeepSlateMat);
-  eastTunnelWallN.position.set(68.0, (cavernFloorY + ch3FloorY) * 0.5 + 2.8, 58.3);
+  eastTunnelWallN.position.set(MINE_TUNNEL_WALLS.eastX, (cavernFloorY + ch3FloorY) * 0.5 + MINE_TUNNEL_WALLS.centreDy, MINE_TUNNEL_WALLS.wallLzs[0]);
   eastTunnelWallN.rotation.z = eastTunnelPitch;
   const eastTunnelWallS = new THREE.Mesh(ewTunnelWallGeo, mineDeepSlateMat);
-  eastTunnelWallS.position.set(68.0, (cavernFloorY + ch3FloorY) * 0.5 + 2.8, 69.7);
+  eastTunnelWallS.position.set(MINE_TUNNEL_WALLS.eastX, (cavernFloorY + ch3FloorY) * 0.5 + MINE_TUNNEL_WALLS.centreDy, MINE_TUNNEL_WALLS.wallLzs[1]);
   eastTunnelWallS.rotation.z = eastTunnelPitch;
   mineGroup.add(eastTunnelFloor, eastTunnelCeiling, eastTunnelWallN, eastTunnelWallS);
 
@@ -2136,10 +2151,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   const ch3FloorGeo = new THREE.BoxGeometry(60.0, 0.8, 72.0);
   const ch3CeilingGeo = new THREE.BoxGeometry(60.0, 1.6, 72.0);
-  const ch3NorthSouthWallGeo = new THREE.BoxGeometry(60.0, 14.0, 3.2);
-  const ch3EastWallGeo = new THREE.BoxGeometry(3.2, 14.0, 72.0);
-  const ch3WestNorthFlankGeo = new THREE.BoxGeometry(3.2, 14.0, 21.0);
-  const ch3WestSouthFlankGeo = new THREE.BoxGeometry(3.2, 14.0, 41.0);
+  const ch3NorthSouthWallGeo = new THREE.BoxGeometry(MINE_FOUNDRY_WALLS.northSouthLength, MINE_FOUNDRY_WALLS.height, MINE_FOUNDRY_WALLS.thick);
+  const ch3EastWallGeo = new THREE.BoxGeometry(MINE_FOUNDRY_WALLS.thick, MINE_FOUNDRY_WALLS.height, MINE_FOUNDRY_WALLS.eastLength);
+  const ch3WestNorthFlankGeo = new THREE.BoxGeometry(MINE_FOUNDRY_WALLS.thick, MINE_FOUNDRY_WALLS.height, MINE_FOUNDRY_WALLS.westNorthFlank.length);
+  const ch3WestSouthFlankGeo = new THREE.BoxGeometry(MINE_FOUNDRY_WALLS.thick, MINE_FOUNDRY_WALLS.height, MINE_FOUNDRY_WALLS.westSouthFlank.length);
   const ch3WestTunnelHeaderGeo = new THREE.BoxGeometry(3.2, 8.0, 13.0);
   const furnaceBodyGeo = new THREE.CylinderGeometry(2.4, 3.1, 7.8, 10);
   furnaceBodyGeo.translate(0, 3.9, 0);
@@ -2159,15 +2174,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const ch3CeilingMesh = new THREE.Mesh(ch3CeilingGeo, mineDeepSlateMat);
   ch3CeilingMesh.position.set(116.0, ch3FloorY + 12.0, 74.0);
   const ch3NorthWall = new THREE.Mesh(ch3NorthSouthWallGeo, mineDeepSlateMat);
-  ch3NorthWall.position.set(116.0, ch3FloorY + 6.0, 40.0);
+  ch3NorthWall.position.set(MINE_FOUNDRY_WALLS.northSouthLx, ch3FloorY + MINE_FOUNDRY_WALLS.centreDy, MINE_FOUNDRY_WALLS.northLz);
   const ch3SouthWall = new THREE.Mesh(ch3NorthSouthWallGeo, mineDeepSlateMat);
-  ch3SouthWall.position.set(116.0, ch3FloorY + 6.0, 108.0);
+  ch3SouthWall.position.set(MINE_FOUNDRY_WALLS.northSouthLx, ch3FloorY + MINE_FOUNDRY_WALLS.centreDy, MINE_FOUNDRY_WALLS.southLz);
   const ch3EastWall = new THREE.Mesh(ch3EastWallGeo, mineDeepSlateMat);
-  ch3EastWall.position.set(144.5, ch3FloorY + 6.0, 74.0);
+  ch3EastWall.position.set(MINE_FOUNDRY_WALLS.eastLx, ch3FloorY + MINE_FOUNDRY_WALLS.centreDy, MINE_FOUNDRY_WALLS.eastLz);
   const ch3WestWallN = new THREE.Mesh(ch3WestNorthFlankGeo, mineDeepSlateMat);
-  ch3WestWallN.position.set(88.0, ch3FloorY + 6.0, 48.8);
+  ch3WestWallN.position.set(MINE_FOUNDRY_WALLS.westNorthFlank.lx, ch3FloorY + MINE_FOUNDRY_WALLS.centreDy, MINE_FOUNDRY_WALLS.westNorthFlank.lz);
   const ch3WestWallS = new THREE.Mesh(ch3WestSouthFlankGeo, mineDeepSlateMat);
-  ch3WestWallS.position.set(88.0, ch3FloorY + 6.0, 89.2);
+  ch3WestWallS.position.set(MINE_FOUNDRY_WALLS.westSouthFlank.lx, ch3FloorY + MINE_FOUNDRY_WALLS.centreDy, MINE_FOUNDRY_WALLS.westSouthFlank.lz);
   const ch3WestTunnelHeader = new THREE.Mesh(ch3WestTunnelHeaderGeo, mineDeepSlateMat);
   ch3WestTunnelHeader.position.set(88.0, ch3FloorY + 9.0, 64.0);
   mineGroup.add(
@@ -2182,9 +2197,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   );
 
   // Twin Dwarven Smelting Blast Furnaces at (132.0, 56.0) and (132.0, 82.0) + Lootable Foundry Bullion Crate at (122.0, 66.0)
-  for (const fz of [56.0, 82.0]) {
+  for (const fz of MINE_BLAST_FURNACES.lzs) {
     const fBody = new THREE.Mesh(furnaceBodyGeo, mineDarkRockMat);
-    fBody.position.set(132.0, ch3FloorY, fz);
+    fBody.position.set(MINE_BLAST_FURNACES.lx, ch3FloorY, fz);
     const fCore = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
     fCore.scale.set(2.2, 1.4, 2.2);
     fCore.position.set(129.8, ch3FloorY + 0.9, fz);
@@ -2197,7 +2212,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   lanternLights.push(foundryLight);
   mineGroup.add(
     foundryLight,
-    createInteractiveSupplyCrate(122.0, ch3FloorY, 66.0, true)
+    createInteractiveSupplyCrate(MINE_VAULT_CRATE.lx, ch3FloorY, MINE_VAULT_CRATE.lz, true)
   );
 
   // ============================================================================
@@ -2213,7 +2228,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const southGalleryPitch = Math.atan2(southGalleryDrop, southGalleryLen);
 
   const southGalleryFloorGeo = new THREE.BoxGeometry(34.5, 0.8, southGalleryHypot + 3.0);
-  const southGalleryWallGeo = new THREE.BoxGeometry(2.2, 16.0, southGalleryHypot + 3.0);
+  const southGalleryWallGeo = new THREE.BoxGeometry(MINE_SOUTH_GALLERY.thick, MINE_SOUTH_GALLERY.height, southGalleryHypot + 3.0);
   disposableGeometries.push(southGalleryFloorGeo, southGalleryWallGeo);
 
   const sgFloor = new THREE.Mesh(southGalleryFloorGeo, mineDarkRockMat);
@@ -2223,10 +2238,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   sgCeiling.position.set(0, (cavernFloorY + moriaFloorY) * 0.5 + 7.2, 120.0);
   sgCeiling.rotation.x = southGalleryPitch;
   const sgWallW = new THREE.Mesh(southGalleryWallGeo, mineDeepSlateMat);
-  sgWallW.position.set(-16.6, (cavernFloorY + moriaFloorY) * 0.5 + 3.6, 120.0);
+  sgWallW.position.set(-MINE_SOUTH_GALLERY.wallX, (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy, MINE_SOUTH_GALLERY.centreLz);
   sgWallW.rotation.x = southGalleryPitch;
   const sgWallE = new THREE.Mesh(southGalleryWallGeo, mineDeepSlateMat);
-  sgWallE.position.set(16.6, (cavernFloorY + moriaFloorY) * 0.5 + 3.6, 120.0);
+  sgWallE.position.set(MINE_SOUTH_GALLERY.wallX, (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy, MINE_SOUTH_GALLERY.centreLz);
   sgWallE.rotation.x = southGalleryPitch;
   mineGroup.add(sgFloor, sgCeiling, sgWallW, sgWallE);
 
@@ -2237,9 +2252,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const moriaAbyssBottomGeo = new THREE.BoxGeometry(132.0, 1.0, 40.0);
   const moriaChasmWallGeo = new THREE.BoxGeometry(132.0, 29.0, 2.2);
   const moriaCeilingGeo = new THREE.BoxGeometry(132.0, 1.8, 114.0);
-  const moriaSideWallGeo = new THREE.BoxGeometry(3.2, 48.0, 114.0);
-  const moriaBackWallGeo = new THREE.BoxGeometry(132.0, 48.0, 3.2);
-  const moriaNorthFlankWallGeo = new THREE.BoxGeometry(50.5, 22.0, 3.2);
+  const moriaSideWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.thick, MINE_MORIA_WALLS.sideWallHeight, MINE_MORIA_WALLS.sideWallLength);
+  const moriaBackWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.backWallHalfX * 2, MINE_MORIA_WALLS.backWallHeight, MINE_MORIA_WALLS.thick);
+  const moriaNorthFlankWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.northFlankLength, MINE_MORIA_WALLS.northFlankHeight, MINE_MORIA_WALLS.thick);
   const moriaNorthGalleryHeaderGeo = new THREE.BoxGeometry(35.0, 11.5, 3.2);
   const moriaPillarShaftGeo = new THREE.CylinderGeometry(1.85, 2.15, 16.0, 8);
   moriaPillarShaftGeo.translate(0, 8.0, 0);
@@ -2283,15 +2298,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const moriaCeiling = new THREE.Mesh(moriaCeilingGeo, mineDeepSlateMat);
   moriaCeiling.position.set(0, moriaFloorY + 16.0, 200.0);
   const moriaWestWall = new THREE.Mesh(moriaSideWallGeo, mineDeepSlateMat);
-  moriaWestWall.position.set(-64.5, moriaFloorY - 5.0, 200.0);
+  moriaWestWall.position.set(-MINE_MORIA_WALLS.sideWallX, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.sideWallLz);
   const moriaEastWall = new THREE.Mesh(moriaSideWallGeo, mineDeepSlateMat);
-  moriaEastWall.position.set(64.5, moriaFloorY - 5.0, 200.0);
+  moriaEastWall.position.set(MINE_MORIA_WALLS.sideWallX, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.sideWallLz);
   const moriaSouthBackWall = new THREE.Mesh(moriaBackWallGeo, mineDeepSlateMat);
-  moriaSouthBackWall.position.set(0, moriaFloorY - 5.0, 255.5);
+  moriaSouthBackWall.position.set(0, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.backWallLz);
   const moriaNorthWallWest = new THREE.Mesh(moriaNorthFlankWallGeo, mineDeepSlateMat);
-  moriaNorthWallWest.position.set(-40.5, moriaFloorY + 8.0, 145.0);
+  moriaNorthWallWest.position.set(-MINE_MORIA_WALLS.northFlankX, moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy, MINE_MORIA_WALLS.northFlankLz);
   const moriaNorthWallEast = new THREE.Mesh(moriaNorthFlankWallGeo, mineDeepSlateMat);
-  moriaNorthWallEast.position.set(40.5, moriaFloorY + 8.0, 145.0);
+  moriaNorthWallEast.position.set(MINE_MORIA_WALLS.northFlankX, moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy, MINE_MORIA_WALLS.northFlankLz);
   const moriaNorthGalleryHeader = new THREE.Mesh(moriaNorthGalleryHeaderGeo, mineDeepSlateMat);
   moriaNorthGalleryHeader.position.set(0, moriaFloorY + 12.2, 145.0);
 
@@ -2325,8 +2340,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   mineGroup.add(abyssDeepLight);
 
   // 16 Colossal Carved Stone Pillars of Khazad-dûm (8 in North Hall, 8 in South Hall) with Pillar Torch Sconces
-  for (const pz of [154.0, 170.0, 224.0, 238.0]) {
-    for (const px of [-38.0, -20.0, 20.0, 38.0]) {
+  for (const pz of MINE_MORIA_PILLARS.zs) {
+    for (const px of MINE_MORIA_PILLARS.xs) {
       const pShaft = new THREE.Mesh(moriaPillarShaftGeo, mineDarkRockMat);
       pShaft.position.set(px, moriaFloorY, pz);
       const pBase = new THREE.Mesh(moriaPillarCapitalGeo, mineDeepSlateMat);
@@ -2380,8 +2395,25 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // B) WEST TIMBER & IRON MINECART TRESTLE BRIDGE OVER THE ABYSS (lx in [-15.0, -8.0], lz in [178, 218])
   const trestleDeck = new THREE.Mesh(trestleDeckGeo, timberMat);
-  trestleDeck.position.set(-11.5, moriaFloorY - 0.22, 198.0);
+  trestleDeck.position.set(MINE_TRESTLE.deckLx, moriaFloorY - 0.22, MINE_TRESTLE.deckLz);
   mineGroup.add(trestleDeck);
+  // Rails on both deck edges: a top bar and posts every postSpacing metres (layout MINE_TRESTLE)
+  const trestleBarGeo = new THREE.BoxGeometry(MINE_TRESTLE.railThick, MINE_TRESTLE.barHeight, MINE_TRESTLE.deckLength);
+  const trestlePostGeo = new THREE.BoxGeometry(MINE_TRESTLE.railThick, MINE_TRESTLE.railHeight, MINE_TRESTLE.railThick);
+  disposableGeometries.push(trestleBarGeo, trestlePostGeo);
+  for (const side of [-1, 1]) {
+    const railX = MINE_TRESTLE.deckLx + side * (MINE_TRESTLE.deckHalfWidth - MINE_TRESTLE.railInset);
+    const bar = new THREE.Mesh(trestleBarGeo, timberMat);
+    bar.position.set(railX, moriaFloorY + MINE_TRESTLE.railHeight - MINE_TRESTLE.barHeight / 2, MINE_TRESTLE.deckLz);
+    mineGroup.add(bar);
+    const count = Math.round(MINE_TRESTLE.deckLength / MINE_TRESTLE.postSpacing) + 1;
+    for (let i = 0; i < count; i++) {
+      const z = MINE_TRESTLE.deckLz - MINE_TRESTLE.deckLength / 2 + (i * MINE_TRESTLE.deckLength) / (count - 1);
+      const post = new THREE.Mesh(trestlePostGeo, barkMat);
+      post.position.set(railX, moriaFloorY + MINE_TRESTLE.railHeight / 2, z);
+      mineGroup.add(post);
+    }
+  }
   for (const tz of [183.0, 193.0, 203.0, 213.0]) {
     for (const tx of [-14.2, -8.8]) {
       const piling = new THREE.Mesh(trestlePilingGeo, barkMat);
@@ -2394,7 +2426,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const royalDiasMesh = new THREE.Mesh(royalDiasGeo, mineDarkRockMat);
   royalDiasMesh.position.set(0, moriaFloorY + 0.4, 244.0);
   const royalChestMesh = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
-  royalChestMesh.position.set(0, moriaFloorY + 0.8, 242.5);
+  royalChestMesh.position.set(MINE_ROYAL_CHEST.lx, moriaFloorY + MINE_ROYAL_CHEST.baseDy, MINE_ROYAL_CHEST.lz);
   const sanctuaryLight = new THREE.PointLight(0xfbbf24, 6.2, 62, 1.2);
   sanctuaryLight.position.set(0, moriaFloorY + 5.5, 242.5);
   sanctuaryLight.userData.isUndergroundMineLight = true;
@@ -2557,7 +2589,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     cartGroup.rotation.y = route.yaw;
 
     const body = new THREE.Mesh(mineCartBodyGeo, darkIronMat);
-    body.position.set(0, 0.64, 0);
+    body.position.set(0, (MINE_CART_BODY.topDy + MINE_CART_BODY.bottomDy) / 2, 0);
     body.castShadow = true;
     body.receiveShadow = true;
     cartGroup.add(body);

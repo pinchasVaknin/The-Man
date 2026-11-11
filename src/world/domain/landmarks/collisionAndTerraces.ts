@@ -43,13 +43,38 @@ import {
 import {
   MINE_FLOOR_TORCH_STANDS,
   MINE_HOIST_CRANE,
+  DWARVEN_MINECART_ROUTES,
+  MINE_CART_BODY,
+  MINE_CAVERN_WALLS,
   MINE_KHAZAD_BRIDGE,
+  MINE_FOUNDRY_WALLS,
+  MINE_LAGOON_WALLS,
+  MINE_AMETHYST,
+  MINE_BLAST_FURNACES,
+  MINE_DOCK_CRATE,
+  MINE_LAGOON_BRIDGE,
+  MINE_LOOT_CRATE,
+  MINE_VAULT_CRATE,
+  MINE_WATERFALL_CLIFF,
+  mineAmethystEnvelope,
+  MINE_CRANE_MAST,
   MINE_MESS_HALL,
+  MINE_ORE_ROCK,
+  MINE_ORE_ROCK_SITES,
+  MINE_MORIA_PILLARS,
+  MINE_MORIA_WALLS,
+  MINE_ROYAL_CHEST,
+  MINE_TUNNEL_WALLS,
+  MINE_SHAFT_WALLS,
+  MINE_TRESTLE,
   MINE_PORTAL,
+  MINE_SOUTH_GALLERY,
   MINE_SUPPLY_CRATES,
   MINE_SCAFFOLD_LEGS,
   khazadBridgeSegment,
   mineFloorY,
+  mineShaftSpan,
+  mineShaftTan,
 } from './dwarvenMineLayout';
 import {
   SOUTHEAST_HARBOR_POS,
@@ -73,6 +98,147 @@ const FY = FORTRESS_Y_OFFSET;
 
 // ======================== SOLID BUILDING BOXES ======================== \\
 // #region Solid Building Boxes
+/**
+ * Summary: The eight Room 1 perimeter wall boxes, from MINE_CAVERN_WALLS, spanning the drawn height.
+ */
+function cavernWallBoxes(): ISolidBuildingBox[] {
+  const W = MINE_CAVERN_WALLS;
+  const h = W.thick / 2;
+  const minY = SOUTHERN_MINE_POS.cavernFloorY - 0.7;
+  const maxY = SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight + 0.7;
+  const mx = (lx: number) => SOUTHERN_MINE_POS.x + lx;
+  const mz = (lz: number) => SOUTHERN_MINE_POS.entranceZ + lz;
+  const sideBox = (id: string, sign: number, lz: number, length: number): ISolidBuildingBox => ({
+    id, minX: mx(sign * W.sideWallX) - h, maxX: mx(sign * W.sideWallX) + h,
+    minZ: mz(lz) - length / 2, maxZ: mz(lz) + length / 2, minY, maxY,
+  });
+  const flankBox = (id: string, lx: number, lzCentre: number, length: number): ISolidBuildingBox => ({
+    id, minX: mx(lx) - length / 2, maxX: mx(lx) + length / 2,
+    minZ: mz(lzCentre) - h, maxZ: mz(lzCentre) + h, minY, maxY,
+  });
+  return [
+    sideBox('southern-mine-cavern-west-wall-north', -1, W.sideWallNorthLz, W.sideWallNorthLength),
+    sideBox('southern-mine-cavern-west-wall-south', -1, W.sideWallSouthLz, W.sideWallSouthLength),
+    sideBox('southern-mine-cavern-east-wall-north', 1, W.sideWallNorthLz, W.sideWallNorthLength),
+    sideBox('southern-mine-cavern-east-wall-south', 1, W.sideWallSouthLz, W.sideWallSouthLength),
+    flankBox('southern-mine-cavern-north-west-wall', -W.northFlankX, W.northFlankLz, W.northFlankLength),
+    flankBox('southern-mine-cavern-north-east-wall', W.northFlankX, W.northFlankLz, W.northFlankLength),
+    flankBox('southern-mine-cavern-south-wall-west', -W.southFlankX, W.southFlankLz, W.southFlankLength),
+    flankBox('southern-mine-cavern-south-wall-east', W.southFlankX, W.southFlankLz, W.southFlankLength),
+  ];
+}
+
+/**
+ * Summary: The south Moria gallery walls (sloped, segmented) and the Great Hall walls, from MINE_SOUTH_GALLERY and
+ *          MINE_MORIA_WALLS. The chasm cliffs are not included: they cross the bridge's ends, and the walkable
+ *          height already treats the abyss as a fall.
+ */
+function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
+  const G = MINE_SOUTH_GALLERY;
+  const M = MINE_MORIA_WALLS;
+  const mx = (lx: number) => SOUTHERN_MINE_POS.x + lx;
+  const mz = (lz: number) => SOUTHERN_MINE_POS.entranceZ + lz;
+  const moriaY = SOUTHERN_MINE_POS.moriaHallFloorY;
+  const midY = (SOUTHERN_MINE_POS.cavernFloorY + moriaY) / 2;
+  const tan = (SOUTHERN_MINE_POS.cavernFloorY - moriaY) / (G.lzMax - G.lzMin);
+  const gallerySegLen = (G.lzMax - G.lzMin) / G.segments;
+  const gallery: ISolidBuildingBox[] = [-1, 1].flatMap((side) =>
+    Array.from({ length: G.segments }, (_, j) => {
+      const lzc = G.lzMin + (j + 0.5) * gallerySegLen;
+      const yc = midY + G.centreDy - (lzc - G.centreLz) * tan;
+      const cx = mx(side * G.wallX);
+      const t = G.thick / 2;
+      return {
+        id: `southern-mine-south-gallery-${side < 0 ? 'west' : 'east'}-wall-${j}`,
+        minX: cx - t, maxX: cx + t,
+        minZ: mz(lzc) - gallerySegLen / 2, maxZ: mz(lzc) + gallerySegLen / 2,
+        minY: yc - G.height / 2, maxY: yc + G.height / 2,
+      };
+    })
+  );
+  const yWall = moriaY + M.wallCentreDy;
+  const t = M.thick / 2;
+  const sideBox = (id: string, sign: number): ISolidBuildingBox => ({
+    id, minX: mx(sign * M.sideWallX) - t, maxX: mx(sign * M.sideWallX) + t,
+    minZ: mz(M.sideWallLz) - M.sideWallLength / 2, maxZ: mz(M.sideWallLz) + M.sideWallLength / 2,
+    minY: yWall - M.sideWallHeight / 2, maxY: yWall + M.sideWallHeight / 2,
+  });
+  const flankBox = (id: string, sign: number): ISolidBuildingBox => ({
+    id, minX: mx(sign * M.northFlankX) - M.northFlankLength / 2, maxX: mx(sign * M.northFlankX) + M.northFlankLength / 2,
+    minZ: mz(M.northFlankLz) - t, maxZ: mz(M.northFlankLz) + t,
+    minY: moriaY + M.northFlankCentreDy - M.northFlankHeight / 2, maxY: moriaY + M.northFlankCentreDy + M.northFlankHeight / 2,
+  });
+  return [
+    ...gallery,
+    sideBox('southern-mine-moria-west-wall', -1),
+    sideBox('southern-mine-moria-east-wall', 1),
+    {
+      id: 'southern-mine-moria-south-wall',
+      minX: mx(-M.backWallHalfX), maxX: mx(M.backWallHalfX),
+      minZ: mz(M.backWallLz) - t, maxZ: mz(M.backWallLz) + t,
+      minY: yWall - M.backWallHeight / 2, maxY: yWall + M.backWallHeight / 2,
+    },
+    flankBox('southern-mine-moria-north-wall-west', -1),
+    flankBox('southern-mine-moria-north-wall-east', 1),
+  ];
+}
+
+/**
+ * Summary: Walls of chamber 2 (lagoon), chamber 3 (foundry) and the two sloped rail tunnels, from the layout.
+ * Design: Straight chamber walls over their floor; tunnel walls split along x so each follows its floor's slope.
+ */
+function chamberAndTunnelWallBoxes(): ISolidBuildingBox[] {
+  const L = MINE_LAGOON_WALLS;
+  const F = MINE_FOUNDRY_WALLS;
+  const T = MINE_TUNNEL_WALLS;
+  const mx = (lx: number) => SOUTHERN_MINE_POS.x + lx;
+  const mz = (lz: number) => SOUTHERN_MINE_POS.entranceZ + lz;
+  const lagoonY = mineFloorY('lagoon');
+  const foundryY = mineFloorY('foundry');
+  const box = (id: string, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number): ISolidBuildingBox =>
+    ({ id, minX: x0, maxX: x1, minZ: z0, maxZ: z1, minY: y0, maxY: y1 });
+  const hx = (len: number) => len / 2;
+  const ht = (thick: number) => thick / 2;
+  const lagoonBase = lagoonY + L.centreDy;
+  const foundryBase = foundryY + F.centreDy;
+  const lagoon: ISolidBuildingBox[] = [
+    box('southern-mine-chamber2-north-wall', mx(L.northSouthLx) - hx(L.northSouthLength), mx(L.northSouthLx) + hx(L.northSouthLength), mz(L.northLz) - ht(L.thick), mz(L.northLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    box('southern-mine-chamber2-south-wall', mx(L.northSouthLx) - hx(L.northSouthLength), mx(L.northSouthLx) + hx(L.northSouthLength), mz(L.southLz) - ht(L.thick), mz(L.southLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    box('southern-mine-chamber2-west-wall', mx(L.westLx) - ht(L.thick), mx(L.westLx) + ht(L.thick), mz(L.westLz) - hx(L.westLength), mz(L.westLz) + hx(L.westLength), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    box('southern-mine-chamber2-east-wall-north', mx(L.eastNorthFlank.lx) - ht(L.thick), mx(L.eastNorthFlank.lx) + ht(L.thick), mz(L.eastNorthFlank.lz) - hx(L.eastNorthFlank.length), mz(L.eastNorthFlank.lz) + hx(L.eastNorthFlank.length), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    box('southern-mine-chamber2-east-wall-south', mx(L.eastSouthFlank.lx) - ht(L.thick), mx(L.eastSouthFlank.lx) + ht(L.thick), mz(L.eastSouthFlank.lz) - hx(L.eastSouthFlank.length), mz(L.eastSouthFlank.lz) + hx(L.eastSouthFlank.length), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+  ];
+  const foundry: ISolidBuildingBox[] = [
+    box('southern-mine-chamber3-north-wall', mx(F.northSouthLx) - hx(F.northSouthLength), mx(F.northSouthLx) + hx(F.northSouthLength), mz(F.northLz) - ht(F.thick), mz(F.northLz) + ht(F.thick), foundryBase - F.height / 2, foundryBase + F.height / 2),
+    box('southern-mine-chamber3-south-wall', mx(F.northSouthLx) - hx(F.northSouthLength), mx(F.northSouthLx) + hx(F.northSouthLength), mz(F.southLz) - ht(F.thick), mz(F.southLz) + ht(F.thick), foundryBase - F.height / 2, foundryBase + F.height / 2),
+    box('southern-mine-chamber3-east-wall', mx(F.eastLx) - ht(F.thick), mx(F.eastLx) + ht(F.thick), mz(F.eastLz) - hx(F.eastLength), mz(F.eastLz) + hx(F.eastLength), foundryBase - F.height / 2, foundryBase + F.height / 2),
+    box('southern-mine-chamber3-west-wall-north', mx(F.westNorthFlank.lx) - ht(F.thick), mx(F.westNorthFlank.lx) + ht(F.thick), mz(F.westNorthFlank.lz) - hx(F.westNorthFlank.length), mz(F.westNorthFlank.lz) + hx(F.westNorthFlank.length), foundryBase - F.height / 2, foundryBase + F.height / 2),
+    box('southern-mine-chamber3-west-wall-south', mx(F.westSouthFlank.lx) - ht(F.thick), mx(F.westSouthFlank.lx) + ht(F.thick), mz(F.westSouthFlank.lz) - hx(F.westSouthFlank.length), mz(F.westSouthFlank.lz) + hx(F.westSouthFlank.length), foundryBase - F.height / 2, foundryBase + F.height / 2),
+  ];
+  // Tunnel walls: the tunnel floor runs linearly from the cavern floor to the chamber floor over 40 m of x.
+  const tunnel = (side: 'west' | 'east'): ISolidBuildingBox[] => {
+    const xc = side === 'west' ? T.westX : T.eastX;
+    const endY = side === 'west' ? lagoonY : foundryY;
+    const endX = side === 'west' ? -88.0 : 88.0;
+    const startX = side === 'west' ? -48.0 : 48.0;
+    const floorAt = (x: number) => SOUTHERN_MINE_POS.cavernFloorY + ((x - startX) / (endX - startX)) * (endY - SOUTHERN_MINE_POS.cavernFloorY);
+    const drop = Math.abs(endY - SOUTHERN_MINE_POS.cavernFloorY);
+    const ang = Math.atan2(drop, 40.0);
+    const span = ((Math.hypot(40.0, drop) + 3.0) * Math.cos(ang)) / 2;
+    const seg = (2 * span) / T.segments;
+    const out: ISolidBuildingBox[] = [];
+    T.wallLzs.forEach((lz, wi) => {
+      for (let j = 0; j < T.segments; j++) {
+        const xs = xc - span + (j + 0.5) * seg;
+        const yc = floorAt(xs) + T.centreDy;
+        out.push(box(`southern-mine-${side}-tunnel-${wi === 0 ? 'north' : 'south'}-wall-${j}`, mx(xs) - seg / 2, mx(xs) + seg / 2, mz(lz) - ht(T.thick), mz(lz) + ht(T.thick), yc - T.height / 2, yc + T.height / 2));
+      }
+    });
+    return out;
+  };
+  return [...lagoon, ...foundry, ...tunnel('west'), ...tunnel('east')];
+}
+
 /** Summary: Global collection of axis-aligned 3D obstacle bounding boxes across the entire world. */
 export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   // Hunter's Cabin at (-92, 72, height=2.15, rotated PI in settlementModels.ts): Walls, Chimney, Porch Columns/Rails, and Interior Furniture
@@ -321,124 +487,34 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     };
   }),
   // 2) Sloped Entrance Shaft Walls & Timber Support Posts (lz = -0.5..34.2, |lx| = 2.95..4.8)
-  {
-    id: 'southern-mine-shaft-west-wall',
-    minX: SOUTHERN_MINE_POS.x - SOUTHERN_MINE_POS.tunnelHalfW - 1.4,
-    maxX: SOUTHERN_MINE_POS.x - 2.95,
-    minZ: SOUTHERN_MINE_POS.entranceZ - 0.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 34.2,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: 6.8,
-  },
-  {
-    id: 'southern-mine-shaft-east-wall',
-    minX: SOUTHERN_MINE_POS.x + 2.95,
-    maxX: SOUTHERN_MINE_POS.x + SOUTHERN_MINE_POS.tunnelHalfW + 1.4,
-    minZ: SOUTHERN_MINE_POS.entranceZ - 0.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 34.2,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: 6.8,
-  },
   // 3) Room 1 Perimeter Rock Walls with Tunnel Openings (West/East at lz in [58.5, 69.5], South at lx in [-16.0, 16.0])
-  {
-    id: 'southern-mine-cavern-north-west-wall',
-    minX: SOUTHERN_MINE_POS.x - 49.5,
-    maxX: SOUTHERN_MINE_POS.x - SOUTHERN_MINE_POS.tunnelHalfW,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 33.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 35.0,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-north-east-wall',
-    minX: SOUTHERN_MINE_POS.x + SOUTHERN_MINE_POS.tunnelHalfW,
-    maxX: SOUTHERN_MINE_POS.x + 49.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 33.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 35.0,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-west-wall-north',
-    minX: SOUTHERN_MINE_POS.x - 50.0,
-    maxX: SOUTHERN_MINE_POS.x - 47.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 34.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-west-wall-south',
-    minX: SOUTHERN_MINE_POS.x - 50.0,
-    maxX: SOUTHERN_MINE_POS.x - 47.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 96.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-east-wall-north',
-    minX: SOUTHERN_MINE_POS.x + 47.5,
-    maxX: SOUTHERN_MINE_POS.x + 50.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 34.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-east-wall-south',
-    minX: SOUTHERN_MINE_POS.x + 47.5,
-    maxX: SOUTHERN_MINE_POS.x + 50.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 96.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-south-wall-west',
-    minX: SOUTHERN_MINE_POS.x - 49.5,
-    maxX: SOUTHERN_MINE_POS.x - 16.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 94.8,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 97.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
-  {
-    id: 'southern-mine-cavern-south-wall-east',
-    minX: SOUTHERN_MINE_POS.x + 16.0,
-    maxX: SOUTHERN_MINE_POS.x + 49.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 94.8,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 97.5,
-    minY: SOUTHERN_MINE_POS.cavernFloorY - 0.5,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight,
-  },
   // 4) Room 1 Timber Arch Posts & Mess Hall Dining Tables, Cauldron, and Lootable Supply Crates
   ...[-2.75, 2.75].map((ox, idx) => ({
     id: `southern-mine-arch-north-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x + ox - 0.45,
-    maxX: SOUTHERN_MINE_POS.x + ox + 0.45,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 35.0 - 0.45,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 35.0 + 0.45,
+    minX: SOUTHERN_MINE_POS.x + ox - 0.34,
+    maxX: SOUTHERN_MINE_POS.x + ox + 0.34,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 35.0 - 0.34,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + 35.0 + 0.34,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.4,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
   })),
   ...[-2.75, 2.75].map((oz, idx) => ({
     id: `southern-mine-arch-west-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x - 47.5 - 0.45,
-    maxX: SOUTHERN_MINE_POS.x - 47.5 + 0.45,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.45,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.45,
+    minX: SOUTHERN_MINE_POS.x - 47.5 - 0.34,
+    maxX: SOUTHERN_MINE_POS.x - 47.5 + 0.34,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.4,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
   })),
   ...[-2.75, 2.75].map((oz, idx) => ({
     id: `southern-mine-arch-east-post-${idx}`,
-    minX: SOUTHERN_MINE_POS.x + 47.5 - 0.45,
-    maxX: SOUTHERN_MINE_POS.x + 47.5 + 0.45,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.45,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.45,
+    minX: SOUTHERN_MINE_POS.x + 47.5 - 0.34,
+    maxX: SOUTHERN_MINE_POS.x + 47.5 + 0.34,
+    minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.4,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + 5.9,
   })),
   // Mess hall dining tables and stew cauldron, from MINE_MESS_HALL (the model draws the same positions).
   ...MINE_MESS_HALL.tableZs.map((tz, i) => {
@@ -527,6 +603,141 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       };
     });
   }).flat(),
+  // Shaft walls: each sloped wall split into MINE_SHAFT_WALLS.segments boxes, each on the slope at its own centre.
+  ...[-1, 1].flatMap((side) =>
+    Array.from({ length: MINE_SHAFT_WALLS.segments }, (_, j) => {
+      const span = mineShaftSpan();
+      const segLen = (span.lzMax - span.lzMin) / MINE_SHAFT_WALLS.segments;
+      const lzc = span.lzMin + (j + 0.5) * segLen;
+      const yc = SOUTHERN_MINE_POS.entranceY + ((SOUTHERN_MINE_POS.cavernFloorY - SOUTHERN_MINE_POS.entranceY) / 2) + 2.35 - (lzc - MINE_SHAFT_WALLS.midLz) * mineShaftTan();
+      const half = MINE_SHAFT_WALLS.height / 2;
+      const cx = SOUTHERN_MINE_POS.x + side * MINE_SHAFT_WALLS.xCentre;
+      const t = MINE_SHAFT_WALLS.thick / 2;
+      return {
+        id: `southern-mine-shaft-${side < 0 ? 'west' : 'east'}-wall-${j}`,
+        minX: cx - t,
+        maxX: cx + t,
+        minZ: SOUTHERN_MINE_POS.entranceZ + lzc - segLen / 2,
+        maxZ: SOUTHERN_MINE_POS.entranceZ + lzc + segLen / 2,
+        minY: yc - half,
+        maxY: yc + half,
+      };
+    })
+  ),
+  // Room 1 perimeter walls, from MINE_CAVERN_WALLS (the model draws the same boxes).
+  ...cavernWallBoxes(),
+  ...moriaAndGalleryWallBoxes(),
+  ...chamberAndTunnelWallBoxes(),
+  // Stationary ore carts, one box per route, rotated by its yaw (the model draws the same cart body).
+  ...DWARVEN_MINECART_ROUTES.map((route, i) => {
+    const floorY = SOUTHERN_MINE_POS.cavernFloorY + (route.baseYOffset ?? 0);
+    const c = Math.abs(Math.cos(route.yaw));
+    const s = Math.abs(Math.sin(route.yaw));
+    const hx = c * MINE_CART_BODY.halfX + s * MINE_CART_BODY.halfZ;
+    const hz = s * MINE_CART_BODY.halfX + c * MINE_CART_BODY.halfZ;
+    const cx = SOUTHERN_MINE_POS.x + route.startLocalX;
+    const cz = SOUTHERN_MINE_POS.entranceZ + route.startLocalZ;
+    return {
+      id: `southern-mine-stationary-cart-${i}`,
+      minX: cx - hx, maxX: cx + hx, minZ: cz - hz, maxZ: cz + hz,
+      minY: floorY + MINE_CART_BODY.bottomDy,
+      maxY: floorY + MINE_CART_BODY.topDy,
+    };
+  }),
+  // Lagoon bridge rope rails, waterfall cliff, amethyst cluster and the two crates, from the layout.
+  ...MINE_LAGOON_BRIDGE.lzs.map((lz, i) => {
+    const cx = SOUTHERN_MINE_POS.x + MINE_LAGOON_BRIDGE.lx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + lz;
+    const yc = mineFloorY('lagoon') + MINE_LAGOON_BRIDGE.deckDy + MINE_LAGOON_BRIDGE.ropeDy;
+    const r = MINE_LAGOON_BRIDGE.ropeRadius;
+    return {
+      id: i === 0 ? 'southern-mine-lagoon-bridge-rail-north' : 'southern-mine-lagoon-bridge-rail-south',
+      minX: cx - MINE_LAGOON_BRIDGE.ropeLength / 2, maxX: cx + MINE_LAGOON_BRIDGE.ropeLength / 2,
+      minZ: cz - r, maxZ: cz + r, minY: yc - r, maxY: yc + r,
+    };
+  }),
+  {
+    id: 'southern-mine-chamber2-waterfall-cliff',
+    minX: SOUTHERN_MINE_POS.x + MINE_WATERFALL_CLIFF.lx + MINE_WATERFALL_CLIFF.coreLx - MINE_WATERFALL_CLIFF.coreW / 2,
+    maxX: SOUTHERN_MINE_POS.x + MINE_WATERFALL_CLIFF.lx + MINE_WATERFALL_CLIFF.coreLx + MINE_WATERFALL_CLIFF.coreW / 2,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_CLIFF.lz + MINE_WATERFALL_CLIFF.coreLz - MINE_WATERFALL_CLIFF.coreD / 2,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_CLIFF.lz + MINE_WATERFALL_CLIFF.coreLz + MINE_WATERFALL_CLIFF.coreD / 2,
+    minY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY - MINE_WATERFALL_CLIFF.coreH / 2,
+    maxY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY + MINE_WATERFALL_CLIFF.coreH / 2,
+  },
+  {
+    id: 'southern-mine-amethyst-cluster-west',
+    minX: SOUTHERN_MINE_POS.x + MINE_AMETHYST.lx - mineAmethystEnvelope().radius,
+    maxX: SOUTHERN_MINE_POS.x + MINE_AMETHYST.lx + mineAmethystEnvelope().radius,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_AMETHYST.lz - mineAmethystEnvelope().radius,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_AMETHYST.lz + mineAmethystEnvelope().radius,
+    minY: mineFloorY('lagoon'),
+    maxY: mineFloorY('lagoon') + mineAmethystEnvelope().top,
+  },
+  ...[MINE_DOCK_CRATE, MINE_VAULT_CRATE].map((c, i) => {
+    const cx = SOUTHERN_MINE_POS.x + c.lx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + c.lz;
+    const base = mineFloorY(c.floor) + c.lift;
+    return {
+      id: i === 0 ? 'southern-mine-crate-lagoon-dock' : 'southern-mine-crate-foundry-vault',
+      minX: cx - MINE_LOOT_CRATE.half, maxX: cx + MINE_LOOT_CRATE.half,
+      minZ: cz - MINE_LOOT_CRATE.half, maxZ: cz + MINE_LOOT_CRATE.half,
+      minY: base, maxY: base + MINE_LOOT_CRATE.height,
+    };
+  }),
+  // Moria trestle rails, one on each deck edge, from MINE_TRESTLE.
+  ...[-1, 1].map((side) => {
+    const x = SOUTHERN_MINE_POS.x + MINE_TRESTLE.deckLx + side * (MINE_TRESTLE.deckHalfWidth - MINE_TRESTLE.railInset);
+    const h = MINE_TRESTLE.railThick / 2;
+    return {
+      id: `southern-mine-moria-trestle-rail-${side < 0 ? 'west' : 'east'}`,
+      minX: x - h,
+      maxX: x + h,
+      minZ: SOUTHERN_MINE_POS.entranceZ + MINE_TRESTLE.deckLz - MINE_TRESTLE.deckLength / 2,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_TRESTLE.deckLz + MINE_TRESTLE.deckLength / 2,
+      minY: SOUTHERN_MINE_POS.moriaHallFloorY,
+      maxY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_TRESTLE.railHeight,
+    };
+  }),
+  // Single objects, from the layout (the model draws the same boxes).
+  ...MINE_MORIA_PILLARS.zs.flatMap((pz) =>
+    MINE_MORIA_PILLARS.xs.map((px) => ({
+      id: `southern-mine-moria-pillar-${px}_${pz}`,
+      minX: SOUTHERN_MINE_POS.x + px - MINE_MORIA_PILLARS.radius,
+      maxX: SOUTHERN_MINE_POS.x + px + MINE_MORIA_PILLARS.radius,
+      minZ: SOUTHERN_MINE_POS.entranceZ + pz - MINE_MORIA_PILLARS.radius,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + pz + MINE_MORIA_PILLARS.radius,
+      minY: SOUTHERN_MINE_POS.moriaHallFloorY,
+      maxY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_MORIA_PILLARS.height,
+    }))
+  ),
+  {
+    id: 'southern-mine-chest-moria-royal',
+    minX: SOUTHERN_MINE_POS.x + MINE_ROYAL_CHEST.lx - MINE_ROYAL_CHEST.halfX,
+    maxX: SOUTHERN_MINE_POS.x + MINE_ROYAL_CHEST.lx + MINE_ROYAL_CHEST.halfX,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_ROYAL_CHEST.lz - MINE_ROYAL_CHEST.halfZ,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_ROYAL_CHEST.lz + MINE_ROYAL_CHEST.halfZ,
+    minY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_ROYAL_CHEST.baseDy,
+    maxY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_ROYAL_CHEST.baseDy + MINE_ROYAL_CHEST.height,
+  },
+  {
+    id: 'southern-mine-crane-mast',
+    minX: SOUTHERN_MINE_POS.x + MINE_CRANE_MAST.lx - MINE_CRANE_MAST.half,
+    maxX: SOUTHERN_MINE_POS.x + MINE_CRANE_MAST.lx + MINE_CRANE_MAST.half,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_CRANE_MAST.lz - MINE_CRANE_MAST.half,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_CRANE_MAST.lz + MINE_CRANE_MAST.half,
+    minY: SOUTHERN_MINE_POS.cavernFloorY,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + MINE_CRANE_MAST.height,
+  },
+  ...MINE_BLAST_FURNACES.lzs.map((lz, i) => ({
+    id: `southern-mine-blast-furnace-${i}`,
+    minX: SOUTHERN_MINE_POS.x + MINE_BLAST_FURNACES.lx - MINE_BLAST_FURNACES.radius,
+    maxX: SOUTHERN_MINE_POS.x + MINE_BLAST_FURNACES.lx + MINE_BLAST_FURNACES.radius,
+    minZ: SOUTHERN_MINE_POS.entranceZ + lz - MINE_BLAST_FURNACES.radius,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + lz + MINE_BLAST_FURNACES.radius,
+    minY: SOUTHERN_MINE_POS.eastFoundryFloorY,
+    maxY: SOUTHERN_MINE_POS.eastFoundryFloorY + MINE_BLAST_FURNACES.height,
+  })),
   // Scaffold legs under the catwalk, from MINE_SCAFFOLD_LEGS (the model draws the same positions).
   ...MINE_SCAFFOLD_LEGS.positions.map(([lx, lz], i) => {
     const cx = SOUTHERN_MINE_POS.x + lx;
@@ -560,419 +771,48 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       };
     })
   ),
-  {
-    id: 'southern-mine-crane-mast',
-    minX: SOUTHERN_MINE_POS.x + 16.0 - 0.35,
-    maxX: SOUTHERN_MINE_POS.x + 16.0 + 0.35,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 76.0 - 0.35,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 76.0 + 0.35,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 9.2,
-  },
   // 6) Stationary Ore Carts in Room 1 & Chamber 3 (matching DWARVEN_MINECART_ROUTES 1-to-1)
-  {
-    id: 'southern-mine-stationary-cart-0',
-    minX: SOUTHERN_MINE_POS.x + 5.5 - 0.76,
-    maxX: SOUTHERN_MINE_POS.x + 5.5 + 0.76,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 50.0 - 1.06,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 50.0 + 1.06,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.25,
-  },
-  {
-    id: 'southern-mine-stationary-cart-1',
-    minX: SOUTHERN_MINE_POS.x + 5.5 - 0.76,
-    maxX: SOUTHERN_MINE_POS.x + 5.5 + 0.76,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 74.0 - 1.06,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 74.0 + 1.06,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.25,
-  },
-  {
-    id: 'southern-mine-stationary-cart-2',
-    minX: SOUTHERN_MINE_POS.x + 16.5 - 0.76,
-    maxX: SOUTHERN_MINE_POS.x + 16.5 + 0.76,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 56.0 - 1.06,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 56.0 + 1.06,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.25,
-  },
-  {
-    id: 'southern-mine-stationary-cart-3',
-    minX: SOUTHERN_MINE_POS.x + 26.5 - 1.06,
-    maxX: SOUTHERN_MINE_POS.x + 26.5 + 1.06,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 56.0 - 0.76,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 56.0 + 0.76,
-    minY: SOUTHERN_MINE_POS.cavernFloorY,
-    maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.25,
-  },
-  {
-    id: 'southern-mine-stationary-cart-4',
-    minX: SOUTHERN_MINE_POS.x + 114.0 - 1.06,
-    maxX: SOUTHERN_MINE_POS.x + 114.0 + 1.06,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 56.0 - 0.76,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 56.0 + 0.76,
-    minY: SOUTHERN_MINE_POS.eastFoundryFloorY,
-    maxY: SOUTHERN_MINE_POS.eastFoundryFloorY + 1.25,
-  },
-  {
-    id: 'southern-mine-stationary-cart-5',
-    minX: SOUTHERN_MINE_POS.x + 114.0 - 1.06,
-    maxX: SOUTHERN_MINE_POS.x + 114.0 + 1.06,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 76.0 - 0.76,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 76.0 + 0.76,
-    minY: SOUTHERN_MINE_POS.eastFoundryFloorY,
-    maxY: SOUTHERN_MINE_POS.eastFoundryFloorY + 1.25,
-  },
   // 7) West Rail Tunnel & Chamber 2 (Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern: lx in [-148, -88], lz in [38, 112], y = -15.55)
-  {
-    id: 'southern-mine-west-tunnel-north-wall',
-    minX: SOUTHERN_MINE_POS.x - 88.5,
-    maxX: SOUTHERN_MINE_POS.x - 47.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 57.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: -16.0,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-west-tunnel-south-wall',
-    minX: SOUTHERN_MINE_POS.x - 88.5,
-    maxX: SOUTHERN_MINE_POS.x - 47.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 71.0,
-    minY: -16.0,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-chamber2-north-wall',
-    minX: SOUTHERN_MINE_POS.x - 149.5,
-    maxX: SOUTHERN_MINE_POS.x - 87.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 36.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 38.5,
-    minY: -16.5,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-chamber2-south-wall',
-    minX: SOUTHERN_MINE_POS.x - 149.5,
-    maxX: SOUTHERN_MINE_POS.x - 87.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 111.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 113.5,
-    minY: -16.5,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-chamber2-west-wall',
-    minX: SOUTHERN_MINE_POS.x - 150.0,
-    maxX: SOUTHERN_MINE_POS.x - 147.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 37.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 112.5,
-    minY: -16.5,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-chamber2-east-wall-north',
-    minX: SOUTHERN_MINE_POS.x - 88.5,
-    maxX: SOUTHERN_MINE_POS.x - 86.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 37.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: -16.5,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-chamber2-east-wall-south',
-    minX: SOUTHERN_MINE_POS.x - 88.5,
-    maxX: SOUTHERN_MINE_POS.x - 86.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 112.5,
-    minY: -16.5,
-    maxY: -3.0,
-  },
-  {
-    id: 'southern-mine-lagoon-bridge-rail-north',
-    minX: SOUTHERN_MINE_POS.x - 135.0,
-    maxX: SOUTHERN_MINE_POS.x - 101.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 70.45,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 70.85,
-    minY: -15.3,
-    maxY: -14.0,
-  },
-  {
-    id: 'southern-mine-lagoon-bridge-rail-south',
-    minX: SOUTHERN_MINE_POS.x - 135.0,
-    maxX: SOUTHERN_MINE_POS.x - 101.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 75.15,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 75.55,
-    minY: -15.3,
-    maxY: -14.0,
-  },
-  {
-    id: 'southern-mine-amethyst-cluster-west',
-    minX: SOUTHERN_MINE_POS.x - 141.0 - 1.95,
-    maxX: SOUTHERN_MINE_POS.x - 141.0 + 1.95,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 73.0 - 1.95,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 73.0 + 1.95,
-    minY: -15.55,
-    maxY: -11.8,
-  },
-  {
-    id: 'southern-mine-crate-lagoon-dock',
-    minX: SOUTHERN_MINE_POS.x - 112.7,
-    maxX: SOUTHERN_MINE_POS.x - 111.3,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 94.8,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 96.2,
-    minY: -15.3,
-    maxY: -13.8,
-  },
-  {
-    id: 'southern-mine-chamber2-waterfall-cliff',
-    minX: SOUTHERN_MINE_POS.x - 122.8,
-    maxX: SOUTHERN_MINE_POS.x - 113.2,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 47.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 53.2,
-    minY: -15.6,
-    maxY: -3.0,
-  },
   ...[1, 2, 3, 4].flatMap((f) => {
     const fx = -48.0 - (f / 5) * 40.0;
     return [-2.75, 2.75].map((oz, idx) => ({
       id: `southern-mine-west-tunnel-arch-${f}-${idx}`,
-      minX: SOUTHERN_MINE_POS.x + fx - 0.35,
-      maxX: SOUTHERN_MINE_POS.x + fx + 0.35,
-      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.35,
-      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.35,
+      minX: SOUTHERN_MINE_POS.x + fx - 0.34,
+      maxX: SOUTHERN_MINE_POS.x + fx + 0.34,
+      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
       minY: -16.0,
       maxY: -3.5,
     }));
   }),
   // 8) East Smelting Tunnel & Chamber 3 (Dwarven Gold & Silver Smelting Foundry: lx in [88, 144], lz in [40, 108], y = -14.35)
-  {
-    id: 'southern-mine-east-tunnel-north-wall',
-    minX: SOUTHERN_MINE_POS.x + 47.5,
-    maxX: SOUTHERN_MINE_POS.x + 88.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 57.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-east-tunnel-south-wall',
-    minX: SOUTHERN_MINE_POS.x + 47.5,
-    maxX: SOUTHERN_MINE_POS.x + 88.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 71.0,
-    minY: -15.0,
-    maxY: -2.3,
-  },
   ...[1, 2, 3, 4].flatMap((f) => {
     const fx = 48.0 + (f / 5) * 40.0;
     return [-2.75, 2.75].map((oz, idx) => ({
       id: `southern-mine-east-tunnel-arch-${f}-${idx}`,
-      minX: SOUTHERN_MINE_POS.x + fx - 0.35,
-      maxX: SOUTHERN_MINE_POS.x + fx + 0.35,
-      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.35,
-      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.35,
+      minX: SOUTHERN_MINE_POS.x + fx - 0.34,
+      maxX: SOUTHERN_MINE_POS.x + fx + 0.34,
+      minZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz - 0.34,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + 64.0 + oz + 0.34,
       minY: -15.0,
       maxY: -3.5,
     }));
   }),
-  {
-    id: 'southern-mine-chamber3-north-wall',
-    minX: SOUTHERN_MINE_POS.x + 87.5,
-    maxX: SOUTHERN_MINE_POS.x + 145.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 38.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 40.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-chamber3-south-wall',
-    minX: SOUTHERN_MINE_POS.x + 87.5,
-    maxX: SOUTHERN_MINE_POS.x + 145.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 107.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 109.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-chamber3-east-wall',
-    minX: SOUTHERN_MINE_POS.x + 143.5,
-    maxX: SOUTHERN_MINE_POS.x + 146.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 39.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 108.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-chamber3-west-wall-north',
-    minX: SOUTHERN_MINE_POS.x + 86.5,
-    maxX: SOUTHERN_MINE_POS.x + 88.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 39.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 58.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-chamber3-west-wall-south',
-    minX: SOUTHERN_MINE_POS.x + 86.5,
-    maxX: SOUTHERN_MINE_POS.x + 88.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 69.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 108.5,
-    minY: -15.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-blast-furnace-0',
-    minX: SOUTHERN_MINE_POS.x + 132.0 - 3.1,
-    maxX: SOUTHERN_MINE_POS.x + 132.0 + 3.1,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 56.0 - 3.1,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 56.0 + 3.1,
-    minY: -14.35,
-    maxY: -6.5,
-  },
-  {
-    id: 'southern-mine-blast-furnace-1',
-    minX: SOUTHERN_MINE_POS.x + 132.0 - 3.1,
-    maxX: SOUTHERN_MINE_POS.x + 132.0 + 3.1,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 82.0 - 3.1,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 82.0 + 3.1,
-    minY: -14.35,
-    maxY: -6.5,
-  },
-  {
-    id: 'southern-mine-crate-foundry-vault',
-    minX: SOUTHERN_MINE_POS.x + 121.3,
-    maxX: SOUTHERN_MINE_POS.x + 122.7,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 65.3,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 66.7,
-    minY: -14.35,
-    maxY: -13.2,
-  },
   // 9) South Grand Moria Descent Gallery & Chamber 4 (Great Hall of Khazad-dûm: lx in [-64, 64], lz in [145, 255], y = -18.35)
-  {
-    id: 'southern-mine-south-gallery-west-wall',
-    minX: SOUTHERN_MINE_POS.x - 17.5,
-    maxX: SOUTHERN_MINE_POS.x - 15.8,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 95.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 145.5,
-    minY: -19.0,
-    maxY: -2.0,
-  },
-  {
-    id: 'southern-mine-south-gallery-east-wall',
-    minX: SOUTHERN_MINE_POS.x + 15.8,
-    maxX: SOUTHERN_MINE_POS.x + 17.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 95.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 145.5,
-    minY: -19.0,
-    maxY: -2.0,
-  },
-  {
-    id: 'southern-mine-moria-north-wall-west',
-    minX: SOUTHERN_MINE_POS.x - 65.0,
-    maxX: SOUTHERN_MINE_POS.x - 16.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 143.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 145.5,
-    minY: -19.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-moria-north-wall-east',
-    minX: SOUTHERN_MINE_POS.x + 16.0,
-    maxX: SOUTHERN_MINE_POS.x + 65.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 143.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 145.5,
-    minY: -19.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-moria-west-wall',
-    minX: SOUTHERN_MINE_POS.x - 65.5,
-    maxX: SOUTHERN_MINE_POS.x - 63.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 144.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 255.5,
-    minY: -47.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-moria-east-wall',
-    minX: SOUTHERN_MINE_POS.x + 63.5,
-    maxX: SOUTHERN_MINE_POS.x + 65.5,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 144.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 255.5,
-    minY: -47.0,
-    maxY: -2.3,
-  },
-  {
-    id: 'southern-mine-moria-south-wall',
-    minX: SOUTHERN_MINE_POS.x - 65.0,
-    maxX: SOUTHERN_MINE_POS.x + 65.0,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 254.5,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 256.5,
-    minY: -19.0,
-    maxY: -2.3,
-  },
-  // 16 Colossal Carved Dwarven Stone Pillars in the Great Hall of Khazad-dûm
-  ...[154.0, 170.0, 224.0, 238.0].flatMap((pz) =>
-    [-38.0, -20.0, 20.0, 38.0].map((px) => ({
-      id: `southern-mine-moria-pillar-${px}_${pz}`,
-      minX: SOUTHERN_MINE_POS.x + px - 2.2,
-      maxX: SOUTHERN_MINE_POS.x + px + 2.2,
-      minZ: SOUTHERN_MINE_POS.entranceZ + pz - 2.2,
-      maxZ: SOUTHERN_MINE_POS.entranceZ + pz + 2.2,
-      minY: -18.5,
-      maxY: -2.35,
-    }))
-  ),
   // West Trestle Bridge Side Guardrails over the Abyss (lx = -14.85 / -8.15, lz in [178, 218])
-  {
-    id: 'southern-mine-moria-trestle-rail-west',
-    minX: SOUTHERN_MINE_POS.x - 15.05,
-    maxX: SOUTHERN_MINE_POS.x - 14.65,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 178.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 218.0,
-    minY: -18.35,
-    maxY: -17.1,
-  },
-  {
-    id: 'southern-mine-moria-trestle-rail-east',
-    minX: SOUTHERN_MINE_POS.x - 8.35,
-    maxX: SOUTHERN_MINE_POS.x - 7.95,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 178.0,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 218.0,
-    minY: -18.35,
-    maxY: -17.1,
-  },
-  {
-    id: 'southern-mine-chest-moria-royal',
-    minX: SOUTHERN_MINE_POS.x - 0.9,
-    maxX: SOUTHERN_MINE_POS.x + 0.9,
-    minZ: SOUTHERN_MINE_POS.entranceZ + 241.9,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + 243.1,
-    minY: -17.55,
-    maxY: -16.5,
-  },
   // 10) 8 Sculptural Miner Ore Veins in Room 1 (matching DWARVEN_MINER_STATIONS rockLocalX/rockLocalZ 1-to-1!)
-  ...(
-    [
-      [-28.0, 42.8, 1.2, -9.35],
-      [24.2, 78.5, 1.35, -9.35],
-      [-43.2, 49.5, 1.25, -9.35],
-      [-43.2, 78.5, 1.25, -9.35],
-      [27.5, 44.8, 1.2, -9.35],
-      [35.8, 76.0, 1.4, -9.35],
-      [-28.5, 89.2, 1.2, -9.35],
-      [43.2, 50.5, 1.2, -9.35],
-    ] as const
-  ).map(([rx, rz, rad, baseFloorY], idx) => ({
-    id: `southern-mine-ore-outcrop-${idx}`,
-    minX: SOUTHERN_MINE_POS.x + rx - rad,
-    maxX: SOUTHERN_MINE_POS.x + rx + rad,
-    minZ: SOUTHERN_MINE_POS.entranceZ + rz - rad,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + rz + rad,
-    minY: baseFloorY,
-    maxY: baseFloorY + 2.6,
-  })),
+  // Eight miner-station ore rocks, from MINE_ORE_ROCK_SITES (the model draws the same rocks).
+  ...MINE_ORE_ROCK_SITES.map((r, idx) => {
+    const cx = SOUTHERN_MINE_POS.x + r.lx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + r.lz;
+    const rad = MINE_ORE_ROCK.radius;
+    return {
+      id: `southern-mine-ore-outcrop-${idx}`,
+      minX: cx - rad, maxX: cx + rad, minZ: cz - rad, maxZ: cz + rad,
+      minY: SOUTHERN_MINE_POS.cavernFloorY,
+      maxY: SOUTHERN_MINE_POS.cavernFloorY + MINE_ORE_ROCK.top,
+    };
+  }),
   // Hunter's Horse Stable & Corral at world (-104.5, 2.15, 75.5): Back/Side walls, Center Partition, Hay Bale Stack, and West Corral Fence
   {
     id: 'stable-back-wall',
