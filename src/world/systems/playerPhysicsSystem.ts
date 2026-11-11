@@ -29,6 +29,7 @@ import {
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
   getNearbySolidBuildingBoxes,
+  pointInsideSolidBuildingBox,
   getHillWatchtowerLocalWalls,
   resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
@@ -638,6 +639,23 @@ export function findNearestRideableHorse(
 
 // ======================== KINEMATIC SIMULATION STEP ======================== \\
 // #region Kinematic Simulation Step
+/**
+ * Summary: Highest top of a solid box under (x, z) that the feet are standing on or just above, or -Infinity if none.
+ * Design: Accepts a top within a small step below the feet (a jump landing) and rejects tops far above (walls, fences).
+ */
+function highestStandableBoxTopAt(x: number, z: number, feetY: number): number {
+  let best = -Infinity;
+  const boxes = getNearbySolidBuildingBoxes(x, z, 1.0);
+  for (let i = 0; i < boxes.length; i++) {
+    const box = boxes[i];
+    if (box.maxY === undefined) continue;
+    if (box.maxY > feetY + 0.3 || box.maxY < feetY - 1.0) continue;
+    if (!pointInsideSolidBuildingBox(x, z, 0, box)) continue;
+    if (box.maxY > best) best = box.maxY;
+  }
+  return best;
+}
+
 /**
  * Summary: Steps player movement physics, collision handling, jumping, climbing, and swimming.
  * Note: [HOT-PATH EXCEPTION] Evaluated each frame at 60FPS; mutates player velocity and position in place.
@@ -1556,8 +1574,11 @@ export function stepPlayerPhysics(
 
   const wasGrounded = state.onGround;
   const walkSurface = walkableHeightAt(state.x, state.z, state.y);
+  // Standing on top of a solid box (table, crate, cart, bed): its top is a floor when the feet are within a small step of it.
+  const highestBoxTopY = highestStandableBoxTopAt(state.x, state.z, state.y);
   const standingOnBoulder = highestBoulderTopY > walkSurface.height;
-  const effectiveWalkHeight = standingOnBoulder ? highestBoulderTopY : walkSurface.height;
+  const baseFloorY = Math.max(walkSurface.height, highestBoxTopY);
+  const effectiveWalkHeight = standingOnBoulder ? highestBoulderTopY : baseFloorY;
   const waterSurfaceY = getWaterSurfaceHeightAt(state.x, state.z, state.y);
   const isDeepWater =
     !inSkyWaterfallUpdraft &&
