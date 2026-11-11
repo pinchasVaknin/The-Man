@@ -26,6 +26,8 @@ import {
   MINE_HOIST_CRANE,
   MINE_KHAZAD_BRIDGE,
   MINE_LAGOON_DOCK_TORCH,
+  MINE_MESS_HALL,
+  MINE_SUPPLY_CRATES,
   MINE_NW_GALLERY,
   khazadBridgeSegment,
   mineNwGalleryStepRise,
@@ -1608,9 +1610,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     royalChestBodyGeo
   );
 
-  for (const tableZ of [56.0, 68.0]) {
+  for (const tableZ of MINE_MESS_HALL.tableZs) {
     const tGroup = new THREE.Group();
-    tGroup.position.set(-14.0, cavernFloorY, tableZ);
+    tGroup.position.set(MINE_MESS_HALL.lx, cavernFloorY, tableZ);
     const topMesh = new THREE.Mesh(messTableTopGeo, timberMat);
     topMesh.position.set(0, 0.86, 0);
     topMesh.castShadow = true;
@@ -1647,14 +1649,14 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // Central Mess Hall Cooking Brazier & Stew Cauldron at (-14.0, 62.0)
   const messHearthBase = new THREE.Mesh(forgeBrazierBaseGeo, darkIronMat);
-  messHearthBase.position.set(-14.0, cavernFloorY, 62.0);
+  messHearthBase.position.set(MINE_MESS_HALL.lx, cavernFloorY, MINE_MESS_HALL.cauldron.lz);
   const messEmbers = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
-  messEmbers.position.set(-14.0, cavernFloorY + 0.85, 62.0);
+  messEmbers.position.set(MINE_MESS_HALL.lx, cavernFloorY + 0.85, MINE_MESS_HALL.cauldron.lz);
   const stewCauldron = new THREE.Mesh(cauldronGeo, darkIronMat);
-  stewCauldron.position.set(-14.0, cavernFloorY + 1.45, 62.0);
+  stewCauldron.position.set(MINE_MESS_HALL.lx, cavernFloorY + 1.45, MINE_MESS_HALL.cauldron.lz);
   stewCauldron.rotation.x = Math.PI;
   const messFireLight = new THREE.PointLight(0xff8c24, 5.2, 42, 1.25);
-  messFireLight.position.set(-14.0, cavernFloorY + 2.8, 62.0);
+  messFireLight.position.set(MINE_MESS_HALL.lx, cavernFloorY + 2.8, MINE_MESS_HALL.cauldron.lz);
   messFireLight.userData.isUndergroundMineLight = true;
   messFireLight.userData.baseIntensity = 5.2;
   lanternLights.push(messFireLight);
@@ -1685,8 +1687,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
 
   // Place the 3 Interactive Lootable Supply Crates in Room 1 (matching WORLD_CHESTS coordinates!)
   mineGroup.add(
-    createInteractiveSupplyCrate(-22.5, cavernFloorY, 56.0, true),
-    createInteractiveSupplyCrate(-22.5, cavernFloorY, 68.0, true),
+    createInteractiveSupplyCrate(MINE_SUPPLY_CRATES.lx, cavernFloorY, MINE_SUPPLY_CRATES.provisions.lz, true),
+    createInteractiveSupplyCrate(MINE_SUPPLY_CRATES.lx, cavernFloorY, MINE_SUPPLY_CRATES.quartermaster.lz, true),
     createInteractiveSupplyCrate(11.5, cavernFloorY, 62.0, true)
   );
   // Decorative side crates & barrels around Room 1 staging area
