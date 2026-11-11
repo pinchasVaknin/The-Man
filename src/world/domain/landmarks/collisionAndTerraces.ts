@@ -40,7 +40,7 @@ import {
   DWARVEN_STONE_HOUSES,
   SOUTHERN_MINE_POS,
 } from './dwarvenLandmarks';
-import { MINE_HOIST_CRANE, MINE_SCAFFOLD_LEGS } from './dwarvenMineLayout';
+import { MINE_FLOOR_TORCH_STANDS, MINE_HOIST_CRANE, MINE_LAGOON_COLUMN, MINE_SCAFFOLD_LEGS } from './dwarvenMineLayout';
 import {
   SOUTHEAST_HARBOR_POS,
   SOUTHWEST_OASIS_POS,
@@ -483,6 +483,29 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxY: SOUTHERN_MINE_POS.cavernFloorY + 1.45,
   },
   // 5) Room 1 Hoist Crane Tower on NE Scaffolding Platform & Crane Mast at (16.0, 76.0)
+  // Floor torch stands (0.52 plinth) that a player can walk into, from MINE_FLOOR_TORCH_STANDS.
+  ...MINE_FLOOR_TORCH_STANDS.map((t, i) => {
+    const cx = SOUTHERN_MINE_POS.x + t.lx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + t.lz;
+    return {
+      id: `southern-mine-floor-torch-${i}`,
+      minX: cx - 0.26,
+      maxX: cx + 0.26,
+      minZ: cz - 0.26,
+      maxZ: cz + 0.26,
+      minY: t.baseY,
+      maxY: t.baseY + 2.75,
+    };
+  }),
+  {
+    id: 'southern-mine-lagoon-column',
+    minX: SOUTHERN_MINE_POS.x + MINE_LAGOON_COLUMN.lx - MINE_LAGOON_COLUMN.halfW,
+    maxX: SOUTHERN_MINE_POS.x + MINE_LAGOON_COLUMN.lx + MINE_LAGOON_COLUMN.halfW,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_LAGOON_COLUMN.lz - MINE_LAGOON_COLUMN.halfD,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_LAGOON_COLUMN.lz + MINE_LAGOON_COLUMN.halfD,
+    minY: MINE_LAGOON_COLUMN.baseY,
+    maxY: MINE_LAGOON_COLUMN.baseY + MINE_LAGOON_COLUMN.height,
+  },
   // Scaffold legs under the catwalk, from MINE_SCAFFOLD_LEGS (the model draws the same positions).
   ...MINE_SCAFFOLD_LEGS.positions.map(([lx, lz], i) => {
     const cx = SOUTHERN_MINE_POS.x + lx;

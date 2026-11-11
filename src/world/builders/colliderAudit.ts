@@ -28,6 +28,8 @@ export interface IColliderAuditReport {
     /** Footprint size along x and z, so a reader can tell a post from a wall without the scene. */
     readonly width: number;
     readonly depth: number;
+    /** Lowest world y of the mesh, so a reader can tell a floor post from an overhead arch piece. */
+    readonly baseY: number;
     /** Three.js geometry class, e.g. BoxGeometry or CylinderGeometry. */
     readonly geometry: string;
   }[];
@@ -139,6 +141,7 @@ export function auditColliderCoverage(
         height,
         width: f.maxX - f.minX,
         depth: f.maxZ - f.minZ,
+        baseY: f.minY,
         geometry: f.geometry,
       });
     }

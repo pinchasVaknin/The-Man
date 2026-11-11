@@ -30,6 +30,39 @@ export const MINE_SCAFFOLD_LEGS = {
 } as const;
 // #endregion
 
+// ======================== FLOOR TORCH STANDS AND LAGOON COLUMN ======================== \\
+// #region Floor Torch Stands
+/**
+ * Summary: Floor-standing torch posts (2.75 m) that a player can walk into, and the rock column in the west lagoon.
+ * Design: lx/lz are local to the mine group (x from SOUTHERN_MINE_POS.x, z from SOUTHERN_MINE_POS.entranceZ).
+ *         baseY is the world y of the lowest vertex, measured with the collider audit (window.auditColliders).
+ *         NOTE: the model still places these from its own call sites; these numbers are not yet read by the model.
+ */
+export const MINE_FLOOR_TORCH_STANDS: ReadonlyArray<{ readonly lx: number; readonly lz: number; readonly baseY: number }> = [
+  { lx: -128.0, lz: 92.2, baseY: -15.27 },
+  { lx: -8.5, lz: 239.0, baseY: -17.55 },
+  { lx: 8.5, lz: 239.0, baseY: -17.55 },
+  { lx: -25.0, lz: 50.0, baseY: -9.35 },
+  { lx: -35.0, lz: 61.5, baseY: -9.35 },
+  { lx: 35.0, lz: 61.5, baseY: -9.35 },
+  { lx: 4.0, lz: 48.0, baseY: -9.35 },
+  { lx: 22.0, lz: 68.0, baseY: -9.35 },
+  { lx: -9.5, lz: 85.0, baseY: -9.35 },
+  { lx: -3.5, lz: 177.5, baseY: -18.35 },
+  { lx: 3.5, lz: 218.5, baseY: -18.35 },
+];
+
+/** Summary: Rock column standing on the west lagoon floor (footprint 5.16 x 2.06, height 11.4). */
+export const MINE_LAGOON_COLUMN = {
+  lx: -118.0,
+  lz: 54.87,
+  halfW: 2.58,
+  halfD: 1.03,
+  baseY: -15.85,
+  height: 11.4,
+} as const;
+// #endregion
+
 // ======================== HOIST CRANE ======================== \\
 // #region Hoist Crane
 /**
