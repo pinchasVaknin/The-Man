@@ -135,14 +135,16 @@ export {
   SOLID_BUILDING_BOXES,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
-  getSolidBuildingWorldAABB,
-  pointInsideSolidBuildingBox,
-  resolveHorizontalBoxCollision,
-  getNearbySolidBuildingBoxes,
   COLLIDABLE_WORLD_ENTITY_REGISTRY,
   validateWorldEntityColliders,
   getObstacleColliderMetrics,
   getHillWatchtowerLocalWalls,
 } from './landmarks/collisionAndTerraces';
+export {
+  getSolidBuildingWorldAABB,
+  pointInsideSolidBuildingBox,
+  resolveHorizontalBoxCollision,
+  getNearbySolidBuildingBoxes,
+} from './collisionWorld';
 // #endregion
 

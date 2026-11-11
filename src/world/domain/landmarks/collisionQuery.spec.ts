@@ -1,10 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  SOLID_BUILDING_BOXES,
-  getNearbySolidBuildingBoxes,
-  getSolidBuildingWorldAABB,
-} from './collisionAndTerraces';
+import { SOLID_BUILDING_BOXES } from './collisionAndTerraces';
+import { getNearbySolidBuildingBoxes, getSolidBuildingWorldAABB } from '../collisionWorld';
 
 /** Brute-force reference: every box whose footprint overlaps the query square, in array order. */
 function bruteForceNearby(x: number, z: number, radius: number) {
