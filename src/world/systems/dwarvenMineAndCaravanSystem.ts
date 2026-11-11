@@ -29,11 +29,12 @@ const SCHEDULE_NIGHT_START = 19.5;
 const DAWN_CARAVAN_DURATION = SCHEDULE_WORK_START - SCHEDULE_DAWN_START;
 const DUSK_CARAVAN_DURATION = SCHEDULE_NIGHT_START - SCHEDULE_WORK_END;
 
-/** Summary: Catwalk vertical & depth constants */
-const CATWALK_STAIR_START_LZ = 35.5;
-const CATWALK_STAIR_END_LZ = 44.5;
-const CATWALK_STAIR_SPAN = CATWALK_STAIR_END_LZ - CATWALK_STAIR_START_LZ;
-const DOCK_PIER_HEIGHT_OFFSET = 0.14;
+/** Summary: Cliffside hoist scaffolding & lagoon bridge/dock constants */
+const SCAFFOLD_STAIR_START_LZ = 49.0;
+const SCAFFOLD_STAIR_END_LZ = 57.5;
+const SCAFFOLD_STAIR_SPAN = SCAFFOLD_STAIR_END_LZ - SCAFFOLD_STAIR_START_LZ;
+const LAGOON_BRIDGE_HEIGHT_OFFSET = 0.32;
+const DOCK_PIER_HEIGHT_OFFSET = 0.28;
 const CRYSTAL_LAKE_DEPTH = 1.9;
 
 export interface IMinerStationConfig {
@@ -57,145 +58,149 @@ export interface IMinerStationConfig {
 type MinerStationConfig = IMinerStationConfig;
 
 export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
-  // Room 1 (Central Junction Hall) West & East rock wall ore veins + Minecart loading
+  // 0: Durin — North-West Ore Pit Loop beside the Waterfall (loads Cart 0 on the bridge approach)
   {
     name: t('dwarven.miners.durin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: -1.25,
-    workLocalX: -11.4,
-    workLocalZ: 41.5,
-    workYaw: Math.PI / 2,
-    rockLocalX: -12.75,
-    rockLocalZ: 41.5,
-    rockRadius: 1.15,
+    workLocalX: -12.0,
+    workLocalZ: 52.8,
+    workYaw: Math.PI,
+    rockLocalX: -12.0,
+    rockLocalZ: 54.3,
+    rockRadius: 1.2,
     oreKind: 'gold',
     pairedCartIdx: 0,
-    cartLoadLocalX: -1.15,
-    cartLoadLocalZ: 41.5,
-    cartLoadYaw: -Math.PI / 2,
+    cartLoadLocalX: -18.5,
+    cartLoadLocalZ: 61.2,
+    cartLoadYaw: Math.PI,
   },
+  // 1: Balin — East Golden/Amber Crystal Cluster beside the Bridge exit (loads Cart 1)
   {
     name: t('dwarven.miners.balin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 11.4,
-    workLocalZ: 42.5,
+    workLocalX: 13.0,
+    workLocalZ: 72.5,
     workYaw: -Math.PI / 2,
-    rockLocalX: 12.75,
-    rockLocalZ: 42.5,
-    rockRadius: 1.15,
-    oreKind: 'emerald',
+    rockLocalX: 15.5,
+    rockLocalZ: 72.5,
+    rockRadius: 2.1,
+    oreKind: 'gold',
     pairedCartIdx: 1,
-    cartLoadLocalX: 8.5,
-    cartLoadLocalZ: 47.75,
-    cartLoadYaw: Math.PI,
+    cartLoadLocalX: 14.0,
+    cartLoadLocalZ: 63.8,
+    cartLoadYaw: 0,
   },
-  // Room 2 (West Crystal Lake Chamber) East rock partition sapphire & amethyst veins
+  // 2: Dwalin — West Amethyst Loop North Vein (loads Cart 2)
   {
     name: t('dwarven.miners.dwalin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: -27.8,
-    workLocalZ: 41.5,
-    workYaw: -Math.PI / 2,
-    rockLocalX: -26.5,
-    rockLocalZ: 41.5,
-    rockRadius: 1.15,
-    oreKind: 'sapphire',
+    workLocalX: -35.0,
+    workLocalZ: 59.8,
+    workYaw: Math.PI,
+    rockLocalX: -35.0,
+    rockLocalZ: 61.3,
+    rockRadius: 1.25,
+    oreKind: 'amethyst',
     pairedCartIdx: 2,
-    cartLoadLocalX: -28.0,
-    cartLoadLocalZ: 47.75,
+    cartLoadLocalX: -27.5,
+    cartLoadLocalZ: 58.0,
     cartLoadYaw: Math.PI,
   },
+  // 3: Gloin — West Amethyst Loop South Vein
   {
     name: t('dwarven.miners.gloin'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: -27.8,
-    workLocalZ: 56.5,
-    workYaw: -Math.PI / 2,
-    rockLocalX: -26.5,
-    rockLocalZ: 56.5,
-    rockRadius: 1.15,
+    workLocalX: -35.0,
+    workLocalZ: 72.2,
+    workYaw: 0,
+    rockLocalX: -35.0,
+    rockLocalZ: 70.7,
+    rockRadius: 1.25,
     oreKind: 'amethyst',
   },
-  // Room 3 (East Dwarven Smelting Foundry) West rock wall vein & Blast-Furnace ore boulder
+  // 4: Oin — East Crane Foot Golden Vein (loads Cart 3)
   {
     name: t('dwarven.miners.oin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: 27.8,
-    workLocalZ: 42.5,
-    workYaw: Math.PI / 2,
-    rockLocalX: 26.5,
-    rockLocalZ: 42.5,
-    rockRadius: 1.15,
+    workLocalX: 16.5,
+    workLocalZ: 53.5,
+    workYaw: -Math.PI / 2,
+    rockLocalX: 18.2,
+    rockLocalZ: 53.5,
+    rockRadius: 1.2,
     oreKind: 'gold',
     pairedCartIdx: 3,
-    cartLoadLocalX: 31.3,
-    cartLoadLocalZ: 43.5,
-    cartLoadYaw: -Math.PI / 2,
+    cartLoadLocalX: 14.8,
+    cartLoadLocalZ: 52.5,
+    cartLoadYaw: Math.PI / 2,
   },
+  // 5: Bifur — East Circular Loop Ore Mound (loads Cart 4)
   {
     name: t('dwarven.miners.bifur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 38.2,
-    workLocalZ: 64.5,
+    workLocalX: 27.6,
+    workLocalZ: 68.0,
     workYaw: -Math.PI / 2,
-    rockLocalX: 39.6,
-    rockLocalZ: 64.5,
-    rockRadius: 1.25,
+    rockLocalX: 31.0,
+    rockLocalZ: 68.0,
+    rockRadius: 2.6,
     oreKind: 'gold',
     pairedCartIdx: 4,
-    cartLoadLocalX: 33.7,
-    cartLoadLocalZ: 65.5,
-    cartLoadYaw: Math.PI / 2,
+    cartLoadLocalX: 23.8,
+    cartLoadLocalZ: 63.8,
+    cartLoadYaw: 0,
   },
-  // Room 4 (Deep South Royal Treasure Vault) West & East dragon-gold wall veins
+  // 6: Bofur — South-West Cavern Wall Sapphire Vein (loads Cart 5)
   {
     name: t('dwarven.miners.bofur'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: -13.8,
-    workLocalZ: 88.0,
-    workYaw: Math.PI / 2,
-    rockLocalX: -15.15,
-    rockLocalZ: 88.0,
+    workLocalX: -24.5,
+    workLocalZ: 84.8,
+    workYaw: Math.PI,
+    rockLocalX: -24.5,
+    rockLocalZ: 86.3,
     rockRadius: 1.2,
-    oreKind: 'gold',
+    oreKind: 'sapphire',
     pairedCartIdx: 5,
-    cartLoadLocalX: -1.15,
-    cartLoadLocalZ: 88.0,
+    cartLoadLocalX: -22.2,
+    cartLoadLocalZ: 82.0,
     cartLoadYaw: -Math.PI / 2,
   },
+  // 7: Bombur — Far-East Timber Arch Emerald Vein
   {
     name: t('dwarven.miners.bombur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: 1.25,
-    workLocalX: 13.8,
-    workLocalZ: 88.0,
+    workLocalX: 37.8,
+    workLocalZ: 55.5,
     workYaw: -Math.PI / 2,
-    rockLocalX: 15.15,
-    rockLocalZ: 88.0,
+    rockLocalX: 39.4,
+    rockLocalZ: 55.5,
     rockRadius: 1.2,
-    oreKind: 'sapphire',
+    oreKind: 'emerald',
   },
 ];
 
@@ -212,73 +217,73 @@ export interface IMinecartRouteConfig {
 }
 
 export const DWARVEN_MINECART_ROUTES: readonly IMinecartRouteConfig[] = [
-  // Cart 0: Room 1 North Central Track (loads from Durin at z=41.5, hauls South to z=57.5)
+  // Cart 0: Central Wooden Plank Bridge Track over the Turquoise Lagoon (x = -18.5 .. +5.5, z = 62.5)
   {
-    id: 'minecart-central-north',
-    startLocalX: 0,
-    startLocalZ: 41.5,
-    endLocalX: 0,
-    endLocalZ: 57.5,
-    yaw: 0,
+    id: 'minecart-lagoon-bridge',
+    startLocalX: -18.5,
+    startLocalZ: 62.5,
+    endLocalX: 5.5,
+    endLocalZ: 62.5,
+    yaw: Math.PI / 2,
     cycleDuration: 22.0,
     phaseOffset: 0.0,
     oreKind: 'gold',
   },
-  // Cart 1: East Cross-Corridor Track (loads from Balin at x=8.5, z=49.0, hauls East into Room 3 Foundry at x=28.5, z=49.0)
+  // Cart 1: East Cavern Main Track past the Golden Crystal Cluster (x = 14.0 .. 23.0, z = 62.5)
   {
-    id: 'minecart-east-corridor',
-    startLocalX: 8.5,
-    startLocalZ: 49.0,
-    endLocalX: 28.5,
-    endLocalZ: 49.0,
+    id: 'minecart-east-cavern',
+    startLocalX: 14.0,
+    startLocalZ: 62.5,
+    endLocalX: 23.0,
+    endLocalZ: 62.5,
     yaw: Math.PI / 2,
     cycleDuration: 24.0,
     phaseOffset: 0.35,
-    oreKind: 'emerald',
+    oreKind: 'gold',
   },
-  // Cart 2: West Cross-Corridor Track (loads from Dwalin at x=-28.0, z=49.0, hauls East into Room 1 at x=-8.5, z=49.0)
+  // Cart 2: West Amethyst Cavern Straight Spur (x = -27.5 .. -21.5, z = 56.8)
   {
-    id: 'minecart-west-corridor',
-    startLocalX: -28.0,
-    startLocalZ: 49.0,
-    endLocalX: -8.5,
-    endLocalZ: 49.0,
+    id: 'minecart-west-amethyst',
+    startLocalX: -27.5,
+    startLocalZ: 56.8,
+    endLocalX: -21.5,
+    endLocalZ: 56.8,
     yaw: Math.PI / 2,
     cycleDuration: 25.0,
     phaseOffset: 0.65,
-    oreKind: 'sapphire',
+    oreKind: 'amethyst',
   },
-  // Cart 3: Room 3 Foundry North Track (loads from Oin at x=32.5, z=43.5, hauls South to Blast Furnace 1 at x=32.5, z=58.5)
+  // Cart 3: East Hoist Crane Spur Track (x = 13.5, z = 52.5 .. 60.5)
   {
-    id: 'minecart-foundry-north',
-    startLocalX: 32.5,
-    startLocalZ: 43.5,
-    endLocalX: 32.5,
-    endLocalZ: 58.5,
+    id: 'minecart-crane-spur',
+    startLocalX: 13.5,
+    startLocalZ: 52.5,
+    endLocalX: 13.5,
+    endLocalZ: 60.5,
     yaw: 0,
     cycleDuration: 21.0,
     phaseOffset: 0.18,
     oreKind: 'gold',
   },
-  // Cart 4: Room 3 Foundry South Track (loads from Bifur at x=32.5, z=65.5, hauls South to Blast Furnace 2 at x=32.5, z=84.5)
+  // Cart 4: East Circular Loop North Chord (x = 23.8 .. 35.5, z = 61.5)
   {
-    id: 'minecart-foundry-south',
-    startLocalX: 32.5,
-    startLocalZ: 65.5,
-    endLocalX: 32.5,
-    endLocalZ: 84.5,
-    yaw: 0,
+    id: 'minecart-east-loop',
+    startLocalX: 23.8,
+    startLocalZ: 61.5,
+    endLocalX: 35.5,
+    endLocalZ: 61.5,
+    yaw: Math.PI / 2,
     cycleDuration: 23.0,
     phaseOffset: 0.52,
-    oreKind: 'emerald',
+    oreKind: 'gold',
   },
-  // Cart 5: Deep South Vault Track (loads from Bofur at x=0, z=88.0, hauls North/South to Royal Treasury at x=0, z=98.5)
+  // Cart 5: South-West Cavern Haul Track (x = -21.0, z = 82.0 .. 66.0)
   {
-    id: 'minecart-vault-south',
-    startLocalX: 0,
-    startLocalZ: 88.0,
-    endLocalX: 0,
-    endLocalZ: 98.5,
+    id: 'minecart-southwest-haul',
+    startLocalX: -21.0,
+    startLocalZ: 82.0,
+    endLocalX: -21.0,
+    endLocalZ: 66.0,
     yaw: 0,
     cycleDuration: 20.0,
     phaseOffset: 0.82,
@@ -302,11 +307,6 @@ export function evaluateMinecartTrackState(
   const route = DWARVEN_MINECART_ROUTES[cartIndex % DWARVEN_MINECART_ROUTES.length];
   const rawPhase = ((elapsedTime / route.cycleDuration + route.phaseOffset) % 1.0 + 1.0) % 1.0;
 
-  // Phase breakdown:
-  // [0.00 .. 0.24]: Parked at start station while Dwarf loads ore into the cart
-  // [0.24 .. 0.52]: Rolling smoothly along iron rails from start -> end
-  // [0.52 .. 0.68]: Parked at end station unloading into smelter/vault
-  // [0.68 .. 1.00]: Rolling smoothly back along iron rails from end -> start
   let u = 0;
   let isLoadingAtStart = false;
   let loadingProgress = 0;
@@ -408,7 +408,8 @@ function buildMinerWaypoints(dwarfIdx: number): [number, number, number][] {
   const workX = SOUTHERN_MINE_POS.x + station.workLocalX;
   const workZ = SOUTHERN_MINE_POS.entranceZ + station.workLocalZ;
   const workY = SOUTHERN_MINE_POS.cavernFloorY;
-  const midCorridorZ = SOUTHERN_MINE_POS.entranceZ + 49.0;
+  const bridgeY = SOUTHERN_MINE_POS.cavernFloorY + LAGOON_BRIDGE_HEIGHT_OFFSET;
+  const bridgeZ = SOUTHERN_MINE_POS.entranceZ + 62.5;
 
   const waypointsToMine: [number, number, number][] = [
     [homeX, homeY, homeZ],
@@ -416,18 +417,18 @@ function buildMinerWaypoints(dwarfIdx: number): [number, number, number][] {
     [roadX, house.terraceY, house.z + 3.0],
     [roadX, SOUTHERN_MINE_POS.entranceFloorY, SOUTHERN_MINE_POS.entranceZ - 10.0],
     [roadX, SOUTHERN_MINE_POS.entranceFloorY, SOUTHERN_MINE_POS.shaftStartZ],
-    [roadX, SOUTHERN_MINE_POS.cavernFloorY, SOUTHERN_MINE_POS.shaftEndZ + 4.0],
+    [roadX, SOUTHERN_MINE_POS.cavernFloorY, SOUTHERN_MINE_POS.shaftEndZ + 4.5],
+    [SOUTHERN_MINE_POS.x - 18.5, workY, SOUTHERN_MINE_POS.entranceZ + 42.0],
+    [SOUTHERN_MINE_POS.x - 20.5, workY, SOUTHERN_MINE_POS.entranceZ + 56.0],
   ];
 
-  if (Math.abs(station.workLocalX) > 20.0) {
-    waypointsToMine.push([roadX, workY, midCorridorZ]);
-    waypointsToMine.push([
-      SOUTHERN_MINE_POS.x + Math.sign(station.workLocalX) * 29.0,
-      workY,
-      midCorridorZ,
-    ]);
-  } else if (station.workLocalZ > 70.0) {
-    waypointsToMine.push([SOUTHERN_MINE_POS.x + station.laneOffsetX * 0.8, workY, SOUTHERN_MINE_POS.entranceZ + 78.5]);
+  if (station.workLocalX > 0) {
+    // Cross the wooden plank bridge over the turquoise underground lagoon into the East Cavern
+    waypointsToMine.push([SOUTHERN_MINE_POS.x - 19.5, bridgeY, bridgeZ]);
+    waypointsToMine.push([SOUTHERN_MINE_POS.x + 6.5, bridgeY, bridgeZ]);
+    waypointsToMine.push([SOUTHERN_MINE_POS.x + 12.0, workY, bridgeZ]);
+  } else if (station.workLocalX < -25.0) {
+    waypointsToMine.push([SOUTHERN_MINE_POS.x - 26.0, workY, SOUTHERN_MINE_POS.entranceZ + 58.0]);
   }
   waypointsToMine.push([workX, workY, workZ]);
   return waypointsToMine;
@@ -575,6 +576,34 @@ export function southernMineFloorHeightAt(z: number): number {
 }
 
 /**
+ * Summary: Evaluates whether local mine coordinates (lx, lz) fall inside the Turquoise Underground Lagoon basin
+ *          (excluding the walkable wooden plank bridge, foreground lakeside dock, and west wooden jetty).
+ */
+export function isInsideSouthernMineLagoonBasin(lx: number, lz: number): boolean {
+  // Walkable Wooden Plank Bridge crossing the lagoon (lx in [-20.0, 6.0], lz in [60.0, 65.0])
+  if (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) {
+    return false;
+  }
+  // Walkable Foreground Lakeside Wooden Dock (lx in [-18.0, 8.0], lz in [82.0, 90.0])
+  if (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0) {
+    return false;
+  }
+  // Walkable West Lagoon Wooden Jetty (lx in [-23.5, -16.5], lz in [67.0, 73.5])
+  if (lx >= -23.5 && lx <= -16.5 && lz >= 67.0 && lz <= 73.5) {
+    return false;
+  }
+  // Central-West Bioluminescent Turquoise Lagoon (lx in [-19.5, 5.5], lz in [44.0, 82.0])
+  if (lx >= -19.5 && lx <= 5.5 && lz >= 44.0 && lz <= 82.0) {
+    const normX = (lx - -7.0) / 12.5;
+    const normZ = (lz - 63.0) / 19.0;
+    if (Math.hypot(normX, normZ) < 1.0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Summary: Queries the complex walkable subterranean surface height inside the mine.
  * @param x World X in meters.
  * @param z World Z in meters.
@@ -592,9 +621,10 @@ export function southernMineWalkableHeightAt(
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
-  // 1) Room 1 Walkable Timber Staircase ascending from cavernFloorY to catwalkY along lx in [-12.5, -9.3]
-  if (lx >= -12.5 && lx <= -9.3 && lz >= CATWALK_STAIR_START_LZ && lz <= CATWALK_STAIR_END_LZ) {
-    const tStair = Math.max(0, Math.min(1, (lz - CATWALK_STAIR_START_LZ) / CATWALK_STAIR_SPAN));
+  // 1) North-East Cliffside Hoist Scaffolding Staircase (lx in [8.5, 12.5], lz in [49.0, 57.5])
+  //    ascending from cavernFloorY (at lz = 57.5) up to catwalkY (-5.55m at lz = 49.0)
+  if (lx >= 8.5 && lx <= 12.5 && lz >= SCAFFOLD_STAIR_START_LZ && lz <= SCAFFOLD_STAIR_END_LZ) {
+    const tStair = Math.max(0, Math.min(1, (SCAFFOLD_STAIR_END_LZ - lz) / SCAFFOLD_STAIR_SPAN));
     const stairH =
       SOUTHERN_MINE_POS.cavernFloorY +
       tStair * (SOUTHERN_MINE_POS.catwalkY - SOUTHERN_MINE_POS.cavernFloorY);
@@ -603,32 +633,44 @@ export function southernMineWalkableHeightAt(
     }
   }
 
-  // 2) Room 1 Elevated Timber Catwalk Ring & Cross-Bridge at y = catwalkY
-  const onWestCatwalk = lx >= -13.6 && lx <= -9.0 && lz >= 44.5 && lz <= 63.0;
-  const onSouthBridge = lx >= -13.6 && lx <= 13.6 && lz >= 58.5 && lz <= 63.0;
-  const onEastCatwalk = lx >= 9.0 && lx <= 13.6 && lz >= 44.5 && lz <= 63.0;
+  // 2) Elevated North-East Cliffside Hoist Platform (lx in [8.0, 24.0], lz in [37.5, 49.0]) at y = catwalkY
   if (
-    (onWestCatwalk || onSouthBridge || onEastCatwalk) &&
+    lx >= 8.0 &&
+    lx <= 24.0 &&
+    lz >= 37.5 &&
+    lz <= 49.0 &&
     currentY !== undefined &&
     currentY >= SOUTHERN_MINE_POS.catwalkY - 1.6
   ) {
     return SOUTHERN_MINE_POS.catwalkY;
   }
 
-  // 3) Room 2 (West Chamber): Miner's Wooden Dock Pier jutting over the Underground Crystal Lake
-  if (lx >= -39.5 && lx <= -31.5 && lz >= 61.5 && lz <= 66.5) {
+  // 3) Central Wooden Plank Bridge crossing the Turquoise Lagoon (lx in [-20.0, 6.0], lz in [60.0, 65.0])
+  if (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) {
+    const endRamp =
+      lx < -18.2
+        ? Math.max(0, (lx - -20.0) / 1.8)
+        : lx > 4.2
+          ? Math.max(0, (6.0 - lx) / 1.8)
+          : 1.0;
+    return SOUTHERN_MINE_POS.cavernFloorY + LAGOON_BRIDGE_HEIGHT_OFFSET * endRamp;
+  }
+
+  // 4) Foreground Lakeside Wooden Dock (lx in [-18.0, 8.0], lz in [82.0, 90.0]) & West Wooden Jetty (lx in [-23.5, -16.5], lz in [67.0, 73.5])
+  if (
+    (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0) ||
+    (lx >= -23.5 && lx <= -16.5 && lz >= 67.0 && lz <= 73.5)
+  ) {
     return SOUTHERN_MINE_POS.cavernFloorY + DOCK_PIER_HEIGHT_OFFSET;
   }
 
-  // 4) Room 2 (West Chamber): Carved 1.9m-deep Swimmable Bioluminescent Crystal Lake Basin
-  if (lx >= -50.0 && lx <= -33.0 && lz >= 41.0 && lz <= 84.0) {
-    const lakeNormX = (lx - -41.5) / 8.5;
-    const lakeNormZ = (lz - 62.5) / 21.5;
-    const lakeRad = Math.hypot(lakeNormX, lakeNormZ);
-    if (lakeRad < 1.0) {
-      const depthFactor = Math.max(0, Math.min(1, (1.0 - lakeRad) * 2.2));
-      return SOUTHERN_MINE_POS.cavernFloorY - depthFactor * CRYSTAL_LAKE_DEPTH;
-    }
+  // 5) Carved 1.9m-deep Swimmable Bioluminescent Turquoise Lagoon Basin
+  if (isInsideSouthernMineLagoonBasin(lx, lz)) {
+    const normX = (lx - -7.0) / 12.5;
+    const normZ = (lz - 63.0) / 19.0;
+    const lakeRad = Math.min(1.0, Math.hypot(normX, normZ));
+    const depthFactor = Math.max(0.25, Math.min(1, (1.0 - lakeRad) * 2.4));
+    return SOUTHERN_MINE_POS.cavernFloorY - depthFactor * CRYSTAL_LAKE_DEPTH;
   }
 
   return SOUTHERN_MINE_POS.cavernFloorY;
@@ -642,55 +684,23 @@ export function southernMineWalkableHeightAt(
  * @param x World X in meters.
  * @param z World Z in meters.
  * @param currentY Height of the asker, to choose between stacked floors (optional).
- * @returns True inside the mine tunnels or halls.
+ * @returns True inside the mine tunnels or grand cavern.
  */
 export function isInsideSouthernMine(x: number, z: number, currentY?: number): boolean {
   const mineFloorY = southernMineFloorHeightAt(z);
-  const ceilingMargin = z > SOUTHERN_MINE_POS.shaftEndZ - 1.0 ? 11.8 : 5.2;
+  const ceilingMargin = z > SOUTHERN_MINE_POS.shaftEndZ - 1.0 ? 12.2 : 5.4;
   if (currentY !== undefined && currentY > mineFloorY + ceilingMargin) {
     return false;
   }
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
 
-  // Main entrance tunnel
+  // Main entrance tunnel shaft (lx in [-3.4, 3.4], lz in [-1.2, 34.5])
   if (Math.abs(lx) <= SOUTHERN_MINE_POS.tunnelHalfW && lz >= -1.2 && lz <= 34.5) {
     return true;
   }
-  // Room 1 (Central Junction Hall)
-  if (Math.abs(lx) <= 14.0 && lz >= 34.0 && lz <= 64.0) {
-    return true;
-  }
-  // Connector to West Room 2
-  if (lx >= -26.5 && lx <= -13.5 && lz >= 45.0 && lz <= 53.0) {
-    return true;
-  }
-  // Room 2 (West Crystal Lake Chamber)
-  if (lx >= -52.0 && lx <= -26.0 && lz >= 36.0 && lz <= 96.0) {
-    return true;
-  }
-  // Connector to East Room 3
-  if (lx >= 13.5 && lx <= 26.5 && lz >= 45.0 && lz <= 53.0) {
-    return true;
-  }
-  // Room 3 (East Dwarven Smelting Foundry)
-  if (lx >= 26.0 && lx <= 52.0 && lz >= 36.0 && lz <= 96.0) {
-    return true;
-  }
-  // Deep South connector shaft
-  if (Math.abs(lx) <= 4.5 && lz >= 63.5 && lz <= 78.5) {
-    return true;
-  }
-  // Guard towers before Treasury
-  if (
-    ((lx >= -26.5 && lx <= -15.5) || (lx >= 15.5 && lx <= 26.5)) &&
-    lz >= 85.0 &&
-    lz <= 93.0
-  ) {
-    return true;
-  }
-  // Room 4 (Deep South Royal Treasure Vault)
-  if (Math.abs(lx) <= 16.0 && lz >= 78.0 && lz <= 110.0) {
+  // Grand Subterranean Cavern (lx in [-48.0, 48.0], lz in [34.0, 95.5])
+  if (Math.abs(lx) <= 48.0 && lz >= 34.0 && lz <= 95.5) {
     return true;
   }
   return false;

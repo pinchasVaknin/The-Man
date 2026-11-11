@@ -16,15 +16,19 @@ import {
   checkSwordHitDwarf,
   findActiveCombatDwarf,
   findTargetedLiveDwarf,
+  findNearestDeadLootableDwarf,
+  lootDeadDwarf,
 } from '../../builders/dwarvenKingdomBuilder';
 import {
   DWARVEN_MINER_STATIONS,
   evaluateMinecartTrackState,
 } from '../dwarvenMineAndCaravanSystem';
-import { getWaterSurfaceHeightAt } from '../terrainAndBiomeSystem';
-import { SOUTHERN_MINE_POS } from '../../domain/landmarksRegistry';
+import { getWaterSurfaceHeightAt, walkableHeightAt } from '../terrainAndBiomeSystem';
+import { SOUTHERN_MINE_POS, CHINESE_FORTRESS_POS, FORTRESS_Z_OFFSET } from '../../domain/landmarksRegistry';
+import { createInitialSmallAnimals, stepSmallAnimals } from '../boidsAndWildlifeSystem';
+import { createInitialPlayerState } from '../../terrainMath';
 
-describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
+describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixes Verification Suite', () => {
   it('1) WarriorMonk and DwarfWarrior retain natural 0xffffff texture color (not painted black)', () => {
     const monk = createReadyWarriorMonk({ tintHex: 0x1e293b, initialState: 'idle' });
     const dwarf = createReadyDwarfWarrior({ tintHex: 0x78350f, initialState: 'idle' });
@@ -119,17 +123,20 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
     );
   });
 
-  it('4, 5 & 7) Pairwise Guard Shift Handover keeps post guarded until relief arrives, opens barracks doors, and never attacks empty air', () => {
+  it('4, 5 & 7) Pairwise Guard Shift Handover arrives to the side of the post, waits for on-duty guard to vacate, and steps into post', () => {
     resetMonkTempleSystem();
     const parent = new THREE.Group();
-    const FZ = -170.0; // FORTRESS_Z_OFFSET
+    const FZ = FORTRESS_Z_OFFSET;
+    const summitY = CHINESE_FORTRESS_POS.summitHeight;
+    const bedTopY = CHINESE_FORTRESS_POS.pavilionFloor1Y + 0.38;
 
     const routeToPost: ReadonlyArray<readonly [number, number, number]> = [
-      [-32.2, 20.6, -168.5 + FZ],
-      [-30.0, 20.6, -159.0 + FZ],
-      [-30.0, 20.3, -156.5 + FZ],
-      [-30.0, 20.0, -153.5 + FZ],
-      [-7.2, 20.0, -113.5 + FZ],
+      [-32.2, bedTopY, -168.5 + FZ],
+      [-30.0, CHINESE_FORTRESS_POS.pavilionFloor1Y, -159.0 + FZ],
+      [-30.0, summitY + 0.3, -156.5 + FZ],
+      [-30.0, summitY, -153.5 + FZ],
+      [-2.0, summitY, -128.0 + FZ],
+      [-1.35, summitY, CHINESE_FORTRESS_POS.upperGateZ - 1.35],
     ];
 
     const onDutyGuard = spawnTempleMonk({
@@ -139,12 +146,12 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
       postId: 'gate_left',
       shiftStartOnDuty: true,
       routeToPost,
-      homeX: -7.2,
-      homeY: 20.0,
-      homeZ: -113.5 + FZ,
+      homeX: -1.35,
+      homeY: summitY,
+      homeZ: CHINESE_FORTRESS_POS.upperGateZ - 1.35,
       baseYaw: 0,
       bedX: -32.2,
-      bedY: 20.6,
+      bedY: bedTopY,
       bedZ: -168.5 + FZ,
       bedYaw: 0,
       phaseOffset: 0,
@@ -157,16 +164,21 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
       postId: 'gate_left',
       shiftStartOnDuty: false,
       routeToPost,
-      homeX: -7.2,
-      homeY: 20.0,
-      homeZ: -113.5 + FZ,
+      homeX: -1.35,
+      homeY: summitY,
+      homeZ: CHINESE_FORTRESS_POS.upperGateZ - 1.35,
       baseYaw: 0,
       bedX: -32.2,
-      bedY: 20.6,
+      bedY: bedTopY,
       bedZ: -168.5 + FZ,
       bedYaw: 0,
       phaseOffset: 0,
     });
+    // Verify sleeping monk lies ON TOP of the mattress (pavilionFloor1Y + 0.38)
+    assert.ok(
+      Math.abs(reliefGuard.y - bedTopY) < 0.02,
+      `Sleeping monk must lie ON TOP of mattress (${bedTopY}), got ${reliefGuard.y}`
+    );
     reliefGuard.nextShiftChangeTime = 5.0;
 
     const patrolMonk = spawnTempleMonk({
@@ -174,19 +186,32 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
       role: 'courtyard_patrol',
       parent,
       homeX: 0,
-      homeY: 20.0,
+      homeY: summitY,
       homeZ: -145.0 + FZ,
       baseYaw: 0,
       phaseOffset: 0,
       patrolWaypoints: [
-        [-6, 20, -145 + FZ],
-        [6, 20, -145 + FZ],
+        [-6, summitY, -145 + FZ],
+        [6, summitY, -145 + FZ],
       ],
     });
 
-    // Trigger shift wake-up and advance until relief guard arrives at the post
+    // Also spawn a shrine devotee on a bench to verify forward offset when praying and monk-to-monk collision separation
+    const devoteeMonk = spawnTempleMonk({
+      id: 'test-shrine-devotee',
+      role: 'shrine_devotee',
+      parent,
+      homeX: -5.2,
+      homeY: CHINESE_FORTRESS_POS.mainHallFloor1Y,
+      homeZ: -195.0 + FZ,
+      baseYaw: Math.PI, // facing North toward altar (-Z)
+      phaseOffset: 0,
+    });
+
+    // Trigger shift wake-up and advance until relief guard arrives at the post and takes over
     let sawDoorActive = false;
-    for (let step = 1; step <= 320; step++) {
+    let sawDevoteePraySteppedForward = false;
+    for (let step = 1; step <= 420; step++) {
       const dt = 0.1;
       const elapsedTime = 6.0 + step * dt;
       updateMonkTempleSystem(dt, elapsedTime, 0, -140 + FZ);
@@ -204,6 +229,20 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
         );
       }
 
+      // Verify devotee monk steps forward (in -Z direction for baseYaw=PI) out of the bench when kneeling to pray
+      if (devoteeMonk.ctrl.state === 'pray_kneel' && devoteeMonk.z < devoteeMonk.homeZ - 0.65) {
+        sawDevoteePraySteppedForward = true;
+      }
+
+      // Verify monks never stack on top of each other (distance >= 0.80m when on same floor)
+      if (Math.abs(onDutyGuard.y - reliefGuard.y) < 1.2) {
+        const pairDist = Math.hypot(onDutyGuard.x - reliefGuard.x, onDutyGuard.z - reliefGuard.z);
+        assert.ok(
+          pairDist >= 0.78,
+          `Monks must not climb/stack on each other during shift handover, got dist=${pairDist.toFixed(3)}`
+        );
+      }
+
       // Non-dummy patrol monk must NEVER play attack animations into empty air
       assert.ok(
         !patrolMonk.ctrl.state.startsWith('attack') && patrolMonk.ctrl.state !== 'staff_spin',
@@ -214,12 +253,62 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
     assert.ok(sawDoorActive, 'West pavilion barracks door must open as relief guard walks through doorway');
     assert.equal(reliefGuard.shiftState, 'on_post', 'Relief guard should now be on_post');
     assert.ok(
+      Math.hypot(reliefGuard.x - reliefGuard.homeX, reliefGuard.z - reliefGuard.homeZ) < 0.15,
+      'Relief guard should step into the exact post coordinates after partner vacates'
+    );
+    assert.ok(
       onDutyGuard.shiftState === 'returning_to_bed' || onDutyGuard.shiftState === 'sleeping_in_bed',
       'Previous guard should only leave for bed after relief guard takes the post'
     );
+    assert.ok(
+      sawDevoteePraySteppedForward,
+      'Shrine devotee sitting on bench must step forward out of the bench before kneeling to pray'
+    );
   });
 
-  it('6 & Follow-up 1, 2, 5) Dwarven Miners have HP/Level HUD queries, mine stairs exclude surface water, and minecarts move & load', () => {
+  it('8) Hippo reaction, warning, and chase checks depend strictly on direct relative distance to the player regardless of map location', () => {
+    const animals = createInitialSmallAnimals();
+    const hippo = animals.find((a) => a.species === 'hippo')!;
+    assert.ok(hippo, 'Expected hippo in initial small animals');
+
+    // Move the hippo far away from its home coordinates (e.g. x = 140, z = 140, >200m from homeX/homeZ)
+    hippo.x = 140.0;
+    hippo.z = 140.0;
+    hippo.y = walkableHeightAt(hippo.x, hippo.z).height;
+    hippo.isDead = false;
+    hippo.alertLevel = 'grazing';
+
+    // 1) Place player 13.5m from hippo's current position (within 15m warning radius, outside 10.5m charge radius)
+    stepSmallAnimals(animals, 0.1, 10.0, 140.0, 153.5, [], 1.0);
+    assert.equal(
+      hippo.aiBehavior,
+      'roaring',
+      'Hippo must enter roaring warning state based on relative distance (13.5m <= 15m) even when far from home'
+    );
+
+    // 2) Move player 8.5m from hippo's current position (within 10.5m charge radius)
+    stepSmallAnimals(animals, 0.1, 10.2, 140.0, 148.5, [], 1.0);
+    assert.equal(
+      hippo.aiBehavior,
+      'charging',
+      'Hippo must charge player based on relative distance (8.5m <= 10.5m) regardless of where the hippo is on the map'
+    );
+    assert.ok(
+      Math.hypot(hippo.vx, hippo.vz) > 3.5,
+      'Charging hippo must actively run toward the player'
+    );
+
+    // 3) Move player 28m away from hippo (> 26.0m hippoChaseRange): hippo stops chasing
+    stepSmallAnimals(animals, 0.1, 10.4, 140.0, 168.0, [], 1.0);
+    assert.equal(
+      hippo.aiBehavior,
+      'wandering',
+      'Hippo should stop charging and return to wandering when relative distance to player exceeds 26m'
+    );
+    assert.equal(hippo.alertLevel, 'grazing');
+  });
+
+  it('6 & Follow-up 1, 2, 5 + Dead Dwarf Gold Looting & Out-of-Area Respawn) Dwarven Miners have HP/Level HUD queries, lootable gold on death, and respawn when player leaves area', () => {
     // Follow-up 1: Surface water is excluded from the Southern Mine shaft stairs
     const stairWater = getWaterSurfaceHeightAt(
       SOUTHERN_MINE_POS.x,
@@ -232,8 +321,8 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
     for (const st of DWARVEN_MINER_STATIONS) {
       const distToRock = Math.hypot(st.rockLocalX - st.workLocalX, st.rockLocalZ - st.workLocalZ);
       assert.ok(
-        distToRock <= 1.45,
-        `Dwarf station ${st.name} must stand right against its rock vein (dist=${distToRock})`
+        distToRock <= st.rockRadius + 0.85,
+        `Dwarf station ${st.name} must stand right against its rock vein (dist=${distToRock}, radius=${st.rockRadius})`
       );
     }
 
@@ -304,5 +393,30 @@ describe('7 User Fixes + 5 Follow-up Fixes Verification Suite', () => {
     assert.equal(d0.hp, 0);
     assert.equal(d0.isDead, true);
     assert.equal(d0.ctrl.state, 'death');
+
+    // Verify dead dwarf can be found and looted for gold coins
+    const nearDeadDwarf = findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, d0.y);
+    assert.equal(nearDeadDwarf, d0, 'Dead unlooted dwarf should be detected within loot radius');
+
+    const player = createInitialPlayerState();
+    const startGold = player.goldCoins ?? 0;
+    const lootRes = lootDeadDwarf(player, d0);
+    assert.ok(lootRes.goldAdded >= 6 && lootRes.goldAdded <= 14, `Expected modest gold drop (6..14), got ${lootRes.goldAdded}`);
+    assert.equal(player.goldCoins, startGold + lootRes.goldAdded, 'Looting dead dwarf must add gold coins to player purse');
+    assert.equal(d0.isLooted, true, 'Dwarf should be marked isLooted = true after looting');
+    assert.equal(findNearestDeadLootableDwarf(d0.x + 1.0, d0.z + 1.0, d0.y), null, 'Looted dwarf should no longer prompt for looting');
+
+    // Verify dead dwarf does NOT respawn while player remains close (< 38m), then respawns after 25s when player is out of the area (> 38m)
+    handle.updateDwarvenMiners(12.0, 100.0, d0.x + 5.0, d0.z + 5.0);
+    assert.equal(d0.isDead, true, 'Dead dwarf must NOT respawn while player is still in the area');
+
+    // Move player far away (e.g. x = 0, z = 0, > 38m from dwarf) for 26 seconds total
+    for (let s = 0; s < 260; s++) {
+      handle.updateDwarvenMiners(12.0, 100.1 + s * 0.1, 0, 0);
+    }
+    assert.equal(d0.isDead, false, 'Dead dwarf must respawn after ~25s when player is out of the area');
+    assert.equal(d0.isLooted, false, 'Respawned dwarf must reset isLooted = false');
+    assert.equal(d0.hp, d0.maxHp, 'Respawned dwarf must have full HP');
   });
 });
+

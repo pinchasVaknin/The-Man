@@ -65,6 +65,7 @@ import {
   southernMineFloorHeightAt,
   southernMineWalkableHeightAt,
   isInsideSouthernMine,
+  isInsideSouthernMineLagoonBasin,
 } from './dwarvenMineAndCaravanSystem';
 import {
   getActiveSailableShip,
@@ -530,13 +531,10 @@ export function getRoofHeightAt(x: number, z: number): number | null {
   }
   if (isInsideSouthernMine(x, z)) {
     const floorH = southernMineFloorHeightAt(z);
-    const lx = Math.abs(x - SOUTHERN_MINE_POS.x);
     const lz = z - SOUTHERN_MINE_POS.entranceZ;
-    const isCorridor =
-      lz < 34.0 ||
-      (lx >= 13.5 && lx <= 26.5) ||
-      (lx <= 4.5 && lz >= 63.5 && lz <= 78.5);
-    return isCorridor ? floorH + SOUTHERN_MINE_POS.corridorHeight : floorH + SOUTHERN_MINE_POS.cavernHeight;
+    return lz < 34.0
+      ? floorH + SOUTHERN_MINE_POS.corridorHeight
+      : floorH + SOUTHERN_MINE_POS.cavernHeight;
   }
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.tavernX) <= SOUTHEAST_HARBOR_POS.tavernHalfW + 0.8 &&
@@ -1610,7 +1608,11 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
   if (currentY !== undefined && currentY < -3.5) {
-    if (lx >= -50.5 && lx <= -32.5 && lz >= 40.5 && lz <= 84.5) {
+    const onMineBridgeOrDock =
+      (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) ||
+      (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0) ||
+      (lx >= -23.5 && lx <= -16.5 && lz >= 67.0 && lz <= 73.5);
+    if (!onMineBridgeOrDock && isInsideSouthernMineLagoonBasin(lx, lz)) {
       return -9.3;
     }
   }
@@ -1713,19 +1715,19 @@ export function walkableHeightAt(
     }
     if (z <= -189.6 + FZ) {
       const inMainStairX = x >= 13.55 && x <= 18.5;
-      const inMainStairZ = z >= -206.0 + FZ && z <= -194.0 + FZ;
+      const inMainStairZ = z >= -206.6 + FZ && z <= -193.5 + FZ;
       if (inMainStairX && inMainStairZ) {
         const tStair = Math.max(0, Math.min(1, (-194.0 + FZ - z) / 12.0));
         const stairY =
           CHINESE_FORTRESS_POS.mainHallFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.mainHallFloor2Y - CHINESE_FORTRESS_POS.mainHallFloor1Y);
-        if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 2.4)) {
+        if (currentY === undefined || (currentY >= stairY - 1.15 && currentY <= stairY + 2.6)) {
           return { height: stairY, surface: 'cabin' };
         }
       }
       if (
         currentY !== undefined &&
-        currentY >= 29.2 + FY &&
+        currentY >= 29.0 + FY &&
         !(inMainStairX && z >= -205.5 + FZ && z <= -194.0 + FZ)
       ) {
         return { height: CHINESE_FORTRESS_POS.mainHallFloor2Y, surface: 'cabin' };
@@ -1735,21 +1737,30 @@ export function walkableHeightAt(
   }
 
   for (const px of [-30.0, 30.0]) {
-    if (Math.abs(x - px) <= 8.8 && z >= -171.3 + FZ && z <= -156.3 + FZ) {
+    if (Math.abs(x - px) <= 8.8 && z >= -171.3 + FZ && z <= -155.8 + FZ) {
+      if (z > -156.5 + FZ && Math.abs(x - px) <= 1.8) {
+        const tStep = Math.max(0, Math.min(1, (-155.8 + FZ - z) / 0.7));
+        return {
+          height:
+            CHINESE_FORTRESS_POS.summitHeight +
+            tStep * (CHINESE_FORTRESS_POS.pavilionFloor1Y - CHINESE_FORTRESS_POS.summitHeight),
+          surface: 'cabin',
+        };
+      }
       const inPavStairX = px < 0 ? x >= -38.6 && x <= -35.15 : x >= 35.15 && x <= 38.6;
-      const inPavStairZ = z >= -167.5 + FZ && z <= -159.5 + FZ;
+      const inPavStairZ = z >= -168.0 + FZ && z <= -159.0 + FZ;
       if (inPavStairX && inPavStairZ) {
         const tStair = Math.max(0, Math.min(1, (-159.5 + FZ - z) / 8.0));
         const stairY =
           CHINESE_FORTRESS_POS.pavilionFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.pavilionFloor2Y - CHINESE_FORTRESS_POS.pavilionFloor1Y);
-        if (currentY === undefined || (currentY >= stairY - 0.55 && currentY <= stairY + 2.2)) {
+        if (currentY === undefined || (currentY >= stairY - 1.15 && currentY <= stairY + 2.5)) {
           return { height: stairY, surface: 'cabin' };
         }
       }
       if (
         currentY !== undefined &&
-        currentY >= 28.8 + FY &&
+        currentY >= 28.6 + FY &&
         !(inPavStairX && z >= -167.0 + FZ && z <= -159.5 + FZ)
       ) {
         return { height: CHINESE_FORTRESS_POS.pavilionFloor2Y, surface: 'cabin' };
@@ -1760,14 +1771,14 @@ export function walkableHeightAt(
 
   for (let i = 0; i < CORNER_WATCHTOWERS.length; i++) {
     const tw = CORNER_WATCHTOWERS[i];
-    if (Math.abs(x - tw.cx) <= 5.1 && Math.abs(z - tw.cz) <= 5.1) {
+    if (Math.abs(x - tw.cx) <= 5.2 && Math.abs(z - tw.cz) <= 5.2) {
       const inLadderHatch =
-        Math.abs(x - tw.ladderX) <= 0.85 && Math.abs(z - tw.ladderZ) <= 0.85;
+        Math.abs(x - tw.ladderX) <= 0.52 && Math.abs(z - tw.ladderZ) <= 0.52;
       if (!inLadderHatch) {
         if (currentY !== undefined && currentY >= 33.8 + FY) {
           return { height: CHINESE_FORTRESS_POS.watchtowerFloor3Y, surface: 'tower' };
         }
-        if (currentY !== undefined && currentY >= 28.8 + FY) {
+        if (currentY !== undefined && currentY >= 28.0 + FY) {
           return { height: CHINESE_FORTRESS_POS.watchtowerFloor2Y, surface: 'tower' };
         }
       }
@@ -1798,9 +1809,9 @@ export function walkableHeightAt(
     return { height: rbInfo.height, surface: 'pier' };
   }
 
-  if (Math.abs(x) >= 44.2 && Math.abs(x) <= 47.85 && z >= -156.6 + FZ && z <= -141.5 + FZ) {
+  if (Math.abs(x) >= 44.1 && Math.abs(x) <= 48.0 && z >= -156.8 + FZ && z <= -141.2 + FZ) {
     if (z <= -152.0 + FZ) {
-      if (currentY === undefined || currentY >= 28.2 + FY) {
+      if (currentY === undefined || currentY >= 28.0 + FY) {
         return { height: CHINESE_FORTRESS_POS.rampartHeight, surface: 'bridge' };
       }
     } else {
@@ -1808,7 +1819,7 @@ export function walkableHeightAt(
       const wallStairY =
         CHINESE_FORTRESS_POS.summitHeight +
         tWallStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
-      if (currentY === undefined || (currentY >= wallStairY - 0.55 && currentY <= wallStairY + 2.2)) {
+      if (currentY === undefined || (currentY >= wallStairY - 1.15 && currentY <= wallStairY + 2.5)) {
         return {
           height: wallStairY,
           surface: 'bridge',
@@ -1818,25 +1829,25 @@ export function walkableHeightAt(
   }
 
   const onSouthWallTop =
-    Math.abs(x) >= 4.4 && Math.abs(x) <= 52.0 && z >= -126.2 + FZ && z <= -122.0 + FZ;
+    Math.abs(x) >= 4.2 && Math.abs(x) <= 52.2 && z >= -126.5 + FZ && z <= -121.8 + FZ;
   const onSideWallTop =
-    Math.abs(x) >= 47.8 && Math.abs(x) <= 52.0 && z >= -220.0 + FZ && z <= -122.0 + FZ;
-  const onNorthWallTop = Math.abs(x) <= 52.0 && z >= -220.0 + FZ && z <= -215.8 + FZ;
-  if ((onSouthWallTop || onSideWallTop || onNorthWallTop) && currentY !== undefined && currentY >= 28.5 + FY) {
+    Math.abs(x) >= 47.4 && Math.abs(x) <= 52.2 && z >= -220.2 + FZ && z <= -121.8 + FZ;
+  const onNorthWallTop = Math.abs(x) <= 52.2 && z >= -220.2 + FZ && z <= -215.5 + FZ;
+  if ((onSouthWallTop || onSideWallTop || onNorthWallTop) && (currentY === undefined || currentY >= 28.0 + FY)) {
     return { height: CHINESE_FORTRESS_POS.rampartHeight, surface: 'bridge' };
   }
 
   if (
-    z <= CHINESE_FORTRESS_POS.stairFootZ &&
-    z >= CHINESE_FORTRESS_POS.upperStairTopZ
+    z <= CHINESE_FORTRESS_POS.stairFootZ + 0.6 &&
+    z >= CHINESE_FORTRESS_POS.upperStairTopZ - 0.6
   ) {
     const allowedHalfW =
-      z <= CHINESE_FORTRESS_POS.midLandingMaxZ && z >= CHINESE_FORTRESS_POS.midLandingMinZ
+      z <= CHINESE_FORTRESS_POS.midLandingMaxZ + 0.4 && z >= CHINESE_FORTRESS_POS.midLandingMinZ - 0.4
         ? CHINESE_FORTRESS_POS.midLandingHalfWidth
         : CHINESE_FORTRESS_POS.stairHalfWidth;
-    if (Math.abs(x - CHINESE_FORTRESS_POS.x) <= allowedHalfW - 0.25) {
+    if (Math.abs(x - CHINESE_FORTRESS_POS.x) <= allowedHalfW) {
       const fortStairY = chineseFortressStairHeightAt(z);
-      if (currentY === undefined || currentY >= fortStairY - 0.65) {
+      if (currentY === undefined || currentY >= fortStairY - 1.2) {
         return { height: fortStairY, surface: 'bridge' };
       }
     }
@@ -2382,8 +2393,14 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   if (isInsideSouthernMine(x, z)) {
     const lx = x - SOUTHERN_MINE_POS.x;
     const lz = z - SOUTHERN_MINE_POS.entranceZ;
-    if (lx >= -50.0 && lx <= -33.0 && lz >= 41.0 && lz <= 84.0) {
-      return [38, 182, 196];
+    if (
+      (lx >= -20.0 && lx <= 6.0 && lz >= 60.0 && lz <= 65.0) ||
+      (lx >= -18.0 && lx <= 8.0 && lz >= 82.0 && lz <= 90.0)
+    ) {
+      return [168, 118, 68];
+    }
+    if (isInsideSouthernMineLagoonBasin(lx, lz)) {
+      return [38, 196, 212];
     }
     return [102, 88, 76];
   }

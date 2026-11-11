@@ -106,7 +106,11 @@ import {
   createGpuFencePacedScheduler,
 } from '../world/controllers/frameSchedulers';
 import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
-import { findActiveCombatDwarf } from '../world/builders/dwarvenKingdomBuilder';
+import {
+  findActiveCombatDwarf,
+  findNearestDeadLootableDwarf,
+  lootDeadDwarf,
+} from '../world/builders/dwarvenKingdomBuilder';
 import {
   type IPlacedTrap,
   type IWorkbenchStash,
@@ -1183,7 +1187,29 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         isColliderDebugVisible: () => worldHandles.colliderDebugHandles.isVisible(),
         triggerLootNearbyAnimal: () => {
           const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
-          if (!dead) return { looted: false, notification: null };
+          if (!dead) {
+            const deadDwarf = findNearestDeadLootableDwarf(
+              playerState.x,
+              playerState.z,
+              3.4,
+              playerState.isFlying ? playerState.y : undefined
+            );
+            if (deadDwarf) {
+              const dwRes = lootDeadDwarf(playerState, deadDwarf, activeArrows);
+              if (dwRes.looted && dwRes.notification) {
+                lastLootNotification = dwRes.notification;
+                lastLootNotificationTimer = 4.5;
+                soundEngine.playFootstep('trail', 1.15);
+                emitHudSnapshot();
+              }
+              return {
+                looted: dwRes.looted,
+                recoveredArrowCount: dwRes.recoveredArrows,
+                notification: dwRes.notification,
+              };
+            }
+            return { looted: false, notification: null };
+          }
           const res = lootDeadAnimal(playerState, dead, activeArrows);
           if (res.addedItems.length > 0 && res.notification) {
             lastLootNotification = res.notification;
@@ -1836,6 +1862,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               playerState.x,
               playerState.z
             );
+            const nearDeadDwarf = !nearDeadAnimal
+              ? findNearestDeadLootableDwarf(
+                  playerState.x,
+                  playerState.z,
+                  3.4,
+                  playerState.isFlying ? playerState.y : undefined
+                )
+              : null;
             const nearDeadBird = getActiveWorldBirds().find(
               (b) =>
                 b.isDead &&
@@ -1846,6 +1880,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
               const lootRes = lootDeadAnimal(playerState, nearDeadAnimal, activeArrows);
               if (lootRes.addedItems.length > 0 && lootRes.notification) {
                 lastLootNotification = lootRes.notification;
+                lastLootNotificationTimer = 4.5;
+                soundEngine.playFootstep('trail', 1.18);
+                emitHudSnapshot();
+              }
+            } else if (nearDeadDwarf) {
+              const dwLoot = lootDeadDwarf(playerState, nearDeadDwarf, activeArrows);
+              if (dwLoot.looted && dwLoot.notification) {
+                lastLootNotification = dwLoot.notification;
                 lastLootNotificationTimer = 4.5;
                 soundEngine.playFootstep('trail', 1.18);
                 emitHudSnapshot();
