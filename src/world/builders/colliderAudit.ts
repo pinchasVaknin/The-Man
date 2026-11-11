@@ -10,7 +10,7 @@
 // #region Imports & Dependencies
 import * as THREE from 'three';
 import type { ISolidBuildingBox } from '../domain/worldTypes';
-import { getSolidBuildingWorldAABB } from '../domain/landmarks/collisionAndTerraces';
+import { getSolidBuildingWorldAABB } from '../domain/collisionWorld';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
