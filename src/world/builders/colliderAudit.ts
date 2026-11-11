@@ -38,6 +38,9 @@ interface IFootprint {
 
 // ======================== HELPERS ======================== \\
 // #region Helpers
+/** Summary: Largest footprint side (m) still treated as an object; bigger meshes are terrain or sky. */
+const MAX_AUDITED_FOOTPRINT_M = 150;
+
 /** Summary: Name of a mesh, or of its nearest named ancestor (generated meshes are usually unnamed). */
 function nearestNamedName(obj: THREE.Object3D): string {
   for (let cur: THREE.Object3D | null = obj; cur; cur = cur.parent) {
@@ -60,7 +63,8 @@ function overlapArea(
 // #region Public Audit
 /**
  * Summary: Audits how well the collider list matches the visible scene.
- * Design: Meshes spanning more than 60 m (terrain, sky) and sub-0.5 m meshes (decals, flowers) are ignored,
+ * Design: Meshes spanning more than 150 m (terrain, sky) and sub-0.5 m meshes (decals, flowers) are ignored,
+ *         so long walls such as the 78 m mine chamber walls are still audited (they were hidden by a 60 m cutoff),
  *         so the report lists only objects a player could plausibly walk into.
  * @param scene Scene (or group) whose meshes are compared against the colliders.
  * @param boxes Solid building colliders (`SOLID_BUILDING_BOXES`).
@@ -82,7 +86,7 @@ export function auditColliderCoverage(
     bounds.setFromObject(mesh);
     if (bounds.isEmpty()) return;
     bounds.getSize(size);
-    if (size.x > 60 || size.z > 60 || size.y < 0.5) return;
+    if (size.x > MAX_AUDITED_FOOTPRINT_M || size.z > MAX_AUDITED_FOOTPRINT_M || size.y < 0.5) return;
     footprints.push({
       name: nearestNamedName(mesh),
       minX: bounds.min.x,
