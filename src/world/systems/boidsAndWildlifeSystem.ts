@@ -25,6 +25,8 @@ import {
   getNearbySolidBuildingBoxes,
 } from '../domain/landmarksRegistry';
 import { hash2D } from '../domain/noiseAndMath';
+import { isSegmentBlockedBySolidBox } from '../domain/collisionWorld';
+import { findWallDetourWaypoint } from '../domain/wallNavigation';
 import { t } from '../../locales';
 import {
   groundHeightAt,
@@ -193,6 +195,18 @@ export interface ISmallAnimalState {
   canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
   isSubdued?: boolean; // true when the Volcano Boss CatLion is beaten to low HP and awaits meat taming
   respawnTimer?: number; // seconds remaining before a killed animal respawns at its home territory
+  stuckCheckDist?: number; // distance to the prey at the last progress check (G5)
+  stuckCheckAt?: number; // progress-clock value of the last progress check
+  stuckClock?: number; // simulated seconds this animal has been stepped for (G5)
+  stuckChecks?: number; // consecutive checks with no progress while closing in on prey
+  preyBlockedUntil?: number; // elapsed time until which the animal ignores prey it cannot reach
+  slideUntil?: number; // progress-clock value until which the animal steers sideways around an obstacle (G5)
+  slideSign?: number; // +1 or -1: which side of the obstacle to slide to
+  slideAttempts?: number; // failed slides since the animal last got closer to its prey
+  slideStartDist?: number; // distance to the prey when the current slide started
+  navX?: number; // current detour waypoint around a wall (wall navigation)
+  navZ?: number;
+  navUntil?: number; // progress-clock value after which the detour is recomputed
   trappedByBearJawTimer?: number; // > 0 while Heavy Steel Bear Trap is clamped onto bear's front paw during 4-legged roar
   bearTrapSlowTimer?: number; // > 0 while bear's movement speed is reduced by 10% for 7s after bear trap roar finishes
   treeState?: 'ground_forage' | 'running_to_tree' | 'climb_up' | 'perched' | 'climb_down' | 'canopy_leap';
@@ -2839,6 +2853,37 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
       const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
       // Same vertical reach as the damage check, so an animal never picks a player it cannot hit (e.g. a hovering player).
       const canReachPlayerVertically = playerVertDiff <= (a.isBoss || (a.species as string) === 'dragon' ? 4.2 : 2.6);
+
+      // G3: a wounded predator that cannot reach the player (the player is on a ledge or roof) keeps away from
+      // it, instead of settling into grazing or sitting while the player keeps shooting.
+      if (
+        provokedByShot &&
+        !canReachPlayerVertically &&
+        !isCreatureLeashedOutOfTerritory &&
+        !playerRidingMysticalLion &&
+        distP < playerDetectRange
+      ) {
+        const awayX = a.x - playerX;
+        const awayZ = a.z - playerZ;
+        const awayLen = Math.hypot(awayX, awayZ) || 1;
+        const keepAwaySpd = SPECIES_PROFILES[a.species].preyFleeSpeed;
+        a.isResting = false;
+        a.isSeekingShelter = false;
+        a.alertLevel = 'fleeing';
+        a.fleeCooldown = Math.max(a.fleeCooldown ?? 0, 3);
+        a.aiBehavior = 'fleeing';
+        a.vx = (awayX / awayLen) * keepAwaySpd;
+        a.vz = (awayZ / awayLen) * keepAwaySpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 8.0, safeDt);
+        a.hopPhase += safeDt * 14.0;
+        const keepAwayRes = resolveAnimalObstacleCollision(
+          a.x + a.vx * safeDt,
+          a.z + a.vz * safeDt,
+          SPECIES_PROFILES[a.species].preyBodyRadius
+        );
+        advanceAnimalWithWaterShoreRecovery(a, keepAwayRes.x, keepAwayRes.z, keepAwayRes.hitObstacle, safeDt);
+        return true;
+      }
       if (
         !isCreatureLeashedOutOfTerritory &&
         !playerRidingMysticalLion &&
@@ -2868,6 +2913,93 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
         preyX = a.stimulusX ?? playerX;
         preyZ = a.stimulusZ ?? playerZ;
         bestPreyDist = Math.hypot(preyX - a.x, preyZ - a.z);
+      }
+
+      // The real target, before the G5 slide below may steer toward a point beside an obstacle.
+      const trueTargetX = preyX;
+      const trueTargetZ = preyZ;
+
+      // G5: progress check, once per second. A predator charging at prey that does not move is blocked by an
+      // obstacle. It first slides sideways around it (2 s, alternating sides); after two failed slides it stops
+      // chasing for 3 s instead of running on the spot.
+      a.stuckClock = (a.stuckClock ?? 0) + safeDt;
+      const progressClock = a.stuckClock;
+      if (progressClock - (a.stuckCheckAt ?? 0) >= 1.0) {
+        // Progress means getting closer to the prey, not moving: an animal that jitters back and forth is not progressing.
+        const closedSinceCheck = (a.stuckCheckDist ?? distP) - distP;
+        const chargingAtPrey =
+          foundPrey && !hasActiveCommittedAction && (a.actionTimer ?? 0) <= 0 && a.aiBehavior === 'charging';
+        // Only real progress toward the prey clears the failed-slide count (a jittering animal does not).
+        if (chargingAtPrey && a.slideStartDist !== undefined && distP < a.slideStartDist - 1.5) {
+          a.slideAttempts = 0;
+          a.slideStartDist = undefined;
+        }
+        a.stuckChecks = chargingAtPrey && closedSinceCheck < 0.3 ? (a.stuckChecks ?? 0) + 1 : 0;
+        if ((a.stuckChecks ?? 0) >= 2) {
+          a.stuckChecks = 0;
+          if ((a.slideAttempts ?? 0) < 2) {
+            a.slideAttempts = (a.slideAttempts ?? 0) + 1;
+            a.slideUntil = progressClock + 2.0;
+            a.slideSign = -(a.slideSign ?? 1);
+            a.slideStartDist = distP;
+          } else {
+            a.slideAttempts = 0;
+            a.preyBlockedUntil = progressClock + 3.0;
+          }
+        }
+        a.stuckCheckDist = distP;
+        a.stuckCheckAt = progressClock;
+      }
+      // After a blocked chase, the predator waits until the time has passed AND the line to the prey is clear.
+      // Re-engaging while a wall still stands between them is what made the charge-and-stop cycle (G5).
+      if (foundPrey && a.preyBlockedUntil !== undefined && !hasActiveCommittedAction) {
+        const lineStillBlocked = isSegmentBlockedBySolidBox(a.x, a.z, trueTargetX, trueTargetZ, a.y + 0.6);
+        if (progressClock < a.preyBlockedUntil || lineStillBlocked) {
+          foundPrey = false;
+        } else {
+          a.preyBlockedUntil = undefined;
+        }
+      }
+      if (foundPrey && (a.slideUntil ?? -Infinity) > progressClock) {
+        // Steer to a point beside the obstacle: 5 m sideways from the line to the prey, with a little forward pull.
+        const toX = preyX - a.x;
+        const toZ = preyZ - a.z;
+        const toLen = Math.hypot(toX, toZ) || 1;
+        const side = a.slideSign ?? 1;
+        preyX = a.x + (-toZ / toLen) * side * 5.0 + (toX / toLen) * 1.5;
+        preyZ = a.z + (toX / toLen) * side * 5.0 + (toZ / toLen) * 1.5;
+      }
+
+      // Wall navigation: when a solid box stands between the predator and its target, steer toward a waypoint on
+      // the walkable detour. The waypoint is cached for half a second, or until it is reached. This replaces the
+      // sideways slide whenever a detour exists.
+      if (foundPrey && isSegmentBlockedBySolidBox(a.x, a.z, trueTargetX, trueTargetZ, a.y + 0.6)) {
+        const reachedWaypoint =
+          a.navX !== undefined && a.navZ !== undefined && Math.hypot(a.navX - a.x, a.navZ - a.z) < 1.2;
+        if (reachedWaypoint || progressClock >= (a.navUntil ?? 0)) {
+          const wp = findWallDetourWaypoint(
+            a.x,
+            a.z,
+            trueTargetX,
+            trueTargetZ,
+            a.y + 0.6,
+            3,
+            undefined,
+            a.species === 'lion' && a.isBoss ? 1.65 : 0.75
+          );
+          a.navX = wp?.x;
+          a.navZ = wp?.z;
+          a.navUntil = progressClock + 0.5;
+        }
+        if (a.navX !== undefined && a.navZ !== undefined) {
+          preyX = a.navX;
+          preyZ = a.navZ;
+        } else {
+          // No route for this body size (for example a door too narrow): the prey cannot be reached, so stop the
+          // chase and hold off until the line to it is clear, instead of pressing against the obstacle.
+          a.preyBlockedUntil = progressClock + 3.0;
+          foundPrey = false;
+        }
       }
 
       if (foundPrey) {
@@ -2982,11 +3114,13 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
               a.vz = fwdZ * stepSpd;
               a.hopPhase += safeDt * 16.0;
 
-              // Running impact damage when charging Rhino reaches target
+              // Running impact damage when charging Rhino reaches target. A wall in between stops the impact
+              // (no hit, no braking), so the rhino stays on its charge and the stuck logic (G5) takes over.
               if (
                 bestPreyDist <= standoffDist + 1.05 &&
                 cosToPrey > 0.42 &&
-                (a.attackHitCooldownTimer ?? 0) <= 0
+                (a.attackHitCooldownTimer ?? 0) <= 0 &&
+                !isSegmentBlockedBySolidBox(a.x, a.z, trueTargetX, trueTargetZ, a.y + 0.6)
               ) {
                 a.attackHitCooldownTimer = 0.85;
                 if (preyIsPlayer && playerStateRef) {
@@ -2996,7 +3130,13 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
                 }
                 a.rhinoPhase = 'overshoot_braking';
                 a.rhinoPhaseTimer = 1.05;
-              } else if (curSpd > 4.5 && cosToPrey < 0.42 && bestPreyDist < 9.5) {
+              } else if (
+                curSpd > 4.5 &&
+                cosToPrey < 0.42 &&
+                bestPreyDist < 9.5 &&
+                // A target behind a wall did not dodge: only a target with a clear line counts as sidestepping.
+                !isSegmentBlockedBySolidBox(a.x, a.z, trueTargetX, trueTargetZ, a.y + 0.6)
+              ) {
                 // Target sidestepped/dodged the charging Rhino! Rhino tries to turn, fails, and enters overshoot braking
                 a.rhinoPhase = 'overshoot_braking';
                 a.rhinoPhaseTimer = 1.15;
