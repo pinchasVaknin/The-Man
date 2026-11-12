@@ -76,6 +76,13 @@ import {
   MINE_SCAFFOLD_LEGS,
   MINE_WEST_SPLIT,
   MINE_EAST_FORGE,
+  MINE_RAIL_TURNTABLE,
+  MINE_WATERFALL_SECRET_CHAMBER,
+  MINE_WATERWORKS,
+  MINE_STONE_CRUSHER,
+  MINE_GOLEM_CHAMBER,
+  MINE_ANCIENT_PASSAGE,
+  MINE_DRAGON_FORGE_SANCTUM,
   khazadBridgeSegment,
   mineFloorY,
   mineShaftSpan,
@@ -235,6 +242,36 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
     box('southern-mine-dragon-forge-smelter', E.chamber.dragonSmelterLx - E.chamber.dragonSmelterHalfX, E.chamber.dragonSmelterLx + E.chamber.dragonSmelterHalfX, E.chamber.dragonSmelterLz - E.chamber.dragonSmelterHalfZ, E.chamber.dragonSmelterLz + E.chamber.dragonSmelterHalfZ, moriaY, moriaY + E.chamber.dragonSmelterHeight),
   ];
 
+  // Area 10 & 11: Golem Guardian Chamber, Ancient Stone Passage (lz: 310..346) & Southern Dragon Forge Sanctum (lz: 346..414)
+  const GC = MINE_GOLEM_CHAMBER;
+  const AP = MINE_ANCIENT_PASSAGE;
+  const DF = MINE_DRAGON_FORGE_SANCTUM;
+  const apt = AP.thick / 2;
+  const dft = DF.thick / 2;
+  const dfY = DF.floorY;
+  const dfMaxY = dfY + DF.height;
+  const golemAndSouthernDragonSanctum: ISolidBuildingBox[] = [
+    // Colossal Golem Guardian Left & Right Stone Feet / Legs astride the Ancient Stone Doorway (leaving lx in [-3.2, +3.2] open!)
+    box('southern-mine-golem-foot-west', -GC.footOffsetLx - GC.footHalfX, -GC.footOffsetLx + GC.footHalfX, GC.guardianLz - GC.footHalfZ, GC.guardianLz + GC.footHalfZ, moriaY, moriaY + GC.guardianHeight),
+    box('southern-mine-golem-foot-east', GC.footOffsetLx - GC.footHalfX, GC.footOffsetLx + GC.footHalfX, GC.guardianLz - GC.footHalfZ, GC.guardianLz + GC.footHalfZ, moriaY, moriaY + GC.guardianHeight),
+    // Flanking Golem Chain Pillars
+    box('southern-mine-golem-chain-pillar-west', -GC.chainPillarLx - GC.chainPillarRadius, -GC.chainPillarLx + GC.chainPillarRadius, GC.chainPillarLz - GC.chainPillarRadius, GC.chainPillarLz + GC.chainPillarRadius, moriaY, moriaY + GC.chainPillarHeight),
+    box('southern-mine-golem-chain-pillar-east', GC.chainPillarLx - GC.chainPillarRadius, GC.chainPillarLx + GC.chainPillarRadius, GC.chainPillarLz - GC.chainPillarRadius, GC.chainPillarLz + GC.chainPillarRadius, moriaY, moriaY + GC.chainPillarHeight),
+    // Ancient Stone Passage Side Walls (lz: 310..346, lx = ±7.0)
+    box('southern-mine-ancient-passage-west-wall', AP.minLx - apt, AP.minLx + apt, AP.minLz, AP.maxLz, AP.yEnd, AP.yStart + AP.height),
+    box('southern-mine-ancient-passage-east-wall', AP.maxLx - apt, AP.maxLx + apt, AP.minLz, AP.maxLz, AP.yEnd, AP.yStart + AP.height),
+    // Southern Dragon Forge & Treasure Chamber Walls (lx: -38..+38, lz: 346..414)
+    box('southern-mine-dragon-sanctum-north-west-wall', DF.minLx, AP.minLx, DF.minLz - dft, DF.minLz + dft, dfY - 2.0, dfMaxY),
+    box('southern-mine-dragon-sanctum-north-east-wall', AP.maxLx, DF.maxLx, DF.minLz - dft, DF.minLz + dft, dfY - 2.0, dfMaxY),
+    box('southern-mine-dragon-sanctum-west-wall', DF.minLx - dft, DF.minLx + dft, DF.minLz, DF.maxLz, dfY - 2.0, dfMaxY),
+    box('southern-mine-dragon-sanctum-east-wall', DF.maxLx - dft, DF.maxLx + dft, DF.minLz, DF.maxLz, dfY - 2.0, dfMaxY),
+    box('southern-mine-dragon-sanctum-south-wall', DF.minLx, DF.maxLx, DF.maxLz - dft, DF.maxLz + dft, dfY - 2.0, dfMaxY),
+    // Colossal Architectural Dragon-Head Furnace carved into the southern wall (lx = 0, lz = 406.0)
+    box('southern-mine-dragon-sanctum-furnace', DF.dragonFurnace.lx - DF.dragonFurnace.halfX, DF.dragonFurnace.lx + DF.dragonFurnace.halfX, DF.dragonFurnace.lz - DF.dragonFurnace.halfZ, DF.dragonFurnace.lz + DF.dragonFurnace.halfZ, dfY - 2.0, dfY + DF.dragonFurnace.height),
+    // Ancient Dwarven Treasure Chest on the raised Treasure Island (lx = 0, lz = 391.0)
+    box('southern-mine-chest-dragon-sanctum', DF.treasureChest.lx - DF.treasureChest.halfX, DF.treasureChest.lx + DF.treasureChest.halfX, DF.treasureChest.lz - DF.treasureChest.halfZ, DF.treasureChest.lz + DF.treasureChest.halfZ, DF.treasureIsland.topY, DF.treasureIsland.topY + DF.treasureChest.height),
+  ];
+
   return [
     ...gallery,
     sideFlankBox('southern-mine-moria-west-wall-north', -1, M.sideNorthFlankLz, M.sideNorthFlankLength),
@@ -242,8 +279,14 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
     sideFlankBox('southern-mine-moria-east-wall-north', 1, M.sideNorthFlankLz, M.sideNorthFlankLength),
     sideFlankBox('southern-mine-moria-east-wall-south', 1, M.sideSouthFlankLz, M.sideSouthFlankLength),
     {
-      id: 'southern-mine-moria-south-wall',
-      minX: mx(-M.backWallHalfX), maxX: mx(M.backWallHalfX),
+      id: 'southern-mine-moria-south-wall-west',
+      minX: mx(-M.backWallHalfX), maxX: mx(-M.southGateHalfW),
+      minZ: mz(M.backWallLz) - t, maxZ: mz(M.backWallLz) + t,
+      minY: yWall - M.backWallHeight / 2, maxY: yWall + M.backWallHeight / 2,
+    },
+    {
+      id: 'southern-mine-moria-south-wall-east',
+      minX: mx(M.southGateHalfW), maxX: mx(M.backWallHalfX),
       minZ: mz(M.backWallLz) - t, maxZ: mz(M.backWallLz) + t,
       minY: yWall - M.backWallHeight / 2, maxY: yWall + M.backWallHeight / 2,
     },
@@ -251,17 +294,19 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
     flankBox('southern-mine-moria-north-wall-east', 1),
     ...westSplitAndSanctums,
     ...eastTunnelAndDragonForge,
+    ...golemAndSouthernDragonSanctum,
   ];
 }
 
 /**
- * Summary: Walls of chamber 2 (lagoon), chamber 3 (foundry) and the two sloped rail tunnels, from the layout.
+ * Summary: Walls of chamber 2 (lagoon + secret waterfall chamber), chamber 3 (mining galleries & foundry) and the two sloped rail tunnels, from the layout.
  * Design: Straight chamber walls over their floor; tunnel walls split along x so each follows its floor's slope.
  */
 function chamberAndTunnelWallBoxes(): ISolidBuildingBox[] {
   const L = MINE_LAGOON_WALLS;
   const F = MINE_FOUNDRY_WALLS;
   const T = MINE_TUNNEL_WALLS;
+  const S = MINE_WATERFALL_SECRET_CHAMBER;
   const mx = (lx: number) => SOUTHERN_MINE_POS.x + lx;
   const mz = (lz: number) => SOUTHERN_MINE_POS.entranceZ + lz;
   const lagoonY = mineFloorY('lagoon');
@@ -272,8 +317,16 @@ function chamberAndTunnelWallBoxes(): ISolidBuildingBox[] {
   const ht = (thick: number) => thick / 2;
   const lagoonBase = lagoonY + L.centreDy;
   const foundryBase = foundryY + F.centreDy;
+  const st = S.thick / 2;
   const lagoon: ISolidBuildingBox[] = [
-    box('southern-mine-chamber2-north-wall', mx(L.northSouthLx) - hx(L.northSouthLength), mx(L.northSouthLx) + hx(L.northSouthLength), mz(L.northLz) - ht(L.thick), mz(L.northLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    // North wall split around the 8m secret waterfall passage (lx in [-122.0, -114.0])
+    box('southern-mine-chamber2-north-wall-west', mx(L.northWestFlankLx) - hx(L.northWestFlankLength), mx(L.northWestFlankLx) + hx(L.northWestFlankLength), mz(L.northLz) - ht(L.thick), mz(L.northLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    box('southern-mine-chamber2-north-wall-east', mx(L.northEastFlankLx) - hx(L.northEastFlankLength), mx(L.northEastFlankLx) + hx(L.northEastFlankLength), mz(L.northLz) - ht(L.thick), mz(L.northLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
+    // Secret Chamber Behind the Waterfall (lx: -126..-110, lz: 22..38) walls & hidden chest
+    box('southern-mine-waterfall-secret-north-wall', mx(S.minLx), mx(S.maxLx), mz(S.minLz) - st, mz(S.minLz) + st, S.floorY, S.floorY + S.height),
+    box('southern-mine-waterfall-secret-west-wall', mx(S.minLx) - st, mx(S.minLx) + st, mz(S.minLz), mz(S.maxLz), S.floorY, S.floorY + S.height),
+    box('southern-mine-waterfall-secret-east-wall', mx(S.maxLx) - st, mx(S.maxLx) + st, mz(S.minLz), mz(S.maxLz), S.floorY, S.floorY + S.height),
+    box('southern-mine-chest-waterfall-secret', mx(S.chestLx - S.chestHalfX), mx(S.chestLx + S.chestHalfX), mz(S.chestLz - S.chestHalfZ), mz(S.chestLz + S.chestHalfZ), S.floorY, S.floorY + S.chestHeight),
     box('southern-mine-chamber2-south-wall', mx(L.northSouthLx) - hx(L.northSouthLength), mx(L.northSouthLx) + hx(L.northSouthLength), mz(L.southLz) - ht(L.thick), mz(L.southLz) + ht(L.thick), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
     box('southern-mine-chamber2-west-wall', mx(L.westLx) - ht(L.thick), mx(L.westLx) + ht(L.thick), mz(L.westLz) - hx(L.westLength), mz(L.westLz) + hx(L.westLength), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
     box('southern-mine-chamber2-east-wall-north', mx(L.eastNorthFlank.lx) - ht(L.thick), mx(L.eastNorthFlank.lx) + ht(L.thick), mz(L.eastNorthFlank.lz) - hx(L.eastNorthFlank.length), mz(L.eastNorthFlank.lz) + hx(L.eastNorthFlank.length), lagoonBase - L.height / 2, lagoonBase + L.height / 2),
@@ -723,15 +776,19 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       minZ: cz - r, maxZ: cz + r, minY: yc - r, maxY: yc + r,
     };
   }),
-  {
-    id: 'southern-mine-chamber2-waterfall-cliff',
-    minX: SOUTHERN_MINE_POS.x + MINE_WATERFALL_CLIFF.lx + MINE_WATERFALL_CLIFF.coreLx - MINE_WATERFALL_CLIFF.coreW / 2,
-    maxX: SOUTHERN_MINE_POS.x + MINE_WATERFALL_CLIFF.lx + MINE_WATERFALL_CLIFF.coreLx + MINE_WATERFALL_CLIFF.coreW / 2,
-    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_CLIFF.lz + MINE_WATERFALL_CLIFF.coreLz - MINE_WATERFALL_CLIFF.coreD / 2,
-    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_CLIFF.lz + MINE_WATERFALL_CLIFF.coreLz + MINE_WATERFALL_CLIFF.coreD / 2,
-    minY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY - MINE_WATERFALL_CLIFF.coreH / 2,
-    maxY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY + MINE_WATERFALL_CLIFF.coreH / 2,
-  },
+  ...[-1, 1].map((side) => {
+    const cx = SOUTHERN_MINE_POS.x + MINE_WATERFALL_CLIFF.lx + side * MINE_WATERFALL_CLIFF.flankOffsetLx;
+    const cz = SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_CLIFF.lz + MINE_WATERFALL_CLIFF.coreLz;
+    return {
+      id: `southern-mine-chamber2-waterfall-cliff-${side < 0 ? 'west' : 'east'}`,
+      minX: cx - MINE_WATERFALL_CLIFF.flankW / 2,
+      maxX: cx + MINE_WATERFALL_CLIFF.flankW / 2,
+      minZ: cz - MINE_WATERFALL_CLIFF.coreD / 2,
+      maxZ: cz + MINE_WATERFALL_CLIFF.coreD / 2,
+      minY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY - MINE_WATERFALL_CLIFF.coreH / 2,
+      maxY: mineFloorY('lagoon') + MINE_WATERFALL_CLIFF.coreY + MINE_WATERFALL_CLIFF.coreH / 2,
+    };
+  }),
   {
     id: 'southern-mine-amethyst-cluster-west',
     minX: SOUTHERN_MINE_POS.x + MINE_AMETHYST.lx - mineAmethystEnvelope().radius,
@@ -806,6 +863,33 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_CRANE_MAST.lz + MINE_CRANE_MAST.half,
     minY: SOUTHERN_MINE_POS.cavernFloorY,
     maxY: SOUTHERN_MINE_POS.cavernFloorY + MINE_CRANE_MAST.height,
+  },
+  {
+    id: 'southern-mine-rail-control-booth',
+    minX: SOUTHERN_MINE_POS.x + MINE_RAIL_TURNTABLE.controlBooth.lx - MINE_RAIL_TURNTABLE.controlBooth.halfX,
+    maxX: SOUTHERN_MINE_POS.x + MINE_RAIL_TURNTABLE.controlBooth.lx + MINE_RAIL_TURNTABLE.controlBooth.halfX,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_RAIL_TURNTABLE.controlBooth.lz - MINE_RAIL_TURNTABLE.controlBooth.halfZ,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_RAIL_TURNTABLE.controlBooth.lz + MINE_RAIL_TURNTABLE.controlBooth.halfZ,
+    minY: SOUTHERN_MINE_POS.cavernFloorY,
+    maxY: SOUTHERN_MINE_POS.cavernFloorY + MINE_RAIL_TURNTABLE.controlBooth.height,
+  },
+  {
+    id: 'southern-mine-waterwheel-support',
+    minX: SOUTHERN_MINE_POS.x + MINE_WATERWORKS.wheelLx - MINE_WATERWORKS.supportHalfX,
+    maxX: SOUTHERN_MINE_POS.x + MINE_WATERWORKS.wheelLx + MINE_WATERWORKS.supportHalfX,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERWORKS.wheelLz - MINE_WATERWORKS.supportHalfZ,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_WATERWORKS.wheelLz + MINE_WATERWORKS.supportHalfZ,
+    minY: SOUTHERN_MINE_POS.westLagoonFloorY,
+    maxY: SOUTHERN_MINE_POS.westLagoonFloorY + MINE_WATERWORKS.supportHeight,
+  },
+  {
+    id: 'southern-mine-stone-crusher',
+    minX: SOUTHERN_MINE_POS.x + MINE_STONE_CRUSHER.lx - MINE_STONE_CRUSHER.halfX,
+    maxX: SOUTHERN_MINE_POS.x + MINE_STONE_CRUSHER.lx + MINE_STONE_CRUSHER.halfX,
+    minZ: SOUTHERN_MINE_POS.entranceZ + MINE_STONE_CRUSHER.lz - MINE_STONE_CRUSHER.halfZ,
+    maxZ: SOUTHERN_MINE_POS.entranceZ + MINE_STONE_CRUSHER.lz + MINE_STONE_CRUSHER.halfZ,
+    minY: SOUTHERN_MINE_POS.eastFoundryFloorY,
+    maxY: SOUTHERN_MINE_POS.eastFoundryFloorY + MINE_STONE_CRUSHER.height,
   },
   ...MINE_BLAST_FURNACES.lzs.map((lz, i) => ({
     id: `southern-mine-blast-furnace-${i}`,

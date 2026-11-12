@@ -15,7 +15,13 @@ import {
   MINE_KHAZAD_BRIDGE,
   MINE_NW_GALLERY,
   MINE_ORE_ROCK_SITES,
+  MINE_WATERFALL_SECRET_CHAMBER,
+  MINE_GALLERY_TERRACE,
+  MINE_ANCIENT_PASSAGE,
+  MINE_DRAGON_FORGE_SANCTUM,
   southGalleryWalkableHeightAt,
+  ancientPassageWalkableHeightAt,
+  dragonForgeSanctumWalkableHeightAt,
 } from '../domain/landmarks/dwarvenMineLayout';
 // #endregion
 
@@ -807,10 +813,20 @@ export function southernMineWalkableHeightAt(
     );
   }
 
+  // 2A) Secret Passage & Hidden Chamber Behind the Chamber 2 Waterfall (lx in [-126, -110], lz in [22, 38])
+  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
+  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
+    return wfSec.floorY;
+  }
+
   // 2) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
   const lagoonC = MINE_CHAMBER_BOUNDS.lagoonChamber;
   if (lx < lagoonC.lxMax && lx >= lagoonC.lxMin && lz >= lagoonC.lzMin && lz <= lagoonC.lzMax) {
     const ch2Floor = SOUTHERN_MINE_POS.westLagoonFloorY;
+    // Secret passage threshold behind the waterfall curtain (lx in [-121.5, -114.5], lz in [38.0, 52.5])
+    if (lx >= wfSec.passageMinLx && lx <= wfSec.passageMaxLx && lz <= 52.5) {
+      return wfSec.floorY;
+    }
     // Wooden Plank Bridge across Chamber 2 Lagoon (lx in [-135.0, -101.0], lz in [70.5, 75.5])
     if (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) {
       const endRamp =
@@ -846,9 +862,30 @@ export function southernMineWalkableHeightAt(
     );
   }
 
-  // 4) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (MINE_CHAMBER_BOUNDS.foundryChamber)
+  // 4) Chamber 3 — Mining Galleries & Integrated Smelting Foundry (MINE_CHAMBER_BOUNDS.foundryChamber)
   const foundryC = MINE_CHAMBER_BOUNDS.foundryChamber;
   if (lx > foundryC.lxMin && lx <= foundryC.lxMax && lz >= foundryC.lzMin && lz <= foundryC.lzMax) {
+    const gt = MINE_GALLERY_TERRACE;
+    // Walkable ramp ascending to the elevated North-West Mining Gallery Terrace (lx in [92.0, 96.5], lz in [52.0, 60.0])
+    if (lx >= gt.rampMinLx && lx <= gt.rampMaxLx && lz >= gt.rampMinLz && lz <= gt.rampMaxLz) {
+      const tRamp = Math.max(0, Math.min(1, (gt.rampMaxLz - lz) / (gt.rampMaxLz - gt.rampMinLz)));
+      const rampH =
+        SOUTHERN_MINE_POS.eastFoundryFloorY +
+        tRamp * (gt.deckY - SOUTHERN_MINE_POS.eastFoundryFloorY);
+      if (currentY === undefined || currentY <= rampH + 2.2) {
+        return rampH;
+      }
+    }
+    // Elevated North-West Mining Gallery Terrace (lx in [92.0, 112.0], lz in [42.0, 52.0])
+    if (
+      lx >= gt.minLx &&
+      lx <= gt.maxLx &&
+      lz >= gt.minLz &&
+      lz <= gt.maxLz &&
+      (currentY === undefined || currentY >= gt.deckY - 1.8)
+    ) {
+      return gt.deckY;
+    }
     return SOUTHERN_MINE_POS.eastFoundryFloorY;
   }
 
@@ -891,11 +928,30 @@ export function southernMineWalkableHeightAt(
       return SOUTHERN_MINE_POS.moriaAbyssBottomY;
     }
     // C) Elevated Royal Altar Dias of Durin in the South Sanctuary (lx in [-10.0, 10.0], lz in [292.0, 304.0])
+    //    Leaves a smooth ramp back down to moriaFloor (-28.35) at lz in [302.0, 304.0] toward the Golem Guardian Doorway!
     if (lx >= -10.0 && lx <= 10.0 && lz >= 292.0 && lz <= 304.0) {
-      const rampT = lz < 294.0 ? Math.max(0, (lz - 292.0) / 2.0) : 1.0;
-      return moriaFloor + rampT * 0.8;
+      const rampIn = lz < 294.0 ? Math.max(0, (lz - 292.0) / 2.0) : 1.0;
+      const rampOut = lz > 302.0 ? Math.max(0, (304.0 - lz) / 2.0) : 1.0;
+      return moriaFloor + Math.min(rampIn, rampOut) * 0.8;
     }
     return moriaFloor;
+  }
+
+  // 6C) Area 10/11 — Ancient Stone Passage behind the Golem Guardian (lx in [-7.0, 7.0], lz in [310.0, 346.0])
+  const ancP = MINE_ANCIENT_PASSAGE;
+  if (lx >= ancP.minLx && lx <= ancP.maxLx && lz > ancP.minLz && lz <= ancP.maxLz) {
+    return ancientPassageWalkableHeightAt(lz);
+  }
+
+  // 6D) Area 11 — Southern Dragon Forge & Treasure Chamber with Lava Stepping Stones (lx in [-38.0, 38.0], lz in [346.0, 414.0])
+  const dfSanctum = MINE_DRAGON_FORGE_SANCTUM;
+  if (
+    lx >= dfSanctum.minLx &&
+    lx <= dfSanctum.maxLx &&
+    lz > dfSanctum.minLz &&
+    lz <= dfSanctum.maxLz
+  ) {
+    return dragonForgeSanctumWalkableHeightAt(lx, lz);
   }
 
   // 6A) EXIT 1 (WEST FROM GREAT HALL): Bifurcating Y-Tunnel, Hall of the Mountain Kings (NW) & Crystal Sanctum (SW)
@@ -985,8 +1041,18 @@ export function southernMineWalkableHeightAt(
 export function southernMineCeilingHeightAt(x: number, z: number): number {
   const lx = x - SOUTHERN_MINE_POS.x;
   const lz = z - SOUTHERN_MINE_POS.entranceZ;
+  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
+  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
+    return wfSec.floorY + wfSec.height;
+  }
   if (lz < 34.0) {
     return southernMineFloorHeightAt(z) + SOUTHERN_MINE_POS.corridorHeight;
+  }
+  if (lz >= MINE_DRAGON_FORGE_SANCTUM.minLz) {
+    return MINE_DRAGON_FORGE_SANCTUM.floorY + MINE_DRAGON_FORGE_SANCTUM.height;
+  }
+  if (lz > MINE_ANCIENT_PASSAGE.minLz) {
+    return ancientPassageWalkableHeightAt(lz) + MINE_ANCIENT_PASSAGE.height;
   }
   if (lz >= 100.0 && lx < -65.0) {
     return SOUTHERN_MINE_POS.moriaHallFloorY + 17.5;
@@ -1011,9 +1077,9 @@ export function southernMineCeilingHeightAt(x: number, z: number): number {
 
 /**
  * Summary: Determines whether a given 3D coordinate falls within the subterranean volumes of the Southern Dwarven Mine
- *          (Entrance Shaft, Room 1 Mess Hall, West Tunnel & Chamber 2 Lagoon, East Tunnel & Chamber 3 Foundry,
- *           South Descent Gallery, Chamber 4 Great Hall of Khazad-dûm, West Split Tunnel + Twin Sanctums,
- *           and East Tunnel + Dragon-Forge Vault).
+ *          (Entrance Shaft, Room 1 Mess Hall, West Tunnel & Chamber 2 Lagoon + Secret Waterfall Chamber,
+ *           East Tunnel & Chamber 3 Mining Galleries / Foundry, South Descent Gallery, Chamber 4 Great Hall of Khazad-dûm,
+ *           West Split Tunnel + Twin Sanctums, East Tunnel + Dragon-Forge Vault, and Southern Ancient Stone Passage + Dragon Forge Sanctum).
  * @param x World X in meters.
  * @param z World Z in meters.
  * @param currentY Height of the asker, to choose between stacked floors (optional).
@@ -1047,6 +1113,13 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
   // 4) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
   if (lx >= B.lagoonChamber.lxMin && lx <= B.lagoonChamber.lxMax && lz >= B.lagoonChamber.lzMin && lz <= B.lagoonChamber.lzMax) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.westLagoonFloorY + 13.0) return false;
+    return true;
+  }
+
+  // 4A) Secret Chamber Behind the Chamber 2 Waterfall (MINE_WATERFALL_SECRET_CHAMBER)
+  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
+  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
+    if (currentY !== undefined && currentY > wfSec.floorY + wfSec.height + 0.5) return false;
     return true;
   }
 
@@ -1093,6 +1166,25 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
     (lx >= B.dragonForgeChamber.lxMin && lx <= B.dragonForgeChamber.lxMax && lz >= B.dragonForgeChamber.lzMin && lz <= B.dragonForgeChamber.lzMax)
   ) {
     if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 19.0) return false;
+    return true;
+  }
+
+  // 11) Area 10/11 — Ancient Stone Passage behind the Golem Guardian (lz in [310.0, 346.0])
+  const ancP = MINE_ANCIENT_PASSAGE;
+  if (lx >= ancP.minLx && lx <= ancP.maxLx && lz >= ancP.minLz && lz <= ancP.maxLz) {
+    if (currentY !== undefined && currentY > ancP.yStart + ancP.height + 0.5) return false;
+    return true;
+  }
+
+  // 12) Area 11 — Southern Dragon Forge & Treasure Chamber (lz in [346.0, 414.0])
+  const dfSanctum = MINE_DRAGON_FORGE_SANCTUM;
+  if (
+    lx >= dfSanctum.minLx &&
+    lx <= dfSanctum.maxLx &&
+    lz >= dfSanctum.minLz &&
+    lz <= dfSanctum.maxLz
+  ) {
+    if (currentY !== undefined && currentY > dfSanctum.floorY + dfSanctum.height + 0.5) return false;
     return true;
   }
 
