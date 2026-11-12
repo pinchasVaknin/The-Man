@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { BiomeType } from '../domain/worldTypes';
-import { walkableHeightAt, getSurfaceBiomeAt, northernSnowZoneFactorAt } from './terrainAndBiomeSystem';
+import { walkableHeightAt, getSurfaceBiomeAt, northernSnowZoneFactorAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -212,7 +212,7 @@ export function stepFootprintTrailSystem(
 
         const printX = x + rightX * lateralOffset;
         const printZ = z + rightZ * lateralOffset;
-        const printGroundY = walkableHeightAt(printX, printZ, y).height;
+        const printGroundY = walkableHeightValueAt(printX, printZ, y);
 
         const slot = tracker.decals[tracker.nextSlotIndex];
         tracker.nextSlotIndex = (tracker.nextSlotIndex + 1) % tracker.decals.length;
