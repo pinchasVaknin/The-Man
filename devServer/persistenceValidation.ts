@@ -21,6 +21,7 @@ export interface IPersistedGameSettings {
   readonly jumpForceMultiplier: number;
   readonly firefliesMode: string;
   readonly defaultMuted: boolean;
+  readonly graphicsQuality: string;
   readonly godMode?: boolean;
 }
 
@@ -40,6 +41,8 @@ const KEYBINDING_NAMES: readonly string[] = [
 const KEY_CODE_PATTERN = /^[A-Za-z0-9]{1,32}$/;
 const CAMERA_PERSPECTIVES: readonly string[] = ['third_person', 'first_person'];
 const FIREFLIES_MODES: readonly string[] = ['sanctuary_only', 'off'];
+/** Mirrors GRAPHICS_QUALITIES in src/world/domain/graphicsQuality.ts. */
+const GRAPHICS_QUALITIES: readonly string[] = ['low', 'medium', 'high'];
 /** Inclusive ranges, matching the sliders in the settings modal. */
 const MOUSE_SENSITIVITY_RANGE = [0.4, 2.5] as const;
 const WALK_SPEED_RANGE = [0.6, 1.8] as const;
@@ -87,6 +90,7 @@ export function checkGameSettingsPayload(value: unknown): PayloadCheck<IPersiste
   const fireflies = value.firefliesMode;
   if (!isOneOf(perspective, CAMERA_PERSPECTIVES) || !isOneOf(fireflies, FIREFLIES_MODES)) return REJECTED;
   if (typeof value.defaultMuted !== 'boolean') return REJECTED;
+  if (!isOneOf(value.graphicsQuality, GRAPHICS_QUALITIES)) return REJECTED;
   if (value.godMode !== undefined && typeof value.godMode !== 'boolean') return REJECTED;
   if (
     !isNumberInRange(value.mouseSensitivity, MOUSE_SENSITIVITY_RANGE) ||
@@ -105,6 +109,7 @@ export function checkGameSettingsPayload(value: unknown): PayloadCheck<IPersiste
       jumpForceMultiplier: value.jumpForceMultiplier,
       firefliesMode: fireflies,
       defaultMuted: value.defaultMuted,
+      graphicsQuality: value.graphicsQuality,
       ...(typeof value.godMode === 'boolean' ? { godMode: value.godMode } : {}),
     },
   };

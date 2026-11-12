@@ -15,6 +15,7 @@ import { createWorldTextures } from '../proceduralTextures';
 import { buildRealisticWorld } from '../proceduralModels';
 import { generateWorldObstacles } from '../terrainMath';
 import type { ILogger } from '../../core/ILogger';
+import { GRAPHICS_PROFILES, resolvePixelRatio, resolveShadowsEnabled, type GraphicsQuality } from '../domain/graphicsQuality';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -35,6 +36,8 @@ export interface IWorldScene {
   readonly hemiLight: THREE.HemisphereLight;
   readonly obstacles: ReturnType<typeof generateWorldObstacles>;
   readonly worldHandles: Awaited<ReturnType<typeof buildRealisticWorld>>;
+  /** Applies a graphics preset to the live renderer and sun shadow map. */
+  applyGraphicsQuality(quality: GraphicsQuality): void;
   /** Frees world, textures, sun disc, environment map and renderer, in that order. */
   dispose(): void;
 }
@@ -49,7 +52,8 @@ export interface IWorldScene {
 export async function createWorldScene(
   container: HTMLElement,
   logger: ILogger,
-  onStage?: (stage: string) => void
+  onStage?: (stage: string) => void,
+  graphicsQuality: GraphicsQuality = 'high'
 ): Promise<IWorldScene> {
   // 1. Software WebGL detection from GPU renderer string
   const isSoftwareGl = (() => {
@@ -69,9 +73,9 @@ export async function createWorldScene(
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.94;
-  renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(resolvePixelRatio(graphicsQuality, window.devicePixelRatio, isSoftwareGl));
   renderer.setSize(container.clientWidth || window.innerWidth, container.clientHeight || window.innerHeight);
-  renderer.shadowMap.enabled = !isSoftwareGl;
+  renderer.shadowMap.enabled = resolveShadowsEnabled(graphicsQuality, isSoftwareGl);
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.dataset.testid = 'world-canvas';
   renderer.domElement.style.display = 'block';
@@ -116,8 +120,9 @@ export async function createWorldScene(
   // 5. Balanced Outdoor Lighting Rig (Warm Sun / Silver Moon + Hemisphere Fill)
   const sunLight = new THREE.DirectionalLight(0xffcf87, 2.8);
   sunLight.castShadow = !isSoftwareGl;
-  sunLight.shadow.mapSize.width = 2048;
-  sunLight.shadow.mapSize.height = 2048;
+  const initialShadowMapSize = GRAPHICS_PROFILES[graphicsQuality].shadowMapSize;
+  sunLight.shadow.mapSize.width = initialShadowMapSize;
+  sunLight.shadow.mapSize.height = initialShadowMapSize;
   const shadowRange = 56;
   sunLight.shadow.camera.left = -shadowRange;
   sunLight.shadow.camera.right = shadowRange;
@@ -145,6 +150,18 @@ export async function createWorldScene(
   // Pre-compile all WebGL shaders while all chunks/landmarks are visible to eliminate first-sight stalls when flying
   renderer.compile(scene, camera);
 
+  const applyGraphicsQuality = (quality: GraphicsQuality): void => {
+    renderer.setPixelRatio(resolvePixelRatio(quality, window.devicePixelRatio, isSoftwareGl));
+    renderer.shadowMap.enabled = resolveShadowsEnabled(quality, isSoftwareGl);
+    const size = GRAPHICS_PROFILES[quality].shadowMapSize;
+    if (sunLight.shadow.mapSize.x !== size) {
+      sunLight.shadow.mapSize.set(size, size);
+      // The shadow map is rebuilt at the new size on the next frame.
+      sunLight.shadow.map?.dispose();
+      sunLight.shadow.map = null;
+    }
+  };
+
   return {
     isSoftwareGl,
     renderer,
@@ -159,6 +176,7 @@ export async function createWorldScene(
     hemiLight,
     obstacles,
     worldHandles,
+    applyGraphicsQuality,
     dispose() {
       worldHandles.dispose();
       textures.dispose();

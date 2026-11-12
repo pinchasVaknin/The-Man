@@ -17,6 +17,7 @@ import {
   type IGameSettingsConfig,
 } from '../config/savedGameSettings';
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
+import type { GraphicsQuality } from '../world/domain/graphicsQuality';
 import { t } from '../locales';
 import { useAppServices } from '../app/AppServicesContext';
 
@@ -135,6 +136,7 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
       jumpForceMultiplier: 1.0,
       firefliesMode: 'sanctuary_only',
       defaultMuted: false,
+      graphicsQuality: 'high',
       godMode: true,
     };
     setDraft(factory);
@@ -492,6 +494,49 @@ export const GameSettingsModal: React.FC<IGameSettingsModalProps> = ({
                           setDraft((prev) => ({
                             ...prev,
                             defaultCameraPerspective: opt.id as CameraPerspectiveMode,
+                          }))
+                        }
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer ${
+                          active
+                            ? 'bg-amber-400 text-stone-950'
+                            : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Graphics Quality */}
+              <div className="p-4 rounded-xl bg-stone-900/75 border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-bold text-stone-100">
+                    {t('settings.graphics_title')}
+                  </div>
+                  <div className="text-xs text-stone-400 mt-0.5">
+                    {t('settings.graphics_hint')}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {(
+                    [
+                      { id: 'low', label: t('settings.graphics_low') },
+                      { id: 'medium', label: t('settings.graphics_medium') },
+                      { id: 'high', label: t('settings.graphics_high') },
+                    ] as const
+                  ).map((opt) => {
+                    const active = draft.graphicsQuality === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        data-testid={`graphics-quality-${opt.id}`}
+                        onClick={() =>
+                          setDraft((prev) => ({
+                            ...prev,
+                            graphicsQuality: opt.id as GraphicsQuality,
                           }))
                         }
                         className={`px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer ${

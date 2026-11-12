@@ -119,6 +119,8 @@ import { createTrapController } from '../world/controllers/trapController';
 import { createVehicleController } from '../world/controllers/vehicleController';
 import { createShipController } from '../world/controllers/shipController';
 import { createLootController } from '../world/controllers/lootController';
+import type { GraphicsQuality } from '../world/domain/graphicsQuality';
+import { describeLoadingStage } from '../world/domain/loadingStages';
 import { createWorldSaveController } from '../world/controllers/worldSaveController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
@@ -244,6 +246,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   const [fatalTickError, setFatalTickError] = useState<Error | null>(null);
   // Current world-build stage while the world is loading (null when ready).
   const [loadingStage, setLoadingStage] = useState<string | null>(null);
+  const [worldReady, setWorldReady] = useState(false);
+  const [loadingTipKey] = useState(
+    () => ['loading_screen.tip_1', 'loading_screen.tip_2', 'loading_screen.tip_3'][Math.floor(Math.random() * 3)]
+  );
+  // Set once the world is built; the settings effect below pushes quality changes through it.
+  const graphicsApplyRef = useRef<((quality: GraphicsQuality) => void) | null>(null);
+  useEffect(() => {
+    graphicsApplyRef.current?.(gameSettings?.graphicsQuality ?? 'high');
+  }, [gameSettings?.graphicsQuality]);
 
   const gameStateRef = useRef<GameStateMode>(gameState);
   const mutedRef = useRef<boolean>(muted);
@@ -283,9 +294,16 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let cancelled = false;
     let teardown: (() => void) | undefined;
     const startWorld = async (): Promise<void> => {
-    const worldScene = await createWorldScene(container, logger, (stage) => setLoadingStage(stage));
+    const worldScene = await createWorldScene(
+      container,
+      logger,
+      (stage) => setLoadingStage(stage),
+      gameSettingsRef.current.graphicsQuality
+    );
     if (cancelled) return;
+    graphicsApplyRef.current = worldScene.applyGraphicsQuality;
     setLoadingStage(null);
+    setWorldReady(true);
     const {
       isSoftwareGl,
       renderer,
@@ -1338,11 +1356,33 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       className="fixed inset-0 w-full h-full overflow-hidden bg-stone-950 cursor-grab active:cursor-grabbing"
       aria-label={t('ui.canvas_aria')}
     />
-    {loadingStage ? (
-      <div role="status" data-stage={loadingStage} className="fixed inset-0 flex items-center justify-center pointer-events-none">
-        <div className="h-2 w-40 overflow-hidden rounded bg-stone-800"><div className="h-full w-1/2 animate-pulse bg-amber-600/70" /></div>
-      </div>
-    ) : null}
+    {!worldReady ? (() => {
+      const progress = describeLoadingStage(loadingStage);
+      const percent = Math.round(progress.fraction * 100);
+      return (
+        <div
+          role="status"
+          aria-live="polite"
+          data-stage={progress.stepId}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-stone-950 px-4 text-center"
+        >
+          <div className="text-xl font-bold text-stone-100">{t('loading_screen.title')}</div>
+          <div className="w-72 max-w-full">
+            <div className="h-2 w-full overflow-hidden rounded bg-stone-800">
+              <div
+                className="h-full bg-amber-500 transition-[width] duration-300"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between gap-3 text-xs text-stone-400">
+              <span>{t(`loading_screen.step_${progress.stepId}`)}</span>
+              <span>{t('loading_screen.progress_label', { percent })}</span>
+            </div>
+          </div>
+          <p className="max-w-md text-xs text-stone-500">{t(loadingTipKey)}</p>
+        </div>
+      );
+    })() : null}
     </>
   );
 });

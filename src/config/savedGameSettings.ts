@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
+import type { GraphicsQuality } from '../world/domain/graphicsQuality';
 import type { ILogger } from '../core/ILogger';
 import { validateGameSettings } from './persistedSettingsValidation';
 
@@ -52,6 +53,7 @@ export interface IGameSettingsConfig {
   jumpForceMultiplier: number;
   firefliesMode: FirefliesMode;
   defaultMuted: boolean;
+  graphicsQuality: GraphicsQuality;
   godMode?: boolean;
 }
 
@@ -115,7 +117,8 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
   "jumpForceMultiplier": 1,
   "firefliesMode": "sanctuary_only",
   "defaultMuted": false,
-  "godMode": true
+  "graphicsQuality": "low",
+  "godMode": false
 };
 
 const STORAGE_KEY = 'the_man_game_settings_v1';
