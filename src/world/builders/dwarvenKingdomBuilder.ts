@@ -31,7 +31,9 @@ import {
   type DwarfWarriorState,
 } from '../models/Characters/DwarfWarrior_Complete';
 
+import { steerAroundWalls } from '../domain/wallNavigation';
 import type { IPlayerState, IArrowProjectile, InventoryItemId } from '../domain/worldTypes';
+import { getNearbySolidBuildingBoxes, pointInsideSolidBuildingBox, resolveHorizontalBoxCollision } from '../domain/collisionWorld';
 
 /**
  * Summary: Rig representation for an individual animated dwarven miner mesh.
@@ -79,6 +81,9 @@ const activeDwarvenMiners: IDwarvenMinerRig[] = [];
  * - Small Dwarven garment (non-wearable by the player): 'dwarven_miner_tunic' or 'dwarven_iron_boots'
  * - 1–2 random gemstones, ores, or miner rations
  */
+/** Dwarf body radius used for wall routing (metres). */
+const DWARF_BODY_RADIUS = 0.6;
+
 export function generateRandomDwarfLoot(seedOffset = 0): {
   goldDrop: number;
   lootItems: InventoryItemId[];
@@ -445,6 +450,56 @@ export interface IDwarvenKingdomHandle {
  * @param ctx The builder context holding scene, textures, and materials.
  * @returns IDwarvenKingdomHandle containing per-frame update loop for miner rigs.
  */
+/** Dwarf body radius used when keeping a dwarf out of furniture (metres). */
+const DWARF_FURNITURE_RADIUS = 0.35;
+
+/**
+ * Summary: Pushes a dwarf out of any solid box at its height (DW1). The daily route passes near benches, tables and
+ * carts; standing inside one would clip the dwarf through it.
+ */
+function keepDwarfOutOfFurniture(x: number, z: number, y: number): { x: number; z: number } {
+  let px = x;
+  let pz = z;
+  const boxes = getNearbySolidBuildingBoxes(px, pz, 2.0);
+  for (let pass = 0; pass < 4; pass++) {
+    for (const box of boxes) {
+      if (box.minY !== undefined && y + 0.5 < box.minY) continue;
+      if (box.maxY !== undefined && y + 0.5 > box.maxY) continue;
+      const r = resolveHorizontalBoxCollision(px, pz, DWARF_FURNITURE_RADIUS, box);
+      px = r.x;
+      pz = r.z;
+    }
+  }
+  return { x: px, z: pz };
+}
+
+/** Summary: True when a dwarf standing at (x, z, y) would overlap any solid box (DW1). */
+function dwarfOverlapsFurniture(x: number, z: number, y: number): boolean {
+  const boxes = getNearbySolidBuildingBoxes(x, z, DWARF_FURNITURE_RADIUS + 1.0);
+  return boxes.some((b) => {
+    if (b.minY !== undefined && y + 0.5 < b.minY) return false;
+    if (b.maxY !== undefined && y + 0.5 > b.maxY) return false;
+    return pointInsideSolidBuildingBox(x, z, DWARF_FURNITURE_RADIUS, b);
+  });
+}
+
+/**
+ * Summary: The nearest spot to an authored seat or bed where a dwarf does not overlap furniture (DW1). The seat is kept
+ * if it is clear; otherwise the spot is moved in rings around it. Falls back to the push-out when no ring is clear.
+ */
+function findClearSeat(x: number, z: number, y: number): { x: number; z: number } {
+  if (!dwarfOverlapsFurniture(x, z, y)) return { x, z };
+  for (const r of [0.3, 0.6, 0.9, 1.2]) {
+    for (let k = 0; k < 16; k++) {
+      const ang = (k / 16) * Math.PI * 2;
+      const cx = x + Math.cos(ang) * r;
+      const cz = z + Math.sin(ang) * r;
+      if (!dwarfOverlapsFurniture(cx, cz, y)) return { x: cx, z: cz };
+    }
+  }
+  return keepDwarfOutOfFurniture(x, z, y);
+}
+
 export function buildDwarvenKingdomAndMiners(
   ctx: IDwarvenKingdomBuilderContext
 ): IDwarvenKingdomHandle {
@@ -1186,9 +1241,10 @@ export function buildDwarvenKingdomAndMiners(
             dm.hp = dm.maxHp;
             dm.isAggro = false;
             dm.aggroTimer = 0;
-            dm.x = respawnSt.x;
+            const respawnClear = keepDwarfOutOfFurniture(respawnSt.x, respawnSt.z, respawnSt.y);
+            dm.x = respawnClear.x;
             dm.y = respawnSt.y;
-            dm.z = respawnSt.z;
+            dm.z = respawnClear.z;
             dm.yaw = respawnSt.yaw;
             dm.root.position.set(dm.x, dm.y, dm.z);
             dm.ctrl.setState('idle', 0.12);
@@ -1206,13 +1262,14 @@ export function buildDwarvenKingdomAndMiners(
         continue;
       }
 
-      const st = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime);
+      const st = computeDwarvenMinerCaravanState(worldHours, d, elapsedTime, (x, z, hintY) => walkableHeightValueAt(x, z, hintY));
 
       // Always keep dm.x, dm.y, dm.z updated even when culled so flying arrows hit accurately at long range
       if (!dm.isAggro) {
-        dm.x = st.x;
+        const clear = keepDwarfOutOfFurniture(st.x, st.z, st.y);
+        dm.x = clear.x;
         dm.y = st.y;
-        dm.z = st.z;
+        dm.z = clear.z;
         dm.yaw = st.yaw;
       }
 
@@ -1241,13 +1298,28 @@ export function buildDwarvenKingdomAndMiners(
 
           if (dPlayer > 2.05) {
             const runSpd = 4.5;
-            const step = Math.min(dPlayer - 1.75, runSpd * safeDt);
-            dm.x += (toPx / dPlayer) * step;
-            dm.z += (toPz / dPlayer) * step;
-            const walkInfo = walkableHeightAt(dm.x, dm.z, dm.y);
-            dm.y += (walkInfo.height - dm.y) * Math.min(1, safeDt * 12.0);
-            dm.ctrl.speed = runSpd;
-            dm.ctrl.setState('run', 0.16);
+            // N3: the dwarf routes around solid walls (no walking through the mine wall). With no route it holds still.
+            const steer = steerAroundWalls(dm.x, dm.z, playerX, playerZ, dm.y + 0.8, DWARF_BODY_RADIUS);
+            if (steer === null) {
+              dm.ctrl.speed = 0;
+              dm.ctrl.setState('idle', 0.2);
+            } else {
+              const sx = steer.x - dm.x;
+              const sz = steer.z - dm.z;
+              const sLen = Math.hypot(sx, sz) || 0.001;
+              const goalDist = steer.x === playerX && steer.z === playerZ ? dPlayer - 1.75 : sLen;
+              const step = Math.min(goalDist, runSpd * safeDt);
+              dm.x += (sx / sLen) * step;
+              dm.z += (sz / sLen) * step;
+              const walkInfo = walkableHeightAt(dm.x, dm.z, dm.y);
+              dm.y += (walkInfo.height - dm.y) * Math.min(1, safeDt * 12.0);
+              dm.ctrl.speed = runSpd;
+              dm.ctrl.setState('run', 0.16);
+            }
+          } else if (Math.abs(playerY - dm.y) > 2.3) {
+            // N3: a player out of reach above (or below) is not attacked; the dwarf does not swing at empty air.
+            dm.ctrl.speed = 0;
+            dm.ctrl.setState('idle', 0.2);
           } else {
             dm.ctrl.speed = 0;
             if (dm.attackCooldown <= 0) {
@@ -1366,8 +1438,18 @@ export function buildDwarvenKingdomAndMiners(
           // Bench at -2.55 faces South (+Z -> yaw = Math.PI), Bench at -0.75 faces North (-Z -> yaw = 0)
           dm.yaw = slot === 0 ? Math.PI : 0;
         }
+        // DW1: a seat or bed next to a table must not overlap it.
+        const seat = findClearSeat(dm.x, dm.z, dm.y);
+        dm.x = seat.x;
+        dm.z = seat.z;
       }
 
+      // DW1: nothing about the walking, sitting or sleeping placement may leave a dwarf inside furniture.
+      if (!dm.isAggro) {
+        const clear = findClearSeat(dm.x, dm.z, dm.y);
+        dm.x = clear.x;
+        dm.z = clear.z;
+      }
       dm.root.position.set(dm.x, dm.y, dm.z);
       dm.root.rotation.order = 'YXZ';
       dm.root.rotation.y = dm.yaw;

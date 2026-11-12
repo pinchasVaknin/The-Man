@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { isWorldPausedByMenu } from '../domain/uiPause';
+import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -285,12 +286,16 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
       if (gameStateRef.current === 'title') {
         simulationState.elapsedTotal += rawDt;
         timeState.worldHours = advanceWorldClock(timeState.worldHours, rawDt, TITLE_CLOCK_HOURS_PER_SECOND);
-        simulationState.currentWeather = computeWeatherState(
+        simulationState.currentWeather = easeWeatherSnapshot(
+          simulationState.currentWeather,
+          computeWeatherState(
           getSeasonClockSeconds(),
           camera.position.x,
           camera.position.z,
           timeState.activeWeatherMode,
           getEffectiveForcedWeather()
+          ),
+          rawDt
         );
         simulationState.currentAtmo = applyDynamicAtmosphere(timeState.worldHours, simulationState.currentWeather);
 
@@ -337,13 +342,17 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           hudFeedback.lootNotification = 'Harbor Market merchants have restocked their supplies!';
           hudFeedback.lootNotificationTimer = 4.0;
         }
-        simulationState.currentWeather = computeWeatherState(
+        simulationState.currentWeather = easeWeatherSnapshot(
+          simulationState.currentWeather,
+          computeWeatherState(
           getSeasonClockSeconds(),
           playerState.x,
           playerState.z,
           timeState.activeWeatherMode,
           getEffectiveForcedWeather(),
           timeState.forcedSeason === 'auto' ? null : timeState.forcedSeason
+          ),
+          rawDt
         );
         simulationState.currentAtmo = applyDynamicAtmosphere(timeState.worldHours, simulationState.currentWeather);
 
