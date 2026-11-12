@@ -35,7 +35,7 @@ import {
   stepArrowsPhysics,
   computeWeatherState,
   groundHeightAt,
-  walkableHeightAt,
+  walkableHeightValueAt,
   getWaterSurfaceHeightAt,
   isPositionUnderRoof,
   findNearestFortressDoor,
@@ -314,7 +314,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             if (restState.preSleepPlayerPos) {
               playerState.x = restState.preSleepPlayerPos.x;
               playerState.z = restState.preSleepPlayerPos.z;
-              playerState.y = walkableHeightAt(restState.preSleepPlayerPos.x, restState.preSleepPlayerPos.z, restState.preSleepPlayerPos.y).height;
+              playerState.y = walkableHeightValueAt(restState.preSleepPlayerPos.x, restState.preSleepPlayerPos.z, restState.preSleepPlayerPos.y);
             }
             restState.activeSleepingBed = null;
             restState.preSleepPlayerPos = null;
@@ -371,7 +371,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           if (restState.preSleepPlayerPos) {
             playerState.x = restState.preSleepPlayerPos.x;
             playerState.z = restState.preSleepPlayerPos.z;
-            playerState.y = walkableHeightAt(restState.preSleepPlayerPos.x, restState.preSleepPlayerPos.z, restState.preSleepPlayerPos.y).height;
+            playerState.y = walkableHeightValueAt(restState.preSleepPlayerPos.x, restState.preSleepPlayerPos.z, restState.preSleepPlayerPos.y);
           }
           restState.activeSleepingBed = null;
           restState.preSleepPlayerPos = null;
@@ -683,7 +683,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
         if (restState.activeMinecartRide) {
           if (jumpPressed) {
             restState.activeMinecartRide = null;
-            playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+            playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
             capturePreviousPlayerPose();
             soundEngine.playFootstep('bridge', 1.08);
             emitHudSnapshot();

@@ -23,6 +23,7 @@ import {
   southernRiverBridgeHeightAt,
   groundHeightAt,
   walkableHeightAt,
+  walkableHeightValueAt,
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,
   isWithinViewDistance,
@@ -2196,7 +2197,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
     const root = new THREE.Group();
     root.rotation.order = 'YXZ';
-    const initY = walkableHeightAt(def.homeX, def.homeZ).height;
+    const initY = walkableHeightValueAt(def.homeX, def.homeZ);
     root.position.set(def.homeX, initY, def.homeZ);
     root.rotation.y = def.homeYaw;
 

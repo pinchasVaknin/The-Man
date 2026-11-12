@@ -37,7 +37,7 @@ import {
   toggleFavoriteItem,
   triggerSwordSlash,
   classifySwordAttackPhase,
-  walkableHeightAt,
+  walkableHeightValueAt,
 } from '../terrainMath';
 import { NatureSoundEngine } from '../soundEngine';
 import { clamp, validateCoordinate, validateWorldHour } from '../../core/config';
@@ -161,7 +161,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     playerState.y =
       y !== undefined
         ? clamp(y as number, -100, 500)
-        : walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+        : walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
 
     playerState.vx = 0;
     playerState.vy = 0;

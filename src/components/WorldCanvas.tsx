@@ -35,7 +35,7 @@ import {
   stepArrowsPhysics,
   computeWeatherState,
   groundHeightAt,
-  walkableHeightAt,
+  walkableHeightValueAt,
   getWaterSurfaceHeightAt,
   isPositionUnderRoof,
   findNearestFortressDoor,
@@ -341,7 +341,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         playerState.y,
         playerState.z,
         playerState.yaw,
-        (gx: number, gz: number) => walkableHeightAt(gx, gz).height,
+        (gx: number, gz: number) => walkableHeightValueAt(gx, gz),
         WATER_LEVEL,
         playerState.pitch
       );
@@ -486,7 +486,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         playerState.y =
           overrides.position.y !== undefined
             ? overrides.position.y
-            : walkableHeightAt(overrides.position.x, overrides.position.z).height;
+            : walkableHeightValueAt(overrides.position.x, overrides.position.z);
         if (overrides.position.yaw !== undefined) {
           playerState.yaw = overrides.position.yaw;
         }
@@ -621,7 +621,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     function tryBoardOrExitMinecart(): boolean {
       if (restState.activeMinecartRide) {
         restState.activeMinecartRide = null;
-        playerState.y = walkableHeightAt(playerState.x, playerState.z, playerState.y).height;
+        playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
         capturePreviousPlayerPose();
         soundEngine.playFootstep('bridge', 1.05);
         emitHudSnapshot();
@@ -1022,8 +1022,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           targetLayer === 'mine' && isInsideSouthernMine(worldX, worldZ)
             ? southernMineWalkableHeightAt(worldX, worldZ)
             : targetLayer === 'surface'
-              ? walkableHeightAt(worldX, worldZ, groundHeightAt(worldX, worldZ)).height
-              : walkableHeightAt(worldX, worldZ).height;
+              ? walkableHeightValueAt(worldX, worldZ, groundHeightAt(worldX, worldZ))
+              : walkableHeightValueAt(worldX, worldZ);
         playerState.x = worldX;
         playerState.z = worldZ;
         playerState.y = targetY;

@@ -40,7 +40,7 @@ import {
   stepArrowsPhysics,
   computeWeatherState,
   groundHeightAt,
-  walkableHeightAt,
+  walkableHeightValueAt,
   getWaterSurfaceHeightAt,
   isPositionUnderRoof,
   findNearestFortressDoor,
@@ -424,7 +424,7 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
         renderPlayer.y,
         renderPlayer.z,
         renderPlayer.yaw,
-        (gx: number, gz: number) => walkableHeightAt(gx, gz).height,
+        (gx: number, gz: number) => walkableHeightValueAt(gx, gz),
         WATER_LEVEL,
         renderPlayer.pitch
       );
