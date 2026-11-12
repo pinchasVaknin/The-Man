@@ -47,8 +47,6 @@ import {
   findNearestWorldChest,
   resolveBestLookedAtInteraction,
   findLookedAtWatchtowerLadder,
-  findNearestDeadLootableAnimal,
-  lootDeadAnimal,
   takeItemFromWorldChest,
   storeItemInWorldChest,
   takeAllFromWorldChest,
@@ -65,11 +63,7 @@ import {
   checkAndRestockMerchants,
   buyMarketItem,
   sellMarketItem,
-  isNavigableOceanForShip,
-  setSailableShipTransform,
-  getActiveSailableShip,
   configureSailableShipsForGameMode,
-  buyOrSpawnShipFromShipwright,
   IGameActions,
   GameWorldMode,
   saveWorldSnapshot,
@@ -99,7 +93,6 @@ import type { IPlayerState } from '../world/domain/worldTypes';
 import {
   getAnimalStrengthAndLevel,
   getActiveWorldBirds,
-  getOrInitAnimalCorpseLoot,
   resetActiveWorldBirds,
   type ISmallAnimalState,
 } from '../world/systems/boidsAndWildlifeSystem';
@@ -121,6 +114,11 @@ import { buildHudTelemetryInput } from '../world/controllers/hudEmitter';
 import { attachInputListeners } from '../world/controllers/inputController';
 import { createSimulationStep } from '../world/controllers/simulationStep';
 import { createRenderFrame } from '../world/controllers/renderFrame';
+import { createCombatController } from '../world/controllers/combatController';
+import { createTrapController } from '../world/controllers/trapController';
+import { createVehicleController } from '../world/controllers/vehicleController';
+import { createShipController } from '../world/controllers/shipController';
+import { createLootController } from '../world/controllers/lootController';
 import { createWorldSaveController } from '../world/controllers/worldSaveController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
@@ -130,7 +128,6 @@ import {
 import { buildTelemetrySnapshot } from '../world/controllers/hudTelemetryBuilder';
 import {
   findActiveCombatDwarf,
-  findNearestDeadLootableDwarf,
   getActiveDwarvenMiners,
   getOrInitDwarfCorpseLoot,
   lootDeadDwarf,
@@ -329,142 +326,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     const trapGhost: { current: ITrapPlacementPreviewGhost | null } = { current: null };
 
-    const placeHeldTrapAtPreview = (): boolean => {
-      const heldTrap = playerState.heldTrapItemId;
-      if (!heldTrap) return false;
-      const owned = playerState.ownedItemIds ?? [];
-      if (!owned.includes(heldTrap)) {
-        playerState.heldTrapItemId = null;
-        emitHudSnapshot();
-        return false;
-      }
-      const res = placeTrapOnGround(
-        worldPlacedTraps,
-        heldTrap,
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        playerState.yaw,
-        (gx: number, gz: number) => walkableHeightValueAt(gx, gz),
-        WATER_LEVEL,
-        playerState.pitch
-      );
-      if (!res.success || !res.placedTrap) {
-        if (res.error) {
-          hudFeedback.lootNotification = res.error;
-          hudFeedback.lootNotificationTimer = 3.5;
-          soundEngine.playSwordClash(false);
-          emitHudSnapshot();
-        }
-        return true;
-      }
-      worldPlacedTraps.push(res.placedTrap);
-      const itemIdx = owned.indexOf(heldTrap);
-      if (itemIdx !== -1) {
-        owned.splice(itemIdx, 1);
-      }
-      const remainingSame = owned.filter((id) => id === heldTrap).length;
-      if (remainingSame <= 0) {
-        playerState.heldTrapItemId = null;
-      }
-      const trapName = INVENTORY_ITEM_MAP.get(heldTrap)?.name ?? 'Trap';
-      hudFeedback.lootNotification =
-        remainingSame > 0
-          ? `Placed ${trapName}! (${remainingSame} left in hands — Left-Click to place another)`
-          : `Placed ${trapName}! Wildlife will notice the bait after a short time.`;
-      hudFeedback.lootNotificationTimer = 4.0;
-      soundEngine.playFootstep('cabin', 0.95);
-      emitHudSnapshot();
-      return true;
-    };
 
-    const deployTrapFromInventory = (
-      specificTrapItem?: InventoryItemId,
-      forceHoldInHands = false
-    ) => {
-      const owned = playerState.ownedItemIds ?? [];
-      const trapOrder: InventoryItemId[] = [
-        'trap_cage_small',
-        'trap_snare',
-        'trap_bear_jaw',
-        'trap_net',
-        'trap_fish',
-      ];
-      const trapToHold =
-        specificTrapItem && owned.includes(specificTrapItem)
-          ? specificTrapItem
-          : trapOrder.find((id) => owned.includes(id));
-      if (!trapToHold) {
-        playerState.heldTrapItemId = null;
-        hudFeedback.lootNotification =
-          "No traps in your inventory. Craft traps at the Trapper's Workbench in the Hunter's Cabin!";
-        hudFeedback.lootNotificationTimer = 3.5;
-        emitHudSnapshot();
-        return;
-      }
 
-      const win = window as unknown as {
-        openInventoryModal?: (open?: boolean, cat?: string) => void;
-      };
-      const wasModalOpen = document.body.dataset.skyrimModalOpen === 'true';
-      if (wasModalOpen) {
-        win.openInventoryModal?.(false);
-      }
-
-      // If already holding this trap outdoors (and not just selecting from Inventory), pressing [T] places it immediately
-      if (
-        !forceHoldInHands &&
-        !wasModalOpen &&
-        playerState.heldTrapItemId === trapToHold
-      ) {
-        placeHeldTrapAtPreview();
-        return;
-      }
-
-      cancelBowDraw(playerState);
-      actionState.isMouseBowHeld = false;
-      playerState.heldTrapItemId = trapToHold;
-      const trapName = INVENTORY_ITEM_MAP.get(trapToHold)?.name ?? 'Trap';
-      const count = owned.filter((id) => id === trapToHold).length;
-      hudFeedback.lootNotification = `Holding ${trapName} (x${count}) — Aim at ground (Green = Valid, Red = Invalid) and Left-Click to place!`;
-      hudFeedback.lootNotificationTimer = 4.2;
-      soundEngine.playFootstep('trail', 1.12);
-      emitHudSnapshot();
-    };
-
-    const harvestOrPickupNearbyTrap = (): boolean => {
-      const nearTrap = findNearestPlacedTrap(
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        worldPlacedTraps,
-        3.5
-      );
-      if (!nearTrap) return false;
-      if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
-      const isSprung = nearTrap.status === 'sprung' || Boolean(nearTrap.sprung);
-      if (isSprung) {
-        const harvestRes = harvestPlacedTrap(nearTrap, playerState.ownedItemIds);
-        awardSkillXp(playerState, 'archery', harvestRes.xpGained);
-        hudFeedback.lootNotification = harvestRes.notification;
-        hudFeedback.lootNotificationTimer = 4.5;
-        soundEngine.playFootstep('bridge', 1.2);
-        const idx = worldPlacedTraps.findIndex((t) => t.id === nearTrap.id);
-        if (idx !== -1) worldPlacedTraps.splice(idx, 1);
-        emitHudSnapshot();
-        return true;
-      }
-      const pickupRes = pickupPlacedTrap(nearTrap, playerState.ownedItemIds);
-      const trapName = INVENTORY_ITEM_MAP.get(pickupRes.returnedTrapItem)?.name ?? 'Trap';
-      hudFeedback.lootNotification = `Picked up ${trapName} and returned it to your inventory.`;
-      hudFeedback.lootNotificationTimer = 3.0;
-      soundEngine.playFootstep('bridge', 0.9);
-      const idx = worldPlacedTraps.findIndex((t) => t.id === nearTrap.id);
-      if (idx !== -1) worldPlacedTraps.splice(idx, 1);
-      emitHudSnapshot();
-      return true;
-    };
-
+    
+    
     // Time, season and weather state (world/domain/timeAndSeasonState).
     const timeState: ITimeAndSeasonState = {
       worldHours: DEFAULT_START_WORLD_HOUR,
@@ -542,46 +407,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     const soundEngine = createSoundEngine();
 
-    function fireArrowNow(powerOverride?: number) {
-      if (playerState.isSwimming) return null;
-      const currentDraw = playerState.bowDrawProgress ?? 0;
-      if (powerOverride === undefined && currentDraw < MIN_BOW_DRAW_TO_SHOOT) {
-        playerState.bowDrawn = false;
-        playerState.bowDrawProgress = 0;
-        return null;
-      }
-      const activeArrowItem = getArrowItemIdForKind(playerState.arrowKind ?? 'normal');
-      const hasArrowInInventory = (playerState.ownedItemIds ?? []).includes(activeArrowItem);
-      if (!hasArrowInInventory && gameSettingsRef.current.godMode === false) {
-        playerState.bowDrawn = false;
-        playerState.bowDrawProgress = 0;
-        hudFeedback.lootNotification = 'No arrows left in inventory!';
-        hudFeedback.lootNotificationTimer = 2.5;
-        emitHudSnapshot();
-        return null;
-      }
-      if (hasArrowInInventory) {
-        consumeArrowFromInventory(playerState);
-      }
-      playerState.equippedTool = 'bow';
-      const pwr =
-        powerOverride !== undefined
-          ? Math.max(MIN_BOW_DRAW_TO_SHOOT, Math.min(1.0, powerOverride))
-          : Math.max(MIN_BOW_DRAW_TO_SHOOT, Math.min(1.0, currentDraw));
-      const arrow = spawnArrowProjectile(playerState, pwr);
-      activeArrows.push(arrow);
-      if (activeArrows.length > 28) {
-        activeArrows.shift();
-      }
-      playerState.arrowsShotCount += 1;
-      playerState.bowDrawn = false;
-      playerState.bowDrawProgress = 0;
-      playerState.bowReleaseKick = 1.0;
-      soundEngine.playArrowShoot(pwr);
-      emitHudSnapshot();
-      return arrow;
-    }
-
+    
     const keysPressed = new Set<string>();
     const keysJustPressed = new Set<string>();
     const openDoorIds = new Set<string>();
@@ -612,6 +438,14 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
     // Action input (sword, bow, flight, pointer lock), world/domain/actionInputState.
     const actionState = createActionInputState();
+        const { placeHeldTrapAtPreview, deployTrapFromInventory, harvestOrPickupNearbyTrap } = createTrapController({
+      actionState,
+      emitHudSnapshot,
+      hudFeedback,
+      playerState,
+      soundEngine,
+      worldPlacedTraps,
+    });
     // Look input (mouse drag and touch), world/domain/lookInputState.
     const lookState = createLookInputState();
     const cameraRig = createCameraRigState();
@@ -622,51 +456,30 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     // Rest and minecart ride state, world/domain/restAndRideState.
     const restState = createRestAndRideState();
 
-    function tryBoardOrExitMinecart(): boolean {
-      if (restState.activeMinecartRide) {
-        restState.activeMinecartRide = null;
-        playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
-        capturePreviousPlayerPose();
-        soundEngine.playFootstep('bridge', 1.05);
-        emitHudSnapshot();
-        return true;
-      }
-      const station = findNearestRideableMinecartStation(
-        playerState.x,
-        playerState.y,
-        playerState.z,
-        4.2
-      );
-      if (!station) return false;
-      const line = DWARVEN_RIDEABLE_MINECART_LINES.find((l) => l.id === station.lineId);
-      if (!line) return false;
-      const startU = station.initialU;
-      const pose = evaluateRideableMinecartPose(line.id, startU);
-      const initialFacingSign: 1 | -1 = station.startAtEnd ? -1 : 1;
-      restState.activeMinecartRide = {
-        lineId: line.id,
-        lineName: line.name,
-        u: startU,
-        velocity: 0,
-        wheelAngle: 0,
-        facingSign: initialFacingSign,
-      };
-      setRideableMinecartVisualProgress(line.id, startU, 0);
-      playerState.x = pose.x;
-      playerState.y = pose.y + 0.55;
-      playerState.z = pose.z;
-      playerState.yaw = station.startAtEnd ? pose.yaw : pose.yaw + Math.PI;
-      playerState.pitch = -0.08;
-      playerState.vx = 0;
-      playerState.vy = 0;
-      playerState.vz = 0;
-      capturePreviousPlayerPose();
-      hudFeedback.lootNotification = `Driving ${line.name} — [W/S] Drive Forward/Back · [E] Exit`;
-      hudFeedback.lootNotificationTimer = 4.0;
-      soundEngine.playFootstep('bridge', 1.2);
-      emitHudSnapshot();
-      return true;
-    }
+    const { tryBoardOrExitMinecart } = createVehicleController({
+      capturePreviousPlayerPose,
+      emitHudSnapshot,
+      hudFeedback,
+      playerState,
+      restState,
+      soundEngine,
+    });
+    const { buyShip, placeMountedShipAt } = createShipController({
+      capturePreviousPlayerPose,
+      emitHudSnapshot,
+      hudFeedback,
+      playerState,
+      rideableHorses,
+      soundEngine,
+    });
+    const { takeFromAnimalCorpse, takeAllFromAnimalCorpse, lootNearestDeadCreature } = createLootController({
+      activeArrows,
+      emitHudSnapshot,
+      hudFeedback,
+      playerState,
+      soundEngine,
+    });
+
 
     // Isolate Survival vs Creative (God Mode) save slots so changes never bleed across worlds!
     let activeWorldMode: GameWorldMode =
@@ -742,45 +555,18 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       atmosphere: applyDynamicAtmosphere(timeState.worldHours, initialWeather),
     });
 
-    function handleSwordStrikeImpactFeedback(
-      res: ReturnType<typeof triggerSwordSlash> | null
-    ) {
-      if (!res) return;
-      if (res.hitAnimal) {
-        const spName = getAnimalSpeciesName(res.hitAnimal.species);
-        hudFeedback.hitAnimal = res.hitAnimal;
-        hudFeedback.hitAnimalTimer = res.killedAnimal ? 1.8 : 6.0;
-        hudFeedback.arrowHitTargetName = res.killedAnimal
-          ? t('notifications.animal_hunted', { species: spName, key: formatKeyCodeLabel(gameSettingsRef.current.keybindings.interactDoor) })
-          : t('notifications.animal_hit', { species: spName });
-        hudFeedback.arrowHitTimer = res.killedAnimal ? 4.0 : 2.5;
-        soundEngine.playArrowHit(true);
-        emitHudSnapshot();
-      } else if (res.hitTarget) {
-        hudFeedback.arrowHitTargetName = res.hitTarget.name;
-        hudFeedback.arrowHitTimer = 3.5;
-        soundEngine.playArrowHit(true);
-        emitHudSnapshot();
-      } else if (res.hitAnySurface) {
-        soundEngine.playSwordClash(false);
-      }
-    }
+        const { handleSwordStrikeImpactFeedback, executeSwordSlash, fireArrowNow } = createCombatController({
+      activeArrows,
+      emitHudSnapshot,
+      hudFeedback,
+      obstacles,
+      playerState,
+      gameSettingsRef,
+      soundEngine,
+    });
 
-    function executeSwordSlash(isHeavy = false, deferHitToStrikeWindow = true) {
-      if (playerState.isSwimming) return null;
-      const res = triggerSwordSlash(
-        playerState,
-        obstacles,
-        isHeavy,
-        deferHitToStrikeWindow
-      );
-      soundEngine.playSwordSwing(res.comboIndex, isHeavy);
-      if (!deferHitToStrikeWindow) {
-        handleSwordStrikeImpactFeedback(res);
-      }
-      return res;
-    }
 
+    
     const gameActions: IGameActions = {
       onEquipItem: (itemId) => {
         if (itemId.startsWith('trap_')) {
@@ -843,28 +629,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           return;
         }
         if (chestId.startsWith('corpse-animal-')) {
-          const animId = Number(chestId.replace('corpse-animal-', ''));
-          const anim = getActiveWorldAnimals().find((a) => a.id === animId);
-          if (anim && anim.isDead && !anim.isLooted) {
-            const lootList = getOrInitAnimalCorpseLoot(anim, activeArrows);
-            if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
-            if (!playerState.favoriteIds) playerState.favoriteIds = [];
-            const maxTake = Math.max(1, Math.floor(quantity || 1));
-            for (let i = 0; i < maxTake; i++) {
-              const idx = lootList.indexOf(itemId);
-              if (idx === -1) break;
-              lootList.splice(idx, 1);
-              playerState.ownedItemIds.push(itemId);
-              if (!playerState.favoriteIds.includes(itemId)) {
-                playerState.favoriteIds.push(itemId);
-              }
-            }
-            if (lootList.length === 0) {
-              anim.isLooted = true;
-            }
-            soundEngine.playFootstep('trail', 1.15);
-            emitHudSnapshot();
-          }
+          takeFromAnimalCorpse(chestId, itemId, quantity);
           return;
         }
         const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
@@ -901,28 +666,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           return 0;
         }
         if (chestId.startsWith('corpse-animal-')) {
-          const animId = Number(chestId.replace('corpse-animal-', ''));
-          const anim = getActiveWorldAnimals().find((a) => a.id === animId);
-          if (anim && anim.isDead && !anim.isLooted) {
-            const lootList = getOrInitAnimalCorpseLoot(anim, activeArrows);
-            const takenCount = lootList.length;
-            if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
-            if (!playerState.favoriteIds) playerState.favoriteIds = [];
-            for (const itemId of lootList) {
-              playerState.ownedItemIds.push(itemId);
-              if (!playerState.favoriteIds.includes(itemId)) {
-                playerState.favoriteIds.push(itemId);
-              }
-            }
-            lootList.length = 0;
-            anim.isLooted = true;
-            if (takenCount > 0) {
-              soundEngine.playFootstep('trail', 1.18);
-            }
-            emitHudSnapshot();
-            return takenCount;
-          }
-          return 0;
+          return takeAllFromAnimalCorpse(chestId);
         }
         const chest = findNearestWorldChest(playerState.x, playerState.y, playerState.z);
         if (chest && chest.id === chestId) {
@@ -949,17 +693,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
         return 0;
       },
-      onBuyShip: (tierId) => {
-        const godMode = gameSettingsRef.current.godMode !== false;
-        const res = buyOrSpawnShipFromShipwright(playerState, tierId, godMode);
-        if (res.ok) {
-          soundEngine.playFootstep('bridge', 1.2);
-          hudFeedback.lootNotification = res.message;
-          hudFeedback.lootNotificationTimer = 4.8;
-        }
-        emitHudSnapshot();
-        return { ok: res.ok, message: res.message };
-      },
+      onBuyShip: (tierId) => buyShip(tierId, gameSettingsRef.current.godMode !== false),
       onOpenChest: (chestId) => {
         openDoorIds.add(chestId);
         if (!playerState.openedChestIds) playerState.openedChestIds = [];
@@ -1004,31 +738,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         restState.activeSleepingBed = null;
         restState.preSleepPlayerPos = null;
         restState.activeMinecartRide = null;
-        if (playerState.mountedHorseId?.startsWith('sailable-ship')) {
-          if (isNavigableOceanForShip(worldX, worldZ)) {
-            setSailableShipTransform(
-              worldX,
-              worldZ,
-              undefined,
-              rideableHorses,
-              getActiveWorldAnimals()
-            );
-            const ship = getActiveSailableShip();
-            const cosY = Math.cos(ship.yaw);
-            const sinY = Math.sin(ship.yaw);
-            const helmOffsetZ = 3.6;
-            playerState.x = ship.x - sinY * helmOffsetZ;
-            playerState.z = ship.z + cosY * helmOffsetZ;
-            playerState.y = ship.deckY + 0.35;
-            playerState.vx = 0;
-            playerState.vy = 0;
-            playerState.vz = 0;
-            capturePreviousPlayerPose();
-            emitHudSnapshot();
-            return;
-          }
-          playerState.mountedHorseId = null;
-        }
+        if (placeMountedShipAt(worldX, worldZ)) return;
         const targetY =
           targetLayer === 'mine' && isInsideSouthernMine(worldX, worldZ)
             ? southernMineWalkableHeightAt(worldX, worldZ)
@@ -1363,44 +1073,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         toggleColliderDebug: (visible?: boolean) =>
           worldHandles.colliderDebugHandles.toggle(visible),
         isColliderDebugVisible: () => worldHandles.colliderDebugHandles.isVisible(),
-        triggerLootNearbyAnimal: () => {
-          const dead = findNearestDeadLootableAnimal(playerState.x, playerState.z);
-          if (!dead) {
-            const deadDwarf = findNearestDeadLootableDwarf(
-              playerState.x,
-              playerState.z,
-              3.4,
-              playerState.isFlying ? playerState.y : undefined
-            );
-            if (deadDwarf) {
-              const dwRes = lootDeadDwarf(playerState, deadDwarf, activeArrows);
-              if (dwRes.looted && dwRes.notification) {
-                hudFeedback.lootNotification = dwRes.notification;
-                hudFeedback.lootNotificationTimer = 4.5;
-                soundEngine.playFootstep('trail', 1.15);
-                emitHudSnapshot();
-              }
-              return {
-                looted: dwRes.looted,
-                recoveredArrowCount: dwRes.recoveredArrows,
-                notification: dwRes.notification,
-              };
-            }
-            return { looted: false, notification: null };
-          }
-          const res = lootDeadAnimal(playerState, dead, activeArrows);
-          if (res.addedItems.length > 0 && res.notification) {
-            hudFeedback.lootNotification = res.notification;
-            hudFeedback.lootNotificationTimer = 4.5;
-            soundEngine.playFootstep('trail', 1.15);
-            emitHudSnapshot();
-          }
-          return {
-            looted: res.addedItems.length > 0,
-            recoveredArrowCount: res.recoveredArrowCount,
-            notification: res.notification,
-          };
-        },
+        triggerLootNearbyAnimal: () => lootNearestDeadCreature(),
         emitHudSnapshot,
       });
     }
