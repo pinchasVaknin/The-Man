@@ -44,6 +44,79 @@ export interface IAtmosphereRenderContext {
 }
 // #endregion
 
+// ======================== MINE LIGHT POOL ======================== \\
+// #region Mine Light Pool
+/**
+ * Summary: A fixed pool of point lights that light the mine from its nearest lanterns.
+ * Design: The mine has dozens of lanterns, and every point light a material can see adds work per pixel. Instead, the
+ *         mine's lanterns are hidden and MINE_LIGHT_POOL_SIZE pooled lights copy the nearest ones each frame. The pool
+ *         size is fixed, so the shader is compiled once and does not recompile as the player moves (audit P3).
+ */
+export const MINE_LIGHT_POOL_SIZE = 6;
+const minePools = new WeakMap<THREE.Scene, THREE.PointLight[]>();
+const poolScratch = new THREE.Vector3();
+
+/** Summary: True when the object and all its ancestors are visible (a lantern inside a culled group is not drawn). */
+function isVisibleInHierarchy(obj: THREE.Object3D): boolean {
+  for (let cur: THREE.Object3D | null = obj; cur; cur = cur.parent) {
+    if (!cur.visible) return false;
+  }
+  return true;
+}
+
+/** Summary: True when a lantern belongs to the southern mine group (named in the model). */
+function isMineLantern(obj: THREE.Object3D): boolean {
+  for (let cur: THREE.Object3D | null = obj; cur; cur = cur.parent) {
+    if (cur.name === 'southern-mine') return true;
+  }
+  return false;
+}
+
+function updateMineLightPool(
+  scene: THREE.Scene,
+  lanterns: readonly THREE.PointLight[],
+  playerPos?: { readonly x: number; readonly y: number; readonly z: number }
+): void {
+  let pool = minePools.get(scene);
+  if (!pool) {
+    pool = Array.from({ length: MINE_LIGHT_POOL_SIZE }, () => {
+      const light = new THREE.PointLight(0xffffff, 0, 1, 1);
+      scene.add(light);
+      return light;
+    });
+    minePools.set(scene, pool);
+  }
+
+  const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number }> = [];
+  for (const src of lanterns) {
+    if (!src.userData.isUndergroundMineLight || !isMineLantern(src)) continue;
+    // A mine lantern never lights the scene on its own; only the pool does.
+    src.visible = false;
+    if (!playerPos || !isVisibleInHierarchy(src.parent ?? src)) continue;
+    src.getWorldPosition(poolScratch);
+    const dx = poolScratch.x - playerPos.x;
+    const dy = poolScratch.y - playerPos.y;
+    const dz = poolScratch.z - playerPos.z;
+    candidates.push({ light: src, dist2: dx * dx + dy * dy + dz * dz, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z });
+  }
+  candidates.sort((a, b) => a.dist2 - b.dist2);
+
+  for (let i = 0; i < pool.length; i++) {
+    const slot = pool[i];
+    const pick = candidates[i];
+    if (!pick) {
+      slot.intensity = 0;
+      continue;
+    }
+    slot.position.set(pick.wx, pick.wy, pick.wz);
+    slot.color.copy(pick.light.color);
+    slot.intensity = pick.light.intensity;
+    slot.distance = pick.light.distance;
+    slot.decay = pick.light.decay;
+  }
+}
+// #endregion
+
 // ======================== CONTROLLER LOGIC ======================== \\
 // #region Controller Logic
 /**
@@ -179,6 +252,7 @@ export function applyDynamicAtmosphereToScene(
       pl.intensity = outdoorLanternStrength;
     }
   }
+  updateMineLightPool(scene, lanternLights, playerPos);
 
   return atmo;
 }
