@@ -24,7 +24,7 @@ import {
   getMerchantStallStock,
   getTreeDisplayName,
   resolveBestLookedAtInteraction,
-  walkableHeightAt,
+  walkableHeightValueAt,
 } from '../terrainMath';
 import { WATER_LEVEL } from '../domain/landmarksRegistry';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
@@ -344,7 +344,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
             player.y,
             player.z,
             player.yaw,
-            (gx, gz) => walkableHeightAt(gx, gz).height,
+            (gx, gz) => walkableHeightValueAt(gx, gz),
             WATER_LEVEL,
             player.pitch
           );
