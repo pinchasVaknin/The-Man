@@ -117,8 +117,8 @@ export const SAVED_GAME_SETTINGS: IGameSettingsConfig = {
   "jumpForceMultiplier": 1,
   "firefliesMode": "sanctuary_only",
   "defaultMuted": false,
-  "graphicsQuality": "low",
-  "godMode": false
+  "graphicsQuality": "high",
+  "godMode": true
 };
 
 const STORAGE_KEY = 'the_man_game_settings_v1';
