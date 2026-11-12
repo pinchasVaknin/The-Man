@@ -18,6 +18,7 @@ import type {
 } from './domain/worldTypes';
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
+import { markOutdoorRoots } from './controllers/undergroundCulling';
 import {
   buildWildlifeAndFootprintsLayer,
   type IWildlifeSoundCallbacks,
@@ -176,6 +177,7 @@ export function buildRealisticWorld(
   });
   disposableMaterials.push(furnitureWoodMat);
 
+  const rootsBeforePlayer = new Set(scene.children);
   const { playerCharacterGroup, updatePlayerAndCombat } = buildPlayerAndCombatSystems({
     scene,
     furnitureWoodMat,
@@ -183,6 +185,8 @@ export function buildRealisticWorld(
     disposableMaterials,
     distanceCulledObjects,
   });
+  // Roots the player builder added stay visible underground; every other outdoor root moves to the outdoor layer.
+  const playerRoots = new Set(scene.children.filter((child) => !rootsBeforePlayer.has(child)));
 
   const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(
     scene,
@@ -197,6 +201,8 @@ export function buildRealisticWorld(
     disposableGeometries,
     disposableMaterials
   );
+
+  markOutdoorRoots(scene, playerRoots);
 
   let lastTime = 0;
 
