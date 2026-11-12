@@ -99,7 +99,7 @@ test('easeFovToward_WhenWithinDeadZone_ShouldReturnNull', () => {
 
 test('computeTargetFov_WhenDashingWhileDrawingBow_ShouldCombineBoostAndZoom', () => {
   // Arrange
-  const rig = { smoothAimZoom: 1, smoothRightClickZoom: 0, smoothCrouchOffset: 0 };
+  const rig = { smoothAimZoom: 1, smoothRightClickZoom: 0, smoothCrouchOffset: 0, wallScale: 1 };
   const player: IPlayerState = { ...createInitialPlayerState(), dashTimer: 0.1, vx: 0, vz: 0 };
 
   // Act

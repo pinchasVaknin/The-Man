@@ -10,6 +10,7 @@
 // #region Imports & Dependencies
 import type { IPlayerState } from '../domain/worldTypes';
 import { PLAYER_EYE_HEIGHT } from '../domain/landmarks/coreLandmarks';
+import { firstSolidHitFraction } from '../domain/collisionWorld';
 import {
   getRoofHeightAt,
   walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
@@ -23,6 +24,8 @@ export interface ICameraRigState {
   smoothAimZoom: number;
   smoothRightClickZoom: number;
   smoothCrouchOffset: number;
+  /** Fraction of the normal third-person distance the camera may use (1 = no wall in the way). */
+  wallScale: number;
 }
 
 /** Summary: Per-frame inputs of the camera rig. */
@@ -64,6 +67,12 @@ const BLOCK_FOV_DROP = 4.5;
 const DASH_FOV_BOOST = 6.5;
 /** FOV changes smaller than this are ignored, to avoid rebuilding the projection every frame. */
 const FOV_EPSILON = 0.05;
+/** Gap kept between the camera and a wall in front of it (metres). */
+const CAMERA_WALL_CLEARANCE_M = 0.35;
+/** The camera never comes closer than this fraction of its normal distance (about 0.6 m for the walking camera). */
+const CAMERA_WALL_MIN_SCALE = 0.2;
+/** How fast the camera eases back out after a wall, as a fraction of the normal distance per second. */
+const CAMERA_WALL_EASE_OUT_PER_SECOND = 2.5;
 // #endregion
 
 // ======================== FACTORIES ======================== \\
@@ -74,6 +83,7 @@ export function createCameraRigState(): ICameraRigState {
     smoothAimZoom: 0,
     smoothRightClickZoom: 0,
     smoothCrouchOffset: 0,
+    wallScale: 1,
   };
 }
 
@@ -147,6 +157,7 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
       landingDip,
       horsePitchSway,
       combinedThirdPersonZoom,
+      dt,
       out
     );
     return;
@@ -198,6 +209,7 @@ function writeThirdPersonPose(
   landingDip: number,
   horsePitchSway: number,
   zoom: number,
+  dt: number,
   out: ICameraPose
 ): void {
   const isMountedOnHorse = Boolean(player.mountedHorseId);
@@ -227,14 +239,28 @@ function writeThirdPersonPose(
   const shoulderSide = 0.44 - 0.86 * zoom;
   const shoulderUp = (isMountedShip ? 3.45 : 0.28) - 0.12 * zoom;
 
-  let camX = pivotX - fwdX * camDist + rightX * shoulderSide;
-  let camZ = pivotZ - fwdZ * camDist + rightZ * shoulderSide;
+  // C1: sweep from the pivot toward the wanted camera spot. If a solid box stands on the way, pull the camera in
+  // in front of it at once; when the path clears, ease the camera back out so it does not jump.
+  const wantX = -fwdX * camDist + rightX * shoulderSide;
+  const wantZ = -fwdZ * camDist + rightZ * shoulderSide;
+  const wantLen = Math.hypot(wantX, wantZ);
+  const hitFraction = firstSolidHitFraction(pivotX, pivotZ, pivotX + wantX, pivotZ + wantZ, pivotY);
+  let targetScale = 1;
+  if (hitFraction !== null && wantLen > 0) {
+    targetScale = Math.max(CAMERA_WALL_MIN_SCALE, (hitFraction * wantLen - CAMERA_WALL_CLEARANCE_M) / wantLen);
+  }
+  rig.wallScale =
+    targetScale < rig.wallScale ? targetScale : Math.min(targetScale, rig.wallScale + dt * CAMERA_WALL_EASE_OUT_PER_SECOND);
+  const effCamDist = camDist * rig.wallScale;
+
+  let camX = pivotX - fwdX * effCamDist + rightX * shoulderSide;
+  let camZ = pivotZ - fwdZ * effCamDist + rightZ * shoulderSide;
   if (Math.abs(player.x - -92.0) < 4.5 && player.z >= 70.2 && player.z <= 75.7) {
     camX = Math.max(-95.8, Math.min(-88.2, camX));
     camZ = Math.max(70.65, Math.min(75.15, camZ));
   }
   const minCamFloorY = walkableHeightValueAt(camX, camZ, player.y) + 0.45;
-  const rawCamY = Math.max(minCamFloorY, pivotY - fwdY * camDist + shoulderUp);
+  const rawCamY = Math.max(minCamFloorY, pivotY - fwdY * effCamDist + shoulderUp);
   const overheadRoofY = getRoofHeightAt(camX, camZ);
   const camY =
     overheadRoofY !== null && player.y < overheadRoofY - 1.2
