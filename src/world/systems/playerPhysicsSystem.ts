@@ -54,6 +54,7 @@ import {
   getSurfaceNormalAt,
   getNearbyWorldObstacles,
   isNavigableOceanForShip, walkableHeightValueAt } from './terrainAndBiomeSystem';
+import { isSegmentBlockedBySolidBox } from '../domain/collisionWorld';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
 import {
   findSailableShipContainingPoint,
@@ -296,7 +297,9 @@ export function stepSurvivalVitals(
     if (
       dist <= strikeReach &&
       (a.aiBehavior === 'attacking' || a.aiBehavior === 'charging') &&
-      (a.attackHitCooldownTimer ?? 0) <= 0
+      (a.attackHitCooldownTimer ?? 0) <= 0 &&
+      // A wall between the animal and the player blocks the hit (G4).
+      !isSegmentBlockedBySolidBox(a.x, a.z, state.x, state.z, (a.y + state.y) / 2 + 0.8)
     ) {
       const { attackDamage } = getAnimalStrengthAndLevel(a);
       const blockFactor = state.swordBlocking ? 0.35 : 1.0;

@@ -226,3 +226,36 @@ export function getNearbySolidBuildingBoxes(
   return _nearbySolidBoxesScratch;
 }
 // #endregion
+
+/**
+ * Summary: True when the horizontal segment from (ax, az) to (bx, bz), at height `y`, passes through a solid box.
+ * Design: Samples the segment every `stepMeters`. The endpoints are not sampled, so a creature touching a wall is not
+ *         blocked by that wall. A box blocks only where its height range contains `y`. Pass `boxes` to test against a
+ *         given list; otherwise the boxes near the segment are used.
+ */
+export function isSegmentBlockedBySolidBox(
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  y: number,
+  boxes?: readonly ISolidBuildingBox[],
+  stepMeters = 0.25
+): boolean {
+  const dist = Math.hypot(bx - ax, bz - az);
+  const candidates = boxes ?? getNearbySolidBuildingBoxes((ax + bx) / 2, (az + bz) / 2, dist / 2 + 1.5);
+  if (candidates.length === 0) return false;
+  const samples = Math.max(1, Math.ceil(dist / stepMeters));
+  for (let k = 1; k < samples; k++) {
+    const t = k / samples;
+    const px = ax + (bx - ax) * t;
+    const pz = az + (bz - az) * t;
+    for (let c = 0; c < candidates.length; c++) {
+      const box = candidates[c];
+      if (box.minY !== undefined && y < box.minY) continue;
+      if (box.maxY !== undefined && y > box.maxY) continue;
+      if (pointInsideSolidBuildingBox(px, pz, 0, box)) return true;
+    }
+  }
+  return false;
+}
