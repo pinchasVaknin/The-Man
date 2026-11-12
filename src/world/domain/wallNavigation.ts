@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { ISolidBuildingBox } from './worldTypes';
-import { getNearbySolidBuildingBoxes, pointInsideSolidBuildingBox } from './collisionWorld';
+import { getNearbySolidBuildingBoxes, isSegmentBlockedBySolidBox, pointInsideSolidBuildingBox } from './collisionWorld';
 // #endregion
 
 // ======================== CONSTANTS ======================== \\
@@ -174,3 +174,20 @@ export function findWallDetourWaypoint(
   return path[Math.min(lookAheadCells, path.length - 1)];
 }
 // #endregion
+
+/**
+ * Summary: Where a creature should steer to reach a target, around solid boxes at its body height.
+ * @returns The target itself when the line is clear; a detour waypoint when a wall is in the way; null when no route
+ *          exists for this body size (the target cannot be reached on foot).
+ */
+export function steerAroundWalls(
+  ax: number,
+  az: number,
+  tx: number,
+  tz: number,
+  y: number,
+  bodyRadius = NAV_BODY_RADIUS_DEFAULT
+): INavPoint | null {
+  if (!isSegmentBlockedBySolidBox(ax, az, tx, tz, y)) return { x: tx, z: tz };
+  return findWallDetourWaypoint(ax, az, tx, tz, y, 3, undefined, bodyRadius);
+}

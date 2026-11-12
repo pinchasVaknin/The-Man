@@ -36,7 +36,7 @@ import {
   findNearestMarketStall,
   getMarketStallCatalogItems,
 } from '../domain/landmarksRegistry';
-import { groundHeightAt, walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
+import { groundHeightAt, isInsideVolcanoSanctum, walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { awardSkillXp, getPlayerHeroLevel, getPlayerState } from './playerPhysicsSystem';
 export { getPlayerState };
 import {
@@ -1884,9 +1884,12 @@ export function stepArrowsPhysics(
             const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
             const minHitY = anim.species === 'koifish' ? animGroundY : animGroundY - 0.35;
             if (horizDist <= animRad && arr.y >= minHitY && arr.y <= animMaxY) {
+              // G12: the volcano boss can only be hurt from inside its sanctum; arrows from the corridors do no damage.
+              const bossShieldedFromHere =
+                anim.species === 'lion' && anim.isBoss && !isInsideVolcanoSanctum(arr.x, arr.z);
               const dmgRes = damageGroundAnimal(
                 anim,
-                arrowDmg,
+                bossShieldedFromHere ? 0 : arrowDmg,
                 arr.x - arr.vx * 0.25,
                 arr.z - arr.vz * 0.25
               );

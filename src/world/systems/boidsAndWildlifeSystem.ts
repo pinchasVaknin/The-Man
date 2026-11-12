@@ -33,7 +33,7 @@ import {
   walkableHeightAt,
   getWorldObstacles,
   getNearbyWorldObstacles,
-  isInsideVolcanoSanctum, walkableHeightValueAt } from './terrainAndBiomeSystem';
+  isInsideVolcanoSanctum, walkableHeightValueAt, getWaterSurfaceHeightAt } from './terrainAndBiomeSystem';
 import {
   getActiveSailableShip,
   isEntityOnSailableShipDeck,
@@ -1831,6 +1831,42 @@ export function propagateHerdAlert(
  * Summary: Resolves horizontal collision for an animal against solid building/cave walls (`SOLID_BUILDING_BOXES`)
  *          and world rock/tree obstacles so bears and wildlife never clip through rocks or cave walls.
  */
+/** Player body radius for animal separation (metres). */
+const PLAYER_BODY_RADIUS_FOR_ANIMALS = 0.45;
+/** Height difference (metres) within which an animal and the player can touch. */
+const PLAYER_ANIMAL_CONTACT_HEIGHT = 2.0;
+
+/**
+ * Summary: Keeps a ground animal out of the player's body (G6). If it overlaps the player at a similar height, it is
+ * pushed out to the edge of the player's footprint, through the same obstacle check animals use for movement.
+ */
+function separateAnimalFromPlayer(a: ISmallAnimalState, frame: ISmallAnimalStepFrame): void {
+  const player = frame.playerStateRef;
+  if (!player || a.isDead || a.isMountedByPlayer || a.isTamed) return;
+  if (Math.abs(a.y - player.y) > PLAYER_ANIMAL_CONTACT_HEIGHT) return;
+  const dx = a.x - player.x;
+  const dz = a.z - player.z;
+  const dist = Math.hypot(dx, dz);
+  const minDist = SPECIES_PROFILES[a.species].preyBodyRadius + PLAYER_BODY_RADIUS_FOR_ANIMALS;
+  if (dist >= minDist) return;
+  // An animal exactly on top of the player is pushed along its own heading.
+  const nx = dist > 1e-4 ? dx / dist : Math.sin(a.yaw);
+  const nz = dist > 1e-4 ? dz / dist : Math.cos(a.yaw);
+  const pushed = resolveAnimalObstacleCollision(
+    player.x + nx * minDist,
+    player.z + nz * minDist,
+    SPECIES_PROFILES[a.species].preyBodyRadius
+  );
+  a.x = pushed.x;
+  a.z = pushed.z;
+  // Stop the animal running into the player: keep only the velocity that points away.
+  const into = a.vx * nx + a.vz * nz;
+  if (into < 0) {
+    a.vx -= into * nx;
+    a.vz -= into * nz;
+  }
+}
+
 function resolveAnimalObstacleCollision(
   nextX: number,
   nextZ: number,
@@ -1930,8 +1966,10 @@ function advanceAnimalWithWaterShoreRecovery(
     }
   }
 
+  // G8: the water surface here (lake, oasis, harbour or mine), not sea level.
+  const localWaterY = getWaterSurfaceHeightAt(nextX, nextZ) ?? WATER_LEVEL;
   const movedHorizontally = Math.abs(nextX - a.x) > 1e-5 || Math.abs(nextZ - a.z) > 1e-5;
-  const dryLandThreshold = WATER_LEVEL + 0.12;
+  const dryLandThreshold = localWaterY + 0.12;
   if (!movedHorizontally && !isCroc && !a.inWater && a.y > dryLandThreshold) {
     return;
   }
@@ -1955,16 +1993,16 @@ function advanceAnimalWithWaterShoreRecovery(
       a.z = boostedNext.z;
       const boostedWalkableY = walkableHeightValueAt(a.x, a.z, a.y);
       a.inWater = boostedWalkableY <= dryLandThreshold;
-      const waterDepth = Math.max(0, WATER_LEVEL - boostedWalkableY);
+      const waterDepth = Math.max(0, localWaterY - boostedWalkableY);
       const submerge = Math.min(waterDepth, getAnimalWaterSubmergenceDepth('crocodile'));
-      a.y = Math.max(boostedWalkableY, WATER_LEVEL - submerge);
+      a.y = Math.max(boostedWalkableY, localWaterY - submerge);
       a.hopPhase += safeDt * 4.5;
     } else {
       a.x = nextX;
       a.z = nextZ;
-      const waterDepth = Math.max(0, WATER_LEVEL - nextWalkableY);
+      const waterDepth = Math.max(0, localWaterY - nextWalkableY);
       const submerge = Math.min(waterDepth, getAnimalWaterSubmergenceDepth('crocodile'));
-      a.y = Math.max(nextWalkableY, WATER_LEVEL - submerge);
+      a.y = Math.max(nextWalkableY, localWaterY - submerge);
     }
     if (hitObstacle && (Math.abs(a.vx) > 0.1 || Math.abs(a.vz) > 0.1)) {
       a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.0, safeDt);
@@ -2024,7 +2062,7 @@ function advanceAnimalWithWaterShoreRecovery(
     const homeDx = a.homeX - a.x;
     const homeDz = a.homeZ - a.z;
     const homeDist = Math.hypot(homeDx, homeDz);
-    if (homeDist > 0.5 && groundHeightAt(a.homeX, a.homeZ) > WATER_LEVEL + 0.35) {
+    if (homeDist > 0.5 && groundHeightAt(a.homeX, a.homeZ) > localWaterY + 0.35) {
       bestDirX = homeDx / homeDist;
       bestDirZ = homeDz / homeDist;
       bestScore = 0.5;
@@ -2064,10 +2102,10 @@ function advanceAnimalWithWaterShoreRecovery(
     a.inWater = false;
     a.y = swimGroundY;
   } else {
-    const waterDepth = Math.max(0, WATER_LEVEL - swimGroundY);
+    const waterDepth = Math.max(0, localWaterY - swimGroundY);
     const maxSubmerge = getAnimalWaterSubmergenceDepth(a.species);
     const submergeDepth = Math.min(waterDepth, maxSubmerge);
-    a.y = Math.max(swimGroundY, WATER_LEVEL - submergeDepth);
+    a.y = Math.max(swimGroundY, localWaterY - submergeDepth);
   }
   if (Math.hypot(a.vx, a.vz) > 0.05) {
     a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
@@ -3194,8 +3232,15 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
           const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0;
           const isCommittedStationaryWarning =
             (a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping') && (a.actionTimer ?? 0) > 0;
+          // G10: an attack starts only when the player is within the same vertical reach that lets it land a hit.
+          // A hovering player above the reach is not attacked at the floor beneath them.
+          const targetIsPlayer = Math.hypot(preyX - playerX, preyZ - playerZ) < 0.5;
+          const preyWithinVerticalReach =
+            !targetIsPlayer ||
+            !playerStateRef ||
+            Math.abs(playerStateRef.y - a.y) <= (a.isBoss || (a.species as string) === 'dragon' ? 4.2 : 2.6);
 
-          if (isCommittedAttack || (!isCommittedStationaryWarning && bestPreyDist <= attackTriggerDist)) {
+          if (isCommittedAttack || (!isCommittedStationaryWarning && bestPreyDist <= attackTriggerDist && preyWithinVerticalReach)) {
             const isPouncer = SPECIES_PROFILES[a.species].pouncesOnPrey;
 
             if (isPouncer) {
@@ -4988,6 +5033,7 @@ export function stepSmallAnimals(
   const tally: ISmallAnimalStepTally = { scamperedCritterCount: 0, nearestCritterDist: Infinity };
   for (let i = 0; i < animals.length; i++) {
     stepOneSmallAnimal(animals, i, frame, tally);
+    separateAnimalFromPlayer(animals[i], frame);
   }
   return { scamperedCritterCount: tally.scamperedCritterCount, nearestCritterDist: tally.nearestCritterDist };
 }

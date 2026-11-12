@@ -139,7 +139,8 @@ export class NatureSoundEngine {
     rainIntensity = 0.0,
     isNight = false,
     underRoof = false,
-    birdProximity = 1.0
+    birdProximity = 1.0,
+    waterDistance = 40
   ) {
     if (!this.initialized || !this.ctx || !active || this.muted) return;
 
@@ -152,10 +153,8 @@ export class NatureSoundEngine {
       this.windGain.gain.setTargetAtTime(targetWind, this.ctx.currentTime, 0.25);
     }
 
-    // Modulate water volume by proximity to lake center or waterfall or rain
-    const lakeDist = Math.hypot(playerX - 2, playerZ - 2);
-    const wfDist = Math.hypot(playerX + 42, playerZ + 30);
-    const minWaterDist = Math.min(lakeDist, wfDist * 0.8);
+    // SND1: water volume follows the distance to real water around the player (sea, lakes, rivers, falls).
+    const minWaterDist = waterDistance;
     const waterProximity =
       Math.max(
         0.02 + rainIntensity * 0.15,

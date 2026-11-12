@@ -618,10 +618,16 @@ const PRECOMPUTED_CARAVAN_TO_HOME: readonly CaravanPath[] = Object.freeze(
  * @param animTimeSec Animation time in seconds.
  * @returns Position, heading and activity of that miner at that hour.
  */
+/**
+ * Summary: Computes where a dwarf is on its daily route.
+ * @param floorAt Optional: the walkable floor height at a point, given a height hint. When given, the dwarf stands on the
+ *                 floor under it (DW1), instead of at the route's interpolated height, which can float or sink.
+ */
 export function computeDwarvenMinerCaravanState(
   worldHours: number,
   dwarfIndex: number,
-  animTimeSec = 0
+  animTimeSec = 0,
+  floorAt?: (x: number, z: number, hintY: number) => number
 ): IDwarvenMinerCaravanState {
   const idx = ((dwarfIndex % DWARVEN_MINERS_COUNT) + DWARVEN_MINERS_COUNT) % DWARVEN_MINERS_COUNT;
   const station = DWARVEN_MINER_STATIONS[idx];
@@ -652,7 +658,7 @@ export function computeDwarvenMinerCaravanState(
       dwarfIndex: idx,
       name: station.name,
       x: pt.x,
-      y: pt.y,
+      y: floorAt ? floorAt(pt.x, pt.z, pt.y) : pt.y,
       z: pt.z,
       yaw: isMoving ? pt.yaw : station.workYaw,
       activity: 'caravan_to_mine',
@@ -689,7 +695,7 @@ export function computeDwarvenMinerCaravanState(
       dwarfIndex: idx,
       name: station.name,
       x: pt.x,
-      y: pt.y,
+      y: floorAt ? floorAt(pt.x, pt.z, pt.y) : pt.y,
       z: pt.z,
       yaw: isMoving ? pt.yaw : house.dirX === 1 ? -Math.PI / 2 : Math.PI / 2,
       activity: 'caravan_to_home',

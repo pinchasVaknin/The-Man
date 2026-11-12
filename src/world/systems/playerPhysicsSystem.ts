@@ -284,9 +284,7 @@ export function stepSurvivalVitals(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     if (a.isDead || a.isTamed || a.isSubdued || a.isMountedByPlayer) continue;
-    if ((a.attackHitCooldownTimer ?? 0) > 0) {
-      a.attackHitCooldownTimer = Math.max(0, (a.attackHitCooldownTimer ?? 0) - dt);
-    }
+    // G11: the cooldown is counted down once, by the animal's own step (boids), not here as well.
     const canAttackPlayer =
       a.species === 'wolf' ||
       a.species === 'bear' ||

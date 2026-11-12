@@ -8,6 +8,7 @@
  *              - Invulnerability: arrow hits trigger `staff_spin` deflection; sword strikes make the monk teleport behind the player and counter-attack.
  */
 
+import { steerAroundWalls } from '../domain/wallNavigation';
 import * as THREE from 'three';
 import {
   WarriorMonk,
@@ -865,6 +866,9 @@ export function isMonkPositionSafeOnPlatform(x: number, z: number, currentY: num
 /**
  * Summary: Clamps a monk's horizontal movement so they can never step or be pushed off an elevated wall, rampart, or platform.
  */
+/** Monk body radius used for wall routing (metres). */
+const MONK_BODY_RADIUS = 0.6;
+
 function clampMonkToPlatformEdge(mk: IActiveTempleMonk, prevX: number, prevZ: number): void {
   if (isMonkPositionSafeOnPlatform(mk.x, mk.z, mk.y)) return;
   if (isMonkPositionSafeOnPlatform(mk.x, prevZ, mk.y)) {
@@ -1117,16 +1121,31 @@ export function updateMonkTempleSystem(
         mk.ctrl.setState('staff_spin', 0.08);
       } else if (dPlayer > 2.25) {
         const runSpd = 5.4;
-        const stepDist = Math.min(dPlayer - 1.85, runSpd * safeDt);
+        // N2: the monk routes around solid walls (no walking through the fortress wall); with no route it holds still.
+        const steer = steerAroundWalls(mk.x, mk.z, playerX, playerZ, mk.y + 0.8, MONK_BODY_RADIUS);
         const prevX = mk.x;
         const prevZ = mk.z;
-        mk.x += (toPx / dPlayer) * stepDist;
-        mk.z += (toPz / dPlayer) * stepDist;
+        if (steer === null) {
+          mk.ctrl.speed = 0;
+          mk.ctrl.setState('idle', 0.2);
+        } else {
+          const sx = steer.x - mk.x;
+          const sz = steer.z - mk.z;
+          const sLen = Math.hypot(sx, sz) || 0.001;
+          const goalDist = steer.x === playerX && steer.z === playerZ ? dPlayer - 1.85 : sLen;
+          const stepDist = Math.min(goalDist, runSpd * safeDt);
+          mk.x += (sx / sLen) * stepDist;
+          mk.z += (sz / sLen) * stepDist;
+        }
         clampMonkToPlatformEdge(mk, prevX, prevZ);
         const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
         mk.y += (walkInfo.height - mk.y) * Math.min(1, safeDt * 12.0);
         mk.ctrl.speed = runSpd;
         mk.ctrl.setState('run', 0.16);
+      } else if (Math.abs(playerY - mk.y) > 2.4) {
+        // N2: a player out of reach above (or below) the monk is not attacked; the monk does not swing at empty air.
+        mk.ctrl.speed = 0;
+        mk.ctrl.setState('idle', 0.2);
       } else {
         mk.ctrl.speed = 0;
         if (mk.attackCooldown <= 0) {

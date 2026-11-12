@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { nearestWaterDistance } from '../domain/waterProximity';
 import type { ICameraRigState } from '../systems/cameraRigSystem';
 import type { IPlacedTrapSync } from './placedTrapSync';
 import type { IRestAndRideState } from '../domain/restAndRideState';
@@ -286,6 +287,9 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
   /** Interpolated copy of the player that the camera and meshes render from. */
   const renderPlayer: IPlayerState = { ...playerState };
   let lastHudEmitTime = 0;
+  /** Distance to the nearest water, refreshed every quarter second (SND1). */
+  let waterSampleTimer = 0;
+  let cachedWaterDistance = 40;
 
   function applyCameraPose(pose: ICameraPose) {
     camera.position.set(pose.x, pose.y, pose.z);
@@ -348,6 +352,17 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
       const distToBirdsFlock = Math.hypot(renderPlayer.x, renderPlayer.z - 15);
       const birdProximity = Math.max(0, Math.min(1, 1.0 - (distToBirdsFlock - 35) / 85));
 
+      // SND1: the nearest water is sampled every quarter second; it changes slowly as the player moves.
+      waterSampleTimer -= frameDt;
+      if (waterSampleTimer <= 0) {
+        waterSampleTimer = 0.25;
+        cachedWaterDistance = nearestWaterDistance(
+          { waterSurfaceAt: (x, z) => getWaterSurfaceHeightAt(x, z), groundAt: (x, z) => walkableHeightValueAt(x, z) },
+          renderPlayer.x,
+          renderPlayer.z,
+          40
+        );
+      }
       soundEngine.updateAmbient(
         frameDt,
         renderPlayer.x,
@@ -357,7 +372,8 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
         simulationState.currentWeather.rainIntensity,
         simulationState.currentAtmo.isNight,
         underRoof,
-        birdProximity
+        birdProximity,
+        cachedWaterDistance
       );
 
       stepCameraRig(
