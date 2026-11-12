@@ -1308,6 +1308,8 @@ export function stepPlayerPhysics(
 
   const candidateObstacles =
     obstacles.length > 500 ? getNearbyWorldObstacles(nextX, nextZ, 3.0) : obstacles;
+  // Pushes the point out of the nearby round obstacles (trees, rocks, pillars), against the current nextX/nextZ.
+  const resolveAgainstCylinders = (): void => {
   for (let i = 0; i < candidateObstacles.length; i++) {
     const obs = candidateObstacles[i];
     const dx = nextX - obs.x;
@@ -1336,6 +1338,16 @@ export function stepPlayerPhysics(
       nextX += nx * overlap;
       nextZ += nz * overlap;
     }
+  }
+  };
+
+  // H5, axis by axis: the X move is resolved against the round obstacles with Z held, then the Z move from the resolved X.
+  {
+    const targetZ = nextZ;
+    nextZ = state.z;
+    resolveAgainstCylinders();
+    nextZ = targetZ;
+    resolveAgainstCylinders();
   }
 
   if (!onLadderVolume) {
