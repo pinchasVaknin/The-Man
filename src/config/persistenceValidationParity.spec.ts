@@ -44,6 +44,8 @@ const GAME_SETTINGS_CASES: ReadonlyArray<[string, unknown]> = [
   ['unknown field is dropped', withSettings((s) => (s.isAdmin = true))],
   ['key code with a space', withSettings((s) => ((s.keybindings as Record<string, string>).jump = 'Key W'))],
   ['missing binding', withSettings((s) => delete (s.keybindings as Record<string, string>).pauseGame)],
+  ['graphics quality unknown', withSettings((s) => (s.graphicsQuality = 'ultra'))],
+  ['graphics quality missing', withSettings((s) => delete s.graphicsQuality)],
   ['sensitivity above range', withSettings((s) => (s.mouseSensitivity = 2.6))],
   ['sensitivity at range edge', withSettings((s) => (s.mouseSensitivity = 2.5))],
   ['walk speed below range', withSettings((s) => (s.walkSpeedMultiplier = 0.5))],

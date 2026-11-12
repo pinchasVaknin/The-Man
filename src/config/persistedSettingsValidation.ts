@@ -12,6 +12,7 @@ import { Result } from '../core/Result';
 import type { ILabPoseOverrides, LabEquipmentVisibilityMode } from '../lab/labCatalog';
 import type { FirefliesMode, IGameKeybindings, IGameSettingsConfig } from './savedGameSettings';
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
+import { GRAPHICS_QUALITIES } from '../world/domain/graphicsQuality';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -79,6 +80,7 @@ export function validateGameSettings(
   const fireflies = value.firefliesMode;
   if (!isOneOf(perspective, CAMERA_PERSPECTIVES) || !isOneOf(fireflies, FIREFLIES_MODES)) return fail;
   if (typeof value.defaultMuted !== 'boolean') return fail;
+  if (!isOneOf(value.graphicsQuality, GRAPHICS_QUALITIES)) return fail;
   if (value.godMode !== undefined && typeof value.godMode !== 'boolean') return fail;
   if (
     !isNumberInRange(value.mouseSensitivity, MOUSE_SENSITIVITY_RANGE) ||
@@ -96,6 +98,7 @@ export function validateGameSettings(
     jumpForceMultiplier: value.jumpForceMultiplier,
     firefliesMode: fireflies,
     defaultMuted: value.defaultMuted,
+    graphicsQuality: value.graphicsQuality,
     ...(typeof value.godMode === 'boolean' ? { godMode: value.godMode } : {}),
   });
 }

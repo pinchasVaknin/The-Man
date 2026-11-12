@@ -712,6 +712,21 @@ export const en = {
       "wind": "Wind Arrow"
     }
   },
+  "loading_screen": {
+    "title": "Loading the world",
+    "tip_1": "Tip: Hold the bow to draw; the longer you hold, the stronger the shot.",
+    "tip_2": "Tip: Press P to pause and open the menu at any time.",
+    "tip_3": "Tip: Lower Graphics Quality in Settings if the game stutters.",
+    "step_renderer": "Starting the renderer",
+    "step_terrain": "Shaping terrain and water",
+    "step_vegetation": "Growing forests and meadows",
+    "step_settlements": "Raising villages and landmarks",
+    "step_sky": "Setting the sky and weather",
+    "step_player": "Preparing the player",
+    "step_wildlife": "Gathering the wildlife",
+    "step_colliders": "Placing collision bounds",
+    "progress_label": "{percent}% loaded"
+  },
   "ui": {
     "minimap_aria": "Minimap",
     "compass_north": "N",
@@ -785,6 +800,11 @@ export const en = {
     "fireflies_hint": "Show fireflies around the Sakura Sanctuary and Birch Grove or turn off",
     "fireflies_sanctuary_only": "Sanctuary Only",
     "fireflies_off": "Off",
+    "graphics_title": "Graphics Quality",
+    "graphics_hint": "Shadows and sharpness. Lower presets run faster on weaker computers.",
+    "graphics_low": "Low",
+    "graphics_medium": "Medium",
+    "graphics_high": "High",
     "mouse_sensitivity": "Mouse Sensitivity",
     "movement_speed": "Movement Speed",
     "jump_force": "Jump Force",
