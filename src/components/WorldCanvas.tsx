@@ -7,6 +7,10 @@
 
 // ======================== IMPORTS & CONTRACTS ======================== \\
 // #region Imports & Contracts
+import type { IObstacle } from '../world/domain/worldTypes';
+import { restoreFelledTrees, type ISavedFelledTree } from '../world/systems/treeFellingSystem';
+import { setPendingDeadDwarfIds } from '../world/builders/dwarvenKingdomBuilder';
+import { decodeRevealedMap, mapExplorationState } from '../world/domain/mapExploration';
 import { t } from '../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -668,6 +672,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     let activeWorldMode: GameWorldMode =
       gameSettingsRef.current.godMode === false ? 'survival' : 'creative';
     const initialSavedWorld = loadWorldSnapshot(activeWorldMode);
+    // S4: the explored map comes back with the save (or starts unexplored).
+    setExploredMapFromSave(initialSavedWorld);
+    restoreWorldStateFromSave(initialSavedWorld, timeState, worldPlacedTraps, obstacles);
     if (initialSavedWorld) {
       applyWorldSnapshotToLiveSystems(
         initialSavedWorld,
@@ -678,6 +685,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       );
       if (initialSavedWorld.timeOfDayHours !== undefined && urlWorldHour === null) {
         timeState.worldHours = initialSavedWorld.timeOfDayHours;
+      }
+      if (initialSavedWorld.inGameHoursElapsed !== undefined) {
+        timeState.inGameHoursElapsed = initialSavedWorld.inGameHoursElapsed;
       }
     }
 
@@ -691,6 +701,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       playerState,
       rideableHorses,
       timeState,
+      worldPlacedTraps,
     });
     (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = worldSave.save;
     const detachWorldSaveListeners = worldSave.attachPageListeners();
@@ -1077,6 +1088,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const targetMode: GameWorldMode = survivalMode ? 'survival' : 'creative';
         activeWorldMode = targetMode;
         const savedSnap = loadWorldSnapshot(targetMode);
+        setExploredMapFromSave(savedSnap);
+        restoreWorldStateFromSave(savedSnap, timeState, worldPlacedTraps, obstacles);
         if (savedSnap) {
           applyWorldSnapshotToLiveSystems(
             savedSnap,
@@ -1662,3 +1675,27 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 });
 WorldCanvas.displayName = 'WorldCanvas';
 // #endregion
+
+/**
+ * Summary: Sets the shared explored map from a save (S4). A fresh world, or a save without one, starts unexplored.
+ */
+function setExploredMapFromSave(snap: { revealedMap?: string } | null | undefined): void {
+  mapExplorationState.revealed = decodeRevealedMap(snap?.revealedMap);
+  window.dispatchEvent(new Event('map-exploration-loaded'));
+}
+
+/**
+ * Summary: Restores the placed traps and the season offset from a save (S2).
+ */
+function restoreWorldStateFromSave(
+  snap: { placedTraps?: IPlacedTrap[]; seasonTimeOffset?: number; felledTrees?: ISavedFelledTree[]; deadDwarfIds?: number[] } | null | undefined,
+  timeState: { seasonTimeOffset: number },
+  worldPlacedTraps: IPlacedTrap[],
+  obstacles: IObstacle[]
+): void {
+  restoreFelledTrees(snap?.felledTrees ?? [], obstacles);
+  setPendingDeadDwarfIds(snap?.deadDwarfIds ?? []);
+  worldPlacedTraps.length = 0;
+  if (snap?.placedTraps) worldPlacedTraps.push(...snap.placedTraps);
+  if (snap?.seasonTimeOffset !== undefined) timeState.seasonTimeOffset = snap.seasonTimeOffset;
+}

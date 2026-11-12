@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & PROPS ======================== \\
 // #region Imports & Props
+import { mapExplorationState } from '../world/domain/mapExploration';
 import { t } from '../locales';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -166,7 +167,6 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   const fullWorldTerrainCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const undergroundMineCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenImgDataRef = useRef<ImageData | null>(null);
-  const revealedLevelRef = useRef<Uint8Array | null>(null);
   const cachedColorsRef = useRef<Uint8Array | null>(null);
   const hasCachedColorRef = useRef<Uint8Array | null>(null);
   const lastRevealPosRef = useRef<{ x: number; z: number }>({ x: 99999, z: 99999 });
@@ -286,7 +286,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   // Initialize persistent Fog-of-War offscreen canvas and cached color arrays once,
   // and listen for 'reset-world-minimap' to clear explored Fog-of-War cells on world reset.
   useEffect(() => {
-    const initOrClearFogCanvas = () => {
+    const initOrClearFogCanvas = (clear: boolean) => {
       let off = offscreenCanvasRef.current;
       if (!off) {
         off = document.createElement('canvas');
@@ -302,7 +302,10 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       ctx.fillRect(0, 0, GRID_SIZE, GRID_SIZE);
 
       offscreenImgDataRef.current = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
-      revealedLevelRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      // S4: keep a restored grid; a reset (clear) or a missing grid starts unexplored.
+      if (clear || !mapExplorationState.revealed || mapExplorationState.revealed.length !== GRID_SIZE * GRID_SIZE) {
+        mapExplorationState.revealed = new Uint8Array(GRID_SIZE * GRID_SIZE);
+      }
       if (!cachedColorsRef.current) {
         cachedColorsRef.current = new Uint8Array(GRID_SIZE * GRID_SIZE * 3);
       }
@@ -312,11 +315,48 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       lastRevealPosRef.current = { x: 99999, z: 99999 };
     };
 
-    initOrClearFogCanvas();
-    window.addEventListener('reset-world-minimap', initOrClearFogCanvas);
+    initOrClearFogCanvas(false);
+    const onReset = () => initOrClearFogCanvas(true);
+    window.addEventListener('reset-world-minimap', onReset);
     return () => {
-      window.removeEventListener('reset-world-minimap', initOrClearFogCanvas);
+      window.removeEventListener('reset-world-minimap', onReset);
     };
+  }, []);
+
+  // S4: paint the explored cells from a loaded save (on mount, and when a save is loaded while the map is open).
+  useEffect(() => {
+    const repaintExplored = () => {
+      const revealed = mapExplorationState.revealed;
+      const imgData = offscreenImgDataRef.current;
+      const off = offscreenCanvasRef.current;
+      if (!revealed || !imgData || !off) return;
+      const ctx = off.getContext('2d');
+      if (!ctx) return;
+      const data = imgData.data;
+      for (let i = 0; i < revealed.length; i++) {
+        const level = revealed[i];
+        const p = i * 4;
+        if (level === 0) {
+          data[p] = 21;
+          data[p + 1] = 19;
+          data[p + 2] = 16;
+          data[p + 3] = 255;
+          continue;
+        }
+        const wx = ((i % GRID_SIZE) + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
+        const wz = (Math.floor(i / GRID_SIZE) + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
+        const [r, g, b] = sampleMinimapColorAt(wx, wz);
+        const alpha = level / 255;
+        data[p] = Math.round(21 * (1 - alpha) + r * alpha);
+        data[p + 1] = Math.round(19 * (1 - alpha) + g * alpha);
+        data[p + 2] = Math.round(16 * (1 - alpha) + b * alpha);
+        data[p + 3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+    };
+    repaintExplored();
+    window.addEventListener('map-exploration-loaded', repaintExplored);
+    return () => window.removeEventListener('map-exploration-loaded', repaintExplored);
   }, []);
 
   // Lazily build the full-world topographic terrain texture the first time the Full-Screen Map is opened
@@ -411,7 +451,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     const displayCanvas = displayCanvasRef.current;
     const offCanvas = offscreenCanvasRef.current;
     const imgData = offscreenImgDataRef.current;
-    const revealed = revealedLevelRef.current;
+    const revealed = mapExplorationState.revealed;
     if (!displayCanvas || !offCanvas || !imgData || !revealed) return;
 
     const offCtx = offCanvas.getContext('2d');
@@ -695,7 +735,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     // Draw Landmark Pins & Labels for the active map layer (Surface vs Underground Mine)
     const activeLandmarks =
       mapLayer === 'mine' ? UNDERGROUND_MINE_LANDMARKS : WORLD_MAP_LANDMARKS;
-    const revealed = revealedLevelRef.current;
+    const revealed = mapExplorationState.revealed;
     ctx.font = 'bold 12px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     for (const lm of activeLandmarks) {

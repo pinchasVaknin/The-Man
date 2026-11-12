@@ -134,6 +134,19 @@ export function generateRandomDwarfLoot(seedOffset = 0): {
   return { goldDrop, lootItems };
 }
 
+/** Dwarf ids that were dead when the world was saved (S2). Applied when the rigs are built. */
+let pendingDeadDwarfIds: ReadonlySet<number> = new Set();
+
+/** Summary: Sets the dwarves to restore as dead (S2). */
+export function setPendingDeadDwarfIds(ids: readonly number[]): void {
+  pendingDeadDwarfIds = new Set(ids);
+}
+
+/** Summary: Ids of the dwarves that are dead right now, for the save (S2). */
+export function getDeadDwarfIds(): number[] {
+  return activeDwarvenMiners.filter((d) => d.isDead).map((d) => d.id);
+}
+
 export function getActiveDwarvenMiners(): readonly IDwarvenMinerRig[] {
   return activeDwarvenMiners;
 }
@@ -1184,6 +1197,16 @@ export function buildDwarvenKingdomAndMiners(
     };
     dwarvenMiners.push(rigEntry);
     activeDwarvenMiners.push(rigEntry);
+    if (pendingDeadDwarfIds.has(rigEntry.id)) {
+      const loot = generateRandomDwarfLoot(rigEntry.id);
+      rigEntry.isDead = true;
+      rigEntry.isLooted = false;
+      rigEntry.hp = 0;
+      rigEntry.goldDrop = loot.goldDrop;
+      rigEntry.lootItems = loot.lootItems;
+      rigEntry.outOfAreaRespawnTimer = 0;
+      rigEntry.deathTimer = 0;
+    }
   }
 
   const rotateAngleToward = (curr: number, target: number, maxStep: number): number => {
