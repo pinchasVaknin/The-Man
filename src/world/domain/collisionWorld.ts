@@ -259,3 +259,35 @@ export function isSegmentBlockedBySolidBox(
   }
   return false;
 }
+
+/**
+ * Summary: Where a horizontal sweep from (ax, az) to (bx, bz), at height `y`, first enters a solid box.
+ * Design: Samples every `stepMeters`, starting one step in, so a sweep that starts inside a box does not count that box.
+ * @returns The fraction 0..1 of the way along the sweep where it first enters a box, or null when it stays clear.
+ */
+export function firstSolidHitFraction(
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  y: number,
+  boxes?: readonly ISolidBuildingBox[],
+  stepMeters = 0.2
+): number | null {
+  const dist = Math.hypot(bx - ax, bz - az);
+  const candidates = boxes ?? getNearbySolidBuildingBoxes((ax + bx) / 2, (az + bz) / 2, dist / 2 + 1.5);
+  if (candidates.length === 0 || dist === 0) return null;
+  const samples = Math.max(1, Math.ceil(dist / stepMeters));
+  for (let k = 1; k <= samples; k++) {
+    const t = k / samples;
+    const px = ax + (bx - ax) * t;
+    const pz = az + (bz - az) * t;
+    for (let c = 0; c < candidates.length; c++) {
+      const box = candidates[c];
+      if (box.minY !== undefined && y < box.minY) continue;
+      if (box.maxY !== undefined && y > box.maxY) continue;
+      if (pointInsideSolidBuildingBox(px, pz, 0, box)) return t;
+    }
+  }
+  return null;
+}

@@ -18,7 +18,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -41,7 +42,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -64,7 +66,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -87,7 +90,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -110,7 +114,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -133,7 +138,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -156,7 +162,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -179,7 +186,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -202,7 +210,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -225,7 +234,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -248,7 +258,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -271,7 +282,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -294,7 +306,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -317,7 +330,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -340,7 +354,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -363,7 +378,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -386,7 +402,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -409,7 +426,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -432,7 +450,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -455,7 +474,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -478,7 +498,8 @@
   "rig": {
    "smoothAimZoom": 0.800778,
    "smoothCrouchOffset": -0.410746,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -501,7 +522,8 @@
   "rig": {
    "smoothAimZoom": 0.961867,
    "smoothCrouchOffset": -0.470476,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -524,7 +546,8 @@
   "rig": {
    "smoothAimZoom": 0.992987,
    "smoothCrouchOffset": -0.478752,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -547,7 +570,8 @@
   "rig": {
    "smoothAimZoom": 0.998603,
    "smoothCrouchOffset": -0.47982,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -570,7 +594,8 @@
   "rig": {
    "smoothAimZoom": 0.999733,
    "smoothCrouchOffset": -0.479975,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -593,7 +618,8 @@
   "rig": {
    "smoothAimZoom": 0.199169,
    "smoothCrouchOffset": -0.069251,
-   "smoothRightClickZoom": 0.85572
+   "smoothRightClickZoom": 0.85572,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -616,7 +642,8 @@
   "rig": {
    "smoothAimZoom": 0.038123,
    "smoothCrouchOffset": -0.009523,
-   "smoothRightClickZoom": 0.980159
+   "smoothRightClickZoom": 0.980159,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -639,7 +666,8 @@
   "rig": {
    "smoothAimZoom": 0.007011,
    "smoothCrouchOffset": -0.001248,
-   "smoothRightClickZoom": 0.997399
+   "smoothRightClickZoom": 0.997399,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -662,7 +690,8 @@
   "rig": {
    "smoothAimZoom": 0.001397,
    "smoothCrouchOffset": -0.00018,
-   "smoothRightClickZoom": 0.999625
+   "smoothRightClickZoom": 0.999625,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -685,7 +714,8 @@
   "rig": {
    "smoothAimZoom": 0.000267,
    "smoothCrouchOffset": -0.000025,
-   "smoothRightClickZoom": 0.999948
+   "smoothRightClickZoom": 0.999948,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -708,7 +738,8 @@
   "rig": {
    "smoothAimZoom": 0.000053,
    "smoothCrouchOffset": -0.000004,
-   "smoothRightClickZoom": 0.144272
+   "smoothRightClickZoom": 0.144272,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -731,7 +762,8 @@
   "rig": {
    "smoothAimZoom": 0.00001,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.01984
+   "smoothRightClickZoom": 0.01984,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -754,7 +786,8 @@
   "rig": {
    "smoothAimZoom": 0.000002,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.0026
+   "smoothRightClickZoom": 0.0026,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -777,7 +810,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000375
+   "smoothRightClickZoom": 0.000375,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -800,7 +834,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000052
+   "smoothRightClickZoom": 0.000052,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -823,7 +858,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000007
+   "smoothRightClickZoom": 0.000007,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -846,7 +882,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000001
+   "smoothRightClickZoom": 0.000001,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -869,7 +906,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -892,7 +930,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -915,7 +954,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -938,7 +978,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -961,7 +1002,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -984,7 +1026,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -1007,7 +1050,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -1030,7 +1074,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -1053,7 +1098,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -1076,7 +1122,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -1099,7 +1146,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -1122,7 +1170,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -1145,7 +1194,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -1168,7 +1218,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -1191,7 +1242,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -1214,7 +1266,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -1237,7 +1290,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -1260,7 +1314,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 0
  },
@@ -1283,7 +1338,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -1306,7 +1362,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -1329,7 +1386,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -1352,7 +1410,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -1375,7 +1434,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 1
  },
@@ -1398,7 +1458,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -1421,7 +1482,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -1444,7 +1506,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -1467,7 +1530,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -1490,7 +1554,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 2
  },
@@ -1513,7 +1578,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -1536,7 +1602,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -1559,7 +1626,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -1582,7 +1650,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -1605,7 +1674,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 3
  },
@@ -1628,7 +1698,8 @@
   "rig": {
    "smoothAimZoom": 0.800778,
    "smoothCrouchOffset": -0.410746,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -1651,7 +1722,8 @@
   "rig": {
    "smoothAimZoom": 0.961867,
    "smoothCrouchOffset": -0.470476,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -1674,7 +1746,8 @@
   "rig": {
    "smoothAimZoom": 0.992987,
    "smoothCrouchOffset": -0.478752,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -1697,7 +1770,8 @@
   "rig": {
    "smoothAimZoom": 0.998603,
    "smoothCrouchOffset": -0.47982,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -1720,7 +1794,8 @@
   "rig": {
    "smoothAimZoom": 0.999733,
    "smoothCrouchOffset": -0.479975,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 4
  },
@@ -1743,7 +1818,8 @@
   "rig": {
    "smoothAimZoom": 0.199169,
    "smoothCrouchOffset": -0.069251,
-   "smoothRightClickZoom": 0.85572
+   "smoothRightClickZoom": 0.85572,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -1766,7 +1842,8 @@
   "rig": {
    "smoothAimZoom": 0.038123,
    "smoothCrouchOffset": -0.009523,
-   "smoothRightClickZoom": 0.980159
+   "smoothRightClickZoom": 0.980159,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -1789,7 +1866,8 @@
   "rig": {
    "smoothAimZoom": 0.007011,
    "smoothCrouchOffset": -0.001248,
-   "smoothRightClickZoom": 0.997399
+   "smoothRightClickZoom": 0.997399,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -1812,7 +1890,8 @@
   "rig": {
    "smoothAimZoom": 0.001397,
    "smoothCrouchOffset": -0.00018,
-   "smoothRightClickZoom": 0.999625
+   "smoothRightClickZoom": 0.999625,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -1835,7 +1914,8 @@
   "rig": {
    "smoothAimZoom": 0.000267,
    "smoothCrouchOffset": -0.000025,
-   "smoothRightClickZoom": 0.999948
+   "smoothRightClickZoom": 0.999948,
+   "wallScale": 1
   },
   "variantIndex": 5
  },
@@ -1858,7 +1938,8 @@
   "rig": {
    "smoothAimZoom": 0.000053,
    "smoothCrouchOffset": -0.000004,
-   "smoothRightClickZoom": 0.144272
+   "smoothRightClickZoom": 0.144272,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -1881,7 +1962,8 @@
   "rig": {
    "smoothAimZoom": 0.00001,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.01984
+   "smoothRightClickZoom": 0.01984,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -1904,7 +1986,8 @@
   "rig": {
    "smoothAimZoom": 0.000002,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.0026
+   "smoothRightClickZoom": 0.0026,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -1927,7 +2010,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000375
+   "smoothRightClickZoom": 0.000375,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -1950,7 +2034,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000052
+   "smoothRightClickZoom": 0.000052,
+   "wallScale": 1
   },
   "variantIndex": 6
  },
@@ -1973,7 +2058,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000007
+   "smoothRightClickZoom": 0.000007,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -1996,7 +2082,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0.000001
+   "smoothRightClickZoom": 0.000001,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -2019,7 +2106,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -2042,7 +2130,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -2065,7 +2154,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 7
  },
@@ -2088,7 +2178,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -2111,7 +2202,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -2134,7 +2226,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -2157,7 +2250,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -2180,7 +2274,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 8
  },
@@ -2203,7 +2298,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -2226,7 +2322,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -2249,7 +2346,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -2272,7 +2370,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
@@ -2295,7 +2394,8 @@
   "rig": {
    "smoothAimZoom": 0,
    "smoothCrouchOffset": 0,
-   "smoothRightClickZoom": 0
+   "smoothRightClickZoom": 0,
+   "wallScale": 1
   },
   "variantIndex": 9
  },
