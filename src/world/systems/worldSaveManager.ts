@@ -1,3 +1,5 @@
+import type { ISavedFelledTree } from './treeFellingSystem';
+import type { IPlacedTrap } from './animalTrapsSystem';
 import type {
   EquippedToolSlot,
   ICharacterSkillsState,
@@ -42,6 +44,8 @@ export interface ISavedAnimalState {
   customName?: string;
   isLooted?: boolean;
   isDead?: boolean;
+  /** A boss subdued by repeated hits (S2). Older saves fall back to the tamed flag. */
+  isSubdued?: boolean;
 }
 
 export interface ISavedPlayerState {
@@ -109,6 +113,18 @@ export interface IWorldSaveSnapshot {
   openDoors?: string[];
   openedChests?: string[];
   timeOfDayHours?: number;
+  /** The explored part of the map, run-length encoded (S4). Absent in older saves. */
+  revealedMap?: string;
+  /** Traps the player placed (S2). Absent in older saves. */
+  placedTraps?: IPlacedTrap[];
+  /** Season clock offset, so the season and weather continue (S2). */
+  seasonTimeOffset?: number;
+  /** Trees felled in this world (S2). */
+  felledTrees?: ISavedFelledTree[];
+  /** Dwarves that were dead at save time (S2). */
+  deadDwarfIds?: number[];
+  /** Full in-game days elapsed (drives merchant restocks, S2). Absent in older saves. */
+  inGameHoursElapsed?: number;
 }
 
 const STORAGE_KEY_PREFIX = 'THE_MAN_WORLD_SAVE_';
@@ -380,7 +396,8 @@ export function captureCurrentWorldSnapshot(
         tamedTier: aAny.tamedTier,
         customName: aAny.customName,
         isLooted: Boolean(a.isLooted),
-        isDead: Boolean(a.isDead)
+        isDead: Boolean(a.isDead),
+        isSubdued: Boolean(a.isSubdued)
       };
     }),
     horses: horses.map((h) => ({
@@ -522,7 +539,7 @@ export function applyWorldSnapshotToLiveSystems(
         aAny.customName = saved.customName;
         a.isLooted = Boolean(saved.isLooted);
         a.isDead = Boolean(saved.isDead || saved.hp <= 0);
-        a.isSubdued = Boolean(saved.isTamed);
+        a.isSubdued = Boolean(saved.isSubdued ?? saved.isTamed);
         if (a.isDead && !a.isBoss && a.species !== 'dragon') {
           a.respawnTimer = 45.0;
         }

@@ -7,9 +7,13 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\\\
 // #region Imports & Dependencies
+import { getFelledTreesForSave } from '../systems/treeFellingSystem';
+import { getDeadDwarfIds } from '../builders/dwarvenKingdomBuilder';
+import type { IPlacedTrap } from '../systems/animalTrapsSystem';
 import type { GameWorldMode } from '../systems/worldSaveManager';
 import { captureCurrentWorldSnapshot, loadWorldSnapshot, saveWorldSnapshot } from '../systems/worldSaveManager';
 import type { GameStateMode } from '../domain/gameShellTypes';
+import { encodeRevealedMap, mapExplorationState } from '../domain/mapExploration';
 import type { IPlayerState, IRideableHorseState } from '../domain/worldTypes';
 import type { ISmallAnimalState } from '../systems/boidsAndWildlifeSystem';
 // #endregion
@@ -24,7 +28,9 @@ export interface IWorldSaveContext {
   readonly openDoorIds: Set<string>;
   readonly playerState: IPlayerState;
   readonly rideableHorses: readonly IRideableHorseState[];
-  readonly timeState: { worldHours: number };
+  readonly timeState: { worldHours: number; inGameHoursElapsed: number; seasonTimeOffset: number };
+  /** The traps the player has placed (S2). */
+  readonly worldPlacedTraps: readonly IPlacedTrap[];
 }
 
 /** Summary: The save entry points handed to the canvas and the simulation. */
@@ -56,6 +62,14 @@ export function createWorldSaveController(ctx: IWorldSaveContext): IWorldSaveCon
       ctx.openDoorIds,
       ctx.timeState.worldHours
     );
+    snap.inGameHoursElapsed = ctx.timeState.inGameHoursElapsed;
+    snap.seasonTimeOffset = ctx.timeState.seasonTimeOffset;
+    snap.placedTraps = JSON.parse(JSON.stringify(ctx.worldPlacedTraps));
+    snap.felledTrees = getFelledTreesForSave();
+    snap.deadDwarfIds = getDeadDwarfIds();
+    if (mapExplorationState.revealed) {
+      snap.revealedMap = encodeRevealedMap(mapExplorationState.revealed);
+    }
     saveWorldSnapshot(mode, snap);
   };
 

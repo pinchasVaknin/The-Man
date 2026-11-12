@@ -81,6 +81,70 @@ export function resetTreeFellingSystem(obstacles?: IObstacle[]): void {
   activeTreeRecords.clear();
 }
 
+/** Summary: A tree that has been felled, as saved between sessions (S2). */
+export interface ISavedFelledTree {
+  readonly obstacleIndex: number;
+  readonly kind: ChoppableTreeKind;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly scale: number;
+  readonly originalRadius: number;
+  readonly woodYield: number;
+  readonly status: 'fallen' | 'harvested';
+}
+
+/** Summary: The felled and harvested trees, for the save. */
+export function getFelledTreesForSave(): ISavedFelledTree[] {
+  const out: ISavedFelledTree[] = [];
+  for (const rec of activeTreeRecords.values()) {
+    if (rec.status !== 'fallen' && rec.status !== 'harvested') continue;
+    out.push({
+      obstacleIndex: rec.obstacleIndex,
+      kind: rec.kind,
+      x: rec.x,
+      y: rec.y,
+      z: rec.z,
+      scale: rec.scale,
+      originalRadius: rec.originalRadius,
+      woodYield: rec.woodYield,
+      status: rec.status,
+    });
+  }
+  return out;
+}
+
+/**
+ * Summary: Puts saved felled trees back: their records, and the collider a felled tree leaves (stump or none).
+ */
+export function restoreFelledTrees(saved: readonly ISavedFelledTree[], obstacles: IObstacle[]): void {
+  for (const s of saved) {
+    const obs = obstacles[s.obstacleIndex];
+    if (!obs) continue;
+    activeTreeRecords.set(s.obstacleIndex, {
+      id: `tree-${s.obstacleIndex}`,
+      obstacleIndex: s.obstacleIndex,
+      kind: s.kind,
+      x: s.x,
+      y: s.y,
+      z: s.z,
+      scale: s.scale,
+      chops: CHOPS_REQUIRED_TO_FELL,
+      maxChops: CHOPS_REQUIRED_TO_FELL,
+      status: s.status,
+      shakeTimer: 0,
+      fallYaw: 0,
+      fallTimer: TREE_FALL_DURATION_SEC,
+      fallDuration: TREE_FALL_DURATION_SEC,
+      fallAngleRad: s.status === 'fallen' ? 1.42 : 0,
+      damagedPlayer: true,
+      woodYield: s.woodYield,
+      originalRadius: s.originalRadius,
+    });
+    obs.radius = s.status === 'harvested' ? 0 : Math.min(s.originalRadius, 0.32);
+  }
+}
+
 export function getActiveTreeFellingRecords(): ReadonlyMap<number, ITreeFellingRecord> {
   return activeTreeRecords;
 }
