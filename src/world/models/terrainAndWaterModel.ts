@@ -143,7 +143,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           `
           #include <clipping_planes_fragment>
           // Carve a real tunnel entrance opening into the steep North face of the Far-South Dwarven Mine Mountain
-          if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.25 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 13.5).toFixed(1)} && vTerrainWorldPos.y < 7.05) {
+          if (abs(vTerrainWorldPos.x - (${SOUTHERN_MINE_POS.x.toFixed(1)})) < 3.65 && vTerrainWorldPos.z > ${(SOUTHERN_MINE_POS.entranceZ - 0.9).toFixed(1)} && vTerrainWorldPos.z < ${(SOUTHERN_MINE_POS.entranceZ + 34.5).toFixed(1)} && vTerrainWorldPos.y < 14.5) {
             discard;
           }
           // Carve arched ground-level tunnel portal openings at the 3 Mountain Bear Caves while keeping the floor intact and mountain peak solid above

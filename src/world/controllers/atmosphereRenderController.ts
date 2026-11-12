@@ -12,6 +12,7 @@ import { Sky } from 'three/addons/objects/Sky.js';
 import {
   IDynamicAtmosphereState,
   IWeatherStateSnapshot,
+  SOUTHERN_MINE_POS,
   computeDynamicSolarCycle,
   isInsideSouthernMine,
 } from '../terrainMath';
@@ -52,7 +53,7 @@ export interface IAtmosphereRenderContext {
  *         mine's lanterns are hidden and MINE_LIGHT_POOL_SIZE pooled lights copy the nearest ones each frame. The pool
  *         size is fixed, so the shader is compiled once and does not recompile as the player moves (audit P3).
  */
-export const MINE_LIGHT_POOL_SIZE = 6;
+export const MINE_LIGHT_POOL_SIZE = 8;
 const minePools = new WeakMap<THREE.Scene, THREE.PointLight[]>();
 const poolScratch = new THREE.Vector3();
 
@@ -79,33 +80,36 @@ function updateMineLightPool(
   isPlayerUndergroundInMine = false
 ): void {
   const isSoftwareGl = Boolean(scene.userData?.isSoftwareGl);
-  if (isSoftwareGl) {
-    for (let i = 0; i < lanterns.length; i++) {
-      lanterns[i].visible = false;
-    }
-    const existingPool = minePools.get(scene);
-    if (existingPool) {
-      for (let i = 0; i < existingPool.length; i++) {
-        existingPool[i].visible = false;
-        existingPool[i].intensity = 0;
-      }
-    }
-    return;
-  }
-
   let pool = minePools.get(scene);
   if (!pool) {
     pool = Array.from({ length: MINE_LIGHT_POOL_SIZE }, () => {
-      const light = new THREE.PointLight(0xffffff, 0, 0.01, 1);
+      const light = new THREE.PointLight(0xffffff, 0, 0.01, 1.15);
       light.visible = true;
       scene.add(light);
       return light;
     });
     minePools.set(scene, pool);
+  } else {
+    for (let i = 0; i < pool.length; i++) {
+      pool[i].visible = true;
+    }
+  }
+
+  // Surface lanterns can be skipped on software GL, but underground mine lights MUST always run so dark chambers are lit by torches.
+  if (isSoftwareGl && !isPlayerUndergroundInMine) {
+    for (let i = 0; i < lanterns.length; i++) {
+      lanterns[i].visible = false;
+    }
+    for (let i = 0; i < pool.length; i++) {
+      pool[i].intensity = 0;
+      pool[i].distance = 0.01;
+    }
+    return;
   }
 
   const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number }> = [];
   const maxSurfaceDistSq = 75 * 75;
+  const maxMineDistSq = 95 * 95;
   for (let i = 0; i < lanterns.length; i++) {
     const src = lanterns[i];
     const inMine = Boolean(src.userData.isUndergroundMineLight) || isMineLantern(src);
@@ -121,13 +125,44 @@ function updateMineLightPool(
     const dz = poolScratch.z - playerPos.z;
     const dist2 = dx * dx + dy * dy + dz * dz;
     if (!inMine && dist2 > maxSurfaceDistSq) continue;
+    if (inMine && dist2 > maxMineDistSq) continue;
     candidates.push({ light: src, dist2, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z });
   }
   candidates.sort((a, b) => a.dist2 - b.dist2);
 
+  // Spread the 8 pooled lights across distinct regional clusters (at least 7m apart on first pass)
+  // so twin sconces on one arch don't consume two pool slots and starve torches further down the hall.
+  const picked: typeof candidates = [];
+  const skipped: typeof candidates = [];
+  const minSpreadSq = isPlayerUndergroundInMine ? 7.5 * 7.5 : 0;
+  for (let i = 0; i < candidates.length && picked.length < pool.length; i++) {
+    const c = candidates[i];
+    let tooClose = false;
+    if (minSpreadSq > 0) {
+      for (let j = 0; j < picked.length; j++) {
+        const p = picked[j];
+        const sdx = c.wx - p.wx;
+        const sdy = c.wy - p.wy;
+        const sdz = c.wz - p.wz;
+        if (sdx * sdx + sdy * sdy + sdz * sdz < minSpreadSq) {
+          tooClose = true;
+          break;
+        }
+      }
+    }
+    if (tooClose) {
+      skipped.push(c);
+    } else {
+      picked.push(c);
+    }
+  }
+  for (let i = 0; i < skipped.length && picked.length < pool.length; i++) {
+    picked.push(skipped[i]);
+  }
+
   for (let i = 0; i < pool.length; i++) {
     const slot = pool[i];
-    const pick = candidates[i];
+    const pick = picked[i];
     if (!pick) {
       slot.intensity = 0;
       slot.distance = 0.01;
@@ -178,7 +213,9 @@ export function applyDynamicAtmosphereToScene(
   sunVec.set(atmo.sunDirX, atmo.sunDirY, atmo.sunDirZ);
 
   const isPlayerUndergroundInMine = Boolean(
-    playerPos && playerPos.y < -1.4 && isInsideSouthernMine(playerPos.x, playerPos.z)
+    playerPos &&
+      playerPos.y < SOUTHERN_MINE_POS.entranceY - 0.3 &&
+      isInsideSouthernMine(playerPos.x, playerPos.z, playerPos.y)
   );
 
   const stormDark = weather ? weather.cloudDarkness : 0;
@@ -196,23 +233,23 @@ export function applyDynamicAtmosphereToScene(
   skyUniforms['sunPosition'].value.copy(sunVec);
 
   if (isPlayerUndergroundInMine) {
-    // Subterranean Mine Lighting: warm torchlit ambient illumination with deep slate shadows
-    // so the entire mine is clearly visible while preserving an authentic underground cavern atmosphere.
+    // Subterranean Mine Lighting: 100% independent of surface day/night cycle and weather.
+    // Base ambient is low cavern darkness so unlit rooms are genuinely dark, while regional
+    // torches, sconces, lanterns, and crystals cast clear warm/colored illumination across their area.
     sky.visible = false;
     sunDiscMesh.visible = false;
     sunLight.intensity = 0;
-    // The sun contributes nothing underground, so skip re-rendering its shadow map until the player surfaces.
     renderer.shadowMap.autoUpdate = false;
 
-    hemiLight.color.setHex(0x52607a);
-    hemiLight.groundColor.setHex(0x332214);
-    hemiLight.intensity = 0.92;
-    scene.environmentIntensity = 0.28;
+    hemiLight.color.setHex(0x28334a);
+    hemiLight.groundColor.setHex(0x14100c);
+    hemiLight.intensity = 0.14;
+    scene.environmentIntensity = 0.04;
 
-    fog.color.setHex(0x0d1017);
-    fog.density = 0.0022;
-    bgColor.setHex(0x0d1017);
-    renderer.toneMappingExposure = 1.26;
+    fog.color.setHex(0x040508);
+    fog.density = 0.0032;
+    bgColor.setHex(0x040508);
+    renderer.toneMappingExposure = 1.15;
   } else {
     renderer.shadowMap.autoUpdate = true;
     // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
@@ -274,7 +311,10 @@ export function applyDynamicAtmosphereToScene(
     const inMine = Boolean(pl.userData.isUndergroundMineLight) || isMineLantern(pl);
     pl.userData.isUndergroundMineLight = inMine;
     if (inMine) {
-      pl.intensity = (pl.userData.baseIntensity as number) ?? 4.2;
+      const base = (pl.userData.baseIntensity as number) ?? 5.6;
+      pl.intensity = base * 3.8;
+      pl.distance = Math.max(pl.distance || 0, 44.0);
+      pl.decay = 1.12;
     } else {
       const base = (pl.userData.baseIntensity as number | undefined);
       pl.intensity = base !== undefined ? Math.max(base, outdoorLanternStrength) : outdoorLanternStrength;

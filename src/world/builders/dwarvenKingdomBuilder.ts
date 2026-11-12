@@ -585,9 +585,9 @@ export function buildDwarvenKingdomAndMiners(
   distanceCulledObjects.push({
     obj: mineGroup,
     cx: mineX,
-    cz: mineEntZ + 20.0,
-    radius: 55,
-    maxDist: 170,
+    cz: mineEntZ + 150.0,
+    radius: 220,
+    maxDist: 380,
   });
 
   // 1) TWIN COLOSSAL SCULPTED DWARVEN KING GUARDIAN STATUES FLANKING THE MINE ENTRANCE
@@ -1129,6 +1129,7 @@ export function buildDwarvenKingdomAndMiners(
 
   for (let d = 0; d < DWARVEN_MINERS_COUNT; d++) {
     const dwRoot = new THREE.Group();
+    dwRoot.name = `dwarven-miner-${d}`;
     const ctrl = createReadyDwarfWarrior({
       initialState: 'idle',
       weaponVisible: true,

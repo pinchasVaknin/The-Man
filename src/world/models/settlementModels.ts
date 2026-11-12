@@ -2235,6 +2235,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     }
     disposableGeometries.push(horseCtrl.saddleMesh.geometry);
 
+    root.name = `rideable-horse-${def.id}`;
     scene.add(root);
     horseRigs.push({
       id: def.id,

@@ -745,8 +745,8 @@ export function buildPlayerAndCombatSystems(
   thirdPersonAxeGroup.rotation.x = -Math.PI * 0.42;
   thirdPersonAxeGroup.visible = false;
 
-  const playerTorchLight = new THREE.PointLight(0xff8c24, 0, 28, 1.35);
-  playerTorchLight.visible = !Boolean(scene.userData?.isSoftwareGl);
+  const playerTorchLight = new THREE.PointLight(0xff8c24, 0, 36, 1.15);
+  playerTorchLight.visible = true;
   scene.add(playerTorchLight);
 
   // RIGHT ARM & STRING-DRAWING HAND
@@ -1482,8 +1482,9 @@ export function buildPlayerAndCombatSystems(
     }
 
     if (torchActive || fireArrowActive) {
-      playerTorchLight.intensity = (torchActive ? 5.6 : 2.8) * flameFlicker;
-      playerTorchLight.distance = torchActive ? 30 : 18;
+      playerTorchLight.intensity = (torchActive ? 18.0 : 9.0) * flameFlicker;
+      playerTorchLight.distance = torchActive ? 36 : 22;
+      playerTorchLight.decay = 1.15;
       playerTorchLight.color.setHex(torchActive ? 0xff9436 : 0xff6b00);
       const fwdX = -Math.sin(playerState.yaw);
       const fwdZ = -Math.cos(playerState.yaw);

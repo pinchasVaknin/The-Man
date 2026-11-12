@@ -18,15 +18,31 @@ import { isInsideSouthernMine } from '../systems/dwarvenMineAndCaravanSystem';
 /** Summary: Render layer used by every outdoor scene root. Layer 0 is the default and stays on everywhere. */
 export const OUTDOOR_LAYER = 1;
 
+const ALWAYS_VISIBLE_ROOT_PREFIXES = [
+  'southern-mine',
+  'ColliderDebugWireframes',
+  'WildlifeAndFootprintsLayer',
+  'dwarven-miner',
+  'rideable-horse',
+  'TempleMonk',
+] as const;
+
+function shouldStayVisibleUnderground(root: THREE.Object3D, keep: ReadonlySet<THREE.Object3D>): boolean {
+  if (keep.has(root) || root instanceof THREE.Light || root instanceof THREE.Camera) return true;
+  if (!root.name) return false;
+  return ALWAYS_VISIBLE_ROOT_PREFIXES.some((prefix) => root.name === prefix || root.name.startsWith(prefix));
+}
+
 /**
  * Summary: Moves every top-level scene object (and its descendants) to the outdoor layer, except the ones that must
- *          stay visible underground: lights and the camera, the mine group, and the objects in `keep`.
+ *          stay visible underground: lights and the camera, the mine group, dwarves, living creatures, F3 collider
+ *          wireframes, and the objects in `keep`.
  * @returns Number of outdoor roots moved.
  */
 export function markOutdoorRoots(scene: THREE.Scene, keep: ReadonlySet<THREE.Object3D>): number {
   let moved = 0;
   for (const root of scene.children) {
-    if (keep.has(root) || root instanceof THREE.Light || root instanceof THREE.Camera || root.name === 'southern-mine') continue;
+    if (shouldStayVisibleUnderground(root, keep)) continue;
     root.traverse((obj) => {
       obj.layers.set(OUTDOOR_LAYER);
     });
@@ -36,11 +52,11 @@ export function markOutdoorRoots(scene: THREE.Scene, keep: ReadonlySet<THREE.Obj
 }
 
 /**
- * Summary: True when the player is well below the mine entrance and inside the mine's chambers.
- * Design: The entrance shaft's upper part is still open to the sky, so a small margin below the entrance is required.
+ * Summary: True when the player is below the mine entrance threshold and inside the mine's shaft or chambers.
+ * Design: Activates as soon as the player descends into the entrance shaft so outdoor terrain and sky are culled cleanly.
  */
 export function isPlayerUnderground(x: number, y: number, z: number): boolean {
-  return y < SOUTHERN_MINE_POS.entranceY - 3.0 && isInsideSouthernMine(x, z, y);
+  return y < SOUTHERN_MINE_POS.entranceY - 0.6 && isInsideSouthernMine(x, z, y);
 }
 
 /** Summary: Shows (surface) or hides (underground) the outdoor layer for the camera that renders the scene. */
