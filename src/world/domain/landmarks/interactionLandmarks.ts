@@ -14,6 +14,7 @@ import { HILL_WATCHTOWERS } from './highlandBridgeLandmarks';
 import { SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS } from './oasisAndHarborLandmarks';
 import { HUNTER_LODGE_POS, VALLEY_FARMS } from './settlementLandmarks';
 import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
+import { MINE_DRAGON_FORGE_SANCTUM, MINE_WATERFALL_SECRET_CHAMBER } from './dwarvenMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -809,6 +810,28 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     interactRadius: 4.2,
     goldCoins: 95,
     contents: ['dwarven_pickaxe', 'dwarven_warhammer', 'iron_ingots', 'dwarven_gold_ore', 'sapphire_gem'],
+  },
+  // Area 3 — Hidden Rune Vault Behind the Waterfall Secret Chest
+  {
+    id: 'chest-mine-waterfall-secret',
+    name: 'Ancient Waterfall Rune Vault Chest',
+    x: SOUTHERN_MINE_POS.x + MINE_WATERFALL_SECRET_CHAMBER.chestLx,
+    y: MINE_WATERFALL_SECRET_CHAMBER.floorY,
+    z: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_SECRET_CHAMBER.chestLz,
+    interactRadius: 4.2,
+    goldCoins: 125,
+    contents: ['sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
+  },
+  // Area 11 — Southern Dragon Forge & Treasure Chamber Sanctum Chest
+  {
+    id: 'chest-mine-dragon-forge-sanctum',
+    name: 'Ancient Dwarven Dragon-Forge Treasure Chest',
+    x: SOUTHERN_MINE_POS.x + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lx,
+    y: MINE_DRAGON_FORGE_SANCTUM.treasureIsland.topY,
+    z: SOUTHERN_MINE_POS.entranceZ + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lz,
+    interactRadius: 4.4,
+    goldCoins: 240,
+    contents: ['dwarven_warhammer', 'dwarven_pickaxe', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
 ] as const;
 

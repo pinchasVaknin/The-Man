@@ -1,0 +1,1110 @@
+# THE ANCIENT DWARVEN MINE
+## Complete 3D Environment Construction Specification
+
+### PROJECT OBJECTIVE
+
+Build a complete, explorable, playable 3D dwarven mine environment inside the existing game project.
+
+This is not an illustration, concept art, static map, or collection of disconnected rooms.
+
+The final result must be a real 3D environment that the player can physically enter, explore, walk through, interact with and navigate.
+
+The environment should resemble an enormous ancient dwarven underground kingdom, combining:
+- An active industrial mining facility.
+- An underground railway network.
+- A natural waterfall and water system.
+- A dwarven smelting and metalworking facility.
+- An enormous underground abyss.
+- Ancient dwarven architecture and memorial halls.
+- Monumental stone bridges.
+- Ancient guardians.
+- A spectacular dragon-head lava furnace.
+- A treasure chamber.
+
+The world should feel as though dwarves have inhabited, expanded, maintained and constructed it over hundreds or thousands of years.
+
+IMPORTANT: Use the supplied mine reference images as architectural and spatial references, but do not simply reproduce the images as flat 3D cutouts. Construct the actual environment with believable geometry, height, depth, collision, walkable surfaces and physical connections.
+
+---
+
+# 1. CORE DESIGN PHILOSOPHY
+
+The most important requirement is that the mine must feel like ONE interconnected underground kingdom.
+
+Do not build it as a collection of separate square rooms.
+
+Instead, construct a natural underground environment containing large interconnected chambers, carved tunnels, elevated platforms, stairs, bridges, industrial structures and natural cave formations.
+
+The environment must contain a clear visual and gameplay progression.
+
+The upper sections should feel like a functioning mining settlement.
+
+The middle sections should feel ancient, monumental and mysterious.
+
+The deepest sections should feel dangerous, sacred and protected.
+
+The final area should feel like a legendary treasure chamber built around an enormous dragon-shaped furnace.
+
+## Architectural principles
+
+1. Use irregular natural cave shapes instead of repetitive rectangular rooms.
+2. Integrate constructed dwarven architecture into the natural rock formations.
+3. Use large open spaces where appropriate.
+4. Create multiple elevations and vertical connections.
+5. Use bridges, platforms, stairs, ramps, arches and carved passages to connect areas.
+6. Make all important routes physically understandable.
+7. Avoid disconnected floating platforms and disconnected islands.
+8. Avoid excessive corridors that only serve as empty transitions.
+9. Make every major area visually distinct.
+10. Prioritize believable architecture and gameplay navigation over unnecessary decoration.
+
+The result should look like an actual underground dwarven settlement, not a decorative dungeon assembled from prefabricated rooms.
+
+---
+
+# 2. OVERALL WORLD LAYOUT
+
+The following is the required spatial organization.
+
+### Northern / Upper Section
+
+- Mine Entrance Portal.
+- Main Mine Hall.
+- Waterfall Lagoon and Waterworks on the western side.
+- Mining Galleries on the eastern side.
+- Smelting Foundry integrated into the eastern industrial section.
+
+### Central / Lower Section
+
+- Grand Descent.
+- Grand Chasm Hall.
+- Hall of Dwarven Heroes branching from the western side.
+- The Great Bridge crossing the enormous abyss.
+
+### Southern / Deep Section
+
+- Golem Guardian Chamber.
+- Ancient Stone Passage.
+- Dragon Forge and Treasure Chamber.
+
+## Main progression route
+
+Mine Entrance Portal
+→ Main Mine Hall
+→ Grand Descent
+→ Grand Chasm Hall
+→ The Great Bridge
+→ Golem Guardian Chamber
+→ Ancient Stone Passage
+→ Dragon Forge & Treasure Chamber.
+
+## Optional exploration branches
+
+The player should be able to explore the Waterfall Lagoon, Mining Galleries, Smelting Foundry and Hall of Dwarven Heroes without breaking the main progression route.
+
+These areas should connect naturally to the main environment.
+
+The Hall of Dwarven Heroes must NOT appear as a detached floating island.
+
+The Mining Galleries must NOT appear as a small isolated platform.
+
+Every important area must have a visible, physically connected entrance and exit.
+
+---
+
+# 3. AREA ONE – MINE ENTRANCE PORTAL
+
+## Environment
+
+Create a monumental entrance carved into the surrounding mountain rock.
+
+The entrance should feel like the entrance to an ancient dwarven kingdom.
+
+### Architecture
+
+- A massive stone doorway.
+- Two large carved stone pillars.
+- Heavy metallic gates.
+- Dwarven runes and ancient symbols.
+- Decorative stone carvings.
+- Torches mounted on the walls.
+- Large stairs descending toward the Main Mine Hall.
+- Natural rock formations surrounding the constructed entrance.
+
+The entrance should be wide and tall enough for heavy mining carts and dwarven machinery.
+
+### Gameplay and navigation
+
+The player enters through this portal and immediately gains a view of the enormous mining facility.
+
+The transition should reveal the Main Mine Hall gradually, creating a sense of scale and discovery.
+
+Do not hide the entire main hall behind unnecessary walls.
+
+---
+
+# 4. AREA TWO – MAIN MINE HALL
+
+## Highest-priority environment
+
+This is the primary hub of the mine and one of the most important areas in the entire project.
+
+It must be a large, spacious, highly detailed underground industrial hall.
+
+The room should be significantly larger than the surrounding side areas.
+
+It should combine a dwarven railway station, mining headquarters, material processing area and workers' settlement.
+
+### A. General architecture
+
+Create a large irregularly shaped underground chamber.
+
+Include:
+- Tall natural cave ceilings.
+- Thick stone pillars.
+- Large support beams.
+- Carved stone floors.
+- Reinforced walls.
+- Iron machinery.
+- Wooden platforms.
+- Decorative dwarven architecture.
+
+Some parts should look naturally excavated, while others should look carefully constructed by dwarven engineers.
+
+Do not make the hall perfectly symmetrical.
+
+### B. Central railway station
+
+The center of the hall should contain a large railway hub.
+
+Build:
+
+- A circular railway turntable.
+- Multiple tracks branching from the center.
+- Mining carts.
+- Cargo platforms.
+- Railway switches.
+- Loading and unloading areas.
+- A small mechanical control station.
+
+The railway system should lead toward the Mining Galleries and other industrial sections.
+
+The tracks must be physically connected and correctly positioned.
+
+Mining carts should sit properly on the rails.
+
+### C. Heavy machinery
+
+Add a large industrial crane or ore-lifting system.
+
+It should include:
+- Thick chains.
+- Large gears.
+- Metal supports.
+- Suspension hooks.
+- A lifting platform.
+- Mechanical pulleys.
+
+The crane should look functional rather than decorative.
+
+### D. Dwarven workers
+
+Create multiple dwarven workers performing different activities.
+
+Examples:
+- Workers transporting stones.
+- Workers sorting minerals.
+- Workers repairing machinery.
+- Workers loading mining carts.
+- Workers operating mechanical equipment.
+- Workers using pickaxes and hammers.
+- Workers carrying tools and supplies.
+
+The hall must feel inhabited.
+
+### E. Storage and workstations
+
+Place:
+- Wooden crates.
+- Barrels.
+- Ore containers.
+- Tool racks.
+- Workbenches.
+- Anvils.
+- Wooden carts.
+- Material storage piles.
+
+Create small work zones along the edges of the hall.
+
+### F. Dwarven resting area
+
+Integrate a modest dining and resting area into one side of the hall.
+
+Include:
+- Large wooden tables.
+- Benches.
+- Barrels.
+- Food containers.
+- Mugs.
+- A fireplace.
+- Weapon racks.
+
+Do not create an additional large dining room.
+
+The resting area should feel like a natural part of the main industrial hub.
+
+---
+
+# 5. AREA THREE – WATERFALL LAGOON & WATERWORKS
+
+## Location
+
+Western side of the Main Mine Hall.
+
+The waterfall area must connect naturally to the main hall and must not become a disconnected room.
+
+### A. Waterfall
+
+Create a large natural waterfall descending from a high cave wall.
+
+Include:
+- A tall rocky cliff.
+- A strong waterfall.
+- A turquoise-blue lagoon.
+- Natural stones around the water.
+- Small glowing blue crystals.
+- A stone walkway.
+- A small stone bridge.
+- Water reflections and atmospheric lighting.
+
+The lagoon should look like a natural underground water source.
+
+### B. Water channels
+
+This is a major environmental feature.
+
+The water must continue beyond the lagoon.
+
+Build an actual water system that carries water toward the lower underground levels.
+
+Include:
+- Carved stone aqueducts.
+- Water channels.
+- Narrow water passages.
+- Small waterfalls.
+- Stone water conduits.
+- Iron pipes where appropriate.
+
+Water should flow in a believable direction, following elevation differences.
+
+### C. Mechanical water wheel
+
+Construct a large dwarven water wheel near the lower section of the water system.
+
+It should have:
+- A large wooden or metal wheel.
+- Stone supports.
+- Mechanical gears.
+- Iron axles.
+- Pipes and connecting mechanisms.
+
+The water wheel should appear to power an industrial mechanism, such as an ore crusher or lifting machine.
+
+### D. Lower waterfall connection
+
+The water system should continue into the Grand Chasm area.
+
+Create at least one visible waterfall descending into the lower cavern.
+
+This will connect the upper and lower environments visually.
+
+### Important design rule
+
+The water must appear to be one continuous environmental system, not several unrelated pools.
+
+---
+
+# 6. AREA FOUR – MINING GALLERIES
+
+## Location
+
+Eastern side of the Main Mine Hall.
+
+This area must look like a real working mine.
+
+The player should immediately understand that this is where the dwarves extract raw materials from the mountain.
+
+### A. Mining structure
+
+Use several natural rock excavation areas.
+
+Include:
+- Exposed mineral veins.
+- Deeply excavated rock walls.
+- Different mining elevations.
+- Wooden support structures.
+- Scaffolding.
+- Ladders.
+- Small platforms.
+- Mining tunnels.
+- Railway tracks.
+
+The architecture should be irregular and natural.
+
+### B. Mineral deposits
+
+Add different mineral types.
+
+Examples:
+- Iron.
+- Copper.
+- Gold.
+- Blue crystals.
+- Rare purple crystals.
+- Dark mineral deposits.
+
+Minerals should visibly emerge from the surrounding rock.
+
+Do not place all minerals as separate glowing objects on top of the terrain.
+
+They should look embedded into the rock formations.
+
+### C. Mining activities
+
+Include:
+- Dwarves mining with pickaxes.
+- Workers collecting extracted stones.
+- Small mining carts.
+- Stone piles.
+- Ore containers.
+- Storage areas.
+- Work platforms.
+
+### D. Machinery
+
+Add a large stone-crushing mechanism.
+
+It can include:
+- Mechanical pistons.
+- Rotating gears.
+- Crushing plates.
+- Ore collection containers.
+
+Add an ore-lifting system using chains and pulleys.
+
+### E. Multiple elevations
+
+The mining galleries should not be flat.
+
+Create:
+- Lower mining tunnels.
+- Raised mining platforms.
+- Staircases.
+- Wooden bridges.
+- Small elevated work areas.
+
+All areas intended for exploration must have accessible routes.
+
+---
+
+# 7. AREA FIVE – SMELTING FOUNDRY
+
+The foundry should be integrated into the rear or deeper portion of the Mining Galleries.
+
+It should NOT become an entirely isolated giant room.
+
+### Furnaces
+
+Create three or four large industrial furnaces.
+
+Each furnace should have:
+- Thick stone construction.
+- Reinforced iron plates.
+- A large glowing opening.
+- Orange firelight.
+- Chimneys extending upward.
+- Metal pipes.
+
+### Molten metal processing
+
+Build channels carved into the stone floor.
+
+These channels can carry molten metal toward casting molds.
+
+Add:
+- Metal containers.
+- Casting molds.
+- Anvils.
+- Blacksmithing tools.
+- Ore storage bins.
+- Mechanical bellows.
+- Industrial cranes.
+
+### Visual appearance
+
+The foundry should be dark, industrial and warm.
+
+Its orange glow should contrast with the blue waterfall environment.
+
+IMPORTANT:
+
+These are normal industrial dwarven furnaces.
+
+The giant dragon-head furnace belongs exclusively in the final treasure chamber.
+
+Do not confuse the two areas.
+
+---
+
+# 8. AREA SIX – GRAND DESCENT
+
+Create a monumental descending route from the southern part of the Main Mine Hall toward the lower cavern.
+
+### Architecture
+
+- Wide stone stairs.
+- Tall carved pillars.
+- Iron chains.
+- Large stone balconies.
+- Dwarven inscriptions.
+- Torches.
+- Natural rock walls.
+
+The descent must feel like entering a much older and deeper part of the kingdom.
+
+### Verticality
+
+Use the descent to create a visual reveal.
+
+The player should gradually see:
+- The enormous lower cavern.
+- The abyss.
+- Distant stone formations.
+- Parts of the Great Bridge.
+- The waterfalls descending into the depths.
+
+Use multiple stair sections and intermediate platforms rather than one excessively long staircase.
+
+---
+
+# 9. AREA SEVEN – GRAND CHASM HALL
+
+## Major environmental landmark
+
+The Grand Chasm should be an enormous underground cavern containing a deep abyss.
+
+It should occupy a large part of the lower environment.
+
+The space should communicate enormous scale.
+
+### A. Natural cavern
+
+Create:
+- Huge rocky walls.
+- Deep vertical drops.
+- Large natural stone formations.
+- Massive pillars.
+- Distant cliffs.
+- Atmospheric fog.
+- Dark underground spaces.
+
+The player should not be able to see the entire bottom of the abyss.
+
+Use lighting and fog to create depth.
+
+### B. Distant environment
+
+Add some distant environmental structures:
+
+- Smaller ancient bridges.
+- Distant stone platforms.
+- Natural rock pillars.
+- Tiny lights.
+- Distant waterfalls.
+- Old abandoned dwarven structures.
+
+These elements should create the impression that the cavern continues far beyond the playable area.
+
+Not every distant structure needs to be accessible.
+
+### C. Large open space
+
+Do not fill the cavern with excessive objects.
+
+The enormous open abyss is itself a major visual feature.
+
+Preserve large negative spaces.
+
+---
+
+# 10. AREA EIGHT – HALL OF DWARVEN HEROES
+
+## Location
+
+A western side branch of the Grand Chasm Hall.
+
+IMPORTANT:
+
+This hall must be physically connected to the main cavern.
+
+It must not look like a floating island or a disconnected platform.
+
+Construct a wide passage or architectural connection directly into the surrounding cave wall.
+
+### Architecture
+
+Create a large memorial hall with:
+
+- Stone floors.
+- Large pillars.
+- Carved walls.
+- Dwarven banners.
+- Decorative stone patterns.
+- Ancient inscriptions.
+- Wall-mounted torches.
+- Large statues.
+
+### Statues
+
+Place several monumental dwarf statues along the sides of the hall.
+
+Each statue should represent a different legendary dwarf.
+
+Examples:
+- A warrior holding an axe.
+- A king holding a hammer.
+- A guardian with a shield.
+- An ancient miner holding a mining tool.
+
+### Central monument
+
+At the far end, create a much larger statue of the first dwarven king.
+
+Place the king on an elevated stone platform.
+
+He should hold a massive royal warhammer.
+
+Behind him, carve the symbol of the dwarven kingdom into the wall.
+
+### Visual identity
+
+This area should feel historical, royal and sacred.
+
+It must look distinctly different from the industrial mine.
+
+The lighting should be warmer and more ceremonial.
+
+---
+
+# 11. AREA NINE – THE GREAT BRIDGE
+
+## Major structural landmark
+
+The Great Bridge must be one of the most impressive architectural features in the entire environment.
+
+It crosses the central abyss and connects the main cavern to the guardian area.
+
+### Structure
+
+Build a monumental ancient dwarven stone bridge.
+
+Features:
+- Wide walking surface.
+- Large stone arches.
+- Massive support pillars extending downward.
+- Thick decorated railings.
+- Iron chains.
+- Dwarven carvings.
+- Stone reliefs.
+- Torches and braziers.
+
+The bridge should feel extremely heavy and ancient.
+
+### Structural realism
+
+The bridge must have believable structural support.
+
+Its arches and pillars must connect to actual cliff surfaces or visible structural foundations.
+
+Do not create unsupported floating bridge pieces.
+
+### Player navigation
+
+The walking surface must be wide enough for comfortable player movement.
+
+Add guardrails along dangerous edges.
+
+The crossing should feel impressive without becoming difficult to navigate.
+
+---
+
+# 12. AREA TEN – GOLEM GUARDIAN CHAMBER
+
+## Location
+
+At the far end of the Great Bridge.
+
+The chamber must connect directly to the bridge and to the passage leading toward the Dragon Forge.
+
+### Golem
+
+Create a colossal ancient stone guardian.
+
+Appearance:
+- Massive stone body.
+- Thick arms and legs.
+- Large hands.
+- Metallic joints.
+- Ancient dwarven runes.
+- Glowing blue eyes.
+- Weathered stone surfaces.
+- Visible stone cracks.
+
+The golem should be several times taller than the player.
+
+It should be the main visual focus.
+
+### Chamber architecture
+
+Build:
+- Large stone walls.
+- Ancient pillars.
+- A massive gate.
+- Dwarven inscriptions.
+- Blue magical illumination.
+- Torches.
+- Broken stone fragments.
+
+The golem should stand directly in front of the protected passage or gate.
+
+### Connection to final chamber
+
+Behind or beside the guardian, create a visible ancient stone doorway.
+
+Beyond that doorway, construct a descending passage with:
+- Wide stairs.
+- Heavy carved walls.
+- Torches.
+- Dwarven symbols.
+
+This passage must lead directly into the final Dragon Forge area.
+
+The intended progression is:
+
+The Great Bridge → Golem Guardian Chamber → Ancient Stone Passage → Dragon Forge.
+
+There must be no unclear gap, disconnected island or floating platform between these locations.
+
+---
+
+# 13. AREA ELEVEN – DRAGON FORGE & TREASURE CHAMBER
+
+## Final destination
+
+This must be the most visually dramatic area of the mine.
+
+Create a large ancient volcanic chamber built around a gigantic dragon-head furnace.
+
+### A. Dragon-head furnace
+
+The dragon must be a monumental architectural furnace carved into the rock wall.
+
+It is NOT a living dragon.
+
+Features:
+- Enormous dark stone dragon head.
+- Wide-open mouth.
+- Large carved teeth.
+- Glowing orange eyes.
+- Fire burning deep inside the mouth.
+- Ancient dwarven engravings.
+- Heat-damaged stone.
+- Cracked surrounding rock.
+
+The dragon's open mouth is the outlet of the ancient furnace.
+
+### B. Lava flow
+
+Molten lava pours out of the dragon's mouth onto the chamber floor.
+
+The lava must continue naturally through carved channels.
+
+Create:
+- A central lava pool.
+- Branching lava channels.
+- Dark solid rock areas.
+- Glowing cracks.
+- Basalt formations.
+- Heat illumination on nearby walls.
+
+Do not cover the entire chamber floor with lava.
+
+Leave enough solid ground for a meaningful jumping route.
+
+### C. Treasure route
+
+The treasure chest should be clearly visible from the entrance.
+
+Create a sequence of large stone stepping platforms emerging from the lava.
+
+The player must jump between the platforms to reach the chest.
+
+IMPORTANT GAMEPLAY REQUIREMENTS:
+
+- Jumping distances must be compatible with the player's actual movement and jump capabilities.
+- Platforms must have appropriate collision.
+- Avoid impossible jumps.
+- The platforms should be visually distinguishable from the lava.
+- The route should be challenging but fair.
+- The chest should stand on a raised stone island or platform.
+
+### D. Treasure chest
+
+Create a large ancient dwarven treasure chest.
+
+Features:
+- Dark metal construction.
+- Gold decorations.
+- Ancient symbols.
+- Heavy metallic locks.
+- Ornamental details.
+- A distinctive design that makes it visually important.
+
+The chamber should feel like the final reward of a long expedition.
+
+---
+
+# 14. CONNECTIONS, GEOMETRY AND WALKABILITY
+
+This section is extremely important.
+
+The environment must not only look connected. It must actually be connected in the game engine.
+
+### Every important transition must include:
+
+- A physically continuous floor or bridge.
+- Correct elevation changes.
+- Proper stairs or ramps.
+- Collision geometry.
+- Appropriate doorway dimensions.
+- Enough room for the player to move.
+- No unexpected gaps.
+- No blocked passageways.
+
+### Main path verification
+
+The complete route must be playable from the entrance to the treasure chest.
+
+Test the following sequence:
+
+1. Enter through the Mine Entrance Portal.
+2. Explore the Main Mine Hall.
+3. Access the Waterfall Lagoon.
+4. Explore the Mining Galleries and Foundry.
+5. Return to the Main Mine Hall.
+6. Descend to the Grand Chasm.
+7. Enter the Hall of Dwarven Heroes.
+8. Return to the main route.
+9. Cross the Great Bridge.
+10. Reach the Golem Guardian Chamber.
+11. Pass through the Ancient Stone Passage.
+12. Reach the Dragon Forge.
+13. Jump between the lava platforms.
+14. Reach the treasure chest.
+
+There must be no point where the player encounters an inaccessible area because the architecture was created only for visual purposes.
+
+The optional rooms must also have valid entrances and exits.
+
+---
+
+# 15. LIGHTING AND ATMOSPHERE
+
+Lighting should communicate the identity of each area.
+
+### Entrance
+Warm torchlight, subtle golden details and dark stone.
+
+### Main Mine Hall
+Warm industrial lighting, lanterns, furnaces and mechanical highlights.
+
+### Waterfall
+Cool blue and turquoise light, reflections and soft atmospheric lighting.
+
+### Mining Galleries
+Warm work lights mixed with colored mineral illumination.
+
+### Smelting Foundry
+Strong orange furnace light, dark metal and visible heat.
+
+### Grand Chasm
+Cool dark blue-grey atmosphere, deep shadows and distant lights.
+
+### Heroes Hall
+Ceremonial golden light, braziers and dramatic statue illumination.
+
+### Great Bridge
+Warm torches against cold darkness.
+
+### Golem Chamber
+Subtle blue magical light from the guardian.
+
+### Dragon Forge
+Extremely strong orange and red illumination from the lava and dragon furnace.
+
+Do not use the same lighting everywhere.
+
+Each area must have its own visual identity.
+
+---
+
+# 16. ENVIRONMENTAL DETAIL AND STORYTELLING
+
+The mine should tell a story through its environment.
+
+Use small details that imply how the dwarves lived and worked here.
+
+Examples:
+
+- Old mining tools left beside excavation sites.
+- Abandoned carts.
+- Broken machinery waiting for repair.
+- Storage barrels.
+- Old banners.
+- Carved historical reliefs.
+- Ancient dwarven inscriptions.
+- Damaged stone structures.
+- Rusted metal.
+- Old chains.
+- Forgotten mining equipment.
+- Crystals growing through cracks.
+- Small areas where water has eroded the stone.
+
+Do not scatter decorative assets randomly.
+
+Every object should belong to its environment.
+
+---
+
+# 17. GAMEPLAY AND INTERACTABLE ELEMENTS
+
+The environment should be designed with gameplay in mind.
+
+Potential interactable systems include:
+
+- Mining nodes in the Mining Galleries.
+- Ore carts that can be moved.
+- Levers controlling machinery.
+- A water-powered mechanism.
+- Mechanical lifts.
+- Interactable furnaces.
+- Treasure chests.
+- Ancient doors.
+- Guardian encounters.
+- Jumping platforms above lava.
+
+Not every element must be implemented as an interactive system immediately.
+
+However, the geometry must be prepared to support these interactions in the future.
+
+When placing an interactive object, ensure there is enough surrounding space for the player to approach and use it.
+
+Avoid placing decorative objects where they obstruct the interaction area.
+
+---
+
+# 18. TECHNICAL IMPLEMENTATION AND PERFORMANCE
+
+Build the environment using modular, reusable components.
+
+Avoid creating excessive independent objects for repeated environmental assets.
+
+Use appropriate optimization techniques for the existing game engine.
+
+### Repeated assets
+
+Examples:
+- Torches.
+- Barrels.
+- Crates.
+- Stone pillars.
+- Chains.
+- Mining carts.
+- Repeated rock details.
+- Repeated wall decorations.
+
+Use instancing, batching or equivalent techniques where supported and appropriate.
+
+### Static geometry
+
+- Optimize static structures.
+- Use appropriate collision meshes.
+- Avoid unnecessary complex colliders.
+- Separate decorative objects from gameplay collision.
+- Reuse modular assets.
+- Use level-of-detail techniques where appropriate.
+
+### Lighting
+
+Avoid unnecessarily expensive dynamic lights on every small object.
+
+Use static or baked lighting where appropriate, and reserve dynamic lighting for important elements such as moving machinery, lava and selected torches.
+
+### Environmental organization
+
+Organize the mine into logical sections or chunks.
+
+Separate the upper industrial level, lower cavern and deep treasure area where appropriate.
+
+Make sure optimization does not break lighting continuity or visible connections between sections.
+
+Do not sacrifice visual quality unnecessarily.
+
+---
+
+# 19. BUILDING WORKFLOW
+
+Do not attempt to build the entire mine in one unstructured operation.
+
+Use the following implementation sequence.
+
+### PHASE 1 – PROJECT INSPECTION AND SPATIAL PLAN
+
+Before changing anything:
+
+1. Inspect the existing game project.
+2. Understand the player dimensions and movement system.
+3. Identify existing terrain, environment assets and reusable models.
+4. Understand the existing collision and lighting systems.
+5. Identify the available dwarven, mining, stone, lava and water assets.
+6. Prepare a spatial layout for the full mine.
+7. Identify all main routes, side branches and elevation changes.
+
+Do not replace existing project systems without a clear reason.
+
+### PHASE 2 – GREYBOX / BLOCKOUT
+
+First construct the entire mine using simple geometry.
+
+Create:
+- Main hall.
+- Waterfall area.
+- Mining galleries.
+- Foundry.
+- Grand Descent.
+- Grand Chasm.
+- Heroes Hall.
+- Great Bridge.
+- Guardian Chamber.
+- Dragon Forge.
+
+At this stage, focus on spatial relationships, room proportions, stairs, elevations and navigation.
+
+Do not spend time decorating unfinished architecture.
+
+### PHASE 3 – WALKABILITY TESTING
+
+Test the environment using the actual player controller.
+
+Verify:
+- All main routes are connected.
+- All important areas can be entered.
+- Stairs are climbable.
+- Platforms have correct collision.
+- Bridges are traversable.
+- Jumping platforms are reachable.
+- There are no unintended falls or gaps.
+
+Fix structural issues before proceeding.
+
+### PHASE 4 – ARCHITECTURAL CONSTRUCTION
+
+Replace the basic blockout with actual dwarven architecture.
+
+Build:
+- Stone walls.
+- Pillars.
+- Arches.
+- Stairs.
+- Bridges.
+- Support beams.
+- Gates.
+- Industrial machinery.
+- Natural cave formations.
+
+Make sure the geometry remains consistent with the approved layout.
+
+### PHASE 5 – ENVIRONMENTAL DETAIL
+
+Add:
+- Mining equipment.
+- Workers.
+- Carts.
+- Ore.
+- Furnaces.
+- Statues.
+- Crystals.
+- Water systems.
+- Lava.
+- Torches.
+- Decorations.
+
+Prioritize the major visual landmarks first.
+
+### PHASE 6 – LIGHTING AND ATMOSPHERE
+
+Create the lighting identities described in this specification.
+
+Test visibility from the player's perspective.
+
+### PHASE 7 – FINAL OPTIMIZATION AND VALIDATION
+
+Check:
+- Performance.
+- Collision.
+- Navigation.
+- Missing assets.
+- Incorrect geometry.
+- Floating objects.
+- Repeated or duplicated objects.
+- Visual inconsistencies.
+- Unreachable locations.
+
+Deliver a complete playable environment, not merely a visual prototype.
+
+---
+
+# 20. FINAL QUALITY REQUIREMENTS
+
+The work is considered complete only when the following requirements are satisfied:
+
+1. The mine exists as an actual playable 3D environment.
+2. The main areas are physically interconnected.
+3. The upper mine feels like an active industrial settlement.
+4. The waterfall system visibly continues between elevations.
+5. The Mining Galleries look like real excavation areas.
+6. The Smelting Foundry is integrated into the industrial section.
+7. The lower cavern feels enormous.
+8. The Heroes Hall is connected to the main cavern.
+9. The Great Bridge has believable architecture and structural support.
+10. The Golem Guardian Chamber connects to the Dragon Forge.
+11. The dragon-head furnace pours lava into the final chamber.
+12. The lava stepping stones are actually traversable.
+13. The treasure chest is reachable.
+14. All main pathways have proper collision and navigation.
+15. The environment maintains a consistent dwarven architectural identity.
+16. The environment is appropriately optimized for the existing game.
+
+# FINAL DIRECTION
+
+The most important objective is to create a believable ancient dwarven kingdom carved into an enormous underground mountain.
+
+Do not interpret this project as a simple dungeon with several rooms.
+
+Think of it as a complete underground civilization:
+
+A place where dwarves mine, transport, process and smelt minerals; a place with an engineered water system; a place with ancient monuments and royal memorials; and, deeper underground, a mysterious world containing an enormous abyss, a guardian and a legendary treasure.
+
+Architectural quality, believable connections, scale, environmental storytelling and actual gameplay functionality must take priority over simply adding more objects.
+
+Build a world that feels like it has existed for centuries and that the player is discovering for the first time.

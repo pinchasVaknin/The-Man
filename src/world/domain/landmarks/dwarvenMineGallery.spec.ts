@@ -16,9 +16,17 @@ import {
   MINE_MORIA_PILLARS,
   MINE_NW_GALLERY,
   MINE_SOUTH_GALLERY,
+  MINE_WATERFALL_SECRET_CHAMBER,
+  MINE_GALLERY_TERRACE,
+  MINE_BLAST_FURNACES,
+  MINE_GOLEM_CHAMBER,
+  MINE_ANCIENT_PASSAGE,
+  MINE_LAVA_STEPPING_STONES,
+  MINE_DRAGON_FORGE_SANCTUM,
   khazadBridgeSegment,
   southGalleryWalkableHeightAt,
 } from './dwarvenMineLayout';
+import { WORLD_CHESTS } from './interactionLandmarks';
 
 function idle(forward: number) {
   return {
@@ -142,6 +150,70 @@ describe('dwarvenMineGallery - Great Hall expansion, middle staircase, exits & n
     // East Exit Tunnel -> Dragon-Forge & Titan Anvil Vault
     assert.equal(isInsideSouthernMine(mx + 84.0, mz + 183.0, y), true);
     assert.equal(isInsideSouthernMine(mx + 126.0, mz + 183.0, y), true);
+  });
+
+  it('should allow walking behind the Waterfall into the Secret Rune Chamber and up the Mining Gallery Terrace', () => {
+    const mx = SOUTHERN_MINE_POS.x;
+    const mz = SOUTHERN_MINE_POS.entranceZ;
+    // Secret chamber behind waterfall (lx = -118, lz = 30)
+    assert.equal(
+      southernMineWalkableHeightAt(mx - 118.0, mz + 30.0),
+      MINE_WATERFALL_SECRET_CHAMBER.floorY
+    );
+    assert.equal(
+      isInsideSouthernMine(mx - 118.0, mz + 30.0, MINE_WATERFALL_SECRET_CHAMBER.floorY + 1.0),
+      true
+    );
+    // Mining Gallery upper terrace (lx = 102, lz = 47) & 3 Blast Furnaces
+    assert.equal(
+      southernMineWalkableHeightAt(mx + 102.0, mz + 47.0),
+      MINE_GALLERY_TERRACE.topY
+    );
+    assert.equal(MINE_BLAST_FURNACES.lzs.length, 3);
+    assert.ok(WORLD_CHESTS.some((c) => c.id === 'chest-mine-waterfall-secret'));
+  });
+
+  it('should connect Golem Guardian Chamber through Ancient Stone Passage into the Dragon Forge & Treasure Sanctum', () => {
+    const obstacles = generateWorldObstacles();
+    const mx = SOUTHERN_MINE_POS.x;
+    const mz = SOUTHERN_MINE_POS.entranceZ;
+
+    // Player walks from South Sanctuary (lz = 301) between the Golem's feet (lx = 0, lz = 304.5) down the Ancient Stone Passage (lz = 310..346)
+    const state = createInitialPlayerState();
+    state.x = mx;
+    state.z = mz + 301.0;
+    state.y = southernMineWalkableHeightAt(state.x, state.z) ?? -28.35;
+    state.yaw = Math.PI; // face +z (south)
+
+    for (let i = 0; i < 15 * 60 && state.z < mz + 350.0; i++) {
+      stepPlayerPhysics(state, idle(1), obstacles, 1 / 60);
+    }
+
+    assert.ok(
+      state.z >= mz + 349.0,
+      `Player should walk smoothly past Golem Guardian and down Ancient Stone Passage into Dragon Forge Sanctum, reached z=${(state.z - mz).toFixed(1)}`
+    );
+    assert.ok(
+      Math.abs(state.y - MINE_DRAGON_FORGE_SANCTUM.floorY) < 0.25,
+      `Player should arrive at Dragon Forge Sanctum floorY=${MINE_DRAGON_FORGE_SANCTUM.floorY}, got y=${state.y.toFixed(2)}`
+    );
+
+    // Verify all 5 Lava Stepping Stones & Treasure Island are walkable above the lava pool
+    assert.equal(MINE_LAVA_STEPPING_STONES.length, 5);
+    for (const st of MINE_LAVA_STEPPING_STONES) {
+      const h = southernMineWalkableHeightAt(mx + st.lx, mz + st.lz);
+      assert.equal(h, st.topY);
+      assert.ok((h ?? -999) > MINE_DRAGON_FORGE_SANCTUM.lavaSurfaceY + 1.0);
+    }
+    assert.equal(
+      southernMineWalkableHeightAt(
+        mx + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lx,
+        mz + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lz
+      ),
+      MINE_DRAGON_FORGE_SANCTUM.treasureIsland.topY
+    );
+    assert.equal(MINE_GOLEM_CHAMBER.golemHeight, 11.8);
+    assert.ok(WORLD_CHESTS.some((c) => c.id === 'chest-mine-dragon-forge-sanctum'));
   });
 
   it('should keep dwarven miners, wildlife, horses, and F3 collider wireframes on Layer 0 when marking outdoor roots', () => {

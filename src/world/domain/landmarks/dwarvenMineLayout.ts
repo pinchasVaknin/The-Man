@@ -260,6 +260,21 @@ export function mineTunnelArchSites(): {
   return out;
 }
 
+export const MINE_RAIL_TURNTABLE = {
+  lx: 0.0,
+  lz: 64.0,
+  radius: 4.6,
+  outerRadius: 4.6,
+  innerRadius: 3.8,
+  controlBooth: {
+    lx: 8.4,
+    lz: 51.5,
+    halfX: 1.4,
+    halfZ: 1.2,
+    height: 2.8,
+  },
+} as const;
+
 export const MINE_LAGOON_WALLS = {
   thick: 3.0,
   height: 14.0,
@@ -267,6 +282,13 @@ export const MINE_LAGOON_WALLS = {
   northSouthLx: -118.0,
   northSouthLength: 64.0,
   northLz: 37.0,
+  /** North wall flanks leaving an 8m secret doorway behind the waterfall at lx in [-122.0, -114.0] */
+  northWestFlankLx: -136.0,
+  northWestFlankLength: 28.0,
+  northEastFlankLx: -100.0,
+  northEastFlankLength: 28.0,
+  northWestFlank: { lx: -136.0, length: 28.0 },
+  northEastFlank: { lx: -100.0, length: 28.0 },
   southLz: 113.0,
   westLx: -149.0,
   westLz: 75.0,
@@ -275,6 +297,9 @@ export const MINE_LAGOON_WALLS = {
   eastSouthFlank: { lx: -88.0, lz: 91.25, length: 43.5 },
 } as const;
 
+/**
+ * Summary: Waterfall cliff flanks leaving a 5.2m-wide walkable secret tunnel (lx: -120.6..-115.4) directly behind the waterfall sheet.
+ */
 export const MINE_WATERFALL_CLIFF = {
   lx: -118.0,
   lz: 49.8,
@@ -284,6 +309,55 @@ export const MINE_WATERFALL_CLIFF = {
   coreW: 9.6,
   coreH: 12.4,
   coreD: 4.8,
+  flankOffsetLx: 4.8,
+  flankW: 4.4,
+} as const;
+
+/**
+ * Summary: Secret passage and hidden chamber behind the Chamber 2 waterfall (Reference Image 8).
+ *          Features an ancient circular stone rune doorway on the north wall and a secret treasure chest.
+ */
+export const MINE_WATERFALL_SECRET_CHAMBER = {
+  minLx: -126.0,
+  maxLx: -110.0,
+  lxCentre: -118.0,
+  width: 16.0,
+  minLz: 22.0,
+  maxLz: 38.0,
+  lzCentre: 30.0,
+  length: 16.0,
+  passageMinLx: -121.5,
+  passageMaxLx: -114.5,
+  passageMaxLz: 54.5,
+  floorY: -15.25,
+  height: 10.5,
+  thick: 2.4,
+  wallThick: 2.4,
+  chestLx: -118.0,
+  chestLz: 26.5,
+  chestHalfX: 0.85,
+  chestHalfZ: 0.55,
+  chestHeight: 0.95,
+} as const;
+
+/**
+ * Summary: Mechanical Dwarven Water Wheel & Aqueduct system in Chamber 2 connecting continuously to the Lower Chasm Waterfall in Chamber 4.
+ */
+export const MINE_WATERWORKS = {
+  wheelLx: -99.5,
+  wheelLz: 84.0,
+  wheelRadius: 4.6,
+  wheelWidth: 1.8,
+  supportHalfX: 1.6,
+  supportHalfZ: 5.2,
+  supportHeight: 6.8,
+  aqueductLx: -99.5,
+  aqueductMinLz: 76.0,
+  aqueductMaxLz: 112.0,
+  chasmWaterfallLx: -58.0,
+  chasmWaterfallLz: 212.0,
+  lowerChasmWaterfallLx: -58.0,
+  lowerChasmWaterfallLz: 212.0,
 } as const;
 
 export const MINE_LAGOON_BRIDGE = {
@@ -344,9 +418,34 @@ export const MINE_FOUNDRY_WALLS = {
   westSouthFlank: { lx: 88.0, lz: 89.25, length: 39.5 },
 } as const;
 
+/**
+ * Summary: Multi-elevation Mining Gallery terrace & walkable ramp in the anterior half of Chamber 3 (Area 4),
+ *          plus the mechanical Stone-Crusher and 3 integrated Smelting Foundry blast furnaces (Area 5).
+ */
+export const MINE_GALLERY_TERRACE = {
+  minLx: 92.0,
+  maxLx: 112.0,
+  minLz: 42.0,
+  maxLz: 52.0,
+  deckY: -11.15, // +3.2m above eastFoundryFloorY (-14.35)
+  topY: -11.15,
+  rampMinLx: 92.0,
+  rampMaxLx: 96.5,
+  rampMinLz: 52.0,
+  rampMaxLz: 60.0,
+} as const;
+
+export const MINE_STONE_CRUSHER = {
+  lx: 104.0,
+  lz: 90.0,
+  halfX: 3.2,
+  halfZ: 2.4,
+  height: 6.4,
+} as const;
+
 export const MINE_BLAST_FURNACES = {
   lx: 132.0,
-  lzs: [56.0, 82.0] as const,
+  lzs: [50.0, 69.0, 88.0] as const,
   radius: 3.1,
   height: 7.8,
 } as const;
@@ -439,9 +538,9 @@ export function southGalleryWalkableHeightAt(lx: number, lz: number): number {
 
 /**
  * Summary: Enlarged Great Hall of Khazad-dûm (lz: 165..310, lx: -65..+65, floor y = -28.35, ceiling height = 24.0m).
- *          Side walls at lx = ±65.0 split around lz in [176.0, 190.0] to create TWO GRAND EXITS in opposite directions:
- *            - West Exit (lx = -65, lz in 176..190) -> Bifurcating Y-Tunnel splitting into 2 branches!
- *            - East Exit (lx = +65, lz in 176..190) -> Dragon-Forge & Titan Anvil Vault!
+ *          Side walls at lx = ±65.0 split around lz in [176.0, 190.0] to create TWO GRAND EXITS in opposite directions,
+ *          and the South Back Wall at lz = 310.0 splits around lx in [-7.0, +7.0] behind the Colossal Golem Guardian
+ *          to open the Ancient Stone Passage leading into the southern Dragon Forge & Treasure Chamber!
  */
 export const MINE_MORIA_WALLS = {
   thick: 3.2,
@@ -468,6 +567,12 @@ export const MINE_MORIA_WALLS = {
   backWallLz: 310.0,
   backWallHalfX: 66.0,
   backWallHeight: 24.5,
+  /** South back wall flanks around the 14m Ancient Stone Doorway (lx in [-7.0, +7.0]) */
+  southGateHalfW: 7.0,
+  southFlankX: 36.5,
+  southFlankLength: 59.0,
+  backWallWestFlank: { lx: -36.5, length: 59.0 },
+  backWallEastFlank: { lx: 36.5, length: 59.0 },
   northFlankX: 40.5,
   northFlankLz: 165.0,
   northFlankLength: 49.0,
@@ -548,6 +653,141 @@ export const MINE_ROYAL_CHEST = {
   halfZ: 0.55,
   height: 0.95,
 } as const;
+
+/**
+ * Summary: Area 10 — Golem Guardian Chamber at the southern end of the Great Bridge (lz: 270..310).
+ *          The Colossal Ancient Stone Golem Guardian stands astride the Ancient Stone Doorway (lz = 304.5),
+ *          with massive stone legs/feet at lx = ±4.6 leaving a 6.4m walkable central passage (lx: -3.2..+3.2) into the Ancient Stone Passage.
+ */
+export const MINE_GOLEM_CHAMBER = {
+  guardianLx: 0.0,
+  guardianLz: 304.5,
+  golemLx: 0.0,
+  golemLz: 304.5,
+  footOffsetLx: 4.6,
+  footHalfX: 1.4,
+  footHalfZ: 1.6,
+  footHeight: 5.5,
+  guardianHeight: 11.8,
+  golemHeight: 11.8,
+  chainPillarLx: 13.5,
+  chainPillarLz: 288.0,
+  chainPillarRadius: 1.4,
+  chainPillarHeight: 18.0,
+} as const;
+
+/**
+ * Summary: Area 10/11 — Ancient Stone Passage (lz: 310..346, lx: -7.0..+7.0) descending 6.0m from the Golem Guardian Chamber
+ *          (y = -28.35) down into the southern Dragon Forge & Treasure Chamber (y = -34.35).
+ */
+export const MINE_ANCIENT_PASSAGE = {
+  minLx: -7.0,
+  maxLx: 7.0,
+  halfW: 7.0,
+  halfWidth: 7.0,
+  width: 14.0,
+  minLz: 310.0,
+  maxLz: 346.0,
+  centreLz: 328.0,
+  length: 36.0,
+  yStart: -28.35,
+  yEnd: -34.35,
+  startFloorY: -28.35,
+  endFloorY: -34.35,
+  height: 12.0,
+  thick: 2.6,
+  wallThick: 2.6,
+  stepCount: 24,
+} as const;
+
+export function ancientPassageWalkableHeightAt(lz: number): number {
+  const P = MINE_ANCIENT_PASSAGE;
+  const t = Math.max(0, Math.min(1, (lz - P.minLz) / (P.maxLz - P.minLz)));
+  return P.yStart + t * (P.yEnd - P.yStart);
+}
+
+/**
+ * Summary: Area 11 — Southern Dragon Forge & Treasure Chamber (lx: -38..+38, lz: 346..414, floor y = -34.35).
+ *          Built around a colossal architectural Dragon-Head Furnace carved into the southern rock wall (lz = 406.0)
+ *          pouring molten lava into a central lava pool (lz: 360..398). Five solid stone stepping platforms cross the
+ *          lava pool to a raised Treasure Island holding the Ancient Dwarven Treasure Chest.
+ */
+export const MINE_LAVA_STEPPING_STONES = [
+  { lx: 0.0, lz: 363.2, radius: 2.45, topY: -34.25 },
+  { lx: -2.1, lz: 368.0, radius: 2.45, topY: -34.15 },
+  { lx: 0.0, lz: 373.0, radius: 2.55, topY: -34.05 },
+  { lx: 2.1, lz: 378.0, radius: 2.45, topY: -33.95 },
+  { lx: 0.0, lz: 382.8, radius: 2.45, topY: -33.85 },
+] as const;
+
+export const MINE_DRAGON_FORGE_SANCTUM = {
+  minLx: -38.0,
+  maxLx: 38.0,
+  lxCentre: 0.0,
+  width: 76.0,
+  minLz: 346.0,
+  maxLz: 414.0,
+  lzCentre: 380.0,
+  length: 68.0,
+  terraceMaxLz: 360.0,
+  floorY: -34.35,
+  lavaPoolMinLz: 360.0,
+  lavaPoolMaxLz: 398.0,
+  lavaSurfaceY: -36.15,
+  height: 16.5,
+  thick: 2.8,
+  wallThick: 2.8,
+  northWestWall: { lx: -22.5, length: 31.0 },
+  northEastWall: { lx: 22.5, length: 31.0 },
+  treasureIsland: {
+    minLx: -7.5,
+    maxLx: 7.5,
+    minLz: 385.5,
+    maxLz: 396.5,
+    topY: -33.75,
+  },
+  treasureChest: {
+    lx: 0.0,
+    lz: 391.0,
+    halfX: 0.95,
+    halfZ: 0.65,
+    height: 1.05,
+  },
+  dragonFurnace: {
+    lx: 0.0,
+    lz: 406.0,
+    halfX: 9.5,
+    halfZ: 6.0,
+    height: 15.5,
+  },
+} as const;
+
+/**
+ * Summary: Computes the walkable surface height inside the Southern Dragon Forge & Treasure Chamber (lz: 346..414).
+ *          Returns the North Terrace height (-34.35), Stepping Stone top height, Treasure Island top height (-33.75),
+ *          side walkways, or the shallow lava basin floor (-36.15) if the player steps off into the lava pool.
+ */
+export function dragonForgeSanctumWalkableHeightAt(lx: number, lz: number): number {
+  const S = MINE_DRAGON_FORGE_SANCTUM;
+  // 1) North Entrance Terrace (lz: 346..360.5) or Side Stone Catwalks (|lx| >= 26.0)
+  if (lz <= S.terraceMaxLz + 0.5 || Math.abs(lx) >= 26.0 || lz >= S.lavaPoolMaxLz) {
+    return S.floorY;
+  }
+  // 2) Raised Treasure Island (lx: -7.5..+7.5, lz: 385.5..396.5)
+  const ti = S.treasureIsland;
+  if (lx >= ti.minLx && lx <= ti.maxLx && lz >= ti.minLz && lz <= ti.maxLz) {
+    return ti.topY;
+  }
+  // 3) Sequence of 5 Stone Stepping Platforms across the Lava Pool
+  for (let i = 0; i < MINE_LAVA_STEPPING_STONES.length; i++) {
+    const st = MINE_LAVA_STEPPING_STONES[i];
+    if (Math.hypot(lx - st.lx, lz - st.lz) <= st.radius + 0.25) {
+      return st.topY;
+    }
+  }
+  // 4) Molten Lava Basin below the stepping stones
+  return S.lavaSurfaceY;
+}
 // #endregion
 
 // ======================== EXIT 1 (WEST): BIFURCATING TUNNEL & TWIN SANCTUMS ======================== \\
@@ -631,10 +871,10 @@ export const MINE_WEST_SPLIT = {
     length: 42.0,
     height: 17.5,
     statues: [
-      { lx: -144.0, lz: 116.0, yaw: Math.PI / 2 },
-      { lx: -144.0, lz: 134.0, yaw: Math.PI / 2 },
-      { lx: -114.0, lz: 116.0, yaw: -Math.PI / 2 },
-      { lx: -114.0, lz: 134.0, yaw: -Math.PI / 2 },
+      { lx: -144.0, lz: 116.0, yaw: Math.PI / 2, role: 'warrior_axe' },
+      { lx: -144.0, lz: 134.0, yaw: Math.PI / 2, role: 'king_hammer' },
+      { lx: -114.0, lz: 116.0, yaw: -Math.PI / 2, role: 'guardian_shield' },
+      { lx: -114.0, lz: 134.0, yaw: -Math.PI / 2, role: 'ancient_miner' },
     ] as const,
     statueHalf: 2.1,
     statueHeight: 10.5,
