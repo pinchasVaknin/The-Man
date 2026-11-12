@@ -783,7 +783,8 @@ test('stepSmallAnimals_WhenLandAnimalEntersWater_ShouldNeverFreezeAndShouldSwimT
   stepSmallAnimals([croc], 0.05, 72.0, 10.0, 0, [], 1.0, undefined, 0, false, false, 0);
   assert.equal(croc.inWater, true);
   assert.ok(
-    croc.x > 0.35,
+    // Threshold follows the G9 speed reduction (predator charge speeds x0.85): 0.35 m before, about 0.30 m now.
+    croc.x > 0.3,
     `Crocodile swimming in water must move faster with aquatic speed boost (moved ${croc.x.toFixed(2)}m in 0.05s)`
   );
 });
@@ -998,7 +999,8 @@ test('southernDragon_WhenEvaluatedAndDamaged_ShouldOnlyFightPreyOrPlayerHaveColo
   const animals = createInitialSmallAnimals();
   const dragon = animals.find((a) => a.species === 'dragon')!;
   assert.ok(dragon, 'Expected Southern Dragon in world animals registry');
-  assert.equal(getAnimalMaxHp('dragon'), 7500, 'Southern Dragon must have colossal 7500 HP pool');
+  // DR2: the dragon has a fixed, explicit pool (no level scaling).
+  assert.equal(getAnimalMaxHp('dragon'), 30000, 'Southern Dragon must have a fixed 30000 HP pool');
   assert.equal(dragon.hp, getAnimalMaxHp('dragon', dragon.level));
   assert.equal(dragon.maxHp, getAnimalMaxHp('dragon', dragon.level));
 

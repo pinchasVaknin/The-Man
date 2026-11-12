@@ -6077,10 +6077,10 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -507.588962,
-    "y": 3.248823,
+    "x": -507.651807,
+    "y": 3.248394,
     "yaw": -1.403106,
-    "z": 123.422581
+    "z": 123.433219
    },
    {
     "aiBehavior": "sitting",
@@ -7038,7 +7038,7 @@
   "frame": 599,
   "result": {
    "nearestBirdDist": 446.907049,
-   "nearestCritterDist": 2.090207,
+   "nearestCritterDist": 2.026468,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }
@@ -7838,10 +7838,10 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -507.588962,
-    "y": 3.248823,
+    "x": -507.651807,
+    "y": 3.248394,
     "yaw": -1.403106,
-    "z": 123.422581
+    "z": 123.433219
    },
    {
     "aiBehavior": "sitting",
@@ -9599,10 +9599,10 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -507.588962,
-    "y": 3.248823,
+    "x": -507.651807,
+    "y": 3.248394,
     "yaw": -1.403106,
-    "z": 123.422581
+    "z": 123.433219
    },
    {
     "aiBehavior": "sitting",
@@ -10352,13 +10352,13 @@
     "id": 110,
     "isDead": false,
     "species": "dolphin",
-    "vx": 0.539379,
-    "vz": -5.251529,
+    "vx": -0.324137,
+    "vz": -4.467739,
     "wakeMeter": 0,
-    "x": 844.359583,
+    "x": 845.313785,
     "y": -1.606918,
-    "yaw": 3.039243,
-    "z": 402.043204
+    "yaw": -3.069169,
+    "z": 402.285501
    },
    {
     "aiBehavior": "stalking",
@@ -10366,13 +10366,13 @@
     "id": 111,
     "isDead": false,
     "species": "dolphin",
-    "vx": 4.866439,
-    "vz": -2.85356,
+    "vx": 3.950596,
+    "vz": -2.712391,
     "wakeMeter": 0,
-    "x": 874.864685,
+    "x": 874.710943,
     "y": -1.55388,
-    "yaw": 2.101137,
-    "z": 415.735652
+    "yaw": 2.172457,
+    "z": 416.559531
    }
   ],
   "birds": [
@@ -10560,7 +10560,7 @@
   "frame": 899,
   "result": {
    "nearestBirdDist": 884.089938,
-   "nearestCritterDist": 10.978331,
+   "nearestCritterDist": 10.327231,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }

@@ -1745,6 +1745,19 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
               targetInfo.hasTarget &&
               (forestDragonMode === 'fire_breath' || forestDragonMode === 'sky_fire_strafe');
             dragonFireBreathGroup.visible = isBreathingFire;
+            if (dragonAnimal) {
+              // DR1: the breath is a real hazard: the cone (origin, facing, reach) is read by the survival step.
+              dragonAnimal.fireBreath = isBreathingFire
+                ? {
+                    x: gorgeDragonGroup.position.x,
+                    z: gorgeDragonGroup.position.z,
+                    dirX: Math.sin(gorgeDragonGroup.rotation.y),
+                    dirZ: Math.cos(gorgeDragonGroup.rotation.y),
+                    range: 13.0,
+                    halfAngle: 0.5,
+                  }
+                : undefined;
+            }
         if (isBreathingFire) {
           const headBone = forestDragonCtrl.rig?.bones[34];
           if (headBone) {

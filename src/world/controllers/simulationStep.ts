@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { isWorldPausedByMenu } from '../domain/uiPause';
 import { t } from '../../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -278,6 +279,9 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
   } = ctx;
 
   return function simulateStep(rawDt: number): void {
+      // UI2: the world holds still while an inventory, trade or map menu is open.
+      if (gameStateRef.current === 'playing' && isWorldPausedByMenu(document.body.dataset)) return;
+
       if (gameStateRef.current === 'title') {
         simulationState.elapsedTotal += rawDt;
         timeState.worldHours = advanceWorldClock(timeState.worldHours, rawDt, TITLE_CLOCK_HOURS_PER_SECOND);
