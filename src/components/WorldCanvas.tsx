@@ -116,6 +116,7 @@ import { createRestAndRideState } from '../world/domain/restAndRideState';
 import { buildHudTelemetryInput } from '../world/controllers/hudEmitter';
 import { attachInputListeners } from '../world/controllers/inputController';
 import { createSimulationStep } from '../world/controllers/simulationStep';
+import { createRenderFrame } from '../world/controllers/renderFrame';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
   createAnimationFrameScheduler,
@@ -214,6 +215,7 @@ const MAX_CONSECUTIVE_TICK_FAILURES = 60;
 const MAX_FRAME_SECONDS = 0.05;
 /** Fixed simulation step: 60 Hz. */
 const SIMULATION_STEP_SECONDS = 1 / 60;
+const _sunVec = new THREE.Vector3();
 /** Steps allowed per rendered frame; capped at 2 to prevent spiral-of-death stutter when flying. */
 const MAX_SIMULATION_STEPS_PER_FRAME = 2;
 /** Minimum gap between two logged frame errors (ms). */
@@ -221,9 +223,6 @@ const TICK_ERROR_LOG_INTERVAL_MS = 2000;
 
 /** World clock hour the session starts at when no ?hour= override is given (06:40, sunrise mist). */
 const DEFAULT_START_WORLD_HOUR = 6.68;
-const _sunVec = new THREE.Vector3();
-const _camTargetLook = new THREE.Vector3();
-const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 export const WorldCanvas = React.memo<IWorldCanvasProps>(({
   gameState,
@@ -323,7 +322,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       materials: { ...DEFAULT_TRAP_WORKBENCH_STASH },
     };
 
-    let activeTrapPlacementGhost: ITrapPlacementPreviewGhost | null = null;
+    const trapGhost: { current: ITrapPlacementPreviewGhost | null } = { current: null };
 
     const placeHeldTrapAtPreview = (): boolean => {
       const heldTrap = playerState.heldTrapItemId;
@@ -1102,8 +1101,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           activeArrows.length = 0;
           worldPlacedTraps.length = 0;
           playerState.heldTrapItemId = null;
-          if (activeTrapPlacementGhost) {
-            activeTrapPlacementGhost.group.visible = false;
+          if (trapGhost.current) {
+            trapGhost.current.group.visible = false;
           }
           placedTrapSync.clear();
           workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
@@ -1166,8 +1165,8 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         activeArrows.length = 0;
         worldPlacedTraps.length = 0;
         playerState.heldTrapItemId = null;
-        if (activeTrapPlacementGhost) {
-          activeTrapPlacementGhost.group.visible = false;
+        if (trapGhost.current) {
+          trapGhost.current.group.visible = false;
         }
         placedTrapSync.clear();
         workbenchStash.materials = { ...DEFAULT_TRAP_WORKBENCH_STASH };
@@ -1407,7 +1406,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     // 8. Main Animation Loop with Software-WebGL Pacing Guard
-    let lastHudEmitTime = 0;
     const perfStats = new PerfStats();
     const perfDebug = createPerfDebugTools({ renderer, scene, perfStats, colliders: SOLID_BUILDING_BOXES });
 
@@ -1476,16 +1474,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
 
     /** Copies a computed camera pose onto the three.js camera. */
-    function applyCameraPose(pose: ICameraPose) {
-      camera.position.set(pose.x, pose.y, pose.z);
-      if (pose.mode === 'euler') {
-        _euler.set(pose.pitch, pose.yaw, pose.roll, 'YXZ');
-        camera.quaternion.setFromEuler(_euler);
-      } else {
-        _camTargetLook.set(pose.lookX, pose.lookY, pose.lookZ);
-        camera.lookAt(_camTargetLook);
-      }
-    }
 
     const wildlifeSoundCallbacks: IWildlifeSoundCallbacks = {
       onBirdFlockStartled: (dist) => {
@@ -1507,8 +1495,6 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       bobPhase: playerState.bobPhase,
       bobAmount: playerState.bobAmount,
     };
-    /** Interpolated copy of the player that the camera and meshes render from. */
-    const renderPlayer: IPlayerState = { ...playerState };
 
     function capturePreviousPlayerPose() {
       previousPlayerPose.x = playerState.x;
@@ -1522,177 +1508,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     }
 
     /** Fills renderPlayer with the live state, blending the pose between the last two steps. */
-    function interpolateRenderPlayer(alpha: number) {
-      Object.assign(renderPlayer, playerState);
-      renderPlayer.x = lerp(previousPlayerPose.x, playerState.x, alpha);
-      renderPlayer.y = lerp(previousPlayerPose.y, playerState.y, alpha);
-      renderPlayer.z = lerp(previousPlayerPose.z, playerState.z, alpha);
-      renderPlayer.yaw = lerpAngle(previousPlayerPose.yaw, playerState.yaw, alpha);
-      renderPlayer.pitch = lerp(previousPlayerPose.pitch, playerState.pitch, alpha);
-      if (playerState.mountedHorseYaw !== undefined) {
-        renderPlayer.mountedHorseYaw = lerpAngle(
-          previousPlayerPose.mountedHorseYaw,
-          playerState.mountedHorseYaw,
-          alpha
-        );
-      }
-      const bobDelta = playerState.bobPhase - previousPlayerPose.bobPhase;
-      if (bobDelta >= 0 && bobDelta < Math.PI * 2) {
-        renderPlayer.bobPhase = lerp(previousPlayerPose.bobPhase, playerState.bobPhase, alpha);
-      }
-      renderPlayer.bobAmount = lerp(previousPlayerPose.bobAmount, playerState.bobAmount, alpha);
-    }
 
     /** Advances the game simulation by exactly one fixed step. */
 
     /** Renders one frame from the simulation state, interpolated by `alpha`. */
-    function renderFrame(frameDt: number, now: number, alpha: number) {
-      soundEngine.setMuted(mutedRef.current);
-      soundEngine.setPaused(gameStateRef.current !== 'playing');
-
-      // Simulation time of the interpolated moment being drawn.
-      const renderTime = simulationState.elapsedTotal - (1 - alpha) * SIMULATION_STEP_SECONDS;
-      if (gameStateRef.current === 'title') {
-        writeTitleOrbitPose(renderTime, cameraPose);
-        applyCameraPose(cameraPose);
-        worldHandles.update(
-          renderTime,
-          camera.position.x,
-          camera.position.z,
-          simulationState.currentAtmo.morningMistOpacity,
-          simulationState.currentAtmo.nightFactor,
-          simulationState.currentWeather,
-          openDoorIds,
-          rideableHorses,
-          null,
-          undefined,
-          activeArrows,
-          timeState.worldHours
-        );
-      } else if (gameStateRef.current === 'playing') {
-        interpolateRenderPlayer(alpha);
-        const underRoof = isPositionUnderRoof(renderPlayer.x, renderPlayer.y, renderPlayer.z);
-        const distToBirdsFlock = Math.hypot(renderPlayer.x, renderPlayer.z - 15);
-        const birdProximity = Math.max(0, Math.min(1, 1.0 - (distToBirdsFlock - 35) / 85));
-
-        soundEngine.updateAmbient(
-          frameDt,
-          renderPlayer.x,
-          renderPlayer.z,
-          true,
-          simulationState.currentWeather.windStrength,
-          simulationState.currentWeather.rainIntensity,
-          simulationState.currentAtmo.isNight,
-          underRoof,
-          birdProximity
-        );
-
-        stepCameraRig(
-          cameraRig,
-          { player: renderPlayer, dt: frameDt, elapsedSeconds: renderTime, landingDip: simulationState.landingDip, isSleepingInBed: restState.isSleepingInBed },
-          cameraPose
-        );
-        applyCameraPose(cameraPose);
-
-        const camWaterY = getWaterSurfaceHeightAt(
-          camera.position.x,
-          camera.position.z,
-          renderPlayer.y
-        );
-        if (camWaterY !== null && camera.position.y < camWaterY + 0.05) {
-          fog.color.setHex(0x0c4a6e);
-          fog.density = 0.038;
-        }
-
-        const easedFov = easeFovToward(camera.fov, computeTargetFov(cameraRig, renderPlayer), frameDt);
-        if (easedFov !== null) {
-          camera.fov = easedFov;
-          camera.updateProjectionMatrix();
-        }
-
-        const shadowTargetX = Math.round(renderPlayer.x * 0.25) * 4;
-        const shadowTargetY = renderPlayer.isFlying ? Math.min(renderPlayer.y, 12) : renderPlayer.y;
-        const shadowTargetZ = Math.round(renderPlayer.z * 0.25) * 4;
-        sunLight.target.position.set(shadowTargetX, shadowTargetY, shadowTargetZ);
-        sunLight.position
-          .copy(_sunVec)
-          .multiplyScalar(85)
-          .add(sunLight.target.position);
-
-        worldHandles.update(
-          renderTime,
-          renderPlayer.x,
-          renderPlayer.z,
-          simulationState.currentAtmo.morningMistOpacity,
-          simulationState.currentAtmo.nightFactor,
-          simulationState.currentWeather,
-          openDoorIds,
-          rideableHorses,
-          renderPlayer.mountedHorseId,
-          renderPlayer,
-          activeArrows,
-          timeState.worldHours
-        );
-      }
-
-      // Synchronize 3D meshes for placed traps (owned by placedTrapSync).
-      placedTrapSync.sync(worldPlacedTraps);
-
-      // Synchronize 3D Green/Red Trap Placement Preview Ghost when holding a trap in hands
-      if (
-        gameStateRef.current === 'playing' &&
-        playerState.heldTrapItemId &&
-        (playerState.ownedItemIds ?? []).includes(playerState.heldTrapItemId)
-      ) {
-        const preview = computeTrapPlacementPreview(
-          worldPlacedTraps,
-          playerState.heldTrapItemId,
-          renderPlayer.x,
-          renderPlayer.y,
-          renderPlayer.z,
-          renderPlayer.yaw,
-          (gx: number, gz: number) => walkableHeightAt(gx, gz).height,
-          WATER_LEVEL,
-          renderPlayer.pitch
-        );
-        if (preview) {
-          if (!activeTrapPlacementGhost || activeTrapPlacementGhost.kind !== preview.kind) {
-            if (activeTrapPlacementGhost) {
-              worldTrapsGroup.remove(activeTrapPlacementGhost.group);
-            }
-            activeTrapPlacementGhost = buildTrapPlacementPreviewGhost(preview.kind);
-            worldTrapsGroup.add(activeTrapPlacementGhost.group);
-          }
-          activeTrapPlacementGhost.group.visible = true;
-          activeTrapPlacementGhost.group.position.set(preview.x, preview.y, preview.z);
-          activeTrapPlacementGhost.group.rotation.y = preview.yaw;
-          activeTrapPlacementGhost.setValid(preview.valid);
-        } else if (activeTrapPlacementGhost) {
-          activeTrapPlacementGhost.group.visible = false;
-        }
-      } else {
-        if (activeTrapPlacementGhost) {
-          activeTrapPlacementGhost.group.visible = false;
-        }
-        if (
-          playerState.heldTrapItemId &&
-          !(playerState.ownedItemIds ?? []).includes(playerState.heldTrapItemId)
-        ) {
-          playerState.heldTrapItemId = null;
-        }
-      }
-
-      if (now - lastHudEmitTime > 100) {
-        lastHudEmitTime = now;
-        emitHudSnapshot();
-      }
-
-      sky.position.copy(camera.position);
-      sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
-
-      setCameraUndergroundMask(camera, isPlayerUnderground(playerState.x, playerState.y, playerState.z));
-      renderer.render(scene, camera);
-    }
 
     function emitHudSnapshot() {
       onTelemetryUpdateRef.current(
@@ -1716,6 +1535,36 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         )
       );
     }
+
+    const renderFrame = createRenderFrame({
+      activeArrows,
+      camera,
+      cameraPose,
+      cameraRig,
+      emitHudSnapshot,
+      fog,
+      gameStateRef,
+      mutedRef,
+      openDoorIds,
+      placedTrapSync,
+      playerState,
+      previousPlayerPose,
+      renderer,
+      rideableHorses,
+      restState,
+      scene,
+      simulationState,
+      sky,
+      soundEngine,
+      sunDiscMesh,
+      stepSeconds: SIMULATION_STEP_SECONDS,
+      sunLight,
+      timeState,
+      trapGhost,
+      worldHandles,
+      worldPlacedTraps,
+      worldTrapsGroup,
+    });
 
     const simulateStep = createSimulationStep({
       actionState,
