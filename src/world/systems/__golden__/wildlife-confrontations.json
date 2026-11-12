@@ -1110,7 +1110,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.587437,
+   "x": -77.589791,
    "z": -56
   },
   "species": "bear",
@@ -1119,10 +1119,10 @@
    "alertLevel": "curious",
    "hp": 542,
    "pounceHeight": 0,
-   "vx": 6.6,
+   "vx": 5.61,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -84.01,
+   "x": -84.1585,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1134,7 +1134,7 @@
    "stamina": 86,
    "vx": -1.2,
    "vz": 0,
-   "x": -78.140779,
+   "x": -78.186653,
    "z": -56
   },
   "species": "bear",
@@ -1146,7 +1146,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -81.04,
+   "x": -81.073,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1158,7 +1158,7 @@
    "stamina": 72,
    "vx": -1.2,
    "vz": 0,
-   "x": -78.439864,
+   "x": -78.482986,
    "z": -56
   },
   "species": "bear",
@@ -1170,7 +1170,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -81.04,
+   "x": -81.073,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1182,7 +1182,7 @@
    "stamina": 58,
    "vx": -1.2,
    "vz": 0,
-   "x": -78.675018,
+   "x": -78.715977,
    "z": -56
   },
   "species": "bear",
@@ -1194,7 +1194,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -81.04,
+   "x": -81.073,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1203,10 +1203,10 @@
   "frame": 299,
   "isShot": false,
   "player": {
-   "stamina": 30,
+   "stamina": 44,
    "vx": -1.2,
    "vz": 0,
-   "x": -78.859909,
+   "x": -78.899166,
    "z": -56
   },
   "species": "bear",
@@ -1218,7 +1218,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -81.04,
+   "x": -81.073,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1230,7 +1230,7 @@
    "stamina": 16,
    "vx": -1.2,
    "vz": 0,
-   "x": -79.005279,
+   "x": -79.043199,
    "z": -56
   },
   "species": "bear",
@@ -1242,7 +1242,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -81.04,
+   "x": -81.073,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1254,7 +1254,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -76.915094,
+   "x": -76.997353,
    "z": -56
   },
   "species": "bear",
@@ -1266,7 +1266,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1275,10 +1275,10 @@
   "frame": 119,
   "isShot": true,
   "player": {
-   "stamina": 72,
+   "stamina": 86,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.217531,
+   "x": -77.328057,
    "z": -56
   },
   "species": "bear",
@@ -1290,7 +1290,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1302,7 +1302,7 @@
    "stamina": 58,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.455322,
+   "x": -77.588072,
    "z": -56
   },
   "species": "bear",
@@ -1314,7 +1314,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1326,7 +1326,7 @@
    "stamina": 44,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.642285,
+   "x": -77.792509,
    "z": -56
   },
   "species": "bear",
@@ -1338,7 +1338,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1350,7 +1350,7 @@
    "stamina": 30,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.789285,
+   "x": -77.953248,
    "z": -56
   },
   "species": "bear",
@@ -1362,7 +1362,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1374,7 +1374,7 @@
    "stamina": 2,
    "vx": -1.2,
    "vz": 0,
-   "x": -77.904863,
+   "x": -78.079628,
    "z": -56
   },
   "species": "bear",
@@ -1386,7 +1386,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": -79.83,
+   "x": -80.0445,
    "yaw": 1.570796,
    "z": -56
   }
@@ -1395,10 +1395,10 @@
   "frame": 59,
   "isShot": false,
   "player": {
-   "stamina": 85,
+   "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 130.021459,
+   "x": 129.925887,
    "z": 468
   },
   "species": "crocodile",
@@ -1407,10 +1407,10 @@
    "alertLevel": "curious",
    "hp": 374,
    "pounceHeight": 0,
-   "vx": 0,
+   "vx": 6.4,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.155867,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1422,7 +1422,7 @@
    "stamina": 55,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.865563,
+   "x": 129.768543,
    "z": 468
   },
   "species": "crocodile",
@@ -1434,7 +1434,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1443,10 +1443,10 @@
   "frame": 179,
   "isShot": false,
   "player": {
-   "stamina": 10,
+   "stamina": 25,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.742989,
+   "x": 129.649052,
    "z": 468
   },
   "species": "crocodile",
@@ -1458,7 +1458,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1468,9 +1468,9 @@
   "isShot": false,
   "player": {
    "stamina": 0,
-   "vx": -3.417942,
-   "vz": -2.306672,
-   "x": 129.646615,
+   "vx": -1.2,
+   "vz": 0,
+   "x": 129.555103,
    "z": 468
   },
   "species": "crocodile",
@@ -1482,7 +1482,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1494,7 +1494,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.570842,
+   "x": 129.481235,
    "z": 468
   },
   "species": "crocodile",
@@ -1506,7 +1506,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1518,7 +1518,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.511265,
+   "x": 129.423156,
    "z": 468
   },
   "species": "crocodile",
@@ -1530,7 +1530,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1539,10 +1539,10 @@
   "frame": 59,
   "isShot": true,
   "player": {
-   "stamina": 85,
+   "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 130.021459,
+   "x": 129.925887,
    "z": 468
   },
   "species": "crocodile",
@@ -1551,10 +1551,10 @@
    "alertLevel": "curious",
    "hp": 373,
    "pounceHeight": 0,
-   "vx": 0,
+   "vx": 6.4,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": 127.79212,
+   "x": 127.155867,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1566,7 +1566,7 @@
    "stamina": 55,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.865563,
+   "x": 129.768543,
    "z": 468
   },
   "species": "crocodile",
@@ -1578,7 +1578,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1590,7 +1590,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.742989,
+   "x": 129.649052,
    "z": 468
   },
   "species": "crocodile",
@@ -1602,7 +1602,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1614,7 +1614,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.646615,
+   "x": 129.555103,
    "z": 468
   },
   "species": "crocodile",
@@ -1626,7 +1626,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1638,7 +1638,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.570842,
+   "x": 129.481235,
    "z": 468
   },
   "species": "crocodile",
@@ -1650,7 +1650,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1662,7 +1662,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 129.511265,
+   "x": 129.423156,
    "z": 468
   },
   "species": "crocodile",
@@ -1674,7 +1674,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": 127.79212,
+   "x": 127.709523,
    "yaw": 1.570796,
    "z": 468
   }
@@ -1686,7 +1686,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.746754,
+   "x": -229.845781,
    "z": 236
   },
   "species": "jaguar",
@@ -1694,11 +1694,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0.559546,
+   "pounceHeight": 0.440823,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1710,7 +1710,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.811431,
+   "x": -229.908634,
    "z": 236
   },
   "species": "jaguar",
@@ -1718,11 +1718,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0,
+   "pounceHeight": 0.177334,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1734,7 +1734,7 @@
    "stamina": 64,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.862283,
+   "x": -229.958052,
    "z": 236
   },
   "species": "jaguar",
@@ -1742,11 +1742,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0.540918,
+   "pounceHeight": 0.318116,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1758,7 +1758,7 @@
    "stamina": 40,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.902265,
+   "x": -229.996907,
    "z": 236
   },
   "species": "jaguar",
@@ -1766,11 +1766,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0,
+   "pounceHeight": 0.327332,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1782,7 +1782,7 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.933701,
+   "x": -230.027457,
    "z": 236
   },
   "species": "jaguar",
@@ -1790,11 +1790,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0.473306,
+   "pounceHeight": 0.166602,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1806,7 +1806,7 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.958417,
+   "x": -230.051476,
    "z": 236
   },
   "species": "jaguar",
@@ -1814,11 +1814,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 206,
-   "pounceHeight": 0.123041,
+   "pounceHeight": 0.447688,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1830,7 +1830,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.746754,
+   "x": -229.845781,
    "z": 236
   },
   "species": "jaguar",
@@ -1838,11 +1838,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0.559546,
+   "pounceHeight": 0.440823,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1854,7 +1854,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.811431,
+   "x": -229.908634,
    "z": 236
   },
   "species": "jaguar",
@@ -1862,11 +1862,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0,
+   "pounceHeight": 0.177334,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1878,7 +1878,7 @@
    "stamina": 64,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.862283,
+   "x": -229.958052,
    "z": 236
   },
   "species": "jaguar",
@@ -1886,11 +1886,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0.540918,
+   "pounceHeight": 0.318116,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1902,7 +1902,7 @@
    "stamina": 40,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.902265,
+   "x": -229.996907,
    "z": 236
   },
   "species": "jaguar",
@@ -1910,11 +1910,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0,
+   "pounceHeight": 0.327332,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1926,7 +1926,7 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.933701,
+   "x": -230.027457,
    "z": 236
   },
   "species": "jaguar",
@@ -1934,11 +1934,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0.473306,
+   "pounceHeight": 0.166602,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -1950,7 +1950,7 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -229.958417,
+   "x": -230.051476,
    "z": 236
   },
   "species": "jaguar",
@@ -1958,11 +1958,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 205,
-   "pounceHeight": 0.123041,
+   "pounceHeight": 0.447688,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": -231.549333,
+   "x": -231.639829,
    "yaw": 1.570796,
    "z": 236
   }
@@ -2568,7 +2568,7 @@
    "stamina": 88,
    "vx": -1.2,
    "vz": 0,
-   "x": -612.826247,
+   "x": -612.898279,
    "z": 115
   },
   "species": "lion",
@@ -2576,11 +2576,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 965,
-   "pounceHeight": 0.229831,
+   "pounceHeight": 0.447688,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2592,103 +2592,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -613.11231,
-   "z": 115
-  },
-  "species": "lion",
-  "target": {
-   "aiBehavior": "attacking",
-   "alertLevel": "curious",
-   "hp": 965,
-   "pounceHeight": 0.270177,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": -615.664551,
-   "yaw": 1.570796,
-   "z": 115
-  }
- },
- {
-  "frame": 179,
-  "isShot": false,
-  "player": {
-   "stamina": 52,
-   "vx": -1.2,
-   "vz": 0,
-   "x": -613.337227,
-   "z": 115
-  },
-  "species": "lion",
-  "target": {
-   "aiBehavior": "attacking",
-   "alertLevel": "curious",
-   "hp": 965,
-   "pounceHeight": 0.371349,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": -615.664551,
-   "yaw": 1.570796,
-   "z": 115
-  }
- },
- {
-  "frame": 239,
-  "isShot": false,
-  "player": {
-   "stamina": 40,
-   "vx": -1.2,
-   "vz": 0,
-   "x": -613.514068,
-   "z": 115
-  },
-  "species": "lion",
-  "target": {
-   "aiBehavior": "attacking",
-   "alertLevel": "curious",
-   "hp": 965,
-   "pounceHeight": 0.112014,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": -615.664551,
-   "yaw": 1.570796,
-   "z": 115
-  }
- },
- {
-  "frame": 299,
-  "isShot": false,
-  "player": {
-   "stamina": 16,
-   "vx": 1.4,
-   "vz": 0,
-   "x": -613.653109,
-   "z": 115
-  },
-  "species": "lion",
-  "target": {
-   "aiBehavior": "attacking",
-   "alertLevel": "curious",
-   "hp": 965,
-   "pounceHeight": 0.479238,
-   "vx": 0,
-   "vz": 0,
-   "wokenUpTimer": 0,
-   "x": -615.664551,
-   "yaw": 1.570796,
-   "z": 115
-  }
- },
- {
-  "frame": 359,
-  "isShot": false,
-  "player": {
-   "stamina": 4,
-   "vx": -1.2,
-   "vz": 0,
-   "x": -613.76243,
+   "x": -613.191305,
    "z": 115
   },
   "species": "lion",
@@ -2700,7 +2604,103 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
-   "x": -615.664551,
+   "x": -615.769156,
+   "yaw": 1.570796,
+   "z": 115
+  }
+ },
+ {
+  "frame": 179,
+  "isShot": false,
+  "player": {
+   "stamina": 64,
+   "vx": -1.2,
+   "vz": 0,
+   "x": -613.421696,
+   "z": 115
+  },
+  "species": "lion",
+  "target": {
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 965,
+   "pounceHeight": 0.527502,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": -615.769156,
+   "yaw": 1.570796,
+   "z": 115
+  }
+ },
+ {
+  "frame": 239,
+  "isShot": false,
+  "player": {
+   "stamina": 40,
+   "vx": -1.2,
+   "vz": 0,
+   "x": -613.602841,
+   "z": 115
+  },
+  "species": "lion",
+  "target": {
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 965,
+   "pounceHeight": 0,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": -615.769156,
+   "yaw": 1.570796,
+   "z": 115
+  }
+ },
+ {
+  "frame": 299,
+  "isShot": false,
+  "player": {
+   "stamina": 28,
+   "vx": -1.2,
+   "vz": 0,
+   "x": -613.745267,
+   "z": 115
+  },
+  "species": "lion",
+  "target": {
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 965,
+   "pounceHeight": 0.559546,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": -615.769156,
+   "yaw": 1.570796,
+   "z": 115
+  }
+ },
+ {
+  "frame": 359,
+  "isShot": false,
+  "player": {
+   "stamina": 4,
+   "vx": -1.2,
+   "vz": 0,
+   "x": -613.857248,
+   "z": 115
+  },
+  "species": "lion",
+  "target": {
+   "aiBehavior": "attacking",
+   "alertLevel": "curious",
+   "hp": 965,
+   "pounceHeight": 0,
+   "vx": 0,
+   "vz": 0,
+   "wokenUpTimer": 0,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2712,7 +2712,7 @@
    "stamina": 88,
    "vx": -1.2,
    "vz": 0,
-   "x": -612.826247,
+   "x": -612.898279,
    "z": 115
   },
   "species": "lion",
@@ -2720,11 +2720,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 964,
-   "pounceHeight": 0.229831,
+   "pounceHeight": 0.447688,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2736,7 +2736,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -613.11231,
+   "x": -613.191305,
    "z": 115
   },
   "species": "lion",
@@ -2744,11 +2744,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 964,
-   "pounceHeight": 0.270177,
+   "pounceHeight": 0,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2757,10 +2757,10 @@
   "frame": 179,
   "isShot": true,
   "player": {
-   "stamina": 52,
+   "stamina": 64,
    "vx": -1.2,
    "vz": 0,
-   "x": -613.337227,
+   "x": -613.421696,
    "z": 115
   },
   "species": "lion",
@@ -2768,11 +2768,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 964,
-   "pounceHeight": 0.371349,
+   "pounceHeight": 0.527502,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2784,7 +2784,7 @@
    "stamina": 40,
    "vx": -1.2,
    "vz": 0,
-   "x": -613.514068,
+   "x": -613.602841,
    "z": 115
   },
   "species": "lion",
@@ -2792,11 +2792,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 964,
-   "pounceHeight": 0.112014,
+   "pounceHeight": 0,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2805,10 +2805,10 @@
   "frame": 299,
   "isShot": true,
   "player": {
-   "stamina": 16,
-   "vx": 1.4,
+   "stamina": 28,
+   "vx": -1.2,
    "vz": 0,
-   "x": -613.653109,
+   "x": -613.745267,
    "z": 115
   },
   "species": "lion",
@@ -2816,11 +2816,11 @@
    "aiBehavior": "attacking",
    "alertLevel": "curious",
    "hp": 964,
-   "pounceHeight": 0.479238,
+   "pounceHeight": 0.559546,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2832,7 +2832,7 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -613.76243,
+   "x": -613.857248,
    "z": 115
   },
   "species": "lion",
@@ -2844,7 +2844,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": -615.664551,
+   "x": -615.769156,
    "yaw": 1.570796,
    "z": 115
   }
@@ -2994,7 +2994,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 768.1964,
+   "x": 768.123387,
    "z": -28
   },
   "species": "stag",
@@ -3005,7 +3005,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3014,10 +3014,10 @@
   "frame": 119,
   "isShot": true,
   "player": {
-   "stamina": 56,
+   "stamina": 78,
    "vx": -1.2,
    "vz": 0,
-   "x": 767.898631,
+   "x": 767.801396,
    "z": -28
   },
   "species": "stag",
@@ -3028,7 +3028,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3040,7 +3040,7 @@
    "stamina": 34,
    "vx": -1.2,
    "vz": 0,
-   "x": 767.664511,
+   "x": 767.54823,
    "z": -28
   },
   "species": "stag",
@@ -3051,7 +3051,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3063,7 +3063,7 @@
    "stamina": 12,
    "vx": -1.2,
    "vz": 0,
-   "x": 767.480434,
+   "x": 767.349179,
    "z": -28
   },
   "species": "stag",
@@ -3074,7 +3074,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3086,7 +3086,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 767.335703,
+   "x": 767.192676,
    "z": -28
   },
   "species": "stag",
@@ -3097,7 +3097,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3109,7 +3109,7 @@
    "stamina": 0,
    "vx": -1.2,
    "vz": 0,
-   "x": 767.221909,
+   "x": 767.069625,
    "z": -28
   },
   "species": "stag",
@@ -3120,7 +3120,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": 765.303333,
+   "x": 765.117,
    "yaw": 1.570796,
    "z": -28
   }
@@ -3139,7 +3139,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3162,7 +3162,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3185,7 +3185,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3208,7 +3208,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3231,7 +3231,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3254,7 +3254,7 @@
   "target": {
    "aiBehavior": "grazing",
    "alertLevel": "grazing",
-   "hp": 30450,
+   "hp": 30000,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 0,
@@ -3277,7 +3277,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 17,
@@ -3300,7 +3300,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 16,
@@ -3323,7 +3323,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 15,
@@ -3346,7 +3346,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 14,
@@ -3369,7 +3369,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 13,
@@ -3392,7 +3392,7 @@
   "target": {
    "aiBehavior": "charging",
    "alertLevel": "curious",
-   "hp": 30449,
+   "hp": 29999,
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 12,
@@ -3408,7 +3408,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -86.885737,
+   "x": -86.973264,
    "z": 790
   },
   "species": "hippo",
@@ -3419,7 +3419,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -89.486137,
+   "x": -89.605333,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3431,7 +3431,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.027429,
+   "x": -87.133246,
    "z": 790
   },
   "species": "hippo",
@@ -3442,7 +3442,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -89.577429,
+   "x": -89.683246,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3454,7 +3454,7 @@
    "stamina": 52,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.140829,
+   "x": -87.246646,
    "z": 790
   },
   "species": "hippo",
@@ -3465,7 +3465,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -89.690829,
+   "x": -89.796646,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3477,7 +3477,7 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.254229,
+   "x": -87.360046,
    "z": 790
   },
   "species": "hippo",
@@ -3488,7 +3488,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -89.804229,
+   "x": -89.910046,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3497,10 +3497,10 @@
   "frame": 299,
   "isShot": false,
   "player": {
-   "stamina": 4,
+   "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.367629,
+   "x": -87.473446,
    "z": 790
   },
   "species": "hippo",
@@ -3511,7 +3511,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -89.917629,
+   "x": -90.023446,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3523,7 +3523,7 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.481029,
+   "x": -87.586846,
    "z": 790
   },
   "species": "hippo",
@@ -3534,7 +3534,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 18,
-   "x": -90.031029,
+   "x": -90.136846,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3546,7 +3546,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": -86.885737,
+   "x": -86.973264,
    "z": 790
   },
   "species": "hippo",
@@ -3557,7 +3557,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 44,
-   "x": -89.486137,
+   "x": -89.605333,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3569,7 +3569,7 @@
    "stamina": 76,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.027429,
+   "x": -87.133246,
    "z": 790
   },
   "species": "hippo",
@@ -3580,7 +3580,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 43,
-   "x": -89.577429,
+   "x": -89.683246,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3592,7 +3592,7 @@
    "stamina": 52,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.140829,
+   "x": -87.246646,
    "z": 790
   },
   "species": "hippo",
@@ -3603,7 +3603,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 42,
-   "x": -89.690829,
+   "x": -89.796646,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3615,7 +3615,7 @@
    "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.254229,
+   "x": -87.360046,
    "z": 790
   },
   "species": "hippo",
@@ -3626,7 +3626,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 41,
-   "x": -89.804229,
+   "x": -89.910046,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3635,10 +3635,10 @@
   "frame": 299,
   "isShot": true,
   "player": {
-   "stamina": 4,
+   "stamina": 28,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.367629,
+   "x": -87.473446,
    "z": 790
   },
   "species": "hippo",
@@ -3649,7 +3649,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 40,
-   "x": -89.917629,
+   "x": -90.023446,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3661,7 +3661,7 @@
    "stamina": 4,
    "vx": -1.2,
    "vz": 0,
-   "x": -87.481029,
+   "x": -87.586846,
    "z": 790
   },
   "species": "hippo",
@@ -3672,7 +3672,7 @@
    "vx": 0,
    "vz": 0,
    "wokenUpTimer": 39,
-   "x": -90.031029,
+   "x": -90.136846,
    "yaw": 1.570796,
    "z": 790
   }
@@ -3972,7 +3972,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 329.074457,
+   "x": 329.122569,
    "z": 248
   },
   "species": "dolphin",
@@ -3981,12 +3981,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0,
-   "vx": -3.34196,
-   "vz": -4.609574,
+   "vx": -2.868858,
+   "vz": -3.899342,
    "wokenUpTimer": 0,
-   "x": 318.729748,
-   "yaw": -2.514282,
-   "z": 244.809464
+   "x": 319.213996,
+   "yaw": -2.507288,
+   "z": 245.293058
   }
  },
  {
@@ -3996,7 +3996,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 326.947561,
+   "x": 327.112662,
    "z": 248
   },
   "species": "dolphin",
@@ -4005,12 +4005,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0,
-   "vx": 1.250494,
-   "vz": -5.482241,
+   "vx": 0.672809,
+   "vz": -4.757275,
    "wokenUpTimer": 0,
-   "x": 317.328758,
-   "yaw": 2.91733,
-   "z": 239.475108
+   "x": 317.854883,
+   "yaw": 3.001097,
+   "z": 240.769825
   }
  },
  {
@@ -4020,7 +4020,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 325.566929,
+   "x": 325.708885,
    "z": 248
   },
   "species": "dolphin",
@@ -4029,12 +4029,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0,
-   "vx": 5.510076,
-   "vz": -1.273767,
+   "vx": 4.492748,
+   "vz": -1.707967,
    "wokenUpTimer": 0,
-   "x": 321.264187,
-   "yaw": 1.797976,
-   "z": 235.917035
+   "x": 320.811541,
+   "yaw": 1.934084,
+   "z": 237.312266
   }
  },
  {
@@ -4044,7 +4044,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 325.584788,
+   "x": 325.502224,
    "z": 248
   },
   "species": "dolphin",
@@ -4053,12 +4053,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0,
-   "vx": 5.394715,
-   "vz": 1.961293,
+   "vx": 4.722812,
+   "vz": 1.211204,
    "wokenUpTimer": 0,
-   "x": 326.87365,
-   "yaw": 1.222094,
-   "z": 236.452929
+   "x": 325.586586,
+   "yaw": 1.319749,
+   "z": 237.217767
   }
  },
  {
@@ -4068,7 +4068,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 326.729114,
+   "x": 326.328098,
    "z": 248
   },
   "species": "dolphin",
@@ -4077,12 +4077,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0.015935,
-   "vx": 4.017303,
-   "vz": 4.105428,
+   "vx": 3.719074,
+   "vz": 3.163811,
    "wokenUpTimer": 0,
-   "x": 331.660658,
-   "yaw": 0.774549,
-   "z": 239.543249
+   "x": 329.876404,
+   "yaw": 0.865897,
+   "z": 239.460556
   }
  },
  {
@@ -4092,7 +4092,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 328.453823,
+   "x": 327.745962,
    "z": 248
   },
   "species": "dolphin",
@@ -4101,12 +4101,12 @@
    "alertLevel": "curious",
    "hp": 310,
    "pounceHeight": 0.682557,
-   "vx": 1.279052,
-   "vz": 5.58223,
+   "vx": 1.612066,
+   "vz": 4.596434,
    "wokenUpTimer": 0,
-   "x": 334.409919,
-   "yaw": 0.225241,
-   "z": 244.494762
+   "x": 332.627808,
+   "yaw": 0.337317,
+   "z": 243.418891
   }
  },
  {
@@ -4116,7 +4116,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 329.074457,
+   "x": 329.122569,
    "z": 248
   },
   "species": "dolphin",
@@ -4125,12 +4125,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0,
-   "vx": -3.34196,
-   "vz": -4.609574,
+   "vx": -2.868858,
+   "vz": -3.899342,
    "wokenUpTimer": 13,
-   "x": 318.729748,
-   "yaw": -2.514282,
-   "z": 244.809464
+   "x": 319.213996,
+   "yaw": -2.507288,
+   "z": 245.293058
   }
  },
  {
@@ -4140,7 +4140,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 326.947561,
+   "x": 327.112662,
    "z": 248
   },
   "species": "dolphin",
@@ -4149,12 +4149,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0,
-   "vx": 1.250494,
-   "vz": -5.482241,
+   "vx": 0.672809,
+   "vz": -4.757275,
    "wokenUpTimer": 12,
-   "x": 317.328758,
-   "yaw": 2.91733,
-   "z": 239.475108
+   "x": 317.854883,
+   "yaw": 3.001097,
+   "z": 240.769825
   }
  },
  {
@@ -4164,7 +4164,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 325.566929,
+   "x": 325.708885,
    "z": 248
   },
   "species": "dolphin",
@@ -4173,12 +4173,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0,
-   "vx": 5.510076,
-   "vz": -1.273767,
+   "vx": 4.492748,
+   "vz": -1.707967,
    "wokenUpTimer": 11,
-   "x": 321.264187,
-   "yaw": 1.797976,
-   "z": 235.917035
+   "x": 320.811541,
+   "yaw": 1.934084,
+   "z": 237.312266
   }
  },
  {
@@ -4188,7 +4188,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 325.584788,
+   "x": 325.502224,
    "z": 248
   },
   "species": "dolphin",
@@ -4197,12 +4197,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0,
-   "vx": 5.394715,
-   "vz": 1.961293,
+   "vx": 4.722812,
+   "vz": 1.211204,
    "wokenUpTimer": 10,
-   "x": 326.87365,
-   "yaw": 1.222094,
-   "z": 236.452929
+   "x": 325.586586,
+   "yaw": 1.319749,
+   "z": 237.217767
   }
  },
  {
@@ -4212,7 +4212,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 326.729114,
+   "x": 326.328098,
    "z": 248
   },
   "species": "dolphin",
@@ -4221,12 +4221,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0.015935,
-   "vx": 4.017303,
-   "vz": 4.105428,
+   "vx": 3.719074,
+   "vz": 3.163811,
    "wokenUpTimer": 9,
-   "x": 331.660658,
-   "yaw": 0.774549,
-   "z": 239.543249
+   "x": 329.876404,
+   "yaw": 0.865897,
+   "z": 239.460556
   }
  },
  {
@@ -4236,7 +4236,7 @@
    "stamina": 100,
    "vx": -1.2,
    "vz": 0,
-   "x": 328.453823,
+   "x": 327.745962,
    "z": 248
   },
   "species": "dolphin",
@@ -4245,12 +4245,12 @@
    "alertLevel": "curious",
    "hp": 309,
    "pounceHeight": 0.682557,
-   "vx": 1.279052,
-   "vz": 5.58223,
+   "vx": 1.612066,
+   "vz": 4.596434,
    "wokenUpTimer": 8,
-   "x": 334.409919,
-   "yaw": 0.225241,
-   "z": 244.494762
+   "x": 332.627808,
+   "yaw": 0.337317,
+   "z": 243.418891
   }
  }
 ]

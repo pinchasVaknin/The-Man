@@ -574,7 +574,7 @@
    },
    "notification": "Looted Dragon: Dragon Meat ×4, Dragon Scales ×4, Dragon Horn ×2, Dragon Claws ×4, Dragon Bone ×3"
   },
-  "maxHp": 7500,
+  "maxHp": 30000,
   "name": "Dragon",
   "sizeRank": 10,
   "species": "dragon",

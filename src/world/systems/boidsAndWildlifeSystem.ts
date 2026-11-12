@@ -141,6 +141,16 @@ export interface IBoidBirdState {
  * Design: Implements an AI state machine with sensory vision/hearing ranges, deer listening evaluation,
  *         predator prey-hunting & threat-fleeing, bear cave rain sheltering, and corpse looting.
  */
+/** Summary: A fire-breath cone in the world: origin, unit facing on the ground, reach and half-angle (radians). */
+export interface IDragonFireBreath {
+  readonly x: number;
+  readonly z: number;
+  readonly dirX: number;
+  readonly dirZ: number;
+  readonly range: number;
+  readonly halfAngle: number;
+}
+
 export interface ISmallAnimalState {
   id: number;
   species: GroundAnimalSpecies;
@@ -195,6 +205,8 @@ export interface ISmallAnimalState {
   canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
   isSubdued?: boolean; // true when the Volcano Boss CatLion is beaten to low HP and awaits meat taming
   respawnTimer?: number; // seconds remaining before a killed animal respawns at its home territory
+  /** Dragon only: the cone it is breathing fire along right now (set by the dragon model each frame; DR1). */
+  fireBreath?: IDragonFireBreath;
   stuckCheckDist?: number; // distance to the prey at the last progress check (G5)
   stuckCheckAt?: number; // progress-clock value of the last progress check
   stuckClock?: number; // simulated seconds this animal has been stepped for (G5)
@@ -603,6 +615,9 @@ export function getAnimalLootDrops(species: GroundAnimalSpecies): {
  * Summary: Returns the maximum health points (`maxHp`, in arrow hits) for each species,
  * scaled by animal level and boss status. Higher level creatures have significantly tougher health pools.
  */
+/** Summary: The dragon's hit points. Fixed, so the fight is the same at every level (DR2). */
+export const DRAGON_MAX_HP = 30000;
+
 export function getAnimalMaxHp(
   species: GroundAnimalSpecies,
   level = 1,
@@ -611,6 +626,8 @@ export function getAnimalMaxHp(
   if (species === 'lion' && isBoss) {
     return Math.round(360 * (1 + (Math.max(1, level) - 1) * 0.12));
   }
+  // The dragon is the final boss: a fixed, explicit pool, not scaled by level (DR2).
+  if (species === 'dragon') return DRAGON_MAX_HP;
   const baseHp = SPECIES_PROFILES[species].maxHp;
   const levelMult = 1 + (Math.max(1, level) - 1) * 0.18;
   return Math.round(baseHp * levelMult);
@@ -2574,6 +2591,28 @@ function stepNightSleepAndNoise(a: ISmallAnimalState, animals: ISmallAnimalState
       a.stimulusZ = predatorNearSleepZ;
       tally.scamperedCritterCount++;
     } else {
+      // G2: a bear with a cave sleeps inside it. It walks to the cave bed first, and rests only once there.
+      if (a.species === 'bear' && a.caveIndex !== undefined && BEAR_MOUNTAIN_CAVES[a.caveIndex]) {
+        // The bed is inside the cave, in an alcove, so the bear rests in the cave, not at its mouth.
+        const bed = caveLocalToWorld(a.caveIndex, (a.id % 2) === 0 ? -4.2 : 4.2, -13.0);
+        if (Math.hypot(bed.x - a.x, bed.z - a.z) > 1.6) {
+          const steered = steerBearThroughCavePortal(a.x, a.z, bed.x, bed.z, a.caveIndex);
+          const toX = steered.x - a.x;
+          const toZ = steered.z - a.z;
+          const toLen = Math.hypot(toX, toZ) || 1;
+          a.isResting = false;
+          a.isSeekingShelter = false;
+          a.alertLevel = 'grazing';
+          a.aiBehavior = 'wandering';
+          a.vx = (toX / toLen) * 1.75;
+          a.vz = (toZ / toLen) * 1.75;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
+          a.hopPhase += safeDt * 6.0;
+          const bedRes = resolveAnimalObstacleCollision(a.x + a.vx * safeDt, a.z + a.vz * safeDt, 0.75);
+          advanceAnimalWithWaterShoreRecovery(a, bedRes.x, bedRes.z, bedRes.hitObstacle, safeDt);
+          return true;
+        }
+      }
       // Eyes closed (vision = 0), still sleeping peacefully
       a.isResting = true;
       a.isSeekingShelter = false;

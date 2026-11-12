@@ -159,6 +159,13 @@ export function applyGameModeToPlayerState(state: IPlayerState, survivalMode: bo
  * well-fed state regenerates HP, and hostile/retaliating animal strikes deal HP damage scaled by
  * the animal's strength and level.
  */
+/** Fire damage per second while the player is inside the dragon's breath cone (DR1). */
+const DRAGON_FIRE_DAMAGE_PER_SECOND = 18;
+/** Downward landing speed (m/s) below which a landing does no damage (about a 7 m fall). */
+const FALL_DAMAGE_START_MPS = 12;
+/** Landing speed (m/s) at which a fall is lethal (about a 29 m fall). */
+const FALL_DAMAGE_LETHAL_MPS = 24;
+
 export function stepSurvivalVitals(
   state: IPlayerState,
   dt: number,
@@ -254,6 +261,15 @@ export function stepSurvivalVitals(
   }
 
   let tookDamage = false;
+  // PL2: a hard landing hurts. Damage grows linearly from FALL_DAMAGE_START_MPS to lethal at FALL_DAMAGE_LETHAL_MPS.
+  const landingSpeed = state.lastLandingSpeed ?? 0;
+  state.lastLandingSpeed = 0;
+  if (!godMode && landingSpeed > FALL_DAMAGE_START_MPS) {
+    const fraction = Math.min(1, (landingSpeed - FALL_DAMAGE_START_MPS) / (FALL_DAMAGE_LETHAL_MPS - FALL_DAMAGE_START_MPS));
+    state.hp = Math.max(0, state.hp - fraction * maxHp);
+    state.damageFlashTimer = Math.max(state.damageFlashTimer ?? 0, 0.9);
+    tookDamage = true;
+  }
   const animals = getActiveWorldAnimals();
   const clothing = state.equippedClothingId ?? 'simple_tunic';
   const armorMitigation =
@@ -310,6 +326,25 @@ export function stepSurvivalVitals(
       if (!godMode) {
         state.hp = Math.max(0, state.hp - finalDamage);
       }
+    }
+  }
+
+  // DR1: dragon fire breath. Inside the cone, within reach, with no wall in the line, the fire burns the player.
+  if (!godMode) {
+    for (let i = 0; i < animals.length; i++) {
+      const d = animals[i];
+      const fb = d.fireBreath;
+      if (d.species !== 'dragon' || d.isDead || !fb) continue;
+      const dx = state.x - fb.x;
+      const dz = state.z - fb.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= 0.001 || dist > fb.range || Math.abs(state.y - d.y) > 12) continue;
+      const cosToPlayer = (dx * fb.dirX + dz * fb.dirZ) / dist;
+      if (cosToPlayer < Math.cos(fb.halfAngle)) continue;
+      if (isSegmentBlockedBySolidBox(fb.x, fb.z, state.x, state.z, state.y + 0.9)) continue;
+      state.hp = Math.max(0, state.hp - DRAGON_FIRE_DAMAGE_PER_SECOND * dt);
+      state.damageFlashTimer = Math.max(state.damageFlashTimer ?? 0, 0.5);
+      tookDamage = true;
     }
   }
 
@@ -1695,6 +1730,7 @@ export function stepPlayerPhysics(
     if (state.y <= effectiveFloorY || (wasGrounded && prevVy <= 0 && state.y - effectiveFloorY <= 0.85)) {
       if (!wasGrounded && prevVy < -2.2) {
         landedImpact = Math.min(1.0, Math.abs(prevVy) / 10.0);
+        state.lastLandingSpeed = Math.max(state.lastLandingSpeed ?? 0, Math.abs(prevVy));
       }
       state.y = effectiveFloorY;
       state.vy = 0;

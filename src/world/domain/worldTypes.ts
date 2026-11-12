@@ -368,6 +368,8 @@ export interface IObstacleCylinder {
  * Design: Single source of truth updated per tick by playerPhysicsSystem and combatAndInventorySystem.
  */
 export interface IPlayerState {
+  /** Downward speed (m/s) of the most recent landing, consumed by survival vitals for fall damage (PL2). */
+  lastLandingSpeed?: number;
   x: number;
   y: number;
   z: number;
