@@ -34,7 +34,7 @@ export interface IWorldScene {
   readonly sunLight: THREE.DirectionalLight;
   readonly hemiLight: THREE.HemisphereLight;
   readonly obstacles: ReturnType<typeof generateWorldObstacles>;
-  readonly worldHandles: ReturnType<typeof buildRealisticWorld>;
+  readonly worldHandles: Awaited<ReturnType<typeof buildRealisticWorld>>;
   /** Frees world, textures, sun disc, environment map and renderer, in that order. */
   dispose(): void;
 }
@@ -46,7 +46,11 @@ export interface IWorldScene {
  * Summary: Builds the world scene and mounts the renderer canvas into `container`.
  * Design: Replaces the container's children with the canvas (one canvas per mount).
  */
-export function createWorldScene(container: HTMLElement, logger: ILogger): IWorldScene {
+export async function createWorldScene(
+  container: HTMLElement,
+  logger: ILogger,
+  onStage?: (stage: string) => void
+): Promise<IWorldScene> {
   // 1. Software WebGL detection from GPU renderer string
   const isSoftwareGl = (() => {
     const gl = document.createElement('canvas').getContext('webgl2');
@@ -137,7 +141,7 @@ export function createWorldScene(container: HTMLElement, logger: ILogger): IWorl
   // 6. Build Procedural Textures, Obstacles, and Composite 3D World
   const textures = createWorldTextures(renderer);
   const obstacles = generateWorldObstacles();
-  const worldHandles = buildRealisticWorld(scene, textures, obstacles, isSoftwareGl, logger);
+  const worldHandles = await buildRealisticWorld(scene, textures, obstacles, isSoftwareGl, logger, onStage);
   // Pre-compile all WebGL shaders while all chunks/landmarks are visible to eliminate first-sight stalls when flying
   renderer.compile(scene, camera);
 

@@ -2712,6 +2712,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     doorPivotHandles,
   });
 
+  const SHEEP_UPDATE_RADIUS = 240;
   const updateFarmhousesAndMine = (
     elapsedTime: number,
     worldHours = 8.5,
@@ -2723,6 +2724,8 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       const ang = elapsedTime * sh.speed + sh.phase;
       const sx = sh.homeX + Math.cos(ang) * sh.orbitRadius;
       const sz = sh.homeZ + Math.sin(ang) * sh.orbitRadius;
+      // Far sheep are not drawn (distance culling), and their pose depends only on time, so skip them until they are near.
+      if (Math.hypot(sx - playerX, sz - playerZ) > SHEEP_UPDATE_RADIUS) continue;
       const sy = groundHeightAt(sx, sz);
       sh.root.position.set(sx, sy, sz);
       sh.root.rotation.y = -ang + Math.PI / 2;

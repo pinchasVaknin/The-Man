@@ -19,6 +19,7 @@ import type {
 import { isWithinViewDistance, VIEW_DISTANCE } from './terrainMath';
 import { buildPlayerAndCombatSystems } from './builders/playerAndCombatBuilder';
 import { markOutdoorRoots } from './controllers/undergroundCulling';
+import { yieldToBrowser } from '../core/yieldToBrowser';
 import {
   buildWildlifeAndFootprintsLayer,
   type IWildlifeSoundCallbacks,
@@ -114,13 +115,19 @@ export interface IAnimatedWorldHandles {
  * @param isSoftwareGl True on software WebGL; lowers detail.
  * @returns Handles to update (per frame), simulate wildlife and dispose the world.
  */
-export function buildRealisticWorld(
+export async function buildRealisticWorld(
   scene: THREE.Scene,
   textures: IWorldTextureSet,
   obstacles: IObstacleCylinder[],
   isSoftwareGl: boolean,
-  logger: ILogger
-): IAnimatedWorldHandles {
+  logger: ILogger,
+  onStage?: (stage: string) => void
+): Promise<IAnimatedWorldHandles> {
+  // Each stage reports its name and yields, so the page can paint a loading state and respond between stages.
+  const stage = async (name: string): Promise<void> => {
+    onStage?.(name);
+    await yieldToBrowser();
+  };
   const disposableGeometries: THREE.BufferGeometry[] = [];
   const disposableMaterials: THREE.Material[] = [];
   const disposableTextures: THREE.Texture[] = [];
@@ -156,16 +163,22 @@ export function buildRealisticWorld(
   ctx.archAssets = archAssets;
 
   // Modular subsystem builds
+  await stage('terrain and water');
   const { waterMaterial, terrainMaterial } = buildTerrainAndWaterModel(ctx);
+  await stage('vegetation');
   buildVegetationModels(ctx);
+  await stage('settlements');
+  // Far landmarks are built after the world is returned (see buildFarLandmarks), so the player can move at once.
+  // Until then their per-frame updates are no-ops.
+  let updateFarmhousesAndMine: ReturnType<typeof buildFarmhouseModels>['updateFarmhousesAndMine'] = () => {};
+  let updateFortress: ReturnType<typeof buildFortressModels>['updateFortress'] = () => {};
+  let updateSanctuaryAndDragon: ReturnType<typeof buildSanctuaryAndDragonModels>['updateSanctuaryAndDragon'] = () => {};
+  let updateHarbor: ReturnType<typeof buildHarborModels>['updateHarbor'] = () => {};
+  let updateOasis: ReturnType<typeof buildOasisModels>['updateOasis'] = () => {};
+  let updateVolcanoAndFloatingIslands: ReturnType<typeof buildVolcanoAndFloatingIslandsModels>['updateVolcanoAndFloatingIslands'] = () => {};
+  let updateAtlantisAndShip: ReturnType<typeof buildAtlantisAndShipModels>['updateAtlantisAndShip'] = () => {};
   const { rowboatGroup, updateSettlement } = buildSettlementModels(ctx);
-  const { updateFarmhousesAndMine } = buildFarmhouseModels(ctx);
-  const { updateFortress } = buildFortressModels(ctx);
-  const { updateSanctuaryAndDragon } = buildSanctuaryAndDragonModels(ctx);
-  const { updateHarbor } = buildHarborModels(ctx);
-  const { updateOasis } = buildOasisModels(ctx);
-  const { updateVolcanoAndFloatingIslands } = buildVolcanoAndFloatingIslandsModels(ctx);
-  const { updateAtlantisAndShip } = buildAtlantisAndShipModels(ctx);
+  await stage('sky and weather');
   const { birdsGroup, pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
     buildEnvironmentAtmosphereModels(ctx);
 
@@ -178,6 +191,7 @@ export function buildRealisticWorld(
   disposableMaterials.push(furnitureWoodMat);
 
   const rootsBeforePlayer = new Set(scene.children);
+  await stage('player and combat');
   const { playerCharacterGroup, updatePlayerAndCombat } = buildPlayerAndCombatSystems({
     scene,
     furnitureWoodMat,
@@ -188,6 +202,7 @@ export function buildRealisticWorld(
   // Roots the player builder added stay visible underground; every other outdoor root moves to the outdoor layer.
   const playerRoots = new Set(scene.children.filter((child) => !rootsBeforePlayer.has(child)));
 
+  await stage('wildlife');
   const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(
     scene,
     disposableGeometries,
@@ -195,6 +210,7 @@ export function buildRealisticWorld(
     logger
   );
 
+  await stage('collider debug');
   const colliderDebugHandles = buildColliderDebugWireframes(
     scene,
     obstacles,
@@ -203,6 +219,26 @@ export function buildRealisticWorld(
   );
 
   markOutdoorRoots(scene, playerRoots);
+
+  // Builds the far landmarks one at a time, yielding to the browser between them, then moves their objects to the outdoor layer.
+  const buildFarLandmarks = async (): Promise<void> => {
+    await yieldToBrowser();
+    updateFarmhousesAndMine = buildFarmhouseModels(ctx).updateFarmhousesAndMine;
+    await yieldToBrowser();
+    updateFortress = buildFortressModels(ctx).updateFortress;
+    await yieldToBrowser();
+    updateSanctuaryAndDragon = buildSanctuaryAndDragonModels(ctx).updateSanctuaryAndDragon;
+    await yieldToBrowser();
+    updateHarbor = buildHarborModels(ctx).updateHarbor;
+    await yieldToBrowser();
+    updateOasis = buildOasisModels(ctx).updateOasis;
+    await yieldToBrowser();
+    updateVolcanoAndFloatingIslands = buildVolcanoAndFloatingIslandsModels(ctx).updateVolcanoAndFloatingIslands;
+    await yieldToBrowser();
+    updateAtlantisAndShip = buildAtlantisAndShipModels(ctx).updateAtlantisAndShip;
+    markOutdoorRoots(scene, playerRoots);
+  };
+  void buildFarLandmarks();
 
   let lastTime = 0;
 

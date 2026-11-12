@@ -12,33 +12,33 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793562661.9434528,
-    "seen": 1793593033.9394336,
-    "ast_hash": "974b5c452d68534041f752d5ca87c087",
+    "mtime": 1794400027.9113226,
+    "seen": 1794429576.5835679,
+    "ast_hash": "199cebd2c2b562ab4ec88058b75e078e",
     "semantic_hash": ""
   },
   "src/components/ExplorerMinimap.tsx": {
-    "mtime": 1793553801.7615597,
-    "seen": 1793553970.2513797,
-    "ast_hash": "2be9c594cccfd3b5777cafc5df8dff38",
+    "mtime": 1794431060.4032073,
+    "seen": 1794431210.0183465,
+    "ast_hash": "4d898b066fd2ba974668d70698c7533b",
     "semantic_hash": ""
   },
   "src/components/GameShellOverlay.tsx": {
-    "mtime": 1793559614.1337965,
-    "seen": 1793559749.2545874,
-    "ast_hash": "74bd8ee2922744f01bb61b6db98823ff",
+    "mtime": 1794400027.917317,
+    "seen": 1794429576.583584,
+    "ast_hash": "ddfdff02ad9b0d243e3101856f4f19f7",
     "semantic_hash": ""
   },
   "src/components/SkyrimInventoryModal.tsx": {
-    "mtime": 1793553346.4776216,
-    "seen": 1793553683.611337,
-    "ast_hash": "6920fc83b54ff89e6c4a01cdb373eac2",
+    "mtime": 1794400027.918677,
+    "seen": 1794429576.5835853,
+    "ast_hash": "a3c26d21eef390764c60b97918cca92a",
     "semantic_hash": ""
   },
   "src/components/WorldCanvas.tsx": {
-    "mtime": 1793558987.4906254,
-    "seen": 1793559368.3405128,
-    "ast_hash": "9866453f434d27f38e300713581937cc",
+    "mtime": 1794472762.0090227,
+    "seen": 1794473028.9689314,
+    "ast_hash": "88fc80202de31eff329ce36ea2f8dbf4",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -48,15 +48,15 @@
     "semantic_hash": ""
   },
   "src/world/builders/dwarvenKingdomBuilder.ts": {
-    "mtime": 1793540858.4917867,
-    "seen": 1793540926.9006693,
-    "ast_hash": "b2b138ef5c0823a4e4f5e9e9e7e09dcc",
+    "mtime": 1794407457.0748312,
+    "seen": 1794429576.5836537,
+    "ast_hash": "96eb1fc9efdaf25685da086bf031e6a0",
     "semantic_hash": ""
   },
   "src/world/builders/playerAndCombatBuilder.ts": {
-    "mtime": 1793540807.894471,
-    "seen": 1793540926.9006705,
-    "ast_hash": "36b8918dfbceea87f85d6afeb9251797",
+    "mtime": 1794400027.9473262,
+    "seen": 1794429576.583655,
+    "ast_hash": "8b59cc9a5ffd9833c68e861e57b1c64d",
     "semantic_hash": ""
   },
   "src/world/builders/shaderAndMaterialBuilders.ts": {
@@ -66,15 +66,15 @@
     "semantic_hash": ""
   },
   "src/world/builders/wildlifeAndFootprintsBuilder.ts": {
-    "mtime": 1793562645.7495606,
-    "seen": 1793593033.9394956,
-    "ast_hash": "378c53d73a090343fab1f247acedbe9c",
+    "mtime": 1794400027.94933,
+    "seen": 1794429576.583658,
+    "ast_hash": "38ad8439b331891a672ec55afd6818eb",
     "semantic_hash": ""
   },
   "src/world/controllers/atmosphereRenderController.ts": {
-    "mtime": 1793559593.5318103,
-    "seen": 1793559749.2546406,
-    "ast_hash": "98757c4088b1a67ff3c7df06a6ede90b",
+    "mtime": 1794472344.0870767,
+    "seen": 1794472459.661632,
+    "ast_hash": "23c8b255075712ce1b2e64b5fc310949",
     "semantic_hash": ""
   },
   "src/world/controllers/windowDebugController.ts": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "src/world/domain/landmarksRegistry.ts": {
-    "mtime": 1793532546.314962,
-    "seen": 1793537725.9239988,
-    "ast_hash": "68dc6ce3e2ce154b097de8d994beb95f",
+    "mtime": 1794435296.8086233,
+    "seen": 1794435457.0423205,
+    "ast_hash": "a829caf67d4debf77ca89c464500c2c2",
     "semantic_hash": ""
   },
   "src/world/domain/noiseAndMath.ts": {
@@ -96,15 +96,15 @@
     "semantic_hash": ""
   },
   "src/world/domain/worldTypes.ts": {
-    "mtime": 1793540821.9416919,
-    "seen": 1793540926.9006872,
-    "ast_hash": "e40295edb5eb952a01a81688300e80c6",
+    "mtime": 1794435005.2261605,
+    "seen": 1794435036.3789754,
+    "ast_hash": "b255de53d7a5a702d0ecccda95a19009",
     "semantic_hash": ""
   },
   "src/world/proceduralModels.ts": {
-    "mtime": 1793562645.7162275,
-    "seen": 1793593033.9395585,
-    "ast_hash": "0d24ff713c88eff7344426640f4593cb",
+    "mtime": 1794472762.006022,
+    "seen": 1794473028.9690883,
+    "ast_hash": "69ea69afca1f23368d4b75db810cce4f",
     "semantic_hash": ""
   },
   "src/world/proceduralTextures.ts": {
@@ -126,21 +126,21 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.ts": {
-    "mtime": 1793557497.0374734,
-    "seen": 1793557699.7681935,
-    "ast_hash": "ad653fc16f5db050999a3ef8421d2b49",
+    "mtime": 1794430924.795583,
+    "seen": 1794431210.0186038,
+    "ast_hash": "55eb60e33b2010c64dc8d385438c6e47",
     "semantic_hash": ""
   },
   "src/world/systems/combatAndInventorySystem.ts": {
-    "mtime": 1793559572.6590445,
-    "seen": 1793559749.2547128,
-    "ast_hash": "ce493b8105853fb7c99c15397a45a288",
+    "mtime": 1794431607.8253696,
+    "seen": 1794434554.3752096,
+    "ast_hash": "ac394067250205ba68f263d73a79d37a",
     "semantic_hash": ""
   },
   "src/world/systems/dwarvenMineAndCaravanSystem.ts": {
-    "mtime": 1793559549.2076244,
-    "seen": 1793559749.2547152,
-    "ast_hash": "de1c5e5f5e1864d8bf152ccfc6a7d97b",
+    "mtime": 1794440115.580358,
+    "seen": 1794440183.902935,
+    "ast_hash": "df2324ba76dcafe0e50b676c193cfea3",
     "semantic_hash": ""
   },
   "src/world/systems/footprintTrailSystem.ts": {
@@ -156,33 +156,33 @@
     "semantic_hash": ""
   },
   "src/world/systems/playerPhysicsSystem.ts": {
-    "mtime": 1793559549.3276668,
-    "seen": 1793559749.2547207,
-    "ast_hash": "18f34f32d68cde7b72e053013c0db67d",
+    "mtime": 1794441437.5962358,
+    "seen": 1794441651.884114,
+    "ast_hash": "50a0d1a9d0fdf7f8e3d9b031b4bfd1cf",
     "semantic_hash": ""
   },
   "src/world/systems/swordAttackAnimationSystem.ts": {
-    "mtime": 1793559549.375296,
-    "seen": 1793559749.2547228,
-    "ast_hash": "5cfe2b369c061e24bbfc1aa51d1c16b3",
+    "mtime": 1794400028.125503,
+    "seen": 1794429576.5838323,
+    "ast_hash": "363157f016e31aef55840fda7622b621",
     "semantic_hash": ""
   },
   "src/world/systems/terrainAndBiomeSystem.ts": {
-    "mtime": 1793559814.1267989,
-    "seen": 1793559851.8304188,
-    "ast_hash": "6261c2fc6e90c3f8ad4ede9a5c388550",
+    "mtime": 1794430329.0925617,
+    "seen": 1794430560.9182596,
+    "ast_hash": "df4fa7fe49da03e4562bb92270fe877b",
     "semantic_hash": ""
   },
   "src/world/terrainMath.test.ts": {
-    "mtime": 1793540892.6913867,
-    "seen": 1793540926.900726,
-    "ast_hash": "4db52e1409b00e93b92d9bdd5c415342",
+    "mtime": 1794435532.4499865,
+    "seen": 1794435837.9392412,
+    "ast_hash": "28cc2d5dbab7fc69068a87d93bc50481",
     "semantic_hash": ""
   },
   "src/world/terrainMath.ts": {
-    "mtime": 1793200099.530522,
-    "seen": 1793200133.8287215,
-    "ast_hash": "73b7fbce6504ad11b7448ed27a9778ab",
+    "mtime": 1794400028.1355014,
+    "seen": 1794429576.5838487,
+    "ast_hash": "7ff4273c7a867a522ddbdbc27d869740",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -240,21 +240,21 @@
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/collisionAndTerraces.ts": {
-    "mtime": 1793532546.314962,
-    "seen": 1793537725.9239902,
-    "ast_hash": "3b24d260e0c5e69feca7fa3d16fdfc7b",
+    "mtime": 1794440310.1831694,
+    "seen": 1794440352.4000914,
+    "ast_hash": "d934d32c318b935b4e470073a6cca384",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/coreLandmarks.ts": {
-    "mtime": 1793532546.314962,
-    "seen": 1793537725.9239912,
-    "ast_hash": "6ee6d907dbb80aa14bdc20d9c5cb8c6d",
+    "mtime": 1794400027.959815,
+    "seen": 1794429576.583678,
+    "ast_hash": "7e4e84ceaf57932069ba93da75e06b4e",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/dwarvenLandmarks.ts": {
-    "mtime": 1793258427.640248,
-    "seen": 1793260582.9189432,
-    "ast_hash": "5d3a3de5bdb69a851d9b2a661871b798",
+    "mtime": 1794400027.9638546,
+    "seen": 1794429576.5836794,
+    "ast_hash": "b134d9a3c6a47bd3c8bdedea9c2c4c9d",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/fortressLandmarks.ts": {
@@ -270,15 +270,15 @@
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/interactionLandmarks.ts": {
-    "mtime": 1793559548.328683,
-    "seen": 1793559749.2546556,
-    "ast_hash": "f730dca87dc3a991056485696816e879",
+    "mtime": 1794400027.9659195,
+    "seen": 1794429576.5836837,
+    "ast_hash": "f5d4ca2501dd87c1d82587b490fa0be2",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/oasisAndHarborLandmarks.ts": {
-    "mtime": 1793541079.375725,
-    "seen": 1793553287.3554528,
-    "ast_hash": "cf8d8b23dde963cf0af51c2b252c94d0",
+    "mtime": 1794400027.9672227,
+    "seen": 1794429576.5836854,
+    "ast_hash": "967edaa422251609eedd3f179e9e4e88",
     "semantic_hash": ""
   },
   "src/world/domain/landmarks/settlementLandmarks.ts": {
@@ -294,63 +294,63 @@
     "semantic_hash": ""
   },
   "src/world/models/environmentAtmosphereModels.ts": {
-    "mtime": 1793562645.7829304,
-    "seen": 1793593033.9395492,
-    "ast_hash": "a398eb834870f3cd728c4e46fb1b3f1a",
+    "mtime": 1794400028.0385141,
+    "seen": 1794429576.5837564,
+    "ast_hash": "316574e805ae931a5047371738f85a3c",
     "semantic_hash": ""
   },
   "src/world/models/farmhouseModels.ts": {
-    "mtime": 1793559593.8587186,
-    "seen": 1793559749.2546825,
-    "ast_hash": "b57addd2664c02be58fe4b0a6cb90091",
+    "mtime": 1794440310.187804,
+    "seen": 1794440352.4001572,
+    "ast_hash": "16da63bfc03e085ace1129eb01a62d80",
     "semantic_hash": ""
   },
   "src/world/models/fortressModels.ts": {
-    "mtime": 1793559593.9089687,
-    "seen": 1793559749.2546835,
-    "ast_hash": "fb4045d6fec5133b6a22d741a2d6df80",
+    "mtime": 1794407457.082899,
+    "seen": 1794429576.5837617,
+    "ast_hash": "ac82772501b43710cd2f51c97a3ca53c",
     "semantic_hash": ""
   },
   "src/world/models/harborModels.ts": {
-    "mtime": 1793559593.9602368,
-    "seen": 1793559749.2546842,
-    "ast_hash": "80abd6f9a1d1f8b7156b26a7cd2669fd",
+    "mtime": 1794400028.0516398,
+    "seen": 1794429576.583763,
+    "ast_hash": "27629f614aa2fcf3998313602ef07adf",
     "semantic_hash": ""
   },
   "src/world/models/oasisModels.ts": {
-    "mtime": 1793559593.997527,
-    "seen": 1793559749.2546852,
-    "ast_hash": "2b15af6c9295f8c25332c1a5c974fa80",
+    "mtime": 1794400028.0526373,
+    "seen": 1794429576.5837643,
+    "ast_hash": "19c0e2a7b4198c686762318af89a5d68",
     "semantic_hash": ""
   },
   "src/world/models/sanctuaryAndDragonModels.ts": {
-    "mtime": 1793562645.8166099,
-    "seen": 1793593033.939554,
-    "ast_hash": "9e094cb3a996157a79721e0afb99867a",
+    "mtime": 1794407457.082899,
+    "seen": 1794429576.5837772,
+    "ast_hash": "92936125112b07b6a1ff2d18c552f09e",
     "semantic_hash": ""
   },
   "src/world/models/settlementModels.ts": {
-    "mtime": 1793559647.525906,
-    "seen": 1793559749.2546868,
-    "ast_hash": "1a745ce02e204b1d153dd99d7d489d3e",
+    "mtime": 1794400028.0793047,
+    "seen": 1794429576.5837784,
+    "ast_hash": "3709481ecf4a7e4c08fc58f8bffdf2d4",
     "semantic_hash": ""
   },
   "src/world/models/terrainAndWaterModel.ts": {
-    "mtime": 1793559594.1302347,
-    "seen": 1793559749.2546878,
-    "ast_hash": "cf82a2e29d334b21ed2b3dfc7e5f8d06",
+    "mtime": 1794400028.0813072,
+    "seen": 1794429576.5837796,
+    "ast_hash": "b2485e29ad82427863e30c626895cc56",
     "semantic_hash": ""
   },
   "src/world/models/types.ts": {
-    "mtime": 1793562645.699588,
-    "seen": 1793593033.9395564,
-    "ast_hash": "a0d190ef75563958b1fb1dfbe8af7953",
+    "mtime": 1794400028.0813072,
+    "seen": 1794429576.583781,
+    "ast_hash": "b4956d9122da628d38e5415009570c8b",
     "semantic_hash": ""
   },
   "src/world/models/vegetationModels.ts": {
-    "mtime": 1793559594.1705291,
-    "seen": 1793559749.2546897,
-    "ast_hash": "9ef2e63641aac344f6c19e9a3ba12ff4",
+    "mtime": 1794400028.083313,
+    "seen": 1794429576.5837822,
+    "ast_hash": "795f649279884c44e452110ae5332fc7",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.tsx": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/components/itemArtworkRegistry.tsx": {
-    "mtime": 1793538297.9360144,
-    "seen": 1793538367.5484815,
-    "ast_hash": "18ef5ff87a06746a6ed1162a9396a354",
+    "mtime": 1794400027.9256241,
+    "seen": 1794429576.5835898,
+    "ast_hash": "db1984b4704df0b2240075c123b37276",
     "semantic_hash": ""
   },
   "src/core/AppException.spec.ts": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/combatAndInventorySystem.spec.ts": {
-    "mtime": 1793553319.3603413,
-    "seen": 1793553683.6114266,
-    "ast_hash": "243441af60f8a8e4f5bd66bf1f52ad83",
+    "mtime": 1794400028.1136806,
+    "seen": 1794429576.5838149,
+    "ast_hash": "a49ec169e60de95cf9c136f64232e559",
     "semantic_hash": ""
   },
   "src/world/systems/horsePhysicsSystem.spec.ts": {
@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "src/core/config.ts": {
-    "mtime": 1793540821.9746168,
-    "seen": 1793540926.9006517,
-    "ast_hash": "d5f255f21570698a6bd827df0e5833e2",
+    "mtime": 1794400027.9326193,
+    "seen": 1794429576.5836148,
+    "ast_hash": "0b61edfd3c3b3db96c6c3e08623f7975",
     "semantic_hash": ""
   },
   "src/lab/CharacterLabCanvas.tsx": {
@@ -468,21 +468,21 @@
     "semantic_hash": ""
   },
   "src/lab/labCatalog.test.ts": {
-    "mtime": 1793562755.0985389,
-    "seen": 1793593033.9394796,
-    "ast_hash": "20c0a347e3f9e5c169c74b34935c0d5c",
+    "mtime": 1794400027.93362,
+    "seen": 1794429576.583636,
+    "ast_hash": "f111f5d8896d599cc1c5fb2eace2df61",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.ts": {
-    "mtime": 1793559614.1769757,
-    "seen": 1793559749.2546234,
-    "ast_hash": "77d9adef0c95dabf9eeb0b3d0b46f04b",
+    "mtime": 1794400027.9356256,
+    "seen": 1794429576.5836372,
+    "ast_hash": "e44307d884628b9b3d13b23030607962",
     "semantic_hash": ""
   },
   "src/lab/labModelFactory.ts": {
-    "mtime": 1793559660.476016,
-    "seen": 1793559749.2546246,
-    "ast_hash": "2a980b56b0ed01d0e17ead636ef4ac7d",
+    "mtime": 1794400027.9381733,
+    "seen": 1794429576.5836384,
+    "ast_hash": "fddfc58ab4198dd42706b1b019c14134",
     "semantic_hash": ""
   },
   "src/locales/index.spec.ts": {
@@ -510,9 +510,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/boidsAndWildlifeSystem.spec.ts": {
-    "mtime": 1793562755.0671022,
-    "seen": 1793593033.9395735,
-    "ast_hash": "ae2b1f5108c4606c03c46979f557db68",
+    "mtime": 1794430794.476995,
+    "seen": 1794430847.4297445,
+    "ast_hash": "7f00270bf0ef124dc4f3f7a2e9419715",
     "semantic_hash": ""
   },
   "src/world/systems/footprintTrailSystem.spec.ts": {
@@ -528,21 +528,21 @@
     "semantic_hash": ""
   },
   "src/world/systems/terrainAndBiomeSystem.spec.ts": {
-    "mtime": 1793559778.1091387,
-    "seen": 1793559851.8304176,
-    "ast_hash": "991ab4d87a88f57813065fdb2fbb5be5",
+    "mtime": 1794430341.3528912,
+    "seen": 1794430560.9182587,
+    "ast_hash": "f6676f7e89a0e2842d234fb60dab085f",
     "semantic_hash": ""
   },
   "src/components/GameSettingsModal.tsx": {
-    "mtime": 1793558227.1713717,
-    "seen": 1793558463.82129,
-    "ast_hash": "33ca058b3e44af5c13cd435e311392ff",
+    "mtime": 1794400027.915311,
+    "seen": 1794429576.5835826,
+    "ast_hash": "839ff50ca0f06c3f658f01d50e2406cd",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.ts": {
-    "mtime": 1793558211.9556935,
-    "seen": 1793558463.8213024,
-    "ast_hash": "9a69ddbce7e0e31e363106b1bcbced8b",
+    "mtime": 1794400027.9316292,
+    "seen": 1794429576.5836012,
+    "ast_hash": "beb09e9b648f6fb4e4a8886c9db7587e",
     "semantic_hash": ""
   },
   "src/config/savedLabOverrides.ts": {
@@ -552,15 +552,15 @@
     "semantic_hash": ""
   },
   "src/locales/en.ts": {
-    "mtime": 1793559778.0416198,
-    "seen": 1793559851.8303165,
-    "ast_hash": "a73d1cfe1d057141333db66a3effc780",
+    "mtime": 1794400027.9403381,
+    "seen": 1794429576.5836427,
+    "ast_hash": "d3d2dfeaa2c90b00bf11141caaf97f42",
     "semantic_hash": ""
   },
   "src/world/builders/colliderDebugBuilder.ts": {
-    "mtime": 1793541101.6423862,
-    "seen": 1793553287.3554363,
-    "ast_hash": "50d9fc4a6c018a411c409baa08856417",
+    "mtime": 1794434756.3011162,
+    "seen": 1794434885.1291788,
+    "ast_hash": "1ccdbf780853ad9f746e29edc24c5795",
     "semantic_hash": ""
   },
   "src/world/models/Bear.ts": {
@@ -582,9 +582,9 @@
     "semantic_hash": ""
   },
   "src/world/models/DemonDragon.ts": {
-    "mtime": 1793541079.2252283,
-    "seen": 1793553287.35546,
-    "ast_hash": "8dfc89d53076ffaaca705a4c4e1833f1",
+    "mtime": 1794400027.990986,
+    "seen": 1794429576.5836995,
+    "ast_hash": "edb5122d01fd7b365253b6a741ec84b7",
     "semantic_hash": ""
   },
   "src/world/models/ForestDragon.ts": {
@@ -642,9 +642,9 @@
     "semantic_hash": ""
   },
   "src/config/persistedSettingsValidation.ts": {
-    "mtime": 1793553746.0279198,
-    "seen": 1793553970.2513905,
-    "ast_hash": "a68b09611aab7c125e1f446a4d5186e1",
+    "mtime": 1794400027.9286225,
+    "seen": 1794429576.5835967,
+    "ast_hash": "36767049498fcee324cf51ecdf92225e",
     "semantic_hash": ""
   },
   "src/config/savedGameSettings.spec.ts": {
@@ -666,15 +666,15 @@
     "semantic_hash": ""
   },
   "src/world/models/animals/Bear_Complete.ts": {
-    "mtime": 1793562510.5499802,
-    "seen": 1793593033.9395385,
-    "ast_hash": "0faed2207ca7915bb130b975683ba5ac",
+    "mtime": 1794400027.9962342,
+    "seen": 1794429576.5837305,
+    "ast_hash": "780612379d4284b1d75761b5299e9649",
     "semantic_hash": ""
   },
   "src/world/models/animals/Crocodile_Complete.ts": {
-    "mtime": 1793562510.567478,
-    "seen": 1793593033.9395394,
-    "ast_hash": "39bf29f3cda58e040be0d4565fdfb164",
+    "mtime": 1794400028.0062535,
+    "seen": 1794429576.5837328,
+    "ast_hash": "1e54ec34039d31f76054381400591b03",
     "semantic_hash": ""
   },
   "src/world/models/animals/Deer_Complete.ts": {
@@ -684,33 +684,33 @@
     "semantic_hash": ""
   },
   "src/world/models/animals/DemonDragon_Complete.ts": {
-    "mtime": 1793562510.6003816,
-    "seen": 1793593033.9395413,
-    "ast_hash": "41556243d57ff06a2bde1e869a775948",
+    "mtime": 1794400028.0103412,
+    "seen": 1794429576.5837355,
+    "ast_hash": "788de9944add1a7a43bff8e0f899ef6a",
     "semantic_hash": ""
   },
   "src/world/models/animals/ForestDragon_Complete.ts": {
-    "mtime": 1793562510.6184015,
-    "seen": 1793593033.9395425,
-    "ast_hash": "f8b3f85e448de47390b9961268bf73ea",
+    "mtime": 1794400028.0176756,
+    "seen": 1794429576.583739,
+    "ast_hash": "7581a9bb67520fbc0f678abca4b08535",
     "semantic_hash": ""
   },
   "src/world/models/animals/Jaguar_Complete.ts": {
-    "mtime": 1793562510.567478,
-    "seen": 1793593033.9395432,
-    "ast_hash": "f2d36a1f7fe58965e652451d205046ad",
+    "mtime": 1794400028.0256765,
+    "seen": 1794429576.5837426,
+    "ast_hash": "682c7d50672ea4e69233a5a099224360",
     "semantic_hash": ""
   },
   "src/world/models/animals/Rhino_Complete.ts": {
-    "mtime": 1793562510.6003816,
-    "seen": 1793593033.9395442,
-    "ast_hash": "b1cdf571e5276340849d01c922b9be88",
+    "mtime": 1794400028.0296717,
+    "seen": 1794429576.5837452,
+    "ast_hash": "8449696f5e531b41f270011d17c9a112",
     "semantic_hash": ""
   },
   "src/world/models/animals/Wolf_Complete.ts": {
-    "mtime": 1793562510.5889757,
-    "seen": 1793593033.9395452,
-    "ast_hash": "84ba50e99f0933cc05c6d7b8b26bedec",
+    "mtime": 1794400028.0339873,
+    "seen": 1794429576.5837476,
+    "ast_hash": "9ff450b8980fbd415aa914bbf634e87e",
     "semantic_hash": ""
   },
   "src/config/keyBindingMatch.spec.ts": {
@@ -726,9 +726,9 @@
     "semantic_hash": ""
   },
   "src/lab/__golden__/entity-editor-labels.json": {
-    "mtime": 1793555023.615085,
-    "seen": 1793555073.2617273,
-    "ast_hash": "5b57da1f7dd3a85114dc75ffc66f8e5d",
+    "mtime": 1794430003.0092263,
+    "seen": 1794430243.2673285,
+    "ast_hash": "79a0e111da8c55ad51ad34e238ea779f",
     "semantic_hash": ""
   },
   "src/lab/labCatalog.characterization.spec.ts": {
@@ -750,51 +750,51 @@
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/arrow-flight.json": {
-    "mtime": 1793555006.4473712,
-    "seen": 1793555073.2617908,
-    "ast_hash": "d11872ac34b9b2956ee5a31b1e74008f",
+    "mtime": 1794437911.9667149,
+    "seen": 1794437953.0670545,
+    "ast_hash": "73bf84606addb4510517567d86deb56a",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/atmosphere.json": {
-    "mtime": 1793555006.4143915,
-    "seen": 1793555073.261792,
-    "ast_hash": "bb9164a022d388c217de91680f46f18c",
+    "mtime": 1794437911.9692283,
+    "seen": 1794437953.067056,
+    "ast_hash": "aa1cb2ed0b053dbba1a8655de515bb03",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/player-physics.json": {
-    "mtime": 1793555006.3821294,
-    "seen": 1793555073.2617931,
-    "ast_hash": "21b75ef9b9b10442ef00e599b3af953a",
+    "mtime": 1794437911.9695714,
+    "seen": 1794437953.0670574,
+    "ast_hash": "aaa0c94805133ec29b87a698852e9289",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/species-rules.json": {
-    "mtime": 1793555006.281124,
-    "seen": 1793555073.261794,
-    "ast_hash": "8f9914ec04809d245ecaa7356b29600a",
+    "mtime": 1794437881.618953,
+    "seen": 1794437953.067058,
+    "ast_hash": "e9d0aebc7367d9c2ef0b5e38a80ffba2",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/sword-swing.json": {
-    "mtime": 1793555006.4650054,
-    "seen": 1793555073.2617948,
+    "mtime": 1794437887.2003338,
+    "seen": 1794437953.0670593,
     "ast_hash": "dcdb2a2f2b2d33cddbe289b280a7c577",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/wildlife-day.json": {
-    "mtime": 1793555006.3144348,
-    "seen": 1793555073.2617955,
-    "ast_hash": "ed95321835e50dea7310963091ae3ea3",
+    "mtime": 1794437882.357217,
+    "seen": 1794437953.0670617,
+    "ast_hash": "c7fb25d58f9503347e4b7df13bcec974",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/wildlife-rainy-night.json": {
-    "mtime": 1793555006.3650503,
-    "seen": 1793555073.2617962,
-    "ast_hash": "88b8c7bef30db2fcb0ef2a620b93ba42",
+    "mtime": 1794437882.5205903,
+    "seen": 1794437953.0670629,
+    "ast_hash": "63afc72e971b395dea99ff223dc34bf6",
     "semantic_hash": ""
   },
   "src/world/systems/worldBehavior.characterization.spec.ts": {
-    "mtime": 1793557547.9195373,
-    "seen": 1793557699.7682312,
-    "ast_hash": "b0a052a9057e58815fb48c9573129d64",
+    "mtime": 1794400028.1315014,
+    "seen": 1794429576.5838413,
+    "ast_hash": "19ccc61e4876ea4a74d40ff468666958",
     "semantic_hash": ""
   },
   "src/core/gameLoop.spec.ts": {
@@ -816,15 +816,15 @@
     "semantic_hash": ""
   },
   "src/world/domain/gameShellTypes.ts": {
-    "mtime": 1793555819.7496974,
-    "seen": 1793556223.0695,
-    "ast_hash": "ea9ce8e6fb9b34cf3c6f5abf66021a00",
+    "mtime": 1794400027.9553285,
+    "seen": 1794429576.5836742,
+    "ast_hash": "e40f79d315da0c091448bb261bb3faf6",
     "semantic_hash": ""
   },
   "src/world/controllers/__golden__/hud-telemetry.json": {
-    "mtime": 1793556373.3679948,
-    "seen": 1793556419.223604,
-    "ast_hash": "fe636715f06e7d20ee57737846296ae8",
+    "mtime": 1794429982.9474275,
+    "seen": 1794430243.267349,
+    "ast_hash": "94b6ab40f217244cb95cbc20d6b8ca93",
     "semantic_hash": ""
   },
   "src/world/controllers/hudTelemetryBuilder.spec.ts": {
@@ -834,14 +834,14 @@
     "semantic_hash": ""
   },
   "src/world/controllers/hudTelemetryBuilder.ts": {
-    "mtime": 1793556323.7506766,
-    "seen": 1793556419.2236078,
-    "ast_hash": "4b6e8909aed28f97635f9fa87bd7ffa0",
+    "mtime": 1794400027.9543288,
+    "seen": 1794429576.5836668,
+    "ast_hash": "c10a20e93a283ef40245894afbc29a88",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/camera-rig.json": {
-    "mtime": 1793556588.9183354,
-    "seen": 1793557131.9033718,
+    "mtime": 1794429983.7738135,
+    "seen": 1794430243.2674546,
     "ast_hash": "48129ef7cec15ee8dae940b2c49f6ce8",
     "semantic_hash": ""
   },
@@ -852,9 +852,9 @@
     "semantic_hash": ""
   },
   "src/world/systems/cameraRigSystem.ts": {
-    "mtime": 1793556491.6186578,
-    "seen": 1793557131.903384,
-    "ast_hash": "406e3ceedaa147d6fb6d6e7f47c4903d",
+    "mtime": 1794400028.1126804,
+    "seen": 1794429576.5838137,
+    "ast_hash": "07ec5a0ae28537a5bd3f5d9f7aa206a7",
     "semantic_hash": ""
   },
   "src/world/controllers/movementIntent.spec.ts": {
@@ -870,8 +870,8 @@
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/weapon-feel.json": {
-    "mtime": 1793557270.1533418,
-    "seen": 1793557326.4396749,
+    "mtime": 1794429984.366937,
+    "seen": 1794430243.2674582,
     "ast_hash": "2c6a41293659964bea66b282eb3ca97c",
     "semantic_hash": ""
   },
@@ -900,21 +900,21 @@
     "semantic_hash": ""
   },
   "src/world/builders/worldSceneBuilder.ts": {
-    "mtime": 1793558212.2064552,
-    "seen": 1793558463.8213415,
-    "ast_hash": "5da4735493e2f3fa6854329cfa23cd58",
+    "mtime": 1794400027.950326,
+    "seen": 1794429576.5836594,
+    "ast_hash": "c4b35efc6bbc8b1cc5826b25bb73463c",
     "semantic_hash": ""
   },
   "src/world/systems/__golden__/wildlife-confrontations.json": {
-    "mtime": 1793557576.2049222,
-    "seen": 1793557699.7681813,
-    "ast_hash": "c20b445f9e7879a45fd76c080ee1de69",
+    "mtime": 1794437887.1407244,
+    "seen": 1794437953.067061,
+    "ast_hash": "92b65130bc6706dcf15a8014658b7320",
     "semantic_hash": ""
   },
   "src/world/systems/wildlifeSpeciesProfiles.ts": {
-    "mtime": 1793557475.170654,
-    "seen": 1793557699.7682295,
-    "ast_hash": "7a7346b06e13cd4d23bb6289c0eaa2ca",
+    "mtime": 1794400028.1305037,
+    "seen": 1794429576.58384,
+    "ast_hash": "68b09038624325a123d43f6c4e77f6e3",
     "semantic_hash": ""
   },
   "src/app/AppServicesContext.spec.ts": {
@@ -960,50 +960,50 @@
     "semantic_hash": ""
   },
   "src/world/models/__golden__/bear-model.json": {
-    "mtime": 1793562014.9934165,
-    "seen": 1793593033.9395282,
-    "ast_hash": "1b8420cb2d1434c6488234d2587a44a8",
+    "mtime": 1794429983.211821,
+    "seen": 1794430243.2673867,
+    "ast_hash": "55f3a23e84c4d5ce44674fbad9536d07",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/crocodile-model.json": {
-    "mtime": 1793562015.0167441,
-    "seen": 1793593033.9395292,
+    "mtime": 1794429983.2356658,
+    "seen": 1794430243.2673874,
     "ast_hash": "4b48da7659bb10a0084cc2f4313ebee4",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/deer-model.json": {
-    "mtime": 1793562015.1418002,
-    "seen": 1793593033.93953,
+    "mtime": 1794429983.3291936,
+    "seen": 1794430243.2673888,
     "ast_hash": "88ad000538ee5953ff69b6f67a6d7667",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/demon-dragon-model.json": {
-    "mtime": 1793562015.0978763,
-    "seen": 1793593033.9395306,
+    "mtime": 1794429983.2903483,
+    "seen": 1794430243.2673898,
     "ast_hash": "e0372269da2ec44f40ba0d39f3df3e95",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/forest-dragon-model.json": {
-    "mtime": 1793562015.1208873,
-    "seen": 1793593033.9395313,
+    "mtime": 1794429983.3027613,
+    "seen": 1794430243.2673907,
     "ast_hash": "00aa67a153c01515ae8680c58a61ccef",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/jaguar-model.json": {
-    "mtime": 1793562015.0340166,
-    "seen": 1793593033.939532,
+    "mtime": 1794429983.248566,
+    "seen": 1794430243.267392,
     "ast_hash": "da99f2b17c4d3b5c00b15725620bbdbb",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/rhino-model.json": {
-    "mtime": 1793562015.0718236,
-    "seen": 1793593033.9395328,
+    "mtime": 1794429983.270894,
+    "seen": 1794430243.267393,
     "ast_hash": "4aba444e23118c7d79e0a39311631416",
     "semantic_hash": ""
   },
   "src/world/models/__golden__/wolf-model.json": {
-    "mtime": 1793562015.0548818,
-    "seen": 1793593033.9395342,
+    "mtime": 1794429983.2624247,
+    "seen": 1794430243.2673938,
     "ast_hash": "4647d924c967fdc7382b973bae9e77c4",
     "semantic_hash": ""
   },
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "src/world/models/animalModels.characterization.spec.ts": {
-    "mtime": 1793561983.602842,
-    "seen": 1793593033.9395363,
-    "ast_hash": "0bc5f61c530f3dd0035607b4f28c1552",
+    "mtime": 1794430434.992234,
+    "seen": 1794430560.9181721,
+    "ast_hash": "c22ccd1cbd4b3fbc5900057c005fd3bf",
     "semantic_hash": ""
   },
   "src/world/models/deferredAnimalModel.spec.ts": {
@@ -1050,15 +1050,519 @@
     "semantic_hash": ""
   },
   "devServer/persistenceValidation.ts": {
-    "mtime": 1793602341.9684792,
-    "seen": 1793602557.448636,
-    "ast_hash": "89d79ff04f118496e80a7e5bff7f1e68",
+    "mtime": 1794429147.110141,
+    "seen": 1794429576.5835595,
+    "ast_hash": "89caf4e7f4b920ab7c6bd6cee0316204",
     "semantic_hash": ""
   },
   "src/config/persistenceValidationParity.spec.ts": {
     "mtime": 1793602386.4284382,
     "seen": 1793602557.4486692,
     "ast_hash": "f2d3174b745a44dbb4854f45958eaeeb",
+    "semantic_hash": ""
+  },
+  ".claude/launch.json": {
+    "mtime": 1794408105.6536899,
+    "seen": 1794429576.583545,
+    "ast_hash": "1f3f97a6c69ecc728f4ba3712f90b68f",
+    "semantic_hash": ""
+  },
+  "src/components/TrapCraftingModal.tsx": {
+    "mtime": 1794400027.9201038,
+    "seen": 1794429576.5835872,
+    "ast_hash": "c8dbba528dcf9ab720848a49cb257886",
+    "semantic_hash": ""
+  },
+  "src/world/models/CatLion.ts": {
+    "mtime": 1794400027.9702206,
+    "seen": 1794429576.5836923,
+    "ast_hash": "b45578d1993cbd0d8320f0ef7fb2f606",
+    "semantic_hash": ""
+  },
+  "src/world/models/Characters/DwarfWarrior_Complete.ts": {
+    "mtime": 1794400027.9752407,
+    "seen": 1794429576.5836937,
+    "ast_hash": "e47ab8232981fedac1b93bd5d0a580bf",
+    "semantic_hash": ""
+  },
+  "src/world/models/Characters/WarriorMonk_Complete.ts": {
+    "mtime": 1794400027.987773,
+    "seen": 1794429576.5836952,
+    "ast_hash": "70ca9c092e2c93a6cdb601f1d0114165",
+    "semantic_hash": ""
+  },
+  "src/world/models/Dolphin.ts": {
+    "mtime": 1794400027.992971,
+    "seen": 1794429576.5837004,
+    "ast_hash": "f9ec0a2f15e27b5a3d9bbec8921f7059",
+    "semantic_hash": ""
+  },
+  "src/world/models/Dove.ts": {
+    "mtime": 1794400027.992971,
+    "seen": 1794429576.5837018,
+    "ast_hash": "dca4bd69f34f93ce83103397e0fe2a10",
+    "semantic_hash": ""
+  },
+  "src/world/models/Hippo.ts": {
+    "mtime": 1794400027.9939797,
+    "seen": 1794429576.5837042,
+    "ast_hash": "0ec1f27cf0fb02483a6457b246dbaf0e",
+    "semantic_hash": ""
+  },
+  "src/world/models/Horse.ts": {
+    "mtime": 1794400027.9939797,
+    "seen": 1794429576.5837061,
+    "ast_hash": "20787880a55fc006bd054842aa99bc89",
+    "semantic_hash": ""
+  },
+  "src/world/models/KoiFish.ts": {
+    "mtime": 1794400027.9939797,
+    "seen": 1794429576.583709,
+    "ast_hash": "1a3b5b8be41c9bef87f701fd8f5ffa04",
+    "semantic_hash": ""
+  },
+  "src/world/models/Stag.ts": {
+    "mtime": 1794400027.995214,
+    "seen": 1794429576.5837114,
+    "ast_hash": "3b7b54e819d3de1c7801f1f7fb6f3a29",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/CatLion_Complete.ts": {
+    "mtime": 1794400028.004222,
+    "seen": 1794429576.5837314,
+    "ast_hash": "f901db372de615792a6cb79bdac8d799",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/Dolphin_Complete.ts": {
+    "mtime": 1794400028.0133436,
+    "seen": 1794429576.5837367,
+    "ast_hash": "96331fd8e8f1a16bb20b3d6103eac4e2",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/Dove_Complete.ts": {
+    "mtime": 1794400028.0166738,
+    "seen": 1794429576.5837379,
+    "ast_hash": "13a4aa1d3cb20b6115776d5af89f5bcb",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/Hippo_Complete.ts": {
+    "mtime": 1794400028.0206797,
+    "seen": 1794429576.5837405,
+    "ast_hash": "e89bf1308888f3ba9686e27f88b5c61b",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/Horse_Complete.ts": {
+    "mtime": 1794400028.0247009,
+    "seen": 1794429576.5837414,
+    "ast_hash": "8b264a3f8f6325d54ed298604b4a80fb",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/KoiFish_Complete.ts": {
+    "mtime": 1794400028.0276787,
+    "seen": 1794429576.5837438,
+    "ast_hash": "f138ddb4cfd67d4dba922ead9d93439c",
+    "semantic_hash": ""
+  },
+  "src/world/models/animals/Stag_Complete.ts": {
+    "mtime": 1794400028.0316725,
+    "seen": 1794429576.5837462,
+    "ast_hash": "12ca98ea57dd01463cb08088def07450",
+    "semantic_hash": ""
+  },
+  "src/world/models/atlantisAndShipModels.ts": {
+    "mtime": 1794400028.0365186,
+    "seen": 1794429576.5837507,
+    "ast_hash": "875ff4f0b1a2ccfc150931dd8ee18601",
+    "semantic_hash": ""
+  },
+  "src/world/models/equipment/Saddle_Complete.ts": {
+    "mtime": 1794400028.044524,
+    "seen": 1794429576.5837576,
+    "ast_hash": "bdf41a4db6477644595aacedf1b7c8cb",
+    "semantic_hash": ""
+  },
+  "src/world/models/equipment/WesternSaddle_Complete.ts": {
+    "mtime": 1794400028.0465207,
+    "seen": 1794429576.5837588,
+    "ast_hash": "d3ff77e8ead5a010dff39d3560aae957",
+    "semantic_hash": ""
+  },
+  "src/world/models/placedTrapModels.ts": {
+    "mtime": 1794400028.0536425,
+    "seen": 1794429576.583765,
+    "ast_hash": "fb59ac763846e4e5de7f82d4c024bf54",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/AnimTreeCompact_Complete.ts": {
+    "mtime": 1794400028.0586717,
+    "seen": 1794429576.5837662,
+    "ast_hash": "324f9b7d8bb51b139323eb53ec7bad01",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/AnimTreeWide_Complete.ts": {
+    "mtime": 1794400028.0606713,
+    "seen": 1794429576.5837674,
+    "ast_hash": "e1562126a3737beff68d139c9ddc050c",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/AnimTree_Complete.ts": {
+    "mtime": 1794400028.0626564,
+    "seen": 1794429576.5837684,
+    "ast_hash": "24fea49504dc13dcf883e51fad34f70e",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/Cornflower_Complete.ts": {
+    "mtime": 1794400028.0637734,
+    "seen": 1794429576.5837693,
+    "ast_hash": "48a553d6e54f4d56918f75895147fe7a",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/ForestBush_Complete.ts": {
+    "mtime": 1794400028.0657933,
+    "seen": 1794429576.5837705,
+    "ast_hash": "3a61d090337ab012f31ac463e61a90c2",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/ForestFern_Complete.ts": {
+    "mtime": 1794400028.0677717,
+    "seen": 1794429576.5837717,
+    "ast_hash": "cc4cc6e11dd4e59eabf8f5ac795e010e",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/OakGreen_Complete.ts": {
+    "mtime": 1794400028.0712922,
+    "seen": 1794429576.5837727,
+    "ast_hash": "a93de77f238143be25cb8111ec14077f",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/OakYellow_Complete.ts": {
+    "mtime": 1794400028.073321,
+    "seen": 1794429576.5837736,
+    "ast_hash": "9b456a0c86498b98fc50ca5c160a16ec",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/PineTree_Complete.ts": {
+    "mtime": 1794400028.075304,
+    "seen": 1794429576.5837748,
+    "ast_hash": "f791d59b2010d5aeca1133860e13673e",
+    "semantic_hash": ""
+  },
+  "src/world/models/plants/WhiteFlower_Complete.ts": {
+    "mtime": 1794400028.076305,
+    "seen": 1794429576.5837758,
+    "ast_hash": "50c7a4d994b56c0162d24e0c69ddd685",
+    "semantic_hash": ""
+  },
+  "src/world/models/volcanoAndFloatingIslandsModels.ts": {
+    "mtime": 1794400028.084313,
+    "seen": 1794429576.5837831,
+    "ast_hash": "5cd68bfa246029f2df0d5519a8910cb5",
+    "semantic_hash": ""
+  },
+  "src/world/systems/__tests__/monkAndHippoFixes.test.ts": {
+    "mtime": 1794429929.9541337,
+    "seen": 1794430243.2674613,
+    "ast_hash": "ef0c38ef7c549c6852fe3aef7a60ef67",
+    "semantic_hash": ""
+  },
+  "src/world/systems/animalTrapsSystem.test.ts": {
+    "mtime": 1794400028.103683,
+    "seen": 1794429576.5838041,
+    "ast_hash": "63a863992add94d069211b9024c84775",
+    "semantic_hash": ""
+  },
+  "src/world/systems/animalTrapsSystem.ts": {
+    "mtime": 1794400028.1046987,
+    "seen": 1794429576.583805,
+    "ast_hash": "4e66e4495cae6d5dc2b62cf7d7bdd562",
+    "semantic_hash": ""
+  },
+  "src/world/systems/monkTempleSystem.ts": {
+    "mtime": 1794407457.0869098,
+    "seen": 1794429576.5838256,
+    "ast_hash": "10ea4eaf6a0502f1e46b94374a728986",
+    "semantic_hash": ""
+  },
+  "src/world/systems/sailableShipSystem.ts": {
+    "mtime": 1794400028.1215026,
+    "seen": 1794429576.5838294,
+    "ast_hash": "0fc10755356e5875505daa5cecc03dd1",
+    "semantic_hash": ""
+  },
+  "src/world/systems/treeFellingSystem.ts": {
+    "mtime": 1794400028.1285272,
+    "seen": 1794429576.5838354,
+    "ast_hash": "e1b004288694a3cc4ddce01900afb2b2",
+    "semantic_hash": ""
+  },
+  "src/world/systems/worldSaveManager.spec.ts": {
+    "mtime": 1794431034.4572093,
+    "seen": 1794431210.018642,
+    "ast_hash": "eb71d8e40a4dc2de84e4244e508ff1b0",
+    "semantic_hash": ""
+  },
+  "src/world/systems/worldSaveManager.ts": {
+    "mtime": 1794430892.961548,
+    "seen": 1794431210.0186431,
+    "ast_hash": "5135ed9017695a7c5f15bd970ea18305",
+    "semantic_hash": ""
+  },
+  "PROJECT_AUDIT.md": {
+    "mtime": 1794473023.9168127,
+    "seen": 1794473028.9691372,
+    "ast_hash": "32f039a23807741b90e5239bfdc590d6",
+    "semantic_hash": ""
+  },
+  "lab_opened.png": {
+    "mtime": 1794400027.7143788,
+    "seen": 1794429576.5838642,
+    "ast_hash": "27ad01b17ed9d9a61b05c1c3f5344c23",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/_________________________4cae0770.png": {
+    "mtime": 1794400027.7441492,
+    "seen": 1794429576.5838654,
+    "ast_hash": "a458d55d4c1c32bb36658e59c1e003db",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/_______________________________06de892c.png": {
+    "mtime": 1794400027.7678304,
+    "seen": 1794429576.5838666,
+    "ast_hash": "c371b01fd0981acc273068fbc553fd4b",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/_______________________________da19b345.png": {
+    "mtime": 1794400027.8057373,
+    "seen": 1794429576.5838675,
+    "ast_hash": "e920e503c3230dec80f83b7e7947bc60",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/___________________________c93deb56.png": {
+    "mtime": 1794400027.8360283,
+    "seen": 1794429576.5838687,
+    "ast_hash": "2db5e850d1f710bb6c920a5c88f11d93",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_105bb6d0.png": {
+    "mtime": 1794400027.8380167,
+    "seen": 1794429576.5838697,
+    "ast_hash": "85ec9c9b843e429e67054a0fd233f9b3",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_13507fb8.png": {
+    "mtime": 1794400027.8440592,
+    "seen": 1794429576.5838706,
+    "ast_hash": "eb599bab39249dd953d28addaa28f410",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_412602d3.png": {
+    "mtime": 1794400027.847072,
+    "seen": 1794429576.5838718,
+    "ast_hash": "8b2c4def1b90fffd522bce0785610902",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_4cda5440.png": {
+    "mtime": 1794400027.851063,
+    "seen": 1794429576.583873,
+    "ast_hash": "7476122625cf872f800030aef8f54f70",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_5a9ff467.png": {
+    "mtime": 1794400027.8540647,
+    "seen": 1794429576.5838742,
+    "ast_hash": "126a887565fd215400377a6a4c0d6307",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_5b1a8f61.png": {
+    "mtime": 1794400027.8570783,
+    "seen": 1794429576.5838757,
+    "ast_hash": "922c0bd773681d677f4cb923520de25c",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_5ffd6829.png": {
+    "mtime": 1794400027.8600843,
+    "seen": 1794429576.5838766,
+    "ast_hash": "56e890600d91674fe0cc395b3b1ddbb6",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_60072264.png": {
+    "mtime": 1794400027.8630779,
+    "seen": 1794429576.5838778,
+    "ast_hash": "d76042b33c535fde2e584d991f42c73b",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_6b7978ad.png": {
+    "mtime": 1794400027.8660653,
+    "seen": 1794429576.583879,
+    "ast_hash": "2aa2265931e865c3419f1e0f5e81bb51",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_80a138eb.png": {
+    "mtime": 1794400027.8676305,
+    "seen": 1794429576.58388,
+    "ast_hash": "200f9c7e6a9a8facd658626557f27072",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_88594f75.png": {
+    "mtime": 1794400027.8796442,
+    "seen": 1794429576.583881,
+    "ast_hash": "c144ad57301d58b2a5888b72edd83c90",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_907c33bf.png": {
+    "mtime": 1794400027.884652,
+    "seen": 1794429576.583882,
+    "ast_hash": "9f90d57d22c0e9160bb41af6f83646e1",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_9cd9d062.png": {
+    "mtime": 1794400027.888314,
+    "seen": 1794429576.5838833,
+    "ast_hash": "3f4adf62d89e912c98c2f3f0fea9f6f4",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_a115c25f.png": {
+    "mtime": 1794400027.8913343,
+    "seen": 1794429576.5838842,
+    "ast_hash": "f54a0478dafb1bb93cf00bfa0ebbe5e9",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_a456bbe5.png": {
+    "mtime": 1794400027.8933208,
+    "seen": 1794429576.5838852,
+    "ast_hash": "4ae2254a15616ecba8936fc70d1e72aa",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_aee4aa59.png": {
+    "mtime": 1794400027.8983104,
+    "seen": 1794429576.5838864,
+    "ast_hash": "9f94df2e50ee67f9e71fb14ac8e3771d",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_b5254734.png": {
+    "mtime": 1794400027.9013133,
+    "seen": 1794429576.5838873,
+    "ast_hash": "9be11466607a0a4033bcc882098a2617",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_c5885238.png": {
+    "mtime": 1794400027.902311,
+    "seen": 1794429576.5838883,
+    "ast_hash": "ca85a76bc404361b96c4439be51c85ee",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_e01033fb.png": {
+    "mtime": 1794400027.9043143,
+    "seen": 1794429576.5838895,
+    "ast_hash": "f8844e9af3240c06a51ef3052bac3eb9",
+    "semantic_hash": ""
+  },
+  "public/assets/aistudio/image_ea8456e0.png": {
+    "mtime": 1794400027.9073176,
+    "seen": 1794429576.5838904,
+    "ast_hash": "282b6c8921df4dcc2de757e9e72a6799",
+    "semantic_hash": ""
+  },
+  "upper_gate_and_stag.png": {
+    "mtime": 1794400028.1405096,
+    "seen": 1794429576.5838916,
+    "ast_hash": "c8b36a8af13240674464f69950490d5d",
+    "semantic_hash": ""
+  },
+  "world_loaded.png": {
+    "mtime": 1794400028.142521,
+    "seen": 1794429576.5838928,
+    "ast_hash": "ed90105742fd0b5da91dfaab029c0205",
+    "semantic_hash": ""
+  },
+  "world_ok.png": {
+    "mtime": 1794400028.1487443,
+    "seen": 1794429576.5838938,
+    "ast_hash": "a938c07cfe33e96d86427059587e3047",
+    "semantic_hash": ""
+  },
+  "src/core/perfStats.spec.ts": {
+    "mtime": 1794431348.5498116,
+    "seen": 1794431482.9072487,
+    "ast_hash": "b137a8e19d673ecb60733110e9b51992",
+    "semantic_hash": ""
+  },
+  "src/core/perfStats.ts": {
+    "mtime": 1794431348.394185,
+    "seen": 1794431482.9072497,
+    "ast_hash": "e3653e9e76a47d29de059ed7ee2d2ba5",
+    "semantic_hash": ""
+  },
+  "src/world/builders/colliderAudit.spec.ts": {
+    "mtime": 1794435953.5821142,
+    "seen": 1794436134.7703662,
+    "ast_hash": "f68c30d6718abdbf2108271263bd8130",
+    "semantic_hash": ""
+  },
+  "src/world/builders/colliderAudit.ts": {
+    "mtime": 1794436592.9528503,
+    "seen": 1794436785.5644388,
+    "ast_hash": "5f1fd32e54d9d6d412546b35bd8fcf8c",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/collisionQuery.spec.ts": {
+    "mtime": 1794435381.645901,
+    "seen": 1794435457.0423222,
+    "ast_hash": "2ea28b51881d7dcd8d9385232c3b2f3a",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/hillWatchtowerWalls.spec.ts": {
+    "mtime": 1794434772.441268,
+    "seen": 1794434885.1292052,
+    "ast_hash": "5ba87984e4b14c6373a9153a15358e1f",
+    "semantic_hash": ""
+  },
+  "src/world/systems/playerBoxFloor.spec.ts": {
+    "mtime": 1794435206.7067618,
+    "seen": 1794435262.3895075,
+    "ast_hash": "ca4c967de846718c67310547b9494f7f",
+    "semantic_hash": ""
+  },
+  "src/world/domain/collisionWorld.ts": {
+    "mtime": 1794435296.7917025,
+    "seen": 1794435457.0423183,
+    "ast_hash": "345765025380491863e8f16dedd8d36f",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/dwarvenMineLayout.spec.ts": {
+    "mtime": 1794435686.8687706,
+    "seen": 1794435837.9391263,
+    "ast_hash": "3dd1bc06e546d9e0ba8cecc8c9363620",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/dwarvenMineLayout.ts": {
+    "mtime": 1794440310.181285,
+    "seen": 1794440352.4000976,
+    "ast_hash": "1628d5767252b1c0d08d382ddb8e4064",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/dwarvenMineScaffold.spec.ts": {
+    "mtime": 1794436265.3166323,
+    "seen": 1794436438.0937817,
+    "ast_hash": "0fe32d6abf0d8d01223251971e0ad509",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/dwarvenMineTorches.spec.ts": {
+    "mtime": 1794436909.8793845,
+    "seen": 1794437028.8936992,
+    "ast_hash": "37a82ce636fe40c1dea8ada7cbc5c943",
+    "semantic_hash": ""
+  },
+  "src/world/domain/landmarks/dwarvenMineGallery.spec.ts": {
+    "mtime": 1794437463.0004816,
+    "seen": 1794437621.8072908,
+    "ast_hash": "f814164ab8a93aa811d3de23d79e5c57",
+    "semantic_hash": ""
+  },
+  "src/world/controllers/undergroundCulling.ts": {
+    "mtime": 1794472791.7251637,
+    "seen": 1794473028.9689932,
+    "ast_hash": "2f29eef56fdaff017523f4fc50b0f3ab",
     "semantic_hash": ""
   }
 }
