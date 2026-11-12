@@ -234,11 +234,26 @@ export function buildColliderDebugWireframes(
   addSlopeRampWireframe(-38.6, -35.15, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
   addSlopeRampWireframe(35.15, 38.6, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
 
-  // Southern Mine NE Cliffside Scaffolding Stairs
+  // Southern Mine Walkable Shaft, Scaffolding Stairs, South Gallery Descent + Middle Staircase, and Bridge of Khazad-dûm
   const mx = SOUTHERN_MINE_POS.x;
   const mz = SOUTHERN_MINE_POS.entranceZ;
   const mfY = SOUTHERN_MINE_POS.cavernFloorY;
+  const moriaY = SOUTHERN_MINE_POS.moriaHallFloorY;
+  // Entrance shaft slope (lz: 0..34)
+  addSlopeRampWireframe(mx - 3.3, mx + 3.3, mz, mz + 34.0, SOUTHERN_MINE_POS.entranceY, mfY);
+  // NE Cliffside Scaffolding Stairs
   addSlopeRampWireframe(mx + 8.5, mx + 12.5, mz + 49.0, mz + 57.5, mfY + 3.8, mfY);
+  // South Moria Descent Gallery — West continuous minecart ramp (lx: -12..-7.5, lz: 95..165)
+  addSlopeRampWireframe(mx - 12.0, mx - 7.5, mz + 95.0, mz + 165.0, mfY, moriaY);
+  // South Moria Descent Gallery — Pedestrian lane with Middle Staircase & Central Landing (lx: -7.5..12)
+  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 95.0, mz + 116.0, mfY, -14.1);
+  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 116.0, mz + 126.0, -14.1, -18.85);
+  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 126.0, mz + 134.0, -18.85, -18.85);
+  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 134.0, mz + 144.0, -18.85, -23.6);
+  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 144.0, mz + 165.0, -23.6, moriaY);
+  // Enlarged Bridge of Khazad-dûm across the 68m Great Chasm (lx: -6.8..6.8, lz: 196..268)
+  addSlopeRampWireframe(mx - 6.8, mx + 6.8, mz + 196.0, mz + 232.0, moriaY, moriaY + 0.55);
+  addSlopeRampWireframe(mx - 6.8, mx + 6.8, mz + 232.0, mz + 268.0, moriaY + 0.55, moriaY);
 
   scene.add(group);
 

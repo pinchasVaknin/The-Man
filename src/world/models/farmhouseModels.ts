@@ -43,9 +43,12 @@ import {
   MINE_MORIA_PILLARS,
   MINE_MORIA_WALLS,
   MINE_ROYAL_CHEST,
+  MINE_SHAFT_WALLS,
   MINE_TUNNEL_WALLS,
   MINE_PORTAL,
   MINE_SOUTH_GALLERY,
+  MINE_WEST_SPLIT,
+  MINE_EAST_FORGE,
   MINE_ROOM1_ARCHES,
   MINE_TIMBER_ARCH,
   MINE_TRESTLE,
@@ -58,8 +61,10 @@ import {
   MINE_MORIA_SANCTUARY_TORCHES,
   MINE_SCAFFOLD_LEGS,
   mineFloorY,
+  southGalleryWalkableHeightAt,
   type IMineFloorTorch,
 } from '../domain/landmarks/dwarvenMineLayout';
+import { createReadyDwarfWarrior } from './Characters/DwarfWarrior_Complete';
 import {
   DWARVEN_MINER_STATIONS,
   DWARVEN_MINECART_ROUTES,
@@ -194,18 +199,18 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   });
 
   const mineDarkRockMat = new THREE.MeshStandardMaterial({
-    color: 0x36332f,
+    color: 0x8a8279,
     map: textures.rockAlbedo,
     bumpMap: textures.rockBump,
     bumpScale: 0.12,
-    roughness: 0.9,
+    roughness: 0.88,
   });
   const mineDeepSlateMat = new THREE.MeshStandardMaterial({
-    color: 0x262422,
+    color: 0x6e6862,
     map: textures.rockAlbedo,
     bumpMap: textures.rockBump,
     bumpScale: 0.14,
-    roughness: 0.94,
+    roughness: 0.92,
   });
   const mineGoldOreMat = new THREE.MeshStandardMaterial({
     color: 0xfbbf24,
@@ -282,7 +287,13 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     darkWoolMat
   );
 
-  function createLanternAssembly(x: number, y: number, z: number, addLight = false): THREE.Group {
+  function createLanternAssembly(
+    x: number,
+    y: number,
+    z: number,
+    addLight = false,
+    forceUnderground = false
+  ): THREE.Group {
     const g = new THREE.Group();
     g.position.set(x, y, z);
     const chainGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.3, 6);
@@ -296,9 +307,9 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     g.add(new THREE.Mesh(capGeo, darkIronMat));
     g.add(new THREE.Mesh(cageGeo, warmLanternMat));
     if (addLight) {
-      const isUnderground = y < -1.0;
-      const baseIntensity = isUnderground ? 5.8 : 3.2;
-      const pl = new THREE.PointLight(0xffaa38, baseIntensity, isUnderground ? 44 : 18, 1.2);
+      const isUnderground = forceUnderground || y < -1.0;
+      const baseIntensity = isUnderground ? 6.2 : 3.2;
+      const pl = new THREE.PointLight(0xffaa38, baseIntensity, isUnderground ? 46 : 18, 1.12);
       pl.visible = false;
       pl.position.set(0, -0.49, 0);
       if (isUnderground) {
@@ -355,7 +366,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       new THREE.Mesh(postGeo, barkMat),
       new THREE.Mesh(armGeo, darkIronMat),
       brace,
-      createLanternAssembly(0, 2.64, 0.52, addLight)
+      createLanternAssembly(0, 2.64, 0.52, addLight, floorY < -1.0)
     );
     return g;
   }
@@ -366,7 +377,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       torch.lx,
       mineFloorY(torch.floor) + torch.lift,
       torch.lz,
-      torch.light,
+      true,
       torch.yaw
     );
   }
@@ -376,7 +387,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     y: number,
     z: number,
     yaw = 0,
-    addLight = false
+    _addLight = true
   ): THREE.Group {
     const g = new THREE.Group();
     g.position.set(x, y, z);
@@ -403,15 +414,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       ember,
       flame
     );
-    if (addLight) {
-      const pl = new THREE.PointLight(0xff9828, 5.6, 44, 1.2);
-      pl.visible = false;
-      pl.position.set(0, 0.55, 0.45);
-      pl.userData.isUndergroundMineLight = true;
-      pl.userData.baseIntensity = 5.6;
-      g.add(pl);
-      lanternLights.push(pl);
-    }
+    // All wall torch sconces in the mine register a hidden candidate PointLight (`visible = false`)
+    // so the 8-light `mineLightPool` always illuminates whichever torches are closest to the player.
+    const pl = new THREE.PointLight(0xff9828, 6.0, 46, 1.12);
+    pl.visible = false;
+    pl.position.set(0, 0.55, 0.45);
+    pl.userData.isUndergroundMineLight = true;
+    pl.userData.baseIntensity = 6.0;
+    g.add(pl);
+    lanternLights.push(pl);
     return g;
   }
 
@@ -1276,14 +1287,14 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const portalSignBoardGeo = new THREE.BoxGeometry(3.6, 0.72, 0.18);
 
   const shaftSlopeFloorGeo = new THREE.BoxGeometry(7.6, 0.45, shaftSlopeLen + 2.4);
-  const shaftSlopeCeilingGeo = new THREE.BoxGeometry(9.2, 1.8, shaftSlopeLen + 3.2);
-  const shaftSlopeWallGeo = new THREE.BoxGeometry(1.6, 10.5, shaftSlopeLen + 3.2);
+  const shaftSlopeCeilingGeo = new THREE.BoxGeometry(8.2, 0.65, shaftSlopeLen + 1.6);
+  const shaftSlopeWallGeo = new THREE.BoxGeometry(1.4, MINE_SHAFT_WALLS.height, shaftSlopeLen + 1.6);
   const shaftStepPlankGeo = new THREE.BoxGeometry(2.6, 0.22, 0.68);
   const shaftSlopeRailGeo = new THREE.BoxGeometry(0.11, 0.12, shaftSlopeLen + 3.2);
   const mineSleeperGeo = new THREE.BoxGeometry(1.85, 0.09, 0.26);
-  const mineTimberPostGeo = new THREE.BoxGeometry(0.46, 4.8, 0.46);
-  mineTimberPostGeo.translate(0, 2.4, 0);
-  const mineTimberBeamGeo = new THREE.BoxGeometry(7.1, 0.48, 0.48);
+  const mineTimberPostGeo = new THREE.BoxGeometry(0.46, 4.4, 0.46);
+  mineTimberPostGeo.translate(0, 2.2, 0);
+  const mineTimberBeamGeo = new THREE.BoxGeometry(7.1, 0.44, 0.48);
 
   const cavernHeight = SOUTHERN_MINE_POS.cavernHeight;
   const cavernStalactiteGeo = new THREE.ConeGeometry(0.88, 3.2, 6);
@@ -1330,18 +1341,6 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     sparkChunkGeo
   );
 
-  // Subterranean Bedrock Outer Vault Shell (BackSide) around the entire underground mine so external sky/trees can never bleed through any seam
-  const bedrockShellMat = new THREE.MeshBasicMaterial({
-    color: 0x07090e,
-    side: THREE.BackSide,
-  });
-  const bedrockOuterVaultGeo = new THREE.BoxGeometry(316.0, 48.0, 236.0);
-  disposableMaterials.push(bedrockShellMat);
-  disposableGeometries.push(bedrockOuterVaultGeo);
-  const bedrockOuterVaultMesh = new THREE.Mesh(bedrockOuterVaultGeo, bedrockShellMat);
-  bedrockOuterVaultMesh.position.set(-2.0, -25.4, 148.0);
-  mineGroup.add(bedrockOuterVaultMesh);
-
   // 1) Entrance Portal & Sloping Timber-Shored Mine Shaft (lz = 0 .. 34.0)
   const vestibuleFloor = new THREE.Mesh(portalVestibuleFloorGeo, mineDarkRockMat);
   vestibuleFloor.position.set(0, mineEntY - 0.2, 1.8);
@@ -1379,15 +1378,15 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   shaftFloorMesh.rotation.x = shaftAngle;
 
   const shaftCeilingMesh = new THREE.Mesh(shaftSlopeCeilingGeo, mineDarkRockMat);
-  shaftCeilingMesh.position.set(0, shaftMidY + 5.15, shaftMidLocalZ);
+  shaftCeilingMesh.position.set(0, shaftMidY + 4.35, shaftMidLocalZ);
   shaftCeilingMesh.rotation.x = shaftAngle;
 
   const shaftWestWallMesh = new THREE.Mesh(shaftSlopeWallGeo, mineDarkRockMat);
-  shaftWestWallMesh.position.set(-3.85, shaftMidY + 2.35, shaftMidLocalZ);
+  shaftWestWallMesh.position.set(-3.85, shaftMidY + MINE_SHAFT_WALLS.centreDy, shaftMidLocalZ);
   shaftWestWallMesh.rotation.x = shaftAngle;
 
   const shaftEastWallMesh = new THREE.Mesh(shaftSlopeWallGeo, mineDarkRockMat);
-  shaftEastWallMesh.position.set(3.85, shaftMidY + 2.35, shaftMidLocalZ);
+  shaftEastWallMesh.position.set(3.85, shaftMidY + MINE_SHAFT_WALLS.centreDy, shaftMidLocalZ);
   shaftEastWallMesh.rotation.x = shaftAngle;
 
   mineGroup.add(shaftFloorMesh, shaftCeilingMesh, shaftWestWallMesh, shaftEastWallMesh);
@@ -2224,53 +2223,153 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   );
 
   // ============================================================================
-  // 8) SOUTH GRAND MORIA DESCENT GALLERY (lx in [-16, 16], lz in [95, 145]) &
-  //    CHAMBER 4 — THE GREAT HALL OF KHAZAD-DÛM & BRIDGE OVER THE BOTTOMLESS ABYSS
-  //    (lx in [-64, 64], lz in [145, 255], y = -18.35m, Abyss plunging to -46.0m!)
+  // 8) SOUTH GRAND MORIA DESCENT GALLERY (lx in [-16, 16], lz in [95, 165], 70m long, 19m drop!) &
+  //    CHAMBER 4 — THE GREAT HALL OF KHAZAD-DÛM & ENLARGED BRIDGE OVER THE BOTTOMLESS ABYSS
+  //    (lx in [-65, 65], lz in [165, 310], y = -28.35m, 68m-long Abyss plunging to -68.35m!)
   // ============================================================================
-  const moriaFloorY = SOUTHERN_MINE_POS.moriaHallFloorY; // -18.35m
-  const moriaAbyssY = SOUTHERN_MINE_POS.moriaAbyssBottomY; // -46.0m
-  const southGalleryLen = 50.0;
-  const southGalleryDrop = cavernFloorY - moriaFloorY; // 9.0m drop
+  const moriaFloorY = SOUTHERN_MINE_POS.moriaHallFloorY; // -28.35m
+  const moriaAbyssY = SOUTHERN_MINE_POS.moriaAbyssBottomY; // -68.35m
+  const southGalleryLen = MINE_SOUTH_GALLERY.lzMax - MINE_SOUTH_GALLERY.lzMin; // 70.0m
+  const southGalleryDrop = cavernFloorY - moriaFloorY; // 19.0m drop
   const southGalleryHypot = Math.hypot(southGalleryLen, southGalleryDrop);
   const southGalleryPitch = Math.atan2(southGalleryDrop, southGalleryLen);
 
-  const southGalleryFloorGeo = new THREE.BoxGeometry(34.5, 0.8, southGalleryHypot + 3.0);
-  const southGalleryWallGeo = new THREE.BoxGeometry(MINE_SOUTH_GALLERY.thick, MINE_SOUTH_GALLERY.height, southGalleryHypot + 3.0);
-  disposableGeometries.push(southGalleryFloorGeo, southGalleryWallGeo);
+  // West continuous minecart ramp lane (lx: -16.0..-7.5, width 8.8m)
+  const sgWestRampGeo = new THREE.BoxGeometry(9.0, 0.85, southGalleryHypot + 3.0);
+  // Pedestrian upper/lower ramp segments (lx: -7.5..+16.0, width 24.0m, 21m horizontal span each)
+  const sgPedRampLen = 21.0;
+  const sgPedRampDrop = 4.75;
+  const sgPedRampHypot = Math.hypot(sgPedRampLen, sgPedRampDrop);
+  const sgPedRampPitch = Math.atan2(sgPedRampDrop, sgPedRampLen);
+  const sgPedRampGeo = new THREE.BoxGeometry(24.0, 0.85, sgPedRampHypot + 1.2);
+  // Central vaulted flat stair landing (lz: 126..134, y = -18.85m)
+  const sgLandingFloorGeo = new THREE.BoxGeometry(24.0, 0.9, 8.8);
+  // Carved stone stair steps for the two 10m staircase flights (lz: 116..126 and lz: 134..144)
+  const sgStairStepGeo = new THREE.BoxGeometry(23.6, 0.42, 0.72);
+  const sgLaneDividerCurbGeo = new THREE.BoxGeometry(0.48, 0.95, southGalleryHypot + 2.0);
+  const southGalleryCeilingGeo = new THREE.BoxGeometry(34.5, 1.2, southGalleryHypot + 3.0);
+  const southGalleryWallGeo = new THREE.BoxGeometry(
+    MINE_SOUTH_GALLERY.thick,
+    MINE_SOUTH_GALLERY.height,
+    southGalleryHypot + 3.0
+  );
 
-  const sgFloor = new THREE.Mesh(southGalleryFloorGeo, mineDarkRockMat);
-  sgFloor.position.set(0, (cavernFloorY + moriaFloorY) * 0.5 - 0.35, 120.0);
-  sgFloor.rotation.x = southGalleryPitch;
-  const sgCeiling = new THREE.Mesh(southGalleryFloorGeo, mineDeepSlateMat);
-  sgCeiling.position.set(0, (cavernFloorY + moriaFloorY) * 0.5 + 7.2, 120.0);
+  disposableGeometries.push(
+    sgWestRampGeo,
+    sgPedRampGeo,
+    sgLandingFloorGeo,
+    sgStairStepGeo,
+    sgLaneDividerCurbGeo,
+    southGalleryCeilingGeo,
+    southGalleryWallGeo
+  );
+
+  const sgWestRamp = new THREE.Mesh(sgWestRampGeo, mineDarkRockMat);
+  sgWestRamp.position.set(-11.75, (cavernFloorY + moriaFloorY) * 0.5 - 0.38, MINE_SOUTH_GALLERY.centreLz);
+  sgWestRamp.rotation.x = southGalleryPitch;
+
+  const sgUpperPedRamp = new THREE.Mesh(sgPedRampGeo, mineDarkRockMat);
+  sgUpperPedRamp.position.set(4.25, (cavernFloorY + -14.1) * 0.5 - 0.38, 105.5);
+  sgUpperPedRamp.rotation.x = sgPedRampPitch;
+
+  const sgLandingFloor = new THREE.Mesh(sgLandingFloorGeo, mineDeepSlateMat);
+  sgLandingFloor.position.set(4.25, MINE_SOUTH_GALLERY.landingY - 0.42, 130.0);
+
+  const sgLowerPedRamp = new THREE.Mesh(sgPedRampGeo, mineDarkRockMat);
+  sgLowerPedRamp.position.set(4.25, (-23.6 + moriaFloorY) * 0.5 - 0.38, 154.5);
+  sgLowerPedRamp.rotation.x = sgPedRampPitch;
+
+  const sgDividerCurb = new THREE.Mesh(sgLaneDividerCurbGeo, mineDeepSlateMat);
+  sgDividerCurb.position.set(-7.5, (cavernFloorY + moriaFloorY) * 0.5 + 0.25, MINE_SOUTH_GALLERY.centreLz);
+  sgDividerCurb.rotation.x = southGalleryPitch;
+
+  // Build 16 carved granite stair steps for both the Upper Flight (lz: 116..126) and Lower Flight (lz: 134..144)
+  const stairFlights: ReadonlyArray<{ z0: number; z1: number; y0: number; y1: number }> = [
+    { z0: 116.0, z1: 126.0, y0: -14.1, y1: -18.85 },
+    { z0: 134.0, z1: 144.0, y0: -18.85, y1: -23.6 },
+  ];
+  for (const flight of stairFlights) {
+    const stepsCount = 16;
+    for (let st = 0; st < stepsCount; st++) {
+      const u = (st + 0.5) / stepsCount;
+      const sz = flight.z0 + (flight.z1 - flight.z0) * u;
+      const sy = flight.y0 + (flight.y1 - flight.y0) * u;
+      const stepMesh = new THREE.Mesh(sgStairStepGeo, st % 2 === 0 ? mineDarkRockMat : mineDeepSlateMat);
+      stepMesh.position.set(4.25, sy - 0.18, sz);
+      mineGroup.add(stepMesh);
+    }
+  }
+
+  const sgCeiling = new THREE.Mesh(southGalleryCeilingGeo, mineDeepSlateMat);
+  sgCeiling.position.set(0, (cavernFloorY + moriaFloorY) * 0.5 + 9.2, MINE_SOUTH_GALLERY.centreLz);
   sgCeiling.rotation.x = southGalleryPitch;
   const sgWallW = new THREE.Mesh(southGalleryWallGeo, mineDeepSlateMat);
-  sgWallW.position.set(-MINE_SOUTH_GALLERY.wallX, (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy, MINE_SOUTH_GALLERY.centreLz);
+  sgWallW.position.set(
+    -MINE_SOUTH_GALLERY.wallX,
+    (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy,
+    MINE_SOUTH_GALLERY.centreLz
+  );
   sgWallW.rotation.x = southGalleryPitch;
   const sgWallE = new THREE.Mesh(southGalleryWallGeo, mineDeepSlateMat);
-  sgWallE.position.set(MINE_SOUTH_GALLERY.wallX, (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy, MINE_SOUTH_GALLERY.centreLz);
+  sgWallE.position.set(
+    MINE_SOUTH_GALLERY.wallX,
+    (cavernFloorY + moriaFloorY) * 0.5 + MINE_SOUTH_GALLERY.centreDy,
+    MINE_SOUTH_GALLERY.centreLz
+  );
   sgWallE.rotation.x = southGalleryPitch;
-  mineGroup.add(sgFloor, sgCeiling, sgWallW, sgWallE);
 
-  // Chamber 4: North Colonnade Hall Floor (lz in [145, 180]), Bottomless Abyss Floor (lz in [180, 216] at y = -46.0m),
-  //            and South Royal Sanctuary Floor (lz in [216, 255])
-  const moriaHallNorthFloorGeo = new THREE.BoxGeometry(132.0, 1.0, 37.0);
-  const moriaHallSouthFloorGeo = new THREE.BoxGeometry(132.0, 1.0, 41.0);
-  const moriaAbyssBottomGeo = new THREE.BoxGeometry(132.0, 1.0, 40.0);
-  const moriaChasmWallGeo = new THREE.BoxGeometry(132.0, 29.0, 2.2);
-  const moriaCeilingGeo = new THREE.BoxGeometry(132.0, 1.8, 114.0);
-  const moriaSideWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.thick, MINE_MORIA_WALLS.sideWallHeight, MINE_MORIA_WALLS.sideWallLength);
-  const moriaBackWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.backWallHalfX * 2, MINE_MORIA_WALLS.backWallHeight, MINE_MORIA_WALLS.thick);
-  const moriaNorthFlankWallGeo = new THREE.BoxGeometry(MINE_MORIA_WALLS.northFlankLength, MINE_MORIA_WALLS.northFlankHeight, MINE_MORIA_WALLS.thick);
-  const moriaNorthGalleryHeaderGeo = new THREE.BoxGeometry(35.0, 11.5, 3.2);
-  const moriaPillarShaftGeo = new THREE.CylinderGeometry(1.85, 2.15, 16.0, 8);
-  moriaPillarShaftGeo.translate(0, 8.0, 0);
-  const moriaPillarCapitalGeo = new THREE.BoxGeometry(4.8, 1.2, 4.8);
-  const khazadBridgeSegGeo = new THREE.BoxGeometry(6.8, 0.85, 4.4);
-  const trestleDeckGeo = new THREE.BoxGeometry(6.8, 0.45, 40.5);
-  const trestlePilingGeo = new THREE.BoxGeometry(0.65, 28.0, 0.65);
-  const royalDiasGeo = new THREE.BoxGeometry(20.0, 0.8, 12.0);
+  mineGroup.add(
+    sgWestRamp,
+    sgUpperPedRamp,
+    sgLandingFloor,
+    sgLowerPedRamp,
+    sgDividerCurb,
+    sgCeiling,
+    sgWallW,
+    sgWallE,
+    // Two standing lantern posts illuminating the Middle Staircase Landing (lz = 130.0)
+    createStandingLanternPost(-6.2, MINE_SOUTH_GALLERY.landingY, 130.0, true, Math.PI / 2),
+    createStandingLanternPost(14.8, MINE_SOUTH_GALLERY.landingY, 130.0, true, -Math.PI / 2)
+  );
+
+  // Chamber 4: North Colonnade Hall Floor (lz in [165, 198]), 68m-long Bottomless Abyss Floor (lz in [198, 266] at y = -68.35m),
+  //            and South Royal Sanctuary Floor (lz in [266, 310])
+  const moriaHallNorthFloorGeo = new THREE.BoxGeometry(134.0, 1.0, 35.0);
+  const moriaHallSouthFloorGeo = new THREE.BoxGeometry(134.0, 1.0, 46.0);
+  const moriaAbyssBottomGeo = new THREE.BoxGeometry(134.0, 1.0, 72.0);
+  const moriaChasmWallGeo = new THREE.BoxGeometry(134.0, 41.0, 2.4);
+  const moriaCeilingGeo = new THREE.BoxGeometry(134.0, 1.8, 150.0);
+  const moriaSideWallNorthSegGeo = new THREE.BoxGeometry(
+    MINE_MORIA_WALLS.thick,
+    MINE_MORIA_WALLS.sideWallHeight,
+    MINE_MORIA_WALLS.westNorthSegLength
+  );
+  const moriaSideWallSouthSegGeo = new THREE.BoxGeometry(
+    MINE_MORIA_WALLS.thick,
+    MINE_MORIA_WALLS.sideWallHeight,
+    MINE_MORIA_WALLS.westSouthSegLength
+  );
+  const moriaExitHeaderGeo = new THREE.BoxGeometry(3.2, 16.5, 16.0);
+  const moriaBackWallGeo = new THREE.BoxGeometry(
+    MINE_MORIA_WALLS.backWallHalfX * 2,
+    MINE_MORIA_WALLS.backWallHeight,
+    MINE_MORIA_WALLS.thick
+  );
+  const moriaNorthFlankWallGeo = new THREE.BoxGeometry(
+    MINE_MORIA_WALLS.northFlankLength,
+    MINE_MORIA_WALLS.northFlankHeight,
+    MINE_MORIA_WALLS.thick
+  );
+  const moriaNorthGalleryHeaderGeo = new THREE.BoxGeometry(35.0, 15.5, 3.2);
+  const moriaPillarShaftGeo = new THREE.CylinderGeometry(2.05, 2.45, MINE_MORIA_PILLARS.height, 8);
+  moriaPillarShaftGeo.translate(0, MINE_MORIA_PILLARS.height * 0.5, 0);
+  const moriaAbyssPierGeo = new THREE.CylinderGeometry(2.45, 3.1, MINE_MORIA_PILLARS.abyssHeight, 8);
+  moriaAbyssPierGeo.translate(0, MINE_MORIA_PILLARS.abyssHeight * 0.5, 0);
+  const moriaPillarCapitalGeo = new THREE.BoxGeometry(5.4, 1.35, 5.4);
+  const khazadBridgeSegGeo = new THREE.BoxGeometry(MINE_KHAZAD_BRIDGE.width, 0.95, 4.25);
+  const trestleDeckGeo = new THREE.BoxGeometry(MINE_TRESTLE.deckHalfWidth * 2, 0.28, MINE_TRESTLE.deckLength);
+  const trestlePilingGeo = new THREE.BoxGeometry(0.85, 40.0, 0.85);
+  const royalDiasGeo = new THREE.BoxGeometry(22.0, 0.8, 14.0);
 
   disposableGeometries.push(
     moriaHallNorthFloorGeo,
@@ -2278,11 +2377,14 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     moriaAbyssBottomGeo,
     moriaChasmWallGeo,
     moriaCeilingGeo,
-    moriaSideWallGeo,
+    moriaSideWallNorthSegGeo,
+    moriaSideWallSouthSegGeo,
+    moriaExitHeaderGeo,
     moriaBackWallGeo,
     moriaNorthFlankWallGeo,
     moriaNorthGalleryHeaderGeo,
     moriaPillarShaftGeo,
+    moriaAbyssPierGeo,
     moriaPillarCapitalGeo,
     khazadBridgeSegGeo,
     trestleDeckGeo,
@@ -2291,32 +2393,68 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   );
 
   const moriaNorthFloor = new THREE.Mesh(moriaHallNorthFloorGeo, mineDeepSlateMat);
-  moriaNorthFloor.position.set(0, moriaFloorY - 0.5, 162.5);
+  moriaNorthFloor.position.set(0, moriaFloorY - 0.5, 181.5);
   const moriaSouthFloor = new THREE.Mesh(moriaHallSouthFloorGeo, mineDeepSlateMat);
-  moriaSouthFloor.position.set(0, moriaFloorY - 0.5, 235.5);
+  moriaSouthFloor.position.set(0, moriaFloorY - 0.5, 288.0);
   const moriaAbyssBottom = new THREE.Mesh(moriaAbyssBottomGeo, mineDarkRockMat);
-  moriaAbyssBottom.position.set(0, moriaAbyssY - 0.5, 198.0);
+  moriaAbyssBottom.position.set(0, moriaAbyssY - 0.5, 232.0);
 
-  // Chasm sheer cliff walls dropping 28m down into the abyss
+  // Chasm sheer cliff walls dropping 40m down into the abyss
   const chasmNorthCliff = new THREE.Mesh(moriaChasmWallGeo, mineDarkRockMat);
-  chasmNorthCliff.position.set(0, moriaFloorY - 14.0, 179.5);
+  chasmNorthCliff.position.set(0, moriaFloorY - 20.0, MINE_MORIA_WALLS.chasmMinLz - 0.5);
   const chasmSouthCliff = new THREE.Mesh(moriaChasmWallGeo, mineDarkRockMat);
-  chasmSouthCliff.position.set(0, moriaFloorY - 14.0, 216.5);
+  chasmSouthCliff.position.set(0, moriaFloorY - 20.0, MINE_MORIA_WALLS.chasmMaxLz + 0.5);
 
   const moriaCeiling = new THREE.Mesh(moriaCeilingGeo, mineDeepSlateMat);
-  moriaCeiling.position.set(0, moriaFloorY + 16.0, 200.0);
-  const moriaWestWall = new THREE.Mesh(moriaSideWallGeo, mineDeepSlateMat);
-  moriaWestWall.position.set(-MINE_MORIA_WALLS.sideWallX, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.sideWallLz);
-  const moriaEastWall = new THREE.Mesh(moriaSideWallGeo, mineDeepSlateMat);
-  moriaEastWall.position.set(MINE_MORIA_WALLS.sideWallX, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.sideWallLz);
+  moriaCeiling.position.set(0, moriaFloorY + MINE_MORIA_PILLARS.height, 237.5);
+
+  // West & East perimeter walls split around lz in [176, 190] to leave grand 14m-wide exit portals
+  const moriaWestWallNorth = new THREE.Mesh(moriaSideWallNorthSegGeo, mineDeepSlateMat);
+  moriaWestWallNorth.position.set(
+    -MINE_MORIA_WALLS.sideWallX,
+    moriaFloorY + MINE_MORIA_WALLS.wallCentreDy,
+    MINE_MORIA_WALLS.westNorthSegLz
+  );
+  const moriaWestWallSouth = new THREE.Mesh(moriaSideWallSouthSegGeo, mineDeepSlateMat);
+  moriaWestWallSouth.position.set(
+    -MINE_MORIA_WALLS.sideWallX,
+    moriaFloorY + MINE_MORIA_WALLS.wallCentreDy,
+    MINE_MORIA_WALLS.westSouthSegLz
+  );
+  const moriaWestExitHeader = new THREE.Mesh(moriaExitHeaderGeo, mineDeepSlateMat);
+  moriaWestExitHeader.position.set(-MINE_MORIA_WALLS.sideWallX, moriaFloorY + 16.5, 183.0);
+
+  const moriaEastWallNorth = new THREE.Mesh(moriaSideWallNorthSegGeo, mineDeepSlateMat);
+  moriaEastWallNorth.position.set(
+    MINE_MORIA_WALLS.sideWallX,
+    moriaFloorY + MINE_MORIA_WALLS.wallCentreDy,
+    MINE_MORIA_WALLS.eastNorthSegLz
+  );
+  const moriaEastWallSouth = new THREE.Mesh(moriaSideWallSouthSegGeo, mineDeepSlateMat);
+  moriaEastWallSouth.position.set(
+    MINE_MORIA_WALLS.sideWallX,
+    moriaFloorY + MINE_MORIA_WALLS.wallCentreDy,
+    MINE_MORIA_WALLS.eastSouthSegLz
+  );
+  const moriaEastExitHeader = new THREE.Mesh(moriaExitHeaderGeo, mineDeepSlateMat);
+  moriaEastExitHeader.position.set(MINE_MORIA_WALLS.sideWallX, moriaFloorY + 16.5, 183.0);
+
   const moriaSouthBackWall = new THREE.Mesh(moriaBackWallGeo, mineDeepSlateMat);
   moriaSouthBackWall.position.set(0, moriaFloorY + MINE_MORIA_WALLS.wallCentreDy, MINE_MORIA_WALLS.backWallLz);
   const moriaNorthWallWest = new THREE.Mesh(moriaNorthFlankWallGeo, mineDeepSlateMat);
-  moriaNorthWallWest.position.set(-MINE_MORIA_WALLS.northFlankX, moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy, MINE_MORIA_WALLS.northFlankLz);
+  moriaNorthWallWest.position.set(
+    -MINE_MORIA_WALLS.northFlankX,
+    moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy,
+    MINE_MORIA_WALLS.northFlankLz
+  );
   const moriaNorthWallEast = new THREE.Mesh(moriaNorthFlankWallGeo, mineDeepSlateMat);
-  moriaNorthWallEast.position.set(MINE_MORIA_WALLS.northFlankX, moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy, MINE_MORIA_WALLS.northFlankLz);
+  moriaNorthWallEast.position.set(
+    MINE_MORIA_WALLS.northFlankX,
+    moriaFloorY + MINE_MORIA_WALLS.northFlankCentreDy,
+    MINE_MORIA_WALLS.northFlankLz
+  );
   const moriaNorthGalleryHeader = new THREE.Mesh(moriaNorthGalleryHeaderGeo, mineDeepSlateMat);
-  moriaNorthGalleryHeader.position.set(0, moriaFloorY + 12.2, 145.0);
+  moriaNorthGalleryHeader.position.set(0, moriaFloorY + 16.8, MINE_MORIA_WALLS.northFlankLz);
 
   mineGroup.add(
     moriaNorthFloor,
@@ -2325,88 +2463,113 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     chasmNorthCliff,
     chasmSouthCliff,
     moriaCeiling,
-    moriaWestWall,
-    moriaEastWall,
+    moriaWestWallNorth,
+    moriaWestWallSouth,
+    moriaWestExitHeader,
+    moriaEastWallNorth,
+    moriaEastWallSouth,
+    moriaEastExitHeader,
     moriaSouthBackWall,
     moriaNorthWallWest,
     moriaNorthWallEast,
     moriaNorthGalleryHeader
   );
 
-  // Glowing deep-earth magma fissures at the bottom of the Moria Abyss (y = -45.8m)
-  for (const ax of [-38.0, -18.0, 0.0, 22.0, 42.0]) {
-    const abyssGlow = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
-    abyssGlow.scale.set(5.5, 0.6, 3.2);
-    abyssGlow.position.set(ax, moriaAbyssY + 0.15, 198.0 + (ax % 7));
-    mineGroup.add(abyssGlow);
+  // Glowing deep-earth magma fissures across the 68m-long Bottomless Abyss (y = -68.2m)
+  for (const az of [208.0, 224.0, 240.0, 256.0]) {
+    for (const ax of [-44.0, -22.0, 0.0, 22.0, 44.0]) {
+      const abyssGlow = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
+      abyssGlow.scale.set(6.2, 0.7, 3.8);
+      abyssGlow.position.set(ax, moriaAbyssY + 0.18, az + (ax % 5));
+      mineGroup.add(abyssGlow);
+    }
   }
-  const abyssDeepLight = new THREE.PointLight(0xea580c, 6.2, 74, 1.2);
+  const abyssDeepLight = new THREE.PointLight(0xea580c, 5.2, 42, 1.35);
   abyssDeepLight.visible = false;
-  abyssDeepLight.position.set(0, moriaFloorY - 6.0, 198.0);
+  abyssDeepLight.position.set(0, moriaFloorY - 8.0, 232.0);
   abyssDeepLight.userData.isUndergroundMineLight = true;
-  abyssDeepLight.userData.baseIntensity = 6.2;
+  abyssDeepLight.userData.baseIntensity = 5.2;
   lanternLights.push(abyssDeepLight);
   mineGroup.add(abyssDeepLight);
 
-  // 16 Colossal Carved Stone Pillars of Khazad-dûm (8 in North Hall, 8 in South Hall) with Pillar Torch Sconces
+  // 16 Taller 24m Carved Stone Pillars of Khazad-dûm (8 in North Hall, 8 in South Hall) with Pillar Torch Sconces
   for (const pz of MINE_MORIA_PILLARS.zs) {
     for (const px of MINE_MORIA_PILLARS.xs) {
       const pShaft = new THREE.Mesh(moriaPillarShaftGeo, mineDarkRockMat);
       pShaft.position.set(px, moriaFloorY, pz);
       const pBase = new THREE.Mesh(moriaPillarCapitalGeo, mineDeepSlateMat);
-      pBase.position.set(px, moriaFloorY + 0.6, pz);
+      pBase.position.set(px, moriaFloorY + 0.65, pz);
       const pCap = new THREE.Mesh(moriaPillarCapitalGeo, mineDeepSlateMat);
-      pCap.position.set(px, moriaFloorY + 15.2, pz);
+      pCap.position.set(px, moriaFloorY + MINE_MORIA_PILLARS.height - 0.8, pz);
       const pGoldRing = new THREE.Mesh(moriaPillarCapitalGeo, mineGoldOreMat);
       pGoldRing.scale.set(0.88, 0.28, 0.88);
-      pGoldRing.position.set(px, moriaFloorY + 3.2, pz);
+      pGoldRing.position.set(px, moriaFloorY + 3.6, pz);
+      const pUpperGoldRing = new THREE.Mesh(moriaPillarCapitalGeo, mineGoldOreMat);
+      pUpperGoldRing.scale.set(0.84, 0.24, 0.84);
+      pUpperGoldRing.position.set(px, moriaFloorY + 14.5, pz);
       const faceCenterYaw = px < 0 ? Math.PI / 2 : -Math.PI / 2;
-      const sconceX = px + (px < 0 ? 1.98 : -1.98);
+      const sconceX = px + (px < 0 ? 2.15 : -2.15);
       const addPillarLight = Math.abs(px) === 20.0;
       mineGroup.add(
         pShaft,
         pBase,
         pCap,
         pGoldRing,
-        createWallTorchSconce(sconceX, moriaFloorY + 3.55, pz, faceCenterYaw, addPillarLight)
+        pUpperGoldRing,
+        createWallTorchSconce(sconceX, moriaFloorY + 3.85, pz, faceCenterYaw, addPillarLight)
       );
     }
   }
 
-  // A) THE BRIDGE OF KHAZAD-DÛM: Narrow Arched Stone Span over the Bottomless Abyss (lx in [-3.4, 3.4], lz in [178, 218])
-  const khazadRailBarGeo = new THREE.BoxGeometry(2 * MINE_KHAZAD_BRIDGE.railHalfThickness, 0.2, 4.0);
-  const khazadRailPostGeo = new THREE.BoxGeometry(0.2, MINE_KHAZAD_BRIDGE.railHeight, 0.2);
+  // 4 Titanic 64m-Tall Abyssal Stone Piers rising from the bottom of the 40m-deep chasm to the vaulted ceiling
+  for (const apz of MINE_MORIA_PILLARS.abyssZs) {
+    for (const apx of MINE_MORIA_PILLARS.abyssXs) {
+      const pierShaft = new THREE.Mesh(moriaAbyssPierGeo, mineDarkRockMat);
+      pierShaft.position.set(apx, moriaAbyssY, apz);
+      const pierCap = new THREE.Mesh(moriaPillarCapitalGeo, mineDeepSlateMat);
+      pierCap.scale.set(1.18, 1.2, 1.18);
+      pierCap.position.set(apx, moriaFloorY + MINE_MORIA_PILLARS.height - 0.8, apz);
+      const pierRing = new THREE.Mesh(moriaPillarCapitalGeo, mineGoldOreMat);
+      pierRing.scale.set(1.05, 0.32, 1.05);
+      pierRing.position.set(apx, moriaFloorY + 0.5, apz);
+      mineGroup.add(pierShaft, pierCap, pierRing);
+    }
+  }
+
+  // A) THE ENLARGED BRIDGE OF KHAZAD-DÛM: 72m-long, 13.6m-wide Arched Stone Span over the 68m-long Abyss
+  //    (lx in [-6.8, 6.8], lz in [196, 268]) with integrated West-side Minecart Track Deck (lx = -4.4)
+  const khazadRailBarGeo = new THREE.BoxGeometry(2 * MINE_KHAZAD_BRIDGE.railHalfThickness, 0.22, 4.05);
+  const khazadRailPostGeo = new THREE.BoxGeometry(0.28, MINE_KHAZAD_BRIDGE.railHeight, 0.28);
   disposableGeometries.push(khazadRailBarGeo, khazadRailPostGeo);
   for (let s = 0; s < MINE_KHAZAD_BRIDGE.segments; s++) {
     const seg = khazadBridgeSegment(s);
     const u0 = s / MINE_KHAZAD_BRIDGE.segments;
     const u1 = (s + 1) / MINE_KHAZAD_BRIDGE.segments;
-    const slopePitch =
-      Math.atan2(
-        (Math.sin(u1 * Math.PI) - Math.sin(u0 * Math.PI)) * MINE_KHAZAD_BRIDGE.archHeight,
-        4.0
-      );
+    const segLen = MINE_KHAZAD_BRIDGE.length / MINE_KHAZAD_BRIDGE.segments;
+    const slopePitch = Math.atan2(
+      (Math.sin(u1 * Math.PI) - Math.sin(u0 * Math.PI)) * MINE_KHAZAD_BRIDGE.archHeight,
+      segLen
+    );
     const segMesh = new THREE.Mesh(khazadBridgeSegGeo, mineDarkRockMat);
-    segMesh.position.set(0, seg.deckY - 0.4, seg.bz);
+    segMesh.position.set(0, seg.deckY - 0.45, seg.bz);
     segMesh.rotation.x = -slopePitch;
     mineGroup.add(segMesh);
-    // Rails on both deck edges: a top bar and a post, as in the layout
+    // Low stone edge kerbs (0.42m high) so the player can leap/fall off into the 40m-deep chasm
     for (const side of [-1, 1]) {
       const railX = side * MINE_KHAZAD_BRIDGE.railX;
-      const bar = new THREE.Mesh(khazadRailBarGeo, timberMat);
-      bar.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight, seg.bz);
+      const bar = new THREE.Mesh(khazadRailBarGeo, mineDeepSlateMat);
+      bar.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight * 0.5, seg.bz);
       bar.rotation.x = -slopePitch;
-      const post = new THREE.Mesh(khazadRailPostGeo, timberMat);
-      post.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight / 2, seg.bz);
+      const post = new THREE.Mesh(khazadRailPostGeo, mineGoldOreMat);
+      post.position.set(railX, seg.deckY + MINE_KHAZAD_BRIDGE.railHeight * 0.55, seg.bz);
       mineGroup.add(bar, post);
     }
   }
 
-  // B) WEST TIMBER & IRON MINECART TRESTLE BRIDGE OVER THE ABYSS (lx in [-15.0, -8.0], lz in [178, 218])
+  // B) INTEGRATED WEST-SIDE TIMBER & IRON MINECART TRACK BED ON THE BRIDGE (lx = -4.4, lz in [196, 268])
   const trestleDeck = new THREE.Mesh(trestleDeckGeo, timberMat);
-  trestleDeck.position.set(MINE_TRESTLE.deckLx, moriaFloorY - 0.22, MINE_TRESTLE.deckLz);
+  trestleDeck.position.set(MINE_TRESTLE.deckLx, moriaFloorY + 0.16, MINE_TRESTLE.deckLz);
   mineGroup.add(trestleDeck);
-  // Rails on both deck edges: a top bar and posts every postSpacing metres (layout MINE_TRESTLE)
   const trestleBarGeo = new THREE.BoxGeometry(MINE_TRESTLE.railThick, MINE_TRESTLE.barHeight, MINE_TRESTLE.deckLength);
   const trestlePostGeo = new THREE.BoxGeometry(MINE_TRESTLE.railThick, MINE_TRESTLE.railHeight, MINE_TRESTLE.railThick);
   disposableGeometries.push(trestleBarGeo, trestlePostGeo);
@@ -2423,24 +2586,39 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       mineGroup.add(post);
     }
   }
-  for (const tz of [183.0, 193.0, 203.0, 213.0]) {
-    for (const tx of [-14.2, -8.8]) {
-      const piling = new THREE.Mesh(trestlePilingGeo, barkMat);
-      piling.position.set(tx, moriaFloorY - 14.0, tz);
+  // Sub-bridge supporting piers plunging 40m into the chasm beneath the enlarged bridge
+  for (const tz of [206.0, 224.0, 240.0, 258.0]) {
+    for (const tx of [-5.6, 5.6]) {
+      const piling = new THREE.Mesh(trestlePilingGeo, mineDeepSlateMat);
+      piling.position.set(tx, moriaFloorY - 20.0, tz);
       mineGroup.add(piling);
     }
   }
+  // Bridge of Khazad-dûm lantern posts at North Bridgehead, Mid-Span Arch Crest, and South Bridgehead
+  mineGroup.add(
+    createStandingLanternPost(-6.2, moriaFloorY, 195.5, true, Math.PI / 2),
+    createStandingLanternPost(6.2, moriaFloorY, 195.5, true, -Math.PI / 2),
+    createStandingLanternPost(
+      6.2,
+      moriaFloorY + MINE_KHAZAD_BRIDGE.archHeight,
+      232.0,
+      true,
+      -Math.PI / 2
+    ),
+    createStandingLanternPost(-6.2, moriaFloorY, 268.5, true, Math.PI / 2),
+    createStandingLanternPost(6.2, moriaFloorY, 268.5, true, -Math.PI / 2)
+  );
 
-  // C) SOUTH ROYAL SANCTUARY OF DURIN (lz in [238, 250]) & ROYAL TREASURY CHEST OF KHAZAD-DÛM at (0, 242.5)
+  // C) SOUTH ROYAL SANCTUARY OF DURIN (lz in [290, 306]) & ROYAL TREASURY CHEST OF KHAZAD-DÛM at (0, 296.5)
   const royalDiasMesh = new THREE.Mesh(royalDiasGeo, mineDarkRockMat);
-  royalDiasMesh.position.set(0, moriaFloorY + 0.4, 244.0);
+  royalDiasMesh.position.set(0, moriaFloorY + 0.4, 298.0);
   const royalChestMesh = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
   royalChestMesh.position.set(MINE_ROYAL_CHEST.lx, moriaFloorY + MINE_ROYAL_CHEST.baseDy, MINE_ROYAL_CHEST.lz);
-  const sanctuaryLight = new THREE.PointLight(0xfbbf24, 6.2, 62, 1.2);
+  const sanctuaryLight = new THREE.PointLight(0xfbbf24, 5.4, 38, 1.35);
   sanctuaryLight.visible = false;
-  sanctuaryLight.position.set(0, moriaFloorY + 5.5, 242.5);
+  sanctuaryLight.position.set(0, moriaFloorY + 5.5, MINE_ROYAL_CHEST.lz);
   sanctuaryLight.userData.isUndergroundMineLight = true;
-  sanctuaryLight.userData.baseIntensity = 6.2;
+  sanctuaryLight.userData.baseIntensity = 5.4;
   lanternLights.push(sanctuaryLight);
   mineGroup.add(
     royalDiasMesh,
@@ -2448,6 +2626,414 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     sanctuaryLight,
     ...MINE_MORIA_SANCTUARY_TORCHES.map(placeFloorTorch)
   );
+
+  // ============================================================================
+  // 8B) TWO NEW MONUMENTAL EXITS FROM THE GREAT HALL OF KHAZAD-DÛM:
+  //     - WEST EXIT (lx = -65, lz = 183): Bifurcating Y-Tunnel splitting into
+  //       1) North Branch -> Chamber 4A: Hall of the Mountain Kings (4 Colossal King Statues & Obsidian Throne)
+  //       2) South Branch -> Chamber 4B: Abyssal Crystal Sanctum (Dark Crystal Grotto & Stone Golem Guardian)
+  //     - EAST EXIT (lx = +65, lz = 183): East Forge Tunnel leading into
+  //       3) Chamber 4C: The Dragon-Forge & Titan Anvil Vault (Carved Dragon-Head Magma Smelter & Titan Anvil)
+  // ============================================================================
+  const buildSubterraneanBoxEnclosure = (
+    minX: number,
+    maxX: number,
+    minZ: number,
+    maxZ: number,
+    floorY: number,
+    ceilingH: number,
+    openSides: { north?: boolean; south?: boolean; west?: boolean; east?: boolean }
+  ) => {
+    const w = maxX - minX;
+    const d = maxZ - minZ;
+    const cx = (minX + maxX) * 0.5;
+    const cz = (minZ + maxZ) * 0.5;
+    const flGeo = new THREE.BoxGeometry(w + 1.6, 0.9, d + 1.6);
+    const clGeo = new THREE.BoxGeometry(w + 1.6, 1.2, d + 1.6);
+    disposableGeometries.push(flGeo, clGeo);
+    const flMesh = new THREE.Mesh(flGeo, mineDeepSlateMat);
+    flMesh.position.set(cx, floorY - 0.45, cz);
+    const clMesh = new THREE.Mesh(clGeo, mineDarkRockMat);
+    clMesh.position.set(cx, floorY + ceilingH + 0.5, cz);
+    mineGroup.add(flMesh, clMesh);
+
+    const wallThick = 2.0;
+    if (!openSides.north) {
+      const wg = new THREE.BoxGeometry(w + 2.0, ceilingH + 1.0, wallThick);
+      disposableGeometries.push(wg);
+      const wm = new THREE.Mesh(wg, mineDarkRockMat);
+      wm.position.set(cx, floorY + ceilingH * 0.5, minZ - wallThick * 0.5);
+      mineGroup.add(wm);
+    }
+    if (!openSides.south) {
+      const wg = new THREE.BoxGeometry(w + 2.0, ceilingH + 1.0, wallThick);
+      disposableGeometries.push(wg);
+      const wm = new THREE.Mesh(wg, mineDarkRockMat);
+      wm.position.set(cx, floorY + ceilingH * 0.5, maxZ + wallThick * 0.5);
+      mineGroup.add(wm);
+    }
+    if (!openSides.west) {
+      const wg = new THREE.BoxGeometry(wallThick, ceilingH + 1.0, d + 2.0);
+      disposableGeometries.push(wg);
+      const wm = new THREE.Mesh(wg, mineDarkRockMat);
+      wm.position.set(minX - wallThick * 0.5, floorY + ceilingH * 0.5, cz);
+      mineGroup.add(wm);
+    }
+    if (!openSides.east) {
+      const wg = new THREE.BoxGeometry(wallThick, ceilingH + 1.0, d + 2.0);
+      disposableGeometries.push(wg);
+      const wm = new THREE.Mesh(wg, mineDarkRockMat);
+      wm.position.set(maxX + wallThick * 0.5, floorY + ceilingH * 0.5, cz);
+      mineGroup.add(wm);
+    }
+  };
+
+  // 1. West Bifurcating Y-Tunnel: Stem (lx: -108..-65, lz: 176..190), Fork Hub (lx: -124..-108, lz: 168..198),
+  //    North Branch (lx: -124..-112, lz: 146..168), and South Branch (lx: -124..-112, lz: 198..220)
+  buildSubterraneanBoxEnclosure(
+    MINE_WEST_SPLIT.stem.minLx,
+    MINE_WEST_SPLIT.stem.maxLx,
+    MINE_WEST_SPLIT.stem.minLz,
+    MINE_WEST_SPLIT.stem.maxLz,
+    moriaFloorY,
+    MINE_WEST_SPLIT.stem.height,
+    { east: true, west: true }
+  );
+  buildSubterraneanBoxEnclosure(
+    MINE_WEST_SPLIT.hub.minLx,
+    MINE_WEST_SPLIT.hub.maxLx,
+    MINE_WEST_SPLIT.hub.minLz,
+    MINE_WEST_SPLIT.hub.maxLz,
+    moriaFloorY,
+    MINE_WEST_SPLIT.hub.height,
+    { east: true, north: true, south: true }
+  );
+  buildSubterraneanBoxEnclosure(
+    MINE_WEST_SPLIT.northBranch.minLx,
+    MINE_WEST_SPLIT.northBranch.maxLx,
+    MINE_WEST_SPLIT.northBranch.minLz,
+    MINE_WEST_SPLIT.northBranch.maxLz,
+    moriaFloorY,
+    MINE_WEST_SPLIT.northBranch.height,
+    { north: true, south: true }
+  );
+  buildSubterraneanBoxEnclosure(
+    MINE_WEST_SPLIT.southBranch.minLx,
+    MINE_WEST_SPLIT.southBranch.maxLx,
+    MINE_WEST_SPLIT.southBranch.minLz,
+    MINE_WEST_SPLIT.southBranch.maxLz,
+    moriaFloorY,
+    MINE_WEST_SPLIT.southBranch.height,
+    { north: true, south: true }
+  );
+
+  // Runic Waystone Obelisk at the West Y-Tunnel Fork Junction (lx = -116, lz = 183)
+  {
+    const obPlinthGeo = new THREE.BoxGeometry(3.2, 0.9, 3.2);
+    const obShaftGeo = new THREE.CylinderGeometry(0.75, 1.15, 6.2, 4);
+    const obCrystalTopGeo = new THREE.OctahedronGeometry(0.85, 0);
+    disposableGeometries.push(obPlinthGeo, obShaftGeo, obCrystalTopGeo);
+    const obGroup = new THREE.Group();
+    obGroup.position.set(MINE_WEST_SPLIT.hub.waystoneLx, moriaFloorY, MINE_WEST_SPLIT.hub.waystoneLz);
+    const obPlinth = new THREE.Mesh(obPlinthGeo, mineDeepSlateMat);
+    obPlinth.position.y = 0.45;
+    const obShaft = new THREE.Mesh(obShaftGeo, mineDarkRockMat);
+    obShaft.position.y = 3.9;
+    obShaft.rotation.y = Math.PI / 4;
+    const obCrown = new THREE.Mesh(obCrystalTopGeo, mineGoldOreMat);
+    obCrown.position.y = 7.4;
+    obGroup.add(obPlinth, obShaft, obCrown);
+    mineGroup.add(obGroup);
+  }
+
+  // 2. Chamber 4A: Hall of the Mountain Kings (West Split North Branch: lx in [-152, -106], lz in [104, 146])
+  {
+    const hk = MINE_WEST_SPLIT.hallOfKings;
+    buildSubterraneanBoxEnclosure(hk.minLx, hk.maxLx, hk.minLz, hk.maxLz, moriaFloorY, hk.height, {
+      south: true,
+    });
+    // South wall flanks around the North Branch doorway (lx in [-124, -112])
+    const hkSouthWestWallGeo = new THREE.BoxGeometry(28.0, hk.height, 2.0);
+    const hkSouthEastWallGeo = new THREE.BoxGeometry(6.0, hk.height, 2.0);
+    const hkThroneDaisGeo = new THREE.BoxGeometry(16.0, 0.9, 10.0);
+    const hkThroneSeatGeo = new THREE.BoxGeometry(3.8, 1.4, 3.2);
+    const hkThroneBackGeo = new THREE.BoxGeometry(3.8, 5.8, 0.85);
+    const hkStatuePedGeo = new THREE.CylinderGeometry(2.1, 2.4, 2.8, 8);
+    hkStatuePedGeo.translate(0, 1.4, 0);
+    const hkStatueCrownGeo = new THREE.CylinderGeometry(0.55, 0.5, 0.32, 8);
+    disposableGeometries.push(
+      hkSouthWestWallGeo,
+      hkSouthEastWallGeo,
+      hkThroneDaisGeo,
+      hkThroneSeatGeo,
+      hkThroneBackGeo,
+      hkStatuePedGeo,
+      hkStatueCrownGeo
+    );
+
+    const hkSW = new THREE.Mesh(hkSouthWestWallGeo, mineDarkRockMat);
+    hkSW.position.set(-138.0, moriaFloorY + hk.height * 0.5, hk.maxLz);
+    const hkSE = new THREE.Mesh(hkSouthEastWallGeo, mineDarkRockMat);
+    hkSE.position.set(-109.0, moriaFloorY + hk.height * 0.5, hk.maxLz);
+    const throneDais = new THREE.Mesh(hkThroneDaisGeo, mineDeepSlateMat);
+    throneDais.position.set(hk.throneLx, moriaFloorY + 0.45, hk.throneLz + 1.5);
+    const throneSeat = new THREE.Mesh(hkThroneSeatGeo, mineDarkRockMat);
+    throneSeat.position.set(hk.throneLx, moriaFloorY + 1.5, hk.throneLz);
+    const throneBack = new THREE.Mesh(hkThroneBackGeo, mineGoldOreMat);
+    throneBack.position.set(hk.throneLx, moriaFloorY + 3.8, hk.throneLz - 1.2);
+    const throneChest = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
+    throneChest.position.set(hk.throneLx, moriaFloorY + 0.9, hk.throneLz + 3.5);
+    mineGroup.add(hkSW, hkSE, throneDais, throneSeat, throneBack, throneChest);
+
+    // 4 Colossal Sculpted Dwarven King Statues flanking the Royal Processional Aisle
+    for (let kIdx = 0; kIdx < hk.statues.length; kIdx++) {
+      const st = hk.statues[kIdx];
+      const stGroup = new THREE.Group();
+      stGroup.position.set(st.lx, moriaFloorY, st.lz);
+      stGroup.rotation.y = st.lx < -129 ? Math.PI / 2 : -Math.PI / 2;
+
+      const ped = new THREE.Mesh(hkStatuePedGeo, mineDeepSlateMat);
+      const crown = new THREE.Mesh(hkStatueCrownGeo, mineGoldOreMat);
+      crown.position.set(0, 8.15, 0.08);
+      stGroup.add(ped, crown);
+
+      const kingRig = createReadyDwarfWarrior({
+        initialState: 'idle',
+        weaponVisible: true,
+        tintHex: 0xd4af37,
+        driveRootMotion: false,
+        scale: 3.1,
+      });
+      kingRig.driveRootMotion = false;
+      kingRig.setState('idle', 0.01);
+      kingRig.update(0.2);
+      kingRig.group.position.set(0, 2.8, 0);
+      kingRig.group.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          (child as THREE.Mesh).material = kIdx % 2 === 0 ? mineDarkRockMat : mineGoldOreMat;
+        }
+      });
+      stGroup.add(kingRig.group);
+      mineGroup.add(stGroup);
+    }
+
+    const hallOfKingsLight = new THREE.PointLight(0xfbbf24, 6.8, 46, 1.12);
+    hallOfKingsLight.visible = false;
+    hallOfKingsLight.position.set(-129.0, moriaFloorY + 6.5, 122.0);
+    hallOfKingsLight.userData.isUndergroundMineLight = true;
+    hallOfKingsLight.userData.baseIntensity = 6.8;
+    lanternLights.push(hallOfKingsLight);
+    mineGroup.add(
+      hallOfKingsLight,
+      createWallTorchSconce(-150.5, moriaFloorY + 3.6, 114.0, Math.PI / 2, true),
+      createWallTorchSconce(-107.5, moriaFloorY + 3.6, 114.0, -Math.PI / 2, true),
+      createWallTorchSconce(-150.5, moriaFloorY + 3.6, 134.0, Math.PI / 2, true),
+      createWallTorchSconce(-107.5, moriaFloorY + 3.6, 134.0, -Math.PI / 2, true),
+      // West Y-Tunnel stem & fork junction sconces
+      createWallTorchSconce(-82.0, moriaFloorY + 3.2, 176.8, 0, true),
+      createWallTorchSconce(-82.0, moriaFloorY + 3.2, 189.2, Math.PI, true),
+      createWallTorchSconce(-116.0, moriaFloorY + 3.4, 168.8, 0, true),
+      createWallTorchSconce(-129.0, moriaFloorY + 3.4, 183.0, Math.PI / 2, true)
+    );
+  }
+
+  // 3. Chamber 4B: The Abyssal Crystal Sanctum (West Split South Branch: lx in [-152, -106], lz in [220, 264])
+  //    Dark, unlit by fire torches — illuminated purely by glowing crystal monoliths & the Stone Golem Guardian!
+  {
+    const cs = MINE_WEST_SPLIT.crystalSanctum;
+    buildSubterraneanBoxEnclosure(cs.minLx, cs.maxLx, cs.minLz, cs.maxLz, moriaFloorY, cs.height, {
+      north: true,
+    });
+    const csNorthWestWallGeo = new THREE.BoxGeometry(28.0, cs.height, 2.0);
+    const csNorthEastWallGeo = new THREE.BoxGeometry(6.0, cs.height, 2.0);
+    const golemTorsoGeo = new THREE.DodecahedronGeometry(2.4, 1);
+    const golemShoulderGeo = new THREE.DodecahedronGeometry(1.45, 0);
+    const golemHeadGeo = new THREE.OctahedronGeometry(1.25, 0);
+    const giantCrystalMonolithGeo = new THREE.ConeGeometry(1.35, 8.5, 6);
+    giantCrystalMonolithGeo.translate(0, 4.25, 0);
+    disposableGeometries.push(
+      csNorthWestWallGeo,
+      csNorthEastWallGeo,
+      golemTorsoGeo,
+      golemShoulderGeo,
+      golemHeadGeo,
+      giantCrystalMonolithGeo
+    );
+
+    const csNW = new THREE.Mesh(csNorthWestWallGeo, mineDarkRockMat);
+    csNW.position.set(-138.0, moriaFloorY + cs.height * 0.5, cs.minLz);
+    const csNE = new THREE.Mesh(csNorthEastWallGeo, mineDarkRockMat);
+    csNE.position.set(-109.0, moriaFloorY + cs.height * 0.5, cs.minLz);
+    mineGroup.add(csNW, csNE);
+
+    // Colossal Stone Golem Guardian Statue with glowing crystal core & eyes at (lx = -129, lz = 252)
+    const golemGroup = new THREE.Group();
+    golemGroup.position.set(cs.guardianLx, moriaFloorY, cs.guardianLz);
+    const gBase = new THREE.Mesh(forgeBrazierBaseGeo, mineDeepSlateMat);
+    gBase.scale.set(2.4, 1.8, 2.4);
+    const gTorso = new THREE.Mesh(golemTorsoGeo, mineDarkRockMat);
+    gTorso.position.set(0, 4.2, 0);
+    gTorso.scale.set(1.15, 1.35, 0.85);
+    const gCore = new THREE.Mesh(golemHeadGeo, mineSapphireCrystalMat);
+    gCore.position.set(0, 4.4, 1.65);
+    gCore.scale.set(0.75, 0.95, 0.55);
+    const gHead = new THREE.Mesh(golemHeadGeo, mineDeepSlateMat);
+    gHead.position.set(0, 7.6, 0.2);
+    for (const side of [-1, 1]) {
+      const sh = new THREE.Mesh(golemShoulderGeo, mineDarkRockMat);
+      sh.position.set(side * 2.8, 5.4, 0.2);
+      const arm = new THREE.Mesh(giantCrystalMonolithGeo, side < 0 ? mineAmethystCrystalMat : mineSapphireCrystalMat);
+      arm.position.set(side * 3.1, 1.2, 0.8);
+      arm.scale.set(0.65, 0.52, 0.65);
+      const eye = new THREE.Mesh(sparkChunkGeo, mineEmeraldCrystalMat);
+      eye.position.set(side * 0.42, 7.75, 1.15);
+      eye.scale.set(2.8, 1.8, 2.0);
+      golemGroup.add(sh, arm, eye);
+    }
+    golemGroup.add(gBase, gTorso, gCore, gHead);
+    mineGroup.add(golemGroup);
+
+    // Giant Bioluminescent Crystal Monolith Clusters ringing the dark sanctum
+    const crystalSites: ReadonlyArray<[number, number, number, THREE.Material]> = [
+      [-145.0, 228.0, 0.3, mineAmethystCrystalMat],
+      [-113.0, 228.0, -0.25, mineSapphireCrystalMat],
+      [-146.0, 244.0, 0.22, mineEmeraldCrystalMat],
+      [-112.0, 244.0, -0.28, mineAmethystCrystalMat],
+      [-142.0, 258.0, 0.18, mineSapphireCrystalMat],
+      [-116.0, 258.0, -0.18, mineEmeraldCrystalMat],
+    ];
+    for (const [cx, cz, tilt, cMat] of crystalSites) {
+      const cSpire = new THREE.Mesh(giantCrystalMonolithGeo, cMat);
+      cSpire.position.set(cx, moriaFloorY - 0.2, cz);
+      cSpire.rotation.z = tilt;
+      mineGroup.add(cSpire);
+    }
+
+    // Subtle regional violet-blue crystal glow so the room feels mysterious and dark compared to torch-lit rooms
+    const sanctumCrystalLight = new THREE.PointLight(0x8b5cf6, 3.4, 32, 1.45);
+    sanctumCrystalLight.visible = false;
+    sanctumCrystalLight.position.set(cs.guardianLx, moriaFloorY + 4.8, cs.guardianLz - 6.0);
+    sanctumCrystalLight.userData.isUndergroundMineLight = true;
+    sanctumCrystalLight.userData.baseIntensity = 3.4;
+    lanternLights.push(sanctumCrystalLight);
+    mineGroup.add(sanctumCrystalLight);
+  }
+
+  // 4. East Exit Tunnel (lx in [65, 102], lz in [176, 190]) &
+  //    Chamber 4C: The Dragon-Forge & Titan Anvil Vault (lx in [102, 150], lz in [154, 212])
+  {
+    const ef = MINE_EAST_FORGE;
+    buildSubterraneanBoxEnclosure(
+      ef.tunnel.minLx,
+      ef.tunnel.maxLx,
+      ef.tunnel.minLz,
+      ef.tunnel.maxLz,
+      moriaFloorY,
+      ef.tunnel.height,
+      { west: true, east: true }
+    );
+    buildSubterraneanBoxEnclosure(
+      ef.chamber.minLx,
+      ef.chamber.maxLx,
+      ef.chamber.minLz,
+      ef.chamber.maxLz,
+      moriaFloorY,
+      ef.chamber.height,
+      { west: true }
+    );
+    const efWestNorthWallGeo = new THREE.BoxGeometry(2.0, ef.chamber.height, 22.0);
+    const efWestSouthWallGeo = new THREE.BoxGeometry(2.0, ef.chamber.height, 22.0);
+    const titanAnvilPlinthGeo = new THREE.BoxGeometry(7.2, 1.1, 4.8);
+    const titanAnvilBodyGeo = new THREE.BoxGeometry(4.8, 2.2, 2.4);
+    const titanAnvilHornGeo = new THREE.ConeGeometry(1.15, 2.8, 4);
+    titanAnvilHornGeo.rotateZ(-Math.PI / 2);
+    const dragonHeadSkullGeo = new THREE.BoxGeometry(6.8, 5.4, 7.6);
+    const dragonSnoutGeo = new THREE.BoxGeometry(4.8, 2.6, 5.2);
+    const dragonHornGeo = new THREE.ConeGeometry(0.95, 5.2, 6);
+    const magmaStreamGeo = new THREE.CylinderGeometry(0.95, 1.65, 6.8, 10);
+    const magmaBasinGeo = new THREE.CylinderGeometry(5.2, 5.8, 1.4, 8);
+    disposableGeometries.push(
+      efWestNorthWallGeo,
+      efWestSouthWallGeo,
+      titanAnvilPlinthGeo,
+      titanAnvilBodyGeo,
+      titanAnvilHornGeo,
+      dragonHeadSkullGeo,
+      dragonSnoutGeo,
+      dragonHornGeo,
+      magmaStreamGeo,
+      magmaBasinGeo
+    );
+
+    const efWN = new THREE.Mesh(efWestNorthWallGeo, mineDarkRockMat);
+    efWN.position.set(ef.chamber.minLx, moriaFloorY + ef.chamber.height * 0.5, 165.0);
+    const efWS = new THREE.Mesh(efWestSouthWallGeo, mineDarkRockMat);
+    efWS.position.set(ef.chamber.minLx, moriaFloorY + ef.chamber.height * 0.5, 201.0);
+    mineGroup.add(efWN, efWS);
+
+    // The Titan's Mithril Anvil at (lx = 122, lz = 183)
+    const anvilGroup = new THREE.Group();
+    anvilGroup.position.set(ef.chamber.anvilLx, moriaFloorY, ef.chamber.anvilLz);
+    const aPlinth = new THREE.Mesh(titanAnvilPlinthGeo, mineDeepSlateMat);
+    aPlinth.position.y = 0.55;
+    const aBody = new THREE.Mesh(titanAnvilBodyGeo, darkIronMat);
+    aBody.position.y = 2.1;
+    const aTop = new THREE.Mesh(titanAnvilBodyGeo, mineSilverOreMat);
+    aTop.scale.set(1.08, 0.32, 1.08);
+    aTop.position.y = 3.25;
+    const aHorn = new THREE.Mesh(titanAnvilHornGeo, mineSilverOreMat);
+    aHorn.position.set(-3.4, 3.05, 0);
+    anvilGroup.add(aPlinth, aBody, aTop, aHorn);
+    mineGroup.add(anvilGroup);
+
+    // Colossal Carved Stone Dragon-Head Magma Smelter at (lx = 138, lz = 183)
+    const dragonForgeGroup = new THREE.Group();
+    dragonForgeGroup.position.set(ef.chamber.dragonForgeLx, moriaFloorY, ef.chamber.dragonForgeLz);
+    const dSkull = new THREE.Mesh(dragonHeadSkullGeo, mineDarkRockMat);
+    dSkull.position.set(2.2, 7.6, 0);
+    const dSnout = new THREE.Mesh(dragonSnoutGeo, mineDeepSlateMat);
+    dSnout.position.set(-2.2, 7.2, 0);
+    const dJaw = new THREE.Mesh(dragonSnoutGeo, mineDarkRockMat);
+    dJaw.position.set(-1.8, 4.4, 0);
+    dJaw.rotation.z = 0.28;
+    for (const side of [-1, 1]) {
+      const horn = new THREE.Mesh(dragonHornGeo, mineGoldOreMat);
+      horn.position.set(3.2, 11.2, side * 2.8);
+      horn.rotation.z = -0.45;
+      horn.rotation.x = side * 0.25;
+      const eye = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
+      eye.scale.set(0.65, 0.65, 0.65);
+      eye.position.set(-0.8, 8.4, side * 2.45);
+      dragonForgeGroup.add(horn, eye);
+    }
+    const magmaPour = new THREE.Mesh(magmaStreamGeo, mineMoltenCoalMat);
+    magmaPour.position.set(-2.8, 3.6, 0);
+    const basinRim = new THREE.Mesh(magmaBasinGeo, mineDeepSlateMat);
+    basinRim.position.set(-2.8, 0.7, 0);
+    const basinLava = new THREE.Mesh(forgeCoalMoundGeo, mineMoltenCoalMat);
+    basinLava.scale.set(4.2, 0.65, 4.2);
+    basinLava.position.set(-2.8, 1.35, 0);
+    dragonForgeGroup.add(dSkull, dSnout, dJaw, magmaPour, basinRim, basinLava);
+    mineGroup.add(dragonForgeGroup);
+
+    // MasterSmith Loot Chest at (lx = 126, lz = 206)
+    const forgeChest = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
+    forgeChest.position.set(126.0, moriaFloorY + 0.1, 206.0);
+    const dragonForgeLight = new THREE.PointLight(0xf97316, 7.2, 48, 1.12);
+    dragonForgeLight.visible = false;
+    dragonForgeLight.position.set(ef.chamber.dragonForgeLx - 4.0, moriaFloorY + 5.8, ef.chamber.dragonForgeLz);
+    dragonForgeLight.userData.isUndergroundMineLight = true;
+    dragonForgeLight.userData.baseIntensity = 7.2;
+    lanternLights.push(dragonForgeLight);
+    mineGroup.add(
+      forgeChest,
+      dragonForgeLight,
+      createWallTorchSconce(84.0, moriaFloorY + 3.2, 176.8, 0, true),
+      createWallTorchSconce(84.0, moriaFloorY + 3.2, 189.2, Math.PI, true),
+      createWallTorchSconce(122.0, moriaFloorY + 3.6, 155.2, 0, true),
+      createWallTorchSconce(122.0, moriaFloorY + 3.6, 210.8, Math.PI, true)
+    );
+  }
 
   // ============================================================================
   // 9) IRON MINECART RAIL NETWORK ACROSS ALL CHAMBERS & TUNNELS
@@ -2685,7 +3271,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(placeFloorTorch(torch));
   }
 
-  // Wall-mounted iron torch sconces along Room 1, South Moria Descent Gallery, Chamber 2 & Chamber 3
+  // Wall-mounted iron torch sconces along Room 1, South Moria Descent Gallery, Chamber 2, Chamber 3 & Exit Tunnels
   for (const [tx, ty, tz, tYaw, addLight] of [
     [-47.2, cavernFloorY + 3.2, 46.0, Math.PI / 2, true],
     [-47.2, cavernFloorY + 3.2, 82.0, Math.PI / 2, true],
@@ -2693,10 +3279,12 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     [47.2, cavernFloorY + 3.2, 82.0, -Math.PI / 2, true],
     [-28.0, cavernFloorY + 3.2, 94.2, Math.PI, false],
     [28.0, cavernFloorY + 3.2, 94.2, Math.PI, false],
-    [-15.2, (cavernFloorY + moriaFloorY) * 0.5 + 2.8, 112.0, Math.PI / 2, true],
-    [15.2, (cavernFloorY + moriaFloorY) * 0.5 + 2.8, 112.0, -Math.PI / 2, false],
-    [-15.2, (cavernFloorY + moriaFloorY) * 0.5 + 1.2, 130.0, Math.PI / 2, false],
-    [15.2, (cavernFloorY + moriaFloorY) * 0.5 + 1.2, 130.0, -Math.PI / 2, true],
+    [-15.2, southGalleryWalkableHeightAt(-11.5, 110.0) + 3.1, 110.0, Math.PI / 2, true],
+    [15.2, southGalleryWalkableHeightAt(4.0, 110.0) + 3.1, 110.0, -Math.PI / 2, false],
+    [-15.2, southGalleryWalkableHeightAt(-11.5, 130.0) + 3.1, 130.0, Math.PI / 2, false],
+    [15.2, southGalleryWalkableHeightAt(4.0, 130.0) + 3.1, 130.0, -Math.PI / 2, true],
+    [-15.2, southGalleryWalkableHeightAt(-11.5, 152.0) + 3.1, 152.0, Math.PI / 2, true],
+    [15.2, southGalleryWalkableHeightAt(4.0, 152.0) + 3.1, 152.0, -Math.PI / 2, false],
     [-89.6, ch2FloorY + 3.2, 52.0, -Math.PI / 2, true],
     [-89.6, ch2FloorY + 3.2, 88.0, -Math.PI / 2, true],
     [89.6, ch3FloorY + 3.2, 52.0, Math.PI / 2, true],

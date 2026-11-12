@@ -205,8 +205,6 @@ export async function buildRealisticWorld(
     disposableMaterials,
     distanceCulledObjects,
   });
-  // Roots the player builder added stay visible underground; every other outdoor root moves to the outdoor layer.
-  const playerRoots = new Set(scene.children.filter((child) => !rootsBeforePlayer.has(child)));
 
   await stage('wildlife');
   const wildlifeAndFootprintsLayer = buildWildlifeAndFootprintsLayer(
@@ -224,6 +222,8 @@ export async function buildRealisticWorld(
     disposableMaterials
   );
 
+  // Roots added for player/combat, living wildlife, and F3 collider debug stay visible underground.
+  const playerRoots = new Set(scene.children.filter((child) => !rootsBeforePlayer.has(child)));
   markOutdoorRoots(scene, playerRoots);
 
   let lastTime = 0;

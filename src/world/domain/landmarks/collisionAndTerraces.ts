@@ -74,6 +74,8 @@ import {
   MINE_SOUTH_GALLERY,
   MINE_SUPPLY_CRATES,
   MINE_SCAFFOLD_LEGS,
+  MINE_WEST_SPLIT,
+  MINE_EAST_FORGE,
   khazadBridgeSegment,
   mineFloorY,
   mineShaftSpan,
@@ -139,6 +141,8 @@ function cavernWallBoxes(): ISolidBuildingBox[] {
 function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
   const G = MINE_SOUTH_GALLERY;
   const M = MINE_MORIA_WALLS;
+  const W = MINE_WEST_SPLIT;
+  const E = MINE_EAST_FORGE;
   const mx = (lx: number) => SOUTHERN_MINE_POS.x + lx;
   const mz = (lz: number) => SOUTHERN_MINE_POS.entranceZ + lz;
   const moriaY = SOUTHERN_MINE_POS.moriaHallFloorY;
@@ -161,9 +165,9 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
   );
   const yWall = moriaY + M.wallCentreDy;
   const t = M.thick / 2;
-  const sideBox = (id: string, sign: number): ISolidBuildingBox => ({
+  const sideFlankBox = (id: string, sign: number, lzCentre: number, len: number): ISolidBuildingBox => ({
     id, minX: mx(sign * M.sideWallX) - t, maxX: mx(sign * M.sideWallX) + t,
-    minZ: mz(M.sideWallLz) - M.sideWallLength / 2, maxZ: mz(M.sideWallLz) + M.sideWallLength / 2,
+    minZ: mz(lzCentre) - len / 2, maxZ: mz(lzCentre) + len / 2,
     minY: yWall - M.sideWallHeight / 2, maxY: yWall + M.sideWallHeight / 2,
   });
   const flankBox = (id: string, sign: number): ISolidBuildingBox => ({
@@ -171,10 +175,72 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
     minZ: mz(M.northFlankLz) - t, maxZ: mz(M.northFlankLz) + t,
     minY: moriaY + M.northFlankCentreDy - M.northFlankHeight / 2, maxY: moriaY + M.northFlankCentreDy + M.northFlankHeight / 2,
   });
+
+  const wt = W.thick / 2;
+  const yTunnelMax = moriaY + W.tunnelHeight;
+  const yHubMax = moriaY + W.hub.height;
+  const yKingsMax = moriaY + W.hallOfKings.height;
+  const yCrystalMax = moriaY + W.crystalSanctum.height;
+  const yForgeMax = moriaY + E.chamber.height;
+  const box = (id: string, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number): ISolidBuildingBox =>
+    ({ id, minX: mx(x0), maxX: mx(x1), minZ: mz(z0), maxZ: mz(z1), minY: y0, maxY: y1 });
+
+  const westSplitAndSanctums: ISolidBuildingBox[] = [
+    // West Stem Tunnel (lx: -102..-65, lz: 176..190)
+    box('southern-mine-west-stem-north-wall', W.stem.lxMin, W.stem.lxMax, W.stem.lzCentre - W.stem.halfW - wt, W.stem.lzCentre - W.stem.halfW + wt, moriaY, yTunnelMax),
+    box('southern-mine-west-stem-south-wall', W.stem.lxMin, W.stem.lxMax, W.stem.lzCentre + W.stem.halfW - wt, W.stem.lzCentre + W.stem.halfW + wt, moriaY, yTunnelMax),
+    // West Split Hub (lx: -130..-102, lz: 168..198) & Central Waystone Obelisk
+    box('southern-mine-west-hub-west-wall', W.hub.lxMin - wt, W.hub.lxMin + wt, W.hub.lzMin, W.hub.lzMax, moriaY, yHubMax),
+    box('southern-mine-west-hub-east-north-wall', W.hub.lxMax - wt, W.hub.lxMax + wt, W.hub.lzMin, W.stem.lzCentre - W.stem.halfW, moriaY, yHubMax),
+    box('southern-mine-west-hub-east-south-wall', W.hub.lxMax - wt, W.hub.lxMax + wt, W.stem.lzCentre + W.stem.halfW, W.hub.lzMax, moriaY, yHubMax),
+    box('southern-mine-west-hub-north-east-wall', W.northBranch.lxCentre + W.northBranch.halfW, W.hub.lxMax, W.hub.lzMin - wt, W.hub.lzMin + wt, moriaY, yHubMax),
+    box('southern-mine-west-hub-south-east-wall', W.southBranch.lxCentre + W.southBranch.halfW, W.hub.lxMax, W.hub.lzMax - wt, W.hub.lzMax + wt, moriaY, yHubMax),
+    box('southern-mine-west-hub-waystone', W.hub.waystoneLx - W.hub.waystoneHalf, W.hub.waystoneLx + W.hub.waystoneHalf, W.hub.waystoneLz - W.hub.waystoneHalf, W.hub.waystoneLz + W.hub.waystoneHalf, moriaY, moriaY + 6.5),
+    // North Branch Tunnel (lx: -128..-114, lz: 146..168)
+    box('southern-mine-west-north-branch-west-wall', W.northBranch.lxCentre - W.northBranch.halfW - wt, W.northBranch.lxCentre - W.northBranch.halfW + wt, W.northBranch.lzMin, W.northBranch.lzMax, moriaY, yTunnelMax),
+    box('southern-mine-west-north-branch-east-wall', W.northBranch.lxCentre + W.northBranch.halfW - wt, W.northBranch.lxCentre + W.northBranch.halfW + wt, W.northBranch.lzMin, W.northBranch.lzMax, moriaY, yTunnelMax),
+    // Chamber 5A: Hall of the Mountain Kings (lx: -152..-106, lz: 104..146)
+    box('southern-mine-kings-north-wall', W.hallOfKings.lxMin, W.hallOfKings.lxMax, W.hallOfKings.lzMin - wt, W.hallOfKings.lzMin + wt, moriaY, yKingsMax),
+    box('southern-mine-kings-west-wall', W.hallOfKings.lxMin - wt, W.hallOfKings.lxMin + wt, W.hallOfKings.lzMin, W.hallOfKings.lzMax, moriaY, yKingsMax),
+    box('southern-mine-kings-east-wall', W.hallOfKings.lxMax - wt, W.hallOfKings.lxMax + wt, W.hallOfKings.lzMin, W.hallOfKings.lzMax, moriaY, yKingsMax),
+    box('southern-mine-kings-south-west-wall', W.hallOfKings.lxMin, W.northBranch.lxCentre - W.northBranch.halfW, W.hallOfKings.lzMax - wt, W.hallOfKings.lzMax + wt, moriaY, yKingsMax),
+    box('southern-mine-kings-south-east-wall', W.northBranch.lxCentre + W.northBranch.halfW, W.hallOfKings.lxMax, W.hallOfKings.lzMax - wt, W.hallOfKings.lzMax + wt, moriaY, yKingsMax),
+    box('southern-mine-kings-obsidian-throne', W.hallOfKings.throneLx - W.hallOfKings.throneHalfX, W.hallOfKings.throneLx + W.hallOfKings.throneHalfX, W.hallOfKings.throneLz - W.hallOfKings.throneHalfZ, W.hallOfKings.throneLz + W.hallOfKings.throneHalfZ, moriaY, moriaY + W.hallOfKings.throneHeight),
+    ...W.hallOfKings.statues.map((st, idx) =>
+      box(`southern-mine-kings-statue-${idx}`, st.lx - W.hallOfKings.statueHalf, st.lx + W.hallOfKings.statueHalf, st.lz - W.hallOfKings.statueHalf, st.lz + W.hallOfKings.statueHalf, moriaY, moriaY + W.hallOfKings.statueHeight)
+    ),
+    // South Branch Tunnel (lx: -128..-114, lz: 198..220)
+    box('southern-mine-west-south-branch-west-wall', W.southBranch.lxCentre - W.southBranch.halfW - wt, W.southBranch.lxCentre - W.southBranch.halfW + wt, W.southBranch.lzMin, W.southBranch.lzMax, moriaY, yTunnelMax),
+    box('southern-mine-west-south-branch-east-wall', W.southBranch.lxCentre + W.southBranch.halfW - wt, W.southBranch.lxCentre + W.southBranch.halfW + wt, W.southBranch.lzMin, W.southBranch.lzMax, moriaY, yTunnelMax),
+    // Chamber 5B: Abyssal Crystal Sanctum (lx: -152..-106, lz: 220..264)
+    box('southern-mine-crystal-south-wall', W.crystalSanctum.lxMin, W.crystalSanctum.lxMax, W.crystalSanctum.lzMax - wt, W.crystalSanctum.lzMax + wt, moriaY, yCrystalMax),
+    box('southern-mine-crystal-west-wall', W.crystalSanctum.lxMin - wt, W.crystalSanctum.lxMin + wt, W.crystalSanctum.lzMin, W.crystalSanctum.lzMax, moriaY, yCrystalMax),
+    box('southern-mine-crystal-east-wall', W.crystalSanctum.lxMax - wt, W.crystalSanctum.lxMax + wt, W.crystalSanctum.lzMin, W.crystalSanctum.lzMax, moriaY, yCrystalMax),
+    box('southern-mine-crystal-north-west-wall', W.crystalSanctum.lxMin, W.southBranch.lxCentre - W.southBranch.halfW, W.crystalSanctum.lzMin - wt, W.crystalSanctum.lzMin + wt, moriaY, yCrystalMax),
+    box('southern-mine-crystal-north-east-wall', W.southBranch.lxCentre + W.southBranch.halfW, W.crystalSanctum.lxMax, W.crystalSanctum.lzMin - wt, W.crystalSanctum.lzMin + wt, moriaY, yCrystalMax),
+    box('southern-mine-crystal-guardian-statue', W.crystalSanctum.guardianLx - W.crystalSanctum.guardianHalf, W.crystalSanctum.guardianLx + W.crystalSanctum.guardianHalf, W.crystalSanctum.guardianLz - W.crystalSanctum.guardianHalf, W.crystalSanctum.guardianLz + W.crystalSanctum.guardianHalf, moriaY, moriaY + W.crystalSanctum.guardianHeight),
+  ];
+
+  const eastTunnelAndDragonForge: ISolidBuildingBox[] = [
+    // East Tunnel (lx: 65..102, lz: 176..190)
+    box('southern-mine-moria-east-tunnel-north-wall', E.tunnel.lxMin, E.tunnel.lxMax, E.tunnel.lzCentre - E.tunnel.halfW - wt, E.tunnel.lzCentre - E.tunnel.halfW + wt, moriaY, yTunnelMax),
+    box('southern-mine-moria-east-tunnel-south-wall', E.tunnel.lxMin, E.tunnel.lxMax, E.tunnel.lzCentre + E.tunnel.halfW - wt, E.tunnel.lzCentre + E.tunnel.halfW + wt, moriaY, yTunnelMax),
+    // Chamber 6: Dragon-Forge & Titan Anvil Vault (lx: 102..150, lz: 154..212)
+    box('southern-mine-dragon-forge-north-wall', E.chamber.lxMin, E.chamber.lxMax, E.chamber.lzMin - wt, E.chamber.lzMin + wt, moriaY, yForgeMax),
+    box('southern-mine-dragon-forge-south-wall', E.chamber.lxMin, E.chamber.lxMax, E.chamber.lzMax - wt, E.chamber.lzMax + wt, moriaY, yForgeMax),
+    box('southern-mine-dragon-forge-east-wall', E.chamber.lxMax - wt, E.chamber.lxMax + wt, E.chamber.lzMin, E.chamber.lzMax, moriaY, yForgeMax),
+    box('southern-mine-dragon-forge-west-north-wall', E.chamber.lxMin - wt, E.chamber.lxMin + wt, E.chamber.lzMin, E.tunnel.lzCentre - E.tunnel.halfW, moriaY, yForgeMax),
+    box('southern-mine-dragon-forge-west-south-wall', E.chamber.lxMin - wt, E.chamber.lxMin + wt, E.tunnel.lzCentre + E.tunnel.halfW, E.chamber.lzMax, moriaY, yForgeMax),
+    box('southern-mine-dragon-forge-titan-anvil', E.chamber.anvilLx - E.chamber.anvilHalfX, E.chamber.anvilLx + E.chamber.anvilHalfX, E.chamber.anvilLz - E.chamber.anvilHalfZ, E.chamber.anvilLz + E.chamber.anvilHalfZ, moriaY, moriaY + E.chamber.anvilHeight),
+    box('southern-mine-dragon-forge-smelter', E.chamber.dragonSmelterLx - E.chamber.dragonSmelterHalfX, E.chamber.dragonSmelterLx + E.chamber.dragonSmelterHalfX, E.chamber.dragonSmelterLz - E.chamber.dragonSmelterHalfZ, E.chamber.dragonSmelterLz + E.chamber.dragonSmelterHalfZ, moriaY, moriaY + E.chamber.dragonSmelterHeight),
+  ];
+
   return [
     ...gallery,
-    sideBox('southern-mine-moria-west-wall', -1),
-    sideBox('southern-mine-moria-east-wall', 1),
+    sideFlankBox('southern-mine-moria-west-wall-north', -1, M.sideNorthFlankLz, M.sideNorthFlankLength),
+    sideFlankBox('southern-mine-moria-west-wall-south', -1, M.sideSouthFlankLz, M.sideSouthFlankLength),
+    sideFlankBox('southern-mine-moria-east-wall-north', 1, M.sideNorthFlankLz, M.sideNorthFlankLength),
+    sideFlankBox('southern-mine-moria-east-wall-south', 1, M.sideSouthFlankLz, M.sideSouthFlankLength),
     {
       id: 'southern-mine-moria-south-wall',
       minX: mx(-M.backWallHalfX), maxX: mx(M.backWallHalfX),
@@ -183,6 +249,8 @@ function moriaAndGalleryWallBoxes(): ISolidBuildingBox[] {
     },
     flankBox('southern-mine-moria-north-wall-west', -1),
     flankBox('southern-mine-moria-north-wall-east', 1),
+    ...westSplitAndSanctums,
+    ...eastTunnelAndDragonForge,
   ];
 }
 
@@ -600,7 +668,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       const span = mineShaftSpan();
       const segLen = (span.lzMax - span.lzMin) / MINE_SHAFT_WALLS.segments;
       const lzc = span.lzMin + (j + 0.5) * segLen;
-      const yc = SOUTHERN_MINE_POS.entranceY + ((SOUTHERN_MINE_POS.cavernFloorY - SOUTHERN_MINE_POS.entranceY) / 2) + 2.35 - (lzc - MINE_SHAFT_WALLS.midLz) * mineShaftTan();
+      const yc = SOUTHERN_MINE_POS.entranceY + ((SOUTHERN_MINE_POS.cavernFloorY - SOUTHERN_MINE_POS.entranceY) / 2) + MINE_SHAFT_WALLS.centreDy - (lzc - MINE_SHAFT_WALLS.midLz) * mineShaftTan();
       const half = MINE_SHAFT_WALLS.height / 2;
       const cx = SOUTHERN_MINE_POS.x + side * MINE_SHAFT_WALLS.xCentre;
       const t = MINE_SHAFT_WALLS.thick / 2;
@@ -611,7 +679,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: SOUTHERN_MINE_POS.entranceZ + lzc - segLen / 2,
         maxZ: SOUTHERN_MINE_POS.entranceZ + lzc + segLen / 2,
         minY: yc - half,
-        maxY: yc + half,
+        maxY: Math.min(yc + half, SOUTHERN_MINE_POS.entranceY),
       };
     })
   ),
@@ -707,6 +775,17 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       minZ: SOUTHERN_MINE_POS.entranceZ + pz - MINE_MORIA_PILLARS.radius,
       maxZ: SOUTHERN_MINE_POS.entranceZ + pz + MINE_MORIA_PILLARS.radius,
       minY: SOUTHERN_MINE_POS.moriaHallFloorY,
+      maxY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_MORIA_PILLARS.height,
+    }))
+  ),
+  ...MINE_MORIA_PILLARS.abyssZs.flatMap((pz) =>
+    MINE_MORIA_PILLARS.abyssXs.map((px) => ({
+      id: `southern-mine-moria-abyss-pier-${px}_${pz}`,
+      minX: SOUTHERN_MINE_POS.x + px - MINE_MORIA_PILLARS.radius,
+      maxX: SOUTHERN_MINE_POS.x + px + MINE_MORIA_PILLARS.radius,
+      minZ: SOUTHERN_MINE_POS.entranceZ + pz - MINE_MORIA_PILLARS.radius,
+      maxZ: SOUTHERN_MINE_POS.entranceZ + pz + MINE_MORIA_PILLARS.radius,
+      minY: SOUTHERN_MINE_POS.moriaAbyssBottomY,
       maxY: SOUTHERN_MINE_POS.moriaHallFloorY + MINE_MORIA_PILLARS.height,
     }))
   ),

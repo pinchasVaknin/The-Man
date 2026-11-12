@@ -10,7 +10,13 @@
 import { t } from '../../locales';
 import type { IDwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
-import { MINE_CHAMBER_BOUNDS, MINE_NW_GALLERY, MINE_ORE_ROCK_SITES } from '../domain/landmarks/dwarvenMineLayout';
+import {
+  MINE_CHAMBER_BOUNDS,
+  MINE_KHAZAD_BRIDGE,
+  MINE_NW_GALLERY,
+  MINE_ORE_ROCK_SITES,
+  southGalleryWalkableHeightAt,
+} from '../domain/landmarks/dwarvenMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -66,7 +72,7 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: -1.25,
-    workLocalX: -28.0,
+    workLocalX: -36.0,
     workLocalZ: 44.5,
     workYaw: 0,
     rockLocalX: MINE_ORE_ROCK_SITES[0].lx,
@@ -256,17 +262,19 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
   },
   {
     id: 'minecart-line-moria',
-    name: 'Khazad-dûm Abyss Express Line',
+    name: 'Khazad-dûm Grand Bridge & Abyss Line',
     startStationName: 'Mess Hall — South Moria Terminal',
     endStationName: 'Great Hall of Khazad-dûm (South Sanctuary)',
     rideSpeed: 18.5,
     localWaypoints: [
       [-11.5, SOUTHERN_MINE_POS.cavernFloorY, 83.0],
       [-11.5, SOUTHERN_MINE_POS.cavernFloorY - 0.38, 95.0],
-      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 145.0],
-      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 178.0],
-      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 218.0],
-      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 228.0],
+      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 165.0],
+      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 190.0],
+      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 196.0],
+      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 232.0],
+      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 268.0],
+      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 286.0],
     ],
   },
 ] as const;
@@ -844,40 +852,78 @@ export function southernMineWalkableHeightAt(
     return SOUTHERN_MINE_POS.eastFoundryFloorY;
   }
 
-  // 5) South Grand Moria Descent Gallery (lx in [-16.0, 16.0], lz in [95.0, 145.0]) sloping from -9.35m down to -18.35m
+  // 5) South Grand Moria Descent Gallery (lx in [-16.0, 16.0], lz in [95.0, 165.0]) descending from -9.35m down to -28.35m
+  //    with a monumental Middle Staircase & Flat Central Landing (lz in [116.0, 144.0]) on the pedestrian side!
   const southG = MINE_CHAMBER_BOUNDS.southGallery;
   if (lz > southG.lzMin && lz < southG.lzMax && Math.abs(lx) <= southG.halfW) {
-    const t = Math.max(0, Math.min(1, (lz - 95.0) / 50.0));
-    return (
-      SOUTHERN_MINE_POS.cavernFloorY +
-      t * (SOUTHERN_MINE_POS.moriaHallFloorY - SOUTHERN_MINE_POS.cavernFloorY)
-    );
+    return southGalleryWalkableHeightAt(lx, lz);
   }
 
-  // 6) Chamber 4 — The Great Hall of Khazad-dûm & Bridge Over the Bottomless Abyss (lx in [-64.0, 64.0], lz in [145.0, 255.0])
+  // 6) Chamber 4 — The Great Hall of Khazad-dûm & Enlarged Bridge Over the Bottomless Abyss (lx in [-65.0, 65.0], lz in [165.0, 310.0])
   const moriaC = MINE_CHAMBER_BOUNDS.moriaHall;
   if (lz >= moriaC.lzMin && lz <= moriaC.lzMax && Math.abs(lx) <= moriaC.halfW) {
     const moriaFloor = SOUTHERN_MINE_POS.moriaHallFloorY;
-    // A) Central Narrow Arched Stone Bridge of Khazad-dûm (lx in [-3.5, 3.5], lz in [178.0, 218.0])
-    if (lx >= -3.5 && lx <= 3.5 && lz >= 178.0 && lz <= 218.0) {
-      const spanU = Math.max(0, Math.min(1, (lz - 178.0) / 40.0));
-      const archRise = Math.sin(spanU * Math.PI) * 1.15;
+    // A) Enlarged Grand Bridge of Khazad-dûm (lx in [-6.8, 6.8], lz in [196.0, 268.0]):
+    //    - West Side Minecart Track Deck (lx in [-6.8, -2.0]): flat at moriaFloor (-28.35)
+    //    - Central/East Arched Stone Walkway (lx in [-2.0, 6.8]): arched stone span
+    if (
+      lx >= -MINE_KHAZAD_BRIDGE.halfW &&
+      lx <= MINE_KHAZAD_BRIDGE.halfW &&
+      lz >= MINE_KHAZAD_BRIDGE.lzStart &&
+      lz <= MINE_KHAZAD_BRIDGE.lzEnd
+    ) {
+      if (lx < -2.0) {
+        return moriaFloor;
+      }
+      const spanU = Math.max(
+        0,
+        Math.min(
+          1,
+          (lz - MINE_KHAZAD_BRIDGE.lzStart) /
+            (MINE_KHAZAD_BRIDGE.lzEnd - MINE_KHAZAD_BRIDGE.lzStart)
+        )
+      );
+      const archRise = Math.sin(spanU * Math.PI) * MINE_KHAZAD_BRIDGE.archHeight;
       return moriaFloor + archRise;
     }
-    // B) West Timber & Iron Minecart Trestle Bridge over the Abyss (lx in [-15.0, -8.0], lz in [178.0, 218.0])
-    if (lx >= -15.0 && lx <= -8.0 && lz >= 178.0 && lz <= 218.0) {
-      return moriaFloor;
-    }
-    // C) The Bottomless Subterranean Chasm / Abyss of Moria (lz in [180.0, 216.0], outside the two bridges)
-    if (lz > 180.0 && lz < 216.0) {
+    // B) The Enlarged 68m-long, 40m-deep Bottomless Subterranean Abyss of Moria (lz in [198.0, 266.0], outside the bridge)
+    if (lz > 198.0 && lz < 266.0) {
       return SOUTHERN_MINE_POS.moriaAbyssBottomY;
     }
-    // D) Elevated Royal Altar Dias of Durin in the South Sanctuary (lx in [-10.0, 10.0], lz in [238.0, 250.0])
-    if (lx >= -10.0 && lx <= 10.0 && lz >= 238.0 && lz <= 250.0) {
-      const rampT = lz < 240.0 ? Math.max(0, (lz - 238.0) / 2.0) : 1.0;
+    // C) Elevated Royal Altar Dias of Durin in the South Sanctuary (lx in [-10.0, 10.0], lz in [292.0, 304.0])
+    if (lx >= -10.0 && lx <= 10.0 && lz >= 292.0 && lz <= 304.0) {
+      const rampT = lz < 294.0 ? Math.max(0, (lz - 292.0) / 2.0) : 1.0;
       return moriaFloor + rampT * 0.8;
     }
     return moriaFloor;
+  }
+
+  // 6A) EXIT 1 (WEST FROM GREAT HALL): Bifurcating Y-Tunnel, Hall of the Mountain Kings (NW) & Crystal Sanctum (SW)
+  const B = MINE_CHAMBER_BOUNDS;
+  if (
+    (lx >= B.westSplitStem.lxMin && lx <= B.westSplitStem.lxMax && lz >= B.westSplitStem.lzMin && lz <= B.westSplitStem.lzMax) ||
+    (lx >= B.westSplitHub.lxMin && lx <= B.westSplitHub.lxMax && lz >= B.westSplitHub.lzMin && lz <= B.westSplitHub.lzMax) ||
+    (lx >= B.westNorthBranch.lxMin && lx <= B.westNorthBranch.lxMax && lz >= B.westNorthBranch.lzMin && lz <= B.westNorthBranch.lzMax) ||
+    (lx >= B.westSouthBranch.lxMin && lx <= B.westSouthBranch.lxMax && lz >= B.westSouthBranch.lzMin && lz <= B.westSouthBranch.lzMax) ||
+    (lx >= B.crystalSanctum.lxMin && lx <= B.crystalSanctum.lxMax && lz >= B.crystalSanctum.lzMin && lz <= B.crystalSanctum.lzMax)
+  ) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY;
+  }
+  if (lx >= B.hallOfKings.lxMin && lx <= B.hallOfKings.lxMax && lz >= B.hallOfKings.lzMin && lz <= B.hallOfKings.lzMax) {
+    // Royal Obsidian Throne Dais at the north end of the Hall of the Mountain Kings
+    if (lx >= -135.0 && lx <= -123.0 && lz >= 106.0 && lz <= 114.0) {
+      const daisT = lz > 112.0 ? Math.max(0, (114.0 - lz) / 2.0) : 1.0;
+      return SOUTHERN_MINE_POS.moriaHallFloorY + daisT * 0.75;
+    }
+    return SOUTHERN_MINE_POS.moriaHallFloorY;
+  }
+
+  // 6B) EXIT 2 (EAST FROM GREAT HALL): East Tunnel & The Dragon-Forge / Titan Anvil Vault
+  if (lx >= B.moriaEastTunnel.lxMin && lx <= B.moriaEastTunnel.lxMax && lz >= B.moriaEastTunnel.lzMin && lz <= B.moriaEastTunnel.lzMax) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY;
+  }
+  if (lx >= B.dragonForgeChamber.lxMin && lx <= B.dragonForgeChamber.lxMax && lz >= B.dragonForgeChamber.lzMin && lz <= B.dragonForgeChamber.lzMax) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY;
   }
 
   // 7) Room 1 — Orderly Entry Staging & Mess Hall (lx in [-48.0, 48.0], lz in [34.0, 95.5])
@@ -942,14 +988,23 @@ export function southernMineCeilingHeightAt(x: number, z: number): number {
   if (lz < 34.0) {
     return southernMineFloorHeightAt(z) + SOUTHERN_MINE_POS.corridorHeight;
   }
+  if (lz >= 100.0 && lx < -65.0) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY + 17.5;
+  }
+  if (lz >= 150.0 && lx > 65.0) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY + 18.5;
+  }
   if (lx < -48.0) {
     return SOUTHERN_MINE_POS.westLagoonFloorY + 12.5;
   }
   if (lx > 48.0) {
     return SOUTHERN_MINE_POS.eastFoundryFloorY + 12.0;
   }
-  if (lz > 95.5) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY + 16.0;
+  if (lz >= 165.0) {
+    return SOUTHERN_MINE_POS.moriaHallFloorY + 24.0;
+  }
+  if (lz > 95.0) {
+    return southGalleryWalkableHeightAt(lx, lz) + 8.5;
   }
   return SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight;
 }
@@ -957,7 +1012,8 @@ export function southernMineCeilingHeightAt(x: number, z: number): number {
 /**
  * Summary: Determines whether a given 3D coordinate falls within the subterranean volumes of the Southern Dwarven Mine
  *          (Entrance Shaft, Room 1 Mess Hall, West Tunnel & Chamber 2 Lagoon, East Tunnel & Chamber 3 Foundry,
- *           South Descent Gallery & Chamber 4 Great Hall of Khazad-dûm).
+ *           South Descent Gallery, Chamber 4 Great Hall of Khazad-dûm, West Split Tunnel + Twin Sanctums,
+ *           and East Tunnel + Dragon-Forge Vault).
  * @param x World X in meters.
  * @param z World Z in meters.
  * @param currentY Height of the asker, to choose between stacked floors (optional).
@@ -1008,13 +1064,35 @@ export function isInsideSouthernMine(x: number, z: number, currentY?: number): b
 
   // 7) South Grand Moria Descent Gallery (MINE_CHAMBER_BOUNDS.southGallery)
   if (Math.abs(lx) <= B.southGallery.halfW && lz >= B.southGallery.lzMin && lz <= B.southGallery.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 7.5) return false;
+    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 8.5) return false;
     return true;
   }
 
-  // 8) Chamber 4 — The Great Hall of Khazad-dûm & Bridge Over the Bottomless Abyss (MINE_CHAMBER_BOUNDS.moriaHall)
+  // 8) Chamber 4 — The Great Hall of Khazad-dûm & Enlarged Bridge Over the Bottomless Abyss (MINE_CHAMBER_BOUNDS.moriaHall)
   if (Math.abs(lx) <= B.moriaHall.halfW && lz >= B.moriaHall.lzMin && lz <= B.moriaHall.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 16.5) return false;
+    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 24.5) return false;
+    return true;
+  }
+
+  // 9) Exit 1 (West from Great Hall) — Bifurcating Y-Tunnel, Hall of the Mountain Kings & Crystal Sanctum
+  if (
+    (lx >= B.westSplitStem.lxMin && lx <= B.westSplitStem.lxMax && lz >= B.westSplitStem.lzMin && lz <= B.westSplitStem.lzMax) ||
+    (lx >= B.westSplitHub.lxMin && lx <= B.westSplitHub.lxMax && lz >= B.westSplitHub.lzMin && lz <= B.westSplitHub.lzMax) ||
+    (lx >= B.westNorthBranch.lxMin && lx <= B.westNorthBranch.lxMax && lz >= B.westNorthBranch.lzMin && lz <= B.westNorthBranch.lzMax) ||
+    (lx >= B.hallOfKings.lxMin && lx <= B.hallOfKings.lxMax && lz >= B.hallOfKings.lzMin && lz <= B.hallOfKings.lzMax) ||
+    (lx >= B.westSouthBranch.lxMin && lx <= B.westSouthBranch.lxMax && lz >= B.westSouthBranch.lzMin && lz <= B.westSouthBranch.lzMax) ||
+    (lx >= B.crystalSanctum.lxMin && lx <= B.crystalSanctum.lxMax && lz >= B.crystalSanctum.lzMin && lz <= B.crystalSanctum.lzMax)
+  ) {
+    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 18.0) return false;
+    return true;
+  }
+
+  // 10) Exit 2 (East from Great Hall) — East Tunnel & Dragon-Forge Vault
+  if (
+    (lx >= B.moriaEastTunnel.lxMin && lx <= B.moriaEastTunnel.lxMax && lz >= B.moriaEastTunnel.lzMin && lz <= B.moriaEastTunnel.lzMax) ||
+    (lx >= B.dragonForgeChamber.lxMin && lx <= B.dragonForgeChamber.lxMax && lz >= B.dragonForgeChamber.lzMin && lz <= B.dragonForgeChamber.lzMax)
+  ) {
+    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 19.0) return false;
     return true;
   }
 

@@ -783,10 +783,32 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     name: 'Royal Treasury Chest of Khazad-dûm',
     x: SOUTHERN_MINE_POS.x,
     y: SOUTHERN_MINE_POS.moriaHallFloorY + 0.8,
-    z: SOUTHERN_MINE_POS.entranceZ + 242.5,
+    z: SOUTHERN_MINE_POS.entranceZ + 296.5,
     interactRadius: 4.4,
     goldCoins: 85,
     contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'amethyst_gem', 'sapphire_gem', 'crystal_gem'],
+  },
+  // Chamber 4A — Hall of the Mountain Kings Royal Throne Coffer (West Split North Branch)
+  {
+    id: 'chest-moria-hall-of-kings',
+    name: 'Mountain King Throne Coffer',
+    x: SOUTHERN_MINE_POS.x - 129.0,
+    y: SOUTHERN_MINE_POS.moriaHallFloorY + 1.15,
+    z: SOUTHERN_MINE_POS.entranceZ + 114.5,
+    interactRadius: 4.2,
+    goldCoins: 110,
+    contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
+  },
+  // Chamber 4C — Dragon-Forge & Titan Anvil Vault Coffer (East Exit)
+  {
+    id: 'chest-moria-dragon-forge',
+    name: 'Dragon-Forge MasterSmith Chest',
+    x: SOUTHERN_MINE_POS.x + 126.0,
+    y: SOUTHERN_MINE_POS.moriaHallFloorY + 0.4,
+    z: SOUTHERN_MINE_POS.entranceZ + 206.0,
+    interactRadius: 4.2,
+    goldCoins: 95,
+    contents: ['dwarven_pickaxe', 'dwarven_warhammer', 'iron_ingots', 'dwarven_gold_ore', 'sapphire_gem'],
   },
 ] as const;
 
