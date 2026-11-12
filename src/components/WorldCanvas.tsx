@@ -105,6 +105,7 @@ import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldScene } from '../world/builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../world/soundEngine';
 import { applyDynamicAtmosphereToScene } from '../world/controllers/atmosphereRenderController';
+import { isPlayerUnderground, setCameraUndergroundMask } from '../world/controllers/undergroundCulling';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
   createAnimationFrameScheduler,
@@ -2769,6 +2770,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       sky.position.copy(camera.position);
       sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
 
+      setCameraUndergroundMask(camera, isPlayerUnderground(playerState.x, playerState.y, playerState.z));
       renderer.render(scene, camera);
     }
 
