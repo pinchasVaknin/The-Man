@@ -117,6 +117,7 @@ import { buildHudTelemetryInput } from '../world/controllers/hudEmitter';
 import { attachInputListeners } from '../world/controllers/inputController';
 import { createSimulationStep } from '../world/controllers/simulationStep';
 import { createRenderFrame } from '../world/controllers/renderFrame';
+import { createWorldSaveController } from '../world/controllers/worldSaveController';
 import { registerWindowDebugBridge } from '../world/controllers/windowDebugController';
 import {
   createAnimationFrameScheduler,
@@ -680,29 +681,19 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       }
     }
 
-    const saveCurrentWorld = () => {
-      if (gameStateRef.current === 'title' && !loadWorldSnapshot(activeWorldMode)) {
-        return;
-      }
-      const snap = captureCurrentWorldSnapshot(
-        activeWorldMode,
-        playerState,
-        rideableHorses,
-        getActiveWorldAnimals(),
-        openDoorIds,
-        timeState.worldHours
-      );
-      saveWorldSnapshot(activeWorldMode, snap);
-    };
-    (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = saveCurrentWorld;
-
-    // Save when the page is hidden or closed, so a tab closed inside the autosave interval keeps its progress.
-    const onPageHideSave = () => saveCurrentWorld();
-    const onVisibilitySave = () => {
-      if (document.visibilityState === 'hidden') saveCurrentWorld();
-    };
-    window.addEventListener('pagehide', onPageHideSave);
-    document.addEventListener('visibilitychange', onVisibilitySave);
+    // Saves the world on demand, on page hide (so a tab closed inside the autosave interval keeps its progress) and
+    // on the autosave timer. The save reads the mode through a getter, since the mode changes when the player switches.
+    const worldSave = createWorldSaveController({
+      getWorldMode: () => activeWorldMode,
+      gameStateRef,
+      getActiveWorldAnimals,
+      openDoorIds,
+      playerState,
+      rideableHorses,
+      timeState,
+    });
+    (window as unknown as { __THE_MAN_SAVE_CURRENT__?: () => void }).__THE_MAN_SAVE_CURRENT__ = worldSave.save;
+    const detachWorldSaveListeners = worldSave.attachPageListeners();
 
     function applyDynamicAtmosphere(hours: number, weather?: IWeatherStateSnapshot) {
       return applyDynamicAtmosphereToScene(
@@ -1592,7 +1583,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
       playerState,
       restState,
       rideableHorses,
-      saveCurrentWorld,
+      saveCurrentWorld: worldSave.save,
       simulationState,
       soundEngine,
       timeState,
@@ -1633,10 +1624,9 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     teardown = () => {
       gameLoop.stop();
       detachInputListeners();
-      window.removeEventListener('pagehide', onPageHideSave);
+      detachWorldSaveListeners();
       perfDebug.dispose();
-      document.removeEventListener('visibilitychange', onVisibilitySave);
-      saveCurrentWorld();
+      worldSave.save();
       onRegisterGameActions?.(null);
       unregisterDebugBridge?.();
       soundEngine.dispose();
