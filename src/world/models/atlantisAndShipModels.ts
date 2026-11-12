@@ -14,6 +14,7 @@ import {
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
   SMUGGLER_ISLAND_POS,
+  VIEW_DISTANCE,
   isWithinViewDistance,
 } from '../terrainMath';
 import {
@@ -498,7 +499,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     obj: atlantisGroup,
     cx: RUINED_ATLANTIS_POS.x,
     cz: RUINED_ATLANTIS_POS.z,
-    radius: 280.0,
+    radius: 75.0,
   });
 
   // ============================================================================
@@ -526,7 +527,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     obj: harborJettyGroup,
     cx: 266.0,
     cz: SAILABLE_SHIP_INITIAL_POS.homeZ,
-    radius: 130.0,
+    radius: 28.0,
   });
 
   // 3B) Sailable Fleet (4 Distinct Ship Tiers: Coastal Sloop, Explorer Caravel, War Galleon, Atlantean Royal Flagship)
@@ -915,7 +916,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     obj: nordicShrineGroup,
     cx: nfX,
     cz: nfZ,
-    radius: 175.0,
+    radius: 42.0,
   });
 
   // ============================================================================
@@ -996,7 +997,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     obj: desertPyramidGroup,
     cx: pyX,
     cz: pyZ,
-    radius: 195.0,
+    radius: 58.0,
   });
 
   // ============================================================================
@@ -1058,7 +1059,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     obj: smugglerIslandGroup,
     cx: smX,
     cz: smZ,
-    radius: 185.0,
+    radius: 48.0,
   });
 
   // ============================================================================
@@ -1082,8 +1083,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         liveShip.z,
         playerX,
         playerZ,
-        115.0,
-        320.0
+        28.0,
+        VIEW_DISTANCE
       );
       if (h.root.visible) {
         h.wheelPivot.rotation.z = liveShip.wheelAngle;

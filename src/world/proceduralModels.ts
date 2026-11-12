@@ -168,16 +168,22 @@ export async function buildRealisticWorld(
   await stage('vegetation');
   buildVegetationModels(ctx);
   await stage('settlements');
-  // Far landmarks are built after the world is returned (see buildFarLandmarks), so the player can move at once.
-  // Until then their per-frame updates are no-ops.
-  let updateFarmhousesAndMine: ReturnType<typeof buildFarmhouseModels>['updateFarmhousesAndMine'] = () => {};
-  let updateFortress: ReturnType<typeof buildFortressModels>['updateFortress'] = () => {};
-  let updateSanctuaryAndDragon: ReturnType<typeof buildSanctuaryAndDragonModels>['updateSanctuaryAndDragon'] = () => {};
-  let updateHarbor: ReturnType<typeof buildHarborModels>['updateHarbor'] = () => {};
-  let updateOasis: ReturnType<typeof buildOasisModels>['updateOasis'] = () => {};
-  let updateVolcanoAndFloatingIslands: ReturnType<typeof buildVolcanoAndFloatingIslandsModels>['updateVolcanoAndFloatingIslands'] = () => {};
-  let updateAtlantisAndShip: ReturnType<typeof buildAtlantisAndShipModels>['updateAtlantisAndShip'] = () => {};
   const { rowboatGroup, updateSettlement } = buildSettlementModels(ctx);
+  await yieldToBrowser();
+  const { updateFarmhousesAndMine } = buildFarmhouseModels(ctx);
+  await yieldToBrowser();
+  const { updateFortress } = buildFortressModels(ctx);
+  await yieldToBrowser();
+  const { updateSanctuaryAndDragon } = buildSanctuaryAndDragonModels(ctx);
+  await yieldToBrowser();
+  const { updateHarbor } = buildHarborModels(ctx);
+  await yieldToBrowser();
+  const { updateOasis } = buildOasisModels(ctx);
+  await yieldToBrowser();
+  const { updateVolcanoAndFloatingIslands } = buildVolcanoAndFloatingIslandsModels(ctx);
+  await yieldToBrowser();
+  const { updateAtlantisAndShip } = buildAtlantisAndShipModels(ctx);
+
   await stage('sky and weather');
   const { birdsGroup, pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
     buildEnvironmentAtmosphereModels(ctx);
@@ -220,27 +226,120 @@ export async function buildRealisticWorld(
 
   markOutdoorRoots(scene, playerRoots);
 
-  // Builds the far landmarks one at a time, yielding to the browser between them, then moves their objects to the outdoor layer.
-  const buildFarLandmarks = async (): Promise<void> => {
-    await yieldToBrowser();
-    updateFarmhousesAndMine = buildFarmhouseModels(ctx).updateFarmhousesAndMine;
-    await yieldToBrowser();
-    updateFortress = buildFortressModels(ctx).updateFortress;
-    await yieldToBrowser();
-    updateSanctuaryAndDragon = buildSanctuaryAndDragonModels(ctx).updateSanctuaryAndDragon;
-    await yieldToBrowser();
-    updateHarbor = buildHarborModels(ctx).updateHarbor;
-    await yieldToBrowser();
-    updateOasis = buildOasisModels(ctx).updateOasis;
-    await yieldToBrowser();
-    updateVolcanoAndFloatingIslands = buildVolcanoAndFloatingIslandsModels(ctx).updateVolcanoAndFloatingIslands;
-    await yieldToBrowser();
-    updateAtlantisAndShip = buildAtlantisAndShipModels(ctx).updateAtlantisAndShip;
-    markOutdoorRoots(scene, playerRoots);
-  };
-  void buildFarLandmarks();
-
   let lastTime = 0;
+
+  const updateWorld = (
+    elapsedTime: number,
+    playerX: number,
+    playerZ: number,
+    morningMistOpacity: number,
+    nightFactor = 0,
+    weather?: IWeatherStateSnapshot,
+    openDoorIds?: ReadonlySet<string>,
+    rideableHorses?: readonly IRideableHorseState[],
+    _mountedHorseId?: string | null,
+    playerState?: IPlayerState,
+    activeArrows?: readonly IArrowProjectile[],
+    worldHours = 8.5
+  ) => {
+    // 1. Distance-cull and directional frustum-cull terrain chunks, vegetation sectors, and landmarks
+    for (let i = 0; i < distanceCulledObjects.length; i++) {
+      const entry = distanceCulledObjects[i];
+      entry.obj.visible = isWithinViewDistance(
+        entry.cx,
+        entry.cz,
+        playerX,
+        playerZ,
+        entry.radius,
+        entry.maxDist ?? VIEW_DISTANCE
+      );
+    }
+
+    // 2. Smoothly animate interactive double doors swinging on hinges (also opens for monk guard shift rotation!)
+    for (let i = 0; i < doorPivotHandles.length; i++) {
+      const dh = doorPivotHandles[i];
+      const isOpen = (openDoorIds ? openDoorIds.has(dh.id) : false) || isMonkDoorwayActive(dh.id);
+      const targetAngle = isOpen ? 1.52 : 0.0;
+      if (Math.abs(targetAngle - dh.currentAngle) > 0.001) {
+        dh.currentAngle += (targetAngle - dh.currentAngle) * 0.55;
+        dh.leftPivot.rotation.y = dh.currentAngle;
+        dh.rightPivot.rotation.y = -dh.currentAngle;
+      }
+    }
+
+    // 3. Water surface waves, wind sway & terrain wetness shader time tick
+    for (let i = 0; i < animatedWaterMaterials.length; i++) {
+      const m = animatedWaterMaterials[i];
+      if (m.userData.uTime) {
+        m.userData.uTime.value = elapsedTime;
+      }
+    }
+    const windScale = weather ? (weather.windStrength ?? 1.0) : 1.0;
+    for (let i = 0; i < swayMaterials.length; i++) {
+      const sm = swayMaterials[i];
+      if (sm.userData.uTime) {
+        sm.userData.uTime.value = elapsedTime;
+      }
+      if (sm.userData.uWindScale) {
+        sm.userData.uWindScale.value = windScale;
+      }
+    }
+    if (terrainMaterial.userData.uTime) {
+      terrainMaterial.userData.uTime.value = elapsedTime;
+    }
+    if (terrainMaterial.userData.uWetness) {
+      terrainMaterial.userData.uWetness.value = weather ? (weather.wetness ?? 0.0) : 0.0;
+    }
+
+    // 4. Submodule simulation updates
+    updateSettlement(
+      elapsedTime,
+      rideableHorses,
+      _mountedHorseId,
+      playerX,
+      playerZ,
+      openDoorIds,
+      playerState?.openedChestIds,
+      playerState
+    );
+    updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
+    updateFortress(elapsedTime, playerX, playerZ);
+    updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
+    updateHarbor(elapsedTime, playerX, playerZ);
+    updateOasis(elapsedTime);
+    updateVolcanoAndFloatingIslands(elapsedTime, playerX, playerZ);
+    updateAtlantisAndShip(elapsedTime, playerX, playerZ);
+    updateEnvironment(
+      elapsedTime,
+      playerX,
+      playerZ,
+      morningMistOpacity,
+      nightFactor,
+      weather,
+      playerState?.y ?? 2.15
+    );
+
+    // 5. Wildlife, boids and footprint meshes (the simulation runs in simulateWildlife)
+    const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
+    lastTime = elapsedTime;
+    updateChoppableTreesVisuals(dt, weather, playerX, playerZ);
+    const cullObserver =
+      playerState ??
+      ({
+        x: playerX,
+        y: 12,
+        z: playerZ,
+        yaw: Math.atan2(playerX, playerZ + 18),
+        pitch: 0,
+      } as IPlayerState);
+    wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, cullObserver);
+
+    // 6. Player viewmodel and combat rigs
+    updatePlayerAndCombat(elapsedTime, playerState, activeArrows);
+  };
+
+  // Perform initial distance culling before first render so off-screen landmarks/wildlife start hidden
+  updateWorld(0, 0, 32, 0);
 
   return {
     waterMaterial,
@@ -255,108 +354,7 @@ export async function buildRealisticWorld(
     mistMaterials,
     playerCharacterGroup,
     colliderDebugHandles,
-    update: (
-      elapsedTime: number,
-      playerX: number,
-      playerZ: number,
-      morningMistOpacity: number,
-      nightFactor = 0,
-      weather?: IWeatherStateSnapshot,
-      openDoorIds?: ReadonlySet<string>,
-      rideableHorses?: readonly IRideableHorseState[],
-      _mountedHorseId?: string | null,
-      playerState?: IPlayerState,
-      activeArrows?: readonly IArrowProjectile[],
-      worldHours = 8.5
-    ) => {
-      // 1. Distance-cull and directional frustum-cull terrain chunks, vegetation sectors, and landmarks
-      for (let i = 0; i < distanceCulledObjects.length; i++) {
-        const entry = distanceCulledObjects[i];
-        entry.obj.visible = isWithinViewDistance(
-          entry.cx,
-          entry.cz,
-          playerX,
-          playerZ,
-          entry.radius,
-          entry.maxDist ?? VIEW_DISTANCE
-        );
-      }
-
-      // 2. Smoothly animate interactive double doors swinging on hinges (also opens for monk guard shift rotation!)
-      for (let i = 0; i < doorPivotHandles.length; i++) {
-        const dh = doorPivotHandles[i];
-        const isOpen = (openDoorIds ? openDoorIds.has(dh.id) : false) || isMonkDoorwayActive(dh.id);
-        const targetAngle = isOpen ? 1.52 : 0.0;
-        if (Math.abs(targetAngle - dh.currentAngle) > 0.001) {
-          dh.currentAngle += (targetAngle - dh.currentAngle) * 0.55;
-          dh.leftPivot.rotation.y = dh.currentAngle;
-          dh.rightPivot.rotation.y = -dh.currentAngle;
-        }
-      }
-
-      // 3. Water surface waves, wind sway & terrain wetness shader time tick
-      for (let i = 0; i < animatedWaterMaterials.length; i++) {
-        const m = animatedWaterMaterials[i];
-        if (m.userData.uTime) {
-          m.userData.uTime.value = elapsedTime;
-        }
-      }
-      const windScale = weather ? (weather.windStrength ?? 1.0) : 1.0;
-      for (let i = 0; i < swayMaterials.length; i++) {
-        const sm = swayMaterials[i];
-        if (sm.userData.uTime) {
-          sm.userData.uTime.value = elapsedTime;
-        }
-        if (sm.userData.uWindScale) {
-          sm.userData.uWindScale.value = windScale;
-        }
-      }
-      if (terrainMaterial.userData.uTime) {
-        terrainMaterial.userData.uTime.value = elapsedTime;
-      }
-      if (terrainMaterial.userData.uWetness) {
-        terrainMaterial.userData.uWetness.value = weather ? (weather.wetness ?? 0.0) : 0.0;
-      }
-
-      // 4. Submodule simulation updates
-      updateSettlement(
-        elapsedTime,
-        rideableHorses,
-        _mountedHorseId,
-        playerX,
-        playerZ,
-        openDoorIds,
-        playerState?.openedChestIds,
-        playerState
-      );
-      updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
-      updateFortress(elapsedTime, playerX, playerZ);
-      updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
-      updateHarbor(elapsedTime, playerX, playerZ);
-      updateOasis(elapsedTime);
-      updateVolcanoAndFloatingIslands(elapsedTime, playerX, playerZ);
-      updateAtlantisAndShip(elapsedTime, playerX, playerZ);
-      updateEnvironment(
-        elapsedTime,
-        playerX,
-        playerZ,
-        morningMistOpacity,
-        nightFactor,
-        weather,
-        playerState?.y ?? 2.15
-      );
-
-      // 5. Wildlife, boids and footprint meshes (the simulation runs in simulateWildlife)
-      const dt = Math.max(0, Math.min(0.1, elapsedTime - lastTime));
-      lastTime = elapsedTime;
-      updateChoppableTreesVisuals(dt, weather, playerX, playerZ);
-      if (playerState) {
-        wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, playerState);
-      }
-
-      // 6. Player viewmodel and combat rigs
-      updatePlayerAndCombat(elapsedTime, playerState, activeArrows);
-    },
+    update: updateWorld,
     simulateWildlife: (dt, elapsedTime, playerState, rideableHorses, nightFactor, weather, soundCallbacks) => {
       wildlifeAndFootprintsLayer.simulate(
         dt,

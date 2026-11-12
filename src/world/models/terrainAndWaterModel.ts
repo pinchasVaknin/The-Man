@@ -508,7 +508,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     obj: southRiverWaterMesh,
     cx: 85,
     cz: 595,
-    radius: 460,
+    radius: 300,
+    maxDist: 210,
   });
 
   // Continuous North-to-South Eastern Sea water surface (z = -900..+900, x = 180..1340)
@@ -525,9 +526,10 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   scene.add(eastSeaWaterMesh);
   distanceCulledObjects.push({
     obj: eastSeaWaterMesh,
-    cx: 760,
+    cx: 480,
     cz: 0,
-    radius: 1350,
+    radius: 300,
+    maxDist: 220,
   });
 
   // Vast Murky Swamp & Hippo Marshland water surface (-95, 790) south of the extended Mountain Ridge

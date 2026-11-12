@@ -13,9 +13,9 @@ import type { IFrameScheduler } from '../../core/gameLoop';
 // ======================== CONSTANTS ======================== \\
 // #region Constants
 /** Poll interval while waiting for the GPU fence to signal. */
-const FENCE_POLL_INTERVAL_MS = 5;
-/** Breathing gap after a software-rendered frame finishes. */
-const SOFTWARE_FRAME_GAP_MS = 80;
+const FENCE_POLL_INTERVAL_MS = 4;
+/** Breathing gap after a software-rendered frame finishes so UI/input events never starve. */
+const SOFTWARE_FRAME_GAP_MS = 16;
 // #endregion
 
 // ======================== ANIMATION FRAME SCHEDULER ======================== \\

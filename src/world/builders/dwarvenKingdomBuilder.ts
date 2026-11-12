@@ -423,7 +423,7 @@ export interface IDwarvenKingdomBuilderContext {
   createLanternAssembly: (x: number, y: number, z: number, addLight?: boolean) => THREE.Group;
   disposableGeometries: THREE.BufferGeometry[];
   disposableMaterials: THREE.Material[];
-  distanceCulledObjects: { obj: THREE.Object3D; cx: number; cz: number; radius: number }[];
+  distanceCulledObjects: { obj: THREE.Object3D; cx: number; cz: number; radius: number; maxDist?: number }[];
   doorPivotHandles: {
     id: string;
     leftPivot: THREE.Group;
@@ -585,8 +585,9 @@ export function buildDwarvenKingdomAndMiners(
   distanceCulledObjects.push({
     obj: mineGroup,
     cx: mineX,
-    cz: (mineEntZ + cavernBackZ) * 0.5 + 102.0,
-    radius: 280,
+    cz: mineEntZ + 20.0,
+    radius: 55,
+    maxDist: 170,
   });
 
   // 1) TWIN COLOSSAL SCULPTED DWARVEN KING GUARDIAN STATUES FLANKING THE MINE ENTRANCE

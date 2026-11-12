@@ -73,6 +73,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     disposableMaterials,
     distanceCulledObjects,
     doorPivotHandles,
+    lanternLights,
   } = ctx;
 
   const birchBarkTex = ctx.birchBarkTexture ?? createBirchBarkTexture();
@@ -1911,8 +1912,11 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
     if (!isSoftwareGl) {
       const cavernGlowLight = new THREE.PointLight(0x5fa8d3, 1.35, 26.0, 1.6);
+      cavernGlowLight.visible = false;
+      cavernGlowLight.userData.baseIntensity = 1.35;
       cavernGlowLight.position.set(0, 5.2, -15.0);
       caveGroup.add(cavernGlowLight);
+      lanternLights.push(cavernGlowLight);
     }
 
     // 8. Three Natural Bear Den Alcoves inside the Cavern (West Alcove, East Alcove, Rear Alpha Den)
@@ -2178,7 +2182,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     obj: southPassGroup,
     cx: spX,
     cz: spZ,
-    radius: 190,
+    radius: 40,
   });
 
   // 5 ARTICULATED RIDEABLE HORSES (RIDEABLE_HORSES across Stables & Landmarks - Rigged Horse_Complete.ts)

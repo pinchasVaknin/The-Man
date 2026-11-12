@@ -1049,7 +1049,6 @@ export function buildEnvironmentAtmosphereModels(
       }
       boltPositionAttr.needsUpdate = true;
 
-      lightningLight.visible = true;
       lightningLight.position.set(bx, groundY + 38.0, bz);
       lightningLight.intensity = (lightningFlash - 0.24) * 18.0;
     } else {

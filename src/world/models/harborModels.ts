@@ -2529,11 +2529,12 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     obj: harborGroup,
     cx: 255.0,
     cz: 255.0,
-    radius: 145,
+    radius: 65,
   });
 
   // 9) SOARING WHITE COASTAL SEAGULLS ABOVE THE HARBOR (Full Sculpted 3D Anatomy)
   const harborSeagullsGroup = new THREE.Group();
+  harborSeagullsGroup.visible = false;
   const seagullMantleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.55 });
   const seagullTipMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
   const seagullBeakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 });

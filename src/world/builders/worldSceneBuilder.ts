@@ -86,6 +86,7 @@ export async function createWorldScene(
 
   // 2. Scene & Studio RoomEnvironment Reflection
   const scene = new THREE.Scene();
+  scene.userData.isSoftwareGl = isSoftwareGl;
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const envTarget = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
   scene.environment = envTarget.texture;
@@ -147,8 +148,6 @@ export async function createWorldScene(
   const textures = createWorldTextures(renderer);
   const obstacles = generateWorldObstacles();
   const worldHandles = await buildRealisticWorld(scene, textures, obstacles, isSoftwareGl, logger, onStage);
-  // Pre-compile all WebGL shaders while all chunks/landmarks are visible to eliminate first-sight stalls when flying
-  renderer.compile(scene, camera);
 
   const applyGraphicsQuality = (quality: GraphicsQuality): void => {
     renderer.setPixelRatio(resolvePixelRatio(quality, window.devicePixelRatio, isSoftwareGl));

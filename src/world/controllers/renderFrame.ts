@@ -329,6 +329,11 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
 
     // Simulation time of the interpolated moment being drawn.
     const renderTime = simulationState.elapsedTotal - (1 - alpha) * stepSeconds;
+    _sunVec.set(
+      simulationState.currentAtmo.sunDirX,
+      simulationState.currentAtmo.sunDirY,
+      simulationState.currentAtmo.sunDirZ
+    );
     if (gameStateRef.current === 'title') {
       writeTitleOrbitPose(renderTime, cameraPose);
       applyCameraPose(cameraPose);

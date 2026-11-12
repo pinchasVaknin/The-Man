@@ -114,10 +114,10 @@ import {
 export interface IVehicleControllerContext {
   readonly capturePreviousPlayerPose: () => void;
   readonly emitHudSnapshot: () => void;
-  readonly hudFeedback: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/hudFeedbackState").IHudFeedbackState;
-  readonly playerState: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/worldTypes").IPlayerState;
-  readonly restState: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/restAndRideState").IRestAndRideState;
-  readonly soundEngine: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/soundEngine").NatureSoundEngine;
+  readonly hudFeedback: import('../domain/hudFeedbackState').IHudFeedbackState;
+  readonly playerState: import('../domain/worldTypes').IPlayerState;
+  readonly restState: import('../domain/restAndRideState').IRestAndRideState;
+  readonly soundEngine: import('../soundEngine').NatureSoundEngine;
 }
 // #endregion
 

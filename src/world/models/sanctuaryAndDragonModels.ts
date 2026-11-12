@@ -62,7 +62,7 @@ export interface ISanctuaryAndDragonResult {
  * @returns Sanctuary and dragon handles for per-frame updates.
  */
 export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISanctuaryAndDragonResult {
-  const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects } = ctx;
+  const { scene, textures, isSoftwareGl, disposableGeometries, disposableMaterials, distanceCulledObjects, lanternLights } = ctx;
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 
   // --- 1) TWO DISTINCT 3D DRAGONS ---
@@ -80,6 +80,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   demonDragonCtrl.setState('fly');
 
   const skyDragonGroup = new THREE.Group();
+  skyDragonGroup.visible = false;
   skyDragonGroup.position.set(22.0, 72.0 + FORTRESS_Y_OFFSET, -265.0);
   skyDragonGroup.add(demonDragonCtrl.object);
   scene.add(skyDragonGroup);
@@ -695,7 +696,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     obj: southernRuinsGroup,
     cx: ruinsBaseX,
     cz: ruinsBaseZ,
-    radius: 135,
+    radius: 65,
   });
 
   // 7. Southern Cliffside Mountain Pass Guardrail Fence along the River Gorge drop-off (x = 101.35, z = 516..678)
@@ -956,7 +957,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
     obj: cliffPassFenceGroup,
     cx: 98.0,
     cz: 597.0,
-    radius: 135,
+    radius: 90,
   });
 
   // Dragon #2: Colossal Forest Dragon (scale: 7.8 -> ~14.5m long, ~7m tall!) patrolling & soaring over the Ancient Southern Citadel Ruins
@@ -973,6 +974,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   forestDragonCtrl.setState('walk');
 
   const gorgeDragonGroup = new THREE.Group();
+  gorgeDragonGroup.visible = false;
   gorgeDragonGroup.position.set(ruinsBaseX, ruinsBaseY + 0.36, ruinsBaseZ - 2.0);
   gorgeDragonGroup.add(forestDragonCtrl.object);
 
@@ -1021,8 +1023,11 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   let dragonFireLight: THREE.PointLight | null = null;
   if (!ctx.isSoftwareGl) {
     dragonFireLight = new THREE.PointLight(0xff5500, 0, 36, 1.5);
+    dragonFireLight.visible = false;
     dragonFireLight.position.set(0, 0, 4.5);
+    dragonFireLight.userData.baseIntensity = 0;
     dragonFireBreathGroup.add(dragonFireLight);
+    lanternLights.push(dragonFireLight);
   }
 
   gorgeDragonGroup.add(dragonFireBreathGroup);
@@ -1375,7 +1380,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
       const d1Time = elapsedTime * 0.16;
       const d1X = Math.sin(d1Time) * 78.0 + 22.0;
       const d1Z = -265.0 + Math.sin(d1Time * 2.0) * 58.0;
-      const d1Vis = isWithinViewDistance(d1X, d1Z, playerX, playerZ, 110, VIEW_DISTANCE + 80);
+      const d1Vis = isWithinViewDistance(d1X, d1Z, playerX, playerZ, 55, VIEW_DISTANCE);
       skyDragonGroup.visible = d1Vis;
       if (d1Vis) {
         const d1Y = 72.0 + FORTRESS_Y_OFFSET + Math.cos(d1Time * 1.5) * 4.5;
@@ -1404,7 +1409,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
       if (dragonAnimal?.isLooted) {
         gorgeDragonGroup.visible = false;
       } else {
-        const d2Vis = isWithinViewDistance(ruinsBaseX, ruinsBaseZ, playerX, playerZ, 130, VIEW_DISTANCE + 115);
+        const d2Vis = isWithinViewDistance(ruinsBaseX, ruinsBaseZ, playerX, playerZ, 75, VIEW_DISTANCE);
         gorgeDragonGroup.visible = d2Vis;
         if (d2Vis) {
           if (dragonAnimal?.isDead) {
