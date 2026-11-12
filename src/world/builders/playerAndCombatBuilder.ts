@@ -746,6 +746,7 @@ export function buildPlayerAndCombatSystems(
   thirdPersonAxeGroup.visible = false;
 
   const playerTorchLight = new THREE.PointLight(0xff8c24, 0, 28, 1.35);
+  playerTorchLight.visible = !Boolean(scene.userData?.isSoftwareGl);
   scene.add(playerTorchLight);
 
   // RIGHT ARM & STRING-DRAWING HAND

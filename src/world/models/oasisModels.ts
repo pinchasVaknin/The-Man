@@ -657,6 +657,7 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
   addClothAwning(obsGroup, 'south', 'ochre', 9.8, 9.8, 6.2, 3.8, 3.85);
 
   const citadelLight = new THREE.PointLight(0xffaa44, 1.8, 22);
+  citadelLight.visible = false;
   citadelLight.position.set(
     SOUTHWEST_OASIS_POS.observatoryX,
     SOUTHWEST_OASIS_POS.terraceY + 4.5,
@@ -767,6 +768,7 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
   }
 
   const pavLight = new THREE.PointLight(0xffaa44, 1.5, 18);
+  pavLight.visible = false;
   pavLight.position.set(
     SOUTHWEST_OASIS_POS.pavilionX + 3.0,
     SOUTHWEST_OASIS_POS.terraceY + 3.6,
@@ -1504,7 +1506,7 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     obj: murkySwampGroup,
     cx: MURKY_SWAMP_BIOME_POS.x,
     cz: MURKY_SWAMP_BIOME_POS.z,
-    radius: 340.0,
+    radius: 145.0,
   });
 
   // ======================== 9. SOUTHEAST HARBOR BAY & COASTAL DOLPHIN REEF (330, 256) ======================== \\

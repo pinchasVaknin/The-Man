@@ -34,10 +34,10 @@ export interface IPerfDebugTools {
 
 // ======================== FACTORY ======================== \\
 // #region Factory
-/** Summary: Counts point lights in the scene (each adds per-pixel cost to every lit material). */
+/** Summary: Counts active visible point lights in the scene (each adds per-pixel cost to every lit material). */
 function countPointLights(scene: THREE.Scene): number {
   let count = 0;
-  scene.traverse((obj) => {
+  scene.traverseVisible((obj) => {
     if ((obj as THREE.PointLight).isPointLight) count++;
   });
   return count;
@@ -58,6 +58,7 @@ export function createPerfDebugTools(options: IPerfDebugToolsOptions): IPerfDebu
     programs: renderer.info.programs?.length ?? 0,
     pointLights: countPointLights(scene),
   });
+  (window as unknown as { resetPerfStats?: () => void }).resetPerfStats = () => perfStats.reset();
   (window as unknown as { auditColliders?: () => unknown }).auditColliders = () =>
     auditColliderCoverage(scene, colliders);
 

@@ -13,6 +13,7 @@ import {
   MAGIC_STONE_CIRCLE_POS,
   SOUTHERN_MINE_POS,
   groundHeightAt,
+  isInsideSouthernMine,
   hash2D,
 } from '../terrainMath';
 import {
@@ -298,6 +299,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       const isUnderground = y < -1.0;
       const baseIntensity = isUnderground ? 5.8 : 3.2;
       const pl = new THREE.PointLight(0xffaa38, baseIntensity, isUnderground ? 44 : 18, 1.2);
+      pl.visible = false;
       pl.position.set(0, -0.49, 0);
       if (isUnderground) {
         pl.userData.isUndergroundMineLight = true;
@@ -403,6 +405,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     );
     if (addLight) {
       const pl = new THREE.PointLight(0xff9828, 5.6, 44, 1.2);
+      pl.visible = false;
       pl.position.set(0, 0.55, 0.45);
       pl.userData.isUndergroundMineLight = true;
       pl.userData.baseIntensity = 5.6;
@@ -1069,6 +1072,12 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   if (wheatInstanced.instanceColor) wheatInstanced.instanceColor.needsUpdate = true;
   wheatInstanced.computeBoundingSphere();
   scene.add(wheatInstanced);
+  distanceCulledObjects.push({
+    obj: wheatInstanced,
+    cx: -45,
+    cz: 165,
+    radius: 95,
+  });
 
   // --- 2) GRAZING SHEEP FLOCK ---
   const sheepBodyGeo = new THREE.SphereGeometry(0.42, 8, 8);
@@ -1676,6 +1685,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   stewCauldron.position.set(MINE_MESS_HALL.lx, cavernFloorY + 1.45, MINE_MESS_HALL.cauldron.lz);
   stewCauldron.rotation.x = Math.PI;
   const messFireLight = new THREE.PointLight(0xff8c24, 5.2, 42, 1.25);
+  messFireLight.visible = false;
   messFireLight.position.set(MINE_MESS_HALL.lx, cavernFloorY + 2.8, MINE_MESS_HALL.cauldron.lz);
   messFireLight.userData.isUndergroundMineLight = true;
   messFireLight.userData.baseIntensity = 5.2;
@@ -2036,6 +2046,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const waterfallOuterFoamRing = new THREE.Mesh(outerFoamRingGeo, subWaterfallMat);
   waterfallOuterFoamRing.position.set(-118.0, SOUTHERN_MINE_POS.westLagoonWaterY + 0.04, 54.8);
   const waterfallLight = new THREE.PointLight(0x38bdf8, 6.4, 62, 1.2);
+  waterfallLight.visible = false;
   waterfallLight.position.set(-118.0, ch2FloorY + 5.5, 58.0);
   waterfallLight.userData.isUndergroundMineLight = true;
   waterfallLight.userData.baseIntensity = 6.4;
@@ -2112,6 +2123,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     amethystClusterGroup.add(spire);
   });
   const amethystLight = new THREE.PointLight(0xa855f7, 4.8, 46, 1.3);
+  amethystLight.visible = false;
   amethystLight.position.set(-141.0, ch2FloorY + 4.2, 73.0);
   amethystLight.userData.isUndergroundMineLight = true;
   amethystLight.userData.baseIntensity = 4.8;
@@ -2201,6 +2213,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(fBody, fCore);
   }
   const foundryLight = new THREE.PointLight(0xf97316, 5.6, 54, 1.25);
+  foundryLight.visible = false;
   foundryLight.position.set(124.0, ch3FloorY + 4.5, 68.0);
   foundryLight.userData.isUndergroundMineLight = true;
   foundryLight.userData.baseIntensity = 5.6;
@@ -2328,6 +2341,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
     mineGroup.add(abyssGlow);
   }
   const abyssDeepLight = new THREE.PointLight(0xea580c, 6.2, 74, 1.2);
+  abyssDeepLight.visible = false;
   abyssDeepLight.position.set(0, moriaFloorY - 6.0, 198.0);
   abyssDeepLight.userData.isUndergroundMineLight = true;
   abyssDeepLight.userData.baseIntensity = 6.2;
@@ -2423,6 +2437,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
   const royalChestMesh = new THREE.Mesh(royalChestBodyGeo, mineGoldOreMat);
   royalChestMesh.position.set(MINE_ROYAL_CHEST.lx, moriaFloorY + MINE_ROYAL_CHEST.baseDy, MINE_ROYAL_CHEST.lz);
   const sanctuaryLight = new THREE.PointLight(0xfbbf24, 6.2, 62, 1.2);
+  sanctuaryLight.visible = false;
   sanctuaryLight.position.set(0, moriaFloorY + 5.5, 242.5);
   sanctuaryLight.userData.isUndergroundMineLight = true;
   sanctuaryLight.userData.baseIntensity = 6.2;
@@ -2735,6 +2750,10 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       sh.legs[2].rotation.x = -walkCycle * 0.22;
       sh.legs[3].rotation.x = walkCycle * 0.22;
       sh.headPivot.rotation.x = Math.sin(elapsedTime * 0.8 + sh.phase) * 0.12 + 0.15;
+    }
+
+    if (isInsideSouthernMine(playerX, playerZ)) {
+      mineGroup.visible = true;
     }
 
     if (mineGroup.visible) {

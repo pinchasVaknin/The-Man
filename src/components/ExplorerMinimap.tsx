@@ -330,6 +330,14 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       const imgData = offscreenImgDataRef.current;
       const off = offscreenCanvasRef.current;
       if (!revealed || !imgData || !off) return;
+      let hasExplored = false;
+      for (let i = 0; i < revealed.length; i++) {
+        if (revealed[i] !== 0) {
+          hasExplored = true;
+          break;
+        }
+      }
+      if (!hasExplored) return;
       const ctx = off.getContext('2d');
       if (!ctx) return;
       const data = imgData.data;
@@ -375,9 +383,9 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     return fullOff;
   }, []);
 
-  // Builds the full-world terrain in small slices after mount, so the first open of the full map does not freeze the game.
-  // If the map is opened before the slices finish, ensureFullWorldTerrainCanvas builds it synchronously instead.
+  // Builds the full-world terrain in small slices only when the full map is opened, avoiding 270 main-thread timers during startup.
   useEffect(() => {
+    if (!isFullScreenMapOpen || fullWorldTerrainCanvasRef.current) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let canvas: HTMLCanvasElement | null = null;
@@ -408,7 +416,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [isFullScreenMapOpen]);
 
   // Lazily build the dedicated Underground Dwarven Mine (Moria) floorplan canvas
   const ensureUndergroundMineCanvas = useCallback(() => {

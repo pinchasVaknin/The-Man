@@ -99,6 +99,7 @@ export function buildWildlifeAndFootprintsLayer(
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
     const root = new THREE.Group();
+    root.visible = false;
     root.position.set(b.x, b.y, b.z);
 
     const doveCtrl = createReadyDove({
@@ -303,6 +304,7 @@ export function buildWildlifeAndFootprintsLayer(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     const root = new THREE.Group();
+    root.visible = false;
     root.rotation.order = 'YXZ';
     const posePivot = new THREE.Group();
     root.add(posePivot);
@@ -771,16 +773,16 @@ export function buildWildlifeAndFootprintsLayer(
           const dxCam = b.x - renderPlayer.x;
           const dzCam = b.z - renderPlayer.z;
           const distSq = dxCam * dxCam + dzCam * dzCam;
-          if (distSq > 170 * 170) {
+          if (distSq > 95 * 95) {
             m.root.visible = false;
             continue;
           }
-          if (distSq > 28 * 28 && !b.isDead && b.groundState === 'flying') {
+          if (distSq > 24 * 24 && !b.isDead && b.groundState === 'flying') {
             const camFwdX = -Math.sin(renderPlayer.yaw);
             const camFwdZ = -Math.cos(renderPlayer.yaw);
             const invDist = 1 / Math.sqrt(distSq);
             const dot = (dxCam * camFwdX + dzCam * camFwdZ) * invDist;
-            if (dot < -0.25) {
+            if (dot < -0.2) {
               m.root.visible = false;
               continue;
             }
@@ -854,7 +856,13 @@ export function buildWildlifeAndFootprintsLayer(
           const dxCam = a.x - renderPlayer.x;
           const dzCam = a.z - renderPlayer.z;
           distSqToPlayer = dxCam * dxCam + dzCam * dzCam;
-          if (distSqToPlayer > 165 * 165) {
+          const isSmallAnimal =
+            a.species === 'rabbit' ||
+            a.species === 'squirrel' ||
+            a.species === 'koifish' ||
+            a.species === 'sheep';
+          const maxAnimalDist = isSmallAnimal ? 80 : 125;
+          if (distSqToPlayer > maxAnimalDist * maxAnimalDist) {
             rig.root.visible = false;
             continue;
           }
@@ -862,7 +870,7 @@ export function buildWildlifeAndFootprintsLayer(
             const camFwdX = -Math.sin(renderPlayer.yaw);
             const camFwdZ = -Math.cos(renderPlayer.yaw);
             const forwardDot = dxCam * camFwdX + dzCam * camFwdZ;
-            if (forwardDot < -Math.sqrt(distSqToPlayer) * 0.38) {
+            if (forwardDot < -Math.sqrt(distSqToPlayer) * 0.32) {
               rig.root.visible = false;
               continue;
             }

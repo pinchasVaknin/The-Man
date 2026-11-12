@@ -49,6 +49,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     disposableMaterials,
     swayMaterials,
     distanceCulledObjects,
+    lanternLights,
   } = ctx;
 
   // ==========================================================================
@@ -633,8 +634,11 @@ export function buildVolcanoAndFloatingIslandsModels(
   let volcanoLight: THREE.PointLight | null = null;
   if (!isSoftwareGl) {
     volcanoLight = new THREE.PointLight(0xff5511, 3.6, 58.0, 1.3);
+    volcanoLight.visible = false;
+    volcanoLight.userData.baseIntensity = 3.6;
     volcanoLight.position.set(0, 10.5, 0);
     volcanoGroup.add(volcanoLight);
+    lanternLights.push(volcanoLight);
   }
 
   scene.add(volcanoGroup);
@@ -642,7 +646,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     obj: volcanoGroup,
     cx: VOLCANO_SANCTUM_POS.x,
     cz: VOLCANO_SANCTUM_POS.z,
-    radius: 250,
+    radius: 75,
   });
 
   // ==========================================================================
@@ -1847,6 +1851,12 @@ export function buildVolcanoAndFloatingIslandsModels(
       ringMesh.position.set(geyser.x, geyser.y + 0.45 + r * 0.65, geyser.z);
       ringMesh.scale.setScalar(1.0 - r * 0.16);
       scene.add(ringMesh);
+      distanceCulledObjects.push({
+        obj: ringMesh,
+        cx: geyser.x,
+        cz: geyser.z,
+        radius: 12,
+      });
       animatedGeyserRings.push({ mesh: ringMesh, baseY: geyser.y, ringIndex: r + g * 3 });
     }
   }
@@ -1856,7 +1866,7 @@ export function buildVolcanoAndFloatingIslandsModels(
     obj: floatingIslandsGroup,
     cx: mainIslX,
     cz: mainIslZ,
-    radius: 135,
+    radius: 50,
   });
 
   return {
@@ -1867,7 +1877,7 @@ export function buildVolcanoAndFloatingIslandsModels(
         const pulse = 2.15 + Math.sin(elapsedTime * 3.4) * 0.5;
         magmaMat.emissiveIntensity = pulse;
         if (volcanoLight) {
-          volcanoLight.intensity = 3.2 + Math.sin(elapsedTime * 4.5) * 0.65;
+          volcanoLight.userData.baseIntensity = 3.2 + Math.sin(elapsedTime * 4.5) * 0.65;
         }
         // Animate the 3 Dynamic Obsidian & Magma Portcullis Lock Gates:
         // Drop to y = 0.0 (locked shut!) when the player is inside the Boss Arena fighting the King CatLion,

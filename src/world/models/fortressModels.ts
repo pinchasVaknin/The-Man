@@ -2020,7 +2020,8 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     obj: fortressGroup,
     cx: CHINESE_FORTRESS_POS.x,
     cz: -155 + FZ,
-    radius: 125,
+    radius: 60,
+    maxDist: 215,
   });
 
   // --- 9) 3 TALL TWO-STORY HILL WATCHTOWERS ---
@@ -2316,7 +2317,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     obj: ropeBridgeGroup,
     cx: ROPE_BRIDGE_DEF.mx,
     cz: ROPE_BRIDGE_DEF.mz,
-    radius: 120,
+    radius: 55,
   });
 
   let lastMonkElapsedTime = 0;

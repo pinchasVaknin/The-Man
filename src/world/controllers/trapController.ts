@@ -151,12 +151,12 @@ import { stepBowFeel, stepMeleeFeelAndSway } from '../systems/weaponFeelSystem';
 // #region Contracts
 /** Summary: What this controller reads from the canvas. Every value is owned by the canvas and passed in once. */
 export interface ITrapControllerContext {
-  readonly actionState: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/actionInputState").IActionInputState;
+  readonly actionState: import('../domain/actionInputState').IActionInputState;
   readonly emitHudSnapshot: () => void;
-  readonly hudFeedback: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/hudFeedbackState").IHudFeedbackState;
-  readonly playerState: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/worldTypes").IPlayerState;
-  readonly soundEngine: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/soundEngine").NatureSoundEngine;
-  readonly worldPlacedTraps: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/systems/animalTrapsSystem").IPlacedTrap[];
+  readonly hudFeedback: import('../domain/hudFeedbackState').IHudFeedbackState;
+  readonly playerState: import('../domain/worldTypes').IPlayerState;
+  readonly soundEngine: import('../soundEngine').NatureSoundEngine;
+  readonly worldPlacedTraps: import('../systems/animalTrapsSystem').IPlacedTrap[];
 }
 // #endregion
 

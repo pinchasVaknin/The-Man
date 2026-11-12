@@ -109,13 +109,13 @@ import {
 // #region Contracts
 /** Summary: What this controller reads from the canvas. Every value is owned by the canvas and passed in once. */
 export interface ICombatControllerContext {
-  readonly activeArrows: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/worldTypes").IArrowProjectile[];
+  readonly activeArrows: import('../domain/worldTypes').IArrowProjectile[];
   readonly emitHudSnapshot: () => void;
-  readonly hudFeedback: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/hudFeedbackState").IHudFeedbackState;
-  readonly obstacles: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/worldTypes").IObstacleCylinder[];
-  readonly playerState: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/domain/worldTypes").IPlayerState;
+  readonly hudFeedback: import('../domain/hudFeedbackState').IHudFeedbackState;
+  readonly obstacles: import('../domain/worldTypes').IObstacleCylinder[];
+  readonly playerState: import('../domain/worldTypes').IPlayerState;
   readonly gameSettingsRef: { current: IGameSettingsConfig };
-  readonly soundEngine: import("C:/Users/pinch/Documents/MyCode/projects/TheMan/src/world/soundEngine").NatureSoundEngine;
+  readonly soundEngine: import('../soundEngine').NatureSoundEngine;
 }
 // #endregion
 

@@ -75,12 +75,29 @@ function isMineLantern(obj: THREE.Object3D): boolean {
 function updateMineLightPool(
   scene: THREE.Scene,
   lanterns: readonly THREE.PointLight[],
-  playerPos?: { readonly x: number; readonly y: number; readonly z: number }
+  playerPos?: { readonly x: number; readonly y: number; readonly z: number },
+  isPlayerUndergroundInMine = false
 ): void {
+  const isSoftwareGl = Boolean(scene.userData?.isSoftwareGl);
+  if (isSoftwareGl) {
+    for (let i = 0; i < lanterns.length; i++) {
+      lanterns[i].visible = false;
+    }
+    const existingPool = minePools.get(scene);
+    if (existingPool) {
+      for (let i = 0; i < existingPool.length; i++) {
+        existingPool[i].visible = false;
+        existingPool[i].intensity = 0;
+      }
+    }
+    return;
+  }
+
   let pool = minePools.get(scene);
   if (!pool) {
     pool = Array.from({ length: MINE_LIGHT_POOL_SIZE }, () => {
-      const light = new THREE.PointLight(0xffffff, 0, 1, 1);
+      const light = new THREE.PointLight(0xffffff, 0, 0.01, 1);
+      light.visible = true;
       scene.add(light);
       return light;
     });
@@ -88,16 +105,23 @@ function updateMineLightPool(
   }
 
   const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number }> = [];
-  for (const src of lanterns) {
-    if (!src.userData.isUndergroundMineLight || !isMineLantern(src)) continue;
-    // A mine lantern never lights the scene on its own; only the pool does.
+  const maxSurfaceDistSq = 75 * 75;
+  for (let i = 0; i < lanterns.length; i++) {
+    const src = lanterns[i];
+    const inMine = Boolean(src.userData.isUndergroundMineLight) || isMineLantern(src);
+    src.userData.isUndergroundMineLight = inMine;
+    // Source lanterns never light the scene directly; only the fixed pool does so NUM_POINT_LIGHTS never changes.
     src.visible = false;
-    if (!playerPos || !isVisibleInHierarchy(src.parent ?? src)) continue;
+    if (!playerPos || src.intensity <= 0.01) continue;
+    if (isPlayerUndergroundInMine !== inMine) continue;
+    if (src.parent && !isVisibleInHierarchy(src.parent)) continue;
     src.getWorldPosition(poolScratch);
     const dx = poolScratch.x - playerPos.x;
     const dy = poolScratch.y - playerPos.y;
     const dz = poolScratch.z - playerPos.z;
-    candidates.push({ light: src, dist2: dx * dx + dy * dy + dz * dz, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z });
+    const dist2 = dx * dx + dy * dy + dz * dz;
+    if (!inMine && dist2 > maxSurfaceDistSq) continue;
+    candidates.push({ light: src, dist2, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z });
   }
   candidates.sort((a, b) => a.dist2 - b.dist2);
 
@@ -106,6 +130,7 @@ function updateMineLightPool(
     const pick = candidates[i];
     if (!pick) {
       slot.intensity = 0;
+      slot.distance = 0.01;
       continue;
     }
     slot.position.set(pick.wx, pick.wy, pick.wz);
@@ -244,15 +269,18 @@ export function applyDynamicAtmosphereToScene(
       ? 6.5
       : atmo.sunElevationDeg < 16
         ? 3.2
-        : 1.1;
+        : 0;
   for (const pl of lanternLights) {
-    if (pl.userData.isUndergroundMineLight) {
+    const inMine = Boolean(pl.userData.isUndergroundMineLight) || isMineLantern(pl);
+    pl.userData.isUndergroundMineLight = inMine;
+    if (inMine) {
       pl.intensity = (pl.userData.baseIntensity as number) ?? 4.2;
     } else {
-      pl.intensity = outdoorLanternStrength;
+      const base = (pl.userData.baseIntensity as number | undefined);
+      pl.intensity = base !== undefined ? Math.max(base, outdoorLanternStrength) : outdoorLanternStrength;
     }
   }
-  updateMineLightPool(scene, lanternLights, playerPos);
+  updateMineLightPool(scene, lanternLights, playerPos, isPlayerUndergroundInMine);
 
   return atmo;
 }
