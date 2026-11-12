@@ -23,7 +23,7 @@ import {
   SURVIVAL_CABIN_SPAWN,
   WORLD_SPAWN
 } from '../domain/landmarksRegistry';
-import { walkableHeightAt } from './terrainAndBiomeSystem';
+import { walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { applyGameModeToPlayerState } from './playerPhysicsSystem';
 
 export type GameWorldMode = 'survival' | 'creative';
@@ -243,7 +243,7 @@ export function getDefaultWorldBaseline(mode: GameWorldMode): IWorldSaveSnapshot
       horses: RIDEABLE_HORSES.map((h) => ({
         id: h.id,
         x: h.homeX,
-        y: walkableHeightAt(h.homeX, h.homeZ).height,
+        y: walkableHeightValueAt(h.homeX, h.homeZ),
         z: h.homeZ,
         yaw: h.homeYaw
       })),
@@ -284,7 +284,7 @@ export function getDefaultWorldBaseline(mode: GameWorldMode): IWorldSaveSnapshot
     horses: RIDEABLE_HORSES.map((h) => ({
       id: h.id,
       x: h.homeX,
-      y: walkableHeightAt(h.homeX, h.homeZ).height,
+      y: walkableHeightValueAt(h.homeX, h.homeZ),
       z: h.homeZ,
       yaw: h.homeYaw
     })),
@@ -508,7 +508,7 @@ export function applyWorldSnapshotToLiveSystems(
         if (isRelocatedBiomeHome) {
           a.x = a.homeX;
           a.z = a.homeZ;
-          a.y = walkableHeightAt(a.homeX, a.homeZ).height;
+          a.y = walkableHeightValueAt(a.homeX, a.homeZ);
         } else {
           a.x = saved.x;
           a.y = saved.y;
@@ -540,7 +540,7 @@ export function applyWorldSnapshotToLiveSystems(
       const aAny = a as ISmallAnimalState & { tamedTier?: number; customName?: string };
       a.x = a.homeX;
       a.z = a.homeZ;
-      a.y = walkableHeightAt(a.homeX, a.homeZ).height;
+      a.y = walkableHeightValueAt(a.homeX, a.homeZ);
       a.vx = 0;
       a.vz = 0;
       a.hp = a.maxHp ?? 50;
@@ -587,7 +587,7 @@ export function applyWorldSnapshotToLiveSystems(
       if (def) {
         h.x = def.homeX;
         h.z = def.homeZ;
-        h.y = walkableHeightAt(def.homeX, def.homeZ).height;
+        h.y = walkableHeightValueAt(def.homeX, def.homeZ);
         h.yaw = def.homeYaw;
         h.speed = 0;
       }
@@ -652,7 +652,7 @@ export function resetLiveWorldToFreshBaseline(
     if (def) {
       h.x = def.homeX;
       h.z = def.homeZ;
-      h.y = walkableHeightAt(def.homeX, def.homeZ).height;
+      h.y = walkableHeightValueAt(def.homeX, def.homeZ);
       h.yaw = def.homeYaw;
       h.speed = 0;
       h.stamina = h.maxStamina ?? 100;
@@ -664,7 +664,7 @@ export function resetLiveWorldToFreshBaseline(
     const aAny = a as ISmallAnimalState & { tamedTier?: number; customName?: string };
     a.x = a.homeX;
     a.z = a.homeZ;
-    a.y = walkableHeightAt(a.homeX, a.homeZ).height;
+    a.y = walkableHeightValueAt(a.homeX, a.homeZ);
     a.vx = 0;
     a.vz = 0;
     a.hp = a.maxHp ?? 50;

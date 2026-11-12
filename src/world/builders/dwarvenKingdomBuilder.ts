@@ -23,8 +23,7 @@ import {
 import {
   walkableHeightAt,
   getSurfaceNormalAt,
-  computeSlopePitchAndRoll,
-} from '../systems/terrainAndBiomeSystem';
+  computeSlopePitchAndRoll, walkableHeightValueAt } from '../systems/terrainAndBiomeSystem';
 import { getPlayerState } from '../systems/playerPhysicsSystem';
 import {
   createReadyDwarfWarrior,
@@ -1153,7 +1152,7 @@ export function buildDwarvenKingdomAndMiners(
     playerZ: number
   ) => {
     const playerState = getPlayerState();
-    const playerY = playerState ? playerState.y : walkableHeightAt(playerX, playerZ).height;
+    const playerY = playerState ? playerState.y : walkableHeightValueAt(playerX, playerZ);
 
     for (let d = 0; d < dwarvenMiners.length; d++) {
       const dm = dwarvenMiners[d];

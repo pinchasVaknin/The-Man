@@ -31,8 +31,7 @@ import {
   walkableHeightAt,
   getWorldObstacles,
   getNearbyWorldObstacles,
-  isInsideVolcanoSanctum,
-} from './terrainAndBiomeSystem';
+  isInsideVolcanoSanctum, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import {
   getActiveSailableShip,
   isEntityOnSailableShipDeck,
@@ -636,7 +635,7 @@ export function killGroundAnimal(animal: ISmallAnimalState): void {
   if (animal.species === 'koifish') {
     animal.y = Math.min(animal.y ?? WATER_LEVEL - 0.38, WATER_LEVEL - 0.42);
   } else {
-    animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(animal.x, animal.z).height);
+    animal.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(animal.x, animal.z));
   }
   animal.isResting = false;
   animal.isSeekingShelter = false;
@@ -1323,7 +1322,7 @@ export function ensureSafeOffscreenAnimalSpawns(
       const safeDist = 68 + ((i + attempt) % 4) * 14 + Math.floor(attempt / 5) * 9;
       const nx = playerX + Math.sin(baseAngle) * safeDist;
       const nz = playerZ + Math.cos(baseAngle) * safeDist;
-      const gy = walkableHeightAt(nx, nz).height;
+      const gy = walkableHeightValueAt(nx, nz);
       if (
         gy > WATER_LEVEL + 0.25 &&
         Math.hypot(nx, nz) < PLAYABLE_RADIUS - 25 &&
@@ -1542,7 +1541,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
 
   for (let i = 0; i < spawnCandidates.length; i++) {
     const c = spawnCandidates[i];
-    const gy = walkableHeightAt(c.x, c.z).height;
+    const gy = walkableHeightValueAt(c.x, c.z);
     const shelter = findNearestShelterPoint(c.x, c.z, c.species, c.caveIndex);
     const isVolcanoSanctumMysticLion =
       c.species === 'lion' &&
@@ -1866,7 +1865,7 @@ function advanceAnimalWithWaterShoreRecovery(
     a.vz = -nextZ * inv * inwardSpd;
     a.x = nextX * ((maxPlayableR - 0.5) * inv);
     a.z = nextZ * ((maxPlayableR - 0.5) * inv);
-    a.y = Math.max(WATER_LEVEL - 0.15, walkableHeightAt(a.x, a.z).height);
+    a.y = Math.max(WATER_LEVEL - 0.15, walkableHeightValueAt(a.x, a.z));
     a.yaw = Math.atan2(a.vx, a.vz);
     return;
   }
@@ -1891,7 +1890,7 @@ function advanceAnimalWithWaterShoreRecovery(
         a.inWater = false;
         a.x = nextX;
         a.z = nextZ;
-        a.y = walkableHeightAt(a.x, a.z, a.y).height;
+        a.y = walkableHeightValueAt(a.x, a.z, a.y);
         if (Math.hypot(a.vx, a.vz) > 0.05) {
           a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.0, safeDt);
         }
@@ -1906,9 +1905,9 @@ function advanceAnimalWithWaterShoreRecovery(
     return;
   }
 
-  const nextWalkableY = walkableHeightAt(nextX, nextZ, a.y).height;
+  const nextWalkableY = walkableHeightValueAt(nextX, nextZ, a.y);
   const currentWalkableY = movedHorizontally
-    ? walkableHeightAt(a.x, a.z, a.y).height
+    ? walkableHeightValueAt(a.x, a.z, a.y)
     : nextWalkableY;
 
   if (isCroc) {
@@ -1923,7 +1922,7 @@ function advanceAnimalWithWaterShoreRecovery(
       );
       a.x = boostedNext.x;
       a.z = boostedNext.z;
-      const boostedWalkableY = walkableHeightAt(a.x, a.z, a.y).height;
+      const boostedWalkableY = walkableHeightValueAt(a.x, a.z, a.y);
       a.inWater = boostedWalkableY <= dryLandThreshold;
       const waterDepth = Math.max(0, WATER_LEVEL - boostedWalkableY);
       const submerge = Math.min(waterDepth, getAnimalWaterSubmergenceDepth('crocodile'));
@@ -2029,7 +2028,7 @@ function advanceAnimalWithWaterShoreRecovery(
   );
   a.x = swimNext.x;
   a.z = swimNext.z;
-  const swimGroundY = walkableHeightAt(a.x, a.z, a.y).height;
+  const swimGroundY = walkableHeightValueAt(a.x, a.z, a.y);
   if (swimGroundY > dryLandThreshold) {
     a.inWater = false;
     a.y = swimGroundY;
@@ -2043,6 +2042,2733 @@ function advanceAnimalWithWaterShoreRecovery(
     a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
   }
   a.hopPhase += safeDt * 5.2;
+}
+
+/** Per-frame inputs shared by every animal in one stepSmallAnimals call. */
+interface ISmallAnimalStepFrame {
+  readonly dt: number;
+  readonly safeDt: number;
+  readonly elapsedTime: number;
+  readonly playerX: number;
+  readonly playerZ: number;
+  readonly horses: readonly IRideableHorseState[];
+  readonly daylightFactor: number;
+  readonly playerSpeed: number;
+  readonly isPlayerSneaking: boolean;
+  readonly isAttacking: boolean;
+  readonly rainIntensity: number;
+  readonly playerStateRef: IPlayerState | undefined;
+  readonly isNightRest: boolean;
+  readonly isRaining: boolean;
+  readonly _soundCallbacks: unknown;
+}
+
+/** Running totals that stepSmallAnimals returns; one per call, updated by every animal. */
+interface ISmallAnimalStepTally {
+  scamperedCritterCount: number;
+  nearestCritterDist: number;
+}
+
+/**
+ * Summary: Advances one ground animal by the frame. Reads the shared frame inputs and updates the tally.
+ * Design: One animal per call; the rules are unchanged from the former loop body.
+ */
+function stepOneSmallAnimal(
+  animals: ISmallAnimalState[],
+  i: number,
+  frame: ISmallAnimalStepFrame,
+  tally: ISmallAnimalStepTally
+): void {
+  const {
+    dt,
+    safeDt,
+    elapsedTime,
+    playerX,
+    playerZ,
+    horses,
+    daylightFactor,
+    playerSpeed,
+    isPlayerSneaking,
+    isAttacking,
+    rainIntensity,
+    playerStateRef,
+    isNightRest,
+    isRaining,
+    _soundCallbacks,
+  } = frame;
+  const a = animals[i];
+
+  // Dead animals stay anchored on top of the terrain (while dead fish sink into the water!). Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
+    if (stepDeadSmallAnimal(a, frame)) return;
+
+  const dxP = a.x - playerX;
+  const dzP = a.z - playerZ;
+  const distP = Math.hypot(dxP, dzP);
+  if (distP < tally.nearestCritterDist) {
+    tally.nearestCritterDist = distP;
+  }
+
+  if (safeDt <= 0) return;
+
+  // Logic Culling (Sleep State): completely freeze simulation for any animal outside the 180m fog/active radius
+  // until the player approaches its radius again.
+  if (playerStateRef && distP > 180.0 && !a.isMountedByPlayer) {
+    return;
+  }
+
+  const prevActionTimer = a.actionTimer ?? 0;
+  if ((a.wokenUpTimer ?? 0) > 0) {
+    a.wokenUpTimer = Math.max(0, (a.wokenUpTimer ?? 0) - safeDt);
+  }
+  if ((a.hitReactionTimer ?? 0) > 0) {
+    a.hitReactionTimer = Math.max(0, (a.hitReactionTimer ?? 0) - safeDt);
+  }
+  if ((a.listenCooldown ?? 0) > 0) {
+    a.listenCooldown = Math.max(0, (a.listenCooldown ?? 0) - safeDt);
+  }
+  if ((a.actionTimer ?? 0) > 0) {
+    a.actionTimer = Math.max(0, (a.actionTimer ?? 0) - safeDt);
+  }
+  if ((a.attackHitCooldownTimer ?? 0) > 0) {
+    a.attackHitCooldownTimer = Math.max(0, (a.attackHitCooldownTimer ?? 0) - safeDt);
+  }
+  if ((a.bearTrapSlowTimer ?? 0) > 0) {
+    a.bearTrapSlowTimer = Math.max(0, (a.bearTrapSlowTimer ?? 0) - safeDt);
+  }
+
+  // Heavy Steel Bear Trap (`trap_bear_jaw`) clamped to Bear's front paw:
+  // Bear stops in place and plays its 4-legged roar animation (`aiBehavior = 'roaring'`) for 2.4s.
+  // Once the roar animation finishes, the trap disappears and the bear immediately resumes chasing with -10% speed for 7s!
+    if (stepBearJawTrappedAnimal(a, frame, distP)) return;
+
+  // The Southern Ruins Dragon's 3D flight/landing/resting/fire-breathing trajectory is driven by sanctuaryAndDragonModels.ts
+  if (a.species === 'dragon') {
+    return;
+  }
+
+  // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
+  // its position, velocity, and yaw are driven directly by stepPlayerPhysics!
+  if (a.isMountedByPlayer) {
+    a.isResting = false;
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.alertLevel = 'grazing';
+    a.pounceHeight = 0;
+    const spd = Math.hypot(a.vx, a.vz);
+    // Note: a.actionTimer was already decremented once above (line 1567) — do NOT double-decrement it here!
+    if ((a.actionTimer ?? 0) > 0 && a.aiBehavior === 'attacking') {
+      a.vx = 0;
+      a.vz = 0;
+    } else {
+      a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
+    }
+    a.hopPhase += safeDt * Math.max(4.0, spd * 1.8);
+    return;
+  }
+
+  // Keep any animal standing on the Sailable Ship deck safely aboard during the voyage!
+  const activeShip = getActiveSailableShip();
+  if (isEntityOnSailableShipDeck(a.x, a.z, a.y, activeShip, 1.35)) {
+    a.isResting = false;
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.alertLevel = 'grazing';
+    a.aiBehavior = 'grazing';
+    a.pounceHeight = 0;
+    a.vx = 0;
+    a.vz = 0;
+    a.inWater = false;
+    a.y = sailableShipDeckHeightAt(a.x, a.z, a.y, activeShip) ?? activeShip.deckY;
+    a.homeX = a.x;
+    a.homeZ = a.z;
+    return;
+  }
+
+  // If this animal has been tamed by the player (unmounted Royal Stag or Mystical CatLion companion),
+  // it wanders, grazes, and rests peacefully around its current territory without staring at or attacking the player!
+    if (stepTamedAnimal(a, frame)) return;
+
+  // -------------------------------------------------------------------------
+  // 1. NIGHTTIME SLEEPING & INVISIBLE WAKE-UP NOISE METER
+  //    When sleeping: visionRange = 0 (eyes closed!) and hearingRadius is reduced!
+  // -------------------------------------------------------------------------
+    if (stepNightSleepAndNoise(a, animals, i, frame, tally, distP)) return;
+
+  // -------------------------------------------------------------------------
+  // 2. PREDATOR AI (BEAR, JAGUAR, CROCODILE, WOLF, RHINO)
+  //    - Zero ground sliding: stationary animations ('roaring', 'stomping', 'sitting',
+  //      'grazing', 'sleeping', and Bear/Crocodile 'attacking') strictly hold vx = 0, vz = 0.
+  //    - Wolf & Jaguar Forward Pounce Leap ('attacking'): leaps forward along a locked
+  //      airborne arc (pounceHeight > 0) up to 1.55m from launch; hits if target doesn't
+  //      dodge, misses cleanly and lands with vx = 0, vz = 0 if target retreats/dodges.
+  //    - Rhino High-Momentum Charge: accelerates to high speed, cannot brake during its
+  //      running horn-gore attack, has restricted turning radius at high speed so it tries
+  //      to turn when dodged, overshoots, decelerates/brakes, turns around, and charges again.
+  // -------------------------------------------------------------------------
+  // If the Giant Volcano Boss CatLion has been beaten down to low HP (isSubdued),
+  // it does NOT flee and does NOT attack — it sits subdued waiting for the player to feed it meat and tame it with [F]!
+    if (stepPredatorEncounter(a, frame, distP)) return;
+
+    if (stepPredatorAI(a, animals, i, frame, tally, distP, prevActionTimer)) return;
+
+  // -------------------------------------------------------------------------
+  // 2B. ROYAL FLOATING-ISLAND STAG AI:
+  //     - Neutral by default: never flees from the player and never attacks unprovoked.
+  //     - When shot or slashed by the player (wokenUpTimer > 0 && hp < maxHp), it charges
+  //       and retaliates with powerful antler-gore attack animations!
+  // -------------------------------------------------------------------------
+    if (stepStagAI(a, frame, distP, prevActionTimer)) return;
+
+  // -------------------------------------------------------------------------
+  // 2C. SEMI-AQUATIC OASIS & RIVER HIPPO AI ('hippo'):
+  //     - Wallows in the Southwest Oasis Lagoon and Southern River Wetland shallows,
+  //       and grazes reeds along the muddy banks.
+  //     - When the player approaches within 13.5m, performs a wide tusk-yawn warning ('roaring').
+  //     - When provoked or approached within 8.5m, charges and delivers a crushing jaw lunge ('attacking')!
+  // -------------------------------------------------------------------------
+    if (stepHippoAI(a, frame, prevActionTimer)) return;
+
+  // -------------------------------------------------------------------------
+  // 2D. AQUATIC KOI FISH AI ('koifish'):
+  //     - Swims underwater in schools in the Western Lagoon Lake, Central Lake,
+  //       Waterfall Plunge Pool, and Southwest Oasis Lagoon.
+  //     - Sleeps underwater at night (`localWaterY - 0.65`) and darts away when startled.
+  // -------------------------------------------------------------------------
+    if (stepKoiFishAI(a, animals, i, frame, tally, distP)) return;
+
+  // -------------------------------------------------------------------------
+  // 2E. MARINE OCEAN DOLPHIN POD AI ('dolphin'):
+  //     - Swims in pods through the Southeast Harbor Bay, Eastern Ocean Shipping Lane,
+  //       and Ruined Atlantis Coastal Waters.
+  //     - Accompanies the player/ship when nearby and periodically performs acrobatic
+  //       parabolic wave leaps ('pounceHeight > 0') above the ocean swells!
+  // -------------------------------------------------------------------------
+    if (stepDolphinAI(a, frame, distP)) return;
+
+  // -------------------------------------------------------------------------
+  // 3. HERBIVORE & SMALL WILDLIFE AI (DEER, SHEEP, RABBIT, SQUIRREL)
+  //    First evaluate player/predator threats so prey ALWAYS react to seeing
+  //    the player (e.g., rabbit/squirrel flees), then evaluate range-based
+  //    random trap choice when safe!
+  // -------------------------------------------------------------------------
+  let nearestThreatX = playerX;
+  let nearestThreatZ = playerZ;
+  let minThreatDist = distP;
+  let threatIsPredatorOrCharging = false;
+
+  for (let h = 0; h < horses.length; h++) {
+    const hr = horses[h];
+    if (hr.speed > 1.5) {
+      const dH = Math.hypot(a.x - hr.x, a.z - hr.z);
+      if (dH < minThreatDist) {
+        minThreatDist = dH;
+        nearestThreatX = hr.x;
+        nearestThreatZ = hr.z;
+        if (hr.speed > 4.0) threatIsPredatorOrCharging = true;
+      }
+    }
+  }
+
+  // Also detect nearby predators (bears, jaguars, crocodiles, wolves)!
+  for (let j = 0; j < animals.length; j++) {
+    if (i === j) continue;
+    const other = animals[j];
+    if (other.isDead || !isPredatorSpecies(other.species)) continue;
+    const dPred = Math.hypot(a.x - other.x, a.z - other.z);
+    if (dPred < minThreatDist) {
+      minThreatDist = dPred;
+      nearestThreatX = other.x;
+      nearestThreatZ = other.z;
+      threatIsPredatorOrCharging = true;
+    }
+  }
+
+  const awakeSensory = getAnimalSensoryProfile(a.species, false);
+  const fleeRadius =
+    isPlayerSneaking ? 2.5 : a.species === 'deer' ? 8.8 : 10.5;
+  const playerNoiseRate = computePlayerNoiseRateAtDistance(
+    distP,
+    playerSpeed,
+    isPlayerSneaking,
+    isAttacking,
+    false
+  );
+  const playerAudibleOrVisible =
+    playerNoiseRate > 0 ||
+    (distP < (isPlayerSneaking ? 6.5 : awakeSensory.visionRange) && playerSpeed > 0.15);
+
+  const immediateDanger =
+    (minThreatDist < fleeRadius &&
+      (!isPlayerSneaking || playerSpeed > 0.35 || minThreatDist < 1.9 || threatIsPredatorOrCharging)) ||
+    (threatIsPredatorOrCharging && minThreatDist < 11.8) ||
+    (isAttacking && distP < 12.5);
+
+    if (stepImmediateDangerFlight(a, animals, frame, tally, immediateDanger, nearestThreatX, nearestThreatZ, threatIsPredatorOrCharging, minThreatDist, awakeSensory, playerAudibleOrVisible, distP, playerNoiseRate, fleeRadius)) return;
+
+  // -------------------------------------------------------------------------
+  // RANGE-BASED RANDOM TRAP CHOICE FOR SMALL WILDLIFE (RABBIT & SQUIRREL):
+  // - Only evaluated when traps exist in the world.
+  // - If the animal sees the player nearby (within visionRange = 14.0m when standing,
+  //   or 4.5m when sneaking), it prioritizes fleeing from the player instead of approaching!
+  // - When calm/safe and inside a trap's attractRadius, the animal randomly decides
+  //   via evaluateAnimalTrapChoice whether to approach the trap or ignore it.
+  // -------------------------------------------------------------------------
+    if (stepRabbitAndSquirrelAI(a, frame, tally, awakeSensory, distP)) return;
+
+  // -------------------------------------------------------------------------
+  // SMART TREE-CLIMBING & FORAGING SQUIRREL AI
+  // Squirrels dynamically climb real woodland tree trunks straight up into the
+  // canopy branches, perch steadily without spinning in place, leap across
+  // adjacent canopies, forage on the forest floor, and scramble up the nearest
+  // tree when startled!
+  // -------------------------------------------------------------------------
+    if (stepSquirrelAI(a, frame, nearestThreatX, nearestThreatZ, minThreatDist)) return;
+
+    if (stepFleeingAnimal(a, frame, nearestThreatX, nearestThreatZ)) return;
+
+  if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
+    const rawNextX = a.x + a.vx * safeDt;
+    const rawNextZ = a.z + a.vz * safeDt;
+    const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
+    const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+    advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+  }
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepDeadSmallAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame): boolean {
+  const { dt, playerStateRef, playerX, playerZ } = frame;
+  if (a.isDead) {
+    if (a.aiBehavior !== 'dead' || a.vx !== 0 || a.vz !== 0) {
+      a.vx = 0;
+      a.vz = 0;
+      if (a.species !== 'koifish') {
+        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(a.x, a.z, a.y));
+      }
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.isFleeing = false;
+      a.aiBehavior = 'dead';
+    }
+    if (a.species === 'koifish') {
+      const lakeBedY = Math.max(groundHeightAt(a.x, a.z) + 0.14, WATER_LEVEL - 1.15);
+      a.y = Math.max(lakeBedY, (a.y ?? WATER_LEVEL - 0.38) - Math.max(0.016, dt) * 0.65);
+    }
+    if (a.isBoss || a.species === 'dragon') {
+      a.respawnTimer = undefined;
+      return true;
+    }
+    if (dt > 0) {
+      a.respawnTimer = (a.respawnTimer ?? ANIMAL_RESPAWN_DELAY_SECONDS) - Math.max(0, dt);
+      const toHomeDx = a.homeX - playerX;
+      const toHomeDz = a.homeZ - playerZ;
+      const distPlayerToHome = Math.hypot(toHomeDx, toHomeDz);
+      const distPlayerToCorpse = Math.hypot(a.x - playerX, a.z - playerZ);
+      let canRespawnOffscreen = distPlayerToHome > 38.0 && distPlayerToCorpse > 38.0;
+      if (playerStateRef) {
+        // Respawn once the player is outside the animal's territory/radius (> 62m) and either not staring directly at a close spawn spot or > 125m away!
+        const lookX = -Math.sin(playerStateRef.yaw);
+        const lookZ = -Math.cos(playerStateRef.yaw);
+        const dot =
+          distPlayerToHome > 0.001
+            ? (toHomeDx * lookX + toHomeDz * lookZ) / distPlayerToHome
+            : 1.0;
+        canRespawnOffscreen =
+          distPlayerToHome > 62.0 &&
+          distPlayerToCorpse > 56.0 &&
+          (dot < 0.35 || distPlayerToHome > 125.0);
+      }
+      if (a.respawnTimer <= 0 && canRespawnOffscreen) {
+        const homeWalk = walkableHeightAt(a.homeX, a.homeZ);
+        a.x = a.homeX;
+        a.z = a.homeZ;
+        const isAquaticOrSemiAquatic =
+          a.species === 'hippo' ||
+          a.species === 'crocodile' ||
+          a.species === 'koifish' ||
+          a.species === 'dolphin';
+        if (isAquaticOrSemiAquatic && homeWalk.height <= WATER_LEVEL + 0.15) {
+          a.inWater = true;
+          const depth = Math.max(0, WATER_LEVEL - homeWalk.height);
+          const submerge = Math.min(depth, getAnimalWaterSubmergenceDepth(a.species));
+          a.y = Math.max(homeWalk.height, WATER_LEVEL - submerge);
+        } else {
+          a.inWater = false;
+          a.y = Math.max(WATER_LEVEL + 0.08, homeWalk.height);
+        }
+        a.vx = 0;
+        a.vz = 0;
+        a.isDead = false;
+        a.isLooted = false;
+        a.isSubdued = false;
+        a.maxHp = a.maxHp ?? getAnimalMaxHp(a.species);
+        a.hp = a.maxHp;
+        a.respawnTimer = undefined;
+        a.wokenUpTimer = 0;
+        a.hitReactionTimer = 0;
+        a.fleeCooldown = 0;
+        a.roarWarningDone = false;
+        a.stompWarningDone = false;
+        a.trappedByBearJawTimer = 0;
+        a.bearTrapSlowTimer = 0;
+        a.alertLevel = 'grazing';
+        a.aiBehavior = 'grazing';
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepBearJawTrappedAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number): boolean {
+  const { playerX, playerZ, safeDt } = frame;
+  if ((a.trappedByBearJawTimer ?? 0) > 0) {
+    a.trappedByBearJawTimer = Math.max(0, (a.trappedByBearJawTimer ?? 0) - safeDt);
+    a.isResting = false;
+    a.isSeekingShelter = false;
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.alertLevel = 'curious';
+    a.pounceHeight = 0;
+    a.vx = 0;
+    a.vz = 0;
+    if ((a.trappedByBearJawTimer ?? 0) > 0) {
+      a.aiBehavior = 'roaring';
+      a.actionTimer = a.trappedByBearJawTimer;
+      if (distP > 0.35) {
+        const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+        a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 4.0, safeDt);
+      }
+      return true;
+    } else {
+      // Roar finished -> trap vanishes from paw and bear resumes chasing the player!
+      a.aiBehavior = 'charging';
+      a.actionTimer = 0;
+      a.roarWarningDone = true;
+      a.stompWarningDone = true;
+      a.wokenUpTimer = 22.0;
+      a.stimulusX = playerX;
+      a.stimulusZ = playerZ;
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepTamedAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame): boolean {
+  const { elapsedTime, safeDt } = frame;
+  if (a.isTamed) {
+    a.isResting = false;
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.alertLevel = 'grazing';
+    a.pounceHeight = 0;
+    const timeWindow = Math.floor(elapsedTime * 0.14 + a.id * 1.53);
+    const wanderSeed = hash2D(a.id * 17.3, timeWindow);
+    if (wanderSeed > 0.62) {
+      a.aiBehavior = a.species === 'lion' && wanderSeed > 0.82 ? 'sitting' : 'grazing';
+      a.vx = 0;
+      a.vz = 0;
+    } else {
+      a.aiBehavior = 'wandering';
+      const targetAngle = (wanderSeed / 0.62) * Math.PI * 2;
+      const homePullX = (a.homeX - a.x) * 0.14;
+      const homePullZ = (a.homeZ - a.z) * 0.14;
+      const roamSpd = a.species === 'lion' ? 1.85 : 1.75;
+      const desiredVx = Math.cos(targetAngle) * roamSpd + homePullX;
+      const desiredVz = Math.sin(targetAngle) * roamSpd + homePullZ;
+      const blend = Math.min(1, safeDt * 4.0);
+      a.vx += (desiredVx - a.vx) * blend;
+      a.vz += (desiredVz - a.vz) * blend;
+      if (Math.hypot(a.vx, a.vz) > 0.08) {
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
+      }
+      a.hopPhase += safeDt * 6.0;
+      const rawNextX = a.x + a.vx * safeDt;
+      const rawNextZ = a.z + a.vz * safeDt;
+      const bodyRadius = a.species === 'lion' && a.isBoss ? 1.65 : 0.75;
+      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepNightSleepAndNoise(a: ISmallAnimalState, animals: ISmallAnimalState[], i: number, frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, distP: number): boolean {
+  const { isAttacking, isNightRest, isPlayerSneaking, playerSpeed, playerX, playerZ, safeDt } = frame;
+  if (
+    isNightRest &&
+    a.species !== 'koifish' &&
+    a.species !== 'dolphin' &&
+    (a.wokenUpTimer ?? 0) <= 0 &&
+    a.fleeCooldown <= 0
+  ) {
+    const sleepSensory = getAnimalSensoryProfile(a.species, true);
+    // Check noise from player or nearby predator within reduced sleeping hearing radius
+    let sleepNoiseRate = -0.28;
+    if (distP < sleepSensory.hearingRadius) {
+      sleepNoiseRate = computePlayerNoiseRateAtDistance(
+        distP,
+        playerSpeed,
+        isPlayerSneaking,
+        isAttacking,
+        true
+      );
+    }
+    // Also check if an awake moving predator is making noise within sleeping hearing range
+    let predatorNearSleepX = playerX;
+    let predatorNearSleepZ = playerZ;
+    for (let j = 0; j < animals.length; j++) {
+      if (i === j) continue;
+      const other = animals[j];
+      if (other.isDead || !isPredatorSpecies(other.species)) continue;
+      const dPred = Math.hypot(a.x - other.x, a.z - other.z);
+      const predSpd = Math.hypot(other.vx, other.vz);
+      if (dPred < sleepSensory.hearingRadius && predSpd > 0.6 && !isPredatorSpecies(a.species)) {
+        const predNoise = 0.55 + (1 - dPred / sleepSensory.hearingRadius) * 0.9;
+        if (predNoise > sleepNoiseRate) {
+          sleepNoiseRate = predNoise;
+          predatorNearSleepX = other.x;
+          predatorNearSleepZ = other.z;
+        }
+      }
+    }
+
+    const nextWake = Math.max(0, Math.min(1, (a.wakeMeter ?? 0) + sleepNoiseRate * safeDt));
+    a.wakeMeter = nextWake;
+
+    if (nextWake >= 1.0) {
+      // Woken up by excessive noise!
+      a.isResting = false;
+      a.wokenUpTimer = 8.0;
+      a.alertLevel = 'fleeing';
+      a.aiBehavior = 'fleeing';
+      a.isFleeing = true;
+      a.fleeCooldown = 4.5;
+      a.stimulusX = predatorNearSleepX;
+      a.stimulusZ = predatorNearSleepZ;
+      tally.scamperedCritterCount++;
+    } else {
+      // Eyes closed (vision = 0), still sleeping peacefully
+      a.isResting = true;
+      a.isSeekingShelter = false;
+      a.alertLevel = 'grazing';
+      a.aiBehavior = 'sleeping';
+      a.isFleeing = false;
+      a.vx = 0;
+      a.vz = 0;
+      a.pounceHeight = 0;
+      return true;
+    }
+  } else if (!isNightRest) {
+    a.wakeMeter = Math.max(0, (a.wakeMeter ?? 0) - 0.5 * safeDt);
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepPredatorEncounter(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number): boolean {
+  const { playerX, playerZ, safeDt } = frame;
+  if (
+    a.species === 'lion' &&
+    a.isBoss &&
+    !a.isTamed &&
+    (a.isSubdued || (a.hp ?? a.maxHp ?? 360) <= Math.max(60, Math.ceil((a.maxHp ?? 360) * 0.25)))
+  ) {
+    a.isSubdued = true;
+    a.isResting = false;
+    a.isSeekingShelter = false;
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.alertLevel = 'grazing';
+    a.aiBehavior = 'sitting';
+    a.pounceHeight = 0;
+    a.vx = 0;
+    a.vz = 0;
+    if (distP < 14.0 && distP > 0.4) {
+      const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+      a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 3.5, safeDt);
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: number, frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, distP: number, prevActionTimer: number): boolean {
+  const { elapsedTime, horses, isAttacking, isPlayerSneaking, isRaining, playerStateRef, playerX, playerZ, safeDt } = frame;
+  if (isPredatorSpecies(a.species)) {
+    const myRank = getAnimalSizeRank(a.species, a.isBoss);
+    let largerThreatX = 0;
+    let largerThreatZ = 0;
+    let largerThreatDist = Infinity;
+
+    // Check if a larger predator is nearby (e.g., bear threatening jaguar/crocodile/wolf)
+    for (let j = 0; j < animals.length; j++) {
+      if (i === j) continue;
+      const other = animals[j];
+      if (other.isDead || !isPredatorSpecies(other.species)) continue;
+      if (getAnimalSizeRank(other.species, other.isBoss) > myRank) {
+        const dOther = Math.hypot(a.x - other.x, a.z - other.z);
+        if (dOther < 14.5 && dOther < largerThreatDist) {
+          largerThreatDist = dOther;
+          largerThreatX = other.x;
+          largerThreatZ = other.z;
+        }
+      }
+    }
+
+    // Check if overwhelmed by a charging horse or heavy player weapon strike
+    for (let h = 0; h < horses.length; h++) {
+      const hr = horses[h];
+      if (hr.speed > 6.0) {
+        const dH = Math.hypot(a.x - hr.x, a.z - hr.z);
+        if (dH < 11.5 && dH < largerThreatDist) {
+          largerThreatDist = dH;
+          largerThreatX = hr.x;
+          largerThreatZ = hr.z;
+        }
+      }
+    }
+    if (!isPredatorSpecies(a.species) && isAttacking && distP < 6.5 && distP < largerThreatDist) {
+      largerThreatDist = distP;
+      largerThreatX = playerX;
+      largerThreatZ = playerZ;
+    }
+
+    // Smaller Volcano CatLions (!isBoss) flee when their HP drops low (<= 2) like regular animals!
+    if (
+      a.species === 'lion' &&
+      !a.isBoss &&
+      (a.hp ?? a.maxHp ?? 5) <= Math.max(1, Math.ceil((a.maxHp ?? 5) * 0.35)) &&
+      distP < 22.0
+    ) {
+      largerThreatDist = distP;
+      largerThreatX = playerX;
+      largerThreatZ = playerZ;
+    }
+    // The Giant Volcano Boss CatLion never flees!
+    if (a.species === 'lion' && a.isBoss) {
+      largerThreatDist = Infinity;
+      a.fleeCooldown = 0;
+      a.isFleeing = false;
+    }
+
+    if (largerThreatDist < Infinity) {
+      if (a.alertLevel !== 'fleeing') {
+        tally.scamperedCritterCount++;
+      }
+      a.alertLevel = 'fleeing';
+      a.aiBehavior = 'fleeing';
+      a.isFleeing = true;
+      a.fleeCooldown = 3.6;
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.pounceHeight = 0;
+      a.stimulusX = largerThreatX;
+      a.stimulusZ = largerThreatZ;
+    } else if (a.fleeCooldown > 0) {
+      a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
+      if (a.fleeCooldown <= 0) {
+        a.isFleeing = false;
+        a.alertLevel = 'grazing';
+      }
+    }
+
+    if (a.alertLevel === 'fleeing' && a.fleeCooldown > 0) {
+      const tx = a.stimulusX ?? playerX;
+      const tz = a.stimulusZ ?? playerZ;
+      const awayX = a.x - tx;
+      const awayZ = a.z - tz;
+      const len = Math.hypot(awayX, awayZ) || 1;
+      const fleeSpd = SPECIES_PROFILES[a.species].predatorFleeSpeed;
+      a.vx = (awayX / len) * fleeSpd;
+      a.vz = (awayZ / len) * fleeSpd;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
+      a.hopPhase += safeDt * 14.0;
+      a.aiBehavior = 'fleeing';
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.pounceHeight = 0;
+    } else if (a.species === 'bear' && isRaining) {
+      // Bear returns through the mountain tunnel into its deep cavern when it rains!
+      const caveIdx = a.caveIndex ?? 0;
+      const deepChamberPos = caveLocalToWorld(caveIdx, 0, -15.0);
+      const distToChamberCenter = Math.hypot(deepChamberPos.x - a.x, deepChamberPos.z - a.z);
+      const caveWaypoint = findNearestShelterPoint(a.x, a.z, 'bear', caveIdx);
+      a.shelterTargetX = deepChamberPos.x;
+      a.shelterTargetZ = deepChamberPos.z;
+      a.isSeekingShelter = true;
+      a.pounceHeight = 0;
+
+      if (distToChamberCenter > 3.2) {
+        a.isResting = false;
+        a.alertLevel = 'grazing';
+        a.aiBehavior = 'seeking_shelter';
+        const toWpX = caveWaypoint.x - a.x;
+        const toWpZ = caveWaypoint.z - a.z;
+        const distWp = Math.hypot(toWpX, toWpZ) || 1;
+        const caveSpd = 4.4;
+        a.vx = (toWpX / distWp) * caveSpd;
+        a.vz = (toWpZ / distWp) * caveSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
+        a.hopPhase += safeDt * 9.0;
+      } else {
+        // Inside the mountain cavern chamber: lie down and rest out of the rain (zero sliding)
+        a.vx = 0;
+        a.vz = 0;
+        a.isResting = true;
+        a.alertLevel = 'grazing';
+        a.aiBehavior = 'sleeping';
+      }
+    } else {
+      // Predator scans for prey (deer, sheep, rabbits, squirrels, or non-sneaking player)
+      a.isSeekingShelter = false;
+      const sensory = getAnimalSensoryProfile(a.species, false);
+      let preyX = 0;
+      let preyZ = 0;
+      let bestPreyDist = sensory.visionRange;
+      let foundPrey = false;
+      let preyIsPlayer = false;
+
+      for (let j = 0; j < animals.length; j++) {
+        if (i === j) continue;
+        const other = animals[j];
+        if (other.isDead || isPredatorSpecies(other.species)) continue;
+        if (
+          a.species === 'crocodile' &&
+          Math.hypot(other.x - a.homeX, other.z - a.homeZ) > 22.0
+        ) {
+          continue;
+        }
+        const dPrey = Math.hypot(other.x - a.x, other.z - a.z);
+        if (dPrey < bestPreyDist) {
+          bestPreyDist = dPrey;
+          preyX = other.x;
+          preyZ = other.z;
+          foundPrey = true;
+          preyIsPlayer = false;
+        }
+      }
+
+      const isBossLion = a.species === 'lion' && Boolean(a.isBoss);
+      const playerDistToVolcanoCenter = isBossLion
+        ? Math.hypot(playerX - VOLCANO_SANCTUM_POS.x, playerZ - VOLCANO_SANCTUM_POS.z)
+        : Infinity;
+      const playerInBossChamber =
+        isBossLion && playerDistToVolcanoCenter <= VOLCANO_SANCTUM_POS.chamberRadius;
+      const playerInVolcanoSanctum =
+        isBossLion && Boolean(isInsideVolcanoSanctum(playerX, playerZ));
+
+      // Universal Predator Dual-Condition Territory Leash & Grudge Memory Rule:
+      // A creature ONLY stops chasing (`a.isLeashedReturning = true`) when BOTH:
+      //   1) The player has moved far outside the creature's large chase range (`distP > 54.0`)
+      //   2) AND the creature itself is outside its home territory (`animalDistFromHome > territoryRadius`) AND the player is outside its territory (`!playerInsideCreatureTerritory`).
+      // When it stops chasing and walks back to its territory, it RETAINS `a.wokenUpTimer` (45s grudge memory)
+      // so if the player returns to the area or comes within 42m during that time, it immediately resumes attacking!
+      const animalDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+      const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+      const territoryRadius = a.species === 'crocodile' ? 42.0 : 48.0;
+      const chaseRange = 54.0;
+      const reaggroRange = 42.0;
+      const playerInsideCreatureTerritory =
+        playerDistFromHome <= territoryRadius ||
+        (a.species === 'bear' && a.caveIndex !== undefined && playerDistFromHome <= 52.0) ||
+        playerInBossChamber ||
+        (isBossLion && playerInVolcanoSanctum);
+
+      if (!a.isLeashedReturning) {
+        if (
+          !playerInsideCreatureTerritory &&
+          animalDistFromHome > territoryRadius &&
+          distP > chaseRange
+        ) {
+          a.isLeashedReturning = true;
+          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+          a.alertLevel = 'grazing';
+          a.stimulusX = undefined;
+          a.stimulusZ = undefined;
+        }
+      } else {
+        // Creature is walking back home with a grudge: if player returns to territory or within 42m, immediately resume chasing!
+        if (playerInsideCreatureTerritory || distP <= reaggroRange) {
+          a.isLeashedReturning = false;
+          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+        } else if (animalDistFromHome <= 6.0 && (a.wokenUpTimer ?? 0) <= 0) {
+          a.isLeashedReturning = false;
+        }
+      }
+
+      const isCreatureLeashedOutOfTerritory = Boolean(a.isLeashedReturning);
+
+      const provokedByShot =
+        !isCreatureLeashedOutOfTerritory &&
+        (a.wokenUpTimer ?? 0) > 0 &&
+        ((a.hp ?? a.maxHp ?? 1) < (a.maxHp ?? 1) || a.species === 'crocodile');
+      const alreadyChasingPlayer = !isCreatureLeashedOutOfTerritory && a.alertLevel === 'curious';
+      const basePlayerDetectRange = alreadyChasingPlayer
+        ? SPECIES_PROFILES[a.species].playerDetectRangeWhileChasing
+        : SPECIES_PROFILES[a.species].playerDetectRange;
+      const maxProvokedRange = SPECIES_PROFILES[a.species].provokedDetectRange;
+      const playerDetectRange =
+        playerInBossChamber || (isBossLion && provokedByShot && playerInVolcanoSanctum)
+          ? 95.0
+          : provokedByShot
+            ? maxProvokedRange
+            : isPlayerSneaking
+              ? 4.2
+              : basePlayerDetectRange;
+      const playerRidingMysticalLion = Boolean(
+        playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
+      );
+      const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
+      // Same vertical reach as the damage check, so an animal never picks a player it cannot hit (e.g. a hovering player).
+      const canReachPlayerVertically = playerVertDiff <= (a.isBoss || (a.species as string) === 'dragon' ? 4.2 : 2.6);
+      if (
+        !isCreatureLeashedOutOfTerritory &&
+        !playerRidingMysticalLion &&
+        canReachPlayerVertically &&
+        (!isBossLion || playerInBossChamber || (provokedByShot && playerInVolcanoSanctum)) &&
+        distP < playerDetectRange &&
+        distP <= (provokedByShot || playerInBossChamber ? 95.0 : bestPreyDist)
+      ) {
+        bestPreyDist = distP;
+        preyX = playerX;
+        preyZ = playerZ;
+        foundPrey = true;
+        preyIsPlayer = true;
+      }
+
+      // FULL ANIMATION COMMITMENT RULE:
+      // If a predator has started an attack ('attacking') or stationary threat action ('roaring', 'stomping'),
+      // it CANNOT cancel or interrupt the animation mid-way (even if prey moves out of range),
+      // and it CANNOT begin moving until the full animation finishes and transitions to a locomotion state!
+      const hasActiveCommittedAction =
+        !isCreatureLeashedOutOfTerritory &&
+        (a.actionTimer ?? 0) > 0 &&
+        (a.aiBehavior === 'attacking' || a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping');
+
+      if (!foundPrey && hasActiveCommittedAction) {
+        foundPrey = true;
+        preyX = a.stimulusX ?? playerX;
+        preyZ = a.stimulusZ ?? playerZ;
+        bestPreyDist = Math.hypot(preyX - a.x, preyZ - a.z);
+      }
+
+      if (foundPrey) {
+        a.isResting = false;
+        a.alertLevel = 'curious';
+        a.stimulusX = preyX;
+        a.stimulusZ = preyZ;
+        const steeredTarget =
+          a.species === 'bear'
+            ? steerBearThroughCavePortal(a.x, a.z, preyX, preyZ, a.caveIndex)
+            : a.species === 'lion'
+              ? steerLionThroughVolcanoPortal(a.x, a.z, preyX, preyZ)
+              : { x: preyX, z: preyZ };
+        const toPreyX = steeredTarget.x - a.x;
+        const toPreyZ = steeredTarget.z - a.z;
+        const len = Math.hypot(toPreyX, toPreyZ) || 1;
+        const targetYaw = Math.atan2(toPreyX, toPreyZ);
+        const standoffDist = getPredatorMeleeStandoffDist(a.species, a.isBoss);
+        const attackTriggerDist = getPredatorAttackTriggerDist(a.species, a.isBoss);
+
+        // -----------------------------------------------------------------
+        // A. RHINO COMBAT:
+        //    1) If already in a stationary 'attacking' animation (actionTimer > 0), finish the full
+        //       stationary attack animation in place (vx = 0, vz = 0) before moving!
+        //    2) If running ('charging' with rhinoChargeSpeed > 3.2) and prey is in range:
+        //       DO NOT switch to 'attacking' clip — keep running ('charging') toward/through the player
+        //       and let the running charge impact deal damage!
+        //    3) If NOT running (rhinoChargeSpeed <= 3.2) and prey is within attackTriggerDist:
+        //       Perform stationary 'attacking' in place (vx = 0, vz = 0) without moving!
+        // -----------------------------------------------------------------
+        if (a.species === 'rhino') {
+          a.pounceHeight = 0;
+          if ((a.rhinoPhaseTimer ?? 0) > 0) {
+            a.rhinoPhaseTimer = Math.max(0, (a.rhinoPhaseTimer ?? 0) - safeDt);
+          }
+
+          if (a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0) {
+            // Stationary Rhino attack in progress: must complete full animation without moving!
+            a.vx = 0;
+            a.vz = 0;
+            a.rhinoChargeSpeed = 0;
+            if (bestPreyDist > 0.35) {
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.2, safeDt);
+            }
+            if (
+              preyIsPlayer &&
+              playerStateRef &&
+              prevActionTimer > 0.42 &&
+              (a.actionTimer ?? 0) <= 0.42 &&
+              bestPreyDist <= standoffDist + 0.95
+            ) {
+              playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 16);
+              playerStateRef.vx += (toPreyX / len) * 3.6;
+              playerStateRef.vz += (toPreyZ / len) * 3.6;
+            }
+          } else if ((a.rhinoChargeSpeed ?? 0) <= 3.2 && bestPreyDist <= attackTriggerDist) {
+            // Rhino is NOT running and player is within melee range -> stationary attack in place!
+            a.aiBehavior = 'attacking';
+            a.actionTimer = 0.85;
+            a.vx = 0;
+            a.vz = 0;
+            a.rhinoChargeSpeed = 0;
+            if (bestPreyDist > 0.35) {
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.6, safeDt);
+            }
+          } else {
+            const phase = a.rhinoPhase ?? 'charging';
+
+            if (phase === 'overshoot_braking') {
+              // Rhino missed/overshot target: tries to turn slowly while heavy momentum skids/decelerates it forward
+              const curSpd = Math.max(1.25, (a.rhinoChargeSpeed ?? 6.8) - 7.6 * safeDt);
+              a.rhinoChargeSpeed = curSpd;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 1.05, safeDt);
+              a.vx = Math.sin(a.yaw) * curSpd;
+              a.vz = Math.cos(a.yaw) * curSpd;
+              a.aiBehavior = curSpd > 3.2 ? 'charging' : 'wandering';
+              a.hopPhase += safeDt * (curSpd * 1.8);
+              if (curSpd <= 1.35 || (a.rhinoPhaseTimer ?? 0) <= 0) {
+                a.rhinoPhase = 'realigning';
+                a.rhinoPhaseTimer = 1.25;
+              }
+            } else if (phase === 'realigning') {
+              // Rhino has braked after overshooting: pivots on walking feet to line up a new charge
+              a.rhinoChargeSpeed = 1.35;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.4, safeDt);
+              a.vx = Math.sin(a.yaw) * 1.35;
+              a.vz = Math.cos(a.yaw) * 1.35;
+              a.aiBehavior = 'wandering';
+              a.hopPhase += safeDt * 6.5;
+              const angleDiff = Math.abs(Math.atan2(Math.sin(targetYaw - a.yaw), Math.cos(targetYaw - a.yaw)));
+              if (angleDiff < 0.26 || (a.rhinoPhaseTimer ?? 0) <= 0) {
+                a.rhinoPhase = 'charging';
+                a.rhinoPhaseTimer = 0;
+              }
+            } else {
+              // 'charging' phase: Rhino is running toward target!
+              // If target is in range while running, Rhino simply continues running ('charging') and that running impact deals damage!
+              const curSpd = Math.min(9.5, Math.max(3.4, (a.rhinoChargeSpeed ?? 3.4) + 7.2 * safeDt));
+              a.rhinoChargeSpeed = curSpd;
+              const turnRate = curSpd > 4.2 ? 0.88 : 2.8;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, turnRate, safeDt);
+              const fwdX = Math.sin(a.yaw);
+              const fwdZ = Math.cos(a.yaw);
+              const cosToPrey = (toPreyX * fwdX + toPreyZ * fwdZ) / len;
+
+              a.aiBehavior = 'charging';
+              let stepSpd = curSpd;
+              if (cosToPrey > 0.84 && bestPreyDist <= standoffDist + 0.15) {
+                stepSpd = Math.min(curSpd, Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016));
+              }
+              a.vx = fwdX * stepSpd;
+              a.vz = fwdZ * stepSpd;
+              a.hopPhase += safeDt * 16.0;
+
+              // Running impact damage when charging Rhino reaches target
+              if (
+                bestPreyDist <= standoffDist + 1.05 &&
+                cosToPrey > 0.42 &&
+                (a.attackHitCooldownTimer ?? 0) <= 0
+              ) {
+                a.attackHitCooldownTimer = 0.85;
+                if (preyIsPlayer && playerStateRef) {
+                  playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 18);
+                  playerStateRef.vx += fwdX * 4.5;
+                  playerStateRef.vz += fwdZ * 4.5;
+                }
+                a.rhinoPhase = 'overshoot_braking';
+                a.rhinoPhaseTimer = 1.05;
+              } else if (curSpd > 4.5 && cosToPrey < 0.42 && bestPreyDist < 9.5) {
+                // Target sidestepped/dodged the charging Rhino! Rhino tries to turn, fails, and enters overshoot braking
+                a.rhinoPhase = 'overshoot_braking';
+                a.rhinoPhaseTimer = 1.15;
+              }
+            }
+          }
+        } else {
+          // -----------------------------------------------------------------
+          // B. BEAR, CROCODILE, WOLF & JAGUAR COMBAT & PROGRESSION
+          //    - Once an attack ('attacking') or stationary warning ('roaring', 'stomping') starts,
+          //      it is 100% committed until actionTimer reaches 0 (even if prey backs away).
+          //    - Crocodile pushes/lunges itself forward during its bite strike when it thinks it is close enough!
+          // -----------------------------------------------------------------
+          const chargeSpd = SPECIES_PROFILES[a.species].chargeSpeed;
+
+          const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0;
+          const isCommittedStationaryWarning =
+            (a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping') && (a.actionTimer ?? 0) > 0;
+
+          if (isCommittedAttack || (!isCommittedStationaryWarning && bestPreyDist <= attackTriggerDist)) {
+            const isPouncer = SPECIES_PROFILES[a.species].pouncesOnPrey;
+
+            if (isPouncer) {
+              // WOLF & JAGUAR FORWARD POUNCE LEAP (0.68s active cycle — no post-attack freeze!):
+              // Locks trajectory at launch and leaps through the air (pounceHeight > 0).
+              if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+                a.aiBehavior = 'attacking';
+                a.actionTimer = 0.68;
+                a.pounceDirX = toPreyX / len;
+                a.pounceDirZ = toPreyZ / len;
+                a.pounceStartX = a.x;
+                a.pounceStartZ = a.z;
+              }
+
+              const timer = a.actionTimer ?? 0;
+              const pDirX = a.pounceDirX ?? toPreyX / len;
+              const pDirZ = a.pounceDirZ ?? toPreyZ / len;
+              const distFromLaunch = Math.hypot(
+                a.x - (a.pounceStartX ?? a.x),
+                a.z - (a.pounceStartZ ?? a.z)
+              );
+              const maxPounceReach = 1.65;
+              const gap = bestPreyDist - standoffDist;
+
+              if (timer > 0.16) {
+                // Airborne pounce phase (0.68 -> 0.16)
+                const leapProgress = Math.max(0, Math.min(1, (0.68 - timer) / 0.52));
+                a.pounceHeight = Math.sin(leapProgress * Math.PI) * 0.56;
+
+                if (gap > 0.04 && distFromLaunch < maxPounceReach) {
+                  const remLaunchBudget = Math.max(0, maxPounceReach - distFromLaunch);
+                  const maxAllowedStep = Math.min(gap, remLaunchBudget) / Math.max(safeDt, 0.016);
+                  const leapSpd = Math.min(chargeSpd * 1.05, maxAllowedStep);
+                  a.vx = pDirX * leapSpd;
+                  a.vz = pDirZ * leapSpd;
+                } else {
+                  a.vx = 0;
+                  a.vz = 0;
+                }
+              } else {
+                // Grounded landing completion (0.16 -> 0): strictly vx = 0, vz = 0 until transitioning to locomotion!
+                a.pounceHeight = 0;
+                a.vx = 0;
+                a.vz = 0;
+              }
+
+              if (bestPreyDist > 0.35) {
+                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.8, safeDt);
+              }
+              a.hopPhase += safeDt * 14.0;
+
+              // Pounce hits ONLY if player did not dodge/retreat out of pounce landing range!
+              if (
+                preyIsPlayer &&
+                playerStateRef &&
+                prevActionTimer > 0.34 &&
+                timer <= 0.34 &&
+                bestPreyDist <= standoffDist + 0.65
+              ) {
+                playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 12);
+                playerStateRef.vx += pDirX * 2.6;
+                playerStateRef.vz += pDirZ * 2.6;
+              }
+
+              // Immediately transition to locomotion ('charging') as soon as the 0.68s pounce finishes so it never freezes!
+              if (timer <= 0.02) {
+                a.pounceHeight = 0;
+                a.actionTimer = 0;
+                if (bestPreyDist <= attackTriggerDist) {
+                  a.aiBehavior = 'attacking';
+                } else {
+                  a.aiBehavior = 'charging';
+                  const maxChargeNoOvershoot =
+                    Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                  const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                  a.vx = (toPreyX / len) * effChargeSpd;
+                  a.vz = (toPreyZ / len) * effChargeSpd;
+                }
+              }
+            } else if (a.species === 'crocodile') {
+              // CROCODILE FORWARD LUNGE STRIKE:
+              // When the crocodile thinks it is close enough (<= 4.35m), it pushes itself forward
+              // with a powerful jaw-snap lunge along its launch direction and delivers a heavy bite!
+              if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+                a.aiBehavior = 'attacking';
+                a.actionTimer = 0.86;
+                a.pounceDirX = toPreyX / len;
+                a.pounceDirZ = toPreyZ / len;
+                a.pounceStartX = a.x;
+                a.pounceStartZ = a.z;
+              }
+              a.pounceHeight = 0;
+              const timer = a.actionTimer ?? 0;
+              const lungeDirX = a.pounceDirX ?? toPreyX / len;
+              const lungeDirZ = a.pounceDirZ ?? toPreyZ / len;
+              const distFromLaunch = Math.hypot(
+                a.x - (a.pounceStartX ?? a.x),
+                a.z - (a.pounceStartZ ?? a.z)
+              );
+              const maxLungeReach = 1.95;
+              const gapToPrey = bestPreyDist - standoffDist * 0.82;
+
+              if (timer > 0.24 && distFromLaunch < maxLungeReach && gapToPrey > 0.05) {
+                const remLunge = Math.max(0, maxLungeReach - distFromLaunch);
+                const maxStepSpd = Math.min(Math.max(0.8, gapToPrey), remLunge) / Math.max(safeDt, 0.016);
+                const lungeSpd = Math.min(6.4, maxStepSpd);
+                a.vx = lungeDirX * lungeSpd;
+                a.vz = lungeDirZ * lungeSpd;
+              } else {
+                a.vx = 0;
+                a.vz = 0;
+              }
+
+              if (bestPreyDist > 0.35) {
+                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
+              }
+              a.hopPhase += safeDt * 13.0;
+
+              if (
+                preyIsPlayer &&
+                playerStateRef &&
+                prevActionTimer > 0.38 &&
+                timer <= 0.38 &&
+                bestPreyDist <= standoffDist + 0.95
+              ) {
+                playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 15);
+                playerStateRef.vx += lungeDirX * 3.2;
+                playerStateRef.vz += lungeDirZ * 3.2;
+              }
+
+              if (timer <= 0.02) {
+                a.actionTimer = 0;
+                if (bestPreyDist <= attackTriggerDist) {
+                  a.aiBehavior = 'attacking';
+                } else {
+                  a.aiBehavior = 'charging';
+                  const maxChargeNoOvershoot =
+                    Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                  const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                  a.vx = (toPreyX / len) * effChargeSpd;
+                  a.vz = (toPreyZ / len) * effChargeSpd;
+                }
+              }
+            } else {
+              // BEAR & CAT-LION STATIONARY ATTACK:
+              // Committed 100% to completing the full attack animation in place (vx = 0, vz = 0).
+              // Cannot move until actionTimer finishes and aiBehavior switches to a movement animation!
+              if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+                a.aiBehavior = 'attacking';
+                a.actionTimer = a.species === 'lion' ? 0.96 : 0.78;
+              }
+              a.pounceHeight = 0;
+              a.vx = 0;
+              a.vz = 0;
+              if (bestPreyDist > 0.35) {
+                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.6, safeDt);
+              }
+
+              if (
+                preyIsPlayer &&
+                playerStateRef &&
+                prevActionTimer > 0.40 &&
+                (a.actionTimer ?? 0) <= 0.40 &&
+                bestPreyDist <= standoffDist + 0.85
+              ) {
+                playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 14);
+                playerStateRef.vx += (toPreyX / len) * 2.8;
+                playerStateRef.vz += (toPreyZ / len) * 2.8;
+              }
+
+              if ((a.actionTimer ?? 0) <= 0.02) {
+                a.actionTimer = 0;
+                if (bestPreyDist > attackTriggerDist) {
+                  a.aiBehavior = 'charging';
+                  const maxChargeNoOvershoot =
+                    Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+                  const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+                  a.vx = (toPreyX / len) * effChargeSpd;
+                  a.vz = (toPreyZ / len) * effChargeSpd;
+                  a.hopPhase += safeDt * 15.0;
+                }
+              }
+            }
+          } else if (isCommittedStationaryWarning) {
+            // Complete full 'roaring' or 'stomping' animation in place (vx = 0, vz = 0) before moving!
+            a.pounceHeight = 0;
+            a.vx = 0;
+            a.vz = 0;
+            if ((a.actionTimer ?? 0) <= 0.12 && a.aiBehavior === 'stomping') {
+              a.stompWarningDone = true;
+            }
+            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
+          } else if (a.species === 'bear' && !provokedByShot) {
+            // BEAR 2-STAGE THREAT PROGRESSION (strictly zero ground sliding during roar & stomp, and never loops roar infinitely!):
+            a.pounceHeight = 0;
+            if (bestPreyDist > 13.5 && !a.roarWarningDone) {
+              a.aiBehavior = 'roaring';
+              a.roarWarningDone = true;
+              a.actionTimer = 0.75;
+              a.stompWarningDone = false;
+              a.vx = 0;
+              a.vz = 0;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.0, safeDt);
+            } else if (bestPreyDist > 11.5) {
+              a.aiBehavior = 'stalking';
+              const stalkSpd = 2.6;
+              a.vx = (toPreyX / len) * stalkSpd;
+              a.vz = (toPreyZ / len) * stalkSpd;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
+              a.hopPhase += safeDt * 7.5;
+            } else if (!a.stompWarningDone) {
+              a.aiBehavior = 'stomping';
+              a.stompWarningDone = true;
+              a.actionTimer = 0.85;
+              a.vx = 0;
+              a.vz = 0;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.6, safeDt);
+            } else {
+              a.aiBehavior = 'charging';
+              const maxChargeNoOvershoot =
+                Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+              const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+              a.vx = (toPreyX / len) * effChargeSpd;
+              a.vz = (toPreyZ / len) * effChargeSpd;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.2, safeDt);
+              a.hopPhase += safeDt * 15.0;
+            }
+          } else if (bestPreyDist <= 11.5 || provokedByShot || isBossLion) {
+            a.pounceHeight = 0;
+            a.aiBehavior = 'charging';
+            const maxChargeNoOvershoot =
+              Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
+            const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+            const moveAngle =
+              a.species === 'wolf'
+                ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
+                : targetYaw;
+            a.vx = Math.sin(moveAngle) * effChargeSpd;
+            a.vz = Math.cos(moveAngle) * effChargeSpd;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, moveAngle, 6.2, safeDt);
+            a.hopPhase += safeDt * 15.0;
+          } else {
+            // Outer detection ring -> stealthy stalk / approach (with wolf pack flanking)
+            a.pounceHeight = 0;
+            a.aiBehavior = 'stalking';
+            const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
+            const stalkAngle =
+              a.species === 'wolf'
+                ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
+                : targetYaw;
+            a.vx = Math.sin(stalkAngle) * stalkSpd;
+            a.vz = Math.cos(stalkAngle) * stalkSpd;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, stalkAngle, 5.0, safeDt);
+            a.hopPhase += safeDt * 7.5;
+          }
+        }
+      } else {
+        // Autonomous predator patrol, baited trap investigation (when player/prey not detected),
+        // sitting, foraging/eating, or returning to river home
+        a.alertLevel = 'grazing';
+        a.stompWarningDone = false;
+        a.roarWarningDone = false;
+        a.pounceHeight = 0;
+        a.rhinoPhase = 'charging';
+        a.rhinoChargeSpeed = 0;
+
+        // If no player or live prey is detected, check if this predator notices a placed trap in range
+        // and randomly decides whether to investigate the meat bait ('approach') or ignore it ('ignore')
+        let luredByPredatorTrap: { x: number; z: number; dist: number } | null = null;
+        const placedPredTraps = getActivePlacedTrapsRef();
+        if (placedPredTraps.length > 0 && (a.trappedByBearJawTimer ?? 0) <= 0) {
+          for (let tIdx = 0; tIdx < placedPredTraps.length; tIdx++) {
+            const tr = placedPredTraps[tIdx];
+            if (tr.status !== 'armed') continue;
+            const recipe = TRAP_RECIPES.find((r) => r.kind === tr.kind);
+            if (!recipe || !recipe.targetSpecies.includes(a.species)) continue;
+            const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
+            if (dTrap <= recipe.attractRadius) {
+              const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
+              if (
+                choice === 'approach' &&
+                (!luredByPredatorTrap || dTrap < luredByPredatorTrap.dist)
+              ) {
+                luredByPredatorTrap = { x: tr.x, z: tr.z, dist: dTrap };
+              }
+            }
+          }
+        }
+
+        // If a crocodile is out of prey range and away from its river water home, return smoothly to the water!
+        const distFromHome = Math.hypot(a.homeX - a.x, a.homeZ - a.z);
+        const isVolcanoSanctumLion =
+          a.species === 'lion' &&
+          Math.hypot(a.homeX - VOLCANO_SANCTUM_POS.x, a.homeZ - VOLCANO_SANCTUM_POS.z) < 10.0;
+        if (luredByPredatorTrap && !isVolcanoSanctumLion) {
+          a.isResting = false;
+          a.aiBehavior = 'stalking';
+          const steeredTrap =
+            a.species === 'bear'
+              ? steerBearThroughCavePortal(
+                  a.x,
+                  a.z,
+                  luredByPredatorTrap.x,
+                  luredByPredatorTrap.z,
+                  a.caveIndex
+                )
+              : { x: luredByPredatorTrap.x, z: luredByPredatorTrap.z };
+          const toTrapX = steeredTrap.x - a.x;
+          const toTrapZ = steeredTrap.z - a.z;
+          const dTrapSteer = Math.hypot(toTrapX, toTrapZ) || 1;
+          const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
+          a.vx = (toTrapX / dTrapSteer) * stalkSpd;
+          a.vz = (toTrapZ / dTrapSteer) * stalkSpd;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+          a.hopPhase += safeDt * 7.5;
+        } else if (isVolcanoSanctumLion) {
+          if (distFromHome > 2.2) {
+            a.isResting = false;
+            a.aiBehavior = 'wandering';
+            const steeredHome = steerLionThroughVolcanoPortal(a.x, a.z, a.homeX, a.homeZ);
+            const toHomeX = steeredHome.x - a.x;
+            const toHomeZ = steeredHome.z - a.z;
+            const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
+            a.vx = (toHomeX / dHome) * 2.6;
+            a.vz = (toHomeZ / dHome) * 2.6;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+            a.hopPhase += safeDt * 7.5;
+          } else {
+            // Seated majestically on the Volcano Sanctum Throne Dais facing the entrance (+X)!
+            a.isResting = false;
+            a.aiBehavior = 'sitting';
+            a.vx = 0;
+            a.vz = 0;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.PI / 2, 4.0, safeDt);
+          }
+        } else if (distFromHome > (a.species === 'crocodile' ? 4.5 : 14.0)) {
+          a.isResting = false;
+          a.aiBehavior = 'wandering';
+          const steeredHome =
+            a.species === 'bear'
+              ? steerBearThroughCavePortal(a.x, a.z, a.homeX, a.homeZ, a.caveIndex)
+              : { x: a.homeX, z: a.homeZ };
+          const toHomeX = steeredHome.x - a.x;
+          const toHomeZ = steeredHome.z - a.z;
+          const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
+          const returnSpd = a.species === 'crocodile' ? 3.2 : 3.4;
+          a.vx = (toHomeX / dHome) * returnSpd;
+          a.vz = (toHomeZ / dHome) * returnSpd;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.5, safeDt);
+          a.hopPhase += safeDt * 9.0;
+        } else {
+          const timeWindow = Math.floor(elapsedTime * 0.06 + a.id * 1.73);
+          const seed = hash2D(a.id * 19.3, timeWindow);
+          if (seed > 0.78) {
+            a.isResting = false;
+            a.aiBehavior = 'sitting';
+            a.vx = 0;
+            a.vz = 0;
+          } else if (seed > 0.58) {
+            a.isResting = false;
+            a.aiBehavior = 'grazing';
+            a.vx = 0;
+            a.vz = 0;
+          } else {
+            a.isResting = false;
+            let patrolGoalX = a.homeX + Math.cos((seed / 0.58) * Math.PI * 2) * 14.0;
+            let patrolGoalZ = a.homeZ + Math.sin((seed / 0.58) * Math.PI * 2) * 14.0;
+            if (a.species === 'bear' && a.caveIndex !== undefined && BEAR_MOUNTAIN_CAVES[a.caveIndex]) {
+              // Bears alternate their patrol between the outer forest apron (lz = +14) and inner cavern (lz = -13)
+              // and steer cleanly through the cave portal so they freely walk in and out of the cave!
+              const patrolOut = seed < 0.34;
+              const rawGoal = patrolOut
+                ? caveLocalToWorld(a.caveIndex, ((a.id % 3) - 1) * 4.5, 14.0)
+                : caveLocalToWorld(a.caveIndex, ((a.id % 2) === 0 ? -4.2 : 4.2), -13.0);
+              const rawDistToGoal = Math.hypot(rawGoal.x - a.x, rawGoal.z - a.z);
+              if (rawDistToGoal < 1.85) {
+                patrolGoalX = a.x;
+                patrolGoalZ = a.z;
+              } else {
+                const steered = steerBearThroughCavePortal(a.x, a.z, rawGoal.x, rawGoal.z, a.caveIndex);
+                patrolGoalX = steered.x;
+                patrolGoalZ = steered.z;
+              }
+            }
+            const toGoalX = patrolGoalX - a.x;
+            const toGoalZ = patrolGoalZ - a.z;
+            const distGoal = Math.hypot(toGoalX, toGoalZ);
+            if (distGoal < 1.65) {
+              // Reached patrol destination: settle calmly into foraging/idle instead of oscillating over goal!
+              a.aiBehavior = 'grazing';
+              a.vx = 0;
+              a.vz = 0;
+            } else {
+              a.aiBehavior = 'wandering';
+              const patrolSpd = a.species === 'crocodile' ? 1.15 : 1.75;
+              const desiredVx = (toGoalX / distGoal) * patrolSpd;
+              const desiredVz = (toGoalZ / distGoal) * patrolSpd;
+              const blend = Math.min(1, safeDt * 4.5);
+              a.vx += (desiredVx - a.vx) * blend;
+              a.vz += (desiredVz - a.vz) * blend;
+              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
+              a.hopPhase += safeDt * 6.0;
+            }
+          }
+        }
+      }
+    }
+
+    // Apply 10% speed reduction for 7 seconds after a Bear Trap (`trap_bear_jaw`) finishes its roar on a Bear
+    if (a.species === 'bear' && (a.bearTrapSlowTimer ?? 0) > 0) {
+      a.vx *= 0.90;
+      a.vz *= 0.90;
+    }
+
+    if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
+      const rawNextX = a.x + a.vx * safeDt;
+      const rawNextZ = a.z + a.vz * safeDt;
+      const bodyRadius =
+        a.species === 'lion' && a.isBoss ? 1.65 : SPECIES_PROFILES[a.species].predatorBodyRadius;
+      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number, prevActionTimer: number): boolean {
+  const { elapsedTime, playerStateRef, playerX, playerZ, safeDt } = frame;
+  if (a.species === 'stag') {
+    const stagDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+    const playerDistFromStagHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+    if (!a.isLeashedReturning) {
+      if (playerDistFromStagHome > 42.0 && stagDistFromHome > 38.0 && distP > 48.0) {
+        a.isLeashedReturning = true;
+        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
+        a.alertLevel = 'grazing';
+      }
+    } else if (playerDistFromStagHome <= 38.0 || distP <= 38.0) {
+      a.isLeashedReturning = false;
+    }
+    const isStagLeashedOut = Boolean(a.isLeashedReturning);
+    const isProvokedStag =
+      !a.isTamed &&
+      !isStagLeashedOut &&
+      (a.wokenUpTimer ?? 0) > 0 &&
+      (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9);
+
+    if (isProvokedStag) {
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.isFleeing = false;
+      a.fleeCooldown = 0;
+      a.alertLevel = 'curious';
+
+      const toPlayerX = playerX - a.x;
+      const toPlayerZ = playerZ - a.z;
+      const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
+      const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
+      const standoffDist = SPECIES_PROFILES.stag.meleeStandoff;
+      const attackTriggerDist = standoffDist + SPECIES_PROFILES.stag.attackReachBonus;
+      const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
+
+      if (isCommittedAttack || dPlayer <= attackTriggerDist) {
+        if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+          a.aiBehavior = 'attacking';
+          a.actionTimer = 0.88;
+        }
+        a.vx = 0;
+        a.vz = 0;
+        if (dPlayer > 0.35) {
+          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
+        }
+
+        if (
+          playerStateRef &&
+          prevActionTimer > 0.44 &&
+          (a.actionTimer ?? 0) <= 0.44 &&
+          dPlayer <= attackTriggerDist + 0.65
+        ) {
+          playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 22);
+          playerStateRef.vx += (toPlayerX / dPlayer) * 4.2;
+          playerStateRef.vz += (toPlayerZ / dPlayer) * 4.2;
+        }
+
+        if ((a.actionTimer ?? 0) <= 0.02 && dPlayer > attackTriggerDist) {
+          a.aiBehavior = 'charging';
+          a.actionTimer = 0;
+        }
+      } else {
+        a.aiBehavior = 'charging';
+        const chargeSpd = SPECIES_PROFILES.stag.chargeSpeed;
+        const maxChargeNoOvershoot =
+          Math.max(0, dPlayer - standoffDist) / Math.max(safeDt, 0.016);
+        const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+        a.vx = (toPlayerX / dPlayer) * effChargeSpd;
+        a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.5, safeDt);
+        a.hopPhase += safeDt * 15.0;
+      }
+
+      const rawNextX = a.x + a.vx * safeDt;
+      const rawNextZ = a.z + a.vz * safeDt;
+      const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
+      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+      return true;
+    }
+
+    // Unprovoked Stag: 100% neutral on the Floating Sky Islands (never flees, never attacks)
+    a.alertLevel = 'grazing';
+    a.isFleeing = false;
+    a.fleeCooldown = 0;
+    a.listenTimer = 0;
+    a.isSeekingShelter = false;
+    a.isResting = false;
+    const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
+    const wanderSeed = hash2D(a.id * 13.7, timeWindow);
+    const pauseThreshold = SPECIES_PROFILES.stag.grazePauseThreshold;
+    if (stagDistFromHome > 10.0) {
+      a.aiBehavior = 'wandering';
+      const returnSpd = 2.8;
+      a.vx = ((a.homeX - a.x) / stagDistFromHome) * returnSpd;
+      a.vz = ((a.homeZ - a.z) / stagDistFromHome) * returnSpd;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+      a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
+    } else if (wanderSeed > pauseThreshold) {
+      a.aiBehavior = 'grazing';
+      a.vx = 0;
+      a.vz = 0;
+    } else {
+      a.aiBehavior = 'wandering';
+      const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
+      const homePullX = (a.homeX - a.x) * 0.18;
+      const homePullZ = (a.homeZ - a.z) * 0.18;
+      const grazeSpeed = SPECIES_PROFILES.stag.grazeSpeed;
+      const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
+      const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
+      const blend = Math.min(1, safeDt * 4.5);
+      a.vx += (desiredVx - a.vx) * blend;
+      a.vz += (desiredVz - a.vz) * blend;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+      a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
+    }
+    const rawNextX = a.x + a.vx * safeDt;
+    const rawNextZ = a.z + a.vz * safeDt;
+    const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
+    const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+    advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepHippoAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, prevActionTimer: number): boolean {
+  const { elapsedTime, isNightRest, isPlayerSneaking, playerStateRef, playerX, playerZ, safeDt } = frame;
+  if (a.species === 'hippo') {
+    const localWaterY =
+      Math.hypot(a.x - SOUTHWEST_OASIS_POS.x, a.z - SOUTHWEST_OASIS_POS.z) <= 13.5
+        ? SOUTHWEST_OASIS_POS.lagoonWaterY
+        : WATER_LEVEL;
+    const toPlayerX = playerX - a.x;
+    const toPlayerZ = playerZ - a.z;
+    const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
+    const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
+    const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
+    const hippoTerritoryRadius = 65.0;
+    const hippoDisengageDist = 42.0;
+
+    // Territory Leash & Provoked Pursuit Rule:
+    // 1) When attacked from ANY distance ((a.wokenUpTimer ?? 0) > 0), the hippo immediately aggros
+    //    and chases the player relentlessly until the player has BOTH exited the hippo's territory
+    //    (playerDistFromHome > hippoTerritoryRadius) AND moved far away from the hippo (dPlayer > hippoDisengageDist).
+    // 2) Once the player is outside BOTH the territory AND the proximity range, the hippo disengages
+    //    (isLeashedReturning = true) and runs back to its home territory (a.homeX, a.homeZ).
+    if (a.isLeashedReturning) {
+      if (hippoDistFromHome <= 6.5) {
+        a.isLeashedReturning = false;
+      }
+    } else if ((a.wokenUpTimer ?? 0) > 0) {
+      if (playerDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
+        a.wokenUpTimer = 0;
+        a.actionTimer = 0;
+        a.aiBehavior = 'wandering';
+        a.alertLevel = 'grazing';
+        a.isLeashedReturning = true;
+      } else {
+        // Keep grudge active while actively pursuing the player
+        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
+      }
+    } else if (hippoDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
+      a.actionTimer = 0;
+      a.aiBehavior = 'wandering';
+      a.alertLevel = 'grazing';
+      a.isLeashedReturning = true;
+    }
+
+    const isProvokedHippo = !a.isLeashedReturning && (a.wokenUpTimer ?? 0) > 0;
+    const warnRadius = isPlayerSneaking ? 8.5 : 15.0;
+    const chargeRadius = isPlayerSneaking ? 5.5 : 10.5;
+    const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
+    const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
+    const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
+    const isCommittedAttack =
+      !a.isLeashedReturning &&
+      a.aiBehavior === 'attacking' &&
+      (a.actionTimer ?? 0) > 0.02 &&
+      (isProvokedHippo || dPlayer <= hippoDisengageDist);
+    const isCommittedYawn =
+      !a.isLeashedReturning &&
+      a.aiBehavior === 'roaring' &&
+      (a.actionTimer ?? 0) > 0.02 &&
+      dPlayer <= warnRadius + 4.0;
+
+    if (!a.isLeashedReturning && (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius)) {
+      a.isResting = false;
+      a.isSeekingShelter = false;
+      a.isFleeing = false;
+      a.alertLevel = 'curious';
+      a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
+      if (isCommittedAttack || dPlayer <= attackTriggerDist) {
+        if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
+          a.aiBehavior = 'attacking';
+          a.actionTimer = 1.25;
+        }
+        // Hippo keeps running/charging forward while executing its leg-moving attack whenever the player backs away,
+        // while strictly maintaining a 2.65m body gap so the player camera never enters inside the Hippo's 3D body!
+        const chargeSpd = SPECIES_PROFILES.hippo.chargeSpeed;
+        const minBodyGap = standoffDist;
+        const maxStepNoOverlap = Math.max(0, dPlayer - minBodyGap) / Math.max(safeDt, 0.016);
+        const attackMoveSpd = dPlayer > minBodyGap ? Math.min(chargeSpd, maxStepNoOverlap) : 0;
+        if (dPlayer > 0.35) {
+          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
+        }
+        a.vx = (toPlayerX / dPlayer) * attackMoveSpd;
+        a.vz = (toPlayerZ / dPlayer) * attackMoveSpd;
+        a.hopPhase += safeDt * 14.5;
+        if (
+          playerStateRef &&
+          prevActionTimer > 0.62 &&
+          (a.actionTimer ?? 0) <= 0.62 &&
+          dPlayer <= attackTriggerDist + 1.25
+        ) {
+          playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 24);
+          playerStateRef.vx += (toPlayerX / dPlayer) * 4.4;
+          playerStateRef.vz += (toPlayerZ / dPlayer) * 4.4;
+        }
+        if ((a.actionTimer ?? 0) <= 0.02 && dPlayer > attackTriggerDist) {
+          a.aiBehavior = 'charging';
+          a.actionTimer = 0;
+        }
+      } else {
+        a.aiBehavior = 'charging';
+        const chargeSpd = SPECIES_PROFILES.hippo.chargeSpeed;
+        const maxChargeNoOvershoot =
+          Math.max(0, dPlayer - standoffDist) / Math.max(safeDt, 0.016);
+        const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
+        a.vx = (toPlayerX / dPlayer) * effChargeSpd;
+        a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
+        a.hopPhase += safeDt * 13.0;
+      }
+    } else if (!a.isLeashedReturning && (isCommittedYawn || dPlayer <= warnRadius)) {
+      // Territorial tusk-yawn warning display in place!
+      a.isResting = false;
+      a.alertLevel = 'curious';
+      if (a.aiBehavior !== 'roaring' || (a.actionTimer ?? 0) <= 0) {
+        a.aiBehavior = 'roaring';
+        a.actionTimer = 1.15;
+      }
+      a.vx = 0;
+      a.vz = 0;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
+    } else if (a.isLeashedReturning || hippoDistFromHome > 6.5) {
+      // Run back to lagoon/marsh home territory when leashed, or stroll back when idle outside home core
+      a.alertLevel = 'grazing';
+      a.isResting = false;
+      a.aiBehavior = a.isLeashedReturning ? 'charging' : 'wandering';
+      const returnSpd = a.isLeashedReturning ? 6.2 : 2.6;
+      a.vx = ((a.homeX - a.x) / (hippoDistFromHome || 1)) * returnSpd;
+      a.vz = ((a.homeZ - a.z) / (hippoDistFromHome || 1)) * returnSpd;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.2, safeDt);
+      a.hopPhase += safeDt * (a.isLeashedReturning ? 12.5 : 7.5);
+    } else {
+      // Peaceful amphibious lagoon/river wallowing, sleeping ('lie'), and reed grazing
+      a.alertLevel = 'grazing';
+      const timeWindow = Math.floor(elapsedTime * 0.004 + a.id * 1.43);
+      const seed = hash2D(a.id * 17.1, timeWindow);
+      if (isNightRest || seed > 0.62) {
+        a.isResting = true;
+        a.aiBehavior = 'sleeping';
+        a.vx = 0;
+        a.vz = 0;
+      } else if (seed > 0.36) {
+        a.isResting = false;
+        a.aiBehavior = 'grazing';
+        a.vx = 0;
+        a.vz = 0;
+      } else {
+        a.isResting = false;
+        a.aiBehavior = 'wandering';
+        const targetAng = (seed / 0.36) * Math.PI * 2;
+        const goalX = a.homeX + Math.cos(targetAng) * 6.5;
+        const goalZ = a.homeZ + Math.sin(targetAng) * 6.5;
+        const toGoalX = goalX - a.x;
+        const toGoalZ = goalZ - a.z;
+        const dGoal = Math.hypot(toGoalX, toGoalZ);
+        if (dGoal < 1.1) {
+          a.aiBehavior = 'grazing';
+          a.vx = 0;
+          a.vz = 0;
+        } else {
+          const spd = SPECIES_PROFILES.hippo.grazeSpeed;
+          const desiredVx = (toGoalX / dGoal) * spd;
+          const desiredVz = (toGoalZ / dGoal) * spd;
+          const blend = Math.min(1, safeDt * 4.0);
+          a.vx += (desiredVx - a.vx) * blend;
+          a.vz += (desiredVz - a.vz) * blend;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 3.8, safeDt);
+          a.hopPhase += safeDt * SPECIES_PROFILES.hippo.grazeHopRate;
+        }
+      }
+    }
+
+    const rawNextX = a.x + a.vx * safeDt;
+    const rawNextZ = a.z + a.vz * safeDt;
+    const resolved = resolveAnimalObstacleCollision(
+      rawNextX,
+      rawNextZ,
+      SPECIES_PROFILES.hippo.preyBodyRadius
+    );
+    a.x = resolved.x;
+    a.z = resolved.z;
+
+    // Hard physical body separation between Hippo and Player so the player/camera can NEVER enter inside the Hippo's 3D body!
+    if (playerStateRef) {
+      const sepDx = playerStateRef.x - a.x;
+      const sepDz = playerStateRef.z - a.z;
+      const sepDist = Math.hypot(sepDx, sepDz);
+      const minPlayerGap = 2.55;
+      if (sepDist < minPlayerGap) {
+        const nx = sepDist > 0.001 ? sepDx / sepDist : Math.sin(a.yaw);
+        const nz = sepDist > 0.001 ? sepDz / sepDist : Math.cos(a.yaw);
+        const overlap = minPlayerGap - sepDist;
+        a.x -= nx * overlap * 0.45;
+        a.z -= nz * overlap * 0.45;
+        playerStateRef.x += nx * overlap * 0.55;
+        playerStateRef.z += nz * overlap * 0.55;
+      }
+    }
+
+    const nextGroundY = walkableHeightValueAt(a.x, a.z, a.y);
+    if (nextGroundY <= localWaterY + 0.15) {
+      a.inWater = true;
+      const depth = Math.max(0, localWaterY - nextGroundY);
+      const submerge = Math.min(depth, getAnimalWaterSubmergenceDepth('hippo'));
+      a.y = Math.max(nextGroundY, localWaterY - submerge);
+    } else {
+      a.inWater = false;
+      a.y = nextGroundY;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: number, frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, distP: number): boolean {
+  const { elapsedTime, isAttacking, isNightRest, isPlayerSneaking, playerSpeed, playerX, playerZ, safeDt } = frame;
+  if (a.species === 'koifish') {
+    const localWaterY =
+      Math.hypot(a.homeX - SOUTHWEST_OASIS_POS.x, a.homeZ - SOUTHWEST_OASIS_POS.z) <= 13.5
+        ? SOUTHWEST_OASIS_POS.lagoonWaterY
+        : WATER_LEVEL;
+    a.inWater = true;
+    a.isSeekingShelter = false;
+    a.pounceHeight = 0;
+
+    const startleDist = isPlayerSneaking ? 2.5 : 7.5;
+    if (distP < startleDist && (playerSpeed > 0.25 || isAttacking)) {
+      if (a.alertLevel !== 'fleeing') {
+        tally.scamperedCritterCount++;
+      }
+      a.isResting = false;
+      a.wokenUpTimer = 8.0;
+      a.alertLevel = 'fleeing';
+      a.aiBehavior = 'fleeing';
+      a.isFleeing = true;
+      a.fleeCooldown = 2.6;
+    } else if (a.fleeCooldown > 0) {
+      a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
+      if (a.fleeCooldown <= 0) {
+        a.isFleeing = false;
+        a.alertLevel = 'grazing';
+      }
+    }
+
+    // Nighttime underwater sleeping for lake fish:
+    if (isNightRest && a.alertLevel !== 'fleeing' && (a.wokenUpTimer ?? 0) <= 0) {
+      a.isResting = true;
+      a.aiBehavior = 'sleeping';
+      a.vx = 0;
+      a.vz = 0;
+      const sleepTargetY = Math.max(groundHeightAt(a.x, a.z) + 0.16, localWaterY - 0.65);
+      a.y += (sleepTargetY - (a.y ?? sleepTargetY)) * Math.min(1, safeDt * 3.0);
+      return true;
+    }
+    a.isResting = false;
+
+    // Check if an armed Woven Fish Trap ('trap_fish') is in range in the same pond/lagoon
+    let chosenFishTrap: { x: number; z: number; dist: number } | null = null;
+    const placedTraps = getActivePlacedTrapsRef();
+    if (placedTraps.length > 0 && a.alertLevel !== 'fleeing' && distP >= startleDist) {
+      for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
+        const tr = placedTraps[tIdx];
+        if (tr.status !== 'armed' || tr.kind !== 'trap_fish') continue;
+        const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
+        if (dTrap <= 30.0) {
+          const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
+          if (choice === 'approach' && (!chosenFishTrap || dTrap < chosenFishTrap.dist)) {
+            chosenFishTrap = { x: tr.x, z: tr.z, dist: dTrap };
+          }
+        }
+      }
+    }
+
+    // 1. Boids Schooling (Separation, Alignment, Cohesion) with fellow Koi in the same pond
+    let sepX = 0;
+    let sepZ = 0;
+    let alignSin = 0;
+    let alignCos = 0;
+    let cohX = 0;
+    let cohZ = 0;
+    let neighborCount = 0;
+    for (let j = 0; j < animals.length; j++) {
+      if (j === i) continue;
+      const other = animals[j];
+      if (other.species !== 'koifish' || other.isDead) continue;
+      const dx = a.x - other.x;
+      const dz = a.z - other.z;
+      const d = Math.hypot(dx, dz);
+      if (d > 0.001 && d < 9.5) {
+        if (d < 1.45) {
+          const repulse = (1.45 - d) / 1.45;
+          sepX += (dx / d) * repulse * 2.1;
+          sepZ += (dz / d) * repulse * 2.1;
+        }
+        alignSin += Math.sin(other.yaw);
+        alignCos += Math.cos(other.yaw);
+        cohX += other.x;
+        cohZ += other.z;
+        neighborCount++;
+      }
+    }
+
+    let desiredDirX = Math.sin(a.yaw);
+    let desiredDirZ = Math.cos(a.yaw);
+    let targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed;
+    let maxTurnRate = 3.6;
+
+    if (a.alertLevel === 'fleeing') {
+      a.aiBehavior = 'fleeing';
+      const awayX = a.x - playerX;
+      const awayZ = a.z - playerZ;
+      const awayLen = Math.hypot(awayX, awayZ) || 1;
+      const homePullX = (a.homeX - a.x) * 0.22;
+      const homePullZ = (a.homeZ - a.z) * 0.22;
+      desiredDirX = awayX / awayLen + homePullX + sepX * 0.6;
+      desiredDirZ = awayZ / awayLen + homePullZ + sepZ * 0.6;
+      targetSwimSpd = SPECIES_PROFILES.koifish.preyFleeSpeed;
+      maxTurnRate = 7.5;
+    } else if (chosenFishTrap) {
+      a.alertLevel = 'curious';
+      a.aiBehavior = 'wandering';
+      desiredDirX = chosenFishTrap.x - a.x + sepX * 0.35;
+      desiredDirZ = chosenFishTrap.z - a.z + sepZ * 0.35;
+      targetSwimSpd = 1.65;
+      maxTurnRate = 4.8;
+    } else {
+      a.alertLevel = 'grazing';
+      // Determine whether this fish belongs to the large Western Lagoon Lake (-138, 42) near the starting cabin,
+      // the Central Lake (-2, 1.5), or a smaller pond/lagoon, so lake fish roam across the ENTIRE lake!
+      const inWestLagoonLake = Math.hypot(a.homeX - -138.0, a.homeZ - 42.0) <= 28.0;
+      const inCentralLake = Math.hypot(a.homeX - -2.0, a.homeZ - 1.5) <= 22.0;
+      const basinCenterX = inWestLagoonLake ? -138.0 : inCentralLake ? -2.0 : a.homeX;
+      const basinCenterZ = inWestLagoonLake ? 42.0 : inCentralLake ? 1.5 : a.homeZ;
+      const patrolRadX = inWestLagoonLake ? 16.5 : inCentralLake ? 12.5 : 4.2;
+      const patrolRadZ = inWestLagoonLake ? 14.0 : inCentralLake ? 11.5 : 3.8;
+      const maxBasinRadius = inWestLagoonLake ? 21.0 : inCentralLake ? 15.5 : 4.8;
+
+      // Smooth figure-8 / wandering school current across the entire lake basin
+      const schoolPhase = elapsedTime * 0.24 + a.id * 1.15;
+      const patrolTargetX =
+        basinCenterX +
+        Math.cos(schoolPhase) * patrolRadX * (0.65 + 0.35 * Math.sin(schoolPhase * 0.43 + a.id));
+      const patrolTargetZ =
+        basinCenterZ +
+        Math.sin(schoolPhase * 0.78) * patrolRadZ * (0.65 + 0.35 * Math.cos(schoolPhase * 0.37 + a.id));
+      let steerX = (patrolTargetX - a.x) * 0.45 + sepX * 1.35;
+      let steerZ = (patrolTargetZ - a.z) * 0.45 + sepZ * 1.35;
+
+      if (neighborCount > 0) {
+        const avgCohX = cohX / neighborCount - a.x;
+        const avgCohZ = cohZ / neighborCount - a.z;
+        steerX += (alignSin / neighborCount) * 0.85 + avgCohX * 0.22;
+        steerZ += (alignCos / neighborCount) * 0.85 + avgCohZ * 0.22;
+      }
+
+      // Keep fish gently within their lake/pond basin radius without hard perimeter clamping
+      const distBasinNow = Math.hypot(a.x - basinCenterX, a.z - basinCenterZ);
+      if (distBasinNow > maxBasinRadius) {
+        const pullStrength = (distBasinNow - maxBasinRadius) * 0.65;
+        steerX += ((basinCenterX - a.x) / distBasinNow) * pullStrength;
+        steerZ += ((basinCenterZ - a.z) / distBasinNow) * pullStrength;
+      }
+
+      desiredDirX = steerX;
+      desiredDirZ = steerZ;
+
+      // Burst-and-coast fish swimming rhythm (energetic tail kick followed by calm glide)
+      const glideCycle = (elapsedTime * 0.85 + a.id * 2.17) % 6.0;
+      if (glideCycle < 1.35) {
+        // Tail-kick burst
+        const burstPulse = Math.sin((glideCycle / 1.35) * Math.PI);
+        targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * (1.15 + burstPulse * 0.55);
+        a.aiBehavior = 'wandering';
+      } else if (glideCycle > 4.6 && glideCycle < 5.5) {
+        // Gentle surface nibble
+        targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * 0.62;
+        a.aiBehavior = 'grazing';
+      } else {
+        // Calm cruise
+        targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * 0.92;
+        a.aiBehavior = 'wandering';
+      }
+    }
+
+    let desiredYaw =
+      Math.hypot(desiredDirX, desiredDirZ) > 0.001
+        ? Math.atan2(desiredDirX, desiredDirZ)
+        : a.yaw;
+
+    // 2. Shoreline & Shallow-Water Avoidance Feelers (keep fish inside deep water channel)
+    const feelerDist = 1.65;
+    const minSafeDepth = 0.22;
+    const aheadX = a.x + Math.sin(desiredYaw) * feelerDist;
+    const aheadZ = a.z + Math.cos(desiredYaw) * feelerDist;
+    const aheadDepth = localWaterY - walkableHeightValueAt(aheadX, aheadZ);
+    if (aheadDepth < minSafeDepth) {
+      let bestFeelerYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
+      let bestDepth = -999;
+      const feelerOffsets = [-0.75, 0.75, -1.45, 1.45, Math.PI];
+      for (let f = 0; f < feelerOffsets.length; f++) {
+        const testYaw = desiredYaw + feelerOffsets[f];
+        const tx = a.x + Math.sin(testYaw) * feelerDist;
+        const tz = a.z + Math.cos(testYaw) * feelerDist;
+        const dWater = localWaterY - walkableHeightValueAt(tx, tz);
+        if (dWater > bestDepth) {
+          bestDepth = dWater;
+          bestFeelerYaw = testYaw;
+        }
+      }
+      desiredYaw = bestFeelerYaw;
+      maxTurnRate = Math.max(maxTurnRate, 6.2);
+    }
+
+    // 3. Strictly align velocity with body heading so fish always swim nose-first (never sideways)
+    a.yaw = rotateYawSmoothlyToward(a.yaw, desiredYaw, maxTurnRate, safeDt);
+    const prevSpeed = Math.hypot(a.vx, a.vz) || targetSwimSpd;
+    const smoothSpeed = prevSpeed + (targetSwimSpd - prevSpeed) * Math.min(1, safeDt * 5.0);
+    a.vx = Math.sin(a.yaw) * smoothSpeed;
+    a.vz = Math.cos(a.yaw) * smoothSpeed;
+    a.hopPhase += safeDt * (3.5 + smoothSpeed * 3.8);
+
+    let nextX = a.x + a.vx * safeDt;
+    let nextZ = a.z + a.vz * safeDt;
+    const nextDepth = localWaterY - walkableHeightValueAt(nextX, nextZ);
+    if (nextDepth < 0.14) {
+      // Turn smoothly toward home water center if shoreline reached
+      const toHomeYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
+      a.yaw = rotateYawSmoothlyToward(a.yaw, toHomeYaw, 8.5, safeDt);
+      a.vx = Math.sin(a.yaw) * smoothSpeed * 0.65;
+      a.vz = Math.cos(a.yaw) * smoothSpeed * 0.65;
+      nextX = a.x + a.vx * safeDt;
+      nextZ = a.z + a.vz * safeDt;
+    }
+
+    a.x = nextX;
+    a.z = nextZ;
+    const nibbleOffset = a.aiBehavior === 'grazing' ? 0.04 : 0;
+    const minBedY = groundHeightAt(a.x, a.z) + 0.16;
+    a.y = Math.max(
+      minBedY,
+      localWaterY -
+        0.38 +
+        nibbleOffset +
+        Math.sin(elapsedTime * 2.1 + a.id * 1.3) * 0.025
+    );
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepDolphinAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number): boolean {
+  const { elapsedTime, safeDt } = frame;
+  if (a.species === 'dolphin') {
+    a.inWater = true;
+    a.isResting = false;
+    a.isSeekingShelter = false;
+
+    const isPlayerNearby = distP < 36.0;
+    a.alertLevel = isPlayerNearby ? 'curious' : 'grazing';
+    const podRate = isPlayerNearby ? 0.58 : 0.38;
+    const orbitAng = elapsedTime * podRate + a.id * 1.05;
+    const rx = 18.0 + (a.id % 2) * 5.5;
+    const rz = 12.5 + (a.id % 3) * 4.0;
+    const targetX = a.homeX + Math.cos(orbitAng) * rx;
+    const targetZ = a.homeZ + Math.sin(orbitAng * 0.85) * rz;
+    const dx = targetX - a.x;
+    const dz = targetZ - a.z;
+    const d = Math.hypot(dx, dz) || 1;
+    const swimSpd = isPlayerNearby
+      ? SPECIES_PROFILES.dolphin.chargeSpeed * 0.78
+      : SPECIES_PROFILES.dolphin.grazeSpeed;
+    const desiredVx = (dx / d) * swimSpd;
+    const desiredVz = (dz / d) * swimSpd;
+    const blend = Math.min(1, safeDt * 4.5);
+    a.vx += (desiredVx - a.vx) * blend;
+    a.vz += (desiredVz - a.vz) * blend;
+    a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.2, safeDt);
+    a.hopPhase += safeDt * SPECIES_PROFILES.dolphin.grazeHopRate;
+
+    // Periodic parabolic ocean wave leap (every ~9.5 seconds, staggered across pod members)
+    const leapCycle = (elapsedTime + a.id * 3.17) % 9.5;
+    if (leapCycle < 1.15) {
+      const leapPhase = leapCycle / 1.15;
+      a.pounceHeight = Math.sin(leapPhase * Math.PI) * 1.75;
+      a.aiBehavior = 'charging';
+    } else {
+      a.pounceHeight = 0;
+      a.aiBehavior = isPlayerNearby ? 'stalking' : 'wandering';
+    }
+
+    const nextX = a.x + a.vx * safeDt;
+    const nextZ = a.z + a.vz * safeDt;
+    const seabedY = groundHeightAt(nextX, nextZ);
+    if (seabedY <= WATER_LEVEL - 0.35) {
+      a.x = nextX;
+      a.z = nextZ;
+    } else {
+      // Steer back toward deeper pod home water if approaching shallow beach
+      const toHomeX = a.homeX - a.x;
+      const toHomeZ = a.homeZ - a.z;
+      const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
+      a.vx = (toHomeX / dHome) * swimSpd;
+      a.vz = (toHomeZ / dHome) * swimSpd;
+      a.x += a.vx * safeDt;
+      a.z += a.vz * safeDt;
+      a.yaw = Math.atan2(a.vx, a.vz);
+    }
+    const baseDolphinSwimY = a.x > 650 ? WATER_LEVEL - 1.56 : WATER_LEVEL - 0.36;
+    a.y = baseDolphinSwimY + Math.sin(elapsedTime * 2.1 + a.id) * 0.06;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepImmediateDangerFlight(a: ISmallAnimalState, animals: ISmallAnimalState[], frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, immediateDanger: boolean, nearestThreatX: number, nearestThreatZ: number, threatIsPredatorOrCharging: boolean, minThreatDist: number, awakeSensory: { readonly visionRange: number; readonly hearingRadius: number; }, playerAudibleOrVisible: boolean, distP: number, playerNoiseRate: number, fleeRadius: 2.5 | 8.8 | 10.5): boolean {
+  const { isPlayerSneaking, playerSpeed, safeDt } = frame;
+  if (immediateDanger) {
+    if (a.alertLevel !== 'fleeing') {
+      tally.scamperedCritterCount++;
+    }
+    a.alertLevel = 'fleeing';
+    a.aiBehavior = 'fleeing';
+    a.isFleeing = true;
+    a.fleeCooldown = 3.4;
+    a.listenTimer = 0;
+    a.isResting = false;
+    a.isSeekingShelter = false;
+    tally.scamperedCritterCount += propagateHerdAlert(a, nearestThreatX, nearestThreatZ, animals);
+  } else if (a.fleeCooldown > 0) {
+    a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
+    if (a.fleeCooldown <= 0) {
+      a.isFleeing = false;
+      a.alertLevel = 'grazing';
+      a.aiBehavior = 'grazing';
+    } else {
+      a.isFleeing = true;
+      a.aiBehavior = 'fleeing';
+    }
+  } else if (a.species === 'deer') {
+    // DEER SPECIFIC AI: Stand upright to listen when hearing noise or seeing movement,
+    // then decide based on incoming sensory info whether to flee or return to grazing!
+    const stimulusDetected =
+      (threatIsPredatorOrCharging && minThreatDist < awakeSensory.hearingRadius) ||
+      (playerAudibleOrVisible && distP < awakeSensory.hearingRadius);
+
+    if ((a.listenTimer ?? 0) > 0) {
+      // Currently listening & evaluating the stimulus
+      a.listenTimer = Math.max(0, (a.listenTimer ?? 0) - safeDt);
+      a.alertLevel = 'curious';
+      a.aiBehavior = 'listening';
+      a.isFleeing = false;
+      a.stimulusX = nearestThreatX;
+      a.stimulusZ = nearestThreatZ;
+
+      // While listening, if threat approaches rapidly or makes loud noise -> FLEE!
+      const loudThreatWhileListening =
+        (threatIsPredatorOrCharging && minThreatDist < 15.0) ||
+        playerNoiseRate > 0.55 ||
+        (playerSpeed > 3.2 && distP < 15.5);
+
+      if (loudThreatWhileListening) {
+        tally.scamperedCritterCount++;
+        a.alertLevel = 'fleeing';
+        a.aiBehavior = 'fleeing';
+        a.isFleeing = true;
+        a.fleeCooldown = 3.5;
+        a.listenTimer = 0;
+      } else if ((a.listenTimer ?? 0) <= 0) {
+        // Finished listening and no dangerous escalation -> return to grazing!
+        a.alertLevel = 'grazing';
+        a.aiBehavior = 'grazing';
+        a.listenCooldown = 3.2;
+      }
+    } else if (stimulusDetected && (a.listenCooldown ?? 0) <= 0) {
+      // Enter upright listening posture to evaluate the sound/sight!
+      a.alertLevel = 'curious';
+      a.aiBehavior = 'listening';
+      a.listenTimer = 1.65;
+      a.isFleeing = false;
+      a.stimulusX = nearestThreatX;
+      a.stimulusZ = nearestThreatZ;
+    } else {
+      a.alertLevel = 'grazing';
+      a.isFleeing = false;
+    }
+  } else {
+    const curiousRadius =
+      a.species === 'sheep'
+        ? isPlayerSneaking || playerSpeed < 0.8
+          ? fleeRadius
+          : fleeRadius + 2.5
+        : isPlayerSneaking
+          ? 6.5
+          : 16.5;
+    if (minThreatDist < curiousRadius) {
+      a.alertLevel = 'curious';
+      a.aiBehavior = 'listening';
+      a.isFleeing = false;
+      a.stimulusX = nearestThreatX;
+      a.stimulusZ = nearestThreatZ;
+    } else {
+      a.alertLevel = 'grazing';
+      a.isFleeing = false;
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepRabbitAndSquirrelAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, awakeSensory: { readonly visionRange: number; readonly hearingRadius: number; }, distP: number): boolean {
+  const { elapsedTime, isPlayerSneaking, isRaining, safeDt } = frame;
+  if ((a.species === 'rabbit' || a.species === 'squirrel') && !isRaining) {
+    const placedTraps = getActivePlacedTrapsRef();
+    if (placedTraps.length > 0) {
+      const playerVisibleDist = isPlayerSneaking ? 4.5 : awakeSensory.visionRange;
+      let anyTrapInRange = false;
+      let nearestChosenTrap: { x: number; z: number; dist: number } | null = null;
+      for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
+        const tr = placedTraps[tIdx];
+        if (tr.status !== 'armed') continue;
+        const recipe = TRAP_RECIPES.find((r) => r.kind === tr.kind);
+        if (!recipe || !recipe.targetSpecies.includes(a.species)) continue;
+        const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
+        if (dTrap <= recipe.attractRadius) {
+          anyTrapInRange = true;
+          if (a.alertLevel !== 'fleeing' && !a.isFleeing && distP >= playerVisibleDist) {
+            const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
+            if (choice === 'approach' && (!nearestChosenTrap || dTrap < nearestChosenTrap.dist)) {
+              nearestChosenTrap = { x: tr.x, z: tr.z, dist: dTrap };
+            }
+          }
+        }
+      }
+
+      // If a trap is in range but the rabbit/squirrel sees the player nearby, it flees from the player!
+      if (anyTrapInRange && distP < playerVisibleDist && a.alertLevel !== 'fleeing') {
+        tally.scamperedCritterCount++;
+        a.alertLevel = 'fleeing';
+        a.aiBehavior = 'fleeing';
+        a.isFleeing = true;
+        a.fleeCooldown = 3.4;
+        a.isResting = false;
+        a.isSeekingShelter = false;
+      } else if (nearestChosenTrap && nearestChosenTrap.dist > 0.05 && a.alertLevel !== 'fleeing') {
+        a.isResting = false;
+        a.isSeekingShelter = false;
+        // If this is a squirrel currently up on a tree trunk, make it climb down the trunk first!
+        if (
+          a.species === 'squirrel' &&
+          (a.treeState === 'perched' || a.treeState === 'climb_up' || a.treeState === 'canopy_leap')
+        ) {
+          a.treeState = 'climb_down';
+        }
+        // Walk cautiously along the ground toward the chosen trap once on the ground
+        if (
+          a.species !== 'squirrel' ||
+          !a.treeState ||
+          a.treeState === 'ground_forage' ||
+          a.treeState === 'running_to_tree'
+        ) {
+          a.treeState = 'ground_forage';
+          a.treeClimbPitch = 0;
+          a.alertLevel = 'curious';
+          a.aiBehavior = 'wandering';
+          const lureSpd = 1.65;
+          const baseAng = Math.atan2(nearestChosenTrap.x - a.x, nearestChosenTrap.z - a.z);
+          const weave = nearestChosenTrap.dist > 2.2 ? Math.sin(elapsedTime * 1.9 + a.id) * 0.12 : 0;
+          const moveAng = baseAng + weave;
+          a.vx = Math.sin(moveAng) * lureSpd;
+          a.vz = Math.cos(moveAng) * lureSpd;
+          a.yaw = rotateYawSmoothlyToward(a.yaw, moveAng, 6.5, safeDt);
+          a.hopPhase += safeDt * 9.5;
+          const rawNextX = a.x + a.vx * safeDt;
+          const rawNextZ = a.z + a.vz * safeDt;
+          const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
+          const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
+          advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepSquirrelAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, nearestThreatX: number, nearestThreatZ: number, minThreatDist: number): boolean {
+  const { elapsedTime, isRaining, safeDt } = frame;
+  if (a.species === 'squirrel') {
+    const findCandidateTrees = (searchRad: number) => {
+      const obs = getNearbyWorldObstacles(a.x, a.z, searchRad);
+      const trees: Array<{
+        x: number;
+        z: number;
+        baseY: number;
+        trunkRad: number;
+        maxPerchH: number;
+        dist: number;
+      }> = [];
+      for (let oIdx = 0; oIdx < obs.length; oIdx++) {
+        const o = obs[oIdx];
+        if (o.kind !== 'pine' && o.kind !== 'oak' && o.kind !== 'birch') continue;
+        if ((o.radius ?? 0) <= 0.08) continue;
+        const by = groundHeightAt(o.x, o.z);
+        if (by <= WATER_LEVEL + 0.35) continue;
+        const sc = o.scale ?? 1.0;
+        const trRad = Math.max(0.28, (o.radius ?? 0.42) * 0.85);
+        const maxH = (o.kind === 'pine' ? 4.2 : 3.4) * sc;
+        trees.push({
+          x: o.x,
+          z: o.z,
+          baseY: by - 0.05,
+          trunkRad: trRad,
+          maxPerchH: Math.max(2.2, Math.min(4.8, maxH)),
+          dist: Math.hypot(o.x - a.x, o.z - a.z),
+        });
+      }
+      trees.sort((t1, t2) => t1.dist - t2.dist);
+      return trees;
+    };
+
+    // Initialize squirrel state on first tick near a real tree
+    if (!a.treeState) {
+      a.decisionCounter = a.id * 5;
+      const initTrees = findCandidateTrees(24.0);
+      if (initTrees.length > 0 && a.id % 2 === 0) {
+        const t0 = initTrees[0];
+        const ang = (a.id * 1.7) % (Math.PI * 2);
+        const perchH = 1.85 + hash2D(a.id, 31) * (t0.maxPerchH - 1.85);
+        a.treeState = 'perched';
+        a.treeObstacleX = t0.x;
+        a.treeObstacleZ = t0.z;
+        a.treeBaseY = t0.baseY;
+        a.treeTrunkRadius = t0.trunkRad;
+        a.treeTargetHeight = perchH;
+        a.treeClimbAngle = ang;
+        a.treeClimbPitch = -Math.PI * 0.38;
+        a.treeStateTimer = 2.0 + hash2D(a.id, 47) * 2.8;
+        a.x = t0.x + Math.cos(ang) * t0.trunkRad;
+        a.z = t0.z + Math.sin(ang) * t0.trunkRad;
+        a.y = t0.baseY + perchH;
+        a.yaw = Math.atan2(-Math.cos(ang), -Math.sin(ang));
+      } else {
+        a.treeState = 'ground_forage';
+        a.treeClimbPitch = 0;
+        a.treeStateTimer = 1.8 + hash2D(a.id, 59) * 2.2;
+      }
+    }
+
+    // If startled/fleeing while on the ground, bolt toward the safest nearby tree trunk and climb up!
+    if (a.alertLevel === 'fleeing') {
+      if (a.treeState === 'ground_forage' || a.treeState === 'running_to_tree') {
+        const fleeTrees = findCandidateTrees(18.0);
+        const awayX = a.x - nearestThreatX;
+        const awayZ = a.z - nearestThreatZ;
+        const awayLen = Math.hypot(awayX, awayZ) || 1;
+        let bestEscapeTree = fleeTrees[0];
+        let bestScore = -Infinity;
+        for (let tIdx = 0; tIdx < fleeTrees.length; tIdx++) {
+          const ft = fleeTrees[tIdx];
+          const toTreeX = ft.x - a.x;
+          const toTreeZ = ft.z - a.z;
+          const toTreeLen = Math.max(0.1, ft.dist);
+          const alignAway = (toTreeX * awayX + toTreeZ * awayZ) / (toTreeLen * awayLen);
+          const score = alignAway * 2.5 - ft.dist * 0.18;
+          if (score > bestScore) {
+            bestScore = score;
+            bestEscapeTree = ft;
+          }
+        }
+        if (bestEscapeTree && bestEscapeTree.dist <= 16.0) {
+          a.treeObstacleX = bestEscapeTree.x;
+          a.treeObstacleZ = bestEscapeTree.z;
+          a.treeBaseY = bestEscapeTree.baseY;
+          a.treeTrunkRadius = bestEscapeTree.trunkRad;
+          a.treeTargetHeight = bestEscapeTree.maxPerchH;
+          if (bestEscapeTree.dist <= bestEscapeTree.trunkRad + 0.48) {
+            a.treeState = 'climb_up';
+            a.treeClimbAngle = Math.atan2(a.z - bestEscapeTree.z, a.x - bestEscapeTree.x);
+            a.vx = 0;
+            a.vz = 0;
+          } else {
+            a.treeState = 'running_to_tree';
+            a.treeClimbPitch = 0;
+            const dx = bestEscapeTree.x - a.x;
+            const dz = bestEscapeTree.z - a.z;
+            const d = Math.hypot(dx, dz) || 1;
+            const fleeSpd = SPECIES_PROFILES.squirrel.preyFleeSpeed;
+            a.vx = (dx / d) * fleeSpd;
+            a.vz = (dz / d) * fleeSpd;
+            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 10.0, safeDt);
+            a.hopPhase += safeDt * 18.0;
+            const nextX = a.x + a.vx * safeDt;
+            const nextZ = a.z + a.vz * safeDt;
+            if (Math.hypot(bestEscapeTree.x - nextX, bestEscapeTree.z - nextZ) <= bestEscapeTree.trunkRad + 0.48) {
+              a.treeState = 'climb_up';
+              a.treeClimbAngle = Math.atan2(nextZ - bestEscapeTree.z, nextX - bestEscapeTree.x);
+              a.vx = 0;
+              a.vz = 0;
+            } else {
+              a.x = nextX;
+              a.z = nextZ;
+              a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(a.x, a.z));
+            }
+            return true;
+          }
+        }
+      } else if (a.treeState === 'climb_down') {
+        // If startled while climbing down, immediately reverse and climb back up to the high canopy!
+        a.treeState = 'climb_up';
+        a.treeTargetHeight = Math.max(a.treeTargetHeight ?? 3.2, 3.6);
+      } else if (a.treeState === 'perched' && a.treeObstacleX !== undefined && a.treeObstacleZ !== undefined) {
+        // Only climb higher if currently perched low on the trunk; once at top perch height, stay perched without resetting to climb_up!
+        const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+        const escapeH = Math.max(a.treeTargetHeight ?? 3.2, 3.4);
+        if (a.y < baseY + escapeH - 0.12) {
+          a.treeTargetHeight = escapeH;
+          a.treeState = 'climb_up';
+        }
+      }
+    }
+
+    // Execute vertical tree states ('climb_up', 'perched', 'canopy_leap', 'climb_down')
+    if (
+      a.treeState === 'climb_up' &&
+      a.treeObstacleX !== undefined &&
+      a.treeObstacleZ !== undefined
+    ) {
+      const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+      const trunkRad = a.treeTrunkRadius ?? 0.36;
+      const targetH = a.treeTargetHeight ?? 3.2;
+      const climbSpd = a.alertLevel === 'fleeing' ? 3.2 : 2.1;
+      const climbAng = a.treeClimbAngle ?? 0;
+      a.y = Math.min(baseY + targetH, a.y + climbSpd * safeDt);
+      a.x = a.treeObstacleX + Math.cos(climbAng) * trunkRad;
+      a.z = a.treeObstacleZ + Math.sin(climbAng) * trunkRad;
+      a.vx = 0;
+      a.vz = 0;
+      a.treeClimbPitch = -Math.PI * 0.42;
+      a.yaw = Math.atan2(-Math.cos(climbAng), -Math.sin(climbAng));
+      a.hopPhase += safeDt * 15.0;
+      if (a.y >= baseY + targetH - 0.04) {
+        a.y = baseY + targetH;
+        a.treeState = 'perched';
+        a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+        a.treeStateTimer = 2.4 + hash2D(a.decisionCounter, a.id + 19) * 3.2;
+      }
+      return true;
+    }
+
+    if (
+      a.treeState === 'perched' &&
+      a.treeObstacleX !== undefined &&
+      a.treeObstacleZ !== undefined
+    ) {
+      const trunkRad = a.treeTrunkRadius ?? 0.36;
+      const baseAng = a.treeClimbAngle ?? 0;
+      // Hold steady on the bark without oscillating yaw or spinning around the trunk
+      a.x = a.treeObstacleX + Math.cos(baseAng) * trunkRad;
+      a.z = a.treeObstacleZ + Math.sin(baseAng) * trunkRad;
+      a.vx = 0;
+      a.vz = 0;
+      a.treeClimbPitch = -Math.PI * 0.36;
+      a.yaw = Math.atan2(-Math.cos(baseAng), -Math.sin(baseAng));
+      a.treeStateTimer = (a.treeStateTimer ?? 2.5) - safeDt;
+      if (a.treeStateTimer <= 0) {
+        a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+        const dc = a.decisionCounter;
+        const nearbyTrees = findCandidateTrees(14.0).filter(
+          (t) =>
+            Math.hypot(t.x - a.treeObstacleX!, t.z - a.treeObstacleZ!) > 2.2 &&
+            (a.lastTreeX === undefined || Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5)
+        );
+        if (a.alertLevel === 'fleeing' || minThreatDist < 11.5) {
+          // While danger is near the base of the tree, either leap across canopies away from danger or stay perched high up!
+          const safeNextTree = nearbyTrees.find(
+            (t) =>
+              t.dist <= 8.5 &&
+              Math.hypot(t.x - nearestThreatX, t.z - nearestThreatZ) >
+                Math.hypot(a.treeObstacleX! - nearestThreatX, a.treeObstacleZ! - nearestThreatZ) + 1.0
+          );
+          if (safeNextTree) {
+            const landAng = Math.atan2(a.z - safeNextTree.z, a.x - safeNextTree.x);
+            const nextPerchH = Math.max(2.6, safeNextTree.maxPerchH * 0.85);
+            a.lastTreeX = a.treeObstacleX;
+            a.lastTreeZ = a.treeObstacleZ;
+            a.leapStartX = a.x;
+            a.leapStartY = a.y;
+            a.leapStartZ = a.z;
+            a.leapEndX = safeNextTree.x + Math.cos(landAng) * safeNextTree.trunkRad;
+            a.leapEndY = safeNextTree.baseY + nextPerchH;
+            a.leapEndZ = safeNextTree.z + Math.sin(landAng) * safeNextTree.trunkRad;
+            a.treeObstacleX = safeNextTree.x;
+            a.treeObstacleZ = safeNextTree.z;
+            a.treeBaseY = safeNextTree.baseY;
+            a.treeTrunkRadius = safeNextTree.trunkRad;
+            a.treeTargetHeight = nextPerchH;
+            a.treeClimbAngle = landAng;
+            a.leapDuration = Math.max(0.55, Math.min(0.95, safeNextTree.dist * 0.11));
+            a.treeStateTimer = a.leapDuration;
+            a.treeState = 'canopy_leap';
+          } else {
+            a.treeStateTimer = 2.0;
+          }
+        } else if (nearbyTrees.length > 0 && nearbyTrees[0].dist <= 8.5 && dc % 2 === 0) {
+          // Agile canopy leap to a neighboring tree!
+          const pickIdx = dc % Math.min(3, nearbyTrees.length);
+          const nextTree = nearbyTrees[pickIdx];
+          const landAng = Math.atan2(a.z - nextTree.z, a.x - nextTree.x);
+          const nextPerchH = 1.85 + hash2D(dc, a.id + 71) * (nextTree.maxPerchH - 1.85);
+          a.lastTreeX = a.treeObstacleX;
+          a.lastTreeZ = a.treeObstacleZ;
+          a.leapStartX = a.x;
+          a.leapStartY = a.y;
+          a.leapStartZ = a.z;
+          a.leapEndX = nextTree.x + Math.cos(landAng) * nextTree.trunkRad;
+          a.leapEndY = nextTree.baseY + nextPerchH;
+          a.leapEndZ = nextTree.z + Math.sin(landAng) * nextTree.trunkRad;
+          a.treeObstacleX = nextTree.x;
+          a.treeObstacleZ = nextTree.z;
+          a.treeBaseY = nextTree.baseY;
+          a.treeTrunkRadius = nextTree.trunkRad;
+          a.treeTargetHeight = nextPerchH;
+          a.treeClimbAngle = landAng;
+          a.leapDuration = Math.max(0.55, Math.min(0.95, nextTree.dist * 0.11));
+          a.treeStateTimer = a.leapDuration;
+          a.treeState = 'canopy_leap';
+        } else {
+          // Climb down the trunk to forage on the ground
+          a.treeState = 'climb_down';
+        }
+      }
+      return true;
+    }
+
+    if (a.treeState === 'canopy_leap') {
+      const dur = Math.max(0.2, a.leapDuration ?? 0.75);
+      a.treeStateTimer = Math.max(0, (a.treeStateTimer ?? dur) - safeDt);
+      const p = 1.0 - (a.treeStateTimer ?? 0) / dur;
+      const sx = a.leapStartX ?? a.x;
+      const sy = a.leapStartY ?? a.y;
+      const sz = a.leapStartZ ?? a.z;
+      const ex = a.leapEndX ?? a.x;
+      const ey = a.leapEndY ?? a.y;
+      const ez = a.leapEndZ ?? a.z;
+      a.x = sx + (ex - sx) * p;
+      a.z = sz + (ez - sz) * p;
+      a.y = sy + (ey - sy) * p + Math.sin(p * Math.PI) * 1.35;
+      a.vx = 0;
+      a.vz = 0;
+      a.treeClimbPitch = (p - 0.5) * 0.85;
+      a.yaw = Math.atan2(ex - sx, ez - sz);
+      a.hopPhase += safeDt * 18.0;
+      if (p >= 1.0) {
+        a.treeState = 'perched';
+        a.treeStateTimer = 2.2 + hash2D(a.decisionCounter ?? 1, a.id + 53) * 2.8;
+      }
+      return true;
+    }
+
+    if (
+      a.treeState === 'climb_down' &&
+      a.treeObstacleX !== undefined &&
+      a.treeObstacleZ !== undefined
+    ) {
+      const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
+      const trunkRad = a.treeTrunkRadius ?? 0.36;
+      const climbAng = a.treeClimbAngle ?? 0;
+      a.y = Math.max(baseY + 0.1, a.y - 2.25 * safeDt);
+      a.x = a.treeObstacleX + Math.cos(climbAng) * trunkRad;
+      a.z = a.treeObstacleZ + Math.sin(climbAng) * trunkRad;
+      a.vx = 0;
+      a.vz = 0;
+      a.treeClimbPitch = Math.PI * 0.42;
+      a.yaw = Math.atan2(Math.cos(climbAng), Math.sin(climbAng));
+      a.hopPhase += safeDt * 15.0;
+      if (a.y <= baseY + 0.14) {
+        // Step cleanly onto the forest floor outside the trunk collider and pick a smart foraging target
+        const outAng = climbAng + (hash2D(a.decisionCounter ?? 1, a.id) - 0.5) * 0.9;
+        const stepOut = trunkRad + 0.52;
+        a.lastTreeX = a.treeObstacleX;
+        a.lastTreeZ = a.treeObstacleZ;
+        a.x = a.treeObstacleX + Math.cos(outAng) * stepOut;
+        a.z = a.treeObstacleZ + Math.sin(outAng) * stepOut;
+        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(a.x, a.z));
+        a.treeClimbPitch = 0;
+        a.treeState = 'ground_forage';
+        a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+        const forageDist = 3.2 + hash2D(a.decisionCounter, a.id + 83) * 5.2;
+        a.forageTargetX = a.x + Math.cos(outAng) * forageDist;
+        a.forageTargetZ = a.z + Math.sin(outAng) * forageDist;
+        a.treeStateTimer = 3.2 + hash2D(a.decisionCounter, a.id + 97) * 3.0;
+      }
+      return true;
+    }
+
+    if (
+      a.treeState === 'running_to_tree' &&
+      a.treeObstacleX !== undefined &&
+      a.treeObstacleZ !== undefined &&
+      a.alertLevel !== 'fleeing'
+    ) {
+      a.treeClimbPitch = 0;
+      a.treeStateTimer = (a.treeStateTimer ?? 4.0) - safeDt;
+      const dx = a.treeObstacleX - a.x;
+      const dz = a.treeObstacleZ - a.z;
+      const distToTrunk = Math.hypot(dx, dz);
+      const trunkRad = a.treeTrunkRadius ?? 0.36;
+      if (distToTrunk <= trunkRad + 0.48) {
+        a.treeState = 'climb_up';
+        a.treeClimbAngle = Math.atan2(a.z - a.treeObstacleZ, a.x - a.treeObstacleX);
+        a.vx = 0;
+        a.vz = 0;
+        return true;
+      }
+      if ((a.treeStateTimer ?? 0) <= 0) {
+        a.treeState = 'ground_forage';
+        a.treeStateTimer = 2.5;
+        return true;
+      }
+      const runSpd = 2.85;
+      a.vx = (dx / (distToTrunk || 1)) * runSpd;
+      a.vz = (dz / (distToTrunk || 1)) * runSpd;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
+      a.hopPhase += safeDt * 13.5;
+      a.x += a.vx * safeDt;
+      a.z += a.vz * safeDt;
+      a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(a.x, a.z));
+      return true;
+    }
+
+    // Ground foraging state ('ground_forage') when calm:
+    if (a.alertLevel !== 'fleeing' && !isRaining) {
+      a.treeClimbPitch = 0;
+      a.treeStateTimer = (a.treeStateTimer ?? 3.0) - safeDt;
+      if (a.treeStateTimer <= 0) {
+        a.decisionCounter = (a.decisionCounter ?? 0) + 1;
+        const dc = a.decisionCounter;
+        // Every 2nd ground decision, pick a varied nearby tree (not the last tree!) and go climb it
+        const candidateTrees = findCandidateTrees(24.0).filter(
+          (t) =>
+            a.lastTreeX === undefined ||
+            Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5
+        );
+        if (candidateTrees.length > 0 && dc % 2 === 0) {
+          const pickIdx = dc % Math.min(4, candidateTrees.length);
+          const chosenTree = candidateTrees[pickIdx];
+          a.treeObstacleX = chosenTree.x;
+          a.treeObstacleZ = chosenTree.z;
+          a.treeBaseY = chosenTree.baseY;
+          a.treeTrunkRadius = chosenTree.trunkRad;
+          a.treeTargetHeight = 1.85 + hash2D(dc, a.id + 41) * (chosenTree.maxPerchH - 1.85);
+          a.treeStateTimer = 4.5;
+          a.treeState = 'running_to_tree';
+          return true;
+        } else {
+          // Pick a fresh ground foraging waypoint around the meadow/forest
+          const baseAng = hash2D(dc * 11, a.id + 23) * Math.PI * 2;
+          const dist = 2.8 + hash2D(dc * 17, a.id + 61) * 5.5;
+          a.forageTargetX = a.homeX + Math.cos(baseAng) * dist;
+          a.forageTargetZ = a.homeZ + Math.sin(baseAng) * dist;
+          a.treeStateTimer = 2.6 + hash2D(dc, a.id + 89) * 2.8;
+        }
+      }
+
+      const nibbleWave = Math.sin(elapsedTime * 2.3 + a.id * 1.4);
+      const fx = a.forageTargetX ?? a.homeX;
+      const fz = a.forageTargetZ ?? a.homeZ;
+      const df = Math.hypot(fx - a.x, fz - a.z);
+      if (nibbleWave > 0.35 || df < 0.45) {
+        // Pause to nibble an acorn & look around
+        a.aiBehavior = 'grazing';
+        a.vx = 0;
+        a.vz = 0;
+      } else {
+        a.aiBehavior = 'wandering';
+        const dirAng = Math.atan2(fx - a.x, fz - a.z);
+        const spd = SPECIES_PROFILES.squirrel.grazeSpeed;
+        a.vx = Math.sin(dirAng) * spd;
+        a.vz = Math.cos(dirAng) * spd;
+        a.yaw = rotateYawSmoothlyToward(a.yaw, dirAng, 6.5, safeDt);
+        a.hopPhase += safeDt * SPECIES_PROFILES.squirrel.grazeHopRate;
+        const rawNextX = a.x + a.vx * safeDt;
+        const rawNextZ = a.z + a.vz * safeDt;
+        const resolved = resolveAnimalObstacleCollision(
+          rawNextX,
+          rawNextZ,
+          SPECIES_PROFILES.squirrel.preyBodyRadius
+        );
+        if (resolved.hitObstacle) {
+          a.treeStateTimer = 0;
+        }
+        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
+ */
+function stepFleeingAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, nearestThreatX: number, nearestThreatZ: number): boolean {
+  const { elapsedTime, isRaining, safeDt } = frame;
+  if (a.alertLevel === 'fleeing') {
+    a.treeClimbPitch = 0;
+    const awayX = a.x - nearestThreatX;
+    const awayZ = a.z - nearestThreatZ;
+    const len = Math.hypot(awayX, awayZ) || 1;
+    const fleeSpeed = SPECIES_PROFILES[a.species].preyFleeSpeed;
+    a.vx = (awayX / len) * fleeSpeed;
+    a.vz = (awayZ / len) * fleeSpeed;
+    a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 8.0, safeDt);
+    a.hopPhase += safeDt * 18.0;
+    a.aiBehavior = 'fleeing';
+    a.isResting = false;
+    a.isSeekingShelter = false;
+  } else if (isRaining) {
+    // Rain Shelter Behavior: animals seek cover under the nearest tree canopy!
+    a.isSeekingShelter = true;
+    a.aiBehavior = 'seeking_shelter';
+    if (a.shelterTargetX === undefined || a.shelterTargetZ === undefined) {
+      const sh = findNearestShelterPoint(a.x, a.z, a.species, a.caveIndex);
+      a.shelterTargetX = sh.x;
+      a.shelterTargetZ = sh.z;
+    }
+    const toShX = a.shelterTargetX - a.x;
+    const toShZ = a.shelterTargetZ - a.z;
+    const distSh = Math.hypot(toShX, toShZ);
+    if (distSh > 1.15) {
+      a.isResting = false;
+      const shelterMoveSpd = SPECIES_PROFILES[a.species].shelterSpeed;
+      a.vx = (toShX / distSh) * shelterMoveSpd;
+      a.vz = (toShZ / distSh) * shelterMoveSpd;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
+      a.hopPhase += safeDt * 10.0;
+    } else {
+      // Reached shelter under tree canopy: huddle quietly out of the rain (zero sliding)
+      a.vx = 0;
+      a.vz = 0;
+      a.isResting = true;
+      a.aiBehavior = 'sleeping';
+    }
+  } else if (a.alertLevel === 'curious' || a.aiBehavior === 'listening') {
+    a.isSeekingShelter = false;
+    a.isResting = false;
+    a.aiBehavior = 'listening';
+    a.vx = 0;
+    a.vz = 0;
+    const lookX = a.stimulusX ?? nearestThreatX;
+    const lookZ = a.stimulusZ ?? nearestThreatZ;
+    const targetYaw = Math.atan2(lookX - a.x, lookZ - a.z);
+    a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.5, safeDt);
+  } else {
+    a.isSeekingShelter = false;
+    a.isResting = false;
+    const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
+    const wanderSeed = hash2D(a.id * 13.7, timeWindow);
+    const pauseThreshold = SPECIES_PROFILES[a.species].grazePauseThreshold;
+    const pauseMove = wanderSeed > pauseThreshold;
+    if (pauseMove) {
+      a.aiBehavior = 'grazing';
+      a.vx = 0;
+      a.vz = 0;
+    } else {
+      a.aiBehavior = 'wandering';
+      const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
+      const homePullX = (a.homeX - a.x) * 0.14;
+      const homePullZ = (a.homeZ - a.z) * 0.14;
+      const grazeSpeed = SPECIES_PROFILES[a.species].grazeSpeed;
+      const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
+      const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
+      const blend = Math.min(1, safeDt * 4.5);
+      a.vx += (desiredVx - a.vx) * blend;
+      a.vz += (desiredVz - a.vz) * blend;
+      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
+      a.hopPhase += safeDt * SPECIES_PROFILES[a.species].grazeHopRate;
+    }
+  }
+  return false;
 }
 
 /**
@@ -2063,2563 +4789,28 @@ export function stepSmallAnimals(
   rainIntensity = 0,
   playerStateRef?: IPlayerState
 ): { scamperedCritterCount: number; nearestCritterDist: number } {
-  const safeDt = Math.max(0, Math.min(0.1, dt));
-  const isNightRest = daylightFactor < 0.35;
-  const isRaining = rainIntensity > 0.15;
-  let scamperedCritterCount = 0;
-  let nearestCritterDist = Infinity;
-
+  const frame: ISmallAnimalStepFrame = {
+    dt,
+    safeDt: Math.max(0, Math.min(0.1, dt)),
+    elapsedTime,
+    playerX,
+    playerZ,
+    horses,
+    daylightFactor,
+    playerSpeed,
+    isPlayerSneaking,
+    isAttacking,
+    rainIntensity,
+    playerStateRef,
+    isNightRest: daylightFactor < 0.35,
+    isRaining: rainIntensity > 0.15,
+    _soundCallbacks,
+  };
+  const tally: ISmallAnimalStepTally = { scamperedCritterCount: 0, nearestCritterDist: Infinity };
   for (let i = 0; i < animals.length; i++) {
-    const a = animals[i];
-
-    // Dead animals stay anchored on top of the terrain (while dead fish sink into the water!). Kings/Bosses NEVER respawn, while regular animals respawn after their timer when the player is outside their territory!
-    if (a.isDead) {
-      if (a.aiBehavior !== 'dead' || a.vx !== 0 || a.vz !== 0) {
-        a.vx = 0;
-        a.vz = 0;
-        if (a.species !== 'koifish') {
-          a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z, a.y).height);
-        }
-        a.isResting = false;
-        a.isSeekingShelter = false;
-        a.isFleeing = false;
-        a.aiBehavior = 'dead';
-      }
-      if (a.species === 'koifish') {
-        const lakeBedY = Math.max(groundHeightAt(a.x, a.z) + 0.14, WATER_LEVEL - 1.15);
-        a.y = Math.max(lakeBedY, (a.y ?? WATER_LEVEL - 0.38) - Math.max(0.016, dt) * 0.65);
-      }
-      if (a.isBoss || a.species === 'dragon') {
-        a.respawnTimer = undefined;
-        continue;
-      }
-      if (dt > 0) {
-        a.respawnTimer = (a.respawnTimer ?? ANIMAL_RESPAWN_DELAY_SECONDS) - Math.max(0, dt);
-        const toHomeDx = a.homeX - playerX;
-        const toHomeDz = a.homeZ - playerZ;
-        const distPlayerToHome = Math.hypot(toHomeDx, toHomeDz);
-        const distPlayerToCorpse = Math.hypot(a.x - playerX, a.z - playerZ);
-        let canRespawnOffscreen = distPlayerToHome > 38.0 && distPlayerToCorpse > 38.0;
-        if (playerStateRef) {
-          // Respawn once the player is outside the animal's territory/radius (> 62m) and either not staring directly at a close spawn spot or > 125m away!
-          const lookX = -Math.sin(playerStateRef.yaw);
-          const lookZ = -Math.cos(playerStateRef.yaw);
-          const dot =
-            distPlayerToHome > 0.001
-              ? (toHomeDx * lookX + toHomeDz * lookZ) / distPlayerToHome
-              : 1.0;
-          canRespawnOffscreen =
-            distPlayerToHome > 62.0 &&
-            distPlayerToCorpse > 56.0 &&
-            (dot < 0.35 || distPlayerToHome > 125.0);
-        }
-        if (a.respawnTimer <= 0 && canRespawnOffscreen) {
-          const homeWalk = walkableHeightAt(a.homeX, a.homeZ);
-          a.x = a.homeX;
-          a.z = a.homeZ;
-          const isAquaticOrSemiAquatic =
-            a.species === 'hippo' ||
-            a.species === 'crocodile' ||
-            a.species === 'koifish' ||
-            a.species === 'dolphin';
-          if (isAquaticOrSemiAquatic && homeWalk.height <= WATER_LEVEL + 0.15) {
-            a.inWater = true;
-            const depth = Math.max(0, WATER_LEVEL - homeWalk.height);
-            const submerge = Math.min(depth, getAnimalWaterSubmergenceDepth(a.species));
-            a.y = Math.max(homeWalk.height, WATER_LEVEL - submerge);
-          } else {
-            a.inWater = false;
-            a.y = Math.max(WATER_LEVEL + 0.08, homeWalk.height);
-          }
-          a.vx = 0;
-          a.vz = 0;
-          a.isDead = false;
-          a.isLooted = false;
-          a.isSubdued = false;
-          a.maxHp = a.maxHp ?? getAnimalMaxHp(a.species);
-          a.hp = a.maxHp;
-          a.respawnTimer = undefined;
-          a.wokenUpTimer = 0;
-          a.hitReactionTimer = 0;
-          a.fleeCooldown = 0;
-          a.roarWarningDone = false;
-          a.stompWarningDone = false;
-          a.trappedByBearJawTimer = 0;
-          a.bearTrapSlowTimer = 0;
-          a.alertLevel = 'grazing';
-          a.aiBehavior = 'grazing';
-        }
-      }
-      continue;
-    }
-
-    const dxP = a.x - playerX;
-    const dzP = a.z - playerZ;
-    const distP = Math.hypot(dxP, dzP);
-    if (distP < nearestCritterDist) {
-      nearestCritterDist = distP;
-    }
-
-    if (safeDt <= 0) continue;
-
-    // Logic Culling (Sleep State): completely freeze simulation for any animal outside the 180m fog/active radius
-    // until the player approaches its radius again.
-    if (playerStateRef && distP > 180.0 && !a.isMountedByPlayer) {
-      continue;
-    }
-
-    const prevActionTimer = a.actionTimer ?? 0;
-    if ((a.wokenUpTimer ?? 0) > 0) {
-      a.wokenUpTimer = Math.max(0, (a.wokenUpTimer ?? 0) - safeDt);
-    }
-    if ((a.hitReactionTimer ?? 0) > 0) {
-      a.hitReactionTimer = Math.max(0, (a.hitReactionTimer ?? 0) - safeDt);
-    }
-    if ((a.listenCooldown ?? 0) > 0) {
-      a.listenCooldown = Math.max(0, (a.listenCooldown ?? 0) - safeDt);
-    }
-    if ((a.actionTimer ?? 0) > 0) {
-      a.actionTimer = Math.max(0, (a.actionTimer ?? 0) - safeDt);
-    }
-    if ((a.attackHitCooldownTimer ?? 0) > 0) {
-      a.attackHitCooldownTimer = Math.max(0, (a.attackHitCooldownTimer ?? 0) - safeDt);
-    }
-    if ((a.bearTrapSlowTimer ?? 0) > 0) {
-      a.bearTrapSlowTimer = Math.max(0, (a.bearTrapSlowTimer ?? 0) - safeDt);
-    }
-
-    // Heavy Steel Bear Trap (`trap_bear_jaw`) clamped to Bear's front paw:
-    // Bear stops in place and plays its 4-legged roar animation (`aiBehavior = 'roaring'`) for 2.4s.
-    // Once the roar animation finishes, the trap disappears and the bear immediately resumes chasing with -10% speed for 7s!
-    if ((a.trappedByBearJawTimer ?? 0) > 0) {
-      a.trappedByBearJawTimer = Math.max(0, (a.trappedByBearJawTimer ?? 0) - safeDt);
-      a.isResting = false;
-      a.isSeekingShelter = false;
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.alertLevel = 'curious';
-      a.pounceHeight = 0;
-      a.vx = 0;
-      a.vz = 0;
-      if ((a.trappedByBearJawTimer ?? 0) > 0) {
-        a.aiBehavior = 'roaring';
-        a.actionTimer = a.trappedByBearJawTimer;
-        if (distP > 0.35) {
-          const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
-          a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 4.0, safeDt);
-        }
-        continue;
-      } else {
-        // Roar finished -> trap vanishes from paw and bear resumes chasing the player!
-        a.aiBehavior = 'charging';
-        a.actionTimer = 0;
-        a.roarWarningDone = true;
-        a.stompWarningDone = true;
-        a.wokenUpTimer = 22.0;
-        a.stimulusX = playerX;
-        a.stimulusZ = playerZ;
-      }
-    }
-
-    // The Southern Ruins Dragon's 3D flight/landing/resting/fire-breathing trajectory is driven by sanctuaryAndDragonModels.ts
-    if (a.species === 'dragon') {
-      continue;
-    }
-
-    // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
-    // its position, velocity, and yaw are driven directly by stepPlayerPhysics!
-    if (a.isMountedByPlayer) {
-      a.isResting = false;
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.alertLevel = 'grazing';
-      a.pounceHeight = 0;
-      const spd = Math.hypot(a.vx, a.vz);
-      // Note: a.actionTimer was already decremented once above (line 1567) — do NOT double-decrement it here!
-      if ((a.actionTimer ?? 0) > 0 && a.aiBehavior === 'attacking') {
-        a.vx = 0;
-        a.vz = 0;
-      } else {
-        a.aiBehavior = spd > 3.2 ? 'charging' : spd > 0.2 ? 'wandering' : 'grazing';
-      }
-      a.hopPhase += safeDt * Math.max(4.0, spd * 1.8);
-      continue;
-    }
-
-    // Keep any animal standing on the Sailable Ship deck safely aboard during the voyage!
-    const activeShip = getActiveSailableShip();
-    if (isEntityOnSailableShipDeck(a.x, a.z, a.y, activeShip, 1.35)) {
-      a.isResting = false;
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.alertLevel = 'grazing';
-      a.aiBehavior = 'grazing';
-      a.pounceHeight = 0;
-      a.vx = 0;
-      a.vz = 0;
-      a.inWater = false;
-      a.y = sailableShipDeckHeightAt(a.x, a.z, a.y, activeShip) ?? activeShip.deckY;
-      a.homeX = a.x;
-      a.homeZ = a.z;
-      continue;
-    }
-
-    // If this animal has been tamed by the player (unmounted Royal Stag or Mystical CatLion companion),
-    // it wanders, grazes, and rests peacefully around its current territory without staring at or attacking the player!
-    if (a.isTamed) {
-      a.isResting = false;
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.alertLevel = 'grazing';
-      a.pounceHeight = 0;
-      const timeWindow = Math.floor(elapsedTime * 0.14 + a.id * 1.53);
-      const wanderSeed = hash2D(a.id * 17.3, timeWindow);
-      if (wanderSeed > 0.62) {
-        a.aiBehavior = a.species === 'lion' && wanderSeed > 0.82 ? 'sitting' : 'grazing';
-        a.vx = 0;
-        a.vz = 0;
-      } else {
-        a.aiBehavior = 'wandering';
-        const targetAngle = (wanderSeed / 0.62) * Math.PI * 2;
-        const homePullX = (a.homeX - a.x) * 0.14;
-        const homePullZ = (a.homeZ - a.z) * 0.14;
-        const roamSpd = a.species === 'lion' ? 1.85 : 1.75;
-        const desiredVx = Math.cos(targetAngle) * roamSpd + homePullX;
-        const desiredVz = Math.sin(targetAngle) * roamSpd + homePullZ;
-        const blend = Math.min(1, safeDt * 4.0);
-        a.vx += (desiredVx - a.vx) * blend;
-        a.vz += (desiredVz - a.vz) * blend;
-        if (Math.hypot(a.vx, a.vz) > 0.08) {
-          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
-        }
-        a.hopPhase += safeDt * 6.0;
-        const rawNextX = a.x + a.vx * safeDt;
-        const rawNextZ = a.z + a.vz * safeDt;
-        const bodyRadius = a.species === 'lion' && a.isBoss ? 1.65 : 0.75;
-        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-      }
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 1. NIGHTTIME SLEEPING & INVISIBLE WAKE-UP NOISE METER
-    //    When sleeping: visionRange = 0 (eyes closed!) and hearingRadius is reduced!
-    // -------------------------------------------------------------------------
-    if (
-      isNightRest &&
-      a.species !== 'koifish' &&
-      a.species !== 'dolphin' &&
-      (a.wokenUpTimer ?? 0) <= 0 &&
-      a.fleeCooldown <= 0
-    ) {
-      const sleepSensory = getAnimalSensoryProfile(a.species, true);
-      // Check noise from player or nearby predator within reduced sleeping hearing radius
-      let sleepNoiseRate = -0.28;
-      if (distP < sleepSensory.hearingRadius) {
-        sleepNoiseRate = computePlayerNoiseRateAtDistance(
-          distP,
-          playerSpeed,
-          isPlayerSneaking,
-          isAttacking,
-          true
-        );
-      }
-      // Also check if an awake moving predator is making noise within sleeping hearing range
-      let predatorNearSleepX = playerX;
-      let predatorNearSleepZ = playerZ;
-      for (let j = 0; j < animals.length; j++) {
-        if (i === j) continue;
-        const other = animals[j];
-        if (other.isDead || !isPredatorSpecies(other.species)) continue;
-        const dPred = Math.hypot(a.x - other.x, a.z - other.z);
-        const predSpd = Math.hypot(other.vx, other.vz);
-        if (dPred < sleepSensory.hearingRadius && predSpd > 0.6 && !isPredatorSpecies(a.species)) {
-          const predNoise = 0.55 + (1 - dPred / sleepSensory.hearingRadius) * 0.9;
-          if (predNoise > sleepNoiseRate) {
-            sleepNoiseRate = predNoise;
-            predatorNearSleepX = other.x;
-            predatorNearSleepZ = other.z;
-          }
-        }
-      }
-
-      const nextWake = Math.max(0, Math.min(1, (a.wakeMeter ?? 0) + sleepNoiseRate * safeDt));
-      a.wakeMeter = nextWake;
-
-      if (nextWake >= 1.0) {
-        // Woken up by excessive noise!
-        a.isResting = false;
-        a.wokenUpTimer = 8.0;
-        a.alertLevel = 'fleeing';
-        a.aiBehavior = 'fleeing';
-        a.isFleeing = true;
-        a.fleeCooldown = 4.5;
-        a.stimulusX = predatorNearSleepX;
-        a.stimulusZ = predatorNearSleepZ;
-        scamperedCritterCount++;
-      } else {
-        // Eyes closed (vision = 0), still sleeping peacefully
-        a.isResting = true;
-        a.isSeekingShelter = false;
-        a.alertLevel = 'grazing';
-        a.aiBehavior = 'sleeping';
-        a.isFleeing = false;
-        a.vx = 0;
-        a.vz = 0;
-        a.pounceHeight = 0;
-        continue;
-      }
-    } else if (!isNightRest) {
-      a.wakeMeter = Math.max(0, (a.wakeMeter ?? 0) - 0.5 * safeDt);
-    }
-
-    // -------------------------------------------------------------------------
-    // 2. PREDATOR AI (BEAR, JAGUAR, CROCODILE, WOLF, RHINO)
-    //    - Zero ground sliding: stationary animations ('roaring', 'stomping', 'sitting',
-    //      'grazing', 'sleeping', and Bear/Crocodile 'attacking') strictly hold vx = 0, vz = 0.
-    //    - Wolf & Jaguar Forward Pounce Leap ('attacking'): leaps forward along a locked
-    //      airborne arc (pounceHeight > 0) up to 1.55m from launch; hits if target doesn't
-    //      dodge, misses cleanly and lands with vx = 0, vz = 0 if target retreats/dodges.
-    //    - Rhino High-Momentum Charge: accelerates to high speed, cannot brake during its
-    //      running horn-gore attack, has restricted turning radius at high speed so it tries
-    //      to turn when dodged, overshoots, decelerates/brakes, turns around, and charges again.
-    // -------------------------------------------------------------------------
-    // If the Giant Volcano Boss CatLion has been beaten down to low HP (isSubdued),
-    // it does NOT flee and does NOT attack — it sits subdued waiting for the player to feed it meat and tame it with [F]!
-    if (
-      a.species === 'lion' &&
-      a.isBoss &&
-      !a.isTamed &&
-      (a.isSubdued || (a.hp ?? a.maxHp ?? 360) <= Math.max(60, Math.ceil((a.maxHp ?? 360) * 0.25)))
-    ) {
-      a.isSubdued = true;
-      a.isResting = false;
-      a.isSeekingShelter = false;
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.alertLevel = 'grazing';
-      a.aiBehavior = 'sitting';
-      a.pounceHeight = 0;
-      a.vx = 0;
-      a.vz = 0;
-      if (distP < 14.0 && distP > 0.4) {
-        const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
-        a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, 3.5, safeDt);
-      }
-      continue;
-    }
-
-    if (isPredatorSpecies(a.species)) {
-      const myRank = getAnimalSizeRank(a.species, a.isBoss);
-      let largerThreatX = 0;
-      let largerThreatZ = 0;
-      let largerThreatDist = Infinity;
-
-      // Check if a larger predator is nearby (e.g., bear threatening jaguar/crocodile/wolf)
-      for (let j = 0; j < animals.length; j++) {
-        if (i === j) continue;
-        const other = animals[j];
-        if (other.isDead || !isPredatorSpecies(other.species)) continue;
-        if (getAnimalSizeRank(other.species, other.isBoss) > myRank) {
-          const dOther = Math.hypot(a.x - other.x, a.z - other.z);
-          if (dOther < 14.5 && dOther < largerThreatDist) {
-            largerThreatDist = dOther;
-            largerThreatX = other.x;
-            largerThreatZ = other.z;
-          }
-        }
-      }
-
-      // Check if overwhelmed by a charging horse or heavy player weapon strike
-      for (let h = 0; h < horses.length; h++) {
-        const hr = horses[h];
-        if (hr.speed > 6.0) {
-          const dH = Math.hypot(a.x - hr.x, a.z - hr.z);
-          if (dH < 11.5 && dH < largerThreatDist) {
-            largerThreatDist = dH;
-            largerThreatX = hr.x;
-            largerThreatZ = hr.z;
-          }
-        }
-      }
-      if (!isPredatorSpecies(a.species) && isAttacking && distP < 6.5 && distP < largerThreatDist) {
-        largerThreatDist = distP;
-        largerThreatX = playerX;
-        largerThreatZ = playerZ;
-      }
-
-      // Smaller Volcano CatLions (!isBoss) flee when their HP drops low (<= 2) like regular animals!
-      if (
-        a.species === 'lion' &&
-        !a.isBoss &&
-        (a.hp ?? a.maxHp ?? 5) <= Math.max(1, Math.ceil((a.maxHp ?? 5) * 0.35)) &&
-        distP < 22.0
-      ) {
-        largerThreatDist = distP;
-        largerThreatX = playerX;
-        largerThreatZ = playerZ;
-      }
-      // The Giant Volcano Boss CatLion never flees!
-      if (a.species === 'lion' && a.isBoss) {
-        largerThreatDist = Infinity;
-        a.fleeCooldown = 0;
-        a.isFleeing = false;
-      }
-
-      if (largerThreatDist < Infinity) {
-        if (a.alertLevel !== 'fleeing') {
-          scamperedCritterCount++;
-        }
-        a.alertLevel = 'fleeing';
-        a.aiBehavior = 'fleeing';
-        a.isFleeing = true;
-        a.fleeCooldown = 3.6;
-        a.isResting = false;
-        a.isSeekingShelter = false;
-        a.pounceHeight = 0;
-        a.stimulusX = largerThreatX;
-        a.stimulusZ = largerThreatZ;
-      } else if (a.fleeCooldown > 0) {
-        a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
-        if (a.fleeCooldown <= 0) {
-          a.isFleeing = false;
-          a.alertLevel = 'grazing';
-        }
-      }
-
-      if (a.alertLevel === 'fleeing' && a.fleeCooldown > 0) {
-        const tx = a.stimulusX ?? playerX;
-        const tz = a.stimulusZ ?? playerZ;
-        const awayX = a.x - tx;
-        const awayZ = a.z - tz;
-        const len = Math.hypot(awayX, awayZ) || 1;
-        const fleeSpd = SPECIES_PROFILES[a.species].predatorFleeSpeed;
-        a.vx = (awayX / len) * fleeSpd;
-        a.vz = (awayZ / len) * fleeSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
-        a.hopPhase += safeDt * 14.0;
-        a.aiBehavior = 'fleeing';
-        a.isResting = false;
-        a.isSeekingShelter = false;
-        a.pounceHeight = 0;
-      } else if (a.species === 'bear' && isRaining) {
-        // Bear returns through the mountain tunnel into its deep cavern when it rains!
-        const caveIdx = a.caveIndex ?? 0;
-        const deepChamberPos = caveLocalToWorld(caveIdx, 0, -15.0);
-        const distToChamberCenter = Math.hypot(deepChamberPos.x - a.x, deepChamberPos.z - a.z);
-        const caveWaypoint = findNearestShelterPoint(a.x, a.z, 'bear', caveIdx);
-        a.shelterTargetX = deepChamberPos.x;
-        a.shelterTargetZ = deepChamberPos.z;
-        a.isSeekingShelter = true;
-        a.pounceHeight = 0;
-
-        if (distToChamberCenter > 3.2) {
-          a.isResting = false;
-          a.alertLevel = 'grazing';
-          a.aiBehavior = 'seeking_shelter';
-          const toWpX = caveWaypoint.x - a.x;
-          const toWpZ = caveWaypoint.z - a.z;
-          const distWp = Math.hypot(toWpX, toWpZ) || 1;
-          const caveSpd = 4.4;
-          a.vx = (toWpX / distWp) * caveSpd;
-          a.vz = (toWpZ / distWp) * caveSpd;
-          a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
-          a.hopPhase += safeDt * 9.0;
-        } else {
-          // Inside the mountain cavern chamber: lie down and rest out of the rain (zero sliding)
-          a.vx = 0;
-          a.vz = 0;
-          a.isResting = true;
-          a.alertLevel = 'grazing';
-          a.aiBehavior = 'sleeping';
-        }
-      } else {
-        // Predator scans for prey (deer, sheep, rabbits, squirrels, or non-sneaking player)
-        a.isSeekingShelter = false;
-        const sensory = getAnimalSensoryProfile(a.species, false);
-        let preyX = 0;
-        let preyZ = 0;
-        let bestPreyDist = sensory.visionRange;
-        let foundPrey = false;
-        let preyIsPlayer = false;
-
-        for (let j = 0; j < animals.length; j++) {
-          if (i === j) continue;
-          const other = animals[j];
-          if (other.isDead || isPredatorSpecies(other.species)) continue;
-          if (
-            a.species === 'crocodile' &&
-            Math.hypot(other.x - a.homeX, other.z - a.homeZ) > 22.0
-          ) {
-            continue;
-          }
-          const dPrey = Math.hypot(other.x - a.x, other.z - a.z);
-          if (dPrey < bestPreyDist) {
-            bestPreyDist = dPrey;
-            preyX = other.x;
-            preyZ = other.z;
-            foundPrey = true;
-            preyIsPlayer = false;
-          }
-        }
-
-        const isBossLion = a.species === 'lion' && Boolean(a.isBoss);
-        const playerDistToVolcanoCenter = isBossLion
-          ? Math.hypot(playerX - VOLCANO_SANCTUM_POS.x, playerZ - VOLCANO_SANCTUM_POS.z)
-          : Infinity;
-        const playerInBossChamber =
-          isBossLion && playerDistToVolcanoCenter <= VOLCANO_SANCTUM_POS.chamberRadius;
-        const playerInVolcanoSanctum =
-          isBossLion && Boolean(isInsideVolcanoSanctum(playerX, playerZ));
-
-        // Universal Predator Dual-Condition Territory Leash & Grudge Memory Rule:
-        // A creature ONLY stops chasing (`a.isLeashedReturning = true`) when BOTH:
-        //   1) The player has moved far outside the creature's large chase range (`distP > 54.0`)
-        //   2) AND the creature itself is outside its home territory (`animalDistFromHome > territoryRadius`) AND the player is outside its territory (`!playerInsideCreatureTerritory`).
-        // When it stops chasing and walks back to its territory, it RETAINS `a.wokenUpTimer` (45s grudge memory)
-        // so if the player returns to the area or comes within 42m during that time, it immediately resumes attacking!
-        const animalDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-        const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
-        const territoryRadius = a.species === 'crocodile' ? 42.0 : 48.0;
-        const chaseRange = 54.0;
-        const reaggroRange = 42.0;
-        const playerInsideCreatureTerritory =
-          playerDistFromHome <= territoryRadius ||
-          (a.species === 'bear' && a.caveIndex !== undefined && playerDistFromHome <= 52.0) ||
-          playerInBossChamber ||
-          (isBossLion && playerInVolcanoSanctum);
-
-        if (!a.isLeashedReturning) {
-          if (
-            !playerInsideCreatureTerritory &&
-            animalDistFromHome > territoryRadius &&
-            distP > chaseRange
-          ) {
-            a.isLeashedReturning = true;
-            a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
-            a.alertLevel = 'grazing';
-            a.stimulusX = undefined;
-            a.stimulusZ = undefined;
-          }
-        } else {
-          // Creature is walking back home with a grudge: if player returns to territory or within 42m, immediately resume chasing!
-          if (playerInsideCreatureTerritory || distP <= reaggroRange) {
-            a.isLeashedReturning = false;
-            a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
-          } else if (animalDistFromHome <= 6.0 && (a.wokenUpTimer ?? 0) <= 0) {
-            a.isLeashedReturning = false;
-          }
-        }
-
-        const isCreatureLeashedOutOfTerritory = Boolean(a.isLeashedReturning);
-
-        const provokedByShot =
-          !isCreatureLeashedOutOfTerritory &&
-          (a.wokenUpTimer ?? 0) > 0 &&
-          ((a.hp ?? a.maxHp ?? 1) < (a.maxHp ?? 1) || a.species === 'crocodile');
-        const alreadyChasingPlayer = !isCreatureLeashedOutOfTerritory && a.alertLevel === 'curious';
-        const basePlayerDetectRange = alreadyChasingPlayer
-          ? SPECIES_PROFILES[a.species].playerDetectRangeWhileChasing
-          : SPECIES_PROFILES[a.species].playerDetectRange;
-        const maxProvokedRange = SPECIES_PROFILES[a.species].provokedDetectRange;
-        const playerDetectRange =
-          playerInBossChamber || (isBossLion && provokedByShot && playerInVolcanoSanctum)
-            ? 95.0
-            : provokedByShot
-              ? maxProvokedRange
-              : isPlayerSneaking
-                ? 4.2
-                : basePlayerDetectRange;
-        const playerRidingMysticalLion = Boolean(
-          playerStateRef?.mountedHorseId?.startsWith('mount-lion-')
-        );
-        const playerVertDiff = playerStateRef !== null && playerStateRef !== undefined ? Math.abs(playerStateRef.y - a.y) : 0;
-        // Same vertical reach as the damage check, so an animal never picks a player it cannot hit (e.g. a hovering player).
-        const canReachPlayerVertically = playerVertDiff <= (a.isBoss || (a.species as string) === 'dragon' ? 4.2 : 2.6);
-        if (
-          !isCreatureLeashedOutOfTerritory &&
-          !playerRidingMysticalLion &&
-          canReachPlayerVertically &&
-          (!isBossLion || playerInBossChamber || (provokedByShot && playerInVolcanoSanctum)) &&
-          distP < playerDetectRange &&
-          distP <= (provokedByShot || playerInBossChamber ? 95.0 : bestPreyDist)
-        ) {
-          bestPreyDist = distP;
-          preyX = playerX;
-          preyZ = playerZ;
-          foundPrey = true;
-          preyIsPlayer = true;
-        }
-
-        // FULL ANIMATION COMMITMENT RULE:
-        // If a predator has started an attack ('attacking') or stationary threat action ('roaring', 'stomping'),
-        // it CANNOT cancel or interrupt the animation mid-way (even if prey moves out of range),
-        // and it CANNOT begin moving until the full animation finishes and transitions to a locomotion state!
-        const hasActiveCommittedAction =
-          !isCreatureLeashedOutOfTerritory &&
-          (a.actionTimer ?? 0) > 0 &&
-          (a.aiBehavior === 'attacking' || a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping');
-
-        if (!foundPrey && hasActiveCommittedAction) {
-          foundPrey = true;
-          preyX = a.stimulusX ?? playerX;
-          preyZ = a.stimulusZ ?? playerZ;
-          bestPreyDist = Math.hypot(preyX - a.x, preyZ - a.z);
-        }
-
-        if (foundPrey) {
-          a.isResting = false;
-          a.alertLevel = 'curious';
-          a.stimulusX = preyX;
-          a.stimulusZ = preyZ;
-          const steeredTarget =
-            a.species === 'bear'
-              ? steerBearThroughCavePortal(a.x, a.z, preyX, preyZ, a.caveIndex)
-              : a.species === 'lion'
-                ? steerLionThroughVolcanoPortal(a.x, a.z, preyX, preyZ)
-                : { x: preyX, z: preyZ };
-          const toPreyX = steeredTarget.x - a.x;
-          const toPreyZ = steeredTarget.z - a.z;
-          const len = Math.hypot(toPreyX, toPreyZ) || 1;
-          const targetYaw = Math.atan2(toPreyX, toPreyZ);
-          const standoffDist = getPredatorMeleeStandoffDist(a.species, a.isBoss);
-          const attackTriggerDist = getPredatorAttackTriggerDist(a.species, a.isBoss);
-
-          // -----------------------------------------------------------------
-          // A. RHINO COMBAT:
-          //    1) If already in a stationary 'attacking' animation (actionTimer > 0), finish the full
-          //       stationary attack animation in place (vx = 0, vz = 0) before moving!
-          //    2) If running ('charging' with rhinoChargeSpeed > 3.2) and prey is in range:
-          //       DO NOT switch to 'attacking' clip — keep running ('charging') toward/through the player
-          //       and let the running charge impact deal damage!
-          //    3) If NOT running (rhinoChargeSpeed <= 3.2) and prey is within attackTriggerDist:
-          //       Perform stationary 'attacking' in place (vx = 0, vz = 0) without moving!
-          // -----------------------------------------------------------------
-          if (a.species === 'rhino') {
-            a.pounceHeight = 0;
-            if ((a.rhinoPhaseTimer ?? 0) > 0) {
-              a.rhinoPhaseTimer = Math.max(0, (a.rhinoPhaseTimer ?? 0) - safeDt);
-            }
-
-            if (a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0) {
-              // Stationary Rhino attack in progress: must complete full animation without moving!
-              a.vx = 0;
-              a.vz = 0;
-              a.rhinoChargeSpeed = 0;
-              if (bestPreyDist > 0.35) {
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.2, safeDt);
-              }
-              if (
-                preyIsPlayer &&
-                playerStateRef &&
-                prevActionTimer > 0.42 &&
-                (a.actionTimer ?? 0) <= 0.42 &&
-                bestPreyDist <= standoffDist + 0.95
-              ) {
-                playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 16);
-                playerStateRef.vx += (toPreyX / len) * 3.6;
-                playerStateRef.vz += (toPreyZ / len) * 3.6;
-              }
-            } else if ((a.rhinoChargeSpeed ?? 0) <= 3.2 && bestPreyDist <= attackTriggerDist) {
-              // Rhino is NOT running and player is within melee range -> stationary attack in place!
-              a.aiBehavior = 'attacking';
-              a.actionTimer = 0.85;
-              a.vx = 0;
-              a.vz = 0;
-              a.rhinoChargeSpeed = 0;
-              if (bestPreyDist > 0.35) {
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.6, safeDt);
-              }
-            } else {
-              const phase = a.rhinoPhase ?? 'charging';
-
-              if (phase === 'overshoot_braking') {
-                // Rhino missed/overshot target: tries to turn slowly while heavy momentum skids/decelerates it forward
-                const curSpd = Math.max(1.25, (a.rhinoChargeSpeed ?? 6.8) - 7.6 * safeDt);
-                a.rhinoChargeSpeed = curSpd;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 1.05, safeDt);
-                a.vx = Math.sin(a.yaw) * curSpd;
-                a.vz = Math.cos(a.yaw) * curSpd;
-                a.aiBehavior = curSpd > 3.2 ? 'charging' : 'wandering';
-                a.hopPhase += safeDt * (curSpd * 1.8);
-                if (curSpd <= 1.35 || (a.rhinoPhaseTimer ?? 0) <= 0) {
-                  a.rhinoPhase = 'realigning';
-                  a.rhinoPhaseTimer = 1.25;
-                }
-              } else if (phase === 'realigning') {
-                // Rhino has braked after overshooting: pivots on walking feet to line up a new charge
-                a.rhinoChargeSpeed = 1.35;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.4, safeDt);
-                a.vx = Math.sin(a.yaw) * 1.35;
-                a.vz = Math.cos(a.yaw) * 1.35;
-                a.aiBehavior = 'wandering';
-                a.hopPhase += safeDt * 6.5;
-                const angleDiff = Math.abs(Math.atan2(Math.sin(targetYaw - a.yaw), Math.cos(targetYaw - a.yaw)));
-                if (angleDiff < 0.26 || (a.rhinoPhaseTimer ?? 0) <= 0) {
-                  a.rhinoPhase = 'charging';
-                  a.rhinoPhaseTimer = 0;
-                }
-              } else {
-                // 'charging' phase: Rhino is running toward target!
-                // If target is in range while running, Rhino simply continues running ('charging') and that running impact deals damage!
-                const curSpd = Math.min(9.5, Math.max(3.4, (a.rhinoChargeSpeed ?? 3.4) + 7.2 * safeDt));
-                a.rhinoChargeSpeed = curSpd;
-                const turnRate = curSpd > 4.2 ? 0.88 : 2.8;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, turnRate, safeDt);
-                const fwdX = Math.sin(a.yaw);
-                const fwdZ = Math.cos(a.yaw);
-                const cosToPrey = (toPreyX * fwdX + toPreyZ * fwdZ) / len;
-
-                a.aiBehavior = 'charging';
-                let stepSpd = curSpd;
-                if (cosToPrey > 0.84 && bestPreyDist <= standoffDist + 0.15) {
-                  stepSpd = Math.min(curSpd, Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016));
-                }
-                a.vx = fwdX * stepSpd;
-                a.vz = fwdZ * stepSpd;
-                a.hopPhase += safeDt * 16.0;
-
-                // Running impact damage when charging Rhino reaches target
-                if (
-                  bestPreyDist <= standoffDist + 1.05 &&
-                  cosToPrey > 0.42 &&
-                  (a.attackHitCooldownTimer ?? 0) <= 0
-                ) {
-                  a.attackHitCooldownTimer = 0.85;
-                  if (preyIsPlayer && playerStateRef) {
-                    playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 18);
-                    playerStateRef.vx += fwdX * 4.5;
-                    playerStateRef.vz += fwdZ * 4.5;
-                  }
-                  a.rhinoPhase = 'overshoot_braking';
-                  a.rhinoPhaseTimer = 1.05;
-                } else if (curSpd > 4.5 && cosToPrey < 0.42 && bestPreyDist < 9.5) {
-                  // Target sidestepped/dodged the charging Rhino! Rhino tries to turn, fails, and enters overshoot braking
-                  a.rhinoPhase = 'overshoot_braking';
-                  a.rhinoPhaseTimer = 1.15;
-                }
-              }
-            }
-          } else {
-            // -----------------------------------------------------------------
-            // B. BEAR, CROCODILE, WOLF & JAGUAR COMBAT & PROGRESSION
-            //    - Once an attack ('attacking') or stationary warning ('roaring', 'stomping') starts,
-            //      it is 100% committed until actionTimer reaches 0 (even if prey backs away).
-            //    - Crocodile pushes/lunges itself forward during its bite strike when it thinks it is close enough!
-            // -----------------------------------------------------------------
-            const chargeSpd = SPECIES_PROFILES[a.species].chargeSpeed;
-
-            const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0;
-            const isCommittedStationaryWarning =
-              (a.aiBehavior === 'roaring' || a.aiBehavior === 'stomping') && (a.actionTimer ?? 0) > 0;
-
-            if (isCommittedAttack || (!isCommittedStationaryWarning && bestPreyDist <= attackTriggerDist)) {
-              const isPouncer = SPECIES_PROFILES[a.species].pouncesOnPrey;
-
-              if (isPouncer) {
-                // WOLF & JAGUAR FORWARD POUNCE LEAP (0.68s active cycle — no post-attack freeze!):
-                // Locks trajectory at launch and leaps through the air (pounceHeight > 0).
-                if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
-                  a.aiBehavior = 'attacking';
-                  a.actionTimer = 0.68;
-                  a.pounceDirX = toPreyX / len;
-                  a.pounceDirZ = toPreyZ / len;
-                  a.pounceStartX = a.x;
-                  a.pounceStartZ = a.z;
-                }
-
-                const timer = a.actionTimer ?? 0;
-                const pDirX = a.pounceDirX ?? toPreyX / len;
-                const pDirZ = a.pounceDirZ ?? toPreyZ / len;
-                const distFromLaunch = Math.hypot(
-                  a.x - (a.pounceStartX ?? a.x),
-                  a.z - (a.pounceStartZ ?? a.z)
-                );
-                const maxPounceReach = 1.65;
-                const gap = bestPreyDist - standoffDist;
-
-                if (timer > 0.16) {
-                  // Airborne pounce phase (0.68 -> 0.16)
-                  const leapProgress = Math.max(0, Math.min(1, (0.68 - timer) / 0.52));
-                  a.pounceHeight = Math.sin(leapProgress * Math.PI) * 0.56;
-
-                  if (gap > 0.04 && distFromLaunch < maxPounceReach) {
-                    const remLaunchBudget = Math.max(0, maxPounceReach - distFromLaunch);
-                    const maxAllowedStep = Math.min(gap, remLaunchBudget) / Math.max(safeDt, 0.016);
-                    const leapSpd = Math.min(chargeSpd * 1.05, maxAllowedStep);
-                    a.vx = pDirX * leapSpd;
-                    a.vz = pDirZ * leapSpd;
-                  } else {
-                    a.vx = 0;
-                    a.vz = 0;
-                  }
-                } else {
-                  // Grounded landing completion (0.16 -> 0): strictly vx = 0, vz = 0 until transitioning to locomotion!
-                  a.pounceHeight = 0;
-                  a.vx = 0;
-                  a.vz = 0;
-                }
-
-                if (bestPreyDist > 0.35) {
-                  a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.8, safeDt);
-                }
-                a.hopPhase += safeDt * 14.0;
-
-                // Pounce hits ONLY if player did not dodge/retreat out of pounce landing range!
-                if (
-                  preyIsPlayer &&
-                  playerStateRef &&
-                  prevActionTimer > 0.34 &&
-                  timer <= 0.34 &&
-                  bestPreyDist <= standoffDist + 0.65
-                ) {
-                  playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 12);
-                  playerStateRef.vx += pDirX * 2.6;
-                  playerStateRef.vz += pDirZ * 2.6;
-                }
-
-                // Immediately transition to locomotion ('charging') as soon as the 0.68s pounce finishes so it never freezes!
-                if (timer <= 0.02) {
-                  a.pounceHeight = 0;
-                  a.actionTimer = 0;
-                  if (bestPreyDist <= attackTriggerDist) {
-                    a.aiBehavior = 'attacking';
-                  } else {
-                    a.aiBehavior = 'charging';
-                    const maxChargeNoOvershoot =
-                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
-                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-                    a.vx = (toPreyX / len) * effChargeSpd;
-                    a.vz = (toPreyZ / len) * effChargeSpd;
-                  }
-                }
-              } else if (a.species === 'crocodile') {
-                // CROCODILE FORWARD LUNGE STRIKE:
-                // When the crocodile thinks it is close enough (<= 4.35m), it pushes itself forward
-                // with a powerful jaw-snap lunge along its launch direction and delivers a heavy bite!
-                if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
-                  a.aiBehavior = 'attacking';
-                  a.actionTimer = 0.86;
-                  a.pounceDirX = toPreyX / len;
-                  a.pounceDirZ = toPreyZ / len;
-                  a.pounceStartX = a.x;
-                  a.pounceStartZ = a.z;
-                }
-                a.pounceHeight = 0;
-                const timer = a.actionTimer ?? 0;
-                const lungeDirX = a.pounceDirX ?? toPreyX / len;
-                const lungeDirZ = a.pounceDirZ ?? toPreyZ / len;
-                const distFromLaunch = Math.hypot(
-                  a.x - (a.pounceStartX ?? a.x),
-                  a.z - (a.pounceStartZ ?? a.z)
-                );
-                const maxLungeReach = 1.95;
-                const gapToPrey = bestPreyDist - standoffDist * 0.82;
-
-                if (timer > 0.24 && distFromLaunch < maxLungeReach && gapToPrey > 0.05) {
-                  const remLunge = Math.max(0, maxLungeReach - distFromLaunch);
-                  const maxStepSpd = Math.min(Math.max(0.8, gapToPrey), remLunge) / Math.max(safeDt, 0.016);
-                  const lungeSpd = Math.min(6.4, maxStepSpd);
-                  a.vx = lungeDirX * lungeSpd;
-                  a.vz = lungeDirZ * lungeSpd;
-                } else {
-                  a.vx = 0;
-                  a.vz = 0;
-                }
-
-                if (bestPreyDist > 0.35) {
-                  a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
-                }
-                a.hopPhase += safeDt * 13.0;
-
-                if (
-                  preyIsPlayer &&
-                  playerStateRef &&
-                  prevActionTimer > 0.38 &&
-                  timer <= 0.38 &&
-                  bestPreyDist <= standoffDist + 0.95
-                ) {
-                  playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 15);
-                  playerStateRef.vx += lungeDirX * 3.2;
-                  playerStateRef.vz += lungeDirZ * 3.2;
-                }
-
-                if (timer <= 0.02) {
-                  a.actionTimer = 0;
-                  if (bestPreyDist <= attackTriggerDist) {
-                    a.aiBehavior = 'attacking';
-                  } else {
-                    a.aiBehavior = 'charging';
-                    const maxChargeNoOvershoot =
-                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
-                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-                    a.vx = (toPreyX / len) * effChargeSpd;
-                    a.vz = (toPreyZ / len) * effChargeSpd;
-                  }
-                }
-              } else {
-                // BEAR & CAT-LION STATIONARY ATTACK:
-                // Committed 100% to completing the full attack animation in place (vx = 0, vz = 0).
-                // Cannot move until actionTimer finishes and aiBehavior switches to a movement animation!
-                if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
-                  a.aiBehavior = 'attacking';
-                  a.actionTimer = a.species === 'lion' ? 0.96 : 0.78;
-                }
-                a.pounceHeight = 0;
-                a.vx = 0;
-                a.vz = 0;
-                if (bestPreyDist > 0.35) {
-                  a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 3.6, safeDt);
-                }
-
-                if (
-                  preyIsPlayer &&
-                  playerStateRef &&
-                  prevActionTimer > 0.40 &&
-                  (a.actionTimer ?? 0) <= 0.40 &&
-                  bestPreyDist <= standoffDist + 0.85
-                ) {
-                  playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 14);
-                  playerStateRef.vx += (toPreyX / len) * 2.8;
-                  playerStateRef.vz += (toPreyZ / len) * 2.8;
-                }
-
-                if ((a.actionTimer ?? 0) <= 0.02) {
-                  a.actionTimer = 0;
-                  if (bestPreyDist > attackTriggerDist) {
-                    a.aiBehavior = 'charging';
-                    const maxChargeNoOvershoot =
-                      Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
-                    const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-                    a.vx = (toPreyX / len) * effChargeSpd;
-                    a.vz = (toPreyZ / len) * effChargeSpd;
-                    a.hopPhase += safeDt * 15.0;
-                  }
-                }
-              }
-            } else if (isCommittedStationaryWarning) {
-              // Complete full 'roaring' or 'stomping' animation in place (vx = 0, vz = 0) before moving!
-              a.pounceHeight = 0;
-              a.vx = 0;
-              a.vz = 0;
-              if ((a.actionTimer ?? 0) <= 0.12 && a.aiBehavior === 'stomping') {
-                a.stompWarningDone = true;
-              }
-              a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
-            } else if (a.species === 'bear' && !provokedByShot) {
-              // BEAR 2-STAGE THREAT PROGRESSION (strictly zero ground sliding during roar & stomp, and never loops roar infinitely!):
-              a.pounceHeight = 0;
-              if (bestPreyDist > 13.5 && !a.roarWarningDone) {
-                a.aiBehavior = 'roaring';
-                a.roarWarningDone = true;
-                a.actionTimer = 0.75;
-                a.stompWarningDone = false;
-                a.vx = 0;
-                a.vz = 0;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.0, safeDt);
-              } else if (bestPreyDist > 11.5) {
-                a.aiBehavior = 'stalking';
-                const stalkSpd = 2.6;
-                a.vx = (toPreyX / len) * stalkSpd;
-                a.vz = (toPreyZ / len) * stalkSpd;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
-                a.hopPhase += safeDt * 7.5;
-              } else if (!a.stompWarningDone) {
-                a.aiBehavior = 'stomping';
-                a.stompWarningDone = true;
-                a.actionTimer = 0.85;
-                a.vx = 0;
-                a.vz = 0;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.6, safeDt);
-              } else {
-                a.aiBehavior = 'charging';
-                const maxChargeNoOvershoot =
-                  Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
-                const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-                a.vx = (toPreyX / len) * effChargeSpd;
-                a.vz = (toPreyZ / len) * effChargeSpd;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.2, safeDt);
-                a.hopPhase += safeDt * 15.0;
-              }
-            } else if (bestPreyDist <= 11.5 || provokedByShot || isBossLion) {
-              a.pounceHeight = 0;
-              a.aiBehavior = 'charging';
-              const maxChargeNoOvershoot =
-                Math.max(0, bestPreyDist - standoffDist) / Math.max(safeDt, 0.016);
-              const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-              const moveAngle =
-                a.species === 'wolf'
-                  ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
-                  : targetYaw;
-              a.vx = Math.sin(moveAngle) * effChargeSpd;
-              a.vz = Math.cos(moveAngle) * effChargeSpd;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, moveAngle, 6.2, safeDt);
-              a.hopPhase += safeDt * 15.0;
-            } else {
-              // Outer detection ring -> stealthy stalk / approach (with wolf pack flanking)
-              a.pounceHeight = 0;
-              a.aiBehavior = 'stalking';
-              const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
-              const stalkAngle =
-                a.species === 'wolf'
-                  ? computeWolfPackFlankAngle(a, steeredTarget.x, steeredTarget.z, animals)
-                  : targetYaw;
-              a.vx = Math.sin(stalkAngle) * stalkSpd;
-              a.vz = Math.cos(stalkAngle) * stalkSpd;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, stalkAngle, 5.0, safeDt);
-              a.hopPhase += safeDt * 7.5;
-            }
-          }
-        } else {
-          // Autonomous predator patrol, baited trap investigation (when player/prey not detected),
-          // sitting, foraging/eating, or returning to river home
-          a.alertLevel = 'grazing';
-          a.stompWarningDone = false;
-          a.roarWarningDone = false;
-          a.pounceHeight = 0;
-          a.rhinoPhase = 'charging';
-          a.rhinoChargeSpeed = 0;
-
-          // If no player or live prey is detected, check if this predator notices a placed trap in range
-          // and randomly decides whether to investigate the meat bait ('approach') or ignore it ('ignore')
-          let luredByPredatorTrap: { x: number; z: number; dist: number } | null = null;
-          const placedPredTraps = getActivePlacedTrapsRef();
-          if (placedPredTraps.length > 0 && (a.trappedByBearJawTimer ?? 0) <= 0) {
-            for (let tIdx = 0; tIdx < placedPredTraps.length; tIdx++) {
-              const tr = placedPredTraps[tIdx];
-              if (tr.status !== 'armed') continue;
-              const recipe = TRAP_RECIPES.find((r) => r.kind === tr.kind);
-              if (!recipe || !recipe.targetSpecies.includes(a.species)) continue;
-              const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
-              if (dTrap <= recipe.attractRadius) {
-                const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
-                if (
-                  choice === 'approach' &&
-                  (!luredByPredatorTrap || dTrap < luredByPredatorTrap.dist)
-                ) {
-                  luredByPredatorTrap = { x: tr.x, z: tr.z, dist: dTrap };
-                }
-              }
-            }
-          }
-
-          // If a crocodile is out of prey range and away from its river water home, return smoothly to the water!
-          const distFromHome = Math.hypot(a.homeX - a.x, a.homeZ - a.z);
-          const isVolcanoSanctumLion =
-            a.species === 'lion' &&
-            Math.hypot(a.homeX - VOLCANO_SANCTUM_POS.x, a.homeZ - VOLCANO_SANCTUM_POS.z) < 10.0;
-          if (luredByPredatorTrap && !isVolcanoSanctumLion) {
-            a.isResting = false;
-            a.aiBehavior = 'stalking';
-            const steeredTrap =
-              a.species === 'bear'
-                ? steerBearThroughCavePortal(
-                    a.x,
-                    a.z,
-                    luredByPredatorTrap.x,
-                    luredByPredatorTrap.z,
-                    a.caveIndex
-                  )
-                : { x: luredByPredatorTrap.x, z: luredByPredatorTrap.z };
-            const toTrapX = steeredTrap.x - a.x;
-            const toTrapZ = steeredTrap.z - a.z;
-            const dTrapSteer = Math.hypot(toTrapX, toTrapZ) || 1;
-            const stalkSpd = SPECIES_PROFILES[a.species].stalkSpeed;
-            a.vx = (toTrapX / dTrapSteer) * stalkSpd;
-            a.vz = (toTrapZ / dTrapSteer) * stalkSpd;
-            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-            a.hopPhase += safeDt * 7.5;
-          } else if (isVolcanoSanctumLion) {
-            if (distFromHome > 2.2) {
-              a.isResting = false;
-              a.aiBehavior = 'wandering';
-              const steeredHome = steerLionThroughVolcanoPortal(a.x, a.z, a.homeX, a.homeZ);
-              const toHomeX = steeredHome.x - a.x;
-              const toHomeZ = steeredHome.z - a.z;
-              const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
-              a.vx = (toHomeX / dHome) * 2.6;
-              a.vz = (toHomeZ / dHome) * 2.6;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-              a.hopPhase += safeDt * 7.5;
-            } else {
-              // Seated majestically on the Volcano Sanctum Throne Dais facing the entrance (+X)!
-              a.isResting = false;
-              a.aiBehavior = 'sitting';
-              a.vx = 0;
-              a.vz = 0;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.PI / 2, 4.0, safeDt);
-            }
-          } else if (distFromHome > (a.species === 'crocodile' ? 4.5 : 14.0)) {
-            a.isResting = false;
-            a.aiBehavior = 'wandering';
-            const steeredHome =
-              a.species === 'bear'
-                ? steerBearThroughCavePortal(a.x, a.z, a.homeX, a.homeZ, a.caveIndex)
-                : { x: a.homeX, z: a.homeZ };
-            const toHomeX = steeredHome.x - a.x;
-            const toHomeZ = steeredHome.z - a.z;
-            const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
-            const returnSpd = a.species === 'crocodile' ? 3.2 : 3.4;
-            a.vx = (toHomeX / dHome) * returnSpd;
-            a.vz = (toHomeZ / dHome) * returnSpd;
-            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.5, safeDt);
-            a.hopPhase += safeDt * 9.0;
-          } else {
-            const timeWindow = Math.floor(elapsedTime * 0.06 + a.id * 1.73);
-            const seed = hash2D(a.id * 19.3, timeWindow);
-            if (seed > 0.78) {
-              a.isResting = false;
-              a.aiBehavior = 'sitting';
-              a.vx = 0;
-              a.vz = 0;
-            } else if (seed > 0.58) {
-              a.isResting = false;
-              a.aiBehavior = 'grazing';
-              a.vx = 0;
-              a.vz = 0;
-            } else {
-              a.isResting = false;
-              let patrolGoalX = a.homeX + Math.cos((seed / 0.58) * Math.PI * 2) * 14.0;
-              let patrolGoalZ = a.homeZ + Math.sin((seed / 0.58) * Math.PI * 2) * 14.0;
-              if (a.species === 'bear' && a.caveIndex !== undefined && BEAR_MOUNTAIN_CAVES[a.caveIndex]) {
-                // Bears alternate their patrol between the outer forest apron (lz = +14) and inner cavern (lz = -13)
-                // and steer cleanly through the cave portal so they freely walk in and out of the cave!
-                const patrolOut = seed < 0.34;
-                const rawGoal = patrolOut
-                  ? caveLocalToWorld(a.caveIndex, ((a.id % 3) - 1) * 4.5, 14.0)
-                  : caveLocalToWorld(a.caveIndex, ((a.id % 2) === 0 ? -4.2 : 4.2), -13.0);
-                const rawDistToGoal = Math.hypot(rawGoal.x - a.x, rawGoal.z - a.z);
-                if (rawDistToGoal < 1.85) {
-                  patrolGoalX = a.x;
-                  patrolGoalZ = a.z;
-                } else {
-                  const steered = steerBearThroughCavePortal(a.x, a.z, rawGoal.x, rawGoal.z, a.caveIndex);
-                  patrolGoalX = steered.x;
-                  patrolGoalZ = steered.z;
-                }
-              }
-              const toGoalX = patrolGoalX - a.x;
-              const toGoalZ = patrolGoalZ - a.z;
-              const distGoal = Math.hypot(toGoalX, toGoalZ);
-              if (distGoal < 1.65) {
-                // Reached patrol destination: settle calmly into foraging/idle instead of oscillating over goal!
-                a.aiBehavior = 'grazing';
-                a.vx = 0;
-                a.vz = 0;
-              } else {
-                a.aiBehavior = 'wandering';
-                const patrolSpd = a.species === 'crocodile' ? 1.15 : 1.75;
-                const desiredVx = (toGoalX / distGoal) * patrolSpd;
-                const desiredVz = (toGoalZ / distGoal) * patrolSpd;
-                const blend = Math.min(1, safeDt * 4.5);
-                a.vx += (desiredVx - a.vx) * blend;
-                a.vz += (desiredVz - a.vz) * blend;
-                a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 4.2, safeDt);
-                a.hopPhase += safeDt * 6.0;
-              }
-            }
-          }
-        }
-      }
-
-      // Apply 10% speed reduction for 7 seconds after a Bear Trap (`trap_bear_jaw`) finishes its roar on a Bear
-      if (a.species === 'bear' && (a.bearTrapSlowTimer ?? 0) > 0) {
-        a.vx *= 0.90;
-        a.vz *= 0.90;
-      }
-
-      if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
-        const rawNextX = a.x + a.vx * safeDt;
-        const rawNextZ = a.z + a.vz * safeDt;
-        const bodyRadius =
-          a.species === 'lion' && a.isBoss ? 1.65 : SPECIES_PROFILES[a.species].predatorBodyRadius;
-        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-      }
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 2B. ROYAL FLOATING-ISLAND STAG AI:
-    //     - Neutral by default: never flees from the player and never attacks unprovoked.
-    //     - When shot or slashed by the player (wokenUpTimer > 0 && hp < maxHp), it charges
-    //       and retaliates with powerful antler-gore attack animations!
-    // -------------------------------------------------------------------------
-    if (a.species === 'stag') {
-      const stagDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-      const playerDistFromStagHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
-      if (!a.isLeashedReturning) {
-        if (playerDistFromStagHome > 42.0 && stagDistFromHome > 38.0 && distP > 48.0) {
-          a.isLeashedReturning = true;
-          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 45.0);
-          a.alertLevel = 'grazing';
-        }
-      } else if (playerDistFromStagHome <= 38.0 || distP <= 38.0) {
-        a.isLeashedReturning = false;
-      }
-      const isStagLeashedOut = Boolean(a.isLeashedReturning);
-      const isProvokedStag =
-        !a.isTamed &&
-        !isStagLeashedOut &&
-        (a.wokenUpTimer ?? 0) > 0 &&
-        (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9);
-
-      if (isProvokedStag) {
-        a.isResting = false;
-        a.isSeekingShelter = false;
-        a.isFleeing = false;
-        a.fleeCooldown = 0;
-        a.alertLevel = 'curious';
-
-        const toPlayerX = playerX - a.x;
-        const toPlayerZ = playerZ - a.z;
-        const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
-        const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
-        const standoffDist = SPECIES_PROFILES.stag.meleeStandoff;
-        const attackTriggerDist = standoffDist + SPECIES_PROFILES.stag.attackReachBonus;
-        const isCommittedAttack = a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0.02;
-
-        if (isCommittedAttack || dPlayer <= attackTriggerDist) {
-          if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
-            a.aiBehavior = 'attacking';
-            a.actionTimer = 0.88;
-          }
-          a.vx = 0;
-          a.vz = 0;
-          if (dPlayer > 0.35) {
-            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.2, safeDt);
-          }
-
-          if (
-            playerStateRef &&
-            prevActionTimer > 0.44 &&
-            (a.actionTimer ?? 0) <= 0.44 &&
-            dPlayer <= attackTriggerDist + 0.65
-          ) {
-            playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 22);
-            playerStateRef.vx += (toPlayerX / dPlayer) * 4.2;
-            playerStateRef.vz += (toPlayerZ / dPlayer) * 4.2;
-          }
-
-          if ((a.actionTimer ?? 0) <= 0.02 && dPlayer > attackTriggerDist) {
-            a.aiBehavior = 'charging';
-            a.actionTimer = 0;
-          }
-        } else {
-          a.aiBehavior = 'charging';
-          const chargeSpd = SPECIES_PROFILES.stag.chargeSpeed;
-          const maxChargeNoOvershoot =
-            Math.max(0, dPlayer - standoffDist) / Math.max(safeDt, 0.016);
-          const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-          a.vx = (toPlayerX / dPlayer) * effChargeSpd;
-          a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
-          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 6.5, safeDt);
-          a.hopPhase += safeDt * 15.0;
-        }
-
-        const rawNextX = a.x + a.vx * safeDt;
-        const rawNextZ = a.z + a.vz * safeDt;
-        const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
-        const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-        advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-        continue;
-      }
-
-      // Unprovoked Stag: 100% neutral on the Floating Sky Islands (never flees, never attacks)
-      a.alertLevel = 'grazing';
-      a.isFleeing = false;
-      a.fleeCooldown = 0;
-      a.listenTimer = 0;
-      a.isSeekingShelter = false;
-      a.isResting = false;
-      const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
-      const wanderSeed = hash2D(a.id * 13.7, timeWindow);
-      const pauseThreshold = SPECIES_PROFILES.stag.grazePauseThreshold;
-      if (stagDistFromHome > 10.0) {
-        a.aiBehavior = 'wandering';
-        const returnSpd = 2.8;
-        a.vx = ((a.homeX - a.x) / stagDistFromHome) * returnSpd;
-        a.vz = ((a.homeZ - a.z) / stagDistFromHome) * returnSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-        a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
-      } else if (wanderSeed > pauseThreshold) {
-        a.aiBehavior = 'grazing';
-        a.vx = 0;
-        a.vz = 0;
-      } else {
-        a.aiBehavior = 'wandering';
-        const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
-        const homePullX = (a.homeX - a.x) * 0.18;
-        const homePullZ = (a.homeZ - a.z) * 0.18;
-        const grazeSpeed = SPECIES_PROFILES.stag.grazeSpeed;
-        const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
-        const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
-        const blend = Math.min(1, safeDt * 4.5);
-        a.vx += (desiredVx - a.vx) * blend;
-        a.vz += (desiredVz - a.vz) * blend;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-        a.hopPhase += safeDt * SPECIES_PROFILES.stag.grazeHopRate;
-      }
-      const rawNextX = a.x + a.vx * safeDt;
-      const rawNextZ = a.z + a.vz * safeDt;
-      const bodyRadius = SPECIES_PROFILES.stag.preyBodyRadius;
-      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 2C. SEMI-AQUATIC OASIS & RIVER HIPPO AI ('hippo'):
-    //     - Wallows in the Southwest Oasis Lagoon and Southern River Wetland shallows,
-    //       and grazes reeds along the muddy banks.
-    //     - When the player approaches within 13.5m, performs a wide tusk-yawn warning ('roaring').
-    //     - When provoked or approached within 8.5m, charges and delivers a crushing jaw lunge ('attacking')!
-    // -------------------------------------------------------------------------
-    if (a.species === 'hippo') {
-      const localWaterY =
-        Math.hypot(a.x - SOUTHWEST_OASIS_POS.x, a.z - SOUTHWEST_OASIS_POS.z) <= 13.5
-          ? SOUTHWEST_OASIS_POS.lagoonWaterY
-          : WATER_LEVEL;
-      const toPlayerX = playerX - a.x;
-      const toPlayerZ = playerZ - a.z;
-      const dPlayer = Math.hypot(toPlayerX, toPlayerZ) || 1;
-      const hippoDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
-      const playerDistFromHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
-      const hippoTerritoryRadius = 65.0;
-      const hippoDisengageDist = 42.0;
-
-      // Territory Leash & Provoked Pursuit Rule:
-      // 1) When attacked from ANY distance ((a.wokenUpTimer ?? 0) > 0), the hippo immediately aggros
-      //    and chases the player relentlessly until the player has BOTH exited the hippo's territory
-      //    (playerDistFromHome > hippoTerritoryRadius) AND moved far away from the hippo (dPlayer > hippoDisengageDist).
-      // 2) Once the player is outside BOTH the territory AND the proximity range, the hippo disengages
-      //    (isLeashedReturning = true) and runs back to its home territory (a.homeX, a.homeZ).
-      if (a.isLeashedReturning) {
-        if (hippoDistFromHome <= 6.5) {
-          a.isLeashedReturning = false;
-        }
-      } else if ((a.wokenUpTimer ?? 0) > 0) {
-        if (playerDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
-          a.wokenUpTimer = 0;
-          a.actionTimer = 0;
-          a.aiBehavior = 'wandering';
-          a.alertLevel = 'grazing';
-          a.isLeashedReturning = true;
-        } else {
-          // Keep grudge active while actively pursuing the player
-          a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
-        }
-      } else if (hippoDistFromHome > hippoTerritoryRadius && dPlayer > hippoDisengageDist) {
-        a.actionTimer = 0;
-        a.aiBehavior = 'wandering';
-        a.alertLevel = 'grazing';
-        a.isLeashedReturning = true;
-      }
-
-      const isProvokedHippo = !a.isLeashedReturning && (a.wokenUpTimer ?? 0) > 0;
-      const warnRadius = isPlayerSneaking ? 8.5 : 15.0;
-      const chargeRadius = isPlayerSneaking ? 5.5 : 10.5;
-      const standoffDist = SPECIES_PROFILES.hippo.meleeStandoff;
-      const attackTriggerDist = standoffDist + SPECIES_PROFILES.hippo.attackReachBonus;
-      const targetYaw = Math.atan2(toPlayerX, toPlayerZ);
-      const isCommittedAttack =
-        !a.isLeashedReturning &&
-        a.aiBehavior === 'attacking' &&
-        (a.actionTimer ?? 0) > 0.02 &&
-        (isProvokedHippo || dPlayer <= hippoDisengageDist);
-      const isCommittedYawn =
-        !a.isLeashedReturning &&
-        a.aiBehavior === 'roaring' &&
-        (a.actionTimer ?? 0) > 0.02 &&
-        dPlayer <= warnRadius + 4.0;
-
-      if (!a.isLeashedReturning && (isCommittedAttack || isProvokedHippo || dPlayer <= chargeRadius)) {
-        a.isResting = false;
-        a.isSeekingShelter = false;
-        a.isFleeing = false;
-        a.alertLevel = 'curious';
-        a.wokenUpTimer = Math.max(a.wokenUpTimer ?? 0, 18.0);
-        if (isCommittedAttack || dPlayer <= attackTriggerDist) {
-          if (a.aiBehavior !== 'attacking' || (a.actionTimer ?? 0) <= 0) {
-            a.aiBehavior = 'attacking';
-            a.actionTimer = 1.25;
-          }
-          // Hippo keeps running/charging forward while executing its leg-moving attack whenever the player backs away,
-          // while strictly maintaining a 2.65m body gap so the player camera never enters inside the Hippo's 3D body!
-          const chargeSpd = SPECIES_PROFILES.hippo.chargeSpeed;
-          const minBodyGap = standoffDist;
-          const maxStepNoOverlap = Math.max(0, dPlayer - minBodyGap) / Math.max(safeDt, 0.016);
-          const attackMoveSpd = dPlayer > minBodyGap ? Math.min(chargeSpd, maxStepNoOverlap) : 0;
-          if (dPlayer > 0.35) {
-            a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
-          }
-          a.vx = (toPlayerX / dPlayer) * attackMoveSpd;
-          a.vz = (toPlayerZ / dPlayer) * attackMoveSpd;
-          a.hopPhase += safeDt * 14.5;
-          if (
-            playerStateRef &&
-            prevActionTimer > 0.62 &&
-            (a.actionTimer ?? 0) <= 0.62 &&
-            dPlayer <= attackTriggerDist + 1.25
-          ) {
-            playerStateRef.stamina = Math.max(0, (playerStateRef.stamina ?? 100) - 24);
-            playerStateRef.vx += (toPlayerX / dPlayer) * 4.4;
-            playerStateRef.vz += (toPlayerZ / dPlayer) * 4.4;
-          }
-          if ((a.actionTimer ?? 0) <= 0.02 && dPlayer > attackTriggerDist) {
-            a.aiBehavior = 'charging';
-            a.actionTimer = 0;
-          }
-        } else {
-          a.aiBehavior = 'charging';
-          const chargeSpd = SPECIES_PROFILES.hippo.chargeSpeed;
-          const maxChargeNoOvershoot =
-            Math.max(0, dPlayer - standoffDist) / Math.max(safeDt, 0.016);
-          const effChargeSpd = Math.min(chargeSpd, maxChargeNoOvershoot);
-          a.vx = (toPlayerX / dPlayer) * effChargeSpd;
-          a.vz = (toPlayerZ / dPlayer) * effChargeSpd;
-          a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 5.8, safeDt);
-          a.hopPhase += safeDt * 13.0;
-        }
-      } else if (!a.isLeashedReturning && (isCommittedYawn || dPlayer <= warnRadius)) {
-        // Territorial tusk-yawn warning display in place!
-        a.isResting = false;
-        a.alertLevel = 'curious';
-        if (a.aiBehavior !== 'roaring' || (a.actionTimer ?? 0) <= 0) {
-          a.aiBehavior = 'roaring';
-          a.actionTimer = 1.15;
-        }
-        a.vx = 0;
-        a.vz = 0;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.2, safeDt);
-      } else if (a.isLeashedReturning || hippoDistFromHome > 6.5) {
-        // Run back to lagoon/marsh home territory when leashed, or stroll back when idle outside home core
-        a.alertLevel = 'grazing';
-        a.isResting = false;
-        a.aiBehavior = a.isLeashedReturning ? 'charging' : 'wandering';
-        const returnSpd = a.isLeashedReturning ? 6.2 : 2.6;
-        a.vx = ((a.homeX - a.x) / (hippoDistFromHome || 1)) * returnSpd;
-        a.vz = ((a.homeZ - a.z) / (hippoDistFromHome || 1)) * returnSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.2, safeDt);
-        a.hopPhase += safeDt * (a.isLeashedReturning ? 12.5 : 7.5);
-      } else {
-        // Peaceful amphibious lagoon/river wallowing, sleeping ('lie'), and reed grazing
-        a.alertLevel = 'grazing';
-        const timeWindow = Math.floor(elapsedTime * 0.004 + a.id * 1.43);
-        const seed = hash2D(a.id * 17.1, timeWindow);
-        if (isNightRest || seed > 0.62) {
-          a.isResting = true;
-          a.aiBehavior = 'sleeping';
-          a.vx = 0;
-          a.vz = 0;
-        } else if (seed > 0.36) {
-          a.isResting = false;
-          a.aiBehavior = 'grazing';
-          a.vx = 0;
-          a.vz = 0;
-        } else {
-          a.isResting = false;
-          a.aiBehavior = 'wandering';
-          const targetAng = (seed / 0.36) * Math.PI * 2;
-          const goalX = a.homeX + Math.cos(targetAng) * 6.5;
-          const goalZ = a.homeZ + Math.sin(targetAng) * 6.5;
-          const toGoalX = goalX - a.x;
-          const toGoalZ = goalZ - a.z;
-          const dGoal = Math.hypot(toGoalX, toGoalZ);
-          if (dGoal < 1.1) {
-            a.aiBehavior = 'grazing';
-            a.vx = 0;
-            a.vz = 0;
-          } else {
-            const spd = SPECIES_PROFILES.hippo.grazeSpeed;
-            const desiredVx = (toGoalX / dGoal) * spd;
-            const desiredVz = (toGoalZ / dGoal) * spd;
-            const blend = Math.min(1, safeDt * 4.0);
-            a.vx += (desiredVx - a.vx) * blend;
-            a.vz += (desiredVz - a.vz) * blend;
-            a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 3.8, safeDt);
-            a.hopPhase += safeDt * SPECIES_PROFILES.hippo.grazeHopRate;
-          }
-        }
-      }
-
-      const rawNextX = a.x + a.vx * safeDt;
-      const rawNextZ = a.z + a.vz * safeDt;
-      const resolved = resolveAnimalObstacleCollision(
-        rawNextX,
-        rawNextZ,
-        SPECIES_PROFILES.hippo.preyBodyRadius
-      );
-      a.x = resolved.x;
-      a.z = resolved.z;
-
-      // Hard physical body separation between Hippo and Player so the player/camera can NEVER enter inside the Hippo's 3D body!
-      if (playerStateRef) {
-        const sepDx = playerStateRef.x - a.x;
-        const sepDz = playerStateRef.z - a.z;
-        const sepDist = Math.hypot(sepDx, sepDz);
-        const minPlayerGap = 2.55;
-        if (sepDist < minPlayerGap) {
-          const nx = sepDist > 0.001 ? sepDx / sepDist : Math.sin(a.yaw);
-          const nz = sepDist > 0.001 ? sepDz / sepDist : Math.cos(a.yaw);
-          const overlap = minPlayerGap - sepDist;
-          a.x -= nx * overlap * 0.45;
-          a.z -= nz * overlap * 0.45;
-          playerStateRef.x += nx * overlap * 0.55;
-          playerStateRef.z += nz * overlap * 0.55;
-        }
-      }
-
-      const nextGroundY = walkableHeightAt(a.x, a.z, a.y).height;
-      if (nextGroundY <= localWaterY + 0.15) {
-        a.inWater = true;
-        const depth = Math.max(0, localWaterY - nextGroundY);
-        const submerge = Math.min(depth, getAnimalWaterSubmergenceDepth('hippo'));
-        a.y = Math.max(nextGroundY, localWaterY - submerge);
-      } else {
-        a.inWater = false;
-        a.y = nextGroundY;
-      }
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 2D. AQUATIC KOI FISH AI ('koifish'):
-    //     - Swims underwater in schools in the Western Lagoon Lake, Central Lake,
-    //       Waterfall Plunge Pool, and Southwest Oasis Lagoon.
-    //     - Sleeps underwater at night (`localWaterY - 0.65`) and darts away when startled.
-    // -------------------------------------------------------------------------
-    if (a.species === 'koifish') {
-      const localWaterY =
-        Math.hypot(a.homeX - SOUTHWEST_OASIS_POS.x, a.homeZ - SOUTHWEST_OASIS_POS.z) <= 13.5
-          ? SOUTHWEST_OASIS_POS.lagoonWaterY
-          : WATER_LEVEL;
-      a.inWater = true;
-      a.isSeekingShelter = false;
-      a.pounceHeight = 0;
-
-      const startleDist = isPlayerSneaking ? 2.5 : 7.5;
-      if (distP < startleDist && (playerSpeed > 0.25 || isAttacking)) {
-        if (a.alertLevel !== 'fleeing') {
-          scamperedCritterCount++;
-        }
-        a.isResting = false;
-        a.wokenUpTimer = 8.0;
-        a.alertLevel = 'fleeing';
-        a.aiBehavior = 'fleeing';
-        a.isFleeing = true;
-        a.fleeCooldown = 2.6;
-      } else if (a.fleeCooldown > 0) {
-        a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
-        if (a.fleeCooldown <= 0) {
-          a.isFleeing = false;
-          a.alertLevel = 'grazing';
-        }
-      }
-
-      // Nighttime underwater sleeping for lake fish:
-      if (isNightRest && a.alertLevel !== 'fleeing' && (a.wokenUpTimer ?? 0) <= 0) {
-        a.isResting = true;
-        a.aiBehavior = 'sleeping';
-        a.vx = 0;
-        a.vz = 0;
-        const sleepTargetY = Math.max(groundHeightAt(a.x, a.z) + 0.16, localWaterY - 0.65);
-        a.y += (sleepTargetY - (a.y ?? sleepTargetY)) * Math.min(1, safeDt * 3.0);
-        continue;
-      }
-      a.isResting = false;
-
-      // Check if an armed Woven Fish Trap ('trap_fish') is in range in the same pond/lagoon
-      let chosenFishTrap: { x: number; z: number; dist: number } | null = null;
-      const placedTraps = getActivePlacedTrapsRef();
-      if (placedTraps.length > 0 && a.alertLevel !== 'fleeing' && distP >= startleDist) {
-        for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
-          const tr = placedTraps[tIdx];
-          if (tr.status !== 'armed' || tr.kind !== 'trap_fish') continue;
-          const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
-          if (dTrap <= 30.0) {
-            const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
-            if (choice === 'approach' && (!chosenFishTrap || dTrap < chosenFishTrap.dist)) {
-              chosenFishTrap = { x: tr.x, z: tr.z, dist: dTrap };
-            }
-          }
-        }
-      }
-
-      // 1. Boids Schooling (Separation, Alignment, Cohesion) with fellow Koi in the same pond
-      let sepX = 0;
-      let sepZ = 0;
-      let alignSin = 0;
-      let alignCos = 0;
-      let cohX = 0;
-      let cohZ = 0;
-      let neighborCount = 0;
-      for (let j = 0; j < animals.length; j++) {
-        if (j === i) continue;
-        const other = animals[j];
-        if (other.species !== 'koifish' || other.isDead) continue;
-        const dx = a.x - other.x;
-        const dz = a.z - other.z;
-        const d = Math.hypot(dx, dz);
-        if (d > 0.001 && d < 9.5) {
-          if (d < 1.45) {
-            const repulse = (1.45 - d) / 1.45;
-            sepX += (dx / d) * repulse * 2.1;
-            sepZ += (dz / d) * repulse * 2.1;
-          }
-          alignSin += Math.sin(other.yaw);
-          alignCos += Math.cos(other.yaw);
-          cohX += other.x;
-          cohZ += other.z;
-          neighborCount++;
-        }
-      }
-
-      let desiredDirX = Math.sin(a.yaw);
-      let desiredDirZ = Math.cos(a.yaw);
-      let targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed;
-      let maxTurnRate = 3.6;
-
-      if (a.alertLevel === 'fleeing') {
-        a.aiBehavior = 'fleeing';
-        const awayX = a.x - playerX;
-        const awayZ = a.z - playerZ;
-        const awayLen = Math.hypot(awayX, awayZ) || 1;
-        const homePullX = (a.homeX - a.x) * 0.22;
-        const homePullZ = (a.homeZ - a.z) * 0.22;
-        desiredDirX = awayX / awayLen + homePullX + sepX * 0.6;
-        desiredDirZ = awayZ / awayLen + homePullZ + sepZ * 0.6;
-        targetSwimSpd = SPECIES_PROFILES.koifish.preyFleeSpeed;
-        maxTurnRate = 7.5;
-      } else if (chosenFishTrap) {
-        a.alertLevel = 'curious';
-        a.aiBehavior = 'wandering';
-        desiredDirX = chosenFishTrap.x - a.x + sepX * 0.35;
-        desiredDirZ = chosenFishTrap.z - a.z + sepZ * 0.35;
-        targetSwimSpd = 1.65;
-        maxTurnRate = 4.8;
-      } else {
-        a.alertLevel = 'grazing';
-        // Determine whether this fish belongs to the large Western Lagoon Lake (-138, 42) near the starting cabin,
-        // the Central Lake (-2, 1.5), or a smaller pond/lagoon, so lake fish roam across the ENTIRE lake!
-        const inWestLagoonLake = Math.hypot(a.homeX - -138.0, a.homeZ - 42.0) <= 28.0;
-        const inCentralLake = Math.hypot(a.homeX - -2.0, a.homeZ - 1.5) <= 22.0;
-        const basinCenterX = inWestLagoonLake ? -138.0 : inCentralLake ? -2.0 : a.homeX;
-        const basinCenterZ = inWestLagoonLake ? 42.0 : inCentralLake ? 1.5 : a.homeZ;
-        const patrolRadX = inWestLagoonLake ? 16.5 : inCentralLake ? 12.5 : 4.2;
-        const patrolRadZ = inWestLagoonLake ? 14.0 : inCentralLake ? 11.5 : 3.8;
-        const maxBasinRadius = inWestLagoonLake ? 21.0 : inCentralLake ? 15.5 : 4.8;
-
-        // Smooth figure-8 / wandering school current across the entire lake basin
-        const schoolPhase = elapsedTime * 0.24 + a.id * 1.15;
-        const patrolTargetX =
-          basinCenterX +
-          Math.cos(schoolPhase) * patrolRadX * (0.65 + 0.35 * Math.sin(schoolPhase * 0.43 + a.id));
-        const patrolTargetZ =
-          basinCenterZ +
-          Math.sin(schoolPhase * 0.78) * patrolRadZ * (0.65 + 0.35 * Math.cos(schoolPhase * 0.37 + a.id));
-        let steerX = (patrolTargetX - a.x) * 0.45 + sepX * 1.35;
-        let steerZ = (patrolTargetZ - a.z) * 0.45 + sepZ * 1.35;
-
-        if (neighborCount > 0) {
-          const avgCohX = cohX / neighborCount - a.x;
-          const avgCohZ = cohZ / neighborCount - a.z;
-          steerX += (alignSin / neighborCount) * 0.85 + avgCohX * 0.22;
-          steerZ += (alignCos / neighborCount) * 0.85 + avgCohZ * 0.22;
-        }
-
-        // Keep fish gently within their lake/pond basin radius without hard perimeter clamping
-        const distBasinNow = Math.hypot(a.x - basinCenterX, a.z - basinCenterZ);
-        if (distBasinNow > maxBasinRadius) {
-          const pullStrength = (distBasinNow - maxBasinRadius) * 0.65;
-          steerX += ((basinCenterX - a.x) / distBasinNow) * pullStrength;
-          steerZ += ((basinCenterZ - a.z) / distBasinNow) * pullStrength;
-        }
-
-        desiredDirX = steerX;
-        desiredDirZ = steerZ;
-
-        // Burst-and-coast fish swimming rhythm (energetic tail kick followed by calm glide)
-        const glideCycle = (elapsedTime * 0.85 + a.id * 2.17) % 6.0;
-        if (glideCycle < 1.35) {
-          // Tail-kick burst
-          const burstPulse = Math.sin((glideCycle / 1.35) * Math.PI);
-          targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * (1.15 + burstPulse * 0.55);
-          a.aiBehavior = 'wandering';
-        } else if (glideCycle > 4.6 && glideCycle < 5.5) {
-          // Gentle surface nibble
-          targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * 0.62;
-          a.aiBehavior = 'grazing';
-        } else {
-          // Calm cruise
-          targetSwimSpd = SPECIES_PROFILES.koifish.grazeSpeed * 0.92;
-          a.aiBehavior = 'wandering';
-        }
-      }
-
-      let desiredYaw =
-        Math.hypot(desiredDirX, desiredDirZ) > 0.001
-          ? Math.atan2(desiredDirX, desiredDirZ)
-          : a.yaw;
-
-      // 2. Shoreline & Shallow-Water Avoidance Feelers (keep fish inside deep water channel)
-      const feelerDist = 1.65;
-      const minSafeDepth = 0.22;
-      const aheadX = a.x + Math.sin(desiredYaw) * feelerDist;
-      const aheadZ = a.z + Math.cos(desiredYaw) * feelerDist;
-      const aheadDepth = localWaterY - walkableHeightAt(aheadX, aheadZ).height;
-      if (aheadDepth < minSafeDepth) {
-        let bestFeelerYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
-        let bestDepth = -999;
-        const feelerOffsets = [-0.75, 0.75, -1.45, 1.45, Math.PI];
-        for (let f = 0; f < feelerOffsets.length; f++) {
-          const testYaw = desiredYaw + feelerOffsets[f];
-          const tx = a.x + Math.sin(testYaw) * feelerDist;
-          const tz = a.z + Math.cos(testYaw) * feelerDist;
-          const dWater = localWaterY - walkableHeightAt(tx, tz).height;
-          if (dWater > bestDepth) {
-            bestDepth = dWater;
-            bestFeelerYaw = testYaw;
-          }
-        }
-        desiredYaw = bestFeelerYaw;
-        maxTurnRate = Math.max(maxTurnRate, 6.2);
-      }
-
-      // 3. Strictly align velocity with body heading so fish always swim nose-first (never sideways)
-      a.yaw = rotateYawSmoothlyToward(a.yaw, desiredYaw, maxTurnRate, safeDt);
-      const prevSpeed = Math.hypot(a.vx, a.vz) || targetSwimSpd;
-      const smoothSpeed = prevSpeed + (targetSwimSpd - prevSpeed) * Math.min(1, safeDt * 5.0);
-      a.vx = Math.sin(a.yaw) * smoothSpeed;
-      a.vz = Math.cos(a.yaw) * smoothSpeed;
-      a.hopPhase += safeDt * (3.5 + smoothSpeed * 3.8);
-
-      let nextX = a.x + a.vx * safeDt;
-      let nextZ = a.z + a.vz * safeDt;
-      const nextDepth = localWaterY - walkableHeightAt(nextX, nextZ).height;
-      if (nextDepth < 0.14) {
-        // Turn smoothly toward home water center if shoreline reached
-        const toHomeYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
-        a.yaw = rotateYawSmoothlyToward(a.yaw, toHomeYaw, 8.5, safeDt);
-        a.vx = Math.sin(a.yaw) * smoothSpeed * 0.65;
-        a.vz = Math.cos(a.yaw) * smoothSpeed * 0.65;
-        nextX = a.x + a.vx * safeDt;
-        nextZ = a.z + a.vz * safeDt;
-      }
-
-      a.x = nextX;
-      a.z = nextZ;
-      const nibbleOffset = a.aiBehavior === 'grazing' ? 0.04 : 0;
-      const minBedY = groundHeightAt(a.x, a.z) + 0.16;
-      a.y = Math.max(
-        minBedY,
-        localWaterY -
-          0.38 +
-          nibbleOffset +
-          Math.sin(elapsedTime * 2.1 + a.id * 1.3) * 0.025
-      );
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 2E. MARINE OCEAN DOLPHIN POD AI ('dolphin'):
-    //     - Swims in pods through the Southeast Harbor Bay, Eastern Ocean Shipping Lane,
-    //       and Ruined Atlantis Coastal Waters.
-    //     - Accompanies the player/ship when nearby and periodically performs acrobatic
-    //       parabolic wave leaps ('pounceHeight > 0') above the ocean swells!
-    // -------------------------------------------------------------------------
-    if (a.species === 'dolphin') {
-      a.inWater = true;
-      a.isResting = false;
-      a.isSeekingShelter = false;
-
-      const isPlayerNearby = distP < 36.0;
-      a.alertLevel = isPlayerNearby ? 'curious' : 'grazing';
-      const podRate = isPlayerNearby ? 0.58 : 0.38;
-      const orbitAng = elapsedTime * podRate + a.id * 1.05;
-      const rx = 18.0 + (a.id % 2) * 5.5;
-      const rz = 12.5 + (a.id % 3) * 4.0;
-      const targetX = a.homeX + Math.cos(orbitAng) * rx;
-      const targetZ = a.homeZ + Math.sin(orbitAng * 0.85) * rz;
-      const dx = targetX - a.x;
-      const dz = targetZ - a.z;
-      const d = Math.hypot(dx, dz) || 1;
-      const swimSpd = isPlayerNearby
-        ? SPECIES_PROFILES.dolphin.chargeSpeed * 0.78
-        : SPECIES_PROFILES.dolphin.grazeSpeed;
-      const desiredVx = (dx / d) * swimSpd;
-      const desiredVz = (dz / d) * swimSpd;
-      const blend = Math.min(1, safeDt * 4.5);
-      a.vx += (desiredVx - a.vx) * blend;
-      a.vz += (desiredVz - a.vz) * blend;
-      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.2, safeDt);
-      a.hopPhase += safeDt * SPECIES_PROFILES.dolphin.grazeHopRate;
-
-      // Periodic parabolic ocean wave leap (every ~9.5 seconds, staggered across pod members)
-      const leapCycle = (elapsedTime + a.id * 3.17) % 9.5;
-      if (leapCycle < 1.15) {
-        const leapPhase = leapCycle / 1.15;
-        a.pounceHeight = Math.sin(leapPhase * Math.PI) * 1.75;
-        a.aiBehavior = 'charging';
-      } else {
-        a.pounceHeight = 0;
-        a.aiBehavior = isPlayerNearby ? 'stalking' : 'wandering';
-      }
-
-      const nextX = a.x + a.vx * safeDt;
-      const nextZ = a.z + a.vz * safeDt;
-      const seabedY = groundHeightAt(nextX, nextZ);
-      if (seabedY <= WATER_LEVEL - 0.35) {
-        a.x = nextX;
-        a.z = nextZ;
-      } else {
-        // Steer back toward deeper pod home water if approaching shallow beach
-        const toHomeX = a.homeX - a.x;
-        const toHomeZ = a.homeZ - a.z;
-        const dHome = Math.hypot(toHomeX, toHomeZ) || 1;
-        a.vx = (toHomeX / dHome) * swimSpd;
-        a.vz = (toHomeZ / dHome) * swimSpd;
-        a.x += a.vx * safeDt;
-        a.z += a.vz * safeDt;
-        a.yaw = Math.atan2(a.vx, a.vz);
-      }
-      const baseDolphinSwimY = a.x > 650 ? WATER_LEVEL - 1.56 : WATER_LEVEL - 0.36;
-      a.y = baseDolphinSwimY + Math.sin(elapsedTime * 2.1 + a.id) * 0.06;
-      continue;
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. HERBIVORE & SMALL WILDLIFE AI (DEER, SHEEP, RABBIT, SQUIRREL)
-    //    First evaluate player/predator threats so prey ALWAYS react to seeing
-    //    the player (e.g., rabbit/squirrel flees), then evaluate range-based
-    //    random trap choice when safe!
-    // -------------------------------------------------------------------------
-    let nearestThreatX = playerX;
-    let nearestThreatZ = playerZ;
-    let minThreatDist = distP;
-    let threatIsPredatorOrCharging = false;
-
-    for (let h = 0; h < horses.length; h++) {
-      const hr = horses[h];
-      if (hr.speed > 1.5) {
-        const dH = Math.hypot(a.x - hr.x, a.z - hr.z);
-        if (dH < minThreatDist) {
-          minThreatDist = dH;
-          nearestThreatX = hr.x;
-          nearestThreatZ = hr.z;
-          if (hr.speed > 4.0) threatIsPredatorOrCharging = true;
-        }
-      }
-    }
-
-    // Also detect nearby predators (bears, jaguars, crocodiles, wolves)!
-    for (let j = 0; j < animals.length; j++) {
-      if (i === j) continue;
-      const other = animals[j];
-      if (other.isDead || !isPredatorSpecies(other.species)) continue;
-      const dPred = Math.hypot(a.x - other.x, a.z - other.z);
-      if (dPred < minThreatDist) {
-        minThreatDist = dPred;
-        nearestThreatX = other.x;
-        nearestThreatZ = other.z;
-        threatIsPredatorOrCharging = true;
-      }
-    }
-
-    const awakeSensory = getAnimalSensoryProfile(a.species, false);
-    const fleeRadius =
-      isPlayerSneaking ? 2.5 : a.species === 'deer' ? 8.8 : 10.5;
-    const playerNoiseRate = computePlayerNoiseRateAtDistance(
-      distP,
-      playerSpeed,
-      isPlayerSneaking,
-      isAttacking,
-      false
-    );
-    const playerAudibleOrVisible =
-      playerNoiseRate > 0 ||
-      (distP < (isPlayerSneaking ? 6.5 : awakeSensory.visionRange) && playerSpeed > 0.15);
-
-    const immediateDanger =
-      (minThreatDist < fleeRadius &&
-        (!isPlayerSneaking || playerSpeed > 0.35 || minThreatDist < 1.9 || threatIsPredatorOrCharging)) ||
-      (threatIsPredatorOrCharging && minThreatDist < 11.8) ||
-      (isAttacking && distP < 12.5);
-
-    if (immediateDanger) {
-      if (a.alertLevel !== 'fleeing') {
-        scamperedCritterCount++;
-      }
-      a.alertLevel = 'fleeing';
-      a.aiBehavior = 'fleeing';
-      a.isFleeing = true;
-      a.fleeCooldown = 3.4;
-      a.listenTimer = 0;
-      a.isResting = false;
-      a.isSeekingShelter = false;
-      scamperedCritterCount += propagateHerdAlert(a, nearestThreatX, nearestThreatZ, animals);
-    } else if (a.fleeCooldown > 0) {
-      a.fleeCooldown = Math.max(0, a.fleeCooldown - safeDt);
-      if (a.fleeCooldown <= 0) {
-        a.isFleeing = false;
-        a.alertLevel = 'grazing';
-        a.aiBehavior = 'grazing';
-      } else {
-        a.isFleeing = true;
-        a.aiBehavior = 'fleeing';
-      }
-    } else if (a.species === 'deer') {
-      // DEER SPECIFIC AI: Stand upright to listen when hearing noise or seeing movement,
-      // then decide based on incoming sensory info whether to flee or return to grazing!
-      const stimulusDetected =
-        (threatIsPredatorOrCharging && minThreatDist < awakeSensory.hearingRadius) ||
-        (playerAudibleOrVisible && distP < awakeSensory.hearingRadius);
-
-      if ((a.listenTimer ?? 0) > 0) {
-        // Currently listening & evaluating the stimulus
-        a.listenTimer = Math.max(0, (a.listenTimer ?? 0) - safeDt);
-        a.alertLevel = 'curious';
-        a.aiBehavior = 'listening';
-        a.isFleeing = false;
-        a.stimulusX = nearestThreatX;
-        a.stimulusZ = nearestThreatZ;
-
-        // While listening, if threat approaches rapidly or makes loud noise -> FLEE!
-        const loudThreatWhileListening =
-          (threatIsPredatorOrCharging && minThreatDist < 15.0) ||
-          playerNoiseRate > 0.55 ||
-          (playerSpeed > 3.2 && distP < 15.5);
-
-        if (loudThreatWhileListening) {
-          scamperedCritterCount++;
-          a.alertLevel = 'fleeing';
-          a.aiBehavior = 'fleeing';
-          a.isFleeing = true;
-          a.fleeCooldown = 3.5;
-          a.listenTimer = 0;
-        } else if ((a.listenTimer ?? 0) <= 0) {
-          // Finished listening and no dangerous escalation -> return to grazing!
-          a.alertLevel = 'grazing';
-          a.aiBehavior = 'grazing';
-          a.listenCooldown = 3.2;
-        }
-      } else if (stimulusDetected && (a.listenCooldown ?? 0) <= 0) {
-        // Enter upright listening posture to evaluate the sound/sight!
-        a.alertLevel = 'curious';
-        a.aiBehavior = 'listening';
-        a.listenTimer = 1.65;
-        a.isFleeing = false;
-        a.stimulusX = nearestThreatX;
-        a.stimulusZ = nearestThreatZ;
-      } else {
-        a.alertLevel = 'grazing';
-        a.isFleeing = false;
-      }
-    } else {
-      const curiousRadius =
-        a.species === 'sheep'
-          ? isPlayerSneaking || playerSpeed < 0.8
-            ? fleeRadius
-            : fleeRadius + 2.5
-          : isPlayerSneaking
-            ? 6.5
-            : 16.5;
-      if (minThreatDist < curiousRadius) {
-        a.alertLevel = 'curious';
-        a.aiBehavior = 'listening';
-        a.isFleeing = false;
-        a.stimulusX = nearestThreatX;
-        a.stimulusZ = nearestThreatZ;
-      } else {
-        a.alertLevel = 'grazing';
-        a.isFleeing = false;
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // RANGE-BASED RANDOM TRAP CHOICE FOR SMALL WILDLIFE (RABBIT & SQUIRREL):
-    // - Only evaluated when traps exist in the world.
-    // - If the animal sees the player nearby (within visionRange = 14.0m when standing,
-    //   or 4.5m when sneaking), it prioritizes fleeing from the player instead of approaching!
-    // - When calm/safe and inside a trap's attractRadius, the animal randomly decides
-    //   via evaluateAnimalTrapChoice whether to approach the trap or ignore it.
-    // -------------------------------------------------------------------------
-    if ((a.species === 'rabbit' || a.species === 'squirrel') && !isRaining) {
-      const placedTraps = getActivePlacedTrapsRef();
-      if (placedTraps.length > 0) {
-        const playerVisibleDist = isPlayerSneaking ? 4.5 : awakeSensory.visionRange;
-        let anyTrapInRange = false;
-        let nearestChosenTrap: { x: number; z: number; dist: number } | null = null;
-        for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
-          const tr = placedTraps[tIdx];
-          if (tr.status !== 'armed') continue;
-          const recipe = TRAP_RECIPES.find((r) => r.kind === tr.kind);
-          if (!recipe || !recipe.targetSpecies.includes(a.species)) continue;
-          const dTrap = Math.hypot(tr.x - a.x, tr.z - a.z);
-          if (dTrap <= recipe.attractRadius) {
-            anyTrapInRange = true;
-            if (a.alertLevel !== 'fleeing' && !a.isFleeing && distP >= playerVisibleDist) {
-              const choice = evaluateAnimalTrapChoice(a, tr, safeDt);
-              if (choice === 'approach' && (!nearestChosenTrap || dTrap < nearestChosenTrap.dist)) {
-                nearestChosenTrap = { x: tr.x, z: tr.z, dist: dTrap };
-              }
-            }
-          }
-        }
-
-        // If a trap is in range but the rabbit/squirrel sees the player nearby, it flees from the player!
-        if (anyTrapInRange && distP < playerVisibleDist && a.alertLevel !== 'fleeing') {
-          scamperedCritterCount++;
-          a.alertLevel = 'fleeing';
-          a.aiBehavior = 'fleeing';
-          a.isFleeing = true;
-          a.fleeCooldown = 3.4;
-          a.isResting = false;
-          a.isSeekingShelter = false;
-        } else if (nearestChosenTrap && nearestChosenTrap.dist > 0.05 && a.alertLevel !== 'fleeing') {
-          a.isResting = false;
-          a.isSeekingShelter = false;
-          // If this is a squirrel currently up on a tree trunk, make it climb down the trunk first!
-          if (
-            a.species === 'squirrel' &&
-            (a.treeState === 'perched' || a.treeState === 'climb_up' || a.treeState === 'canopy_leap')
-          ) {
-            a.treeState = 'climb_down';
-          }
-          // Walk cautiously along the ground toward the chosen trap once on the ground
-          if (
-            a.species !== 'squirrel' ||
-            !a.treeState ||
-            a.treeState === 'ground_forage' ||
-            a.treeState === 'running_to_tree'
-          ) {
-            a.treeState = 'ground_forage';
-            a.treeClimbPitch = 0;
-            a.alertLevel = 'curious';
-            a.aiBehavior = 'wandering';
-            const lureSpd = 1.65;
-            const baseAng = Math.atan2(nearestChosenTrap.x - a.x, nearestChosenTrap.z - a.z);
-            const weave = nearestChosenTrap.dist > 2.2 ? Math.sin(elapsedTime * 1.9 + a.id) * 0.12 : 0;
-            const moveAng = baseAng + weave;
-            a.vx = Math.sin(moveAng) * lureSpd;
-            a.vz = Math.cos(moveAng) * lureSpd;
-            a.yaw = rotateYawSmoothlyToward(a.yaw, moveAng, 6.5, safeDt);
-            a.hopPhase += safeDt * 9.5;
-            const rawNextX = a.x + a.vx * safeDt;
-            const rawNextZ = a.z + a.vz * safeDt;
-            const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
-            const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-            advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-            continue;
-          }
-        }
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // SMART TREE-CLIMBING & FORAGING SQUIRREL AI
-    // Squirrels dynamically climb real woodland tree trunks straight up into the
-    // canopy branches, perch steadily without spinning in place, leap across
-    // adjacent canopies, forage on the forest floor, and scramble up the nearest
-    // tree when startled!
-    // -------------------------------------------------------------------------
-    if (a.species === 'squirrel') {
-      const findCandidateTrees = (searchRad: number) => {
-        const obs = getNearbyWorldObstacles(a.x, a.z, searchRad);
-        const trees: Array<{
-          x: number;
-          z: number;
-          baseY: number;
-          trunkRad: number;
-          maxPerchH: number;
-          dist: number;
-        }> = [];
-        for (let oIdx = 0; oIdx < obs.length; oIdx++) {
-          const o = obs[oIdx];
-          if (o.kind !== 'pine' && o.kind !== 'oak' && o.kind !== 'birch') continue;
-          if ((o.radius ?? 0) <= 0.08) continue;
-          const by = groundHeightAt(o.x, o.z);
-          if (by <= WATER_LEVEL + 0.35) continue;
-          const sc = o.scale ?? 1.0;
-          const trRad = Math.max(0.28, (o.radius ?? 0.42) * 0.85);
-          const maxH = (o.kind === 'pine' ? 4.2 : 3.4) * sc;
-          trees.push({
-            x: o.x,
-            z: o.z,
-            baseY: by - 0.05,
-            trunkRad: trRad,
-            maxPerchH: Math.max(2.2, Math.min(4.8, maxH)),
-            dist: Math.hypot(o.x - a.x, o.z - a.z),
-          });
-        }
-        trees.sort((t1, t2) => t1.dist - t2.dist);
-        return trees;
-      };
-
-      // Initialize squirrel state on first tick near a real tree
-      if (!a.treeState) {
-        a.decisionCounter = a.id * 5;
-        const initTrees = findCandidateTrees(24.0);
-        if (initTrees.length > 0 && a.id % 2 === 0) {
-          const t0 = initTrees[0];
-          const ang = (a.id * 1.7) % (Math.PI * 2);
-          const perchH = 1.85 + hash2D(a.id, 31) * (t0.maxPerchH - 1.85);
-          a.treeState = 'perched';
-          a.treeObstacleX = t0.x;
-          a.treeObstacleZ = t0.z;
-          a.treeBaseY = t0.baseY;
-          a.treeTrunkRadius = t0.trunkRad;
-          a.treeTargetHeight = perchH;
-          a.treeClimbAngle = ang;
-          a.treeClimbPitch = -Math.PI * 0.38;
-          a.treeStateTimer = 2.0 + hash2D(a.id, 47) * 2.8;
-          a.x = t0.x + Math.cos(ang) * t0.trunkRad;
-          a.z = t0.z + Math.sin(ang) * t0.trunkRad;
-          a.y = t0.baseY + perchH;
-          a.yaw = Math.atan2(-Math.cos(ang), -Math.sin(ang));
-        } else {
-          a.treeState = 'ground_forage';
-          a.treeClimbPitch = 0;
-          a.treeStateTimer = 1.8 + hash2D(a.id, 59) * 2.2;
-        }
-      }
-
-      // If startled/fleeing while on the ground, bolt toward the safest nearby tree trunk and climb up!
-      if (a.alertLevel === 'fleeing') {
-        if (a.treeState === 'ground_forage' || a.treeState === 'running_to_tree') {
-          const fleeTrees = findCandidateTrees(18.0);
-          const awayX = a.x - nearestThreatX;
-          const awayZ = a.z - nearestThreatZ;
-          const awayLen = Math.hypot(awayX, awayZ) || 1;
-          let bestEscapeTree = fleeTrees[0];
-          let bestScore = -Infinity;
-          for (let tIdx = 0; tIdx < fleeTrees.length; tIdx++) {
-            const ft = fleeTrees[tIdx];
-            const toTreeX = ft.x - a.x;
-            const toTreeZ = ft.z - a.z;
-            const toTreeLen = Math.max(0.1, ft.dist);
-            const alignAway = (toTreeX * awayX + toTreeZ * awayZ) / (toTreeLen * awayLen);
-            const score = alignAway * 2.5 - ft.dist * 0.18;
-            if (score > bestScore) {
-              bestScore = score;
-              bestEscapeTree = ft;
-            }
-          }
-          if (bestEscapeTree && bestEscapeTree.dist <= 16.0) {
-            a.treeObstacleX = bestEscapeTree.x;
-            a.treeObstacleZ = bestEscapeTree.z;
-            a.treeBaseY = bestEscapeTree.baseY;
-            a.treeTrunkRadius = bestEscapeTree.trunkRad;
-            a.treeTargetHeight = bestEscapeTree.maxPerchH;
-            if (bestEscapeTree.dist <= bestEscapeTree.trunkRad + 0.48) {
-              a.treeState = 'climb_up';
-              a.treeClimbAngle = Math.atan2(a.z - bestEscapeTree.z, a.x - bestEscapeTree.x);
-              a.vx = 0;
-              a.vz = 0;
-            } else {
-              a.treeState = 'running_to_tree';
-              a.treeClimbPitch = 0;
-              const dx = bestEscapeTree.x - a.x;
-              const dz = bestEscapeTree.z - a.z;
-              const d = Math.hypot(dx, dz) || 1;
-              const fleeSpd = SPECIES_PROFILES.squirrel.preyFleeSpeed;
-              a.vx = (dx / d) * fleeSpd;
-              a.vz = (dz / d) * fleeSpd;
-              a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 10.0, safeDt);
-              a.hopPhase += safeDt * 18.0;
-              const nextX = a.x + a.vx * safeDt;
-              const nextZ = a.z + a.vz * safeDt;
-              if (Math.hypot(bestEscapeTree.x - nextX, bestEscapeTree.z - nextZ) <= bestEscapeTree.trunkRad + 0.48) {
-                a.treeState = 'climb_up';
-                a.treeClimbAngle = Math.atan2(nextZ - bestEscapeTree.z, nextX - bestEscapeTree.x);
-                a.vx = 0;
-                a.vz = 0;
-              } else {
-                a.x = nextX;
-                a.z = nextZ;
-                a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
-              }
-              continue;
-            }
-          }
-        } else if (a.treeState === 'climb_down') {
-          // If startled while climbing down, immediately reverse and climb back up to the high canopy!
-          a.treeState = 'climb_up';
-          a.treeTargetHeight = Math.max(a.treeTargetHeight ?? 3.2, 3.6);
-        } else if (a.treeState === 'perched' && a.treeObstacleX !== undefined && a.treeObstacleZ !== undefined) {
-          // Only climb higher if currently perched low on the trunk; once at top perch height, stay perched without resetting to climb_up!
-          const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
-          const escapeH = Math.max(a.treeTargetHeight ?? 3.2, 3.4);
-          if (a.y < baseY + escapeH - 0.12) {
-            a.treeTargetHeight = escapeH;
-            a.treeState = 'climb_up';
-          }
-        }
-      }
-
-      // Execute vertical tree states ('climb_up', 'perched', 'canopy_leap', 'climb_down')
-      if (
-        a.treeState === 'climb_up' &&
-        a.treeObstacleX !== undefined &&
-        a.treeObstacleZ !== undefined
-      ) {
-        const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
-        const trunkRad = a.treeTrunkRadius ?? 0.36;
-        const targetH = a.treeTargetHeight ?? 3.2;
-        const climbSpd = a.alertLevel === 'fleeing' ? 3.2 : 2.1;
-        const climbAng = a.treeClimbAngle ?? 0;
-        a.y = Math.min(baseY + targetH, a.y + climbSpd * safeDt);
-        a.x = a.treeObstacleX + Math.cos(climbAng) * trunkRad;
-        a.z = a.treeObstacleZ + Math.sin(climbAng) * trunkRad;
-        a.vx = 0;
-        a.vz = 0;
-        a.treeClimbPitch = -Math.PI * 0.42;
-        a.yaw = Math.atan2(-Math.cos(climbAng), -Math.sin(climbAng));
-        a.hopPhase += safeDt * 15.0;
-        if (a.y >= baseY + targetH - 0.04) {
-          a.y = baseY + targetH;
-          a.treeState = 'perched';
-          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
-          a.treeStateTimer = 2.4 + hash2D(a.decisionCounter, a.id + 19) * 3.2;
-        }
-        continue;
-      }
-
-      if (
-        a.treeState === 'perched' &&
-        a.treeObstacleX !== undefined &&
-        a.treeObstacleZ !== undefined
-      ) {
-        const trunkRad = a.treeTrunkRadius ?? 0.36;
-        const baseAng = a.treeClimbAngle ?? 0;
-        // Hold steady on the bark without oscillating yaw or spinning around the trunk
-        a.x = a.treeObstacleX + Math.cos(baseAng) * trunkRad;
-        a.z = a.treeObstacleZ + Math.sin(baseAng) * trunkRad;
-        a.vx = 0;
-        a.vz = 0;
-        a.treeClimbPitch = -Math.PI * 0.36;
-        a.yaw = Math.atan2(-Math.cos(baseAng), -Math.sin(baseAng));
-        a.treeStateTimer = (a.treeStateTimer ?? 2.5) - safeDt;
-        if (a.treeStateTimer <= 0) {
-          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
-          const dc = a.decisionCounter;
-          const nearbyTrees = findCandidateTrees(14.0).filter(
-            (t) =>
-              Math.hypot(t.x - a.treeObstacleX!, t.z - a.treeObstacleZ!) > 2.2 &&
-              (a.lastTreeX === undefined || Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5)
-          );
-          if (a.alertLevel === 'fleeing' || minThreatDist < 11.5) {
-            // While danger is near the base of the tree, either leap across canopies away from danger or stay perched high up!
-            const safeNextTree = nearbyTrees.find(
-              (t) =>
-                t.dist <= 8.5 &&
-                Math.hypot(t.x - nearestThreatX, t.z - nearestThreatZ) >
-                  Math.hypot(a.treeObstacleX! - nearestThreatX, a.treeObstacleZ! - nearestThreatZ) + 1.0
-            );
-            if (safeNextTree) {
-              const landAng = Math.atan2(a.z - safeNextTree.z, a.x - safeNextTree.x);
-              const nextPerchH = Math.max(2.6, safeNextTree.maxPerchH * 0.85);
-              a.lastTreeX = a.treeObstacleX;
-              a.lastTreeZ = a.treeObstacleZ;
-              a.leapStartX = a.x;
-              a.leapStartY = a.y;
-              a.leapStartZ = a.z;
-              a.leapEndX = safeNextTree.x + Math.cos(landAng) * safeNextTree.trunkRad;
-              a.leapEndY = safeNextTree.baseY + nextPerchH;
-              a.leapEndZ = safeNextTree.z + Math.sin(landAng) * safeNextTree.trunkRad;
-              a.treeObstacleX = safeNextTree.x;
-              a.treeObstacleZ = safeNextTree.z;
-              a.treeBaseY = safeNextTree.baseY;
-              a.treeTrunkRadius = safeNextTree.trunkRad;
-              a.treeTargetHeight = nextPerchH;
-              a.treeClimbAngle = landAng;
-              a.leapDuration = Math.max(0.55, Math.min(0.95, safeNextTree.dist * 0.11));
-              a.treeStateTimer = a.leapDuration;
-              a.treeState = 'canopy_leap';
-            } else {
-              a.treeStateTimer = 2.0;
-            }
-          } else if (nearbyTrees.length > 0 && nearbyTrees[0].dist <= 8.5 && dc % 2 === 0) {
-            // Agile canopy leap to a neighboring tree!
-            const pickIdx = dc % Math.min(3, nearbyTrees.length);
-            const nextTree = nearbyTrees[pickIdx];
-            const landAng = Math.atan2(a.z - nextTree.z, a.x - nextTree.x);
-            const nextPerchH = 1.85 + hash2D(dc, a.id + 71) * (nextTree.maxPerchH - 1.85);
-            a.lastTreeX = a.treeObstacleX;
-            a.lastTreeZ = a.treeObstacleZ;
-            a.leapStartX = a.x;
-            a.leapStartY = a.y;
-            a.leapStartZ = a.z;
-            a.leapEndX = nextTree.x + Math.cos(landAng) * nextTree.trunkRad;
-            a.leapEndY = nextTree.baseY + nextPerchH;
-            a.leapEndZ = nextTree.z + Math.sin(landAng) * nextTree.trunkRad;
-            a.treeObstacleX = nextTree.x;
-            a.treeObstacleZ = nextTree.z;
-            a.treeBaseY = nextTree.baseY;
-            a.treeTrunkRadius = nextTree.trunkRad;
-            a.treeTargetHeight = nextPerchH;
-            a.treeClimbAngle = landAng;
-            a.leapDuration = Math.max(0.55, Math.min(0.95, nextTree.dist * 0.11));
-            a.treeStateTimer = a.leapDuration;
-            a.treeState = 'canopy_leap';
-          } else {
-            // Climb down the trunk to forage on the ground
-            a.treeState = 'climb_down';
-          }
-        }
-        continue;
-      }
-
-      if (a.treeState === 'canopy_leap') {
-        const dur = Math.max(0.2, a.leapDuration ?? 0.75);
-        a.treeStateTimer = Math.max(0, (a.treeStateTimer ?? dur) - safeDt);
-        const p = 1.0 - (a.treeStateTimer ?? 0) / dur;
-        const sx = a.leapStartX ?? a.x;
-        const sy = a.leapStartY ?? a.y;
-        const sz = a.leapStartZ ?? a.z;
-        const ex = a.leapEndX ?? a.x;
-        const ey = a.leapEndY ?? a.y;
-        const ez = a.leapEndZ ?? a.z;
-        a.x = sx + (ex - sx) * p;
-        a.z = sz + (ez - sz) * p;
-        a.y = sy + (ey - sy) * p + Math.sin(p * Math.PI) * 1.35;
-        a.vx = 0;
-        a.vz = 0;
-        a.treeClimbPitch = (p - 0.5) * 0.85;
-        a.yaw = Math.atan2(ex - sx, ez - sz);
-        a.hopPhase += safeDt * 18.0;
-        if (p >= 1.0) {
-          a.treeState = 'perched';
-          a.treeStateTimer = 2.2 + hash2D(a.decisionCounter ?? 1, a.id + 53) * 2.8;
-        }
-        continue;
-      }
-
-      if (
-        a.treeState === 'climb_down' &&
-        a.treeObstacleX !== undefined &&
-        a.treeObstacleZ !== undefined
-      ) {
-        const baseY = a.treeBaseY ?? groundHeightAt(a.treeObstacleX, a.treeObstacleZ);
-        const trunkRad = a.treeTrunkRadius ?? 0.36;
-        const climbAng = a.treeClimbAngle ?? 0;
-        a.y = Math.max(baseY + 0.1, a.y - 2.25 * safeDt);
-        a.x = a.treeObstacleX + Math.cos(climbAng) * trunkRad;
-        a.z = a.treeObstacleZ + Math.sin(climbAng) * trunkRad;
-        a.vx = 0;
-        a.vz = 0;
-        a.treeClimbPitch = Math.PI * 0.42;
-        a.yaw = Math.atan2(Math.cos(climbAng), Math.sin(climbAng));
-        a.hopPhase += safeDt * 15.0;
-        if (a.y <= baseY + 0.14) {
-          // Step cleanly onto the forest floor outside the trunk collider and pick a smart foraging target
-          const outAng = climbAng + (hash2D(a.decisionCounter ?? 1, a.id) - 0.5) * 0.9;
-          const stepOut = trunkRad + 0.52;
-          a.lastTreeX = a.treeObstacleX;
-          a.lastTreeZ = a.treeObstacleZ;
-          a.x = a.treeObstacleX + Math.cos(outAng) * stepOut;
-          a.z = a.treeObstacleZ + Math.sin(outAng) * stepOut;
-          a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
-          a.treeClimbPitch = 0;
-          a.treeState = 'ground_forage';
-          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
-          const forageDist = 3.2 + hash2D(a.decisionCounter, a.id + 83) * 5.2;
-          a.forageTargetX = a.x + Math.cos(outAng) * forageDist;
-          a.forageTargetZ = a.z + Math.sin(outAng) * forageDist;
-          a.treeStateTimer = 3.2 + hash2D(a.decisionCounter, a.id + 97) * 3.0;
-        }
-        continue;
-      }
-
-      if (
-        a.treeState === 'running_to_tree' &&
-        a.treeObstacleX !== undefined &&
-        a.treeObstacleZ !== undefined &&
-        a.alertLevel !== 'fleeing'
-      ) {
-        a.treeClimbPitch = 0;
-        a.treeStateTimer = (a.treeStateTimer ?? 4.0) - safeDt;
-        const dx = a.treeObstacleX - a.x;
-        const dz = a.treeObstacleZ - a.z;
-        const distToTrunk = Math.hypot(dx, dz);
-        const trunkRad = a.treeTrunkRadius ?? 0.36;
-        if (distToTrunk <= trunkRad + 0.48) {
-          a.treeState = 'climb_up';
-          a.treeClimbAngle = Math.atan2(a.z - a.treeObstacleZ, a.x - a.treeObstacleX);
-          a.vx = 0;
-          a.vz = 0;
-          continue;
-        }
-        if ((a.treeStateTimer ?? 0) <= 0) {
-          a.treeState = 'ground_forage';
-          a.treeStateTimer = 2.5;
-          continue;
-        }
-        const runSpd = 2.85;
-        a.vx = (dx / (distToTrunk || 1)) * runSpd;
-        a.vz = (dz / (distToTrunk || 1)) * runSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 7.5, safeDt);
-        a.hopPhase += safeDt * 13.5;
-        a.x += a.vx * safeDt;
-        a.z += a.vz * safeDt;
-        a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(a.x, a.z).height);
-        continue;
-      }
-
-      // Ground foraging state ('ground_forage') when calm:
-      if (a.alertLevel !== 'fleeing' && !isRaining) {
-        a.treeClimbPitch = 0;
-        a.treeStateTimer = (a.treeStateTimer ?? 3.0) - safeDt;
-        if (a.treeStateTimer <= 0) {
-          a.decisionCounter = (a.decisionCounter ?? 0) + 1;
-          const dc = a.decisionCounter;
-          // Every 2nd ground decision, pick a varied nearby tree (not the last tree!) and go climb it
-          const candidateTrees = findCandidateTrees(24.0).filter(
-            (t) =>
-              a.lastTreeX === undefined ||
-              Math.hypot(t.x - a.lastTreeX, t.z - a.lastTreeZ!) > 1.5
-          );
-          if (candidateTrees.length > 0 && dc % 2 === 0) {
-            const pickIdx = dc % Math.min(4, candidateTrees.length);
-            const chosenTree = candidateTrees[pickIdx];
-            a.treeObstacleX = chosenTree.x;
-            a.treeObstacleZ = chosenTree.z;
-            a.treeBaseY = chosenTree.baseY;
-            a.treeTrunkRadius = chosenTree.trunkRad;
-            a.treeTargetHeight = 1.85 + hash2D(dc, a.id + 41) * (chosenTree.maxPerchH - 1.85);
-            a.treeStateTimer = 4.5;
-            a.treeState = 'running_to_tree';
-            continue;
-          } else {
-            // Pick a fresh ground foraging waypoint around the meadow/forest
-            const baseAng = hash2D(dc * 11, a.id + 23) * Math.PI * 2;
-            const dist = 2.8 + hash2D(dc * 17, a.id + 61) * 5.5;
-            a.forageTargetX = a.homeX + Math.cos(baseAng) * dist;
-            a.forageTargetZ = a.homeZ + Math.sin(baseAng) * dist;
-            a.treeStateTimer = 2.6 + hash2D(dc, a.id + 89) * 2.8;
-          }
-        }
-
-        const nibbleWave = Math.sin(elapsedTime * 2.3 + a.id * 1.4);
-        const fx = a.forageTargetX ?? a.homeX;
-        const fz = a.forageTargetZ ?? a.homeZ;
-        const df = Math.hypot(fx - a.x, fz - a.z);
-        if (nibbleWave > 0.35 || df < 0.45) {
-          // Pause to nibble an acorn & look around
-          a.aiBehavior = 'grazing';
-          a.vx = 0;
-          a.vz = 0;
-        } else {
-          a.aiBehavior = 'wandering';
-          const dirAng = Math.atan2(fx - a.x, fz - a.z);
-          const spd = SPECIES_PROFILES.squirrel.grazeSpeed;
-          a.vx = Math.sin(dirAng) * spd;
-          a.vz = Math.cos(dirAng) * spd;
-          a.yaw = rotateYawSmoothlyToward(a.yaw, dirAng, 6.5, safeDt);
-          a.hopPhase += safeDt * SPECIES_PROFILES.squirrel.grazeHopRate;
-          const rawNextX = a.x + a.vx * safeDt;
-          const rawNextZ = a.z + a.vz * safeDt;
-          const resolved = resolveAnimalObstacleCollision(
-            rawNextX,
-            rawNextZ,
-            SPECIES_PROFILES.squirrel.preyBodyRadius
-          );
-          if (resolved.hitObstacle) {
-            a.treeStateTimer = 0;
-          }
-          advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-        }
-        continue;
-      }
-    }
-
-    if (a.alertLevel === 'fleeing') {
-      a.treeClimbPitch = 0;
-      const awayX = a.x - nearestThreatX;
-      const awayZ = a.z - nearestThreatZ;
-      const len = Math.hypot(awayX, awayZ) || 1;
-      const fleeSpeed = SPECIES_PROFILES[a.species].preyFleeSpeed;
-      a.vx = (awayX / len) * fleeSpeed;
-      a.vz = (awayZ / len) * fleeSpeed;
-      a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 8.0, safeDt);
-      a.hopPhase += safeDt * 18.0;
-      a.aiBehavior = 'fleeing';
-      a.isResting = false;
-      a.isSeekingShelter = false;
-    } else if (isRaining) {
-      // Rain Shelter Behavior: animals seek cover under the nearest tree canopy!
-      a.isSeekingShelter = true;
-      a.aiBehavior = 'seeking_shelter';
-      if (a.shelterTargetX === undefined || a.shelterTargetZ === undefined) {
-        const sh = findNearestShelterPoint(a.x, a.z, a.species, a.caveIndex);
-        a.shelterTargetX = sh.x;
-        a.shelterTargetZ = sh.z;
-      }
-      const toShX = a.shelterTargetX - a.x;
-      const toShZ = a.shelterTargetZ - a.z;
-      const distSh = Math.hypot(toShX, toShZ);
-      if (distSh > 1.15) {
-        a.isResting = false;
-        const shelterMoveSpd = SPECIES_PROFILES[a.species].shelterSpeed;
-        a.vx = (toShX / distSh) * shelterMoveSpd;
-        a.vz = (toShZ / distSh) * shelterMoveSpd;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 6.5, safeDt);
-        a.hopPhase += safeDt * 10.0;
-      } else {
-        // Reached shelter under tree canopy: huddle quietly out of the rain (zero sliding)
-        a.vx = 0;
-        a.vz = 0;
-        a.isResting = true;
-        a.aiBehavior = 'sleeping';
-      }
-    } else if (a.alertLevel === 'curious' || a.aiBehavior === 'listening') {
-      a.isSeekingShelter = false;
-      a.isResting = false;
-      a.aiBehavior = 'listening';
-      a.vx = 0;
-      a.vz = 0;
-      const lookX = a.stimulusX ?? nearestThreatX;
-      const lookZ = a.stimulusZ ?? nearestThreatZ;
-      const targetYaw = Math.atan2(lookX - a.x, lookZ - a.z);
-      a.yaw = rotateYawSmoothlyToward(a.yaw, targetYaw, 4.5, safeDt);
-    } else {
-      a.isSeekingShelter = false;
-      a.isResting = false;
-      const timeWindow = Math.floor(elapsedTime * 0.28 + a.id * 1.37);
-      const wanderSeed = hash2D(a.id * 13.7, timeWindow);
-      const pauseThreshold = SPECIES_PROFILES[a.species].grazePauseThreshold;
-      const pauseMove = wanderSeed > pauseThreshold;
-      if (pauseMove) {
-        a.aiBehavior = 'grazing';
-        a.vx = 0;
-        a.vz = 0;
-      } else {
-        a.aiBehavior = 'wandering';
-        const targetAngle = (wanderSeed / pauseThreshold) * Math.PI * 2;
-        const homePullX = (a.homeX - a.x) * 0.14;
-        const homePullZ = (a.homeZ - a.z) * 0.14;
-        const grazeSpeed = SPECIES_PROFILES[a.species].grazeSpeed;
-        const desiredVx = Math.cos(targetAngle) * grazeSpeed + homePullX;
-        const desiredVz = Math.sin(targetAngle) * grazeSpeed + homePullZ;
-        const blend = Math.min(1, safeDt * 4.5);
-        a.vx += (desiredVx - a.vx) * blend;
-        a.vz += (desiredVz - a.vz) * blend;
-        a.yaw = rotateYawSmoothlyToward(a.yaw, Math.atan2(a.vx, a.vz), 5.0, safeDt);
-        a.hopPhase += safeDt * SPECIES_PROFILES[a.species].grazeHopRate;
-      }
-    }
-
-    if (Math.abs(a.vx) > 1e-4 || Math.abs(a.vz) > 1e-4 || a.inWater || a.y <= WATER_LEVEL + 0.15) {
-      const rawNextX = a.x + a.vx * safeDt;
-      const rawNextZ = a.z + a.vz * safeDt;
-      const bodyRadius = SPECIES_PROFILES[a.species].preyBodyRadius;
-      const resolved = resolveAnimalObstacleCollision(rawNextX, rawNextZ, bodyRadius);
-      advanceAnimalWithWaterShoreRecovery(a, resolved.x, resolved.z, resolved.hitObstacle, safeDt);
-    }
+    stepOneSmallAnimal(animals, i, frame, tally);
   }
-
-  return { scamperedCritterCount, nearestCritterDist };
+  return { scamperedCritterCount: tally.scamperedCritterCount, nearestCritterDist: tally.nearestCritterDist };
 }
 
 export interface IBoidsWildlifeStepResult {
@@ -4766,7 +4957,7 @@ export function stepBoidsAndWildlife(
       b.vx = 0;
       b.vy = 0;
       b.vz = 0;
-      b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+      b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(b.x, b.z));
       continue;
     }
 
@@ -4821,7 +5012,7 @@ export function stepBoidsAndWildlife(
       } else {
         const landX = b.landingX ?? targetTrap.x + 4.4;
         const landZ = b.landingZ ?? targetTrap.z;
-        const landGroundY = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(landX, landZ).height);
+        const landGroundY = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(landX, landZ));
 
         if (b.groundState === 'descending' || !b.groundState || b.groundState === 'flying') {
           b.groundState = 'descending';
@@ -4853,7 +5044,7 @@ export function stepBoidsAndWildlife(
           const dx = targetTrap.x - b.x;
           const dz = targetTrap.z - b.z;
           const dist2D = Math.hypot(dx, dz);
-          const groundHere = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+          const groundHere = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(b.x, b.z));
           b.y = groundHere;
           b.vy = 0;
           if (dist2D <= 0.42) {
@@ -4869,7 +5060,7 @@ export function stepBoidsAndWildlife(
             b.vz = (dz / dist2D) * walkSpd;
             b.x += b.vx * safeDt;
             b.z += b.vz * safeDt;
-            b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+            b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(b.x, b.z));
             b.yaw = Math.atan2(b.vx, b.vz);
             b.wingPhase += safeDt * 8.5;
           }
@@ -4882,7 +5073,7 @@ export function stepBoidsAndWildlife(
           b.vz = 0;
           b.x = targetTrap.x;
           b.z = targetTrap.z;
-          b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightAt(b.x, b.z).height);
+          b.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(b.x, b.z));
           b.wingPhase += safeDt * 6.0;
           b.groundTimer = (b.groundTimer ?? 2.2) - safeDt;
           if ((b.groundTimer ?? 0) <= 0) {
@@ -4912,7 +5103,7 @@ export function stepBoidsAndWildlife(
       b.id % 6 === 0
     ) {
       const cycle = (elapsedTime + b.id * 7.3) % 32.0;
-      const forageGroundY = walkableHeightAt(b.x, b.z).height;
+      const forageGroundY = walkableHeightValueAt(b.x, b.z);
       if (cycle < 14.0 && forageGroundY > WATER_LEVEL + 0.4) {
         if (b.y > forageGroundY + 0.35) {
           b.groundState = 'descending';
@@ -4933,7 +5124,7 @@ export function stepBoidsAndWildlife(
           b.vy = 0;
           b.x += b.vx * safeDt;
           b.z += b.vz * safeDt;
-          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightAt(b.x, b.z).height);
+          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightValueAt(b.x, b.z));
           b.yaw = Math.atan2(b.vx, b.vz);
           b.wingPhase += safeDt * 8.0;
           continue;
@@ -4942,7 +5133,7 @@ export function stepBoidsAndWildlife(
           b.vx = 0;
           b.vy = 0;
           b.vz = 0;
-          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightAt(b.x, b.z).height);
+          b.y = Math.max(WATER_LEVEL + 0.1, walkableHeightValueAt(b.x, b.z));
           b.wingPhase += safeDt * 5.0;
           continue;
         }

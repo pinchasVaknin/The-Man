@@ -21,7 +21,7 @@ import {
   SAKURA_SANCTUARY_YAW,
   isWithinViewDistance,
 } from '../domain/landmarksRegistry';
-import { walkableHeightAt } from './terrainAndBiomeSystem';
+import { walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { getPlayerState } from './combatAndInventorySystem';
 
 export type MonkRole =
@@ -851,14 +851,14 @@ export function isPlayerInsideMonkTerritory(
  *          without dropping off a wall, rampart, watchtower, or cliff edge.
  */
 export function isMonkPositionSafeOnPlatform(x: number, z: number, currentY: number): boolean {
-  const centerFloorY = walkableHeightAt(x, z, currentY).height;
+  const centerFloorY = walkableHeightValueAt(x, z, currentY);
   if (Math.abs(centerFloorY - currentY) > 0.72) return false;
   // Probe 0.28m around the monk's feet so monks stop right at the edge of walls/ramparts before hanging in mid-air
   const edgeProbeR = 0.28;
-  if (walkableHeightAt(x + edgeProbeR, z, currentY).height < currentY - 0.85) return false;
-  if (walkableHeightAt(x - edgeProbeR, z, currentY).height < currentY - 0.85) return false;
-  if (walkableHeightAt(x, z + edgeProbeR, currentY).height < currentY - 0.85) return false;
-  if (walkableHeightAt(x, z - edgeProbeR, currentY).height < currentY - 0.85) return false;
+  if (walkableHeightValueAt(x + edgeProbeR, z, currentY) < currentY - 0.85) return false;
+  if (walkableHeightValueAt(x - edgeProbeR, z, currentY) < currentY - 0.85) return false;
+  if (walkableHeightValueAt(x, z + edgeProbeR, currentY) < currentY - 0.85) return false;
+  if (walkableHeightValueAt(x, z - edgeProbeR, currentY) < currentY - 0.85) return false;
   return true;
 }
 
@@ -890,7 +890,7 @@ export function updateMonkTempleSystem(
 ): void {
   const safeDt = Math.min(0.1, Math.max(0.001, dt));
   const playerState = getPlayerState();
-  const playerY = playerState ? playerState.y : walkableHeightAt(playerX, playerZ).height;
+  const playerY = playerState ? playerState.y : walkableHeightValueAt(playerX, playerZ);
   const FZ = FORTRESS_Z_OFFSET;
 
   westBarracksDoorOpenTimer = Math.max(0, westBarracksDoorOpenTimer - safeDt);

@@ -36,7 +36,7 @@ import {
   findNearestMarketStall,
   getMarketStallCatalogItems,
 } from '../domain/landmarksRegistry';
-import { groundHeightAt, walkableHeightAt } from './terrainAndBiomeSystem';
+import { groundHeightAt, walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { awardSkillXp, getPlayerHeroLevel, getPlayerState } from './playerPhysicsSystem';
 export { getPlayerState };
 import {
@@ -1204,7 +1204,7 @@ export function evaluateSwordStrikeWindowHit(
     const nearbyTargets = getNearbyArcheryTargets(sx, sz);
     for (let t = 0; t < nearbyTargets.length; t++) {
       const tgt = nearbyTargets[t];
-      const baseY = walkableHeightAt(tgt.x, tgt.z).height;
+      const baseY = walkableHeightValueAt(tgt.x, tgt.z);
       const centerY = baseY + 1.35;
       if (Math.hypot(sx - tgt.x, sy - centerY, sz - tgt.z) <= tgt.bullseyeRadius + (isHeavy ? 0.45 : 0.25)) {
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'target' };
@@ -1276,8 +1276,8 @@ export function evaluateSwordStrikeWindowHit(
                           : anim.species === 'koifish'
                             ? 0.62
                             : 1.35;
-      // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
-      const animGroundY = anim.y ?? walkableHeightAt(anim.x, anim.z).height;
+      // Use anim.y ?? walkableHeightValueAt(anim.x, anim.z) so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
+      const animGroundY = anim.y ?? walkableHeightValueAt(anim.x, anim.z);
       const animCenterY =
         animGroundY +
         (anim.species === 'dragon'
@@ -1350,7 +1350,7 @@ export function evaluateSwordStrikeWindowHit(
         bird.vx = 0;
         bird.vy = 0;
         bird.vz = 0;
-        bird.y = walkableHeightAt(bird.x, bird.z).height;
+        bird.y = walkableHeightValueAt(bird.x, bird.z);
         state.lastSwordHitPoint = { x: bird.x, y: bird.y + 0.2, z: bird.z, age: 0, kind: 'target' };
         state.swordHitStopTimer = 0.045;
         awardSkillXp(state, 'swordsmanship', 22);
@@ -1661,7 +1661,7 @@ export function stepArrowsPhysics(
         const loz = arr.localOffsetZ ?? 0;
         const loy = arr.localOffsetY ?? 0.65;
         const baseAnimY =
-          (hostAnim.y ?? walkableHeightAt(hostAnim.x, hostAnim.z).height) +
+          (hostAnim.y ?? walkableHeightValueAt(hostAnim.x, hostAnim.z)) +
           (hostAnim.pounceHeight ?? 0);
         if (hostAnim.isDead) {
           // When the animal falls dead on its side (roll = PI/2), transform local offset so the arrow stays stuck in the fallen body
@@ -1740,7 +1740,7 @@ export function stepArrowsPhysics(
           const nearbyTargets = getNearbyArcheryTargets(arr.x, arr.z);
           for (let t = 0; t < nearbyTargets.length; t++) {
             const tgt = nearbyTargets[t];
-            const baseY = walkableHeightAt(tgt.x, tgt.z).height;
+            const baseY = walkableHeightValueAt(tgt.x, tgt.z);
             const centerY = baseY + 1.35;
             const d3 = Math.hypot(arr.x - tgt.x, arr.y - centerY, arr.z - tgt.z);
             if (d3 <= tgt.bullseyeRadius) {
@@ -1856,9 +1856,9 @@ export function stepArrowsPhysics(
                                 : anim.species === 'koifish'
                                   ? 0.56
                                   : 1.18;
-            // Use anim.y ?? walkableHeightAt(anim.x, anim.z).height so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
+            // Use anim.y ?? walkableHeightValueAt(anim.x, anim.z) so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
             const rawAnimY =
-              (anim.y ?? walkableHeightAt(anim.x, anim.z).height) + (anim.pounceHeight ?? 0);
+              (anim.y ?? walkableHeightValueAt(anim.x, anim.z)) + (anim.pounceHeight ?? 0);
             const animGroundY = anim.species === 'koifish' ? rawAnimY - 0.26 : rawAnimY;
             const animHeightSpan =
               anim.species === 'dragon'
@@ -1930,7 +1930,7 @@ export function stepArrowsPhysics(
               bird.vx = 0;
               bird.vy = 0;
               bird.vz = 0;
-              bird.y = walkableHeightAt(bird.x, bird.z).height;
+              bird.y = walkableHeightValueAt(bird.x, bird.z);
               arr.stuck = true;
               arr.vx = 0;
               arr.vy = 0;

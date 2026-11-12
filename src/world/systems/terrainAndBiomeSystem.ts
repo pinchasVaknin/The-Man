@@ -1717,15 +1717,50 @@ export function northernSnowZoneFactorAt(x: number, z: number): number {
  * @param currentY Height of the asker, to choose between stacked floors (optional).
  * @returns The walkable height and the surface kind at that point.
  */
+/** Summary: Surface kinds that walkableHeightAt can report. */
+export type TWalkableSurface = 'pier' | 'bridge' | 'tower' | 'cabin' | 'ground';
+
+/** Summary: A height sample. Pass one in as `out` to avoid allocating a new object per query. */
+export interface IWalkableHeightSample {
+  height: number;
+  surface: TWalkableSurface;
+}
+
+/**
+ * Summary: Writes a height sample into `out` (or a new object when none is given) and returns it.
+ */
+function writeWalkableSample(
+  out: IWalkableHeightSample | undefined,
+  height: number,
+  surface: TWalkableSurface
+): IWalkableHeightSample {
+  const sample = out ?? { height, surface };
+  sample.height = height;
+  sample.surface = surface;
+  return sample;
+}
+
+/** Reused by walkableHeightValueAt. Safe because the value is read before the next query. */
+const walkableHeightScratch: IWalkableHeightSample = { height: 0, surface: 'ground' };
+
+/**
+ * Summary: Returns only the walkable height at a point, without allocating a sample object.
+ * Use this in per-frame code that reads `.height` and discards the rest.
+ */
+export function walkableHeightValueAt(x: number, z: number, currentY?: number): number {
+  return walkableHeightAt(x, z, currentY, walkableHeightScratch).height;
+}
+
 export function walkableHeightAt(
   x: number,
   z: number,
-  currentY?: number
-): { height: number; surface: 'pier' | 'bridge' | 'tower' | 'cabin' | 'ground' } {
+  currentY?: number,
+  out?: IWalkableHeightSample
+): IWalkableHeightSample {
   if (Math.abs(x) <= 21.8 && z >= -215.6 + FZ && z <= -187.8 + FZ) {
     if (z > -189.8 + FZ && Math.abs(x) <= 4.2) {
       const tStep = Math.max(0, Math.min(1, (-187.8 + FZ - z) / 2.0));
-      return { height: CHINESE_FORTRESS_POS.summitHeight + tStep * 0.35, surface: 'cabin' };
+      return writeWalkableSample(out, CHINESE_FORTRESS_POS.summitHeight + tStep * 0.35, 'cabin');
     }
     if (z <= -189.6 + FZ) {
       const inMainStairX = x >= 13.55 && x <= 18.5;
@@ -1736,7 +1771,7 @@ export function walkableHeightAt(
           CHINESE_FORTRESS_POS.mainHallFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.mainHallFloor2Y - CHINESE_FORTRESS_POS.mainHallFloor1Y);
         if (currentY === undefined || (currentY >= stairY - 1.15 && currentY <= stairY + 2.6)) {
-          return { height: stairY, surface: 'cabin' };
+          return writeWalkableSample(out, stairY, 'cabin');
         }
       }
       if (
@@ -1744,9 +1779,9 @@ export function walkableHeightAt(
         currentY >= 29.0 + FY &&
         !(inMainStairX && z >= -205.5 + FZ && z <= -194.0 + FZ)
       ) {
-        return { height: CHINESE_FORTRESS_POS.mainHallFloor2Y, surface: 'cabin' };
+        return writeWalkableSample(out, CHINESE_FORTRESS_POS.mainHallFloor2Y, 'cabin');
       }
-      return { height: CHINESE_FORTRESS_POS.mainHallFloor1Y, surface: 'cabin' };
+      return writeWalkableSample(out, CHINESE_FORTRESS_POS.mainHallFloor1Y, 'cabin');
     }
   }
 
@@ -1754,12 +1789,7 @@ export function walkableHeightAt(
     if (Math.abs(x - px) <= 8.8 && z >= -171.3 + FZ && z <= -155.8 + FZ) {
       if (z > -156.5 + FZ && Math.abs(x - px) <= 1.8) {
         const tStep = Math.max(0, Math.min(1, (-155.8 + FZ - z) / 0.7));
-        return {
-          height:
-            CHINESE_FORTRESS_POS.summitHeight +
-            tStep * (CHINESE_FORTRESS_POS.pavilionFloor1Y - CHINESE_FORTRESS_POS.summitHeight),
-          surface: 'cabin',
-        };
+        return writeWalkableSample(out, CHINESE_FORTRESS_POS.summitHeight + tStep * (CHINESE_FORTRESS_POS.pavilionFloor1Y - CHINESE_FORTRESS_POS.summitHeight), 'cabin');
       }
       const inPavStairX = px < 0 ? x >= -38.6 && x <= -35.15 : x >= 35.15 && x <= 38.6;
       const inPavStairZ = z >= -168.0 + FZ && z <= -159.0 + FZ;
@@ -1769,7 +1799,7 @@ export function walkableHeightAt(
           CHINESE_FORTRESS_POS.pavilionFloor1Y +
           tStair * (CHINESE_FORTRESS_POS.pavilionFloor2Y - CHINESE_FORTRESS_POS.pavilionFloor1Y);
         if (currentY === undefined || (currentY >= stairY - 1.15 && currentY <= stairY + 2.5)) {
-          return { height: stairY, surface: 'cabin' };
+          return writeWalkableSample(out, stairY, 'cabin');
         }
       }
       if (
@@ -1777,9 +1807,9 @@ export function walkableHeightAt(
         currentY >= 28.6 + FY &&
         !(inPavStairX && z >= -167.0 + FZ && z <= -159.5 + FZ)
       ) {
-        return { height: CHINESE_FORTRESS_POS.pavilionFloor2Y, surface: 'cabin' };
+        return writeWalkableSample(out, CHINESE_FORTRESS_POS.pavilionFloor2Y, 'cabin');
       }
-      return { height: CHINESE_FORTRESS_POS.pavilionFloor1Y, surface: 'cabin' };
+      return writeWalkableSample(out, CHINESE_FORTRESS_POS.pavilionFloor1Y, 'cabin');
     }
   }
 
@@ -1790,13 +1820,13 @@ export function walkableHeightAt(
         Math.abs(x - tw.ladderX) <= 0.52 && Math.abs(z - tw.ladderZ) <= 0.52;
       if (!inLadderHatch) {
         if (currentY !== undefined && currentY >= 33.8 + FY) {
-          return { height: CHINESE_FORTRESS_POS.watchtowerFloor3Y, surface: 'tower' };
+          return writeWalkableSample(out, CHINESE_FORTRESS_POS.watchtowerFloor3Y, 'tower');
         }
         if (currentY !== undefined && currentY >= 28.0 + FY) {
-          return { height: CHINESE_FORTRESS_POS.watchtowerFloor2Y, surface: 'tower' };
+          return writeWalkableSample(out, CHINESE_FORTRESS_POS.watchtowerFloor2Y, 'tower');
         }
       }
-      return { height: CHINESE_FORTRESS_POS.watchtowerFloor1Y, surface: 'tower' };
+      return writeWalkableSample(out, CHINESE_FORTRESS_POS.watchtowerFloor1Y, 'tower');
     }
   }
 
@@ -1812,21 +1842,21 @@ export function walkableHeightAt(
       const inLadderHatch =
         Math.abs(lx - hw.localLadderX) <= 0.82 && Math.abs(lz - hw.localLadderZ) <= 0.82;
       if (!inLadderHatch && currentY !== undefined && currentY >= hw.deckY - 2.5) {
-        return { height: hw.deckY, surface: 'tower' };
+        return writeWalkableSample(out, hw.deckY, 'tower');
       }
-      return { height: hw.baseY + 0.15, surface: 'tower' };
+      return writeWalkableSample(out, hw.baseY + 0.15, 'tower');
     }
   }
 
   const rbInfo = ropeBridgePointInfoAt(x, z);
   if (rbInfo !== null && (currentY === undefined || currentY >= rbInfo.height - 4.5)) {
-    return { height: rbInfo.height, surface: 'pier' };
+    return writeWalkableSample(out, rbInfo.height, 'pier');
   }
 
   if (Math.abs(x) >= 44.1 && Math.abs(x) <= 48.0 && z >= -156.8 + FZ && z <= -141.2 + FZ) {
     if (z <= -152.0 + FZ) {
       if (currentY === undefined || currentY >= 28.0 + FY) {
-        return { height: CHINESE_FORTRESS_POS.rampartHeight, surface: 'bridge' };
+        return writeWalkableSample(out, CHINESE_FORTRESS_POS.rampartHeight, 'bridge');
       }
     } else {
       const tWallStair = Math.max(0, Math.min(1, (-142.0 + FZ - z) / 10.0));
@@ -1834,10 +1864,7 @@ export function walkableHeightAt(
         CHINESE_FORTRESS_POS.summitHeight +
         tWallStair * (CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight);
       if (currentY === undefined || (currentY >= wallStairY - 1.15 && currentY <= wallStairY + 2.5)) {
-        return {
-          height: wallStairY,
-          surface: 'bridge',
-        };
+        return writeWalkableSample(out, wallStairY, 'bridge');
       }
     }
   }
@@ -1848,7 +1875,7 @@ export function walkableHeightAt(
     Math.abs(x) >= 47.4 && Math.abs(x) <= 52.2 && z >= -220.2 + FZ && z <= -121.8 + FZ;
   const onNorthWallTop = Math.abs(x) <= 52.2 && z >= -220.2 + FZ && z <= -215.5 + FZ;
   if ((onSouthWallTop || onSideWallTop || onNorthWallTop) && (currentY === undefined || currentY >= 28.0 + FY)) {
-    return { height: CHINESE_FORTRESS_POS.rampartHeight, surface: 'bridge' };
+    return writeWalkableSample(out, CHINESE_FORTRESS_POS.rampartHeight, 'bridge');
   }
 
   if (
@@ -1862,7 +1889,7 @@ export function walkableHeightAt(
     if (Math.abs(x - CHINESE_FORTRESS_POS.x) <= allowedHalfW) {
       const fortStairY = chineseFortressStairHeightAt(z);
       if (currentY === undefined || currentY >= fortStairY - 1.2) {
-        return { height: fortStairY, surface: 'bridge' };
+        return writeWalkableSample(out, fortStairY, 'bridge');
       }
     }
   }
@@ -1873,27 +1900,27 @@ export function walkableHeightAt(
     z >= CHINESE_FORTRESS_POS.plazaMinZ
   ) {
     if (currentY === undefined || currentY >= CHINESE_FORTRESS_POS.summitHeight - 1.5) {
-      return { height: CHINESE_FORTRESS_POS.summitHeight, surface: 'bridge' };
+      return writeWalkableSample(out, CHINESE_FORTRESS_POS.summitHeight, 'bridge');
     }
   }
 
   if (isInsideSouthernMine(x, z, currentY)) {
-    return { height: southernMineWalkableHeightAt(x, z, currentY), surface: 'bridge' };
+    return writeWalkableSample(out, southernMineWalkableHeightAt(x, z, currentY), 'bridge');
   }
 
   const bearCave = isInsideBearCave(x, z, currentY);
   if (bearCave) {
-    return { height: bearCave.floorY, surface: 'cabin' };
+    return writeWalkableSample(out, bearCave.floorY, 'cabin');
   }
 
   const volcanoSanctum = isInsideVolcanoSanctum(x, z, currentY);
   if (volcanoSanctum) {
-    return { height: volcanoSanctum.floorY, surface: 'cabin' };
+    return writeWalkableSample(out, volcanoSanctum.floorY, 'cabin');
   }
 
   const floatingIslandY = floatingBloomingIslandHeightAt(x, z, currentY);
   if (floatingIslandY !== null) {
-    return { height: floatingIslandY, surface: 'bridge' };
+    return writeWalkableSample(out, floatingIslandY, 'bridge');
   }
 
   const groundH = groundHeightAt(x, z);
@@ -1913,7 +1940,7 @@ export function walkableHeightAt(
   if (localPX >= -8.4 && localPX <= 9.2 && Math.abs(localPZ) <= 1.55) {
     const pierDeckH = Math.max(0.55, groundH);
     if (currentY === undefined || currentY >= 0.55 - 0.85) {
-      return { height: pierDeckH, surface: 'pier' };
+      return writeWalkableSample(out, pierDeckH, 'pier');
     }
   }
 
@@ -1926,7 +1953,7 @@ export function walkableHeightAt(
   const localBoatZ = rbDx * sinBoat + rbDz * cosBoat;
   if (Math.abs(localBoatX) <= 1.45 && Math.abs(localBoatZ) <= 0.68) {
     if (currentY === undefined || currentY >= -0.35) {
-      return { height: 0.35, surface: 'pier' };
+      return writeWalkableSample(out, 0.35, 'pier');
     }
   }
 
@@ -1937,7 +1964,7 @@ export function walkableHeightAt(
   ) {
     const westPierH = Math.max(LAKESIDE_TEA_PAVILION_POS.deckHeight, groundH);
     if (currentY === undefined || currentY >= LAKESIDE_TEA_PAVILION_POS.deckHeight - 0.85) {
-      return { height: westPierH, surface: 'pier' };
+      return writeWalkableSample(out, westPierH, 'pier');
     }
   }
 
@@ -1947,7 +1974,7 @@ export function walkableHeightAt(
     const normZ = Math.max(-1, Math.min(1, bridgeDz / 11.2));
     const archH = Math.max(groundH, 0.52 + (1.0 - normZ * normZ) * 1.58);
     if (currentY === undefined || currentY >= archH - 0.85) {
-      return { height: archH, surface: 'bridge' };
+      return writeWalkableSample(out, archH, 'bridge');
     }
   }
 
@@ -1960,7 +1987,7 @@ export function walkableHeightAt(
     const norm = Math.max(-1, Math.min(1, rbLocalZ / 11.6));
     const deckH = Math.max(groundH, 0.72 + (1.0 - norm * norm) * 1.18);
     if (currentY === undefined || currentY >= deckH - 0.85) {
-      return { height: deckH, surface: 'pier' };
+      return writeWalkableSample(out, deckH, 'pier');
     }
   }
 
@@ -1972,17 +1999,17 @@ export function walkableHeightAt(
   ) {
     const sBridgeH = Math.max(groundH, southernRiverBridgeHeightAt(x));
     if (currentY === undefined || currentY >= sBridgeH - 0.85) {
-      return { height: sBridgeH, surface: 'bridge' };
+      return writeWalkableSample(out, sBridgeH, 'bridge');
     }
   }
 
   const towerCenterH = 6.4;
   if (Math.abs(x - 30.0) <= 3.1 && Math.abs(z + 26.0) <= 3.1) {
-    return { height: towerCenterH + 0.55, surface: 'tower' };
+    return writeWalkableSample(out, towerCenterH + 0.55, 'tower');
   }
 
   if (Math.abs(x - HUNTER_LODGE_POS.x) <= 5.8 && Math.abs(z - HUNTER_LODGE_POS.z) <= 4.8) {
-    return { height: HUNTER_LODGE_POS.height + 0.18, surface: 'cabin' };
+    return writeWalkableSample(out, HUNTER_LODGE_POS.height + 0.18, 'cabin');
   }
 
   for (let i = 0; i < VALLEY_FARMS.length; i++) {
@@ -1990,7 +2017,7 @@ export function walkableHeightAt(
     const minZ = f.dirZ === 1 ? f.z - 6.3 : f.z - 4.5;
     const maxZ = f.dirZ === 1 ? f.z + 4.5 : f.z + 6.3;
     if (Math.abs(x - f.x) <= 5.4 && z >= minZ && z <= maxZ) {
-      return { height: f.height + 0.18, surface: 'cabin' };
+      return writeWalkableSample(out, f.height + 0.18, 'cabin');
     }
   }
 
@@ -1999,7 +2026,7 @@ export function walkableHeightAt(
   if (harborFountainDist <= 4.25 && harborFountainDist > 0.72) {
     const fTopY = harborFountainDist <= 2.3 ? SOUTHEAST_HARBOR_POS.plazaY + 1.02 : SOUTHEAST_HARBOR_POS.plazaY + 0.54;
     if (currentY === undefined || currentY >= fTopY - 0.82) {
-      return { height: fTopY, surface: 'pier' };
+      return writeWalkableSample(out, fTopY, 'pier');
     }
   }
 
@@ -2010,7 +2037,7 @@ export function walkableHeightAt(
   if (amphR <= 6.68) {
     const stageTopY = SOUTHEAST_HARBOR_POS.plazaY + 0.36;
     if (currentY === undefined || currentY >= stageTopY - 0.85) {
-      return { height: stageTopY, surface: 'pier' };
+      return writeWalkableSample(out, stageTopY, 'pier');
     }
   } else if (amphR >= 6.975 && amphR <= 15.25 && amphDz >= -0.2) {
     const amphAng = Math.atan2(amphDx, amphDz);
@@ -2018,7 +2045,7 @@ export function walkableHeightAt(
       const tier = Math.min(4, Math.max(0, Math.floor((amphR - 6.975) / 1.65)));
       const tierTopY = SOUTHEAST_HARBOR_POS.plazaY + 0.55 + tier * 0.56;
       if (currentY === undefined || currentY >= tierTopY - 0.95) {
-        return { height: tierTopY, surface: 'pier' };
+        return writeWalkableSample(out, tierTopY, 'pier');
       }
     }
   }
@@ -2028,20 +2055,20 @@ export function walkableHeightAt(
     z >= SOUTHEAST_HARBOR_POS.tavernZ - SOUTHEAST_HARBOR_POS.tavernHalfD &&
     z <= SOUTHEAST_HARBOR_POS.tavernZ + SOUTHEAST_HARBOR_POS.tavernHalfD + 2.4
   ) {
-    return { height: SOUTHEAST_HARBOR_POS.tavernFloorY, surface: 'cabin' };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.tavernFloorY, 'cabin');
   }
 
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.warehouseX) <= SOUTHEAST_HARBOR_POS.warehouseHalfW &&
     Math.abs(z - SOUTHEAST_HARBOR_POS.warehouseZ) <= SOUTHEAST_HARBOR_POS.warehouseHalfD + 1.0
   ) {
-    return { height: SOUTHEAST_HARBOR_POS.warehouseFloorY, surface: 'cabin' };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.warehouseFloorY, 'cabin');
   }
   if (
     Math.abs(x - SOUTHEAST_HARBOR_POS.cargoShedX) <= 6.0 &&
     Math.abs(z - SOUTHEAST_HARBOR_POS.cargoShedZ) <= 4.5
   ) {
-    return { height: SOUTHEAST_HARBOR_POS.plazaY + 0.12, surface: 'pier' };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.plazaY + 0.12, 'pier');
   }
 
   const lhDist = Math.hypot(x - SOUTHEAST_HARBOR_POS.lighthouseX, z - SOUTHEAST_HARBOR_POS.lighthouseZ);
@@ -2052,10 +2079,10 @@ export function walkableHeightAt(
       z >= SOUTHEAST_HARBOR_POS.lighthouseLadderZ - 0.55 &&
       z <= SOUTHEAST_HARBOR_POS.lighthouseLadderZ + 0.42;
     if (!inLhHatch && currentY !== undefined && currentY >= SOUTHEAST_HARBOR_POS.lighthouseTopDeckY - 2.5) {
-      return { height: SOUTHEAST_HARBOR_POS.lighthouseTopDeckY, surface: 'tower' };
+      return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.lighthouseTopDeckY, 'tower');
     }
     if (lhDist <= SOUTHEAST_HARBOR_POS.lighthouseRadius) {
-      return { height: SOUTHEAST_HARBOR_POS.lighthouseBaseY + 0.15, surface: 'tower' };
+      return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.lighthouseBaseY + 0.15, 'tower');
     }
   }
 
@@ -2066,12 +2093,7 @@ export function walkableHeightAt(
     (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.65)
   ) {
     const tGang = Math.max(0, Math.min(1, (x - 268.2) / 8.0));
-    return {
-      height:
-        SOUTHEAST_HARBOR_POS.pierY +
-        tGang * (SOUTHEAST_HARBOR_POS.shipDeckY - SOUTHEAST_HARBOR_POS.pierY),
-      surface: 'pier',
-    };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.pierY + tGang * (SOUTHEAST_HARBOR_POS.shipDeckY - SOUTHEAST_HARBOR_POS.pierY), 'pier');
   }
 
   if (
@@ -2080,7 +2102,7 @@ export function walkableHeightAt(
     Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= SOUTHEAST_HARBOR_POS.pierHalfW &&
     (currentY === undefined || currentY >= SOUTHEAST_HARBOR_POS.pierY - 0.85)
   ) {
-    return { height: SOUTHEAST_HARBOR_POS.pierY, surface: 'pier' };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.pierY, 'pier');
   }
 
   if (
@@ -2103,22 +2125,22 @@ export function walkableHeightAt(
         SOUTHEAST_HARBOR_POS.shipDeckY +
         tStair * (SOUTHEAST_HARBOR_POS.shipQuarterdeckY - SOUTHEAST_HARBOR_POS.shipDeckY);
       if (currentY === undefined || (currentY >= stairY - 0.65 && currentY <= stairY + 1.8)) {
-        return { height: stairY, surface: 'pier' };
+        return writeWalkableSample(out, stairY, 'pier');
       }
     }
     if (z >= SOUTHEAST_HARBOR_POS.shipQuarterdeckStartZ) {
       if (currentY !== undefined && currentY >= 5.2) {
-        return { height: SOUTHEAST_HARBOR_POS.shipQuarterdeckY, surface: 'pier' };
+        return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.shipQuarterdeckY, 'pier');
       }
-      return { height: SOUTHEAST_HARBOR_POS.shipDeckY, surface: 'cabin' };
+      return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.shipDeckY, 'cabin');
     }
-    return { height: SOUTHEAST_HARBOR_POS.shipDeckY, surface: 'pier' };
+    return writeWalkableSample(out, SOUTHEAST_HARBOR_POS.shipDeckY, 'pier');
   }
 
   // Sailable Royal Explorer Caravel deck & Harbor North Boarding Jetty
   const sailableDeckY = sailableShipDeckHeightAt(x, z, currentY);
   if (sailableDeckY !== null) {
-    return { height: sailableDeckY, surface: 'pier' };
+    return writeWalkableSample(out, sailableDeckY, 'pier');
   }
 
   // Ruined Atlantis Central Boss Arena Sanctuary, Western Ship Dock, Radial Causeways & Outer Ring Colonnade
@@ -2133,19 +2155,19 @@ export function walkableHeightAt(
     atDistWalk <= RUINED_ATLANTIS_POS.outerRingRadius + 4.0 &&
     (Math.abs(atDxWalk) <= 3.6 || Math.abs(atDzWalk) <= 3.6);
   if (atDistWalk <= RUINED_ATLANTIS_POS.innerArenaRadius + 0.8 || onAtlantisDock || onAtlantisRadialCauseway) {
-    return { height: RUINED_ATLANTIS_POS.arenaFloorY, surface: 'bridge' };
+    return writeWalkableSample(out, RUINED_ATLANTIS_POS.arenaFloorY, 'bridge');
   }
   if (
     atDistWalk >= RUINED_ATLANTIS_POS.outerRingRadius - 5.2 &&
     atDistWalk <= RUINED_ATLANTIS_POS.outerRingRadius + 5.2
   ) {
-    return { height: RUINED_ATLANTIS_POS.outerRingY, surface: 'bridge' };
+    return writeWalkableSample(out, RUINED_ATLANTIS_POS.outerRingY, 'bridge');
   }
 
   // Ancient Pharaoh Stepped Sun Pyramid & Walkable Eastern Ceremonial Ramp (-475, 295)
   const pyramidY = desertPyramidHeightAt(x, z, currentY);
   if (pyramidY !== null) {
-    return { height: pyramidY, surface: 'bridge' };
+    return writeWalkableSample(out, pyramidY, 'bridge');
   }
 
   // Mid-Ocean Corsair Smuggler Cove Western Timber Docking Pier & Beacon Watchtower (540, 185)
@@ -2154,14 +2176,14 @@ export function walkableHeightAt(
     x <= SMUGGLER_ISLAND_POS.dockMaxX &&
     Math.abs(z - SMUGGLER_ISLAND_POS.dockZ) <= SMUGGLER_ISLAND_POS.dockHalfWidthZ
   ) {
-    return { height: SMUGGLER_ISLAND_POS.deckY, surface: 'pier' };
+    return writeWalkableSample(out, SMUGGLER_ISLAND_POS.deckY, 'pier');
   }
   if (
     Math.hypot(x - SMUGGLER_ISLAND_POS.towerX, z - SMUGGLER_ISLAND_POS.towerZ) <= 4.6 &&
     currentY !== undefined &&
     currentY >= SMUGGLER_ISLAND_POS.towerTopY - 2.4
   ) {
-    return { height: SMUGGLER_ISLAND_POS.towerTopY, surface: 'tower' };
+    return writeWalkableSample(out, SMUGGLER_ISLAND_POS.towerTopY, 'tower');
   }
 
   const obsDist = Math.hypot(x - SOUTHWEST_OASIS_POS.observatoryX, z - SOUTHWEST_OASIS_POS.observatoryZ);
@@ -2170,10 +2192,10 @@ export function walkableHeightAt(
       Math.abs(x - SOUTHWEST_OASIS_POS.observatoryLadderX) <= 0.85 &&
       Math.abs(z - SOUTHWEST_OASIS_POS.observatoryLadderZ) <= 0.85;
     if (!inObsHatch && currentY !== undefined && currentY >= SOUTHWEST_OASIS_POS.observatoryTopDeckY - 2.5) {
-      return { height: SOUTHWEST_OASIS_POS.observatoryTopDeckY, surface: 'tower' };
+      return writeWalkableSample(out, SOUTHWEST_OASIS_POS.observatoryTopDeckY, 'tower');
     }
     if (obsDist <= SOUTHWEST_OASIS_POS.observatoryRadius) {
-      return { height: SOUTHWEST_OASIS_POS.observatoryBaseY + 0.15, surface: 'tower' };
+      return writeWalkableSample(out, SOUTHWEST_OASIS_POS.observatoryBaseY + 0.15, 'tower');
     }
   }
 
@@ -2181,7 +2203,7 @@ export function walkableHeightAt(
     Math.abs(x - SOUTHWEST_OASIS_POS.pavilionX) <= SOUTHWEST_OASIS_POS.pavilionHalfW + 0.8 &&
     Math.abs(z - SOUTHWEST_OASIS_POS.pavilionZ) <= SOUTHWEST_OASIS_POS.pavilionHalfD
   ) {
-    return { height: SOUTHWEST_OASIS_POS.pavilionFloorY, surface: 'cabin' };
+    return writeWalkableSample(out, SOUTHWEST_OASIS_POS.pavilionFloorY, 'cabin');
   }
 
   // Southwest Oasis Shoreline Wooden Fishing Piers (South-East Pier at gazeboX/Z & East Pier at eastPierX/Z)
@@ -2197,7 +2219,7 @@ export function walkableHeightAt(
     (onSouthEastOasisPier || onEastOasisPier) &&
     (currentY === undefined || currentY >= SOUTHWEST_OASIS_POS.gazeboDeckY - 0.85)
   ) {
-    return { height: SOUTHWEST_OASIS_POS.gazeboDeckY, surface: 'pier' };
+    return writeWalkableSample(out, SOUTHWEST_OASIS_POS.gazeboDeckY, 'pier');
   }
 
   for (let i = 0; i < DWARVEN_STONE_HOUSES.length; i++) {
@@ -2206,11 +2228,11 @@ export function walkableHeightAt(
       Math.abs(x - dh.x) <= dh.halfW + 0.65 &&
       Math.abs(z - dh.z) <= dh.halfD + 0.35
     ) {
-      return { height: dh.floorY, surface: 'cabin' };
+      return writeWalkableSample(out, dh.floorY, 'cabin');
     }
   }
 
-  return { height: groundH, surface: 'ground' };
+  return writeWalkableSample(out, groundH, 'ground');
 }
 
 /**
@@ -2223,7 +2245,11 @@ export function walkableHeightAt(
  * @param z World Z in meters.
  * @returns Unit surface normal (nx, ny, nz).
  */
-export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: number; nz: number } {
+export function getSurfaceNormalAt(
+  x: number,
+  z: number,
+  out?: { nx: number; ny: number; nz: number }
+): { nx: number; ny: number; nz: number } {
   const eps = 0.4;
   const hL = groundHeightAt(x - eps, z);
   const hR = groundHeightAt(x + eps, z);
@@ -2233,11 +2259,11 @@ export function getSurfaceNormalAt(x: number, z: number): { nx: number; ny: numb
   const dx = (hR - hL) / (2 * eps);
   const dz = (hU - hD) / (2 * eps);
   const len = Math.hypot(dx, 1.0, dz);
-  return {
-    nx: -dx / len,
-    ny: 1.0 / len,
-    nz: -dz / len,
-  };
+  const normal = out ?? { nx: 0, ny: 0, nz: 0 };
+  normal.nx = -dx / len;
+  normal.ny = 1.0 / len;
+  normal.nz = -dz / len;
+  return normal;
 }
 
 /**

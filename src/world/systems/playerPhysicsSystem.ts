@@ -53,8 +53,7 @@ import {
   getSurfaceBiomeAt,
   getSurfaceNormalAt,
   getNearbyWorldObstacles,
-  isNavigableOceanForShip,
-} from './terrainAndBiomeSystem';
+  isNavigableOceanForShip, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { stepMountedHorseSteering } from './horsePhysicsSystem';
 import {
   findSailableShipContainingPoint,
@@ -760,7 +759,7 @@ export function stepPlayerPhysics(
           const sideZ = -Math.sin(currentHorse.yaw) * 0.95;
           state.x = currentHorse.x + sideX;
           state.z = currentHorse.z + sideZ;
-          state.y = walkableHeightAt(state.x, state.z, state.y).height;
+          state.y = walkableHeightValueAt(state.x, state.z, state.y);
         }
       }
     } else {
@@ -969,7 +968,7 @@ export function stepPlayerPhysics(
     const floorY =
       state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0)
         ? Math.max(baseGroundY, WATER_LEVEL - 0.5)
-        : Math.max(walkableHeightAt(state.x, state.z, state.y).height, WATER_LEVEL - 0.5);
+        : Math.max(walkableHeightValueAt(state.x, state.z, state.y), WATER_LEVEL - 0.5);
     if (state.y < floorY + 0.15 && input.relaxed) {
       state.y = floorY;
       state.vy = 0;
@@ -990,7 +989,7 @@ export function stepPlayerPhysics(
       for (let i = 0; i < horses.length; i++) {
         const h = horses[i];
         if (h.id === state.mountedHorseId) continue;
-        const horseFloorY = walkableHeightAt(h.x, h.z, h.y).height;
+        const horseFloorY = walkableHeightValueAt(h.x, h.z, h.y);
         if (h.y > horseFloorY + 0.001 || (h.vy ?? 0) !== 0) {
           const nextVy = (h.vy ?? 0) - GRAVITY * dt;
           const nextY = h.y + nextVy * dt;
@@ -1871,7 +1870,7 @@ export function stepPlayerPhysics(
           }
         }
       } else {
-        const horseFloorY = walkableHeightAt(h.x, h.z, h.y).height;
+        const horseFloorY = walkableHeightValueAt(h.x, h.z, h.y);
         if (h.y > horseFloorY + 0.001 || (h.vy ?? 0) !== 0) {
           const nextVy = (h.vy ?? 0) - GRAVITY * dt;
           const nextY = h.y + nextVy * dt;

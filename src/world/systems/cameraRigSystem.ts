@@ -12,8 +12,7 @@ import type { IPlayerState } from '../domain/worldTypes';
 import { PLAYER_EYE_HEIGHT } from '../domain/landmarks/coreLandmarks';
 import {
   getRoofHeightAt,
-  walkableHeightAt,
-} from './terrainAndBiomeSystem';
+  walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { computeFirstPersonSwordAttackPose } from './swordAttackAnimationSystem';
 // #endregion
 
@@ -234,7 +233,7 @@ function writeThirdPersonPose(
     camX = Math.max(-95.8, Math.min(-88.2, camX));
     camZ = Math.max(70.65, Math.min(75.15, camZ));
   }
-  const minCamFloorY = walkableHeightAt(camX, camZ, player.y).height + 0.45;
+  const minCamFloorY = walkableHeightValueAt(camX, camZ, player.y) + 0.45;
   const rawCamY = Math.max(minCamFloorY, pivotY - fwdY * camDist + shoulderUp);
   const overheadRoofY = getRoofHeightAt(camX, camZ);
   const camY =
