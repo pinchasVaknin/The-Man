@@ -807,14 +807,14 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 110,
     contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
-  // Chamber 4C — Dragon-Forge & Titan Anvil Vault Coffer (East Exit)
+  // Chamber 4C — Dragon-Forge & Titan Anvil Vault Coffer (East North Shore)
   {
-    // Ancient Mine: dragon forge east wall
+    // Ancient Mine: dragon forge east north landing
     id: 'chest-moria-dragon-forge',
     name: 'Dragon-Forge MasterSmith Chest',
-    x: SOUTHERN_MINE_POS.x + 36.5,
+    x: SOUTHERN_MINE_POS.x + 18.0,
     y: MINE_LEVEL_Y.forgeFloor,
-    z: SOUTHERN_MINE_POS.entranceZ + 448.0,
+    z: SOUTHERN_MINE_POS.entranceZ + 390.0,
     interactRadius: 4.2,
     goldCoins: 95,
     contents: ['dwarven_pickaxe', 'dwarven_warhammer', 'iron_ingots', 'dwarven_gold_ore', 'sapphire_gem'],

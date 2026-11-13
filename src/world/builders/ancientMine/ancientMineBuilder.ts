@@ -34,6 +34,7 @@ import { mergeStaticChildren } from './staticMeshMerger';
 import { MINE_PALETTE } from './propGeometries';
 import { buildDeepLevelSetPieces } from './deepLevelSetPieces';
 import { buildLowerLevelSetPieces } from './lowerLevelSetPieces';
+import { buildMineDwarvesAi } from './mineDwarvesAi';
 import { buildUpperLevelSetPieces } from './upperLevelSetPieces';
 // #endregion
 
@@ -77,7 +78,8 @@ const AREA_LIGHTS: ReadonlyArray<{ lx: number; y: number; lz: number; color: num
   { lx: 0, y: MINE_LEVEL_Y.kingBalcony + 4, lz: 299, color: 0xffd080, intensity: 8 },
   { lx: 0, y: MINE_LEVEL_Y.chasmLedge + 6, lz: 334, color: 0x4aa8ff, intensity: 8 },
   { lx: 0, y: MINE_LEVEL_Y.forgeFloor + 6, lz: 368, color: 0xff8a3a, intensity: 6 },
-  { lx: 0, y: MINE_LEVEL_Y.forgeFloor + 5, lz: 420, color: 0xff4a10, intensity: 12 },
+  { lx: 0, y: MINE_LEVEL_Y.forgeFloor + 5, lz: 432, color: 0xff4a10, intensity: 12 },
+  { lx: 12, y: MINE_LEVEL_Y.vaultFloor + 6, lz: 490, color: 0xffd258, intensity: 10 },
 ];
 // #endregion
 
@@ -153,6 +155,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
   const updateUpperLevel = buildUpperLevelSetPieces(setPieceContext);
   const updateLowerLevel = buildLowerLevelSetPieces(setPieceContext);
   const updateDeepLevel = buildDeepLevelSetPieces(setPieceContext, ctx.disposableTextures);
+  const updateMineDwarvesAi = buildMineDwarvesAi(setPieceContext);
 
   const dressing = {
     group,
@@ -161,7 +164,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
     glowPropMaterial: mat(
       new THREE.MeshStandardMaterial({ vertexColors: true, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.3 })
     ),
-    rockMaterial: mat(new THREE.MeshStandardMaterial({ color: 0x6a625a, map: rockMap, roughness: 1.0 })),
+    rockMaterial: mat(new THREE.MeshStandardMaterial({ color: 0x6a625a, map: rockMap, roughness: 1.0, side: THREE.DoubleSide })),
     addTorch,
   };
   addMineProps(dressing, ALL_MINE_PROPS);
@@ -180,6 +183,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
     updateLowerLevel(elapsedTime);
     fallMap.offset.y = -elapsedTime * 0.9;
     updateDeepLevel(elapsedTime);
+    updateMineDwarvesAi(elapsedTime);
   };
 
   return { group, update };

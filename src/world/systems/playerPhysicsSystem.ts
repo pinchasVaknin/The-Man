@@ -42,6 +42,8 @@ import {
   findLookedAtWatchtowerLadder,
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
+import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
+import { sampleAncientMineFloor } from '../domain/landmarks/ancientMine/ancientMineFloor';
 import { applyMineLavaHazard } from './mineLavaHazard';
 import { isMonkDoorwayActive } from './monkTempleSystem';
 import {
@@ -976,6 +978,9 @@ export function stepPlayerPhysics(
     const flySpeed = input.sprint ? 34.0 : 18.0;
     state.walkPace = input.sprint ? 'fast' : 'normal';
 
+    const wasInMine = isInsideSouthernMine(state.x, state.z, state.y);
+    const prevY = state.y;
+
     const targetVx = moveX * flySpeed;
     const targetVz = moveZ * flySpeed;
     let targetVy = 0;
@@ -999,27 +1004,85 @@ export function stepPlayerPhysics(
       nextZ *= scaleBack;
     }
 
+    if (wasInMine) {
+      const nearbyBoxes = getNearbySolidBuildingBoxes(nextX, nextZ, 2.0);
+      for (let i = 0; i < nearbyBoxes.length; i++) {
+        const b = nearbyBoxes[i];
+        if (b.minY !== undefined && prevY >= (b.maxY ?? b.minY + 12)) continue;
+        if (b.minY !== undefined && prevY + 1.65 <= b.minY) continue;
+        const resolved = resolveHorizontalBoxCollision(nextX, nextZ, 0.44, b);
+        if (resolved.collided) {
+          nextX = resolved.x;
+          nextZ = resolved.z;
+        }
+      }
+      // Keep flying player within the mine's carved volume unless exiting via the portal mouth (lz < 1.5).
+      const nextLx = nextX - ANCIENT_MINE_ORIGIN.x;
+      const nextLz = nextZ - ANCIENT_MINE_ORIGIN.z;
+      if (nextLz >= 1.5 && sampleAncientMineFloor(nextLx, nextLz, prevY) === null) {
+        const canX = sampleAncientMineFloor(nextLx, state.z - ANCIENT_MINE_ORIGIN.z, prevY) !== null;
+        const canZ = sampleAncientMineFloor(state.x - ANCIENT_MINE_ORIGIN.x, nextLz, prevY) !== null;
+        if (canX) {
+          nextZ = state.z;
+          state.vz = 0;
+        } else if (canZ) {
+          nextX = state.x;
+          state.vx = 0;
+        } else {
+          nextX = state.x;
+          nextZ = state.z;
+          state.vx = 0;
+          state.vz = 0;
+        }
+      }
+    }
+
     const stepDist = Math.hypot(nextX - state.x, nextZ - state.z);
     state.x = nextX;
     state.z = nextZ;
     state.distanceWalked += stepDist;
     state.y += state.vy * dt;
 
-    const baseGroundY = groundHeightAt(state.x, state.z);
-    const floorY =
-      state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0)
-        ? Math.max(baseGroundY, WATER_LEVEL - 0.5)
-        : Math.max(walkableHeightValueAt(state.x, state.z, state.y), WATER_LEVEL - 0.5);
-    if (state.y < floorY + 0.15 && input.relaxed) {
-      state.y = floorY;
-      state.vy = 0;
-      state.isFlying = false;
-      state.onGround = true;
-    } else if (state.y < floorY + 0.3) {
-      state.y = floorY + 0.3;
-      if (state.vy < 0) state.vy = 0;
+    const mineSampleNow = wasInMine
+      ? sampleAncientMineFloor(state.x - ANCIENT_MINE_ORIGIN.x, state.z - ANCIENT_MINE_ORIGIN.z, prevY)
+      : null;
+
+    if (mineSampleNow !== null) {
+      const mineFloorY =
+        mineSampleNow.material === 'water' && mineSampleNow.waterSurfaceY !== null
+          ? mineSampleNow.waterSurfaceY
+          : mineSampleNow.height;
+      const mineMaxFlyY = mineSampleNow.ceilingY - 1.75;
+      if (state.y > mineMaxFlyY) {
+        state.y = mineMaxFlyY;
+        if (state.vy > 0) state.vy = 0;
+      }
+      if (state.y < mineFloorY + 0.15 && input.relaxed) {
+        state.y = mineFloorY;
+        state.vy = 0;
+        state.isFlying = false;
+        state.onGround = true;
+      } else if (state.y < mineFloorY + 0.3) {
+        state.y = mineFloorY + 0.3;
+        if (state.vy < 0) state.vy = 0;
+      }
+    } else {
+      const baseGroundY = groundHeightAt(state.x, state.z);
+      const floorY =
+        state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0)
+          ? Math.max(baseGroundY, WATER_LEVEL - 0.5)
+          : Math.max(walkableHeightValueAt(state.x, state.z, state.y), WATER_LEVEL - 0.5);
+      if (state.y < floorY + 0.15 && input.relaxed) {
+        state.y = floorY;
+        state.vy = 0;
+        state.isFlying = false;
+        state.onGround = true;
+      } else if (state.y < floorY + 0.3) {
+        state.y = floorY + 0.3;
+        if (state.vy < 0) state.vy = 0;
+      }
+      state.y = Math.min(state.y, 165.0);
     }
-    state.y = Math.min(state.y, 165.0);
     state.bobAmount = 0;
     state.bobPhase = 0;
     state.isCrouching = false;
@@ -1728,7 +1791,20 @@ export function stepPlayerPhysics(
   } else {
     state.isSwimming = false;
     const effectiveFloorY = effectiveWalkHeight;
+    const prevWalkY = state.y;
     state.y += state.vy * dt;
+
+    if (isInsideSouthernMine(state.x, state.z, prevWalkY)) {
+      const mineCeilSample = sampleAncientMineFloor(
+        state.x - ANCIENT_MINE_ORIGIN.x,
+        state.z - ANCIENT_MINE_ORIGIN.z,
+        prevWalkY
+      );
+      if (mineCeilSample !== null && state.y > mineCeilSample.ceilingY - 1.75) {
+        state.y = mineCeilSample.ceilingY - 1.75;
+        if (state.vy > 0) state.vy = 0;
+      }
+    }
 
     if (state.y <= effectiveFloorY || (wasGrounded && prevVy <= 0 && state.y - effectiveFloorY <= 0.85)) {
       if (!wasGrounded && prevVy < -2.2) {

@@ -58,7 +58,7 @@ type Rgb = readonly [number, number, number];
 
 // #region Constants
 /** Summary: Local-frame extent sampled for the greybox, meters. Covers every surface with margin. */
-const GRID_BOUNDS = { minLx: -112, maxLx: 126, minLz: -4, maxLz: 458 } as const;
+const GRID_BOUNDS = { minLx: -120, maxLx: 126, minLz: -4, maxLz: 514 } as const;
 
 /** Summary: Visible thickness of a ledge, bridge deck or path edge over the abyss, meters. */
 const ABYSS_LIP_DEPTH = 3.0;
@@ -93,21 +93,23 @@ const MATERIAL_FLOOR_COLORS: Partial<Record<IMineMaterial, Rgb>> = {
 // ======================== PUBLIC GREYBOX ======================== \\
 // #region Build Greybox
 /**
- * Summary: Samples layer 0 of the layout on a grid and emits merged floor, wall and ceiling quads.
+ * Summary: Samples layers 0 and 1 of the layout on a grid and emits merged floor, wall and ceiling quads.
  * Design: Floors and ceilings are greedy-merged rectangles of equal height; walls and steps are
- *         runs of equal faces along each grid line. Layer 1 (king balcony) is drawn by the builder.
+ *         runs of equal faces along each grid line. Layer 1 (king balcony) slab is drawn by the builder,
+ *         while its open air interval prevents false rock walls across balcony transitions and closes its outer walls.
  *         Lava cells get no floor: the builder draws the lava plane.
  * @param cellSize Grid resolution in meters; 0.5 matches the stair treads.
  * @returns The floor and rock buffers in the mine's local frame.
  */
 export function buildAncientMineGreybox(cellSize = 0.5): IAncientMineGreybox {
-  const grid = sampleGrid(cellSize);
+  const grid0 = sampleGrid(cellSize, 0);
+  const grid1 = sampleGrid(cellSize, 1);
   const floors = new QuadSink();
   const rock = new QuadSink();
   const wallFeet: IWallFoot[] = [];
-  emitFloors(grid, floors);
-  emitCeilings(grid, rock);
-  emitVerticalFaces(grid, floors, rock, wallFeet);
+  emitFloors(grid0, floors);
+  emitCeilings(grid0, grid1, rock);
+  emitVerticalFaces(grid0, grid1, floors, rock, wallFeet);
   return { floors: floors.toBuffers(), rock: rock.toBuffers(), wallFeet };
 }
 // #endregion
@@ -121,15 +123,15 @@ interface IGrid {
   readonly samples: ReadonlyArray<IMineFloorSample | null>;
 }
 
-/** Summary: Samples layer 0 at every cell centre. */
-function sampleGrid(cell: number): IGrid {
+/** Summary: Samples a single layer at every cell centre. */
+function sampleGrid(cell: number, layer: 0 | 1): IGrid {
   const nx = Math.round((GRID_BOUNDS.maxLx - GRID_BOUNDS.minLx) / cell);
   const nz = Math.round((GRID_BOUNDS.maxLz - GRID_BOUNDS.minLz) / cell);
   const samples: Array<IMineFloorSample | null> = new Array(nx * nz);
   for (let j = 0; j < nz; j++) {
     const lz = GRID_BOUNDS.minLz + (j + 0.5) * cell;
     for (let i = 0; i < nx; i++) {
-      samples[j * nx + i] = sampleAncientMineLayer(GRID_BOUNDS.minLx + (i + 0.5) * cell, lz, 0);
+      samples[j * nx + i] = sampleAncientMineLayer(GRID_BOUNDS.minLx + (i + 0.5) * cell, lz, layer);
     }
   }
   return { nx, nz, cell, samples };
@@ -198,12 +200,21 @@ function emitFloors(grid: IGrid, sink: QuadSink): void {
   });
 }
 
-function emitCeilings(grid: IGrid, sink: QuadSink): void {
-  greedyRectangles(grid, (s) => Math.round((s.ceilingY + 500) * 100), (i0, j0, w, h, s) => {
-    const x0 = cellLx(grid, i0);
-    const z0 = cellLz(grid, j0);
-    const x1 = x0 + w * grid.cell;
-    const z1 = z0 + h * grid.cell;
+function emitCeilings(grid0: IGrid, grid1: IGrid, sink: QuadSink): void {
+  greedyRectangles(grid0, (s) => Math.round((s.ceilingY + 500) * 100), (i0, j0, w, h, s) => {
+    const x0 = cellLx(grid0, i0);
+    const z0 = cellLz(grid0, j0);
+    const x1 = x0 + w * grid0.cell;
+    const z1 = z0 + h * grid0.cell;
+    const y = s.ceilingY;
+    sink.add([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], ROCK_COLOR);
+  });
+  // Emit upper-layer ceilings where layer 0 has no ceiling at that height.
+  greedyRectangles(grid1, (s) => Math.round((s.ceilingY + 500) * 100), (i0, j0, w, h, s) => {
+    const x0 = cellLx(grid1, i0);
+    const z0 = cellLz(grid1, j0);
+    const x1 = x0 + w * grid1.cell;
+    const z1 = z0 + h * grid1.cell;
     const y = s.ceilingY;
     sink.add([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], ROCK_COLOR);
   });
@@ -226,38 +237,42 @@ interface IFace {
  * Summary: Emits every vertical face on the grid lines: rock walls, floor steps and ceiling steps.
  * Design: Each grid line is walked once; consecutive equal faces merge into one quad.
  */
-function emitVerticalFaces(grid: IGrid, floors: QuadSink, rock: QuadSink, wallFeet: IWallFoot[]): void {
+function emitVerticalFaces(grid0: IGrid, grid1: IGrid, floors: QuadSink, rock: QuadSink, wallFeet: IWallFoot[]): void {
   // Lines between columns i-1 and i run along z; lines between rows j-1 and j run along x.
-  for (let i = 0; i <= grid.nx; i++) {
-    const x = cellLx(grid, i);
-    walkLine(grid.nz, (j) => {
-      const along = cellLz(grid, j) + grid.cell / 2;
-      return withoutOpenRock('lx', x, along, facesBetween(at(grid, i - 1, j), at(grid, i, j), () => upperFloorAt(x, along)));
+  for (let i = 0; i <= grid0.nx; i++) {
+    const x = cellLx(grid0, i);
+    walkLine(grid0.nz, (j) => {
+      const along = cellLz(grid0, j) + grid0.cell / 2;
+      return withoutOpenRock(
+        'lx',
+        x,
+        along,
+        facesBetween(at(grid0, i - 1, j), at(grid0, i, j), at(grid1, i - 1, j), at(grid1, i, j))
+      );
     }, (k0, k1, f) => {
-      const z0 = cellLz(grid, k0);
-      const z1 = cellLz(grid, k1);
+      const z0 = cellLz(grid0, k0);
+      const z1 = cellLz(grid0, k1);
       (f.isRock ? rock : floors).add([x, f.y0, z0], [x, f.y0, z1], [x, f.y1, z1], [x, f.y1, z0], [f.facing, 0, 0], f.color);
       if (f.isWall) wallFeet.push({ x0: x, z0, x1: x, z1, y: f.y0, nx: f.facing, nz: 0, height: f.y1 - f.y0 });
     });
   }
-  for (let j = 0; j <= grid.nz; j++) {
-    const z = cellLz(grid, j);
-    walkLine(grid.nx, (i) => {
-      const along = cellLx(grid, i) + grid.cell / 2;
-      return withoutOpenRock('lz', z, along, facesBetween(at(grid, i, j - 1), at(grid, i, j), () => upperFloorAt(along, z)));
+  for (let j = 0; j <= grid0.nz; j++) {
+    const z = cellLz(grid0, j);
+    walkLine(grid0.nx, (i) => {
+      const along = cellLx(grid0, i) + grid0.cell / 2;
+      return withoutOpenRock(
+        'lz',
+        z,
+        along,
+        facesBetween(at(grid0, i, j - 1), at(grid0, i, j), at(grid1, i, j - 1), at(grid1, i, j))
+      );
     }, (k0, k1, f) => {
-      const x0 = cellLx(grid, k0);
-      const x1 = cellLx(grid, k1);
+      const x0 = cellLx(grid0, k0);
+      const x1 = cellLx(grid0, k1);
       (f.isRock ? rock : floors).add([x0, f.y0, z], [x1, f.y0, z], [x1, f.y1, z], [x0, f.y1, z], [0, 0, f.facing], f.color);
       if (f.isWall) wallFeet.push({ x0, z0: z, x1, z1: z, y: f.y0, nx: 0, nz: f.facing, height: f.y1 - f.y0 });
     });
   }
-}
-
-/** Summary: Floor height of layer 1 (balconies) at a local point, or null where there is none. */
-function upperFloorAt(lx: number, lz: number): number | null {
-  const upper = sampleAncientMineLayer(lx, lz, 1);
-  return upper === null ? null : upper.height;
 }
 
 /** Summary: Drops rock walls that lie on an open edge (the gate mouth); steps are kept. */
@@ -296,49 +311,95 @@ function isSameFace(a: IFace, b: IFace): boolean {
   );
 }
 
+/** Summary: Open vertical air intervals [y0, y1] of a cell across layers 0 and 1. */
+function openAirIntervals(s0: IMineFloorSample | null, s1: IMineFloorSample | null): Array<[number, number]> {
+  const res: Array<[number, number]> = [];
+  if (s0 !== null) {
+    const y0 = s0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : s0.height;
+    if (s0.ceilingY > y0 + 0.05) res.push([y0, s0.ceilingY]);
+  }
+  if (s1 !== null && s1.ceilingY > s1.height + 0.05) {
+    res.push([s1.height, s1.ceilingY]);
+  }
+  return res;
+}
+
+/** Summary: Subtracts open intervals `cuts` from `[y0, y1]`, returning remaining solid-backed segments. */
+function subtractAirIntervals(y0: number, y1: number, cuts: ReadonlyArray<readonly [number, number]>): Array<[number, number]> {
+  let segs: Array<[number, number]> = y1 - y0 > 0.05 ? [[y0, y1]] : [];
+  for (const [c0, c1] of cuts) {
+    const next: Array<[number, number]> = [];
+    for (const [s0, s1] of segs) {
+      if (c1 <= s0 + 0.05 || c0 >= s1 - 0.05) {
+        next.push([s0, s1]);
+      } else {
+        if (c0 - s0 > 0.05) next.push([s0, c0]);
+        if (s1 - c1 > 0.05) next.push([c1, s1]);
+      }
+    }
+    segs = next;
+  }
+  return segs;
+}
+
 /**
  * Summary: Faces on the boundary between cell `a` (on the - side) and cell `b` (on the + side).
- * Design: Rock walls face the open cell; floor steps face the lower cell; a step down into the
- *         abyss is drawn only ABYSS_LIP_DEPTH deep so the void stays open; a ceiling step under a
- *         layer-1 balcony stops at the balcony floor (`upperFloorYAt`).
+ * Design: Rock walls face the open cell wherever the neighbor cell is solid rock across both layers;
+ *         floor steps face the lower cell; a step down into the abyss is drawn only ABYSS_LIP_DEPTH deep.
  */
 function facesBetween(
-  a: IMineFloorSample | null,
-  b: IMineFloorSample | null,
-  upperFloorYAt: () => number | null
+  a0: IMineFloorSample | null,
+  b0: IMineFloorSample | null,
+  a1: IMineFloorSample | null = null,
+  b1: IMineFloorSample | null = null
 ): readonly IFace[] {
-  if (a === null && b === null) return [];
-  if (a === null || b === null) {
-    const open = (a ?? b)!;
-    const facing: 1 | -1 = a === null ? 1 : -1;
-    const isAbyss = open.material === 'abyss';
-    const floorY = isAbyss ? MINE_LEVEL_Y.abyssBottom : open.height;
-    return [{ y0: floorY, y1: open.ceilingY, facing, color: ROCK_COLOR, isRock: true, isWall: !isAbyss }];
-  }
+  if (a0 === null && b0 === null && a1 === null && b1 === null) return [];
   const faces: IFace[] = [];
-  if (a.height !== b.height) {
-    const isAHigher = a.height > b.height;
-    const high = isAHigher ? a : b;
-    const low = isAHigher ? b : a;
+
+  // 1. Layer-0 floor step riser when both cells have a layer-0 floor at different heights.
+  if (a0 !== null && b0 !== null && a0.height !== b0.height) {
+    const isAHigher = a0.height > b0.height;
+    const high = isAHigher ? a0 : b0;
+    const low = isAHigher ? b0 : a0;
     const y0 = low.material === 'abyss' ? high.height - ABYSS_LIP_DEPTH : low.height;
     faces.push({ y0, y1: high.height, facing: isAHigher ? 1 : -1, color: stepColor(high), isRock: false, isWall: false });
   }
-  if (a.ceilingY !== b.ceilingY) {
-    const isALower = a.ceilingY < b.ceilingY;
-    const y0 = Math.min(a.ceilingY, b.ceilingY);
-    // A balcony above this edge is open air over its floor: stop the rock at the balcony slab.
-    // Only looked up here: most edges have equal ceilings and never need it.
-    const upperFloorY = upperFloorYAt();
-    const y1 = upperFloorY !== null && upperFloorY >= y0 ? upperFloorY : Math.max(a.ceilingY, b.ceilingY);
-    faces.push({
-      y0,
-      y1,
-      facing: isALower ? 1 : -1,
-      color: ROCK_COLOR,
-      isRock: true,
-      isWall: false,
-    });
+
+  const airA = openAirIntervals(a0, a1);
+  const airB = openAirIntervals(b0, b1);
+
+  // 2. Rock faces facing cell A (-1): parts of A's open air that are backed by solid rock in B.
+  if (a0 !== null) {
+    const floorA = a0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : a0.height;
+    const startY = b0 !== null ? Math.max(floorA, b0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : b0.height) : floorA;
+    for (const [y0, y1] of subtractAirIntervals(startY, a0.ceilingY, airB)) {
+      const isWall = a0.material !== 'abyss' && Math.abs(y0 - a0.height) < 0.1;
+      faces.push({ y0, y1, facing: -1, color: ROCK_COLOR, isRock: true, isWall });
+    }
   }
+  if (a1 !== null) {
+    for (const [y0, y1] of subtractAirIntervals(a1.height, a1.ceilingY, airB)) {
+      const isWall = Math.abs(y0 - a1.height) < 0.1;
+      faces.push({ y0, y1, facing: -1, color: ROCK_COLOR, isRock: true, isWall });
+    }
+  }
+
+  // 3. Rock faces facing cell B (+1): parts of B's open air that are backed by solid rock in A.
+  if (b0 !== null) {
+    const floorB = b0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : b0.height;
+    const startY = a0 !== null ? Math.max(floorB, a0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : a0.height) : floorB;
+    for (const [y0, y1] of subtractAirIntervals(startY, b0.ceilingY, airA)) {
+      const isWall = b0.material !== 'abyss' && Math.abs(y0 - b0.height) < 0.1;
+      faces.push({ y0, y1, facing: 1, color: ROCK_COLOR, isRock: true, isWall });
+    }
+  }
+  if (b1 !== null) {
+    for (const [y0, y1] of subtractAirIntervals(b1.height, b1.ceilingY, airA)) {
+      const isWall = Math.abs(y0 - b1.height) < 0.1;
+      faces.push({ y0, y1, facing: 1, color: ROCK_COLOR, isRock: true, isWall });
+    }
+  }
+
   return faces;
 }
 // #endregion

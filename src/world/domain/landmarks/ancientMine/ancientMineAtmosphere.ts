@@ -33,19 +33,19 @@ export interface IMineAtmosphere {
  *         golem, red-orange at the dragon forge.
  */
 export const MINE_ATMOSPHERE_PRESETS: Record<IMineAreaId, IMineAtmosphere> = {
-  entrance: { ambientSky: 0x5a4630, ambientGround: 0x1a120c, ambientIntensity: 0.55, fogColor: 0x0c0906, fogDensity: 0.006 },
-  upperCavern: { ambientSky: 0x6e5236, ambientGround: 0x22180f, ambientIntensity: 0.62, fogColor: 0x120c08, fogDensity: 0.005 },
-  lagoon: { ambientSky: 0x2f7488, ambientGround: 0x0c2028, ambientIntensity: 0.62, fogColor: 0x06161c, fogDensity: 0.006 },
-  galleries: { ambientSky: 0x5e4c3a, ambientGround: 0x1c1410, ambientIntensity: 0.52, fogColor: 0x100c09, fogDensity: 0.006 },
-  foundry: { ambientSky: 0x8a4018, ambientGround: 0x2a1006, ambientIntensity: 0.62, fogColor: 0x1c0a04, fogDensity: 0.007 },
-  descent: { ambientSky: 0x4a4a52, ambientGround: 0x14100c, ambientIntensity: 0.55, fogColor: 0x141820, fogDensity: 0.005 },
-  chasm: { ambientSky: 0x5a6a88, ambientGround: 0x121820, ambientIntensity: 0.8, fogColor: 0x1a2232, fogDensity: 0.0055 },
-  bridge: { ambientSky: 0x5c6278, ambientGround: 0x141820, ambientIntensity: 0.75, fogColor: 0x182030, fogDensity: 0.0055 },
-  heroesPath: { ambientSky: 0x786038, ambientGround: 0x1c140a, ambientIntensity: 0.7, fogColor: 0x1a1a22, fogDensity: 0.006 },
-  kingBalcony: { ambientSky: 0x80683a, ambientGround: 0x1e160a, ambientIntensity: 0.72, fogColor: 0x1a1a22, fogDensity: 0.006 },
-  golemChamber: { ambientSky: 0x2e4e80, ambientGround: 0x0a1220, ambientIntensity: 0.55, fogColor: 0x060c18, fogDensity: 0.008 },
-  ancientPassage: { ambientSky: 0x3e3228, ambientGround: 0x100c0a, ambientIntensity: 0.42, fogColor: 0x0a0806, fogDensity: 0.008 },
-  dragonForge: { ambientSky: 0xb04a20, ambientGround: 0xc03a12, ambientIntensity: 1.25, fogColor: 0x2a0c06, fogDensity: 0.006 },
+  entrance: { ambientSky: 0x6e563c, ambientGround: 0x261a10, ambientIntensity: 0.78, fogColor: 0x0c0906, fogDensity: 0.005 },
+  upperCavern: { ambientSky: 0x7a5c3e, ambientGround: 0x2c2015, ambientIntensity: 0.82, fogColor: 0x120c08, fogDensity: 0.0045 },
+  lagoon: { ambientSky: 0x38849a, ambientGround: 0x122c36, ambientIntensity: 0.80, fogColor: 0x06161c, fogDensity: 0.005 },
+  galleries: { ambientSky: 0x6e5a44, ambientGround: 0x261c14, ambientIntensity: 0.74, fogColor: 0x100c09, fogDensity: 0.005 },
+  foundry: { ambientSky: 0x984a20, ambientGround: 0x36160a, ambientIntensity: 0.84, fogColor: 0x1c0a04, fogDensity: 0.0055 },
+  descent: { ambientSky: 0x585862, ambientGround: 0x1c1612, ambientIntensity: 0.68, fogColor: 0x10131a, fogDensity: 0.0045 },
+  chasm: { ambientSky: 0x2c3446, ambientGround: 0x080a10, ambientIntensity: 0.44, fogColor: 0x07090f, fogDensity: 0.0042 },
+  bridge: { ambientSky: 0x303648, ambientGround: 0x090b12, ambientIntensity: 0.42, fogColor: 0x07090f, fogDensity: 0.0042 },
+  heroesPath: { ambientSky: 0x483824, ambientGround: 0x100c08, ambientIntensity: 0.48, fogColor: 0x08090e, fogDensity: 0.0045 },
+  kingBalcony: { ambientSky: 0x564428, ambientGround: 0x140e08, ambientIntensity: 0.54, fogColor: 0x090a10, fogDensity: 0.0045 },
+  golemChamber: { ambientSky: 0x3c5e92, ambientGround: 0x121c30, ambientIntensity: 0.72, fogColor: 0x060c18, fogDensity: 0.006 },
+  ancientPassage: { ambientSky: 0x524236, ambientGround: 0x1c1410, ambientIntensity: 0.64, fogColor: 0x0a0806, fogDensity: 0.006 },
+  dragonForge: { ambientSky: 0xb85224, ambientGround: 0xc03a12, ambientIntensity: 1.15, fogColor: 0x220a05, fogDensity: 0.0048 },
 };
 
 /**

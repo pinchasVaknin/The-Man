@@ -219,5 +219,44 @@ describe('ancient mine walkthrough with the real player physics', () => {
       { failure: null, onIsland: true, y: TREASURE_ISLAND.topY }
     );
   });
+
+  it('fly_WhenInGodModeInsideAncientMine_ShouldStayBelowCeilingAndInsideWallsWithoutTeleportingToSurface', () => {
+    // Arrange: inside the Golem Chamber (lz = 334, floor = -39.35, ceiling = -22.0, west wall at lx = -30)
+    const state = spawnAt(-10, 334, MINE_LEVEL_Y.chasmLedge + 2.0);
+    state.isFlying = true;
+    state.onGround = false;
+
+    // Act: fly straight up (jumpHeld) and toward the west rock wall (lx = -30) for 3 seconds
+    faceToward(state, -50, 334);
+    for (let i = 0; i < 180; i++) {
+      const input = idleInput();
+      input.forward = 1;
+      input.jumpHeld = true;
+      stepPlayerPhysics(state, input, [], DT);
+    }
+
+    // Assert: player must remain inside the chamber (below ceiling -22 - 1.75 = -23.75, never ejected to mountain surface ~90m)
+    const p = localOf(state);
+    assert.equal(state.isFlying, true);
+    assert.ok(state.y <= -23.7 && state.y > MINE_LEVEL_Y.chasmLedge, `expected y inside chamber, got ${state.y}`);
+    assert.ok(p.lx > -29.6, `expected west wall to block flying at lx > -29.6, got ${p.lx}`);
+  });
+
+  it('walk_WhenPressingAgainstMineWall_ShouldBeStoppedWithClearanceMargin', () => {
+    // Arrange: spawn near the entrance corridor's east wall (lx = 7.0)
+    const state = spawnAt(5.5, 6.0, MINE_LEVEL_Y.entrance);
+    faceToward(state, 12.0, 6.0);
+
+    // Act: walk directly into the east wall for 2 seconds
+    for (let i = 0; i < 120; i++) {
+      const input = idleInput();
+      input.forward = 1;
+      stepPlayerPhysics(state, input, [], DT);
+    }
+
+    // Assert: wall collider stops the player's center well before lx = 7.0 so camera cannot clip through the wall
+    const p = localOf(state);
+    assert.ok(p.lx < 6.45, `expected player center to be stopped before 6.45, got ${p.lx}`);
+  });
 });
 // #endregion

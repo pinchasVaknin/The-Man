@@ -11,7 +11,7 @@
 // #region Imports
 import type { ISolidBuildingBox } from '../../worldTypes';
 import { ANCIENT_MINE_ORIGIN, MINE_GUARD_RAILS, MINE_LEVEL_Y, MINE_POI, MINE_SOLID_FIXTURES } from './ancientMineLayout';
-import { sampleAncientMineFloor } from './ancientMineFloor';
+import { computeAncientMineWallFeet, sampleAncientMineFloor } from './ancientMineFloor';
 import { ALL_MINE_PROPS, MINE_PROP_KINDS, propHalfExtents } from './ancientMineProps';
 // #endregion
 
@@ -22,6 +22,12 @@ const ABOVE_CEILING_MARGIN = 0.5;
 
 /** Summary: Half thickness of a guard rail collider, meters. */
 const RAIL_HALF_THICKNESS = 0.2;
+
+/** Summary: How far a rock wall collider protrudes into the room to keep player and camera from clipping through rock walls. */
+const WALL_INWARD_MARGIN = 0.22;
+
+/** Summary: How far a rock wall collider extends behind the wall face into solid rock for camera raycasts. */
+const WALL_OUTWARD_DEPTH = 1.4;
 // #endregion
 
 // ======================== PUBLIC WORLD QUERIES ======================== \\
@@ -86,9 +92,10 @@ export const ANCIENT_MINE_LAVA_RESPAWN = {
 
 // #region Colliders
 /**
- * Summary: One thin solid box per guard rail, plus one box per solid fixture and solid prop, in world space.
+ * Summary: One thin solid box per guard rail, plus one box per solid fixture, solid prop, and rock wall run, in world space.
  * Design: Each box straddles its boundary line by RAIL_HALF_THICKNESS and keeps the rail's
- *         vertical band, so a balcony rail does not block the bridge beneath it.
+ *         vertical band, so a balcony rail does not block the bridge beneath it. Rock wall boxes
+ *         keep the player and camera from clipping or seeing through mine walls.
  */
 export const ANCIENT_MINE_COLLIDER_BOXES: readonly ISolidBuildingBox[] = MINE_GUARD_RAILS.map((rail) => {
   const isAcrossX = rail.axis === 'lx';
@@ -134,6 +141,39 @@ export const ANCIENT_MINE_COLLIDER_BOXES: readonly ISolidBuildingBox[] = MINE_GU
         maxY: floor.height + spec.height,
       },
     ];
+  }),
+  computeAncientMineWallFeet(0.5).map((foot, idx) => {
+    const isAlongZ = foot.nx !== 0;
+    if (isAlongZ) {
+      const wallX = ANCIENT_MINE_ORIGIN.x + foot.x0;
+      const inX = wallX + foot.nx * WALL_INWARD_MARGIN;
+      const outX = wallX - foot.nx * WALL_OUTWARD_DEPTH;
+      const len = Math.abs(foot.z1 - foot.z0);
+      const inset = Math.min(0.1, len * 0.15);
+      return {
+        id: `ancient-mine-wall-${idx}`,
+        minX: Math.min(inX, outX),
+        maxX: Math.max(inX, outX),
+        minZ: ANCIENT_MINE_ORIGIN.z + Math.min(foot.z0, foot.z1) + inset,
+        maxZ: ANCIENT_MINE_ORIGIN.z + Math.max(foot.z0, foot.z1) - inset,
+        minY: foot.y,
+        maxY: foot.y + foot.height,
+      };
+    }
+    const wallZ = ANCIENT_MINE_ORIGIN.z + foot.z0;
+    const inZ = wallZ + foot.nz * WALL_INWARD_MARGIN;
+    const outZ = wallZ - foot.nz * WALL_OUTWARD_DEPTH;
+    const len = Math.abs(foot.x1 - foot.x0);
+    const inset = Math.min(0.1, len * 0.15);
+    return {
+      id: `ancient-mine-wall-${idx}`,
+      minX: ANCIENT_MINE_ORIGIN.x + Math.min(foot.x0, foot.x1) + inset,
+      maxX: ANCIENT_MINE_ORIGIN.x + Math.max(foot.x0, foot.x1) - inset,
+      minZ: Math.min(inZ, outZ),
+      maxZ: Math.max(inZ, outZ),
+      minY: foot.y,
+      maxY: foot.y + foot.height,
+    };
   })
 );
 // #endregion

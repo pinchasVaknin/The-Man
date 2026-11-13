@@ -253,8 +253,8 @@ function writeThirdPersonPose(
     targetScale < rig.wallScale ? targetScale : Math.min(targetScale, rig.wallScale + dt * CAMERA_WALL_EASE_OUT_PER_SECOND);
   const effCamDist = camDist * rig.wallScale;
 
-  let camX = pivotX - fwdX * effCamDist + rightX * shoulderSide;
-  let camZ = pivotZ - fwdZ * effCamDist + rightZ * shoulderSide;
+  let camX = pivotX + wantX * rig.wallScale;
+  let camZ = pivotZ + wantZ * rig.wallScale;
   if (Math.abs(player.x - -92.0) < 4.5 && player.z >= 70.2 && player.z <= 75.7) {
     camX = Math.max(-95.8, Math.min(-88.2, camX));
     camZ = Math.max(70.65, Math.min(75.15, camZ));

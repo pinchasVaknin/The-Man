@@ -21,6 +21,7 @@ export const MINE_LEVEL_Y = {
   entrance: 2.65,
   overlook: 1.45,
   upperCavern: -9.35,
+  hubScaffolding: -4.85,
   galleryPlatform: -5.55,
   galleryPit: -13.35,
   waterChannelBed: -9.85,
@@ -36,6 +37,7 @@ export const MINE_LEVEL_Y = {
   lavaSurface: -52.6,
   lavaBed: -53.6,
   treasureIsland: -49.95,
+  vaultFloor: -63.35,
   abyssBottom: -130.0,
 } as const;
 // #endregion
@@ -95,7 +97,7 @@ export const CEILING_TERRACE_STEP = 0.5;
 
 /**
  * Summary: One walkable (or hazardous) surface of the mine.
- * Design: Within a layer the LAST covering surface in MINE_SURFACES wins, so carve-outs (lagoon
+ * Design: Within a layer the LAST covering surface wins, so carve-outs (lagoon
  *         basin, abyss, bridge over abyss) are listed after the floor they cut. Different layers
  *         are stacked floors; the query picks the one under the asker's feet.
  */
@@ -162,8 +164,9 @@ export const MINE_POI = {
   golem: { lx: 0, lz: 340 },
   passageTop: { lx: 0, lz: 356 },
   forgeEntrance: { lx: 0, lz: 390 },
-  treasureChest: { lx: 0, lz: 432 },
-  dragonMouth: { lx: 0, lz: 452 },
+  treasureChest: { lx: 0, lz: 438 },
+  dragonMouth: { lx: 0, lz: 462 },
+  royalVault: { lx: 12, lz: 490 },
 } as const;
 // #endregion
 
@@ -175,19 +178,20 @@ export const MINE_POI = {
  */
 export const LAVA_STEPPING_STONES: readonly { readonly lx: number; readonly lz: number; readonly r: number; readonly topY: number }[] = [
   { lx: -1.5, lz: 399.4, r: 1.7, topY: -51.15 },
-  { lx: 1.5, lz: 403.6, r: 1.7, topY: -50.95 },
-  { lx: -1.5, lz: 407.8, r: 1.7, topY: -50.75 },
-  { lx: 1.5, lz: 412.0, r: 1.7, topY: -50.55 },
-  { lx: -1.5, lz: 416.2, r: 1.7, topY: -50.35 },
-  { lx: 1.5, lz: 420.4, r: 1.7, topY: -50.35 },
-  { lx: -1.5, lz: 424.6, r: 1.7, topY: -50.35 },
+  { lx: 1.5, lz: 403.8, r: 1.7, topY: -50.95 },
+  { lx: -1.5, lz: 408.2, r: 1.7, topY: -50.75 },
+  { lx: 1.5, lz: 412.6, r: 1.7, topY: -50.55 },
+  { lx: -1.5, lz: 417.0, r: 1.7, topY: -50.35 },
+  { lx: 1.5, lz: 421.4, r: 1.7, topY: -50.35 },
+  { lx: -1.5, lz: 425.8, r: 1.7, topY: -50.35 },
+  { lx: 1.5, lz: 430.2, r: 1.7, topY: -50.15 },
 ];
 
 /** Summary: Raised island holding the treasure chest, at the far end of the stepping stones. */
-export const TREASURE_ISLAND = { lx: 0, lz: 432.0, r: 4.5, topY: MINE_LEVEL_Y.treasureIsland } as const;
+export const TREASURE_ISLAND = { lx: 0, lz: 438.0, r: 5.2, topY: MINE_LEVEL_Y.treasureIsland } as const;
 
 /** Summary: The lava pool in front of the dragon head. Falling in sends the player to MINE_POI.forgeEntrance. */
-export const LAVA_POOL = { minLx: -30, maxLx: 30, minLz: 396, maxLz: 446 } as const;
+export const LAVA_POOL = { minLx: -46, maxLx: 46, minLz: 396, maxLz: 468 } as const;
 // #endregion
 
 // #region Open Edges
@@ -248,9 +252,8 @@ export const MINE_SOLID_FIXTURES: readonly {
 
 // #region Hero Statues
 /**
- * Summary: Legendary dwarves carved into the abyss walls, rising from the depths.
- * Design: Plinths start below the fog line so the statues read as growing out of the abyss.
- *         Water pours between them from the aqueducts behind (see MINE_WATERFALLS).
+ * Summary: Legendary dwarves carved into the abyss walls, rising from the depths behind the lower walkways.
+ * Design: Plinths start below the lower chasm walkways so the multi-tiered passages pass in front of the statues.
  */
 export const HERO_STATUES: readonly {
   readonly id: string;
@@ -261,12 +264,12 @@ export const HERO_STATUES: readonly {
   readonly baseY: number;
   readonly height: number;
 }[] = [
-  { id: 'hero-west-1', lx: -88, lz: 228, facing: 'east', pose: 'axeWarrior', baseY: -60, height: 48 },
-  { id: 'hero-west-2', lx: -88, lz: 254, facing: 'east', pose: 'shieldGuardian', baseY: -60, height: 48 },
-  { id: 'hero-west-3', lx: -88, lz: 280, facing: 'east', pose: 'ancientMiner', baseY: -60, height: 48 },
-  { id: 'hero-east-1', lx: 88, lz: 228, facing: 'west', pose: 'hammerKing', baseY: -60, height: 48 },
-  { id: 'hero-east-2', lx: 88, lz: 254, facing: 'west', pose: 'axeWarrior', baseY: -60, height: 48 },
-  { id: 'hero-east-3', lx: 88, lz: 280, facing: 'west', pose: 'shieldGuardian', baseY: -60, height: 48 },
+  { id: 'hero-west-1', lx: -48, lz: 226, facing: 'east', pose: 'axeWarrior', baseY: -56, height: 44 },
+  { id: 'hero-west-2', lx: -48, lz: 253, facing: 'east', pose: 'shieldGuardian', baseY: -56, height: 44 },
+  { id: 'hero-west-3', lx: -48, lz: 280, facing: 'east', pose: 'ancientMiner', baseY: -56, height: 44 },
+  { id: 'hero-east-1', lx: 48, lz: 226, facing: 'west', pose: 'hammerKing', baseY: -56, height: 44 },
+  { id: 'hero-east-2', lx: 48, lz: 253, facing: 'west', pose: 'axeWarrior', baseY: -56, height: 44 },
+  { id: 'hero-east-3', lx: 48, lz: 280, facing: 'west', pose: 'shieldGuardian', baseY: -56, height: 44 },
   { id: 'first-king', lx: 0, lz: 309, facing: 'north', pose: 'firstKing', baseY: MINE_LEVEL_Y.kingBalcony, height: 24 },
 ];
 // #endregion
@@ -397,6 +400,13 @@ export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('king-plinth-front', 'lz', 305, -10, 10, MINE_LEVEL_Y.kingBalcony, MINE_LEVEL_Y.kingBalcony + KING_PLINTH_HEIGHT),
   railRun('king-stairs-west', 'lx', 14, 314, 335, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.kingBalcony),
   railRun('king-stairs-east', 'lx', 20, 314, 335, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.kingBalcony),
+  // Upper cavern 2nd-floor scaffolding mezzanine & stairs guard rails.
+  railRun('scaffolding-north', 'lz', 26, -38, -16, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  railRun('scaffolding-west', 'lx', -38, 26, 38, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  railRun('scaffolding-east', 'lx', -16, 26, 38, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  railRun('scaffolding-south-west', 'lz', 38, -38, -22, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  railRun('scaffolding-stairs-west', 'lx', -22, 38, 50, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  railRun('scaffolding-stairs-east', 'lx', -16, 38, 50, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
 ];
 // #endregion
 
@@ -410,7 +420,9 @@ const CEILING_Y = {
   gateTunnel: -30.2,
   golemChamber: -22.0,
   passage: -32.0,
-  forge: -22.0,
+  forge: -14.0,
+  vaultStairs: -36.0,
+  royalVault: -42.0,
 } as const;
 
 /**
@@ -464,6 +476,17 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     footprint: { kind: 'rect', minLx: -7, maxLx: 7, minLz: 20, maxLz: 44 },
     height: { kind: 'stairs', axis: 'lz', from: 20, to: 44, yFrom: MINE_LEVEL_Y.overlook, yTo: MINE_LEVEL_Y.upperCavern, stepCount: 36 },
     material: 'stone', ...UPPER_CAVERN_CEILING,
+  },
+  {
+    id: 'hub-scaffolding-deck', area: 'upperCavern', layer: 0,
+    footprint: { kind: 'rect', minLx: -38, maxLx: -16, minLz: 26, maxLz: 38 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.hubScaffolding }, material: 'wood', ...UPPER_CAVERN_CEILING,
+  },
+  {
+    id: 'hub-scaffolding-stairs', area: 'upperCavern', layer: 0,
+    footprint: { kind: 'rect', minLx: -22, maxLx: -16, minLz: 38, maxLz: 50 },
+    height: { kind: 'stairs', axis: 'lz', from: 50, to: 38, yFrom: MINE_LEVEL_Y.upperCavern, yTo: MINE_LEVEL_Y.hubScaffolding, stepCount: 15 },
+    material: 'wood', ...UPPER_CAVERN_CEILING,
   },
   {
     id: 'lagoon-basin', area: 'lagoon', layer: 0,
@@ -657,26 +680,15 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     material: 'stone', ceilingY: CEILING_Y.passage,
   },
 
-  // Dragon Forge: floor ring, lava pool, stepping stones and the treasure island.
+  // Dragon Forge: enlarged chamber, north entrance landing, full-width lava pool, stepping stones and the treasure island.
   {
     id: 'forge-floor', area: 'dragonForge', layer: 0,
-    footprint: { kind: 'rect', minLx: -40, maxLx: 40, minLz: 384, maxLz: 454 },
+    footprint: { kind: 'rect', minLx: -46, maxLx: 46, minLz: 384, maxLz: 396 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.forgeFloor }, material: 'stone', ceilingY: CEILING_Y.forge,
   },
   {
     id: 'forge-lava-pool', area: 'dragonForge', layer: 0,
     footprint: { kind: 'rect', ...LAVA_POOL },
-    height: { kind: 'flat', y: MINE_LEVEL_Y.lavaBed }, material: 'lava', ceilingY: CEILING_Y.forge,
-  },
-  // Narrow lava channels branching from the pool to the side walls: hazards, but jumpable.
-  {
-    id: 'forge-lava-channel-west', area: 'dragonForge', layer: 0,
-    footprint: { kind: 'rect', minLx: -40, maxLx: -30, minLz: 427, maxLz: 428.4 },
-    height: { kind: 'flat', y: MINE_LEVEL_Y.lavaBed }, material: 'lava', ceilingY: CEILING_Y.forge,
-  },
-  {
-    id: 'forge-lava-channel-east', area: 'dragonForge', layer: 0,
-    footprint: { kind: 'rect', minLx: 30, maxLx: 40, minLz: 410, maxLz: 411.4 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.lavaBed }, material: 'lava', ceilingY: CEILING_Y.forge,
   },
   ...LAVA_STEPPING_STONES.map(
@@ -690,6 +702,24 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     id: 'treasure-island', area: 'dragonForge', layer: 0,
     footprint: { kind: 'circle', lx: TREASURE_ISLAND.lx, lz: TREASURE_ISLAND.lz, r: TREASURE_ISLAND.r },
     height: { kind: 'flat', y: TREASURE_ISLAND.topY }, material: 'stone', ceilingY: CEILING_Y.forge,
+  },
+
+  // Secret Vault Passage & Royal Treasure Vault descending behind the Dragon Forge.
+  {
+    id: 'vault-alcove', area: 'dragonForge', layer: 0,
+    footprint: { kind: 'rect', minLx: 46, maxLx: 56, minLz: 386, maxLz: 396 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forgeFloor }, material: 'stone', ceilingY: CEILING_Y.vaultStairs,
+  },
+  {
+    id: 'vault-secret-stairs', area: 'dragonForge', layer: 0,
+    footprint: { kind: 'rect', minLx: 48, maxLx: 56, minLz: 396, maxLz: 472 },
+    height: { kind: 'stairs', axis: 'lz', from: 396, to: 472, yFrom: MINE_LEVEL_Y.forgeFloor, yTo: MINE_LEVEL_Y.vaultFloor, stepCount: 40 },
+    material: 'stone', ceilingY: CEILING_Y.vaultStairs,
+  },
+  {
+    id: 'royal-vault', area: 'dragonForge', layer: 0,
+    footprint: { kind: 'rect', minLx: -24, maxLx: 56, minLz: 472, maxLz: 508 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.vaultFloor }, material: 'stone', ceilingY: CEILING_Y.royalVault,
   },
 ];
 // #endregion
