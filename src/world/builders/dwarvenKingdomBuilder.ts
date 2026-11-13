@@ -558,28 +558,7 @@ export function buildDwarvenKingdomAndMiners(
   });
   disposableMaterials.push(dwarvenBronzeMat, dwarvenGraniteMat, dwarvenScaleArmorMat);
 
-  // Monumental Carved Dwarven Stone Portal Arch framing the Mine Entrance
-  const dwarvenPortalArchGroup = new THREE.Group();
-  const portalArchPillarGeo = new THREE.BoxGeometry(1.45, 5.4, 1.45);
-  portalArchPillarGeo.translate(0, 2.7, 0);
-  const portalArchHeaderGeo = new THREE.BoxGeometry(9.6, 1.35, 1.65);
-  const portalArchCrestGeo = new THREE.OctahedronGeometry(0.85, 0);
-  const portalGoldBandGeo = new THREE.BoxGeometry(1.58, 0.32, 1.58);
-  disposableGeometries.push(portalArchPillarGeo, portalArchHeaderGeo, portalArchCrestGeo, portalGoldBandGeo);
-  for (const side of [-1, 1]) {
-    const archPil = new THREE.Mesh(portalArchPillarGeo, dwarvenGraniteMat);
-    archPil.position.set(side * 3.85, mineEntY, -0.35);
-    const goldBand = new THREE.Mesh(portalGoldBandGeo, mineGoldOreMat);
-    goldBand.position.set(side * 3.85, mineEntY + 3.8, -0.35);
-    dwarvenPortalArchGroup.add(archPil, goldBand);
-  }
-  const archHeader = new THREE.Mesh(portalArchHeaderGeo, dwarvenGraniteMat);
-  archHeader.position.set(0, mineEntY + 5.2, -0.35);
-  const archCrest = new THREE.Mesh(portalArchCrestGeo, mineGoldOreMat);
-  archCrest.scale.set(1.2, 1.0, 0.5);
-  archCrest.position.set(0, mineEntY + 5.35, -1.2);
-  dwarvenPortalArchGroup.add(archHeader, archCrest);
-  mineGroup.add(dwarvenPortalArchGroup);
+  // The mine portal (pillars, lintel, runes and gates) is built with the Ancient Mine (builders/ancientMine).
 
   scene.add(mineGroup);
   distanceCulledObjects.push({

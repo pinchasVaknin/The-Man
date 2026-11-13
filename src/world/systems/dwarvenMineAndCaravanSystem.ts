@@ -10,19 +10,14 @@
 import { t } from '../../locales';
 import type { IDwarvenMinerCaravanState } from '../domain/worldTypes';
 import { SOUTHERN_MINE_POS, DWARVEN_STONE_HOUSES } from '../domain/landmarksRegistry';
+import { ANCIENT_MINE_ORIGIN, MINE_LEVEL_Y } from '../domain/landmarks/ancientMine/ancientMineLayout';
+import { ALL_MINE_PROPS } from '../domain/landmarks/ancientMine/ancientMineProps';
 import {
-  MINE_CHAMBER_BOUNDS,
-  MINE_KHAZAD_BRIDGE,
-  MINE_NW_GALLERY,
-  MINE_ORE_ROCK_SITES,
-  MINE_WATERFALL_SECRET_CHAMBER,
-  MINE_GALLERY_TERRACE,
-  MINE_ANCIENT_PASSAGE,
-  MINE_DRAGON_FORGE_SANCTUM,
-  southGalleryWalkableHeightAt,
-  ancientPassageWalkableHeightAt,
-  dragonForgeSanctumWalkableHeightAt,
-} from '../domain/landmarks/dwarvenMineLayout';
+  ancientMineCeilingHeightAt,
+  ancientMineWalkableHeightAt,
+  ancientMineWaterSurfaceAt,
+  isInsideAncientMine,
+} from '../domain/landmarks/ancientMine/ancientMineWorld';
 // #endregion
 
 // ======================== CONSTANTS & CONFIGURATION ======================== \\
@@ -67,135 +62,177 @@ export interface IMinerStationConfig {
   readonly cartLoadLocalX?: number;
   readonly cartLoadLocalZ?: number;
   readonly cartLoadYaw?: number;
+  /** Summary: Local (lx, lz) waypoints between the foot of the entry stairs and the work spot. */
+  readonly viaLocal?: readonly (readonly [number, number])[];
 }
 type MinerStationConfig = IMinerStationConfig;
 
+/**
+ * Summary: The eight miners' work stations in the Ancient Mine and the waypoints that lead to each.
+ * Design: Every station stands within reach of a real object it works on (an ore face, the bin,
+ *         the crusher, an anvil, a furnace, the workbench). `viaLocal` steers the walk from the foot
+ *         of the entry stairs around pillars, props and the gallery pit.
+ */
 export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
-  // 0: Durin — North-West Gold Vein in Room 1 Staging Hall
+  // 0: gold seam on the east gallery wall
   {
     name: t('dwarven.miners.durin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: -1.25,
-    workLocalX: -36.0,
-    workLocalZ: 44.5,
-    workYaw: 0,
-    rockLocalX: MINE_ORE_ROCK_SITES[0].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[0].lz,
+    workLocalX: 116.6,
+    workLocalZ: 78,
+    workYaw: -1.5708,
+    rockLocalX: 118.4,
+    rockLocalZ: 78,
     rockRadius: 1.2,
     oreKind: 'gold',
+    viaLocal: [[12, 50], [45, 92], [108, 94]],
   },
-  // 1: Balin — South-East Golden/Amber Crystal Vein in Room 1
+  // 1: purple crystal face on the north gallery wall
   {
     name: t('dwarven.miners.balin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 22.0,
-    workLocalZ: 78.5,
-    workYaw: -Math.PI / 2,
-    rockLocalX: MINE_ORE_ROCK_SITES[1].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[1].lz,
-    rockRadius: 1.8,
-    oreKind: 'gold',
+    workLocalX: 96,
+    workLocalZ: 29.8,
+    workYaw: 0.0000,
+    rockLocalX: 96,
+    rockLocalZ: 28.3,
+    rockRadius: 1.2,
+    oreKind: 'amethyst',
+    viaLocal: [[12, 50], [20, 40], [52, 31], [90, 31]],
   },
-  // 2: Dwalin — West Wall Amethyst Vein North of West Tunnel Portal
+  // 2: copper face beside the north tunnel mouth
   {
     name: t('dwarven.miners.dwalin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: -41.5,
-    workLocalZ: 49.5,
-    workYaw: Math.PI / 2,
-    rockLocalX: MINE_ORE_ROCK_SITES[2].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[2].lz,
-    rockRadius: 1.25,
-    oreKind: 'amethyst',
+    workLocalX: 80,
+    workLocalZ: 26.9,
+    workYaw: 0.0000,
+    rockLocalX: 80,
+    rockLocalZ: 25.4,
+    rockRadius: 1.2,
+    oreKind: 'gold',
+    viaLocal: [[12, 50], [20, 40], [52, 31]],
   },
-  // 3: Gloin — West Wall Silver Vein South of West Tunnel Portal
+  // 3: sorting ore at the storage-yard bin
   {
     name: t('dwarven.miners.gloin'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: -41.5,
-    workLocalZ: 78.5,
-    workYaw: Math.PI / 2,
-    rockLocalX: MINE_ORE_ROCK_SITES[3].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[3].lz,
-    rockRadius: 1.25,
-    oreKind: 'silver',
+    workLocalX: -42.2,
+    workLocalZ: 56,
+    workYaw: 1.5708,
+    rockLocalX: -44,
+    rockLocalZ: 56,
+    rockRadius: 1.2,
+    oreKind: 'sapphire',
+    viaLocal: [[-12, 50], [-30, 52]],
   },
-  // 4: Oin — East Crane Foot Golden Vein
+  // 4: feeding the stone crusher
   {
     name: t('dwarven.miners.oin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: 27.5,
-    workLocalZ: 46.5,
-    workYaw: 0,
-    rockLocalX: MINE_ORE_ROCK_SITES[4].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[4].lz,
+    workLocalX: 92,
+    workLocalZ: 85.6,
+    workYaw: 0.0000,
+    rockLocalX: 92,
+    rockLocalZ: 84.2,
     rockRadius: 1.2,
-    oreKind: 'gold',
+    oreKind: 'silver',
+    viaLocal: [[12, 50], [45, 92]],
   },
-  // 5: Bifur — East Siding Silver & Gold Ore Mound
+  // 5: hammering at the foundry anvil
   {
     name: t('dwarven.miners.bifur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 33.5,
-    workLocalZ: 76.0,
-    workYaw: -Math.PI / 2,
-    rockLocalX: MINE_ORE_ROCK_SITES[5].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[5].lz,
-    rockRadius: 2.1,
+    workLocalX: 80,
+    workLocalZ: 113.6,
+    workYaw: 3.1416,
+    rockLocalX: 80,
+    rockLocalZ: 115,
+    rockRadius: 1.2,
     oreKind: 'silver',
+    viaLocal: [[12, 50], [45, 92], [70, 110]],
   },
-  // 6: Bofur — South-West Cavern Wall Sapphire Vein
+  // 6: tending the middle furnace
   {
     name: t('dwarven.miners.bofur'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: -28.5,
-    workLocalZ: 87.5,
-    workYaw: Math.PI,
-    rockLocalX: MINE_ORE_ROCK_SITES[6].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[6].lz,
+    workLocalX: 90,
+    workLocalZ: 132.4,
+    workYaw: 3.1416,
+    rockLocalX: 90,
+    rockLocalZ: 134,
     rockRadius: 1.2,
-    oreKind: 'sapphire',
+    oreKind: 'gold',
+    viaLocal: [[12, 50], [45, 92], [70, 110], [86, 128]],
   },
-  // 7: Bombur — East Wall Emerald Vein North of East Tunnel Portal
+  // 7: repairing tools at the hall workbench
   {
     name: t('dwarven.miners.bombur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: 1.25,
-    workLocalX: 41.5,
-    workLocalZ: 50.5,
-    workYaw: -Math.PI / 2,
-    rockLocalX: MINE_ORE_ROCK_SITES[7].lx,
-    rockLocalZ: MINE_ORE_ROCK_SITES[7].lz,
+    workLocalX: 32,
+    workLocalZ: 28.9,
+    workYaw: 0.0000,
+    rockLocalX: 32,
+    rockLocalZ: 27.4,
     rockRadius: 1.2,
     oreKind: 'emerald',
+    viaLocal: [[12, 50], [20, 40]],
   },
 ];
 
-export type { IMinecartRouteConfig } from '../domain/landmarks/dwarvenMineLayout';
-export { DWARVEN_MINECART_ROUTES } from '../domain/landmarks/dwarvenMineLayout';
-import { DWARVEN_MINECART_ROUTES } from '../domain/landmarks/dwarvenMineLayout';
+/** Summary: A stationary ore cart parked on a track in the mine (local frame). */
+export interface IMinecartRouteConfig {
+  readonly startLocalX: number;
+  readonly startLocalZ: number;
+  readonly endLocalX: number;
+  readonly endLocalZ: number;
+  readonly yaw: number;
+  readonly cycleSeconds: number;
+  readonly phaseOffset: number;
+  readonly oreKind: 'gold' | 'silver' | 'emerald' | 'sapphire' | 'amethyst';
+  readonly baseYOffset?: number;
+}
+
+/**
+ * Summary: The parked ore carts of the Ancient Mine, matching the oreCart props in the galleries.
+ * Design: Derived from the props table so a cart's state always sits where its mesh and collider are.
+ */
+export const DWARVEN_MINECART_ROUTES: readonly IMinecartRouteConfig[] = ALL_MINE_PROPS.filter((p) => p.kind === 'oreCart').map(
+  (p): IMinecartRouteConfig => ({
+    startLocalX: p.lx,
+    startLocalZ: p.lz,
+    endLocalX: p.lx,
+    endLocalZ: p.lz,
+    yaw: p.yaw ?? 0,
+    cycleSeconds: 0,
+    phaseOffset: 0,
+    oreKind: 'gold',
+  })
+);
 
 
 /**
@@ -239,48 +276,54 @@ export interface IRideableMinecartLineDef {
   readonly localWaypoints: readonly (readonly [number, number, number])[];
 }
 
+/**
+ * Summary: The three rideable passenger lines of the Ancient Mine, on the hall's rail tracks.
+ * Design: Local [lx, worldY, lz] waypoints. The gallery ore line keeps the id 'minecart-line-moria'
+ *         so saved ride state stays valid; it ends on the cart ramp, so the ride coasts downhill
+ *         into the gallery pit and must be driven back up.
+ */
 export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = [
   {
     id: 'minecart-line-west',
-    name: 'West Waterfall Lagoon Rail Line',
-    startStationName: 'Mess Hall — West Tunnel Platform',
-    endStationName: 'Deep Waterfall & Turquoise Lagoon Cavern',
-    rideSpeed: 16.5,
+    name: 'Storage Yard Line',
+    startStationName: 'Turntable Hub — West Track',
+    endStationName: 'Storage Yard',
+    rideSpeed: 12.0,
     localWaypoints: [
-      [-37.0, SOUTHERN_MINE_POS.cavernFloorY, 64.0],
-      [-48.0, SOUTHERN_MINE_POS.cavernFloorY - 0.35, 64.0],
-      [-88.0, SOUTHERN_MINE_POS.westLagoonFloorY, 64.0],
-      [-100.0, SOUTHERN_MINE_POS.westLagoonFloorY, 64.0],
+      [-6.0, MINE_LEVEL_Y.upperCavern, 80.0],
+      [-20.0, MINE_LEVEL_Y.upperCavern, 74.0],
+      [-30.0, MINE_LEVEL_Y.upperCavern, 69.0],
+      [-40.0, MINE_LEVEL_Y.upperCavern, 64.0],
     ],
   },
   {
     id: 'minecart-line-east',
-    name: 'East Smelting Foundry Rail Line',
-    startStationName: 'Mess Hall — East Tunnel Platform',
-    endStationName: 'Dwarven Gold & Silver Smelting Foundry',
-    rideSpeed: 16.5,
+    name: 'Foundry Line',
+    startStationName: 'Turntable Hub — South-East Track',
+    endStationName: 'Smelting Foundry',
+    rideSpeed: 14.0,
     localWaypoints: [
-      [37.0, SOUTHERN_MINE_POS.cavernFloorY, 64.0],
-      [48.0, SOUTHERN_MINE_POS.cavernFloorY - 0.35, 64.0],
-      [88.0, SOUTHERN_MINE_POS.eastFoundryFloorY, 64.0],
-      [102.0, SOUTHERN_MINE_POS.eastFoundryFloorY, 64.0],
+      [4.0, MINE_LEVEL_Y.upperCavern, 85.0],
+      [20.0, MINE_LEVEL_Y.upperCavern, 100.0],
+      [40.0, MINE_LEVEL_Y.upperCavern, 108.0],
+      [56.0, MINE_LEVEL_Y.upperCavern, 108.0],
+      [68.0, MINE_LEVEL_Y.upperCavern, 114.0],
     ],
   },
   {
     id: 'minecart-line-moria',
-    name: 'Khazad-dûm Grand Bridge & Abyss Line',
-    startStationName: 'Mess Hall — South Moria Terminal',
-    endStationName: 'Great Hall of Khazad-dûm (South Sanctuary)',
-    rideSpeed: 18.5,
+    name: 'Gallery Ore Line',
+    startStationName: 'Turntable Hub — East Track',
+    endStationName: 'Gallery Pit',
+    rideSpeed: 14.0,
     localWaypoints: [
-      [-11.5, SOUTHERN_MINE_POS.cavernFloorY, 83.0],
-      [-11.5, SOUTHERN_MINE_POS.cavernFloorY - 0.38, 95.0],
-      [-11.5, SOUTHERN_MINE_POS.moriaHallFloorY, 165.0],
-      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 190.0],
-      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 196.0],
-      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 232.0],
-      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 268.0],
-      [-4.4, SOUTHERN_MINE_POS.moriaHallFloorY, 286.0],
+      [6.0, MINE_LEVEL_Y.upperCavern, 80.0],
+      [30.0, MINE_LEVEL_Y.upperCavern, 80.0],
+      [56.0, MINE_LEVEL_Y.upperCavern, 78.0],
+      [70.0, MINE_LEVEL_Y.upperCavern, 76.0],
+      [70.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [70.0, MINE_LEVEL_Y.galleryPit, 60.0],
+      [70.0, MINE_LEVEL_Y.galleryPit, 54.0],
     ],
   },
 ] as const;
@@ -598,14 +641,19 @@ function buildMinerWaypoints(dwarfIdx: number): [number, number, number][] {
   const workZ = SOUTHERN_MINE_POS.entranceZ + station.workLocalZ;
   const workY = SOUTHERN_MINE_POS.cavernFloorY;
 
+  // Through the gate, down the steps to the overlook, down the grand entry stairs, then the
+  // station's own lane through the open cavern.
+  const ez = SOUTHERN_MINE_POS.entranceZ;
   const waypointsToMine: [number, number, number][] = [
     [homeX, homeY, homeZ],
     [doorStepX, house.terraceY, doorStepZ],
     [roadX, house.terraceY, house.z + 3.0],
-    [roadX, SOUTHERN_MINE_POS.entranceFloorY, SOUTHERN_MINE_POS.entranceZ - 10.0],
-    [roadX, SOUTHERN_MINE_POS.entranceFloorY, SOUTHERN_MINE_POS.shaftStartZ],
-    [roadX, SOUTHERN_MINE_POS.cavernFloorY, SOUTHERN_MINE_POS.shaftEndZ + 4.5],
-    [SOUTHERN_MINE_POS.x + (station.workLocalX < 0 ? -4.0 : 4.0), workY, SOUTHERN_MINE_POS.entranceZ + 44.0],
+    [roadX, MINE_LEVEL_Y.entrance, ez - 10.0],
+    [roadX, MINE_LEVEL_Y.entrance, ez + 2.0],
+    [roadX, MINE_LEVEL_Y.overlook, ez + 12.0],
+    [roadX, MINE_LEVEL_Y.overlook, ez + 19.6],
+    [roadX, workY, ez + 46.0],
+    ...(station.viaLocal ?? []).map(([lx, lz]): [number, number, number] => [SOUTHERN_MINE_POS.x + lx, workY, ez + lz]),
     [workX, workY, workZ],
   ];
   return waypointsToMine;
@@ -734,460 +782,54 @@ export function computeDwarvenMinerCaravanState(
   };
 }
 // #endregion
-
 // ======================== MINE HEIGHT QUERIES ======================== \\
 // #region Mine Height Queries
 /**
- * Summary: Computes the sloping entrance tunnel floor elevation at a given world Z coordinate.
+ * Summary: Floor height along the mine's centre line at a world Z (gate, entrance steps, entry stairs).
  * @param z World Z in meters.
- * @returns Tunnel floor height in meters.
+ * @returns Floor height in meters.
  */
 export function southernMineFloorHeightAt(z: number): number {
-  if (z <= SOUTHERN_MINE_POS.shaftStartZ) {
-    return SOUTHERN_MINE_POS.entranceFloorY;
-  }
-  if (z >= SOUTHERN_MINE_POS.shaftEndZ) {
-    return SOUTHERN_MINE_POS.cavernFloorY;
-  }
-  const t =
-    (z - SOUTHERN_MINE_POS.shaftStartZ) /
-    (SOUTHERN_MINE_POS.shaftEndZ - SOUTHERN_MINE_POS.shaftStartZ);
+  return ancientMineWalkableHeightAt(SOUTHERN_MINE_POS.x, z);
+}
+
+/**
+ * Summary: Whether local mine coordinates (lx, lz) lie in open water (lagoon basin or channel).
+ */
+export function isInsideSouthernMineLagoonBasin(lx: number, lz: number): boolean {
   return (
-    SOUTHERN_MINE_POS.entranceFloorY +
-    t * (SOUTHERN_MINE_POS.cavernFloorY - SOUTHERN_MINE_POS.entranceFloorY)
+    ancientMineWaterSurfaceAt(lx + ANCIENT_MINE_ORIGIN.x, lz + ANCIENT_MINE_ORIGIN.z, MINE_LEVEL_Y.upperCavern) !== null
   );
 }
 
 /**
- * Summary: Evaluates whether local mine coordinates (lx, lz) fall inside the relocated Deep Turquoise Lagoon basin
- *          in Chamber 2 (West Waterfall & Lagoon Cavern, lx in [-134.0, -102.0], lz in [54.0, 92.0]),
- *          excluding the walkable wooden plank bridge and lakeside wooden dock.
- */
-export function isInsideSouthernMineLagoonBasin(lx: number, lz: number): boolean {
-  // Walkable Wooden Plank Bridge crossing the Chamber 2 lagoon (lx in [-135.0, -101.0], lz in [70.5, 75.5])
-  if (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) {
-    return false;
-  }
-  // Walkable Lakeside Wooden Dock in Chamber 2 (lx in [-130.0, -106.0], lz in [91.5, 100.0])
-  if (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0) {
-    return false;
-  }
-  // Deep Subterranean Bioluminescent Turquoise Lagoon in Chamber 2 (centered at lx = -118.0, lz = 73.0)
-  if (lx >= -134.0 && lx <= -102.0 && lz >= 54.0 && lz <= 92.0) {
-    const normX = (lx - -118.0) / 16.0;
-    const normZ = (lz - 73.0) / 19.0;
-    if (Math.hypot(normX, normZ) < 1.0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Summary: Queries the complex walkable subterranean surface height across all 4 chambers and connecting tunnels of the Moria-scale mine.
+ * Summary: Walkable floor height inside the Ancient Dwarven Mine (delegates to the ancient mine layout).
  * @param x World X in meters.
  * @param z World Z in meters.
  * @param currentY Height of the asker, to choose between stacked floors (optional).
  * @returns Walkable height inside the mine in meters.
  */
-export function southernMineWalkableHeightAt(
-  x: number,
-  z: number,
-  currentY?: number
-): number {
-  const lx = x - SOUTHERN_MINE_POS.x;
-  const lz = z - SOUTHERN_MINE_POS.entranceZ;
-
-  // 0) North Entrance Shaft (lz < 34.0, |lx| <= 3.8)
-  if (lz < MINE_CHAMBER_BOUNDS.shaft.lzMax && Math.abs(lx) <= MINE_CHAMBER_BOUNDS.shaft.halfW) {
-    return southernMineFloorHeightAt(z);
-  }
-
-  // 1) West Rail Tunnel (MINE_CHAMBER_BOUNDS.westTunnel) sloping from -9.35m down to -15.55m
-  const westT = MINE_CHAMBER_BOUNDS.westTunnel;
-  if (lx >= westT.lxMin && lx < westT.lxMax && lz >= westT.lzMin && lz <= westT.lzMax) {
-    const t = Math.max(0, Math.min(1, (-48.0 - lx) / 40.0));
-    return (
-      SOUTHERN_MINE_POS.cavernFloorY +
-      t * (SOUTHERN_MINE_POS.westLagoonFloorY - SOUTHERN_MINE_POS.cavernFloorY)
-    );
-  }
-
-  // 2A) Secret Passage & Hidden Chamber Behind the Chamber 2 Waterfall (lx in [-126, -110], lz in [22, 38])
-  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
-  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
-    return wfSec.floorY;
-  }
-
-  // 2) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
-  const lagoonC = MINE_CHAMBER_BOUNDS.lagoonChamber;
-  if (lx < lagoonC.lxMax && lx >= lagoonC.lxMin && lz >= lagoonC.lzMin && lz <= lagoonC.lzMax) {
-    const ch2Floor = SOUTHERN_MINE_POS.westLagoonFloorY;
-    // Secret passage threshold behind the waterfall curtain (lx in [-121.5, -114.5], lz in [38.0, 52.5])
-    if (lx >= wfSec.passageMinLx && lx <= wfSec.passageMaxLx && lz <= 52.5) {
-      return wfSec.floorY;
-    }
-    // Wooden Plank Bridge across Chamber 2 Lagoon (lx in [-135.0, -101.0], lz in [70.5, 75.5])
-    if (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) {
-      const endRamp =
-        lx < -133.2
-          ? Math.max(0, (lx - -135.0) / 1.8)
-          : lx > -102.8
-            ? Math.max(0, (-101.0 - lx) / 1.8)
-            : 1.0;
-      return ch2Floor + LAGOON_BRIDGE_HEIGHT_OFFSET * endRamp;
-    }
-    // Lakeside Wooden Dock on South Shore of Chamber 2 Lagoon (lx in [-130.0, -106.0], lz in [91.5, 100.0])
-    if (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0) {
-      return ch2Floor + DOCK_PIER_HEIGHT_OFFSET;
-    }
-    // Swimmable Bioluminescent Turquoise Lagoon Basin in Chamber 2
-    if (isInsideSouthernMineLagoonBasin(lx, lz)) {
-      const normX = (lx - -118.0) / 16.0;
-      const normZ = (lz - 73.0) / 19.0;
-      const lakeRad = Math.min(1.0, Math.hypot(normX, normZ));
-      const depthFactor = Math.max(0.25, Math.min(1, (1.0 - lakeRad) * 2.4));
-      return ch2Floor - depthFactor * CRYSTAL_LAKE_DEPTH;
-    }
-    return ch2Floor;
-  }
-
-  // 3) East Smelting Rail Tunnel (MINE_CHAMBER_BOUNDS.eastTunnel) sloping from -9.35m down to -14.35m
-  const eastT = MINE_CHAMBER_BOUNDS.eastTunnel;
-  if (lx > eastT.lxMin && lx <= eastT.lxMax && lz >= eastT.lzMin && lz <= eastT.lzMax) {
-    const t = Math.max(0, Math.min(1, (lx - eastT.lxMin) / (eastT.lxMax - eastT.lxMin)));
-    return (
-      SOUTHERN_MINE_POS.cavernFloorY +
-      t * (SOUTHERN_MINE_POS.eastFoundryFloorY - SOUTHERN_MINE_POS.cavernFloorY)
-    );
-  }
-
-  // 4) Chamber 3 — Mining Galleries & Integrated Smelting Foundry (MINE_CHAMBER_BOUNDS.foundryChamber)
-  const foundryC = MINE_CHAMBER_BOUNDS.foundryChamber;
-  if (lx > foundryC.lxMin && lx <= foundryC.lxMax && lz >= foundryC.lzMin && lz <= foundryC.lzMax) {
-    const gt = MINE_GALLERY_TERRACE;
-    // Walkable ramp ascending to the elevated North-West Mining Gallery Terrace (lx in [92.0, 96.5], lz in [52.0, 60.0])
-    if (lx >= gt.rampMinLx && lx <= gt.rampMaxLx && lz >= gt.rampMinLz && lz <= gt.rampMaxLz) {
-      const tRamp = Math.max(0, Math.min(1, (gt.rampMaxLz - lz) / (gt.rampMaxLz - gt.rampMinLz)));
-      const rampH =
-        SOUTHERN_MINE_POS.eastFoundryFloorY +
-        tRamp * (gt.deckY - SOUTHERN_MINE_POS.eastFoundryFloorY);
-      if (currentY === undefined || currentY <= rampH + 2.2) {
-        return rampH;
-      }
-    }
-    // Elevated North-West Mining Gallery Terrace (lx in [92.0, 112.0], lz in [42.0, 52.0])
-    if (
-      lx >= gt.minLx &&
-      lx <= gt.maxLx &&
-      lz >= gt.minLz &&
-      lz <= gt.maxLz &&
-      (currentY === undefined || currentY >= gt.deckY - 1.8)
-    ) {
-      return gt.deckY;
-    }
-    return SOUTHERN_MINE_POS.eastFoundryFloorY;
-  }
-
-  // 5) South Grand Moria Descent Gallery (lx in [-16.0, 16.0], lz in [95.0, 165.0]) descending from -9.35m down to -28.35m
-  //    with a monumental Middle Staircase & Flat Central Landing (lz in [116.0, 144.0]) on the pedestrian side!
-  const southG = MINE_CHAMBER_BOUNDS.southGallery;
-  if (lz > southG.lzMin && lz < southG.lzMax && Math.abs(lx) <= southG.halfW) {
-    return southGalleryWalkableHeightAt(lx, lz);
-  }
-
-  // 6) Chamber 4 — The Great Hall of Khazad-dûm & Enlarged Bridge Over the Bottomless Abyss (lx in [-65.0, 65.0], lz in [165.0, 310.0])
-  const moriaC = MINE_CHAMBER_BOUNDS.moriaHall;
-  if (lz >= moriaC.lzMin && lz <= moriaC.lzMax && Math.abs(lx) <= moriaC.halfW) {
-    const moriaFloor = SOUTHERN_MINE_POS.moriaHallFloorY;
-    // A) Enlarged Grand Bridge of Khazad-dûm (lx in [-6.8, 6.8], lz in [196.0, 268.0]):
-    //    - West Side Minecart Track Deck (lx in [-6.8, -2.0]): flat at moriaFloor (-28.35)
-    //    - Central/East Arched Stone Walkway (lx in [-2.0, 6.8]): arched stone span
-    if (
-      lx >= -MINE_KHAZAD_BRIDGE.halfW &&
-      lx <= MINE_KHAZAD_BRIDGE.halfW &&
-      lz >= MINE_KHAZAD_BRIDGE.lzStart &&
-      lz <= MINE_KHAZAD_BRIDGE.lzEnd
-    ) {
-      if (lx < -2.0) {
-        return moriaFloor;
-      }
-      const spanU = Math.max(
-        0,
-        Math.min(
-          1,
-          (lz - MINE_KHAZAD_BRIDGE.lzStart) /
-            (MINE_KHAZAD_BRIDGE.lzEnd - MINE_KHAZAD_BRIDGE.lzStart)
-        )
-      );
-      const archRise = Math.sin(spanU * Math.PI) * MINE_KHAZAD_BRIDGE.archHeight;
-      return moriaFloor + archRise;
-    }
-    // B) The Enlarged 68m-long, 40m-deep Bottomless Subterranean Abyss of Moria (lz in [198.0, 266.0], outside the bridge)
-    if (lz > 198.0 && lz < 266.0) {
-      return SOUTHERN_MINE_POS.moriaAbyssBottomY;
-    }
-    // C) Elevated Royal Altar Dias of Durin in the South Sanctuary (lx in [-10.0, 10.0], lz in [292.0, 304.0])
-    //    Leaves a smooth ramp back down to moriaFloor (-28.35) at lz in [302.0, 304.0] toward the Golem Guardian Doorway!
-    if (lx >= -10.0 && lx <= 10.0 && lz >= 292.0 && lz <= 304.0) {
-      const rampIn = lz < 294.0 ? Math.max(0, (lz - 292.0) / 2.0) : 1.0;
-      const rampOut = lz > 302.0 ? Math.max(0, (304.0 - lz) / 2.0) : 1.0;
-      return moriaFloor + Math.min(rampIn, rampOut) * 0.8;
-    }
-    return moriaFloor;
-  }
-
-  // 6C) Area 10/11 — Ancient Stone Passage behind the Golem Guardian (lx in [-7.0, 7.0], lz in [310.0, 346.0])
-  const ancP = MINE_ANCIENT_PASSAGE;
-  if (lx >= ancP.minLx && lx <= ancP.maxLx && lz > ancP.minLz && lz <= ancP.maxLz) {
-    return ancientPassageWalkableHeightAt(lz);
-  }
-
-  // 6D) Area 11 — Southern Dragon Forge & Treasure Chamber with Lava Stepping Stones (lx in [-38.0, 38.0], lz in [346.0, 414.0])
-  const dfSanctum = MINE_DRAGON_FORGE_SANCTUM;
-  if (
-    lx >= dfSanctum.minLx &&
-    lx <= dfSanctum.maxLx &&
-    lz > dfSanctum.minLz &&
-    lz <= dfSanctum.maxLz
-  ) {
-    return dragonForgeSanctumWalkableHeightAt(lx, lz);
-  }
-
-  // 6A) EXIT 1 (WEST FROM GREAT HALL): Bifurcating Y-Tunnel, Hall of the Mountain Kings (NW) & Crystal Sanctum (SW)
-  const B = MINE_CHAMBER_BOUNDS;
-  if (
-    (lx >= B.westSplitStem.lxMin && lx <= B.westSplitStem.lxMax && lz >= B.westSplitStem.lzMin && lz <= B.westSplitStem.lzMax) ||
-    (lx >= B.westSplitHub.lxMin && lx <= B.westSplitHub.lxMax && lz >= B.westSplitHub.lzMin && lz <= B.westSplitHub.lzMax) ||
-    (lx >= B.westNorthBranch.lxMin && lx <= B.westNorthBranch.lxMax && lz >= B.westNorthBranch.lzMin && lz <= B.westNorthBranch.lzMax) ||
-    (lx >= B.westSouthBranch.lxMin && lx <= B.westSouthBranch.lxMax && lz >= B.westSouthBranch.lzMin && lz <= B.westSouthBranch.lzMax) ||
-    (lx >= B.crystalSanctum.lxMin && lx <= B.crystalSanctum.lxMax && lz >= B.crystalSanctum.lzMin && lz <= B.crystalSanctum.lzMax)
-  ) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY;
-  }
-  if (lx >= B.hallOfKings.lxMin && lx <= B.hallOfKings.lxMax && lz >= B.hallOfKings.lzMin && lz <= B.hallOfKings.lzMax) {
-    // Royal Obsidian Throne Dais at the north end of the Hall of the Mountain Kings
-    if (lx >= -135.0 && lx <= -123.0 && lz >= 106.0 && lz <= 114.0) {
-      const daisT = lz > 112.0 ? Math.max(0, (114.0 - lz) / 2.0) : 1.0;
-      return SOUTHERN_MINE_POS.moriaHallFloorY + daisT * 0.75;
-    }
-    return SOUTHERN_MINE_POS.moriaHallFloorY;
-  }
-
-  // 6B) EXIT 2 (EAST FROM GREAT HALL): East Tunnel & The Dragon-Forge / Titan Anvil Vault
-  if (lx >= B.moriaEastTunnel.lxMin && lx <= B.moriaEastTunnel.lxMax && lz >= B.moriaEastTunnel.lzMin && lz <= B.moriaEastTunnel.lzMax) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY;
-  }
-  if (lx >= B.dragonForgeChamber.lxMin && lx <= B.dragonForgeChamber.lxMax && lz >= B.dragonForgeChamber.lzMin && lz <= B.dragonForgeChamber.lzMax) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY;
-  }
-
-  // 7) Room 1 — Orderly Entry Staging & Mess Hall (lx in [-48.0, 48.0], lz in [34.0, 95.5])
-  //    North-East Cliffside Hoist Scaffolding Staircase (lx in [8.5, 12.5], lz in [49.0, 57.5])
-  if (lx >= 8.5 && lx <= 12.5 && lz >= SCAFFOLD_STAIR_START_LZ && lz <= SCAFFOLD_STAIR_END_LZ) {
-    const tStair = Math.max(0, Math.min(1, (SCAFFOLD_STAIR_END_LZ - lz) / SCAFFOLD_STAIR_SPAN));
-    const stairH =
-      SOUTHERN_MINE_POS.cavernFloorY +
-      tStair * (SOUTHERN_MINE_POS.catwalkY - SOUTHERN_MINE_POS.cavernFloorY);
-    if (currentY === undefined || currentY <= stairH + 2.2) {
-      return stairH;
-    }
-  }
-
-  //    North-West Gallery Stairs (a sloped walkable ramp from the cavern floor up to the gallery top),
-  //    then the gallery itself, from MINE_NW_GALLERY. Steps are not boxes: a box above the feet is a wall.
-  {
-    const nwWestEdge = MINE_NW_GALLERY.lx - MINE_NW_GALLERY.width / 2;
-    const nwStairStart = nwWestEdge - MINE_NW_GALLERY.stepCount * MINE_NW_GALLERY.stepRun;
-    const inNwZ = Math.abs(lz - MINE_NW_GALLERY.lz) <= MINE_NW_GALLERY.depth / 2;
-    if (inNwZ && lx >= nwStairStart && lx < nwWestEdge) {
-      const tStair = (lx - nwStairStart) / (nwWestEdge - nwStairStart);
-      return (
-        SOUTHERN_MINE_POS.cavernFloorY + tStair * (MINE_NW_GALLERY.topY - SOUTHERN_MINE_POS.cavernFloorY)
-      );
-    }
-    if (
-      inNwZ &&
-      lx >= nwWestEdge &&
-      lx <= nwWestEdge + MINE_NW_GALLERY.width &&
-      currentY !== undefined &&
-      currentY >= MINE_NW_GALLERY.topY - 1.6
-    ) {
-      return MINE_NW_GALLERY.topY;
-    }
-  }
-
-  //    Elevated North-East Cliffside Hoist Platform (lx in [8.0, 24.0], lz in [37.5, 49.0]) at y = catwalkY
-  if (
-    lx >= 8.0 &&
-    lx <= 24.0 &&
-    lz >= 37.5 &&
-    lz <= 49.0 &&
-    currentY !== undefined &&
-    currentY >= SOUTHERN_MINE_POS.catwalkY - 1.6
-  ) {
-    return SOUTHERN_MINE_POS.catwalkY;
-  }
-
-  return SOUTHERN_MINE_POS.cavernFloorY;
+export function southernMineWalkableHeightAt(x: number, z: number, currentY?: number): number {
+  return ancientMineWalkableHeightAt(x, z, currentY);
 }
 // #endregion
 
 // ======================== MINE BOUNDARY QUERIES ======================== \\
 // #region Mine Boundary Queries
 /**
- * Summary: Computes the subterranean ceiling height inside any chamber or tunnel of the Southern Dwarven Mine.
+ * Summary: Rock ceiling height inside the Ancient Dwarven Mine.
  */
 export function southernMineCeilingHeightAt(x: number, z: number): number {
-  const lx = x - SOUTHERN_MINE_POS.x;
-  const lz = z - SOUTHERN_MINE_POS.entranceZ;
-  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
-  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
-    return wfSec.floorY + wfSec.height;
-  }
-  if (lz < 34.0) {
-    return southernMineFloorHeightAt(z) + SOUTHERN_MINE_POS.corridorHeight;
-  }
-  if (lz >= MINE_DRAGON_FORGE_SANCTUM.minLz) {
-    return MINE_DRAGON_FORGE_SANCTUM.floorY + MINE_DRAGON_FORGE_SANCTUM.height;
-  }
-  if (lz > MINE_ANCIENT_PASSAGE.minLz) {
-    return ancientPassageWalkableHeightAt(lz) + MINE_ANCIENT_PASSAGE.height;
-  }
-  if (lz >= 100.0 && lx < -65.0) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY + 17.5;
-  }
-  if (lz >= 150.0 && lx > 65.0) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY + 18.5;
-  }
-  if (lx < -48.0) {
-    return SOUTHERN_MINE_POS.westLagoonFloorY + 12.5;
-  }
-  if (lx > 48.0) {
-    return SOUTHERN_MINE_POS.eastFoundryFloorY + 12.0;
-  }
-  if (lz >= 165.0) {
-    return SOUTHERN_MINE_POS.moriaHallFloorY + 24.0;
-  }
-  if (lz > 95.0) {
-    return southGalleryWalkableHeightAt(lx, lz) + 8.5;
-  }
-  return SOUTHERN_MINE_POS.cavernFloorY + SOUTHERN_MINE_POS.cavernHeight;
+  return ancientMineCeilingHeightAt(x, z);
 }
 
 /**
- * Summary: Determines whether a given 3D coordinate falls within the subterranean volumes of the Southern Dwarven Mine
- *          (Entrance Shaft, Room 1 Mess Hall, West Tunnel & Chamber 2 Lagoon + Secret Waterfall Chamber,
- *           East Tunnel & Chamber 3 Mining Galleries / Foundry, South Descent Gallery, Chamber 4 Great Hall of Khazad-dûm,
- *           West Split Tunnel + Twin Sanctums, East Tunnel + Dragon-Forge Vault, and Southern Ancient Stone Passage + Dragon Forge Sanctum).
+ * Summary: Whether a world point is inside the Ancient Dwarven Mine rather than on the surface above it.
  * @param x World X in meters.
  * @param z World Z in meters.
- * @param currentY Height of the asker, to choose between stacked floors (optional).
- * @returns True inside any of the mine tunnels or underground chambers.
+ * @param currentY Height of the asker; above the local rock ceiling counts as outside (optional).
  */
 export function isInsideSouthernMine(x: number, z: number, currentY?: number): boolean {
-  const lx = x - SOUTHERN_MINE_POS.x;
-  const lz = z - SOUTHERN_MINE_POS.entranceZ;
-
-  const B = MINE_CHAMBER_BOUNDS;
-
-  // 1) Main entrance tunnel shaft (MINE_CHAMBER_BOUNDS.shaft)
-  if (Math.abs(lx) <= B.shaft.halfW && lz >= B.shaft.lzMin && lz <= B.shaft.lzMax) {
-    const shaftFloorY = southernMineFloorHeightAt(z);
-    if (currentY !== undefined && currentY > shaftFloorY + 5.4) return false;
-    return true;
-  }
-
-  // 2) Room 1 — Entry Staging & Mess Hall (MINE_CHAMBER_BOUNDS.room1)
-  if (Math.abs(lx) <= B.room1.halfW && lz >= B.room1.lzMin && lz <= B.room1.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 12.2) return false;
-    return true;
-  }
-
-  // 3) West Rail Tunnel (MINE_CHAMBER_BOUNDS.westTunnel)
-  if (lx >= B.westTunnel.lxMin && lx <= B.westTunnel.lxMax && lz >= B.westTunnel.lzMin && lz <= B.westTunnel.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 6.5) return false;
-    return true;
-  }
-
-  // 4) Chamber 2 — Deep Subterranean Waterfall & Bioluminescent Lagoon Cavern (MINE_CHAMBER_BOUNDS.lagoonChamber)
-  if (lx >= B.lagoonChamber.lxMin && lx <= B.lagoonChamber.lxMax && lz >= B.lagoonChamber.lzMin && lz <= B.lagoonChamber.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.westLagoonFloorY + 13.0) return false;
-    return true;
-  }
-
-  // 4A) Secret Chamber Behind the Chamber 2 Waterfall (MINE_WATERFALL_SECRET_CHAMBER)
-  const wfSec = MINE_WATERFALL_SECRET_CHAMBER;
-  if (lx >= wfSec.minLx && lx <= wfSec.maxLx && lz >= wfSec.minLz && lz <= wfSec.maxLz) {
-    if (currentY !== undefined && currentY > wfSec.floorY + wfSec.height + 0.5) return false;
-    return true;
-  }
-
-  // 5) East Smelting Rail Tunnel (MINE_CHAMBER_BOUNDS.eastTunnel)
-  if (lx >= B.eastTunnel.lxMin && lx <= B.eastTunnel.lxMax && lz >= B.eastTunnel.lzMin && lz <= B.eastTunnel.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 6.5) return false;
-    return true;
-  }
-
-  // 6) Chamber 3 — Dwarven Gold & Silver Smelting Foundry & Treasury (MINE_CHAMBER_BOUNDS.foundryChamber)
-  if (lx >= B.foundryChamber.lxMin && lx <= B.foundryChamber.lxMax && lz >= B.foundryChamber.lzMin && lz <= B.foundryChamber.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.eastFoundryFloorY + 12.5) return false;
-    return true;
-  }
-
-  // 7) South Grand Moria Descent Gallery (MINE_CHAMBER_BOUNDS.southGallery)
-  if (Math.abs(lx) <= B.southGallery.halfW && lz >= B.southGallery.lzMin && lz <= B.southGallery.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.cavernFloorY + 8.5) return false;
-    return true;
-  }
-
-  // 8) Chamber 4 — The Great Hall of Khazad-dûm & Enlarged Bridge Over the Bottomless Abyss (MINE_CHAMBER_BOUNDS.moriaHall)
-  if (Math.abs(lx) <= B.moriaHall.halfW && lz >= B.moriaHall.lzMin && lz <= B.moriaHall.lzMax) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 24.5) return false;
-    return true;
-  }
-
-  // 9) Exit 1 (West from Great Hall) — Bifurcating Y-Tunnel, Hall of the Mountain Kings & Crystal Sanctum
-  if (
-    (lx >= B.westSplitStem.lxMin && lx <= B.westSplitStem.lxMax && lz >= B.westSplitStem.lzMin && lz <= B.westSplitStem.lzMax) ||
-    (lx >= B.westSplitHub.lxMin && lx <= B.westSplitHub.lxMax && lz >= B.westSplitHub.lzMin && lz <= B.westSplitHub.lzMax) ||
-    (lx >= B.westNorthBranch.lxMin && lx <= B.westNorthBranch.lxMax && lz >= B.westNorthBranch.lzMin && lz <= B.westNorthBranch.lzMax) ||
-    (lx >= B.hallOfKings.lxMin && lx <= B.hallOfKings.lxMax && lz >= B.hallOfKings.lzMin && lz <= B.hallOfKings.lzMax) ||
-    (lx >= B.westSouthBranch.lxMin && lx <= B.westSouthBranch.lxMax && lz >= B.westSouthBranch.lzMin && lz <= B.westSouthBranch.lzMax) ||
-    (lx >= B.crystalSanctum.lxMin && lx <= B.crystalSanctum.lxMax && lz >= B.crystalSanctum.lzMin && lz <= B.crystalSanctum.lzMax)
-  ) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 18.0) return false;
-    return true;
-  }
-
-  // 10) Exit 2 (East from Great Hall) — East Tunnel & Dragon-Forge Vault
-  if (
-    (lx >= B.moriaEastTunnel.lxMin && lx <= B.moriaEastTunnel.lxMax && lz >= B.moriaEastTunnel.lzMin && lz <= B.moriaEastTunnel.lzMax) ||
-    (lx >= B.dragonForgeChamber.lxMin && lx <= B.dragonForgeChamber.lxMax && lz >= B.dragonForgeChamber.lzMin && lz <= B.dragonForgeChamber.lzMax)
-  ) {
-    if (currentY !== undefined && currentY > SOUTHERN_MINE_POS.moriaHallFloorY + 19.0) return false;
-    return true;
-  }
-
-  // 11) Area 10/11 — Ancient Stone Passage behind the Golem Guardian (lz in [310.0, 346.0])
-  const ancP = MINE_ANCIENT_PASSAGE;
-  if (lx >= ancP.minLx && lx <= ancP.maxLx && lz >= ancP.minLz && lz <= ancP.maxLz) {
-    if (currentY !== undefined && currentY > ancP.yStart + ancP.height + 0.5) return false;
-    return true;
-  }
-
-  // 12) Area 11 — Southern Dragon Forge & Treasure Chamber (lz in [346.0, 414.0])
-  const dfSanctum = MINE_DRAGON_FORGE_SANCTUM;
-  if (
-    lx >= dfSanctum.minLx &&
-    lx <= dfSanctum.maxLx &&
-    lz >= dfSanctum.minLz &&
-    lz <= dfSanctum.maxLz
-  ) {
-    if (currentY !== undefined && currentY > dfSanctum.floorY + dfSanctum.height + 0.5) return false;
-    return true;
-  }
-
-  return false;
+  return isInsideAncientMine(x, z, currentY);
 }
 // #endregion

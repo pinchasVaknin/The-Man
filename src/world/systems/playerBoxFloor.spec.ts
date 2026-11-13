@@ -23,7 +23,8 @@ function input(forward: number, jumpPressed: boolean, jumpHeld: boolean) {
 describe('playerBoxFloor - standing on solid boxes', () => {
   it('should land on top of the ore cart instead of being thrown off it', () => {
     const obstacles = generateWorldObstacles();
-    const cart = SOLID_BUILDING_BOXES.find((b) => b.id === 'southern-mine-stationary-cart-0');
+    // The Ancient Mine's stationary ore cart in the gallery loading bay.
+    const cart = SOLID_BUILDING_BOXES.find((b) => b.id.startsWith('ancient-mine-prop-') && b.id.endsWith('-oreCart'));
     assert.ok(cart && cart.maxY !== undefined, 'Expected the ore cart collider with a top');
 
     // Start 4 m south of the cart centre (lower z) and walk north (+z, yaw PI) into it.

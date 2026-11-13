@@ -14,7 +14,7 @@ import { HILL_WATCHTOWERS } from './highlandBridgeLandmarks';
 import { SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS } from './oasisAndHarborLandmarks';
 import { HUNTER_LODGE_POS, VALLEY_FARMS } from './settlementLandmarks';
 import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
-import { MINE_DRAGON_FORGE_SANCTUM, MINE_WATERFALL_SECRET_CHAMBER } from './dwarvenMineLayout';
+import { MINE_LEVEL_Y, MINE_POI, TREASURE_ISLAND } from './ancientMine/ancientMineLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -727,108 +727,118 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
   },
   // Room 1 — Orderly Dwarven Entry Staging & Mess Hall Supply Crates
   {
+    // Ancient Mine: storage yard of the great hall
     id: 'crate-mine-mess-provisions',
     name: 'Mess Hall Provisions Crate',
-    x: SOUTHERN_MINE_POS.x - 22.5,
-    y: SOUTHERN_MINE_POS.cavernFloorY,
-    z: SOUTHERN_MINE_POS.entranceZ + 56.0,
+    x: SOUTHERN_MINE_POS.x + -37.0,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + 47.0,
     interactRadius: 4.2,
     goldCoins: 14,
     contents: ['fresh_bread_loaf', 'harbor_cheese_wheel', 'roasted_meat', 'dwarven_miner_tunic'],
   },
   {
+    // Ancient Mine: hall workbench
     id: 'crate-mine-quartermaster-tools',
     name: "Quartermaster's Tool & Ore Crate",
-    x: SOUTHERN_MINE_POS.x - 22.5,
-    y: SOUTHERN_MINE_POS.cavernFloorY,
-    z: SOUTHERN_MINE_POS.entranceZ + 68.0,
+    x: SOUTHERN_MINE_POS.x + 32.0,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + 27.0,
     interactRadius: 4.2,
     goldCoins: 19,
     contents: ['dwarven_pickaxe', 'iron_ingots', 'dwarven_gold_ore', 'dwarven_iron_boots'],
   },
   {
+    // Ancient Mine: railway control booth
     id: 'crate-mine-staging-gems',
     name: "Foreman's Sealed Supply Crate",
-    x: SOUTHERN_MINE_POS.x + 11.5,
-    y: SOUTHERN_MINE_POS.cavernFloorY,
-    z: SOUTHERN_MINE_POS.entranceZ + 62.0,
+    x: SOUTHERN_MINE_POS.x + 12.0,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + 92.0,
     interactRadius: 4.2,
     goldCoins: 24,
     contents: ['amethyst_gem', 'sapphire_gem', 'dwarven_gold_ore', 'oak_timber'],
   },
   // Chamber 2 — Deep Waterfall & Bioluminescent Lagoon Lakeside Dock Crate
   {
+    // Ancient Mine: lagoon shore
     id: 'crate-mine-lagoon-dock',
     name: 'Lagoon Expedition Crystal Crate',
-    x: SOUTHERN_MINE_POS.x - 112.0,
-    y: SOUTHERN_MINE_POS.westLagoonFloorY + 0.28,
-    z: SOUTHERN_MINE_POS.entranceZ + 95.5,
+    x: SOUTHERN_MINE_POS.x + -60.5,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + 51.0,
     interactRadius: 4.2,
     goldCoins: 28,
     contents: ['sapphire_gem', 'amethyst_gem', 'crystal_gem', 'fresh_bread_loaf'],
   },
   // Chamber 3 — Dwarven Gold & Silver Smelting Foundry Vault Crate
   {
+    // Ancient Mine: foundry ore bin
     id: 'crate-mine-foundry-vault',
     name: 'Smelting Foundry Bullion Crate',
-    x: SOUTHERN_MINE_POS.x + 122.0,
-    y: SOUTHERN_MINE_POS.eastFoundryFloorY,
-    z: SOUTHERN_MINE_POS.entranceZ + 66.0,
+    x: SOUTHERN_MINE_POS.x + 114.0,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + 108.0,
     interactRadius: 4.2,
     goldCoins: 45,
     contents: ['dwarven_gold_ore', 'iron_ingots', 'dwarven_warhammer', 'sapphire_gem'],
   },
   // Chamber 4 — Great Hall of Khazad-dûm South Royal Sanctuary Treasury Chest
   {
+    // Ancient Mine: at the first king's feet
     id: 'chest-moria-royal-sanctuary',
     name: 'Royal Treasury Chest of Khazad-dûm',
-    x: SOUTHERN_MINE_POS.x,
-    y: SOUTHERN_MINE_POS.moriaHallFloorY + 0.8,
-    z: SOUTHERN_MINE_POS.entranceZ + 296.5,
+    x: SOUTHERN_MINE_POS.x + 2.0,
+    y: MINE_LEVEL_Y.kingBalcony,
+    z: SOUTHERN_MINE_POS.entranceZ + 303.6,
     interactRadius: 4.4,
     goldCoins: 85,
     contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'amethyst_gem', 'sapphire_gem', 'crystal_gem'],
   },
   // Chamber 4A — Hall of the Mountain Kings Royal Throne Coffer (West Split North Branch)
   {
+    // Ancient Mine: heroes' cliff path
     id: 'chest-moria-hall-of-kings',
     name: 'Mountain King Throne Coffer',
-    x: SOUTHERN_MINE_POS.x - 129.0,
-    y: SOUTHERN_MINE_POS.moriaHallFloorY + 1.15,
-    z: SOUTHERN_MINE_POS.entranceZ + 114.5,
+    x: SOUTHERN_MINE_POS.x + -105.0,
+    y: MINE_LEVEL_Y.kingBalcony,
+    z: SOUTHERN_MINE_POS.entranceZ + 290.0,
     interactRadius: 4.2,
     goldCoins: 110,
     contents: ['dwarven_warhammer', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
   // Chamber 4C — Dragon-Forge & Titan Anvil Vault Coffer (East Exit)
   {
+    // Ancient Mine: dragon forge east wall
     id: 'chest-moria-dragon-forge',
     name: 'Dragon-Forge MasterSmith Chest',
-    x: SOUTHERN_MINE_POS.x + 126.0,
-    y: SOUTHERN_MINE_POS.moriaHallFloorY + 0.4,
-    z: SOUTHERN_MINE_POS.entranceZ + 206.0,
+    x: SOUTHERN_MINE_POS.x + 36.5,
+    y: MINE_LEVEL_Y.forgeFloor,
+    z: SOUTHERN_MINE_POS.entranceZ + 448.0,
     interactRadius: 4.2,
     goldCoins: 95,
     contents: ['dwarven_pickaxe', 'dwarven_warhammer', 'iron_ingots', 'dwarven_gold_ore', 'sapphire_gem'],
   },
   // Area 3 — Hidden Rune Vault Behind the Waterfall Secret Chest
   {
+    // Ancient Mine: hidden alcove behind the lagoon waterfall
     id: 'chest-mine-waterfall-secret',
     name: 'Ancient Waterfall Rune Vault Chest',
-    x: SOUTHERN_MINE_POS.x + MINE_WATERFALL_SECRET_CHAMBER.chestLx,
-    y: MINE_WATERFALL_SECRET_CHAMBER.floorY,
-    z: SOUTHERN_MINE_POS.entranceZ + MINE_WATERFALL_SECRET_CHAMBER.chestLz,
+    x: SOUTHERN_MINE_POS.x + MINE_POI.waterfallAlcove.lx,
+    y: MINE_LEVEL_Y.upperCavern,
+    z: SOUTHERN_MINE_POS.entranceZ + MINE_POI.waterfallAlcove.lz,
     interactRadius: 4.2,
     goldCoins: 125,
     contents: ['sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
   },
   // Area 11 — Southern Dragon Forge & Treasure Chamber Sanctum Chest
   {
+    // Ancient Mine: the treasure island in the lava
     id: 'chest-mine-dragon-forge-sanctum',
     name: 'Ancient Dwarven Dragon-Forge Treasure Chest',
-    x: SOUTHERN_MINE_POS.x + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lx,
-    y: MINE_DRAGON_FORGE_SANCTUM.treasureIsland.topY,
-    z: SOUTHERN_MINE_POS.entranceZ + MINE_DRAGON_FORGE_SANCTUM.treasureChest.lz,
+    x: SOUTHERN_MINE_POS.x + MINE_POI.treasureChest.lx,
+    y: TREASURE_ISLAND.topY,
+    z: SOUTHERN_MINE_POS.entranceZ + MINE_POI.treasureChest.lz,
     interactRadius: 4.4,
     goldCoins: 240,
     contents: ['dwarven_warhammer', 'dwarven_pickaxe', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],

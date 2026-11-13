@@ -42,6 +42,7 @@ import {
   findLookedAtWatchtowerLadder,
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
+import { applyMineLavaHazard } from './mineLavaHazard';
 import { isMonkDoorwayActive } from './monkTempleSystem';
 import {
   groundHeightAt,
@@ -268,6 +269,10 @@ export function stepSurvivalVitals(
     const fraction = Math.min(1, (landingSpeed - FALL_DAMAGE_START_MPS) / (FALL_DAMAGE_LETHAL_MPS - FALL_DAMAGE_START_MPS));
     state.hp = Math.max(0, state.hp - fraction * maxHp);
     state.damageFlashTimer = Math.max(state.damageFlashTimer ?? 0, 0.9);
+    tookDamage = true;
+  }
+  // Ancient Mine: sinking into the Dragon Forge lava hurts and returns the player to the forge entrance.
+  if (applyMineLavaHazard(state, godMode) && !godMode) {
     tookDamage = true;
   }
   const animals = getActiveWorldAnimals();

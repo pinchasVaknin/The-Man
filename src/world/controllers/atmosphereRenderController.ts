@@ -9,6 +9,8 @@
 // #region Imports & Dependencies
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { mineAtmosphereAt } from '../domain/landmarks/ancientMine/ancientMineAtmosphere';
+import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import {
   IDynamicAtmosphereState,
   IWeatherStateSnapshot,
@@ -21,6 +23,19 @@ const _stormFogColor = new THREE.Color(0x3a4759);
 const _sandFogColor = new THREE.Color(0xc9a87a);
 const _denseFogColor = new THREE.Color(0xc2d1dc);
 const _lightningColor = new THREE.Color(0xdbeafe);
+
+/** Summary: Per-frame blend rate toward the target mine atmosphere (fraction of the gap closed). */
+const MINE_ATMOSPHERE_EASE = 0.06;
+/** Summary: Smoothed underground ambient and fog, carried between frames so areas fade into each other. */
+const _mineAtmo = {
+  sky: new THREE.Color(0x28334a),
+  ground: new THREE.Color(0x14100c),
+  fog: new THREE.Color(0x040508),
+  intensity: 0.14,
+  fogDensity: 0.0032,
+  isPrimed: false,
+};
+const _mineTarget = new THREE.Color();
 // #endregion
 
 // ======================== CONTEXT & TYPES ======================== \\
@@ -241,16 +256,28 @@ export function applyDynamicAtmosphereToScene(
     sunLight.intensity = 0;
     renderer.shadowMap.autoUpdate = false;
 
-    hemiLight.color.setHex(0x28334a);
-    hemiLight.groundColor.setHex(0x14100c);
-    hemiLight.intensity = 0.14;
+    // Each area of the Ancient Mine has its own lighting identity; ease toward it so walking
+    // between areas (or through the open upper cavern) fades instead of switching.
+    const target = mineAtmosphereAt(playerPos!.x - ANCIENT_MINE_ORIGIN.x, playerPos!.z - ANCIENT_MINE_ORIGIN.z, playerPos!.y);
+    const ease = _mineAtmo.isPrimed ? MINE_ATMOSPHERE_EASE : 1;
+    _mineAtmo.isPrimed = true;
+    _mineAtmo.sky.lerp(_mineTarget.setHex(target.ambientSky), ease);
+    _mineAtmo.ground.lerp(_mineTarget.setHex(target.ambientGround), ease);
+    _mineAtmo.fog.lerp(_mineTarget.setHex(target.fogColor), ease);
+    _mineAtmo.intensity += (target.ambientIntensity - _mineAtmo.intensity) * ease;
+    _mineAtmo.fogDensity += (target.fogDensity - _mineAtmo.fogDensity) * ease;
+
+    hemiLight.color.copy(_mineAtmo.sky);
+    hemiLight.groundColor.copy(_mineAtmo.ground);
+    hemiLight.intensity = _mineAtmo.intensity;
     scene.environmentIntensity = 0.04;
 
-    fog.color.setHex(0x040508);
-    fog.density = 0.0032;
-    bgColor.setHex(0x040508);
+    fog.color.copy(_mineAtmo.fog);
+    fog.density = _mineAtmo.fogDensity;
+    bgColor.copy(_mineAtmo.fog);
     renderer.toneMappingExposure = 1.15;
   } else {
+    _mineAtmo.isPrimed = false;
     renderer.shadowMap.autoUpdate = true;
     // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
     sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
