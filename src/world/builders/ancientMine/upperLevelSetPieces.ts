@@ -84,6 +84,7 @@ export function buildUpperLevelSetPieces(ctx: ISetPieceContext): ISetPieceUpdate
   const turntable = buildRailHub(kit);
   const updateCarts = buildRideableCarts(kit, ctx);
   const crane = buildCrane(kit);
+  buildCentralHubScaffoldingAndGoldChute(kit, ctx);
   const water = buildWaterworks(kit, ctx);
   const gallery = buildGalleries(kit, ctx);
   const foundry = buildFoundry(kit, ctx);
@@ -316,6 +317,79 @@ function buildCrane(kit: Kit): { cagePivot: THREE.Group } {
   for (const [x, z] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) kit.box(0.1, 1.6, 0.1, m.iron, x, 0.1, z, cage);
   kit.box(1.8, 0.7, 1.8, m.darkStone, 0, 0.15, 0, cage);
   return { cagePivot };
+}
+// #endregion
+
+// #region Central Hub Scaffolding & Gold Hopper Chute
+/**
+ * Summary: Builds the 2nd-floor timber scaffolding support structure, cross-braces and overhead
+ *          tool hoist on the west side of the Central Hub (lx: -38..-16, lz: 26..38, y = -4.85),
+ *          plus the Gold Collection Hopper & Vertical Vault Chute (lx = 18, lz = 62) where miners
+ *          dump gold ore that drops down into the Royal Treasure Vault below.
+ */
+function buildCentralHubScaffoldingAndGoldChute(kit: Kit, ctx: ISetPieceContext): void {
+  const { m } = kit;
+  const S = MINE_LEVEL_Y.hubScaffolding; // -4.85
+  const h = S - U; // 4.5 m
+
+  // 1) 2ND-FLOOR TIMBER SCAFFOLDING MEZZANINE SUPPORT STRUCTURE (lx: -38..-16, lz: 26..38)
+  const postXs = [-37.6, -30.5, -23.5, -16.4] as const;
+  const postZs = [26.4, 32.0, 37.6] as const;
+  for (const px of postXs) {
+    for (const pz of postZs) {
+      kit.box(0.42, h + 3.4, 0.42, m.wood, px, U, pz);
+      kit.box(0.55, 0.25, 0.55, m.iron, px, U, pz);
+      kit.box(0.52, 0.22, 0.52, m.iron, px, S - 0.15, pz);
+    }
+  }
+  // Horizontal ledger beams and cross-braces under the 2nd-floor deck.
+  for (const pz of postZs) {
+    kit.box(22.0, 0.38, 0.38, m.wood, -27.0, S - 0.38, pz);
+  }
+  for (const px of postXs) {
+    kit.box(0.38, 0.38, 12.0, m.wood, px, S - 0.38, 32.0);
+    // Overhead tool-rack pergola beams above the 2nd-floor deck.
+    kit.box(0.32, 0.32, 12.0, m.wood, px, S + 3.2, 32.0);
+  }
+  kit.box(22.0, 0.32, 0.32, m.wood, -27.0, S + 3.2, 26.4);
+  kit.box(22.0, 0.32, 0.32, m.wood, -27.0, S + 3.2, 37.6);
+
+  // Diagonal X-braces along the front (lz = 37.6) and east (lx = -16.4) faces of the scaffolding.
+  kit.beam(new THREE.Vector3(-37.6, U + 0.4, 37.6), new THREE.Vector3(-30.5, S - 0.3, 37.6), 0.22, m.wood);
+  kit.beam(new THREE.Vector3(-30.5, U + 0.4, 37.6), new THREE.Vector3(-23.5, S - 0.3, 37.6), 0.22, m.wood);
+  kit.beam(new THREE.Vector3(-16.4, U + 0.4, 26.4), new THREE.Vector3(-16.4, S - 0.3, 32.0), 0.22, m.wood);
+  kit.beam(new THREE.Vector3(-16.4, U + 0.4, 32.0), new THREE.Vector3(-16.4, S - 0.3, 37.6), 0.22, m.wood);
+
+  // Support posts and diagonal stringers under the scaffolding stairs (lx: -22..-16, lz: 38..50).
+  for (const sx of [-21.7, -16.3]) {
+    kit.box(0.36, h * 0.55, 0.36, m.wood, sx, U, 44.0);
+    kit.beam(new THREE.Vector3(sx, U + 0.2, 50.0), new THREE.Vector3(sx, S - 0.1, 38.0), 0.32, m.wood);
+  }
+  ctx.addTorch(-22.2, U + 2.6, 49.5, 0xffa840, 6.0);
+  ctx.addTorch(-15.8, U + 2.6, 49.5, 0xffa840, 6.0);
+  ctx.addTorch(-27.0, S + 2.8, 27.0, 0xffb448, 6.5);
+
+  // 2) CENTRAL HUB GOLD COLLECTION HOPPER & VERTICAL VAULT CHUTE (lx = 18, lz = 62, y = U)
+  const hx = 18.0;
+  const hz = 62.0;
+  // Heavy stone-and-gold base collar around the vertical chute shaft.
+  kit.box(4.6, 0.65, 4.6, m.darkStone, hx, U, hz);
+  kit.box(4.9, 0.22, 4.9, m.gold, hx, U + 0.65, hz);
+  // Iron funnel hopper into which AI miners dump mined gold ore.
+  const hopperFunnel = kit.cyl(2.2, 1.15, 1.45, m.iron, hx, U + 1.55, hz, 8);
+  hopperFunnel.rotation.y = Math.PI / 8;
+  const hopperRim = kit.cyl(2.35, 2.35, 0.24, m.gold, hx, U + 2.28, hz, 8);
+  hopperRim.rotation.y = Math.PI / 8;
+  // Gleaming mound of gold bullion/ore inside the open hopper mouth.
+  const goldLoad = new THREE.Mesh(ctx.own(new THREE.ConeGeometry(1.75, 1.05, 10)), m.gold);
+  goldLoad.position.set(hx, U + 2.35, hz);
+  ctx.group.add(goldLoad);
+  // Overhead chute frame & pulley feeding into the vertical vault shaft.
+  for (const dx of [-1.95, 1.95]) {
+    kit.box(0.35, 3.8, 0.35, m.iron, hx + dx, U + 0.8, hz);
+  }
+  kit.box(4.4, 0.38, 0.45, m.gold, hx, U + 4.4, hz);
+  ctx.addTorch(hx - 2.3, U + 2.8, hz - 2.0, 0xffcc50, 6.5);
 }
 // #endregion
 

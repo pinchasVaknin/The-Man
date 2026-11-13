@@ -27,7 +27,7 @@ const MIN_WALL_HEIGHT_FOR_BOULDERS = 2.5;
 const STALACTITE_GRID = 6;
 /** Summary: Stalactites hang only where the ceiling is at least this far above the floor. */
 const STALACTITE_MIN_CLEARANCE = 7;
-const STALACTITE_BOUNDS = { minLx: -110, maxLx: 124, minLz: 0, maxLz: 456 } as const;
+const STALACTITE_BOUNDS = { minLx: -110, maxLx: 124, minLz: 0, maxLz: 506 } as const;
 
 /** Summary: Flame colour and strength of floor torch stands. */
 const TORCH_LIGHT = { color: 0xff9a30, intensity: 5.5 } as const;
@@ -110,8 +110,8 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
     for (let i = 0; i < count; i++) {
       const t = (i + 0.2 + random() * 0.6) / Math.max(1, count);
       const size = 0.9 + random() * 1.6;
-      const x = foot.x0 + (foot.x1 - foot.x0) * t - foot.nx * size * 0.7;
-      const z = foot.z0 + (foot.z1 - foot.z0) * t - foot.nz * size * 0.7;
+      const x = foot.x0 + (foot.x1 - foot.x0) * t - foot.nx * size * 0.88;
+      const z = foot.z0 + (foot.z1 - foot.z0) * t - foot.nz * size * 0.88;
       // Resting on the floor (never floating), mostly sunk into the wall.
       const y = foot.y + size * (0.1 + random() * 0.35);
       e.set(random() * 3, random() * 6, random() * 3);

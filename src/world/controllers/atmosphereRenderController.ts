@@ -68,7 +68,7 @@ export interface IAtmosphereRenderContext {
  *         mine's lanterns are hidden and MINE_LIGHT_POOL_SIZE pooled lights copy the nearest ones each frame. The pool
  *         size is fixed, so the shader is compiled once and does not recompile as the player moves (audit P3).
  */
-export const MINE_LIGHT_POOL_SIZE = 8;
+export const MINE_LIGHT_POOL_SIZE = 14;
 const minePools = new WeakMap<THREE.Scene, THREE.PointLight[]>();
 const poolScratch = new THREE.Vector3();
 
@@ -98,7 +98,7 @@ function updateMineLightPool(
   let pool = minePools.get(scene);
   if (!pool) {
     pool = Array.from({ length: MINE_LIGHT_POOL_SIZE }, () => {
-      const light = new THREE.PointLight(0xffffff, 0, 0.01, 1.15);
+      const light = new THREE.PointLight(0xffffff, 0, 0.01, 1.5);
       light.visible = true;
       scene.add(light);
       return light;
@@ -122,9 +122,9 @@ function updateMineLightPool(
     return;
   }
 
-  const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number }> = [];
+  const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number; inMine: boolean }> = [];
   const maxSurfaceDistSq = 75 * 75;
-  const maxMineDistSq = 95 * 95;
+  const maxMineDistSq = 90 * 90;
   for (let i = 0; i < lanterns.length; i++) {
     const src = lanterns[i];
     const inMine = Boolean(src.userData.isUndergroundMineLight) || isMineLantern(src);
@@ -132,7 +132,7 @@ function updateMineLightPool(
     // Source lanterns never light the scene directly; only the fixed pool does so NUM_POINT_LIGHTS never changes.
     src.visible = false;
     if (!playerPos || src.intensity <= 0.01) continue;
-    if (isPlayerUndergroundInMine !== inMine) continue;
+    if (isPlayerUndergroundInMine && !inMine) continue;
     if (src.parent && !isVisibleInHierarchy(src.parent)) continue;
     src.getWorldPosition(poolScratch);
     const dx = poolScratch.x - playerPos.x;
@@ -141,15 +141,14 @@ function updateMineLightPool(
     const dist2 = dx * dx + dy * dy + dz * dz;
     if (!inMine && dist2 > maxSurfaceDistSq) continue;
     if (inMine && dist2 > maxMineDistSq) continue;
-    candidates.push({ light: src, dist2, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z });
+    candidates.push({ light: src, dist2, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z, inMine });
   }
   candidates.sort((a, b) => a.dist2 - b.dist2);
 
-  // Spread the 8 pooled lights across distinct regional clusters (at least 7m apart on first pass)
-  // so twin sconces on one arch don't consume two pool slots and starve torches further down the hall.
+  // Spread the pooled lights across distinct clusters so twin sconces don't starve lights further down the hall.
   const picked: typeof candidates = [];
   const skipped: typeof candidates = [];
-  const minSpreadSq = isPlayerUndergroundInMine ? 7.5 * 7.5 : 0;
+  const minSpreadSq = isPlayerUndergroundInMine ? 5.0 * 5.0 : 0;
   for (let i = 0; i < candidates.length && picked.length < pool.length; i++) {
     const c = candidates[i];
     let tooClose = false;
@@ -185,7 +184,15 @@ function updateMineLightPool(
     }
     slot.position.set(pick.wx, pick.wy, pick.wz);
     slot.color.copy(pick.light.color);
-    slot.intensity = pick.light.intensity;
+    if (pick.inMine) {
+      const maxD2 = maxMineDistSq;
+      const farFade = Math.max(0, 1 - pick.dist2 / maxD2);
+      // Dampen inverse-square spike when walking right up to a lamp so lighting stays steady and proportional.
+      const nearDamp = (pick.dist2 + 2.5) / (pick.dist2 + 18.0);
+      slot.intensity = pick.light.intensity * farFade * farFade * nearDamp;
+    } else {
+      slot.intensity = pick.light.intensity;
+    }
     slot.distance = pick.light.distance;
     slot.decay = pick.light.decay;
   }
@@ -339,9 +346,9 @@ export function applyDynamicAtmosphereToScene(
     pl.userData.isUndergroundMineLight = inMine;
     if (inMine) {
       const base = (pl.userData.baseIntensity as number) ?? 5.6;
-      pl.intensity = base * 3.8;
-      pl.distance = Math.max(pl.distance || 0, 44.0);
-      pl.decay = 1.12;
+      pl.intensity = Math.min(3.2, base * 0.42);
+      pl.distance = Math.max(pl.distance || 0, 42.0);
+      pl.decay = 1.45;
     } else {
       const base = (pl.userData.baseIntensity as number | undefined);
       pl.intensity = base !== undefined ? Math.max(base, outdoorLanternStrength) : outdoorLanternStrength;

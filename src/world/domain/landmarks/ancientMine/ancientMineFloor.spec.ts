@@ -42,7 +42,7 @@ const FAIR_JUMP_FRACTION = 0.75;
 const MAX_STAIR_RISE = 0.35;
 
 const GRID = 0.5;
-const GRID_BOUNDS = { minLx: -112, maxLx: 126, minLz: -4, maxLz: 458 } as const;
+const GRID_BOUNDS = { minLx: -120, maxLx: 126, minLz: -4, maxLz: 514 } as const;
 
 /** Summary: Surfaces nobody should reach on foot from the gate: hazards and the jump-only route. */
 const NOT_WALKABLE_SURFACE_IDS = new Set<string>([

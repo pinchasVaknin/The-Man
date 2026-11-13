@@ -102,11 +102,35 @@ const QUARTER = Math.PI / 2;
  *         walkthrough test fails if a prop blocks one.
  */
 export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
-  // Hall pillars holding up the dome.
-  { kind: 'stonePillar', lx: -22, lz: 40 },
+  // Hall pillars holding up the dome (positioned clear of the 2nd-floor scaffolding stairs).
+  { kind: 'stonePillar', lx: -11, lz: 42 },
   { kind: 'stonePillar', lx: 24, lz: 32 },
   { kind: 'stonePillar', lx: -24, lz: 88 },
   { kind: 'stonePillar', lx: 30, lz: 98 },
+
+  // 2nd-floor Central Hub Scaffolding Mezzanine (lx: -38..-16, lz: 26..38, y = -4.85):
+  // Tool racks, weapon racks, workbenches, and anvils where AI dwarves climb up to swap/sharpen tools.
+  { kind: 'toolRack', lx: -34.5, lz: 27.2 },
+  { kind: 'toolRack', lx: -29.0, lz: 27.2 },
+  { kind: 'weaponRack', lx: -23.0, lz: 27.2 },
+  { kind: 'workbench', lx: -33.5, lz: 32.0, yaw: QUARTER },
+  { kind: 'anvil', lx: -28.0, lz: 31.5 },
+  { kind: 'workbench', lx: -21.0, lz: 30.5 },
+  { kind: 'crate', lx: -36.0, lz: 35.8 },
+  { kind: 'barrel', lx: -34.6, lz: 36.2 },
+
+  // Central Hub Gold Collection Hopper station (lx = 18, lz = 62): gold ore bins & piles.
+  { kind: 'oreBin', lx: 18, lz: 57.5, tint: 'gold' },
+  { kind: 'orePile', lx: 22.2, lz: 62.0, tint: 'gold' },
+  { kind: 'orePile', lx: 14.2, lz: 62.0, tint: 'gold' },
+
+  // Central Hub West & North Mineral Veins worked by the Central Hub miners:
+  { kind: 'mineralVein', lx: -45.5, lz: 60.0, yaw: QUARTER, tint: 'gold', lift: 1.2 },
+  { kind: 'orePile', lx: -43.8, lz: 60.0, tint: 'gold' },
+  { kind: 'mineralVein', lx: -45.5, lz: 72.0, yaw: QUARTER, tint: 'gold', lift: 1.4 },
+  { kind: 'crystalCluster', lx: -44.2, lz: 74.0, tint: 'blue' },
+  { kind: 'mineralVein', lx: 18.0, lz: 21.2, tint: 'gold', lift: 1.2 },
+  { kind: 'orePile', lx: 18.0, lz: 22.8, tint: 'gold' },
 
   // Railway hub: control booth, switch levers, carts on the three lines.
   { kind: 'controlBooth', lx: 12, lz: 92 },
@@ -153,10 +177,13 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'torchStand', lx: -9, lz: 119 },
   { kind: 'torchStand', lx: 9, lz: 119 },
 
-  // Lagoon crystals along the shore.
+  // Lagoon crystals & mineral veins along the shore (including where the lagoon engineer mines).
   { kind: 'crystalCluster', lx: -96, lz: 52, tint: 'blue' },
   { kind: 'crystalCluster', lx: -99, lz: 88, tint: 'blue' },
   { kind: 'crystalCluster', lx: -64, lz: 50, tint: 'blue' },
+  { kind: 'crystalCluster', lx: -62.2, lz: 56, tint: 'blue' },
+  { kind: 'crystalCluster', lx: -60.2, lz: 96, tint: 'purple' },
+  { kind: 'mineralVein', lx: -61.5, lz: 96, yaw: QUARTER, tint: 'purple', lift: 1.0 },
   { kind: 'crystalCluster', lx: -100, lz: 100, tint: 'purple' },
 
   // Galleries: veins in the walls, ore piles, carts, bins, scaffold posts under the platform.
@@ -166,11 +193,16 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'mineralVein', lx: 75, lz: 23.2, tint: 'blue', lift: 2.0 },
   { kind: 'mineralVein', lx: 92, lz: 26.2, tint: 'purple', lift: 3.0 },
   { kind: 'mineralVein', lx: 58.2, lz: 60, yaw: QUARTER, tint: 'dark', lift: 0.8 },
+  { kind: 'mineralVein', lx: 58.3, lz: 54, yaw: QUARTER, tint: 'copper', lift: 1.0 },
+  { kind: 'mineralVein', lx: 75.0, lz: 50.3, tint: 'gold', lift: 1.0 },
   { kind: 'mineralVein', lx: 81.8, lz: 64, yaw: QUARTER, tint: 'gold', lift: 1.0 },
+  { kind: 'crystalCluster', lx: 80.6, lz: 62.5, tint: 'gold' },
   { kind: 'orePile', lx: 76, lz: 66, tint: 'iron' },
   // Faces the miners work: ore heaps against the gallery walls.
+  { kind: 'orePile', lx: 118.4, lz: 60, tint: 'iron' },
   { kind: 'orePile', lx: 118.4, lz: 78, tint: 'gold' },
-  { kind: 'orePile', lx: 96, lz: 28.3, tint: 'purple' },
+  { kind: 'orePile', lx: 118.2, lz: 86, tint: 'gold' },
+  { kind: 'orePile', lx: 92, lz: 27.6, tint: 'purple' },
   { kind: 'orePile', lx: 80, lz: 25.4, tint: 'copper' },
   // Loot crates and coffers (WORLD_CHESTS) sit on these.
   { kind: 'crate', lx: -60.5, lz: 51 },
@@ -231,18 +263,20 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'brazier', lx: -8.6, lz: 296.5 },
   { kind: 'brazier', lx: 8.6, lz: 296.5 },
 
-  // Heroes' cliff path: banners on the back wall between the statues.
+  // Heroes' cliff path: banners on the back wall between the statues + glowing mineral veins.
   { kind: 'banner', lx: -105.8, lz: 221, yaw: QUARTER, lift: 2.4 },
   { kind: 'banner', lx: -105.8, lz: 247, yaw: QUARTER, lift: 2.4 },
   { kind: 'banner', lx: -105.8, lz: 273, yaw: QUARTER, lift: 2.4 },
+  { kind: 'mineralVein', lx: -105.5, lz: 294, yaw: QUARTER, tint: 'gold', lift: 1.1 },
+  { kind: 'crystalCluster', lx: -104.8, lz: 295.5, tint: 'gold' },
 
-  // King balcony: braziers and banners flanking the first king.
-  { kind: 'brazier', lx: -6, lz: 303.5 },
-  { kind: 'brazier', lx: 8, lz: 303.5 },
+  // King balcony: braziers and banners flanking the first king (kept clear of the side passage to king-loop-stairs).
+  { kind: 'brazier', lx: -6.5, lz: 303.5 },
+  { kind: 'brazier', lx: 6.5, lz: 303.5 },
   { kind: 'banner', lx: -10.5, lz: 304.8, yaw: Math.PI, lift: 3.0 },
   { kind: 'crate', lx: 2, lz: 303.6 },
   { kind: 'crate', lx: -105, lz: 290 },
-  { kind: 'banner', lx: 12.5, lz: 304.8, yaw: Math.PI, lift: 3.0 },
+  { kind: 'banner', lx: 10.5, lz: 304.8, yaw: Math.PI, lift: 3.0 },
 ];
 
 /**
@@ -251,7 +285,7 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
  *         braziers stand in the wall alcoves; basalt rubble lines the forge.
  */
 export const DEEP_LEVEL_PROPS: readonly IMinePropPlacement[] = [
-  // Golem chamber: four great pillars, braziers in the side alcoves, fallen blocks and rubble.
+  // Golem chamber: four great pillars, braziers in the side alcoves, glowing mineral veins and crystal clusters.
   { kind: 'stonePillar', lx: -24, lz: 322 },
   { kind: 'stonePillar', lx: 24, lz: 322 },
   { kind: 'stonePillar', lx: -24, lz: 346 },
@@ -261,6 +295,10 @@ export const DEEP_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'brazier', lx: -28.6, lz: 351.5 },
   { kind: 'brazier', lx: 28.6, lz: 351.5 },
   { kind: 'brazier', lx: 26, lz: 316.5 },
+  { kind: 'mineralVein', lx: -29.4, lz: 326, yaw: QUARTER, tint: 'blue', lift: 1.2 },
+  { kind: 'crystalCluster', lx: -28.5, lz: 328, tint: 'blue' },
+  { kind: 'mineralVein', lx: 29.4, lz: 336, yaw: QUARTER, tint: 'gold', lift: 1.2 },
+  { kind: 'crystalCluster', lx: 28.5, lz: 338, tint: 'purple' },
   { kind: 'stoneBlock', lx: -8, lz: 324, yaw: 0.5 },
   { kind: 'stoneBlock', lx: 7.5, lz: 350, yaw: -0.3 },
   { kind: 'stoneBlock', lx: -20, lz: 334.5, yaw: 1.1 },
@@ -268,14 +306,14 @@ export const DEEP_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'orePile', lx: 9, lz: 347, tint: 'dark' },
   { kind: 'orePile', lx: 22, lz: 352, tint: 'dark' },
 
-  // Dragon forge: braziers at the passage foot and basalt rubble along the walls.
+  // Dragon forge: braziers at the passage foot and basalt rubble along the north landing.
   { kind: 'brazier', lx: -7, lz: 386.5 },
   { kind: 'brazier', lx: 7, lz: 386.5 },
-  { kind: 'orePile', lx: -36, lz: 392, tint: 'dark' },
-  { kind: 'orePile', lx: 36, lz: 440, tint: 'dark' },
-  { kind: 'stoneBlock', lx: -35, lz: 446, yaw: 0.7 },
-  { kind: 'stoneBlock', lx: 34.5, lz: 395, yaw: -0.4 },
-  { kind: 'crate', lx: 36.5, lz: 448 },
+  { kind: 'orePile', lx: -28, lz: 392, tint: 'dark' },
+  { kind: 'orePile', lx: 28, lz: 392, tint: 'dark' },
+  { kind: 'stoneBlock', lx: -22, lz: 388, yaw: 0.7 },
+  { kind: 'stoneBlock', lx: 24, lz: 388, yaw: -0.4 },
+  { kind: 'crate', lx: 18, lz: 390 },
 ];
 
 /** Summary: Every prop of the mine, upper level first (collider ids are indexed in this order). */

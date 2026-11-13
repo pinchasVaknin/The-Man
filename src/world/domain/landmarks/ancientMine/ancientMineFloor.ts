@@ -11,6 +11,8 @@
 import {
   CEILING_TERRACE_STEP,
   MINE_GUARD_RAILS,
+  MINE_LEVEL_Y,
+  MINE_OPEN_EDGES,
   MINE_SURFACES,
   type IMineAreaId,
   type IMineFootprint,
@@ -163,6 +165,158 @@ export function isGuardRailBetween(aLx: number, aLz: number, bLx: number, bLz: n
     if (along >= rail.from && along <= rail.to) return true;
   }
   return false;
+}
+// #endregion
+
+// #region Wall Runs
+/** Summary: Foot of one merged rock wall run in local mine coordinates, facing the open room along (nx, nz). */
+export interface IMineWallFoot {
+  readonly x0: number;
+  readonly z0: number;
+  readonly x1: number;
+  readonly z1: number;
+  readonly y: number;
+  readonly nx: number;
+  readonly nz: number;
+  readonly height: number;
+}
+
+const WALL_GRID_BOUNDS = { minLx: -120, maxLx: 126, minLz: -4, maxLz: 514 } as const;
+
+/**
+ * Summary: Computes merged axis-aligned rock wall runs across layers 0 and 1 of the mine.
+ * Design: Used by ancientMineWorld.ts to build solid rock wall hitboxes so neither the player
+ *         nor the camera can clip or see through mine walls.
+ */
+export function computeAncientMineWallFeet(cell = 1.0): readonly IMineWallFoot[] {
+  const nx = Math.round((WALL_GRID_BOUNDS.maxLx - WALL_GRID_BOUNDS.minLx) / cell);
+  const nz = Math.round((WALL_GRID_BOUNDS.maxLz - WALL_GRID_BOUNDS.minLz) / cell);
+  const g0: Array<IMineFloorSample | null> = new Array(nx * nz);
+  const g1: Array<IMineFloorSample | null> = new Array(nx * nz);
+  for (let j = 0; j < nz; j++) {
+    const lz = WALL_GRID_BOUNDS.minLz + (j + 0.5) * cell;
+    for (let i = 0; i < nx; i++) {
+      const lx = WALL_GRID_BOUNDS.minLx + (i + 0.5) * cell;
+      g0[j * nx + i] = sampleAncientMineLayer(lx, lz, 0);
+      g1[j * nx + i] = sampleAncientMineLayer(lx, lz, 1);
+    }
+  }
+  const at0 = (i: number, j: number): IMineFloorSample | null => (i < 0 || j < 0 || i >= nx || j >= nz ? null : g0[j * nx + i]);
+  const at1 = (i: number, j: number): IMineFloorSample | null => (i < 0 || j < 0 || i >= nx || j >= nz ? null : g1[j * nx + i]);
+
+  const wallFeet: IMineWallFoot[] = [];
+  const wallIntervalsBetween = (
+    a0: IMineFloorSample | null,
+    b0: IMineFloorSample | null,
+    a1: IMineFloorSample | null,
+    b1: IMineFloorSample | null
+  ): Array<{ y0: number; y1: number; facing: 1 | -1 }> => {
+    if (a0 === null && b0 === null && a1 === null && b1 === null) return [];
+    const airOf = (s0: IMineFloorSample | null, s1: IMineFloorSample | null): Array<[number, number]> => {
+      const r: Array<[number, number]> = [];
+      if (s0 !== null) {
+        const y0 = s0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : s0.height;
+        if (s0.ceilingY > y0 + 0.05) r.push([y0, s0.ceilingY]);
+      }
+      if (s1 !== null && s1.ceilingY > s1.height + 0.05) r.push([s1.height, s1.ceilingY]);
+      return r;
+    };
+    const sub = (y0: number, y1: number, cuts: ReadonlyArray<readonly [number, number]>): Array<[number, number]> => {
+      let segs: Array<[number, number]> = y1 - y0 > 0.05 ? [[y0, y1]] : [];
+      for (const [c0, c1] of cuts) {
+        const next: Array<[number, number]> = [];
+        for (const [s0, s1] of segs) {
+          if (c1 <= s0 + 0.05 || c0 >= s1 - 0.05) next.push([s0, s1]);
+          else {
+            if (c0 - s0 > 0.05) next.push([s0, c0]);
+            if (s1 - c1 > 0.05) next.push([c1, s1]);
+          }
+        }
+        segs = next;
+      }
+      return segs;
+    };
+    const airA = airOf(a0, a1);
+    const airB = airOf(b0, b1);
+    const out: Array<{ y0: number; y1: number; facing: 1 | -1 }> = [];
+    if (a0 !== null && a0.material !== 'abyss') {
+      const startY = b0 !== null ? Math.max(a0.height, b0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : b0.height) : a0.height;
+      for (const [y0, y1] of sub(startY, a0.ceilingY, airB)) {
+        if (Math.abs(y0 - a0.height) < 0.1 && y1 - y0 >= 1.5) out.push({ y0, y1, facing: -1 });
+      }
+    }
+    if (a1 !== null) {
+      for (const [y0, y1] of sub(a1.height, a1.ceilingY, airB)) {
+        if (Math.abs(y0 - a1.height) < 0.1 && y1 - y0 >= 1.5) out.push({ y0, y1, facing: -1 });
+      }
+    }
+    if (b0 !== null && b0.material !== 'abyss') {
+      const startY = a0 !== null ? Math.max(b0.height, a0.material === 'abyss' ? MINE_LEVEL_Y.abyssBottom : a0.height) : b0.height;
+      for (const [y0, y1] of sub(startY, b0.ceilingY, airA)) {
+        if (Math.abs(y0 - b0.height) < 0.1 && y1 - y0 >= 1.5) out.push({ y0, y1, facing: 1 });
+      }
+    }
+    if (b1 !== null) {
+      for (const [y0, y1] of sub(b1.height, b1.ceilingY, airA)) {
+        if (Math.abs(y0 - b1.height) < 0.1 && y1 - y0 >= 1.5) out.push({ y0, y1, facing: 1 });
+      }
+    }
+    return out;
+  };
+
+  for (let i = 0; i <= nx; i++) {
+    const x = WALL_GRID_BOUNDS.minLx + i * cell;
+    let open: Array<{ y0: number; y1: number; facing: 1 | -1; start: number }> = [];
+    for (let j = 0; j <= nz; j++) {
+      const along = WALL_GRID_BOUNDS.minLz + (j + 0.5) * cell;
+      const isOpenEdge = MINE_OPEN_EDGES.some((e) => e.axis === 'lx' && e.at === x && along >= e.from && along <= e.to);
+      const faces = j < nz && !isOpenEdge ? wallIntervalsBetween(at0(i - 1, j), at0(i, j), at1(i - 1, j), at1(i, j)) : [];
+      const next: typeof open = [];
+      for (const f of faces) {
+        const idx = open.findIndex((o) => Math.abs(o.y0 - f.y0) < 0.05 && Math.abs(o.y1 - f.y1) < 0.05 && o.facing === f.facing);
+        if (idx >= 0) {
+          next.push(open[idx]);
+          open.splice(idx, 1);
+        } else {
+          next.push({ ...f, start: j });
+        }
+      }
+      for (const closed of open) {
+        const z0 = WALL_GRID_BOUNDS.minLz + closed.start * cell;
+        const z1 = WALL_GRID_BOUNDS.minLz + j * cell;
+        wallFeet.push({ x0: x, z0, x1: x, z1, y: closed.y0, nx: closed.facing, nz: 0, height: closed.y1 - closed.y0 });
+      }
+      open = next;
+    }
+  }
+
+  for (let j = 0; j <= nz; j++) {
+    const z = WALL_GRID_BOUNDS.minLz + j * cell;
+    let open: Array<{ y0: number; y1: number; facing: 1 | -1; start: number }> = [];
+    for (let i = 0; i <= nx; i++) {
+      const along = WALL_GRID_BOUNDS.minLx + (i + 0.5) * cell;
+      const isOpenEdge = MINE_OPEN_EDGES.some((e) => e.axis === 'lz' && e.at === z && along >= e.from && along <= e.to);
+      const faces = i < nx && !isOpenEdge ? wallIntervalsBetween(at0(i, j - 1), at0(i, j), at1(i, j - 1), at1(i, j)) : [];
+      const next: typeof open = [];
+      for (const f of faces) {
+        const idx = open.findIndex((o) => Math.abs(o.y0 - f.y0) < 0.05 && Math.abs(o.y1 - f.y1) < 0.05 && o.facing === f.facing);
+        if (idx >= 0) {
+          next.push(open[idx]);
+          open.splice(idx, 1);
+        } else {
+          next.push({ ...f, start: i });
+        }
+      }
+      for (const closed of open) {
+        const x0 = WALL_GRID_BOUNDS.minLx + closed.start * cell;
+        const x1 = WALL_GRID_BOUNDS.minLx + i * cell;
+        wallFeet.push({ x0, z0: z, x1, z1: z, y: closed.y0, nx: 0, nz: closed.facing, height: closed.y1 - closed.y0 });
+      }
+      open = next;
+    }
+  }
+
+  return wallFeet;
 }
 // #endregion
 
