@@ -69,6 +69,9 @@ import {
   DWARVEN_RIDEABLE_MINECART_LINES,
   DWARVEN_MINECART_ROUTES,
 } from './dwarvenMineAndCaravanSystem';
+import { ancientMineWaterSurfaceAt } from '../domain/landmarks/ancientMine/ancientMineWorld';
+import { sampleAncientMineFloor } from '../domain/landmarks/ancientMine/ancientMineFloor';
+import { ANCIENT_MINE_ORIGIN, type IMineAreaId, type IMineMaterial } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import {
   getActiveSailableShip,
   sailableShipDeckHeightAt,
@@ -1620,18 +1623,9 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
  * @returns Water surface height in meters, or null where there is no water.
  */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
-  const lx = x - SOUTHERN_MINE_POS.x;
-  const lz = z - SOUTHERN_MINE_POS.entranceZ;
-  if (currentY !== undefined && currentY < -8.0) {
-    const onMineBridgeOrDock =
-      (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) ||
-      (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0);
-    if (!onMineBridgeOrDock && isInsideSouthernMineLagoonBasin(lx, lz)) {
-      return SOUTHERN_MINE_POS.westLagoonWaterY;
-    }
-  }
   if (isInsideSouthernMine(x, z, currentY)) {
-    return null;
+    // The Ancient Mine's lagoon and channel; bridges over them are dry floors in the layout.
+    return ancientMineWaterSurfaceAt(x, z, currentY);
   }
   const lagNorm = Math.hypot(
     (x - SOUTHWEST_OASIS_POS.lagoonX) / SOUTHWEST_OASIS_POS.lagoonRadiusX,
@@ -2827,118 +2821,35 @@ export function isPlayerInsideUndergroundMine(x: number, y: number, z: number): 
  * Summary: Dedicated architectural floorplan sampler for the Underground Dwarven Mine (Moria) Map Layer.
  */
 export function sampleUndergroundMineMapColorAt(x: number, z: number): [number, number, number] {
-  const lx = x - SOUTHERN_MINE_POS.x;
-  const lz = z - SOUTHERN_MINE_POS.entranceZ;
-
-  // Entrance approach steps just outside the portal
-  if (Math.abs(lx) <= 6.2 && lz >= -5.5 && lz <= 1.0) {
-    return [142, 124, 102];
-  }
-
-  if (!isInsideSouthernMine(x, z)) {
-    // Subterranean bedrock wall rim & dark slate background
-    if (
+  const sample = sampleAncientMineFloor(x - ANCIENT_MINE_ORIGIN.x, z - ANCIENT_MINE_ORIGIN.z);
+  if (sample === null) {
+    // Bedrock rim next to any open floor, dark slate everywhere else.
+    const isRim =
       isInsideSouthernMine(x - 1.8, z) ||
       isInsideSouthernMine(x + 1.8, z) ||
       isInsideSouthernMine(x, z - 1.8) ||
-      isInsideSouthernMine(x, z + 1.8)
-    ) {
-      return [62, 54, 48];
-    }
-    return [18, 16, 20];
+      isInsideSouthernMine(x, z + 1.8);
+    return isRim ? [62, 54, 48] : [18, 16, 20];
   }
-
-  // 1) Rideable Minecart Rail Lines (Golden-Iron Tracks)
-  for (let l = 0; l < DWARVEN_RIDEABLE_MINECART_LINES.length; l++) {
-    const wps = DWARVEN_RIDEABLE_MINECART_LINES[l].localWaypoints;
-    for (let i = 0; i < wps.length - 1; i++) {
-      const d = distToSegment(lx, lz, wps[i][0], wps[i][2], wps[i + 1][0], wps[i + 1][2]);
-      if (d <= 0.95) {
-        return [238, 186, 74];
-      }
-    }
-  }
-  for (let r = 0; r < DWARVEN_MINECART_ROUTES.length; r++) {
-    const rt = DWARVEN_MINECART_ROUTES[r];
-    const d = distToSegment(
-      lx,
-      lz,
-      rt.startLocalX,
-      rt.startLocalZ,
-      rt.endLocalX,
-      rt.endLocalZ
-    );
-    if (d <= 0.85) {
-      return [182, 148, 92];
-    }
-  }
-
-  // 2) Bridges & Jetties (Lagoon Bridge, South Jetty, Khazad-dûm Central & West Bridges)
-  if (
-    (lx >= -135.0 && lx <= -101.0 && lz >= 70.5 && lz <= 75.5) ||
-    (lx >= -130.0 && lx <= -106.0 && lz >= 91.5 && lz <= 100.0) ||
-    (lx >= -15.0 && lx <= -8.0 && lz >= 178.0 && lz <= 218.0)
-  ) {
-    return [188, 134, 76];
-  }
-  if (lx >= -3.5 && lx <= 3.5 && lz >= 178.0 && lz <= 218.0) {
-    return [222, 192, 126];
-  }
-
-  // 3) Chamber 2 Turquoise Waterfall Lagoon
-  if (isInsideSouthernMineLagoonBasin(lx, lz)) {
-    if (Math.hypot(lx - -118.0, lz - 102.0) <= 5.2) {
-      return [168, 244, 252];
-    }
-    return [38, 204, 220];
-  }
-
-  // 4) Chamber 4 Bottomless Abyss of Khazad-dûm
-  if (lz > 180.0 && lz < 216.0 && Math.abs(lx) <= 64.0) {
-    if (Math.abs(lz - 198.0) <= 2.4) {
-      return [118, 36, 22];
-    }
-    return [28, 16, 22];
-  }
-
-  // 5) Chamber 4 Colossal Pillars & Royal Sanctuary Dais
-  if (lz >= 158.0 && lz <= 248.0 && Math.abs(lx) <= 64.0) {
-    for (const px of [-48, -32, -16, 16, 32, 48]) {
-      for (const pz of [170, 192, 214, 236]) {
-        if (Math.abs(lx - px) <= 2.4 && Math.abs(lz - pz) <= 2.4) {
-          return [218, 174, 84];
-        }
-      }
-    }
-    if (Math.abs(lx) <= 12.0 && lz >= 230.0 && lz <= 246.0) {
-      return [198, 164, 96];
-    }
-  }
-
-  // 6) Chamber 3 Smelting Foundry Blast Furnaces
-  if (
-    lx >= 114.5 &&
-    lx <= 123.5 &&
-    (Math.abs(lz - 64.0) <= 3.8 || Math.abs(lz - 82.0) <= 3.8)
-  ) {
-    return [244, 108, 36];
-  }
-
-  // 7) Room 1 Mess Hall Banquet Tables
-  if (
-    lx >= -27.5 &&
-    lx <= -14.5 &&
-    (Math.abs(lz - 38.0) <= 1.3 || Math.abs(lz - 43.0) <= 1.3)
-  ) {
-    return [172, 118, 66];
-  }
-
-  // 8) Carved Subterranean Stone Floor
-  if (Math.abs(lx) <= 38.0 && lz >= 28.0 && lz <= 68.0) {
-    return [122, 106, 92];
-  }
-  return [106, 92, 80];
+  return MINE_MAP_COLORS[sample.material] ?? MINE_AREA_MAP_COLORS[sample.area] ?? [106, 92, 80];
 }
+
+/** Summary: Minimap colours of hazard and water materials, which win over the area colour. */
+const MINE_MAP_COLORS: Partial<Record<IMineMaterial, [number, number, number]>> = {
+  water: [38, 204, 220],
+  lava: [244, 108, 36],
+  abyss: [10, 10, 14],
+  wood: [172, 118, 66],
+};
+
+/** Summary: Minimap floor colour per mine area, so zones read apart on the map. */
+const MINE_AREA_MAP_COLORS: Partial<Record<IMineAreaId, [number, number, number]>> = {
+  bridge: [196, 184, 160],
+  heroesPath: [200, 176, 120],
+  kingBalcony: [224, 196, 120],
+  golemChamber: [96, 110, 128],
+  dragonForge: [92, 62, 50],
+};
 
 // #endregion
 

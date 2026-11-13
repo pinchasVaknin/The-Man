@@ -51,8 +51,8 @@ export const DWARVEN_GUARDIAN_STATUES: readonly IDwarvenGuardianStatueDef[] = [
   {
     id: 'dwarven-statue-west',
     name: t('landmarks.dwarven_statue_durin'),
-    x: SOUTHERN_MINE_POS.x - 7.8,
-    z: SOUTHERN_MINE_POS.entranceZ - 4.2,
+    x: SOUTHERN_MINE_POS.x - 13.5,
+    z: SOUTHERN_MINE_POS.entranceZ - 7.0,
     baseY: SOUTHERN_MINE_POS.entranceFloorY,
     pedestalHalfSize: 2.55,
     totalHeight: 10.4,
@@ -62,8 +62,8 @@ export const DWARVEN_GUARDIAN_STATUES: readonly IDwarvenGuardianStatueDef[] = [
   {
     id: 'dwarven-statue-east',
     name: t('landmarks.dwarven_statue_thror'),
-    x: SOUTHERN_MINE_POS.x + 7.8,
-    z: SOUTHERN_MINE_POS.entranceZ - 4.2,
+    x: SOUTHERN_MINE_POS.x + 13.5,
+    z: SOUTHERN_MINE_POS.entranceZ - 7.0,
     baseY: SOUTHERN_MINE_POS.entranceFloorY,
     pedestalHalfSize: 2.55,
     totalHeight: 10.4,
