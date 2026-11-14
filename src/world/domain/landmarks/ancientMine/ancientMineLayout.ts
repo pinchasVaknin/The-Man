@@ -344,15 +344,48 @@ function railRun(
 }
 
 /**
+ * Summary: Slices a diagonal stair guard rail into stepped segments that follow the stair slope.
+ * Design: Prevents a single axis-aligned bounding box from forming a tall vertical wall above the
+ *         lower steps, allowing players to jump over or shoot projectiles across the sloped parapet.
+ */
+function stairRailRuns(
+  idPrefix: string,
+  axis: 'lx' | 'lz',
+  at: number,
+  from: number,
+  to: number,
+  yAtFrom: number,
+  yAtTo: number,
+  sliceLen = 2.0
+): IMineGuardRail[] {
+  const span = to - from;
+  const count = Math.max(1, Math.ceil(span / sliceLen));
+  const step = span / count;
+  const runs: IMineGuardRail[] = [];
+  for (let i = 0; i < count; i++) {
+    const f0 = from + i * step;
+    const f1 = i === count - 1 ? to : from + (i + 1) * step;
+    const t0 = (f0 - from) / span;
+    const t1 = (f1 - from) / span;
+    const y0 = yAtFrom + (yAtTo - yAtFrom) * t0;
+    const y1 = yAtFrom + (yAtTo - yAtFrom) * t1;
+    const lowY = Math.min(y0, y1) - 0.5;
+    const highY = Math.max(y0, y1) + 0.15;
+    runs.push(railRun(`${idPrefix}-${i + 1}`, axis, at, Number(f0.toFixed(3)), Number(f1.toFixed(3)), lowY, highY));
+  }
+  return runs;
+}
+
+/**
  * Summary: Parapets along every edge that drops into the abyss, a pit, or off a stair side.
- * Design: Each segment lies exactly on a footprint boundary. minY/maxY bound the collider, so the
- *         rail on the king balcony does not block the bridge landing beneath it.
+ * Design: Each segment lies exactly on a footprint boundary. Sloped stair rails are stepped with
+ *         `stairRailRuns` so their colliders follow the diagonal slope instead of forming a rectangle.
  */
 export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('overlook-south-west', 'lz', 20, -14, -7, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.overlook),
   railRun('overlook-south-east', 'lz', 20, 7, 14, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.overlook),
-  railRun('entry-stairs-west', 'lx', -7, 20, 44, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.overlook),
-  railRun('entry-stairs-east', 'lx', 7, 20, 44, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.overlook),
+  ...stairRailRuns('entry-stairs-west', 'lx', -7, 20, 44, MINE_LEVEL_Y.overlook, MINE_LEVEL_Y.upperCavern),
+  ...stairRailRuns('entry-stairs-east', 'lx', 7, 20, 44, MINE_LEVEL_Y.overlook, MINE_LEVEL_Y.upperCavern),
   railRun('pit-north-west', 'lz', 50, 58, 62, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
   railRun('pit-north-east', 'lz', 50, 70, 82, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
   railRun('pit-west', 'lx', 58, 50, 70, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
@@ -363,50 +396,54 @@ export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('cart-ramp-east', 'lx', 72, 60, 72, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
   railRun('pit-stairs-west', 'lx', 62, 38, 50, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
   railRun('pit-stairs-east', 'lx', 70, 38, 50, MINE_LEVEL_Y.galleryPit, MINE_LEVEL_Y.upperCavern),
-  railRun('platform-stairs-north', 'lz', 40, 78, 90, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
-  railRun('platform-stairs-south', 'lz', 46, 78, 90, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
+  ...stairRailRuns('platform-stairs-north', 'lz', 40, 78, 90, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
+  ...stairRailRuns('platform-stairs-south', 'lz', 46, 78, 90, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
   railRun('platform-west-north', 'lx', 90, 36, 40, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
   railRun('platform-west-south', 'lx', 90, 46, 54, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
   railRun('platform-north', 'lz', 36, 90, 110, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
   railRun('platform-south', 'lz', 54, 90, 110, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
   railRun('platform-east', 'lx', 110, 36, 54, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.galleryPlatform),
-  railRun('landing-1-south-west', 'lz', 147, -16, -8, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding1),
-  railRun('landing-1-south-east', 'lz', 147, 8, 16, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding1),
-  railRun('flight-b-west', 'lx', -8, 147, 164, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding1),
-  railRun('flight-b-east', 'lx', 8, 147, 164, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding1),
-  railRun('landing-2-north-west', 'lz', 164, -16, -8, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('landing-2-north-east', 'lz', 164, 8, 16, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('landing-2-west', 'lx', -16, 164, 172, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('landing-2-east', 'lx', 16, 164, 172, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('landing-2-south-west', 'lz', 172, -16, -8, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('landing-2-south-east', 'lz', 172, 8, 16, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('flight-c-west', 'lx', -8, 172, 189, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('flight-c-east', 'lx', 8, 172, 189, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.descentLanding2),
-  railRun('ledge-north-west', 'lz', 189, -40, -8, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('ledge-north-east', 'lz', 189, 8, 40, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('ledge-south-west', 'lz', 207, -98, -5, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('ledge-south-east', 'lz', 207, 5, 70, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('ledge-east', 'lx', 70, 189, 207, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-west', 'lx', -5, 207, 293, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-east', 'lx', 5, 207, 293, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-landing-north-west', 'lz', 293, -10, -5, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-landing-north-east', 'lz', 293, 5, 10, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-landing-west', 'lx', -10, 293, 299, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.chasmLedge),
-  railRun('heroes-path-inner', 'lx', -98, 207, 299, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.kingBalcony),
-  railRun('heroes-south-wall-north', 'lz', 299, -98, -14, MINE_LEVEL_Y.abyssBottom, MINE_LEVEL_Y.kingBalcony),
+  railRun('landing-1-south-west', 'lz', 147, -16, -8, MINE_LEVEL_Y.descentLanding1 - 1.5, MINE_LEVEL_Y.descentLanding1),
+  railRun('landing-1-south-east', 'lz', 147, 8, 16, MINE_LEVEL_Y.descentLanding1 - 1.5, MINE_LEVEL_Y.descentLanding1),
+  ...stairRailRuns('flight-b-west', 'lx', -8, 147, 164, MINE_LEVEL_Y.descentLanding1, MINE_LEVEL_Y.descentLanding2),
+  ...stairRailRuns('flight-b-east', 'lx', 8, 147, 164, MINE_LEVEL_Y.descentLanding1, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-north-west', 'lz', 164, -16, -8, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-north-east', 'lz', 164, 8, 16, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-west', 'lx', -16, 164, 172, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-east', 'lx', 16, 164, 172, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-south-west', 'lz', 172, -16, -8, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  railRun('landing-2-south-east', 'lz', 172, 8, 16, MINE_LEVEL_Y.descentLanding2 - 1.5, MINE_LEVEL_Y.descentLanding2),
+  ...stairRailRuns('flight-c-west', 'lx', -8, 172, 189, MINE_LEVEL_Y.descentLanding2, MINE_LEVEL_Y.chasmLedge),
+  ...stairRailRuns('flight-c-east', 'lx', 8, 172, 189, MINE_LEVEL_Y.descentLanding2, MINE_LEVEL_Y.chasmLedge),
+  railRun('ledge-north-west', 'lz', 189, -40, -8, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('ledge-north-east', 'lz', 189, 8, 40, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('ledge-south-west', 'lz', 207, -98, -5, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('ledge-south-east', 'lz', 207, 5, 70, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('ledge-east', 'lx', 70, 189, 207, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('bridge-west', 'lx', -5, 207, 293, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('bridge-east', 'lx', 5, 207, 293, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('bridge-landing-north-west', 'lz', 293, -10, -5, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('bridge-landing-north-east', 'lz', 293, 5, 10, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('bridge-landing-west', 'lx', -10, 293, 299, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  railRun('heroes-path-inner-lower', 'lx', -98, 207, 225, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  ...stairRailRuns('heroes-path-inner-f1', 'lx', -98, 225, 242, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.heroesMidLanding),
+  railRun('heroes-path-inner-mid', 'lx', -98, 242, 262, MINE_LEVEL_Y.heroesMidLanding - 1.5, MINE_LEVEL_Y.heroesMidLanding),
+  ...stairRailRuns('heroes-path-inner-f2', 'lx', -98, 262, 279, MINE_LEVEL_Y.heroesMidLanding, MINE_LEVEL_Y.kingBalcony),
+  railRun('heroes-path-inner-upper', 'lx', -98, 279, 299, MINE_LEVEL_Y.kingBalcony - 1.5, MINE_LEVEL_Y.kingBalcony),
+  railRun('heroes-south-wall-north', 'lz', 299, -98, -14, MINE_LEVEL_Y.kingBalcony - 1.5, MINE_LEVEL_Y.kingBalcony),
   railRun('king-balcony-north', 'lz', 293, -14, 20, MINE_LEVEL_Y.kingBalcony, MINE_LEVEL_Y.kingBalcony),
   railRun('king-balcony-west', 'lx', -14, 293, 299, MINE_LEVEL_Y.kingBalcony, MINE_LEVEL_Y.kingBalcony),
   // The first king's plinth front: the gate tunnel runs beneath the statue.
   railRun('king-plinth-front', 'lz', 305, -10, 10, MINE_LEVEL_Y.kingBalcony, MINE_LEVEL_Y.kingBalcony + KING_PLINTH_HEIGHT),
-  railRun('king-stairs-west', 'lx', 14, 314, 335, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.kingBalcony),
-  railRun('king-stairs-east', 'lx', 20, 314, 335, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.kingBalcony),
+  ...stairRailRuns('king-stairs-west', 'lx', 14, 314, 335, -31.15, MINE_LEVEL_Y.chasmLedge),
+  ...stairRailRuns('king-stairs-east', 'lx', 20, 314, 335, -31.15, MINE_LEVEL_Y.chasmLedge),
   // Upper cavern 2nd-floor scaffolding mezzanine & stairs guard rails.
   railRun('scaffolding-north', 'lz', 26, -38, -16, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
   railRun('scaffolding-west', 'lx', -38, 26, 38, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
   railRun('scaffolding-east', 'lx', -16, 26, 38, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
   railRun('scaffolding-south-west', 'lz', 38, -38, -22, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
-  railRun('scaffolding-stairs-west', 'lx', -22, 38, 50, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
-  railRun('scaffolding-stairs-east', 'lx', -16, 38, 50, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
+  ...stairRailRuns('scaffolding-stairs-west', 'lx', -22, 38, 50, MINE_LEVEL_Y.hubScaffolding, MINE_LEVEL_Y.upperCavern),
+  ...stairRailRuns('scaffolding-stairs-east', 'lx', -16, 38, 50, MINE_LEVEL_Y.hubScaffolding, MINE_LEVEL_Y.upperCavern),
 ];
 // #endregion
 
@@ -472,6 +509,18 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ...UPPER_CAVERN_CEILING,
   },
   {
+    // Fitted doorway neck in the South-West Central Hub wall leading into the Underground Dwarven Quarters.
+    id: 'dwarven-quarters-entry', area: 'upperCavern', layer: 0,
+    footprint: { kind: 'rect', minLx: -63, maxLx: -55, minLz: 124, maxLz: 131 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ceilingY: -4.5,
+  },
+  {
+    // Underground Dwarven Sleeping Quarters hall behind the South-West wall.
+    id: 'dwarven-quarters-hall', area: 'upperCavern', layer: 0,
+    footprint: { kind: 'rect', minLx: -76, maxLx: -42, minLz: 131, maxLz: 158 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ceilingY: -3.5,
+  },
+  {
     id: 'entry-stairs', area: 'entrance', layer: 0,
     footprint: { kind: 'rect', minLx: -7, maxLx: 7, minLz: 20, maxLz: 44 },
     height: { kind: 'stairs', axis: 'lz', from: 20, to: 44, yFrom: MINE_LEVEL_Y.overlook, yTo: MINE_LEVEL_Y.upperCavern, stepCount: 36 },
@@ -489,8 +538,25 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     material: 'wood', ...UPPER_CAVERN_CEILING,
   },
   {
+    // Organic rocky cavern lagoon extending west to lx = -107.5 directly beneath the cliff waterfall at (-106, 70).
     id: 'lagoon-basin', area: 'lagoon', layer: 0,
-    footprint: { kind: 'ellipse', lx: MINE_POI.lagoonCentre.lx, lz: MINE_POI.lagoonCentre.lz, rx: 18, rz: 26 },
+    footprint: {
+      kind: 'polygon',
+      points: [
+        [-107.5, 65],
+        [-102.0, 52],
+        [-90.0, 45],
+        [-74.0, 47],
+        [-63.0, 56],
+        [-61.0, 70],
+        [-65.0, 84],
+        [-74.0, 96],
+        [-85.0, 97],
+        [-98.0, 91],
+        [-105.0, 80],
+        [-107.5, 74],
+      ],
+    },
     height: { kind: 'flat', y: MINE_LEVEL_Y.lagoonBed }, material: 'water', ...UPPER_CAVERN_CEILING,
     waterSurfaceY: MINE_LEVEL_Y.lagoonWater,
   },

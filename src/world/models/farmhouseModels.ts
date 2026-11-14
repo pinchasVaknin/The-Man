@@ -1236,7 +1236,7 @@ export function buildFarmhouseModels(ctx: IWorldModelBuildContext): IFarmhouseMo
       mineGroup.visible = true;
     }
     if (mineGroup.visible) {
-      updateAncientMine(elapsedTime);
+      updateAncientMine(elapsedTime, worldHours ?? 12, playerX, playerZ);
     }
     if (updateDwarvenMiners) {
       updateDwarvenMiners(worldHours ?? 12, elapsedTime, playerX, playerZ);

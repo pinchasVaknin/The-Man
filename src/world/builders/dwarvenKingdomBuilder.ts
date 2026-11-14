@@ -73,6 +73,29 @@ export interface IDwarvenMinerRig {
 }
 
 const activeDwarvenMiners: IDwarvenMinerRig[] = [];
+const registeredMineDwarves: IDwarvenMinerRig[] = [];
+
+/**
+ * Summary: Registers the underground Ancient Mine dwarves into the shared combat, targeting,
+ *          mortality, and corpse-looting registry so every dwarf in the mine is mortal and fightable.
+ */
+export function registerMineCombatDwarves(rigs: readonly IDwarvenMinerRig[]): void {
+  registeredMineDwarves.length = 0;
+  registeredMineDwarves.push(...rigs);
+  for (const r of rigs) {
+    if (pendingDeadDwarfIds.has(r.id)) {
+      const loot = generateRandomDwarfLoot(r.id);
+      r.isDead = true;
+      r.isLooted = false;
+      r.hp = 0;
+      r.goldDrop = loot.goldDrop;
+      r.lootItems = loot.lootItems;
+    }
+    if (!activeDwarvenMiners.includes(r)) {
+      activeDwarvenMiners.push(r);
+    }
+  }
+}
 
 /**
  * Summary: Generates randomized loot for a Dwarven Miner:
@@ -140,6 +163,12 @@ let pendingDeadDwarfIds: ReadonlySet<number> = new Set();
 /** Summary: Sets the dwarves to restore as dead (S2). */
 export function setPendingDeadDwarfIds(ids: readonly number[]): void {
   pendingDeadDwarfIds = new Set(ids);
+  for (const r of activeDwarvenMiners) {
+    if (pendingDeadDwarfIds.has(r.id)) {
+      r.isDead = true;
+      r.hp = 0;
+    }
+  }
 }
 
 /** Summary: Ids of the dwarves that are dead right now, for the save (S2). */
@@ -1105,6 +1134,7 @@ export function buildDwarvenKingdomAndMiners(
     0x4338ca,
     0xa16207,
   ];
+  const dwarfCollectiveScales = [0.99, 1.02, 1.04, 0.98, 1.03, 1.0, 1.05, 1.01];
 
   for (let d = 0; d < DWARVEN_MINERS_COUNT; d++) {
     const dwRoot = new THREE.Group();
@@ -1114,6 +1144,7 @@ export function buildDwarvenKingdomAndMiners(
       weaponVisible: true,
       tintHex: dwarfTintPalette[d % dwarfTintPalette.length],
       driveRootMotion: false,
+      scale: dwarfCollectiveScales[d % dwarfCollectiveScales.length],
     });
     // Orient glTF +Z forward rig to match the dwarven caravan -Z yaw convention
     ctrl.group.rotation.y = Math.PI;
@@ -1187,6 +1218,11 @@ export function buildDwarvenKingdomAndMiners(
       rigEntry.lootItems = loot.lootItems;
       rigEntry.outOfAreaRespawnTimer = 0;
       rigEntry.deathTimer = 0;
+    }
+  }
+  for (const r of registeredMineDwarves) {
+    if (!activeDwarvenMiners.includes(r)) {
+      activeDwarvenMiners.push(r);
     }
   }
 

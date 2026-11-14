@@ -92,6 +92,7 @@ import { createLookInputState } from '../domain/lookInputState';
 import { createActionInputState } from '../domain/actionInputState';
 import { createRestAndRideState } from '../domain/restAndRideState';
 import {
+  ALL_RIDEABLE_MINECART_LINES,
   DWARVEN_RIDEABLE_MINECART_LINES,
   evaluateRideableMinecartPose,
   findNearestRideableMinecartStation,
@@ -150,7 +151,7 @@ function tryBoardOrExitMinecart(): boolean {
       4.2
     );
     if (!station) return false;
-    const line = DWARVEN_RIDEABLE_MINECART_LINES.find((l) => l.id === station.lineId);
+    const line = ALL_RIDEABLE_MINECART_LINES.find((l) => l.id === station.lineId);
     if (!line) return false;
     const startU = station.initialU;
     const pose = evaluateRideableMinecartPose(line.id, startU);

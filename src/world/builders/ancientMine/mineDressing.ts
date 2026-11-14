@@ -40,6 +40,7 @@ type Own = <T extends THREE.BufferGeometry>(g: T) => T;
 export interface IDressingContext {
   readonly group: THREE.Group;
   readonly own: Own;
+  readonly ownMaterial?: <T extends THREE.Material>(m: T) => T;
   readonly propMaterial: THREE.Material;
   readonly glowPropMaterial: THREE.Material;
   readonly rockMaterial: THREE.Material;
@@ -50,13 +51,56 @@ export interface IDressingContext {
 // ======================== PUBLIC DRESSING ======================== \\
 // #region Props
 /**
+ * Summary: Snaps a wall-mounted prop (`mineralVein`) onto the closest cave wall segment so it
+ *          never floats in open air and always sits flush against the rock face.
+ */
+function snapToNearestWall(
+  lx: number,
+  lz: number,
+  fallbackYaw: number,
+  wallFeet: readonly IWallFoot[]
+): { x: number; z: number; yaw: number; floorY: number | null } {
+  let bestDistSq = Infinity;
+  let bestX = lx;
+  let bestZ = lz;
+  let bestYaw = fallbackYaw;
+  let bestY: number | null = null;
+
+  for (const foot of wallFeet) {
+    if (foot.height < 2.2) continue;
+    const dx = foot.x1 - foot.x0;
+    const dz = foot.z1 - foot.z0;
+    const lenSq = dx * dx + dz * dz;
+    if (lenSq < 1e-4) continue;
+    const t = Math.max(0.15, Math.min(0.85, ((lx - foot.x0) * dx + (lz - foot.z0) * dz) / lenSq));
+    const px = foot.x0 + dx * t;
+    const pz = foot.z0 + dz * t;
+    const distSq = (lx - px) * (lx - px) + (lz - pz) * (lz - pz);
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      // Push 0.04m into the rock wall along the inward normal so the seam is embedded flush
+      bestX = px - foot.nx * 0.04;
+      bestZ = pz - foot.nz * 0.04;
+      bestYaw = Math.atan2(foot.nx, foot.nz);
+      bestY = foot.y;
+    }
+  }
+  return { x: bestX, z: bestZ, yaw: bestYaw, floorY: bestY };
+}
+
+/**
  * Summary: Instances every placement, standing on the floor below it (plus its lift).
- * Design: Crystals and veins use the emissive-capable material so they glow in the dark;
- *         every torch stand also registers a candidate light.
+ * Design: Crystals and veins use a tint-matched emissive material so they keep their rich mineral
+ *         colour instead of washing out to white; mineral veins snap directly onto cave walls.
  * @param ctx Group, geometry ownership, materials and torch helper.
  * @param placements The props table to place.
+ * @param wallFeet Optional wall foot segments used to snap wall-mounted mineral veins flush to rock.
  */
-export function addMineProps(ctx: IDressingContext, placements: readonly IMinePropPlacement[]): void {
+export function addMineProps(
+  ctx: IDressingContext,
+  placements: readonly IMinePropPlacement[],
+  wallFeet: readonly IWallFoot[] = []
+): void {
   const buckets = new Map<string, IMinePropPlacement[]>();
   for (const p of placements) {
     const key = `${p.kind}|${p.tint ?? ''}`;
@@ -70,17 +114,40 @@ export function addMineProps(ctx: IDressingContext, placements: readonly IMinePr
     const tint = first.tint !== undefined ? MINERAL_TINTS[first.tint] : undefined;
     const geometry = ctx.own(buildPropGeometry(first.kind, tint));
     const isGlowing = first.kind === 'crystalCluster' || first.kind === 'mineralVein';
-    const mesh = new THREE.InstancedMesh(geometry, isGlowing ? ctx.glowPropMaterial : ctx.propMaterial, list.length);
+    let matToUse = ctx.propMaterial;
+    if (isGlowing) {
+      if (ctx.ownMaterial && tint !== undefined) {
+        matToUse = ctx.ownMaterial(
+          new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            emissive: new THREE.Color(tint),
+            emissiveIntensity: first.kind === 'mineralVein' ? 0.16 : 0.28,
+            roughness: 0.45,
+            metalness: 0.35,
+          })
+        );
+      } else {
+        matToUse = ctx.glowPropMaterial;
+      }
+    }
+    const mesh = new THREE.InstancedMesh(geometry, matToUse, list.length);
     mesh.name = `ancient-mine-props-${key}`;
     list.forEach((p, i) => {
-      const floorY = floorUnder(p.lx, p.lz);
-      dummy.position.set(p.lx, floorY + (p.lift ?? 0), p.lz);
-      dummy.rotation.set(0, p.yaw ?? 0, 0);
+      if (p.kind === 'mineralVein' && wallFeet.length > 0) {
+        const snapped = snapToNearestWall(p.lx, p.lz, p.yaw ?? 0, wallFeet);
+        const floorY = snapped.floorY ?? floorUnder(snapped.x, snapped.z);
+        dummy.position.set(snapped.x, floorY + (p.lift ?? 0), snapped.z);
+        dummy.rotation.set(0, snapped.yaw, 0);
+      } else {
+        const floorY = floorUnder(p.lx, p.lz);
+        dummy.position.set(p.lx, floorY + (p.lift ?? 0), p.lz);
+        dummy.rotation.set(0, p.yaw ?? 0, 0);
+        if (p.kind === 'torchStand' || p.kind === 'brazier') {
+          ctx.addTorch(p.lx, floorY + MINE_PROP_KINDS[p.kind].height + 0.3, p.lz, TORCH_LIGHT.color, TORCH_LIGHT.intensity);
+        }
+      }
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
-      if (p.kind === 'torchStand' || p.kind === 'brazier') {
-        ctx.addTorch(p.lx, floorY + MINE_PROP_KINDS[p.kind].height + 0.3, p.lz, TORCH_LIGHT.color, TORCH_LIGHT.intensity);
-      }
     });
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();

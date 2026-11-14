@@ -268,16 +268,32 @@ export function buildPropGeometry(kind: IMinePropKind, tintColor: number = MINER
         part(new THREE.BoxGeometry(1.0, 0.6, 0.8), P.darkGranite, 1.3, 0.3, 0.9, 0.3, 0.6, 0),
       ]);
     case 'mineralVein':
-      return mergeParts(
-        [
-          [-0.9, 0.2, 0.5],
-          [-0.3, 0.9, 0.42],
-          [0.3, 1.5, 0.48],
-          [0.9, 2.1, 0.4],
-          [0.2, 0.5, 0.3],
-          [-0.6, 1.8, 0.32],
-        ].map(([x, y, r]) => part(new THREE.OctahedronGeometry(r, 0), tintColor, x, y, 0.05))
-      );
+      return mergeParts([
+        // Craggy rock seam backing embedded into the cave wall face (-Z into wall, +Z facing room)
+        part(new THREE.DodecahedronGeometry(0.68, 0), P.darkGranite, -0.78, 0.38, -0.14, 0.3, 0.5, 0.2),
+        part(new THREE.DodecahedronGeometry(0.76, 0), P.granite, -0.18, 0.95, -0.16, 0.7, 0.2, -0.3),
+        part(new THREE.DodecahedronGeometry(0.72, 0), P.darkGranite, 0.42, 1.48, -0.15, -0.4, 0.6, 0.4),
+        part(new THREE.DodecahedronGeometry(0.62, 0), P.granite, 0.86, 1.95, -0.14, 0.5, -0.3, 0.2),
+        // Protruding natural ore & crystal nodules along the rock fissure
+        part(new THREE.DodecahedronGeometry(0.38, 0), tintColor, -0.82, 0.35, 0.08, 0.4, 0.8, 0.3),
+        part(new THREE.DodecahedronGeometry(0.34, 0), tintColor, -0.45, 0.72, 0.12, 0.9, 0.3, -0.5),
+        part(new THREE.DodecahedronGeometry(0.42, 0), tintColor, -0.12, 1.05, 0.14, -0.6, 0.4, 0.7),
+        part(new THREE.DodecahedronGeometry(0.36, 0), tintColor, 0.28, 1.42, 0.12, 0.5, -0.7, 0.4),
+        part(new THREE.DodecahedronGeometry(0.35, 0), tintColor, 0.65, 1.78, 0.1, -0.3, 0.6, -0.4),
+        part(new THREE.DodecahedronGeometry(0.28, 0), tintColor, 0.18, 0.62, 0.09, 0.7, 0.2, 0.5),
+        part(new THREE.DodecahedronGeometry(0.26, 0), tintColor, -0.52, 1.45, 0.08, -0.5, 0.9, 0.2),
+      ]);
+    case 'beerMug':
+      return mergeParts([
+        // Dwarven oak & gold tankard with handle and frothy white beer head
+        cyl(0.11, 0.125, 0.26, P.oak, 0, 0, 0, 8),
+        cyl(0.118, 0.118, 0.035, P.gold, 0, 0.04, 0, 8),
+        cyl(0.114, 0.114, 0.035, P.gold, 0, 0.19, 0, 8),
+        box(0.035, 0.15, 0.07, P.gold, 0.125, 0.06, 0),
+        cyl(0.115, 0.105, 0.055, 0xfff8e7, 0, 0.25, 0, 8),
+        part(new THREE.SphereGeometry(0.068, 6, 5), 0xffffff, -0.02, 0.3, 0.01),
+        part(new THREE.SphereGeometry(0.055, 6, 5), 0xfffbeb, 0.035, 0.29, -0.02),
+      ]);
   }
 }
 // #endregion

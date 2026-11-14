@@ -74,131 +74,131 @@ type MinerStationConfig = IMinerStationConfig;
  *         of the entry stairs around pillars, props and the gallery pit.
  */
 export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
-  // 0: gold seam on the east gallery wall
+  // 0: gold seam on the east gallery wall (oreVein at lx = 119.9, lz = 80.0)
   {
     name: t('dwarven.miners.durin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: -1.25,
-    workLocalX: 116.6,
-    workLocalZ: 78,
-    workYaw: -1.5708,
-    rockLocalX: 118.4,
-    rockLocalZ: 78,
-    rockRadius: 1.2,
+    workLocalX: 118.85,
+    workLocalZ: 80.0,
+    workYaw: -Math.PI / 2,
+    rockLocalX: 119.9,
+    rockLocalZ: 80.0,
+    rockRadius: 1.0,
     oreKind: 'gold',
     viaLocal: [[12, 50], [45, 92], [108, 94]],
   },
-  // 1: purple crystal face on the north gallery wall
+  // 1: purple crystal face on the north gallery wall (crystalCluster at lx = 96.0, lz = 28.0)
   {
     name: t('dwarven.miners.balin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 96,
-    workLocalZ: 29.8,
-    workYaw: 0.0000,
-    rockLocalX: 96,
-    rockLocalZ: 28.3,
-    rockRadius: 1.2,
+    workLocalX: 96.0,
+    workLocalZ: 29.05,
+    workYaw: 0.0,
+    rockLocalX: 96.0,
+    rockLocalZ: 28.0,
+    rockRadius: 1.0,
     oreKind: 'amethyst',
     viaLocal: [[12, 50], [20, 40], [52, 31], [90, 31]],
   },
-  // 2: copper face beside the north tunnel mouth
+  // 2: gold/copper face beside the north tunnel mouth (oreVein at lx = 82.0, lz = 25.1)
   {
     name: t('dwarven.miners.dwalin'),
     houseIdx: 0,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: 80,
-    workLocalZ: 26.9,
-    workYaw: 0.0000,
-    rockLocalX: 80,
-    rockLocalZ: 25.4,
-    rockRadius: 1.2,
+    workLocalX: 82.0,
+    workLocalZ: 26.05,
+    workYaw: 0.0,
+    rockLocalX: 82.0,
+    rockLocalZ: 25.1,
+    rockRadius: 1.0,
     oreKind: 'gold',
     viaLocal: [[12, 50], [20, 40], [52, 31]],
   },
-  // 3: sorting ore at the storage-yard bin
+  // 3: sorting ore at the storage-yard bin (oreBin at lx = -35.0, lz = 55.0)
   {
     name: t('dwarven.miners.gloin'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: -42.2,
-    workLocalZ: 56,
-    workYaw: 1.5708,
-    rockLocalX: -44,
-    rockLocalZ: 56,
-    rockRadius: 1.2,
+    workLocalX: -33.35,
+    workLocalZ: 55.0,
+    workYaw: Math.PI / 2,
+    rockLocalX: -35.0,
+    rockLocalZ: 55.0,
+    rockRadius: 1.0,
     oreKind: 'sapphire',
-    viaLocal: [[-12, 50], [-30, 52]],
+    viaLocal: [[-12, 50], [-28, 52]],
   },
-  // 4: feeding the stone crusher
+  // 4: feeding the stone crusher (stone-crusher at lx = 92.0, lz = 82.0, south face lz = 83.6)
   {
     name: t('dwarven.miners.oin'),
     houseIdx: 1,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: 92,
-    workLocalZ: 85.6,
-    workYaw: 0.0000,
-    rockLocalX: 92,
-    rockLocalZ: 84.2,
-    rockRadius: 1.2,
+    workLocalX: 92.0,
+    workLocalZ: 84.55,
+    workYaw: 0.0,
+    rockLocalX: 92.0,
+    rockLocalZ: 83.6,
+    rockRadius: 1.1,
     oreKind: 'silver',
     viaLocal: [[12, 50], [45, 92]],
   },
-  // 5: hammering at the foundry anvil
+  // 5: hammering at the foundry anvil (anvil at lx = 80.0, lz = 115.0)
   {
     name: t('dwarven.miners.bifur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: -1.4,
     laneOffsetX: 1.25,
-    workLocalX: 80,
-    workLocalZ: 113.6,
-    workYaw: 3.1416,
-    rockLocalX: 80,
-    rockLocalZ: 115,
-    rockRadius: 1.2,
+    workLocalX: 80.0,
+    workLocalZ: 113.85,
+    workYaw: Math.PI,
+    rockLocalX: 80.0,
+    rockLocalZ: 115.0,
+    rockRadius: 1.0,
     oreKind: 'silver',
     viaLocal: [[12, 50], [45, 92], [70, 110]],
   },
-  // 6: tending the middle furnace
+  // 6: tending the middle furnace (furnace-middle at lx = 90.0, lz = 135.5, front mouth at lz = 133.5)
   {
     name: t('dwarven.miners.bofur'),
     houseIdx: 2,
     homeOffsetX: -1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: -1.25,
-    workLocalX: 90,
-    workLocalZ: 132.4,
-    workYaw: 3.1416,
-    rockLocalX: 90,
-    rockLocalZ: 134,
+    workLocalX: 90.0,
+    workLocalZ: 132.45,
+    workYaw: Math.PI,
+    rockLocalX: 90.0,
+    rockLocalZ: 133.5,
     rockRadius: 1.2,
     oreKind: 'gold',
     viaLocal: [[12, 50], [45, 92], [70, 110], [86, 128]],
   },
-  // 7: repairing tools at the hall workbench
+  // 7: repairing tools at the hall workbench (workbench at lx = 32.0, lz = 27.0)
   {
     name: t('dwarven.miners.bombur'),
     houseIdx: 3,
     homeOffsetX: 1.6,
     homeOffsetZ: 1.4,
     laneOffsetX: 1.25,
-    workLocalX: 32,
-    workLocalZ: 28.9,
-    workYaw: 0.0000,
-    rockLocalX: 32,
-    rockLocalZ: 27.4,
-    rockRadius: 1.2,
+    workLocalX: 32.0,
+    workLocalZ: 28.45,
+    workYaw: 0.0,
+    rockLocalX: 32.0,
+    rockLocalZ: 27.0,
+    rockRadius: 1.0,
     oreKind: 'emerald',
     viaLocal: [[12, 50], [20, 40]],
   },
@@ -277,7 +277,7 @@ export interface IRideableMinecartLineDef {
 }
 
 /**
- * Summary: The three rideable passenger lines of the Ancient Mine, on the hall's rail tracks.
+ * Summary: The primary three rideable passenger lines of the Ancient Mine, on the hall's rail tracks.
  * Design: Local [lx, worldY, lz] waypoints. The gallery ore line keeps the id 'minecart-line-moria'
  *         so saved ride state stays valid; it ends on the cart ramp, so the ride coasts downhill
  *         into the gallery pit and must be driven back up.
@@ -285,22 +285,25 @@ export interface IRideableMinecartLineDef {
 export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = [
   {
     id: 'minecart-line-west',
-    name: 'Storage Yard Line',
-    startStationName: 'Turntable Hub — West Track',
-    endStationName: 'Storage Yard',
-    rideSpeed: 12.0,
+    name: 'West Gold & Silver Wall Line',
+    startStationName: 'Central Gold Funnel — West Rim',
+    endStationName: 'North-West Gold & Silver Wall',
+    rideSpeed: 13.5,
     localWaypoints: [
       [-6.0, MINE_LEVEL_Y.upperCavern, 80.0],
-      [-20.0, MINE_LEVEL_Y.upperCavern, 74.0],
-      [-30.0, MINE_LEVEL_Y.upperCavern, 69.0],
-      [-40.0, MINE_LEVEL_Y.upperCavern, 64.0],
+      [-18.0, MINE_LEVEL_Y.upperCavern, 75.0],
+      [-32.0, MINE_LEVEL_Y.upperCavern, 66.0],
+      [-44.0, MINE_LEVEL_Y.upperCavern, 54.0],
+      [-46.0, MINE_LEVEL_Y.upperCavern, 38.0],
+      [-46.0, MINE_LEVEL_Y.upperCavern, 26.0],
+      [-56.0, MINE_LEVEL_Y.upperCavern, 26.0],
     ],
   },
   {
     id: 'minecart-line-east',
     name: 'Foundry Line',
-    startStationName: 'Turntable Hub — South-East Track',
-    endStationName: 'Smelting Foundry',
+    startStationName: 'Central Gold Funnel — South-East Rim',
+    endStationName: 'Smelting Foundry East Wall',
     rideSpeed: 14.0,
     localWaypoints: [
       [4.0, MINE_LEVEL_Y.upperCavern, 85.0],
@@ -308,12 +311,14 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
       [40.0, MINE_LEVEL_Y.upperCavern, 108.0],
       [56.0, MINE_LEVEL_Y.upperCavern, 108.0],
       [68.0, MINE_LEVEL_Y.upperCavern, 114.0],
+      [88.0, MINE_LEVEL_Y.upperCavern, 116.0],
+      [112.0, MINE_LEVEL_Y.upperCavern, 116.0],
     ],
   },
   {
     id: 'minecart-line-moria',
     name: 'Gallery Ore Line',
-    startStationName: 'Turntable Hub — East Track',
+    startStationName: 'Central Gold Funnel — East Rim',
     endStationName: 'Gallery Pit',
     rideSpeed: 14.0,
     localWaypoints: [
@@ -326,6 +331,57 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
       [70.0, MINE_LEVEL_Y.galleryPit, 54.0],
     ],
   },
+] as const;
+
+/**
+ * Summary: Additional interactive rideable branch & gallery lines so every track terminal in the Upper Cavern has a rideable/summonable cart.
+ */
+export const ADDITIONAL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = [
+  {
+    id: 'minecart-line-north-gold',
+    name: 'North-East Gold & Silver Line',
+    startStationName: 'Central Gold Funnel — North-East Rim',
+    endStationName: 'North-East Gold & Silver Wall',
+    rideSpeed: 14.0,
+    localWaypoints: [
+      [4.0, MINE_LEVEL_Y.upperCavern, 74.0],
+      [16.0, MINE_LEVEL_Y.upperCavern, 56.0],
+      [34.0, MINE_LEVEL_Y.upperCavern, 40.0],
+      [54.0, MINE_LEVEL_Y.upperCavern, 31.0],
+      [75.0, MINE_LEVEL_Y.upperCavern, 31.0],
+      [86.0, MINE_LEVEL_Y.upperCavern, 29.0],
+    ],
+  },
+  {
+    id: 'minecart-line-east-wall',
+    name: 'East Gallery Crusher Line',
+    startStationName: 'East Gallery Switch Junction',
+    endStationName: 'East Gallery Gold & Emerald Wall',
+    rideSpeed: 13.5,
+    localWaypoints: [
+      [70.0, MINE_LEVEL_Y.upperCavern, 76.0],
+      [84.0, MINE_LEVEL_Y.upperCavern, 74.0],
+      [98.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [118.0, MINE_LEVEL_Y.upperCavern, 72.0],
+    ],
+  },
+  {
+    id: 'minecart-line-west-cavern',
+    name: 'West Cavern Lagoon Overlook Line',
+    startStationName: 'West Switch Junction',
+    endStationName: 'West Cavern Sapphire & Tavern Terminal',
+    rideSpeed: 13.0,
+    localWaypoints: [
+      [-18.0, MINE_LEVEL_Y.upperCavern, 75.0],
+      [-36.0, MINE_LEVEL_Y.upperCavern, 78.0],
+      [-56.0, MINE_LEVEL_Y.upperCavern, 84.0],
+    ],
+  },
+] as const;
+
+export const ALL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = [
+  ...DWARVEN_RIDEABLE_MINECART_LINES,
+  ...ADDITIONAL_RIDEABLE_MINECART_LINES,
 ] as const;
 
 /**
@@ -344,8 +400,8 @@ export function evaluateRideableMinecartPose(
   totalLength: number;
 } {
   const line =
-    DWARVEN_RIDEABLE_MINECART_LINES.find((l) => l.id === lineId) ??
-    DWARVEN_RIDEABLE_MINECART_LINES[0];
+    ALL_RIDEABLE_MINECART_LINES.find((l) => l.id === lineId) ??
+    ALL_RIDEABLE_MINECART_LINES[0];
   const wps = line.localWaypoints;
   const clampedU = Math.max(0, Math.min(1, u));
   let totalLength = 0;
@@ -406,6 +462,9 @@ const activeRideableCartProgressByLineId: Record<
   'minecart-line-west': { u: 0, velocity: 0, wheelAngle: 0 },
   'minecart-line-east': { u: 0, velocity: 0, wheelAngle: 0 },
   'minecart-line-moria': { u: 0, velocity: 0, wheelAngle: 0 },
+  'minecart-line-north-gold': { u: 0, velocity: 0, wheelAngle: 0 },
+  'minecart-line-east-wall': { u: 0.22, velocity: 0, wheelAngle: 0 },
+  'minecart-line-west-cavern': { u: 1, velocity: 0, wheelAngle: 0 },
 };
 
 export function setRideableMinecartVisualProgress(
@@ -463,7 +522,6 @@ export function stepRideableMinecartPhysics(
   const isSteepSlope = Math.abs(sinSlope) >= 0.08;
   // Uphill direction is opposite to gravityAccel (i.e. -1 when gravityAccel > 0)
   const uphillSign = gravityAccel >= 0 ? -1 : 1;
-  const uphillSpeed = currentVelocity * uphillSign;
   const isTryingToDriveUphill = throttleAlongU * uphillSign > 0.05;
 
   let driveAccel = 0;
@@ -546,8 +604,8 @@ export function findNearestRideableMinecartStation(
   } | null = null;
   let bestDist = maxDist;
 
-  for (let i = 0; i < DWARVEN_RIDEABLE_MINECART_LINES.length; i++) {
-    const line = DWARVEN_RIDEABLE_MINECART_LINES[i];
+  for (let i = 0; i < ALL_RIDEABLE_MINECART_LINES.length; i++) {
+    const line = ALL_RIDEABLE_MINECART_LINES[i];
     const liveProg = getRideableMinecartVisualProgress(line.id);
     const candidates: { u: number; startAtEnd: boolean }[] = [
       { u: liveProg.u, startAtEnd: liveProg.u > 0.5 },

@@ -34,7 +34,8 @@ export type IMinePropKind =
   | 'mineralVein'
   | 'brazier'
   | 'banner'
-  | 'stoneBlock';
+  | 'stoneBlock'
+  | 'beerMug';
 
 /**
  * Summary: Footprint (half extents before yaw), height and whether the player collides with it.
@@ -73,6 +74,7 @@ export const MINE_PROP_KINDS: Record<IMinePropKind, IMinePropKindSpec> = {
   brazier: { halfX: 0.55, halfZ: 0.55, height: 1.6, isSolid: true },
   banner: { halfX: 1.0, halfZ: 0.1, height: 4.0, isSolid: false },
   stoneBlock: { halfX: 1.2, halfZ: 0.9, height: 1.4, isSolid: true },
+  beerMug: { halfX: 0.15, halfZ: 0.15, height: 0.32, isSolid: false },
 };
 // #endregion
 
@@ -119,97 +121,96 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'crate', lx: -36.0, lz: 35.8 },
   { kind: 'barrel', lx: -34.6, lz: 36.2 },
 
-  // Central Hub Gold Collection Hopper station (lx = 18, lz = 62): gold ore bins & piles.
-  { kind: 'oreBin', lx: 18, lz: 57.5, tint: 'gold' },
-  { kind: 'orePile', lx: 22.2, lz: 62.0, tint: 'gold' },
-  { kind: 'orePile', lx: 14.2, lz: 62.0, tint: 'gold' },
-
-  // Central Hub West & North Mineral Veins worked by the Central Hub miners:
-  { kind: 'mineralVein', lx: -45.5, lz: 60.0, yaw: QUARTER, tint: 'gold', lift: 1.2 },
-  { kind: 'orePile', lx: -43.8, lz: 60.0, tint: 'gold' },
-  { kind: 'mineralVein', lx: -45.5, lz: 72.0, yaw: QUARTER, tint: 'gold', lift: 1.4 },
-  { kind: 'crystalCluster', lx: -44.2, lz: 74.0, tint: 'blue' },
-  { kind: 'mineralVein', lx: 18.0, lz: 21.2, tint: 'gold', lift: 1.2 },
+  // Central Hub West, North-West & North Gold/Silver Mineral Veins embedded directly into the rock cavern walls:
+  { kind: 'mineralVein', lx: -46.0, lz: 21.8, tint: 'gold', lift: 1.2 },
+  { kind: 'orePile', lx: -46.0, lz: 23.2, tint: 'gold' },
+  { kind: 'mineralVein', lx: -56.0, lz: 22.8, tint: 'iron', lift: 1.3 },
+  { kind: 'mineralVein', lx: -64.0, lz: 24.0, tint: 'gold', lift: 1.4 },
+  { kind: 'crystalCluster', lx: -64.0, lz: 25.8, tint: 'blue' },
+  { kind: 'mineralVein', lx: 18.0, lz: 20.2, tint: 'gold', lift: 1.2 },
   { kind: 'orePile', lx: 18.0, lz: 22.8, tint: 'gold' },
 
-  // Railway hub: control booth, switch levers, carts on the three lines.
-  { kind: 'controlBooth', lx: 12, lz: 92 },
-  { kind: 'lever', lx: 9, lz: 89 },
-  { kind: 'lever', lx: 15, lz: 89 },
+  // Storage on the west side of the hall (positioned east of the West Gold/Silver rail line).
+  { kind: 'crateStack', lx: -34, lz: 44 },
+  { kind: 'crate', lx: -31, lz: 46.5 },
+  { kind: 'crate', lx: -35, lz: 48.5, yaw: 0.4 },
+  { kind: 'barrel', lx: -32, lz: 51 },
+  { kind: 'barrel', lx: -33.2, lz: 52.2 },
+  { kind: 'oreBin', lx: -35, lz: 55, yaw: QUARTER },
 
-  // Storage on the west side of the hall.
-  { kind: 'crateStack', lx: -40, lz: 44 },
-  { kind: 'crate', lx: -37, lz: 47 },
-  { kind: 'crate', lx: -42, lz: 49, yaw: 0.4 },
-  { kind: 'barrel', lx: -38, lz: 52 },
-  { kind: 'barrel', lx: -39.2, lz: 53 },
-  { kind: 'oreBin', lx: -44, lz: 56, yaw: QUARTER },
-
-  // Work zone on the north-east side of the hall.
+  // Work zone on the north-east side of the hall (clear of the North-East Gold/Silver rail line).
   { kind: 'workbench', lx: 32, lz: 27 },
   { kind: 'toolRack', lx: 38, lz: 25.5 },
-  { kind: 'anvil', lx: 44, lz: 29 },
+  { kind: 'anvil', lx: 44, lz: 27 },
   { kind: 'barrel', lx: 28, lz: 26 },
 
-  // Rest area in the south-west corner of the hall.
-  { kind: 'longTable', lx: -34, lz: 108 },
-  { kind: 'bench', lx: -34, lz: 106.6 },
-  { kind: 'bench', lx: -34, lz: 109.4 },
-  { kind: 'longTable', lx: -34, lz: 115 },
-  { kind: 'bench', lx: -34, lz: 113.6 },
-  { kind: 'bench', lx: -34, lz: 116.4 },
-  { kind: 'fireplace', lx: -44, lz: 122 },
-  { kind: 'weaponRack', lx: -24, lz: 121 },
-  { kind: 'barrel', lx: -27, lz: 119 },
-  { kind: 'barrel', lx: -26, lz: 120.2 },
+  // Grand Dwarven Tavern / Pub ("The Molten Tankard") in the south-west hall (lx: -50..-22, lz: 98..122).
+  { kind: 'longTable', lx: -41, lz: 104 },
+  { kind: 'bench', lx: -41, lz: 102.6 },
+  { kind: 'bench', lx: -41, lz: 105.4 },
+  { kind: 'longTable', lx: -28, lz: 104 },
+  { kind: 'bench', lx: -28, lz: 102.6 },
+  { kind: 'bench', lx: -28, lz: 105.4 },
+  { kind: 'longTable', lx: -41, lz: 112 },
+  { kind: 'bench', lx: -41, lz: 110.6 },
+  { kind: 'bench', lx: -41, lz: 113.4 },
+  { kind: 'longTable', lx: -28, lz: 112 },
+  { kind: 'bench', lx: -28, lz: 110.6 },
+  { kind: 'bench', lx: -28, lz: 113.4 },
+  { kind: 'fireplace', lx: -46, lz: 122 },
+  { kind: 'weaponRack', lx: -22, lz: 120 },
+  { kind: 'barrel', lx: -49, lz: 117.5 },
+  { kind: 'barrel', lx: -49, lz: 119.0 },
 
-  // Floor torches marking the hall, lagoon, galleries and foundry.
+  // Floor torches marking the hall, lagoon, galleries and foundry (positioned clear of all railway tracks).
   { kind: 'torchStand', lx: -9, lz: 47 },
-  { kind: 'torchStand', lx: 9, lz: 47 },
-  { kind: 'torchStand', lx: -40, lz: 80 },
-  { kind: 'torchStand', lx: 40, lz: 80 },
-  { kind: 'torchStand', lx: -50, lz: 94 },
-  { kind: 'torchStand', lx: -58, lz: 60 },
-  { kind: 'torchStand', lx: -58, lz: 86 },
+  { kind: 'torchStand', lx: 7.5, lz: 47 },
+  { kind: 'torchStand', lx: -42, lz: 88 },
+  { kind: 'torchStand', lx: 40, lz: 84 },
+  { kind: 'torchStand', lx: -54, lz: 95 },
+  { kind: 'torchStand', lx: -56, lz: 60 },
+  { kind: 'torchStand', lx: -58, lz: 88 },
   { kind: 'torchStand', lx: 60, lz: 42 },
   { kind: 'torchStand', lx: 64, lz: 120 },
   { kind: 'torchStand', lx: 116, lz: 120 },
   { kind: 'torchStand', lx: -9, lz: 119 },
   { kind: 'torchStand', lx: 9, lz: 119 },
 
-  // Lagoon crystals & mineral veins along the shore (including where the lagoon engineer mines).
-  { kind: 'crystalCluster', lx: -96, lz: 52, tint: 'blue' },
-  { kind: 'crystalCluster', lx: -99, lz: 88, tint: 'blue' },
-  { kind: 'crystalCluster', lx: -64, lz: 50, tint: 'blue' },
-  { kind: 'crystalCluster', lx: -62.2, lz: 56, tint: 'blue' },
+  // Lagoon shore & wall-mounted mineral veins (kept outside the expanded organic lagoon water polygon).
+  { kind: 'crystalCluster', lx: -96, lz: 46, tint: 'blue' },
+  { kind: 'crystalCluster', lx: -102, lz: 88, tint: 'blue' },
+  { kind: 'crystalCluster', lx: -61, lz: 50, tint: 'blue' },
+  { kind: 'crystalCluster', lx: -59.5, lz: 56, tint: 'blue' },
   { kind: 'crystalCluster', lx: -60.2, lz: 96, tint: 'purple' },
-  { kind: 'mineralVein', lx: -61.5, lz: 96, yaw: QUARTER, tint: 'purple', lift: 1.0 },
+  { kind: 'mineralVein', lx: -109.0, lz: 62, yaw: QUARTER, tint: 'purple', lift: 1.2 },
+  { kind: 'mineralVein', lx: -108.5, lz: 84, yaw: QUARTER, tint: 'blue', lift: 1.3 },
   { kind: 'crystalCluster', lx: -100, lz: 100, tint: 'purple' },
 
-  // Galleries: veins in the walls, ore piles, carts, bins, scaffold posts under the platform.
-  { kind: 'mineralVein', lx: 119.5, lz: 60, yaw: QUARTER, tint: 'iron', lift: 1.5 },
-  { kind: 'mineralVein', lx: 120.5, lz: 72, yaw: QUARTER, tint: 'copper', lift: 2.5 },
-  { kind: 'mineralVein', lx: 119.5, lz: 86, yaw: QUARTER, tint: 'gold', lift: 1.2 },
-  { kind: 'mineralVein', lx: 75, lz: 23.2, tint: 'blue', lift: 2.0 },
-  { kind: 'mineralVein', lx: 92, lz: 26.2, tint: 'purple', lift: 3.0 },
-  { kind: 'mineralVein', lx: 58.2, lz: 60, yaw: QUARTER, tint: 'dark', lift: 0.8 },
-  { kind: 'mineralVein', lx: 58.3, lz: 54, yaw: QUARTER, tint: 'copper', lift: 1.0 },
-  { kind: 'mineralVein', lx: 75.0, lz: 50.3, tint: 'gold', lift: 1.0 },
-  { kind: 'mineralVein', lx: 81.8, lz: 64, yaw: QUARTER, tint: 'gold', lift: 1.0 },
+  // Galleries: gold, silver & copper veins embedded in the rock walls, ore piles, bins, scaffold posts.
+  { kind: 'mineralVein', lx: 120.0, lz: 60, yaw: QUARTER, tint: 'iron', lift: 1.4 },
+  { kind: 'mineralVein', lx: 121.2, lz: 80, yaw: QUARTER, tint: 'gold', lift: 1.6 },
+  { kind: 'mineralVein', lx: 119.8, lz: 90, yaw: QUARTER, tint: 'gold', lift: 1.2 },
+  { kind: 'mineralVein', lx: 75, lz: 23.0, tint: 'gold', lift: 1.5 },
+  { kind: 'mineralVein', lx: 82, lz: 24.5, tint: 'iron', lift: 1.4 },
+  { kind: 'mineralVein', lx: 94, lz: 26.8, tint: 'gold', lift: 1.6 },
+  { kind: 'mineralVein', lx: 58.1, lz: 62, yaw: QUARTER, tint: 'dark', lift: 0.9 },
+  { kind: 'mineralVein', lx: 58.1, lz: 55, yaw: QUARTER, tint: 'copper', lift: 1.0 },
+  { kind: 'mineralVein', lx: 75.0, lz: 50.1, tint: 'gold', lift: 1.0 },
+  { kind: 'mineralVein', lx: 81.9, lz: 64, yaw: QUARTER, tint: 'gold', lift: 1.0 },
+  { kind: 'mineralVein', lx: 58.0, lz: 136.8, tint: 'copper', lift: 1.3 },
   { kind: 'crystalCluster', lx: 80.6, lz: 62.5, tint: 'gold' },
   { kind: 'orePile', lx: 76, lz: 66, tint: 'iron' },
-  // Faces the miners work: ore heaps against the gallery walls.
+  // Faces the miners work: ore heaps against the gallery walls (clear of track spurs).
   { kind: 'orePile', lx: 118.4, lz: 60, tint: 'iron' },
-  { kind: 'orePile', lx: 118.4, lz: 78, tint: 'gold' },
-  { kind: 'orePile', lx: 118.2, lz: 86, tint: 'gold' },
-  { kind: 'orePile', lx: 92, lz: 27.6, tint: 'purple' },
-  { kind: 'orePile', lx: 80, lz: 25.4, tint: 'copper' },
+  { kind: 'orePile', lx: 118.4, lz: 80, tint: 'gold' },
+  { kind: 'orePile', lx: 118.2, lz: 90, tint: 'gold' },
+  { kind: 'orePile', lx: 94, lz: 28.4, tint: 'gold' },
+  { kind: 'orePile', lx: 75, lz: 25.0, tint: 'gold' },
   // Loot crates and coffers (WORLD_CHESTS) sit on these.
   { kind: 'crate', lx: -60.5, lz: 51 },
   { kind: 'crate', lx: -114, lz: 70 },
   { kind: 'orePile', lx: 61, lz: 66, tint: 'copper' },
   { kind: 'oreBin', lx: 97, lz: 88 },
-  { kind: 'oreCart', lx: 86, lz: 74, yaw: 0.3 },
   { kind: 'crate', lx: 112, lz: 62 },
   { kind: 'crate', lx: 113, lz: 64.5, yaw: 0.3 },
   { kind: 'timberPost', lx: 92, lz: 38 },
@@ -217,7 +218,7 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'timberPost', lx: 92, lz: 52 },
   { kind: 'timberPost', lx: 108, lz: 52 },
 
-  // Foundry: molds, anvils, bellows and ore bins in front of the furnaces.
+  // Foundry: molds, anvils, bellows and ore bins in front of the furnaces (clear of the Foundry rail line).
   { kind: 'castingMold', lx: 72, lz: 125 },
   { kind: 'castingMold', lx: 90, lz: 125 },
   { kind: 'castingMold', lx: 108, lz: 125 },
@@ -226,7 +227,7 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'bellows', lx: 77, lz: 137 },
   { kind: 'bellows', lx: 95, lz: 137 },
   { kind: 'bellows', lx: 101, lz: 137 },
-  { kind: 'oreBin', lx: 66, lz: 110 },
+  { kind: 'oreBin', lx: 64, lz: 103 },
   { kind: 'oreBin', lx: 114, lz: 108 },
   { kind: 'toolRack', lx: 118, lz: 116, yaw: QUARTER },
 ];
@@ -267,7 +268,7 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'banner', lx: -105.8, lz: 221, yaw: QUARTER, lift: 2.4 },
   { kind: 'banner', lx: -105.8, lz: 247, yaw: QUARTER, lift: 2.4 },
   { kind: 'banner', lx: -105.8, lz: 273, yaw: QUARTER, lift: 2.4 },
-  { kind: 'mineralVein', lx: -105.5, lz: 294, yaw: QUARTER, tint: 'gold', lift: 1.1 },
+  { kind: 'mineralVein', lx: -105.9, lz: 294, yaw: QUARTER, tint: 'gold', lift: 1.1 },
   { kind: 'crystalCluster', lx: -104.8, lz: 295.5, tint: 'gold' },
 
   // King balcony: braziers and banners flanking the first king (kept clear of the side passage to king-loop-stairs).
@@ -295,9 +296,9 @@ export const DEEP_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'brazier', lx: -28.6, lz: 351.5 },
   { kind: 'brazier', lx: 28.6, lz: 351.5 },
   { kind: 'brazier', lx: 26, lz: 316.5 },
-  { kind: 'mineralVein', lx: -29.4, lz: 326, yaw: QUARTER, tint: 'blue', lift: 1.2 },
+  { kind: 'mineralVein', lx: -29.9, lz: 326, yaw: QUARTER, tint: 'blue', lift: 1.2 },
   { kind: 'crystalCluster', lx: -28.5, lz: 328, tint: 'blue' },
-  { kind: 'mineralVein', lx: 29.4, lz: 336, yaw: QUARTER, tint: 'gold', lift: 1.2 },
+  { kind: 'mineralVein', lx: 29.9, lz: 336, yaw: QUARTER, tint: 'gold', lift: 1.2 },
   { kind: 'crystalCluster', lx: 28.5, lz: 338, tint: 'purple' },
   { kind: 'stoneBlock', lx: -8, lz: 324, yaw: 0.5 },
   { kind: 'stoneBlock', lx: 7.5, lz: 350, yaw: -0.3 },
@@ -322,18 +323,27 @@ export const ALL_MINE_PROPS: readonly IMinePropPlacement[] = [...UPPER_LEVEL_PRO
 
 // #region Rail Lines
 /**
- * Summary: Railway lines of the upper cavern as local polylines, starting at the turntable rim.
- * Design: Decorative flush track now; the same lines are where carts stand and ride.
+ * Summary: Railway network of the Central Hub (`upperCavern`) radiating from the Central Gold Funnel
+ *          (`lx = 0, lz = 80`) across the Gold/Silver walls, Gallery Pit, East Crusher, North Tunnel,
+ *          and Smelting Foundry.
+ * Design:
+ * - Every line is kept 100% clear of props, pillars, stairs, and structures.
+ * - Branch lines share a tangent initial segment with their parent line so turnouts merge smoothly
+ *   via curved frog switches rather than colliding at right angles.
  */
 export const UPPER_RAIL_LINES: readonly (readonly (readonly [number, number])[])[] = [
-  // East to the gallery loading bay.
+  // 1. East Main Line into the Gallery Pit loading bay.
   [[6, 80], [30, 80], [56, 78], [70, 76], [70, 72], [70, 60], [70, 54]],
-  // Branch to the gallery loading bay.
-  [[70, 76], [84, 74], [90, 72]],
-  // South-east past the foundry carts.
-  [[4, 85], [20, 100], [40, 108], [56, 108], [68, 114]],
-  // West to the storage yard.
-  [[-6, 80], [-20, 74], [-30, 69], [-40, 64]],
+  // 2. East Gallery & Stone Crusher Spur (starts tangentially on the main line 3.2m before [70, 76] and curves smoothly into the East Wall spur).
+  [[66.83, 76.45], [70, 76], [84, 74], [98, 72], [118, 72]],
+  // 3. North-East Gold & Silver Tunnel Line (runs from the Central Gold Funnel along the open north gallery corridor to the North Gold/Silver wall & closed mine tunnel at (86, 25.3), completely clear of gallery-platform-stairs).
+  [[4, 74], [16, 56], [34, 40], [54, 31], [75, 31], [86, 29]],
+  // 4. South-East Smelting Foundry Line extending past all three Blast Furnaces.
+  [[4, 85], [20, 100], [40, 108], [56, 108], [68, 114], [84, 120], [98, 120], [112, 116]],
+  // 5. West Gold & Silver Wall Line (runs west of the 2nd-floor scaffolding directly to the North-West Gold & Silver veins at (-46, 21.8) and (-64, 24.0)).
+  [[-6, 80], [-18, 75], [-32, 66], [-44, 54], [-46, 38], [-46, 26], [-56, 26]],
+  // 6. West Cavern Spur (starts tangentially on the main line 3.2m before [-18, 75] and curves smoothly toward the West Cavern).
+  [[-15.04, 76.23], [-18, 75], [-32, 80], [-48, 84], [-56, 84]],
 ];
 // #endregion
 

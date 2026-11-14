@@ -1811,7 +1811,20 @@ export function stepPlayerPhysics(
         landedImpact = Math.min(1.0, Math.abs(prevVy) / 10.0);
         state.lastLandingSpeed = Math.max(state.lastLandingSpeed ?? 0, Math.abs(prevVy));
       }
-      state.y = effectiveFloorY;
+      if (
+        wasGrounded &&
+        prevVy <= 0 &&
+        isInsideSouthernMine(state.x, state.z, prevWalkY) &&
+        Math.abs(prevWalkY - effectiveFloorY) <= 0.65
+      ) {
+        const smoothT = 1 - Math.exp(-22 * dt);
+        state.y =
+          Math.abs(prevWalkY - effectiveFloorY) < 0.002
+            ? effectiveFloorY
+            : prevWalkY + (effectiveFloorY - prevWalkY) * smoothT;
+      } else {
+        state.y = effectiveFloorY;
+      }
       state.vy = 0;
       state.onGround = true;
     } else {

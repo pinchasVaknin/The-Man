@@ -55,7 +55,7 @@ export interface IAncientMineBuildContext {
 /** Summary: The built mine and its per-frame update. */
 export interface IAncientMineHandle {
   readonly group: THREE.Group;
-  readonly update: (elapsedTime: number) => void;
+  readonly update: (elapsedTime: number, worldHours?: number, playerX?: number, playerZ?: number) => void;
 }
 // #endregion
 
@@ -68,6 +68,7 @@ const AREA_LIGHTS: ReadonlyArray<{ lx: number; y: number; lz: number; color: num
   { lx: 0, y: MINE_LEVEL_Y.overlook + 3, lz: 10, color: 0xffb060, intensity: 6 },
   { lx: 0, y: MINE_LEVEL_Y.upperCavern + 6, lz: 70, color: 0xffa040, intensity: 8 },
   { lx: -35, y: MINE_LEVEL_Y.upperCavern + 4, lz: 102, color: 0xff9030, intensity: 6 },
+  { lx: -46, y: MINE_LEVEL_Y.upperCavern + 4, lz: 142, color: 0xff9838, intensity: 7 },
   { lx: -80, y: MINE_LEVEL_Y.upperCavern + 5, lz: 72, color: 0x60d0ff, intensity: 7 },
   { lx: 90, y: MINE_LEVEL_Y.upperCavern + 5, lz: 60, color: 0xffc070, intensity: 6 },
   { lx: 88, y: MINE_LEVEL_Y.upperCavern + 4, lz: 128, color: 0xff6a1a, intensity: 9 },
@@ -160,14 +161,15 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
   const dressing = {
     group,
     own,
+    ownMaterial: mat,
     propMaterial: mat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.15 })),
     glowPropMaterial: mat(
-      new THREE.MeshStandardMaterial({ vertexColors: true, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.3 })
+      new THREE.MeshStandardMaterial({ vertexColors: true, emissive: 0xd6a23e, emissiveIntensity: 0.18, roughness: 0.4 })
     ),
     rockMaterial: mat(new THREE.MeshStandardMaterial({ color: 0x6a625a, map: rockMap, roughness: 1.0, side: THREE.DoubleSide })),
     addTorch,
   };
-  addMineProps(dressing, ALL_MINE_PROPS);
+  addMineProps(dressing, ALL_MINE_PROPS, greybox.wallFeet);
   addRockDressing(dressing, greybox.wallFeet);
 
   addKingBalcony(group, own, mat);
@@ -178,12 +180,12 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
   // Bake the many static set-piece meshes into one draw call per material.
   mergeStaticChildren(group, own);
 
-  const update = (elapsedTime: number): void => {
+  const update = (elapsedTime: number, worldHours?: number, playerX?: number, playerZ?: number): void => {
     updateUpperLevel(elapsedTime);
     updateLowerLevel(elapsedTime);
     fallMap.offset.y = -elapsedTime * 0.9;
     updateDeepLevel(elapsedTime);
-    updateMineDwarvesAi(elapsedTime);
+    updateMineDwarvesAi(elapsedTime, worldHours, playerX, playerZ);
   };
 
   return { group, update };
@@ -257,7 +259,14 @@ function createFallTexture(): THREE.CanvasTexture {
 /** Summary: Water planes, lagoon foam and scrolling waterfall sheets; returns the fall texture to animate. */
 function addWaterAndLava(group: THREE.Group, own: Own, mat: Mat, textures: THREE.Texture[]): THREE.Texture {
   const waterMat = mat(
-    new THREE.MeshStandardMaterial({ color: 0x2fa8c0, emissive: 0x0a3c48, transparent: true, opacity: 0.78, roughness: 0.2 })
+    new THREE.MeshStandardMaterial({
+      color: 0x2fa8c0,
+      emissive: 0x0a3c48,
+      transparent: true,
+      opacity: 0.72,
+      roughness: 0.18,
+      side: THREE.DoubleSide,
+    })
   );
   for (const surface of MINE_SURFACES) {
     if (surface.material !== 'water' || surface.waterSurfaceY === undefined) continue;
@@ -267,12 +276,23 @@ function addWaterAndLava(group: THREE.Group, own: Own, mat: Mat, textures: THREE
       plane = new THREE.Mesh(own(new THREE.CircleGeometry(1, 48)), waterMat);
       plane.scale.set(fp.rx, fp.rz, 1);
       plane.position.set(fp.lx, surface.waterSurfaceY, fp.lz);
+      plane.rotation.x = -Math.PI / 2;
+    } else if (fp.kind === 'polygon') {
+      const shape = new THREE.Shape();
+      fp.points.forEach(([px, pz], idx) => {
+        if (idx === 0) shape.moveTo(px, -pz);
+        else shape.lineTo(px, -pz);
+      });
+      shape.closePath();
+      plane = new THREE.Mesh(own(new THREE.ShapeGeometry(shape)), waterMat);
+      plane.rotation.x = -Math.PI / 2;
+      plane.position.set(0, surface.waterSurfaceY, 0);
     } else {
       const r = rectOf(surface);
       plane = new THREE.Mesh(own(new THREE.PlaneGeometry(r.maxLx - r.minLx, r.maxLz - r.minLz)), waterMat);
       plane.position.set((r.minLx + r.maxLx) / 2, surface.waterSurfaceY, (r.minLz + r.maxLz) / 2);
+      plane.rotation.x = -Math.PI / 2;
     }
-    plane.rotation.x = -Math.PI / 2;
     plane.name = `ancient-mine-water-${surface.id}`;
     group.add(plane);
   }
@@ -292,9 +312,9 @@ function addWaterAndLava(group: THREE.Group, own: Own, mat: Mat, textures: THREE
     sheet.name = `ancient-mine-fall-${fall.id}`;
     group.add(sheet);
     if (fall.bottomY > MINE_LEVEL_Y.abyssBottom) {
-      const foam = new THREE.Mesh(own(new THREE.CircleGeometry(fall.width * 0.7, 20)), foamMat);
+      const foam = new THREE.Mesh(own(new THREE.CircleGeometry(fall.width * 0.65, 20)), foamMat);
       foam.rotation.x = -Math.PI / 2;
-      foam.position.set(fall.lx + 1.5, fall.bottomY + 0.03, fall.lz);
+      foam.position.set(fall.lx + 2.4, fall.bottomY + 0.03, fall.lz);
       group.add(foam);
     }
   }

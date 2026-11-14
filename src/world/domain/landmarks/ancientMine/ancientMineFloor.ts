@@ -96,7 +96,7 @@ export function sampleAncientMineFloor(lx: number, lz: number, currentY?: number
   let chosenHeight = 0;
   for (const surface of perLayer) {
     if (surface === null) continue;
-    const height = heightOfProfile(surface.height, lx, lz);
+    const height = smoothHeightOfProfile(surface.height, lx, lz);
     if (chosen === null || isBetterFloor(height, chosenHeight, currentY)) {
       chosen = surface;
       chosenHeight = height;
@@ -135,7 +135,7 @@ export function sampleAncientMineLayer(lx: number, lz: number, layer: 0 | 1): IM
     surfaceId: found.id,
     area: found.area,
     material: found.material,
-    height: heightOfProfile(found.height, lx, lz),
+    height: quantizedHeightOfProfile(found.height, lx, lz),
     ceilingY: ceilingOf(found, lx, lz),
     waterSurfaceY: found.waterSurfaceY ?? null,
   };
@@ -341,8 +341,16 @@ function ceilingOf(surface: IMineSurface, lx: number, lz: number): number {
   return Math.round(raised / CEILING_TERRACE_STEP) * CEILING_TERRACE_STEP;
 }
 
-/** Summary: Height of a profile at a point; stairs are quantized into equal steps. */
-function heightOfProfile(profile: IMineHeightProfile, lx: number, lz: number): number {
+/** Summary: Smooth continuous ramp height of a profile at a point, used by walking physics so stair descent never jolts per tread. */
+function smoothHeightOfProfile(profile: IMineHeightProfile, lx: number, lz: number): number {
+  if (profile.kind === 'flat') return profile.y;
+  const along = profile.axis === 'lx' ? lx : lz;
+  const t = Math.min(1, Math.max(0, (along - profile.from) / (profile.to - profile.from)));
+  return profile.yFrom + (profile.yTo - profile.yFrom) * t;
+}
+
+/** Summary: Quantized stepped height of a profile at a point, used by greybox mesh generation so visual stair treads stay crisp. */
+function quantizedHeightOfProfile(profile: IMineHeightProfile, lx: number, lz: number): number {
   if (profile.kind === 'flat') return profile.y;
   const along = profile.axis === 'lx' ? lx : lz;
   const t = Math.min(1, Math.max(0, (along - profile.from) / (profile.to - profile.from)));

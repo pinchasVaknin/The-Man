@@ -48,13 +48,13 @@ const CENTER_DRAGON = { lx: MINE_POI.dragonMouth.lx, wallLz: 451.5, headY: -36.5
 /** Summary: Z stations of the 3 side ForestDragon heads on each side wall, and the 4 structural pillars flanking them. */
 const SIDE_DRAGON_LZS = [410, 428, 446] as const;
 const SIDE_PILLAR_LZS = [401, 419, 437, 455] as const;
-const SIDE_DRAGON_SCALE = 26.0;
+const SIDE_DRAGON_SCALE = 33.0;
 
 /** Summary: Symmetrical skull, horns, jaw and upper neck bone indices of DemonDragon (excludes asymmetric spine/wings). */
 const DEMON_HEAD_BONES: ReadonlySet<number> = new Set([19, 20, 21, 22, 23, 24]);
 
-/** Summary: Symmetrical upper neck, skull and jaw bone indices of ForestDragon (excludes shoulders/wings). */
-const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([33, 34, 35]);
+/** Summary: Full muscular neck, back of head, skull, horns and jaw bone indices of ForestDragon (excludes wings/legs). */
+const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([22, 23, 32, 33, 34, 35]);
 // #endregion
 
 // ======================== PUBLIC BUILD ======================== \\
@@ -216,13 +216,17 @@ function buildGolem(ctx: ISetPieceContext, stone: THREE.Material, runeMat: THREE
 // #endregion
 
 // #region Golem Chamber
-/** Summary: Gate frames, rune circle, the protected doorway, ceiling chains and wall alcoves. */
+/** Summary: Gate frames reaching all the way to the local ceiling, rune circle, protected doorway, ceiling chains and wall alcoves. */
 function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void {
   const m = ctx.materials;
-  // Gate frames where the tunnel leaves the bridge and where it opens into the chamber.
-  for (const lz of [300.4, 313.6]) {
-    for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, 9.0, 2.0, m.stone, x, LEDGE, lz);
-    addBox(ctx, 17, 1.6, 2.2, m.darkStone, 0, LEDGE + 7.4, lz);
+  // Gate frames where the tunnel leaves the bridge (lz = 300.4, chasm ceiling = -12.0)
+  // and where it opens into the Golem Chamber (lz = 313.6, chamber ceiling = -22.0).
+  for (const [lz, topCeilingY] of [[300.4, -12.0], [313.6, -22.0]] as const) {
+    const fullH = topCeilingY - LEDGE + 0.2;
+    for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, fullH, 2.0, m.stone, x, LEDGE, lz);
+    // Full-height header from doorway clearance (LEDGE + 7.4) all the way up to topCeilingY (no hole above the lintel!)
+    addBox(ctx, 17.0, topCeilingY - (LEDGE + 7.4) + 0.2, 2.2, m.darkStone, 0, LEDGE + 7.4, lz);
+    addBox(ctx, 17.2, 0.24, 2.3, m.gold, 0, LEDGE + 7.35, lz);
     for (let i = 0; i < 7; i++) addBox(ctx, 0.4, 0.7, 0.08, runeMat, -6 + i * 2, LEDGE + 7.85, lz - 1.12);
   }
   // Raised iron portcullis teeth in the chamber gate's lintel.
@@ -242,16 +246,21 @@ function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void
     rune.rotation.y = a;
   }
 
-  // The protected doorway into the ancient passage, with its stone doors folded open.
+  // The protected doorway into the ancient passage (lz = 353.6):
+  // `ancient-passage` opening is lx = -5..5, ceilingY = -32.0 (which is LEDGE + 4.35).
+  // `golem-chamber` ceiling is -22.0 (which is LEDGE + 14.35).
+  // Make the jambs and over-door lintel span the entire height from the doorway top (LEDGE + 4.35) up to the chamber ceiling (LEDGE + 14.5)!
   const doorLz = 353.6;
-  for (const x of [-6.8, 6.8]) addBox(ctx, 2.6, 12, 2.4, m.stone, x, LEDGE, doorLz);
-  addBox(ctx, 16.2, 2.4, 2.6, m.darkStone, 0, LEDGE + 12, doorLz);
-  for (let i = 0; i < 6; i++) addBox(ctx, 0.5, 1.0, 0.08, runeMat, -5 + i * 2, LEDGE + 12.7, doorLz - 1.32);
-  const crest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(1.6, 0)), m.gold);
+  const chamberFullH = -22.0 - LEDGE + 0.2; // 14.55m
+  for (const x of [-6.3, 6.3]) addBox(ctx, 2.6, chamberFullH, 2.4, m.stone, x, LEDGE, doorLz);
+  addBox(ctx, 15.4, chamberFullH - 4.35, 2.6, m.darkStone, 0, LEDGE + 4.35, doorLz);
+  addBox(ctx, 15.6, 0.26, 2.7, m.gold, 0, LEDGE + 4.3, doorLz);
+  for (let i = 0; i < 6; i++) addBox(ctx, 0.5, 1.0, 0.08, runeMat, -5 + i * 2, LEDGE + 5.2, doorLz - 1.32);
+  const crest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(1.5, 0)), m.gold);
   crest.scale.set(1.3, 1.0, 0.25);
-  crest.position.set(0, LEDGE + 16, doorLz - 1.3);
+  crest.position.set(0, LEDGE + 7.8, doorLz - 1.35);
   ctx.group.add(crest);
-  for (const x of [-11.6, 11.6]) addBox(ctx, 4.8, 10, 0.7, m.darkStone, x, LEDGE, doorLz - 0.9);
+  for (const x of [-10.8, 10.8]) addBox(ctx, 4.4, 8.5, 0.7, m.darkStone, x, LEDGE, doorLz - 0.9);
 
   // Wall alcoves behind the braziers, and runic bands along both side walls.
   for (const [x, lz] of [[-29.9, 316.5], [-29.9, 334], [-29.9, 351.5], [29.9, 351.5]] as const) {
@@ -282,7 +291,7 @@ function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void
 // #endregion
 
 // #region Ancient Passage
-/** Summary: Pilasters, carved relief panels and torches stepping down both walls of the passage. */
+/** Summary: Pilasters, carved relief panels and torches stepping down both walls of the passage, plus full-height arch into the Forge. */
 function buildPassage(ctx: ISetPieceContext): void {
   const m = ctx.materials;
   for (let lz = 357; lz <= 381; lz += 6) {
@@ -296,9 +305,13 @@ function buildPassage(ctx: ISetPieceContext): void {
     ctx.addTorch(-4.3, floor + 2.8, lz, 0xff9a30, 5);
     ctx.addTorch(4.3, floor + 2.8, lz, 0xff9a30, 5);
   }
-  // Arch into the forge at the foot of the stairs.
-  for (const x of [-6.6, 6.6]) addBox(ctx, 2.4, 13, 2.0, m.stone, x, FORGE, 384.6);
-  addBox(ctx, 15.6, 2.6, 2.2, m.darkStone, 0, FORGE + 11.4, 384.6);
+  // Arch into the Dragon Forge at the foot of the stairs (lz = 384.6):
+  // `ancient-passage` ceiling is -32.0 (FORGE + 19.35); `dragon-forge` ceiling is -14.0 (FORGE + 37.35).
+  // Extend jambs and over-door lintel all the way up to the Dragon Forge ceiling (-14.0) so there is no hole above the lintel!
+  const forgeFullH = -14.0 - FORGE + 0.2; // 37.55m
+  for (const x of [-6.2, 6.2]) addBox(ctx, 2.4, forgeFullH, 2.0, m.stone, x, FORGE, 384.6);
+  addBox(ctx, 15.0, forgeFullH - 11.4, 2.2, m.darkStone, 0, FORGE + 11.4, 384.6);
+  addBox(ctx, 15.2, 0.3, 2.35, m.gold, 0, FORGE + 11.3, 384.6);
 }
 // #endregion
 
@@ -395,35 +408,42 @@ function bakeDemonDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
 }
 
 /**
- * Summary: Builds the baked open-jaw ForestDragon head for the 6 side platforms.
+ * Summary: Builds the baked open-jaw ForestDragon head + full muscular neck for the 6 side pedestals.
+ * Design: In ForestDragon bone space, negative Z rotation (`-0.16`, `-0.30`, `-0.48`) lifts the neck
+ *         and skull UPWARD so the dragon holds its head level and proud (never pitched down).
  */
 function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
   const forest = createReadyForestDragon();
   forest.rig.resetToRest();
-  // Pitch skull (bone 34) up slightly so the head looks proudly across the forge, and open the lower jaw (bone 35).
-  if (forest.rig.bones[34] !== undefined) {
-    forest.rig.bones[34].quaternion.multiply(
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.35)
-    );
+  const zAxis = new THREE.Vector3(0, 0, 1);
+  // Pitch neck (bones 32, 33) and skull (bone 34) UPWARD via negative Z rotation so the head looks straight/slightly up!
+  if (forest.rig.bones[32] !== undefined) {
+    forest.rig.bones[32].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.16));
   }
+  if (forest.rig.bones[33] !== undefined) {
+    forest.rig.bones[33].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.30));
+  }
+  if (forest.rig.bones[34] !== undefined) {
+    forest.rig.bones[34].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.48));
+  }
+  // Open the lower jaw (bone 35) enough for the lava stream while keeping the head proud and straight.
   if (forest.rig.bones[35] !== undefined) {
-    forest.rig.bones[35].quaternion.multiply(
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.52)
-    );
+    forest.rig.bones[35].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, 0.42));
   }
   forest.object.updateMatrixWorld(true);
   forest.mesh.skeleton.update();
 
-  // Exact skull symmetry plane of ForestDragon: anchorX = -0.0395, anchorY = 0.56, anchorZ = 0.30.
+  // Anchor at the back of the muscular neck (anchorX = -0.0395, anchorY = 0.52, anchorZ = 0.14)
+  // so the full neck, back of the head, horns, skull, and jaw are visible!
   const geometry = ctx.own(
-    bakeSkinnedHeadSubtree(forest.mesh, FOREST_HEAD_BONES, SIDE_DRAGON_SCALE, -0.0395, 0.56, 0.30)
+    bakeSkinnedHeadSubtree(forest.mesh, FOREST_HEAD_BONES, SIDE_DRAGON_SCALE, -0.0395, 0.52, 0.14)
   );
   const rawMat = Array.isArray(forest.mesh.material) ? forest.mesh.material[0] : forest.mesh.material;
   const mat = rawMat.clone() as THREE.MeshStandardMaterial;
-  mat.roughness = 0.44;
-  mat.metalness = 0.25;
-  mat.emissive = new THREE.Color(0x281004);
-  mat.emissiveIntensity = 0.38;
+  mat.roughness = 0.42;
+  mat.metalness = 0.28;
+  mat.emissive = new THREE.Color(0x2c1205);
+  mat.emissiveIntensity = 0.42;
   ctx.ownMaterial(mat);
   forest.dispose();
   return { geometry, material: mat };
@@ -432,8 +452,8 @@ function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
 /**
  * Summary: Builds the Dragon Forge's colossal central Red DemonDragon head (with pure molten lava
  *          positioned strictly inside its orbital eye sockets and no X/plus glints), the side pillars,
- *          and the 6 enlarged side ForestDragon heads seated neatly on raised stone-and-gold platforms
- *          (with no eye lava and a clean, well-proportioned lava stream pouring from inside their open jaws).
+ *          and the 6 enlarged, high-mounted side ForestDragon heads & necks seated on tall monumental
+ *          pedestals so their lava cascades down from great height into the lava pool below.
  */
 function buildDragonForgeHeadsAndPillars(
   ctx: ISetPieceContext,
@@ -557,12 +577,12 @@ function buildDragonForgeHeadsAndPillars(
   }
   ctx.addLight(lx, headY - 1.0, wallLz - 10.5, 0xff5a18, 14);
 
-  // 2) HANDSOME SIDE PILLARS & 6 ENLARGED FOREST-DRAGON HEADS ON RAISED PLATFORMS (3 WEST, 3 EAST)
+  // 2) HANDSOME SIDE PILLARS & 6 ENLARGED, HIGH-MOUNTED FOREST-DRAGON HEADS & NECKS (3 WEST, 3 EAST)
   const sideFallbackGeo = ctx.own(
     mergeParts([
-      box(3.4, 4.2, 4.2, DRAGON_STONE, 0, 0.5, 1.2),
-      box(2.8, 1.8, 3.6, DRAGON_SCORCHED, 0, 0.2, 2.6),
-      box(2.6, 1.2, 3.4, DRAGON_STONE, 0, -1.2, 2.5),
+      box(4.8, 5.8, 6.2, DRAGON_STONE, 0, 0.8, 2.2),
+      box(3.8, 2.8, 5.2, DRAGON_SCORCHED, 0, 2.2, 5.2),
+      box(3.4, 1.6, 4.8, DRAGON_STONE, 0, 0.6, 5.0),
     ])
   );
   const sideHeadMeshes: THREE.Mesh[] = [];
@@ -575,9 +595,9 @@ function buildDragonForgeHeadsAndPillars(
   const pillarRingGeo = ctx.own(new THREE.CylinderGeometry(2.25, 2.25, 0.52, 8));
   const pillarCapitalGeo = ctx.own(new THREE.CylinderGeometry(2.9, 1.95, 2.6, 8));
 
-  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.65, 10, 8));
-  const sideTongueGeo = ctx.own(new THREE.BoxGeometry(0.82, 0.26, 1.45));
-  const sideSplashGeo = ctx.own(new THREE.TorusGeometry(1.05, 0.18, 6, 16));
+  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.95, 10, 8));
+  const sideTongueGeo = ctx.own(new THREE.BoxGeometry(1.25, 0.36, 2.4));
+  const sideSplashGeo = ctx.own(new THREE.TorusGeometry(1.45, 0.24, 6, 18));
 
   for (const side of [-1, 1] as const) {
     const wallX = side * 44.2;
@@ -614,86 +634,85 @@ function buildDragonForgeHeadsAndPillars(
 
       const lavaRim = new THREE.Mesh(sideSplashGeo, m.molten);
       lavaRim.rotation.x = -Math.PI / 2;
-      lavaRim.scale.setScalar(2.4);
+      lavaRim.scale.setScalar(1.85);
       lavaRim.position.set(0, LAVA + 0.05, 0);
       pGroup.add(lavaRim);
     }
 
-    // 3 Raised Stone-and-Gold Dragon Platforms per side (6 total) bearing the enlarged ForestDragon heads.
+    // 3 Tall Monumental Dragon Pedestals per side (6 total) bearing the enlarged ForestDragon heads & necks high above the pool!
     for (const dlz of SIDE_DRAGON_LZS) {
       const platX = side * 41.8;
       const platTopY = -41.5;
       const platH = platTopY - pillarBaseY;
 
-      // Wide stepped platform rising from the lava bed so the dragon head sits cleanly ON TOP of it.
-      addBox(ctx, 7.6, platH - 0.6, 8.2, m.darkStone, platX, pillarBaseY, dlz);
-      addBox(ctx, 8.2, 0.6, 8.8, m.gold, platX, platTopY - 0.6, dlz);
-      addBox(ctx, 8.0, 0.5, 8.6, m.gold, platX, LAVA + 0.3, dlz);
+      // Lower foundation platform rising out of the lava pool (y: -55.85 .. -41.5).
+      addBox(ctx, 8.2, platH - 0.6, 8.8, m.darkStone, platX, pillarBaseY, dlz);
+      addBox(ctx, 8.8, 0.6, 9.4, m.gold, platX, platTopY - 0.6, dlz);
+      addBox(ctx, 8.6, 0.5, 9.2, m.gold, platX, LAVA + 0.3, dlz);
 
-      // Stepped upper plinth seat set slightly toward the back of the platform (lx = side * 42.4, top at y = -40.3).
-      const seatX = side * 42.4;
-      const seatTopY = platTopY + 1.2;
-      addBox(ctx, 5.4, 0.85, 5.6, m.stone, seatX, platTopY, dlz);
-      addBox(ctx, 5.8, 0.35, 6.0, m.gold, seatX, platTopY + 0.85, dlz);
+      // Tall stepped stone-and-gold Dragon Tower Pedestal rising from the platform up to y = -35.6
+      // so the dragon is mounted high above the lava pool!
+      const towerX = side * 42.6;
+      addBox(ctx, 6.8, 3.2, 7.2, m.stone, towerX, platTopY, dlz);
+      addBox(ctx, 7.2, 0.45, 7.6, m.gold, towerX, platTopY + 3.2, dlz);
+      addBox(ctx, 5.8, 2.2, 6.2, m.darkStone, towerX, platTopY + 3.65, dlz);
+      addBox(ctx, 6.3, 0.5, 6.6, m.gold, towerX, platTopY + 5.85, dlz);
 
-      // Carved stone spout channel on the front lip of the platform beneath the dragon's open jaws.
-      const troughX = platX + inwardSign * 3.4;
-      addBox(ctx, 2.2, 0.7, 2.2, m.darkStone, troughX, platTopY, dlz);
-      addBox(ctx, 1.4, 0.75, 1.4, m.molten, troughX + inwardSign * 0.2, platTopY + 0.05, dlz);
-
-      // Mount the enlarged ForestDragon head (scale = 26.0) squarely above the stepped seat:
-      // Neck base bottom is at mountY - 2.86 = -40.3, resting directly on seatTopY (-40.3)!
-      const mountY = -37.45;
+      // Mount the enlarged ForestDragon head & neck (scale = 33.0) high on the tower pedestal (`mountY = -32.2`):
+      // With the upward-rotated neck/skull, the open mouth sits at local (y = +1.85, z = +6.6),
+      // which is world y = -30.35 (22.25m above the lava pool!) and world x = side * 36.2 (well clear of the platform edge!).
+      const seatX = side * 42.8;
+      const mountY = -32.2;
       const mountGroup = new THREE.Group();
       mountGroup.name = `ancient-mine-side-dragon-${side < 0 ? 'west' : 'east'}-${dlz}`;
       mountGroup.position.set(seatX, mountY, dlz);
       mountGroup.rotation.y = headYaw;
       ctx.group.add(mountGroup);
 
-      // Baked ForestDragon head with open jaws (NO lava in the eyes per user request).
+      // Baked ForestDragon head + full neck with proud level/upward posture (NO lava in the eyes).
       const headMesh = new THREE.Mesh(sideFallbackGeo, vertexStone);
       headMesh.frustumCulled = false;
       mountGroup.add(headMesh);
       sideHeadMeshes.push(headMesh);
 
-      // Molten fire core & tongue strictly inside the open mouth cavity (local y = -0.82, local z = +2.35..+2.85).
+      // Molten fire core & tongue inside the raised open mouth cavity (local y = +1.75, local z = +5.6..+6.5).
       const throat = new THREE.Mesh(sideThroatGeo, m.molten);
-      throat.scale.set(0.95, 0.65, 1.15);
-      throat.position.set(0, -0.72, 2.15);
+      throat.scale.set(1.05, 0.78, 1.25);
+      throat.position.set(0, 1.78, 5.45);
       mountGroup.add(throat);
 
       const tongue = new THREE.Mesh(sideTongueGeo, lavaMat);
-      tongue.position.set(0, -0.96, 2.55);
-      tongue.rotation.x = 0.26;
+      tongue.position.set(0, 1.32, 6.25);
+      tongue.rotation.x = 0.14;
       mountGroup.add(tongue);
 
-      // Clean, natural lava stream pouring from inside the open jaws (local z = 2.95, local y = -1.05) into the pool.
-      const sideMouthWorldY = mountY - 1.05;
-      const sideFallH = sideMouthWorldY - LAVA + 0.4;
+      // Tall, dramatic molten lava waterfall pouring 22.25m from the dragon's raised open jaws down into the lava pool!
+      const sideMouthWorldY = mountY + 1.45; // -30.75
+      const sideFallH = sideMouthWorldY - LAVA + 0.5; // ~22.35m tall!
       const sideFall = new THREE.Mesh(
-        ctx.own(new THREE.CylinderGeometry(0.36, 0.68, sideFallH, 12, 1, true)),
+        ctx.own(new THREE.CylinderGeometry(0.58, 1.18, sideFallH, 14, 1, true)),
         lavaMat
       );
-      sideFall.position.set(0, (sideMouthWorldY + LAVA) / 2 - mountY, 3.35);
-      sideFall.rotation.x = -0.08;
+      sideFall.position.set(0, (sideMouthWorldY + LAVA) / 2 - mountY, 7.15);
+      sideFall.rotation.x = -0.07;
       mountGroup.add(sideFall);
 
-      // Splash ring where the side dragon's lava stream enters the pool in front of the platform.
-      const splashX = seatX + inwardSign * 3.95;
+      // Glowing splash ring where the tall lava stream crashes into the lava pool in front of the platform.
+      const splashX = seatX + inwardSign * 7.95; // side * 34.85 (well out in the open lava pool!)
       const splash = new THREE.Mesh(sideSplashGeo, m.molten);
       splash.rotation.x = -Math.PI / 2;
-      splash.position.set(splashX, LAVA + 0.06, dlz);
+      splash.position.set(splashX, LAVA + 0.08, dlz);
       ctx.group.add(splash);
 
       const sideFlame = new THREE.Mesh(flameGeo, flameMat);
       sideFlame.userData.isAnimated = true;
-      sideFlame.scale.setScalar(0.65);
-      sideFlame.position.set(seatX + inwardSign * 2.9, sideMouthWorldY + 0.25, dlz);
+      sideFlame.scale.setScalar(0.92);
+      sideFlame.position.set(seatX + inwardSign * 6.8, sideMouthWorldY + 0.4, dlz);
       ctx.group.add(sideFlame);
       flames.push(sideFlame);
     }
 
-    ctx.addLight(wallX + inwardSign * 9.5, -38.0, 428, 0xff5a14, 9.5);
+    ctx.addLight(wallX + inwardSign * 10.5, -31.0, 428, 0xff5a14, 11.0);
   }
 
   if (isAnimalModelLoaded('forest-dragon')) {
@@ -890,31 +909,38 @@ function buildRoyalTreasureVault(ctx: ISetPieceContext): void {
   ctx.ownMaterial(silverMat, diamondMat, rubyMat);
 
   // 1) SECRET PASSAGE ARCHWAY AT THE EAST END OF THE FORGE LANDING (lx = 46, lz = 386..396)
-  for (const z of [386.8, 395.2]) {
-    addBox(ctx, 1.8, 9.5, 1.6, m.stone, 46.2, FORGE, z);
+  // `secret-vault-entry` ceiling is -41.0 (FORGE + 10.35); `dragon-forge` ceiling is -14.0 (FORGE + 37.35).
+  // Extend jambs and over-door lintel all the way up to the Dragon Forge ceiling (-14.0) so there is no hole above the doorway!
+  const forgeFullH = -14.0 - FORGE + 0.2;
+  for (const z of [386.6, 395.4]) {
+    addBox(ctx, 1.8, forgeFullH, 1.6, m.stone, 46.2, FORGE, z);
     addBox(ctx, 2.1, 0.5, 1.9, m.gold, 46.2, FORGE + 4.5, z);
   }
-  addBox(ctx, 2.0, 1.8, 10.2, m.darkStone, 46.2, FORGE + 9.5, 391.0);
-  addBox(ctx, 2.2, 0.4, 9.6, m.gold, 46.2, FORGE + 9.2, 391.0);
+  addBox(ctx, 2.0, forgeFullH - 9.4, 10.6, m.darkStone, 46.2, FORGE + 9.4, 391.0);
+  addBox(ctx, 2.2, 0.4, 10.6, m.gold, 46.2, FORGE + 9.1, 391.0);
   ctx.addTorch(45.2, FORGE + 3.2, 387.5, 0xffb040, 6.5);
   ctx.addTorch(45.2, FORGE + 3.2, 394.5, 0xffb040, 6.5);
 
   // 2) TORCHES & ARCH RIBS ALONG THE SECRET VAULT STAIRS (lx = 48..56, lz = 396..472)
   for (let lz = 402; lz <= 466; lz += 16) {
     const stepFloor = sampleAncientMineFloor(52, lz, FORGE)?.height ?? V;
+    const ribH = Math.max(11.0, -41.0 - stepFloor + 0.2);
     for (const x of [48.35, 55.65]) {
-      addBox(ctx, 0.6, 11.0, 0.9, m.stone, x, stepFloor, lz);
+      addBox(ctx, 0.6, ribH, 0.9, m.stone, x, stepFloor, lz);
       addBox(ctx, 0.75, 0.35, 1.1, m.gold, x, stepFloor + 4.2, lz);
     }
     ctx.addTorch(48.8, stepFloor + 3.0, lz, 0xffaa38, 6.0);
   }
 
-  // 3) ROYAL VAULT GRAND DOORWAY & PILLARS (lx = -24..56, lz = 472..508, y = -63.35)
+  // 3) ROYAL VAULT GRAND DOORWAY & PILLARS (lx = -24..56, lz = 472..508, y = -63.35, ceilingY = -42.0)
+  // Extend jambs and over-door lintel all the way up to the Royal Vault ceiling (-42.0 -> V + 21.55)!
+  const vaultFullH = -42.0 - V + 0.2;
   for (const x of [48.6, 55.4]) {
-    addBox(ctx, 1.8, 12.0, 1.8, m.darkStone, x, V, 472.6);
+    addBox(ctx, 1.8, vaultFullH, 1.8, m.darkStone, x, V, 472.6);
     addBox(ctx, 2.1, 0.55, 2.1, m.gold, x, V + 5.5, 472.6);
   }
-  addBox(ctx, 8.8, 2.0, 2.2, m.gold, 52.0, V + 12.0, 472.6);
+  addBox(ctx, 8.8, vaultFullH - 10.5, 2.0, m.darkStone, 52.0, V + 10.5, 472.6);
+  addBox(ctx, 9.0, 0.45, 2.2, m.gold, 52.0, V + 10.3, 472.6);
 
   // Structural gold-banded vault columns supporting the Royal Vault ceiling (y = -42.0).
   const vaultH = -42.0 - V;
