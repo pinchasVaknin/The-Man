@@ -362,7 +362,9 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['woodcutter_axe', swordStrategy],
   ['katana_imperial', swordStrategy],
   ['dwarven_warhammer', swordStrategy],
+  ['dwarven_battle_axe', swordStrategy],
   ['dwarven_pickaxe', swordStrategy],
+  ['mithril_pickaxe', swordStrategy],
   ['celestial_jin_sword', swordStrategy],
 
   ['torch', torchStrategy],
@@ -373,6 +375,11 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['arrow_wind', arrowWindStrategy],
 
   ['ancient_dwarven_horn', hornStrategy],
+  ['dwarven_shield', materialStrategy],
+  ['dwarven_helmet', materialStrategy],
+  ['dwarven_chisel_set', materialStrategy],
+  ['crystal_core_drill', materialStrategy],
+  ['prospector_lantern', materialStrategy],
   ['simple_tunic', clothingStrategy],
   ['ranger_garb', clothingStrategy],
   ['elven_cloak', clothingStrategy],
@@ -392,7 +399,9 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
   ['imperial_clay_tiles', materialStrategy],
   ['marble_pillar_stone', materialStrategy],
   ['dwarven_gold_ore', materialStrategy],
+  ['dwarven_gold_ingot', materialStrategy],
   ['crystal_gem', materialStrategy],
+  ['cavern_diamond', materialStrategy],
   ['amethyst_gem', materialStrategy],
   ['sapphire_gem', materialStrategy],
   ['small_hide', materialStrategy],
@@ -426,7 +435,19 @@ export const EQUIPMENT_STRATEGY_MAP: ReadonlyMap<InventoryItemId, IEquipmentSlot
  */
 export function isStackableInventoryItem(itemId: InventoryItemId): boolean {
   if (itemId.startsWith('trap_')) return true;
-  if (itemId === 'dwarven_pickaxe' || itemId === 'dwarven_warhammer') return true;
+  if (
+    itemId === 'dwarven_pickaxe' ||
+    itemId === 'dwarven_warhammer' ||
+    itemId === 'dwarven_battle_axe' ||
+    itemId === 'mithril_pickaxe' ||
+    itemId === 'dwarven_shield' ||
+    itemId === 'dwarven_helmet' ||
+    itemId === 'dwarven_chisel_set' ||
+    itemId === 'crystal_core_drill' ||
+    itemId === 'prospector_lantern'
+  ) {
+    return true;
+  }
   const def = INVENTORY_ITEM_MAP.get(itemId);
   if (!def) return false;
   if (def.nonWearableByPlayer) return true;

@@ -193,7 +193,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const nearMarket = findNearestMarketStall(
     player.x,
     player.z,
-    player.isFlying ? player.y : undefined
+    player.isFlying || (player.x < 80 && player.z > 280) ? player.y : undefined
   );
   const nearDeadAnimal = findNearestDeadLootableAnimal(
     player.x,

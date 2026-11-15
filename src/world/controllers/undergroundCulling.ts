@@ -9,6 +9,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
+import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import { SOUTHERN_MINE_POS } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from '../systems/dwarvenMineAndCaravanSystem';
 // #endregion
@@ -52,11 +53,17 @@ export function markOutdoorRoots(scene: THREE.Scene, keep: ReadonlySet<THREE.Obj
 }
 
 /**
- * Summary: True when the player is below the mine entrance threshold and inside the mine's shaft or chambers.
- * Design: Activates as soon as the player descends into the entrance shaft so outdoor terrain and sky are culled cleanly.
+ * Summary: True when the player is deep enough inside the mine shaft/chambers that the exterior is occluded
+ *          and the entrance lighting transition has completed.
  */
 export function isPlayerUnderground(x: number, y: number, z: number): boolean {
-  return y < SOUTHERN_MINE_POS.entranceY - 0.6 && isInsideSouthernMine(x, z, y);
+  const lx = x - ANCIENT_MINE_ORIGIN.x;
+  const lz = z - ANCIENT_MINE_ORIGIN.z;
+  return (
+    y < SOUTHERN_MINE_POS.entranceY - 6.8 &&
+    (lz > 24.0 || Math.abs(lx) > 20.0) &&
+    isInsideSouthernMine(x, z, y)
+  );
 }
 
 /** Summary: Shows (surface) or hides (underground) the outdoor layer for the camera that renders the scene. */

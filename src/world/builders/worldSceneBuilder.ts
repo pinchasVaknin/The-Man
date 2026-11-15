@@ -81,6 +81,14 @@ export async function createWorldScene(
   renderer.domElement.style.display = 'block';
   renderer.domElement.style.width = '100%';
   renderer.domElement.style.height = '100%';
+  renderer.domElement.addEventListener(
+    'webglcontextlost',
+    (event) => {
+      event.preventDefault();
+      logger.warn('WebGL context lost — awaiting automatic browser context restoration.');
+    },
+    false
+  );
   container.innerHTML = '';
   container.appendChild(renderer.domElement);
 

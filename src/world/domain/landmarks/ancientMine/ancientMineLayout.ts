@@ -24,6 +24,8 @@ export const MINE_LEVEL_Y = {
   hubScaffolding: -4.85,
   galleryPlatform: -5.55,
   galleryPit: -13.35,
+  forkJunction: -17.35,
+  diamondMine: -27.35,
   waterChannelBed: -9.85,
   lagoonBed: -12.35,
   lagoonWater: -9.95,
@@ -38,6 +40,7 @@ export const MINE_LEVEL_Y = {
   lavaBed: -53.6,
   treasureIsland: -49.95,
   vaultFloor: -63.35,
+  spiralSanctum: -63.35,
   abyssBottom: -130.0,
 } as const;
 // #endregion
@@ -152,10 +155,16 @@ export const MINE_POI = {
   galleryPlatform: { lx: 102, lz: 42 },
   galleryPit: { lx: 70, lz: 60 },
   stoneCrusher: { lx: 92, lz: 82 },
+  eastForkSwitch: { lx: 155, lz: 72 },
+  mithrilCavern: { lx: 173, lz: -45 },
+  diamondChasmBridge: { lx: 173, lz: 28 },
+  mazarbulTomb: { lx: 174, lz: 114 },
   foundry: { lx: 88, lz: 122 },
   descentLanding1: { lx: 0, lz: 142 },
   descentLanding2: { lx: 0, lz: 168 },
   chasmLedge: { lx: 0, lz: 198 },
+  spiralDoorway: { lx: 74, lz: 198 },
+  spiralBottomSanctum: { lx: 120, lz: 260 },
   bridgeMid: { lx: 0, lz: 253 },
   heroesPathLower: { lx: -102, lz: 215 },
   heroesPathMid: { lx: -102, lz: 252 },
@@ -247,6 +256,12 @@ export const MINE_SOLID_FIXTURES: readonly {
   { id: 'descent-pillar-2-west', lx: -15.2, lz: 171.2, halfX: 0.8, halfZ: 0.8, baseY: MINE_LEVEL_Y.descentLanding2, height: 25.0, look: 'custom' },
   { id: 'descent-pillar-2-east', lx: 15.2, lz: 171.2, halfX: 0.8, halfZ: 0.8, baseY: MINE_LEVEL_Y.descentLanding2, height: 25.0, look: 'custom' },
   { id: 'treasure-chest', lx: MINE_POI.treasureChest.lx, lz: MINE_POI.treasureChest.lz, halfX: 1.1, halfZ: 0.7, baseY: MINE_LEVEL_Y.treasureIsland, height: 1.3, look: 'custom' },
+  // Starting Hall Dwarven Market Stalls along the West Entry Promenade (lx = -11.5, lz = 49.0 / 56.5 / 64.0).
+  { id: 'market-stall-weapons', lx: -11.5, lz: 49.0, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
+  { id: 'market-stall-gems', lx: -11.5, lz: 56.5, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
+  { id: 'market-stall-tools', lx: -11.5, lz: 64.0, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
+  // Spiral Staircase Bottom Chamber: Grand Tactical War Table at the center of the War Room.
+  { id: 'war-room-table', lx: 120.0, lz: 258.0, halfX: 3.6, halfZ: 2.2, baseY: MINE_LEVEL_Y.spiralSanctum, height: 1.15, look: 'custom' },
 ];
 // #endregion
 
@@ -289,7 +304,7 @@ export const MINE_WATERFALLS: readonly {
   readonly width: number;
 }[] = [
   { id: 'lagoon-cliff-fall', lx: -106, lz: 70, topY: -1.5, bottomY: MINE_LEVEL_Y.lagoonWater, width: 7 },
-  { id: 'chasm-north-fall', lx: 84, lz: 190, topY: -14, bottomY: MINE_LEVEL_Y.abyssBottom, width: 4 },
+  { id: 'chasm-north-fall', lx: 84, lz: 204, topY: -14, bottomY: MINE_LEVEL_Y.abyssBottom, width: 4 },
   { id: 'heroes-west-fall-0', lx: -95, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
   { id: 'heroes-east-fall-0', lx: 95, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
   { id: 'heroes-west-fall-3', lx: -95, lz: 290, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
@@ -419,7 +434,8 @@ export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('ledge-north-east', 'lz', 189, 8, 40, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('ledge-south-west', 'lz', 207, -98, -5, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('ledge-south-east', 'lz', 207, 5, 70, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
-  railRun('ledge-east', 'lx', 70, 189, 207, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
+  // East end of chasm-ledge: open across lz = 194..202 for the Great Hall Circular Staircase Doorway!
+  railRun('ledge-east', 'lx', 70, 204, 207, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('bridge-west', 'lx', -5, 207, 293, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('bridge-east', 'lx', 5, 207, 293, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('bridge-landing-north-west', 'lz', 293, -10, -5, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
@@ -444,6 +460,9 @@ export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('scaffolding-south-west', 'lz', 38, -38, -22, MINE_LEVEL_Y.upperCavern, MINE_LEVEL_Y.hubScaffolding),
   ...stairRailRuns('scaffolding-stairs-west', 'lx', -22, 38, 50, MINE_LEVEL_Y.hubScaffolding, MINE_LEVEL_Y.upperCavern),
   ...stairRailRuns('scaffolding-stairs-east', 'lx', -16, 38, 50, MINE_LEVEL_Y.hubScaffolding, MINE_LEVEL_Y.upperCavern),
+  // Left Branch Abyss Chasm Rail Bridge parapets protecting both sides of the bridge across lz = 8..48.
+  railRun('diamond-chasm-bridge-west', 'lx', 169, 8, 48, MINE_LEVEL_Y.forkJunction - 1.5, MINE_LEVEL_Y.forkJunction),
+  railRun('diamond-chasm-bridge-east', 'lx', 177, 8, 48, MINE_LEVEL_Y.forkJunction - 1.5, MINE_LEVEL_Y.forkJunction),
 ];
 // #endregion
 
@@ -519,6 +538,74 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     id: 'dwarven-quarters-hall', area: 'upperCavern', layer: 0,
     footprint: { kind: 'rect', minLx: -76, maxLx: -42, minLz: 131, maxLz: 158 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ceilingY: -3.5,
+  },
+  {
+    // Opened East Gallery Railway Doorway (lx: 116..124, lz: 68..76) bridging through the East wall at (121.3, 72).
+    id: 'east-tunnel-entry', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 116, maxLx: 124, minLz: 68, maxLz: 76 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ceilingY: -2.0,
+  },
+  {
+    // Descending Railway Tunnel (lx: 124..152, lz: 68..76) dropping 8m from upperCavern (-9.35) to forkJunction (-17.35).
+    id: 'east-tunnel-descent', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 124, maxLx: 152, minLz: 68, maxLz: 76 },
+    height: { kind: 'stairs', axis: 'lx', from: 124, to: 152, yFrom: MINE_LEVEL_Y.upperCavern, yTo: MINE_LEVEL_Y.forkJunction, stepCount: 28 },
+    material: 'stone', ceilingY: -2.0,
+  },
+  {
+    // Underground Forking Switch Junction Hall (lx: 152..178, lz: 62..86, y = -17.35).
+    id: 'east-fork-junction', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 152, maxLx: 178, minLz: 62, maxLz: 86 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forkJunction }, material: 'stone', ceilingY: -9.5,
+  },
+  {
+    // Left Branch 1st Small Tunnel (North-East) exiting the junction before opening into the Vast Chasm Hall.
+    id: 'mithril-cavern-neck', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 169, maxLx: 177, minLz: 48, maxLz: 62 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forkJunction }, material: 'stone', ceilingY: -11.5,
+  },
+  {
+    // Left Branch Vast Chasm Cavern — West Abyss drop (lx: 146..169, lz: 8..48, ceilingY = -1.0).
+    id: 'diamond-chasm-west', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 146, maxLx: 169, minLz: 8, maxLz: 48 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.abyssBottom }, material: 'abyss', ceilingY: -1.0,
+  },
+  {
+    // Left Branch Vast Chasm Cavern — East Abyss drop (lx: 177..200, lz: 8..48, ceilingY = -1.0).
+    id: 'diamond-chasm-east', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 177, maxLx: 200, minLz: 8, maxLz: 48 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.abyssBottom }, material: 'abyss', ceilingY: -1.0,
+  },
+  {
+    // Left Branch Rail Bridge spanning across the Deep Abyss Chasm (lx: 169..177, lz: 8..48, y = -17.35).
+    id: 'diamond-chasm-bridge', area: 'bridge', layer: 0,
+    footprint: { kind: 'rect', minLx: 169, maxLx: 177, minLz: 8, maxLz: 48 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forkJunction }, material: 'stone', ceilingY: -1.0,
+  },
+  {
+    // Left Branch 2nd Small Tunnel descending North from the Chasm Bridge (-17.35) down into the Deep Diamond Mine (-27.35).
+    id: 'diamond-mine-tunnel', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 169, maxLx: 177, minLz: -24, maxLz: 8 },
+    height: { kind: 'stairs', axis: 'lz', from: 8, to: -24, yFrom: MINE_LEVEL_Y.forkJunction, yTo: MINE_LEVEL_Y.diamondMine, stepCount: 32 },
+    material: 'stone', ceilingY: -11.5,
+  },
+  {
+    // Room 1 (Left Branch Deep Terminus): Glowing Diamond Mine Cavern (lx: 146..200, lz: -66..-24, y = -27.35).
+    id: 'diamond-mine-hall', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 146, maxLx: 200, minLz: -66, maxLz: -24 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.diamondMine }, material: 'stone', ceilingY: -12.0,
+  },
+  {
+    // Right Branch Passage (South-East) leading into the Dwarven Storage Warehouse.
+    id: 'mazarbul-tomb-neck', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 166, maxLx: 178, minLz: 86, maxLz: 96 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forkJunction }, material: 'stone', ceilingY: -8.5,
+  },
+  {
+    // Room 2 (Right Branch): Grand Dwarven Storage Warehouse filled with cabinets & supplies (lx: 148..192, lz: 96..130, y = -17.35).
+    id: 'mazarbul-tomb-hall', area: 'galleries', layer: 0,
+    footprint: { kind: 'rect', minLx: 148, maxLx: 192, minLz: 96, maxLz: 130 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.forkJunction }, material: 'stone', ceilingY: -5.5,
   },
   {
     id: 'entry-stairs', area: 'entrance', layer: 0,
@@ -661,8 +748,63 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
   },
   {
     id: 'chasm-abyss-north-east', area: 'chasm', layer: 0,
-    footprint: { kind: 'rect', minLx: 70, maxLx: 98, minLz: 189, maxLz: 207 },
+    footprint: { kind: 'rect', minLx: 70, maxLx: 98, minLz: 204, maxLz: 207 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.abyssBottom }, material: 'abyss', ceilingY: CEILING_Y.chasm,
+  },
+  // Great Hall of Statues Left-Wall Doorway & Circular/Spiral Staircase Chamber Descending Down (lx: 70..138, lz: 194..276).
+  {
+    id: 'spiral-doorway-corridor', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 70, maxLx: 106, minLz: 194, maxLz: 202 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.chasmLedge }, material: 'stone', ceilingY: -26.0,
+  },
+  {
+    id: 'spiral-landing-top', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 106, maxLx: 116, minLz: 194, maxLz: 204 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.chasmLedge }, material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-flight-1', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 116, maxLx: 126, minLz: 194, maxLz: 204 },
+    height: { kind: 'stairs', axis: 'lx', from: 116, to: 126, yFrom: MINE_LEVEL_Y.chasmLedge, yTo: -45.35, stepCount: 20 },
+    material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-landing-1', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 126, maxLx: 136, minLz: 194, maxLz: 204 },
+    height: { kind: 'flat', y: -45.35 }, material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-flight-2', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 126, maxLx: 136, minLz: 204, maxLz: 220 },
+    height: { kind: 'stairs', axis: 'lz', from: 204, to: 220, yFrom: -45.35, yTo: -51.35, stepCount: 20 },
+    material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-landing-2', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 126, maxLx: 136, minLz: 220, maxLz: 228 },
+    height: { kind: 'flat', y: -51.35 }, material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-flight-3', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 110, maxLx: 126, minLz: 220, maxLz: 228 },
+    height: { kind: 'stairs', axis: 'lx', from: 126, to: 110, yFrom: -51.35, yTo: -57.35, stepCount: 20 },
+    material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-landing-3', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 102, maxLx: 110, minLz: 220, maxLz: 228 },
+    height: { kind: 'flat', y: -57.35 }, material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-flight-4', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 102, maxLx: 110, minLz: 228, maxLz: 244 },
+    height: { kind: 'stairs', axis: 'lz', from: 228, to: 244, yFrom: -57.35, yTo: MINE_LEVEL_Y.spiralSanctum, stepCount: 20 },
+    material: 'stone', ceilingY: -24.0,
+  },
+  {
+    id: 'spiral-bottom-sanctum', area: 'chasm', layer: 0,
+    footprint: { kind: 'rect', minLx: 102, maxLx: 138, minLz: 244, maxLz: 276 },
+    height: { kind: 'flat', y: MINE_LEVEL_Y.spiralSanctum }, material: 'stone', ceilingY: -42.0,
   },
   {
     id: 'chasm-abyss-south-west', area: 'chasm', layer: 0,

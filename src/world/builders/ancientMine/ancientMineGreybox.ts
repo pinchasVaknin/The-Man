@@ -58,7 +58,7 @@ type Rgb = readonly [number, number, number];
 
 // #region Constants
 /** Summary: Local-frame extent sampled for the greybox, meters. Covers every surface with margin. */
-const GRID_BOUNDS = { minLx: -120, maxLx: 126, minLz: -4, maxLz: 514 } as const;
+const GRID_BOUNDS = { minLx: -120, maxLx: 202, minLz: -68, maxLz: 514 } as const;
 
 /** Summary: Visible thickness of a ledge, bridge deck or path edge over the abyss, meters. */
 const ABYSS_LIP_DEPTH = 3.0;
@@ -252,7 +252,12 @@ function emitVerticalFaces(grid0: IGrid, grid1: IGrid, floors: QuadSink, rock: Q
     }, (k0, k1, f) => {
       const z0 = cellLz(grid0, k0);
       const z1 = cellLz(grid0, k1);
-      (f.isRock ? rock : floors).add([x, f.y0, z0], [x, f.y0, z1], [x, f.y1, z1], [x, f.y1, z0], [f.facing, 0, 0], f.color);
+      const sink = f.isRock ? rock : floors;
+      if (f.facing === 1) {
+        sink.add([x, f.y0, z1], [x, f.y0, z0], [x, f.y1, z0], [x, f.y1, z1], [1, 0, 0], f.color);
+      } else {
+        sink.add([x, f.y0, z0], [x, f.y0, z1], [x, f.y1, z1], [x, f.y1, z0], [-1, 0, 0], f.color);
+      }
       if (f.isWall) wallFeet.push({ x0: x, z0, x1: x, z1, y: f.y0, nx: f.facing, nz: 0, height: f.y1 - f.y0 });
     });
   }
@@ -269,7 +274,12 @@ function emitVerticalFaces(grid0: IGrid, grid1: IGrid, floors: QuadSink, rock: Q
     }, (k0, k1, f) => {
       const x0 = cellLx(grid0, k0);
       const x1 = cellLx(grid0, k1);
-      (f.isRock ? rock : floors).add([x0, f.y0, z], [x1, f.y0, z], [x1, f.y1, z], [x0, f.y1, z], [0, 0, f.facing], f.color);
+      const sink = f.isRock ? rock : floors;
+      if (f.facing === 1) {
+        sink.add([x0, f.y0, z], [x1, f.y0, z], [x1, f.y1, z], [x0, f.y1, z], [0, 0, 1], f.color);
+      } else {
+        sink.add([x1, f.y0, z], [x0, f.y0, z], [x0, f.y1, z], [x1, f.y1, z], [0, 0, -1], f.color);
+      }
       if (f.isWall) wallFeet.push({ x0, z0: z, x1, z1: z, y: f.y0, nx: 0, nz: f.facing, height: f.y1 - f.y0 });
     });
   }

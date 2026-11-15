@@ -42,8 +42,6 @@ const STANDING_TOLERANCE = 0.6;
 /** Summary: How far below its floor a rail still blocks feet (a falling player is not caught). */
 const RAIL_FEET_TOLERANCE = 0.6;
 
-const LAYER_COUNT = 2;
-
 /**
  * Summary: Axis-aligned bounds of each surface footprint, in MINE_SURFACES order.
  * Design: A cheap reject before the exact footprint test; most points lie outside most surfaces.
@@ -64,6 +62,19 @@ const SURFACE_BOUNDS: ReadonlyArray<{ minLx: number; maxLx: number; minLz: numbe
       return { minLx: Math.min(...xs), maxLx: Math.max(...xs), minLz: Math.min(...zs), maxLz: Math.max(...zs) };
     }
   }
+});
+
+/** Summary: Pre-allocated immutable sample for flat surfaces without a ceiling dome, eliminating ~2.6M heap allocations during grid sampling. */
+const STATIC_FLAT_SAMPLES: ReadonlyArray<IMineFloorSample | null> = MINE_SURFACES.map((s) => {
+  if (s.height.kind !== 'flat' || s.ceilingDome !== undefined) return null;
+  return {
+    surfaceId: s.id,
+    area: s.area,
+    material: s.material,
+    height: s.height.y,
+    ceilingY: s.ceilingY,
+    waterSurfaceY: s.waterSurfaceY ?? null,
+  };
 });
 
 /** Summary: Bounds reject plus exact footprint test for the surface at `index`. */
@@ -87,23 +98,33 @@ function isInsideSurface(index: number, lx: number, lz: number): boolean {
  * @returns The floor sample, or null outside every surface.
  */
 export function sampleAncientMineFloor(lx: number, lz: number, currentY?: number): IMineFloorSample | null {
-  const perLayer: Array<IMineSurface | null> = new Array(LAYER_COUNT).fill(null);
+  let layer0Index = -1;
+  let layer1Index = -1;
   for (let i = 0; i < MINE_SURFACES.length; i++) {
-    if (isInsideSurface(i, lx, lz)) perLayer[MINE_SURFACES[i].layer] = MINE_SURFACES[i];
-  }
-
-  let chosen: IMineSurface | null = null;
-  let chosenHeight = 0;
-  for (const surface of perLayer) {
-    if (surface === null) continue;
-    const height = smoothHeightOfProfile(surface.height, lx, lz);
-    if (chosen === null || isBetterFloor(height, chosenHeight, currentY)) {
-      chosen = surface;
-      chosenHeight = height;
+    if (isInsideSurface(i, lx, lz)) {
+      if (MINE_SURFACES[i].layer === 0) layer0Index = i;
+      else layer1Index = i;
     }
   }
-  if (chosen === null) return null;
+  if (layer0Index < 0 && layer1Index < 0) return null;
 
+  let chosenIndex = -1;
+  let chosenHeight = 0;
+  if (layer0Index >= 0) {
+    chosenIndex = layer0Index;
+    chosenHeight = smoothHeightOfProfile(MINE_SURFACES[layer0Index].height, lx, lz);
+  }
+  if (layer1Index >= 0) {
+    const h1 = smoothHeightOfProfile(MINE_SURFACES[layer1Index].height, lx, lz);
+    if (chosenIndex < 0 || isBetterFloor(h1, chosenHeight, currentY)) {
+      chosenIndex = layer1Index;
+      chosenHeight = h1;
+    }
+  }
+  const staticSample = STATIC_FLAT_SAMPLES[chosenIndex];
+  if (staticSample !== null) return staticSample;
+
+  const chosen = MINE_SURFACES[chosenIndex];
   return {
     surfaceId: chosen.id,
     area: chosen.area,
@@ -126,11 +147,15 @@ export function sampleAncientMineFloor(lx: number, lz: number, currentY?: number
  * @returns The floor sample of that layer, or null when the layer has no surface there.
  */
 export function sampleAncientMineLayer(lx: number, lz: number, layer: 0 | 1): IMineFloorSample | null {
-  let found: IMineSurface | null = null;
+  let foundIndex = -1;
   for (let i = 0; i < MINE_SURFACES.length; i++) {
-    if (MINE_SURFACES[i].layer === layer && isInsideSurface(i, lx, lz)) found = MINE_SURFACES[i];
+    if (MINE_SURFACES[i].layer === layer && isInsideSurface(i, lx, lz)) foundIndex = i;
   }
-  if (found === null) return null;
+  if (foundIndex < 0) return null;
+  const staticSample = STATIC_FLAT_SAMPLES[foundIndex];
+  if (staticSample !== null) return staticSample;
+
+  const found = MINE_SURFACES[foundIndex];
   return {
     surfaceId: found.id,
     area: found.area,
@@ -181,7 +206,7 @@ export interface IMineWallFoot {
   readonly height: number;
 }
 
-const WALL_GRID_BOUNDS = { minLx: -120, maxLx: 126, minLz: -4, maxLz: 514 } as const;
+const WALL_GRID_BOUNDS = { minLx: -120, maxLx: 202, minLz: -68, maxLz: 514 } as const;
 
 /**
  * Summary: Computes merged axis-aligned rock wall runs across layers 0 and 1 of the mine.

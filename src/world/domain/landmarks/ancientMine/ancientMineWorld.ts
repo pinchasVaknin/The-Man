@@ -142,7 +142,13 @@ export const ANCIENT_MINE_COLLIDER_BOXES: readonly ISolidBuildingBox[] = MINE_GU
       },
     ];
   }),
-  computeAncientMineWallFeet(0.5).map((foot, idx) => {
+  computeAncientMineWallFeet(1.0).map((foot, idx) => {
+    // Cap underground cavern wall colliders strictly below the surface ground (y = 1.3m < 2.65m)
+    // so the domed upper-cavern ceiling (+12m) never pokes invisible wall boxes up into the Dwarven Camp!
+    const wallMaxY =
+      foot.y <= MINE_LEVEL_Y.upperCavern + 0.5
+        ? Math.min(foot.y + foot.height, MINE_LEVEL_Y.overlook - 0.15)
+        : foot.y + foot.height;
     const isAlongZ = foot.nx !== 0;
     if (isAlongZ) {
       const wallX = ANCIENT_MINE_ORIGIN.x + foot.x0;
@@ -157,7 +163,7 @@ export const ANCIENT_MINE_COLLIDER_BOXES: readonly ISolidBuildingBox[] = MINE_GU
         minZ: ANCIENT_MINE_ORIGIN.z + Math.min(foot.z0, foot.z1) + inset,
         maxZ: ANCIENT_MINE_ORIGIN.z + Math.max(foot.z0, foot.z1) - inset,
         minY: foot.y,
-        maxY: foot.y + foot.height,
+        maxY: wallMaxY,
       };
     }
     const wallZ = ANCIENT_MINE_ORIGIN.z + foot.z0;
@@ -172,7 +178,7 @@ export const ANCIENT_MINE_COLLIDER_BOXES: readonly ISolidBuildingBox[] = MINE_GU
       minZ: Math.min(inZ, outZ),
       maxZ: Math.max(inZ, outZ),
       minY: foot.y,
-      maxY: foot.y + foot.height,
+      maxY: wallMaxY,
     };
   })
 );

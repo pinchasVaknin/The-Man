@@ -33,8 +33,8 @@ export interface IMineAtmosphere {
  *         golem, red-orange at the dragon forge.
  */
 export const MINE_ATMOSPHERE_PRESETS: Record<IMineAreaId, IMineAtmosphere> = {
-  entrance: { ambientSky: 0x6e563c, ambientGround: 0x261a10, ambientIntensity: 0.78, fogColor: 0x0c0906, fogDensity: 0.005 },
-  upperCavern: { ambientSky: 0x7a5c3e, ambientGround: 0x2c2015, ambientIntensity: 0.82, fogColor: 0x120c08, fogDensity: 0.0045 },
+  entrance: { ambientSky: 0x7c6244, ambientGround: 0x2c1e13, ambientIntensity: 0.92, fogColor: 0x0e0a07, fogDensity: 0.0042 },
+  upperCavern: { ambientSky: 0x9c7852, ambientGround: 0x3e2d1e, ambientIntensity: 1.38, fogColor: 0x160f09, fogDensity: 0.0028 },
   lagoon: { ambientSky: 0x38849a, ambientGround: 0x122c36, ambientIntensity: 0.80, fogColor: 0x06161c, fogDensity: 0.005 },
   galleries: { ambientSky: 0x6e5a44, ambientGround: 0x261c14, ambientIntensity: 0.74, fogColor: 0x100c09, fogDensity: 0.005 },
   foundry: { ambientSky: 0x984a20, ambientGround: 0x36160a, ambientIntensity: 0.84, fogColor: 0x1c0a04, fogDensity: 0.0055 },

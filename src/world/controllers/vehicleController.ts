@@ -97,6 +97,7 @@ import {
   evaluateRideableMinecartPose,
   findNearestRideableMinecartStation,
   isInsideSouthernMine,
+  setActivePlayerRiddenMinecartLineId,
   setRideableMinecartVisualProgress,
   southernMineWalkableHeightAt,
   stepRideableMinecartPhysics,
@@ -137,7 +138,10 @@ export function createVehicleController(ctx: IVehicleControllerContext) {
 
 function tryBoardOrExitMinecart(): boolean {
     if (restState.activeMinecartRide) {
+      const exitedLineId = restState.activeMinecartRide.lineId;
       restState.activeMinecartRide = null;
+      setActivePlayerRiddenMinecartLineId(null);
+      setRideableMinecartVisualProgress(exitedLineId, 0, 0, 0);
       playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
       capturePreviousPlayerPose();
       soundEngine.playFootstep('bridge', 1.05);
@@ -164,6 +168,7 @@ function tryBoardOrExitMinecart(): boolean {
       wheelAngle: 0,
       facingSign: initialFacingSign,
     };
+    setActivePlayerRiddenMinecartLineId(line.id);
     setRideableMinecartVisualProgress(line.id, startU, 0);
     playerState.x = pose.x;
     playerState.y = pose.y + 0.55;

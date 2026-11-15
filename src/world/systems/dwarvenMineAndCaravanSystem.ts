@@ -323,9 +323,10 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
     rideSpeed: 14.0,
     localWaypoints: [
       [6.0, MINE_LEVEL_Y.upperCavern, 80.0],
-      [30.0, MINE_LEVEL_Y.upperCavern, 80.0],
+      [32.0, MINE_LEVEL_Y.upperCavern, 80.0],
       [56.0, MINE_LEVEL_Y.upperCavern, 78.0],
-      [70.0, MINE_LEVEL_Y.upperCavern, 76.0],
+      [66.0, MINE_LEVEL_Y.upperCavern, 77.0],
+      [70.0, MINE_LEVEL_Y.upperCavern, 74.5],
       [70.0, MINE_LEVEL_Y.upperCavern, 72.0],
       [70.0, MINE_LEVEL_Y.galleryPit, 60.0],
       [70.0, MINE_LEVEL_Y.galleryPit, 54.0],
@@ -333,8 +334,59 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
   },
 ] as const;
 
+export type IEastForkBranch = 'left' | 'right';
+
+let activeEastForkBranch: IEastForkBranch = 'left';
+
 /**
- * Summary: Additional interactive rideable branch & gallery lines so every track terminal in the Upper Cavern has a rideable/summonable cart.
+ * Summary: Returns which branch ('left' = Mithril Cavern, 'right' = Hall of Mazarbul) the East Descending Fork switch is currently set to.
+ */
+export function getEastForkSwitchBranch(): IEastForkBranch {
+  return activeEastForkBranch;
+}
+
+/**
+ * Summary: Sets the active branch ('left' | 'right') of the East Descending Fork railway switch.
+ */
+export function setEastForkSwitchBranch(branch: IEastForkBranch): void {
+  activeEastForkBranch = branch;
+}
+
+/**
+ * Summary: Toggles the East Descending Fork railway switch between 'left' and 'right'.
+ */
+export function toggleEastForkSwitchBranch(): IEastForkBranch {
+  activeEastForkBranch = activeEastForkBranch === 'left' ? 'right' : 'left';
+  return activeEastForkBranch;
+}
+
+/** Summary: Local mine coordinates of the interactive physical switch lever at the East Fork Junction. */
+export const EAST_FORK_SWITCH_LEVER_LOCAL = {
+  lx: 153.8,
+  y: MINE_LEVEL_Y.forkJunction,
+  lz: 68.8,
+} as const;
+
+/**
+ * Summary: Checks whether a world position is within interactive reach of the physical railway switch lever at the East Fork Junction.
+ */
+export function isPlayerNearEastForkSwitchLever(
+  worldX: number,
+  worldY: number,
+  worldZ: number,
+  maxDist = 3.8
+): boolean {
+  const leverX = SOUTHERN_MINE_POS.x + EAST_FORK_SWITCH_LEVER_LOCAL.lx;
+  const leverY = EAST_FORK_SWITCH_LEVER_LOCAL.y;
+  const leverZ = SOUTHERN_MINE_POS.entranceZ + EAST_FORK_SWITCH_LEVER_LOCAL.lz;
+  return (
+    Math.hypot(worldX - leverX, worldZ - leverZ) <= maxDist &&
+    Math.abs(worldY - leverY) <= 3.0
+  );
+}
+
+/**
+ * Summary: Additional interactive rideable branch & gallery lines so every track terminal in the Upper Cavern and East Fork has a rideable/summonable cart.
  */
 export const ADDITIONAL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = [
   {
@@ -356,13 +408,49 @@ export const ADDITIONAL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineD
     id: 'minecart-line-east-wall',
     name: 'East Gallery Crusher Line',
     startStationName: 'East Gallery Switch Junction',
-    endStationName: 'East Gallery Gold & Emerald Wall',
+    endStationName: 'East Tunnel Portal Station',
     rideSpeed: 13.5,
     localWaypoints: [
-      [70.0, MINE_LEVEL_Y.upperCavern, 76.0],
-      [84.0, MINE_LEVEL_Y.upperCavern, 74.0],
-      [98.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [56.0, MINE_LEVEL_Y.upperCavern, 78.0],
+      [74.0, MINE_LEVEL_Y.upperCavern, 75.0],
+      [96.0, MINE_LEVEL_Y.upperCavern, 72.0],
       [118.0, MINE_LEVEL_Y.upperCavern, 72.0],
+    ],
+  },
+  {
+    id: 'minecart-line-east-fork-left',
+    name: 'Descending Fork — Chasm Bridge & Glowing Diamond Mine Line (Left)',
+    startStationName: 'East Tunnel Portal Station',
+    endStationName: 'Deep Glowing Diamond Mine Cavern',
+    rideSpeed: 15.0,
+    localWaypoints: [
+      [118.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [124.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [152.0, MINE_LEVEL_Y.forkJunction, 72.0],
+      [156.0, MINE_LEVEL_Y.forkJunction, 72.0],
+      [165.0, MINE_LEVEL_Y.forkJunction, 67.0],
+      [173.0, MINE_LEVEL_Y.forkJunction, 60.0],
+      [173.0, MINE_LEVEL_Y.forkJunction, 48.0],
+      [173.0, MINE_LEVEL_Y.forkJunction, 8.0],
+      [173.0, MINE_LEVEL_Y.diamondMine, -24.0],
+      [173.0, MINE_LEVEL_Y.diamondMine, -46.0],
+    ],
+  },
+  {
+    id: 'minecart-line-east-fork-right',
+    name: 'Descending Fork — Dwarven Storage Warehouse Line (Right)',
+    startStationName: 'East Tunnel Portal Station',
+    endStationName: 'Grand Dwarven Storage Warehouse',
+    rideSpeed: 14.5,
+    localWaypoints: [
+      [118.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [124.0, MINE_LEVEL_Y.upperCavern, 72.0],
+      [152.0, MINE_LEVEL_Y.forkJunction, 72.0],
+      [156.0, MINE_LEVEL_Y.forkJunction, 72.0],
+      [165.0, MINE_LEVEL_Y.forkJunction, 77.0],
+      [172.0, MINE_LEVEL_Y.forkJunction, 86.0],
+      [172.0, MINE_LEVEL_Y.forkJunction, 96.0],
+      [174.0, MINE_LEVEL_Y.forkJunction, 116.0],
     ],
   },
   {
@@ -373,7 +461,8 @@ export const ADDITIONAL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineD
     rideSpeed: 13.0,
     localWaypoints: [
       [-18.0, MINE_LEVEL_Y.upperCavern, 75.0],
-      [-36.0, MINE_LEVEL_Y.upperCavern, 78.0],
+      [-34.0, MINE_LEVEL_Y.upperCavern, 79.0],
+      [-48.0, MINE_LEVEL_Y.upperCavern, 84.0],
       [-56.0, MINE_LEVEL_Y.upperCavern, 84.0],
     ],
   },
@@ -455,6 +544,23 @@ export function evaluateRideableMinecartPose(
   };
 }
 
+let activePlayerRiddenMinecartLineId: string | null = null;
+
+/**
+ * Summary: Sets which rideable minecart line the player is currently riding (or null when on foot)
+ *          so the player's personal cart mesh appears only when ridden and disappears upon exit.
+ */
+export function setActivePlayerRiddenMinecartLineId(lineId: string | null): void {
+  activePlayerRiddenMinecartLineId = lineId;
+}
+
+/**
+ * Summary: Returns the lineId of the minecart currently ridden by the player, or null if not riding.
+ */
+export function getActivePlayerRiddenMinecartLineId(): string | null {
+  return activePlayerRiddenMinecartLineId;
+}
+
 const activeRideableCartProgressByLineId: Record<
   string,
   { u: number; velocity: number; wheelAngle: number }
@@ -463,7 +569,9 @@ const activeRideableCartProgressByLineId: Record<
   'minecart-line-east': { u: 0, velocity: 0, wheelAngle: 0 },
   'minecart-line-moria': { u: 0, velocity: 0, wheelAngle: 0 },
   'minecart-line-north-gold': { u: 0, velocity: 0, wheelAngle: 0 },
-  'minecart-line-east-wall': { u: 0.22, velocity: 0, wheelAngle: 0 },
+  'minecart-line-east-wall': { u: 1, velocity: 0, wheelAngle: 0 },
+  'minecart-line-east-fork-left': { u: 0, velocity: 0, wheelAngle: 0 },
+  'minecart-line-east-fork-right': { u: 0, velocity: 0, wheelAngle: 0 },
   'minecart-line-west-cavern': { u: 1, velocity: 0, wheelAngle: 0 },
 };
 
@@ -571,7 +679,8 @@ export function stepRideableMinecartPhysics(
 }
 
 /**
- * Summary: Finds the nearest interactive rideable minecart (at its live track position or station stop) within `maxDist` of the player.
+ * Summary: Finds the nearest interactive rideable minecart station stop within `maxDist` of the player
+ *          so the player can summon and board their personal minecart on demand.
  */
 export function findNearestRideableMinecartStation(
   worldX: number,
@@ -603,18 +712,33 @@ export function findNearestRideableMinecartStation(
     readonly yaw: number;
   } | null = null;
   let bestDist = maxDist;
+  const inactiveForkLineId =
+    activeEastForkBranch === 'left'
+      ? 'minecart-line-east-fork-right'
+      : 'minecart-line-east-fork-left';
 
   for (let i = 0; i < ALL_RIDEABLE_MINECART_LINES.length; i++) {
     const line = ALL_RIDEABLE_MINECART_LINES[i];
     const liveProg = getRideableMinecartVisualProgress(line.id);
     const candidates: { u: number; startAtEnd: boolean }[] = [
-      { u: liveProg.u, startAtEnd: liveProg.u > 0.5 },
       { u: 0, startAtEnd: false },
       { u: 1, startAtEnd: true },
+      { u: liveProg.u, startAtEnd: liveProg.u > 0.5 },
     ];
+    if (line.id === 'minecart-line-east-fork-left') {
+      // Allow boarding at the Fork Switch Junction (lx = 156, lz = 72 -> u ≈ 0.23) and on the Abyss Bridge (u ≈ 0.52)
+      candidates.push({ u: 0.23, startAtEnd: false }, { u: 0.52, startAtEnd: false });
+    } else if (line.id === 'minecart-line-east-fork-right') {
+      // Allow boarding at the Fork Switch Junction (lx = 156, lz = 72 -> u ≈ 0.43)
+      candidates.push({ u: 0.43, startAtEnd: false });
+    }
 
     for (let c = 0; c < candidates.length; c++) {
       const cand = candidates[c];
+      // At the shared East Tunnel Portal [118, 72] and Fork Junction [156, 72], prefer the active fork branch over the inactive fork branch or the upper spur end
+      if (line.id === inactiveForkLineId && cand.u < 0.48) continue;
+      if (line.id === 'minecart-line-east-wall' && cand.u > 0.9) continue;
+
       const pose = evaluateRideableMinecartPose(line.id, cand.u);
       const d = Math.hypot(worldX - pose.x, worldZ - pose.z);
       if (d <= bestDist && Math.abs(worldY - pose.y) <= 2.8) {

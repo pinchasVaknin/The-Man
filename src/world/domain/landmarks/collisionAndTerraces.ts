@@ -1121,6 +1121,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   ...DWARVEN_STONE_HOUSES.flatMap((dh) => {
     const backWallX = dh.x - dh.dirX * dh.halfW;
     const frontWallX = dh.x + dh.dirX * dh.halfW;
+    const eavesMaxY = dh.terraceY + 4.65;
     return [
       {
         id: `${dh.id}-back-wall`,
@@ -1129,7 +1130,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z - dh.halfD - 0.25,
         maxZ: dh.z + dh.halfD + 0.25,
         minY: dh.terraceY - 0.3,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
       },
       {
         id: `${dh.id}-north-wall`,
@@ -1138,7 +1139,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z - dh.halfD - 0.35,
         maxZ: dh.z - dh.halfD + 0.35,
         minY: dh.terraceY - 0.3,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
       },
       {
         id: `${dh.id}-south-wall`,
@@ -1147,7 +1148,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z + dh.halfD - 0.35,
         maxZ: dh.z + dh.halfD + 0.35,
         minY: dh.terraceY - 0.3,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
       },
       {
         id: `${dh.id}-front-north`,
@@ -1156,7 +1157,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z - dh.halfD - 0.25,
         maxZ: dh.z - 1.15,
         minY: dh.terraceY - 0.3,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
       },
       {
         id: `${dh.id}-front-south`,
@@ -1165,7 +1166,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z + 1.15,
         maxZ: dh.z + dh.halfD + 0.25,
         minY: dh.terraceY - 0.3,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
       },
       {
         id: `${dh.id}-door-header`,
@@ -1174,7 +1175,16 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
         minZ: dh.z - 1.15,
         maxZ: dh.z + 1.15,
         minY: dh.terraceY + 2.95,
-        maxY: dh.terraceY + 6.2,
+        maxY: eavesMaxY,
+      },
+      {
+        id: `${dh.id}-roof-ridge`,
+        minX: dh.x - dh.halfW + 1.25,
+        maxX: dh.x + dh.halfW - 1.25,
+        minZ: dh.z - dh.halfD + 0.35,
+        maxZ: dh.z + dh.halfD - 0.35,
+        minY: eavesMaxY,
+        maxY: dh.terraceY + 6.05,
       },
       // Interior Hearth, Back Storage Chest, 2 Beds, Oak Table & 2 Benches, plus Outdoor Porch Bench & Anvil
       {

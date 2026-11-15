@@ -61,6 +61,7 @@ export function buildLowerLevelSetPieces(ctx: ISetPieceContext): ISetPieceUpdate
   buildStatues(ctx);
   buildHeroesPathAndAqueducts(ctx);
   buildKingNiche(ctx);
+  buildGreatHallCircularStaircaseChamber(ctx, links);
   const distantLights = buildDepths(ctx);
   addChainLinks(ctx, links);
   return (t: number): void => {
@@ -580,4 +581,342 @@ function buildDepths(ctx: ISetPieceContext): THREE.Mesh[] {
   return lights;
 }
 // #endregion
+
+// #region Great Hall Left-Wall Doorway & Circular Staircase Chamber
+/**
+ * Summary: Builds the monumental Dwarven doorway in the Left (East) wall of the Great Hall with Statues
+ *          (`lx = 70, lz = 194..202, y = -39.35`), the entry corridor (`lx = 70..98`), the 360-degree
+ *          Circular / Spiral Staircase Rotunda (`cx = 119, cz = 211, y = -39.35 -> -63.35`), and the
+ *          Deep Moria Sanctum & Runic Well at the bottom (`lx = 102..138, lz = 244..276, y = -63.35`).
+ */
+function buildGreatHallCircularStaircaseChamber(
+  ctx: ISetPieceContext,
+  links: THREE.Matrix4[]
+): void {
+  const m = ctx.materials;
+  const SANCTUM_Y = MINE_LEVEL_Y.spiralSanctum; // -63.35
+
+  // 1) MONUMENTAL OPEN DOORWAY IN THE LEFT (EAST) WALL OF THE GREAT HALL WITH STATUES (lx = 70, lz = 198, y = -39.35)
+  const doorX = 69.8;
+  const doorZ = 198.0;
+  for (const sideZ of [193.3, 202.7]) {
+    addBox(ctx, 1.8, 10.6, 1.5, m.darkStone, doorX, LEDGE, sideZ);
+    addBox(ctx, 2.0, 0.38, 1.7, m.gold, doorX, LEDGE + 5.8, sideZ);
+    addBox(ctx, 2.0, 0.38, 1.7, m.gold, doorX, LEDGE + 2.8, sideZ);
+  }
+  // Carved over-door lintel & Moria royal arch crest above the 8m-wide doorway (y = LEDGE + 6.0 .. LEDGE + 10.6)
+  addBox(ctx, 1.9, 4.6, 10.8, m.darkStone, doorX, LEDGE + 6.0, doorZ);
+  addBox(ctx, 2.1, 0.32, 11.0, m.gold, doorX, LEDGE + 5.9, doorZ);
+  addBox(ctx, 2.1, 0.28, 11.0, m.gold, doorX, LEDGE + 9.8, doorZ);
+  // Raised open iron portcullis gate teeth under the lintel
+  addBox(ctx, 0.24, 0.22, 7.6, m.iron, doorX - 0.35, LEDGE + 5.55, doorZ);
+  for (let bz = -3.2; bz <= 3.2; bz += 0.8) {
+    addBox(ctx, 0.14, 0.72, 0.14, m.iron, doorX - 0.35, LEDGE + 5.2, doorZ + bz);
+  }
+  // Golden diamond emblem above the doorway facing the Great Hall
+  const crest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(1.35, 0)), m.gold);
+  crest.scale.set(0.32, 1.15, 1.35);
+  crest.position.set(doorX - 1.02, LEDGE + 7.8, doorZ);
+  ctx.group.add(crest);
+  ctx.addTorch(doorX - 1.1, LEDGE + 3.4, 193.3, 0xffb844, 8.0);
+  ctx.addTorch(doorX - 1.1, LEDGE + 3.4, 202.7, 0xffb844, 8.0);
+
+  // 2) ENTRY CORRIDOR PILASTERS & TORCHES (lx = 70..98, lz = 194..202, y = -39.35)
+  for (const cx of [77.0, 85.0, 93.0]) {
+    for (const cz of [194.3, 201.7]) {
+      addBox(ctx, 0.9, 8.8, 0.6, m.darkStone, cx, LEDGE, cz);
+      addBox(ctx, 1.0, 0.24, 0.7, m.gold, cx, LEDGE + 4.8, cz);
+    }
+    if (cx === 77.0 || cx === 93.0) {
+      ctx.addTorch(cx, LEDGE + 3.1, 194.75, 0xffa838, 6.5);
+      ctx.addTorch(cx, LEDGE + 3.1, 201.25, 0xffa838, 6.5);
+    }
+  }
+
+  // 3) CIRCULAR / SPIRAL STAIRCASE ROTUNDA AROUND (cx = 119.0, cz = 211.0, y = -63.35 .. -24.0)
+  const rotundaCx = 119.0;
+  const rotundaCz = 211.0;
+  const coreBottomY = SANCTUM_Y - 1.0;
+  const coreTopY = LEDGE + 15.0; // -24.35
+  const coreHeight = coreTopY - coreBottomY;
+
+  // Colossal Cylindrical Central Rotunda Column around which the staircase winds 360 degrees
+  const centralCoreGeo = ctx.own(new THREE.CylinderGeometry(7.2, 7.6, coreHeight, 24));
+  const centralCoreMesh = new THREE.Mesh(centralCoreGeo, m.darkStone);
+  centralCoreMesh.position.set(rotundaCx, coreBottomY + coreHeight * 0.5, rotundaCz);
+  ctx.group.add(centralCoreMesh);
+
+  // Carved horizontal golden rings & vertical fluted ribs on the central rotunda cylinder
+  const coreRingGeo = ctx.own(new THREE.TorusGeometry(7.48, 0.26, 8, 28));
+  for (const ry of [-60.0, -54.0, -48.0, -42.0, -36.0, -30.0]) {
+    const ring = new THREE.Mesh(coreRingGeo, m.gold);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(rotundaCx, ry, rotundaCz);
+    ctx.group.add(ring);
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rib = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(0.55, coreHeight - 2, 0.55)), m.stone);
+    rib.position.set(
+      rotundaCx + Math.cos(a) * 7.35,
+      coreBottomY + coreHeight * 0.5,
+      rotundaCz + Math.sin(a) * 7.35
+    );
+    rib.rotation.y = -a;
+    ctx.group.add(rib);
+  }
+
+  // Spiral torches & hanging chains following the 4 descending flights around the rotunda
+  const spiralTorchWaypoints: readonly [number, number, number][] = [
+    [104.0, -39.35, 198.0], // Top landing
+    [119.0, -42.35, 200.5], // Flight 1 mid (North)
+    [134.0, -45.35, 198.0], // Landing 1 (North-East)
+    [131.5, -48.35, 211.0], // Flight 2 mid (East)
+    [134.0, -51.35, 224.0], // Landing 2 (South-East)
+    [119.0, -54.35, 221.5], // Flight 3 mid (South)
+    [104.0, -57.35, 224.0], // Landing 3 (South-West)
+    [115.0, -60.35, 236.0], // Flight 4 mid (Descending South into Sanctum)
+  ];
+  for (let i = 0; i < spiralTorchWaypoints.length; i++) {
+    const [tx, ty, tz] = spiralTorchWaypoints[i];
+    ctx.addTorch(tx, ty + 3.0, tz, 0xffaa38, 7.0);
+    if (i > 0) {
+      const [px, py, pz] = spiralTorchWaypoints[i - 1];
+      queueChain(
+        links,
+        new THREE.Vector3(px, py + 5.2, pz),
+        new THREE.Vector3(tx, ty + 5.2, tz),
+        1.1
+      );
+    }
+  }
+
+  // 4) DWARVEN WAR ROOM (חדר מלחמה) AT THE BOTTOM OF THE SPIRAL STAIRS (lx = 102..138, lz = 244..276, y = -63.35)
+  const sanctumColH = 15.35; // Reaches ceilingY = -48.0
+  const crimsonMat = new THREE.MeshStandardMaterial({
+    color: 0x991b1b,
+    roughness: 0.72,
+    metalness: 0.08,
+  });
+  ctx.ownMaterial(crimsonMat);
+
+  const mapParchmentMat = new THREE.MeshStandardMaterial({
+    color: 0xd6c49e,
+    roughness: 0.65,
+    metalness: 0.05,
+  });
+  ctx.ownMaterial(mapParchmentMat);
+
+  const mapTerrainMat = new THREE.MeshStandardMaterial({
+    color: 0x57534e,
+    roughness: 0.78,
+    metalness: 0.15,
+  });
+  ctx.ownMaterial(mapTerrainMat);
+
+  const mapRiverMat = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: 0x0284c7,
+    emissiveIntensity: 0.65,
+    roughness: 0.2,
+    metalness: 0.3,
+  });
+  ctx.ownMaterial(mapRiverMat);
+
+  // Corner War Pillars with Crimson & Gold Khazad War Banners
+  for (const cx of [108.0, 132.0]) {
+    for (const cz of [250.0, 268.0]) {
+      addBox(ctx, 2.2, 0.85, 2.2, m.darkStone, cx, SANCTUM_Y, cz);
+      addBox(ctx, 1.75, sanctumColH - 1.7, 1.75, m.stone, cx, SANCTUM_Y + 0.85, cz);
+      for (const by of [3.4, 7.2, 11.0]) {
+        addBox(ctx, 1.92, 0.26, 1.92, m.gold, cx, SANCTUM_Y + by, cz);
+      }
+      addBox(ctx, 2.4, 0.85, 2.4, m.darkStone, cx, SANCTUM_Y + sanctumColH - 0.85, cz);
+
+      // Hanging Crimson & Gold War Banner on inner face of each column
+      const inwardSign = cx < 120 ? 1 : -1;
+      const bx = cx + inwardSign * 1.02;
+      addBox(ctx, 0.12, 0.14, 1.65, m.gold, bx, SANCTUM_Y + 7.1, cz);
+      addBox(ctx, 0.08, 4.2, 1.42, crimsonMat, bx, SANCTUM_Y + 2.9, cz);
+      addBox(ctx, 0.1, 4.2, 0.14, m.gold, bx, SANCTUM_Y + 2.9, cz - 0.65);
+      addBox(ctx, 0.1, 4.2, 0.14, m.gold, bx, SANCTUM_Y + 2.9, cz + 0.65);
+      // Crossed-axe gold emblem on banner
+      addBox(ctx, 0.12, 0.85, 0.85, m.gold, bx + inwardSign * 0.03, SANCTUM_Y + 4.8, cz);
+
+      ctx.addTorch(cx + inwardSign * 1.25, SANCTUM_Y + 3.2, cz, 0xffb844, 7.5);
+    }
+  }
+
+  // Grand Overhead War Room Chandelier above the Tactical Map Table
+  const chandY = SANCTUM_Y + 9.2;
+  addBox(ctx, 0.28, 6.2, 0.28, m.iron, 120.0, chandY, 258.0);
+  const warRing = new THREE.Mesh(
+    ctx.own(new THREE.TorusGeometry(3.6, 0.22, 10, 28)),
+    m.gold
+  );
+  warRing.rotation.x = Math.PI / 2;
+  warRing.position.set(120.0, chandY, 258.0);
+  ctx.group.add(warRing);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rx = 120.0 + Math.cos(a) * 3.6;
+    const rz = 258.0 + Math.sin(a) * 3.6;
+    addBox(ctx, 0.45, 0.35, 0.45, m.iron, rx, chandY + 0.12, rz);
+    addBox(ctx, 0.32, 0.28, 0.32, m.ember, rx, chandY + 0.42, rz);
+  }
+  ctx.addLight(120.0, SANCTUM_Y + 6.5, 258.0, 0xffe099, 13.5);
+
+  // GRAND TACTICAL WAR TABLE WITH 3D RELIEF MAP OF THE MOUNTAIN & MINE (centered at lx = 120, lz = 258)
+  const wtX = 120.0;
+  const wtZ = 258.0;
+  // Stepped stone pedestal & heavy carved oak/stone table frame (8.0m x 4.6m)
+  addBox(ctx, 8.2, 0.22, 4.8, m.darkStone, wtX, SANCTUM_Y, wtZ);
+  for (const lxOff of [-3.3, 0, 3.3]) {
+    for (const lzOff of [-1.75, 1.75]) {
+      addBox(ctx, 0.68, 0.86, 0.68, m.darkStone, wtX + lxOff, SANCTUM_Y + 0.22, wtZ + lzOff);
+      addBox(ctx, 0.76, 0.16, 0.76, m.gold, wtX + lxOff, SANCTUM_Y + 0.55, wtZ + lzOff);
+    }
+  }
+  // Tabletop slab & golden border rims
+  addBox(ctx, 8.0, 0.24, 4.6, m.darkStone, wtX, SANCTUM_Y + 1.08, wtZ);
+  addBox(ctx, 8.12, 0.12, 0.2, m.gold, wtX, SANCTUM_Y + 1.28, wtZ - 2.25);
+  addBox(ctx, 8.12, 0.12, 0.2, m.gold, wtX, SANCTUM_Y + 1.28, wtZ + 2.25);
+  addBox(ctx, 0.2, 0.12, 4.6, m.gold, wtX - 3.96, SANCTUM_Y + 1.28, wtZ);
+  addBox(ctx, 0.2, 0.12, 4.6, m.gold, wtX + 3.96, SANCTUM_Y + 1.28, wtZ);
+
+  // Large Unrolled Parchment & 3D Relief Map on the War Table (y = SANCTUM_Y + 1.32)
+  const mapTopY = SANCTUM_Y + 1.32;
+  addBox(ctx, 7.2, 0.05, 3.9, mapParchmentMat, wtX, mapTopY, wtZ);
+  // 3D Relief Mountain Peaks on the Map (Khazad-dûm peaks)
+  const peaks: Array<[number, number, number, number]> = [
+    [-2.2, -0.8, 0.85, 0.72],
+    [-1.4, -1.1, 1.15, 0.98],
+    [-0.4, -0.9, 0.95, 0.82],
+    [1.6, 0.7, 1.05, 0.88],
+    [2.4, 0.4, 0.78, 0.64],
+  ];
+  for (const [px, pz, r, h] of peaks) {
+    const peakMesh = new THREE.Mesh(
+      ctx.own(new THREE.ConeGeometry(r, h, 6)),
+      mapTerrainMat
+    );
+    peakMesh.position.set(wtX + px, mapTopY + 0.05 + h * 0.5, wtZ + pz);
+    ctx.group.add(peakMesh);
+  }
+  // Glowing blue subterranean river & mine rail line miniatures across the map
+  addBox(ctx, 6.4, 0.04, 0.24, mapRiverMat, wtX, mapTopY + 0.05, wtZ + 0.25);
+  addBox(ctx, 0.22, 0.04, 3.2, m.gold, wtX - 0.6, mapTopY + 0.06, wtZ);
+  addBox(ctx, 4.8, 0.04, 0.18, m.gold, wtX + 0.4, mapTopY + 0.06, wtZ - 0.35);
+  // Miniature Bridge of Khazad-dûm model on the map
+  addBox(ctx, 1.1, 0.18, 0.32, m.stone, wtX - 0.6, mapTopY + 0.06, wtZ + 0.25);
+
+  // Strategic Miniature Troop Tokens & Pinned Daggers on the Map
+  const goldTokens: Array<[number, number]> = [
+    [-2.5, 0.6],
+    [-1.8, 0.4],
+    [-0.9, -0.2],
+    [0.2, -0.4],
+    [1.1, -0.3],
+  ];
+  for (const [tx, tz] of goldTokens) {
+    addBox(ctx, 0.22, 0.08, 0.22, m.gold, wtX + tx, mapTopY + 0.05, wtZ + tz);
+    addBox(ctx, 0.12, 0.28, 0.12, m.gold, wtX + tx, mapTopY + 0.13, wtZ + tz);
+  }
+  const enemyTokens: Array<[number, number]> = [
+    [1.8, -0.6],
+    [2.3, -0.2],
+    [2.7, 0.9],
+    [0.9, 1.1],
+  ];
+  for (const [tx, tz] of enemyTokens) {
+    addBox(ctx, 0.22, 0.08, 0.22, m.iron, wtX + tx, mapTopY + 0.05, wtZ + tz);
+    addBox(ctx, 0.14, 0.26, 0.14, crimsonMat, wtX + tx, mapTopY + 0.13, wtZ + tz);
+  }
+  // Pinned Strategic Dagger in the corner of the map
+  addBox(ctx, 0.06, 0.42, 0.12, m.iron, wtX - 2.9, mapTopY + 0.05, wtZ - 1.35);
+  addBox(ctx, 0.26, 0.06, 0.14, m.gold, wtX - 2.9, mapTopY + 0.44, wtZ - 1.35);
+  addBox(ctx, 0.08, 0.2, 0.08, m.wood, wtX - 2.9, mapTopY + 0.5, wtZ - 1.35);
+
+  // 8 High-Backed Dwarven War Council Chairs surrounding the War Table
+  for (const cxOff of [-2.4, 0.0, 2.4]) {
+    // North side chairs (facing South +Z)
+    addBox(ctx, 0.85, 0.52, 0.85, m.darkStone, wtX + cxOff, SANCTUM_Y, wtZ - 3.35);
+    addBox(ctx, 0.85, 0.95, 0.18, m.darkStone, wtX + cxOff, SANCTUM_Y + 0.52, wtZ - 3.68);
+    addBox(ctx, 0.89, 0.14, 0.22, m.gold, wtX + cxOff, SANCTUM_Y + 1.47, wtZ - 3.68);
+    // South side chairs (facing North -Z)
+    addBox(ctx, 0.85, 0.52, 0.85, m.darkStone, wtX + cxOff, SANCTUM_Y, wtZ + 3.35);
+    addBox(ctx, 0.85, 0.95, 0.18, m.darkStone, wtX + cxOff, SANCTUM_Y + 0.52, wtZ + 3.68);
+    addBox(ctx, 0.89, 0.14, 0.22, m.gold, wtX + cxOff, SANCTUM_Y + 1.47, wtZ + 3.68);
+  }
+
+  // HEAVY DWARVEN WEAPON RACKS ALONG WEST & EAST WALLS (lx = 104.2 and lx = 135.8)
+  for (const side of [-1, 1] as const) {
+    const rackX = 120.0 + side * 15.6;
+    for (const rz of [251.5, 258.0, 264.5]) {
+      // Heavy timber & iron weapon rack frame
+      addBox(ctx, 1.1, 0.22, 4.2, m.darkStone, rackX, SANCTUM_Y, rz);
+      addBox(ctx, 0.24, 2.5, 0.24, m.wood, rackX, SANCTUM_Y + 0.22, rz - 1.85);
+      addBox(ctx, 0.24, 2.5, 0.24, m.wood, rackX, SANCTUM_Y + 0.22, rz + 1.85);
+      addBox(ctx, 0.28, 0.16, 4.1, m.wood, rackX, SANCTUM_Y + 1.15, rz);
+      addBox(ctx, 0.28, 0.16, 4.1, m.wood, rackX, SANCTUM_Y + 2.25, rz);
+      addBox(ctx, 0.32, 0.12, 4.2, m.gold, rackX, SANCTUM_Y + 2.65, rz);
+
+      // 5 upright Dwarven Halberds, Warhammers & Battle Axes per rack
+      for (const wzOff of [-1.4, -0.7, 0.0, 0.7, 1.4]) {
+        const wz = rz + wzOff;
+        addBox(ctx, 0.09, 2.15, 0.09, m.wood, rackX - side * 0.18, SANCTUM_Y + 0.24, wz);
+        if (Math.abs(wzOff) > 1.0) {
+          // Warhammer head
+          addBox(ctx, 0.42, 0.24, 0.26, m.iron, rackX - side * 0.18, SANCTUM_Y + 2.25, wz);
+          addBox(ctx, 0.46, 0.1, 0.28, m.gold, rackX - side * 0.18, SANCTUM_Y + 2.38, wz);
+        } else {
+          // Double-bitted Battle Axe blade
+          addBox(ctx, 0.12, 0.44, 0.56, m.iron, rackX - side * 0.18, SANCTUM_Y + 2.18, wz);
+          addBox(ctx, 0.14, 0.48, 0.14, m.gold, rackX - side * 0.18, SANCTUM_Y + 2.16, wz);
+        }
+      }
+      // Round Dwarven Shields mounted along the lower rack bar
+      for (const szOff of [-1.1, 0.0, 1.1]) {
+        const shield = new THREE.Mesh(
+          ctx.own(new THREE.CylinderGeometry(0.46, 0.46, 0.1, 14)),
+          m.iron
+        );
+        shield.rotation.z = Math.PI / 2;
+        shield.position.set(rackX - side * 0.36, SANCTUM_Y + 0.85, rz + szOff);
+        ctx.group.add(shield);
+        addBox(ctx, 0.14, 0.22, 0.22, m.gold, rackX - side * 0.42, SANCTUM_Y + 0.85, rz + szOff);
+      }
+    }
+  }
+
+  // ROYAL COMMANDER'S DAIS, ARMOR STANDS & STRATEGIC WALL MAP BOARD AT SOUTH WALL (lx = 120.0, lz = 272.5)
+  addBox(ctx, 11.4, 0.45, 4.2, m.darkStone, 120.0, SANCTUM_Y, 272.5);
+  addBox(ctx, 11.6, 0.14, 4.4, m.gold, 120.0, SANCTUM_Y + 0.45, 272.5);
+  // Commander's Stone Desk & Throne on the Dais
+  addBox(ctx, 4.6, 1.15, 1.6, m.stone, 120.0, SANCTUM_Y + 0.59, 271.8);
+  addBox(ctx, 4.8, 0.18, 1.8, m.gold, 120.0, SANCTUM_Y + 1.74, 271.8);
+  // Tactical Wall Map Board mounted behind the Commander's Dais (lz = 274.8)
+  addBox(ctx, 8.6, 3.8, 0.35, m.wood, 120.0, SANCTUM_Y + 2.4, 275.2);
+  addBox(ctx, 8.8, 0.22, 0.42, m.gold, 120.0, SANCTUM_Y + 2.4, 275.2);
+  addBox(ctx, 8.8, 0.22, 0.42, m.gold, 120.0, SANCTUM_Y + 6.1, 275.2);
+  addBox(ctx, 7.8, 3.2, 0.08, mapParchmentMat, 120.0, SANCTUM_Y + 2.7, 274.98);
+  addBox(ctx, 5.2, 0.12, 0.1, crimsonMat, 120.0, SANCTUM_Y + 4.2, 274.92);
+  addBox(ctx, 0.12, 2.4, 0.1, m.gold, 119.2, SANCTUM_Y + 3.1, 274.92);
+
+  // 4 Royal Dwarven Armor Stands flanking the Commander's Dais
+  for (const ax of [112.5, 115.8, 124.2, 127.5]) {
+    addBox(ctx, 1.1, 0.35, 1.1, m.darkStone, ax, SANCTUM_Y + 0.59, 272.6);
+    addBox(ctx, 0.22, 1.95, 0.22, m.wood, ax, SANCTUM_Y + 0.94, 272.6);
+    // Dwarven Plate Cuirass & Pauldrons
+    addBox(ctx, 0.88, 0.95, 0.52, m.iron, ax, SANCTUM_Y + 1.55, 272.6);
+    addBox(ctx, 1.18, 0.28, 0.58, m.gold, ax, SANCTUM_Y + 2.28, 272.6);
+    // Horned Dwarven War Helmet
+    addBox(ctx, 0.48, 0.46, 0.48, m.iron, ax, SANCTUM_Y + 2.62, 272.6);
+    addBox(ctx, 0.52, 0.12, 0.52, m.gold, ax, SANCTUM_Y + 2.82, 272.6);
+    addBox(ctx, 0.86, 0.14, 0.14, m.gold, ax, SANCTUM_Y + 2.95, 272.6);
+  }
+  ctx.addLight(120.0, SANCTUM_Y + 4.2, 271.5, 0xffc84a, 9.5);
+}
+// #endregion
+
 

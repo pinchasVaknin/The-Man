@@ -695,6 +695,111 @@ ARTWORK_STRATEGIES.set('sapphire_gem', (sizeClass) => (
     <polygon points="80,32 106,62 94,118 66,118 54,62" fill="#38bdf8" opacity="0.65" />
   </svg>
 ));
+
+ICON_STRATEGIES.set('dwarven_battle_axe', axeIcon);
+ICON_STRATEGIES.set('mithril_pickaxe', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M14 4c3 1 5 3 6 6M4 10c1-3 3-5 6-6m2 2L5 19" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+ICON_STRATEGIES.set('dwarven_shield', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+));
+ICON_STRATEGIES.set('dwarven_helmet', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M4 13a8 8 0 0 1 16 0v5H4v-5z" />
+    <path d="M4 10C2 8 2 5 4 4m16 6c2-2 2-5 0-6M12 13v5" />
+  </svg>
+));
+ICON_STRATEGIES.set('dwarven_gold_ingot', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <polygon points="6 9 18 9 21 16 3 16 6 9" />
+  </svg>
+));
+ICON_STRATEGIES.set('cavern_diamond', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <polygon points="12 2 20 9 12 22 4 9 12 2" />
+  </svg>
+));
+ICON_STRATEGIES.set('dwarven_chisel_set', axeIcon);
+ICON_STRATEGIES.set('crystal_core_drill', (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M14 4l6 6-9 9H5v-6l9-9z" />
+  </svg>
+));
+ICON_STRATEGIES.set('prospector_lantern', torchIcon);
+
+ARTWORK_STRATEGIES.set('dwarven_battle_axe', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#f59e0b" fillOpacity="0.2" />
+    <line x1="80" y1="24" x2="80" y2="142" stroke="#78350f" strokeWidth="11" strokeLinecap="round" />
+    <path d="M80 38 C52 24 34 42 36 66 C34 90 52 106 80 92 Z" fill="#9ca3af" stroke="#fbbf24" strokeWidth="3.5" />
+    <path d="M80 38 C108 24 126 42 124 66 C126 90 108 106 80 92 Z" fill="#9ca3af" stroke="#fbbf24" strokeWidth="3.5" />
+    <circle cx="80" cy="65" r="10" fill="#d97706" stroke="#fde68a" strokeWidth="2.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('mithril_pickaxe', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#38bdf8" fillOpacity="0.22" />
+    <line x1="38" y1="126" x2="112" y2="52" stroke="#475569" strokeWidth="11" strokeLinecap="round" />
+    <path d="M66 26 Q110 34 134 90 Q106 60 88 52 Q74 44 66 26 Z" fill="#7dd3fc" stroke="#e0f2fe" strokeWidth="3.5" />
+    <rect x="92" y="42" width="18" height="18" rx="3" transform="rotate(45 101 51)" fill="#fbbf24" stroke="#fef08a" strokeWidth="2.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dwarven_shield', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fbbf24" fillOpacity="0.2" />
+    <polygon points="80,20 124,42 124,96 80,138 36,96 36,42" fill="#374151" stroke="#fbbf24" strokeWidth="5" />
+    <circle cx="80" cy="78" r="22" fill="#d97706" stroke="#fef08a" strokeWidth="3.5" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dwarven_helmet', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fbbf24" fillOpacity="0.18" />
+    <path d="M42 66 C20 50 18 28 36 24 C28 42 36 54 48 60 Z" fill="#e5e7eb" stroke="#fbbf24" strokeWidth="3" />
+    <path d="M118 66 C140 50 142 28 124 24 C132 42 124 54 112 60 Z" fill="#e5e7eb" stroke="#fbbf24" strokeWidth="3" />
+    <path d="M44 82 A36 36 0 0 1 116 82 L118 122 L42 122 Z" fill="#4b5563" stroke="#fbbf24" strokeWidth="4" />
+    <rect x="74" y="64" width="12" height="58" fill="#d97706" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dwarven_gold_ingot', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#facc15" fillOpacity="0.24" />
+    <polygon points="42,68 118,68 134,112 26,112" fill="#f59e0b" stroke="#fef08a" strokeWidth="4" />
+    <polygon points="52,52 108,52 118,68 42,68" fill="#fbbf24" stroke="#fef9c3" strokeWidth="3" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('cavern_diamond', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#38bdf8" fillOpacity="0.28" />
+    <polygon points="80,18 128,64 80,140 32,64" fill="#bae6fd" stroke="#ffffff" strokeWidth="4" />
+    <polygon points="80,28 110,64 80,124 50,64" fill="#e0f2fe" opacity="0.85" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('dwarven_chisel_set', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#94a3b8" fillOpacity="0.18" />
+    <rect x="44" y="34" width="14" height="92" rx="3" fill="#9ca3af" stroke="#e2e8f0" strokeWidth="3" />
+    <rect x="74" y="30" width="16" height="98" rx="3" fill="#cbd5e1" stroke="#fbbf24" strokeWidth="3" />
+    <polygon points="104,42 124,42 114,124" fill="#d97706" stroke="#fde68a" strokeWidth="3" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('crystal_core_drill', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#38bdf8" fillOpacity="0.2" />
+    <rect x="58" y="36" width="44" height="38" rx="6" fill="#d97706" stroke="#fef08a" strokeWidth="3.5" />
+    <polygon points="68,74 92,74 80,136" fill="#7dd3fc" stroke="#e0f2fe" strokeWidth="3" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('prospector_lantern', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#fbbf24" fillOpacity="0.24" />
+    <rect x="52" y="44" width="56" height="76" rx="8" fill="#1e293b" stroke="#fbbf24" strokeWidth="4" />
+    <circle cx="80" cy="82" r="18" fill="#fef08a" />
+  </svg>
+));
 // #endregion
 
 // ======================== PUBLIC RENDER FUNCTIONS ======================== \\

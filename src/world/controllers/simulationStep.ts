@@ -134,10 +134,15 @@ import {
   DWARVEN_RIDEABLE_MINECART_LINES,
   evaluateRideableMinecartPose,
   findNearestRideableMinecartStation,
+  getEastForkSwitchBranch,
   isInsideSouthernMine,
+  isPlayerNearEastForkSwitchLever,
+  setActivePlayerRiddenMinecartLineId,
+  setEastForkSwitchBranch,
   setRideableMinecartVisualProgress,
   southernMineWalkableHeightAt,
   stepRideableMinecartPhysics,
+  toggleEastForkSwitchBranch,
 } from '../systems/dwarvenMineAndCaravanSystem';
 import {
   type IPlacedTrap,
@@ -394,6 +399,15 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
         if (keysJustPressed.has(kb.interactDoor)) {
           if (restState.activeMinecartRide && tryBoardOrExitMinecart()) {
             // Exited active minecart via [E]
+          } else if (isPlayerNearEastForkSwitchLever(playerState.x, playerState.y, playerState.z)) {
+            const newBranch = toggleEastForkSwitchBranch();
+            hudFeedback.lootNotification =
+              newBranch === 'left'
+                ? "מתג המסילה הועבר שמאלה [A] — מסלול מערת המית'ריל והגבישים"
+                : 'מתג המסילה הועבר ימינה [D] — מסלול היכל מאזארבול וקבר באלין';
+            hudFeedback.lootNotificationTimer = 4.2;
+            soundEngine.playFootstep('bridge', 1.15);
+            emitHudSnapshot();
           } else if (harvestOrPickupNearbyTrap()) {
             // Handled placed trap!
           } else {
@@ -695,12 +709,16 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
         playerState.isSleeping = restState.isSleepingInBed;
         if (restState.activeMinecartRide) {
           if (jumpPressed) {
+            const exitedLineId = restState.activeMinecartRide.lineId;
             restState.activeMinecartRide = null;
+            setActivePlayerRiddenMinecartLineId(null);
+            setRideableMinecartVisualProgress(exitedLineId, 0, 0, 0);
             playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
             capturePreviousPlayerPose();
             soundEngine.playFootstep('bridge', 1.08);
             emitHudSnapshot();
           } else {
+            setActivePlayerRiddenMinecartLineId(restState.activeMinecartRide.lineId);
             const pose0 = evaluateRideableMinecartPose(
               restState.activeMinecartRide.lineId,
               restState.activeMinecartRide.u
@@ -721,7 +739,40 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               restState.activeMinecartRide.facingSign = -1;
               throttleAlongU = -Math.min(1, Math.abs(forward));
             }
-            const stepRes = stepRideableMinecartPhysics(
+            // Live Left ([A]) / Right ([D]) track-branch steering while descending toward the East Fork Junction (u <= 0.46)
+            if (
+              (restState.activeMinecartRide.lineId === 'minecart-line-east-fork-left' ||
+                restState.activeMinecartRide.lineId === 'minecart-line-east-fork-right') &&
+              restState.activeMinecartRide.u <= 0.46
+            ) {
+              if (
+                right < -0.25 &&
+                restState.activeMinecartRide.lineId !== 'minecart-line-east-fork-left'
+              ) {
+                setEastForkSwitchBranch('left');
+                setRideableMinecartVisualProgress(restState.activeMinecartRide.lineId, 0, 0, 0);
+                restState.activeMinecartRide.lineId = 'minecart-line-east-fork-left';
+                setActivePlayerRiddenMinecartLineId('minecart-line-east-fork-left');
+                hudFeedback.lootNotification = "ניווט מסילה שמאלה [A] — מערת כריית המית'ריל והגבישים";
+                hudFeedback.lootNotificationTimer = 3.5;
+                soundEngine.playFootstep('bridge', 1.12);
+                emitHudSnapshot();
+              } else if (
+                right > 0.25 &&
+                restState.activeMinecartRide.lineId !== 'minecart-line-east-fork-right'
+              ) {
+                setEastForkSwitchBranch('right');
+                setRideableMinecartVisualProgress(restState.activeMinecartRide.lineId, 0, 0, 0);
+                restState.activeMinecartRide.lineId = 'minecart-line-east-fork-right';
+                setActivePlayerRiddenMinecartLineId('minecart-line-east-fork-right');
+                hudFeedback.lootNotification = 'ניווט מסילה ימינה [D] — היכל מאזארבול וקבר באלין';
+                hudFeedback.lootNotificationTimer = 3.5;
+                soundEngine.playFootstep('bridge', 1.12);
+                emitHudSnapshot();
+              }
+            }
+
+            let stepRes = stepRideableMinecartPhysics(
               restState.activeMinecartRide.lineId,
               restState.activeMinecartRide.u,
               restState.activeMinecartRide.velocity,
@@ -729,6 +780,58 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               throttleAlongU,
               rawDt
             );
+
+            // Seamless track continuation through the opened East Wall Doorway (lx = 118..121.3, lz = 72)
+            if (
+              restState.activeMinecartRide.lineId === 'minecart-line-east-wall' &&
+              stepRes.u >= 0.98 &&
+              (stepRes.velocity > 0.1 || throttleAlongU > 0.05)
+            ) {
+              const nextForkLineId =
+                getEastForkSwitchBranch() === 'left'
+                  ? 'minecart-line-east-fork-left'
+                  : 'minecart-line-east-fork-right';
+              setRideableMinecartVisualProgress('minecart-line-east-wall', 0, 0, 0);
+              restState.activeMinecartRide.lineId = nextForkLineId;
+              restState.activeMinecartRide.u = 0.01;
+              restState.activeMinecartRide.velocity = Math.max(5.5, Math.abs(stepRes.velocity));
+              restState.activeMinecartRide.facingSign = 1;
+              setActivePlayerRiddenMinecartLineId(nextForkLineId);
+              stepRes = stepRideableMinecartPhysics(
+                nextForkLineId,
+                0.01,
+                restState.activeMinecartRide.velocity,
+                restState.activeMinecartRide.wheelAngle,
+                1,
+                0.001
+              );
+              hudFeedback.lootNotification =
+                'חצית את השער המזרחי — לחץ [A] שמאלה או [D] ימינה לבחירת מסלול בפיצול!';
+              hudFeedback.lootNotificationTimer = 4.2;
+              emitHudSnapshot();
+            } else if (
+              (restState.activeMinecartRide.lineId === 'minecart-line-east-fork-left' ||
+                restState.activeMinecartRide.lineId === 'minecart-line-east-fork-right') &&
+              stepRes.u <= 0.02 &&
+              (stepRes.velocity < -0.1 || throttleAlongU < -0.05)
+            ) {
+              const prevForkId = restState.activeMinecartRide.lineId;
+              setRideableMinecartVisualProgress(prevForkId, 0, 0, 0);
+              restState.activeMinecartRide.lineId = 'minecart-line-east-wall';
+              restState.activeMinecartRide.u = 0.98;
+              restState.activeMinecartRide.velocity = -Math.max(5.0, Math.abs(stepRes.velocity));
+              restState.activeMinecartRide.facingSign = -1;
+              setActivePlayerRiddenMinecartLineId('minecart-line-east-wall');
+              stepRes = stepRideableMinecartPhysics(
+                'minecart-line-east-wall',
+                0.98,
+                restState.activeMinecartRide.velocity,
+                restState.activeMinecartRide.wheelAngle,
+                -1,
+                0.001
+              );
+            }
+
             restState.activeMinecartRide.u = stepRes.u;
             restState.activeMinecartRide.velocity = stepRes.velocity;
             restState.activeMinecartRide.wheelAngle = stepRes.wheelAngle;

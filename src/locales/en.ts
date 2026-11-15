@@ -179,6 +179,78 @@ export const en = {
       "description": "Heavy steel-headed mining pickaxe balanced for both rock-breaking and close combat.",
       "lore": "Standard issue tool of the Ironforge delve crews."
     },
+    "mithril_pickaxe": {
+      "name": "Mithril Diamond-Splitter Pickaxe",
+      "short": "Mithril Pickaxe",
+      "category": "Weapons",
+      "stat": "Damage 82 · Diamond-Grade Pick",
+      "description": "Masterwork Mithril pickaxe tempered to cleave glowing cavern diamonds and deep crystal veins.",
+      "lore": "Forged by the Master Toolsmith of Khazad-dûm for deep-vein excavation."
+    },
+    "dwarven_battle_axe": {
+      "name": "Dwarven Double-Bitted Battle Axe",
+      "short": "Dwarven Axe",
+      "category": "Weapons",
+      "stat": "Damage 78 · Heavy Cleaver",
+      "description": "Twin-crescent Dwarven battle axe etched with golden runes of the Mountain Kings.",
+      "lore": "Carried by the royal ironclad vanguard of the Great Hall."
+    },
+    "dwarven_shield": {
+      "name": "Dwarven Runic Bulwark Shield",
+      "short": "Dwarven Shield",
+      "category": "Gear",
+      "stat": "Defense +28 · Heavy Bulwark · 290 Gold",
+      "description": "Octagonal forged-iron and burnished-gold shield bossed with the emblem of the Mountain Kingdom.",
+      "lore": "Impervious to cavern rockfalls and dragonfire alike."
+    },
+    "dwarven_helmet": {
+      "name": "Dwarven Royal Horned Helmet",
+      "short": "Dwarven Helmet",
+      "category": "Gear",
+      "stat": "Defense +18 · Heavy Helm · 260 Gold",
+      "description": "Heavy riveted steel-and-gold Dwarven war helm crowned with curved ram horns and a rune crest.",
+      "lore": "Worn by the subterranean captains of the Deep Delve."
+    },
+    "dwarven_gold_ingot": {
+      "name": "Pure Dwarven Gold Ingot",
+      "short": "Gold Ingot",
+      "category": "Materials",
+      "stat": "Bullion · 320 Gold",
+      "description": "Stamped bar of pure refined mountain gold smelted in the underground foundry.",
+      "lore": "Bears the royal seal of the First King."
+    },
+    "cavern_diamond": {
+      "name": "Radiant Cavern Diamond",
+      "short": "Cavern Diamond",
+      "category": "Materials",
+      "stat": "Precious Gem · 520 Gold",
+      "description": "Brilliant multi-faceted white-blue diamond pried from the luminous walls of the Deep Diamond Mine.",
+      "lore": "Shines with its own inner starlight even in the deepest abyss."
+    },
+    "dwarven_chisel_set": {
+      "name": "Heavy Stone Chisels & Wedges",
+      "short": "Stone Chisels",
+      "category": "Gear",
+      "stat": "Mining Tool · 150 Gold",
+      "description": "Set of tempered steel mason chisels, feather wedges, and a striking mallet for splitting ore seams.",
+      "lore": "Prepared for future precision stone-carving and gem extraction."
+    },
+    "crystal_core_drill": {
+      "name": "Mechanical Crystal Core Drill",
+      "short": "Core Drill",
+      "category": "Gear",
+      "stat": "Mining Tool · 310 Gold",
+      "description": "Hand-cranked brass-and-iron geared rotary auger tipped with diamond grit for boring into hard rock.",
+      "lore": "An ingenious invention of the Upper Cavern engineers."
+    },
+    "prospector_lantern": {
+      "name": "Runic Prospector's Lantern",
+      "short": "Runic Lantern",
+      "category": "Gear",
+      "stat": "Mining Gear · 185 Gold",
+      "description": "Caged brass miner's lantern whose crystal lens resonates near rich gold and diamond veins.",
+      "lore": "Guides delve crews through the darkest galleries."
+    },
     "ancient_dwarven_horn": {
       "name": "War Horn",
       "short": "War Horn",
@@ -613,6 +685,9 @@ export const en = {
     "market_harbor_stone": "Harbor Market — Stone & Marble (Merchant Karim)",
     "market_harbor_smithy": "Harbor Market — Smithy & Iron (Blacksmith Borin)",
     "market_harbor_minerals": "Harbor Market — Food & Provisions (Merchant Han)",
+    "market_mine_weapons": "Dwarven Armory Stall — Hammer, Axe, Shield & Helmet (Armorer Gimli)",
+    "market_mine_gems": "Dwarven Bullion & Gems Stall — Gold, Diamonds & Gems (Jeweler Bombur)",
+    "market_mine_tools": "Dwarven Mining Tools Stall — Pickaxes & Excavation Gear (Engineer Dain)",
     "horse_royal": "Chestnut Horse",
     "horse_hunter": "Black Horse (Hunter's Stable)",
     "horse_farm": "White Horse (Wheat Farm)",

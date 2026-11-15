@@ -230,12 +230,45 @@ export const UPPER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'oreBin', lx: 64, lz: 103 },
   { kind: 'oreBin', lx: 114, lz: 108 },
   { kind: 'toolRack', lx: 118, lz: 116, yaw: QUARTER },
+
+  // Room 1 (Left Branch of East Fork, lx: 146..200, lz: -66..-24, y = -27.35): Deep Glowing Diamond Mine Cavern.
+  { kind: 'mineralVein', lx: 199.4, lz: -54, yaw: QUARTER, tint: 'blue', lift: 1.5 },
+  { kind: 'mineralVein', lx: 199.4, lz: -42, yaw: QUARTER, tint: 'blue', lift: 1.6 },
+  { kind: 'mineralVein', lx: 199.4, lz: -32, yaw: QUARTER, tint: 'gold', lift: 1.4 },
+  { kind: 'mineralVein', lx: 162, lz: -65.4, tint: 'blue', lift: 1.5 },
+  { kind: 'mineralVein', lx: 184, lz: -65.4, tint: 'purple', lift: 1.5 },
+  { kind: 'crystalCluster', lx: 196.0, lz: -56, tint: 'blue' },
+  { kind: 'crystalCluster', lx: 196.0, lz: -40, tint: 'blue' },
+  { kind: 'crystalCluster', lx: 194.0, lz: -30, tint: 'purple' },
+  { kind: 'crystalCluster', lx: 150.0, lz: -58, tint: 'blue' },
+  { kind: 'orePile', lx: 193.0, lz: -50, tint: 'iron' },
+  { kind: 'orePile', lx: 193.0, lz: -44, tint: 'gold' },
+  { kind: 'oreBin', lx: 152, lz: -48, yaw: QUARTER },
+  { kind: 'workbench', lx: 152, lz: -40, yaw: QUARTER },
+  { kind: 'anvil', lx: 153, lz: -35 },
+  { kind: 'toolRack', lx: 149, lz: -30, yaw: QUARTER },
+  { kind: 'torchStand', lx: 154, lz: 64 },
+  { kind: 'torchStand', lx: 154, lz: 80 },
+  { kind: 'torchStand', lx: 160, lz: -56 },
+  { kind: 'torchStand', lx: 186, lz: -56 },
+
+  // Room 2 (Right Branch of East Fork, lx: 148..192, lz: 96..130, y = -17.35): Grand Dwarven Storage Warehouse.
+  { kind: 'brazier', lx: 160, lz: 102 },
+  { kind: 'brazier', lx: 184, lz: 102 },
+  { kind: 'brazier', lx: 160, lz: 124 },
+  { kind: 'brazier', lx: 184, lz: 124 },
+  { kind: 'crateStack', lx: 151, lz: 100 },
+  { kind: 'crateStack', lx: 151, lz: 126 },
+  { kind: 'crateStack', lx: 189, lz: 100 },
+  { kind: 'crateStack', lx: 189, lz: 126 },
+  { kind: 'barrel', lx: 155, lz: 127 },
+  { kind: 'barrel', lx: 185, lz: 127 },
 ];
 // #endregion
 
 // #region Lower Level
 /**
- * Summary: Props of the descent, chasm ledge, Great Bridge, heroes' cliff path and king balcony.
+ * Summary: Props of the descent, chasm ledge, Great Bridge, heroes' cliff path, king balcony, and Circular Staircase Chamber.
  * Design: Braziers light the crossing (warm fire against the cold chasm); banners and old gear
  *         tell of the halls' history. Lanes stay clear of the walkthrough routes.
  */
@@ -255,6 +288,17 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'barrel', lx: -66, lz: 191.5 },
   { kind: 'orePile', lx: 40, lz: 200, tint: 'dark' },
   { kind: 'orePile', lx: 56, lz: 197, tint: 'dark' },
+  // Flanking braziers at the Left-Wall Doorway to the Circular Staircase Chamber (lx = 70, lz = 194..202).
+  { kind: 'brazier', lx: 68.5, lz: 192.8 },
+  { kind: 'brazier', lx: 68.5, lz: 203.2 },
+  // Deep Moria Sanctum at the bottom of the Circular Staircase (lx: 102..138, lz: 244..276, y = -63.35).
+  { kind: 'brazier', lx: 112, lz: 250 },
+  { kind: 'brazier', lx: 128, lz: 250 },
+  { kind: 'brazier', lx: 112, lz: 268 },
+  { kind: 'brazier', lx: 128, lz: 268 },
+  { kind: 'weaponRack', lx: 104, lz: 258, yaw: QUARTER },
+  { kind: 'crystalCluster', lx: 135, lz: 254, tint: 'blue' },
+  { kind: 'crystalCluster', lx: 135, lz: 266, tint: 'gold' },
 
   // Great Bridge: braziers along both parapets.
   ...[216, 233, 250, 267, 284].flatMap((lz) => [
@@ -325,25 +369,29 @@ export const ALL_MINE_PROPS: readonly IMinePropPlacement[] = [...UPPER_LEVEL_PRO
 /**
  * Summary: Railway network of the Central Hub (`upperCavern`) radiating from the Central Gold Funnel
  *          (`lx = 0, lz = 80`) across the Gold/Silver walls, Gallery Pit, East Crusher, North Tunnel,
- *          and Smelting Foundry.
+ *          Smelting Foundry, and descending through the opened East Doorway (`lx = 121.3, lz = 72`)
+ *          to the Underground Forking Switch (`lx = 156, lz = 72`) leading to the Mithril Cavern (Left)
+ *          and Hall of Mazarbul (Right).
  * Design:
  * - Every line is kept 100% clear of props, pillars, stairs, and structures.
  * - Branch lines share a tangent initial segment with their parent line so turnouts merge smoothly
  *   via curved frog switches rather than colliding at right angles.
  */
 export const UPPER_RAIL_LINES: readonly (readonly (readonly [number, number])[])[] = [
-  // 1. East Main Line into the Gallery Pit loading bay.
-  [[6, 80], [30, 80], [56, 78], [70, 76], [70, 72], [70, 60], [70, 54]],
-  // 2. East Gallery & Stone Crusher Spur (starts tangentially on the main line 3.2m before [70, 76] and curves smoothly into the East Wall spur).
-  [[66.83, 76.45], [70, 76], [84, 74], [98, 72], [118, 72]],
-  // 3. North-East Gold & Silver Tunnel Line (runs from the Central Gold Funnel along the open north gallery corridor to the North Gold/Silver wall & closed mine tunnel at (86, 25.3), completely clear of gallery-platform-stairs).
+  // 1. East Main Line into the Gallery Pit loading bay (diverges smoothly at [56, 78] and aligns straight into the pit ramp at [70, 72]).
+  [[6, 80], [32, 80], [56, 78], [66, 77], [70, 74.5], [70, 72], [70, 60], [70, 54]],
+  // 2. East Gallery & Descending Fork Line — Left Branch through 1st Small Tunnel, across the Abyss Chasm Rail Bridge, through 2nd Descending Tunnel, into the Deep Glowing Diamond Mine.
+  [[56, 78], [74, 75], [96, 72], [118, 72], [124, 72], [152, 72], [156, 72], [165, 67], [173, 60], [173, 48], [173, 8], [173, -24], [173, -46]],
+  // 3. North-East Gold & Silver Tunnel Line (runs from the Central Gold Funnel along the open north gallery corridor to the North Gold/Silver wall at (86, 29)).
   [[4, 74], [16, 56], [34, 40], [54, 31], [75, 31], [86, 29]],
   // 4. South-East Smelting Foundry Line extending past all three Blast Furnaces.
   [[4, 85], [20, 100], [40, 108], [56, 108], [68, 114], [84, 120], [98, 120], [112, 116]],
   // 5. West Gold & Silver Wall Line (runs west of the 2nd-floor scaffolding directly to the North-West Gold & Silver veins at (-46, 21.8) and (-64, 24.0)).
   [[-6, 80], [-18, 75], [-32, 66], [-44, 54], [-46, 38], [-46, 26], [-56, 26]],
-  // 6. West Cavern Spur (starts tangentially on the main line 3.2m before [-18, 75] and curves smoothly toward the West Cavern).
-  [[-15.04, 76.23], [-18, 75], [-32, 80], [-48, 84], [-56, 84]],
+  // 6. West Cavern Spur (branches tangentially from [-18, 75] with the exact incoming trunk tangent [-6, 80] -> [-18, 75]).
+  [[-18, 75], [-34, 79], [-48, 84], [-56, 84]],
+  // 7. East Descending Fork — Right Branch splitting tangentially from [156, 72] into the Grand Dwarven Storage Warehouse.
+  [[156, 72], [165, 77], [172, 86], [172, 96], [174, 116]],
 ];
 // #endregion
 

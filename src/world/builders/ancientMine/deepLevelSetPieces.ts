@@ -43,18 +43,18 @@ const DRAGON_SCORCHED = 0x4a2418;
 const GOLD = 0xd6a23e;
 
 //** Summary: Central colossal Red DemonDragon head anchor on the forge's south wall. */
-const CENTER_DRAGON = { lx: MINE_POI.dragonMouth.lx, wallLz: 451.5, headY: -36.5, scale: 38.0 } as const;
+const CENTER_DRAGON = { lx: MINE_POI.dragonMouth.lx, wallLz: 451.5, headY: -35.8, scale: 46.0 } as const;
 
 /** Summary: Z stations of the 3 side ForestDragon heads on each side wall, and the 4 structural pillars flanking them. */
 const SIDE_DRAGON_LZS = [410, 428, 446] as const;
 const SIDE_PILLAR_LZS = [401, 419, 437, 455] as const;
-const SIDE_DRAGON_SCALE = 33.0;
+const SIDE_DRAGON_SCALE = 34.0;
 
 /** Summary: Symmetrical skull, horns, jaw and upper neck bone indices of DemonDragon (excludes asymmetric spine/wings). */
 const DEMON_HEAD_BONES: ReadonlySet<number> = new Set([19, 20, 21, 22, 23, 24]);
 
-/** Summary: Full muscular neck, back of head, skull, horns and jaw bone indices of ForestDragon (excludes wings/legs). */
-const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([22, 23, 32, 33, 34, 35]);
+/** Summary: Cobra-hood flare (bone 32), upper neck (bone 33), skull/horns (bone 34), and lower jaw (bone 35) of ForestDragon (excludes chest/lower neck stalk 22, 23). */
+const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([32, 33, 34, 35]);
 // #endregion
 
 // ======================== PUBLIC BUILD ======================== \\
@@ -73,8 +73,8 @@ export function buildDeepLevelSetPieces(ctx: ISetPieceContext, textures: THREE.T
     map: lavaMap,
     emissiveMap: lavaMap,
     emissive: 0xff5a10,
-    emissiveIntensity: 1.65,
-    roughness: 0.65,
+    emissiveIntensity: 1.75,
+    roughness: 0.55,
     side: THREE.DoubleSide,
   });
   const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb040, transparent: true, opacity: 0.85 });
@@ -84,20 +84,26 @@ export function buildDeepLevelSetPieces(ctx: ISetPieceContext, textures: THREE.T
   const golem = buildGolem(ctx, vertexStone, runeMat);
   buildGolemChamber(ctx, runeMat);
   buildPassage(ctx);
-  const flames = buildDragonForgeHeadsAndPillars(ctx, vertexStone, lavaMat, flameMat);
+  const { flames, cascades } = buildDragonForgeHeadsAndPillars(ctx, vertexStone, lavaMat, flameMat);
   buildForgeFloor(ctx, lavaMat);
-  buildTreasure(ctx, lavaMat);
+  const umbrellaCascades = buildTreasure(ctx, lavaMat);
+  cascades.push(...umbrellaCascades);
   buildRoyalTreasureVault(ctx);
 
   return (t: number): void => {
     golem.position.y = Math.sin(t * 1.1) * 0.06;
     golem.scale.y = 1 + Math.sin(t * 1.1) * 0.006;
     runeMat.color.setHSL(0.55, 1, 0.55 + Math.sin(t * 2.0) * 0.12);
-    lavaMap.offset.set(t * 0.012, -t * 0.038);
-    lavaMat.emissiveIntensity = 1.55 + Math.sin(t * 1.7) * 0.22;
+    lavaMap.offset.set(Math.sin(t * 0.6) * 0.03, -t * 0.055);
+    lavaMat.emissiveIntensity = 1.65 + Math.sin(t * 2.1) * 0.25;
     flames.forEach((f, i) => {
       f.scale.y = 1 + Math.sin(t * 9 + i * 1.9) * 0.25;
       f.scale.x = 1 + Math.sin(t * 7 + i) * 0.1;
+    });
+    cascades.forEach((c, i) => {
+      const pulse = Math.sin(t * 4.2 + i * 1.3);
+      c.scale.x = 1 + pulse * 0.06;
+      c.scale.z = 1 - pulse * 0.05;
     });
   };
 }
@@ -118,21 +124,31 @@ function fixture(id: string): (typeof MINE_SOLID_FIXTURES)[number] {
   return f;
 }
 
-/** Summary: Orange-red lava with bright veins, tiled and scrolled to look molten. */
+/** Summary: Orange-red lava with bright veins and flowing molten ribbons, tiled and scrolled to look molten. */
 function createLavaTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 128;
   const c = canvas.getContext('2d');
   if (c !== null) {
-    c.fillStyle = '#7a1606';
+    c.fillStyle = '#6e1204';
     c.fillRect(0, 0, 128, 128);
+    // Vertical molten flow ribbons so cascades look like liquid magma streams rather than static spots
+    for (let s = 0; s < 10; s++) {
+      const sx = ((s * 13 + 7) % 16) * 8;
+      const grad = c.createLinearGradient(sx, 0, sx + 12, 0);
+      grad.addColorStop(0, 'rgba(255,60,0,0)');
+      grad.addColorStop(0.5, s % 2 === 0 ? 'rgba(255,195,50,0.65)' : 'rgba(255,110,15,0.55)');
+      grad.addColorStop(1, 'rgba(255,60,0,0)');
+      c.fillStyle = grad;
+      c.fillRect(sx - 6, 0, 20, 128);
+    }
     for (let i = 0; i < 90; i++) {
       const x = (i * 53) % 128;
       const y = (i * 29) % 128;
       const r = 4 + (i % 7) * 3;
       const g = c.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, i % 3 === 0 ? '#fff3a0' : '#ff9a20');
+      g.addColorStop(0, i % 3 === 0 ? '#fff6b0' : '#ff9e22');
       g.addColorStop(1, 'rgba(255,80,0,0)');
       c.fillStyle = g;
       c.fillRect(x - r, y - r, r * 2, r * 2);
@@ -141,9 +157,79 @@ function createLavaTexture(): THREE.CanvasTexture {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(6, 6);
+  texture.repeat.set(4, 6);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+/**
+ * Summary: Builds an organic, multi-ribbed, gravity-curving molten lava cascade geometry between a
+ *          top spout `(0, 0, 0)` and a lower landing offset `(offsetX, -dropHeight, offsetZ)` so
+ *          pouring lava looks like a living, billowing liquid waterfall instead of a rigid cylinder.
+ */
+function createSculptedLavaCascadeGeometry(
+  topRadiusX: number,
+  topRadiusZ: number,
+  bottomRadiusX: number,
+  bottomRadiusZ: number,
+  dropHeight: number,
+  offsetX: number,
+  offsetZ: number,
+  archBulgeZ: number,
+  radialSegs = 20,
+  heightSegs = 18
+): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let iy = 0; iy <= heightSegs; iy++) {
+    const v = iy / heightSegs; // 0 at top mouth/spout, 1 at bottom impact
+    // Parabolic gravity fall: gentle horizontal launch at top, accelerating downward
+    const y = -v * dropHeight;
+    const centerX = offsetX * Math.pow(v, 1.25);
+    const centerZ = offsetZ * Math.pow(v, 1.25) + archBulgeZ * Math.sin(v * Math.PI);
+
+    // Natural vena-contracta narrowing in mid-air followed by a wide splashing flare at the bottom
+    const midPinch = 1.0 - 0.14 * Math.sin(v * Math.PI);
+    const splashFlare = v > 0.78 ? 1.0 + Math.pow((v - 0.78) / 0.22, 1.6) * 0.48 : 1.0;
+    const rxBase = (topRadiusX + (bottomRadiusX - topRadiusX) * v) * midPinch * splashFlare;
+    const rzBase = (topRadiusZ + (bottomRadiusZ - topRadiusZ) * v) * midPinch * splashFlare;
+
+    for (let ix = 0; ix <= radialSegs; ix++) {
+      const u = ix / radialSegs;
+      const theta = u * Math.PI * 2;
+      // Organic longitudinal magma ribs and billowing surface waves
+      const rib =
+        1.0 +
+        0.22 * Math.sin(theta * 5 + v * 9.5) +
+        0.14 * Math.cos(theta * 3 - v * 7.0) +
+        0.08 * Math.sin(theta * 8 + v * 14.0);
+      const x = centerX + Math.cos(theta) * rxBase * rib;
+      const z = centerZ + Math.sin(theta) * rzBase * rib;
+      positions.push(x, y, z);
+      uvs.push(u * 2.0, (1 - v) * 3.5);
+    }
+  }
+
+  const stride = radialSegs + 1;
+  for (let iy = 0; iy < heightSegs; iy++) {
+    for (let ix = 0; ix < radialSegs; ix++) {
+      const a = iy * stride + ix;
+      const b = a + 1;
+      const c = a + stride;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setIndex(indices);
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  return geo;
 }
 // #endregion
 
@@ -219,12 +305,22 @@ function buildGolem(ctx: ISetPieceContext, stone: THREE.Material, runeMat: THREE
 /** Summary: Gate frames reaching all the way to the local ceiling, rune circle, protected doorway, ceiling chains and wall alcoves. */
 function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void {
   const m = ctx.materials;
-  // Gate frames where the tunnel leaves the bridge (lz = 300.4, chasm ceiling = -12.0)
-  // and where it opens into the Golem Chamber (lz = 313.6, chamber ceiling = -22.0).
-  for (const [lz, topCeilingY] of [[300.4, -12.0], [313.6, -22.0]] as const) {
+  // Gate frame at lz = 313.6 where the tunnel opens into the Golem Chamber (chamber ceiling = -22.0).
+  // Note: At lz = 300.4 (directly underneath the King's Balcony where the Golden King statue stands at y = -29.35),
+  // keep the tunnel arch strictly below y = -30.0 so NO wall ever rises onto the King's Balcony!
+  {
+    const lz = 300.4;
+    const underBalconyTopY = MINE_LEVEL_Y.kingBalcony - 0.65; // -30.0 (strictly underneath the King's Balcony floor!)
+    const jambH = underBalconyTopY - LEDGE;
+    for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, jambH, 2.0, m.stone, x, LEDGE, lz);
+    addBox(ctx, 17.0, 0.85, 2.0, m.darkStone, 0, underBalconyTopY - 0.85, lz);
+    addBox(ctx, 17.2, 0.22, 2.1, m.gold, 0, underBalconyTopY - 0.9, lz);
+  }
+  {
+    const lz = 313.6;
+    const topCeilingY = -22.0;
     const fullH = topCeilingY - LEDGE + 0.2;
     for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, fullH, 2.0, m.stone, x, LEDGE, lz);
-    // Full-height header from doorway clearance (LEDGE + 7.4) all the way up to topCeilingY (no hole above the lintel!)
     addBox(ctx, 17.0, topCeilingY - (LEDGE + 7.4) + 0.2, 2.2, m.darkStone, 0, LEDGE + 7.4, lz);
     addBox(ctx, 17.2, 0.24, 2.3, m.gold, 0, LEDGE + 7.35, lz);
     for (let i = 0; i < 7; i++) addBox(ctx, 0.4, 0.7, 0.08, runeMat, -6 + i * 2, LEDGE + 7.85, lz - 1.12);
@@ -408,61 +504,135 @@ function bakeDemonDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
 }
 
 /**
- * Summary: Builds the baked open-jaw ForestDragon head + full muscular neck for the 6 side pedestals.
- * Design: In ForestDragon bone space, negative Z rotation (`-0.16`, `-0.30`, `-0.48`) lifts the neck
- *         and skull UPWARD so the dragon holds its head level and proud (never pitched down).
+ * Summary: Builds the baked open-jaw ForestDragon cobra-hood bust statue for the 6 side pedestals.
+ * Design: Extracts the unskinned bind-pose geometry directly for `FOREST_HEAD_BONES` (`32, 33, 34, 35`),
+ *         trims the lower neck stalk right where the flared cobra hood narrows back to the neck
+ *         (`rawY >= 0.575 || rawZ >= 0.25`), and pitches the lower jaw (`bone 35`) downward around
+ *         the jaw hinge `(y = 0.555, z = 0.395)` by `+0.62 rad` so the mouth is wide open for lava!
  */
 function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
   const forest = createReadyForestDragon();
   forest.rig.resetToRest();
-  const zAxis = new THREE.Vector3(0, 0, 1);
-  // Pitch neck (bones 32, 33) and skull (bone 34) UPWARD via negative Z rotation so the head looks straight/slightly up!
-  if (forest.rig.bones[32] !== undefined) {
-    forest.rig.bones[32].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.16));
-  }
-  if (forest.rig.bones[33] !== undefined) {
-    forest.rig.bones[33].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.30));
-  }
-  if (forest.rig.bones[34] !== undefined) {
-    forest.rig.bones[34].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, -0.48));
-  }
-  // Open the lower jaw (bone 35) enough for the lava stream while keeping the head proud and straight.
-  if (forest.rig.bones[35] !== undefined) {
-    forest.rig.bones[35].quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(zAxis, 0.42));
-  }
   forest.object.updateMatrixWorld(true);
   forest.mesh.skeleton.update();
 
-  // Anchor at the back of the muscular neck (anchorX = -0.0395, anchorY = 0.52, anchorZ = 0.14)
-  // so the full neck, back of the head, horns, skull, and jaw are visible!
-  const geometry = ctx.own(
-    bakeSkinnedHeadSubtree(forest.mesh, FOREST_HEAD_BONES, SIDE_DRAGON_SCALE, -0.0395, 0.52, 0.14)
-  );
+  const srcGeo = forest.mesh.geometry;
+  const indexAttr = srcGeo.index;
+  const skinIndexAttr = srcGeo.attributes.skinIndex;
+  const skinWeightAttr = srcGeo.attributes.skinWeight;
+  const uvAttr = srcGeo.attributes.uv;
+  const vA = new THREE.Vector3();
+  const vB = new THREE.Vector3();
+  const vC = new THREE.Vector3();
+
+  const anchorX = -0.0395;
+  const anchorY = 0.64;
+  const anchorZ = 0.14;
+  const cosLift = Math.cos(-0.42);
+  const sinLift = Math.sin(-0.42);
+  const jawHingeY = 0.64;
+  const jawHingeZ = 0.38;
+  const cosJaw = Math.cos(0.62);
+  const sinJaw = Math.sin(0.62);
+  const cosUpper = Math.cos(-0.22);
+  const sinUpper = Math.sin(-0.22);
+
+  const positions: number[] = [];
+  const uvs: number[] = [];
+
+  const pushBustVertex = (vi: number, v: THREE.Vector3, boneIdx: number): void => {
+    const vx = v.x;
+    // 1) First lift the cobra-hood bust & skull so the snout points forward horizontally
+    const ldy = v.y - anchorY;
+    const ldz = v.z - anchorZ;
+    let vy = anchorY + ldy * cosLift - ldz * sinLift;
+    let vz = anchorZ + ldy * sinLift + ldz * cosLift;
+
+    // 2) In horizontal lifted space, separate the upper jaw upward and lower jaw downward so the mouth gapes wide open!
+    const b1 = skinIndexAttr.getY(vi);
+    const w1 = skinWeightAttr !== undefined ? skinWeightAttr.getY(vi) : 0;
+    const isLowerJaw = boneIdx === 35 || (b1 === 35 && w1 >= 0.35);
+    if (isLowerJaw) {
+      const jdy = vy - jawHingeY;
+      const jdz = vz - jawHingeZ;
+      vy = jawHingeY + jdy * cosJaw - jdz * sinJaw - 0.025;
+      vz = jawHingeZ + jdy * sinJaw + jdz * cosJaw + 0.015;
+    } else if (boneIdx === 34 && vz > 0.36) {
+      const udy = vy - jawHingeY;
+      const udz = vz - jawHingeZ;
+      vy = jawHingeY + udy * cosUpper - udz * sinUpper + 0.012;
+      vz = jawHingeZ + udy * sinUpper + udz * cosUpper;
+    }
+
+    positions.push(
+      (vx - anchorX) * SIDE_DRAGON_SCALE,
+      (vy - anchorY) * SIDE_DRAGON_SCALE,
+      (vz - anchorZ) * SIDE_DRAGON_SCALE
+    );
+    if (uvAttr !== undefined) {
+      uvs.push(uvAttr.getX(vi), uvAttr.getY(vi));
+    } else {
+      uvs.push(0, 0);
+    }
+  };
+
+  if (indexAttr !== null) {
+    for (let i = 0; i < indexAttr.count; i += 3) {
+      const a = indexAttr.getX(i);
+      const b = indexAttr.getX(i + 1);
+      const c = indexAttr.getX(i + 2);
+      const ba = skinIndexAttr.getX(a);
+      const bb = skinIndexAttr.getX(b);
+      const bc = skinIndexAttr.getX(c);
+      if (!FOREST_HEAD_BONES.has(ba) || !FOREST_HEAD_BONES.has(bb) || !FOREST_HEAD_BONES.has(bc)) {
+        continue;
+      }
+      forest.mesh.getVertexPosition(a, vA);
+      forest.mesh.getVertexPosition(b, vB);
+      forest.mesh.getVertexPosition(c, vC);
+      // Trim right where the flared cobra hood narrows back to the neck (v.z >= 0.115)
+      const keepCount = (vA.z >= 0.115 ? 1 : 0) + (vB.z >= 0.115 ? 1 : 0) + (vC.z >= 0.115 ? 1 : 0);
+      if (keepCount >= 2) {
+        pushBustVertex(a, vA, ba);
+        pushBustVertex(b, vB, bb);
+        pushBustVertex(c, vC, bc);
+      }
+    }
+  }
+
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  out.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  out.computeVertexNormals();
+  out.computeBoundingSphere();
+
+  const geometry = ctx.own(out);
   const rawMat = Array.isArray(forest.mesh.material) ? forest.mesh.material[0] : forest.mesh.material;
   const mat = rawMat.clone() as THREE.MeshStandardMaterial;
   mat.roughness = 0.42;
   mat.metalness = 0.28;
   mat.emissive = new THREE.Color(0x2c1205);
   mat.emissiveIntensity = 0.42;
+  mat.side = THREE.DoubleSide;
   ctx.ownMaterial(mat);
   forest.dispose();
   return { geometry, material: mat };
 }
 
 /**
- * Summary: Builds the Dragon Forge's colossal central Red DemonDragon head (with pure molten lava
- *          positioned strictly inside its orbital eye sockets and no X/plus glints), the side pillars,
- *          and the 6 enlarged, high-mounted side ForestDragon heads & necks seated on tall monumental
- *          pedestals so their lava cascades down from great height into the lava pool below.
+ * Summary: Builds the Dragon Forge's enlarged central Red DemonDragon head (scale = 46.0, with pure
+ *          molten lava inside its orbital eye sockets), the side pillars, and the 6 cobra-hood
+ *          ForestDragon head statues with wide-open jaws pouring sculpted multi-layer molten cascades.
  */
 function buildDragonForgeHeadsAndPillars(
   ctx: ISetPieceContext,
   vertexStone: THREE.Material,
   lavaMat: THREE.Material,
   flameMat: THREE.Material
-): THREE.Mesh[] {
+): { flames: THREE.Mesh[]; cascades: THREE.Object3D[] } {
   const m = ctx.materials;
   const flames: THREE.Mesh[] = [];
+  const cascades: THREE.Object3D[] = [];
 
   // Pure molten lava eye materials for the central Red Dragon (no X/plus cross-planes).
   const eyeOuterMat = new THREE.MeshBasicMaterial({ color: 0xff2600, fog: false });
@@ -473,22 +643,22 @@ function buildDragonForgeHeadsAndPillars(
   const eyeSphereGeo = ctx.own(new THREE.SphereGeometry(1, 12, 10));
   const flameGeo = ctx.own(new THREE.ConeGeometry(0.85, 3.0, 6));
 
-  // 1) COLOSSAL CENTRAL RED DEMON-DRAGON HEAD ON THE SOUTH SHRINE (lx = 0, wallLz = 451.5, headY = -36.5, scale = 38.0)
+  // 1) COLOSSAL CENTRAL RED DEMON-DRAGON HEAD ON THE SOUTH SHRINE (lx = 0, wallLz = 451.5, headY = -35.8, scale = 46.0)
   const { lx, wallLz, headY, scale } = CENTER_DRAGON;
-  // Grand obsidian & gold furnace shrine rising from the lava bed to frame the colossal Red Dragon neck.
-  addBox(ctx, 32, 34, 6.0, m.darkStone, lx, MINE_LEVEL_Y.lavaBed, wallLz + 3.2);
-  addBox(ctx, 28, 1.4, 6.6, m.gold, lx, headY + 10.5, wallLz + 3.0);
-  addBox(ctx, 28, 1.2, 6.6, m.gold, lx, headY - 7.5, wallLz + 3.0);
-  for (const sideX of [-13.5, 13.5]) {
-    addBox(ctx, 3.0, 32, 6.6, m.stone, lx + sideX, MINE_LEVEL_Y.lavaBed + 1, wallLz + 3.0);
-    addBox(ctx, 3.4, 0.9, 7.0, m.gold, lx + sideX, headY + 3.5, wallLz + 3.0);
+  // Grand obsidian & gold furnace shrine rising from the lava bed to frame the colossal Red Dragon head.
+  addBox(ctx, 34, 36, 6.0, m.darkStone, lx, MINE_LEVEL_Y.lavaBed, wallLz + 3.2);
+  addBox(ctx, 30, 1.5, 6.6, m.gold, lx, headY + 11.8, wallLz + 3.0);
+  addBox(ctx, 30, 1.3, 6.6, m.gold, lx, headY - 8.5, wallLz + 3.0);
+  for (const sideX of [-14.5, 14.5]) {
+    addBox(ctx, 3.2, 34, 6.6, m.stone, lx + sideX, MINE_LEVEL_Y.lavaBed + 1, wallLz + 3.0);
+    addBox(ctx, 3.6, 0.95, 7.0, m.gold, lx + sideX, headY + 4.0, wallLz + 3.0);
   }
 
   const centerFallbackGeo = ctx.own(
     mergeParts([
-      box(14, 9, 14, DRAGON_STONE, 0, 0, 4),
-      box(9, 4, 11, DRAGON_SCORCHED, 0, 1.5, 8),
-      box(8, 2.5, 10, DRAGON_STONE, 0, -3.5, 8),
+      box(16, 10, 16, DRAGON_STONE, 0, 0, 5),
+      box(11, 4.8, 13, DRAGON_SCORCHED, 0, 1.8, 9.5),
+      box(9.5, 3.0, 12, DRAGON_STONE, 0, -4.2, 9.5),
     ])
   );
   const centerGroup = new THREE.Group();
@@ -517,9 +687,9 @@ function buildDragonForgeHeadsAndPillars(
 
   // Pure molten lava nestled strictly inside the Red DemonDragon's orbital eye sockets:
   // Measured socket coordinates on DemonDragon: symX = ±0.047, rawY = 0.580, rawZ = 1.028.
-  const eyeX = 0.047 * scale; // 1.786 m
-  const eyeY = (0.580 - 0.540) * scale; // +1.520 m
-  const eyeZ = (1.028 - 0.820) * scale; // +7.904 m
+  const eyeX = 0.047 * scale;
+  const eyeY = (0.580 - 0.540) * scale;
+  const eyeZ = (1.028 - 0.820) * scale;
   for (const side of [-1, 1] as const) {
     const eyeGroup = new THREE.Group();
     eyeGroup.position.set(side * eyeX, eyeY, eyeZ);
@@ -527,62 +697,79 @@ function buildDragonForgeHeadsAndPillars(
     centerGroup.add(eyeGroup);
 
     const outer = new THREE.Mesh(eyeSphereGeo, eyeOuterMat);
-    outer.scale.set(0.46, 0.30, 0.38);
+    outer.scale.set(0.55, 0.36, 0.45);
     eyeGroup.add(outer);
 
     const mid = new THREE.Mesh(eyeSphereGeo, eyeMidMat);
-    mid.scale.set(0.35, 0.22, 0.30);
-    mid.position.set(side * 0.05, 0, 0.08);
+    mid.scale.set(0.42, 0.26, 0.36);
+    mid.position.set(side * 0.06, 0, 0.1);
     eyeGroup.add(mid);
 
     const core = new THREE.Mesh(eyeSphereGeo, eyeCoreMat);
-    core.scale.set(0.22, 0.14, 0.20);
-    core.position.set(side * 0.08, 0, 0.14);
+    core.scale.set(0.26, 0.17, 0.24);
+    core.position.set(side * 0.1, 0, 0.16);
     eyeGroup.add(core);
   }
 
-  // Molten furnace glow & lava tongue inside the open DemonDragon jaws (rawY = 0.44..0.52, rawZ = 0.96..1.04).
-  const centerThroatGlow = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(1.75, 12, 10)), m.molten);
-  centerThroatGlow.scale.set(1.05, 0.82, 1.35);
-  centerThroatGlow.position.set(0, -1.9, 6.2);
+  // Molten furnace glow & sculpted lava tongue inside the enlarged open DemonDragon jaws
+  const centerThroatGlow = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(2.15, 14, 12)), m.molten);
+  centerThroatGlow.scale.set(1.12, 0.85, 1.45);
+  centerThroatGlow.position.set(0, -2.3, 7.5);
   centerThroatGlow.name = 'ancient-mine-dragon-fire';
   centerGroup.add(centerThroatGlow);
 
-  const centerTongue = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(2.6, 0.65, 3.8)), lavaMat);
-  centerTongue.position.set(0, -3.1, 7.4);
-  centerTongue.rotation.x = 0.32;
-  centerGroup.add(centerTongue);
-
-  // Main lava stream pouring from inside the Red Dragon's open mouth (mine z = 443.3, y = -39.6)
-  // down onto the Chest Deflector Canopy ("Umbrella") at (mine z = 438.6, y = -44.0) above the treasure chest!
-  const mouthWorldZ = wallLz - 8.2; // 443.3
-  const mouthWorldY = headY - 3.1; // -39.6
-  const canopyApexZ = TREASURE_ISLAND.lz + 0.6; // 438.6
-  const canopyApexY = -44.0;
-  const mainStreamLen = Math.hypot(mouthWorldZ - canopyApexZ, mouthWorldY - canopyApexY) + 0.6;
-  const mainStream = new THREE.Mesh(
-    ctx.own(new THREE.CylinderGeometry(1.05, 1.55, mainStreamLen, 14, 1, true)),
+  const centerTongue = new THREE.Mesh(
+    ctx.own(createSculptedLavaCascadeGeometry(1.35, 0.55, 1.55, 0.72, 2.2, 0, 3.2, 0.45, 16, 10)),
     lavaMat
   );
-  mainStream.position.set(lx, (mouthWorldY + canopyApexY) / 2, (mouthWorldZ + canopyApexZ) / 2);
-  mainStream.rotation.x = Math.atan2(mouthWorldZ - canopyApexZ, mouthWorldY - canopyApexY);
-  ctx.group.add(mainStream);
+  centerTongue.position.set(0, -2.1, 6.6);
+  centerGroup.add(centerTongue);
+
+  // Sculpted multi-layered molten lava cascade pouring from inside the Red Dragon's wide-open mouth
+  // (mine z = 441.7, y = -39.5) down onto the Chest Deflector Canopy ("Umbrella") apex (mine z = 438.6, y = -44.0)!
+  const mouthWorldZ = wallLz - 9.8; // 441.7
+  const mouthWorldY = headY - 3.7; // -39.5
+  const canopyApexZ = TREASURE_ISLAND.lz + 0.6; // 438.6
+  const canopyApexY = -44.0;
+  const mainDropH = mouthWorldY - canopyApexY + 0.35;
+  const mainOffsetZ = canopyApexZ - mouthWorldZ;
+
+  const mainCascadeGroup = new THREE.Group();
+  mainCascadeGroup.position.set(lx, mouthWorldY, mouthWorldZ);
+  ctx.group.add(mainCascadeGroup);
+
+  const mainOuterCascade = new THREE.Mesh(
+    ctx.own(
+      createSculptedLavaCascadeGeometry(1.38, 1.05, 1.95, 1.55, mainDropH, 0, mainOffsetZ, -0.75, 22, 18)
+    ),
+    lavaMat
+  );
+  mainCascadeGroup.add(mainOuterCascade);
+
+  const mainInnerCore = new THREE.Mesh(
+    ctx.own(
+      createSculptedLavaCascadeGeometry(0.95, 0.72, 1.35, 1.08, mainDropH, 0, mainOffsetZ, -0.75, 16, 14)
+    ),
+    m.molten
+  );
+  mainCascadeGroup.add(mainInnerCore);
+  cascades.push(mainCascadeGroup);
 
   for (let i = 0; i < 5; i++) {
     const flame = new THREE.Mesh(flameGeo, flameMat);
     flame.userData.isAnimated = true;
-    flame.position.set(lx - 2.0 + i * 1.0, mouthWorldY + 0.4, mouthWorldZ - 0.5);
+    flame.position.set(lx - 2.2 + i * 1.1, mouthWorldY + 0.3, mouthWorldZ - 0.6);
     ctx.group.add(flame);
     flames.push(flame);
   }
-  ctx.addLight(lx, headY - 1.0, wallLz - 10.5, 0xff5a18, 14);
+  ctx.addLight(lx, headY - 1.0, wallLz - 11.5, 0xff5a18, 15);
 
-  // 2) HANDSOME SIDE PILLARS & 6 ENLARGED, HIGH-MOUNTED FOREST-DRAGON HEADS & NECKS (3 WEST, 3 EAST)
+  // 2) HANDSOME SIDE PILLARS & 6 COBRA-HOOD FOREST-DRAGON HEAD STATUES WITH WIDE-OPEN MOUTHS (3 WEST, 3 EAST)
   const sideFallbackGeo = ctx.own(
     mergeParts([
-      box(4.8, 5.8, 6.2, DRAGON_STONE, 0, 0.8, 2.2),
-      box(3.8, 2.8, 5.2, DRAGON_SCORCHED, 0, 2.2, 5.2),
-      box(3.4, 1.6, 4.8, DRAGON_STONE, 0, 0.6, 5.0),
+      box(4.4, 4.6, 4.8, DRAGON_STONE, 0, 0.6, 3.2),
+      box(3.6, 2.2, 5.2, DRAGON_SCORCHED, 0, 1.6, 6.8),
+      box(3.2, 1.2, 4.8, DRAGON_STONE, 0, -0.5, 6.4),
     ])
   );
   const sideHeadMeshes: THREE.Mesh[] = [];
@@ -595,9 +782,28 @@ function buildDragonForgeHeadsAndPillars(
   const pillarRingGeo = ctx.own(new THREE.CylinderGeometry(2.25, 2.25, 0.52, 8));
   const pillarCapitalGeo = ctx.own(new THREE.CylinderGeometry(2.9, 1.95, 2.6, 8));
 
-  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.95, 10, 8));
-  const sideTongueGeo = ctx.own(new THREE.BoxGeometry(1.25, 0.36, 2.4));
-  const sideSplashGeo = ctx.own(new THREE.TorusGeometry(1.45, 0.24, 6, 18));
+  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.95, 12, 10));
+  const sideSplashGeo = ctx.own(new THREE.TorusGeometry(1.55, 0.26, 6, 20));
+  const sideSplashInnerGeo = ctx.own(new THREE.CylinderGeometry(1.35, 1.65, 0.28, 14));
+  const bustCollarGeo = ctx.own(new THREE.CylinderGeometry(2.45, 2.75, 1.6, 8));
+  const bustGoldTrimGeo = ctx.own(new THREE.CylinderGeometry(2.65, 2.65, 0.36, 8));
+
+  // In 1x rest-pose getVertexPosition space with lift=-0.42, upper=-0.22, and jaw=+0.62:
+  // Upper snout is at local (y = +1.1..+2.7, z = +8.8..+11.2), open lower jaw is at (y = -3.4..-0.8, z = +8.8..+10.8)
+  const sideMouthLocalY = 0.15;
+  const sideMouthLocalZ = 9.55;
+  const mountY = -32.2;
+  const sideMouthWorldY = mountY + sideMouthLocalY; // -32.05
+  const sideFallH = sideMouthWorldY - LAVA + 0.35; // ~21.0m tall cascade!
+  const sideCascadeOuterGeo = ctx.own(
+    createSculptedLavaCascadeGeometry(0.68, 0.58, 1.42, 1.25, sideFallH, 0, 1.25, 0.55, 18, 18)
+  );
+  const sideCascadeCoreGeo = ctx.own(
+    createSculptedLavaCascadeGeometry(0.42, 0.36, 0.92, 0.82, sideFallH, 0, 1.25, 0.55, 14, 14)
+  );
+  const sideMouthPourGeo = ctx.own(
+    createSculptedLavaCascadeGeometry(0.58, 0.36, 0.68, 0.55, 1.25, 0, 1.55, 0.25, 14, 8)
+  );
 
   for (const side of [-1, 1] as const) {
     const wallX = side * 44.2;
@@ -639,7 +845,7 @@ function buildDragonForgeHeadsAndPillars(
       pGroup.add(lavaRim);
     }
 
-    // 3 Tall Monumental Dragon Pedestals per side (6 total) bearing the enlarged ForestDragon heads & necks high above the pool!
+    // 3 Monumental Dragon Bust Pedestals per side (6 total) bearing the trimmed Cobra-Hood ForestDragon Head Statues!
     for (const dlz of SIDE_DRAGON_LZS) {
       const platX = side * 41.8;
       const platTopY = -41.5;
@@ -650,64 +856,74 @@ function buildDragonForgeHeadsAndPillars(
       addBox(ctx, 8.8, 0.6, 9.4, m.gold, platX, platTopY - 0.6, dlz);
       addBox(ctx, 8.6, 0.5, 9.2, m.gold, platX, LAVA + 0.3, dlz);
 
-      // Tall stepped stone-and-gold Dragon Tower Pedestal rising from the platform up to y = -35.6
-      // so the dragon is mounted high above the lava pool!
-      const towerX = side * 42.6;
-      addBox(ctx, 6.8, 3.2, 7.2, m.stone, towerX, platTopY, dlz);
-      addBox(ctx, 7.2, 0.45, 7.6, m.gold, towerX, platTopY + 3.2, dlz);
-      addBox(ctx, 5.8, 2.2, 6.2, m.darkStone, towerX, platTopY + 3.65, dlz);
-      addBox(ctx, 6.3, 0.5, 6.6, m.gold, towerX, platTopY + 5.85, dlz);
+      // Stepped stone-and-gold Dragon Bust Pedestal rising from the platform up to y = -34.0
+      const towerX = side * 42.4;
+      addBox(ctx, 6.8, 3.8, 7.2, m.stone, towerX, platTopY, dlz);
+      addBox(ctx, 7.2, 0.45, 7.6, m.gold, towerX, platTopY + 3.8, dlz);
+      addBox(ctx, 5.8, 2.8, 6.2, m.darkStone, towerX, platTopY + 4.25, dlz);
+      addBox(ctx, 6.3, 0.55, 6.6, m.gold, towerX, platTopY + 7.05, dlz);
 
-      // Mount the enlarged ForestDragon head & neck (scale = 33.0) high on the tower pedestal (`mountY = -32.2`):
-      // With the upward-rotated neck/skull, the open mouth sits at local (y = +1.85, z = +6.6),
-      // which is world y = -30.35 (22.25m above the lava pool!) and world x = side * 36.2 (well clear of the platform edge!).
       const seatX = side * 42.8;
-      const mountY = -32.2;
       const mountGroup = new THREE.Group();
       mountGroup.name = `ancient-mine-side-dragon-${side < 0 ? 'west' : 'east'}-${dlz}`;
       mountGroup.position.set(seatX, mountY, dlz);
       mountGroup.rotation.y = headYaw;
       ctx.group.add(mountGroup);
 
-      // Baked ForestDragon head + full neck with proud level/upward posture (NO lava in the eyes).
+      // Sculpted stone-and-gold bust collar mounting the trimmed cobra-hood head cleanly to the pedestal
+      const bustCollar = new THREE.Mesh(bustCollarGeo, m.darkStone);
+      bustCollar.rotation.x = Math.PI / 2;
+      bustCollar.position.set(0, 0.6, 0.2);
+      mountGroup.add(bustCollar);
+
+      const bustGoldRing = new THREE.Mesh(bustGoldTrimGeo, m.gold);
+      bustGoldRing.rotation.x = Math.PI / 2;
+      bustGoldRing.position.set(0, 0.6, 0.95);
+      mountGroup.add(bustGoldRing);
+
+      // Baked ForestDragon cobra-hood bust statue with wide-open jaws (NO lava in the eyes).
       const headMesh = new THREE.Mesh(sideFallbackGeo, vertexStone);
       headMesh.frustumCulled = false;
       mountGroup.add(headMesh);
       sideHeadMeshes.push(headMesh);
 
-      // Molten fire core & tongue inside the raised open mouth cavity (local y = +1.75, local z = +5.6..+6.5).
+      // Molten fire core & pouring lava tongue inside the wide-open mouth cavity (between upper snout y=+1.0 and lowered jaw y=-1.6).
       const throat = new THREE.Mesh(sideThroatGeo, m.molten);
-      throat.scale.set(1.05, 0.78, 1.25);
-      throat.position.set(0, 1.78, 5.45);
+      throat.scale.set(0.95, 0.75, 1.35);
+      throat.position.set(0, 0.25, 8.2);
       mountGroup.add(throat);
 
-      const tongue = new THREE.Mesh(sideTongueGeo, lavaMat);
-      tongue.position.set(0, 1.32, 6.25);
-      tongue.rotation.x = 0.14;
-      mountGroup.add(tongue);
+      const mouthPour = new THREE.Mesh(sideMouthPourGeo, lavaMat);
+      mouthPour.position.set(0, 0.45, 8.05);
+      mountGroup.add(mouthPour);
 
-      // Tall, dramatic molten lava waterfall pouring 22.25m from the dragon's raised open jaws down into the lava pool!
-      const sideMouthWorldY = mountY + 1.45; // -30.75
-      const sideFallH = sideMouthWorldY - LAVA + 0.5; // ~22.35m tall!
-      const sideFall = new THREE.Mesh(
-        ctx.own(new THREE.CylinderGeometry(0.58, 1.18, sideFallH, 14, 1, true)),
-        lavaMat
-      );
-      sideFall.position.set(0, (sideMouthWorldY + LAVA) / 2 - mountY, 7.15);
-      sideFall.rotation.x = -0.07;
-      mountGroup.add(sideFall);
+      // Sculpted multi-layer molten lava cascade pouring from inside the wide-open jaws down into the lava pool!
+      const sideCascadeGroup = new THREE.Group();
+      sideCascadeGroup.position.set(0, sideMouthLocalY, sideMouthLocalZ);
+      mountGroup.add(sideCascadeGroup);
 
-      // Glowing splash ring where the tall lava stream crashes into the lava pool in front of the platform.
-      const splashX = seatX + inwardSign * 7.95; // side * 34.85 (well out in the open lava pool!)
+      const sideFallOuter = new THREE.Mesh(sideCascadeOuterGeo, lavaMat);
+      sideCascadeGroup.add(sideFallOuter);
+
+      const sideFallCore = new THREE.Mesh(sideCascadeCoreGeo, m.molten);
+      sideCascadeGroup.add(sideFallCore);
+      cascades.push(sideCascadeGroup);
+
+      // Glowing splash ring + churning molten mound where the cascade crashes into the lava pool.
+      const splashX = seatX + inwardSign * (sideMouthLocalZ + 1.25);
       const splash = new THREE.Mesh(sideSplashGeo, m.molten);
       splash.rotation.x = -Math.PI / 2;
       splash.position.set(splashX, LAVA + 0.08, dlz);
       ctx.group.add(splash);
 
+      const splashCore = new THREE.Mesh(sideSplashInnerGeo, lavaMat);
+      splashCore.position.set(splashX, LAVA + 0.14, dlz);
+      ctx.group.add(splashCore);
+
       const sideFlame = new THREE.Mesh(flameGeo, flameMat);
       sideFlame.userData.isAnimated = true;
       sideFlame.scale.setScalar(0.92);
-      sideFlame.position.set(seatX + inwardSign * 6.8, sideMouthWorldY + 0.4, dlz);
+      sideFlame.position.set(seatX + inwardSign * sideMouthLocalZ, sideMouthWorldY + 0.35, dlz);
       ctx.group.add(sideFlame);
       flames.push(sideFlame);
     }
@@ -733,7 +949,7 @@ function buildDragonForgeHeadsAndPillars(
       .catch(() => {});
   }
 
-  return flames;
+  return { flames, cascades };
 }
 // #endregion
 
@@ -779,8 +995,9 @@ function buildForgeFloor(ctx: ISetPieceContext, lavaMat: THREE.Material): void {
  *          and diverts it to the left and right sides into the lava river while leaving the front of
  *          the chest completely open and accessible.
  */
-function buildTreasure(ctx: ISetPieceContext, lavaMat: THREE.Material): void {
+function buildTreasure(ctx: ISetPieceContext, lavaMat: THREE.Material): THREE.Object3D[] {
   const m = ctx.materials;
+  const umbrellaCascades: THREE.Object3D[] = [];
   const f = fixture('treasure-chest');
   const IRON = 0x2a2a30;
   const lid = new THREE.CylinderGeometry(0.7, 0.7, 2.2, 14, 1, false, 0, Math.PI);
@@ -822,17 +1039,17 @@ function buildTreasure(ctx: ISetPieceContext, lavaMat: THREE.Material): void {
   }
 
   // Central gold apex finial & impact basin where the Red Dragon's lava stream strikes the umbrella.
-  const impactBasin = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(1.75, 1.35, 0.45, 12)), m.molten);
+  const impactBasin = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(1.85, 1.45, 0.48, 14)), m.molten);
   impactBasin.position.set(f.lx, canopyY + 0.45, canopyZ + 0.2);
   ctx.group.add(impactBasin);
 
-  //Raised front shield rim (prevents lava from ever spilling forward toward the player / front of the chest).
+  // Raised front shield rim (prevents lava from ever spilling forward toward the player / front of the chest).
   addBox(ctx, 7.6, 0.65, 0.48, m.gold, f.lx, canopyY - 0.05, canopyZ - 2.1);
   addBox(ctx, 7.6, 0.55, 0.45, m.darkStone, f.lx, canopyY - 0.05, canopyZ + 2.1);
 
   const splashGeo = ctx.own(new THREE.TorusGeometry(1.65, 0.24, 6, 18));
 
-  // Left and right pitched canopy wings + side lava chutes + side waterfalls into the lava river.
+  // Left and right pitched canopy wings + side lava chutes + sculpted side waterfalls into the lava river.
   for (const side of [-1, 1] as const) {
     const wingGroup = new THREE.Group();
     wingGroup.position.set(f.lx + side * 2.4, canopyY, canopyZ);
@@ -851,24 +1068,38 @@ function buildTreasure(ctx: ISetPieceContext, lavaMat: THREE.Material): void {
     wingLava.position.set(side * 0.2, 0.24, 0.1);
     wingGroup.add(wingLava);
 
-    // Side lava waterfall pouring off the outer tip of the umbrella (lx = ±5.85) down into the lava river!
-    const pourX = f.lx + side * 5.65;
-    const pourTopY = canopyY - 0.55;
-    const sideStreamH = pourTopY - LAVA + 0.45;
-    const sideStream = new THREE.Mesh(
-      ctx.own(new THREE.CylinderGeometry(0.65, 1.25, sideStreamH, 12, 1, true)),
+    // Sculpted side lava waterfall pouring off the outer tip of the umbrella down into the lava river!
+    const pourX = f.lx + side * 4.95;
+    const pourTopY = canopyY - 0.5;
+    const sideStreamH = pourTopY - LAVA + 0.35;
+    const sideCascadeGroup = new THREE.Group();
+    sideCascadeGroup.position.set(pourX, pourTopY, canopyZ);
+    ctx.group.add(sideCascadeGroup);
+
+    const sideStreamOuter = new THREE.Mesh(
+      ctx.own(
+        createSculptedLavaCascadeGeometry(0.65, 0.92, 1.35, 1.45, sideStreamH, side * 1.15, 0, 0, 18, 14)
+      ),
       lavaMat
     );
-    sideStream.position.set(pourX, (pourTopY + LAVA) / 2, canopyZ);
-    sideStream.rotation.z = -side * 0.12;
-    ctx.group.add(sideStream);
+    sideCascadeGroup.add(sideStreamOuter);
 
-    // Glowing splash ring in the lava river on either side of the island (lx = ±6.2).
+    const sideStreamCore = new THREE.Mesh(
+      ctx.own(
+        createSculptedLavaCascadeGeometry(0.42, 0.62, 0.88, 0.95, sideStreamH, side * 1.15, 0, 0, 14, 12)
+      ),
+      m.molten
+    );
+    sideCascadeGroup.add(sideStreamCore);
+    umbrellaCascades.push(sideCascadeGroup);
+
+    // Glowing splash ring in the lava river on either side of the island (lx = ±6.1).
     const sideSplash = new THREE.Mesh(splashGeo, m.molten);
     sideSplash.rotation.x = -Math.PI / 2;
-    sideSplash.position.set(f.lx + side * 6.15, LAVA + 0.07, canopyZ);
+    sideSplash.position.set(f.lx + side * 6.1, LAVA + 0.07, canopyZ);
     ctx.group.add(sideSplash);
   }
+  return umbrellaCascades;
 }
 // #endregion
 

@@ -129,7 +129,16 @@ export type InventoryItemId =
   | 'trap_fish'
   | 'twine_fiber'
   | 'wild_berries'
-  | 'grain_seeds';
+  | 'grain_seeds'
+  | 'dwarven_battle_axe'
+  | 'dwarven_shield'
+  | 'dwarven_helmet'
+  | 'dwarven_gold_ingot'
+  | 'cavern_diamond'
+  | 'mithril_pickaxe'
+  | 'dwarven_chisel_set'
+  | 'crystal_core_drill'
+  | 'prospector_lantern';
 
 export type IObstacle = IObstacleCylinder;
 // #endregion
@@ -220,9 +229,16 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('katana_imperial', 'weapons', 3, 220, 1, { weaponRole: 'sword', rarity: 'refined' }),
   createCatalogItem('elven_longbow', 'weapons', 2.8, 480, 2, { weaponRole: 'bow', rarity: 'epic' }),
   createCatalogItem('dwarven_warhammer', 'weapons', 6.2, 720, 3, { weaponRole: 'sword', rarity: 'epic' }),
-  createCatalogItem('dwarven_pickaxe', 'weapons', 4.6, 260, 1, { weaponRole: 'sword', rarity: 'refined', lootOnly: true }),
+  createCatalogItem('dwarven_battle_axe', 'weapons', 5.0, 340, 1, { weaponRole: 'sword', rarity: 'epic' }),
+  createCatalogItem('dwarven_pickaxe', 'weapons', 4.6, 260, 1, { weaponRole: 'sword', rarity: 'refined' }),
+  createCatalogItem('mithril_pickaxe', 'weapons', 4.2, 480, 1, { weaponRole: 'sword', rarity: 'legendary' }),
   createCatalogItem('dragonbone_bow', 'weapons', 3.2, 980, 4, { weaponRole: 'bow', rarity: 'legendary' }),
   createCatalogItem('celestial_jin_sword', 'weapons', 3.8, 1450, 5, { weaponRole: 'sword', rarity: 'legendary' }),
+  createCatalogItem('dwarven_shield', 'gear', 4.8, 290, 1, { rarity: 'epic' }),
+  createCatalogItem('dwarven_helmet', 'gear', 2.8, 260, 1, { rarity: 'epic' }),
+  createCatalogItem('dwarven_chisel_set', 'gear', 2.4, 150, 1, { rarity: 'refined' }),
+  createCatalogItem('crystal_core_drill', 'gear', 3.6, 310, 1, { rarity: 'epic' }),
+  createCatalogItem('prospector_lantern', 'gear', 1.8, 185, 1, { rarity: 'refined' }),
   createCatalogItem('torch', 'gear', 1.5, 45, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('arrow_normal', 'ammo', 1, 5, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('arrow_fire', 'ammo', 1, 12, 1, { starterOwned: true, rarity: 'refined' }),
@@ -233,9 +249,11 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('imperial_clay_tiles', 'materials', 3.5, 155, 1, { starterOwned: true, rarity: 'refined' }),
   createCatalogItem('marble_pillar_stone', 'materials', 10, 260, 1, { starterOwned: true, rarity: 'epic' }),
   createCatalogItem('dwarven_gold_ore', 'materials', 6, 220, 1, { starterOwned: true, rarity: 'epic' }),
+  createCatalogItem('dwarven_gold_ingot', 'materials', 4.5, 320, 1, { rarity: 'epic' }),
   createCatalogItem('crystal_gem', 'materials', 2, 350, 1, { starterOwned: true, rarity: 'legendary' }),
-  createCatalogItem('amethyst_gem', 'materials', 1.2, 240, 1, { rarity: 'epic', lootOnly: true }),
-  createCatalogItem('sapphire_gem', 'materials', 1.4, 290, 1, { rarity: 'epic', lootOnly: true }),
+  createCatalogItem('cavern_diamond', 'materials', 1.5, 520, 1, { rarity: 'legendary' }),
+  createCatalogItem('amethyst_gem', 'materials', 1.2, 240, 1, { rarity: 'epic' }),
+  createCatalogItem('sapphire_gem', 'materials', 1.4, 290, 1, { rarity: 'epic' }),
   createCatalogItem('ancient_dwarven_horn', 'gear', 2.5, 160, 1, { rarity: 'refined' }),
   createCatalogItem('simple_tunic', 'clothing', 0.8, 25, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('ranger_garb', 'clothing', 1.8, 140, 1, { starterOwned: true, rarity: 'refined' }),

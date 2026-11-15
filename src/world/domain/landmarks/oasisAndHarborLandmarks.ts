@@ -410,6 +410,54 @@ export const MARKET_STALL_LOCATIONS = [
     radius: 4.5,
     allowedItemIds: [] as readonly InventoryItemId[],
   },
+  {
+    id: 'market-mine-weapons',
+    name: t('landmarks.market_mine_weapons'),
+    shopType: 'swords' as const,
+    x: -58.0 - 11.5, // lx = -11.5 in Starting Upper Cavern Hall
+    y: -9.35,
+    z: 420.0 + 49.0, // lz = 49.0
+    radius: 4.5,
+    allowedItemIds: [
+      'dwarven_warhammer',
+      'dwarven_battle_axe',
+      'dwarven_shield',
+      'dwarven_helmet',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-mine-gems',
+    name: t('landmarks.market_mine_gems'),
+    shopType: 'stone' as const,
+    x: -58.0 - 11.5, // lx = -11.5 in Starting Upper Cavern Hall
+    y: -9.35,
+    z: 420.0 + 56.5, // lz = 56.5
+    radius: 4.5,
+    allowedItemIds: [
+      'dwarven_gold_ingot',
+      'cavern_diamond',
+      'dwarven_gold_ore',
+      'sapphire_gem',
+      'amethyst_gem',
+      'crystal_gem',
+    ] as readonly InventoryItemId[],
+  },
+  {
+    id: 'market-mine-tools',
+    name: t('landmarks.market_mine_tools'),
+    shopType: 'smithy' as const,
+    x: -58.0 - 11.5, // lx = -11.5 in Starting Upper Cavern Hall
+    y: -9.35,
+    z: 420.0 + 64.0, // lz = 64.0
+    radius: 4.5,
+    allowedItemIds: [
+      'dwarven_pickaxe',
+      'mithril_pickaxe',
+      'dwarven_chisel_set',
+      'crystal_core_drill',
+      'prospector_lantern',
+    ] as readonly InventoryItemId[],
+  },
 ] as const;
 
 /**
@@ -426,11 +474,11 @@ export function getMarketStallCatalogItems(stallId?: string | null): readonly II
 }
 
 /**
- * Summary: Finds the nearest harbor market stall interactable at a world position.
+ * Summary: Finds the nearest harbor or underground dwarven mine market stall interactable at a world position.
  * Design: Linear scan with distance threshold matching the stall's interaction radius and vertical elevation check.
  * @param px Observer X coordinate.
  * @param pz Observer Z coordinate.
- * @param py Optional observer Y coordinate to prevent triggering ground stalls while flying high above.
+ * @param py Optional observer Y coordinate to prevent triggering ground/underground stalls across different levels.
  * @returns Nearest market stall record within interaction range, or null.
  */
 export function findNearestMarketStall(
@@ -442,7 +490,12 @@ export function findNearestMarketStall(
   let bestDist = Infinity;
   for (let i = 0; i < MARKET_STALL_LOCATIONS.length; i++) {
     const st = MARKET_STALL_LOCATIONS[i];
-    const stallY = st.id === 'market-harbor-shipwright' ? SOUTHEAST_HARBOR_POS.shipDeckY : SOUTHEAST_HARBOR_POS.plazaY;
+    const stallY =
+      'y' in st && typeof st.y === 'number'
+        ? st.y
+        : st.id === 'market-harbor-shipwright'
+          ? SOUTHEAST_HARBOR_POS.shipDeckY
+          : SOUTHEAST_HARBOR_POS.plazaY;
     if (py !== undefined && Math.abs(py - stallY) > 2.85) continue;
     const d = Math.hypot(px - st.x, pz - st.z);
     if (d <= st.radius && d < bestDist) {

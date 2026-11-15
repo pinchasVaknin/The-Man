@@ -33,9 +33,18 @@ const _mineAtmo = {
   fog: new THREE.Color(0x040508),
   intensity: 0.14,
   fogDensity: 0.0032,
+  blend: 0,
   isPrimed: false,
 };
 const _mineTarget = new THREE.Color();
+const _outdoorHemiSky = new THREE.Color();
+const _outdoorHemiGround = new THREE.Color();
+const _outdoorFogColor = new THREE.Color();
+
+function smoothstep01(a: number, b: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
 // #endregion
 
 // ======================== CONTEXT & TYPES ======================== \\
@@ -68,7 +77,7 @@ export interface IAtmosphereRenderContext {
  *         mine's lanterns are hidden and MINE_LIGHT_POOL_SIZE pooled lights copy the nearest ones each frame. The pool
  *         size is fixed, so the shader is compiled once and does not recompile as the player moves (audit P3).
  */
-export const MINE_LIGHT_POOL_SIZE = 14;
+export const MINE_LIGHT_POOL_SIZE = 18;
 const minePools = new WeakMap<THREE.Scene, THREE.PointLight[]>();
 const poolScratch = new THREE.Vector3();
 
@@ -204,6 +213,8 @@ function updateMineLightPool(
 /**
  * Summary: Controller Pattern: Applies dynamic solar cycle and weather state to the Three.js scene,
  * Preetham sky shader, directional/hemisphere lights, exponential fog, water material, and lanterns.
+ * Smoothly blends between surface and subterranean lighting across the mine entrance passage (`lz = -4..26`)
+ * so there is never an abrupt lighting pop when entering or exiting the mine.
  * @param ctx Shared build context (scene, textures, disposal lists).
  * @param hours Hour of day, 0-24.
  * @param weather Current weather snapshot (optional).
@@ -234,11 +245,41 @@ export function applyDynamicAtmosphereToScene(
   const atmo = computeDynamicSolarCycle(hours);
   sunVec.set(atmo.sunDirX, atmo.sunDirY, atmo.sunDirZ);
 
-  const isPlayerUndergroundInMine = Boolean(
-    playerPos &&
-      playerPos.y < SOUTHERN_MINE_POS.entranceY - 0.3 &&
-      isInsideSouthernMine(playerPos.x, playerPos.z, playerPos.y)
-  );
+  // Compute continuous target blend factor ∈ [0, 1] across the mine entrance threshold and stairs (`lz = -4..26`)
+  let targetMineBlend = 0;
+  if (playerPos) {
+    const lx = playerPos.x - ANCIENT_MINE_ORIGIN.x;
+    const lz = playerPos.z - ANCIENT_MINE_ORIGIN.z;
+    const inMine = isInsideSouthernMine(playerPos.x, playerPos.z, playerPos.y);
+    if (inMine) {
+      const zBlend = smoothstep01(-3.0, 26.0, lz);
+      const yBlend = smoothstep01(
+        SOUTHERN_MINE_POS.entranceY + 0.4,
+        SOUTHERN_MINE_POS.entranceY - 8.5,
+        playerPos.y
+      );
+      targetMineBlend = Math.max(zBlend, yBlend);
+    } else if (
+      Math.abs(lx) < 16.0 &&
+      lz >= -6.0 &&
+      lz <= 10.0 &&
+      Math.abs(playerPos.y - SOUTHERN_MINE_POS.entranceY) < 4.5
+    ) {
+      // Gentle pre-blend right outside the open gate mouth so stepping across lz = 0 is 100% seamless
+      targetMineBlend = smoothstep01(-6.0, 26.0, lz);
+    }
+  }
+
+  // Smooth the blend factor over frames so even sprinting never causes a sudden jump
+  if (!_mineAtmo.isPrimed && targetMineBlend > 0.85) {
+    _mineAtmo.blend = targetMineBlend;
+  } else {
+    _mineAtmo.blend += (targetMineBlend - _mineAtmo.blend) * 0.08;
+    if (_mineAtmo.blend < 0.001 && targetMineBlend === 0) _mineAtmo.blend = 0;
+    if (_mineAtmo.blend > 0.999 && targetMineBlend === 1) _mineAtmo.blend = 1;
+  }
+  const mineBlend = _mineAtmo.blend;
+  const isPlayerUndergroundInMine = mineBlend > 0.15;
 
   const stormDark = weather ? weather.cloudDarkness : 0;
   const sandHaze = weather ? weather.sandWindIntensity : 0;
@@ -254,18 +295,56 @@ export function applyDynamicAtmosphereToScene(
   skyUniforms['mieDirectionalG'].value = atmo.mieDirectionalG;
   skyUniforms['sunPosition'].value.copy(sunVec);
 
-  if (isPlayerUndergroundInMine) {
-    // Subterranean Mine Lighting: 100% independent of surface day/night cycle and weather.
-    // Base ambient is low cavern darkness so unlit rooms are genuinely dark, while regional
-    // torches, sconces, lanterns, and crystals cast clear warm/colored illumination across their area.
-    sky.visible = false;
-    sunDiscMesh.visible = false;
-    sunLight.intensity = 0;
-    renderer.shadowMap.autoUpdate = false;
+  // 1) Compute Outdoor Surface Lighting & Fog Baseline
+  sunDiscMat.color.setHex(atmo.isNight ? 0xdbeafe : 0xfff7d6);
+  sunLight.color.setHex(atmo.sunColorHex);
+  if (flash > 0.1) {
+    sunLight.color.lerp(_lightningColor, flash);
+  }
+  const outdoorSunIntensity =
+    atmo.sunIntensity * (1.0 - stormDark * 0.55) * (1.0 - fogStrength * 0.42) + flash * 4.2;
 
-    // Each area of the Ancient Mine has its own lighting identity; ease toward it so walking
-    // between areas (or through the open upper cavern) fades instead of switching.
-    const target = mineAtmosphereAt(playerPos!.x - ANCIENT_MINE_ORIGIN.x, playerPos!.z - ANCIENT_MINE_ORIGIN.z, playerPos!.y);
+  _outdoorHemiSky.setHex(atmo.hemiSkyHex);
+  _outdoorHemiGround.setHex(atmo.hemiGroundHex);
+  const outdoorHemiIntensity = atmo.hemiIntensity * (1.0 - stormDark * 0.35) + flash * 2.2;
+
+  const wetnessBoost = weather ? weather.wetness * 0.14 : 0;
+  const outdoorEnvIntensity = Math.max(
+    0.08,
+    (0.45 + wetnessBoost) * (1 - atmo.nightFactor * 0.82) * (1 - stormDark * 0.45) + flash * 0.35
+  );
+
+  _outdoorFogColor.setHex(atmo.fogColorHex);
+  if (stormDark > 0.05) {
+    _outdoorFogColor.lerp(_stormFogColor, stormDark * (1 - atmo.nightFactor * 0.7));
+  }
+  if (sandHaze > 0.05) {
+    _outdoorFogColor.lerp(_sandFogColor, sandHaze * 0.65 * (1 - atmo.nightFactor * 0.7));
+  }
+  if (fogStrength > 0.05) {
+    _outdoorFogColor.lerp(_denseFogColor, fogStrength * 0.78 * (1 - atmo.nightFactor * 0.65));
+  }
+  if (flash > 0.1) {
+    _outdoorFogColor.lerp(_lightningColor, flash * 0.55);
+  }
+  const outdoorFogDensity =
+    atmo.fogDensity +
+    (weather
+      ? weather.rainIntensity * 0.0045 +
+        sandHaze * 0.0065 +
+        weather.snowIntensity * 0.0035 +
+        fogStrength * 0.022
+      : 0);
+  const outdoorExposure = atmo.exposure + flash * 0.35;
+  waterMaterial.color.setHex(atmo.waterDeepHex);
+
+  // 2) Blend smoothly between Outdoor Surface (mineBlend = 0) and Subterranean Mine (mineBlend = 1)
+  if (mineBlend > 0.001 && playerPos) {
+    const target = mineAtmosphereAt(
+      playerPos.x - ANCIENT_MINE_ORIGIN.x,
+      playerPos.z - ANCIENT_MINE_ORIGIN.z,
+      playerPos.y
+    );
     const ease = _mineAtmo.isPrimed ? MINE_ATMOSPHERE_EASE : 1;
     _mineAtmo.isPrimed = true;
     _mineAtmo.sky.lerp(_mineTarget.setHex(target.ambientSky), ease);
@@ -274,65 +353,37 @@ export function applyDynamicAtmosphereToScene(
     _mineAtmo.intensity += (target.ambientIntensity - _mineAtmo.intensity) * ease;
     _mineAtmo.fogDensity += (target.fogDensity - _mineAtmo.fogDensity) * ease;
 
-    hemiLight.color.copy(_mineAtmo.sky);
-    hemiLight.groundColor.copy(_mineAtmo.ground);
-    hemiLight.intensity = _mineAtmo.intensity;
-    scene.environmentIntensity = 0.04;
+    const deepUnderground = mineBlend > 0.92;
+    sky.visible = !deepUnderground && atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
+    sunDiscMesh.visible = !deepUnderground && stormDark < 0.65 && fogStrength < 0.55;
+    renderer.shadowMap.autoUpdate = !deepUnderground;
 
-    fog.color.copy(_mineAtmo.fog);
-    fog.density = _mineAtmo.fogDensity;
-    bgColor.copy(_mineAtmo.fog);
-    renderer.toneMappingExposure = 1.15;
+    sunLight.intensity = outdoorSunIntensity * (1 - mineBlend);
+    hemiLight.color.copy(_outdoorHemiSky).lerp(_mineAtmo.sky, mineBlend);
+    hemiLight.groundColor.copy(_outdoorHemiGround).lerp(_mineAtmo.ground, mineBlend);
+    hemiLight.intensity = outdoorHemiIntensity + (_mineAtmo.intensity - outdoorHemiIntensity) * mineBlend;
+    scene.environmentIntensity = outdoorEnvIntensity + (0.04 - outdoorEnvIntensity) * mineBlend;
+
+    fog.color.copy(_outdoorFogColor).lerp(_mineAtmo.fog, mineBlend);
+    fog.density = outdoorFogDensity + (_mineAtmo.fogDensity - outdoorFogDensity) * mineBlend;
+    bgColor.copy(fog.color);
+    renderer.toneMappingExposure = outdoorExposure + (1.15 - outdoorExposure) * mineBlend;
   } else {
     _mineAtmo.isPrimed = false;
     renderer.shadowMap.autoUpdate = true;
-    // Hide Preetham sky dome during deep night, heavy storm clouds, or dense fog so atmospheric color shows
     sky.visible = atmo.nightFactor < 0.72 && stormDark < 0.75 && fogStrength < 0.65;
     sunDiscMesh.visible = stormDark < 0.65 && fogStrength < 0.55;
-    sunDiscMat.color.setHex(atmo.isNight ? 0xdbeafe : 0xfff7d6);
 
-    sunLight.color.setHex(atmo.sunColorHex);
-    if (flash > 0.1) {
-      sunLight.color.lerp(_lightningColor, flash);
-    }
-    sunLight.intensity =
-      atmo.sunIntensity * (1.0 - stormDark * 0.55) * (1.0 - fogStrength * 0.42) + flash * 4.2;
+    sunLight.intensity = outdoorSunIntensity;
+    hemiLight.color.copy(_outdoorHemiSky);
+    hemiLight.groundColor.copy(_outdoorHemiGround);
+    hemiLight.intensity = outdoorHemiIntensity;
+    scene.environmentIntensity = outdoorEnvIntensity;
 
-    hemiLight.color.setHex(atmo.hemiSkyHex);
-    hemiLight.groundColor.setHex(atmo.hemiGroundHex);
-    hemiLight.intensity = atmo.hemiIntensity * (1.0 - stormDark * 0.35) + flash * 2.2;
-
-    const wetnessBoost = weather ? weather.wetness * 0.14 : 0;
-    scene.environmentIntensity = Math.max(
-      0.08,
-      (0.45 + wetnessBoost) * (1 - atmo.nightFactor * 0.82) * (1 - stormDark * 0.45) + flash * 0.35
-    );
-
-    fog.color.setHex(atmo.fogColorHex);
-    if (stormDark > 0.05) {
-      fog.color.lerp(_stormFogColor, stormDark * (1 - atmo.nightFactor * 0.7));
-    }
-    if (sandHaze > 0.05) {
-      fog.color.lerp(_sandFogColor, sandHaze * 0.65 * (1 - atmo.nightFactor * 0.7));
-    }
-    if (fogStrength > 0.05) {
-      fog.color.lerp(_denseFogColor, fogStrength * 0.78 * (1 - atmo.nightFactor * 0.65));
-    }
-    if (flash > 0.1) {
-      fog.color.lerp(_lightningColor, flash * 0.55);
-    }
-    fog.density =
-      atmo.fogDensity +
-      (weather
-        ? weather.rainIntensity * 0.0045 +
-          sandHaze * 0.0065 +
-          weather.snowIntensity * 0.0035 +
-          fogStrength * 0.022
-        : 0);
+    fog.color.copy(_outdoorFogColor);
+    fog.density = outdoorFogDensity;
     bgColor.copy(fog.color);
-
-    waterMaterial.color.setHex(atmo.waterDeepHex);
-    renderer.toneMappingExposure = atmo.exposure + flash * 0.35;
+    renderer.toneMappingExposure = outdoorExposure;
   }
 
   const outdoorLanternStrength =
@@ -346,9 +397,9 @@ export function applyDynamicAtmosphereToScene(
     pl.userData.isUndergroundMineLight = inMine;
     if (inMine) {
       const base = (pl.userData.baseIntensity as number) ?? 5.6;
-      pl.intensity = Math.min(3.2, base * 0.42);
-      pl.distance = Math.max(pl.distance || 0, 42.0);
-      pl.decay = 1.45;
+      pl.intensity = Math.min(4.4, base * 0.48);
+      pl.distance = Math.max(pl.distance || 0, 48.0);
+      pl.decay = 1.4;
     } else {
       const base = (pl.userData.baseIntensity as number | undefined);
       pl.intensity = base !== undefined ? Math.max(base, outdoorLanternStrength) : outdoorLanternStrength;

@@ -174,6 +174,15 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   twine_fiber: t('items.twine_fiber.short'),
   wild_berries: t('items.wild_berries.short'),
   grain_seeds: t('items.grain_seeds.short'),
+  dwarven_battle_axe: t('items.dwarven_battle_axe.short'),
+  dwarven_shield: t('items.dwarven_shield.short'),
+  dwarven_helmet: t('items.dwarven_helmet.short'),
+  dwarven_gold_ingot: t('items.dwarven_gold_ingot.short'),
+  cavern_diamond: t('items.cavern_diamond.short'),
+  mithril_pickaxe: t('items.mithril_pickaxe.short'),
+  dwarven_chisel_set: t('items.dwarven_chisel_set.short'),
+  crystal_core_drill: t('items.crystal_core_drill.short'),
+  prospector_lantern: t('items.prospector_lantern.short'),
 };
 
 const NON_SELLABLE_STARTER_IDS: InventoryItemId[] = ['unarmed'];

@@ -213,16 +213,14 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
       },
     ],
   },
-  // 3. East Gallery Pit Ore Line (loads in the pit at [70, 54], climbs ramp to dump into Central Gold Funnel [6, 80])
+  // 3. East Gallery Pit Ore Line (loads in the pit at [70, 54], climbs ramp through East Junction [56, 78] to dump into Central Gold Funnel [6, 80])
   {
     id: 'coop-cart-gallery-pit',
     waypoints: [
       [70, 54],
-      [70, 60],
-      [70, 72],
-      [70, 76],
+      [68, 66],
       [56, 78],
-      [30, 80],
+      [32, 80],
       [6, 80],
     ],
     speed: 6.8,
@@ -259,14 +257,16 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
       },
     ],
   },
-  // 4. East Wall & Stone Crusher Spur (loads at East Wall [118, 72], unloads at Switch Junction [70, 76])
+  // 4. East Wall & Stone Crusher Line (loads at East Wall [118, 72], merges at East Junction [56, 78] and shares trunk to [6, 80])
   {
     id: 'coop-cart-east-wall',
     waypoints: [
       [118, 72],
       [98, 72],
-      [84, 74],
-      [70, 76],
+      [82, 74],
+      [56, 78],
+      [32, 80],
+      [6, 80],
     ],
     speed: 6.4,
     oreTint: MINE_PALETTE.gold,
@@ -437,18 +437,20 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         action: 'mine2',
         faceYaw: yawToward(72.0, 122.95, 72.0, 124.5),
       }, // Foundry Ingot Mold (72, 124.5)
-      { lx: 22.0, lz: 112.0, hintY: U, pauseSec: 0.3, action: 'idle', faceYaw: Math.PI / 2 },
+      { lx: 22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: Math.PI / 2 },
+      { lx: -22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: Math.PI / 2 },
       {
         lx: -28.0,
-        lz: 105.4,
+        lz: 106.15,
         hintY: U,
         pauseSec: 6.2,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 105.4, -28.0, 104.0),
+        faceYaw: yawToward(-28.0, 106.15, -28.0, 104.0),
         drinkingBeer: true,
-      }, // Sitting on East-North Tavern Table bench drinking beer!
-      { lx: 22.0, lz: 112.0, hintY: U, pauseSec: 0.3, action: 'idle', faceYaw: -Math.PI / 2 },
+      }, // Sitting on East-North Tavern Table south bench drinking beer!
+      { lx: -22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: -Math.PI / 2 },
+      { lx: 22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: -Math.PI / 2 },
     ],
   },
   // 4. Grand Descent Staircase Patrol
@@ -517,7 +519,7 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       { lx: -101.0, lz: 248.0, hintY: MINE_LEVEL_Y.heroesMidLanding, pauseSec: 2.0, action: 'idle', faceYaw: 0 },
     ],
   },
-  // 7. Dwarven Tavern Master / Bartender ("The Molten Tankard", tends keg taps at lz = 121.0 and serves across bar at lz = 118.6)
+  // 7. Dwarven Tavern Master / Bartender ("The Molten Tankard", tends keg taps at lz = 121.0 and walks strictly around the bar & along clear aisles)
   {
     dwarfId: 114,
     id: 'dwarf-tavern-bartender',
@@ -540,45 +542,60 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       }, // Drawing ale from giant keg taps (faces South toward keg rack at lz = 121)
       {
         lx: -40.0,
-        lz: 119.55,
+        lz: 119.65,
         hintY: U,
         pauseSec: 4.5,
         action: 'idle',
-        faceYaw: yawToward(-40.0, 119.55, -40.0, 117.05),
+        faceYaw: yawToward(-40.0, 119.65, -40.0, 117.05),
         drinkingBeer: true,
       }, // Serving patrons across the main bar counter (faces North toward bar stools at lz = 117.05)
       {
-        lx: -37.9,
-        lz: 119.55,
+        lx: -36.5,
+        lz: 119.65,
         hintY: U,
-        pauseSec: 4.2,
+        pauseSec: 4.0,
         action: 'idle',
-        faceYaw: yawToward(-37.9, 119.55, -37.9, 117.05),
+        faceYaw: yawToward(-36.5, 119.65, -36.5, 117.05),
         drinkingBeer: true,
       }, // Serving east end of bar counter
-      { lx: -32.2, lz: 118.2, hintY: U, pauseSec: 0.4, action: 'idle', faceYaw: 0, drinkingBeer: true },
+      { lx: -32.0, lz: 119.65, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0, drinkingBeer: true }, // Step east clear of bar counter
+      { lx: -32.0, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0, drinkingBeer: true }, // Enter South aisle clear of bar stools
       {
         lx: -28.0,
-        lz: 113.4,
+        lz: 114.35,
         hintY: U,
         pauseSec: 3.6,
         action: 'idle',
-        faceYaw: yawToward(-28.0, 113.4, -28.0, 112.0),
+        faceYaw: yawToward(-28.0, 114.35, -28.0, 112.0),
         drinkingBeer: true,
-      }, // Serving East-South Table (-28, 112)
+      }, // Serving East-South Table (-28, 112) from outside the south bench
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2, drinkingBeer: true },
       {
         lx: -41.0,
-        lz: 113.4,
+        lz: 114.35,
         hintY: U,
         pauseSec: 3.6,
         action: 'idle',
-        faceYaw: yawToward(-41.0, 113.4, -41.0, 112.0),
+        faceYaw: yawToward(-41.0, 114.35, -41.0, 112.0),
         drinkingBeer: true,
-      }, // Serving West-South Table (-41, 112)
-      { lx: -32.2, lz: 118.2, hintY: U, pauseSec: 0.4, action: 'idle', faceYaw: Math.PI, drinkingBeer: true },
+      }, // Serving West-South Table (-41, 112) from outside the south bench
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0, drinkingBeer: true }, // Central N-S aisle
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2, drinkingBeer: true }, // Middle E-W aisle (between lz=104 and lz=112 tables)
+      {
+        lx: -28.0,
+        lz: 106.4,
+        hintY: U,
+        pauseSec: 3.4,
+        action: 'idle',
+        faceYaw: yawToward(-28.0, 106.4, -28.0, 104.0),
+        drinkingBeer: true,
+      }, // Serving East-North Table (-28, 104) from Middle aisle
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI, drinkingBeer: true },
+      { lx: -32.0, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI, drinkingBeer: true },
+      { lx: -32.0, lz: 119.65, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2, drinkingBeer: true }, // Return behind bar around east end
     ],
   },
-  // 8. Tavern Patron & Tool-Fetcher (sits on Bar Stools & Tavern Benches drinking beer, then walks up stairs to 2nd-floor Toolsmith)
+  // 8. Tavern Patron & Tool-Fetcher (routes strictly via Central N-S aisle lx=-34.5 and North aisle lz=100.2, never crossing tables)
   {
     dwarfId: 115,
     id: 'dwarf-tavern-patron-miner',
@@ -600,16 +617,19 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-40.0, 117.05, -40.0, 118.6),
         drinkingBeer: true,
       }, // Sitting on center Bar Stool facing the bar counter!
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // South aisle -> Central N-S aisle
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 }, // North aisle clear of West-North table
       {
         lx: -41.0,
-        lz: 102.6,
+        lz: 102.1,
         hintY: U,
         pauseSec: 5.8,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 102.6, -41.0, 104.0),
+        faceYaw: yawToward(-41.0, 102.1, -41.0, 104.0),
         drinkingBeer: true,
-      }, // Sitting on West-North Tavern Table bench (-41, 104)!
+      }, // Sitting on West-North Tavern Table north bench (-41, 104)!
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: -19.0, lz: 82.0, hintY: U, pauseSec: 0.3, action: 'idle', faceYaw: 0 },
       { lx: -19.0, lz: 50.8, hintY: U, pauseSec: 0.4, action: 'idle', faceYaw: 0 }, // Foot of 2nd-floor scaffolding stairs
       { lx: -19.0, lz: 37.5, hintY: S, pauseSec: 0.5, action: 'idle', faceYaw: Math.PI / 2 }, // Top of 2nd-floor scaffolding stairs
@@ -631,9 +651,12 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         action: 'idle',
         faceYaw: yawToward(-7.8, 78.5, 0.0, 80.0),
       }, // Checking the Central Gold Funnel
+      { lx: -22.0, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
     ],
   },
-  // 9. Seated Bar-Stool & Tavern Table Regular #1 (alternates sitting on the Bar Stools and West-South / East-North Tavern Benches)
+  // 9. Seated Bar-Stool & Tavern Table Regular #1 (routes strictly via South/Middle/North/Central aisles around tables)
   {
     dwarfId: 116,
     id: 'dwarf-tavern-barstool-patron-1',
@@ -655,16 +678,20 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-42.1, 117.05, -42.1, 118.6),
         drinkingBeer: true,
       }, // Sitting on Bar Stool #2 facing the bar counter
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // South aisle -> Central N-S aisle
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 }, // Middle aisle
       {
         lx: -41.0,
-        lz: 110.6,
+        lz: 110.1,
         hintY: U,
         pauseSec: 7.5,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 110.6, -41.0, 112.0),
+        faceYaw: yawToward(-41.0, 110.1, -41.0, 112.0),
         drinkingBeer: true,
       }, // Sitting on West-South Table north bench facing table (-41, 112)
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       {
         lx: -35.8,
         lz: 117.05,
@@ -675,19 +702,23 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-35.8, 117.05, -35.8, 118.6),
         drinkingBeer: true,
       }, // Sitting on Bar Stool #5 facing the bar counter
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 }, // North aisle
       {
         lx: -28.0,
-        lz: 102.6,
+        lz: 102.1,
         hintY: U,
         pauseSec: 7.2,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 102.6, -28.0, 104.0),
+        faceYaw: yawToward(-28.0, 102.1, -28.0, 104.0),
         drinkingBeer: true,
       }, // Sitting on East-North Table north bench facing table (-28, 104)
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
     ],
   },
-  // 10. Seated Bar-Stool & Tavern Table Regular #2 (alternates sitting on Bar Stools and East-South / West-North Tavern Benches)
+  // 10. Seated Bar-Stool & Tavern Table Regular #2 (routes strictly via South/Middle/Central aisles around tables)
   {
     dwarfId: 117,
     id: 'dwarf-tavern-barstool-patron-2',
@@ -709,16 +740,20 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-37.9, 117.05, -37.9, 118.6),
         drinkingBeer: true,
       }, // Sitting on Bar Stool #4 facing the bar counter
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // Central N-S aisle
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 }, // Middle aisle
       {
         lx: -28.0,
-        lz: 110.6,
+        lz: 110.1,
         hintY: U,
         pauseSec: 7.8,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 110.6, -28.0, 112.0),
+        faceYaw: yawToward(-28.0, 110.1, -28.0, 112.0),
         drinkingBeer: true,
       }, // Sitting on East-South Table north bench facing table (-28, 112)
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
       {
         lx: -44.2,
         lz: 117.05,
@@ -729,16 +764,110 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-44.2, 117.05, -44.2, 118.6),
         drinkingBeer: true,
       }, // Sitting on Bar Stool #1 facing the bar counter
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
       {
         lx: -41.0,
-        lz: 105.4,
+        lz: 105.9,
         hintY: U,
         pauseSec: 7.5,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 105.4, -41.0, 104.0),
+        faceYaw: yawToward(-41.0, 105.9, -41.0, 104.0),
         drinkingBeer: true,
       }, // Sitting on West-North Table south bench facing table (-41, 104)
+      { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+    ],
+  },
+  // 11. Starting Hall Weapons & Armor Stall Merchant (`lx = -13.1, lz = 49.0`, standing behind the counter facing East)
+  {
+    dwarfId: 118,
+    id: 'dwarf-market-weapons-merchant',
+    name: 'Dain Ironshield',
+    speed: 1.8,
+    phaseOffsetSec: 0.4,
+    scale: 1.04,
+    tintHex: 0xb91c1c,
+    bedLx: -73.5,
+    bedLz: 134.5,
+    waypoints: [
+      {
+        lx: -13.1,
+        lz: 48.4,
+        hintY: U,
+        pauseSec: 7.5,
+        action: 'idle',
+        faceYaw: yawToward(-13.1, 48.4, -9.0, 48.4),
+      },
+      {
+        lx: -13.1,
+        lz: 49.6,
+        hintY: U,
+        pauseSec: 6.5,
+        action: 'mine2',
+        faceYaw: yawToward(-13.1, 49.6, -9.0, 49.6),
+      },
+    ],
+  },
+  // 12. Starting Hall Gold, Diamonds & Gems Stall Merchant (`lx = -13.1, lz = 56.5`, standing behind the counter facing East)
+  {
+    dwarfId: 119,
+    id: 'dwarf-market-gems-merchant',
+    name: 'Thror Diamondhand',
+    speed: 1.8,
+    phaseOffsetSec: 2.2,
+    scale: 1.02,
+    tintHex: 0xd97706,
+    bedLx: -66.0,
+    bedLz: 148.0,
+    waypoints: [
+      {
+        lx: -13.1,
+        lz: 56.0,
+        hintY: U,
+        pauseSec: 8.0,
+        action: 'idle',
+        faceYaw: yawToward(-13.1, 56.0, -9.0, 56.0),
+      },
+      {
+        lx: -13.1,
+        lz: 57.0,
+        hintY: U,
+        pauseSec: 6.0,
+        action: 'mine2',
+        faceYaw: yawToward(-13.1, 57.0, -9.0, 57.0),
+      },
+    ],
+  },
+  // 13. Starting Hall Pickaxes & Work Tools Stall Merchant (`lx = -13.1, lz = 64.0`, standing behind the counter facing East)
+  {
+    dwarfId: 120,
+    id: 'dwarf-market-tools-merchant',
+    name: 'Telchar Gearwright',
+    speed: 1.8,
+    phaseOffsetSec: 4.1,
+    scale: 1.01,
+    tintHex: 0x0f766e,
+    bedLx: -52.0,
+    bedLz: 154.0,
+    waypoints: [
+      {
+        lx: -13.1,
+        lz: 63.4,
+        hintY: U,
+        pauseSec: 7.5,
+        action: 'idle',
+        faceYaw: yawToward(-13.1, 63.4, -9.0, 63.4),
+      },
+      {
+        lx: -13.1,
+        lz: 64.6,
+        hintY: U,
+        pauseSec: 6.5,
+        action: 'mine2',
+        faceYaw: yawToward(-13.1, 64.6, -9.0, 64.6),
+      },
     ],
   },
 ];
@@ -985,6 +1114,14 @@ function buildSafeCommuteWaypoints(
     // 6) East Wall / Foundry: pass south of the Central Gold Funnel & north of Tavern
     route.push([16.0, U, 98.0]);
     route.push([-52.0, U, 98.0]);
+  } else if (workLx >= -50 && workLx <= -20 && clampedLz >= 98 && clampedLz <= 122) {
+    // 7) Inside the Dwarven Tavern ("The Molten Tankard"): route cleanly around bar & tables via aisles
+    if (clampedLz >= 118.0) {
+      route.push([-32.0, U, 119.65]);
+      route.push([-32.0, U, 115.5]);
+    }
+    route.push([-34.5, U, 115.5]);
+    route.push([-52.0, U, 115.5]);
   }
 
   // Enter through `dwarven-quarters-entry` (`lx = -59.0, lz = 123.5 -> 131.5`), then down central hall to bed
@@ -1229,6 +1366,13 @@ type MinerPhase =
 
 type CartPhase = 'waiting_for_ore' | 'delivering' | 'unloading' | 'returning';
 
+/**
+ * Summary: Shared East Turnout Junction (`[56, 78] -> [32, 80] -> [6, 80]`) traffic lock so when
+ *          both `coop-cart-gallery-pit` and `coop-cart-east-wall` arrive at the junction, the second
+ *          cart waits right before the junction until the first cart finishes and clears the junction.
+ */
+let eastJunctionOccupantCartId: string | null = null;
+
 function buildCooperativeCartTeam(
   ctx: ISetPieceContext,
   cfg: ICooperativeCartConfig,
@@ -1255,14 +1399,23 @@ function buildCooperativeCartTeam(
   });
   const segLengths: number[] = [];
   let totalLength = 0;
+  let junctionDist: number | null = null;
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
     const b = pts[i + 1];
+    if (a.lx === 56 && a.lz === 78) {
+      junctionDist = totalLength;
+    }
     const len = Math.hypot(b.lx - a.lx, b.y - a.y, b.lz - a.lz);
     segLengths.push(len);
     totalLength += len;
   }
   const travelDuration = Math.max(1.5, totalLength / cfg.speed);
+  // Normalized track parameter `u` where this cart reaches the shared East Junction `[56, 78]`
+  const junctionU = junctionDist !== null && totalLength > 1e-5 ? junctionDist / totalLength : null;
+  // Wait position ~5.5m before the `[56, 78]` junction so the waiting cart stops cleanly on its own branch
+  const junctionWaitU =
+    junctionDist !== null && totalLength > 1e-5 ? Math.max(0.08, (junctionDist - 5.5) / totalLength) : null;
 
   const sampleTrackAtU = (u: number): { lx: number; y: number; lz: number; yaw: number; pitch: number } => {
     const clampedU = Math.max(0, Math.min(1, u));
@@ -1391,18 +1544,37 @@ function buildCooperativeCartTeam(
   };
 
   return (_elapsedTime: number, dt: number, worldHours: number, playerX: number, playerZ: number): void => {
-    // 1. Update Cart Movement when delivering (3/3), unloading at the Central Gold Funnel, or returning empty (0/3)
+    // 1. Update Cart Movement when delivering (3/3), yielding at junction, unloading at Central Gold Funnel, or returning empty (0/3)
     let goingForward = true;
     let dumpTiltAngle = 0;
     if (cartPhase === 'waiting_for_ore') {
       cartTrackU = 0;
       goingForward = true;
+      if (eastJunctionOccupantCartId === cfg.id) {
+        eastJunctionOccupantCartId = null;
+      }
     } else if (cartPhase === 'delivering') {
-      cartPhaseTimer += dt;
-      const raw = Math.min(1, cartPhaseTimer / travelDuration);
-      cartTrackU = raw * raw * (3 - 2 * raw);
+      const nextTimer = cartPhaseTimer + dt;
+      const nextRaw = Math.min(1, nextTimer / travelDuration);
+      const nextU = nextRaw * nextRaw * (3 - 2 * nextRaw);
+      let isYieldingAtJunction = false;
+
+      if (junctionWaitU !== null && junctionU !== null && nextU >= junctionWaitU) {
+        if (eastJunctionOccupantCartId === null || eastJunctionOccupantCartId === cfg.id) {
+          eastJunctionOccupantCartId = cfg.id;
+        } else if (cartTrackU <= junctionU) {
+          // Another cart is currently occupying the shared East Junction / trunk (`[56, 78] <-> [6, 80]`):
+          // smoothly hold this cart right before the junction until the first cart clears it!
+          isYieldingAtJunction = true;
+        }
+      }
+
+      if (!isYieldingAtJunction) {
+        cartPhaseTimer = nextTimer;
+        cartTrackU = nextU;
+      }
       goingForward = true;
-      if (raw >= 1) {
+      if (!isYieldingAtJunction && nextRaw >= 1) {
         cartPhase = 'unloading';
         cartPhaseTimer = 0;
       }
@@ -1425,10 +1597,21 @@ function buildCooperativeCartTeam(
       const raw = Math.min(1, cartPhaseTimer / travelDuration);
       cartTrackU = 1 - raw * raw * (3 - 2 * raw);
       goingForward = false;
+      // Release the East Junction lock as soon as this returning cart has cleared back onto its own branch
+      if (
+        eastJunctionOccupantCartId === cfg.id &&
+        junctionWaitU !== null &&
+        cartTrackU < junctionWaitU
+      ) {
+        eastJunctionOccupantCartId = null;
+      }
       if (raw >= 1) {
         cartTrackU = 0;
         cartPhase = 'waiting_for_ore';
         cartPhaseTimer = 0;
+        if (eastJunctionOccupantCartId === cfg.id) {
+          eastJunctionOccupantCartId = null;
+        }
         const returningRiderId = riderDwarfId;
         riderDwarfId = null;
         for (const actor of minerActors) {
@@ -1473,6 +1656,9 @@ function buildCooperativeCartTeam(
           mCfg.bedLz
         )
       ) {
+      if (eastJunctionOccupantCartId === cfg.id && riderDwarfId === mCfg.dwarfId) {
+        eastJunctionOccupantCartId = null;
+      }
         if (activeLoaderDwarfId === mCfg.dwarfId) activeLoaderDwarfId = null;
         if (riderDwarfId === mCfg.dwarfId) {
           riderDwarfId = null;
@@ -1744,6 +1930,24 @@ function buildSingleWanderingDwarf(
       const walkProgress = Math.max(0, Math.min(1, (localT - chosenLeg.pauseSec) / chosenLeg.walkSec));
       lx = chosenLeg.a.lx + (chosenLeg.b.lx - chosenLeg.a.lx) * walkProgress;
       lz = Math.min(MAX_DWARF_LZ, chosenLeg.a.lz + (chosenLeg.b.lz - chosenLeg.a.lz) * walkProgress);
+      // Enforce tavern table & bar counter AABB clearance while walking so no dwarf ever clips a pub table or bar
+      for (const [tx, tz, hx, hz] of [
+        [-41.0, 104.0, 3.25, 1.85],
+        [-28.0, 104.0, 3.25, 1.85],
+        [-41.0, 112.0, 3.25, 1.85],
+        [-28.0, 112.0, 3.25, 1.85],
+        [-40.0, 118.55, 6.55, 0.95],
+      ] as const) {
+        const dx = lx - tx;
+        const dz = lz - tz;
+        if (Math.abs(dx) < hx && Math.abs(dz) < hz) {
+          if (hx - Math.abs(dx) < hz - Math.abs(dz)) {
+            lx = tx + (dx >= 0 ? hx : -hx);
+          } else {
+            lz = tz + (dz >= 0 ? hz : -hz);
+          }
+        }
+      }
       hintY = chosenLeg.a.hintY + (chosenLeg.b.hintY - chosenLeg.a.hintY) * walkProgress;
       yaw = chosenLeg.walkYaw;
       rig.ctrl.speed = cfg.speed;

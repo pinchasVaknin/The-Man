@@ -94,6 +94,9 @@ export function buildColliderDebugWireframes(
     walkableRampWireMat
   );
 
+  const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+  disposableGeometries.push(unitBoxGeo);
+
   // 1. SOLID_BUILDING_BOXES (Red / Orange for stair guards & ship walls)
   for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
     const b = SOLID_BUILDING_BOXES[i];
@@ -106,12 +109,11 @@ export function buildColliderDebugWireframes(
     const h = Math.max(0.12, maxY - minY);
     const d = Math.max(0.08, b.maxZ - b.minZ);
 
-    const geo = new THREE.BoxGeometry(w, h, d);
-    disposableGeometries.push(geo);
     const isStairOrShip =
       b.id.includes('stair') || b.id.includes('galleon') || b.id.includes('harbor');
-    const mesh = new THREE.Mesh(geo, isStairOrShip ? stairGuardWireMat : boxWireMat);
+    const mesh = new THREE.Mesh(unitBoxGeo, isStairOrShip ? stairGuardWireMat : boxWireMat);
     mesh.position.set(cx, minY + h * 0.5, cz);
+    mesh.scale.set(w, h, d);
     if (b.yaw) {
       mesh.rotation.y = b.yaw;
     }
@@ -128,10 +130,9 @@ export function buildColliderDebugWireframes(
     const w = Math.max(0.12, d.maxX - d.minX);
     const h = Math.max(0.2, maxY - minY);
     const depth = Math.max(0.12, d.maxZ - d.minZ);
-    const geo = new THREE.BoxGeometry(w, h, depth);
-    disposableGeometries.push(geo);
-    const mesh = new THREE.Mesh(geo, doorWireMat);
+    const mesh = new THREE.Mesh(unitBoxGeo, doorWireMat);
     mesh.position.set(cx, minY + h * 0.5, cz);
+    mesh.scale.set(w, h, depth);
     group.add(mesh);
   }
 
@@ -145,13 +146,12 @@ export function buildColliderDebugWireframes(
         const height = Math.max(0.12, (wall.maxY ?? bottom) - bottom);
         const width = Math.max(0.08, wall.maxX - wall.minX);
         const depth = Math.max(0.08, wall.maxZ - wall.minZ);
-        const geo = new THREE.BoxGeometry(width, height, depth);
-        disposableGeometries.push(geo);
         const lx = (wall.minX + wall.maxX) * 0.5;
         const lz = (wall.minZ + wall.maxZ) * 0.5;
-        const mesh = new THREE.Mesh(geo, stairGuardWireMat);
+        const mesh = new THREE.Mesh(unitBoxGeo, stairGuardWireMat);
         // Same transform as the physics: local (lx, lz) -> world offset via the tower yaw.
         mesh.position.set(tw.x + lx * cosY + lz * sinY, bottom + height * 0.5, tw.z - lx * sinY + lz * cosY);
+        mesh.scale.set(width, height, depth);
         mesh.rotation.y = tw.yaw;
         group.add(mesh);
       }
@@ -234,26 +234,22 @@ export function buildColliderDebugWireframes(
   addSlopeRampWireframe(-38.6, -35.15, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
   addSlopeRampWireframe(35.15, 38.6, -167.5 + fz, -159.5 + fz, 31.6 + fy, 26.3 + fy);
 
-  // Southern Mine Walkable Shaft, Scaffolding Stairs, South Gallery Descent + Middle Staircase, and Bridge of Khazad-dûm
+  // Southern Mine Walkable Entrance Steps, Grand Entry Stairs, Scaffolding Stairs, Grand Descent, and Great Bridge
   const mx = SOUTHERN_MINE_POS.x;
   const mz = SOUTHERN_MINE_POS.entranceZ;
   const mfY = SOUTHERN_MINE_POS.cavernFloorY;
   const moriaY = SOUTHERN_MINE_POS.moriaHallFloorY;
-  // Entrance shaft slope (lz: 0..34)
-  addSlopeRampWireframe(mx - 3.3, mx + 3.3, mz, mz + 34.0, SOUTHERN_MINE_POS.entranceY, mfY);
-  // NE Cliffside Scaffolding Stairs
-  addSlopeRampWireframe(mx + 8.5, mx + 12.5, mz + 49.0, mz + 57.5, mfY + 3.8, mfY);
-  // South Moria Descent Gallery — West continuous minecart ramp (lx: -12..-7.5, lz: 95..165)
-  addSlopeRampWireframe(mx - 12.0, mx - 7.5, mz + 95.0, mz + 165.0, mfY, moriaY);
-  // South Moria Descent Gallery — Pedestrian lane with Middle Staircase & Central Landing (lx: -7.5..12)
-  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 95.0, mz + 116.0, mfY, -14.1);
-  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 116.0, mz + 126.0, -14.1, -18.85);
-  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 126.0, mz + 134.0, -18.85, -18.85);
-  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 134.0, mz + 144.0, -18.85, -23.6);
-  addSlopeRampWireframe(mx - 7.5, mx + 12.0, mz + 144.0, mz + 165.0, -23.6, moriaY);
-  // Enlarged Bridge of Khazad-dûm across the 68m Great Chasm (lx: -6.8..6.8, lz: 196..268)
-  addSlopeRampWireframe(mx - 6.8, mx + 6.8, mz + 196.0, mz + 232.0, moriaY, moriaY + 0.55);
-  addSlopeRampWireframe(mx - 6.8, mx + 6.8, mz + 232.0, mz + 268.0, moriaY + 0.55, moriaY);
+  // Entrance threshold steps (lz: 4..8, y: 2.65 -> 1.45) & Grand Entry Stairs (lz: 20..44, y: 1.45 -> -9.35)
+  addSlopeRampWireframe(mx - 4.0, mx + 4.0, mz + 4.0, mz + 8.0, SOUTHERN_MINE_POS.entranceY, 1.45);
+  addSlopeRampWireframe(mx - 4.0, mx + 4.0, mz + 20.0, mz + 44.0, 1.45, mfY);
+  // 2nd-Floor Toolsmith Mezzanine Stairs (`hub-scaffolding-stairs`, lx: -22..-16, lz: 38..50)
+  addSlopeRampWireframe(mx - 22.0, mx - 16.0, mz + 38.0, mz + 50.0, -4.85, mfY);
+  // Grand Descent Flights A, B, C (lx: -7..7, lz: 122..192)
+  addSlopeRampWireframe(mx - 7.0, mx + 7.0, mz + 122.0, mz + 140.0, mfY, -18.35);
+  addSlopeRampWireframe(mx - 7.0, mx + 7.0, mz + 146.0, mz + 166.0, -18.35, -27.35);
+  addSlopeRampWireframe(mx - 7.0, mx + 7.0, mz + 172.0, mz + 192.0, -27.35, moriaY);
+  // Great Bridge across the Deep Chasm (lx: -3.5..3.5, lz: 204..294)
+  addSlopeRampWireframe(mx - 3.5, mx + 3.5, mz + 204.0, mz + 294.0, moriaY, moriaY);
 
   scene.add(group);
 

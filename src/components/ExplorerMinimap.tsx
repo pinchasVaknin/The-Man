@@ -454,9 +454,9 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     const img = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
     const data = img.data;
     const minCx = Math.max(0, Math.floor((-240 + MAP_WORLD_HALF) / METERS_PER_CELL));
-    const maxCx = Math.min(GRID_SIZE - 1, Math.ceil((120 + MAP_WORLD_HALF) / METERS_PER_CELL));
-    const minCz = Math.max(0, Math.floor((420 + MAP_WORLD_HALF) / METERS_PER_CELL));
-    const maxCz = Math.min(GRID_SIZE - 1, Math.ceil((730 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const maxCx = Math.min(GRID_SIZE - 1, Math.ceil((152 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const minCz = Math.max(0, Math.floor((348 + MAP_WORLD_HALF) / METERS_PER_CELL));
+    const maxCz = Math.min(GRID_SIZE - 1, Math.ceil((936 + MAP_WORLD_HALF) / METERS_PER_CELL));
 
     for (let cz = minCz; cz <= maxCz; cz++) {
       const wz = (cz + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;

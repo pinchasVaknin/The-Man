@@ -24,7 +24,10 @@ import { UPPER_RAIL_LINES } from '../../domain/landmarks/ancientMine/ancientMine
 import { sampleAncientMineFloor } from '../../domain/landmarks/ancientMine/ancientMineFloor';
 import {
   ALL_RIDEABLE_MINECART_LINES,
+  EAST_FORK_SWITCH_LEVER_LOCAL,
   evaluateRideableMinecartPose,
+  getActivePlayerRiddenMinecartLineId,
+  getEastForkSwitchBranch,
   getRideableMinecartVisualProgress,
 } from '../../systems/dwarvenMineAndCaravanSystem';
 import { MINE_PALETTE, buildPropGeometry } from './propGeometries';
@@ -88,6 +91,7 @@ function fixture(id: string): (typeof MINE_SOLID_FIXTURES)[number] {
 export function buildUpperLevelSetPieces(ctx: ISetPieceContext): ISetPieceUpdate {
   const kit = new Kit(ctx);
   buildPortal(kit, ctx);
+  buildStartingHallChandeliersAndMarketStalls(kit, ctx);
   const centralFunnel = buildRailHub(kit, ctx);
   const updateCarts = buildRideableCarts(kit, ctx);
   const crane = buildCrane(kit);
@@ -116,6 +120,11 @@ export function buildUpperLevelSetPieces(ctx: ISetPieceContext): ISetPieceUpdate
       p.position.y = Math.abs(Math.sin(t * 2.4 + i * 1.1)) * 0.8;
     });
     gallery.bucket.position.y = Math.sin(t * 0.25) * 3.6 - 2.4;
+    const targetLeverRot = getEastForkSwitchBranch() === 'left' ? -0.46 : 0.46;
+    gallery.switchLeverArm.rotation.z += (targetLeverRot - gallery.switchLeverArm.rotation.z) * 0.18;
+    gallery.switchIndicatorMat.color.setHex(
+      getEastForkSwitchBranch() === 'left' ? 0x38bdf8 : 0xfbbf24
+    );
     foundry.ladlePivot.position.x = Math.sin(t * 0.2) * 18;
   };
 }
@@ -217,18 +226,431 @@ function buildPortal(kit: Kit, ctx: ISetPieceContext): void {
 }
 // #endregion
 
+// #region Starting Hall Grand Overhead Chandeliers & Dwarven Market Stalls
+/**
+ * Summary: Builds 6 colossal multi-tiered Dwarven iron-and-gold overhead chandeliers (`נברשות ענק`)
+ *          suspended from the domed ceiling of the starting hall (`upper-central-hub`) for bright warm
+ *          illumination, plus 3 detailed Dwarven Market Stalls along the West Entry Promenade (`lx = -11.5`):
+ *          1. Weapons & Armor Stall (`lz = 49.0`): hammers, battle axes, shields, and horned helmets.
+ *          2. Precious Materials Stall (`lz = 56.5`): gold ingots, glowing diamonds, gold ore, sapphires, and amethysts.
+ *          3. Mining & Engineering Tools Stall (`lz = 64.0`): dwarven/mithril pickaxes, chisels, rotary core drills, and lanterns.
+ */
+function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceContext): void {
+  const { m } = kit;
+
+  const diamondMat = new THREE.MeshStandardMaterial({
+    color: 0xe0f2fe,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 1.35,
+    roughness: 0.1,
+    metalness: 0.25,
+  });
+  const sapphireMat = new THREE.MeshStandardMaterial({
+    color: 0x2563eb,
+    emissive: 0x1d4ed8,
+    emissiveIntensity: 0.9,
+    roughness: 0.15,
+    metalness: 0.3,
+  });
+  const amethystMat = new THREE.MeshStandardMaterial({
+    color: 0xa855f7,
+    emissive: 0x7e22ce,
+    emissiveIntensity: 0.9,
+    roughness: 0.15,
+    metalness: 0.3,
+  });
+  const mithrilMat = new THREE.MeshStandardMaterial({
+    color: 0xbae6fd,
+    emissive: 0x0284c7,
+    emissiveIntensity: 0.65,
+    roughness: 0.2,
+    metalness: 0.85,
+  });
+  ctx.ownMaterial(diamondMat, sapphireMat, amethystMat, mithrilMat);
+
+  // 1) 6 COLOSSAL MULTI-TIERED DWARVEN OVERHEAD CHANDELIERS IN THE STARTING HALL
+  const chandelierSpots: readonly [number, number][] = [
+    [-18.0, 46.0],
+    [18.0, 46.0],
+    [-22.0, 68.0],
+    [22.0, 68.0],
+    [-18.0, 98.0],
+    [18.0, 98.0],
+  ];
+  const outerRingGeo = ctx.own(new THREE.TorusGeometry(2.8, 0.16, 8, 24));
+  const innerRingGeo = ctx.own(new THREE.TorusGeometry(1.55, 0.12, 8, 20));
+  const flameConeGeo = ctx.own(new THREE.ConeGeometry(0.14, 0.38, 6));
+
+  for (const [cx, cz] of chandelierSpots) {
+    const ceilY = sampleAncientMineFloor(cx, cz)?.ceilingY ?? 7.5;
+    const wheelY = U + 6.8;
+    const upperWheelY = U + 7.85;
+    // Heavy forged ceiling anchor & suspension chain from the domed rock ceiling
+    kit.cyl(0.65, 0.85, 0.4, m.darkStone, cx, ceilY - 0.2, cz, 10);
+    kit.chain(cx, cz, ceilY - 0.35, wheelY);
+
+    const chand = new THREE.Group();
+    chand.position.set(cx, wheelY, cz);
+    kit.add(chand);
+
+    // Central gilded hub & pendant finial
+    kit.cyl(0.42, 0.32, 2.2, m.gold, 0, 0.4, 0, 10, chand);
+    const finial = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(0.38, 0)), m.gold);
+    finial.position.set(0, -0.85, 0);
+    chand.add(finial);
+
+    // Lower main iron & gold ring (r = 2.8m)
+    const outerRing = new THREE.Mesh(outerRingGeo, m.iron);
+    outerRing.rotation.x = Math.PI / 2;
+    chand.add(outerRing);
+    const outerGoldTrim = new THREE.Mesh(outerRingGeo, m.gold);
+    outerGoldTrim.rotation.x = Math.PI / 2;
+    outerGoldTrim.scale.set(1.03, 1.03, 0.55);
+    outerGoldTrim.position.y = 0.08;
+    chand.add(outerGoldTrim);
+
+    // Upper inner tier ring (r = 1.55m)
+    const innerRing = new THREE.Mesh(innerRingGeo, m.gold);
+    innerRing.rotation.x = Math.PI / 2;
+    innerRing.position.y = upperWheelY - wheelY;
+    chand.add(innerRing);
+
+    // 8 radial iron spokes + diagonal suspension chains + 8 large glowing brazier cups on the outer ring
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      const spoke = kit.box(0.12, 0.12, 2.75, m.iron, cos * 1.38, -0.06, sin * 1.38, chand);
+      spoke.rotation.y = Math.atan2(cos, sin);
+
+      const cupX = cos * 2.8;
+      const cupZ = sin * 2.8;
+      kit.cyl(0.26, 0.16, 0.28, m.gold, cupX, 0.2, cupZ, 8, chand);
+      kit.cyl(0.11, 0.11, 0.34, m.stone, cupX, 0.46, cupZ, 8, chand);
+      const flame = new THREE.Mesh(flameConeGeo, m.ember);
+      flame.position.set(cupX, 0.78, cupZ);
+      chand.add(flame);
+
+      if (i % 2 === 0) {
+        const icX = cos * 1.55;
+        const icZ = sin * 1.55;
+        const iy = upperWheelY - wheelY;
+        kit.cyl(0.22, 0.14, 0.24, m.gold, icX, iy + 0.18, icZ, 8, chand);
+        const iflame = new THREE.Mesh(flameConeGeo, m.ember);
+        iflame.position.set(icX, iy + 0.52, icZ);
+        chand.add(iflame);
+      }
+    }
+
+    // Bright overhead warm golden lights from each chandelier illuminating the starting cavern
+    ctx.addLight(cx, wheelY - 0.5, cz, 0xffd27a, 9.5);
+    ctx.addTorch(cx, wheelY + 0.35, cz, 0xffcc66, 8.5);
+  }
+
+  // 2) 3 DWARVEN MARKET STALLS ALONG THE WEST ENTRY PROMENADE (lx = -11.5, lz = 49.0 / 56.5 / 64.0)
+  const buildStallFrame = (sz: number, awningAccentMat: THREE.Material): THREE.Group => {
+    const sx = -11.5;
+    const stall = new THREE.Group();
+    stall.position.set(sx, U, sz);
+    kit.add(stall);
+
+    // Stone base plinth & carved wooden counter (2.0m deep along X, 4.2m wide along Z, facing East +X)
+    kit.box(2.0, 0.22, 4.2, m.darkStone, 0, 0, 0, stall);
+    kit.box(1.75, 0.84, 3.95, m.wood, 0.05, 0.22, 0, stall);
+    // Decorative iron vertical straps & gold trim on the front (+X) face of the counter
+    for (const dz of [-1.8, -0.6, 0.6, 1.8]) {
+      kit.box(0.08, 0.84, 0.14, m.iron, 0.94, 0.22, dz, stall);
+    }
+    kit.box(0.08, 0.12, 4.0, m.gold, 0.95, 0.92, 0, stall);
+    // Countertop slab (y = 1.06 .. 1.16)
+    kit.box(1.98, 0.1, 4.24, m.stone, 0.05, 1.06, 0, stall);
+    kit.box(2.04, 0.05, 4.3, m.gold, 0.05, 1.11, 0, stall);
+
+    // Back display shelf rack behind the merchant (`lx = -13.9` -> local `x = -2.4`)
+    kit.box(0.65, 2.35, 3.8, m.darkStone, -2.35, 0, 0, stall);
+    kit.box(0.72, 0.12, 3.9, m.gold, -2.35, 2.35, 0, stall);
+    kit.box(0.68, 0.08, 3.6, m.wood, -2.32, 1.15, 0, stall);
+    kit.box(0.68, 0.08, 3.6, m.wood, -2.32, 1.75, 0, stall);
+
+    // 4 Corner Canopy Posts & Sloped Dwarven Awning Roof
+    for (const px of [-0.82, 0.88]) {
+      for (const pz of [-1.95, 1.95]) {
+        kit.box(0.18, 2.65, 0.18, m.wood, px, 0.22, pz, stall);
+        kit.box(0.22, 0.14, 0.22, m.gold, px, 2.45, pz, stall);
+      }
+    }
+    // Overhead sign board on the East (+X) front lintel
+    kit.box(0.14, 0.42, 3.6, m.wood, 0.92, 2.42, 0, stall);
+    kit.box(0.18, 0.06, 3.7, m.gold, 0.92, 2.4, 0, stall);
+    kit.box(0.18, 0.06, 3.7, m.gold, 0.92, 2.82, 0, stall);
+
+    // Sloped canopy roof with alternating wood & accent ribs
+    const roof = new THREE.Group();
+    roof.position.set(0.05, 2.92, 0);
+    roof.rotation.z = -0.14;
+    stall.add(roof);
+    kit.box(2.35, 0.12, 4.45, m.wood, 0, 0, 0, roof);
+    for (const rz of [-1.8, -0.9, 0, 0.9, 1.8]) {
+      kit.box(2.42, 0.08, 0.28, awningAccentMat, 0, 0.08, rz, roof);
+    }
+    kit.box(0.12, 0.16, 4.5, m.gold, 1.18, -0.02, 0, roof);
+
+    ctx.addTorch(sx + 1.05, U + 2.55, sz - 1.95, 0xffc85a, 7.5);
+    ctx.addTorch(sx + 1.05, U + 2.55, sz + 1.95, 0xffc85a, 7.5);
+    return stall;
+  };
+
+  // --- STALL 1 (lz = 49.0): DWARVEN WEAPONS & ARMOR STALL (Warhammer, Battle Axe, Shield, Horned Helmet) ---
+  {
+    const stall1 = buildStallFrame(49.0, m.gold);
+    const cy = 1.16;
+
+    // 1a. Dwarven Warhammer (`פטיש קרב גמדים`) on the south end of the counter
+    const hammer = new THREE.Group();
+    hammer.position.set(0.18, cy + 0.08, -1.25);
+    hammer.rotation.y = 0.35;
+    stall1.add(hammer);
+    kit.box(0.08, 0.08, 0.95, m.wood, 0, 0, 0, hammer);
+    kit.box(0.44, 0.24, 0.26, m.iron, 0, 0.04, -0.38, hammer);
+    kit.box(0.48, 0.08, 0.28, m.gold, 0, 0.12, -0.38, hammer);
+
+    // 1b. Double-Bit Dwarven Battle Axe (`גרזן קרב דו-להבי`) in the center-south of the counter
+    const axe = new THREE.Group();
+    axe.position.set(0.22, cy + 0.06, -0.35);
+    axe.rotation.y = -0.25;
+    stall1.add(axe);
+    kit.box(0.07, 0.07, 1.02, m.wood, 0, 0, 0, axe);
+    kit.box(0.68, 0.06, 0.38, m.iron, 0, 0.02, -0.36, axe);
+    kit.box(0.72, 0.04, 0.12, m.gold, 0, 0.03, -0.36, axe);
+
+    // 1c. Round Iron & Gold Dwarven Shield (`מגן גמדים`) propped on an angled display stand
+    const shield = new THREE.Group();
+    shield.position.set(0.15, cy + 0.38, 0.55);
+    shield.rotation.z = -0.45;
+    shield.rotation.y = 0.2;
+    stall1.add(shield);
+    const shieldDisc = kit.cyl(0.46, 0.46, 0.06, m.iron, 0, 0, 0, 16, shield);
+    shieldDisc.rotation.z = Math.PI / 2;
+    const shieldRim = new THREE.Mesh(ctx.own(new THREE.TorusGeometry(0.45, 0.045, 8, 18)), m.gold);
+    shieldRim.rotation.y = Math.PI / 2;
+    shield.add(shieldRim);
+    const shieldBoss = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(0.14, 10, 8)), m.gold);
+    shieldBoss.position.set(0.04, 0, 0);
+    shield.add(shieldBoss);
+
+    // 1d. Horned Dwarven Helmet (`קסדת גמדים`) on an armor stand bust on the north end of the counter
+    const helm = new THREE.Group();
+    helm.position.set(0.18, cy, 1.38);
+    stall1.add(helm);
+    kit.cyl(0.12, 0.16, 0.22, m.wood, 0, 0.11, 0, 10, helm);
+    const dome = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(0.24, 12, 10)), m.iron);
+    dome.position.set(0, 0.32, 0);
+    helm.add(dome);
+    kit.box(0.26, 0.07, 0.26, m.gold, 0, 0.24, 0, helm);
+    kit.box(0.06, 0.18, 0.05, m.gold, 0.22, 0.16, 0, helm); // Nasal guard facing East (+X)
+    const hornGeo = ctx.own(new THREE.ConeGeometry(0.06, 0.32, 8));
+    for (const side of [-1, 1] as const) {
+      const horn = new THREE.Mesh(hornGeo, m.gold);
+      horn.position.set(0.04, 0.44, side * 0.24);
+      horn.rotation.x = side * 0.65;
+      helm.add(horn);
+    }
+
+    // Extra shields & axes on the rear display shelves (`x = -2.15`)
+    for (const sz of [-1.1, 0, 1.1]) {
+      const rShield = kit.cyl(0.38, 0.38, 0.06, sz === 0 ? m.gold : m.iron, -2.12, 1.55, sz, 14, stall1);
+      rShield.rotation.z = Math.PI / 2;
+    }
+  }
+
+  // --- STALL 2 (lz = 56.5): PRECIOUS MATERIALS, GOLD & DIAMONDS STALL (Gold Ingots, Diamonds, Gems) ---
+  {
+    const stall2 = buildStallFrame(56.5, diamondMat);
+    const cy = 1.16;
+
+    // 2a. Stacked Pyramid of Gleaming Gold Ingots (`מטילי זהב`) on the south side of the counter
+    for (let row = 0; row < 3; row++) {
+      const count = 3 - row;
+      for (let k = 0; k < count; k++) {
+        kit.box(
+          0.34,
+          0.11,
+          0.16,
+          m.gold,
+          0.18,
+          cy + row * 0.11,
+          -1.45 + k * 0.2 + row * 0.1,
+          stall2
+        );
+      }
+    }
+
+    // 2b. Velvet Display Cushion with Brilliantly Glowing Faceted Diamonds (`יהלומים זוהרים`)
+    kit.box(0.55, 0.06, 0.85, m.darkStone, 0.22, cy, -0.35, stall2);
+    kit.box(0.58, 0.03, 0.88, m.gold, 0.22, cy, -0.35, stall2);
+    const diaGeo = ctx.own(new THREE.OctahedronGeometry(0.16, 0));
+    for (const [dx, dz, sc] of [
+      [0.22, -0.55, 1.15],
+      [0.26, -0.32, 1.35],
+      [0.18, -0.12, 1.05],
+      [0.08, -0.42, 0.85],
+    ] as const) {
+      const dia = new THREE.Mesh(diaGeo, diamondMat);
+      dia.scale.set(sc, sc * 1.35, sc);
+      dia.position.set(dx, cy + 0.18 * sc, dz);
+      dia.rotation.y = dz * 2.1;
+      stall2.add(dia);
+    }
+
+    // 2c. Brass Jeweler's Balance Scale (`מאזני שקילה לזהב ויהלומים`) in the center-north
+    const scaleGrp = new THREE.Group();
+    scaleGrp.position.set(0.2, cy, 0.55);
+    stall2.add(scaleGrp);
+    kit.cyl(0.14, 0.18, 0.06, m.gold, 0, 0.03, 0, 10, scaleGrp);
+    kit.cyl(0.03, 0.03, 0.48, m.gold, 0, 0.26, 0, 8, scaleGrp);
+    kit.box(0.06, 0.05, 0.56, m.gold, 0, 0.48, 0, scaleGrp);
+    for (const side of [-1, 1] as const) {
+      kit.cyl(0.12, 0.09, 0.04, m.gold, 0, 0.24, side * 0.25, 10, scaleGrp);
+    }
+
+    // 2d. Glowing Sapphires, Amethysts & Raw Gold Ore Nuggets on the north tray
+    kit.box(0.52, 0.06, 0.85, m.darkStone, 0.22, cy, 1.35, stall2);
+    for (const [dz, mat] of [
+      [1.08, sapphireMat],
+      [1.35, amethystMat],
+      [1.62, m.gold],
+    ] as const) {
+      const gem = new THREE.Mesh(diaGeo, mat);
+      gem.scale.set(1.0, 1.25, 1.0);
+      gem.position.set(0.24, cy + 0.18, dz);
+      stall2.add(gem);
+    }
+
+    // Rear shelf gleaming gold bars & glowing diamond clusters
+    for (const sz of [-1.2, 0, 1.2]) {
+      const shelfGem = new THREE.Mesh(diaGeo, sz === 0 ? diamondMat : sz < 0 ? sapphireMat : amethystMat);
+      shelfGem.scale.setScalar(1.45);
+      shelfGem.position.set(-2.12, 1.42, sz);
+      stall2.add(shelfGem);
+    }
+    ctx.addLight(-11.2, U + 1.65, 56.5, 0x7dd3fc, 7.5);
+  }
+
+  // --- STALL 3 (lz = 64.0): PICKAXES & ENGINEERING WORK TOOLS STALL (Pickaxes, Chisels, Core Drill, Lanterns) ---
+  {
+    const stall3 = buildStallFrame(64.0, m.iron);
+    const cy = 1.16;
+
+    // 3a. Heavy Dwarven Pickaxe & Glowing Mithril Pickaxe (`מקוש גמדים ומקוש מית'ריל`) on display stands
+    for (const [pz, headMat] of [
+      [-1.35, m.iron],
+      [-0.75, mithrilMat],
+    ] as const) {
+      const pick = new THREE.Group();
+      pick.position.set(0.2, cy + 0.08, pz);
+      pick.rotation.y = 0.25;
+      stall3.add(pick);
+      kit.box(0.07, 0.07, 0.95, m.wood, 0, 0, 0, pick);
+      kit.box(0.62, 0.08, 0.1, headMat, 0, 0.03, -0.36, pick);
+      kit.box(0.14, 0.11, 0.14, m.gold, 0, 0.02, -0.36, pick);
+    }
+
+    // 3b. Dwarven Stone-Carving Chisel Set & Mallet (`ערכת אזמלים ופטישי סיתות`)
+    for (let c = 0; c < 4; c++) {
+      kit.box(0.38, 0.04, 0.05, c % 2 === 0 ? m.iron : m.gold, 0.22, cy + 0.02, -0.15 + c * 0.11, stall3);
+    }
+
+    // 3c. Mechanical Rotary Crystal-Core Drill (`מקדח גבישים מכני`) in the center-north
+    const drill = new THREE.Group();
+    drill.position.set(0.22, cy + 0.18, 0.68);
+    stall3.add(drill);
+    kit.box(0.36, 0.22, 0.32, m.iron, -0.08, -0.18, 0, drill);
+    const gearWheel = kit.cyl(0.18, 0.18, 0.06, m.gold, -0.05, 0.04, 0.19, 12, drill);
+    gearWheel.rotation.x = Math.PI / 2;
+    const drillBit = new THREE.Mesh(ctx.own(new THREE.ConeGeometry(0.12, 0.52, 8)), mithrilMat);
+    drillBit.rotation.z = -Math.PI / 2;
+    drillBit.position.set(0.32, 0.0, 0);
+    drill.add(drillBit);
+
+    // 3d. Brass Prospector's Rune Lantern (`עששית כורים`) on the north corner of the counter
+    const lantern = new THREE.Group();
+    lantern.position.set(0.24, cy, 1.45);
+    stall3.add(lantern);
+    kit.cyl(0.15, 0.18, 0.08, m.gold, 0, 0.04, 0, 10, lantern);
+    kit.cyl(0.12, 0.12, 0.28, m.ember, 0, 0.22, 0, 8, lantern);
+    kit.cyl(0.17, 0.14, 0.08, m.gold, 0, 0.4, 0, 10, lantern);
+  }
+}
+// #endregion
+
 // #region Rail Hub — Grand Central Gold Funnel Pit, Curved Tracks, Switch Frogs & Station Kiosks
 /**
- * Summary: Subdivides a multi-segment track polyline with smooth quadratic Bezier corner fillets
- *          so rails curve seamlessly through turns without gaps between straight segments.
+ * Summary: Checks whether a vertex `(x, z)` is one of the two railway turnout junctions (`[-18, 75]` or `[56, 78]`).
+ */
+function isTurnoutJunctionVertex(x: number, z: number): boolean {
+  return (
+    Math.hypot(x - -18.0, z - 75.0) < 0.15 ||
+    Math.hypot(x - 56.0, z - 78.0) < 0.15 ||
+    Math.hypot(x - 156.0, z - 72.0) < 0.15
+  );
+}
+
+/**
+ * Summary: Subdivides a multi-segment track polyline into a smooth C1-continuous path.
+ * Design:
+ * - At pinned turnout junctions (`[-18, 75]` and `[56, 78]`), the curve passes directly THROUGH the
+ *   junction point with the exact incoming trunk tangent `T` (using a cubic Bezier transition onto the
+ *   outgoing segment), so the parent track and the branch track share the exact same position and
+ *   tangent at the switch toe with zero protruding or stepped rails.
+ * - At ordinary interior corners, uses an 8-step quadratic Bezier fillet.
  */
 function subdividePolylineWithCurves(
   line: readonly (readonly [number, number])[],
-  cornerRadius = 3.2,
-  arcSteps = 5
+  initialTangent?: readonly [number, number],
+  cornerRadius = 3.6,
+  arcSteps = 8
 ): [number, number][] {
-  if (line.length <= 2) return line.map(([x, z]) => [x, z]);
-  const out: [number, number][] = [[line[0][0], line[0][1]]];
+  if (line.length < 2) return line.map(([x, z]) => [x, z]);
+  const out: [number, number][] = [];
+
+  // Handle start of line: if this is a branch line with an explicit incoming trunk tangent at line[0],
+  // transition smoothly from (line[0], initialTangent) onto segment line[0] -> line[1] via cubic Bezier.
+  if (initialTangent !== undefined) {
+    const p0 = line[0];
+    const p1 = line[1];
+    const dx = p1[0] - p0[0];
+    const dz = p1[1] - p0[1];
+    const segLen = Math.hypot(dx, dz) || 1;
+    const ux = dx / segLen;
+    const uz = dz / segLen;
+    const d = Math.min(5.2, segLen * 0.45);
+    const c0x = p0[0];
+    const c0z = p0[1];
+    const c1x = p0[0] + initialTangent[0] * (d * 0.45);
+    const c1z = p0[1] + initialTangent[1] * (d * 0.45);
+    const c2x = p0[0] + ux * (d * 0.55);
+    const c2z = p0[1] + uz * (d * 0.55);
+    const c3x = p0[0] + ux * d;
+    const c3z = p0[1] + uz * d;
+    for (let s = 0; s <= arcSteps; s++) {
+      const t = s / arcSteps;
+      const omt = 1 - t;
+      const bx =
+        omt * omt * omt * c0x +
+        3 * omt * omt * t * c1x +
+        3 * omt * t * t * c2x +
+        t * t * t * c3x;
+      const bz =
+        omt * omt * omt * c0z +
+        3 * omt * omt * t * c1z +
+        3 * omt * t * t * c2z +
+        t * t * t * c3z;
+      out.push([bx, bz]);
+    }
+  } else {
+    out.push([line[0][0], line[0][1]]);
+  }
+
   for (let i = 1; i < line.length - 1; i++) {
     const prev = line[i - 1];
     const curr = line[i];
@@ -241,19 +663,55 @@ function subdividePolylineWithCurves(
       out.push([curr[0], curr[1]]);
       continue;
     }
-    const v1x = prev[0] - curr[0];
-    const v1z = prev[1] - curr[1];
-    const len1 = Math.hypot(v1x, v1z);
-    const v2x = next[0] - curr[0];
-    const v2z = next[1] - curr[1];
-    const len2 = Math.hypot(v2x, v2z);
+
+    const vInX = curr[0] - prev[0];
+    const vInZ = curr[1] - prev[1];
+    const len1 = Math.hypot(vInX, vInZ);
+    const vOutX = next[0] - curr[0];
+    const vOutZ = next[1] - curr[1];
+    const len2 = Math.hypot(vOutX, vOutZ);
     if (len1 < 0.5 || len2 < 0.5) {
       out.push([curr[0], curr[1]]);
       continue;
     }
+
+    // At a pinned turnout junction vertex, pass straight through `curr` with incoming tangent `vIn / len1`
+    // and curve smoothly onto `curr -> next` via cubic Bezier so the switch toe is never cut short!
+    if (isTurnoutJunctionVertex(curr[0], curr[1])) {
+      const tx = vInX / len1;
+      const tz = vInZ / len1;
+      const ux = vOutX / len2;
+      const uz = vOutZ / len2;
+      const d = Math.min(5.2, len2 * 0.45);
+      const c0x = curr[0];
+      const c0z = curr[1];
+      const c1x = curr[0] + tx * (d * 0.45);
+      const c1z = curr[1] + tz * (d * 0.45);
+      const c2x = curr[0] + ux * (d * 0.55);
+      const c2z = curr[1] + uz * (d * 0.55);
+      const c3x = curr[0] + ux * d;
+      const c3z = curr[1] + uz * d;
+      for (let s = 0; s <= arcSteps; s++) {
+        const t = s / arcSteps;
+        const omt = 1 - t;
+        const bx =
+          omt * omt * omt * c0x +
+          3 * omt * omt * t * c1x +
+          3 * omt * t * t * c2x +
+          t * t * t * c3x;
+        const bz =
+          omt * omt * omt * c0z +
+          3 * omt * omt * t * c1z +
+          3 * omt * t * t * c2z +
+          t * t * t * c3z;
+        out.push([bx, bz]);
+      }
+      continue;
+    }
+
     const trim = Math.min(cornerRadius, len1 * 0.42, len2 * 0.42);
-    const pStart: [number, number] = [curr[0] + (v1x / len1) * trim, curr[1] + (v1z / len1) * trim];
-    const pEnd: [number, number] = [curr[0] + (v2x / len2) * trim, curr[1] + (v2z / len2) * trim];
+    const pStart: [number, number] = [curr[0] - (vInX / len1) * trim, curr[1] - (vInZ / len1) * trim];
+    const pEnd: [number, number] = [curr[0] + (vOutX / len2) * trim, curr[1] + (vOutZ / len2) * trim];
     for (let s = 0; s <= arcSteps; s++) {
       const t = s / arcSteps;
       const omt = 1 - t;
@@ -268,9 +726,9 @@ function subdividePolylineWithCurves(
 }
 
 /**
- * Summary: Builds a railway switch turnout assembly (tapered switch point blades, V-frog casting,
- *          guard check-rails, unified graduated switch ties, and a weighted throw stand beside the track)
- *          where a branch line splits off from a parent track without overlapping sleepers or extra rails.
+ * Summary: Builds a railway switch turnout assembly (unified graduated switch ties spanning under both
+ *          diverging tracks, frog baseplate, and a weighted throw switch stand outside the gauge) at a
+ *          junction where a branch track splits off tangentially from a main line.
  */
 function buildRailTurnoutFrog(
   kit: Kit,
@@ -283,68 +741,51 @@ function buildRailTurnoutFrog(
   const [jx, jz] = junction;
   const y = trackFloorY(jx, jz);
 
-  const dxMain = mainAfter[0] - parentBefore[0];
-  const dzMain = mainAfter[1] - parentBefore[1];
+  const dxIn = jx - parentBefore[0];
+  const dzIn = jz - parentBefore[1];
+  const inYaw = Math.atan2(dxIn, dzIn);
+
+  const dxMain = mainAfter[0] - jx;
+  const dzMain = mainAfter[1] - jz;
   const mainYaw = Math.atan2(dxMain, dzMain);
 
   const dxBranch = branchAfter[0] - jx;
   const dzBranch = branchAfter[1] - jz;
   const branchYaw = Math.atan2(dxBranch, dzBranch);
-  const angleDiff = Math.atan2(Math.sin(branchYaw - mainYaw), Math.cos(branchYaw - mainYaw));
-  const branchSide = angleDiff >= 0 ? 1 : -1;
-  const midYaw = mainYaw + angleDiff * 0.45;
+
+  const diffMain = Math.atan2(Math.sin(mainYaw - inYaw), Math.cos(mainYaw - inYaw));
+  const diffBranch = Math.atan2(Math.sin(branchYaw - inYaw), Math.cos(branchYaw - inYaw));
+  const midDiff = (diffMain + diffBranch) * 0.5;
+  const spreadAngle = Math.abs(diffBranch - diffMain);
+  const branchSide = diffBranch >= diffMain ? 1 : -1;
 
   const turnoutGroup = new THREE.Group();
   turnoutGroup.position.set(jx, y + 0.02, jz);
-  turnoutGroup.rotation.y = midYaw;
+  turnoutGroup.rotation.y = inYaw + midDiff * 0.45;
   kit.add(turnoutGroup);
 
-  // 1) Unified graduated long timber switch ties spanning cleanly under both diverging tracks
-  //    (regular short sleepers are suppressed inside the 3.4m turnout radius so ties never overlap!)
-  for (let i = -4; i <= 4; i++) {
-    const zLocal = i * 0.72;
-    const progress = Math.max(0, (i + 3) / 7);
-    const tieWidth = 2.05 + progress * 1.45;
-    const xShift = branchSide * progress * 0.52;
+  // 1) Unified graduated timber switch ties spanning cleanly under BOTH diverging tracks
+  //    (individual short sleepers are suppressed inside this zone so ties never cross or overlap!)
+  for (let i = -1; i <= 7; i++) {
+    const zLocal = i * 0.76;
+    const progress = Math.max(0, zLocal / 5.4);
+    const extraSpan = Math.sin(spreadAngle) * Math.max(0, zLocal) * 0.95;
+    const tieWidth = 2.05 + extraSpan;
+    const xShift = branchSide * progress * 0.36;
     kit.box(tieWidth, 0.082, 0.25, m.wood, xShift, 0, zLocal, turnoutGroup);
-    // Iron slide plates under the stock & switch rails
-    kit.box(tieWidth - 0.32, 0.016, 0.16, m.iron, xShift, 0.082, zLocal, turnoutGroup);
+    // Low iron tie-plates flush on top of the timber switch tie (strictly below the rail top!)
+    kit.box(tieWidth - 0.28, 0.016, 0.16, m.iron, xShift, 0.082, zLocal, turnoutGroup);
   }
 
-  // 2) Tapered steel switch point blades (inside the gauge from the toe of the switch to the frog)
-  for (const side of [-1, 1] as const) {
-    const blade = kit.box(0.075, 0.115, 2.55, m.iron, side * (RAIL_GAUGE_HALF - 0.14), 0.08, -1.05, turnoutGroup);
-    blade.rotation.y = branchSide * 0.065 + (side === branchSide ? 0.025 : -0.02);
-  }
-  // Switch throw tie-bars linking the two movable point blades
-  kit.box(1.25, 0.05, 0.09, m.gold, 0, 0.06, -1.95, turnoutGroup);
-  kit.box(1.28, 0.05, 0.09, m.iron, 0, 0.06, -1.15, turnoutGroup);
+  // 2) Switch throw tie-bar under the rails at the toe of the switch (y = 0.05, below rail top)
+  kit.box(1.38, 0.04, 0.09, m.gold, 0, 0.05, 0.38, turnoutGroup);
 
-  // 3) Crisp V-shaped steel frog casting & wing rails at the inner rail intersection (never blocking the gauge!)
-  const frogX = branchSide * 0.24;
-  const frogZ = 0.85;
-  kit.box(0.46, 0.04, 1.35, m.darkStone, frogX, 0.06, frogZ, turnoutGroup);
-  const frogPointA = kit.box(0.09, 0.125, 1.15, m.iron, frogX - 0.08, 0.08, frogZ + 0.15, turnoutGroup);
-  frogPointA.rotation.y = 0.16;
-  const frogPointB = kit.box(0.09, 0.125, 1.15, m.iron, frogX + 0.08, 0.08, frogZ + 0.15, turnoutGroup);
-  frogPointB.rotation.y = -0.16;
-  // Wing rails flaring gently beside the frog throat
-  const wingL = kit.box(0.07, 0.12, 0.95, m.gold, frogX - 0.22, 0.08, frogZ - 0.2, turnoutGroup);
-  wingL.rotation.y = -0.14;
-  const wingR = kit.box(0.07, 0.12, 0.95, m.gold, frogX + 0.22, 0.08, frogZ - 0.2, turnoutGroup);
-  wingR.rotation.y = 0.14;
-
-  // 4) Guard / check rails inside the outer stock rails opposite the frog
-  kit.box(0.065, 0.12, 1.45, m.gold, -branchSide * (RAIL_GAUGE_HALF - 0.16), 0.08, frogZ, turnoutGroup);
-  kit.box(0.065, 0.12, 1.45, m.gold, branchSide * (RAIL_GAUGE_HALF + 0.42), 0.08, frogZ + 0.25, turnoutGroup);
-
-  // 5) Classic Dwarven weighted throw switch stand beside the turnout (outside the track gauge)
-  const standX = -branchSide * (RAIL_GAUGE_HALF + 0.78);
-  const standZ = -1.85;
+  // 3) Classic Dwarven weighted throw switch stand beside the turnout (outside the track gauge)
+  const standX = -branchSide * (RAIL_GAUGE_HALF + 0.82);
+  const standZ = 0.38;
   kit.box(0.44, 0.12, 0.44, m.darkStone, standX, 0, standZ, turnoutGroup);
   kit.box(0.32, 0.18, 0.24, m.iron, standX, 0.12, standZ, turnoutGroup);
-  // Connecting throw rod from switch stand to the switch blades
-  kit.box(Math.abs(standX), 0.04, 0.05, m.iron, standX * 0.5, 0.065, standZ, turnoutGroup);
+  kit.box(Math.abs(standX), 0.035, 0.05, m.iron, standX * 0.5, 0.055, standZ, turnoutGroup);
   const throwLever = kit.cyl(0.03, 0.03, 0.78, m.iron, standX, 0.48, standZ, 6, turnoutGroup);
   throwLever.rotation.z = branchSide * 0.32;
   kit.cyl(0.11, 0.11, 0.09, m.gold, standX - branchSide * 0.12, 0.82, standZ, 8, turnoutGroup);
@@ -399,6 +840,160 @@ function buildTipperBumperStop(kit: Kit, lx: number, lz: number, yawToCenter: nu
 }
 
 /**
+ * Summary: Checks whether a sleeper at `(sx, sz)` lies inside one of the two switch turnout tie zones
+ *          (`[-18, 75]` or `[56, 78]`), where `buildRailTurnoutFrog` lays unified long switch ties.
+ */
+function isInsideTurnoutSleeperZone(sx: number, sz: number): boolean {
+  // West turnout at [-18, 75], incoming tangent unit([-12, -5]) = (-0.9231, -0.3846)
+  const wx = sx - -18.0;
+  const wz = sz - 75.0;
+  const wAlong = wx * -0.9231 + wz * -0.3846;
+  const wPerp = Math.abs(wx * -0.3846 - wz * -0.9231);
+  if (wAlong >= -0.95 && wAlong <= 5.65 && wPerp <= 2.35) return true;
+
+  // East turnout at [56, 78], incoming tangent unit([24, -2]) = (0.9965, -0.0830)
+  const ex = sx - 56.0;
+  const ez = sz - 78.0;
+  const eAlong = ex * 0.9965 + ez * -0.0830;
+  const ePerp = Math.abs(ex * -0.0830 - ez * 0.9965);
+  if (eAlong >= -0.95 && eAlong <= 5.65 && ePerp <= 2.35) return true;
+
+  // East Fork turnout at [156, 72], incoming tangent (1, 0)
+  const fx = sx - 156.0;
+  const fz = sz - 72.0;
+  if (fx >= -0.95 && fx <= 5.65 && Math.abs(fz) <= 2.35) return true;
+
+  return false;
+}
+
+/**
+ * Summary: Builds a complete railway track polyline with shared vertex normals so the left and right
+ *          steel rails meet at identical 3D points at every curve joint and switch turnout without
+ *          any lateral steps, gaps, or protruding ends.
+ */
+function buildContinuousTrackPolyline(
+  kit: Kit,
+  smoothLine: readonly (readonly [number, number])[],
+  initialTangent?: readonly [number, number]
+): void {
+  const { m } = kit;
+  const n = smoothLine.length;
+  if (n < 2) return;
+
+  // Compute unit horizontal normal (nx, nz) at every vertex of smoothLine
+  const normals: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    let tx = 0;
+    let tz = 1;
+    if (i === 0 && initialTangent !== undefined) {
+      tx = initialTangent[0];
+      tz = initialTangent[1];
+    } else if (i === 0) {
+      const dx = smoothLine[1][0] - smoothLine[0][0];
+      const dz = smoothLine[1][1] - smoothLine[0][1];
+      const len = Math.hypot(dx, dz) || 1;
+      tx = dx / len;
+      tz = dz / len;
+    } else if (i === n - 1) {
+      const dx = smoothLine[n - 1][0] - smoothLine[n - 2][0];
+      const dz = smoothLine[n - 1][1] - smoothLine[n - 2][1];
+      const len = Math.hypot(dx, dz) || 1;
+      tx = dx / len;
+      tz = dz / len;
+    } else if (isTurnoutJunctionVertex(smoothLine[i][0], smoothLine[i][1])) {
+      // At a pinned turnout junction vertex, lock the normal to the exact incoming trunk tangent
+      // so the main track and branch track have identical rail positions at the junction!
+      const dx = smoothLine[i][0] - smoothLine[i - 1][0];
+      const dz = smoothLine[i][1] - smoothLine[i - 1][1];
+      const len = Math.hypot(dx, dz) || 1;
+      tx = dx / len;
+      tz = dz / len;
+    } else {
+      const dx0 = smoothLine[i][0] - smoothLine[i - 1][0];
+      const dz0 = smoothLine[i][1] - smoothLine[i - 1][1];
+      const len0 = Math.hypot(dx0, dz0) || 1;
+      const dx1 = smoothLine[i + 1][0] - smoothLine[i][0];
+      const dz1 = smoothLine[i + 1][1] - smoothLine[i][1];
+      const len1 = Math.hypot(dx1, dz1) || 1;
+      const sumX = dx0 / len0 + dx1 / len1;
+      const sumZ = dz0 / len0 + dz1 / len1;
+      const sumLen = Math.hypot(sumX, sumZ) || 1;
+      tx = sumX / sumLen;
+      tz = sumZ / sumLen;
+    }
+    // For forward tangent (tx, tz), local +X across the track gauge is (tz, -tx)
+    normals.push([tz, -tx]);
+  }
+
+  // Helper to place a continuous steel rail bar between two exact 3D endpoints (a -> b)
+  const addRailBarBetween = (
+    ax: number,
+    ay: number,
+    az: number,
+    bx: number,
+    by: number,
+    bz: number
+  ): void => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const dz = bz - az;
+    const flat = Math.hypot(dx, dz);
+    const len = Math.hypot(flat, dy);
+    if (len < 0.02) return;
+    // Small 0.04m overlap seals the outer edge of mitered joints without sticking out
+    const mesh = new THREE.Mesh(
+      kit['_ctx'].own(new THREE.BoxGeometry(0.11, 0.12, len + 0.04)),
+      m.iron
+    );
+    mesh.position.set((ax + bx) * 0.5, (ay + by) * 0.5 + 0.16, (az + bz) * 0.5);
+    mesh.rotation.order = 'YXZ';
+    mesh.rotation.y = Math.atan2(dx, dz);
+    mesh.rotation.x = -Math.atan2(dy, flat || 1);
+    kit.add(mesh);
+  };
+
+  for (let i = 0; i < n - 1; i++) {
+    const a = smoothLine[i];
+    const b = smoothLine[i + 1];
+    const na = normals[i];
+    const nb = normals[i + 1];
+    const ya = trackFloorY(a[0], a[1]);
+    const yb = trackFloorY(b[0], b[1]);
+
+    // Left rail (-RAIL_GAUGE_HALF) and Right rail (+RAIL_GAUGE_HALF) share exact vertex coordinates
+    for (const side of [-1, 1] as const) {
+      const ax = a[0] + na[0] * side * RAIL_GAUGE_HALF;
+      const az = a[1] + na[1] * side * RAIL_GAUGE_HALF;
+      const bx = b[0] + nb[0] * side * RAIL_GAUGE_HALF;
+      const bz = b[1] + nb[1] * side * RAIL_GAUGE_HALF;
+      addRailBarBetween(ax, ya, az, bx, yb, bz);
+    }
+
+    // Timber sleepers along the segment centerline (suppressed inside the turnout switch-tie zones)
+    const dx = b[0] - a[0];
+    const dz = b[1] - a[1];
+    const flat = Math.hypot(dx, dz);
+    if (flat < 0.05) continue;
+    const length = Math.hypot(flat, yb - ya);
+    const yaw = Math.atan2(dx, dz);
+    const pitch = -Math.atan2(yb - ya, flat);
+    const count = Math.max(1, Math.floor(length / SLEEPER_SPACING));
+    const step = length / count;
+    for (let s = 0; s < count; s++) {
+      const frac = (s + 0.5) / count;
+      const sx = a[0] + dx * frac;
+      const sz = a[1] + dz * frac;
+      if (isInsideTurnoutSleeperZone(sx, sz)) continue;
+      const sy = ya + (yb - ya) * frac;
+      const tie = kit.box(2.0, 0.08, 0.24, m.wood, sx, sy + 0.02, sz);
+      tie.rotation.order = 'YXZ';
+      tie.rotation.y = yaw;
+      tie.rotation.x = pitch;
+    }
+  }
+}
+
+/**
  * Summary: Builds the Grand Central Gold Hopper / Funnel Pit at (0, 80) replacing the old turntable,
  *          along with all smoothly curved tracks, switch turnout frogs, and interactive minecart terminal kiosks.
  */
@@ -410,7 +1005,6 @@ function buildRailHub(
   const { lx, lz } = MINE_POI.turntable; // (0, 80)
 
   // 1) GRAND CENTRAL GOLD HOPPER / FUNNEL PIT AT (0, 80)
-  // Outer carved stone-and-gold collar ring where all tracks terminate (r = 5.0..6.5)
   const collarRing = new THREE.Mesh(
     ctx.own(new THREE.CylinderGeometry(6.5, 6.7, 0.36, 24, 1, false)),
     m.darkStone
@@ -489,17 +1083,30 @@ function buildRailHub(
   buildTipperBumperStop(kit, 6.0, 80.0, Math.atan2(-6.0, 0.0));
   buildTipperBumperStop(kit, 4.0, 85.0, Math.atan2(-4.0, -5.0));
 
-  // 2) SMOOTHLY CURVED RAIL TRACKS & SWITCH TURNOUT FROGS
-  for (const rawLine of UPPER_RAIL_LINES) {
-    const smoothLine = subdividePolylineWithCurves(rawLine, 3.2, 5);
-    for (let i = 1; i < smoothLine.length; i++) {
-      buildTrackSegment(kit, smoothLine[i - 1], smoothLine[i]);
-    }
+  // 2) SMOOTHLY CURVED RAIL TRACKS WITH SHARED VERTEX NORMALS & SWITCH TURNOUTS
+  // Incoming unit tangents at the branch turnouts ([56, 78] from [32, 80], [-18, 75] from [-6, 80], and [156, 72] from [152, 72])
+  const eastBranchTangent: readonly [number, number] = [24 / Math.hypot(24, -2), -2 / Math.hypot(24, -2)];
+  const westBranchTangent: readonly [number, number] = [-12 / Math.hypot(-12, -5), -5 / Math.hypot(-12, -5)];
+  const eastForkBranchTangent: readonly [number, number] = [1, 0];
+
+  for (let lineIdx = 0; lineIdx < UPPER_RAIL_LINES.length; lineIdx++) {
+    const rawLine = UPPER_RAIL_LINES[lineIdx];
+    const initialTangent =
+      lineIdx === 1
+        ? eastBranchTangent
+        : lineIdx === 5
+          ? westBranchTangent
+          : lineIdx === 6
+            ? eastForkBranchTangent
+            : undefined;
+    const smoothLine = subdividePolylineWithCurves(rawLine, initialTangent, 3.6, 8);
+    buildContinuousTrackPolyline(kit, smoothLine, initialTangent);
   }
 
-  // Turnout frogs at the two branch junctions so side tracks visibly merge with main lines
-  buildRailTurnoutFrog(kit, [-18, 75], [-6, 80], [-32, 66], [-36, 78]);
-  buildRailTurnoutFrog(kit, [70, 76], [56, 78], [70, 72], [84, 74]);
+  // Turnout switch ties & throw stands at the branch junctions
+  buildRailTurnoutFrog(kit, [-18, 75], [-6, 80], [-32, 66], [-34, 79]);
+  buildRailTurnoutFrog(kit, [56, 78], [32, 80], [66, 77], [74, 75]);
+  buildRailTurnoutFrog(kit, [156, 72], [152, 72], [165, 67], [165, 77]);
 
   // 3) INTERACTIVE MINECART TERMINAL / DISPENSER KIOSKS AT EVERY LINE START & END
   const stationKiosks: readonly [number, number, number][] = [
@@ -509,7 +1116,11 @@ function buildRailHub(
     [86.0, 31.1, Math.PI], // North-East Gold & Silver Wall
     [6.5, 77.9, 0], // Central Funnel East Rim
     [72.2, 54.0, -Math.PI / 2], // Gallery Pit Bottom Station
-    [117.5, 74.1, Math.PI], // East Gallery Wall Station
+    [117.5, 74.1, Math.PI], // East Gallery Wall Doorway Station
+    [155.5, 74.2, 0], // East Fork Switch Junction Station
+    [175.2, 28.0, -Math.PI / 2], // Left Branch Mid-Way — Abyss Chasm Rail Bridge Overlook Station
+    [175.2, -46.0, -Math.PI / 2], // Left Branch Terminus — Deep Glowing Diamond Mine Station
+    [173.5, 117.8, 0], // Right Branch — Grand Dwarven Storage Warehouse Station
     [111.5, 113.9, 0], // Smelting Foundry Station
     [-55.5, 86.1, Math.PI], // West Cavern Sapphire & Tavern Station
   ];
@@ -518,45 +1129,6 @@ function buildRailHub(
   }
 
   return { distributor, goldCascade };
-}
-
-/** Summary: Two rails and evenly spaced sleepers between two local points, flush on the floor. */
-function buildTrackSegment(kit: Kit, a: readonly [number, number], b: readonly [number, number]): void {
-  const { m } = kit;
-  const dx = b[0] - a[0];
-  const dz = b[1] - a[1];
-  const ya = trackFloorY(a[0], a[1]);
-  const yb = trackFloorY(b[0], b[1]);
-  const flat = Math.hypot(dx, dz);
-  if (flat < 0.05) return;
-  const length = Math.hypot(flat, yb - ya);
-  const yaw = Math.atan2(dx, dz);
-  const midX = (a[0] + b[0]) / 2;
-  const midZ = (a[1] + b[1]) / 2;
-  const seg = new THREE.Group();
-  seg.position.set(midX, (ya + yb) / 2 + 0.02, midZ);
-  seg.rotation.order = 'YXZ';
-  seg.rotation.y = yaw;
-  seg.rotation.x = -Math.atan2(yb - ya, flat);
-  // Overlap rails by 0.14m at segment joints so curved corners form a continuous unbroken steel ribbon
-  for (const x of [-RAIL_GAUGE_HALF, RAIL_GAUGE_HALF]) {
-    kit.box(0.11, 0.12, length + 0.14, m.iron, x, 0.08, 0, seg);
-  }
-  const count = Math.max(1, Math.floor(length / SLEEPER_SPACING));
-  const step = length / count;
-  const sinY = Math.sin(yaw);
-  const cosY = Math.cos(yaw);
-  for (let i = 0; i < count; i++) {
-    const zLocal = -length / 2 + (i + 0.5) * step;
-    const sx = midX + sinY * zLocal;
-    const sz = midZ + cosY * zLocal;
-    // Skip short 2.0m sleepers inside the two switch turnout zones where unified graduated switch ties are laid
-    if (Math.hypot(sx - -18.0, sz - 75.0) < 3.15 || Math.hypot(sx - 70.0, sz - 76.0) < 3.15) {
-      continue;
-    }
-    kit.box(2.0, 0.08, 0.24, m.wood, 0, 0, zLocal, seg);
-  }
-  kit.add(seg);
 }
 // #endregion
 
@@ -567,8 +1139,9 @@ function trackFloorY(lx: number, lz: number): number {
 }
 
 /**
- * Summary: One passenger cart per rideable line (all 6 Upper Cavern lines), moved every frame to the line's live position.
- * @returns The per-frame update that follows the ride physics' visual progress.
+ * Summary: Ephemeral player-rideable minecarts: hidden when not in use so no unused carts sit on
+ *          the tracks blocking the AI dwarves' cooperative ore carts, and spawned immediately at
+ *          the station when the player presses [E] to ride (disappearing again upon exit).
  */
 function buildRideableCarts(kit: Kit, ctx: ISetPieceContext): (t: number) => void {
   const geometry = ctx.own(buildPropGeometry('oreCart', MINE_PALETTE.gold));
@@ -577,15 +1150,21 @@ function buildRideableCarts(kit: Kit, ctx: ISetPieceContext): (t: number) => voi
     mesh.name = `ancient-mine-ride-${line.id}`;
     mesh.rotation.order = 'YXZ';
     mesh.userData.isAnimated = true;
+    mesh.visible = false;
     kit.add(mesh);
     return { line, mesh };
   });
   return (): void => {
+    const activeLineId = getActivePlayerRiddenMinecartLineId();
     for (const { line, mesh } of rigs) {
-      const pose = evaluateRideableMinecartPose(line.id, getRideableMinecartVisualProgress(line.id).u);
-      mesh.position.set(pose.x - ANCIENT_MINE_ORIGIN.x, pose.y, pose.z - ANCIENT_MINE_ORIGIN.z);
-      mesh.rotation.y = pose.yaw;
-      mesh.rotation.x = pose.pitch;
+      const isRidden = activeLineId === line.id;
+      mesh.visible = isRidden;
+      if (isRidden) {
+        const pose = evaluateRideableMinecartPose(line.id, getRideableMinecartVisualProgress(line.id).u);
+        mesh.position.set(pose.x - ANCIENT_MINE_ORIGIN.x, pose.y, pose.z - ANCIENT_MINE_ORIGIN.z);
+        mesh.rotation.y = pose.yaw;
+        mesh.rotation.x = pose.pitch;
+      }
     }
   };
 }
@@ -1174,7 +1753,16 @@ function buildWaterworks(
 
 // #region Galleries
 /** Summary: Stone crusher with pistons and gear, ore lift over the pit, tunnel mouths with full-height headers, wall scaffolds. */
-function buildGalleries(kit: Kit, ctx: ISetPieceContext): { crusherGear: THREE.Mesh; pistons: THREE.Group[]; bucket: THREE.Group } {
+function buildGalleries(
+  kit: Kit,
+  ctx: ISetPieceContext
+): {
+  crusherGear: THREE.Mesh;
+  pistons: THREE.Group[];
+  bucket: THREE.Group;
+  switchLeverArm: THREE.Group;
+  switchIndicatorMat: THREE.MeshBasicMaterial;
+} {
   const { m } = kit;
   const c = fixture('stone-crusher');
   kit.box(c.halfX * 2, 1.2, c.halfZ * 2, m.darkStone, c.lx, U, c.lz);
@@ -1215,8 +1803,9 @@ function buildGalleries(kit: Kit, ctx: ISetPieceContext): { crusherGear: THREE.M
   kit.cyl(0.7, 0.55, 1.0, m.iron, 0, bucketBase + 0.5, 0, 10, bucket);
   kit.cyl(0.6, 0.6, 0.2, m.darkStone, 0, bucketBase + 0.95, 0, 10, bucket);
 
-  // Mining tunnel mouths, framed in timber and stone reaching up to the gallery ceiling (`U + 7.4`).
-  for (const [x, z, yaw] of [[121.3, 72, -Math.PI / 2], [86, 25.3, 0]] as const) {
+  // North wall mine adit mouth at [86, 25.3, 0].
+  {
+    const [x, z, yaw] = [86, 25.3, 0] as const;
     const mouth = new THREE.Group();
     mouth.position.set(x, U, z);
     mouth.rotation.y = yaw;
@@ -1225,12 +1814,378 @@ function buildGalleries(kit: Kit, ctx: ISetPieceContext): { crusherGear: THREE.M
     kit.box(0.5, 7.4, 0.5, m.wood, -1.85, 0, 0.1, mouth);
     kit.box(0.5, 7.4, 0.5, m.wood, 1.85, 0, 0.1, mouth);
     kit.box(4.3, 0.48, 0.55, m.wood, 0, 3.8, 0.1, mouth);
-    // Stone over-panel above the timber lintel up to the gallery ceiling so there is no gap above the frame
     kit.box(4.2, 3.2, 0.45, m.darkStone, 0, 4.25, 0.08, mouth);
     kit.box(4.3, 0.18, 0.58, m.gold, 0, 4.22, 0.1, mouth);
     for (const dx of [-0.75, 0.75]) kit.box(0.1, 0.1, 3, m.iron, dx, 0.05, 1.4, mouth);
-    ctx.addTorch(x + (yaw === 0 ? 2.4 : -0.6), U + 2.6, z + (yaw === 0 ? 0.6 : 2.4));
+    ctx.addTorch(x + 2.4, U + 2.6, z + 0.6);
   }
+
+  // OPENED EAST WALL RAIL PORTAL AT [121.3, 72] (leading into the Descending Forking Track & 2 New Rooms!)
+  {
+    const portalX = 120.2;
+    const portalZ = 72.0;
+    // Heavy carved stone & gold jambs flanking the 8m wide open tunnel mouth (lz = 68..76)
+    for (const sideZ of [67.5, 76.5]) {
+      kit.box(1.4, 7.5, 1.2, m.darkStone, portalX, U, sideZ);
+      kit.box(1.55, 0.32, 1.35, m.gold, portalX, U + 4.3, sideZ);
+    }
+    // Overhead carved lintel & raised open iron portcullis gate (visibly lifted above the track at y = U + 4.2..5.4!)
+    kit.box(1.5, 3.1, 10.2, m.darkStone, portalX, U + 4.45, portalZ);
+    kit.box(1.65, 0.24, 10.4, m.gold, portalX, U + 4.35, portalZ);
+    // Raised iron portcullis teeth & horizontal bars hanging at the top of the open doorway
+    kit.box(0.22, 0.18, 7.6, m.iron, portalX - 0.3, U + 3.95, portalZ);
+    kit.box(0.22, 0.18, 7.6, m.iron, portalX - 0.3, U + 4.3, portalZ);
+    for (let bz = -3.2; bz <= 3.2; bz += 0.8) {
+      kit.box(0.14, 0.65, 0.12, m.iron, portalX - 0.3, U + 3.75, portalZ + bz);
+    }
+    ctx.addTorch(portalX - 0.85, U + 3.2, 67.6, 0xffb844, 7.5);
+    ctx.addTorch(portalX - 0.85, U + 3.2, 76.4, 0xffb844, 7.5);
+  }
+
+  // DESCENDING TUNNEL TIMBER SHORING ARCHES (lx = 126..150, lz = 68..76, descending from U = -9.35 to FJ = -17.35)
+  const FJ = MINE_LEVEL_Y.forkJunction; // -17.35
+  for (const archX of [127, 134, 141, 148]) {
+    const fY = trackFloorY(archX, 72);
+    for (const sideZ of [68.35, 75.65]) {
+      kit.box(0.45, 5.2, 0.45, m.wood, archX, fY, sideZ);
+      kit.box(0.52, 0.2, 0.52, m.iron, archX, fY, sideZ);
+    }
+    kit.box(0.48, 0.45, 7.8, m.wood, archX, fY + 5.1, 72.0);
+    if (archX === 134 || archX === 148) {
+      ctx.addTorch(archX, fY + 3.2, 68.75, 0xffa838, 6.5);
+      ctx.addTorch(archX, fY + 3.2, 75.25, 0xffa838, 6.5);
+    }
+  }
+
+  // INTERACTIVE PHYSICAL TRACK-SWITCH LEVER STAND AT THE FORK JUNCTION (lx = 153.8, y = -17.35, lz = 68.8)
+  const leverStand = new THREE.Group();
+  leverStand.position.set(
+    EAST_FORK_SWITCH_LEVER_LOCAL.lx,
+    EAST_FORK_SWITCH_LEVER_LOCAL.y,
+    EAST_FORK_SWITCH_LEVER_LOCAL.lz
+  );
+  kit.add(leverStand);
+  kit.box(1.15, 0.28, 1.15, m.darkStone, 0, 0, 0, leverStand);
+  kit.box(0.96, 0.1, 0.96, m.gold, 0, 0.28, 0, leverStand);
+  // Twin iron quadrant plates
+  kit.box(0.82, 0.52, 0.1, m.iron, 0, 0.38, -0.18, leverStand);
+  kit.box(0.82, 0.52, 0.1, m.iron, 0, 0.38, 0.18, leverStand);
+  kit.box(0.88, 0.08, 0.46, m.gold, 0, 0.84, 0, leverStand);
+  // Tie-rod connecting the switch lever stand to the track turnout points at (156, 72)
+  kit.box(0.14, 0.06, 3.1, m.iron, 0.4, 0.06, 1.6, leverStand);
+
+  const switchLeverArm = new THREE.Group();
+  switchLeverArm.position.set(0, 0.55, 0);
+  switchLeverArm.rotation.z = -0.46;
+  switchLeverArm.userData.isAnimated = true;
+  leverStand.add(switchLeverArm);
+  kit.cyl(0.055, 0.065, 1.35, m.iron, 0, 0.65, 0, 8, switchLeverArm);
+  kit.cyl(0.14, 0.14, 0.22, m.gold, 0, 1.35, 0, 10, switchLeverArm);
+
+  const switchIndicatorMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  ctx.ownMaterial(switchIndicatorMat);
+  const indicatorOrb = new THREE.Mesh(
+    ctx.own(new THREE.OctahedronGeometry(0.22, 0)),
+    switchIndicatorMat
+  );
+  indicatorOrb.position.set(0, 1.65, 0);
+  switchLeverArm.add(indicatorOrb);
+  ctx.addTorch(EAST_FORK_SWITCH_LEVER_LOCAL.lx, FJ + 2.4, EAST_FORK_SWITCH_LEVER_LOCAL.lz - 0.6, 0xffc84a, 7.5);
+
+  // Directional carved signboards at the Fork Junction showing Left (Mithril Cavern) vs Right (Hall of Mazarbul)
+  const signPost = new THREE.Group();
+  signPost.position.set(161.5, FJ, 72.0);
+  kit.add(signPost);
+  kit.box(0.75, 0.35, 0.75, m.darkStone, 0, 0, 0, signPost);
+  kit.box(0.32, 3.8, 0.32, m.wood, 0, 0.35, 0, signPost);
+  kit.box(0.42, 0.22, 0.42, m.gold, 0, 4.05, 0, signPost);
+  // Left arrow board (pointing North to Mithril Cavern) & Right arrow board (pointing South to Hall of Mazarbul)
+  kit.box(0.18, 0.48, 2.2, m.wood, -0.2, 3.25, -1.0, signPost);
+  kit.box(0.22, 0.12, 2.25, m.gold, -0.2, 3.68, -1.0, signPost);
+  kit.box(0.18, 0.48, 2.2, m.wood, -0.2, 2.55, 1.0, signPost);
+  kit.box(0.22, 0.12, 2.25, m.gold, -0.2, 2.98, 1.0, signPost);
+  ctx.addTorch(160.8, FJ + 3.4, 72.0, 0xffb844, 7.5);
+
+  // ===========================================================================
+  // LEFT BRANCH: 1ST SMALL TUNNEL -> ABYSS CHASM RAIL BRIDGE -> 2ND SMALL TUNNEL -> GLOWING DIAMOND MINE
+  // ===========================================================================
+  const DM = MINE_LEVEL_Y.diamondMine; // -27.35
+  const ABYSS_Y = MINE_LEVEL_Y.abyssBottom; // -130.0
+  const diamondGlowMat = new THREE.MeshStandardMaterial({
+    color: 0xf0f9ff,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 1.65,
+    roughness: 0.08,
+    metalness: 0.25,
+  });
+  const pureWhiteDiamondMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xbae6fd,
+    emissiveIntensity: 1.85,
+    roughness: 0.05,
+    metalness: 0.2,
+  });
+  ctx.ownMaterial(diamondGlowMat, pureWhiteDiamondMat);
+
+  // 1) 1ST SMALL TUNNEL (`mithril-cavern-neck`, lx: 169..177, lz: 48..62, y = -17.35, ceilingY = -11.5)
+  for (const nz of [50, 55, 60]) {
+    for (const nx of [169.4, 176.6]) {
+      kit.box(0.45, 5.6, 0.45, m.wood, nx, FJ, nz);
+    }
+    kit.box(7.8, 0.45, 0.45, m.wood, 173.0, FJ + 5.4, nz);
+  }
+  // Portal lintel at lz = 48 where the 1st small tunnel opens into the Vast Abyss Chasm Cavern
+  kit.box(8.8, 0.45, 1.2, m.gold, 173.0, FJ + 5.6, 48.0);
+  ctx.addTorch(169.8, FJ + 3.0, 49.0, 0xffb844, 7.0);
+  ctx.addTorch(176.2, FJ + 3.0, 49.0, 0xffb844, 7.0);
+
+  // 2) VAST ABYSS CHASM CAVERN & RAIL BRIDGE (`diamond-chasm-bridge`, lx: 169..177, lz: 8..48, y = -17.35)
+  // Colossal stone & gold bridge piers rising from the deep abyss (-130m) up to the bridge deck (-17.35m)
+  const pierHeight = FJ - ABYSS_Y;
+  for (const pz of [16.0, 28.0, 40.0]) {
+    kit.box(6.4, pierHeight, 3.6, m.darkStone, 173.0, ABYSS_Y, pz);
+    kit.box(7.0, 0.6, 4.2, m.gold, 173.0, FJ - 2.2, pz);
+    kit.box(7.0, 0.5, 4.2, m.gold, 173.0, FJ - 14.0, pz);
+    // Low stone & gold bridge parapets and glowing braziers along both edges of the chasm bridge (`lx = 169.35, 176.65`)
+    for (const sideX of [169.35, 176.65]) {
+      kit.box(0.75, 1.35, 0.75, m.darkStone, sideX, FJ, pz);
+      kit.box(0.85, 0.2, 0.85, m.gold, sideX, FJ + 1.35, pz);
+      const flame = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(0.28, 8, 6)), m.ember);
+      flame.position.set(sideX, FJ + 1.72, pz);
+      kit.add(flame);
+    }
+  }
+  // Continuous carved bridge curb & guard-rail parapet walls along `lx = 169.25` and `lx = 176.75` (`lz = 8..48`)
+  for (const sideX of [169.25, 176.75]) {
+    kit.box(0.42, 0.95, 40.0, m.darkStone, sideX, FJ, 28.0);
+    kit.box(0.48, 0.16, 40.0, m.gold, sideX, FJ + 0.95, 28.0);
+  }
+  // Dramatic glowing diamond/crystal formations clinging to the West (`lx = 147`) and East (`lx = 199`) chasm cliff walls
+  const chasmCrystalGeo = ctx.own(new THREE.ConeGeometry(0.9, 4.2, 6));
+  for (const cz of [16.0, 28.0, 40.0]) {
+    for (const [wx, rotZ] of [
+      [147.2, -0.55],
+      [198.8, 0.55],
+    ] as const) {
+      const cliffCluster = new THREE.Mesh(chasmCrystalGeo, diamondGlowMat);
+      cliffCluster.position.set(wx, FJ - 4.0, cz);
+      cliffCluster.rotation.z = rotZ;
+      kit.add(cliffCluster);
+    }
+  }
+  ctx.addLight(173.0, FJ + 3.5, 28.0, 0xffc864, 8.5);
+  ctx.addLight(155.0, FJ - 6.0, 28.0, 0x38bdf8, 7.5);
+  ctx.addLight(191.0, FJ - 6.0, 28.0, 0x38bdf8, 7.5);
+
+  // 3) 2ND SMALL DESCENDING TUNNEL (`diamond-mine-tunnel`, lx: 169..177, lz: -24..8, y: -17.35 -> -27.35)
+  // Portal lintel at lz = 8.0 where the chasm bridge re-enters the narrow descending rock tunnel
+  kit.box(8.8, 0.45, 1.2, m.gold, 173.0, FJ + 5.6, 8.0);
+  for (const tz of [4.0, -4.0, -12.0, -20.0]) {
+    const ty = trackFloorY(173.0, tz);
+    for (const tx of [169.4, 176.6]) {
+      kit.box(0.45, 5.4, 0.45, m.wood, tx, ty, tz);
+    }
+    kit.box(7.8, 0.45, 0.45, m.wood, 173.0, ty + 5.2, tz);
+    if (tz === 4.0 || tz === -12.0) {
+      ctx.addTorch(169.85, ty + 3.0, tz, 0xffa838, 6.5);
+      ctx.addTorch(176.15, ty + 3.0, tz, 0xffa838, 6.5);
+    }
+  }
+
+  // 4) DEEP GLOWING DIAMOND MINE CAVERN (`diamond-mine-hall`, lx: 146..200, lz: -66..-24, y = -27.35, ceilingY = -12.0)
+  const diamondOctGeo = ctx.own(new THREE.OctahedronGeometry(1.15, 0));
+  const diamondSpireGeo = ctx.own(new THREE.ConeGeometry(0.85, 3.8, 6));
+
+  // Helper to embed a radiant multi-crystal glowing diamond cluster into a rock wall
+  const buildGlowingWallDiamondCluster = (
+    wx: number,
+    wy: number,
+    wz: number,
+    nx: number,
+    nz: number,
+    scale = 1.0
+  ): void => {
+    const cluster = new THREE.Group();
+    cluster.position.set(wx, wy, wz);
+    cluster.rotation.y = Math.atan2(nx, nz);
+    kit.add(cluster);
+
+    // Dark mineral seam bed on the rock wall
+    kit.box(2.6 * scale, 2.2 * scale, 0.45, m.darkStone, 0, -1.1 * scale, 0, cluster);
+    // Main faceted diamond octahedrons & radiant crystal prisms jutting out of the rock wall
+    for (const [ox, oy, oz, rx, ry, sc, useWhite] of [
+      [0, 0, 0.35, 0.35, 0.4, 1.25 * scale, true],
+      [-0.75 * scale, 0.35 * scale, 0.28, 0.5, -0.3, 0.9 * scale, false],
+      [0.78 * scale, -0.25 * scale, 0.28, -0.4, 0.5, 0.95 * scale, false],
+      [-0.4 * scale, -0.55 * scale, 0.25, 0.25, 0.8, 0.75 * scale, true],
+      [0.45 * scale, 0.58 * scale, 0.25, -0.35, -0.6, 0.8 * scale, true],
+    ] as const) {
+      const gem = new THREE.Mesh(diamondOctGeo, useWhite ? pureWhiteDiamondMat : diamondGlowMat);
+      gem.scale.set(sc * 0.85, sc * 1.35, sc * 0.85);
+      gem.position.set(ox, oy, oz);
+      gem.rotation.set(rx, ry, 0.2);
+      cluster.add(gem);
+    }
+    const prism = new THREE.Mesh(diamondSpireGeo, pureWhiteDiamondMat);
+    prism.scale.setScalar(0.85 * scale);
+    prism.position.set(0, 0.15 * scale, 0.85 * scale);
+    prism.rotation.x = Math.PI * 0.38;
+    cluster.add(prism);
+  };
+
+  // Embed glowing diamond formations across ALL walls of the Deep Diamond Mine:
+  // West Wall (`lx = 146.4`, facing East `nx = 1, nz = 0`)
+  for (const [wz, wy, sc] of [
+    [-30.0, DM + 3.2, 1.15],
+    [-38.0, DM + 5.8, 1.35],
+    [-46.0, DM + 3.5, 1.25],
+    [-54.0, DM + 6.2, 1.4],
+    [-61.0, DM + 3.8, 1.2],
+  ] as const) {
+    buildGlowingWallDiamondCluster(146.4, wy, wz, 1, 0, sc);
+  }
+  // East Wall (`lx = 199.6`, facing West `nx = -1, nz = 0`)
+  for (const [wz, wy, sc] of [
+    [-30.0, DM + 3.6, 1.2],
+    [-38.0, DM + 6.0, 1.4],
+    [-46.0, DM + 3.4, 1.3],
+    [-54.0, DM + 5.8, 1.35],
+    [-61.0, DM + 3.8, 1.25],
+  ] as const) {
+    buildGlowingWallDiamondCluster(199.6, wy, wz, -1, 0, sc);
+  }
+  // North Wall (`lz = -65.6`, facing South `nx = 0, nz = 1`)
+  for (const [wx, wy, sc] of [
+    [153.0, DM + 4.0, 1.3],
+    [162.0, DM + 6.4, 1.45],
+    [173.0, DM + 5.2, 1.75], // Center Motherlode Diamond Crown
+    [184.0, DM + 6.4, 1.45],
+    [193.0, DM + 4.0, 1.3],
+  ] as const) {
+    buildGlowingWallDiamondCluster(wx, wy, -65.6, 0, 1, sc);
+  }
+  // South Wall flanks (`lz = -24.4`, facing North `nx = 0, nz = -1`, clear of tunnel mouth `lx = 169..177`)
+  buildGlowingWallDiamondCluster(156.0, DM + 4.2, -24.4, 0, -1, 1.25);
+  buildGlowingWallDiamondCluster(190.0, DM + 4.2, -24.4, 0, -1, 1.25);
+
+  // Colossal Motherlode Diamond Altar & Giant Crystal Spires at the North face (`lx = 173.0, lz = -61.5`)
+  kit.box(16.0, 1.1, 5.2, m.darkStone, 173.0, DM, -61.5);
+  kit.box(16.4, 0.26, 5.5, m.gold, 173.0, DM + 1.1, -61.5);
+  for (let i = -4; i <= 4; i++) {
+    const spire = new THREE.Mesh(
+      diamondSpireGeo,
+      i % 2 === 0 ? pureWhiteDiamondMat : diamondGlowMat
+    );
+    const sc = 1.65 - Math.abs(i) * 0.14;
+    spire.scale.setScalar(sc);
+    spire.position.set(173.0 + i * 1.55, DM + 1.1 + 1.8 * sc, -61.5 + (i % 2) * 0.45);
+    spire.rotation.z = -i * 0.1;
+    spire.rotation.x = 0.12;
+    kit.add(spire);
+  }
+
+  // Intense diamond-white & cyan-blue illumination filling the entire Deep Diamond Mine Cavern!
+  ctx.addLight(173.0, DM + 5.5, -58.0, 0xe0f2fe, 11.0);
+  ctx.addLight(152.0, DM + 4.8, -36.0, 0x7dd3fc, 9.5);
+  ctx.addLight(152.0, DM + 4.8, -54.0, 0xe0f2fe, 9.5);
+  ctx.addLight(194.0, DM + 4.8, -36.0, 0xe0f2fe, 9.5);
+  ctx.addLight(194.0, DM + 4.8, -54.0, 0x7dd3fc, 9.5);
+  ctx.addLight(173.0, DM + 6.5, -42.0, 0xbae6fd, 10.0);
+
+  // ===========================================================================
+  // ROOM 2 (RIGHT BRANCH): GRAND DWARVEN STORAGE WAREHOUSE WITH MANY CABINETS (`מחסן עם המון ארונות`)
+  // (`mazarbul-tomb-hall`, lx: 148..192, lz: 96..130, y = -17.35)
+  // ===========================================================================
+  // 6 Colossal Moria Carved Stone & Gold Columns inside the Warehouse (`ceilingY = -5.5`, height = 11.85m)
+  const warehouseColH = 11.85;
+  for (const cx of [156.0, 184.0]) {
+    for (const cz of [102.0, 113.0, 124.0]) {
+      kit.box(2.2, 0.8, 2.2, m.darkStone, cx, FJ, cz);
+      kit.box(1.75, warehouseColH - 1.6, 1.75, m.stone, cx, FJ + 0.8, cz);
+      for (const bandY of [2.8, 5.6, 8.4]) {
+        kit.box(1.9, 0.24, 1.9, m.gold, cx, FJ + bandY, cz);
+      }
+      kit.box(2.35, 0.8, 2.35, m.darkStone, cx, FJ + warehouseColH - 0.8, cz);
+      ctx.addTorch(cx + (cx < 170 ? 1.15 : -1.15), FJ + 3.2, cz, 0xffaa38, 7.0);
+    }
+  }
+
+  // Helper to build a tall Dwarven Oak, Iron & Gold Storage Cabinet (`ארון אחסון גמדים גבוה`)
+  // Width along local Z = 3.6m, Depth along local X = 1.35m, Height = 4.2m, rotated by `yaw`
+  const buildDwarvenStorageCabinet = (
+    cx: number,
+    cz: number,
+    yaw: number,
+    style: 'armoire' | 'shelves'
+  ): void => {
+    const cab = new THREE.Group();
+    cab.position.set(cx, FJ, cz);
+    cab.rotation.y = yaw;
+    kit.add(cab);
+
+    // Heavy stone base & carved wooden cabinet body (1.35m deep along X, 4.1m tall, 3.6m wide along Z)
+    kit.box(1.42, 0.24, 3.72, m.darkStone, 0, 0, 0, cab);
+    kit.box(1.28, 3.76, 3.55, m.wood, 0, 0.24, 0, cab);
+    // Crown cornice with gold trim
+    kit.box(1.48, 0.22, 3.8, m.darkStone, 0, 4.0, 0, cab);
+    kit.box(1.52, 0.08, 3.84, m.gold, 0, 3.96, 0, cab);
+
+    // Vertical iron frame pilasters along the front (+X) face
+    for (const dz of [-1.68, 0, 1.68]) {
+      kit.box(0.1, 3.76, 0.16, m.iron, 0.62, 0.24, dz, cab);
+    }
+
+    if (style === 'armoire') {
+      // 4 Tall Iron-Bound Double Cabinet Doors with golden handles & hinges
+      for (const doorZ of [-1.25, -0.42, 0.42, 1.25]) {
+        kit.box(0.08, 3.4, 0.74, m.wood, 0.65, 0.42, doorZ, cab);
+        kit.box(0.1, 0.1, 0.76, m.iron, 0.66, 0.65, doorZ, cab);
+        kit.box(0.1, 0.1, 0.76, m.iron, 0.66, 3.45, doorZ, cab);
+        // Golden ring handle
+        kit.box(0.12, 0.24, 0.06, m.gold, 0.69, 2.0, doorZ + (doorZ < 0 ? 0.24 : -0.24), cab);
+      }
+    } else {
+      // Open Multi-Shelf Supply Cupboard stocked with gold bars, iron ingots, barrels & crates
+      for (const sy of [1.1, 2.0, 2.9]) {
+        kit.box(1.24, 0.1, 3.45, m.wood, 0.04, sy, 0, cab);
+        kit.box(0.08, 0.06, 3.48, m.gold, 0.64, sy + 0.02, 0, cab);
+      }
+      // Stocked items on the 3 shelves
+      for (const sz of [-1.15, -0.38, 0.38, 1.15]) {
+        kit.box(0.48, 0.45, 0.55, m.wood, 0.18, 0.3, sz, cab); // Lower shelf supply boxes
+        kit.box(0.42, 0.22, 0.5, m.gold, 0.2, 1.2, sz, cab); // Middle shelf gold bullion stacks
+        kit.box(0.44, 0.26, 0.52, m.iron, 0.2, 2.1, sz, cab); // Upper shelf iron ingot bundles
+        kit.cyl(0.22, 0.22, 0.48, m.wood, 0.2, 3.24, sz, 8, cab); // Top shelf small casks
+      }
+    }
+  };
+
+  // Row 1: 6 Tall Cabinets lining the West Wall (`lx = 149.2, lz = 99..124`, facing East `yaw = 0`)
+  for (let i = 0; i < 6; i++) {
+    buildDwarvenStorageCabinet(149.2, 99.0 + i * 5.0, 0, i % 2 === 0 ? 'armoire' : 'shelves');
+  }
+  // Row 2: 6 Tall Cabinets lining the East Wall (`lx = 190.8, lz = 99..124`, facing West `yaw = Math.PI`)
+  for (let i = 0; i < 6; i++) {
+    buildDwarvenStorageCabinet(190.8, 99.0 + i * 5.0, Math.PI, i % 2 === 1 ? 'armoire' : 'shelves');
+  }
+  // Row 3: 6 Tall Cabinets lining the South Wall (`lz = 128.8, lx = 154..186`, facing North `yaw = Math.PI / 2`)
+  for (let i = 0; i < 6; i++) {
+    buildDwarvenStorageCabinet(
+      154.0 + i * 6.4,
+      128.8,
+      Math.PI / 2,
+      i % 2 === 0 ? 'shelves' : 'armoire'
+    );
+  }
+  // Row 4 & 5: Back-to-back Warehouse Cabinet Aisles on the West side (`lx = 161.5`) and East side (`lx = 180.5`),
+  // keeping the central railway track (`lx = 168..176, lz = 96..118`) 100% clear!
+  for (const az of [105.0, 111.5, 118.0]) {
+    buildDwarvenStorageCabinet(160.8, az, -Math.PI, 'shelves');
+    buildDwarvenStorageCabinet(162.2, az, 0, 'armoire');
+    buildDwarvenStorageCabinet(179.8, az, -Math.PI, 'armoire');
+    buildDwarvenStorageCabinet(181.2, az, 0, 'shelves');
+  }
+  ctx.addLight(170.0, FJ + 4.5, 113.0, 0xffd27a, 9.0);
 
   // Scaffolding against the east gallery wall: posts, planks and a ladder.
   for (const z of [48, 58, 68]) {
@@ -1239,7 +2194,7 @@ function buildGalleries(kit: Kit, ctx: ISetPieceContext): { crusherGear: THREE.M
   for (const y of [3, 6]) kit.box(2.4, 0.12, 20.5, m.wood, 115.5, U + y, 58);
   for (let i = 0; i < 12; i++) kit.box(0.9, 0.08, 0.08, m.wood, 113.9, U + 0.5 + i * 0.5, 63);
   for (const z of [62.6, 63.4]) kit.box(0.08, 6.2, 0.08, m.wood, 113.9, U, z);
-  return { crusherGear, pistons, bucket };
+  return { crusherGear, pistons, bucket, switchLeverArm, switchIndicatorMat };
 }
 // #endregion
 
