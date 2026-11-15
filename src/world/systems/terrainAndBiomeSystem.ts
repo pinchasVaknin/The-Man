@@ -3064,6 +3064,14 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
         }
       }
       if (inClearZone) continue;
+      // Never spawn trees or boulders on or beside the Southern Dwarven Mine entrance portal & guardian statues
+      if (
+        Math.abs(x - SOUTHERN_MINE_POS.x) <= 28.0 &&
+        z >= SOUTHERN_MINE_POS.entranceZ - 18.0 &&
+        z <= SOUTHERN_MINE_POS.entranceZ + 26.0
+      ) {
+        continue;
+      }
       // Never spawn trees or boulders on the Southern Cliffside Mountain Pass corridor
       if (x >= 88.0 && x <= 116.0 && z >= 504.0 && z <= 692.0) continue;
       if (x >= 195 && z >= 85 && z <= 325) continue;

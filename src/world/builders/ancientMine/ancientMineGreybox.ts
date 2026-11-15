@@ -155,7 +155,7 @@ function cellLz(grid: IGrid, j: number): number {
 /** Summary: Greedy-merges cells with an equal key into rectangles and hands each to `emit`. */
 function greedyRectangles(
   grid: IGrid,
-  keyOf: (s: IMineFloorSample) => number | null,
+  keyOf: (s: IMineFloorSample, i: number, j: number) => number | null,
   emit: (i0: number, j0: number, w: number, h: number, sample: IMineFloorSample) => void
 ): void {
   const used = new Uint8Array(grid.nx * grid.nz);
@@ -163,11 +163,11 @@ function greedyRectangles(
     for (let i = 0; i < grid.nx; i++) {
       const s = at(grid, i, j);
       if (s === null || used[j * grid.nx + i]) continue;
-      const key = keyOf(s);
+      const key = keyOf(s, i, j);
       if (key === null) continue;
       const matches = (ii: number, jj: number): boolean => {
         const o = at(grid, ii, jj);
-        return o !== null && !used[jj * grid.nx + ii] && keyOf(o) === key;
+        return o !== null && !used[jj * grid.nx + ii] && keyOf(o, ii, jj) === key;
       };
       let w = 1;
       while (matches(i + w, j)) w++;
@@ -209,15 +209,23 @@ function emitCeilings(grid0: IGrid, grid1: IGrid, sink: QuadSink): void {
     const y = s.ceilingY;
     sink.add([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], ROCK_COLOR);
   });
-  // Emit upper-layer ceilings where layer 0 has no ceiling at that height.
-  greedyRectangles(grid1, (s) => Math.round((s.ceilingY + 500) * 100), (i0, j0, w, h, s) => {
-    const x0 = cellLx(grid1, i0);
-    const z0 = cellLz(grid1, j0);
-    const x1 = x0 + w * grid1.cell;
-    const z1 = z0 + h * grid1.cell;
-    const y = s.ceilingY;
-    sink.add([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], ROCK_COLOR);
-  });
+  // Emit upper-layer ceilings only where layer 0 has no ceiling at that height.
+  greedyRectangles(
+    grid1,
+    (s, i, j) => {
+      const s0 = at(grid0, i, j);
+      if (s0 !== null && Math.abs(s0.ceilingY - s.ceilingY) < 0.01) return null;
+      return Math.round((s.ceilingY + 500) * 100);
+    },
+    (i0, j0, w, h, s) => {
+      const x0 = cellLx(grid1, i0);
+      const z0 = cellLz(grid1, j0);
+      const x1 = x0 + w * grid1.cell;
+      const z1 = z0 + h * grid1.cell;
+      const y = s.ceilingY;
+      sink.add([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], ROCK_COLOR);
+    }
+  );
 }
 // #endregion
 

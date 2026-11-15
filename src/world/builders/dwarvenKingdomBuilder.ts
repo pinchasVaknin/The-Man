@@ -599,66 +599,73 @@ export function buildDwarvenKingdomAndMiners(
   });
 
   // 1) TWIN COLOSSAL SCULPTED DWARVEN KING GUARDIAN STATUES FLANKING THE MINE ENTRANCE
+  // Strictly non-overlapping vertical Y intervals on the stepped pedestal (zero coplanar faces)
   const statuePlinthFoundationGeo = new THREE.BoxGeometry(4.65, 0.9, 4.65);
-  statuePlinthFoundationGeo.translate(0, 0.05, 0); // Extends -0.4m below baseY so it never floats on slopes
-  const statuePedestalStepGeo = new THREE.CylinderGeometry(2.38, 2.52, 0.48, 8);
-  statuePedestalStepGeo.translate(0, 0.74, 0);
-  const statuePedestalBaseGeo = new THREE.CylinderGeometry(1.98, 2.18, 1.56, 8);
-  statuePedestalBaseGeo.translate(0, 1.76, 0);
+  statuePlinthFoundationGeo.translate(0, 0.05, 0); // y: -0.40 .. +0.50
+  const statuePlinthGoldTrimGeo = new THREE.BoxGeometry(4.74, 0.12, 4.74);
+  statuePlinthGoldTrimGeo.translate(0, 0.565, 0); // y: 0.505 .. 0.625
+  const statuePedestalStepGeo = new THREE.CylinderGeometry(2.26, 2.42, 0.42, 8);
+  statuePedestalStepGeo.translate(0, 0.84, 0); // y: 0.63 .. 1.05
+  const statuePedestalLowerShaftGeo = new THREE.CylinderGeometry(1.96, 2.12, 0.68, 8);
+  statuePedestalLowerShaftGeo.translate(0, 1.395, 0); // y: 1.055 .. 1.735
   const statuePedestalRuneBandGeo = new THREE.CylinderGeometry(2.08, 2.08, 0.24, 8);
-  statuePedestalRuneBandGeo.translate(0, 1.82, 0);
-  const statuePedestalCapGeo = new THREE.CylinderGeometry(2.22, 1.98, 0.34, 8);
-  statuePedestalCapGeo.translate(0, 2.71, 0);
-  const statueDaisTopGeo = new THREE.CylinderGeometry(1.68, 1.82, 0.18, 8);
-  statueDaisTopGeo.translate(0, 2.95, 0);
+  statuePedestalRuneBandGeo.translate(0, 1.86, 0); // y: 1.74 .. 1.98
+  const statuePedestalUpperShaftGeo = new THREE.CylinderGeometry(1.88, 1.96, 0.56, 8);
+  statuePedestalUpperShaftGeo.translate(0, 2.265, 0); // y: 1.985 .. 2.545
+  const statuePedestalCapGeo = new THREE.CylinderGeometry(2.18, 1.92, 0.30, 8);
+  statuePedestalCapGeo.translate(0, 2.70, 0); // y: 2.55 .. 2.85
+  const statueDaisTopGeo = new THREE.CylinderGeometry(1.72, 1.84, 0.18, 8);
+  statueDaisTopGeo.translate(0, 2.945, 0); // y: 2.855 .. 3.035
 
-  const statueCrownBandGeo = new THREE.CylinderGeometry(0.56, 0.52, 0.28, 8);
-  const statueCrownSpikeGeo = new THREE.ConeGeometry(0.11, 0.34, 4);
-  const statueCapeCloakGeo = new THREE.BoxGeometry(2.15, 3.85, 0.28);
-  const statueGreatAxeShaftGeo = new THREE.CylinderGeometry(0.11, 0.13, 5.4, 10);
-  statueGreatAxeShaftGeo.translate(0, 2.7, 0);
-  const statueGreatAxeHeadHubGeo = new THREE.BoxGeometry(0.42, 0.68, 0.42);
-  const statueGreatAxeBladeGeo = new THREE.ConeGeometry(1.12, 1.45, 4);
-  statueGreatAxeBladeGeo.scale(0.24, 1.0, 1.18);
-  const statueRoyalShieldGeo = new THREE.CylinderGeometry(1.08, 1.08, 0.16, 8);
-  statueRoyalShieldGeo.rotateX(Math.PI / 2);
-  const statueShieldBossGeo = new THREE.SphereGeometry(0.32, 10, 8);
-  const statueCornerBrazierBowlGeo = new THREE.CylinderGeometry(0.36, 0.24, 0.42, 8);
+  // Head-bone local crown & glowing eye geometries (bone-local units, scaled automatically by rig scale)
+  const statueHeadCrownBandGeo = new THREE.CylinderGeometry(0.115, 0.105, 0.048, 12);
+  const statueHeadCrownSpikeGeo = new THREE.ConeGeometry(0.024, 0.082, 5);
+  const statueEyeSocketGeo = new THREE.SphereGeometry(1, 10, 8);
+
+  const statueCornerBrazierStandGeo = new THREE.CylinderGeometry(0.22, 0.28, 0.36, 8);
+  const statueCornerBrazierBowlGeo = new THREE.CylinderGeometry(0.38, 0.24, 0.34, 8);
   const statueCornerBrazierEmberGeo = new THREE.SphereGeometry(0.26, 8, 6);
+  const statuePedestalPlaqueGeo = new THREE.BoxGeometry(1.45, 0.85, 0.08);
   const statuePedestalBracketBarGeo = new THREE.BoxGeometry(0.14, 0.14, 0.58);
   const statuePedestalBracketPostGeo = new THREE.BoxGeometry(0.16, 1.15, 0.16);
 
   const statueCarvedGraniteMat = new THREE.MeshStandardMaterial({
-    color: 0x57606f,
-    roughness: 0.58,
-    metalness: 0.28,
+    color: 0x4b5563,
+    roughness: 0.46,
+    metalness: 0.42,
   });
   const statueAntiqueGoldMat = new THREE.MeshStandardMaterial({
-    color: 0xd4af37,
-    emissive: 0x451a03,
-    emissiveIntensity: 0.18,
-    roughness: 0.3,
-    metalness: 0.82,
+    color: 0xf5c445,
+    emissive: 0x6b3404,
+    emissiveIntensity: 0.28,
+    roughness: 0.22,
+    metalness: 0.88,
   });
-  disposableMaterials.push(statueCarvedGraniteMat, statueAntiqueGoldMat);
+  const statueEyeGlowMat = new THREE.MeshBasicMaterial({ color: 0xffb703, fog: false });
+  const statueEyeCoreMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0, fog: false });
+  disposableMaterials.push(
+    statueCarvedGraniteMat,
+    statueAntiqueGoldMat,
+    statueEyeGlowMat,
+    statueEyeCoreMat
+  );
 
   disposableGeometries.push(
     statuePlinthFoundationGeo,
+    statuePlinthGoldTrimGeo,
     statuePedestalStepGeo,
-    statuePedestalBaseGeo,
+    statuePedestalLowerShaftGeo,
     statuePedestalRuneBandGeo,
+    statuePedestalUpperShaftGeo,
     statuePedestalCapGeo,
     statueDaisTopGeo,
-    statueCrownBandGeo,
-    statueCrownSpikeGeo,
-    statueCapeCloakGeo,
-    statueGreatAxeShaftGeo,
-    statueGreatAxeHeadHubGeo,
-    statueGreatAxeBladeGeo,
-    statueRoyalShieldGeo,
-    statueShieldBossGeo,
+    statueHeadCrownBandGeo,
+    statueHeadCrownSpikeGeo,
+    statueEyeSocketGeo,
+    statueCornerBrazierStandGeo,
     statueCornerBrazierBowlGeo,
     statueCornerBrazierEmberGeo,
+    statuePedestalPlaqueGeo,
     statuePedestalBracketBarGeo,
     statuePedestalBracketPostGeo
   );
@@ -666,108 +673,124 @@ export function buildDwarvenKingdomAndMiners(
   for (let s = 0; s < DWARVEN_GUARDIAN_STATUES.length; s++) {
     const st = DWARVEN_GUARDIAN_STATUES[s];
     const stGroup = new THREE.Group();
+    stGroup.name = `dwarven-entrance-statue-${st.id}`;
     stGroup.position.set(st.x, st.baseY, st.z);
     stGroup.rotation.y = st.yaw;
 
     const plinthFoundation = new THREE.Mesh(statuePlinthFoundationGeo, dwarvenGraniteMat);
+    const plinthGoldTrim = new THREE.Mesh(statuePlinthGoldTrimGeo, statueAntiqueGoldMat);
     const pedStep = new THREE.Mesh(statuePedestalStepGeo, dwarvenGraniteMat);
-    const pedBase = new THREE.Mesh(statuePedestalBaseGeo, dwarvenGraniteMat);
+    const pedLower = new THREE.Mesh(statuePedestalLowerShaftGeo, dwarvenGraniteMat);
     const pedRuneBand = new THREE.Mesh(statuePedestalRuneBandGeo, statueAntiqueGoldMat);
+    const pedUpper = new THREE.Mesh(statuePedestalUpperShaftGeo, dwarvenGraniteMat);
     const pedCap = new THREE.Mesh(statuePedestalCapGeo, dwarvenBronzeMat);
     const pedDais = new THREE.Mesh(statueDaisTopGeo, statueAntiqueGoldMat);
-    stGroup.add(plinthFoundation, pedStep, pedBase, pedRuneBand, pedCap, pedDais);
+    const pedPlaque = new THREE.Mesh(statuePedestalPlaqueGeo, statueAntiqueGoldMat);
+    pedPlaque.position.set(0, 1.42, 1.98);
+    stGroup.add(
+      plinthFoundation,
+      plinthGoldTrim,
+      pedStep,
+      pedLower,
+      pedRuneBand,
+      pedUpper,
+      pedCap,
+      pedDais,
+      pedPlaque
+    );
 
     // Sculpted 3D Colossal Dwarven King figure using the articulated DwarfWarrior rig
     const kingStatueRig = createReadyDwarfWarrior({
       initialState: 'idle',
       weaponVisible: true,
-      tintHex: 0xd4af37,
       driveRootMotion: false,
-      scale: 3.15,
+      castShadow: true,
+      receiveShadow: true,
+      scale: 3.35,
     });
     kingStatueRig.driveRootMotion = false;
-    kingStatueRig.setState('idle', 0.01);
-    kingStatueRig.update(0.2);
-    kingStatueRig.group.position.set(0, 3.02, -0.08);
+    if (s === 0) {
+      kingStatueRig.setState('attack1', 0);
+      kingStatueRig.update(0.32);
+    } else {
+      kingStatueRig.setState('attack2', 0);
+      kingStatueRig.update(0.18);
+    }
+    kingStatueRig.group.position.set(0, 3.04, 0);
     kingStatueRig.group.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
+        mesh.frustumCulled = false;
         const mat = mesh.material as THREE.MeshStandardMaterial;
         if (mat && mat.color) {
           const hsl = { h: 0, s: 0, l: 0 };
           mat.color.getHSL(hsl);
-          // Preserve golden trim & glowing eyes, turn flesh/cloth/iron into sculpted dark granite & bronze
-          if (hsl.h > 0.08 && hsl.h < 0.16 && hsl.s > 0.45) {
+          // Highlight armor trim, belt, pauldrons, and axe head in antique royal gold; body in carved dark granite
+          if ((hsl.h > 0.06 && hsl.h < 0.18 && hsl.s > 0.35) || hsl.l > 0.62) {
             mesh.material = statueAntiqueGoldMat;
           } else {
             mesh.material = statueCarvedGraniteMat;
           }
+        } else {
+          mesh.material = statueCarvedGraniteMat;
         }
       }
     });
+
+    // Attach royal golden crown and glowing rune eyes directly to the head bone (bones[4])
+    // so they sit snugly on the statue's head and never float in mid-air.
+    const headBone = kingStatueRig.skinnedMesh.skeleton.bones[4];
+    if (headBone !== undefined) {
+      for (const side of [-1, 1] as const) {
+        const eyeGroup = new THREE.Group();
+        eyeGroup.position.set(side * 0.036, 0.041, 0.138);
+        headBone.add(eyeGroup);
+
+        const outerGlow = new THREE.Mesh(statueEyeSocketGeo, statueEyeGlowMat);
+        outerGlow.scale.set(0.015, 0.0095, 0.010);
+        eyeGroup.add(outerGlow);
+
+        const innerCore = new THREE.Mesh(statueEyeSocketGeo, statueEyeCoreMat);
+        innerCore.scale.set(0.0085, 0.0055, 0.0065);
+        innerCore.position.set(0, 0, 0.0045);
+        eyeGroup.add(innerCore);
+      }
+
+      const crown = new THREE.Group();
+      crown.position.set(0, 0.155, 0.02);
+      headBone.add(crown);
+      const band = new THREE.Mesh(statueHeadCrownBandGeo, statueAntiqueGoldMat);
+      crown.add(band);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const spike = new THREE.Mesh(statueHeadCrownSpikeGeo, statueAntiqueGoldMat);
+        spike.position.set(Math.cos(a) * 0.106, 0.056, Math.sin(a) * 0.106);
+        crown.add(spike);
+      }
+    }
+
+    kingStatueRig.group.updateMatrixWorld(true);
+    kingStatueRig.skinnedMesh.skeleton.update();
     stGroup.add(kingStatueRig.group);
 
-    // Royal Dwarven King Crown & Flowing Carved Stone Cloak
-    const crownGroup = new THREE.Group();
-    crownGroup.position.set(0, 8.22, 0.08);
-    crownGroup.add(new THREE.Mesh(statueCrownBandGeo, statueAntiqueGoldMat));
-    for (let c = 0; c < 8; c++) {
-      const cAng = (c / 8) * Math.PI * 2;
-      const spike = new THREE.Mesh(statueCrownSpikeGeo, statueAntiqueGoldMat);
-      spike.position.set(Math.sin(cAng) * 0.52, 0.26, Math.cos(cAng) * 0.52);
-      crownGroup.add(spike);
-    }
-    const royalCloak = new THREE.Mesh(statueCapeCloakGeo, dwarvenGraniteMat);
-    royalCloak.position.set(0, 5.25, -0.78);
-    royalCloak.rotation.x = 0.12;
-    stGroup.add(crownGroup, royalCloak);
-
-    // Planted Colossal Double-Bitted Runic Greataxe & Carved Royal Shield
-    const plantedAxeGroup = new THREE.Group();
-    plantedAxeGroup.position.set(s === 0 ? 0.88 : -0.88, 2.98, 1.12);
-    const axeShaft = new THREE.Mesh(statueGreatAxeShaftGeo, dwarvenBronzeMat);
-    const axeHub = new THREE.Mesh(statueGreatAxeHeadHubGeo, statueAntiqueGoldMat);
-    axeHub.position.set(0, 4.35, 0);
-    const axeBladeL = new THREE.Mesh(statueGreatAxeBladeGeo, statueCarvedGraniteMat);
-    axeBladeL.position.set(-0.76, 4.35, 0);
-    axeBladeL.rotation.z = Math.PI / 2;
-    const axeBladeR = new THREE.Mesh(statueGreatAxeBladeGeo, statueCarvedGraniteMat);
-    axeBladeR.position.set(0.76, 4.35, 0);
-    axeBladeR.rotation.z = -Math.PI / 2;
-    const axeBladeTrimL = new THREE.Mesh(statueGreatAxeBladeGeo, statueAntiqueGoldMat);
-    axeBladeTrimL.scale.set(0.26, 0.82, 0.88);
-    axeBladeTrimL.position.set(-0.62, 4.35, 0);
-    axeBladeTrimL.rotation.z = Math.PI / 2;
-    const axeBladeTrimR = new THREE.Mesh(statueGreatAxeBladeGeo, statueAntiqueGoldMat);
-    axeBladeTrimR.scale.set(0.26, 0.82, 0.88);
-    axeBladeTrimR.position.set(0.62, 4.35, 0);
-    axeBladeTrimR.rotation.z = -Math.PI / 2;
-    plantedAxeGroup.add(axeShaft, axeHub, axeBladeL, axeBladeR, axeBladeTrimL, axeBladeTrimR);
-
-    const shieldGroup = new THREE.Group();
-    shieldGroup.position.set(s === 0 ? -1.05 : 1.05, 4.45, 0.78);
-    shieldGroup.rotation.y = s === 0 ? -0.35 : 0.35;
-    const shieldDisc = new THREE.Mesh(statueRoyalShieldGeo, dwarvenGraniteMat);
-    const shieldRim = new THREE.Mesh(statueRoyalShieldGeo, statueAntiqueGoldMat);
-    shieldRim.scale.set(1.06, 1.06, 0.75);
-    const shieldBoss = new THREE.Mesh(statueShieldBossGeo, statueAntiqueGoldMat);
-    shieldBoss.position.z = 0.1;
-    shieldGroup.add(shieldDisc, shieldRim, shieldBoss);
-    stGroup.add(plantedAxeGroup, shieldGroup);
-
-    // 2 Grounded Corner Fire Braziers on the Stepped Plinth + Grounded Front Pedestal Lantern Bracket
-    for (const bx of [-1.72, 1.72]) {
-      const brazierBowl = new THREE.Mesh(statueCornerBrazierBowlGeo, dwarvenBronzeMat);
-      brazierBowl.position.set(bx, 0.71, 1.72);
-      const brazierEmber = new THREE.Mesh(statueCornerBrazierEmberGeo, mineGoldOreMat);
-      brazierEmber.position.set(bx, 0.94, 1.72);
-      stGroup.add(brazierBowl, brazierEmber);
+    // 4 Grounded Corner Fire Braziers on the Stepped Plinth + Front Pedestal Lantern Bracket
+    for (const bx of [-1.76, 1.76]) {
+      for (const bz of [-1.76, 1.76]) {
+        const stand = new THREE.Mesh(statueCornerBrazierStandGeo, dwarvenBronzeMat);
+        stand.position.set(bx, 0.81, bz);
+        const brazierBowl = new THREE.Mesh(statueCornerBrazierBowlGeo, statueAntiqueGoldMat);
+        brazierBowl.position.set(bx, 1.16, bz);
+        const brazierEmber = new THREE.Mesh(statueCornerBrazierEmberGeo, mineGoldOreMat);
+        brazierEmber.scale.set(1, 0.65, 1);
+        brazierEmber.position.set(bx, 1.36, bz);
+        stGroup.add(stand, brazierBowl, brazierEmber);
+      }
     }
     const bracketPost = new THREE.Mesh(statuePedestalBracketPostGeo, dwarvenBronzeMat);
-    bracketPost.position.set(0, 2.45, 2.02);
-    const bracketBar = new THREE.Mesh(statuePedestalBracketBarGeo, dwarvenBronzeMat);
-    bracketBar.position.set(0, 2.98, 2.24);
-    stGroup.add(bracketPost, bracketBar, createLanternAssembly(0, 2.94, 2.46, true));
+    bracketPost.position.set(0, 2.38, 2.06);
+    const bracketBar = new THREE.Mesh(statuePedestalBracketBarGeo, statueAntiqueGoldMat);
+    bracketBar.position.set(0, 2.98, 2.28);
+    stGroup.add(bracketPost, bracketBar, createLanternAssembly(0, 2.94, 2.50, true));
 
     scene.add(stGroup);
     distanceCulledObjects.push({ obj: stGroup, cx: st.x, cz: st.z, radius: 32 });

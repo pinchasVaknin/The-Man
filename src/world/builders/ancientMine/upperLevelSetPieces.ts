@@ -200,34 +200,90 @@ function buildPortal(kit: Kit, ctx: ISetPieceContext): void {
   const { m } = kit;
   for (const id of ['portal-pillar-west', 'portal-pillar-east']) {
     const f = fixture(id);
-    kit.box(f.halfX * 2 + 0.6, 0.7, f.halfZ * 2 + 0.6, m.darkStone, f.lx, E, f.lz);
-    kit.box(f.halfX * 2, f.height - 1.5, f.halfZ * 2, m.stone, f.lx, E + 0.7, f.lz);
-    kit.box(f.halfX * 2 + 0.6, 0.8, f.halfZ * 2 + 0.6, m.darkStone, f.lx, E + f.height - 0.8, f.lz);
-    // Vertical rune channels on the pillar faces.
-    for (const dx of [-0.8, 0, 0.8]) kit.box(0.14, f.height - 3, 0.06, m.gold, f.lx + dx, E + 1.5, f.lz - f.halfZ - 0.03);
-    ctx.addTorch(f.lx, E + 4.2, f.lz - f.halfZ - 0.5);
+    // Stepped dark-stone plinth & golden base collar (strictly disjoint Y ranges)
+    kit.box(f.halfX * 2 + 0.72, 0.54, f.halfZ * 2 + 0.72, m.darkStone, f.lx, E + 0.01, f.lz);
+    kit.box(f.halfX * 2 + 0.52, 0.18, f.halfZ * 2 + 0.52, m.gold, f.lx, E + 0.55, f.lz);
+    // Main carved stone pillar shaft (y = 3.38 .. 6.18, strictly under capital & frieze)
+    kit.box(f.halfX * 2, 2.8, f.halfZ * 2, m.stone, f.lx, E + 0.73, f.lz);
+    // Corner golden chamfers along the pillar shaft
+    for (const cx of [-f.halfX + 0.06, f.halfX - 0.06]) {
+      for (const cz of [-f.halfZ + 0.06, f.halfZ - 0.06]) {
+        kit.box(0.18, 2.6, 0.18, m.gold, f.lx + cx, E + 0.83, f.lz + cz);
+      }
+    }
+    // Stepped capital collar & abacus strictly below y = 7.0 (y = 6.18 .. 6.98)
+    kit.box(f.halfX * 2 + 0.48, 0.18, f.halfZ * 2 + 0.48, m.gold, f.lx, 6.18, f.lz);
+    kit.box(f.halfX * 2 + 0.72, 0.62, f.halfZ * 2 + 0.72, m.darkStone, f.lx, 6.36, f.lz);
+    // Vertical rune channels & central shield boss on the north pillar face (strictly proud of z = -2.4)
+    for (const dx of [-0.85, 0, 0.85]) {
+      kit.box(0.16, 2.35, 0.07, m.gold, f.lx + dx, E + 0.95, f.lz - f.halfZ - 0.04);
+    }
+    kit.box(0.95, 0.95, 0.09, m.darkStone, f.lx, E + 1.65, f.lz - f.halfZ - 0.06);
+    kit.box(0.62, 0.62, 0.11, m.gold, f.lx, E + 1.81, f.lz - f.halfZ - 0.09);
+    ctx.addTorch(f.lx, E + 2.85, f.lz - f.halfZ - 0.55);
   }
-  // Header over the gate mouth, reaching all the way up to the rock ceiling (`y = 11.5`).
-  const headerBottom = 7.0;
+
+  // Lower portal architrave soffit between the pillars (strictly below CEILING_Y.entrance = 7.0 so it never Z-fights!)
+  kit.box(13.48, 0.18, 2.34, m.gold, 0, 6.37, -1.2);
+  kit.box(13.36, 0.41, 2.22, m.darkStone, 0, 6.55, -1.2);
+
+  // Monumental stone frieze above the gate mouth (`y = 7.04 .. 11.6`, strictly above CEILING_Y.entrance = 7.0)
+  const headerBottom = 7.04;
   const headerTop = 11.6;
-  kit.box(20.8, headerTop - headerBottom, 2.4, m.stone, 0, headerBottom, -1.2);
-  for (const y of [headerBottom + 0.5, headerTop - 0.6]) kit.box(19.8, 0.16, 0.08, m.gold, 0, y, -2.42);
-  for (let i = 0; i < 9; i++) kit.box(0.5, 0.9, 0.08, m.gold, -8 + i * 2, headerBottom + 1.2, -2.42);
-  const crest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(1.1, 0)), m.gold);
-  crest.scale.set(1.3, 1.1, 0.35);
-  crest.position.set(0, headerBottom + 2.0, -2.52);
+  kit.box(21.2, headerTop - headerBottom, 2.4, m.stone, 0, headerBottom, -1.2);
+  // Stepped overhanging crown cornice above the frieze
+  kit.box(22.0, 0.52, 2.76, m.darkStone, 0, headerTop, -1.28);
+  kit.box(22.4, 0.22, 2.92, m.gold, 0, headerTop + 0.52, -1.32);
+
+  // Horizontal golden frieze moldings at z = -2.44 (non-overlapping with vertical triglyphs)
+  for (const y of [headerBottom + 0.36, headerTop - 0.56]) {
+    kit.box(20.4, 0.2, 0.08, m.gold, 0, y, -2.44);
+  }
+  // Vertical golden rune triglyphs strictly between the horizontal bands (skipping i = 4 at x = 0 for the Royal Crest)
+  for (let i = 0; i < 9; i++) {
+    if (i === 4) continue;
+    kit.box(0.48, 1.35, 0.09, m.gold, -8 + i * 2, headerBottom + 1.55, -2.46);
+    kit.box(0.26, 0.95, 0.11, m.darkStone, -8 + i * 2, headerBottom + 1.75, -2.51);
+  }
+
+  // Central Royal Dwarven Crest plaque & Octahedron jewel over the entrance
+  kit.box(2.7, 2.4, 0.12, m.darkStone, 0, headerBottom + 1.05, -2.46);
+  kit.box(2.9, 0.16, 0.15, m.gold, 0, headerBottom + 0.89, -2.48);
+  kit.box(2.9, 0.16, 0.15, m.gold, 0, headerBottom + 3.45, -2.48);
+  const crest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(1.12, 0)), m.gold);
+  crest.scale.set(1.32, 1.12, 0.36);
+  crest.position.set(0, headerBottom + 2.25, -2.62);
   ctx.group.add(crest);
 
-  // Inner portal arch header at lz = 6.0 reaching ceilingY = 11.5 so there is no gap above the entrance passage.
-  kit.box(16.6, 4.5, 1.4, m.darkStone, 0, 7.1, 6.0);
-  kit.box(16.8, 0.24, 1.5, m.gold, 0, 7.0, 6.0);
+  // Inner portal arch header at lz = 6.0:
+  // - Upper stone closure starts at y = 7.04 (strictly above CEILING_Y.entrance = 7.0)
+  // - Lower carved arch soffit & gold molding sit at y = 6.20..6.96 (strictly below CEILING_Y.entrance = 7.0)
+  //   eliminating the coplanar Z-fighting gold strip on the entrance ceiling!
+  kit.box(16.6, 4.46, 1.4, m.darkStone, 0, 7.04, 6.0);
+  kit.box(11.88, 0.54, 1.36, m.darkStone, 0, 6.42, 6.0);
+  kit.box(11.94, 0.22, 1.48, m.gold, 0, 6.2, 6.0);
+  kit.box(0.92, 0.68, 1.58, m.gold, 0, 6.1, 6.0);
+  for (const sideX of [-5.68, 5.68]) {
+    kit.box(0.56, 6.78, 1.24, m.darkStone, sideX, -0.58, 6.0);
+    kit.box(0.64, 0.2, 1.34, m.gold, sideX, 4.2, 6.0);
+  }
+
+  // Additional vaulted stone-and-gold ceiling ribs along the entrance descent (lz = 12.5, 19.0)
+  for (const ribZ of [12.5, 19.0]) {
+    kit.box(11.88, 0.48, 1.1, m.darkStone, 0, 6.48, ribZ);
+    kit.box(11.94, 0.18, 1.22, m.gold, 0, 6.3, ribZ);
+  }
 
   // Gate leaves: heavy iron doors with vertical bars and gold bosses, opened flat against the face.
   for (const id of ['gate-leaf-west', 'gate-leaf-east']) {
     const f = fixture(id);
-    kit.box(f.halfX * 2, f.height, f.halfZ * 2, m.iron, f.lx, E, f.lz);
-    for (let i = 0; i < 6; i++) kit.box(0.12, f.height - 0.3, 0.12, m.darkStone, f.lx - f.halfX + 0.6 + i * 1.2, E + 0.15, f.lz - 0.25);
-    for (const y of [1.2, 3.1, 5.0]) kit.box(f.halfX * 2, 0.25, 0.1, m.gold, f.lx, E + y, f.lz - 0.26);
+    kit.box(f.halfX * 2, f.height, f.halfZ * 2, m.iron, f.lx, E + 0.01, f.lz);
+    for (let i = 0; i < 6; i++) {
+      kit.box(0.12, f.height - 0.3, 0.08, m.darkStone, f.lx - f.halfX + 0.6 + i * 1.2, E + 0.16, f.lz - 0.24);
+    }
+    for (const y of [1.2, 3.1, 5.0]) {
+      kit.box(f.halfX * 2, 0.25, 0.09, m.gold, f.lx, E + y, f.lz - 0.29);
+    }
   }
   // Torches just inside the mouth light the steps down.
   ctx.addTorch(-6.6, MINE_LEVEL_Y.overlook + 3, 10);
@@ -1316,31 +1372,84 @@ function buildUndergroundDwarvenQuarters(kit: Kit, ctx: ISetPieceContext): void 
   const rugBorderMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.86 });
   ctx.ownMaterial(blanketMat, mattressMat, pillowMat, rugCrimsonMat, rugBorderMat);
 
-  // 1) OUTER ARCHWAY PORTAL AT SOUTH-WEST CENTRAL HUB WALL (lx = -59, lz = 124.2)
-  for (const dx of [-4.6, 4.6]) {
-    kit.box(1.3, 4.48, 1.4, m.darkStone, -59 + dx, U + 0.01, 124.3);
-    kit.box(1.48, 0.16, 1.56, m.gold, -59 + dx, U + 4.49, 124.3);
-    kit.box(1.3, 3.74, 1.4, m.darkStone, -59 + dx, U + 4.65, 124.3);
+  // 1) OUTER ARCHWAY PORTAL FLUSH WITH THE SOUTH-WEST CAVERN WALL (lx = -59, lz = 128.0)
+  //    The cavern wall runs along lz = 128.0 from lx = -65 to -53, with the 8m entry opening at lx = -63..-55.
+  for (const dx of [-4.55, 4.55]) {
+    const px = -59 + dx;
+    // Stepped base plinth & golden collar
+    kit.box(1.56, 0.64, 1.76, m.darkStone, px, U + 0.01, 128.0);
+    kit.box(1.48, 0.16, 1.68, m.gold, px, U + 0.65, 128.0);
+    // Main fluted stone jamb shaft
+    kit.box(1.36, 3.64, 1.52, m.stone, px, U + 0.81, 128.0);
+    kit.box(0.22, 3.2, 0.08, m.gold, px, U + 1.02, 127.19);
+    // Capital collar & upper pillar shaft rising to the upper cavern ceiling
+    kit.box(1.52, 0.2, 1.7, m.gold, px, U + 4.45, 128.0);
+    kit.box(1.36, 6.5, 1.52, m.darkStone, px, U + 4.65, 128.0);
   }
-  // Full-height stone header between jambs (`w = 7.9`) and above jambs (`y = U + 4.65 .. U + 8.39`)
-  kit.box(10.8, 0.2, 1.66, m.gold, -59, U + 4.45, 124.3);
-  kit.box(10.6, 3.74, 1.56, m.darkStone, -59, U + 4.65, 124.3);
+  // Wing buttresses tying the portal jambs into the adjacent cavern rock wall (lx = -65..-63.5 and -54.5..-53)
+  for (const wx of [-64.55, -53.45]) {
+    kit.box(1.5, 11.14, 1.15, m.darkStone, wx, U + 0.01, 127.85);
+    kit.box(1.58, 0.22, 1.24, m.gold, wx, U + 4.45, 127.85);
+  }
+  // Full-height stone & gold over-door lintel at lz = 128.0 reaching the cavern ceiling (`y = U + 4.45 .. U + 11.15`)
+  kit.box(11.2, 0.24, 1.78, m.gold, -59, U + 4.45, 128.0);
+  kit.box(10.9, 6.46, 1.62, m.darkStone, -59, U + 4.69, 128.0);
+  kit.box(11.3, 0.22, 1.82, m.gold, -59, U + 6.35, 128.0);
+  // Carved Royal Dwarven Quarters crest & shield plaque on the north facade of the portal lintel
+  kit.box(2.8, 1.25, 0.1, m.stone, -59, U + 4.88, 127.14);
+  kit.box(3.0, 0.14, 0.14, m.gold, -59, U + 4.74, 127.12);
+  kit.box(3.0, 0.14, 0.14, m.gold, -59, U + 6.13, 127.12);
+  kit.box(0.85, 0.85, 0.14, m.gold, -59, U + 5.08, 127.08);
 
   // Inner archway collar at lz = 130.8 entering the sleeping hall (`ceilingY = -3.5 -> U + 5.85`)
   for (const dx of [-4.5, 4.5]) {
     kit.box(1.1, 4.52, 1.1, m.darkStone, -59 + dx, U + 0.01, 130.8);
-    kit.box(1.1, 1.1, 1.1, m.darkStone, -59 + dx, U + 4.73, 130.8);
+    kit.box(1.1, 1.08, 1.1, m.darkStone, -59 + dx, U + 4.73, 130.8);
   }
   kit.box(10.4, 0.2, 1.28, m.gold, -59, U + 4.53, 130.8);
-  kit.box(10.2, 1.1, 1.18, m.darkStone, -59, U + 4.73, 130.8);
-  ctx.addTorch(-63.2, U + 3.0, 123.4, 0xffa840, 6.5);
-  ctx.addTorch(-54.8, U + 3.0, 123.4, 0xffa840, 6.5);
+  kit.box(10.2, 1.08, 1.18, m.darkStone, -59, U + 4.73, 130.8);
+  ctx.addTorch(-63.4, U + 3.0, 126.9, 0xffa840, 6.5);
+  ctx.addTorch(-54.6, U + 3.0, 126.9, 0xffa840, 6.5);
 
-  // 2) CENTRAL DORMITORY CORRIDOR RUNNER CARPET & GRAND HEARTH CHIMNEY HOOD AT (lx = -59.0, lz = 156.2)
-  //    (The `fireplace` prop at (-59.0, 156.2, yaw = Math.PI) sits from y = U to U + 3.2; we crown it with a
-  //     carved stone & gold chimney hood rising from U + 3.21 to U + 5.83 and a firewood rack beside it!)
-  kit.box(3.4, 0.016, 19.6, rugBorderMat, -59.0, U + 0.012, 142.8);
-  kit.box(2.9, 0.018, 19.1, rugCrimsonMat, -59.0, U + 0.028, 142.8);
+  // 2) CENTRAL DORMITORY CORRIDOR RUNNER CARPET, VAULTED CEILING RIBS, CHANDELIERS & GRAND HEARTH AT (-59.0, 156.2)
+  //    Extended north to lz = 127.2 so the runner welcomes players right through the outer portal threshold!
+  kit.box(3.5, 0.016, 26.8, rugBorderMat, -59.0, U + 0.012, 140.6);
+  kit.box(2.96, 0.018, 26.2, rugCrimsonMat, -59.0, U + 0.028, 140.6);
+
+  // Vaulted stone & gold ceiling ribs across the central corridor (strictly below ceilingY = U + 5.85)
+  for (const ribZ of [134.2, 141.0, 147.8, 153.8]) {
+    kit.box(7.8, 0.42, 0.68, m.darkStone, -59.0, U + 5.39, ribZ);
+    kit.box(7.86, 0.16, 0.78, m.gold, -59.0, U + 5.23, ribZ);
+  }
+
+  // Helper for warm Dwarven ceiling lantern chandeliers (strictly below U + 5.81)
+  const addQuartersChandelier = (cx: number, cz: number, ringR: number): void => {
+    const ch = new THREE.Group();
+    ch.position.set(cx, U, cz);
+    kit.add(ch);
+    kit.cyl(0.06, 0.06, 0.95, m.iron, 0, 5.28, 0, 8, ch);
+    kit.cyl(ringR, ringR, 0.12, m.gold, 0, 4.76, 0, 12, ch);
+    kit.cyl(ringR * 0.86, ringR * 0.86, 0.14, m.darkStone, 0, 4.76, 0, 12, ch);
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2 + Math.PI / 4;
+      const lx = Math.cos(a) * (ringR - 0.08);
+      const lz = Math.sin(a) * (ringR - 0.08);
+      kit.cyl(0.09, 0.09, 0.22, m.ember, lx, 4.93, lz, 8, ch);
+    }
+  };
+  addQuartersChandelier(-59.0, 137.5, 0.95);
+  addQuartersChandelier(-59.0, 149.5, 0.95);
+
+  // Royal Dwarven wall banners & pilasters along the central corridor
+  for (const bz of [133.2, 144.25, 154.8]) {
+    for (const side of [-1, 1] as const) {
+      const wallX = side === -1 ? -62.66 : -55.34;
+      kit.box(0.14, 5.4, 0.52, m.darkStone, wallX, U + 0.01, bz);
+      kit.box(0.18, 0.16, 0.6, m.gold, wallX, U + 3.85, bz);
+      kit.box(0.06, 2.1, 0.44, rugCrimsonMat, wallX - side * 0.09, U + 1.65, bz);
+      kit.box(0.07, 0.12, 0.48, m.gold, wallX - side * 0.09, U + 1.53, bz);
+    }
+  }
 
   // Chimney flue & brass crest above the dormitory fireplace (`y = U + 3.21 .. U + 5.83`)
   kit.box(3.6, 2.62, 1.75, m.darkStone, -59.0, U + 3.21, 156.25);
@@ -1358,7 +1467,7 @@ function buildUndergroundDwarvenQuarters(kit: Kit, ctx: ISetPieceContext): void 
   ctx.addTorch(-62.2, U + 3.1, 154.6, 0xff9a30, 6.5);
   ctx.addTorch(-55.8, U + 3.1, 154.6, 0xff9a30, 6.5);
 
-  // 3) Z-FIGHTING-FREE DWARVEN BED BUILDER + BEDSIDE NIGHTSTAND
+  // 3) Z-FIGHTING-FREE DWARVEN BED BUILDER + BEDSIDE NIGHTSTAND + FOOTLOCKER
   const addDwarvenBed = (bx: number, bz: number, yaw: number): void => {
     const bed = new THREE.Group();
     bed.position.set(bx, U, bz);
@@ -1396,6 +1505,15 @@ function buildUndergroundDwarvenQuarters(kit: Kit, ctx: ISetPieceContext): void 
     kit.cyl(0.1, 0.08, 0.05, m.gold, 0, 0.875, 0, 8, stand);
   };
 
+  const addDwarvenFootlocker = (fx: number, fz: number): void => {
+    const chest = new THREE.Group();
+    chest.position.set(fx, U, fz);
+    kit.add(chest);
+    kit.box(0.52, 0.38, 0.88, m.wood, 0, 0.01, 0, chest);
+    kit.box(0.55, 0.05, 0.92, m.gold, 0, 0.39, 0, chest);
+    kit.box(0.56, 0.12, 0.14, m.gold, 0, 0.28, 0, chest);
+  };
+
   // 4) 4 UNDERGROUND DWARVEN STONE SLEEPING ROOMS (lz = 131..158, ceilingY = -3.5 -> U + 5.85)
   const roomH = 5.82; // Top at U + 5.83, strictly below ceilingY = U + 5.85 so walls never Z-fight with the ceiling!
   const rooms = [
@@ -1415,26 +1533,46 @@ function buildUndergroundDwarvenQuarters(kit: Kit, ctx: ISetPieceContext): void 
     // Front wall jambs flanking the 3.6m doorway (`r.cz - 1.8 .. r.cz + 1.8`), matching `quarters-wall-*` colliders
     kit.box(0.55, roomH, 4.6, m.stone, doorwayX, U + 0.01, r.cz - 4.2);
     kit.box(0.55, roomH, 4.6, m.stone, doorwayX, U + 0.01, r.cz + 4.2);
+    // Carved doorway jamb trim & capital collars
+    for (const dz of [-1.85, 1.85]) {
+      kit.box(0.66, 3.44, 0.18, m.darkStone, doorwayX, U + 0.01, r.cz + dz);
+      kit.box(0.7, 0.14, 0.24, m.gold, doorwayX, U + 1.75, r.cz + dz);
+    }
     // Over-door lintel strictly spanning the 3.6m gap between the jambs (`z: r.cz - 1.89 .. r.cz + 1.89`)
     kit.box(0.68, 0.22, 3.78, m.gold, doorwayX, U + 3.45, r.cz);
     kit.box(0.62, roomH - 3.66, 3.78, m.darkStone, doorwayX, U + 3.67, r.cz);
+    kit.box(0.7, 0.16, 3.84, m.gold, doorwayX, U + 4.85, r.cz);
+    // Golden clan shield boss above the bedroom doorway
+    kit.box(0.12, 0.58, 0.58, m.gold, doorwayX - r.side * 0.34, U + 4.02, r.cz);
+
+    // Outer bedroom wall golden wainscoting rail (strictly inside lx = -76..-42)
+    const outerWallX = r.side === -1 ? -75.78 : -42.22;
+    kit.box(0.14, 0.18, 12.2, m.gold, outerWallX, U + 1.35, r.cz);
 
     // Woven bedroom rug under the central table (`y = U + 0.012 .. U + 0.044`)
-    kit.box(3.8, 0.016, 3.4, rugBorderMat, r.cx, U + 0.012, r.cz);
-    kit.box(3.3, 0.016, 2.9, rugCrimsonMat, r.cx, U + 0.028, r.cz);
+    kit.box(4.1, 0.016, 3.7, rugBorderMat, r.cx, U + 0.012, r.cz);
+    kit.box(3.55, 0.016, 3.15, rugCrimsonMat, r.cx, U + 0.028, r.cz);
 
     // Warm dwarven table & benches in the middle of each room (starting at U + 0.045 above the rug)
     kit.box(2.0, 0.74, 0.95, m.wood, r.cx, U + 0.045, r.cz);
     kit.box(2.08, 0.05, 1.02, m.gold, r.cx, U + 0.785, r.cz);
     kit.box(1.8, 0.42, 0.38, m.wood, r.cx, U + 0.045, r.cz - 0.82);
     kit.box(1.8, 0.42, 0.38, m.wood, r.cx, U + 0.045, r.cz + 0.82);
+    // Golden goblets & center platter on the bedroom table (`y = U + 0.835..0.98`)
+    kit.cyl(0.24, 0.18, 0.04, m.gold, r.cx, U + 0.855, r.cz, 10);
+    kit.cyl(0.07, 0.06, 0.14, m.gold, r.cx - 0.55, U + 0.905, r.cz - 0.2, 8);
+    kit.cyl(0.07, 0.06, 0.14, m.gold, r.cx + 0.55, U + 0.905, r.cz + 0.2, 8);
+
+    // Warm golden ceiling chandelier over each bedroom table
+    addQuartersChandelier(r.cx, r.cz, 0.72);
     ctx.addTorch(doorwayX - r.side * 0.6, U + 2.8, r.cz - 2.2, 0xff9d3a, 5.5);
 
     for (const [bx, bz] of r.beds) {
       addDwarvenBed(bx, bz, 0);
     }
-    // Bedside nightstand with lantern against the outer bedroom wall between the north and south beds
+    // Bedside nightstand with lantern + brass-bound footlocker against the outer bedroom wall
     addBedsideNightstand(r.side === -1 ? -74.6 : -43.4, r.cz);
+    addDwarvenFootlocker(r.side === -1 ? -74.6 : -43.4, r.cz - 1.35);
   }
 }
 // #endregion

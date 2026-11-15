@@ -134,7 +134,7 @@ export interface IMineSurface {
 export const UPPER_CAVERN_OUTLINE: readonly (readonly [number, number])[] = [
   [-20, 20], [20, 20], [45, 24], [70, 22], [100, 28], [118, 45], [122, 75], [118, 100],
   [122, 125], [108, 142], [80, 144], [55, 136], [35, 125], [8, 122], [-8, 122], [-30, 125],
-  [-55, 129], [-78, 125], [-98, 112], [-108, 90], [-110, 60], [-102, 38], [-80, 26], [-50, 22],
+  [-53, 128], [-65, 128], [-78, 125], [-98, 112], [-108, 90], [-110, 60], [-102, 38], [-80, 26], [-50, 22],
 ];
 // #endregion
 
@@ -365,15 +365,15 @@ export const MINE_WATERFALLS: readonly {
   readonly width: number;
 }[] = [
   { id: 'lagoon-cliff-fall', lx: -106, lz: 70, topY: -1.5, bottomY: MINE_LEVEL_Y.lagoonWater, width: 7 },
-  { id: 'chasm-north-fall', lx: 84, lz: 204, topY: -14, bottomY: MINE_LEVEL_Y.abyssBottom, width: 4 },
-  { id: 'heroes-west-fall-0', lx: -95, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-east-fall-0', lx: 95, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-west-fall-3', lx: -95, lz: 290, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-east-fall-3', lx: 95, lz: 290, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-west-fall-1', lx: -95, lz: 241, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-west-fall-2', lx: -95, lz: 267, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-east-fall-1', lx: 95, lz: 241, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
-  { id: 'heroes-east-fall-2', lx: 95, lz: 267, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'chasm-north-fall', lx: 84, lz: 204.65, topY: -14, bottomY: MINE_LEVEL_Y.abyssBottom, width: 4 },
+  { id: 'heroes-west-fall-0', lx: -94.6, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-east-fall-0', lx: 94.6, lz: 215, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-west-fall-3', lx: -94.6, lz: 290, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-east-fall-3', lx: 94.6, lz: 290, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-west-fall-1', lx: -94.6, lz: 241, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-west-fall-2', lx: -94.6, lz: 267, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-east-fall-1', lx: 94.6, lz: 241, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
+  { id: 'heroes-east-fall-2', lx: 94.6, lz: 267, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
 ];
 
 /** Summary: Open water channel from the lagoon to the south wall, past the water wheel (overlaps lagoon-basin at lz 90..97 so there is no stone barrier). */
@@ -589,9 +589,9 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
     height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ...UPPER_CAVERN_CEILING,
   },
   {
-    // Fitted doorway neck in the South-West Central Hub wall leading into the Underground Dwarven Quarters.
+    // Fitted doorway neck in the South-West Central Hub wall (lz = 128) leading into the Underground Dwarven Quarters.
     id: 'dwarven-quarters-entry', area: 'upperCavern', layer: 0,
-    footprint: { kind: 'rect', minLx: -63, maxLx: -55, minLz: 124, maxLz: 131 },
+    footprint: { kind: 'rect', minLx: -63, maxLx: -55, minLz: 128, maxLz: 131 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.upperCavern }, material: 'stone', ceilingY: -4.5,
   },
   {

@@ -316,19 +316,28 @@ function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void
   // keep the tunnel arch strictly below y = -30.0 so NO wall ever rises onto the King's Balcony!
   {
     const lz = 300.4;
-    const underBalconyTopY = MINE_LEVEL_Y.kingBalcony - 0.65; // -30.0 (strictly underneath the King's Balcony floor!)
-    const jambH = underBalconyTopY - LEDGE;
-    for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, jambH, 2.0, m.stone, x, LEDGE, lz);
-    addBox(ctx, 17.0, 0.85, 2.0, m.darkStone, 0, underBalconyTopY - 0.85, lz);
-    addBox(ctx, 17.2, 0.22, 2.1, m.gold, 0, underBalconyTopY - 0.9, lz);
+    // Tunnel ceiling under King's Balcony is CEILING_Y.underBalcony = -30.20, width lx = -6..6.
+    // Keep all arch pieces strictly disjoint in Y and strictly below y = -30.24 so nothing Z-fights with the balcony underside!
+    const lintelTopY = -30.24;
+    const lintelBottomY = -31.08;
+    const goldSoffitBottomY = -31.28;
+    const jambH = goldSoffitBottomY - (LEDGE + 0.02);
+    for (const x of [-5.52, 5.52]) {
+      addBox(ctx, 0.88, jambH, 1.68, m.stone, x, LEDGE + 0.02, lz);
+    }
+    addBox(ctx, 11.92, 0.2, 1.84, m.gold, 0, goldSoffitBottomY, lz);
+    addBox(ctx, 11.88, lintelTopY - lintelBottomY, 1.72, m.darkStone, 0, lintelBottomY, lz);
   }
   {
     const lz = 313.6;
-    const topCeilingY = -22.0;
-    const fullH = topCeilingY - LEDGE + 0.2;
-    for (const x of [-7.2, 7.2]) addBox(ctx, 2.4, fullH, 2.0, m.stone, x, LEDGE, lz);
-    addBox(ctx, 17.0, topCeilingY - (LEDGE + 7.4) + 0.2, 2.2, m.darkStone, 0, LEDGE + 7.4, lz);
-    addBox(ctx, 17.2, 0.24, 2.3, m.gold, 0, LEDGE + 7.35, lz);
+    const topCeilingY = -22.04;
+    const collarBottomY = LEDGE + 7.34;
+    const collarTopY = LEDGE + 7.60;
+    for (const x of [-7.2, 7.2]) {
+      addBox(ctx, 2.4, 7.32, 2.0, m.stone, x, LEDGE + 0.02, lz);
+    }
+    addBox(ctx, 16.8, collarTopY - collarBottomY, 2.26, m.gold, 0, collarBottomY, lz);
+    addBox(ctx, 16.6, topCeilingY - collarTopY, 2.12, m.darkStone, 0, collarTopY, lz);
     for (let i = 0; i < 7; i++) addBox(ctx, 0.4, 0.7, 0.08, runeMat, -6 + i * 2, LEDGE + 7.85, lz - 1.12);
   }
   // Raised iron portcullis teeth in the chamber gate's lintel.
@@ -1240,84 +1249,103 @@ function buildRoyalTreasureVault(ctx: ISetPieceContext): void {
   ctx.ownMaterial(silverMat, diamondMat, rubyMat, emeraldMat, royalCarpetMat);
 
   // 1) SECRET PASSAGE ARCHWAY AT THE EAST END OF THE FORGE LANDING (lx = 46, lz = 386..396)
-  const forgeFullH = -14.0 - FORGE + 0.2;
-  for (const z of [386.6, 395.4]) {
-    addBox(ctx, 1.8, forgeFullH, 1.6, m.stone, 46.2, FORGE, z);
-    addBox(ctx, 2.1, 0.5, 1.9, m.gold, 46.2, FORGE + 4.5, z);
+  const forgeFullH = -36.04 - FORGE;
+  for (const z of [386.7, 395.3]) {
+    addBox(ctx, 1.5, 4.48, 1.4, m.stone, 46.2, FORGE + 0.02, z);
+    addBox(ctx, 1.72, 0.36, 1.62, m.gold, 46.2, FORGE + 4.5, z);
+    addBox(ctx, 1.5, forgeFullH - 4.86, 1.4, m.stone, 46.2, FORGE + 4.86, z);
   }
-  addBox(ctx, 2.0, forgeFullH - 9.4, 10.6, m.darkStone, 46.2, FORGE + 9.4, 391.0);
-  addBox(ctx, 2.2, 0.4, 10.6, m.gold, 46.2, FORGE + 9.1, 391.0);
+  addBox(ctx, 1.88, 0.34, 10.2, m.gold, 46.2, FORGE + 9.06, 391.0);
+  addBox(ctx, 1.72, forgeFullH - 9.4, 10.0, m.darkStone, 46.2, FORGE + 9.4, 391.0);
   ctx.addTorch(45.2, FORGE + 3.2, 387.5, 0xffb040, 6.5);
   ctx.addTorch(45.2, FORGE + 3.2, 394.5, 0xffb040, 6.5);
 
   // 2) TORCHES & ARCH RIBS ALONG THE SECRET VAULT STAIRS (lx = 48..56, lz = 396..472)
   for (let lz = 402; lz <= 466; lz += 16) {
     const stepFloor = sampleAncientMineFloor(52, lz, FORGE)?.height ?? V;
-    const ribH = Math.max(11.0, -41.0 - stepFloor + 0.2);
-    for (const x of [48.35, 55.65]) {
-      addBox(ctx, 0.6, ribH, 0.9, m.stone, x, stepFloor, lz);
-      addBox(ctx, 0.75, 0.35, 1.1, m.gold, x, stepFloor + 4.2, lz);
+    const ribH = Math.max(10.8, -41.06 - stepFloor);
+    for (const x of [48.38, 55.62]) {
+      addBox(ctx, 0.56, 4.18, 0.86, m.stone, x, stepFloor + 0.02, lz);
+      addBox(ctx, 0.72, 0.32, 1.04, m.gold, x, stepFloor + 4.2, lz);
+      addBox(ctx, 0.56, ribH - 4.52, 0.86, m.stone, x, stepFloor + 4.52, lz);
     }
-    ctx.addTorch(48.8, stepFloor + 3.0, lz, 0xffaa38, 6.0);
+    ctx.addTorch(48.85, stepFloor + 3.0, lz, 0xffaa38, 6.0);
   }
 
-  // 3) ROYAL VAULT GRAND ENTRY PORTAL (lx = 48..56, lz = 472.6)
-  const vaultFullH = CEIL - V + 0.2;
-  for (const x of [48.6, 55.4]) {
-    addBox(ctx, 1.8, vaultFullH, 1.8, m.darkStone, x, V, 472.6);
-    addBox(ctx, 2.1, 0.55, 2.1, m.gold, x, V + 5.5, 472.6);
+  // 3) ROYAL VAULT GRAND ENTRY PORTAL (lx = 48..56, lz = 472.85)
+  //    Strictly inside lx = 48..56 and south of the bottom stair step at lz = 472.0 so nothing clips or Z-fights!
+  const vaultFullH = CEIL - V - 0.06;
+  for (const x of [48.72, 55.28]) {
+    // Stepped base plinth & golden collar
+    addBox(ctx, 1.4, 0.68, 1.44, m.darkStone, x, V + 0.02, 472.85);
+    addBox(ctx, 1.46, 0.24, 1.5, m.gold, x, V + 0.7, 472.85);
+    // Lower pillar shaft + golden rune band + upper shaft
+    addBox(ctx, 1.28, 4.56, 1.32, m.darkStone, x, V + 0.94, 472.85);
+    addBox(ctx, 1.48, 0.42, 1.52, m.gold, x, V + 5.5, 472.85);
+    addBox(ctx, 1.28, 4.38, 1.32, m.darkStone, x, V + 5.92, 472.85);
   }
-  addBox(ctx, 8.8, vaultFullH - 10.5, 2.0, m.darkStone, 52.0, V + 10.5, 472.6);
-  addBox(ctx, 9.0, 0.45, 2.2, m.gold, 52.0, V + 10.3, 472.6);
+  // Grand architrave lintel & frieze spanning lx = 48.05 .. 55.95 above y = V + 10.3
+  addBox(ctx, 7.9, 0.42, 1.6, m.gold, 52.0, V + 10.3, 472.85);
+  addBox(ctx, 7.8, vaultFullH - 10.72, 1.46, m.darkStone, 52.0, V + 10.72, 472.85);
+  addBox(ctx, 7.9, 0.32, 1.62, m.gold, 52.0, V + 13.4, 472.85);
+  // Royal diamond crest & flanking torches on the Grand Entry Portal
+  const portalCrest = new THREE.Mesh(ctx.own(new THREE.OctahedronGeometry(0.95, 0)), m.gold);
+  portalCrest.scale.set(1.25, 1.1, 0.35);
+  portalCrest.position.set(52.0, V + 12.05, 472.02);
+  ctx.group.add(portalCrest);
+  ctx.addTorch(49.55, V + 3.6, 472.05, 0xffcf58, 7.0);
+  ctx.addTorch(54.45, V + 3.6, 472.05, 0xffcf58, 7.0);
 
-  // 4) ROYAL CRIMSON & GOLD CARPET RUNNER + INLAID FLOOR MOSAIC RINGS (non-coplanar Y steps)
-  // East-West grand runner from East Entry (lx = 52) to West Throne Dais (lx = -19) along lz = 490.0
-  addBox(ctx, 71.0, 0.022, 4.8, m.gold, 16.5, V + 0.008, 490.0);
-  addBox(ctx, 70.2, 0.024, 4.1, royalCarpetMat, 16.5, V + 0.020, 490.0);
-  // North-South cross runner centered on the Heart of the Mountain Diamond Shrine (lx = 16, lz = 476..504)
-  addBox(ctx, 4.6, 0.020, 27.6, m.gold, 16.0, V + 0.006, 490.0);
-  addBox(ctx, 3.9, 0.022, 26.8, royalCarpetMat, 16.0, V + 0.016, 490.0);
-  // Entry runner leg from stairs landing (lx = 52, lz = 473..490)
-  addBox(ctx, 5.2, 0.020, 17.5, m.gold, 52.0, V + 0.006, 481.5);
-  addBox(ctx, 4.4, 0.022, 16.8, royalCarpetMat, 52.0, V + 0.016, 481.5);
+  // 4) ROYAL CRIMSON & GOLD CARPET RUNNER (strictly disjoint XZ gold borders & seamless L-corner red runner above V = -63.35)
+  // Entry runner leg from stairs landing (lx = 52.0, lz = 472.4..492.4) forming a full L-corner at the south-east turn
+  addBox(ctx, 5.2, 0.024, 20.0, m.gold, 52.0, V + 0.02, 482.4);
+  addBox(ctx, 4.4, 0.026, 19.2, royalCarpetMat, 52.0, V + 0.045, 482.4);
+  // East-West grand runner from the Entry runner's west edge (lx = 49.38) to West Throne Dais (lx = -19.0) along lz = 487.6..492.4
+  addBox(ctx, 68.38, 0.024, 4.8, m.gold, 15.19, V + 0.02, 490.0);
+  addBox(ctx, 68.42, 0.026, 4.0, royalCarpetMat, 15.61, V + 0.046, 490.0);
+  // North-South cross runner arms (north arm lz = 476.2..487.55, south arm lz = 492.45..503.8 — disjoint from East-West runner!)
+  for (const armZ of [481.88, 498.12]) {
+    addBox(ctx, 4.6, 0.024, 11.3, m.gold, 16.0, V + 0.02, armZ);
+    addBox(ctx, 3.9, 0.026, 10.9, royalCarpetMat, 16.0, V + 0.045, armZ);
+  }
 
-  // Perimeter golden wainscoting cornice & wall pilasters around the Royal Vault
-  addBox(ctx, 79.6, 0.45, 0.5, m.gold, 16.0, V + 4.8, 472.3);
-  addBox(ctx, 79.6, 0.45, 0.5, m.gold, 16.0, V + 4.8, 507.7);
-  addBox(ctx, 0.5, 0.45, 35.6, m.gold, -23.7, V + 4.8, 490.0);
-  addBox(ctx, 0.5, 0.45, 35.6, m.gold, 55.7, V + 4.8, 490.0);
+  // Perimeter golden crown cornice near the Royal Vault ceiling (y = CEIL - 0.52):
+  addBox(ctx, 71.2, 0.45, 0.42, m.gold, 12.0, CEIL - 0.52, 472.32);
+  addBox(ctx, 79.2, 0.45, 0.42, m.gold, 16.0, CEIL - 0.52, 507.68);
+  addBox(ctx, 0.42, 0.45, 34.8, m.gold, -23.68, CEIL - 0.52, 490.0);
+  addBox(ctx, 0.42, 0.45, 33.5, m.gold, 55.68, CEIL - 0.52, 490.75);
 
   // 5) 6 GRAND FLUTED DWARVEN COLUMNS (`vault-col-n1..s3`: [-14, 10, 34] x [480, 500], halfX=1.4, halfZ=1.4)
   for (const vx of [-14, 10, 34] as const) {
-    // Vaulted ceiling arch rib spanning North-South between vz = 480 and vz = 500
-    addBox(ctx, 1.8, 1.4, 35.6, m.darkStone, vx, CEIL - 1.4, 490.0);
-    addBox(ctx, 2.05, 0.35, 35.6, m.gold, vx, CEIL - 1.55, 490.0);
+    // Vaulted ceiling arch rib spanning North-South (strictly below CEIL - 0.04 so it never Z-fights with the ceiling!)
+    addBox(ctx, 1.8, 1.32, 35.4, m.darkStone, vx, CEIL - 1.36, 490.0);
+    addBox(ctx, 2.02, 0.28, 35.4, m.gold, vx, CEIL - 1.64, 490.0);
 
     for (const vz of [480, 500] as const) {
-      // Stepped base plinth (within halfX=1.4, halfZ=1.4)
-      addBox(ctx, 2.75, 0.65, 2.75, m.darkStone, vx, V, vz);
-      addBox(ctx, 2.8, 0.28, 2.8, m.gold, vx, V + 0.65, vz);
+      // Stepped base plinth (strictly disjoint Y tiers within halfX=1.4, halfZ=1.4)
+      addBox(ctx, 2.75, 0.63, 2.75, m.darkStone, vx, V + 0.02, vz);
+      addBox(ctx, 2.8, 0.25, 2.8, m.gold, vx, V + 0.65, vz);
       // Main column shaft + golden corner flutes
-      addBox(ctx, 2.35, vaultH - 1.8, 2.35, m.stone, vx, V + 0.9, vz);
+      addBox(ctx, 2.35, vaultH - 2.35, 2.35, m.stone, vx, V + 0.9, vz);
       for (const [cx, cz] of [[-1.08, -1.08], [1.08, -1.08], [-1.08, 1.08], [1.08, 1.08]] as const) {
-        addBox(ctx, 0.28, vaultH - 2.2, 0.28, m.gold, vx + cx, V + 1.1, vz + cz);
+        addBox(ctx, 0.26, vaultH - 2.6, 0.26, m.gold, vx + cx, V + 1.02, vz + cz);
       }
       // Decorative gold bands & capital
       for (const bandH of [5.2, 10.4, 15.6]) {
-        addBox(ctx, 2.65, 0.42, 2.65, m.gold, vx, V + bandH, vz);
+        addBox(ctx, 2.65, 0.4, 2.65, m.gold, vx, V + bandH, vz);
       }
-      addBox(ctx, 2.8, 1.1, 2.8, m.darkStone, vx, CEIL - 1.1, vz);
-      addBox(ctx, 2.85, 0.35, 2.85, m.gold, vx, CEIL - 1.25, vz);
+      addBox(ctx, 2.85, 0.3, 2.85, m.gold, vx, CEIL - 1.45, vz);
+      addBox(ctx, 2.8, 1.08, 2.8, m.darkStone, vx, CEIL - 1.15, vz);
 
       // Mounted wall torches facing the central royal aisle (lz = 490)
       const aisleSign = vz < 490 ? 1 : -1;
       ctx.addTorch(vx, V + 3.4, vz + aisleSign * 1.48, 0xffcf58, 7.5);
     }
   }
-  // Longitudinal ceiling ribs tying the columns together along z = 480 and z = 500
+  // Longitudinal ceiling ribs tying the columns together along z = 480 and z = 500 (strictly below the transverse ribs)
   for (const vz of [480, 500] as const) {
-    addBox(ctx, 79.4, 1.2, 1.6, m.darkStone, 16.0, CEIL - 1.2, vz);
-    addBox(ctx, 79.4, 0.3, 1.85, m.gold, 16.0, CEIL - 1.35, vz);
+    addBox(ctx, 79.2, 1.08, 1.56, m.darkStone, 16.0, CEIL - 1.14, vz);
+    addBox(ctx, 79.2, 0.26, 1.78, m.gold, 16.0, CEIL - 1.4, vz);
   }
 
   // 6) COLOSSAL DRAGON-GOLD FUNNEL & OCTAGONAL RECEIVING BASIN (`vault-gold-funnel-basin` at (0, 490), halfX=5.1, halfZ=5.1)

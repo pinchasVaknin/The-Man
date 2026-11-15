@@ -443,6 +443,9 @@ function buildHeroesPathAndAqueducts(ctx: ISetPieceContext): void {
   // Spout where the lagoon water enters the chasm.
   addBox(ctx, 3.2, 3.2, 1.2, m.stone, -80, NORTH_AQUEDUCT_Y - 0.6, 189.6);
   addBox(ctx, 1.6, 1.6, 1.25, m.void, -80, NORTH_AQUEDUCT_Y + 0.2, 189.6);
+  // East chasm aqueduct spout for chasm-north-fall (lx = 84, lz = 204.65, strictly north of the waterfall plane)
+  addBox(ctx, 5.2, 1.2, 0.5, m.darkStone, 84, -15.2, 204.28);
+  addBox(ctx, 5.5, 0.22, 0.56, m.gold, 84, -14.0, 204.28);
 }
 // #endregion
 

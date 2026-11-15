@@ -348,16 +348,53 @@ function rectOf(surface: IMineSurface): { minLx: number; maxLx: number; minLz: n
   return surface.footprint;
 }
 
-/** Summary: Layer-1 floors (the king balcony) as solid slabs; the greybox only meshes layer 0. */
+/**
+ * Summary: Non-coplanar royal stone & gold cornice fascia along the front edge of Layer-1 floors
+ *          (the King's Balcony at lz = 293), sitting strictly in front of the z = 293 greybox face
+ *          and strictly between the y = -30.2 tunnel ceiling and y = -29.35 balcony floor.
+ */
 function addKingBalcony(group: THREE.Group, own: Own, mat: Mat): void {
-  const slabMat = mat(new THREE.MeshStandardMaterial({ color: 0x9e8c62, roughness: 0.85 }));
+  const slabMat = mat(new THREE.MeshStandardMaterial({ color: 0x5c5346, roughness: 0.88 }));
+  const fasciaStoneMat = mat(new THREE.MeshStandardMaterial({ color: 0x3b332c, roughness: 0.78, metalness: 0.12 }));
+  const fasciaGoldMat = mat(
+    new THREE.MeshStandardMaterial({
+      color: 0xd8a840,
+      emissive: 0x3a2406,
+      emissiveIntensity: 0.25,
+      roughness: 0.28,
+      metalness: 0.85,
+    })
+  );
   for (const surface of MINE_SURFACES) {
     if (surface.layer !== 1 || surface.height.kind !== 'flat') continue;
     const r = rectOf(surface);
-    const thickness = 1.0;
-    const slab = new THREE.Mesh(own(new THREE.BoxGeometry(r.maxLx - r.minLx, thickness, r.maxLz - r.minLz)), slabMat);
-    slab.position.set((r.minLx + r.maxLx) / 2, surface.height.y - thickness / 2, (r.minLz + r.maxLz) / 2);
+    const fullW = r.maxLx - r.minLx;
+    const fullD = r.maxLz - r.minLz;
+    const cx = (r.minLx + r.maxLx) / 2;
+    const cz = (r.minLz + r.maxLz) / 2;
+    const topY = surface.height.y; // -29.35
+    const frontZ = r.minLz; // 293.0
+
+    // Walkable Layer-1 balcony slab inset by 0.06m from all vertical greybox walls (x: -13.94..19.94, z: 293.06..304.94)
+    // and thickness 0.72m (y: -30.07..-29.35, strictly above the bridge-south-landing ceiling at y = -30.20)
+    const slab = new THREE.Mesh(own(new THREE.BoxGeometry(fullW - 0.12, 0.72, fullD - 0.12)), slabMat);
+    slab.position.set(cx, topY - 0.36, cz);
     group.add(slab);
+
+    const width = fullW - 0.2;
+    // Main dark-stone cornice beam strictly in front of z = 293.0 (z: 292.52 .. 292.94, y: -30.12 .. -29.40)
+    const cornice = new THREE.Mesh(own(new THREE.BoxGeometry(width, 0.72, 0.42)), fasciaStoneMat);
+    cornice.position.set(cx, topY - 0.41, frontZ - 0.27);
+    group.add(cornice);
+
+    // Upper & lower golden molding bands strictly in front of the cornice (z: 292.40 .. 292.52)
+    const upperGold = new THREE.Mesh(own(new THREE.BoxGeometry(width + 0.08, 0.14, 0.12)), fasciaGoldMat);
+    upperGold.position.set(cx, topY - 0.14, frontZ - 0.54);
+    group.add(upperGold);
+
+    const lowerGold = new THREE.Mesh(own(new THREE.BoxGeometry(width + 0.08, 0.12, 0.12)), fasciaGoldMat);
+    lowerGold.position.set(cx, topY - 0.70, frontZ - 0.54);
+    group.add(lowerGold);
   }
 }
 // #endregion
@@ -429,9 +466,29 @@ function addWaterAndLava(group: THREE.Group, own: Own, mat: Mat, textures: THREE
   const fallMap = createFallTexture();
   textures.push(fallMap);
   const fallMat = mat(
-    new THREE.MeshBasicMaterial({ map: fallMap, color: 0xd8f4ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false })
+    new THREE.MeshBasicMaterial({
+      map: fallMap,
+      color: 0xd8f4ff,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -4,
+    })
   );
-  const foamMat = mat(new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.45, depthWrite: false }));
+  const foamMat = mat(
+    new THREE.MeshBasicMaterial({
+      color: 0xe8fbff,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -4,
+    })
+  );
   for (const fall of MINE_WATERFALLS) {
     const height = fall.topY - fall.bottomY;
     const sheet = new THREE.Mesh(own(new THREE.PlaneGeometry(fall.width, height)), fallMat);
@@ -464,11 +521,16 @@ function addGuardRails(group: THREE.Group, own: Own, mat: Mat): void {
   const railMat = mat(new THREE.MeshStandardMaterial({ color: 0x6d655a, roughness: 0.9 }));
   const pieces: Array<{ x: number; z: number; topY: number; lengthX: number; lengthZ: number }> = [];
   for (const rail of MINE_GUARD_RAILS) {
-    const count = Math.max(1, Math.ceil((rail.to - rail.from) / RAIL_SEGMENT_LENGTH));
-    const step = (rail.to - rail.from) / count;
+    // king-plinth-front is an internal back-wall collider inside buildKingNiche (at z = 305.0); skip its grey parapet mesh.
+    if (rail.id === 'king-plinth-front') continue;
     const isAcrossX = rail.axis === 'lx';
+    // Inset lx rails by 0.18m at each end so perpendicular corner rails never overlap or Z-fight.
+    const from = isAcrossX ? rail.from + 0.18 : rail.from;
+    const to = isAcrossX ? rail.to - 0.18 : rail.to;
+    const count = Math.max(1, Math.ceil((to - from) / RAIL_SEGMENT_LENGTH));
+    const step = (to - from) / count;
     for (let k = 0; k < count; k++) {
-      const along = rail.from + (k + 0.5) * step;
+      const along = from + (k + 0.5) * step;
       const x = isAcrossX ? rail.at : along;
       const z = isAcrossX ? along : rail.at;
       const side = isAcrossX ? [0.3, 0] : [0, 0.3];
@@ -478,14 +540,15 @@ function addGuardRails(group: THREE.Group, own: Own, mat: Mat): void {
         floorWithin(x + side[0], z + side[1], rail.minY, rail.maxY)
       );
       if (floorY === -Infinity) continue;
-      pieces.push({ x, z, topY: floorY + GUARD_RAIL_HEIGHT, lengthX: isAcrossX ? 0.4 : step, lengthZ: isAcrossX ? step : 0.4 });
+      pieces.push({ x, z, topY: floorY + GUARD_RAIL_HEIGHT, lengthX: isAcrossX ? 0.36 : step, lengthZ: isAcrossX ? step : 0.36 });
     }
   }
   const rails = new THREE.InstancedMesh(own(new THREE.BoxGeometry(1, 1, 1)), railMat, pieces.length);
   const dummy = new THREE.Object3D();
+  const railH = GUARD_RAIL_HEIGHT - 0.02;
   pieces.forEach((p, i) => {
-    dummy.position.set(p.x, p.topY - GUARD_RAIL_HEIGHT / 2, p.z);
-    dummy.scale.set(p.lengthX, GUARD_RAIL_HEIGHT, p.lengthZ);
+    dummy.position.set(p.x, p.topY - railH / 2, p.z);
+    dummy.scale.set(p.lengthX, railH, p.lengthZ);
     dummy.updateMatrix();
     rails.setMatrixAt(i, dummy.matrix);
   });

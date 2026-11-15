@@ -176,6 +176,18 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const e = new THREE.Euler();
+  const isDressedArchitecturalZone = (x: number, z: number): boolean =>
+    // Entrance portal & threshold
+    (z <= 9 && Math.abs(x) <= 14) ||
+    // Underground Dwarven Quarters portal & hall
+    (x >= -77 && x <= -41 && z >= 125 && z <= 159) ||
+    // East chasm War Room descent & waterfall spout
+    (x >= 69 && z >= 192 && z <= 278) ||
+    // King's Balcony & Royal Niche
+    (x >= -16 && x <= 22 && z >= 291 && z <= 307) ||
+    // Secret Vault Stairs & Royal Treasure Vault
+    z >= 385;
+
   for (const foot of wallFeet) {
     if (foot.height < MIN_WALL_HEIGHT_FOR_BOULDERS) continue;
     const length = Math.hypot(foot.x1 - foot.x0, foot.z1 - foot.z0);
@@ -190,6 +202,7 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
       e.set(random() * 3, random() * 6, random() * 3);
       q.setFromEuler(e);
       m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(size, size * (0.7 + random() * 0.6), size));
+      if (isDressedArchitecturalZone(x, z)) continue;
       boulders.push(m.clone());
     }
   }
@@ -206,6 +219,7 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
       if (s === null || s.ceilingY - s.height < STALACTITE_MIN_CLEARANCE || random() < 0.35) continue;
       const length = 1.2 + random() * 3.2;
       const radius = 0.25 + random() * 0.45;
+      if (isDressedArchitecturalZone(x, z)) continue;
       m.compose(new THREE.Vector3(x, s.ceilingY - length / 2 + 0.2, z), q.identity(), new THREE.Vector3(radius, length, radius));
       stalactites.push(m.clone());
     }
