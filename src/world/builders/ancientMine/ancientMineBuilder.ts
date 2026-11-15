@@ -68,7 +68,7 @@ const AREA_LIGHTS: ReadonlyArray<{ lx: number; y: number; lz: number; color: num
   { lx: 0, y: MINE_LEVEL_Y.overlook + 3, lz: 10, color: 0xffb060, intensity: 6 },
   { lx: 0, y: MINE_LEVEL_Y.upperCavern + 6, lz: 70, color: 0xffa040, intensity: 8 },
   { lx: -35, y: MINE_LEVEL_Y.upperCavern + 4, lz: 102, color: 0xff9030, intensity: 6 },
-  { lx: -46, y: MINE_LEVEL_Y.upperCavern + 4, lz: 142, color: 0xff9838, intensity: 7 },
+  { lx: -59, y: MINE_LEVEL_Y.upperCavern + 4, lz: 144, color: 0xff9838, intensity: 7.5 },
   { lx: -80, y: MINE_LEVEL_Y.upperCavern + 5, lz: 72, color: 0x60d0ff, intensity: 7 },
   { lx: 90, y: MINE_LEVEL_Y.upperCavern + 5, lz: 60, color: 0xffc070, intensity: 6 },
   { lx: 88, y: MINE_LEVEL_Y.upperCavern + 4, lz: 128, color: 0xff6a1a, intensity: 9 },
@@ -289,8 +289,9 @@ function addWaterAndLava(group: THREE.Group, own: Own, mat: Mat, textures: THREE
       plane.position.set(0, surface.waterSurfaceY, 0);
     } else {
       const r = rectOf(surface);
-      plane = new THREE.Mesh(own(new THREE.PlaneGeometry(r.maxLx - r.minLx, r.maxLz - r.minLz)), waterMat);
-      plane.position.set((r.minLx + r.maxLx) / 2, surface.waterSurfaceY, (r.minLz + r.maxLz) / 2);
+      const minLz = surface.id === 'lagoon-channel' ? Math.max(r.minLz, 97.0) : r.minLz;
+      plane = new THREE.Mesh(own(new THREE.PlaneGeometry(r.maxLx - r.minLx, r.maxLz - minLz)), waterMat);
+      plane.position.set((r.minLx + r.maxLx) / 2, surface.waterSurfaceY, (minLz + r.maxLz) / 2);
       plane.rotation.x = -Math.PI / 2;
     }
     plane.name = `ancient-mine-water-${surface.id}`;

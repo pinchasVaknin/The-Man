@@ -463,7 +463,15 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 playerState.yaw,
                 playerState.pitch
               );
-              if (bestInteract.kind === 'trap_workbench') {
+              const nearMinecartStation = findNearestRideableMinecartStation(
+                playerState.x,
+                playerState.y,
+                playerState.z,
+                4.8
+              );
+              if (nearMinecartStation && tryBoardOrExitMinecart()) {
+                // Boarded nearby minecart directly!
+              } else if (bestInteract.kind === 'trap_workbench') {
                 soundEngine.playFootstep('cabin', 1.05);
                 const win = window as unknown as {
                   openTrapCraftingModal?: (open?: boolean) => void;
@@ -710,9 +718,11 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
         if (restState.activeMinecartRide) {
           if (jumpPressed) {
             const exitedLineId = restState.activeMinecartRide.lineId;
+            const exitedU = restState.activeMinecartRide.u;
+            const exitedWheelAngle = restState.activeMinecartRide.wheelAngle;
             restState.activeMinecartRide = null;
             setActivePlayerRiddenMinecartLineId(null);
-            setRideableMinecartVisualProgress(exitedLineId, 0, 0, 0);
+            setRideableMinecartVisualProgress(exitedLineId, exitedU, exitedWheelAngle, 0);
             playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
             capturePreviousPlayerPose();
             soundEngine.playFootstep('bridge', 1.08);
@@ -825,6 +835,46 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               stepRes = stepRideableMinecartPhysics(
                 'minecart-line-east-wall',
                 0.98,
+                restState.activeMinecartRide.velocity,
+                restState.activeMinecartRide.wheelAngle,
+                -1,
+                0.001
+              );
+            } else if (
+              restState.activeMinecartRide.lineId === 'minecart-line-east-wall' &&
+              stepRes.u <= 0.02 &&
+              (stepRes.velocity < -0.1 || throttleAlongU < -0.05)
+            ) {
+              // Seamless merge at East Junction [56, 78] onto the trunk line toward the Central Gold Funnel [6, 80]
+              setRideableMinecartVisualProgress('minecart-line-east-wall', 0, 0, 0);
+              restState.activeMinecartRide.lineId = 'minecart-line-moria';
+              restState.activeMinecartRide.u = 0.61;
+              restState.activeMinecartRide.velocity = -Math.max(5.0, Math.abs(stepRes.velocity));
+              restState.activeMinecartRide.facingSign = -1;
+              setActivePlayerRiddenMinecartLineId('minecart-line-moria');
+              stepRes = stepRideableMinecartPhysics(
+                'minecart-line-moria',
+                0.61,
+                restState.activeMinecartRide.velocity,
+                restState.activeMinecartRide.wheelAngle,
+                -1,
+                0.001
+              );
+            } else if (
+              restState.activeMinecartRide.lineId === 'minecart-line-west-cavern' &&
+              stepRes.u <= 0.02 &&
+              (stepRes.velocity < -0.1 || throttleAlongU < -0.05)
+            ) {
+              // Seamless merge at West Junction [-18, 75] onto the trunk line toward the Central Gold Funnel [-6, 80]
+              setRideableMinecartVisualProgress('minecart-line-west-cavern', 0, 0, 0);
+              restState.activeMinecartRide.lineId = 'minecart-line-west';
+              restState.activeMinecartRide.u = 0.16;
+              restState.activeMinecartRide.velocity = -Math.max(5.0, Math.abs(stepRes.velocity));
+              restState.activeMinecartRide.facingSign = -1;
+              setActivePlayerRiddenMinecartLineId('minecart-line-west');
+              stepRes = stepRideableMinecartPhysics(
+                'minecart-line-west',
+                0.16,
                 restState.activeMinecartRide.velocity,
                 restState.activeMinecartRide.wheelAngle,
                 -1,

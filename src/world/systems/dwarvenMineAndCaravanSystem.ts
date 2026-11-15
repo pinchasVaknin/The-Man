@@ -136,7 +136,7 @@ export const DWARVEN_MINER_STATIONS: readonly MinerStationConfig[] = [
     rockLocalZ: 55.0,
     rockRadius: 1.0,
     oreKind: 'sapphire',
-    viaLocal: [[-12, 50], [-28, 52]],
+    viaLocal: [[-6, 50], [-6, 68.5], [-28, 68.5], [-28, 55]],
   },
   // 4: feeding the stone crusher (stone-crusher at lx = 92.0, lz = 82.0, south face lz = 83.6)
   {
@@ -311,7 +311,8 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
       [40.0, MINE_LEVEL_Y.upperCavern, 108.0],
       [56.0, MINE_LEVEL_Y.upperCavern, 108.0],
       [68.0, MINE_LEVEL_Y.upperCavern, 114.0],
-      [88.0, MINE_LEVEL_Y.upperCavern, 116.0],
+      [84.0, MINE_LEVEL_Y.upperCavern, 120.0],
+      [98.0, MINE_LEVEL_Y.upperCavern, 120.0],
       [112.0, MINE_LEVEL_Y.upperCavern, 116.0],
     ],
   },
@@ -474,6 +475,160 @@ export const ALL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[] = 
 ] as const;
 
 /**
+ * Summary: Checks whether a local `(lx, lz)` vertex is one of the three railway turnout switch junctions
+ *          (`[-18, 75]`, `[56, 78]`, or `[156, 72]`).
+ */
+export function isRailTurnoutJunctionVertex(x: number, z: number): boolean {
+  return (
+    Math.hypot(x - -18.0, z - 75.0) < 0.15 ||
+    Math.hypot(x - 56.0, z - 78.0) < 0.15 ||
+    Math.hypot(x - 156.0, z - 72.0) < 0.15
+  );
+}
+
+/**
+ * Summary: Subdivides a 3D rail polyline `[lx, y, lz][]` into a smooth C1-continuous path shared by
+ *          visual tracks, player-rideable minecarts, and AI cooperative minecarts so every cart stays
+ *          strictly centered on the steel rails around curves and through switch turnouts.
+ */
+export function subdivideRailPolyline3D(
+  line: readonly (readonly [number, number, number])[],
+  initialTangent?: readonly [number, number],
+  cornerRadius = 3.6,
+  arcSteps = 8
+): [number, number, number][] {
+  if (line.length < 2) return line.map(([x, y, z]) => [x, y, z]);
+  const out: [number, number, number][] = [];
+
+  if (initialTangent !== undefined) {
+    const p0 = line[0];
+    const p1 = line[1];
+    const dx = p1[0] - p0[0];
+    const dz = p1[2] - p0[2];
+    const segLen = Math.hypot(dx, dz) || 1;
+    const ux = dx / segLen;
+    const uz = dz / segLen;
+    const d = Math.min(5.2, segLen * 0.45);
+    const c0x = p0[0];
+    const c0z = p0[2];
+    const c1x = p0[0] + initialTangent[0] * (d * 0.45);
+    const c1z = p0[2] + initialTangent[1] * (d * 0.45);
+    const c2x = p0[0] + ux * (d * 0.55);
+    const c2z = p0[2] + uz * (d * 0.55);
+    const c3x = p0[0] + ux * d;
+    const c3z = p0[2] + uz * d;
+    for (let s = 0; s <= arcSteps; s++) {
+      const t = s / arcSteps;
+      const omt = 1 - t;
+      const bx =
+        omt * omt * omt * c0x +
+        3 * omt * omt * t * c1x +
+        3 * omt * t * t * c2x +
+        t * t * t * c3x;
+      const bz =
+        omt * omt * omt * c0z +
+        3 * omt * omt * t * c1z +
+        3 * omt * t * t * c2z +
+        t * t * t * c3z;
+      const by = p0[1] + (p1[1] - p0[1]) * (d / segLen) * t;
+      out.push([bx, by, bz]);
+    }
+  } else {
+    out.push([line[0][0], line[0][1], line[0][2]]);
+  }
+
+  for (let i = 1; i < line.length - 1; i++) {
+    const prev = line[i - 1];
+    const curr = line[i];
+    const next = line[i + 1];
+    // Keep grade transitions crisp where a cart ramp or descending tunnel starts/ends.
+    if (Math.abs(prev[1] - curr[1]) > 0.05 || Math.abs(next[1] - curr[1]) > 0.05) {
+      out.push([curr[0], curr[1], curr[2]]);
+      continue;
+    }
+
+    const vInX = curr[0] - prev[0];
+    const vInZ = curr[2] - prev[2];
+    const len1 = Math.hypot(vInX, vInZ);
+    const vOutX = next[0] - curr[0];
+    const vOutZ = next[2] - curr[2];
+    const len2 = Math.hypot(vOutX, vOutZ);
+    if (len1 < 0.5 || len2 < 0.5) {
+      out.push([curr[0], curr[1], curr[2]]);
+      continue;
+    }
+
+    if (isRailTurnoutJunctionVertex(curr[0], curr[2])) {
+      const tx = vInX / len1;
+      const tz = vInZ / len1;
+      const ux = vOutX / len2;
+      const uz = vOutZ / len2;
+      const d = Math.min(5.2, len2 * 0.45);
+      const c0x = curr[0];
+      const c0z = curr[2];
+      const c1x = curr[0] + tx * (d * 0.45);
+      const c1z = curr[2] + tz * (d * 0.45);
+      const c2x = curr[0] + ux * (d * 0.55);
+      const c2z = curr[2] + uz * (d * 0.55);
+      const c3x = curr[0] + ux * d;
+      const c3z = curr[2] + uz * d;
+      for (let s = 0; s <= arcSteps; s++) {
+        const t = s / arcSteps;
+        const omt = 1 - t;
+        const bx =
+          omt * omt * omt * c0x +
+          3 * omt * omt * t * c1x +
+          3 * omt * t * t * c2x +
+          t * t * t * c3x;
+        const bz =
+          omt * omt * omt * c0z +
+          3 * omt * omt * t * c1z +
+          3 * omt * t * t * c2z +
+          t * t * t * c3z;
+        out.push([bx, curr[1], bz]);
+      }
+      continue;
+    }
+
+    const trim = Math.min(cornerRadius, len1 * 0.42, len2 * 0.42);
+    const pStart: [number, number] = [curr[0] - (vInX / len1) * trim, curr[2] - (vInZ / len1) * trim];
+    const pEnd: [number, number] = [curr[0] + (vOutX / len2) * trim, curr[2] + (vOutZ / len2) * trim];
+    for (let s = 0; s <= arcSteps; s++) {
+      const t = s / arcSteps;
+      const omt = 1 - t;
+      const bx = omt * omt * pStart[0] + 2 * omt * t * curr[0] + t * t * pEnd[0];
+      const bz = omt * omt * pStart[1] + 2 * omt * t * curr[2] + t * t * pEnd[1];
+      out.push([bx, curr[1], bz]);
+    }
+  }
+  const last = line[line.length - 1];
+  out.push([last[0], last[1], last[2]]);
+  return out;
+}
+
+const EAST_BRANCH_INITIAL_TANGENT: readonly [number, number] = [
+  24 / Math.hypot(24, -2),
+  -2 / Math.hypot(24, -2),
+];
+const WEST_BRANCH_INITIAL_TANGENT: readonly [number, number] = [
+  -12 / Math.hypot(-12, -5),
+  -5 / Math.hypot(-12, -5),
+];
+
+const SMOOTH_RIDEABLE_WAYPOINTS_BY_ID: Readonly<Record<string, readonly (readonly [number, number, number])[]>> =
+  Object.fromEntries(
+    ALL_RIDEABLE_MINECART_LINES.map((line) => {
+      const initialTangent =
+        line.id === 'minecart-line-east-wall'
+          ? EAST_BRANCH_INITIAL_TANGENT
+          : line.id === 'minecart-line-west-cavern'
+            ? WEST_BRANCH_INITIAL_TANGENT
+            : undefined;
+      return [line.id, subdivideRailPolyline3D(line.localWaypoints, initialTangent, 3.6, 8)];
+    })
+  );
+
+/**
  * Summary: Computes world-space position, elevation, yaw, pitch, slope sine (`sinSlope = dy / segLen`), and total track length along a rideable minecart line for u in [0, 1].
  */
 export function evaluateRideableMinecartPose(
@@ -491,7 +646,7 @@ export function evaluateRideableMinecartPose(
   const line =
     ALL_RIDEABLE_MINECART_LINES.find((l) => l.id === lineId) ??
     ALL_RIDEABLE_MINECART_LINES[0];
-  const wps = line.localWaypoints;
+  const wps = SMOOTH_RIDEABLE_WAYPOINTS_BY_ID[line.id] ?? line.localWaypoints;
   const clampedU = Math.max(0, Math.min(1, u));
   let totalLength = 0;
   const segLens: number[] = [];
@@ -678,15 +833,25 @@ export function stepRideableMinecartPhysics(
   };
 }
 
+const activeCooperativeCartProgressByLineId: Record<string, number> = {};
+
 /**
- * Summary: Finds the nearest interactive rideable minecart station stop within `maxDist` of the player
- *          so the player can summon and board their personal minecart on demand.
+ * Summary: Records the current normalized parameter `u` (in the rideable line's direction `0..1`)
+ *          of an AI cooperative minecart so the player can also board a cooperative cart directly when near it.
+ */
+export function setCooperativeMinecartProgress(lineId: string, u: number): void {
+  activeCooperativeCartProgressByLineId[lineId] = Math.max(0, Math.min(1, u));
+}
+
+/**
+ * Summary: Finds the nearest interactive rideable minecart station stop or live cart within `maxDist` of the player
+ *          so the player can summon and board a minecart reliably at any terminal, kiosk, or active cart.
  */
 export function findNearestRideableMinecartStation(
   worldX: number,
   worldY: number,
   worldZ: number,
-  maxDist = 4.2
+  maxDist = 4.8
 ): {
   readonly lineId: string;
   readonly lineName: string;
@@ -720,17 +885,24 @@ export function findNearestRideableMinecartStation(
   for (let i = 0; i < ALL_RIDEABLE_MINECART_LINES.length; i++) {
     const line = ALL_RIDEABLE_MINECART_LINES[i];
     const liveProg = getRideableMinecartVisualProgress(line.id);
-    const candidates: { u: number; startAtEnd: boolean }[] = [
-      { u: 0, startAtEnd: false },
-      { u: 1, startAtEnd: true },
-      { u: liveProg.u, startAtEnd: liveProg.u > 0.5 },
+    const coopU = activeCooperativeCartProgressByLineId[line.id];
+    const candidates: { u: number; startAtEnd: boolean; isPrimaryEndpoint: boolean }[] = [
+      { u: 0, startAtEnd: false, isPrimaryEndpoint: true },
+      { u: 1, startAtEnd: true, isPrimaryEndpoint: true },
+      { u: liveProg.u, startAtEnd: liveProg.u > 0.5, isPrimaryEndpoint: false },
     ];
+    if (coopU !== undefined) {
+      candidates.push({ u: coopU, startAtEnd: coopU > 0.5, isPrimaryEndpoint: false });
+    }
     if (line.id === 'minecart-line-east-fork-left') {
       // Allow boarding at the Fork Switch Junction (lx = 156, lz = 72 -> u ≈ 0.23) and on the Abyss Bridge (u ≈ 0.52)
-      candidates.push({ u: 0.23, startAtEnd: false }, { u: 0.52, startAtEnd: false });
+      candidates.push(
+        { u: 0.23, startAtEnd: false, isPrimaryEndpoint: false },
+        { u: 0.52, startAtEnd: false, isPrimaryEndpoint: false }
+      );
     } else if (line.id === 'minecart-line-east-fork-right') {
       // Allow boarding at the Fork Switch Junction (lx = 156, lz = 72 -> u ≈ 0.43)
-      candidates.push({ u: 0.43, startAtEnd: false });
+      candidates.push({ u: 0.43, startAtEnd: false, isPrimaryEndpoint: false });
     }
 
     for (let c = 0; c < candidates.length; c++) {
@@ -741,7 +913,8 @@ export function findNearestRideableMinecartStation(
 
       const pose = evaluateRideableMinecartPose(line.id, cand.u);
       const d = Math.hypot(worldX - pose.x, worldZ - pose.z);
-      if (d <= bestDist && Math.abs(worldY - pose.y) <= 2.8) {
+      const isBetter = cand.isPrimaryEndpoint ? d <= bestDist : d < bestDist - 1e-4;
+      if (isBetter && Math.abs(worldY - pose.y) <= 3.2) {
         bestDist = d;
         best = {
           lineId: line.id,

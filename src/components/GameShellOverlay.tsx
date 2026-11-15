@@ -376,6 +376,8 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         e.code === kb.interactDoor &&
         !e.repeat &&
         telemetry.nearbyChest &&
+        !telemetry.nearbyMinecart &&
+        !telemetry.drivingMinecart &&
         (telemetry.nearbyChest.isCorpse ||
           (!telemetry.nearbyFallenTree && !telemetry.nearbyDoor && !telemetry.nearbyBed))
       ) {

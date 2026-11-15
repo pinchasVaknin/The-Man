@@ -26,10 +26,10 @@ export const MINE_LEVEL_Y = {
   galleryPit: -13.35,
   forkJunction: -17.35,
   diamondMine: -27.35,
-  waterChannelBed: -9.85,
+  waterChannelBed: -10.55,
   lagoonBed: -12.35,
   lagoonWater: -9.95,
-  channelWater: -9.45,
+  channelWater: -9.95,
   descentLanding1: -19.35,
   descentLanding2: -29.35,
   chasmLedge: -39.35,
@@ -256,10 +256,24 @@ export const MINE_SOLID_FIXTURES: readonly {
   { id: 'descent-pillar-2-west', lx: -15.2, lz: 171.2, halfX: 0.8, halfZ: 0.8, baseY: MINE_LEVEL_Y.descentLanding2, height: 25.0, look: 'custom' },
   { id: 'descent-pillar-2-east', lx: 15.2, lz: 171.2, halfX: 0.8, halfZ: 0.8, baseY: MINE_LEVEL_Y.descentLanding2, height: 25.0, look: 'custom' },
   { id: 'treasure-chest', lx: MINE_POI.treasureChest.lx, lz: MINE_POI.treasureChest.lz, halfX: 1.1, halfZ: 0.7, baseY: MINE_LEVEL_Y.treasureIsland, height: 1.3, look: 'custom' },
-  // Starting Hall Dwarven Market Stalls along the West Entry Promenade (lx = -11.5, lz = 49.0 / 56.5 / 64.0).
+  // Starting Hall Dwarven Market Stalls along the West Entry Promenade (lx = -11.5, lz = 49.0 / 56.5 / 64.0) and their rear display walls (lx = -13.85).
   { id: 'market-stall-weapons', lx: -11.5, lz: 49.0, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
   { id: 'market-stall-gems', lx: -11.5, lz: 56.5, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
   { id: 'market-stall-tools', lx: -11.5, lz: 64.0, halfX: 1.0, halfZ: 2.1, baseY: MINE_LEVEL_Y.upperCavern, height: 2.8, look: 'custom' },
+  { id: 'market-backwall-weapons', lx: -13.85, lz: 49.0, halfX: 0.42, halfZ: 1.95, baseY: MINE_LEVEL_Y.upperCavern, height: 2.5, look: 'custom' },
+  { id: 'market-backwall-gems', lx: -13.85, lz: 56.5, halfX: 0.42, halfZ: 1.95, baseY: MINE_LEVEL_Y.upperCavern, height: 2.5, look: 'custom' },
+  { id: 'market-backwall-tools', lx: -13.85, lz: 64.0, halfX: 0.42, halfZ: 1.95, baseY: MINE_LEVEL_Y.upperCavern, height: 2.5, look: 'custom' },
+  // Underground Dwarven Sleeping Quarters interior room walls & partitions (doorways at cz = 137.5 and 151.0 remain open).
+  { id: 'quarters-wall-nw-n', lx: -63.0, lz: 133.3, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-nw-s', lx: -63.0, lz: 141.7, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-ne-n', lx: -55.0, lz: 133.3, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-ne-s', lx: -55.0, lz: 141.7, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-sw-n', lx: -63.0, lz: 146.8, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-sw-s', lx: -63.0, lz: 155.2, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-se-n', lx: -55.0, lz: 146.8, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-wall-se-s', lx: -55.0, lz: 155.2, halfX: 0.28, halfZ: 2.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-partition-west', lx: -69.5, lz: 144.25, halfX: 6.2, halfZ: 0.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
+  { id: 'quarters-partition-east', lx: -48.5, lz: 144.25, halfX: 6.2, halfZ: 0.3, baseY: MINE_LEVEL_Y.upperCavern, height: 5.8, look: 'custom' },
   // Spiral Staircase Bottom Chamber: Grand Tactical War Table at the center of the War Room.
   { id: 'war-room-table', lx: 120.0, lz: 258.0, halfX: 3.6, halfZ: 2.2, baseY: MINE_LEVEL_Y.spiralSanctum, height: 1.15, look: 'custom' },
 ];
@@ -315,8 +329,8 @@ export const MINE_WATERFALLS: readonly {
   { id: 'heroes-east-fall-2', lx: 95, lz: 267, topY: -24, bottomY: MINE_LEVEL_Y.abyssBottom, width: 3 },
 ];
 
-/** Summary: Open water channel from the lagoon to the south wall, past the water wheel. */
-export const LAGOON_CHANNEL = { minLx: -82, maxLx: -78, minLz: 97, maxLz: 126 } as const;
+/** Summary: Open water channel from the lagoon to the south wall, past the water wheel (overlaps lagoon-basin at lz 90..97 so there is no stone barrier). */
+export const LAGOON_CHANNEL = { minLx: -82, maxLx: -78, minLz: 90, maxLz: 126 } as const;
 // #endregion
 
 // #region Guard Rails
@@ -637,7 +651,7 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
         [-63.0, 56],
         [-61.0, 70],
         [-65.0, 84],
-        [-74.0, 96],
+        [-74.0, 97],
         [-85.0, 97],
         [-98.0, 91],
         [-105.0, 80],

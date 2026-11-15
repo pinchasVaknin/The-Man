@@ -168,13 +168,13 @@ export function buildPropGeometry(kind: IMinePropKind, tintColor: number = MINER
     case 'fireplace':
       return mergeParts([
         box(4.0, 0.5, 2.0, P.darkGranite),
-        box(0.6, 2.4, 2.0, P.granite, -1.7, 0.5),
-        box(0.6, 2.4, 2.0, P.granite, 1.7, 0.5),
+        box(0.6, 2.1, 1.96, P.granite, -1.7, 0.5),
+        box(0.6, 2.1, 1.96, P.granite, 1.7, 0.5),
         box(4.2, 0.6, 2.1, P.granite, 0, 2.6),
-        box(2.8, 2.0, 0.3, P.darkGranite, 0, 0.5, -0.85),
-        box(1.8, 0.5, 1.2, P.coal, 0, 0.5, 0.1),
-        part(new THREE.ConeGeometry(0.6, 1.1, 6), P.ember, 0, 1.55, 0.1),
-        box(0.3, 0.9, 0.08, P.iron, 0.9, 0.5, 0.95),
+        box(2.76, 2.1, 0.28, P.darkGranite, 0, 0.5, -0.82),
+        box(1.8, 0.45, 1.15, P.coal, 0, 0.5, 0.1),
+        part(new THREE.ConeGeometry(0.6, 1.05, 6), P.ember, 0, 1.48, 0.1),
+        box(0.3, 0.88, 0.08, P.iron, 0.9, 0.5, 0.94),
       ]);
     case 'weaponRack':
       return mergeParts([

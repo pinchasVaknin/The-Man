@@ -139,9 +139,11 @@ export function createVehicleController(ctx: IVehicleControllerContext) {
 function tryBoardOrExitMinecart(): boolean {
     if (restState.activeMinecartRide) {
       const exitedLineId = restState.activeMinecartRide.lineId;
+      const exitedU = restState.activeMinecartRide.u;
+      const exitedWheelAngle = restState.activeMinecartRide.wheelAngle;
       restState.activeMinecartRide = null;
       setActivePlayerRiddenMinecartLineId(null);
-      setRideableMinecartVisualProgress(exitedLineId, 0, 0, 0);
+      setRideableMinecartVisualProgress(exitedLineId, exitedU, exitedWheelAngle, 0);
       playerState.y = walkableHeightValueAt(playerState.x, playerState.z, playerState.y);
       capturePreviousPlayerPose();
       soundEngine.playFootstep('bridge', 1.05);
@@ -152,7 +154,7 @@ function tryBoardOrExitMinecart(): boolean {
       playerState.x,
       playerState.y,
       playerState.z,
-      4.2
+      4.8
     );
     if (!station) return false;
     const line = ALL_RIDEABLE_MINECART_LINES.find((l) => l.id === station.lineId);

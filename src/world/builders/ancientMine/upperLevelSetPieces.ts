@@ -29,6 +29,8 @@ import {
   getActivePlayerRiddenMinecartLineId,
   getEastForkSwitchBranch,
   getRideableMinecartVisualProgress,
+  isRailTurnoutJunctionVertex,
+  subdivideRailPolyline3D,
 } from '../../systems/dwarvenMineAndCaravanSystem';
 import { MINE_PALETTE, buildPropGeometry } from './propGeometries';
 import { createReadyKoiFish, type KoiFish } from '../../models/KoiFish';
@@ -119,7 +121,14 @@ export function buildUpperLevelSetPieces(ctx: ISetPieceContext): ISetPieceUpdate
     gallery.pistons.forEach((p, i) => {
       p.position.y = Math.abs(Math.sin(t * 2.4 + i * 1.1)) * 0.8;
     });
-    gallery.bucket.position.y = Math.sin(t * 0.25) * 3.6 - 2.4;
+    const hoistWave = 0.5 + 0.5 * Math.sin(t * 0.35);
+    const minBucketY = MINE_LEVEL_Y.galleryPit + 0.22;
+    const maxBucketY = U + 1.35;
+    const bucketBottomY = minBucketY + (maxBucketY - minBucketY) * hoistWave;
+    gallery.bucket.position.y = bucketBottomY;
+    const bailTopY = bucketBottomY + 1.45;
+    gallery.hoistChain.scale.y = Math.max(0.5, gallery.pulleyY - bailTopY);
+    gallery.pulleyWheel.rotation.x = Math.cos(t * 0.35) * 1.6;
     const targetLeverRot = getEastForkSwitchBranch() === 'left' ? -0.46 : 0.46;
     gallery.switchLeverArm.rotation.z += (targetLeverRot - gallery.switchLeverArm.rotation.z) * 0.18;
     gallery.switchIndicatorMat.color.setHex(
@@ -348,52 +357,55 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
   }
 
   // 2) 3 DWARVEN MARKET STALLS ALONG THE WEST ENTRY PROMENADE (lx = -11.5, lz = 49.0 / 56.5 / 64.0)
+  //    All vertical and horizontal slabs use strictly disjoint bounds so golden tabletops never Z-fight.
   const buildStallFrame = (sz: number, awningAccentMat: THREE.Material): THREE.Group => {
     const sx = -11.5;
     const stall = new THREE.Group();
     stall.position.set(sx, U, sz);
     kit.add(stall);
 
-    // Stone base plinth & carved wooden counter (2.0m deep along X, 4.2m wide along Z, facing East +X)
-    kit.box(2.0, 0.22, 4.2, m.darkStone, 0, 0, 0, stall);
-    kit.box(1.75, 0.84, 3.95, m.wood, 0.05, 0.22, 0, stall);
-    // Decorative iron vertical straps & gold trim on the front (+X) face of the counter
+    // Stone base plinth (y: 0.01 .. 0.22) & carved wooden counter (y: 0.22 .. 1.04)
+    kit.box(2.0, 0.21, 4.2, m.darkStone, 0, 0.01, 0, stall);
+    kit.box(1.75, 0.82, 3.95, m.wood, 0.05, 0.22, 0, stall);
+    // Decorative iron vertical straps (y: 0.22 .. 0.90) & gold trim (y: 0.90 .. 1.02) on the front (+X) face
     for (const dz of [-1.8, -0.6, 0.6, 1.8]) {
-      kit.box(0.08, 0.84, 0.14, m.iron, 0.94, 0.22, dz, stall);
+      kit.box(0.08, 0.68, 0.14, m.iron, 0.968, 0.22, dz, stall);
     }
-    kit.box(0.08, 0.12, 4.0, m.gold, 0.95, 0.92, 0, stall);
-    // Countertop slab (y = 1.06 .. 1.16)
-    kit.box(1.98, 0.1, 4.24, m.stone, 0.05, 1.06, 0, stall);
-    kit.box(2.04, 0.05, 4.3, m.gold, 0.05, 1.11, 0, stall);
+    kit.box(0.08, 0.12, 4.0, m.gold, 0.968, 0.9, 0, stall);
+    // Stone sub-counter slab (y: 1.04 .. 1.11) and gleaming golden tabletop (y: 1.11 .. 1.17) — strictly disjoint!
+    kit.box(1.96, 0.07, 4.22, m.stone, 0.05, 1.04, 0, stall);
+    kit.box(2.04, 0.06, 4.3, m.gold, 0.05, 1.11, 0, stall);
 
-    // Back display shelf rack behind the merchant (`lx = -13.9` -> local `x = -2.4`)
-    kit.box(0.65, 2.35, 3.8, m.darkStone, -2.35, 0, 0, stall);
+    // Back display shelf wall behind the merchant (`lx = -13.85` -> local `x = -2.35`, matching `market-backwall-*` collider)
+    kit.box(0.65, 2.34, 3.8, m.darkStone, -2.35, 0.01, 0, stall);
     kit.box(0.72, 0.12, 3.9, m.gold, -2.35, 2.35, 0, stall);
-    kit.box(0.68, 0.08, 3.6, m.wood, -2.32, 1.15, 0, stall);
-    kit.box(0.68, 0.08, 3.6, m.wood, -2.32, 1.75, 0, stall);
+    // Shelves protrude cleanly on the +X face (`x = -1.94, w = 0.16`) without overlapping the stone backwall
+    kit.box(0.16, 0.08, 3.6, m.wood, -1.94, 1.15, 0, stall);
+    kit.box(0.16, 0.08, 3.6, m.wood, -1.94, 1.75, 0, stall);
 
-    // 4 Corner Canopy Posts & Sloped Dwarven Awning Roof
+    // 4 Corner Canopy Posts starting strictly above the golden tabletop (`y = 1.17 .. 2.92`)
     for (const px of [-0.82, 0.88]) {
       for (const pz of [-1.95, 1.95]) {
-        kit.box(0.18, 2.65, 0.18, m.wood, px, 0.22, pz, stall);
-        kit.box(0.22, 0.14, 0.22, m.gold, px, 2.45, pz, stall);
+        kit.box(0.18, 1.25, 0.18, m.wood, px, 1.17, pz, stall);
+        kit.box(0.22, 0.14, 0.22, m.gold, px, 2.42, pz, stall);
+        kit.box(0.18, 0.36, 0.18, m.wood, px, 2.56, pz, stall);
       }
     }
-    // Overhead sign board on the East (+X) front lintel
-    kit.box(0.14, 0.42, 3.6, m.wood, 0.92, 2.42, 0, stall);
+    // Overhead sign board on the East (+X) front lintel (disjoint Y: bottom gold 2.40..2.46, wood 2.46..2.82, top gold 2.82..2.88)
     kit.box(0.18, 0.06, 3.7, m.gold, 0.92, 2.4, 0, stall);
+    kit.box(0.14, 0.36, 3.6, m.wood, 0.92, 2.46, 0, stall);
     kit.box(0.18, 0.06, 3.7, m.gold, 0.92, 2.82, 0, stall);
 
-    // Sloped canopy roof with alternating wood & accent ribs
+    // Sloped canopy roof with alternating wood & accent ribs (ribs sit strictly above roof at y = 0.102)
     const roof = new THREE.Group();
     roof.position.set(0.05, 2.92, 0);
     roof.rotation.z = -0.14;
     stall.add(roof);
-    kit.box(2.35, 0.12, 4.45, m.wood, 0, 0, 0, roof);
+    kit.box(2.35, 0.1, 4.45, m.wood, 0, 0, 0, roof);
     for (const rz of [-1.8, -0.9, 0, 0.9, 1.8]) {
-      kit.box(2.42, 0.08, 0.28, awningAccentMat, 0, 0.08, rz, roof);
+      kit.box(2.42, 0.06, 0.28, awningAccentMat, 0, 0.102, rz, roof);
     }
-    kit.box(0.12, 0.16, 4.5, m.gold, 1.18, -0.02, 0, roof);
+    kit.box(0.1, 0.16, 4.5, m.gold, 1.23, -0.02, 0, roof);
 
     ctx.addTorch(sx + 1.05, U + 2.55, sz - 1.95, 0xffc85a, 7.5);
     ctx.addTorch(sx + 1.05, U + 2.55, sz + 1.95, 0xffc85a, 7.5);
@@ -403,7 +415,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
   // --- STALL 1 (lz = 49.0): DWARVEN WEAPONS & ARMOR STALL (Warhammer, Battle Axe, Shield, Horned Helmet) ---
   {
     const stall1 = buildStallFrame(49.0, m.gold);
-    const cy = 1.16;
+    const cy = 1.174;
 
     // 1a. Dwarven Warhammer (`פטיש קרב גמדים`) on the south end of the counter
     const hammer = new THREE.Group();
@@ -466,7 +478,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
   // --- STALL 2 (lz = 56.5): PRECIOUS MATERIALS, GOLD & DIAMONDS STALL (Gold Ingots, Diamonds, Gems) ---
   {
     const stall2 = buildStallFrame(56.5, diamondMat);
-    const cy = 1.16;
+    const cy = 1.174;
 
     // 2a. Stacked Pyramid of Gleaming Gold Ingots (`מטילי זהב`) on the south side of the counter
     for (let row = 0; row < 3; row++) {
@@ -474,20 +486,20 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
       for (let k = 0; k < count; k++) {
         kit.box(
           0.34,
-          0.11,
+          0.1,
           0.16,
           m.gold,
           0.18,
-          cy + row * 0.11,
+          cy + row * 0.105,
           -1.45 + k * 0.2 + row * 0.1,
           stall2
         );
       }
     }
 
-    // 2b. Velvet Display Cushion with Brilliantly Glowing Faceted Diamonds (`יהלומים זוהרים`)
-    kit.box(0.55, 0.06, 0.85, m.darkStone, 0.22, cy, -0.35, stall2);
-    kit.box(0.58, 0.03, 0.88, m.gold, 0.22, cy, -0.35, stall2);
+    // 2b. Velvet Display Cushion with Brilliantly Glowing Faceted Diamonds (`יהלומים זוהרים`) — stacked without overlap
+    kit.box(0.58, 0.028, 0.88, m.gold, 0.22, cy, -0.35, stall2);
+    kit.box(0.52, 0.042, 0.82, m.darkStone, 0.22, cy + 0.028, -0.35, stall2);
     const diaGeo = ctx.own(new THREE.OctahedronGeometry(0.16, 0));
     for (const [dx, dz, sc] of [
       [0.22, -0.55, 1.15],
@@ -497,7 +509,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     ] as const) {
       const dia = new THREE.Mesh(diaGeo, diamondMat);
       dia.scale.set(sc, sc * 1.35, sc);
-      dia.position.set(dx, cy + 0.18 * sc, dz);
+      dia.position.set(dx, cy + 0.07 + 0.18 * sc, dz);
       dia.rotation.y = dz * 2.1;
       stall2.add(dia);
     }
@@ -507,14 +519,14 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     scaleGrp.position.set(0.2, cy, 0.55);
     stall2.add(scaleGrp);
     kit.cyl(0.14, 0.18, 0.06, m.gold, 0, 0.03, 0, 10, scaleGrp);
-    kit.cyl(0.03, 0.03, 0.48, m.gold, 0, 0.26, 0, 8, scaleGrp);
+    kit.cyl(0.03, 0.03, 0.42, m.gold, 0, 0.27, 0, 8, scaleGrp);
     kit.box(0.06, 0.05, 0.56, m.gold, 0, 0.48, 0, scaleGrp);
     for (const side of [-1, 1] as const) {
       kit.cyl(0.12, 0.09, 0.04, m.gold, 0, 0.24, side * 0.25, 10, scaleGrp);
     }
 
     // 2d. Glowing Sapphires, Amethysts & Raw Gold Ore Nuggets on the north tray
-    kit.box(0.52, 0.06, 0.85, m.darkStone, 0.22, cy, 1.35, stall2);
+    kit.box(0.52, 0.055, 0.85, m.darkStone, 0.22, cy, 1.35, stall2);
     for (const [dz, mat] of [
       [1.08, sapphireMat],
       [1.35, amethystMat],
@@ -530,7 +542,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     for (const sz of [-1.2, 0, 1.2]) {
       const shelfGem = new THREE.Mesh(diaGeo, sz === 0 ? diamondMat : sz < 0 ? sapphireMat : amethystMat);
       shelfGem.scale.setScalar(1.45);
-      shelfGem.position.set(-2.12, 1.42, sz);
+      shelfGem.position.set(-1.92, 1.45, sz);
       stall2.add(shelfGem);
     }
     ctx.addLight(-11.2, U + 1.65, 56.5, 0x7dd3fc, 7.5);
@@ -539,7 +551,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
   // --- STALL 3 (lz = 64.0): PICKAXES & ENGINEERING WORK TOOLS STALL (Pickaxes, Chisels, Core Drill, Lanterns) ---
   {
     const stall3 = buildStallFrame(64.0, m.iron);
-    const cy = 1.16;
+    const cy = 1.174;
 
     // 3a. Heavy Dwarven Pickaxe & Glowing Mithril Pickaxe (`מקוש גמדים ומקוש מית'ריל`) on display stands
     for (const [pz, headMat] of [
@@ -585,24 +597,9 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
 
 // #region Rail Hub — Grand Central Gold Funnel Pit, Curved Tracks, Switch Frogs & Station Kiosks
 /**
- * Summary: Checks whether a vertex `(x, z)` is one of the two railway turnout junctions (`[-18, 75]` or `[56, 78]`).
- */
-function isTurnoutJunctionVertex(x: number, z: number): boolean {
-  return (
-    Math.hypot(x - -18.0, z - 75.0) < 0.15 ||
-    Math.hypot(x - 56.0, z - 78.0) < 0.15 ||
-    Math.hypot(x - 156.0, z - 72.0) < 0.15
-  );
-}
-
-/**
- * Summary: Subdivides a multi-segment track polyline into a smooth C1-continuous path.
- * Design:
- * - At pinned turnout junctions (`[-18, 75]` and `[56, 78]`), the curve passes directly THROUGH the
- *   junction point with the exact incoming trunk tangent `T` (using a cubic Bezier transition onto the
- *   outgoing segment), so the parent track and the branch track share the exact same position and
- *   tangent at the switch toe with zero protruding or stepped rails.
- * - At ordinary interior corners, uses an 8-step quadratic Bezier fillet.
+ * Summary: Subdivides a 2D track polyline into a smooth C1-continuous path using the shared
+ *          `subdivideRailPolyline3D` curve generator so visual rails, AI cooperative minecarts,
+ *          and player-rideable minecarts share the exact same centerline.
  */
 function subdividePolylineWithCurves(
   line: readonly (readonly [number, number])[],
@@ -610,125 +607,19 @@ function subdividePolylineWithCurves(
   cornerRadius = 3.6,
   arcSteps = 8
 ): [number, number][] {
-  if (line.length < 2) return line.map(([x, z]) => [x, z]);
-  const out: [number, number][] = [];
-
-  // Handle start of line: if this is a branch line with an explicit incoming trunk tangent at line[0],
-  // transition smoothly from (line[0], initialTangent) onto segment line[0] -> line[1] via cubic Bezier.
-  if (initialTangent !== undefined) {
-    const p0 = line[0];
-    const p1 = line[1];
-    const dx = p1[0] - p0[0];
-    const dz = p1[1] - p0[1];
-    const segLen = Math.hypot(dx, dz) || 1;
-    const ux = dx / segLen;
-    const uz = dz / segLen;
-    const d = Math.min(5.2, segLen * 0.45);
-    const c0x = p0[0];
-    const c0z = p0[1];
-    const c1x = p0[0] + initialTangent[0] * (d * 0.45);
-    const c1z = p0[1] + initialTangent[1] * (d * 0.45);
-    const c2x = p0[0] + ux * (d * 0.55);
-    const c2z = p0[1] + uz * (d * 0.55);
-    const c3x = p0[0] + ux * d;
-    const c3z = p0[1] + uz * d;
-    for (let s = 0; s <= arcSteps; s++) {
-      const t = s / arcSteps;
-      const omt = 1 - t;
-      const bx =
-        omt * omt * omt * c0x +
-        3 * omt * omt * t * c1x +
-        3 * omt * t * t * c2x +
-        t * t * t * c3x;
-      const bz =
-        omt * omt * omt * c0z +
-        3 * omt * omt * t * c1z +
-        3 * omt * t * t * c2z +
-        t * t * t * c3z;
-      out.push([bx, bz]);
-    }
-  } else {
-    out.push([line[0][0], line[0][1]]);
-  }
-
-  for (let i = 1; i < line.length - 1; i++) {
-    const prev = line[i - 1];
-    const curr = line[i];
-    const next = line[i + 1];
-    const yPrev = trackFloorY(prev[0], prev[1]);
-    const yCurr = trackFloorY(curr[0], curr[1]);
-    const yNext = trackFloorY(next[0], next[1]);
-    // Keep grade transitions crisp where the cart ramp starts/ends.
-    if (Math.abs(yPrev - yCurr) > 0.05 || Math.abs(yNext - yCurr) > 0.05) {
-      out.push([curr[0], curr[1]]);
-      continue;
-    }
-
-    const vInX = curr[0] - prev[0];
-    const vInZ = curr[1] - prev[1];
-    const len1 = Math.hypot(vInX, vInZ);
-    const vOutX = next[0] - curr[0];
-    const vOutZ = next[1] - curr[1];
-    const len2 = Math.hypot(vOutX, vOutZ);
-    if (len1 < 0.5 || len2 < 0.5) {
-      out.push([curr[0], curr[1]]);
-      continue;
-    }
-
-    // At a pinned turnout junction vertex, pass straight through `curr` with incoming tangent `vIn / len1`
-    // and curve smoothly onto `curr -> next` via cubic Bezier so the switch toe is never cut short!
-    if (isTurnoutJunctionVertex(curr[0], curr[1])) {
-      const tx = vInX / len1;
-      const tz = vInZ / len1;
-      const ux = vOutX / len2;
-      const uz = vOutZ / len2;
-      const d = Math.min(5.2, len2 * 0.45);
-      const c0x = curr[0];
-      const c0z = curr[1];
-      const c1x = curr[0] + tx * (d * 0.45);
-      const c1z = curr[1] + tz * (d * 0.45);
-      const c2x = curr[0] + ux * (d * 0.55);
-      const c2z = curr[1] + uz * (d * 0.55);
-      const c3x = curr[0] + ux * d;
-      const c3z = curr[1] + uz * d;
-      for (let s = 0; s <= arcSteps; s++) {
-        const t = s / arcSteps;
-        const omt = 1 - t;
-        const bx =
-          omt * omt * omt * c0x +
-          3 * omt * omt * t * c1x +
-          3 * omt * t * t * c2x +
-          t * t * t * c3x;
-        const bz =
-          omt * omt * omt * c0z +
-          3 * omt * omt * t * c1z +
-          3 * omt * t * t * c2z +
-          t * t * t * c3z;
-        out.push([bx, bz]);
-      }
-      continue;
-    }
-
-    const trim = Math.min(cornerRadius, len1 * 0.42, len2 * 0.42);
-    const pStart: [number, number] = [curr[0] - (vInX / len1) * trim, curr[1] - (vInZ / len1) * trim];
-    const pEnd: [number, number] = [curr[0] + (vOutX / len2) * trim, curr[1] + (vOutZ / len2) * trim];
-    for (let s = 0; s <= arcSteps; s++) {
-      const t = s / arcSteps;
-      const omt = 1 - t;
-      const bx = omt * omt * pStart[0] + 2 * omt * t * curr[0] + t * t * pEnd[0];
-      const bz = omt * omt * pStart[1] + 2 * omt * t * curr[1] + t * t * pEnd[1];
-      out.push([bx, bz]);
-    }
-  }
-  const last = line[line.length - 1];
-  out.push([last[0], last[1]]);
-  return out;
+  const line3d = line.map(([x, z]) => [x, trackFloorY(x, z), z] as const);
+  return subdivideRailPolyline3D(line3d, initialTangent, cornerRadius, arcSteps).map(([x, , z]) => [
+    x,
+    z,
+  ]);
 }
 
 /**
- * Summary: Builds a railway switch turnout assembly (unified graduated switch ties spanning under both
- *          diverging tracks, frog baseplate, and a weighted throw switch stand outside the gauge) at a
- *          junction where a branch track splits off tangentially from a main line.
+ * Summary: Builds an engineered Dwarven railway turnout switch assembly at a track junction:
+ *          - Graduated long timber switch ties (`zLocal = 0..4.56`) spanning cleanly under both diverging tracks.
+ *          - Forged iron tie-plates, brass throw rod, and tapered switch-point guide bars at the switch toe.
+ *          - Cast-iron & brass V-Frog (`לב הצומת`) with wing rails and guard check-rails at the inner rail crossing
+ *            so merging/splitting tracks join seamlessly without visual gaps or overlapping sleepers.
  */
 function buildRailTurnoutFrog(
   kit: Kit,
@@ -765,23 +656,35 @@ function buildRailTurnoutFrog(
   kit.add(turnoutGroup);
 
   // 1) Unified graduated timber switch ties spanning cleanly under BOTH diverging tracks
-  //    (individual short sleepers are suppressed inside this zone so ties never cross or overlap!)
-  for (let i = -1; i <= 7; i++) {
+  for (let i = 0; i <= 6; i++) {
     const zLocal = i * 0.76;
-    const progress = Math.max(0, zLocal / 5.4);
-    const extraSpan = Math.sin(spreadAngle) * Math.max(0, zLocal) * 0.95;
-    const tieWidth = 2.05 + extraSpan;
-    const xShift = branchSide * progress * 0.36;
-    kit.box(tieWidth, 0.082, 0.25, m.wood, xShift, 0, zLocal, turnoutGroup);
-    // Low iron tie-plates flush on top of the timber switch tie (strictly below the rail top!)
-    kit.box(tieWidth - 0.28, 0.016, 0.16, m.iron, xShift, 0.082, zLocal, turnoutGroup);
+    const progress = zLocal / 4.56;
+    const extraSpan = Math.sin(spreadAngle) * zLocal * 1.05;
+    const tieWidth = 2.08 + extraSpan;
+    const xShift = branchSide * progress * 0.34;
+    kit.box(tieWidth, 0.08, 0.25, m.wood, xShift, 0, zLocal, turnoutGroup);
+    kit.box(tieWidth - 0.24, 0.016, 0.16, m.iron, xShift, 0.08, zLocal, turnoutGroup);
   }
 
-  // 2) Switch throw tie-bar under the rails at the toe of the switch (y = 0.05, below rail top)
-  kit.box(1.38, 0.04, 0.09, m.gold, 0, 0.05, 0.38, turnoutGroup);
+  // 2) Switch throw tie-bar & twin sliding point-lock plates at the switch toe
+  kit.box(1.42, 0.04, 0.1, m.gold, 0, 0.05, 0.38, turnoutGroup);
+  kit.box(1.42, 0.035, 0.08, m.iron, branchSide * 0.06, 0.05, 1.14, turnoutGroup);
 
-  // 3) Classic Dwarven weighted throw switch stand beside the turnout (outside the track gauge)
-  const standX = -branchSide * (RAIL_GAUGE_HALF + 0.82);
+  // 3) Forged V-Frog plate, wing rails & outer guard check-rails where the inner rails cross (`zLocal = 2.4..3.8`)
+  const frogX = branchSide * 0.12;
+  const frogZ = 3.04;
+  kit.box(0.58, 0.03, 1.55, m.darkStone, frogX, 0.096, frogZ, turnoutGroup);
+  kit.box(0.42, 0.025, 1.35, m.gold, frogX, 0.126, frogZ, turnoutGroup);
+  for (const side of [-1, 1] as const) {
+    const wing = kit.box(0.06, 0.11, 1.15, m.iron, frogX + side * 0.14, 0.145, frogZ - 0.08, turnoutGroup);
+    wing.rotation.y = side * 0.14;
+    // Check/guard rails inside the outer stock rails opposite the frog
+    const checkX = side * (RAIL_GAUGE_HALF - 0.16) + branchSide * 0.18;
+    kit.box(0.055, 0.11, 1.3, m.gold, checkX, 0.145, frogZ, turnoutGroup);
+  }
+
+  // 4) Classic Dwarven weighted throw switch stand beside the turnout (outside the track gauge)
+  const standX = -branchSide * (RAIL_GAUGE_HALF + 0.85);
   const standZ = 0.38;
   kit.box(0.44, 0.12, 0.44, m.darkStone, standX, 0, standZ, turnoutGroup);
   kit.box(0.32, 0.18, 0.24, m.iron, standX, 0.12, standZ, turnoutGroup);
@@ -832,7 +735,7 @@ function buildTipperBumperStop(kit: Kit, lx: number, lz: number, yawToCenter: nu
   stop.position.set(lx, U, lz);
   stop.rotation.y = yawToCenter;
   kit.add(stop);
-  kit.box(1.75, 0.38, 0.34, m.iron, 0, 0.02, 0, stop);
+  kit.box(1.75, 0.36, 0.34, m.iron, 0, 0.02, 0, stop);
   kit.box(1.82, 0.14, 0.4, m.gold, 0, 0.38, 0, stop);
   for (const dx of [-RAIL_GAUGE_HALF, RAIL_GAUGE_HALF]) {
     kit.box(0.22, 0.46, 0.55, m.iron, dx, 0.02, -0.15, stop);
@@ -840,8 +743,8 @@ function buildTipperBumperStop(kit: Kit, lx: number, lz: number, yawToCenter: nu
 }
 
 /**
- * Summary: Checks whether a sleeper at `(sx, sz)` lies inside one of the two switch turnout tie zones
- *          (`[-18, 75]` or `[56, 78]`), where `buildRailTurnoutFrog` lays unified long switch ties.
+ * Summary: Checks whether a sleeper at `(sx, sz)` lies inside one of the three switch turnout tie zones
+ *          (`[-18, 75]`, `[56, 78]`, or `[156, 72]`), where `buildRailTurnoutFrog` lays unified long switch ties.
  */
 function isInsideTurnoutSleeperZone(sx: number, sz: number): boolean {
   // West turnout at [-18, 75], incoming tangent unit([-12, -5]) = (-0.9231, -0.3846)
@@ -849,19 +752,19 @@ function isInsideTurnoutSleeperZone(sx: number, sz: number): boolean {
   const wz = sz - 75.0;
   const wAlong = wx * -0.9231 + wz * -0.3846;
   const wPerp = Math.abs(wx * -0.3846 - wz * -0.9231);
-  if (wAlong >= -0.95 && wAlong <= 5.65 && wPerp <= 2.35) return true;
+  if (wAlong >= -0.45 && wAlong <= 5.05 && wPerp <= 2.45) return true;
 
   // East turnout at [56, 78], incoming tangent unit([24, -2]) = (0.9965, -0.0830)
   const ex = sx - 56.0;
   const ez = sz - 78.0;
   const eAlong = ex * 0.9965 + ez * -0.0830;
   const ePerp = Math.abs(ex * -0.0830 - ez * 0.9965);
-  if (eAlong >= -0.95 && eAlong <= 5.65 && ePerp <= 2.35) return true;
+  if (eAlong >= -0.45 && eAlong <= 5.05 && ePerp <= 2.45) return true;
 
   // East Fork turnout at [156, 72], incoming tangent (1, 0)
   const fx = sx - 156.0;
   const fz = sz - 72.0;
-  if (fx >= -0.95 && fx <= 5.65 && Math.abs(fz) <= 2.35) return true;
+  if (fx >= -0.45 && fx <= 5.05 && Math.abs(fz) <= 2.45) return true;
 
   return false;
 }
@@ -869,7 +772,7 @@ function isInsideTurnoutSleeperZone(sx: number, sz: number): boolean {
 /**
  * Summary: Builds a complete railway track polyline with shared vertex normals so the left and right
  *          steel rails meet at identical 3D points at every curve joint and switch turnout without
- *          any lateral steps, gaps, or protruding ends.
+ *          any lateral steps, gaps, or Z-fighting.
  */
 function buildContinuousTrackPolyline(
   kit: Kit,
@@ -879,6 +782,7 @@ function buildContinuousTrackPolyline(
   const { m } = kit;
   const n = smoothLine.length;
   if (n < 2) return;
+  const isBranchTrack = initialTangent !== undefined;
 
   // Compute unit horizontal normal (nx, nz) at every vertex of smoothLine
   const normals: [number, number][] = [];
@@ -900,9 +804,7 @@ function buildContinuousTrackPolyline(
       const len = Math.hypot(dx, dz) || 1;
       tx = dx / len;
       tz = dz / len;
-    } else if (isTurnoutJunctionVertex(smoothLine[i][0], smoothLine[i][1])) {
-      // At a pinned turnout junction vertex, lock the normal to the exact incoming trunk tangent
-      // so the main track and branch track have identical rail positions at the junction!
+    } else if (isRailTurnoutJunctionVertex(smoothLine[i][0], smoothLine[i][1])) {
       const dx = smoothLine[i][0] - smoothLine[i - 1][0];
       const dz = smoothLine[i][1] - smoothLine[i - 1][1];
       const len = Math.hypot(dx, dz) || 1;
@@ -921,18 +823,20 @@ function buildContinuousTrackPolyline(
       tx = sumX / sumLen;
       tz = sumZ / sumLen;
     }
-    // For forward tangent (tx, tz), local +X across the track gauge is (tz, -tx)
     normals.push([tz, -tx]);
   }
 
-  // Helper to place a continuous steel rail bar between two exact 3D endpoints (a -> b)
+  // Helper to place a continuous steel rail bar between two exact 3D endpoints (a -> b).
+  // Branch switch blades taper from 0.065m to 0.11m width and sit +0.003m higher over the first 6 segments
+  // so they never Z-fight with the main stock rails at the switch toe or frog crossing!
   const addRailBarBetween = (
     ax: number,
     ay: number,
     az: number,
     bx: number,
     by: number,
-    bz: number
+    bz: number,
+    segIdx: number
   ): void => {
     const dx = bx - ax;
     const dy = by - ay;
@@ -940,12 +844,14 @@ function buildContinuousTrackPolyline(
     const flat = Math.hypot(dx, dz);
     const len = Math.hypot(flat, dy);
     if (len < 0.02) return;
-    // Small 0.04m overlap seals the outer edge of mitered joints without sticking out
+    const isSwitchBladeSeg = isBranchTrack && segIdx < 6;
+    const railWidth = isSwitchBladeSeg ? 0.068 + (segIdx / 6) * 0.042 : 0.11;
+    const yLift = isSwitchBladeSeg ? 0.163 : 0.16;
     const mesh = new THREE.Mesh(
-      kit['_ctx'].own(new THREE.BoxGeometry(0.11, 0.12, len + 0.04)),
+      kit['_ctx'].own(new THREE.BoxGeometry(railWidth, 0.12, len + 0.03)),
       m.iron
     );
-    mesh.position.set((ax + bx) * 0.5, (ay + by) * 0.5 + 0.16, (az + bz) * 0.5);
+    mesh.position.set((ax + bx) * 0.5, (ay + by) * 0.5 + yLift, (az + bz) * 0.5);
     mesh.rotation.order = 'YXZ';
     mesh.rotation.y = Math.atan2(dx, dz);
     mesh.rotation.x = -Math.atan2(dy, flat || 1);
@@ -960,13 +866,17 @@ function buildContinuousTrackPolyline(
     const ya = trackFloorY(a[0], a[1]);
     const yb = trackFloorY(b[0], b[1]);
 
-    // Left rail (-RAIL_GAUGE_HALF) and Right rail (+RAIL_GAUGE_HALF) share exact vertex coordinates
+    // At the very first switch-blade segment of a branch track (i = 0..1), tuck the blade tip 0.04m inside the stock rail
+    // so it tapers smoothly out from the stock rail inner face like a real railway point blade!
+    const gaugeA = isBranchTrack && i < 2 ? RAIL_GAUGE_HALF - (2 - i) * 0.025 : RAIL_GAUGE_HALF;
+    const gaugeB = isBranchTrack && i + 1 < 2 ? RAIL_GAUGE_HALF - (2 - (i + 1)) * 0.025 : RAIL_GAUGE_HALF;
+
     for (const side of [-1, 1] as const) {
-      const ax = a[0] + na[0] * side * RAIL_GAUGE_HALF;
-      const az = a[1] + na[1] * side * RAIL_GAUGE_HALF;
-      const bx = b[0] + nb[0] * side * RAIL_GAUGE_HALF;
-      const bz = b[1] + nb[1] * side * RAIL_GAUGE_HALF;
-      addRailBarBetween(ax, ya, az, bx, yb, bz);
+      const ax = a[0] + na[0] * side * gaugeA;
+      const az = a[1] + na[1] * side * gaugeA;
+      const bx = b[0] + nb[0] * side * gaugeB;
+      const bz = b[1] + nb[1] * side * gaugeB;
+      addRailBarBetween(ax, ya, az, bx, yb, bz, i);
     }
 
     // Timber sleepers along the segment centerline (suppressed inside the turnout switch-tie zones)
@@ -978,7 +888,6 @@ function buildContinuousTrackPolyline(
     const yaw = Math.atan2(dx, dz);
     const pitch = -Math.atan2(yb - ya, flat);
     const count = Math.max(1, Math.floor(length / SLEEPER_SPACING));
-    const step = length / count;
     for (let s = 0; s < count; s++) {
       const frac = (s + 0.5) / count;
       const sx = a[0] + dx * frac;
@@ -1405,80 +1314,141 @@ function buildDwarvenTavernPub(kit: Kit, ctx: ISetPieceContext): void {
 }
 // #endregion
 
-// #region Underground Dwarven Quarters (Full-Height Doorways & 4 Sleeping Rooms)
+// #region Underground Dwarven Quarters (Full-Height Doorways, Hearth & 4 Z-Fighting-Free Sleeping Rooms)
 /**
- * Summary: Builds the carved wall archway and 4 Underground Dwarven Stone Houses / Sleeping Rooms
- *          inside `dwarven-quarters-hall` (lx: -76..-42, lz: 131..158, y = U, ceilingY = -3.5) and
- *          `dwarven-quarters-entry` (lx: -63..-55, lz: 124..131, ceilingY = -4.5) where the underground
- *          mine dwarves sleep at night. All door jambs and lintels reach all the way to the ceiling.
+ * Summary: Builds the carved wall archway, central dormitory hearth chimney & runner carpet, and 4
+ *          Underground Dwarven Stone Sleeping Rooms inside `dwarven-quarters-hall` (lx: -76..-42,
+ *          lz: 131..158, y = U, ceilingY = -3.5) and `dwarven-quarters-entry` (lx: -63..-55, lz: 124..131).
+ *          Every bed, wall, lintel, rug, and nightstand uses strictly disjoint bounds so there is zero Z-fighting.
  */
 function buildUndergroundDwarvenQuarters(kit: Kit, ctx: ISetPieceContext): void {
   const { m } = kit;
   const blanketMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.85 });
   const mattressMat = new THREE.MeshStandardMaterial({ color: 0xd6cfc2, roughness: 0.88 });
   const pillowMat = new THREE.MeshStandardMaterial({ color: 0xf1ede4, roughness: 0.82 });
-  ctx.ownMaterial(blanketMat, mattressMat, pillowMat);
+  const rugCrimsonMat = new THREE.MeshStandardMaterial({ color: 0x6b1d1d, roughness: 0.92 });
+  const rugBorderMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.86 });
+  ctx.ownMaterial(blanketMat, mattressMat, pillowMat, rugCrimsonMat, rugBorderMat);
 
   // 1) OUTER ARCHWAY PORTAL AT SOUTH-WEST CENTRAL HUB WALL (lx = -59, lz = 124.2)
-  // Entry passage is lx = -63..-55 (width 8m), ceilingY = -4.5 (height 4.85m above U = -9.35).
-  // Outer hall ceiling is -1.0 (height 8.35m above U). Build jambs and full-height header up to ceiling!
   for (const dx of [-4.6, 4.6]) {
-    kit.box(1.3, 8.4, 1.4, m.darkStone, -59 + dx, U, 124.3);
-    kit.box(1.5, 0.35, 1.6, m.gold, -59 + dx, U + 4.5, 124.3);
+    kit.box(1.3, 4.48, 1.4, m.darkStone, -59 + dx, U + 0.01, 124.3);
+    kit.box(1.48, 0.16, 1.56, m.gold, -59 + dx, U + 4.49, 124.3);
+    kit.box(1.3, 3.74, 1.4, m.darkStone, -59 + dx, U + 4.65, 124.3);
   }
-  // Full-height stone header from top of doorway (`U + 4.65`) all the way up to the cavern ceiling (`U + 8.45`)
-  kit.box(10.6, 3.8, 1.6, m.darkStone, -59, U + 4.65, 124.3);
-  kit.box(10.8, 0.26, 1.7, m.gold, -59, U + 4.55, 124.3);
-  // Inner archway collar at lz = 130.8 entering the sleeping hall (`ceilingY = -3.5`, height = 5.85m above U)
+  // Full-height stone header between jambs (`w = 7.9`) and above jambs (`y = U + 4.65 .. U + 8.39`)
+  kit.box(10.8, 0.2, 1.66, m.gold, -59, U + 4.45, 124.3);
+  kit.box(10.6, 3.74, 1.56, m.darkStone, -59, U + 4.65, 124.3);
+
+  // Inner archway collar at lz = 130.8 entering the sleeping hall (`ceilingY = -3.5 -> U + 5.85`)
   for (const dx of [-4.5, 4.5]) {
-    kit.box(1.1, 5.9, 1.1, m.darkStone, -59 + dx, U, 130.8);
+    kit.box(1.1, 4.52, 1.1, m.darkStone, -59 + dx, U + 0.01, 130.8);
+    kit.box(1.1, 1.1, 1.1, m.darkStone, -59 + dx, U + 4.73, 130.8);
   }
-  kit.box(10.2, 1.35, 1.2, m.darkStone, -59, U + 4.6, 130.8);
-  kit.box(10.4, 0.22, 1.3, m.gold, -59, U + 4.55, 130.8);
+  kit.box(10.4, 0.2, 1.28, m.gold, -59, U + 4.53, 130.8);
+  kit.box(10.2, 1.1, 1.18, m.darkStone, -59, U + 4.73, 130.8);
   ctx.addTorch(-63.2, U + 3.0, 123.4, 0xffa840, 6.5);
   ctx.addTorch(-54.8, U + 3.0, 123.4, 0xffa840, 6.5);
 
+  // 2) CENTRAL DORMITORY CORRIDOR RUNNER CARPET & GRAND HEARTH CHIMNEY HOOD AT (lx = -59.0, lz = 156.2)
+  //    (The `fireplace` prop at (-59.0, 156.2, yaw = Math.PI) sits from y = U to U + 3.2; we crown it with a
+  //     carved stone & gold chimney hood rising from U + 3.21 to U + 5.83 and a firewood rack beside it!)
+  kit.box(3.4, 0.016, 19.6, rugBorderMat, -59.0, U + 0.012, 142.8);
+  kit.box(2.9, 0.018, 19.1, rugCrimsonMat, -59.0, U + 0.028, 142.8);
+
+  // Chimney flue & brass crest above the dormitory fireplace (`y = U + 3.21 .. U + 5.83`)
+  kit.box(3.6, 2.62, 1.75, m.darkStone, -59.0, U + 3.21, 156.25);
+  kit.box(3.8, 0.18, 1.88, m.gold, -59.0, U + 3.21, 156.25);
+  kit.box(3.8, 0.18, 1.88, m.gold, -59.0, U + 5.65, 156.25);
+  kit.box(1.4, 1.1, 0.08, m.gold, -59.0, U + 3.95, 155.32);
+  // Stacked firewood log rack beside the dormitory hearth (`lx = -61.8, lz = 156.0`)
+  kit.box(1.1, 0.12, 0.75, m.iron, -61.8, U + 0.01, 156.0);
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3 - (row % 2); col++) {
+      const log = kit.cyl(0.11, 0.11, 0.68, m.wood, -62.05 + col * 0.24 + (row % 2) * 0.12, U + 0.24 + row * 0.2, 156.0, 8);
+      log.rotation.x = Math.PI / 2;
+    }
+  }
+  ctx.addTorch(-62.2, U + 3.1, 154.6, 0xff9a30, 6.5);
+  ctx.addTorch(-55.8, U + 3.1, 154.6, 0xff9a30, 6.5);
+
+  // 3) Z-FIGHTING-FREE DWARVEN BED BUILDER + BEDSIDE NIGHTSTAND
   const addDwarvenBed = (bx: number, bz: number, yaw: number): void => {
     const bed = new THREE.Group();
     bed.position.set(bx, U, bz);
     bed.rotation.y = yaw;
     kit.add(bed);
-    kit.box(1.5, 0.28, 2.2, m.wood, 0, 0.08, 0, bed);
-    kit.box(1.54, 0.78, 0.14, m.wood, 0, 0.22, 1.05, bed);
-    kit.box(1.36, 0.18, 2.0, mattressMat, 0, 0.36, -0.02, bed);
-    kit.box(1.38, 0.08, 1.32, blanketMat, 0, 0.46, -0.34, bed);
-    kit.box(0.92, 0.14, 0.4, pillowMat, 0, 0.48, 0.72, bed);
+
+    // 4 sturdy corner posts (y: 0.01 .. 0.68) with gold caps (y: 0.68 .. 0.74), outside the frame (z = +/-1.04)
+    for (const px of [-0.7, 0.7]) {
+      for (const pz of [-1.04, 1.04]) {
+        kit.box(0.16, 0.67, 0.16, m.wood, px, 0.01, pz, bed);
+        kit.box(0.19, 0.06, 0.19, m.gold, px, 0.68, pz, bed);
+      }
+    }
+    // Wooden bed frame strictly between the front & back posts (z: -0.95 .. +0.95, y: 0.12 .. 0.36)
+    kit.box(1.48, 0.24, 1.9, m.wood, 0, 0.12, 0, bed);
+    // Carved headboard at +Z strictly above the frame (y: 0.36 .. 0.82) with gold crest bar (y: 0.82 .. 0.88)
+    kit.box(1.24, 0.46, 0.12, m.wood, 0, 0.36, 1.04, bed);
+    kit.box(1.3, 0.06, 0.15, m.gold, 0, 0.82, 1.04, bed);
+    // Mattress strictly above the wooden frame (y: 0.362 .. 0.522)
+    kit.box(1.36, 0.16, 1.88, mattressMat, 0, 0.362, -0.02, bed);
+    // Warm crimson blanket strictly above the mattress on the south two-thirds (z: -0.95 .. +0.29, y: 0.524 .. 0.574)
+    kit.box(1.38, 0.05, 1.24, blanketMat, 0, 0.524, -0.33, bed);
+    // Pillow strictly above the mattress on the north head end (z: +0.46 .. +0.86, y: 0.524 .. 0.624 — disjoint in Z from blanket!)
+    kit.box(0.92, 0.1, 0.4, pillowMat, 0, 0.524, 0.66, bed);
   };
 
-  // 2) 4 UNDERGROUND DWARVEN STONE ROOMS (lz = 131..158, ceilingY = -3.5 -> height = 5.85m above U)
-  // North rooms: lz = 131..144 (cz = 137.5); South rooms: lz = 144..158 (cz = 151.0)
-  const roomH = 5.9; // Reaches flush with ceilingY = -3.5
+  const addBedsideNightstand = (nx: number, nz: number): void => {
+    const stand = new THREE.Group();
+    stand.position.set(nx, U, nz);
+    kit.add(stand);
+    kit.box(0.56, 0.58, 0.56, m.wood, 0, 0.01, 0, stand);
+    kit.box(0.62, 0.05, 0.62, m.gold, 0, 0.59, 0, stand);
+    kit.cyl(0.09, 0.11, 0.05, m.iron, 0, 0.665, 0, 8, stand);
+    kit.cyl(0.07, 0.07, 0.16, m.ember, 0, 0.77, 0, 8, stand);
+    kit.cyl(0.1, 0.08, 0.05, m.gold, 0, 0.875, 0, 8, stand);
+  };
+
+  // 4) 4 UNDERGROUND DWARVEN STONE SLEEPING ROOMS (lz = 131..158, ceilingY = -3.5 -> U + 5.85)
+  const roomH = 5.82; // Top at U + 5.83, strictly below ceilingY = U + 5.85 so walls never Z-fight with the ceiling!
   const rooms = [
-    { cx: -69, cz: 137.5, side: -1, beds: [[-73.5, 134.5], [-73.5, 140.5], [-66.0, 134.5], [-66.0, 140.5]] as const },
-    { cx: -49, cz: 137.5, side: 1, beds: [[-52.0, 134.5], [-52.0, 140.5], [-44.5, 134.5], [-44.5, 140.5]] as const },
-    { cx: -69, cz: 151.0, side: -1, beds: [[-73.5, 148.0], [-73.5, 154.0], [-66.0, 148.0]] as const },
-    { cx: -49, cz: 151.0, side: 1, beds: [[-52.0, 148.0], [-52.0, 154.0], [-44.5, 148.0]] as const },
+    { cx: -69.2, cz: 137.5, side: -1, beds: [[-73.5, 134.5], [-73.5, 140.5], [-66.0, 134.5], [-66.0, 140.5]] as const },
+    { cx: -48.8, cz: 137.5, side: 1, beds: [[-52.0, 134.5], [-52.0, 140.5], [-44.5, 134.5], [-44.5, 140.5]] as const },
+    { cx: -69.2, cz: 151.0, side: -1, beds: [[-73.5, 148.0], [-73.5, 154.0], [-66.0, 148.0]] as const },
+    { cx: -48.8, cz: 151.0, side: 1, beds: [[-52.0, 148.0], [-52.0, 154.0], [-44.5, 148.0]] as const },
   ] as const;
+
+  // Single partition wall between North and South rooms on the West (`cx = -69.5`) and East (`cx = -48.5`) sides
+  // (`w = 12.2` leaves a 0.12m gap from the corridor walls at `-63.0` / `-55.0` so corner faces never overlap!)
+  kit.box(12.2, roomH, 0.56, m.darkStone, -69.5, U + 0.01, 144.25);
+  kit.box(12.2, roomH, 0.56, m.darkStone, -48.5, U + 0.01, 144.25);
 
   for (const r of rooms) {
     const doorwayX = r.side === -1 ? -63.0 : -55.0;
-    // Front wall facing the central corridor with a 3.6m doorway in the middle and full-height jambs + lintel reaching ceilingY
-    kit.box(0.55, roomH, 4.8, m.stone, doorwayX, U, r.cz - 4.2);
-    kit.box(0.55, roomH, 4.8, m.stone, doorwayX, U, r.cz + 4.2);
-    // Over-door lintel from y = U + 3.7 all the way up to y = U + roomH (no hole above the door!)
-    kit.box(0.65, roomH - 3.7, 3.8, m.darkStone, doorwayX, U + 3.7, r.cz);
-    kit.box(0.72, 0.22, 3.9, m.gold, doorwayX, U + 3.65, r.cz);
-    // Partition wall between North and South rooms (`lz = 144.0`) reaching full ceiling height
-    kit.box(12.8, roomH, 0.6, m.darkStone, r.cx, U, 144.0);
-    // Warm dwarven table & benches in the middle of each room
-    kit.box(2.0, 0.78, 0.95, m.wood, r.cx, U, r.cz);
-    kit.box(1.8, 0.44, 0.38, m.wood, r.cx, U, r.cz - 0.82);
-    kit.box(1.8, 0.44, 0.38, m.wood, r.cx, U, r.cz + 0.82);
+    // Front wall jambs flanking the 3.6m doorway (`r.cz - 1.8 .. r.cz + 1.8`), matching `quarters-wall-*` colliders
+    kit.box(0.55, roomH, 4.6, m.stone, doorwayX, U + 0.01, r.cz - 4.2);
+    kit.box(0.55, roomH, 4.6, m.stone, doorwayX, U + 0.01, r.cz + 4.2);
+    // Over-door lintel strictly spanning the 3.6m gap between the jambs (`z: r.cz - 1.89 .. r.cz + 1.89`)
+    kit.box(0.68, 0.22, 3.78, m.gold, doorwayX, U + 3.45, r.cz);
+    kit.box(0.62, roomH - 3.66, 3.78, m.darkStone, doorwayX, U + 3.67, r.cz);
+
+    // Woven bedroom rug under the central table (`y = U + 0.012 .. U + 0.044`)
+    kit.box(3.8, 0.016, 3.4, rugBorderMat, r.cx, U + 0.012, r.cz);
+    kit.box(3.3, 0.016, 2.9, rugCrimsonMat, r.cx, U + 0.028, r.cz);
+
+    // Warm dwarven table & benches in the middle of each room (starting at U + 0.045 above the rug)
+    kit.box(2.0, 0.74, 0.95, m.wood, r.cx, U + 0.045, r.cz);
+    kit.box(2.08, 0.05, 1.02, m.gold, r.cx, U + 0.785, r.cz);
+    kit.box(1.8, 0.42, 0.38, m.wood, r.cx, U + 0.045, r.cz - 0.82);
+    kit.box(1.8, 0.42, 0.38, m.wood, r.cx, U + 0.045, r.cz + 0.82);
     ctx.addTorch(doorwayX - r.side * 0.6, U + 2.8, r.cz - 2.2, 0xff9d3a, 5.5);
 
     for (const [bx, bz] of r.beds) {
       addDwarvenBed(bx, bz, 0);
     }
+    // Bedside nightstand with lantern against the outer bedroom wall between the north and south beds
+    addBedsideNightstand(r.side === -1 ? -74.6 : -43.4, r.cz);
   }
 }
 // #endregion
@@ -1500,16 +1470,28 @@ function buildWaterworks(
   const { m } = kit;
   const ch = LAGOON_CHANNEL;
   const bridge = { minLz: 106, maxLz: 110 };
-  // Low curbs along the channel, open where the bridge crosses.
-  for (const x of [ch.minLx - 0.25, ch.maxLx + 0.25]) {
-    for (const [z0, z1] of [[ch.minLz, bridge.minLz], [bridge.maxLz, ch.maxLz]] as const) {
-      kit.box(0.5, 0.35, z1 - z0, m.darkStone, x, U, (z0 + z1) / 2);
+  const curbNorthStartZ = 97.6; // Starts cleanly south of the lagoon mouth so no curb blocks the water channel entry
+  // Low curbs along the channel banks, open where the bridge crosses (disjoint from bridge parapets).
+  for (const x of [ch.minLx - 0.28, ch.maxLx + 0.28]) {
+    for (const [z0, z1] of [[curbNorthStartZ, bridge.minLz - 0.05], [bridge.maxLz + 0.05, ch.maxLz]] as const) {
+      kit.box(0.5, 0.35, z1 - z0, m.darkStone, x, U + 0.01, (z0 + z1) / 2);
     }
   }
-  // Arched stone bridge with low parapets.
-  kit.box(8, 0.4, 4, m.stone, (ch.minLx + ch.maxLx) / 2, U - 0.4, 108);
-  for (const z of [bridge.minLz + 0.2, bridge.maxLz - 0.2]) kit.box(8, 0.6, 0.35, m.stone, (ch.minLx + ch.maxLx) / 2, U, z);
-  const arch = kit.cyl(2.0, 2.0, 3.6, m.stone, (ch.minLx + ch.maxLx) / 2, U - 0.9, 108, 16);
+  // Arched stone & timber bridge across the water channel (`lz = 106..110`), offset from `y = U` so it never Z-fights with the greybox floor!
+  const bridgeCx = (ch.minLx + ch.maxLx) / 2;
+  // Sub-deck stone arch support strictly below y = U - 0.04
+  kit.box(8.0, 0.36, 3.92, m.stone, bridgeCx, U - 0.4, 108);
+  // Raised stone bridge deck crown (`y = U + 0.012 .. U + 0.068`) & transverse oak deck planks (`y = U + 0.07 .. U + 0.098`)
+  kit.box(8.0, 0.056, 3.96, m.darkStone, bridgeCx, U + 0.012, 108);
+  for (let px = -3.5; px <= 3.5; px += 0.7) {
+    kit.box(0.54, 0.028, 3.24, m.wood, bridgeCx + px, U + 0.07, 108);
+  }
+  // Parapets with gold cap rails along north & south bridge edges (`y = U + 0.07 .. U + 0.72`)
+  for (const z of [bridge.minLz + 0.2, bridge.maxLz - 0.2]) {
+    kit.box(8.0, 0.56, 0.35, m.stone, bridgeCx, U + 0.07, z);
+    kit.box(8.12, 0.08, 0.42, m.gold, bridgeCx, U + 0.63, z);
+  }
+  const arch = kit.cyl(2.0, 2.0, 3.6, m.stone, bridgeCx, U - 0.9, 108, 16);
   arch.rotation.x = Math.PI / 2;
   arch.scale.set(1, 1, 0.35);
 
@@ -1760,6 +1742,9 @@ function buildGalleries(
   crusherGear: THREE.Mesh;
   pistons: THREE.Group[];
   bucket: THREE.Group;
+  hoistChain: THREE.Group;
+  pulleyWheel: THREE.Mesh;
+  pulleyY: number;
   switchLeverArm: THREE.Group;
   switchIndicatorMat: THREE.MeshBasicMaterial;
 } {
@@ -1784,24 +1769,77 @@ function buildGalleries(
   crusherGear.userData.isAnimated = true;
   crusherGear.rotation.z = Math.PI / 2;
 
-  // Ore lift: beam between the two posts, a jib out over the pit (shifted to lx = 74.5 clear of the lx = 70 track).
+  // Ore lift: timber frame between the two posts, braced jib out over the pit (lx = 74.5, lz = 57),
+  // overhead pulley & winch drum, dynamic scaling hoist chain anchored to the pulley, and pit floor landing cradle!
   const pw = fixture('ore-lift-post-west');
   const pe = fixture('ore-lift-post-east');
   kit.box(pw.halfX * 2, pw.height, pw.halfZ * 2, m.wood, pw.lx, U, pw.lz);
-  kit.box(pe.halfX * 2, pe.height, pe.halfZ * 2, m.wood, pe.lx, U, pe.lz);
+  kit.box(pe.halfX * 2, pe.height, pw.halfZ * 2, m.wood, pe.lx, U, pe.lz);
   kit.box(pe.lx - pw.lx + 0.8, 0.5, 0.5, m.wood, (pw.lx + pe.lx) / 2, U + pw.height - 0.5, pw.lz);
   const liftX = 74.5;
   const liftZ = 57;
-  kit.beam(new THREE.Vector3(liftX, U + pw.height - 0.25, pw.lz), new THREE.Vector3(liftX, U + pw.height - 0.25, liftZ), 0.4, m.wood);
-  const pulley = kit.cyl(0.5, 0.5, 0.2, m.iron, liftX, U + pw.height - 0.8, liftZ, 14);
-  pulley.rotation.z = Math.PI / 2;
+  const jibY = U + pw.height - 0.25;
+  kit.beam(new THREE.Vector3(liftX, jibY, pw.lz), new THREE.Vector3(liftX, jibY, liftZ + 0.6), 0.42, m.wood);
+  // Diagonal timber & iron knee-braces supporting the cantilevered jib over the pit
+  kit.beam(new THREE.Vector3(pe.lx, U + pw.height - 2.6, pe.lz), new THREE.Vector3(liftX, jibY - 0.1, liftZ - 2.2), 0.26, m.wood);
+  kit.beam(new THREE.Vector3(liftX, U + pw.height - 0.1, pw.lz), new THREE.Vector3(liftX, jibY + 0.15, liftZ), 0.14, m.iron);
+  // Winch drum & gear at the base of the east post + vertical hoist chain up to the jib
+  const winchDrum = kit.cyl(0.42, 0.42, 0.9, m.iron, liftX, U + 1.35, pw.lz + 0.55, 12);
+  winchDrum.rotation.z = Math.PI / 2;
+  const winchGear = kit.cyl(0.62, 0.62, 0.16, m.gold, liftX + 0.52, U + 1.35, pw.lz + 0.55, 14);
+  winchGear.rotation.z = Math.PI / 2;
+  kit.chain(liftX, pw.lz + 0.55, jibY - 0.2, U + 1.5);
+
+  // Overhead pulley hanger bracket & rotating pulley wheel at (liftX, pulleyY, liftZ)
+  const pulleyY = U + pw.height - 0.75;
+  kit.box(0.52, 0.55, 0.52, m.iron, liftX, jibY - 0.68, liftZ);
+  kit.box(0.58, 0.12, 0.58, m.gold, liftX, jibY - 0.2, liftZ);
+  const pulleyWheel = kit.cyl(0.52, 0.52, 0.22, m.gold, liftX, pulleyY, liftZ, 16);
+  pulleyWheel.rotation.z = Math.PI / 2;
+  pulleyWheel.userData.isAnimated = true;
+
+  // Pit floor timber & iron landing cradle directly under the bucket at (liftX, MINE_LEVEL_Y.galleryPit, liftZ)
+  const pitY = MINE_LEVEL_Y.galleryPit;
+  kit.box(2.1, 0.16, 2.1, m.darkStone, liftX, pitY + 0.01, liftZ);
+  kit.box(1.75, 0.08, 1.75, m.wood, liftX, pitY + 0.17, liftZ);
+  for (const side of [-0.72, 0.72] as const) {
+    kit.box(1.82, 0.14, 0.16, m.iron, liftX, pitY + 0.18, liftZ + side);
+    kit.box(0.16, 0.14, 1.5, m.iron, liftX + side, pitY + 0.18, liftZ);
+  }
+
+  // Dynamic hoist chain anchored at (liftX, pulleyY, liftZ) extending downward in -Y (unit length = 1.0m, scaled per frame)
+  const hoistChain = new THREE.Group();
+  hoistChain.position.set(liftX, pulleyY, liftZ);
+  hoistChain.userData.isAnimated = true;
+  kit.add(hoistChain);
+  kit.cyl(0.058, 0.058, 1.0, m.iron, 0, -0.5, 0, 8, hoistChain);
+  for (let i = 0; i < 8; i++) {
+    const ring = new THREE.Mesh(ctx.own(new THREE.TorusGeometry(0.105, 0.03, 5, 10)), m.gold);
+    ring.position.set(0, -(i + 0.5) / 8, 0);
+    ring.rotation.y = i % 2 === 0 ? 0 : Math.PI / 2;
+    hoistChain.add(ring);
+  }
+
+  // Ore bucket assembly (origin y = 0 is the bottom of the bucket; top swivel ring is at y = 1.45)
   const bucket = new THREE.Group();
-  bucket.position.set(liftX, 0, liftZ);
+  bucket.position.set(liftX, pitY + 0.22, liftZ);
+  bucket.userData.isAnimated = true;
   kit.add(bucket);
-  const bucketBase = MINE_LEVEL_Y.galleryPit + 4.0;
-  kit.chain(0, 0, U + pw.height - 1.2, bucketBase + 1.1, bucket);
-  kit.cyl(0.7, 0.55, 1.0, m.iron, 0, bucketBase + 0.5, 0, 10, bucket);
-  kit.cyl(0.6, 0.6, 0.2, m.darkStone, 0, bucketBase + 0.95, 0, 10, bucket);
+  kit.cyl(0.72, 0.56, 1.04, m.iron, 0, 0.52, 0, 12, bucket);
+  kit.cyl(0.75, 0.75, 0.1, m.gold, 0, 0.92, 0, 12, bucket);
+  kit.cyl(0.61, 0.61, 0.09, m.gold, 0, 0.14, 0, 12, bucket);
+  // Gleaming gold/iron ore mound inside the bucket
+  kit.cyl(0.62, 0.66, 0.14, m.darkStone, 0, 0.98, 0, 10, bucket);
+  const bucketOre = new THREE.Mesh(ctx.own(new THREE.DodecahedronGeometry(0.38, 0)), m.gold);
+  bucketOre.scale.set(1.25, 0.65, 1.25);
+  bucketOre.position.set(0, 1.08, 0);
+  bucket.add(bucketOre);
+  // Heavy iron lifting bail & top swivel hook at y = 1.45
+  for (const sx of [-0.66, 0.66] as const) {
+    kit.box(0.07, 0.44, 0.09, m.iron, sx, 0.96, 0, bucket);
+  }
+  kit.box(1.4, 0.08, 0.1, m.iron, 0, 1.36, 0, bucket);
+  kit.cyl(0.14, 0.14, 0.18, m.gold, 0, 1.45, 0, 10, bucket);
 
   // North wall mine adit mouth at [86, 25.3, 0].
   {
@@ -2194,7 +2232,16 @@ function buildGalleries(
   for (const y of [3, 6]) kit.box(2.4, 0.12, 20.5, m.wood, 115.5, U + y, 58);
   for (let i = 0; i < 12; i++) kit.box(0.9, 0.08, 0.08, m.wood, 113.9, U + 0.5 + i * 0.5, 63);
   for (const z of [62.6, 63.4]) kit.box(0.08, 6.2, 0.08, m.wood, 113.9, U, z);
-  return { crusherGear, pistons, bucket, switchLeverArm, switchIndicatorMat };
+  return {
+    crusherGear,
+    pistons,
+    bucket,
+    hoistChain,
+    pulleyWheel,
+    pulleyY,
+    switchLeverArm,
+    switchIndicatorMat,
+  };
 }
 // #endregion
 

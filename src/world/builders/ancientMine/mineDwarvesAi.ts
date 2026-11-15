@@ -28,6 +28,11 @@ import {
   createReadyDwarfWarrior,
   type DwarfWarriorState,
 } from '../../models/Characters/DwarfWarrior_Complete';
+import {
+  getActivePlayerRiddenMinecartLineId,
+  setCooperativeMinecartProgress,
+  subdivideRailPolyline3D,
+} from '../../systems/dwarvenMineAndCaravanSystem';
 import { getPlayerState } from '../../systems/playerPhysicsSystem';
 import { walkableHeightValueAt } from '../../systems/terrainAndBiomeSystem';
 import { MINE_PALETTE, buildPropGeometry } from './propGeometries';
@@ -60,6 +65,7 @@ interface IMinerAssignment {
 
 interface ICooperativeCartConfig {
   readonly id: string;
+  readonly rideableLineId?: string;
   readonly waypoints: readonly (readonly [number, number])[];
   readonly speed: number;
   readonly oreTint: number;
@@ -125,6 +131,7 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
   // 1. North-West Gold & Silver Wall Line (loads at [-56, 26], routes west of 2nd-floor scaffolding, dumps into Central Gold Funnel [-6, 80])
   {
     id: 'coop-cart-west-gold',
+    rideableLineId: 'minecart-line-west',
     waypoints: [
       [-56, 26],
       [-46, 26],
@@ -216,9 +223,13 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
   // 3. East Gallery Pit Ore Line (loads in the pit at [70, 54], climbs ramp through East Junction [56, 78] to dump into Central Gold Funnel [6, 80])
   {
     id: 'coop-cart-gallery-pit',
+    rideableLineId: 'minecart-line-moria',
     waypoints: [
       [70, 54],
-      [68, 66],
+      [70, 60],
+      [70, 72],
+      [70, 74.5],
+      [66, 77],
       [56, 78],
       [32, 80],
       [6, 80],
@@ -262,8 +273,8 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
     id: 'coop-cart-east-wall',
     waypoints: [
       [118, 72],
-      [98, 72],
-      [82, 74],
+      [96, 72],
+      [74, 75],
       [56, 78],
       [32, 80],
       [6, 80],
@@ -438,18 +449,18 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(72.0, 122.95, 72.0, 124.5),
       }, // Foundry Ingot Mold (72, 124.5)
       { lx: 22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: Math.PI / 2 },
-      { lx: -22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: Math.PI / 2 },
+      { lx: -26.8, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
       {
-        lx: -28.0,
-        lz: 106.15,
+        lx: -26.8,
+        lz: 105.4,
         hintY: U,
-        pauseSec: 6.2,
+        pauseSec: 8.5,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 106.15, -28.0, 104.0),
+        faceYaw: yawToward(-26.8, 105.4, -26.8, 104.0),
         drinkingBeer: true,
-      }, // Sitting on East-North Tavern Table south bench drinking beer!
-      { lx: -22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: -Math.PI / 2 },
+      }, // Sitting squarely on East-North Tavern Table south bench (lz = 105.4) drinking beer!
+      { lx: -26.8, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: 22.0, lz: 108.0, hintY: U, pauseSec: 0.2, action: 'idle', faceYaw: -Math.PI / 2 },
     ],
   },
@@ -617,18 +628,32 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         faceYaw: yawToward(-40.0, 117.05, -40.0, 118.6),
         drinkingBeer: true,
       }, // Sitting on center Bar Stool facing the bar counter!
-      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // South aisle -> Central N-S aisle
-      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 }, // North aisle clear of West-North table
+      { lx: -39.8, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
       {
-        lx: -41.0,
-        lz: 102.1,
+        lx: -39.8,
+        lz: 113.4,
         hintY: U,
-        pauseSec: 5.8,
+        pauseSec: 8.2,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 102.1, -41.0, 104.0),
+        faceYaw: yawToward(-39.8, 113.4, -39.8, 112.0),
         drinkingBeer: true,
-      }, // Sitting on West-North Tavern Table north bench (-41, 104)!
+      }, // Sitting squarely on West-South Tavern Table south bench (lz = 113.4) facing table (-41, 112)!
+      { lx: -39.8, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
+      { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // South aisle -> Central N-S aisle
+      { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 }, // North aisle clear of West-North table
+      { lx: -42.2, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
+      {
+        lx: -42.2,
+        lz: 102.6,
+        hintY: U,
+        pauseSec: 8.4,
+        action: 'sit',
+        seatYOffset: 0.16,
+        faceYaw: yawToward(-42.2, 102.6, -42.2, 104.0),
+        drinkingBeer: true,
+      }, // Sitting squarely on West-North Tavern Table north bench (lz = 102.6)!
+      { lx: -42.2, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: -19.0, lz: 82.0, hintY: U, pauseSec: 0.3, action: 'idle', faceYaw: 0 },
       { lx: -19.0, lz: 50.8, hintY: U, pauseSec: 0.4, action: 'idle', faceYaw: 0 }, // Foot of 2nd-floor scaffolding stairs
@@ -672,7 +697,7 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         lx: -42.1,
         lz: 117.05,
         hintY: U,
-        pauseSec: 8.5,
+        pauseSec: 7.5,
         action: 'sit',
         seatYOffset: 0.34,
         faceYaw: yawToward(-42.1, 117.05, -42.1, 118.6),
@@ -680,23 +705,25 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       }, // Sitting on Bar Stool #2 facing the bar counter
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // South aisle -> Central N-S aisle
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 }, // Middle aisle
+      { lx: -42.2, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       {
-        lx: -41.0,
-        lz: 110.1,
+        lx: -42.2,
+        lz: 110.6,
         hintY: U,
-        pauseSec: 7.5,
+        pauseSec: 10.5,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 110.1, -41.0, 112.0),
+        faceYaw: yawToward(-42.2, 110.6, -42.2, 112.0),
         drinkingBeer: true,
-      }, // Sitting on West-South Table north bench facing table (-41, 112)
+      }, // Sitting squarely on West-South Table north bench (lz = 110.6) facing table (-41, 112)
+      { lx: -42.2, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       {
         lx: -35.8,
         lz: 117.05,
         hintY: U,
-        pauseSec: 8.0,
+        pauseSec: 7.5,
         action: 'sit',
         seatYOffset: 0.34,
         faceYaw: yawToward(-35.8, 117.05, -35.8, 118.6),
@@ -704,16 +731,18 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       }, // Sitting on Bar Stool #5 facing the bar counter
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
       { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 }, // North aisle
+      { lx: -29.2, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       {
-        lx: -28.0,
-        lz: 102.1,
+        lx: -29.2,
+        lz: 102.6,
         hintY: U,
-        pauseSec: 7.2,
+        pauseSec: 10.2,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 102.1, -28.0, 104.0),
+        faceYaw: yawToward(-29.2, 102.6, -29.2, 104.0),
         drinkingBeer: true,
-      }, // Sitting on East-North Table north bench facing table (-28, 104)
+      }, // Sitting squarely on East-North Table north bench (lz = 102.6) facing table (-28, 104)
+      { lx: -29.2, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
       { lx: -34.5, lz: 100.2, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
     ],
@@ -734,7 +763,7 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
         lx: -37.9,
         lz: 117.05,
         hintY: U,
-        pauseSec: 8.2,
+        pauseSec: 7.2,
         action: 'sit',
         seatYOffset: 0.34,
         faceYaw: yawToward(-37.9, 117.05, -37.9, 118.6),
@@ -742,23 +771,25 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       }, // Sitting on Bar Stool #4 facing the bar counter
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 }, // Central N-S aisle
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 }, // Middle aisle
+      { lx: -29.2, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       {
-        lx: -28.0,
-        lz: 110.1,
+        lx: -29.2,
+        lz: 110.6,
         hintY: U,
-        pauseSec: 7.8,
+        pauseSec: 10.4,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-28.0, 110.1, -28.0, 112.0),
+        faceYaw: yawToward(-29.2, 110.6, -29.2, 112.0),
         drinkingBeer: true,
-      }, // Sitting on East-South Table north bench facing table (-28, 112)
+      }, // Sitting squarely on East-South Table north bench (lz = 110.6) facing table (-28, 112)
+      { lx: -29.2, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
       {
         lx: -44.2,
         lz: 117.05,
         hintY: U,
-        pauseSec: 8.0,
+        pauseSec: 7.2,
         action: 'sit',
         seatYOffset: 0.34,
         faceYaw: yawToward(-44.2, 117.05, -44.2, 118.6),
@@ -766,16 +797,18 @@ const AI_WANDERING_DWARVES: readonly IWanderingDwarfConfig[] = [
       }, // Sitting on Bar Stool #1 facing the bar counter
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI / 2 },
+      { lx: -39.8, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: 0 },
       {
-        lx: -41.0,
-        lz: 105.9,
+        lx: -39.8,
+        lz: 105.4,
         hintY: U,
-        pauseSec: 7.5,
+        pauseSec: 10.5,
         action: 'sit',
         seatYOffset: 0.16,
-        faceYaw: yawToward(-41.0, 105.9, -41.0, 104.0),
+        faceYaw: yawToward(-39.8, 105.4, -39.8, 104.0),
         drinkingBeer: true,
-      }, // Sitting on West-North Table south bench facing table (-41, 104)
+      }, // Sitting squarely on West-North Table south bench (lz = 105.4) facing table (-41, 104)
+      { lx: -39.8, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: -Math.PI / 2 },
       { lx: -34.5, lz: 108.0, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
       { lx: -34.5, lz: 115.5, hintY: U, pauseSec: 0.15, action: 'idle', faceYaw: Math.PI },
     ],
@@ -1070,7 +1103,8 @@ function resolveSafeDwarfStepFloor(
 /**
  * Summary: Builds an obstacle-safe commute waypoint sequence between a dwarf's work station and
  *          his bed inside `dwarven-quarters-hall` (`lx: -76..-42, lz: 131..158`) so no dwarf ever
- *          walks through the side of `hub-scaffolding-deck`, `gallery-platform`, `gallery-pit`, or the Lagoon.
+ *          walks through the side of `hub-scaffolding-deck`, `gallery-platform`, `gallery-pit`,
+ *          market stalls, pub furniture, bedroom walls, or the Lagoon.
  */
 function buildSafeCommuteWaypoints(
   workLx: number,
@@ -1082,52 +1116,129 @@ function buildSafeCommuteWaypoints(
   const clampedLz = Math.min(MAX_DWARF_LZ, workLz);
   const route: [number, number, number][] = [[workLx, workY, clampedLz]];
 
-  // 1) If working on the 2nd-floor Toolsmith Mezzanine (`hub-scaffolding-deck`, y ~ S):
-  //    must exit via `hub-scaffolding-stairs` at `lx = -19.0, lz = 37.5 -> 50.8`!
-  if (workY > U + 2.0 && workLx < 0 && clampedLz < 45) {
+  // 1) Overlook & Grand Entry Stairs (`lz < 23` or elevated near entry centerline):
+  //    descend via `grand-entry-stairs` (`lx = 0, lz = 20 -> 45.5`) and route south of Market Stalls
+  if (clampedLz < 22.5 || (workY > U + 2.0 && Math.abs(workLx) <= 12.0 && clampedLz < 46.0)) {
+    if (clampedLz < 20.0) {
+      route.push([0.0, MINE_LEVEL_Y.overlook, 20.0]);
+    }
+    route.push([0.0, U, 45.5]);
+    route.push([-6.0, U, 68.5]);
+    route.push([-28.0, U, 68.5]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workY > U + 2.0 && workLx < -12.0 && clampedLz < 52.0) {
+    // 2) 2nd-floor Toolsmith Mezzanine (`hub-scaffolding-deck`, y ~ S):
+    //    must exit via `hub-scaffolding-stairs` at `lx = -19.0, lz = 37.5 -> 50.8`!
     route.push([-19.0, S, 37.5]);
     route.push([-19.0, U, 50.8]);
-    route.push([-52.0, U, 96.0]);
-  } else if (workLx < -35 && clampedLz < 45) {
-    // 2) North-West Gold/Silver Wall (`lx < -35, lz < 45`): route west of 2nd-floor scaffolding and east of Lagoon
-    route.push([-48.0, U, 42.0]);
-    route.push([-54.0, U, 96.0]);
-  } else if (workLx >= 56 && workLx <= 82 && clampedLz >= 45 && clampedLz <= 63 && workY < U - 1.0) {
-    // 3) Inside Gallery Pit (`y = galleryPit`): climb `pit-stairs-west` (`lx = 58 -> 44, lz = 54`)
-    route.push([58.0, MINE_LEVEL_Y.galleryPit, 54.0]);
-    route.push([44.0, U, 54.0]);
-    route.push([-14.0, U, 94.0]);
-  } else if (workLx > 20 && clampedLz < 65) {
-    // 4) North-East Gallery (`lx > 20, lz < 65`): route along open north corridor clear of pit & stairs
-    route.push([36.0, U, 44.0]);
-    route.push([-12.0, U, 72.0]);
+    route.push([-28.0, U, 68.5]);
     route.push([-52.0, U, 98.0]);
-  } else if (clampedLz > 130 && workY < U - 2.0) {
-    // 5) Deep Chasm / Grand Descent / Heroes' Path (`lz > 130, y < U - 2`): climb Grand Descent stairs to Upper Cavern
-    if (workLx < -30) {
-      route.push([-101.0, workY, 203.0]);
-      route.push([-2.0, L, 195.0]);
+  } else if (workLx >= -16.0 && workLx <= -7.5 && clampedLz >= 45.0 && clampedLz <= 67.5) {
+    // 3) Starting Hall Market Stalls (`lx = -13.1, lz = 48..65`):
+    //    exit south along the open behind-counter lane (`lx = -12.5`) clear of counters and rear walls
+    route.push([-12.5, U, 67.8]);
+    route.push([-28.0, U, 68.5]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workLx < -35.0 && clampedLz < 45.0) {
+    // 4) North-West Gold/Silver Wall (`lx < -35, lz < 45`): route west of 2nd-floor scaffolding and east of Lagoon
+    route.push([-48.0, U, 25.0]);
+    route.push([-48.0, U, 42.0]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workLx >= 56.0 && workLx <= 84.0 && clampedLz >= 48.0 && clampedLz <= 62.0 && workY < U - 1.0) {
+    // 5) Inside Gallery Pit (`y = galleryPit`): climb `gallery-pit-stairs` (`lx = 66, lz = 50.5 -> 37.5`)
+    route.push([66.0, MINE_LEVEL_Y.galleryPit, 50.5]);
+    route.push([66.0, U, 37.5]);
+    route.push([36.0, U, 37.5]);
+    route.push([-6.0, U, 68.5]);
+    route.push([-28.0, U, 68.5]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workLx > 84.0 && clampedLz >= 50.0 && clampedLz < 95.0) {
+    // 6) East Wall & Stone Crusher (`lx > 84, lz = 50..95`): route cleanly around `crusher-pit` and `gallery-pit`
+    if (clampedLz < 68.0) {
+      route.push([104.0, U, 64.0]);
+    } else {
+      route.push([119.0, U, 80.0]);
     }
-    route.push([0.0, L, 192.0]);
+    route.push([96.0, U, 84.0]);
+    route.push([16.0, U, 96.0]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workLx > 20.0 && clampedLz < 65.0) {
+    // 7) North-East Gallery (`lx > 20, lz < 65`): route along open north corridor clear of pit & stairs
+    route.push([66.0, U, 35.0]);
+    route.push([36.0, U, 37.5]);
+    route.push([-6.0, U, 68.5]);
+    route.push([-28.0, U, 68.5]);
+    route.push([-52.0, U, 98.0]);
+  } else if (clampedLz > 121.0 && workY < U - 1.0) {
+    // 8) Deep Chasm / Grand Descent / Great Bridge / Heroes' Path (`lz > 121, y < U - 1`):
+    //    climb Heroes' Path stairs (if on balcony/cliff path) and Grand Descent stairs to Upper Cavern
+    if (workLx < -20.0 || workY < L - 2.0) {
+      if (clampedLz > 280.0) {
+        if (workLx > -96.0) {
+          route.push([-101.0, MINE_LEVEL_Y.kingBalcony, 294.5]);
+        }
+        route.push([-101.0, MINE_LEVEL_Y.kingBalcony, 280.0]);
+      }
+      if (clampedLz > 260.0) {
+        route.push([-101.0, MINE_LEVEL_Y.heroesMidLanding, 260.0]);
+      }
+      if (clampedLz > 244.0) {
+        route.push([-101.0, MINE_LEVEL_Y.heroesMidLanding, 244.0]);
+      }
+      if (clampedLz > 224.0) {
+        route.push([-101.0, L, 224.0]);
+      }
+      route.push([-101.0, L, 198.0]);
+      route.push([-2.0, L, 194.0]);
+    }
+    if (clampedLz > 189.0) {
+      route.push([0.0, L, 189.0]);
+    }
+    if (clampedLz > 168.0) {
+      route.push([0.0, MINE_LEVEL_Y.descentLanding2, 168.0]);
+    }
+    if (clampedLz > 142.0) {
+      route.push([0.0, MINE_LEVEL_Y.descentLanding1, 142.0]);
+    }
     route.push([0.0, U, 120.0]);
-  } else if (workLx > 15) {
-    // 6) East Wall / Foundry: pass south of the Central Gold Funnel & north of Tavern
+    route.push([-18.0, U, 98.0]);
+    route.push([-52.0, U, 98.0]);
+  } else if (workLx > 15.0) {
+    // 9) Foundry & South-East Cavern: step into clear aisle at lz = 108, then pass north of Tavern at lz = 98
+    if (clampedLz > 110.0) {
+      route.push([workLx, U, 108.0]);
+    }
     route.push([16.0, U, 98.0]);
     route.push([-52.0, U, 98.0]);
-  } else if (workLx >= -50 && workLx <= -20 && clampedLz >= 98 && clampedLz <= 122) {
-    // 7) Inside the Dwarven Tavern ("The Molten Tankard"): route cleanly around bar & tables via aisles
+  } else if (workLx >= -50.0 && workLx <= -20.0 && clampedLz >= 98.0 && clampedLz <= 122.0) {
+    // 10) Inside the Dwarven Tavern ("The Molten Tankard"): route cleanly around bar & tables via aisles
     if (clampedLz >= 118.0) {
       route.push([-32.0, U, 119.65]);
       route.push([-32.0, U, 115.5]);
+      route.push([-52.0, U, 115.5]);
+    } else if (clampedLz >= 115.0) {
+      route.push([-52.0, U, 115.5]);
+    } else {
+      const aisleLz = clampedLz < 104.0 ? 100.2 : clampedLz < 112.0 ? 108.0 : 115.5;
+      route.push([workLx, U, aisleLz]);
+      route.push([-52.0, U, aisleLz]);
     }
-    route.push([-34.5, U, 115.5]);
-    route.push([-52.0, U, 115.5]);
+  } else {
+    // 11) GeneralStarting Hall / Central Hub fallback: route via open west hub corridor
+    route.push([-28.0, U, 68.5]);
+    route.push([-52.0, U, 98.0]);
   }
 
-  // Enter through `dwarven-quarters-entry` (`lx = -59.0, lz = 123.5 -> 131.5`), then down central hall to bed
+  // Enter through `dwarven-quarters-entry` (`lx = -59.0, lz = 123.5 -> 131.5`), walk down the central
+  // corridor (`lx = -59.0`) to the open 3.6m bedroom doorway (`doorLz = 137.5` or `151.0`), step through
+  // the doorway into the bedroom center aisle, and step onto the bed!
+  const doorLz = bedLz < 144.25 ? 137.5 : 151.0;
+  const bedApproachLz = bedLz < doorLz ? bedLz + 1.15 : bedLz - 1.15;
   route.push([-59.0, U, 123.5]);
   route.push([-59.0, U, 131.5]);
-  route.push([-59.0, U, bedLz]);
+  route.push([-59.0, U, doorLz]);
+  route.push([bedLx, U, doorLz]);
+  route.push([bedLx, U, bedApproachLz]);
   route.push([bedLx, U, bedLz]);
   return route;
 }
@@ -1393,17 +1504,43 @@ function buildCooperativeCartTeam(
     heldBeerMug: THREE.Mesh;
   }
 ): (elapsedTime: number, dt: number, worldHours: number, playerX: number, playerZ: number) => void {
-  const pts = cfg.waypoints.map(([lx, lz]) => {
-    const y = sampleAncientMineFloor(lx, lz)?.height ?? U;
-    return { lx, y, lz };
-  });
+  // Build smooth C1-continuous 3D track waypoints that match `UPPER_RAIL_LINES` in `upperLevelSetPieces.ts`
+  // (subdividing in the forward trunk->branch direction so turnout junctions at [-18, 75] and [56, 78]
+  // curve with the exact incoming trunk tangent, then reversing so u = 0 is the loading wall and u = 1 is the funnel).
+  const forwardRawPts: [number, number, number][] = [...cfg.waypoints]
+    .reverse()
+    .map(([lx, lz]) => [lx, sampleAncientMineFloor(lx, lz)?.height ?? U, lz]);
+
+  const turnoutSplitIdx = forwardRawPts.findIndex(
+    (p, idx) =>
+      idx > 0 &&
+      idx < forwardRawPts.length - 1 &&
+      ((p[0] === -18 && p[2] === 75 && forwardRawPts[idx + 1][0] === -32 && forwardRawPts[idx + 1][2] === 66) ||
+        (p[0] === 56 && p[2] === 78 && forwardRawPts[idx + 1][0] === 74 && forwardRawPts[idx + 1][2] === 75))
+  );
+
+  const forwardSmoothPts =
+    turnoutSplitIdx > 0
+      ? [
+          ...subdivideRailPolyline3D(forwardRawPts.slice(0, turnoutSplitIdx + 1)),
+          ...subdivideRailPolyline3D(forwardRawPts.slice(turnoutSplitIdx)).slice(1),
+        ]
+      : subdivideRailPolyline3D(forwardRawPts);
+
+  const pts = [...forwardSmoothPts]
+    .reverse()
+    .map(([lx, y, lz]) => ({ lx, y, lz }));
+
   const segLengths: number[] = [];
   let totalLength = 0;
   let junctionDist: number | null = null;
+  let minJunctionSq = Infinity;
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i];
     const b = pts[i + 1];
-    if (a.lx === 56 && a.lz === 78) {
+    const dSq = (a.lx - 56) * (a.lx - 56) + (a.lz - 78) * (a.lz - 78);
+    if (dSq < 9.0 && dSq < minJunctionSq) {
+      minJunctionSq = dSq;
       junctionDist = totalLength;
     }
     const len = Math.hypot(b.lx - a.lx, b.y - a.y, b.lz - a.lz);
@@ -1432,7 +1569,7 @@ function buildCooperativeCartTeam(
         const dz = b.lz - a.lz;
         const lx = a.lx + dx * t;
         const lz = a.lz + dz * t;
-        const y = sampleAncientMineFloor(lx, lz)?.height ?? a.y + dy * t;
+        const y = sampleAncientMineFloor(lx, lz, a.y + dy * t + 0.8)?.height ?? a.y + dy * t;
         const yaw = Math.atan2(dx, dz);
         const horiz = Math.hypot(dx, dz) || 1;
         const pitch = -Math.atan2(dy, horiz);
@@ -1629,6 +1766,14 @@ function buildCooperativeCartTeam(
     cartGroup.rotation.y = cartPose.yaw;
     cartGroup.rotation.x = cartPose.pitch;
     cartTiltPivot.rotation.x = dumpTiltAngle;
+    if (cfg.rideableLineId) {
+      const mappedRideU =
+        cfg.rideableLineId === 'minecart-line-moria'
+          ? 1 - cartTrackU * 0.4
+          : Math.max(0, Math.min(1, 1 - cartTrackU * 1.18));
+      setCooperativeMinecartProgress(cfg.rideableLineId, mappedRideU);
+      cartGroup.visible = getActivePlayerRiddenMinecartLineId() !== cfg.rideableLineId;
+    }
     for (let m = 0; m < 3; m++) {
       portionMounds[m].visible = cartPortions >= m + 1;
     }
@@ -1930,12 +2075,14 @@ function buildSingleWanderingDwarf(
       const walkProgress = Math.max(0, Math.min(1, (localT - chosenLeg.pauseSec) / chosenLeg.walkSec));
       lx = chosenLeg.a.lx + (chosenLeg.b.lx - chosenLeg.a.lx) * walkProgress;
       lz = Math.min(MAX_DWARF_LZ, chosenLeg.a.lz + (chosenLeg.b.lz - chosenLeg.a.lz) * walkProgress);
-      // Enforce tavern table & bar counter AABB clearance while walking so no dwarf ever clips a pub table or bar
+      // Enforce tavern table & bar counter AABB clearance while walking along aisles (skip table push-out
+      // when stepping perpendicularly between an aisle waypoint and a bench seat at the same lx).
+      const isSteppingToOrFromSeat = chosenLeg.a.action === 'sit' || chosenLeg.b.action === 'sit';
       for (const [tx, tz, hx, hz] of [
-        [-41.0, 104.0, 3.25, 1.85],
-        [-28.0, 104.0, 3.25, 1.85],
-        [-41.0, 112.0, 3.25, 1.85],
-        [-28.0, 112.0, 3.25, 1.85],
+        [-41.0, 104.0, 3.25, isSteppingToOrFromSeat ? 1.15 : 1.85],
+        [-28.0, 104.0, 3.25, isSteppingToOrFromSeat ? 1.15 : 1.85],
+        [-41.0, 112.0, 3.25, isSteppingToOrFromSeat ? 1.15 : 1.85],
+        [-28.0, 112.0, 3.25, isSteppingToOrFromSeat ? 1.15 : 1.85],
         [-40.0, 118.55, 6.55, 0.95],
       ] as const) {
         const dx = lx - tx;
