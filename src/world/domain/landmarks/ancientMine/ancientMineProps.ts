@@ -379,10 +379,10 @@ export const ALL_MINE_PROPS: readonly IMinePropPlacement[] = [...UPPER_LEVEL_PRO
  *   via curved frog switches rather than colliding at right angles.
  */
 export const UPPER_RAIL_LINES: readonly (readonly (readonly [number, number])[])[] = [
-  // 1. East Main Line into the Gallery Pit loading bay (diverges smoothly at [56, 78] and aligns straight into the pit ramp at [70, 72]).
-  [[6, 80], [32, 80], [56, 78], [66, 77], [70, 74.5], [70, 72], [70, 60], [70, 54]],
+  // 1. East Main Line into the Gallery Pit loading bay (diverges cleanly North-East at [56, 78] into the pit ramp at [70, 72]).
+  [[6, 80], [32, 80], [56, 78], [67, 74.2], [70, 72], [70, 60], [70, 54]],
   // 2. East Gallery & Descending Fork Line — Left Branch through 1st Small Tunnel, across the Abyss Chasm Rail Bridge, through 2nd Descending Tunnel, into the Deep Glowing Diamond Mine.
-  [[56, 78], [74, 75], [96, 72], [118, 72], [124, 72], [152, 72], [156, 72], [165, 67], [173, 60], [173, 48], [173, 8], [173, -24], [173, -46]],
+  [[56, 78], [74, 78.5], [96, 72], [118, 72], [124, 72], [152, 72], [156, 72], [165, 67], [173, 60], [173, 48], [173, 8], [173, -24], [173, -46]],
   // 3. North-East Gold & Silver Tunnel Line (runs from the Central Gold Funnel along the open north gallery corridor to the North Gold/Silver wall at (86, 29)).
   [[4, 74], [16, 56], [34, 40], [54, 31], [75, 31], [86, 29]],
   // 4. South-East Smelting Foundry Line extending past all three Blast Furnaces.

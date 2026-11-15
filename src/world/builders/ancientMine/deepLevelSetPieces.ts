@@ -48,13 +48,19 @@ const CENTER_DRAGON = { lx: MINE_POI.dragonMouth.lx, wallLz: 451.5, headY: -35.8
 /** Summary: Z stations of the 3 side ForestDragon heads on each side wall, and the 4 structural pillars flanking them. */
 const SIDE_DRAGON_LZS = [410, 428, 446] as const;
 const SIDE_PILLAR_LZS = [401, 419, 437, 455] as const;
-const SIDE_DRAGON_SCALE = 34.0;
+const SIDE_DRAGON_SCALE = 26.0;
 
 /** Summary: Symmetrical skull, horns, jaw and upper neck bone indices of DemonDragon (excludes asymmetric spine/wings). */
 const DEMON_HEAD_BONES: ReadonlySet<number> = new Set([19, 20, 21, 22, 23, 24]);
 
-/** Summary: Cobra-hood flare (bone 32), upper neck (bone 33), skull/horns (bone 34), and lower jaw (bone 35) of ForestDragon (excludes chest/lower neck stalk 22, 23). */
-const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([32, 33, 34, 35]);
+/** Summary: Neck column where hood sides connect (bone 23), cobra-hood flare (bone 32), upper neck (bone 33), skull/horns (bone 34), and lower jaw (bone 35) of ForestDragon. */
+const FOREST_HEAD_BONES: ReadonlySet<number> = new Set([23, 32, 33, 34, 35]);
+
+/** Summary: Wing and leg bone indices of ForestDragon that must never be pulled into the neck bust. */
+const FOREST_EXCLUDED_LIMB_BONES: ReadonlySet<number> = new Set([
+  24, 25, 26, 27, 28, 29, 30, 31, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+  51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
+]);
 // #endregion
 
 // ======================== PUBLIC BUILD ======================== \\
@@ -418,9 +424,69 @@ interface IBakedDragonHeadAsset {
 }
 
 /**
- * Summary: Extracts a baked, symmetrically centered BufferGeometry of a dragon's head/neck/jaw subtree.
- * Design: Requires ALL 3 vertices of each triangle to belong to `headBones` so no stretched shoulder
- *         or wing polygons are pulled into the bust, and uses explicit symmetry anchors `(anchorX, anchorY, anchorZ)`.
+ * Summary: Computes the skinned vertex normal for vertex `vi` using the skeleton's current boneMatrices,
+ *          preserving smooth GLB normals without flat-shading facet artifacts.
+ */
+function getSkinnedVertexNormal(
+  mesh: THREE.SkinnedMesh,
+  vi: number,
+  target: THREE.Vector3
+): THREE.Vector3 {
+  const srcGeo = mesh.geometry;
+  const normAttr = srcGeo.attributes.normal;
+  if (normAttr === undefined) {
+    return target.set(0, 1, 0);
+  }
+  const nx = normAttr.getX(vi);
+  const ny = normAttr.getY(vi);
+  const nz = normAttr.getZ(vi);
+
+  const skinIndexAttr = srcGeo.attributes.skinIndex;
+  const skinWeightAttr = srcGeo.attributes.skinWeight;
+  const boneMatrices = mesh.skeleton?.boneMatrices;
+  if (skinIndexAttr === undefined || skinWeightAttr === undefined || boneMatrices == null) {
+    return target.set(nx, ny, nz).normalize();
+  }
+
+  const indices = [
+    skinIndexAttr.getX(vi),
+    skinIndexAttr.getY(vi),
+    skinIndexAttr.getZ(vi),
+    skinIndexAttr.getW(vi),
+  ];
+  const weights = [
+    skinWeightAttr.getX(vi),
+    skinWeightAttr.getY(vi),
+    skinWeightAttr.getZ(vi),
+    skinWeightAttr.getW(vi),
+  ];
+
+  let outX = 0;
+  let outY = 0;
+  let outZ = 0;
+  for (let k = 0; k < 4; k++) {
+    const w = weights[k];
+    if (w <= 0.0001) continue;
+    const base = indices[k] * 16;
+    const m00 = boneMatrices[base + 0];
+    const m10 = boneMatrices[base + 1];
+    const m20 = boneMatrices[base + 2];
+    const m01 = boneMatrices[base + 4];
+    const m11 = boneMatrices[base + 5];
+    const m21 = boneMatrices[base + 6];
+    const m02 = boneMatrices[base + 8];
+    const m12 = boneMatrices[base + 9];
+    const m22 = boneMatrices[base + 10];
+    outX += w * (m00 * nx + m01 * ny + m02 * nz);
+    outY += w * (m10 * nx + m11 * ny + m12 * nz);
+    outZ += w * (m20 * nx + m21 * ny + m22 * nz);
+  }
+  return target.set(outX, outY, outZ).normalize();
+}
+
+/**
+ * Summary: Extracts a baked, symmetrically centered BufferGeometry of a dragon's head/neck/jaw subtree
+ *          while preserving smooth skinned vertex normals.
  */
 function bakeSkinnedHeadSubtree(
   mesh: THREE.SkinnedMesh,
@@ -435,16 +501,20 @@ function bakeSkinnedHeadSubtree(
   const skinIndexAttr = srcGeo.attributes.skinIndex;
   const uvAttr = srcGeo.attributes.uv;
   const v = new THREE.Vector3();
+  const n = new THREE.Vector3();
 
   const positions: number[] = [];
+  const normals: number[] = [];
   const uvs: number[] = [];
   const pushVertex = (vi: number): void => {
     mesh.getVertexPosition(vi, v);
+    getSkinnedVertexNormal(mesh, vi, n);
     positions.push(
       (v.x - anchorX) * scale,
       (v.y - anchorY) * scale,
       (v.z - anchorZ) * scale
     );
+    normals.push(n.x, n.y, n.z);
     if (uvAttr !== undefined) {
       uvs.push(uvAttr.getX(vi), uvAttr.getY(vi));
     } else {
@@ -470,8 +540,8 @@ function bakeSkinnedHeadSubtree(
 
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   out.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  out.computeVertexNormals();
   out.computeBoundingSphere();
   return out;
 }
@@ -504,15 +574,23 @@ function bakeDemonDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
 }
 
 /**
- * Summary: Builds the baked open-jaw ForestDragon cobra-hood bust statue for the 6 side pedestals.
- * Design: Extracts the unskinned bind-pose geometry directly for `FOREST_HEAD_BONES` (`32, 33, 34, 35`),
- *         trims the lower neck stalk right where the flared cobra hood narrows back to the neck
- *         (`rawY >= 0.575 || rawZ >= 0.25`), and pitches the lower jaw (`bone 35`) downward around
- *         the jaw hinge `(y = 0.555, z = 0.395)` by `+0.62 rad` so the mouth is wide open for lava!
+ * Summary: Builds the baked open-jaw ForestDragon head & cobra-hood bust statue for the 6 side pedestals.
+ * Design:
+ * - Poses the lower jaw bone (`bones[35]`) using the authentic open-mouth quaternion `(0.813, 0.582, 0, 0)`
+ *   from the ForestDragon `'roar'` animation clip, with zero manual vertex smearing.
+ * - Includes the full head, golden horns, flared green cobra hood, and neck (`FOREST_HEAD_BONES = 23, 32, 33, 34, 35`)
+ *   all the way down to where the flared hood sides connect to the neck column (`y = 0.418..0.44`),
+ *   matching the reference bust silhouette.
+ * - Preserves smooth skinned GLB vertex normals (`getSkinnedVertexNormal`) so the scales, horns, and jaw
+ *   render with smooth studio shading.
  */
 function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
   const forest = createReadyForestDragon();
   forest.rig.resetToRest();
+  // Apply the open-mouth jaw pose from the ForestDragon 'roar' animation clip (frames 9..12)
+  if (forest.rig.bones[35] !== undefined) {
+    forest.rig.bones[35].quaternion.set(0.813097, 0.582128, 0, 0).normalize();
+  }
   forest.object.updateMatrixWorld(true);
   forest.mesh.skeleton.update();
 
@@ -524,51 +602,55 @@ function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
   const vA = new THREE.Vector3();
   const vB = new THREE.Vector3();
   const vC = new THREE.Vector3();
+  const n = new THREE.Vector3();
 
-  const anchorX = -0.0395;
-  const anchorY = 0.64;
-  const anchorZ = 0.14;
-  const cosLift = Math.cos(-0.42);
-  const sinLift = Math.sin(-0.42);
-  const jawHingeY = 0.64;
-  const jawHingeZ = 0.38;
-  const cosJaw = Math.cos(0.62);
-  const sinJaw = Math.sin(0.62);
-  const cosUpper = Math.cos(-0.22);
-  const sinUpper = Math.sin(-0.22);
+  // Anchor at the symmetry plane (anchorX = -0.0392), neck cut line right where the flared green hood sides
+  // connect to the neck (anchorY = 0.52), and center of the neck cross-section (anchorZ = 0.235).
+  const anchorX = -0.0392;
+  const anchorY = 0.52;
+  const anchorZ = 0.235;
+
+  const isHeadNeckVertex = (vi: number): boolean => {
+    const idx = [
+      skinIndexAttr.getX(vi),
+      skinIndexAttr.getY(vi),
+      skinIndexAttr.getZ(vi),
+      skinIndexAttr.getW(vi),
+    ];
+    const w =
+      skinWeightAttr !== undefined
+        ? [
+            skinWeightAttr.getX(vi),
+            skinWeightAttr.getY(vi),
+            skinWeightAttr.getZ(vi),
+            skinWeightAttr.getW(vi),
+          ]
+        : [1, 0, 0, 0];
+
+    let headNeckWeight = 0;
+    for (let k = 0; k < 4; k++) {
+      if (w[k] > 0.01 && FOREST_EXCLUDED_LIMB_BONES.has(idx[k])) {
+        return false;
+      }
+      if (FOREST_HEAD_BONES.has(idx[k])) {
+        headNeckWeight += w[k];
+      }
+    }
+    return headNeckWeight >= 0.08;
+  };
 
   const positions: number[] = [];
+  const normals: number[] = [];
   const uvs: number[] = [];
 
-  const pushBustVertex = (vi: number, v: THREE.Vector3, boneIdx: number): void => {
-    const vx = v.x;
-    // 1) First lift the cobra-hood bust & skull so the snout points forward horizontally
-    const ldy = v.y - anchorY;
-    const ldz = v.z - anchorZ;
-    let vy = anchorY + ldy * cosLift - ldz * sinLift;
-    let vz = anchorZ + ldy * sinLift + ldz * cosLift;
-
-    // 2) In horizontal lifted space, separate the upper jaw upward and lower jaw downward so the mouth gapes wide open!
-    const b1 = skinIndexAttr.getY(vi);
-    const w1 = skinWeightAttr !== undefined ? skinWeightAttr.getY(vi) : 0;
-    const isLowerJaw = boneIdx === 35 || (b1 === 35 && w1 >= 0.35);
-    if (isLowerJaw) {
-      const jdy = vy - jawHingeY;
-      const jdz = vz - jawHingeZ;
-      vy = jawHingeY + jdy * cosJaw - jdz * sinJaw - 0.025;
-      vz = jawHingeZ + jdy * sinJaw + jdz * cosJaw + 0.015;
-    } else if (boneIdx === 34 && vz > 0.36) {
-      const udy = vy - jawHingeY;
-      const udz = vz - jawHingeZ;
-      vy = jawHingeY + udy * cosUpper - udz * sinUpper + 0.012;
-      vz = jawHingeZ + udy * sinUpper + udz * cosUpper;
-    }
-
+  const pushBustVertex = (vi: number, pos: THREE.Vector3): void => {
+    getSkinnedVertexNormal(forest.mesh, vi, n);
     positions.push(
-      (vx - anchorX) * SIDE_DRAGON_SCALE,
-      (vy - anchorY) * SIDE_DRAGON_SCALE,
-      (vz - anchorZ) * SIDE_DRAGON_SCALE
+      (pos.x - anchorX) * SIDE_DRAGON_SCALE,
+      (pos.y - anchorY) * SIDE_DRAGON_SCALE,
+      (pos.z - anchorZ) * SIDE_DRAGON_SCALE
     );
+    normals.push(n.x, n.y, n.z);
     if (uvAttr !== undefined) {
       uvs.push(uvAttr.getX(vi), uvAttr.getY(vi));
     } else {
@@ -581,38 +663,38 @@ function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
       const a = indexAttr.getX(i);
       const b = indexAttr.getX(i + 1);
       const c = indexAttr.getX(i + 2);
-      const ba = skinIndexAttr.getX(a);
-      const bb = skinIndexAttr.getX(b);
-      const bc = skinIndexAttr.getX(c);
-      if (!FOREST_HEAD_BONES.has(ba) || !FOREST_HEAD_BONES.has(bb) || !FOREST_HEAD_BONES.has(bc)) {
+      if (!isHeadNeckVertex(a) || !isHeadNeckVertex(b) || !isHeadNeckVertex(c)) {
         continue;
       }
       forest.mesh.getVertexPosition(a, vA);
       forest.mesh.getVertexPosition(b, vB);
       forest.mesh.getVertexPosition(c, vC);
-      // Trim right where the flared cobra hood narrows back to the neck (v.z >= 0.115)
-      const keepCount = (vA.z >= 0.115 ? 1 : 0) + (vB.z >= 0.115 ? 1 : 0) + (vC.z >= 0.115 ? 1 : 0);
-      if (keepCount >= 2) {
-        pushBustVertex(a, vA, ba);
-        pushBustVertex(b, vB, bb);
-        pushBustVertex(c, vC, bc);
+      // Trim the lower neck stalk right where the flared cobra hood sides connect to the neck (y >= 0.508),
+      // while keeping 100% of the open lower jaw in front (z >= 0.30).
+      const keepA = vA.y >= 0.508 || vA.z >= 0.30 ? 1 : 0;
+      const keepB = vB.y >= 0.508 || vB.z >= 0.30 ? 1 : 0;
+      const keepC = vC.y >= 0.508 || vC.z >= 0.30 ? 1 : 0;
+      if (keepA + keepB + keepC >= 2) {
+        pushBustVertex(a, vA);
+        pushBustVertex(b, vB);
+        pushBustVertex(c, vC);
       }
     }
   }
 
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   out.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-  out.computeVertexNormals();
   out.computeBoundingSphere();
 
   const geometry = ctx.own(out);
   const rawMat = Array.isArray(forest.mesh.material) ? forest.mesh.material[0] : forest.mesh.material;
   const mat = rawMat.clone() as THREE.MeshStandardMaterial;
-  mat.roughness = 0.42;
-  mat.metalness = 0.28;
-  mat.emissive = new THREE.Color(0x2c1205);
-  mat.emissiveIntensity = 0.42;
+  mat.roughness = 0.45;
+  mat.metalness = 0.18;
+  mat.emissive = new THREE.Color(0x1f1408);
+  mat.emissiveIntensity = 0.28;
   mat.side = THREE.DoubleSide;
   ctx.ownMaterial(mat);
   forest.dispose();
@@ -767,9 +849,9 @@ function buildDragonForgeHeadsAndPillars(
   // 2) HANDSOME SIDE PILLARS & 6 COBRA-HOOD FOREST-DRAGON HEAD STATUES WITH WIDE-OPEN MOUTHS (3 WEST, 3 EAST)
   const sideFallbackGeo = ctx.own(
     mergeParts([
-      box(4.4, 4.6, 4.8, DRAGON_STONE, 0, 0.6, 3.2),
-      box(3.6, 2.2, 5.2, DRAGON_SCORCHED, 0, 1.6, 6.8),
-      box(3.2, 1.2, 4.8, DRAGON_STONE, 0, -0.5, 6.4),
+      box(4.4, 4.6, 4.8, DRAGON_STONE, 0, 1.2, 0.8),
+      box(3.6, 2.2, 5.2, DRAGON_SCORCHED, 0, 1.8, 3.8),
+      box(3.2, 1.2, 4.8, DRAGON_STONE, 0, 0.2, 3.4),
     ])
   );
   const sideHeadMeshes: THREE.Mesh[] = [];
@@ -782,27 +864,31 @@ function buildDragonForgeHeadsAndPillars(
   const pillarRingGeo = ctx.own(new THREE.CylinderGeometry(2.25, 2.25, 0.52, 8));
   const pillarCapitalGeo = ctx.own(new THREE.CylinderGeometry(2.9, 1.95, 2.6, 8));
 
-  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.95, 12, 10));
+  const sideThroatGeo = ctx.own(new THREE.SphereGeometry(0.45, 12, 10));
   const sideSplashGeo = ctx.own(new THREE.TorusGeometry(1.55, 0.26, 6, 20));
   const sideSplashInnerGeo = ctx.own(new THREE.CylinderGeometry(1.35, 1.65, 0.28, 14));
-  const bustCollarGeo = ctx.own(new THREE.CylinderGeometry(2.45, 2.75, 1.6, 8));
-  const bustGoldTrimGeo = ctx.own(new THREE.CylinderGeometry(2.65, 2.65, 0.36, 8));
+  // Vertical octagonal stone-and-gold neck socket collar on top of the pedestal where the dragon's neck base connects
+  const bustCollarGeo = ctx.own(new THREE.CylinderGeometry(2.25, 2.65, 1.15, 8));
+  const bustGoldTrimGeo = ctx.own(new THREE.CylinderGeometry(2.45, 2.45, 0.32, 8));
 
-  // In 1x rest-pose getVertexPosition space with lift=-0.42, upper=-0.22, and jaw=+0.62:
-  // Upper snout is at local (y = +1.1..+2.7, z = +8.8..+11.2), open lower jaw is at (y = -3.4..-0.8, z = +8.8..+10.8)
-  const sideMouthLocalY = 0.15;
-  const sideMouthLocalZ = 9.55;
-  const mountY = -32.2;
-  const sideMouthWorldY = mountY + sideMouthLocalY; // -32.05
-  const sideFallH = sideMouthWorldY - LAVA + 0.35; // ~21.0m tall cascade!
+  // With SIDE_DRAGON_SCALE = 26.0 and anchor = (-0.0392, 0.52, 0.235):
+  // - Neck cut line where the green hood sides connect (y = 0.508..0.52) sits at localY = -0.31..0.0, localZ = 0.0
+  // - Upper snout tip (y = 0.558, z = 0.453) is at localY = +0.99, localZ = +5.67
+  // - Open lower jaw tip from 'roar' clip (y = 0.494, z = 0.419) is at localY = -0.68, localZ = +4.78
+  // - Open mouth center is at localY = +0.18, localZ = +4.65
+  const sideMouthLocalY = 0.18;
+  const sideMouthLocalZ = 4.65;
+  const mountY = -33.85;
+  const sideMouthWorldY = mountY + sideMouthLocalY; // -33.67
+  const sideFallH = sideMouthWorldY - LAVA + 0.35; // ~19.3m tall cascade!
   const sideCascadeOuterGeo = ctx.own(
-    createSculptedLavaCascadeGeometry(0.68, 0.58, 1.42, 1.25, sideFallH, 0, 1.25, 0.55, 18, 18)
+    createSculptedLavaCascadeGeometry(0.48, 0.40, 1.32, 1.18, sideFallH, 0, 1.45, 0.55, 18, 18)
   );
   const sideCascadeCoreGeo = ctx.own(
-    createSculptedLavaCascadeGeometry(0.42, 0.36, 0.92, 0.82, sideFallH, 0, 1.25, 0.55, 14, 14)
+    createSculptedLavaCascadeGeometry(0.30, 0.25, 0.85, 0.75, sideFallH, 0, 1.45, 0.55, 14, 14)
   );
   const sideMouthPourGeo = ctx.own(
-    createSculptedLavaCascadeGeometry(0.58, 0.36, 0.68, 0.55, 1.25, 0, 1.55, 0.25, 14, 8)
+    createSculptedLavaCascadeGeometry(0.38, 0.28, 0.48, 0.40, 0.95, 0, 0.85, 0.18, 14, 8)
   );
 
   for (const side of [-1, 1] as const) {
@@ -845,7 +931,7 @@ function buildDragonForgeHeadsAndPillars(
       pGroup.add(lavaRim);
     }
 
-    // 3 Monumental Dragon Bust Pedestals per side (6 total) bearing the trimmed Cobra-Hood ForestDragon Head Statues!
+    // 3 Monumental Dragon Bust Pedestals per side (6 total) bearing the Cobra-Hood ForestDragon Head Statues!
     for (const dlz of SIDE_DRAGON_LZS) {
       const platX = side * 41.8;
       const platTopY = -41.5;
@@ -856,48 +942,46 @@ function buildDragonForgeHeadsAndPillars(
       addBox(ctx, 8.8, 0.6, 9.4, m.gold, platX, platTopY - 0.6, dlz);
       addBox(ctx, 8.6, 0.5, 9.2, m.gold, platX, LAVA + 0.3, dlz);
 
-      // Stepped stone-and-gold Dragon Bust Pedestal rising from the platform up to y = -34.0
-      const towerX = side * 42.4;
+      // Stepped stone-and-gold Dragon Bust Pedestal rising from the platform up to y = -33.9
+      const towerX = side * 41.6;
       addBox(ctx, 6.8, 3.8, 7.2, m.stone, towerX, platTopY, dlz);
       addBox(ctx, 7.2, 0.45, 7.6, m.gold, towerX, platTopY + 3.8, dlz);
       addBox(ctx, 5.8, 2.8, 6.2, m.darkStone, towerX, platTopY + 4.25, dlz);
       addBox(ctx, 6.3, 0.55, 6.6, m.gold, towerX, platTopY + 7.05, dlz);
 
-      const seatX = side * 42.8;
+      const seatX = side * 41.2;
       const mountGroup = new THREE.Group();
       mountGroup.name = `ancient-mine-side-dragon-${side < 0 ? 'west' : 'east'}-${dlz}`;
       mountGroup.position.set(seatX, mountY, dlz);
       mountGroup.rotation.y = headYaw;
       ctx.group.add(mountGroup);
 
-      // Sculpted stone-and-gold bust collar mounting the trimmed cobra-hood head cleanly to the pedestal
+      // Vertical stone-and-gold neck socket collar cupping the base of the dragon neck right where the hood sides connect
       const bustCollar = new THREE.Mesh(bustCollarGeo, m.darkStone);
-      bustCollar.rotation.x = Math.PI / 2;
-      bustCollar.position.set(0, 0.6, 0.2);
+      bustCollar.position.set(0, -0.35, 0.0);
       mountGroup.add(bustCollar);
 
       const bustGoldRing = new THREE.Mesh(bustGoldTrimGeo, m.gold);
-      bustGoldRing.rotation.x = Math.PI / 2;
-      bustGoldRing.position.set(0, 0.6, 0.95);
+      bustGoldRing.position.set(0, 0.05, 0.0);
       mountGroup.add(bustGoldRing);
 
-      // Baked ForestDragon cobra-hood bust statue with wide-open jaws (NO lava in the eyes).
+      // Baked ForestDragon cobra-hood bust statue with wide-open jaws from 'roar' animation.
       const headMesh = new THREE.Mesh(sideFallbackGeo, vertexStone);
       headMesh.frustumCulled = false;
       mountGroup.add(headMesh);
       sideHeadMeshes.push(headMesh);
 
-      // Molten fire core & pouring lava tongue inside the wide-open mouth cavity (between upper snout y=+1.0 and lowered jaw y=-1.6).
+      // Molten fire core & pouring lava tongue tucked deep inside the open mouth cavity (between upper snout y=+0.99 and lower jaw y=-0.68).
       const throat = new THREE.Mesh(sideThroatGeo, m.molten);
-      throat.scale.set(0.95, 0.75, 1.35);
-      throat.position.set(0, 0.25, 8.2);
+      throat.scale.set(0.75, 0.58, 1.05);
+      throat.position.set(0, 0.22, 3.85);
       mountGroup.add(throat);
 
       const mouthPour = new THREE.Mesh(sideMouthPourGeo, lavaMat);
-      mouthPour.position.set(0, 0.45, 8.05);
+      mouthPour.position.set(0, 0.20, 4.05);
       mountGroup.add(mouthPour);
 
-      // Sculpted multi-layer molten lava cascade pouring from inside the wide-open jaws down into the lava pool!
+      // Sculpted multi-layer molten lava cascade pouring from inside the open jaws down into the lava pool!
       const sideCascadeGroup = new THREE.Group();
       sideCascadeGroup.position.set(0, sideMouthLocalY, sideMouthLocalZ);
       mountGroup.add(sideCascadeGroup);
@@ -910,7 +994,7 @@ function buildDragonForgeHeadsAndPillars(
       cascades.push(sideCascadeGroup);
 
       // Glowing splash ring + churning molten mound where the cascade crashes into the lava pool.
-      const splashX = seatX + inwardSign * (sideMouthLocalZ + 1.25);
+      const splashX = seatX + inwardSign * (sideMouthLocalZ + 1.45);
       const splash = new THREE.Mesh(sideSplashGeo, m.molten);
       splash.rotation.x = -Math.PI / 2;
       splash.position.set(splashX, LAVA + 0.08, dlz);
@@ -1113,35 +1197,49 @@ function buildTreasure(ctx: ISetPieceContext, lavaMat: THREE.Material): THREE.Ob
 function buildRoyalTreasureVault(ctx: ISetPieceContext): void {
   const m = ctx.materials;
   const V = MINE_LEVEL_Y.vaultFloor; // -63.35
+  const CEIL = -42.0;
+  const vaultH = CEIL - V; // 21.35m
 
   const silverMat = new THREE.MeshStandardMaterial({
     color: 0xdbe4ee,
     metalness: 0.92,
     roughness: 0.16,
     emissive: 0x1e293b,
-    emissiveIntensity: 0.2,
+    emissiveIntensity: 0.22,
   });
   const diamondMat = new THREE.MeshStandardMaterial({
     color: 0xb8f4ff,
     emissive: 0x38bdf8,
-    emissiveIntensity: 0.95,
+    emissiveIntensity: 1.05,
     metalness: 0.15,
     roughness: 0.08,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.94,
   });
   const rubyMat = new THREE.MeshStandardMaterial({
     color: 0xff2a4b,
     emissive: 0xd90429,
-    emissiveIntensity: 0.75,
+    emissiveIntensity: 0.82,
     metalness: 0.2,
     roughness: 0.12,
   });
-  ctx.ownMaterial(silverMat, diamondMat, rubyMat);
+  const emeraldMat = new THREE.MeshStandardMaterial({
+    color: 0x34d399,
+    emissive: 0x059669,
+    emissiveIntensity: 0.78,
+    metalness: 0.18,
+    roughness: 0.12,
+  });
+  const royalCarpetMat = new THREE.MeshStandardMaterial({
+    color: 0x7f1d1d,
+    roughness: 0.82,
+    metalness: 0.08,
+    emissive: 0x2a0606,
+    emissiveIntensity: 0.25,
+  });
+  ctx.ownMaterial(silverMat, diamondMat, rubyMat, emeraldMat, royalCarpetMat);
 
   // 1) SECRET PASSAGE ARCHWAY AT THE EAST END OF THE FORGE LANDING (lx = 46, lz = 386..396)
-  // `secret-vault-entry` ceiling is -41.0 (FORGE + 10.35); `dragon-forge` ceiling is -14.0 (FORGE + 37.35).
-  // Extend jambs and over-door lintel all the way up to the Dragon Forge ceiling (-14.0) so there is no hole above the doorway!
   const forgeFullH = -14.0 - FORGE + 0.2;
   for (const z of [386.6, 395.4]) {
     addBox(ctx, 1.8, forgeFullH, 1.6, m.stone, 46.2, FORGE, z);
@@ -1163,9 +1261,8 @@ function buildRoyalTreasureVault(ctx: ISetPieceContext): void {
     ctx.addTorch(48.8, stepFloor + 3.0, lz, 0xffaa38, 6.0);
   }
 
-  // 3) ROYAL VAULT GRAND DOORWAY & PILLARS (lx = -24..56, lz = 472..508, y = -63.35, ceilingY = -42.0)
-  // Extend jambs and over-door lintel all the way up to the Royal Vault ceiling (-42.0 -> V + 21.55)!
-  const vaultFullH = -42.0 - V + 0.2;
+  // 3) ROYAL VAULT GRAND ENTRY PORTAL (lx = 48..56, lz = 472.6)
+  const vaultFullH = CEIL - V + 0.2;
   for (const x of [48.6, 55.4]) {
     addBox(ctx, 1.8, vaultFullH, 1.8, m.darkStone, x, V, 472.6);
     addBox(ctx, 2.1, 0.55, 2.1, m.gold, x, V + 5.5, 472.6);
@@ -1173,125 +1270,367 @@ function buildRoyalTreasureVault(ctx: ISetPieceContext): void {
   addBox(ctx, 8.8, vaultFullH - 10.5, 2.0, m.darkStone, 52.0, V + 10.5, 472.6);
   addBox(ctx, 9.0, 0.45, 2.2, m.gold, 52.0, V + 10.3, 472.6);
 
-  // Structural gold-banded vault columns supporting the Royal Vault ceiling (y = -42.0).
-  const vaultH = -42.0 - V;
-  for (const [vx, vz] of [[-14, 480], [10, 480], [34, 480], [-14, 500], [10, 500], [34, 500]] as const) {
-    addBox(ctx, 2.6, vaultH, 2.6, m.darkStone, vx, V, vz);
-    addBox(ctx, 3.0, 0.6, 3.0, m.gold, vx, V + 0.02, vz);
-    addBox(ctx, 2.9, 0.5, 2.9, m.gold, vx, V + 6.0, vz);
-    addBox(ctx, 3.1, 0.7, 3.1, m.gold, vx, -42.7, vz);
-    ctx.addTorch(vx + (vx < 12 ? 1.5 : -1.5), V + 3.4, vz, 0xffcf58, 7.5);
+  // 4) ROYAL CRIMSON & GOLD CARPET RUNNER + INLAID FLOOR MOSAIC RINGS (non-coplanar Y steps)
+  // East-West grand runner from East Entry (lx = 52) to West Throne Dais (lx = -19) along lz = 490.0
+  addBox(ctx, 71.0, 0.022, 4.8, m.gold, 16.5, V + 0.008, 490.0);
+  addBox(ctx, 70.2, 0.024, 4.1, royalCarpetMat, 16.5, V + 0.020, 490.0);
+  // North-South cross runner centered on the Heart of the Mountain Diamond Shrine (lx = 16, lz = 476..504)
+  addBox(ctx, 4.6, 0.020, 27.6, m.gold, 16.0, V + 0.006, 490.0);
+  addBox(ctx, 3.9, 0.022, 26.8, royalCarpetMat, 16.0, V + 0.016, 490.0);
+  // Entry runner leg from stairs landing (lx = 52, lz = 473..490)
+  addBox(ctx, 5.2, 0.020, 17.5, m.gold, 52.0, V + 0.006, 481.5);
+  addBox(ctx, 4.4, 0.022, 16.8, royalCarpetMat, 52.0, V + 0.016, 481.5);
+
+  // Perimeter golden wainscoting cornice & wall pilasters around the Royal Vault
+  addBox(ctx, 79.6, 0.45, 0.5, m.gold, 16.0, V + 4.8, 472.3);
+  addBox(ctx, 79.6, 0.45, 0.5, m.gold, 16.0, V + 4.8, 507.7);
+  addBox(ctx, 0.5, 0.45, 35.6, m.gold, -23.7, V + 4.8, 490.0);
+  addBox(ctx, 0.5, 0.45, 35.6, m.gold, 55.7, V + 4.8, 490.0);
+
+  // 5) 6 GRAND FLUTED DWARVEN COLUMNS (`vault-col-n1..s3`: [-14, 10, 34] x [480, 500], halfX=1.4, halfZ=1.4)
+  for (const vx of [-14, 10, 34] as const) {
+    // Vaulted ceiling arch rib spanning North-South between vz = 480 and vz = 500
+    addBox(ctx, 1.8, 1.4, 35.6, m.darkStone, vx, CEIL - 1.4, 490.0);
+    addBox(ctx, 2.05, 0.35, 35.6, m.gold, vx, CEIL - 1.55, 490.0);
+
+    for (const vz of [480, 500] as const) {
+      // Stepped base plinth (within halfX=1.4, halfZ=1.4)
+      addBox(ctx, 2.75, 0.65, 2.75, m.darkStone, vx, V, vz);
+      addBox(ctx, 2.8, 0.28, 2.8, m.gold, vx, V + 0.65, vz);
+      // Main column shaft + golden corner flutes
+      addBox(ctx, 2.35, vaultH - 1.8, 2.35, m.stone, vx, V + 0.9, vz);
+      for (const [cx, cz] of [[-1.08, -1.08], [1.08, -1.08], [-1.08, 1.08], [1.08, 1.08]] as const) {
+        addBox(ctx, 0.28, vaultH - 2.2, 0.28, m.gold, vx + cx, V + 1.1, vz + cz);
+      }
+      // Decorative gold bands & capital
+      for (const bandH of [5.2, 10.4, 15.6]) {
+        addBox(ctx, 2.65, 0.42, 2.65, m.gold, vx, V + bandH, vz);
+      }
+      addBox(ctx, 2.8, 1.1, 2.8, m.darkStone, vx, CEIL - 1.1, vz);
+      addBox(ctx, 2.85, 0.35, 2.85, m.gold, vx, CEIL - 1.25, vz);
+
+      // Mounted wall torches facing the central royal aisle (lz = 490)
+      const aisleSign = vz < 490 ? 1 : -1;
+      ctx.addTorch(vx, V + 3.4, vz + aisleSign * 1.48, 0xffcf58, 7.5);
+    }
+  }
+  // Longitudinal ceiling ribs tying the columns together along z = 480 and z = 500
+  for (const vz of [480, 500] as const) {
+    addBox(ctx, 79.4, 1.2, 1.6, m.darkStone, 16.0, CEIL - 1.2, vz);
+    addBox(ctx, 79.4, 0.3, 1.85, m.gold, 16.0, CEIL - 1.35, vz);
   }
 
-  // 4) OVERHEAD GOLD CHUTE PIPE DESCENDING FROM THE CENTRAL HUB INTO THE VAULT (lx = 18, lz = 484)
-  const chuteX = 18.0;
-  const chuteZ = 484.0;
-  const chuteTopY = -42.0;
-  const chuteSpoutY = V + 8.5;
-  const chutePipe = new THREE.Mesh(
-    ctx.own(new THREE.CylinderGeometry(1.35, 1.55, chuteTopY - chuteSpoutY, 12)),
-    m.iron
-  );
-  chutePipe.position.set(chuteX, (chuteTopY + chuteSpoutY) / 2, chuteZ);
-  ctx.group.add(chutePipe);
+  // 6) COLOSSAL DRAGON-GOLD FUNNEL & OCTAGONAL RECEIVING BASIN (`vault-gold-funnel-basin` at (0, 490), halfX=5.1, halfZ=5.1)
+  const fx = 0.0;
+  const fz = 490.0;
 
-  for (const ringY of [chuteSpoutY + 0.4, chuteSpoutY + 4.5, chuteTopY - 1.2]) {
-    const collar = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(1.75, 1.75, 0.55, 12)), m.gold);
-    collar.position.set(chuteX, ringY, chuteZ);
-    ctx.group.add(collar);
+  // Stepped octagonal dark-stone & gold retaining basin (outer radius 5.05m, height 1.28m)
+  const basinBase = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(5.05, 5.2, 0.48, 8)), m.darkStone);
+  basinBase.position.set(fx, V + 0.24, fz);
+  basinBase.castShadow = true;
+  basinBase.receiveShadow = true;
+  ctx.group.add(basinBase);
+
+  const basinWall = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(4.75, 4.95, 0.82, 8)), m.stone);
+  basinWall.position.set(fx, V + 0.48 + 0.41, fz);
+  basinWall.castShadow = true;
+  basinWall.receiveShadow = true;
+  ctx.group.add(basinWall);
+
+  const basinGoldRim = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(4.92, 4.92, 0.24, 8)), m.gold);
+  basinGoldRim.position.set(fx, V + 1.22, fz);
+  ctx.group.add(basinGoldRim);
+
+  // 8 Ornate Golden Corner Buttresses & Smelting Braziers around the octagonal basin rim
+  const cornerBrazierGeo = ctx.own(new THREE.CylinderGeometry(0.42, 0.28, 0.55, 8));
+  const cornerFireGeo = ctx.own(new THREE.SphereGeometry(0.32, 8, 6));
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const bx = fx + Math.cos(ang) * 4.55;
+    const bz = fz + Math.sin(ang) * 4.55;
+    addBox(ctx, 0.68, 1.42, 0.68, m.gold, bx, V + 0.02, bz);
+    const cup = new THREE.Mesh(cornerBrazierGeo, m.iron);
+    cup.position.set(bx, V + 1.68, bz);
+    ctx.group.add(cup);
+    const ember = new THREE.Mesh(cornerFireGeo, m.molten);
+    ember.scale.set(1, 0.65, 1);
+    ember.position.set(bx, V + 1.96, bz);
+    ctx.group.add(ember);
   }
 
-  // Continuous golden stream of coins/bullion pouring out of the chute spout onto the colossal gold mountain below!
-  const goldStream = new THREE.Mesh(
-    ctx.own(new THREE.CylinderGeometry(0.65, 1.85, chuteSpoutY - (V + 3.2), 12)),
-    m.gold
-  );
-  goldStream.position.set(chuteX, (chuteSpoutY + V + 3.2) / 2, chuteZ);
-  ctx.group.add(goldStream);
-
-  // 5) MOUNTAINS OF GOLD, STACKED SILVER INGOTS, AND GIANT SPARKLING DIAMONDS
+  // Overflowing gold treasure mountain + stacked ingots + sparkling gems inside the octagonal basin
   const goldMoundGeo = ctx.own(new THREE.ConeGeometry(1, 1, 14));
   const diamondGeo = ctx.own(new THREE.OctahedronGeometry(1, 0));
 
-  const addGoldMountain = (x: number, z: number, radius: number, height: number): void => {
-    const mound = new THREE.Mesh(goldMoundGeo, m.gold);
-    mound.scale.set(radius, height, radius);
-    mound.position.set(x, V + height / 2, z);
-    ctx.group.add(mound);
+  const mainGoldCone = new THREE.Mesh(goldMoundGeo, m.gold);
+  mainGoldCone.scale.set(4.35, 4.2, 4.35);
+  mainGoldCone.position.set(fx, V + 0.75 + 2.1, fz);
+  mainGoldCone.castShadow = true;
+  ctx.group.add(mainGoldCone);
+
+  for (const [ox, oz, r, h] of [
+    [-1.8, -1.5, 2.3, 2.5],
+    [1.9, -1.4, 2.2, 2.4],
+    [-1.7, 1.6, 2.25, 2.45],
+    [1.8, 1.7, 2.35, 2.6],
+  ] as const) {
+    const subMound = new THREE.Mesh(goldMoundGeo, m.gold);
+    subMound.scale.set(r, h, r);
+    subMound.position.set(fx + ox, V + 0.8 + h / 2, fz + oz);
+    ctx.group.add(subMound);
+  }
+
+  // Monumental Multi-Tiered Ceiling-to-Basin Dragon-Gold Funnel descending from the Dragon Forge above (CEIL = -42.0 down to V + 6.4)
+  // Upper conical collector hood at ceiling (y = -42.0 .. -46.2)
+  const upperHood = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(4.4, 2.45, 4.2, 12)), m.darkStone);
+  upperHood.position.set(fx, CEIL - 2.1, fz);
+  ctx.group.add(upperHood);
+
+  const upperHoodRim = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(4.65, 4.65, 0.48, 12)), m.gold);
+  upperHoodRim.position.set(fx, CEIL - 0.35, fz);
+  ctx.group.add(upperHoodRim);
+
+  const midBarrel = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(2.45, 2.15, 5.2, 12)), m.iron);
+  midBarrel.position.set(fx, CEIL - 4.2 - 2.6, fz);
+  ctx.group.add(midBarrel);
+
+  // Glowing molten-gold observation core visible through the mid-barrel
+  const moltenCore = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(1.85, 1.65, 4.6, 12)), m.molten);
+  moltenCore.position.set(fx, CEIL - 4.2 - 2.6, fz);
+  ctx.group.add(moltenCore);
+
+  // Lower tapered conical funnel nozzle (y = CEIL - 9.4 down to V + 6.8 = -56.55)
+  const lowerNozzleH = (CEIL - 9.4) - (V + 6.8); // 5.55m
+  const lowerNozzle = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(2.35, 1.15, lowerNozzleH, 12)), m.darkStone);
+  lowerNozzle.position.set(fx, V + 6.8 + lowerNozzleH / 2, fz);
+  ctx.group.add(lowerNozzle);
+
+  // Heavy golden gear-collars & structural ceiling suspension struts around the funnel
+  for (const [ry, rad] of [
+    [CEIL - 4.2, 2.75],
+    [CEIL - 6.8, 2.58],
+    [CEIL - 9.4, 2.55],
+    [V + 9.2, 1.95],
+    [V + 6.8, 1.42],
+  ] as const) {
+    const ring = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(rad, rad, 0.46, 12)), m.gold);
+    ring.position.set(fx, ry, fz);
+    ctx.group.add(ring);
+  }
+
+  // 4 Diagonal iron & gold brace struts anchoring the funnel to the ceiling
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const sx = fx + Math.cos(ang) * 3.1;
+    const sz = fz + Math.sin(ang) * 3.1;
+    const strut = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(0.22, 0.26, 7.2, 8)), m.iron);
+    strut.position.set(sx, CEIL - 3.4, sz);
+    ctx.group.add(strut);
+
+    // 4 Golden Dragon-Gargoyle Spouts around the lower funnel collar (V + 7.2)
+    const gx = fx + Math.cos(ang) * 1.65;
+    const gz = fz + Math.sin(ang) * 1.65;
+    addBox(ctx, 0.65, 0.65, 0.65, m.gold, gx, V + 6.9, gz);
+  }
+
+  // Cascading stream of gleaming molten gold & coins pouring from the funnel nozzle onto the gold mountain peak!
+  const streamH = (V + 6.8) - (V + 3.6);
+  const goldStream = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(0.68, 1.55, streamH, 14)), m.gold);
+  goldStream.position.set(fx, V + 3.6 + streamH / 2, fz);
+  ctx.group.add(goldStream);
+
+  const moltenRibbon = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(0.42, 0.95, streamH + 0.2, 12)), m.molten);
+  moltenRibbon.position.set(fx, V + 3.6 + streamH / 2, fz);
+  ctx.group.add(moltenRibbon);
+
+  ctx.addLight(fx, V + 6.2, fz, 0xffc845, 12.0);
+
+  // 7) 4-STEPPED OCTAGONAL "HEART OF THE MOUNTAIN" DIAMOND SHRINE (`vault-diamond-shrine` at (16, 490), halfX=2.8, halfZ=2.8)
+  const sx = 16.0;
+  const sz = 490.0;
+  const stepRadii: ReadonlyArray<readonly [number, number, number, THREE.Material]> = [
+    [2.85, 0.42, 0.0, m.darkStone],
+    [2.45, 0.38, 0.42, m.gold],
+    [2.05, 0.42, 0.80, m.stone],
+    [1.62, 0.45, 1.22, m.darkStone],
+  ];
+  for (const [rad, h, yOff, mat] of stepRadii) {
+    const step = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(rad * 0.96, rad, h, 8)), mat);
+    step.position.set(sx, V + yOff + h / 2, sz);
+    step.castShadow = true;
+    step.receiveShadow = true;
+    ctx.group.add(step);
+  }
+  const shrineCrown = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(1.72, 1.72, 0.22, 8)), m.gold);
+  shrineCrown.position.set(sx, V + 1.72, sz);
+  ctx.group.add(shrineCrown);
+
+  // 4 Corner golden obelisks with ruby/emerald finials framing the central Heart Diamond
+  for (const [ox, oz, isRuby] of [
+    [-1.85, -1.85, true],
+    [1.85, -1.85, false],
+    [-1.85, 1.85, false],
+    [1.85, 1.85, true],
+  ] as const) {
+    addBox(ctx, 0.46, 1.65, 0.46, m.gold, sx + ox, V + 0.42, sz + oz);
+    const finial = new THREE.Mesh(diamondGeo, isRuby ? rubyMat : emeraldMat);
+    finial.scale.set(0.32, 0.52, 0.32);
+    finial.position.set(sx + ox, V + 2.38, sz + oz);
+    ctx.group.add(finial);
+  }
+
+  // Colossal Levitating "Heart of the Mountain" Diamond + 4 surrounding royal gems
+  const heartDiamond = new THREE.Mesh(diamondGeo, diamondMat);
+  heartDiamond.scale.set(1.15, 1.65, 1.15);
+  heartDiamond.position.set(sx, V + 3.15, sz);
+  heartDiamond.rotation.y = Math.PI / 4;
+  ctx.group.add(heartDiamond);
+  ctx.addLight(sx, V + 3.6, sz, 0x5ad8ff, 9.5);
+
+  // 8) WEST ROYAL TREASURY DAIS & GUARDIAN STATUES (`vault-west-throne-dais` at (-21.2, 490), halfX=1.8, halfZ=3.8)
+  const dx = -21.2;
+  const dz = 490.0;
+  addBox(ctx, 3.4, 0.48, 7.4, m.darkStone, dx, V, dz);
+  addBox(ctx, 3.5, 0.18, 7.5, m.gold, dx, V + 0.48, dz);
+  addBox(ctx, 2.6, 0.45, 5.8, m.stone, dx - 0.3, V + 0.66, dz);
+  addBox(ctx, 2.7, 0.16, 5.9, m.gold, dx - 0.3, V + 1.11, dz);
+
+  // Carved golden treasury backdrop arch on the west wall (lx = -23.4)
+  addBox(ctx, 0.7, 8.5, 7.6, m.darkStone, -23.4, V + 1.1, dz);
+  addBox(ctx, 0.85, 0.5, 7.8, m.gold, -23.35, V + 9.4, dz);
+  for (const szOff of [-3.3, 3.3]) {
+    addBox(ctx, 0.9, 8.5, 0.9, m.gold, -23.3, V + 1.1, dz + szOff);
+  }
+
+  // Helper to build an ornate locked Dwarven Treasure Chest
+  const addOrnateChest = (cx: number, cy: number, cz: number, yaw: number): void => {
+    const g = new THREE.Group();
+    g.position.set(cx, cy, cz);
+    g.rotation.y = yaw;
+    ctx.group.add(g);
+
+    const body = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(1.35, 0.68, 0.88)), m.darkStone);
+    body.position.set(0, 0.34, 0);
+    g.add(body);
+    const lid = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(1.4, 0.32, 0.92)), m.stone);
+    lid.position.set(0, 0.84, 0);
+    g.add(lid);
+    const trim = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(1.44, 0.12, 0.96)), m.gold);
+    trim.position.set(0, 0.68, 0);
+    g.add(trim);
+    const lock = new THREE.Mesh(ctx.own(new THREE.BoxGeometry(0.28, 0.3, 0.14)), m.gold);
+    lock.position.set(0, 0.58, 0.45);
+    g.add(lock);
   };
 
-  // Colossal gold mountain directly under the Gold Chute + surrounding mountains of gold along the vault walls.
-  addGoldMountain(chuteX, chuteZ, 6.2, 4.8);
-  addGoldMountain(27.5, 485.5, 4.8, 3.6);
-  addGoldMountain(2.5, 483.5, 4.5, 3.4);
-  addGoldMountain(-8.5, 485.0, 5.2, 4.1);
-  addGoldMountain(-18.5, 492.0, 4.6, 3.8);
-  addGoldMountain(-8.0, 502.5, 5.5, 4.4);
-  addGoldMountain(6.0, 503.0, 4.9, 3.9);
-  addGoldMountain(21.0, 502.5, 5.8, 4.5);
-  addGoldMountain(38.0, 501.0, 4.4, 3.5);
+  // 3 Royal Treasure Chests atop the West Dais (facing East +X)
+  addOrnateChest(dx - 0.2, V + 1.27, dz, Math.PI / 2);
+  addOrnateChest(dx - 0.2, V + 1.27, dz - 1.85, Math.PI / 2);
+  addOrnateChest(dx - 0.2, V + 1.27, dz + 1.85, Math.PI / 2);
 
-  // Stacked Silver Ingot Pallets (gleaming silver bullion bars).
+  // 2 Golden Dwarven Guardian Statues flanking the West Dais
+  const vaultStatueGeo = ctx.own(
+    mergeParts([
+      box(1.2, 0.35, 1.2, GOLEM_DARK, 0, 0.18, 0),
+      box(0.95, 2.1, 0.8, GOLEM_STONE, 0, 1.4, 0),
+      box(1.15, 0.45, 0.9, GOLD, 0, 2.2, 0),
+      box(0.75, 0.75, 0.75, GOLEM_STONE, 0, 2.8, 0),
+      box(0.85, 0.28, 0.85, GOLD, 0, 3.25, 0),
+      cyl(0.07, 0.07, 3.0, 6, GOLD, 0.55, 1.65, 0.25),
+    ])
+  );
+  for (const szOff of [-2.95, 2.95]) {
+    const st = new THREE.Mesh(vaultStatueGeo, m.statue);
+    st.position.set(dx + 0.4, V + 0.66, dz + szOff);
+    st.rotation.y = Math.PI / 2;
+    st.castShadow = true;
+    ctx.group.add(st);
+  }
+  ctx.addTorch(-22.6, V + 4.2, dz - 3.6, 0xffcf58, 7.0);
+  ctx.addTorch(-22.6, V + 4.2, dz + 3.6, 0xffcf58, 7.0);
+
+  // 9) 4 WEST SILVER BULLION PALLETS (`vault-silver-pallet-1..4` at lx = -20.0, lz = 477.0, 482.5, 497.5, 503.0)
   const addSilverPallet = (px: number, pz: number, rows: number): void => {
-    addBox(ctx, 2.8, 0.22, 2.0, m.wood, px, V, pz);
+    addBox(ctx, 2.9, 0.24, 2.3, m.darkStone, px, V, pz);
+    addBox(ctx, 2.7, 0.14, 2.1, m.wood, px, V + 0.24, pz);
     for (let r = 0; r < rows; r++) {
       for (let ix = -1; ix <= 1; ix++) {
         for (let iz = -0.5; iz <= 0.5; iz += 1) {
-          addBox(ctx, 0.72, 0.28, 0.78, silverMat, px + ix * 0.82, V + 0.22 + r * 0.29, pz + iz * 0.88);
+          addBox(ctx, 0.74, 0.26, 0.82, silverMat, px + ix * 0.84, V + 0.38 + r * 0.27, pz + iz * 0.9);
         }
       }
     }
   };
-  addSilverPallet(-2.5, 495.5, 4);
-  addSilverPallet(-15.5, 496.5, 5);
-  addSilverPallet(28.5, 495.5, 4);
-  addSilverPallet(41.5, 492.0, 3);
+  addSilverPallet(-20.0, 477.0, 4);
+  addSilverPallet(-20.0, 482.5, 5);
+  addSilverPallet(-20.0, 497.5, 5);
+  addSilverPallet(-20.0, 503.0, 4);
 
-  // Stacked Gold Bullion Pyramids along the royal aisle.
-  const addGoldBullionStack = (px: number, pz: number): void => {
-    addBox(ctx, 2.6, 0.25, 1.8, m.darkStone, px, V, pz);
+  // 10) 4 SOUTH GOLD BULLION VAULT PLATFORMS (`vault-gold-stack-1..4` at lz = 505.2, lx = -6, 4, 20, 30)
+  const addGoldBullionPlatform = (px: number, pz: number, hasRuby: boolean): void => {
+    // Non-coplanar stepped stone & gold base matching halfX=2.1, halfZ=1.4
+    addBox(ctx, 4.0, 0.32, 2.6, m.darkStone, px, V, pz);
+    addBox(ctx, 4.1, 0.14, 2.7, m.gold, px, V + 0.32, pz);
     for (let r = 0; r < 4; r++) {
-      const count = 4 - r;
+      const count = 5 - r;
       for (let i = 0; i < count; i++) {
         addBox(
           ctx,
-          0.52,
+          0.56,
           0.26,
-          1.35,
+          1.65,
           m.gold,
-          px - ((count - 1) * 0.58) / 2 + i * 0.58,
-          V + 0.25 + r * 0.27,
+          px - ((count - 1) * 0.64) / 2 + i * 0.64,
+          V + 0.46 + r * 0.27,
           pz
         );
       }
     }
-  };
-  addGoldBullionStack(6.5, 494.5);
-  addGoldBullionStack(16.5, 494.5);
-
-  // Giant Sparkling Diamonds & Royal Gems on pedestals and atop the gold mountains!
-  const diamondSpots: ReadonlyArray<{ x: number; y: number; z: number; s: number; isRuby?: boolean }> = [
-    { x: chuteX, y: V + 5.1, z: chuteZ, s: 0.95 },
-    { x: 21.0, y: V + 4.8, z: 502.5, s: 0.88 },
-    { x: -8.0, y: V + 4.7, z: 502.5, s: 0.85, isRuby: true },
-    { x: -8.5, y: V + 4.4, z: 485.0, s: 0.82 },
-    { x: 27.5, y: V + 3.9, z: 485.5, s: 0.78, isRuby: true },
-    { x: 11.5, y: V + 2.35, z: 490.0, s: 1.15 }, // Centerpiece Royal Diamond on pedestal at MINE_POI.royalVault
-    { x: 8.5, y: V + 1.95, z: 490.0, s: 0.72, isRuby: true },
-    { x: 14.5, y: V + 1.95, z: 490.0, s: 0.72 },
-  ];
-
-  // Centerpiece Royal Diamond Pedestal at (11.5, V, 490).
-  addBox(ctx, 8.2, 0.5, 3.2, m.darkStone, 11.5, V, 490.0);
-  addBox(ctx, 7.6, 0.9, 2.6, m.stone, 11.5, V + 0.5, 490.0);
-  addBox(ctx, 7.9, 0.25, 2.9, m.gold, 11.5, V + 1.4, 490.0);
-
-  for (const d of diamondSpots) {
-    const gem = new THREE.Mesh(diamondGeo, d.isRuby ? rubyMat : diamondMat);
-    gem.scale.set(d.s * 0.85, d.s * 1.25, d.s * 0.85);
-    gem.position.set(d.x, d.y, d.z);
-    gem.rotation.y = 0.6;
+    const gem = new THREE.Mesh(diamondGeo, hasRuby ? rubyMat : diamondMat);
+    gem.scale.set(0.45, 0.68, 0.45);
+    gem.position.set(px, V + 1.85, pz);
     ctx.group.add(gem);
+  };
+  addGoldBullionPlatform(-6.0, 505.2, true);
+  addGoldBullionPlatform(4.0, 505.2, false);
+  addGoldBullionPlatform(20.0, 505.2, true);
+  addGoldBullionPlatform(30.0, 505.2, false);
+
+  // 11) 4 NORTH ROYAL JEWEL HOARD PEDESTALS & CHESTS (`vault-north-hoard-1..4` at lz = 474.8, lx = -6, 6, 22, 34)
+  const addNorthJewelPedestal = (px: number, pz: number, gemMat: THREE.Material): void => {
+    addBox(ctx, 3.4, 0.36, 2.2, m.darkStone, px, V, pz);
+    addBox(ctx, 3.5, 0.14, 2.3, m.gold, px, V + 0.36, pz);
+    addOrnateChest(px - 0.65, V + 0.50, pz, 0);
+
+    // Mini gold mound + royal gem beside the chest on the pedestal
+    const miniMound = new THREE.Mesh(goldMoundGeo, m.gold);
+    miniMound.scale.set(0.85, 0.75, 0.85);
+    miniMound.position.set(px + 0.85, V + 0.50 + 0.375, pz);
+    ctx.group.add(miniMound);
+
+    const gem = new THREE.Mesh(diamondGeo, gemMat);
+    gem.scale.set(0.42, 0.62, 0.42);
+    gem.position.set(px + 0.85, V + 1.48, pz);
+    ctx.group.add(gem);
+  };
+  addNorthJewelPedestal(-6.0, 474.8, rubyMat);
+  addNorthJewelPedestal(6.0, 474.8, diamondMat);
+  addNorthJewelPedestal(22.0, 474.8, emeraldMat);
+  addNorthJewelPedestal(34.0, 474.8, rubyMat);
+
+  // 12) 3 OVERHEAD GOLDEN TREASURY CHANDELIERS AT (-9, 490), (16, 490), AND (34, 490)
+  for (const cx of [-9.0, 16.0, 34.0] as const) {
+    const chY = CEIL - 4.8;
+    const chain = new THREE.Mesh(ctx.own(new THREE.CylinderGeometry(0.12, 0.12, 4.8, 8)), m.iron);
+    chain.position.set(cx, CEIL - 2.4, 490.0);
+    ctx.group.add(chain);
+
+    const wheel = new THREE.Mesh(ctx.own(new THREE.TorusGeometry(2.2, 0.16, 8, 20)), m.gold);
+    wheel.rotation.x = Math.PI / 2;
+    wheel.position.set(cx, chY, 490.0);
+    ctx.group.add(wheel);
+
+    ctx.addLight(cx, chY - 0.5, 490.0, 0xffd268, 9.0);
   }
 }
 // #endregion

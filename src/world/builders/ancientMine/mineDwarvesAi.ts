@@ -228,8 +228,7 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
       [70, 54],
       [70, 60],
       [70, 72],
-      [70, 74.5],
-      [66, 77],
+      [67, 74.2],
       [56, 78],
       [32, 80],
       [6, 80],
@@ -274,7 +273,7 @@ const COOPERATIVE_CARTS: readonly ICooperativeCartConfig[] = [
     waypoints: [
       [118, 72],
       [96, 72],
-      [74, 75],
+      [74, 78.5],
       [56, 78],
       [32, 80],
       [6, 80],

@@ -211,10 +211,15 @@ export function buildPropGeometry(kind: IMinePropKind, tintColor: number = MINER
       return mergeParts([box(0.4, 0.3, 0.4, P.iron), part(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 6), P.iron, 0, 0.75, 0, 0.35), cyl(0.09, 0.09, 0.12, P.gold, 0, 1.2, 0.18, 8)]);
     case 'torchStand':
       return mergeParts([
-        cyl(0.3, 0.38, 0.2, P.darkGranite),
-        cyl(0.07, 0.09, 1.7, P.iron, 0, 0.2),
-        cyl(0.22, 0.12, 0.3, P.iron, 0, 1.9),
-        part(new THREE.ConeGeometry(0.16, 0.45, 6), P.ember, 0, 2.35, 0),
+        cyl(0.32, 0.4, 0.22, P.darkGranite),
+        cyl(0.24, 0.28, 0.08, P.gold, 0, 0.22),
+        cyl(0.075, 0.095, 1.15, P.iron, 0, 0.3),
+        cyl(0.095, 0.095, 0.06, P.gold, 0, 1.42),
+        cyl(0.07, 0.055, 0.52, P.oak, 0, 1.48),
+        cyl(0.22, 0.11, 0.24, P.iron, 0, 1.92),
+        cyl(0.23, 0.23, 0.04, P.gold, 0, 2.12),
+        cyl(0.18, 0.18, 0.06, P.coal, 0, 2.14),
+        part(new THREE.ConeGeometry(0.17, 0.48, 7), P.ember, 0, 2.4, 0),
       ]);
     case 'stonePillar':
       return mergeParts([

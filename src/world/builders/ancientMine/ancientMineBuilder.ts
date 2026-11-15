@@ -121,19 +121,36 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
   group.add(meshFromBuffers(own(geometryFromBuffers(greybox.floors)), floorMat, 'ancient-mine-floors'));
   group.add(meshFromBuffers(own(geometryFromBuffers(greybox.rock)), rockMat, 'ancient-mine-rock'));
 
-  const torchFlameGeo = own(new THREE.ConeGeometry(0.16, 0.5, 6));
+  const torchFlameGeo = own(new THREE.ConeGeometry(0.16, 0.4, 6));
+  const torchStickGeo = own(new THREE.CylinderGeometry(0.088, 0.058, 0.92, 8));
+  const torchCupGeo = own(new THREE.CylinderGeometry(0.21, 0.095, 0.22, 8));
+  const torchGoldRingGeo = own(new THREE.CylinderGeometry(0.225, 0.225, 0.055, 8));
+  const torchClampRingGeo = own(new THREE.CylinderGeometry(0.105, 0.088, 0.11, 8));
+  const torchPlinthGeo = own(new THREE.CylinderGeometry(0.28, 0.36, 0.22, 8));
+  const torchWallPlateGeo = own(new THREE.BoxGeometry(0.26, 0.48, 0.08));
   const emberMat = mat(new THREE.MeshBasicMaterial({ color: MINE_PALETTE.ember }));
-  const addTorch = (x: number, y: number, z: number, color = 0xff9a30, intensity = 5.5): void => {
-    const flame = new THREE.Mesh(torchFlameGeo, emberMat);
-    flame.position.set(x, y, z);
-    group.add(flame);
-    addCandidateLight(group, ctx.lanternLights, x, y + 0.4, z, color, intensity);
-  };
+  const torchWoodMat = mat(
+    new THREE.MeshStandardMaterial({
+      color: 0xc49464,
+      map: timberMap,
+      roughness: 0.75,
+      emissive: 0x4a2810,
+      emissiveIntensity: 0.55,
+    })
+  );
 
   const setPieceMaterials = {
     stone: mat(new THREE.MeshStandardMaterial({ color: MINE_PALETTE.granite, map: rockMap, roughness: 0.9 })),
     darkStone: mat(new THREE.MeshStandardMaterial({ color: MINE_PALETTE.darkGranite, map: rockMap, roughness: 0.95 })),
-    iron: mat(new THREE.MeshStandardMaterial({ color: MINE_PALETTE.iron, metalness: 0.6, roughness: 0.5 })),
+    iron: mat(
+      new THREE.MeshStandardMaterial({
+        color: MINE_PALETTE.iron,
+        metalness: 0.6,
+        roughness: 0.5,
+        emissive: 0x16161a,
+        emissiveIntensity: 0.35,
+      })
+    ),
     wood: mat(new THREE.MeshStandardMaterial({ color: 0xb08a68, map: timberMap, roughness: 0.85 })),
     gold: mat(new THREE.MeshStandardMaterial({ color: MINE_PALETTE.gold, emissive: 0x3a2400, metalness: 0.8, roughness: 0.35 })),
     ember: emberMat,
@@ -142,6 +159,117 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
     water: mat(new THREE.MeshStandardMaterial({ color: 0x2fa8c0, transparent: true, opacity: 0.75 })),
     statue: mat(new THREE.MeshStandardMaterial({ vertexColors: true, map: rockMap, roughness: 0.85 })),
   };
+
+  const addTorch = (x: number, y: number, z: number, color = 0xff9a30, intensity = 5.5): void => {
+    const flame = new THREE.Mesh(torchFlameGeo, emberMat);
+    flame.position.set(x, y + 0.04, z);
+    group.add(flame);
+
+    // Wide forged-iron burner cup & golden rim collar directly under the flame cone
+    const cup = new THREE.Mesh(torchCupGeo, setPieceMaterials.iron);
+    cup.position.set(x, y - 0.22, z);
+    group.add(cup);
+
+    const goldRing = new THREE.Mesh(torchGoldRingGeo, setPieceMaterials.gold);
+    goldRing.position.set(x, y - 0.13, z);
+    group.add(goldRing);
+
+    // Thick, warm-lit oak wooden torch stick (`המקל של הלפיד`) extending down from the burner cup
+    const stick = new THREE.Mesh(torchStickGeo, torchWoodMat);
+    stick.position.set(x, y - 0.72, z);
+    group.add(stick);
+
+    // Upper & lower golden/iron clamp bands around the wooden stick
+    const clampTop = new THREE.Mesh(torchClampRingGeo, setPieceMaterials.gold);
+    clampTop.position.set(x, y - 0.50, z);
+    group.add(clampTop);
+
+    const clampBot = new THREE.Mesh(torchClampRingGeo, setPieceMaterials.iron);
+    clampBot.position.set(x, y - 1.06, z);
+    group.add(clampBot);
+
+    // 1) Check if there is a nearby cave wall within 1.25m horizontally to anchor a wall sconce bracket
+    let bestWallDist = Infinity;
+    let bestWallX = x;
+    let bestWallZ = z;
+    for (const foot of greybox.wallFeet) {
+      if (foot.height < 2.0 || y < foot.y - 0.5 || y > foot.y + foot.height + 0.5) continue;
+      const dx = foot.x1 - foot.x0;
+      const dz = foot.z1 - foot.z0;
+      const lenSq = dx * dx + dz * dz;
+      if (lenSq < 1e-4) continue;
+      const t = Math.max(0, Math.min(1, ((x - foot.x0) * dx + (z - foot.z0) * dz) / lenSq));
+      const px = foot.x0 + dx * t;
+      const pz = foot.z0 + dz * t;
+      const d = Math.hypot(x - px, z - pz);
+      if (d < bestWallDist) {
+        bestWallDist = d;
+        bestWallX = px;
+        bestWallZ = pz;
+      }
+    }
+
+    // 2) Also check if there is a solid fixture/column within 1.25m horizontally
+    let bestFixDist = Infinity;
+    let bestFixX = x;
+    let bestFixZ = z;
+    for (const f of MINE_SOLID_FIXTURES) {
+      if (y < f.baseY - 0.2 || y > f.baseY + f.height + 0.6) continue;
+      const cx = Math.max(f.lx - f.halfX, Math.min(f.lx + f.halfX, x));
+      const cz = Math.max(f.lz - f.halfZ, Math.min(f.lz + f.halfZ, z));
+      const d = Math.hypot(x - cx, z - cz);
+      if (d < bestFixDist) {
+        bestFixDist = d;
+        bestFixX = cx;
+        bestFixZ = cz;
+      }
+    }
+
+    if (bestWallDist >= 0.05 && bestWallDist <= 1.25 && bestWallDist <= bestFixDist) {
+      const armGeo = own(new THREE.BoxGeometry(0.11, 0.11, bestWallDist + 0.12));
+      const arm = new THREE.Mesh(armGeo, setPieceMaterials.iron);
+      const yaw = Math.atan2(bestWallX - x, bestWallZ - z);
+      arm.position.set((x + bestWallX) * 0.5, y - 0.54, (z + bestWallZ) * 0.5);
+      arm.rotation.y = yaw;
+      group.add(arm);
+
+      const plate = new THREE.Mesh(torchWallPlateGeo, setPieceMaterials.gold);
+      plate.position.set(bestWallX, y - 0.54, bestWallZ);
+      plate.rotation.y = yaw;
+      group.add(plate);
+    } else if (bestFixDist >= 0.05 && bestFixDist <= 1.25) {
+      const armGeo = own(new THREE.BoxGeometry(0.11, 0.11, bestFixDist + 0.12));
+      const arm = new THREE.Mesh(armGeo, setPieceMaterials.iron);
+      arm.position.set((x + bestFixX) * 0.5, y - 0.54, (z + bestFixZ) * 0.5);
+      arm.rotation.y = Math.atan2(bestFixX - x, bestFixZ - z);
+      group.add(arm);
+    } else {
+      // 3) Freestanding torch: always extend a vertical stand post + stone plinth down to the floor below
+      const floorSample = sampleAncientMineFloor(x, z, y);
+      const floorY = floorSample !== null ? floorSample.height : y - 2.4;
+      const postHeight = y - 1.05 - floorY;
+      if (postHeight > 0.12 && postHeight <= 6.0) {
+        const postGeo = own(new THREE.CylinderGeometry(0.068, 0.085, postHeight, 8));
+        const post = new THREE.Mesh(postGeo, setPieceMaterials.iron);
+        post.position.set(x, floorY + postHeight * 0.5, z);
+        group.add(post);
+
+        const plinth = new THREE.Mesh(torchPlinthGeo, setPieceMaterials.darkStone);
+        plinth.position.set(x, floorY + 0.11, z);
+        group.add(plinth);
+
+        const plinthGold = new THREE.Mesh(torchGoldRingGeo, setPieceMaterials.gold);
+        plinthGold.position.set(x, floorY + 0.22, z);
+        group.add(plinthGold);
+      }
+    }
+
+    addCandidateLight(group, ctx.lanternLights, x, y + 0.4, z, color, intensity);
+  };
+
+  const addLight = (x: number, y: number, z: number, color: number, intensity: number): void =>
+    addCandidateLight(group, ctx.lanternLights, x, y, z, color, intensity);
+
   const setPieceContext = {
     group,
     materials: setPieceMaterials,
@@ -150,8 +278,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
       for (const m of materials) mat(m);
     },
     addTorch,
-    addLight: (x: number, y: number, z: number, color: number, intensity: number): void =>
-      addCandidateLight(group, ctx.lanternLights, x, y, z, color, intensity),
+    addLight,
   };
   const updateUpperLevel = buildUpperLevelSetPieces(setPieceContext);
   const updateLowerLevel = buildLowerLevelSetPieces(setPieceContext);
@@ -168,6 +295,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
     ),
     rockMaterial: mat(new THREE.MeshStandardMaterial({ color: 0x6a625a, map: rockMap, roughness: 1.0, side: THREE.DoubleSide })),
     addTorch,
+    addLight,
   };
   addMineProps(dressing, ALL_MINE_PROPS, greybox.wallFeet);
   addRockDressing(dressing, greybox.wallFeet);

@@ -45,6 +45,7 @@ export interface IDressingContext {
   readonly glowPropMaterial: THREE.Material;
   readonly rockMaterial: THREE.Material;
   readonly addTorch: (x: number, y: number, z: number, color?: number, intensity?: number) => void;
+  readonly addLight?: (x: number, y: number, z: number, color: number, intensity: number) => void;
 }
 // #endregion
 
@@ -143,7 +144,12 @@ export function addMineProps(
         dummy.position.set(p.lx, floorY + (p.lift ?? 0), p.lz);
         dummy.rotation.set(0, p.yaw ?? 0, 0);
         if (p.kind === 'torchStand' || p.kind === 'brazier') {
-          ctx.addTorch(p.lx, floorY + MINE_PROP_KINDS[p.kind].height + 0.3, p.lz, TORCH_LIGHT.color, TORCH_LIGHT.intensity);
+          const lightY = floorY + MINE_PROP_KINDS[p.kind].height + 0.45;
+          if (ctx.addLight) {
+            ctx.addLight(p.lx, lightY, p.lz, TORCH_LIGHT.color, TORCH_LIGHT.intensity);
+          } else {
+            ctx.addTorch(p.lx, lightY, p.lz, TORCH_LIGHT.color, TORCH_LIGHT.intensity);
+          }
         }
       }
       dummy.updateMatrix();

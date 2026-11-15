@@ -326,8 +326,7 @@ export const DWARVEN_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineDef[
       [6.0, MINE_LEVEL_Y.upperCavern, 80.0],
       [32.0, MINE_LEVEL_Y.upperCavern, 80.0],
       [56.0, MINE_LEVEL_Y.upperCavern, 78.0],
-      [66.0, MINE_LEVEL_Y.upperCavern, 77.0],
-      [70.0, MINE_LEVEL_Y.upperCavern, 74.5],
+      [67.0, MINE_LEVEL_Y.upperCavern, 74.2],
       [70.0, MINE_LEVEL_Y.upperCavern, 72.0],
       [70.0, MINE_LEVEL_Y.galleryPit, 60.0],
       [70.0, MINE_LEVEL_Y.galleryPit, 54.0],
@@ -413,7 +412,7 @@ export const ADDITIONAL_RIDEABLE_MINECART_LINES: readonly IRideableMinecartLineD
     rideSpeed: 13.5,
     localWaypoints: [
       [56.0, MINE_LEVEL_Y.upperCavern, 78.0],
-      [74.0, MINE_LEVEL_Y.upperCavern, 75.0],
+      [74.0, MINE_LEVEL_Y.upperCavern, 78.5],
       [96.0, MINE_LEVEL_Y.upperCavern, 72.0],
       [118.0, MINE_LEVEL_Y.upperCavern, 72.0],
     ],
@@ -503,34 +502,22 @@ export function subdivideRailPolyline3D(
   if (initialTangent !== undefined) {
     const p0 = line[0];
     const p1 = line[1];
-    const dx = p1[0] - p0[0];
-    const dz = p1[2] - p0[2];
-    const segLen = Math.hypot(dx, dz) || 1;
-    const ux = dx / segLen;
-    const uz = dz / segLen;
-    const d = Math.min(5.2, segLen * 0.45);
-    const c0x = p0[0];
-    const c0z = p0[2];
-    const c1x = p0[0] + initialTangent[0] * (d * 0.45);
-    const c1z = p0[2] + initialTangent[1] * (d * 0.45);
-    const c2x = p0[0] + ux * (d * 0.55);
-    const c2z = p0[2] + uz * (d * 0.55);
-    const c3x = p0[0] + ux * d;
-    const c3z = p0[2] + uz * d;
+    const segLen = Math.hypot(p1[0] - p0[0], p1[2] - p0[2]) || 1;
+    const lead = Math.min(2.4, segLen * 0.24);
+    const piX = p0[0] + initialTangent[0] * lead;
+    const piZ = p0[2] + initialTangent[1] * lead;
+    const outDx = p1[0] - piX;
+    const outDz = p1[2] - piZ;
+    const outLen = Math.hypot(outDx, outDz) || 1;
+    const endLead = Math.min(lead * 1.15, outLen * 0.45);
+    const pEndX = piX + (outDx / outLen) * endLead;
+    const pEndZ = piZ + (outDz / outLen) * endLead;
     for (let s = 0; s <= arcSteps; s++) {
       const t = s / arcSteps;
       const omt = 1 - t;
-      const bx =
-        omt * omt * omt * c0x +
-        3 * omt * omt * t * c1x +
-        3 * omt * t * t * c2x +
-        t * t * t * c3x;
-      const bz =
-        omt * omt * omt * c0z +
-        3 * omt * omt * t * c1z +
-        3 * omt * t * t * c2z +
-        t * t * t * c3z;
-      const by = p0[1] + (p1[1] - p0[1]) * (d / segLen) * t;
+      const bx = omt * omt * p0[0] + 2 * omt * t * piX + t * t * pEndX;
+      const bz = omt * omt * p0[2] + 2 * omt * t * piZ + t * t * pEndZ;
+      const by = p0[1] + (p1[1] - p0[1]) * ((lead + endLead) / segLen) * t;
       out.push([bx, by, bz]);
     }
   } else {
@@ -561,30 +548,20 @@ export function subdivideRailPolyline3D(
     if (isRailTurnoutJunctionVertex(curr[0], curr[2])) {
       const tx = vInX / len1;
       const tz = vInZ / len1;
-      const ux = vOutX / len2;
-      const uz = vOutZ / len2;
-      const d = Math.min(5.2, len2 * 0.45);
-      const c0x = curr[0];
-      const c0z = curr[2];
-      const c1x = curr[0] + tx * (d * 0.45);
-      const c1z = curr[2] + tz * (d * 0.45);
-      const c2x = curr[0] + ux * (d * 0.55);
-      const c2z = curr[2] + uz * (d * 0.55);
-      const c3x = curr[0] + ux * d;
-      const c3z = curr[2] + uz * d;
+      const lead = Math.min(2.4, len2 * 0.24);
+      const piX = curr[0] + tx * lead;
+      const piZ = curr[2] + tz * lead;
+      const outDx = next[0] - piX;
+      const outDz = next[2] - piZ;
+      const outLen = Math.hypot(outDx, outDz) || 1;
+      const endLead = Math.min(lead * 1.15, outLen * 0.45);
+      const pEndX = piX + (outDx / outLen) * endLead;
+      const pEndZ = piZ + (outDz / outLen) * endLead;
       for (let s = 0; s <= arcSteps; s++) {
         const t = s / arcSteps;
         const omt = 1 - t;
-        const bx =
-          omt * omt * omt * c0x +
-          3 * omt * omt * t * c1x +
-          3 * omt * t * t * c2x +
-          t * t * t * c3x;
-        const bz =
-          omt * omt * omt * c0z +
-          3 * omt * omt * t * c1z +
-          3 * omt * t * t * c2z +
-          t * t * t * c3z;
+        const bx = omt * omt * curr[0] + 2 * omt * t * piX + t * t * pEndX;
+        const bz = omt * omt * curr[2] + 2 * omt * t * piZ + t * t * pEndZ;
         out.push([bx, curr[1], bz]);
       }
       continue;

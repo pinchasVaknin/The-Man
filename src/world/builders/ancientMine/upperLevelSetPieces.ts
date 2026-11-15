@@ -353,7 +353,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
 
     // Bright overhead warm golden lights from each chandelier illuminating the starting cavern
     ctx.addLight(cx, wheelY - 0.5, cz, 0xffd27a, 9.5);
-    ctx.addTorch(cx, wheelY + 0.35, cz, 0xffcc66, 8.5);
+    ctx.addLight(cx, wheelY + 0.35, cz, 0xffcc66, 8.5);
   }
 
   // 2) 3 DWARVEN MARKET STALLS ALONG THE WEST ENTRY PROMENADE (lx = -11.5, lz = 49.0 / 56.5 / 64.0)
@@ -615,86 +615,6 @@ function subdividePolylineWithCurves(
 }
 
 /**
- * Summary: Builds an engineered Dwarven railway turnout switch assembly at a track junction:
- *          - Graduated long timber switch ties (`zLocal = 0..4.56`) spanning cleanly under both diverging tracks.
- *          - Forged iron tie-plates, brass throw rod, and tapered switch-point guide bars at the switch toe.
- *          - Cast-iron & brass V-Frog (`לב הצומת`) with wing rails and guard check-rails at the inner rail crossing
- *            so merging/splitting tracks join seamlessly without visual gaps or overlapping sleepers.
- */
-function buildRailTurnoutFrog(
-  kit: Kit,
-  junction: readonly [number, number],
-  parentBefore: readonly [number, number],
-  mainAfter: readonly [number, number],
-  branchAfter: readonly [number, number]
-): void {
-  const { m } = kit;
-  const [jx, jz] = junction;
-  const y = trackFloorY(jx, jz);
-
-  const dxIn = jx - parentBefore[0];
-  const dzIn = jz - parentBefore[1];
-  const inYaw = Math.atan2(dxIn, dzIn);
-
-  const dxMain = mainAfter[0] - jx;
-  const dzMain = mainAfter[1] - jz;
-  const mainYaw = Math.atan2(dxMain, dzMain);
-
-  const dxBranch = branchAfter[0] - jx;
-  const dzBranch = branchAfter[1] - jz;
-  const branchYaw = Math.atan2(dxBranch, dzBranch);
-
-  const diffMain = Math.atan2(Math.sin(mainYaw - inYaw), Math.cos(mainYaw - inYaw));
-  const diffBranch = Math.atan2(Math.sin(branchYaw - inYaw), Math.cos(branchYaw - inYaw));
-  const midDiff = (diffMain + diffBranch) * 0.5;
-  const spreadAngle = Math.abs(diffBranch - diffMain);
-  const branchSide = diffBranch >= diffMain ? 1 : -1;
-
-  const turnoutGroup = new THREE.Group();
-  turnoutGroup.position.set(jx, y + 0.02, jz);
-  turnoutGroup.rotation.y = inYaw + midDiff * 0.45;
-  kit.add(turnoutGroup);
-
-  // 1) Unified graduated timber switch ties spanning cleanly under BOTH diverging tracks
-  for (let i = 0; i <= 6; i++) {
-    const zLocal = i * 0.76;
-    const progress = zLocal / 4.56;
-    const extraSpan = Math.sin(spreadAngle) * zLocal * 1.05;
-    const tieWidth = 2.08 + extraSpan;
-    const xShift = branchSide * progress * 0.34;
-    kit.box(tieWidth, 0.08, 0.25, m.wood, xShift, 0, zLocal, turnoutGroup);
-    kit.box(tieWidth - 0.24, 0.016, 0.16, m.iron, xShift, 0.08, zLocal, turnoutGroup);
-  }
-
-  // 2) Switch throw tie-bar & twin sliding point-lock plates at the switch toe
-  kit.box(1.42, 0.04, 0.1, m.gold, 0, 0.05, 0.38, turnoutGroup);
-  kit.box(1.42, 0.035, 0.08, m.iron, branchSide * 0.06, 0.05, 1.14, turnoutGroup);
-
-  // 3) Forged V-Frog plate, wing rails & outer guard check-rails where the inner rails cross (`zLocal = 2.4..3.8`)
-  const frogX = branchSide * 0.12;
-  const frogZ = 3.04;
-  kit.box(0.58, 0.03, 1.55, m.darkStone, frogX, 0.096, frogZ, turnoutGroup);
-  kit.box(0.42, 0.025, 1.35, m.gold, frogX, 0.126, frogZ, turnoutGroup);
-  for (const side of [-1, 1] as const) {
-    const wing = kit.box(0.06, 0.11, 1.15, m.iron, frogX + side * 0.14, 0.145, frogZ - 0.08, turnoutGroup);
-    wing.rotation.y = side * 0.14;
-    // Check/guard rails inside the outer stock rails opposite the frog
-    const checkX = side * (RAIL_GAUGE_HALF - 0.16) + branchSide * 0.18;
-    kit.box(0.055, 0.11, 1.3, m.gold, checkX, 0.145, frogZ, turnoutGroup);
-  }
-
-  // 4) Classic Dwarven weighted throw switch stand beside the turnout (outside the track gauge)
-  const standX = -branchSide * (RAIL_GAUGE_HALF + 0.85);
-  const standZ = 0.38;
-  kit.box(0.44, 0.12, 0.44, m.darkStone, standX, 0, standZ, turnoutGroup);
-  kit.box(0.32, 0.18, 0.24, m.iron, standX, 0.12, standZ, turnoutGroup);
-  kit.box(Math.abs(standX), 0.035, 0.05, m.iron, standX * 0.5, 0.055, standZ, turnoutGroup);
-  const throwLever = kit.cyl(0.03, 0.03, 0.78, m.iron, standX, 0.48, standZ, 6, turnoutGroup);
-  throwLever.rotation.z = branchSide * 0.32;
-  kit.cyl(0.11, 0.11, 0.09, m.gold, standX - branchSide * 0.12, 0.82, standZ, 8, turnoutGroup);
-}
-
-/**
  * Summary: Builds a compact interactive Dwarven Minecart Terminal / Dispenser Kiosk beside a track station
  *          so the player clearly sees where to press [E] to summon/board a minecart.
  */
@@ -723,7 +643,7 @@ function buildMinecartStationKiosk(
   const lever = kit.cyl(0.035, 0.035, 0.55, m.iron, -0.24, 0.65, 0.12, 6, kiosk);
   lever.rotation.x = 0.38;
   kit.cyl(0.08, 0.08, 0.1, m.gold, -0.24, 0.9, 0.3, 8, kiosk);
-  ctx.addTorch(lx, floorY + 2.05, lz, 0xffc44d, 4.5);
+  ctx.addLight(lx, floorY + 2.05, lz, 0xffc44d, 4.5);
 }
 
 /**
@@ -743,162 +663,232 @@ function buildTipperBumperStop(kit: Kit, lx: number, lz: number, yawToCenter: nu
 }
 
 /**
- * Summary: Checks whether a sleeper at `(sx, sz)` lies inside one of the three switch turnout tie zones
- *          (`[-18, 75]`, `[56, 78]`, or `[156, 72]`), where `buildRailTurnoutFrog` lays unified long switch ties.
+ * Summary: Finds the closest point on a 2D polyline to `(px, pz)`, returning its coordinates,
+ *          segment tangent yaw, and horizontal distance.
  */
-function isInsideTurnoutSleeperZone(sx: number, sz: number): boolean {
-  // West turnout at [-18, 75], incoming tangent unit([-12, -5]) = (-0.9231, -0.3846)
-  const wx = sx - -18.0;
-  const wz = sz - 75.0;
-  const wAlong = wx * -0.9231 + wz * -0.3846;
-  const wPerp = Math.abs(wx * -0.3846 - wz * -0.9231);
-  if (wAlong >= -0.45 && wAlong <= 5.05 && wPerp <= 2.45) return true;
-
-  // East turnout at [56, 78], incoming tangent unit([24, -2]) = (0.9965, -0.0830)
-  const ex = sx - 56.0;
-  const ez = sz - 78.0;
-  const eAlong = ex * 0.9965 + ez * -0.0830;
-  const ePerp = Math.abs(ex * -0.0830 - ez * 0.9965);
-  if (eAlong >= -0.45 && eAlong <= 5.05 && ePerp <= 2.45) return true;
-
-  // East Fork turnout at [156, 72], incoming tangent (1, 0)
-  const fx = sx - 156.0;
-  const fz = sz - 72.0;
-  if (fx >= -0.45 && fx <= 5.05 && Math.abs(fz) <= 2.45) return true;
-
-  return false;
+function closestPointOnPolyline2D(
+  px: number,
+  pz: number,
+  line: readonly (readonly [number, number])[]
+): { x: number; z: number; yaw: number; dist: number } {
+  let bestDistSq = Infinity;
+  let bestX = px;
+  let bestZ = pz;
+  let bestYaw = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const ax = line[i][0];
+    const az = line[i][1];
+    const bx = line[i + 1][0];
+    const bz = line[i + 1][1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const lenSq = dx * dx + dz * dz;
+    if (lenSq < 1e-6) continue;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / lenSq));
+    const qx = ax + dx * t;
+    const qz = az + dz * t;
+    const dSq = (px - qx) * (px - qx) + (pz - qz) * (pz - qz);
+    if (dSq < bestDistSq) {
+      bestDistSq = dSq;
+      bestX = qx;
+      bestZ = qz;
+      bestYaw = Math.atan2(dx, dz);
+    }
+  }
+  return { x: bestX, z: bestZ, yaw: bestYaw, dist: Math.sqrt(bestDistSq) };
 }
 
 /**
- * Summary: Builds a complete railway track polyline with shared vertex normals so the left and right
- *          steel rails meet at identical 3D points at every curve joint and switch turnout without
- *          any lateral steps, gaps, or Z-fighting.
+ * Summary: Builds a complete railway network with continuous arc-length sleeper spacing (so sleepers
+ *          never bunch up on curves) and unified single-piece switch ties across diverging tracks
+ *          at every turnout junction (so sleepers never overlap or crisscross).
  */
-function buildContinuousTrackPolyline(
+function buildUnifiedRailwayNetwork(
   kit: Kit,
-  smoothLine: readonly (readonly [number, number])[],
-  initialTangent?: readonly [number, number]
+  allSmoothLines: readonly (readonly (readonly [number, number])[])[],
+  initialTangents: readonly (readonly [number, number] | undefined)[]
 ): void {
   const { m } = kit;
-  const n = smoothLine.length;
-  if (n < 2) return;
-  const isBranchTrack = initialTangent !== undefined;
+  const TURNOUT_PAIRS = [
+    { mainIdx: 0, branchIdx: 1, jx: 56.0, jz: 78.0, standSide: 1 },
+    { mainIdx: 4, branchIdx: 5, jx: -18.0, jz: 75.0, standSide: 1 },
+    { mainIdx: 1, branchIdx: 6, jx: 156.0, jz: 72.0, standSide: -1 },
+  ] as const;
 
-  // Compute unit horizontal normal (nx, nz) at every vertex of smoothLine
-  const normals: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    let tx = 0;
-    let tz = 1;
-    if (i === 0 && initialTangent !== undefined) {
-      tx = initialTangent[0];
-      tz = initialTangent[1];
-    } else if (i === 0) {
-      const dx = smoothLine[1][0] - smoothLine[0][0];
-      const dz = smoothLine[1][1] - smoothLine[0][1];
-      const len = Math.hypot(dx, dz) || 1;
-      tx = dx / len;
-      tz = dz / len;
-    } else if (i === n - 1) {
-      const dx = smoothLine[n - 1][0] - smoothLine[n - 2][0];
-      const dz = smoothLine[n - 1][1] - smoothLine[n - 2][1];
-      const len = Math.hypot(dx, dz) || 1;
-      tx = dx / len;
-      tz = dz / len;
-    } else if (isRailTurnoutJunctionVertex(smoothLine[i][0], smoothLine[i][1])) {
-      const dx = smoothLine[i][0] - smoothLine[i - 1][0];
-      const dz = smoothLine[i][1] - smoothLine[i - 1][1];
-      const len = Math.hypot(dx, dz) || 1;
-      tx = dx / len;
-      tz = dz / len;
-    } else {
-      const dx0 = smoothLine[i][0] - smoothLine[i - 1][0];
-      const dz0 = smoothLine[i][1] - smoothLine[i - 1][1];
-      const len0 = Math.hypot(dx0, dz0) || 1;
-      const dx1 = smoothLine[i + 1][0] - smoothLine[i][0];
-      const dz1 = smoothLine[i + 1][1] - smoothLine[i][1];
-      const len1 = Math.hypot(dx1, dz1) || 1;
-      const sumX = dx0 / len0 + dx1 / len1;
-      const sumZ = dz0 / len0 + dz1 / len1;
-      const sumLen = Math.hypot(sumX, sumZ) || 1;
-      tx = sumX / sumLen;
-      tz = sumZ / sumLen;
+  for (let lineIdx = 0; lineIdx < allSmoothLines.length; lineIdx++) {
+    const smoothLine = allSmoothLines[lineIdx];
+    const initialTangent = initialTangents[lineIdx];
+    const n = smoothLine.length;
+    if (n < 2) continue;
+    const isBranchTrack = initialTangent !== undefined;
+
+    // 1) Compute smooth vertex normals for the left and right steel rails
+    const normals: [number, number][] = [];
+    for (let i = 0; i < n; i++) {
+      let tx = 0;
+      let tz = 1;
+      if (i === 0 && initialTangent !== undefined) {
+        tx = initialTangent[0];
+        tz = initialTangent[1];
+      } else if (i === 0) {
+        const dx = smoothLine[1][0] - smoothLine[0][0];
+        const dz = smoothLine[1][1] - smoothLine[0][1];
+        const len = Math.hypot(dx, dz) || 1;
+        tx = dx / len;
+        tz = dz / len;
+      } else if (i === n - 1) {
+        const dx = smoothLine[n - 1][0] - smoothLine[n - 2][0];
+        const dz = smoothLine[n - 1][1] - smoothLine[n - 2][1];
+        const len = Math.hypot(dx, dz) || 1;
+        tx = dx / len;
+        tz = dz / len;
+      } else {
+        const dx0 = smoothLine[i][0] - smoothLine[i - 1][0];
+        const dz0 = smoothLine[i][1] - smoothLine[i - 1][1];
+        const len0 = Math.hypot(dx0, dz0) || 1;
+        const dx1 = smoothLine[i + 1][0] - smoothLine[i][0];
+        const dz1 = smoothLine[i + 1][1] - smoothLine[i][1];
+        const len1 = Math.hypot(dx1, dz1) || 1;
+        const sumX = dx0 / len0 + dx1 / len1;
+        const sumZ = dz0 / len0 + dz1 / len1;
+        const sumLen = Math.hypot(sumX, sumZ) || 1;
+        tx = sumX / sumLen;
+        tz = sumZ / sumLen;
+      }
+      normals.push([tz, -tx]);
     }
-    normals.push([tz, -tx]);
+
+    // 2) Draw continuous left & right steel rails
+    for (let i = 0; i < n - 1; i++) {
+      const a = smoothLine[i];
+      const b = smoothLine[i + 1];
+      const na = normals[i];
+      const nb = normals[i + 1];
+      const ya = trackFloorY(a[0], a[1]);
+      const yb = trackFloorY(b[0], b[1]);
+
+      for (const side of [-1, 1] as const) {
+        const ax = a[0] + na[0] * side * RAIL_GAUGE_HALF;
+        const az = a[1] + na[1] * side * RAIL_GAUGE_HALF;
+        const bx = b[0] + nb[0] * side * RAIL_GAUGE_HALF;
+        const bz = b[1] + nb[1] * side * RAIL_GAUGE_HALF;
+        const dx = bx - ax;
+        const dy = yb - ya;
+        const dz = bz - az;
+        const flat = Math.hypot(dx, dz);
+        const len = Math.hypot(flat, dy);
+        if (len < 0.02) continue;
+        // Branch rails sit 1.5mm lower near the junction so top faces never Z-fight at the switch point or frog crossing
+        const yLift = isBranchTrack && i < 12 ? 0.1585 : 0.16;
+        const mesh = new THREE.Mesh(
+          kit['_ctx'].own(new THREE.BoxGeometry(0.11, 0.12, len + 0.025)),
+          m.iron
+        );
+        mesh.position.set((ax + bx) * 0.5, (ya + yb) * 0.5 + yLift, (az + bz) * 0.5);
+        mesh.rotation.order = 'YXZ';
+        mesh.rotation.y = Math.atan2(dx, dz);
+        mesh.rotation.x = -Math.atan2(dy, flat || 1);
+        kit.add(mesh);
+      }
+    }
+
+    // 3) Place timber sleepers at uniform cumulative arc-length spacing (`0.92m`) along the entire track
+    const tieSpacing = 0.92;
+    let nextTieDist = 0.46;
+    let accDist = 0;
+
+    for (let i = 0; i < n - 1; i++) {
+      const a = smoothLine[i];
+      const b = smoothLine[i + 1];
+      const ya = trackFloorY(a[0], a[1]);
+      const yb = trackFloorY(b[0], b[1]);
+      const dx = b[0] - a[0];
+      const dz = b[1] - a[1];
+      const flat = Math.hypot(dx, dz);
+      const segLen = Math.hypot(flat, yb - ya);
+      if (segLen < 0.02) continue;
+      const yaw = Math.atan2(dx, dz);
+      const pitch = -Math.atan2(yb - ya, flat || 1);
+
+      while (nextTieDist <= accDist + segLen) {
+        const frac = (nextTieDist - accDist) / segLen;
+        const sx = a[0] + dx * frac;
+        const sz = a[1] + dz * frac;
+        const sy = ya + (yb - ya) * frac;
+        nextTieDist += tieSpacing;
+
+        // If this is a branch track inside its parent turnout merge zone (separation < 2.30m),
+        // skip individual branch sleepers because the main track lays a single unified switch tie across both tracks!
+        let skipBranchTie = false;
+        for (const tp of TURNOUT_PAIRS) {
+          if (tp.branchIdx === lineIdx && Math.hypot(sx - tp.jx, sz - tp.jz) < 16.0) {
+            const onMain = closestPointOnPolyline2D(sx, sz, allSmoothLines[tp.mainIdx]);
+            if (onMain.dist < 2.3) {
+              skipBranchTie = true;
+              break;
+            }
+          }
+        }
+        if (skipBranchTie) continue;
+
+        // If this is a main track passing through a turnout divergence zone, widen the sleeper to span cleanly under BOTH tracks!
+        let tieCenterX = sx;
+        let tieCenterZ = sz;
+        let tieYaw = yaw;
+        let tieWidth = 2.0;
+        let isUnifiedSwitchTie = false;
+
+        for (const tp of TURNOUT_PAIRS) {
+          if (tp.mainIdx === lineIdx && Math.hypot(sx - tp.jx, sz - tp.jz) < 16.0) {
+            const onBranch = closestPointOnPolyline2D(sx, sz, allSmoothLines[tp.branchIdx]);
+            if (onBranch.dist < 2.25 && Math.hypot(onBranch.x - tp.jx, onBranch.z - tp.jz) > 0.08) {
+              tieCenterX = (sx + onBranch.x) * 0.5;
+              tieCenterZ = (sz + onBranch.z) * 0.5;
+              const diffYaw = Math.atan2(Math.sin(onBranch.yaw - yaw), Math.cos(onBranch.yaw - yaw));
+              tieYaw = yaw + diffYaw * 0.5;
+              tieWidth = 2.05 + onBranch.dist;
+              isUnifiedSwitchTie = true;
+              break;
+            }
+          }
+        }
+
+        const tie = kit.box(tieWidth, 0.08, 0.24, m.wood, tieCenterX, sy + 0.02, tieCenterZ);
+        tie.rotation.order = 'YXZ';
+        tie.rotation.y = tieYaw;
+        tie.rotation.x = pitch;
+
+        // On unified switch ties, add a forged iron tie-plate strap on top of the timber sleeper (strictly below rail base)
+        if (isUnifiedSwitchTie) {
+          const plate = kit.box(tieWidth - 0.26, 0.016, 0.14, m.iron, tieCenterX, sy + 0.102, tieCenterZ);
+          plate.rotation.order = 'YXZ';
+          plate.rotation.y = tieYaw;
+          plate.rotation.x = pitch;
+        }
+      }
+      accDist += segLen;
+    }
   }
 
-  // Helper to place a continuous steel rail bar between two exact 3D endpoints (a -> b).
-  // Branch switch blades taper from 0.065m to 0.11m width and sit +0.003m higher over the first 6 segments
-  // so they never Z-fight with the main stock rails at the switch toe or frog crossing!
-  const addRailBarBetween = (
-    ax: number,
-    ay: number,
-    az: number,
-    bx: number,
-    by: number,
-    bz: number,
-    segIdx: number
-  ): void => {
-    const dx = bx - ax;
-    const dy = by - ay;
-    const dz = bz - az;
-    const flat = Math.hypot(dx, dz);
-    const len = Math.hypot(flat, dy);
-    if (len < 0.02) return;
-    const isSwitchBladeSeg = isBranchTrack && segIdx < 6;
-    const railWidth = isSwitchBladeSeg ? 0.068 + (segIdx / 6) * 0.042 : 0.11;
-    const yLift = isSwitchBladeSeg ? 0.163 : 0.16;
-    const mesh = new THREE.Mesh(
-      kit['_ctx'].own(new THREE.BoxGeometry(railWidth, 0.12, len + 0.03)),
-      m.iron
-    );
-    mesh.position.set((ax + bx) * 0.5, (ay + by) * 0.5 + yLift, (az + bz) * 0.5);
-    mesh.rotation.order = 'YXZ';
-    mesh.rotation.y = Math.atan2(dx, dz);
-    mesh.rotation.x = -Math.atan2(dy, flat || 1);
-    kit.add(mesh);
-  };
+  // 4) Compact forged-iron switch throw bar & weighted switch stand at the 2 Upper Cavern turnouts
+  //    (the 3rd turnout at [156, 72] has its own interactive mechanical switch lever stand)
+  for (const tp of TURNOUT_PAIRS) {
+    if (tp.jx > 140) continue;
+    const y = trackFloorY(tp.jx, tp.jz);
+    const onMain = closestPointOnPolyline2D(tp.jx, tp.jz, allSmoothLines[tp.mainIdx]);
+    const swGroup = new THREE.Group();
+    swGroup.position.set(tp.jx, y + 0.02, tp.jz);
+    swGroup.rotation.y = onMain.yaw;
+    kit.add(swGroup);
 
-  for (let i = 0; i < n - 1; i++) {
-    const a = smoothLine[i];
-    const b = smoothLine[i + 1];
-    const na = normals[i];
-    const nb = normals[i + 1];
-    const ya = trackFloorY(a[0], a[1]);
-    const yb = trackFloorY(b[0], b[1]);
-
-    // At the very first switch-blade segment of a branch track (i = 0..1), tuck the blade tip 0.04m inside the stock rail
-    // so it tapers smoothly out from the stock rail inner face like a real railway point blade!
-    const gaugeA = isBranchTrack && i < 2 ? RAIL_GAUGE_HALF - (2 - i) * 0.025 : RAIL_GAUGE_HALF;
-    const gaugeB = isBranchTrack && i + 1 < 2 ? RAIL_GAUGE_HALF - (2 - (i + 1)) * 0.025 : RAIL_GAUGE_HALF;
-
-    for (const side of [-1, 1] as const) {
-      const ax = a[0] + na[0] * side * gaugeA;
-      const az = a[1] + na[1] * side * gaugeA;
-      const bx = b[0] + nb[0] * side * gaugeB;
-      const bz = b[1] + nb[1] * side * gaugeB;
-      addRailBarBetween(ax, ya, az, bx, yb, bz, i);
-    }
-
-    // Timber sleepers along the segment centerline (suppressed inside the turnout switch-tie zones)
-    const dx = b[0] - a[0];
-    const dz = b[1] - a[1];
-    const flat = Math.hypot(dx, dz);
-    if (flat < 0.05) continue;
-    const length = Math.hypot(flat, yb - ya);
-    const yaw = Math.atan2(dx, dz);
-    const pitch = -Math.atan2(yb - ya, flat);
-    const count = Math.max(1, Math.floor(length / SLEEPER_SPACING));
-    for (let s = 0; s < count; s++) {
-      const frac = (s + 0.5) / count;
-      const sx = a[0] + dx * frac;
-      const sz = a[1] + dz * frac;
-      if (isInsideTurnoutSleeperZone(sx, sz)) continue;
-      const sy = ya + (yb - ya) * frac;
-      const tie = kit.box(2.0, 0.08, 0.24, m.wood, sx, sy + 0.02, sz);
-      tie.rotation.order = 'YXZ';
-      tie.rotation.y = yaw;
-      tie.rotation.x = pitch;
-    }
+    const standX = tp.standSide * (RAIL_GAUGE_HALF + 0.72);
+    kit.box(1.42, 0.032, 0.08, m.iron, 0, 0.082, 0.42, swGroup);
+    kit.box(Math.abs(standX), 0.03, 0.05, m.iron, standX * 0.5, 0.082, 0.42, swGroup);
+    kit.box(0.4, 0.12, 0.4, m.darkStone, standX, 0, 0.42, swGroup);
+    kit.box(0.28, 0.16, 0.22, m.iron, standX, 0.12, 0.42, swGroup);
+    const lever = kit.cyl(0.028, 0.028, 0.72, m.iron, standX, 0.45, 0.42, 6, swGroup);
+    lever.rotation.z = -tp.standSide * 0.28;
+    kit.cyl(0.095, 0.095, 0.08, m.gold, standX + tp.standSide * 0.1, 0.78, 0.42, 8, swGroup);
   }
 }
 
@@ -992,12 +982,13 @@ function buildRailHub(
   buildTipperBumperStop(kit, 6.0, 80.0, Math.atan2(-6.0, 0.0));
   buildTipperBumperStop(kit, 4.0, 85.0, Math.atan2(-4.0, -5.0));
 
-  // 2) SMOOTHLY CURVED RAIL TRACKS WITH SHARED VERTEX NORMALS & SWITCH TURNOUTS
-  // Incoming unit tangents at the branch turnouts ([56, 78] from [32, 80], [-18, 75] from [-6, 80], and [156, 72] from [152, 72])
+  // 2) SMOOTHLY CURVED RAIL TRACKS WITH UNIFIED SWITCH TIES & NON-BUNCHING SLEEPERS
   const eastBranchTangent: readonly [number, number] = [24 / Math.hypot(24, -2), -2 / Math.hypot(24, -2)];
   const westBranchTangent: readonly [number, number] = [-12 / Math.hypot(-12, -5), -5 / Math.hypot(-12, -5)];
   const eastForkBranchTangent: readonly [number, number] = [1, 0];
 
+  const initialTangents: (readonly [number, number] | undefined)[] = [];
+  const allSmoothLines: [number, number][][] = [];
   for (let lineIdx = 0; lineIdx < UPPER_RAIL_LINES.length; lineIdx++) {
     const rawLine = UPPER_RAIL_LINES[lineIdx];
     const initialTangent =
@@ -1008,14 +999,10 @@ function buildRailHub(
           : lineIdx === 6
             ? eastForkBranchTangent
             : undefined;
-    const smoothLine = subdividePolylineWithCurves(rawLine, initialTangent, 3.6, 8);
-    buildContinuousTrackPolyline(kit, smoothLine, initialTangent);
+    initialTangents.push(initialTangent);
+    allSmoothLines.push(subdividePolylineWithCurves(rawLine, initialTangent, 3.6, 8));
   }
-
-  // Turnout switch ties & throw stands at the branch junctions
-  buildRailTurnoutFrog(kit, [-18, 75], [-6, 80], [-32, 66], [-34, 79]);
-  buildRailTurnoutFrog(kit, [56, 78], [32, 80], [66, 77], [74, 75]);
-  buildRailTurnoutFrog(kit, [156, 72], [152, 72], [165, 67], [165, 77]);
+  buildUnifiedRailwayNetwork(kit, allSmoothLines, initialTangents);
 
   // 3) INTERACTIVE MINECART TERMINAL / DISPENSER KIOSKS AT EVERY LINE START & END
   const stationKiosks: readonly [number, number, number][] = [
@@ -1167,14 +1154,13 @@ function buildCentralHubScaffoldingAndGoldChute(kit: Kit, ctx: ISetPieceContext)
   kit.beam(new THREE.Vector3(-17.3, U + 0.4, 27.3), new THREE.Vector3(-17.3, S - 0.55, 31.7), 0.2, m.wood);
   kit.beam(new THREE.Vector3(-17.3, U + 0.4, 32.3), new THREE.Vector3(-17.3, S - 0.55, 36.7), 0.2, m.wood);
 
-  // Support posts and diagonal stringers under the scaffolding stairs (lx: -22..-16, lz: 38..50), inset from guard rails
+  // Support posts under the upper half of the scaffolding stairs (lx: -22..-16, lz: 38..50), kept strictly below the stair treads
   for (const sx of [-21.2, -16.8]) {
-    kit.box(0.34, h * 0.48, 0.34, m.wood, sx, U, 44.0);
-    kit.beam(new THREE.Vector3(sx, U + 0.2, 49.6), new THREE.Vector3(sx, S - 0.35, 38.4), 0.28, m.wood);
+    kit.box(0.34, h * 0.42, 0.34, m.wood, sx, U, 41.5);
   }
-  ctx.addTorch(-22.4, U + 2.6, 49.5, 0xffa840, 6.0);
-  ctx.addTorch(-15.6, U + 2.6, 49.5, 0xffa840, 6.0);
-  ctx.addTorch(-27.0, S + 2.8, 27.4, 0xffb448, 6.5);
+  ctx.addTorch(-22.6, U + 2.4, 49.5, 0xffa840, 6.0);
+  ctx.addTorch(-15.4, U + 2.4, 49.5, 0xffa840, 6.0);
+  ctx.addTorch(-27.0, S + 2.8, 26.8, 0xffb448, 6.5);
 }
 // #endregion
 
@@ -1305,12 +1291,12 @@ function buildDwarvenTavernPub(kit: Kit, ctx: ISetPieceContext): void {
     placeBeerMug(tx + 0.95, U + 0.96, tz - 0.34, -0.7);
   }
 
-  // Warm tavern lighting
-  ctx.addTorch(-48.0, U + 3.2, 99.5, 0xffaa38, 7.5);
-  ctx.addTorch(-36.0, U + 3.5, 99.2, 0xffb844, 8.0);
-  ctx.addTorch(-24.0, U + 3.2, 99.5, 0xffaa38, 7.5);
-  ctx.addTorch(-40.0, U + 3.4, 120.2, 0xffb844, 8.5);
-  ctx.addTorch(-24.5, U + 3.2, 118.0, 0xff9e32, 7.5);
+  // Warm tavern lighting mounted on the timber pavilion columns
+  ctx.addTorch(-48.5, U + 3.2, 99.6, 0xffaa38, 7.5);
+  ctx.addTorch(-36.0, U + 3.4, 99.6, 0xffb844, 8.0);
+  ctx.addTorch(-23.5, U + 3.2, 99.6, 0xffaa38, 7.5);
+  ctx.addTorch(-48.5, U + 3.2, 120.9, 0xffb844, 8.5);
+  ctx.addTorch(-23.5, U + 3.2, 120.9, 0xff9e32, 7.5);
 }
 // #endregion
 
@@ -1967,36 +1953,35 @@ function buildGalleries(
 
   // 1) 1ST SMALL TUNNEL (`mithril-cavern-neck`, lx: 169..177, lz: 48..62, y = -17.35, ceilingY = -11.5)
   for (const nz of [50, 55, 60]) {
-    for (const nx of [169.4, 176.6]) {
-      kit.box(0.45, 5.6, 0.45, m.wood, nx, FJ, nz);
+    for (const nx of [169.45, 176.55]) {
+      kit.box(0.42, 5.28, 0.42, m.wood, nx, FJ + 0.015, nz);
     }
-    kit.box(7.8, 0.45, 0.45, m.wood, 173.0, FJ + 5.4, nz);
+    kit.box(7.55, 0.44, 0.48, m.wood, 173.0, FJ + 5.298, nz);
   }
-  // Portal lintel at lz = 48 where the 1st small tunnel opens into the Vast Abyss Chasm Cavern
-  kit.box(8.8, 0.45, 1.2, m.gold, 173.0, FJ + 5.6, 48.0);
-  ctx.addTorch(169.8, FJ + 3.0, 49.0, 0xffb844, 7.0);
-  ctx.addTorch(176.2, FJ + 3.0, 49.0, 0xffb844, 7.0);
+  // Portal lintel at lz = 48.2 where the 1st small tunnel opens into the Vast Abyss Chasm Cavern (strictly inside 8m width)
+  kit.box(7.85, 0.45, 0.9, m.gold, 173.0, FJ + 5.3, 48.2);
+  ctx.addTorch(169.8, FJ + 3.0, 49.2, 0xffb844, 7.0);
+  ctx.addTorch(176.2, FJ + 3.0, 49.2, 0xffb844, 7.0);
 
   // 2) VAST ABYSS CHASM CAVERN & RAIL BRIDGE (`diamond-chasm-bridge`, lx: 169..177, lz: 8..48, y = -17.35)
-  // Colossal stone & gold bridge piers rising from the deep abyss (-130m) up to the bridge deck (-17.35m)
-  const pierHeight = FJ - ABYSS_Y;
+  // Colossal stone & gold bridge piers rising from the deep abyss (-130m) up to 0.14m below the bridge deck (-17.35m) so pier tops never Z-fight with the bridge floor!
+  const pierHeight = FJ - ABYSS_Y - 0.14;
   for (const pz of [16.0, 28.0, 40.0]) {
     kit.box(6.4, pierHeight, 3.6, m.darkStone, 173.0, ABYSS_Y, pz);
     kit.box(7.0, 0.6, 4.2, m.gold, 173.0, FJ - 2.2, pz);
     kit.box(7.0, 0.5, 4.2, m.gold, 173.0, FJ - 14.0, pz);
-    // Low stone & gold bridge parapets and glowing braziers along both edges of the chasm bridge (`lx = 169.35, 176.65`)
-    for (const sideX of [169.35, 176.65]) {
-      kit.box(0.75, 1.35, 0.75, m.darkStone, sideX, FJ, pz);
-      kit.box(0.85, 0.2, 0.85, m.gold, sideX, FJ + 1.35, pz);
-      const flame = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(0.28, 8, 6)), m.ember);
-      flame.position.set(sideX, FJ + 1.72, pz);
+    // Ornate golden braziers mounted cleanly on top of the bridge guard rails (`lx = 169.0, 177.0`, `y = FJ + 1.25`)
+    for (const sideX of [169.0, 177.0]) {
+      kit.box(0.62, 0.36, 0.62, m.darkStone, sideX, FJ + 1.245, pz);
+      kit.box(0.7, 0.14, 0.7, m.gold, sideX, FJ + 1.608, pz);
+      const flame = new THREE.Mesh(ctx.own(new THREE.SphereGeometry(0.25, 8, 6)), m.ember);
+      flame.position.set(sideX, FJ + 1.92, pz);
       kit.add(flame);
     }
   }
-  // Continuous carved bridge curb & guard-rail parapet walls along `lx = 169.25` and `lx = 176.75` (`lz = 8..48`)
-  for (const sideX of [169.25, 176.75]) {
-    kit.box(0.42, 0.95, 40.0, m.darkStone, sideX, FJ, 28.0);
-    kit.box(0.48, 0.16, 40.0, m.gold, sideX, FJ + 0.95, 28.0);
+  // Golden cap rails sitting cleanly on top of the greybox bridge guard-rails (`lx = 169.0` and `lx = 177.0`, `y = FJ + 1.102`, `lz = 8.4..47.6`)
+  for (const sideX of [169.0, 177.0]) {
+    kit.box(0.46, 0.14, 39.2, m.gold, sideX, FJ + 1.102, 28.0);
   }
   // Dramatic glowing diamond/crystal formations clinging to the West (`lx = 147`) and East (`lx = 199`) chasm cliff walls
   const chasmCrystalGeo = ctx.own(new THREE.ConeGeometry(0.9, 4.2, 6));
@@ -2016,14 +2001,14 @@ function buildGalleries(
   ctx.addLight(191.0, FJ - 6.0, 28.0, 0x38bdf8, 7.5);
 
   // 3) 2ND SMALL DESCENDING TUNNEL (`diamond-mine-tunnel`, lx: 169..177, lz: -24..8, y: -17.35 -> -27.35)
-  // Portal lintel at lz = 8.0 where the chasm bridge re-enters the narrow descending rock tunnel
-  kit.box(8.8, 0.45, 1.2, m.gold, 173.0, FJ + 5.6, 8.0);
+  // Portal lintel at lz = 7.8 where the chasm bridge re-enters the narrow descending rock tunnel
+  kit.box(7.85, 0.45, 0.9, m.gold, 173.0, FJ + 5.3, 7.8);
   for (const tz of [4.0, -4.0, -12.0, -20.0]) {
     const ty = trackFloorY(173.0, tz);
-    for (const tx of [169.4, 176.6]) {
-      kit.box(0.45, 5.4, 0.45, m.wood, tx, ty, tz);
+    for (const tx of [169.45, 176.55]) {
+      kit.box(0.42, 5.1, 0.42, m.wood, tx, ty + 0.015, tz);
     }
-    kit.box(7.8, 0.45, 0.45, m.wood, 173.0, ty + 5.2, tz);
+    kit.box(7.55, 0.44, 0.48, m.wood, 173.0, ty + 5.118, tz);
     if (tz === 4.0 || tz === -12.0) {
       ctx.addTorch(169.85, ty + 3.0, tz, 0xffa838, 6.5);
       ctx.addTorch(176.15, ty + 3.0, tz, 0xffa838, 6.5);
@@ -2107,8 +2092,8 @@ function buildGalleries(
   buildGlowingWallDiamondCluster(190.0, DM + 4.2, -24.4, 0, -1, 1.25);
 
   // Colossal Motherlode Diamond Altar & Giant Crystal Spires at the North face (`lx = 173.0, lz = -61.5`)
-  kit.box(16.0, 1.1, 5.2, m.darkStone, 173.0, DM, -61.5);
-  kit.box(16.4, 0.26, 5.5, m.gold, 173.0, DM + 1.1, -61.5);
+  kit.box(16.0, 1.1, 5.2, m.darkStone, 173.0, DM + 0.015, -61.5);
+  kit.box(16.4, 0.26, 5.5, m.gold, 173.0, DM + 1.118, -61.5);
   for (let i = -4; i <= 4; i++) {
     const spire = new THREE.Mesh(
       diamondSpireGeo,
@@ -2260,7 +2245,7 @@ function buildFoundry(kit: Kit, ctx: ISetPieceContext): { ladlePivot: THREE.Grou
     kit.cyl(1.15, 1.15, 0.3, m.iron, f.lx, U + f.height + 1.0, f.lz + 0.6, 10);
     // Molten metal channel from the mouth to the casting mold.
     kit.box(0.5, 0.04, front - 125.6, m.molten, f.lx, U + 0.01, (front + 125.6) / 2);
-    ctx.addTorch(f.lx, U + 2.2, front - 1.5, 0xff6a1a, 7);
+    ctx.addLight(f.lx, U + 2.2, front - 1.5, 0xff6a1a, 7);
   }
   const pipe = kit.cyl(0.3, 0.3, furnaces[2].lx - furnaces[0].lx + 4, m.iron, (furnaces[0].lx + furnaces[2].lx) / 2, U + 5.5, 135.0, 10);
   pipe.rotation.z = Math.PI / 2;
