@@ -484,9 +484,20 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               } else if (bestInteract.kind === 'sky_mechanism' && bestInteract.mechanism) {
                 const activation = activateSkyMechanism(bestInteract.mechanism.id);
                 if (activation.changed) soundEngine.playFootstep('bridge', 0.8);
-                if (activation.solvedPuzzle === 'observatory-rings') {
-                  hudFeedback.lootNotification = t('hud.observatory_chamber_opened');
-                  hudFeedback.lootNotificationTimer = 5.0;
+                const isCrystal = bestInteract.mechanism.puzzleId === 'crystal-resonance';
+                const message =
+                  activation.solvedPuzzle === 'observatory-rings'
+                    ? t('hud.observatory_chamber_opened')
+                    : activation.solvedPuzzle === 'crystal-resonance'
+                      ? t('hud.crystal_resonance_solved')
+                      : activation.sequenceReset
+                        ? t('hud.crystal_resonance_reset')
+                        : isCrystal && activation.changed
+                          ? t('hud.crystal_resonance_note')
+                          : null;
+                if (message) {
+                  hudFeedback.lootNotification = message;
+                  hudFeedback.lootNotificationTimer = activation.solvedPuzzle ? 5.0 : 2.6;
                 }
                 emitHudSnapshot();
               } else if (bestInteract.kind === 'telescope' && bestInteract.telescope) {

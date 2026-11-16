@@ -140,6 +140,34 @@ export {
   OBSERVATORY_SOLID_BOXES,
 } from './landmarks/skyboundIsles/observatoryLayout';
 export {
+  CRYSTAL_ISLETS,
+  CRYSTAL_STEPPING_ROCKS,
+  GIANT_CRYSTAL,
+  RESONANCE_CLUE_PILLAR,
+  CRYSTAL_PASSAGE_RAMP,
+  CRYSTAL_GROTTO,
+  CRYSTAL_PASSAGE_GATE,
+  RESONANCE_CRYSTALS,
+  RESONANCE_ORDER,
+  CRYSTAL_DEPOSITS,
+  CRYSTAL_CLUSTERS,
+  CRYSTAL_SOLID_BOXES,
+  type ICrystalDisc,
+  type ICrystalCluster,
+  type ICrystalDepositDef,
+} from './landmarks/skyboundIsles/crystalIslesLayout';
+export {
+  CRYSTAL_CHIPS_TO_MINE,
+  CRYSTAL_REGROW_SEC,
+  MINING_TOOL_IDS,
+  getCrystalDeposits,
+  resetCrystalDeposits,
+  stepCrystalDeposits,
+  strikeCrystalDeposit,
+  type ICrystalDepositRuntime,
+  type ICrystalStrikeResult,
+} from './landmarks/skyboundIsles/skyCrystalMining';
+export {
   SKY_MECHANISMS,
   OBSERVATORY_RING_STEPS,
   OBSERVATORY_RING_SOLUTION,

@@ -5,12 +5,13 @@
 //         with the interact key; each one belongs to a puzzle. Gates are boxes that block
 //         only while their puzzle is unsolved; the physics step pushes the player out of them.
 // SUMMARY: Puzzle state, the mechanisms the player can use, activation rules, closed gates,
-//          and save/restore of the state. The Observatory ring puzzle is the first puzzle.
+//          and save/restore of the state: the Observatory rings and the Crystal resonance.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { OBSERVATORY_CHAMBER_GATE, OBSERVATORY_LEVERS } from './observatoryLayout';
+import { CRYSTAL_PASSAGE_GATE, RESONANCE_CRYSTALS, RESONANCE_ORDER } from './crystalIslesLayout';
 import { getSkyIsland } from './skyboundLayout';
 import type { ISkySolidBox } from './skyHarborLayout';
 // #endregion
@@ -18,12 +19,16 @@ import type { ISkySolidBox } from './skyHarborLayout';
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Types
 /** Summary: Ids of the archipelago puzzles. */
-export type SkyPuzzleId = 'observatory-rings';
+export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance';
+
+const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance'];
 
 /** Summary: Saved state of every archipelago puzzle. */
 export interface ISkyPuzzleState {
   /** Step (0..5) of the outer, middle and inner armillary ring. */
   observatoryRings: [number, number, number];
+  /** How many resonance crystals have been touched in the right order so far (0..3). */
+  crystalResonanceProgress: number;
   solved: SkyPuzzleId[];
 }
 
@@ -45,6 +50,8 @@ export interface ISkyActivationResult {
   readonly changed: boolean;
   /** The puzzle this activation just solved, if any. */
   readonly solvedPuzzle: SkyPuzzleId | null;
+  /** A sequence puzzle was answered wrongly and started over. */
+  readonly sequenceReset: boolean;
 }
 // #endregion
 
@@ -65,19 +72,31 @@ const OBSERVATORY_DECK_Y = getSkyIsland('sky-observatory')!.deckY;
 
 // #region Mechanisms And Gates
 /** Summary: Every mechanism of every archipelago puzzle. */
-export const SKY_MECHANISMS: readonly ISkyMechanism[] = OBSERVATORY_LEVERS.map((l) => ({
-  id: l.id,
-  puzzleId: 'observatory-rings',
-  x: l.x,
-  y: OBSERVATORY_DECK_Y,
-  z: l.z,
-  interactRadius: 2.4,
-  labelKey: LEVER_LABELS[l.ringIndex],
-}));
+export const SKY_MECHANISMS: readonly ISkyMechanism[] = [
+  ...OBSERVATORY_LEVERS.map((l) => ({
+    id: l.id,
+    puzzleId: 'observatory-rings' as const,
+    x: l.x,
+    y: OBSERVATORY_DECK_Y,
+    z: l.z,
+    interactRadius: 2.4,
+    labelKey: LEVER_LABELS[l.ringIndex],
+  })),
+  ...RESONANCE_CRYSTALS.map((c) => ({
+    id: c.id,
+    puzzleId: 'crystal-resonance' as const,
+    x: c.x,
+    y: c.y,
+    z: c.z,
+    interactRadius: 2.6,
+    labelKey: 'hud.sky_touch_crystal',
+  })),
+];
 
 /** Summary: Gates and the puzzle that opens each. */
 const SKY_GATES: ReadonlyArray<{ readonly puzzleId: SkyPuzzleId; readonly box: ISkySolidBox }> = [
   { puzzleId: 'observatory-rings', box: OBSERVATORY_CHAMBER_GATE },
+  { puzzleId: 'crystal-resonance', box: CRYSTAL_PASSAGE_GATE },
 ];
 // #endregion
 
@@ -90,7 +109,7 @@ let state: ISkyPuzzleState = createSkyPuzzleState();
 // #region State Access
 /** Summary: A fresh, unsolved puzzle state. */
 export function createSkyPuzzleState(): ISkyPuzzleState {
-  return { observatoryRings: [0, 0, 0], solved: [] };
+  return { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, solved: [] };
 }
 
 /** Summary: The live puzzle state (read-only view for renderers and the HUD). */
@@ -105,7 +124,7 @@ export function resetSkyPuzzles(): void {
 
 /** Summary: A copy of the state for the save file. */
 export function exportSkyPuzzleState(): ISkyPuzzleState {
-  return { observatoryRings: [...state.observatoryRings], solved: [...state.solved] };
+  return { observatoryRings: [...state.observatoryRings], crystalResonanceProgress: state.crystalResonanceProgress, solved: [...state.solved] };
 }
 
 /**
@@ -115,9 +134,11 @@ export function exportSkyPuzzleState(): ISkyPuzzleState {
 export function importSkyPuzzleState(saved: Partial<ISkyPuzzleState> | undefined): void {
   const fresh = createSkyPuzzleState();
   const rings = Array.isArray(saved?.observatoryRings) && saved.observatoryRings.length === 3 ? saved.observatoryRings : fresh.observatoryRings;
+  const progress = Math.floor(Number(saved?.crystalResonanceProgress) || 0);
   state = {
     observatoryRings: [0, 1, 2].map((i) => normalizeStep(Number(rings[i]) || 0)) as [number, number, number],
-    solved: Array.isArray(saved?.solved) ? saved.solved.filter((id): id is SkyPuzzleId => id === 'observatory-rings') : [],
+    crystalResonanceProgress: Math.max(0, Math.min(RESONANCE_ORDER.length, progress)),
+    solved: Array.isArray(saved?.solved) ? saved.solved.filter((id): id is SkyPuzzleId => KNOWN_PUZZLES.includes(id as SkyPuzzleId)) : [],
   };
 }
 
@@ -153,18 +174,17 @@ export function findNearestSkyMechanism(x: number, y: number, z: number): ISkyMe
 }
 
 /**
- * Summary: Uses a mechanism: turns its ring one step and checks the solution.
- * Design: A solved puzzle locks its mechanisms, so the rings stay in the solved pose.
+ * Summary: Uses a mechanism: turns an Observatory ring one step, or touches a resonance crystal.
+ * Design: A solved puzzle locks its mechanisms. Touching a resonance crystal out of order
+ *         silences them all and the sequence starts again from the first crystal.
  * @param id Mechanism id.
- * @returns Whether anything changed and which puzzle (if any) this solved.
+ * @returns Whether anything changed, which puzzle (if any) this solved, and whether a sequence reset.
  */
 export function activateSkyMechanism(id: string): ISkyActivationResult {
   const lever = OBSERVATORY_LEVERS.find((l) => l.id === id);
-  if (!lever || isSkyPuzzleSolved('observatory-rings')) return { changed: false, solvedPuzzle: null };
-  state.observatoryRings[lever.ringIndex] = normalizeStep(state.observatoryRings[lever.ringIndex] + 1);
-  const solvedNow = state.observatoryRings.every((step, i) => step === OBSERVATORY_RING_SOLUTION[i]);
-  if (solvedNow) state.solved.push('observatory-rings');
-  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null };
+  if (lever) return turnObservatoryRing(lever.ringIndex);
+  if (RESONANCE_ORDER.includes(id)) return touchResonanceCrystal(id);
+  return NOTHING_CHANGED;
 }
 // #endregion
 
@@ -181,6 +201,31 @@ export function skyGatesWithState(): ReadonlyArray<{ readonly box: ISkySolidBox;
 // #endregion
 
 // ======================== PRIVATE HELPERS ======================== \\
+// #region Puzzle Rules
+const NOTHING_CHANGED: ISkyActivationResult = { changed: false, solvedPuzzle: null, sequenceReset: false };
+
+function turnObservatoryRing(ringIndex: number): ISkyActivationResult {
+  if (isSkyPuzzleSolved('observatory-rings')) return NOTHING_CHANGED;
+  state.observatoryRings[ringIndex] = normalizeStep(state.observatoryRings[ringIndex] + 1);
+  const solvedNow = state.observatoryRings.every((step, i) => step === OBSERVATORY_RING_SOLUTION[i]);
+  if (solvedNow) state.solved.push('observatory-rings');
+  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false };
+}
+
+function touchResonanceCrystal(id: string): ISkyActivationResult {
+  if (isSkyPuzzleSolved('crystal-resonance')) return NOTHING_CHANGED;
+  if (RESONANCE_ORDER[state.crystalResonanceProgress] !== id) {
+    // A wrong crystal silences the chord; touching the first crystal again counts as a fresh start.
+    state.crystalResonanceProgress = RESONANCE_ORDER[0] === id ? 1 : 0;
+    return { changed: true, solvedPuzzle: null, sequenceReset: true };
+  }
+  state.crystalResonanceProgress += 1;
+  const solvedNow = state.crystalResonanceProgress === RESONANCE_ORDER.length;
+  if (solvedNow) state.solved.push('crystal-resonance');
+  return { changed: true, solvedPuzzle: solvedNow ? 'crystal-resonance' : null, sequenceReset: false };
+}
+// #endregion
+
 // #region Helpers
 function normalizeStep(step: number): number {
   return ((Math.round(step) % OBSERVATORY_RING_STEPS) + OBSERVATORY_RING_STEPS) % OBSERVATORY_RING_STEPS;

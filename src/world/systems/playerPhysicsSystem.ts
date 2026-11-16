@@ -47,6 +47,7 @@ import {
   skyBouncePadAt,
   stepSkyWindFlowers,
   closedSkyGates,
+  stepCrystalDeposits,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -1427,6 +1428,9 @@ export function stepPlayerPhysics(
       state.vx = Math.max(state.vx, 4.8);
     }
   }
+
+  // Skybound Isles crystal deposits regrow everywhere, also while the player is away.
+  stepCrystalDeposits(dt);
 
   // Skybound Isles: walkable clouds (sink, collapse, bounce, storm gusts), bounce mushrooms, wind flowers and wind currents.
   if (!state.isFlying && isInsideSkyboundRegion(state.x, state.z)) {

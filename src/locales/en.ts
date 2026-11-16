@@ -1038,6 +1038,12 @@ export const en = {
     "sky_turn_middle_ring": "Turn the middle ring",
     "sky_turn_inner_ring": "Turn the inner ring",
     "observatory_chamber_opened": "The rings align with the star map — a hidden chamber opens in the tower",
+    "sky_touch_crystal": "Touch the resonance crystal",
+    "crystal_resonance_note": "The crystal hums",
+    "crystal_resonance_reset": "The crystals fall silent — the chord must start again",
+    "crystal_resonance_solved": "The three crystals sing as one — the crystal wall melts away",
+    "crystal_needs_pickaxe": "This crystal deposit can only be mined with a pickaxe",
+    "crystal_mined": "Mined the crystal deposit: {count} gems",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
   },

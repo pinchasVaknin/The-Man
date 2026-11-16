@@ -9,6 +9,8 @@
 // #region Imports & Dependencies
 import { t } from '../../locales';
 import { Result } from '../../core/Result';
+import { isInsideSkyboundRegion } from '../domain/landmarks/skyboundIsles/skyboundLayout';
+import { strikeCrystalDeposit } from '../domain/landmarks/skyboundIsles/skyCrystalMining';
 import {
   INVENTORY_ITEM_MAP,
   DEFAULT_STARTER_OWNED_ITEM_IDS,
@@ -1190,6 +1192,23 @@ export function evaluateSwordStrikeWindowHit(
       pitch: state.pitch,
       age: 0,
     };
+  }
+
+  // Skybound Isles crystal deposits: a pickaxe mines them, any other weapon only gets a hint.
+  if (isInsideSkyboundRegion(state.x, state.z)) {
+    const crystalStrike = strikeCrystalDeposit(state.x, state.y, state.z, state.yaw, state.activeWeaponId, isHeavy);
+    if (crystalStrike.hit) {
+      state.swordHitStopTimer = 0.05;
+      if (crystalStrike.needsPickaxe) {
+        state.lastLootNotification = { text: t('hud.crystal_needs_pickaxe'), timer: 2.6 };
+      } else if (crystalStrike.mined) {
+        if (!state.ownedItemIds) state.ownedItemIds = [];
+        state.ownedItemIds.push(...(crystalStrike.gems as InventoryItemId[]));
+        awardSkillXp(state, 'swordsmanship', 12);
+        state.lastLootNotification = { text: t('hud.crystal_mined', { count: String(crystalStrike.gems.length) }), timer: 3.2 };
+      }
+      return { comboIndex, isHeavy, hitKind: 'obstacle', hitTarget: null, hitAnySurface: true };
+    }
   }
 
   if (state.activeWeaponId === 'woodcutter_axe' && obstacles.length > 0) {

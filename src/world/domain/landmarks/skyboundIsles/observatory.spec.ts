@@ -143,7 +143,7 @@ describe('sky observatory ring puzzle', () => {
     // Act
     const result = activateSkyMechanism(OBSERVATORY_LEVERS[0].id);
     // Assert
-    assert.deepEqual(result, { changed: false, solvedPuzzle: null });
+    assert.deepEqual(result, { changed: false, solvedPuzzle: null, sequenceReset: false });
   });
 
   it('skyPuzzleState_WhenSavedAndRestored_ShouldKeepTheSolvedChamberOpen', () => {
@@ -163,7 +163,7 @@ describe('sky observatory ring puzzle', () => {
     // Act
     importSkyPuzzleState(undefined);
     // Assert
-    assert.deepEqual(exportSkyPuzzleState(), { observatoryRings: [0, 0, 0], solved: [] });
+    assert.deepEqual(exportSkyPuzzleState(), { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, solved: [] });
   });
 
   for (const lever of OBSERVATORY_LEVERS) {
