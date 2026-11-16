@@ -122,6 +122,15 @@ export interface ITelemetrySnapshot {
     name: string;
     nameHe: string;
   } | null;
+  /** Sky Harbor balcony telescope in reach (null while already looking through one). */
+  nearbyTelescope?: {
+    id: string;
+    islandName: string;
+  } | null;
+  /** Island seen through the telescope the player is looking through, if any. */
+  telescopeView?: {
+    islandName: string;
+  } | null;
   nearbyPlacedTrap?: {
     id: string;
     kind: string;

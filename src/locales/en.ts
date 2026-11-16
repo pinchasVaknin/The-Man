@@ -692,7 +692,15 @@ export const en = {
     "horse_hunter": "Black Horse (Hunter's Stable)",
     "horse_farm": "White Horse (Wheat Farm)",
     "horse_travel": "Golden Horse (Harbor Gate)",
-    "horse_arabian": "Arabian Horse (Oasis)"
+    "horse_arabian": "Arabian Horse (Oasis)",
+    "sky_harbor": "Sky Harbor",
+    "floating_garden": "Floating Garden",
+    "ancient_sky_ruins": "Ancient Sky Ruins",
+    "sky_observatory": "Sky Observatory",
+    "crystal_isles": "Crystal Isles",
+    "storm_island": "Storm Island",
+    "forgotten_airship": "Forgotten Airship",
+    "hidden_isle": "Hidden Isle"
   },
   "interactions": {
     "equipped_label": "[Equipped]",
@@ -1023,6 +1031,9 @@ export const en = {
     "surface": "Surface",
     "collider_debug_title": "Collider Wireframes Debug",
     "collider_debug_hint": "Shows 3D collision wireframes for walls, stairs, railings, and obstacles (F3)",
+    "telescope_look": "Look through telescope ({island})",
+    "telescope_viewing": "Telescope — {island}",
+    "telescope_exit": "Step back",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
   },

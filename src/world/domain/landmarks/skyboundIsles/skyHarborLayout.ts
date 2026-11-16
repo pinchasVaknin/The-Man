@@ -321,8 +321,9 @@ PLAZA_PILLARS.forEach((p, i) => addBox(`plaza-pillar-${i}`, p.x, p.z, 0.6, 0.6, 
 PLAZA_BENCHES.forEach((b, i) => addBox(`plaza-bench-${i}`, b.x, b.z, 1.1, 0.35, DECK_Y, DECK_Y + 0.5));
 PLAZA_LANTERNS.forEach((l, i) => addBox(`plaza-lantern-${i}`, l.x, l.z, 0.2, 0.2, DECK_Y, DECK_Y + 3.2));
 
-// Balcony railings.
+// Balcony railings and telescope stands.
 for (const b of BALCONIES) addRectRails(b.deck, [b.openSide]);
+BALCONY_TELESCOPE_SPOTS.forEach((t) => addBox(`telescope-stand-${t.balconyId}`, t.x, t.z, 0.3, 0.3, DECK_Y, DECK_Y + 1.3));
 
 // Windspire: two square boxes (0 and 45 degrees) make an octagon inside the stair's inner edge.
 addBox('windspire-core-a', SKY_HARBOR.x, SKY_HARBOR.z, 4.4, 4.4, DECK_Y, DECK_Y + WINDSPIRE.height);

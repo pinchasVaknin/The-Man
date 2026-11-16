@@ -454,6 +454,7 @@ export interface IPlayerState {
   swordBlocking?: boolean; // Right-click parry/block guard when sword is equipped
   swordBlockProgress?: number; // 0..1 smooth interpolation into horizontal block stance
   bowZoomHeld?: boolean; // Right-click closer zoom in bow mode (without drawing arrow)
+  telescopeViewId?: string | null; // Skybound Isles balcony telescope the player is looking through
   bowReleaseKick?: number; // 0..1 recoil kick right after releasing an arrow
   weaponSwayX?: number; // Smooth camera-turn horizontal weapon lag
   weaponSwayY?: number; // Smooth camera-pitch/vertical weapon lag

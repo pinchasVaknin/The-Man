@@ -7,7 +7,8 @@
 // SUMMARY: Builds and animates the hub of the Skybound Isles: arrival plaza and gate,
 //          Windspire (tower, runes, rings, spiral stair, landing, balcony ring, Wind Core
 //          sockets), Sky Garden (trees, ponds, mushrooms, wind flowers, perch), Sky Dock
-//          (pier, crates, crane, balloons, moored airship) and the observation balconies.
+//          (pier, crates, crane, balloons, moored airship) and the observation balconies with
+//          their telescopes.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -33,6 +34,8 @@ import {
   GARDEN_PONDS,
   SKY_HARBOR_SOLID_BOXES,
   SKY_WIND_FLOWERS,
+  SKY_TELESCOPES,
+  telescopeViewFor,
   getWindFlowerOpenness,
 } from '../domain/landmarksRegistry';
 import type { IWorldModelBuildContext } from './types';
@@ -82,6 +85,7 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
 
   buildArrivalPlaza(ctx, mats, unitBox, group);
   buildBalconies(mats, unitBox, group);
+  buildTelescopes(ctx, mats, unitBox, group);
   const windspire = buildWindspire(ctx, mats, unitBox, group);
   const flowers = buildSkyGarden(ctx, mats, unitBox, group);
   const dock = buildSkyDock(ctx, mats, unitBox, group);
@@ -182,6 +186,33 @@ function buildBalconies(mats: IHarborMaterials, box: THREE.BoxGeometry, group: T
   for (const b of SKY_BALCONIES) group.add(deckSlab(box, mats.stone, b, 0.6));
 }
 
+
+/** Brass telescopes on wooden stands, each tube aimed at the island it watches. */
+function buildTelescopes(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
+  const tubeGeo = new THREE.CylinderGeometry(0.16, 0.24, 1.8, 12);
+  tubeGeo.rotateX(Math.PI / 2);
+  const lensGeo = new THREE.CircleGeometry(0.24, 16);
+  ctx.disposableGeometries.push(tubeGeo, lensGeo);
+  for (const scope of SKY_TELESCOPES) {
+    const view = telescopeViewFor(scope);
+    group.add(boxMesh(box, mats.darkWood, scope.x, scope.y + 0.65, scope.z, 0.18, 1.3, 0.18));
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2;
+      const leg = boxMesh(box, mats.darkWood, scope.x + Math.cos(a) * 0.32, scope.y + 0.35, scope.z + Math.sin(a) * 0.32, 0.08, 0.75, 0.08);
+      leg.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35);
+      group.add(leg);
+    }
+    const head = new THREE.Group();
+    head.position.set(scope.x, scope.y + 1.42, scope.z);
+    head.lookAt(view.lookX, view.lookY, view.lookZ);
+    const tube = new THREE.Mesh(tubeGeo, mats.gold);
+    tube.position.z = 0.35;
+    const lens = new THREE.Mesh(lensGeo, mats.crystal);
+    lens.position.z = 1.26;
+    head.add(tube, lens);
+    group.add(head);
+  }
+}
 
 /** Every railing collision box drawn as a stone rail; one instanced mesh for all of them. */
 function buildRailings(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {

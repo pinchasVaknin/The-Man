@@ -11,6 +11,7 @@
 import type { IPlayerState } from '../domain/worldTypes';
 import { PLAYER_EYE_HEIGHT } from '../domain/landmarks/coreLandmarks';
 import { firstSolidHitFraction } from '../domain/collisionWorld';
+import { getSkyTelescope, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import {
   getRoofHeightAt,
   walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
@@ -143,6 +144,21 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
     out.pitch = Math.max(1.05, Math.min(1.53, player.pitch));
     out.yaw = player.yaw + Math.PI;
     out.roll = Math.sin(elapsedSeconds * 0.9) * 0.012;
+    return;
+  }
+
+  // Looking through a Skybound Isles balcony telescope: eye at the eyepiece, aimed at its island.
+  const telescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
+  if (telescope) {
+    const view = telescopeViewFor(telescope);
+    out.mode = 'lookAt';
+    out.x = view.eyeX;
+    out.y = view.eyeY;
+    out.z = view.eyeZ;
+    out.lookX = view.lookX;
+    out.lookY = view.lookY;
+    out.lookZ = view.lookZ;
+    out.roll = 0;
     return;
   }
 
@@ -284,6 +300,8 @@ function writeThirdPersonPose(
  * Summary: Target vertical FOV (degrees) for speed, riding, aiming, blocking and dashing.
  */
 export function computeTargetFov(rig: ICameraRigState, player: IPlayerState): number {
+  const telescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
+  if (telescope) return telescopeViewFor(telescope).fovDeg;
   const isMountedOnHorse = Boolean(player.mountedHorseId);
   const horizSpeed = Math.hypot(player.vx, player.vz);
   const baseFov = player.isFlying

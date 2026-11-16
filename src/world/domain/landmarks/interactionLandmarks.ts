@@ -15,6 +15,7 @@ import { SOUTHEAST_HARBOR_POS, SOUTHWEST_OASIS_POS } from './oasisAndHarborLandm
 import { HUNTER_LODGE_POS, VALLEY_FARMS } from './settlementLandmarks';
 import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
 import { MINE_LEVEL_Y, MINE_POI, TREASURE_ISLAND } from './ancientMine/ancientMineLayout';
+import { findNearestSkyTelescope, type ISkyTelescope } from './skyboundIsles/skyTelescopes';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -1076,7 +1077,7 @@ export function findNearestTrapWorkbench(
 }
 
 /**
- * Summary: Resolves the single best interactive object (chest, bed, door, or trap workbench) that the player
+ * Summary: Resolves the single best interactive object (chest, bed, door, trap workbench or sky telescope) that the player
  * is standing close to AND looking directly at, preventing nearby chests/beds behind or beside
  * the player from hijacking door interactions.
  */
@@ -1087,16 +1088,18 @@ export function resolveBestLookedAtInteraction(
   yaw: number,
   pitch = 0
 ): {
-  kind: 'chest' | 'bed' | 'door' | 'trap_workbench' | 'none';
+  kind: 'chest' | 'bed' | 'door' | 'trap_workbench' | 'telescope' | 'none';
   chest: IWorldChest | null;
   bed: IWorldBedDef | null;
   door: IFortressDoorDef | null;
   trapWorkbench: ITrapWorkbench | null;
+  telescope: ISkyTelescope | null;
 } {
   const chest = findNearestWorldChest(x, y, z, undefined, undefined, yaw, pitch);
   const bed = findNearestBed(x, y, z, undefined, yaw, pitch);
   const door = findNearestFortressDoor(x, y, z, yaw, pitch);
   const trapWorkbench = findNearestTrapWorkbench(x, y, z, 3.8, yaw, pitch);
+  const telescope = findNearestSkyTelescope(x, y, z);
 
   const chestScore = chest
     ? computeInteractableGazeScore(x, y, z, yaw, pitch, chest.x, chest.y, chest.z, 2.8)
@@ -1106,6 +1109,10 @@ export function resolveBestLookedAtInteraction(
     : -Infinity;
   const trapWorkbenchScore = trapWorkbench
     ? computeWorkbenchBoxGazeScore(x, y, z, yaw, pitch, trapWorkbench, trapWorkbench.interactRadius)
+    : -Infinity;
+
+  const telescopeScore = telescope
+    ? computeInteractableGazeScore(x, y, z, yaw, pitch, telescope.x, telescope.y + 1.2, telescope.z, telescope.interactRadius)
     : -Infinity;
 
   let doorScore = -Infinity;
@@ -1123,23 +1130,26 @@ export function resolveBestLookedAtInteraction(
     doorScore = horizDot * 2.5 - distCenter / maxDoorDist;
   }
 
-  const maxScore = Math.max(chestScore, bedScore, doorScore, trapWorkbenchScore);
+  const maxScore = Math.max(chestScore, bedScore, doorScore, trapWorkbenchScore, telescopeScore);
   if (maxScore === -Infinity) {
-    return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null };
+    return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null, telescope: null };
+  }
+  if (maxScore === telescopeScore && telescope) {
+    return { kind: 'telescope', chest: null, bed: null, door: null, trapWorkbench: null, telescope };
   }
   if (maxScore === doorScore && door) {
-    return { kind: 'door', chest: null, bed: null, door, trapWorkbench: null };
+    return { kind: 'door', chest: null, bed: null, door, trapWorkbench: null, telescope: null };
   }
   if (maxScore === trapWorkbenchScore && trapWorkbench) {
-    return { kind: 'trap_workbench', chest: null, bed: null, door: null, trapWorkbench };
+    return { kind: 'trap_workbench', chest: null, bed: null, door: null, trapWorkbench, telescope: null };
   }
   if (maxScore === chestScore && chest) {
-    return { kind: 'chest', chest, bed: null, door: null, trapWorkbench: null };
+    return { kind: 'chest', chest, bed: null, door: null, trapWorkbench: null, telescope: null };
   }
   if (bed) {
-    return { kind: 'bed', chest: null, bed, door: null, trapWorkbench: null };
+    return { kind: 'bed', chest: null, bed, door: null, trapWorkbench: null, telescope: null };
   }
-  return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null };
+  return { kind: 'none', chest: null, bed: null, door: null, trapWorkbench: null, telescope: null };
 }
 // #endregion
 

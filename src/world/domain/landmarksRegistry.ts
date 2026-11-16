@@ -128,6 +128,17 @@ export {
   type ISkyBouncePad,
 } from './landmarks/skyboundIsles/skyHarborLayout';
 export {
+  SKY_TELESCOPES,
+  TELESCOPE_MIN_FOV_DEG,
+  TELESCOPE_MAX_FOV_DEG,
+  getSkyTelescope,
+  findNearestSkyTelescope,
+  telescopeViewFor,
+  shouldExitTelescopeView,
+  type ISkyTelescope,
+  type ITelescopeView,
+} from './landmarks/skyboundIsles/skyTelescopes';
+export {
   skyboundSurfaceAt,
   createSkyFallTracker,
   updateSkyFallRecovery,

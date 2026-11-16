@@ -1769,6 +1769,45 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {/* Skybound Isles Balcony Telescope Prompt */}
+            {telemetry.nearbyTelescope && !telemetry.telescopeView && (
+              <div
+                data-testid="telescope-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sky-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(8, 24, 40, 0.94)',
+                  border: '1px solid rgba(56, 189, 248, 0.75)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-sky-300 text-slate-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-sky-100">
+                  {t('hud.telescope_look', { island: telemetry.nearbyTelescope.islandName })}
+                </span>
+              </div>
+            )}
+
+            {/* Looking Through A Telescope: island name and how to step back */}
+            {telemetry.telescopeView && (
+              <div
+                data-testid="telescope-view-banner"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-sky-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(8, 24, 40, 0.94)',
+                  border: '1px solid rgba(56, 189, 248, 0.75)',
+                }}
+              >
+                <span className="font-semibold tracking-wide text-sm text-sky-100">
+                  {t('hud.telescope_viewing', { island: telemetry.telescopeView.islandName })}
+                </span>
+                <kbd className="px-2 py-0.5 rounded-md bg-sky-300 text-slate-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="text-sm text-sky-200">{t('hud.telescope_exit')}</span>
+              </div>
+            )}
+
             {/* Placed Trap Interaction Prompt */}
             {telemetry.nearbyPlacedTrap && (
               <div

@@ -10,6 +10,7 @@
 import { isWorldPausedByMenu } from '../domain/uiPause';
 import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
+import { shouldExitTelescopeView, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../../core/perfStats';
@@ -383,6 +384,10 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           movementAxes
         );
         const { forward, right } = movementAxes;
+        if (shouldExitTelescopeView(playerState, forward, right)) {
+          playerState.telescopeViewId = null;
+          emitHudSnapshot();
+        }
         if (restState.isSleepingInBed && (Math.abs(forward) > 0.1 || Math.abs(right) > 0.1)) {
           restState.isSleepingInBed = false;
           playerState.pitch = 0;
@@ -397,7 +402,11 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
 
         // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, Trapper's Workbench, Minecart Driving, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
-          if (restState.activeMinecartRide && tryBoardOrExitMinecart()) {
+          if (playerState.telescopeViewId) {
+            // Step back from the Skybound Isles telescope.
+            playerState.telescopeViewId = null;
+            emitHudSnapshot();
+          } else if (restState.activeMinecartRide && tryBoardOrExitMinecart()) {
             // Exited active minecart via [E]
           } else if (isPlayerNearEastForkSwitchLever(playerState.x, playerState.y, playerState.z)) {
             const newBranch = toggleEastForkSwitchBranch();
@@ -471,6 +480,16 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               );
               if (nearMinecartStation && tryBoardOrExitMinecart()) {
                 // Boarded nearby minecart directly!
+              } else if (bestInteract.kind === 'telescope' && bestInteract.telescope) {
+                // Look through the balcony telescope: face its island so leaving the view keeps that heading.
+                const view = telescopeViewFor(bestInteract.telescope);
+                playerState.telescopeViewId = bestInteract.telescope.id;
+                playerState.yaw = view.yaw;
+                playerState.pitch = view.pitch;
+                playerState.vx = 0;
+                playerState.vz = 0;
+                soundEngine.playFootstep('bridge', 0.9);
+                emitHudSnapshot();
               } else if (bestInteract.kind === 'trap_workbench') {
                 soundEngine.playFootstep('cabin', 1.05);
                 const win = window as unknown as {

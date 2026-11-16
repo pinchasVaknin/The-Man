@@ -27,6 +27,8 @@ import {
   walkableHeightValueAt,
 } from '../terrainMath';
 import { WATER_LEVEL } from '../domain/landmarksRegistry';
+import { getSkyTelescope } from '../domain/landmarks/skyboundIsles/skyTelescopes';
+import { t } from '../../locales';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
 import {
   findNearestDeadLootableAnimal,
@@ -110,6 +112,8 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const nearDoor = lookedAt.kind === 'door' ? lookedAt.door : null;
   const nearBed = lookedAt.kind === 'bed' ? lookedAt.bed : null;
   const nearChest = lookedAt.kind === 'chest' ? lookedAt.chest : null;
+  const viewingTelescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
+  const nearTelescope = !viewingTelescope && lookedAt.kind === 'telescope' ? lookedAt.telescope : null;
   const nearTrapWorkbench =
     lookedAt.kind === 'trap_workbench' && lookedAt.trapWorkbench
       ? {
@@ -330,6 +334,8 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
         }
       : null,
     ...(nearTrapWorkbench ? { nearbyTrapWorkbench: nearTrapWorkbench } : {}),
+    ...(nearTelescope ? { nearbyTelescope: { id: nearTelescope.id, islandName: skyIslandName(nearTelescope.targetIslandId) } } : {}),
+    ...(viewingTelescope ? { telescopeView: { islandName: skyIslandName(viewingTelescope.targetIslandId) } } : {}),
     ...(nearbyPlacedTrap ? { nearbyPlacedTrap } : {}),
     ...(player.heldTrapItemId
       ? (() => {
@@ -392,5 +398,13 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     skills: player.skills ? { ...player.skills } : undefined,
     ...(player.deathRespawnPhase ? { deathRespawnPhase: { ...player.deathRespawnPhase } } : {}),
   };
+}
+// #endregion
+
+// ======================== PRIVATE HELPERS ======================== \\
+// #region Sky Island Names
+/** Localized display name of a Skybound Isles island (`floating-garden` -> `landmarks.floating_garden`). */
+function skyIslandName(islandId: string): string {
+  return t(`landmarks.${islandId.replace(/-/g, '_')}`);
 }
 // #endregion
