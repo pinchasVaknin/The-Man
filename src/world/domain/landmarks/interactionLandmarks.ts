@@ -843,6 +843,83 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 240,
     contents: ['dwarven_warhammer', 'dwarven_pickaxe', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
+  // Floating Sky Archipelago — Celestial Sky-Metropolis Grand Treasury Chest
+  {
+    id: 'chest-sky-metropolis-sanctum',
+    name: 'Celestial Sky-Metropolis Treasury Chest',
+    x: 760.0,
+    y: 68.0,
+    z: -15.5,
+    interactRadius: 4.4,
+    goldCoins: 175,
+    contents: ['dwarven_warhammer', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
+  },
+  // Floating Sky Archipelago — Eastern Chrono-Astrolabe Relic Chest
+  {
+    id: 'chest-sky-chrono-observatory',
+    name: 'Chrono-Astrolabe Celestial Relic Chest',
+    x: 812.5,
+    y: 70.0,
+    z: -18.0,
+    interactRadius: 4.4,
+    goldCoins: 155,
+    contents: ['crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
+  },
+  // Floating Sky Archipelago — Under-Island Crystal Hollow Heart Chest
+  {
+    id: 'chest-sky-under-hollow',
+    name: 'Heart of the Sky-Island Crystal Chest',
+    x: 760.0,
+    y: 54.0,
+    z: -35.0,
+    interactRadius: 4.4,
+    goldCoins: 145,
+    contents: ['crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
+  },
+  // Floating Sky Archipelago — Royal Sky Galleon Captain's Coffer
+  {
+    id: 'chest-sky-galleon-captain',
+    name: "Royal Sky-Galleon Captain's Coffer",
+    x: 828.0,
+    y: 74.6,
+    z: 24.5,
+    interactRadius: 4.4,
+    goldCoins: 165,
+    contents: ['dwarven_gold_ore', 'sapphire_gem', 'crystal_gem', 'amethyst_gem'],
+  },
+  // Floating Sky Archipelago — Storm Citadel Thunder-God Vault Chest
+  {
+    id: 'chest-sky-storm-citadel',
+    name: 'Storm Citadel Thunder-God Vault Chest',
+    x: 828.0,
+    y: 88.0,
+    z: -96.5,
+    interactRadius: 4.4,
+    goldCoins: 210,
+    contents: ['dwarven_warhammer', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
+  },
+  // Floating Sky Archipelago — Celestial Phoenix Golden Relic Chest
+  {
+    id: 'chest-sky-phoenix-aerie',
+    name: 'Celestial Phoenix Golden Relic Chest',
+    x: 734.0,
+    y: 76.0,
+    z: 38.5,
+    interactRadius: 4.4,
+    goldCoins: 185,
+    contents: ['amethyst_gem', 'crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
+  },
+  // Floating Sky Archipelago — Crown of the Heavens Zenith Chest
+  {
+    id: 'chest-sky-crown-zenith',
+    name: 'Crown of the Heavens Zenith Chest',
+    x: 856.0,
+    y: 104.0,
+    z: -58.5,
+    interactRadius: 4.4,
+    goldCoins: 320,
+    contents: ['dwarven_warhammer', 'crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
+  },
 ] as const;
 
 /**

@@ -1501,41 +1501,30 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     };
   }),
 
-  // 9) Floating Blooming Islands Architecture: Twin Watchtowers, Temple Pavilion Columns, Barracks Columns/Chest, North Citadel, East Chest
-  ...[-5.2, 5.2].map((zOff, idx) => ({
+  // 9) Celestial Sky Archipelago Architecture: Stargate Pylons, Spire Cathedral Buttresses, Vault Chests & Obelisks
+  ...[-6.2, 6.2].map((zOff, idx) => ({
     id: `floating-sky-watchtower-${idx + 1}`,
-    minX: FLOATING_ISLAND_STAIR_POS.topX + 5.5 - 1.45,
-    maxX: FLOATING_ISLAND_STAIR_POS.topX + 5.5 + 1.45,
-    minZ: FLOATING_ISLAND_STAIR_POS.z + zOff - 1.45,
-    maxZ: FLOATING_ISLAND_STAIR_POS.z + zOff + 1.45,
+    minX: FLOATING_ISLAND_STAIR_POS.topX + 4.8 - 1.25,
+    maxX: FLOATING_ISLAND_STAIR_POS.topX + 4.8 + 1.25,
+    minZ: FLOATING_ISLAND_STAIR_POS.z + zOff - 1.25,
+    maxZ: FLOATING_ISLAND_STAIR_POS.z + zOff + 1.25,
     minY: 68.0,
-    maxY: 75.5,
+    maxY: 82.0,
   })),
   ...Array.from({ length: 8 }, (_, c) => {
-    const ang = (c / 8) * Math.PI * 2;
-    const cx = FLOATING_BLOOMING_ISLANDS[0].x + Math.cos(ang) * 5.2;
-    const cz = FLOATING_BLOOMING_ISLANDS[0].z + Math.sin(ang) * 5.2;
+    const ang = (c / 8) * Math.PI * 2 + Math.PI / 8;
+    const cx = FLOATING_BLOOMING_ISLANDS[0].x + Math.cos(ang) * 7.4;
+    const cz = FLOATING_BLOOMING_ISLANDS[0].z + Math.sin(ang) * 7.4;
     return {
       id: `floating-temple-col-${c + 1}`,
-      minX: cx - 0.35,
-      maxX: cx + 0.35,
-      minZ: cz - 0.35,
-      maxZ: cz + 0.35,
+      minX: cx - 0.55,
+      maxX: cx + 0.55,
+      minZ: cz - 0.55,
+      maxZ: cz + 0.55,
       minY: 68.0,
-      maxY: 74.2,
+      maxY: 79.0,
     };
   }),
-  ...[-4.0, -1.35, 1.35, 4.0].flatMap((bx, bIdx) =>
-    [-2.4, 2.4].map((bz, sIdx) => ({
-      id: `floating-barracks-col-${bIdx * 2 + sIdx + 1}`,
-      minX: FLOATING_BLOOMING_ISLANDS[0].x + bx - 0.32,
-      maxX: FLOATING_BLOOMING_ISLANDS[0].x + bx + 0.32,
-      minZ: FLOATING_BLOOMING_ISLANDS[0].z + 19.5 + bz - 0.32,
-      maxZ: FLOATING_BLOOMING_ISLANDS[0].z + 19.5 + bz + 0.32,
-      minY: 68.0,
-      maxY: 72.5,
-    }))
-  ),
   {
     id: 'floating-barracks-chest',
     minX: FLOATING_BLOOMING_ISLANDS[0].x - 0.65,
@@ -1545,45 +1534,6 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 68.0,
     maxY: 69.2,
   },
-  // Floating North Island Citadel Back/Side Walls & 6 Columns (at 228.0, 71.0, -93.5)
-  {
-    id: 'floating-north-citadel-back-wall',
-    minX: FLOATING_BLOOMING_ISLANDS[1].x - 5.2,
-    maxX: FLOATING_BLOOMING_ISLANDS[1].x + 5.2,
-    minZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 - 3.45,
-    maxZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 - 2.95,
-    minY: 71.0,
-    maxY: 76.2,
-  },
-  {
-    id: 'floating-north-citadel-west-wall',
-    minX: FLOATING_BLOOMING_ISLANDS[1].x - 5.25,
-    maxX: FLOATING_BLOOMING_ISLANDS[1].x - 4.75,
-    minZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 - 3.2,
-    maxZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 + 1.2,
-    minY: 71.0,
-    maxY: 76.2,
-  },
-  {
-    id: 'floating-north-citadel-east-wall',
-    minX: FLOATING_BLOOMING_ISLANDS[1].x + 4.75,
-    maxX: FLOATING_BLOOMING_ISLANDS[1].x + 5.25,
-    minZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 - 3.2,
-    maxZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 + 1.2,
-    minY: 71.0,
-    maxY: 76.2,
-  },
-  ...[-4.6, 0, 4.6].flatMap((cx, cIdx) =>
-    [-2.8, 2.8].map((cz, sIdx) => ({
-      id: `floating-north-citadel-col-${cIdx * 2 + sIdx + 1}`,
-      minX: FLOATING_BLOOMING_ISLANDS[1].x + cx - 0.35,
-      maxX: FLOATING_BLOOMING_ISLANDS[1].x + cx + 0.35,
-      minZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 + cz - 0.35,
-      maxZ: FLOATING_BLOOMING_ISLANDS[1].z - 1.5 + cz + 0.35,
-      minY: 71.0,
-      maxY: 76.0,
-    }))
-  ),
   {
     id: 'floating-east-island-chest',
     minX: FLOATING_BLOOMING_ISLANDS[2].x + 5.5 - 0.65,

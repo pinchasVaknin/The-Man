@@ -34,6 +34,8 @@ import {
   resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
+  stepSkyWalkableClouds,
+  skyWalkableCloudHeightAt,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -85,6 +87,7 @@ const GRAVITY = 14.8;
 export const STAMINA_EXHAUSTION_RECOVERY_THRESHOLD = 24;
 
 let activePlayerStateRegistry: IPlayerState | null = null;
+let skyCloudElapsedClock = 0;
 
 /**
  * Summary: Returns the currently active player state instance (if initialized).
@@ -1400,6 +1403,35 @@ export function stepPlayerPhysics(
     state.isSwimming = false;
     if (state.y >= FLOATING_ISLAND_STAIR_POS.topY - 1.5) {
       state.vx = Math.max(state.vx, 4.8);
+    }
+  }
+
+  // Walkable & Sinking Sky Clouds (active in the Floating Sky Archipelago region x >= 680, y >= 42):
+  // - Standing still (< 1.25 m/s) on a 'sinking', 'storm', or 'drifting' cloud causes it to sink and dissolve!
+  // - Keeping moving (>= 1.25 m/s) keeps the cloud buoyant.
+  // - 'bouncy' cumulus clouds automatically launch the player upward, and 'drifting' clouds carry the player horizontally.
+  if (state.x >= 680.0 && state.y >= 42.0) {
+    skyCloudElapsedClock += dt;
+    stepSkyWalkableClouds(
+      dt,
+      skyCloudElapsedClock,
+      state.x,
+      state.y,
+      state.z,
+      state.vx,
+      state.vz
+    );
+    const cloudHit = skyWalkableCloudHeightAt(state.x, state.z, state.y);
+    if (cloudHit !== null && Math.abs(state.y - cloudHit.y) <= 1.35) {
+      if (cloudHit.cloud.kind === 'drifting') {
+        state.x += cloudHit.state.vx * dt;
+        state.z += cloudHit.state.vz * dt;
+      }
+      if (cloudHit.cloud.kind === 'bouncy' && state.vy <= 1.5) {
+        state.vy = cloudHit.cloud.bounceVy ?? 16.0;
+        state.onGround = false;
+        state.coyoteTimer = 0;
+      }
     }
   }
 

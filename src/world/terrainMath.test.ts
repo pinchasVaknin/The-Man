@@ -2971,7 +2971,7 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
     'ancient-mine-fixture-golem-body',
     'ancient-mine-rail-bridge-west',
     'ancient-mine-rail-bridge-east',
-    'ancient-mine-rail-heroes-path-inner',
+    'ancient-mine-rail-ledge-south-west',
     'ancient-mine-rail-king-plinth-front',
     'dwarven-statue-west-pedestal',
     'dwarven-statue-east-pedestal',
@@ -3401,4 +3401,136 @@ test('palaceAndMineFixes_WhenTestingStatuesMonkWallsDoorsCauldronsAnd2FWindow_Sh
   assert.ok(getActiveTempleMonks().length >= 4);
   resetMonkTempleSystem();
 });
+
+test('floatingSkyArchipelagoAndSinkingClouds_WhenWalkingStandingAndExploring_ShouldEnforceCloudBuoyancyHollowAndGalleonDecks', async () => {
+  const {
+    FLOATING_BLOOMING_ISLANDS,
+    UNDER_ISLAND_CRYSTAL_HOLLOW_POS,
+    SKY_GALLEON_SHIP_POS,
+    SKY_WALKABLE_CLOUDS,
+    getSkyWalkableCloudStates,
+    resetSkyWalkableClouds,
+    stepSkyWalkableClouds,
+    floatingBloomingIslandHeightAt,
+    sampleMinimapColorAt,
+    WORLD_CHESTS,
+  } = await import('./terrainMath');
+
+  resetSkyWalkableClouds();
+
+  // 1) Verify all 7 Floating Sky Islands exist and resolve walkable deck heights
+  assert.equal(FLOATING_BLOOMING_ISLANDS.length, 7);
+  for (const isl of FLOATING_BLOOMING_ISLANDS) {
+    const h = floatingBloomingIslandHeightAt(isl.x, isl.z, isl.deckY);
+    assert.ok(
+      h !== null && Math.abs(h - isl.deckY) <= 0.4,
+      `Expected island ${isl.id} at (${isl.x}, ${isl.z}) to resolve near deckY=${isl.deckY}, got ${h}`
+    );
+  }
+
+  // 2) Verify Under-Island Crystal Hollow (y = 54.0m) & 2-Flight Cliffside Staircase (y = 68.0 -> 61.0 -> 54.0m)
+  const hPos = UNDER_ISLAND_CRYSTAL_HOLLOW_POS;
+  const midStairH = floatingBloomingIslandHeightAt(hPos.stairMidX, hPos.stairMidZ, hPos.stairMidY);
+  assert.ok(
+    midStairH !== null && Math.abs(midStairH - hPos.stairMidY) < 0.25,
+    `Expected Cliffside Staircase mid-landing at ${hPos.stairMidY}m, got ${midStairH}`
+  );
+  const hollowFloorH = floatingBloomingIslandHeightAt(hPos.x, hPos.z, hPos.floorY + 0.5);
+  assert.equal(hollowFloorH, hPos.floorY, 'Expected Under-Island Crystal Hollow floor at 54.0m when currentY < 62.5m');
+  const mainDeckAboveHollowH = floatingBloomingIslandHeightAt(hPos.x, hPos.z, 68.0);
+  assert.ok(
+    mainDeckAboveHollowH !== null && Math.abs(mainDeckAboveHollowH - 68.35) < 0.1,
+    `Expected Main Island deck at ~68.35m when currentY = 68.0m, got ${mainDeckAboveHollowH}`
+  );
+  const northBalconyH = floatingBloomingIslandHeightAt(hPos.x, hPos.northBalconyMinZ + 1.0, hPos.floorY);
+  assert.equal(northBalconyH, hPos.floorY, 'Expected North Suspended Lookout Balcony at 54.0m');
+
+  // 3) Verify Moored Royal Sky Galleon Gangplank, Main Deck (72.6m), and Stern Quarterdeck (74.6m)
+  const sg = SKY_GALLEON_SHIP_POS;
+  const gangplankMidX = (sg.gangplankMinX + sg.gangplankMaxX) * 0.5;
+  const gangplankH = floatingBloomingIslandHeightAt(gangplankMidX, sg.z, 72.3);
+  assert.ok(gangplankH !== null && gangplankH >= 72.0 && gangplankH <= 72.6);
+  const galleonMainH = floatingBloomingIslandHeightAt(sg.x, sg.z + 5.0, sg.mainDeckY);
+  assert.equal(galleonMainH, sg.mainDeckY, 'Expected Royal Sky Galleon Main Deck at 72.6m');
+  const galleonQuarterH = floatingBloomingIslandHeightAt(sg.x, sg.quarterDeckMaxZ - 2.0, sg.quarterDeckY);
+  assert.equal(galleonQuarterH, sg.quarterDeckY, 'Expected Royal Sky Galleon Quarterdeck at 74.6m');
+
+  // 4) Sinking Cloud Mechanics:
+  //    - Walking (horizSpeed >= 1.25 m/s) keeps the cloud buoyant and solid!
+  //    - Standing still (horizSpeed < 1.25 m/s) sinks the cloud and dissolves it after 1.25s, then reforms after 3.0s!
+  const sinkingCloud = SKY_WALKABLE_CLOUDS.find((c) => c.id === 'cloud-se-1')!;
+  assert.equal(sinkingCloud.kind, 'sinking');
+
+  // Walk across the cloud at 4.2 m/s for 2.0 seconds -> must NOT dissolve!
+  for (let tick = 0; tick < 20; tick++) {
+    stepSkyWalkableClouds(0.1, tick * 0.1, sinkingCloud.x, sinkingCloud.y, sinkingCloud.z, 4.2, 0);
+  }
+  const stAfterWalk = getSkyWalkableCloudStates().find((s) => s.id === 'cloud-se-1')!;
+  assert.equal(stAfterWalk.dissolved, false, 'Expected sinking cloud to stay solid while player keeps walking');
+  assert.ok(
+    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y) !== null,
+    'Expected walkable height on sinking cloud while player keeps moving'
+  );
+
+  // Now stand still (vx = 0, vz = 0) on the sinking cloud for 1.35 seconds -> must sink and dissolve!
+  for (let tick = 0; tick < 14; tick++) {
+    stepSkyWalkableClouds(
+      0.1,
+      2.0 + tick * 0.1,
+      sinkingCloud.x,
+      stAfterWalk.currentY,
+      sinkingCloud.z,
+      0,
+      0
+    );
+  }
+  assert.equal(stAfterWalk.dissolved, true, 'Expected sinking cloud to dissolve when standing still for >= 1.25s');
+  assert.equal(
+    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y),
+    null,
+    'Expected dissolved cloud to return null height so the stationary player falls through'
+  );
+
+  // Wait 3.1 seconds off the cloud -> cloud reforms!
+  for (let tick = 0; tick < 31; tick++) {
+    stepSkyWalkableClouds(0.1, 4.0 + tick * 0.1, 0, 0, 0, 0, 0);
+  }
+  assert.equal(stAfterWalk.dissolved, false, 'Expected dissolved cloud to reform after 3.0s');
+  assert.ok(
+    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y) !== null,
+    'Expected reformed cloud to be walkable again'
+  );
+
+  // 5) Golden Nimbus Checkpoint Cloud ('golden') never sinks or dissolves even when standing still
+  const goldenCloud = SKY_WALKABLE_CLOUDS.find((c) => c.kind === 'golden')!;
+  for (let tick = 0; tick < 25; tick++) {
+    stepSkyWalkableClouds(0.1, tick * 0.1, goldenCloud.x, goldenCloud.y, goldenCloud.z, 0, 0);
+  }
+  const goldenState = getSkyWalkableCloudStates().find((s) => s.id === goldenCloud.id)!;
+  assert.equal(goldenState.dissolved, false, 'Expected golden checkpoint cloud never to dissolve');
+  assert.equal(goldenState.sinkOffset, 0, 'Expected golden checkpoint cloud never to sink');
+
+  // 6) Verify all 7 Sky Archipelago treasure chests, 35 clouds (including Western Cloud-Sea Ring), and 7 distinct non-green realm surface colors
+  assert.equal(SKY_WALKABLE_CLOUDS.length, 35, 'Expected 35 walkable sky clouds including Western Cloud-Sea Ring');
+  assert.ok(SKY_WALKABLE_CLOUDS.some((c) => c.id === 'cloud-ring-2' && c.kind === 'golden'));
+  const metropolisColor = sampleMinimapColorAt(760, -35);
+  assert.ok(metropolisColor[0] > metropolisColor[1], 'Expected golden-ivory Metropolis color instead of old green grass');
+  for (const chestId of [
+    'chest-sky-under-hollow',
+    'chest-sky-galleon-captain',
+    'chest-sky-storm-citadel',
+    'chest-sky-phoenix-aerie',
+    'chest-sky-crown-zenith',
+    'chest-sky-metropolis-sanctum',
+    'chest-sky-chrono-observatory',
+  ]) {
+    assert.ok(
+      WORLD_CHESTS.some((c) => c.id === chestId),
+      `Expected ${chestId} to be registered in WORLD_CHESTS`
+    );
+  }
+
+  resetSkyWalkableClouds();
+});
 // #endregion
+
