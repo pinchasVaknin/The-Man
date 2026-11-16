@@ -11,6 +11,7 @@ import { isWorldPausedByMenu } from '../domain/uiPause';
 import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
 import { shouldExitTelescopeView, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
+import { activateSkyMechanism } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../../core/perfStats';
@@ -480,6 +481,14 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               );
               if (nearMinecartStation && tryBoardOrExitMinecart()) {
                 // Boarded nearby minecart directly!
+              } else if (bestInteract.kind === 'sky_mechanism' && bestInteract.mechanism) {
+                const activation = activateSkyMechanism(bestInteract.mechanism.id);
+                if (activation.changed) soundEngine.playFootstep('bridge', 0.8);
+                if (activation.solvedPuzzle === 'observatory-rings') {
+                  hudFeedback.lootNotification = t('hud.observatory_chamber_opened');
+                  hudFeedback.lootNotificationTimer = 5.0;
+                }
+                emitHudSnapshot();
               } else if (bestInteract.kind === 'telescope' && bestInteract.telescope) {
                 // Look through the balcony telescope: face its island so leaving the view keeps that heading.
                 const view = telescopeViewFor(bestInteract.telescope);

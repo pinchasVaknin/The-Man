@@ -12,6 +12,12 @@ import type { ISmallAnimalState } from './boidsAndWildlifeSystem';
 import { resetActiveWorldBirds } from './boidsAndWildlifeSystem';
 import { resetActiveTempleMonksState } from './monkTempleSystem';
 import {
+  exportSkyPuzzleState,
+  importSkyPuzzleState,
+  resetSkyPuzzles,
+  type ISkyPuzzleState,
+} from '../domain/landmarks/skyboundIsles/skyPuzzles';
+import {
   configureSailableShipsForGameMode,
   getActiveSailableShip,
   getAllSailableShips,
@@ -125,6 +131,8 @@ export interface IWorldSaveSnapshot {
   deadDwarfIds?: number[];
   /** Full in-game days elapsed (drives merchant restocks, S2). Absent in older saves. */
   inGameHoursElapsed?: number;
+  /** Skybound Isles puzzle progress (ring positions, solved puzzles). Absent in older saves. */
+  skyPuzzles?: ISkyPuzzleState;
 }
 
 const STORAGE_KEY_PREFIX = 'THE_MAN_WORLD_SAVE_';
@@ -409,7 +417,8 @@ export function captureCurrentWorldSnapshot(
     })),
     openDoors: Array.from(openDoorIds),
     openedChests: player.openedChestIds ? [...player.openedChestIds] : [],
-    timeOfDayHours: worldHours
+    timeOfDayHours: worldHours,
+    skyPuzzles: exportSkyPuzzleState()
   };
 }
 
@@ -618,6 +627,9 @@ export function applyWorldSnapshotToLiveSystems(
       openDoorIds.add(snapshot.openDoors[i]);
     }
   }
+
+  // 6. Restore Skybound Isles puzzles (older saves start unsolved)
+  importSkyPuzzleState(snapshot.skyPuzzles);
 }
 
 /**
@@ -705,6 +717,7 @@ export function resetLiveWorldToFreshBaseline(
 
   resetActiveWorldBirds();
   resetActiveTempleMonksState();
+  resetSkyPuzzles();
 
   openDoorIds.clear();
 }

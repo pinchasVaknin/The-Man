@@ -127,6 +127,38 @@ export {
   type ISkyBouncePad,
 } from './landmarks/skyboundIsles/skyHarborLayout';
 export {
+  OBSERVATORY_TOWER,
+  OBSERVATORY_CHAMBER,
+  OBSERVATORY_CHEST_SPOT,
+  OBSERVATORY_CHAMBER_GATE,
+  OBSERVATORY_STAR_MAP,
+  OBSERVATORY_BALCONY,
+  OBSERVATORY_BALCONY_RAMP,
+  OBSERVATORY_DIAL,
+  OBSERVATORY_LEVERS,
+  OBSERVATORY_GIANT_TELESCOPE,
+  OBSERVATORY_SOLID_BOXES,
+} from './landmarks/skyboundIsles/observatoryLayout';
+export {
+  SKY_MECHANISMS,
+  OBSERVATORY_RING_STEPS,
+  OBSERVATORY_RING_SOLUTION,
+  createSkyPuzzleState,
+  getSkyPuzzleState,
+  resetSkyPuzzles,
+  exportSkyPuzzleState,
+  importSkyPuzzleState,
+  isSkyPuzzleSolved,
+  findNearestSkyMechanism,
+  activateSkyMechanism,
+  closedSkyGates,
+  skyGatesWithState,
+  type SkyPuzzleId,
+  type ISkyPuzzleState,
+  type ISkyMechanism,
+  type ISkyActivationResult,
+} from './landmarks/skyboundIsles/skyPuzzles';
+export {
   SKY_TELESCOPES,
   TELESCOPE_MIN_FOV_DEG,
   TELESCOPE_MAX_FOV_DEG,

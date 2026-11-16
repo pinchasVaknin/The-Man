@@ -114,6 +114,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const nearChest = lookedAt.kind === 'chest' ? lookedAt.chest : null;
   const viewingTelescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
   const nearTelescope = !viewingTelescope && lookedAt.kind === 'telescope' ? lookedAt.telescope : null;
+  const nearMechanism = lookedAt.kind === 'sky_mechanism' ? lookedAt.mechanism : null;
   const nearTrapWorkbench =
     lookedAt.kind === 'trap_workbench' && lookedAt.trapWorkbench
       ? {
@@ -336,6 +337,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     ...(nearTrapWorkbench ? { nearbyTrapWorkbench: nearTrapWorkbench } : {}),
     ...(nearTelescope ? { nearbyTelescope: { id: nearTelescope.id, islandName: skyIslandName(nearTelescope.targetIslandId) } } : {}),
     ...(viewingTelescope ? { telescopeView: { islandName: skyIslandName(viewingTelescope.targetIslandId) } } : {}),
+    ...(nearMechanism ? { nearbySkyMechanism: { id: nearMechanism.id, label: t(nearMechanism.labelKey) } } : {}),
     ...(nearbyPlacedTrap ? { nearbyPlacedTrap } : {}),
     ...(player.heldTrapItemId
       ? (() => {

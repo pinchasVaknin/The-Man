@@ -1034,6 +1034,10 @@ export const en = {
     "telescope_look": "Look through telescope ({island})",
     "telescope_viewing": "Telescope — {island}",
     "telescope_exit": "Step back",
+    "sky_turn_outer_ring": "Turn the outer ring",
+    "sky_turn_middle_ring": "Turn the middle ring",
+    "sky_turn_inner_ring": "Turn the inner ring",
+    "observatory_chamber_opened": "The rings align with the star map — a hidden chamber opens in the tower",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
   },

@@ -46,6 +46,7 @@ import {
   STORM_GUST_SPEED_MPS,
   skyBouncePadAt,
   stepSkyWindFlowers,
+  closedSkyGates,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -1655,6 +1656,20 @@ export function stepPlayerPhysics(
       else if (minPen === penRight) nextX = expMaxX;
       else if (minPen === penBack) nextZ = expMinZ;
       else nextZ = expMaxZ;
+    }
+  }
+
+  // Skybound Isles puzzle gates: block like a closed door until their puzzle is solved.
+  if (isInsideSkyboundRegion(nextX, nextZ)) {
+    const gates = closedSkyGates();
+    for (let i = 0; i < gates.length; i++) {
+      const gate = gates[i];
+      if (state.y >= gate.maxY || state.y + 1.6 < gate.minY) continue;
+      const resolved = resolveHorizontalBoxCollision(nextX, nextZ, playerRadius, gate);
+      if (resolved.collided) {
+        nextX = resolved.x;
+        nextZ = resolved.z;
+      }
     }
   }
 

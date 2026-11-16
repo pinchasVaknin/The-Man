@@ -176,7 +176,7 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
     path: [
       // Starts just below and beyond the south rim: a player standing on the deck is outside
       // it, a player who walks off the edge drops straight into it.
-      { x: 800.0, y: 95.5, z: -94.5 },
+      { x: 800.0, y: 95.5, z: -91.0 },
       { x: 795.0, y: 69.0, z: -66.0 },
     ],
     radius: 3.0,

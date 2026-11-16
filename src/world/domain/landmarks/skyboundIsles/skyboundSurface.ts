@@ -16,6 +16,7 @@ import { SKY_REST_PLATFORMS } from './skyCloudRoutes';
 import { skyCloudSurfaceAt } from './skyCloudSystem';
 import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type ISkyBouncePad, type ISkySolidBox } from './skyHarborLayout';
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
+import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -90,6 +91,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
   }
   visitSkyHarborSurfaces(x, z, consider);
   visitFloatingGardenSurfaces(x, z, consider);
+  visitObservatorySurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);
   if (cloud !== null) consider(cloud.y, 'cloud', cloud.cloud.def.id);
   return best;
@@ -101,7 +103,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
 export const SKYBOUND_BOUNCE_PADS: readonly ISkyBouncePad[] = [...SKY_BOUNCE_PADS, ...GARDEN_BOUNCE_PADS];
 
 /** Summary: Every solid box of the archipelago's structures, props and railings. */
-export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [...SKY_HARBOR_SOLID_BOXES, ...GARDEN_SOLID_BOXES];
+export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [...SKY_HARBOR_SOLID_BOXES, ...GARDEN_SOLID_BOXES, ...OBSERVATORY_SOLID_BOXES];
 
 /**
  * Summary: The bounce mushroom cap the feet are resting on, if any.

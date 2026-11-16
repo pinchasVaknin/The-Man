@@ -1788,6 +1788,23 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {/* Skybound Isles Puzzle Mechanism Prompt (levers, runes, resonance crystals) */}
+            {telemetry.nearbySkyMechanism && (
+              <div
+                data-testid="sky-mechanism-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-amber-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(28, 18, 10, 0.94)',
+                  border: '1px solid rgba(245, 158, 11, 0.75)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-sm shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold tracking-wide text-sm text-amber-200">{telemetry.nearbySkyMechanism.label}</span>
+              </div>
+            )}
+
             {/* Looking Through A Telescope: island name and how to step back */}
             {telemetry.telescopeView && (
               <div

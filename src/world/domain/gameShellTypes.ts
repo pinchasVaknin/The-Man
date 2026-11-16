@@ -127,6 +127,11 @@ export interface ITelemetrySnapshot {
     id: string;
     islandName: string;
   } | null;
+  /** Skybound Isles puzzle mechanism in reach (lever, rune, crystal), with its prompt text. */
+  nearbySkyMechanism?: {
+    id: string;
+    label: string;
+  } | null;
   /** Island seen through the telescope the player is looking through, if any. */
   telescopeView?: {
     islandName: string;
