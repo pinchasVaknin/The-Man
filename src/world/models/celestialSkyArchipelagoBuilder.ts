@@ -19,6 +19,7 @@ import {
 import type { IWorldModelBuildContext } from './types';
 import { buildSkyboundIslesBlockout } from './skyboundIslesBuilder';
 import { buildSkyHarbor } from './skyHarborBuilder';
+import { buildFloatingGarden } from './floatingGardenBuilder';
 
 export interface ICelestialSkyArchipelagoBuildResult {
   readonly floatingIslandsGroup: THREE.Group;
@@ -399,6 +400,8 @@ export function buildCelestialSkyArchipelagoModels(
   floatingIslandsGroup.add(skybound.group);
   const skyHarbor = buildSkyHarbor(ctx);
   floatingIslandsGroup.add(skyHarbor.group);
+  const floatingGarden = buildFloatingGarden(ctx);
+  floatingIslandsGroup.add(floatingGarden.group);
 
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({
@@ -431,6 +434,7 @@ export function buildCelestialSkyArchipelagoModels(
 
         skybound.update(elapsedTime);
         skyHarbor.update(elapsedTime);
+        floatingGarden.update(elapsedTime);
       }
 
       // Animate Celestial Wind-Ring & Thermal Launch Pads

@@ -899,16 +899,27 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 210,
     contents: ['dwarven_warhammer', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
   },
-  // Skybound Isles — Floating Garden Chest
+  // Skybound Isles — Floating Garden: chest in the cave behind the waterfall
   {
     id: 'chest-sky-phoenix-aerie',
-    name: 'Floating Garden Chest',
-    x: 722.0,
-    y: 71.0,
-    z: 62.0,
+    name: 'Waterfall Cave Chest',
+    x: 720.0,
+    y: 66.0,
+    z: 86.5,
     interactRadius: 4.4,
     goldCoins: 185,
     contents: ['amethyst_gem', 'crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
+  },
+  // Skybound Isles — Floating Garden: chest hidden in the root nook under the north cliff
+  {
+    id: 'chest-sky-garden-roots',
+    name: 'Root Nook Chest',
+    x: 720.5,
+    y: 64.5,
+    z: 9.0,
+    interactRadius: 4.4,
+    goldCoins: 90,
+    contents: ['amethyst_gem', 'crystal_gem'],
   },
   // Skybound Isles — Ancient Sky Ruins Chest
   {

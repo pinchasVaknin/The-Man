@@ -22,7 +22,7 @@ import {
   SMUGGLER_ISLAND_POS,
   SAILABLE_SHIP_INITIAL_POS,
 } from './coreLandmarks';
-import { SKY_HARBOR_SOLID_BOXES } from './skyboundIsles/skyHarborLayout';
+import { SKYBOUND_SOLID_BOXES } from './skyboundIsles/skyboundSurface';
 import {
   HUNTER_LODGE_POS,
   LAKESIDE_TEA_PAVILION_POS,
@@ -1500,8 +1500,8 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       maxY: SAKURA_SANCTUARY_POS.height + 6.8 * sc,
     };
   }),
-  // 9) Skybound Isles: Sky Harbor props, railings, Windspire and dock
-  ...SKY_HARBOR_SOLID_BOXES,
+  // 9) Skybound Isles: Sky Harbor and island props, railings and structures
+  ...SKYBOUND_SOLID_BOXES,
 ];
 // #endregion
 

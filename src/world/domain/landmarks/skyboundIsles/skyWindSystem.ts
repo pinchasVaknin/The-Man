@@ -12,6 +12,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { RUINS_UPDRAFT_BASE, RUINS_UPDRAFT_TOP, STORM_VORTEX_ANCHOR } from './skyCloudRoutes';
+import { GARDEN_WIND_FLOWER_SPOT } from './floatingGardenLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -100,13 +101,15 @@ const FALL_CAP_EASE_PER_SEC = 8.0;
 
 // #region Wind Flowers
 /**
- * Summary: The two wind flowers of the Sky Garden: one lifts to the canopy perch, one to the Windspire balcony.
+ * Summary: The wind flowers: two in the Sky Harbor garden (canopy perch, Windspire balcony) and one
+ *          on the Floating Garden (Sky Tree high branch).
  * Design: Their columns have no exit push. A player who does not steer just hovers at the top and
  *         settles back down inside the column; only steering out drops them onto the target.
  */
 export const SKY_WIND_FLOWERS: readonly ISkyWindFlower[] = [
   { id: 'wind-flower-perch', x: 765.0, z: -72.5, deckY: 68.0, triggerRadius: 3.0, holdOpenSec: 6.0 },
   { id: 'wind-flower-windspire', x: 785.0, z: -49.0, deckY: 68.0, triggerRadius: 3.0, holdOpenSec: 6.0 },
+  { id: 'wind-flower-garden', x: GARDEN_WIND_FLOWER_SPOT.x, z: GARDEN_WIND_FLOWER_SPOT.z, deckY: 71.0, triggerRadius: 3.0, holdOpenSec: 6.0 },
 ];
 const WIND_FLOWER_COLUMN_RADIUS_M = 1.6;
 // #endregion
@@ -212,6 +215,17 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
     radius: WIND_FLOWER_COLUMN_RADIUS_M,
     speed: 8.0,
     flowerId: 'wind-flower-windspire',
+  },
+  {
+    id: 'wind-flower-garden-updraft',
+    mode: 'updraft',
+    path: [
+      { x: GARDEN_WIND_FLOWER_SPOT.x, y: 70.5, z: GARDEN_WIND_FLOWER_SPOT.z },
+      { x: GARDEN_WIND_FLOWER_SPOT.x, y: GARDEN_WIND_FLOWER_SPOT.topY, z: GARDEN_WIND_FLOWER_SPOT.z },
+    ],
+    radius: WIND_FLOWER_COLUMN_RADIUS_M,
+    speed: 8.0,
+    flowerId: 'wind-flower-garden',
   },
   {
     id: 'wind-windspire-shortcut',

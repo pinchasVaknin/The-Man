@@ -14,7 +14,8 @@
 import { SKY_BRIDGES, SKYBOUND_ISLANDS, SKYBOUND_REGION, getSkyIsland, isInsideSkyboundRegion, type ISkyIsland } from './skyboundLayout';
 import { SKY_REST_PLATFORMS } from './skyCloudRoutes';
 import { skyCloudSurfaceAt } from './skyCloudSystem';
-import { visitSkyHarborSurfaces } from './skyHarborLayout';
+import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type ISkyBouncePad, type ISkySolidBox } from './skyHarborLayout';
+import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -88,9 +89,32 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
     if (Math.hypot(x - p.x, z - p.z) <= p.radius) consider(p.y, 'platform', p.id);
   }
   visitSkyHarborSurfaces(x, z, consider);
+  visitFloatingGardenSurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);
   if (cloud !== null) consider(cloud.y, 'cloud', cloud.cloud.def.id);
   return best;
+}
+// #endregion
+
+// #region Bounce Pads And Solids
+/** Summary: Every bounce mushroom of the archipelago (Sky Harbor garden and Floating Garden). */
+export const SKYBOUND_BOUNCE_PADS: readonly ISkyBouncePad[] = [...SKY_BOUNCE_PADS, ...GARDEN_BOUNCE_PADS];
+
+/** Summary: Every solid box of the archipelago's structures, props and railings. */
+export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [...SKY_HARBOR_SOLID_BOXES, ...GARDEN_SOLID_BOXES];
+
+/**
+ * Summary: The bounce mushroom cap the feet are resting on, if any.
+ * @param x Feet X.
+ * @param y Feet Y.
+ * @param z Feet Z.
+ * @returns The pad, or `null`.
+ */
+export function skyBouncePadAt(x: number, y: number, z: number): ISkyBouncePad | null {
+  for (const p of SKYBOUND_BOUNCE_PADS) {
+    if (Math.hypot(x - p.x, z - p.z) <= p.radius && Math.abs(y - p.topY) <= 0.6) return p;
+  }
+  return null;
 }
 // #endregion
 

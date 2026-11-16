@@ -39,7 +39,7 @@ import {
   getWindFlowerOpenness,
 } from '../domain/landmarksRegistry';
 import type { IWorldModelBuildContext } from './types';
-import { boxMesh, createMaterials, deckSlab, type IHarborMaterials } from './skyHarborShared';
+import { boxMesh, buildRailInstances, createMaterials, deckSlab, type IHarborMaterials } from './skyHarborShared';
 import { buildSkyDock } from './skyHarborDockBuilder';
 // #endregion
 
@@ -216,23 +216,7 @@ function buildTelescopes(ctx: IWorldModelBuildContext, mats: IHarborMaterials, b
 
 /** Every railing collision box drawn as a stone rail; one instanced mesh for all of them. */
 function buildRailings(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
-  const rails = SKY_HARBOR_SOLID_BOXES.filter((b) => b.id.startsWith('rail-'));
-  const mesh = new THREE.InstancedMesh(box, mats.marble, rails.length);
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  const up = new THREE.Vector3(0, 1, 0);
-  rails.forEach((r, i) => {
-    q.setFromAxisAngle(up, r.yaw ?? 0);
-    m.compose(
-      new THREE.Vector3((r.minX + r.maxX) / 2, (r.minY + r.maxY) / 2, (r.minZ + r.maxZ) / 2),
-      q,
-      new THREE.Vector3(r.maxX - r.minX, r.maxY - r.minY, r.maxZ - r.minZ)
-    );
-    mesh.setMatrixAt(i, m);
-  });
-  mesh.instanceMatrix.needsUpdate = true;
-  mesh.castShadow = !ctx.isSoftwareGl;
-  group.add(mesh);
+  group.add(buildRailInstances(ctx, box, mats.marble, SKY_HARBOR_SOLID_BOXES));
 }
 // #endregion
 

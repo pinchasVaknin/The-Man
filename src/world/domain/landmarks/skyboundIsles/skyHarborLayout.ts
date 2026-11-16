@@ -428,20 +428,6 @@ export function visitSkyHarborSurfaces(
 }
 
 /**
- * Summary: The bounce mushroom cap the feet are resting on, if any.
- * @param x Feet X.
- * @param y Feet Y.
- * @param z Feet Z.
- * @returns The pad, or `null`.
- */
-export function skyBouncePadAt(x: number, y: number, z: number): ISkyBouncePad | null {
-  for (const p of SKY_BOUNCE_PADS) {
-    if (Math.hypot(x - p.x, z - p.z) <= p.radius && Math.abs(y - p.topY) <= 0.6) return p;
-  }
-  return null;
-}
-
-/**
  * Summary: Heights of every pass of the Windspire stair at a polar angle (one or two passes).
  * @param angle atan2(z - cz, x - cx) in radians.
  */

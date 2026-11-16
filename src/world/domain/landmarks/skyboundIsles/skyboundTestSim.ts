@@ -10,9 +10,8 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { pointInsideSolidBuildingBox } from '../../collisionWorld';
-import { SKY_HARBOR_SOLID_BOXES, skyBouncePadAt } from './skyHarborLayout';
 import { applySkyWind, sampleSkyWindAt, stepSkyWindFlowers } from './skyWindSystem';
-import { skyboundSurfaceAt, type ISkySurfaceHit } from './skyboundSurface';
+import { SKYBOUND_SOLID_BOXES, skyBouncePadAt, skyboundSurfaceAt, type ISkySurfaceHit } from './skyboundSurface';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -137,14 +136,14 @@ export function simulateSkyPlayer(start: { x: number; y: number; z: number }, pi
 }
 
 /**
- * Summary: Whether a standing player at (x, y, z) would be pushed by any Sky Harbor solid box.
+ * Summary: Whether a standing player at (x, y, z) would be pushed by any archipelago solid box.
  * @param x Feet X.
  * @param y Feet Y.
  * @param z Feet Z.
  * @returns The id of the first blocking box, or `null`.
  */
 export function blockingSkyHarborBox(x: number, y: number, z: number): string | null {
-  for (const box of SKY_HARBOR_SOLID_BOXES) {
+  for (const box of SKYBOUND_SOLID_BOXES) {
     if (y + 1.55 < box.minY || y >= box.maxY - BOX_STEP_CLEARANCE_M) continue;
     if (pointInsideSolidBuildingBox(x, z, SIM_PLAYER.radius, box)) return box.id;
   }

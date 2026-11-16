@@ -8,7 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import * as THREE from 'three';
-import type { ISkyDeckRect } from '../domain/landmarksRegistry';
+import type { ISkyDeckRect, ISkySolidBox } from '../domain/landmarksRegistry';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -87,5 +87,60 @@ export function addRope(group: THREE.Group, mat: THREE.LineBasicMaterial, ctx: I
 /** Summary: Slab whose top is exactly at the deck's `y`. */
 export function deckSlab(box: THREE.BoxGeometry, mat: THREE.Material, d: ISkyDeckRect, thickness: number): THREE.Mesh {
   return boxMesh(box, mat, (d.minX + d.maxX) / 2, d.y - thickness / 2, (d.minZ + d.maxZ) / 2, d.maxX - d.minX, thickness, d.maxZ - d.minZ);
+}
+
+/**
+ * Summary: Draws every railing box (id starting with `rail-`) as one instanced mesh, exactly
+ *          where it collides.
+ * @param ctx Shared build context.
+ * @param box Shared unit box geometry.
+ * @param mat Railing material.
+ * @param boxes Solid boxes to draw the railings of.
+ * @returns The instanced mesh (already filled), to add to a group.
+ */
+export function buildRailInstances(ctx: IWorldModelBuildContext, box: THREE.BoxGeometry, mat: THREE.Material, boxes: readonly ISkySolidBox[]): THREE.InstancedMesh {
+  const rails = boxes.filter((b) => b.id.startsWith('rail-'));
+  const mesh = new THREE.InstancedMesh(box, mat, rails.length);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0);
+  rails.forEach((r, i) => {
+    q.setFromAxisAngle(up, r.yaw ?? 0);
+    m.compose(
+      new THREE.Vector3((r.minX + r.maxX) / 2, (r.minY + r.maxY) / 2, (r.minZ + r.maxZ) / 2),
+      q,
+      new THREE.Vector3(r.maxX - r.minX, r.maxY - r.minY, r.maxZ - r.minZ)
+    );
+    mesh.setMatrixAt(i, m);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.castShadow = !ctx.isSoftwareGl;
+  return mesh;
+}
+
+/**
+ * Summary: A slab along a straight ramp, its top following the ramp surface.
+ * @param box Shared unit box geometry.
+ * @param mat Slab material.
+ * @param r Ramp endpoints and half width.
+ * @param thickness Slab thickness in metres.
+ */
+export function rampSlab(
+  box: THREE.BoxGeometry,
+  mat: THREE.Material,
+  r: { ax: number; ay: number; az: number; bx: number; by: number; bz: number; halfWidth: number },
+  thickness: number
+): THREE.Mesh {
+  const dx = r.bx - r.ax;
+  const dy = r.by - r.ay;
+  const dz = r.bz - r.az;
+  const horiz = Math.hypot(dx, dz);
+  const mesh = new THREE.Mesh(box, mat);
+  mesh.scale.set(Math.hypot(horiz, dy), thickness, r.halfWidth * 2);
+  mesh.position.set((r.ax + r.bx) / 2, (r.ay + r.by) / 2 - thickness / 2, (r.az + r.bz) / 2);
+  mesh.rotation.order = 'YZX';
+  mesh.rotation.y = Math.atan2(-dz, dx);
+  mesh.rotation.z = Math.atan2(dy, horiz);
+  return mesh;
 }
 // #endregion
