@@ -48,7 +48,7 @@ import {
   MURKY_SWAMP_BIOME_POS,
   VOLCANO_SANCTUM_POS,
   RUINED_ATLANTIS_POS,
-  FLOATING_BLOOMING_ISLANDS,
+  SKYBOUND_ISLANDS,
   FLOATING_ISLAND_STAIR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   DESERT_DRAGON_PASS_POS,
@@ -2376,18 +2376,12 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     ];
   }
 
-  for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
-    const isl = FLOATING_BLOOMING_ISLANDS[i];
+  for (let i = 0; i < SKYBOUND_ISLANDS.length; i++) {
+    const isl = SKYBOUND_ISLANDS[i];
     const dIsl = Math.hypot(x - isl.x, z - isl.z);
     if (dIsl <= isl.radius) {
       const isRim = dIsl > isl.radius - 3.2;
-      if (i === 0) return isRim ? [245, 196, 66] : [232, 224, 206]; // Golden-Ivory Celestial Metropolis
-      if (i === 1) return isRim ? [125, 211, 252] : [30, 64, 175]; // Sapphire-Silver Starlight Bastion
-      if (i === 2) return isRim ? [251, 191, 36] : [180, 128, 42]; // Golden Chrono-Astrolabe Sun Disc
-      if (i === 3) return isRim ? [217, 119, 6] : [120, 72, 36]; // Timber & Brass Sky-Harbor Drydock
-      if (i === 4) return isRim ? [168, 85, 247] : [45, 38, 68]; // Obsidian & Violet Storm Citadel
-      if (i === 5) return isRim ? [251, 146, 60] : [185, 56, 48]; // Crimson-Gold Phoenix Spire
-      return isRim ? [254, 240, 138] : [250, 204, 21]; // Pure Gold Crown Zenith
+      return isRim ? [148, 163, 184] : [214, 211, 200]; // Grey stone rim, pale stone deck
     }
   }
 

@@ -35,21 +35,9 @@ export {
   SMUGGLER_ISLAND_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
-  FLOATING_BLOOMING_ISLANDS,
-  UNDER_ISLAND_CRYSTAL_HOLLOW_POS,
-  SKY_GALLEON_SHIP_POS,
-  SKY_WALKABLE_CLOUDS,
-  SKY_RUNNER_RINGS,
-  getSkyWalkableCloudStates,
-  resetSkyWalkableClouds,
-  stepSkyWalkableClouds,
-  skyWalkableCloudHeightAt,
   FLOATING_ISLAND_STAIR_POS,
   FLOATING_WATERFALL_STEP_ISLANDS,
   SKY_WIND_GEYSERS,
-  type SkyCloudKind,
-  type ISkyWalkableCloud,
-  type ISkyWalkableCloudRuntimeState,
   type IFloatingWaterfallStepIsland,
   type ISkyWindGeyser,
   southernRiverBridgeHeightAt,
@@ -57,6 +45,62 @@ export {
   desertPyramidHeightAt,
   isWithinViewDistance,
 } from './landmarks/coreLandmarks';
+// #endregion
+
+// ======================== SKYBOUND ISLES ARCHIPELAGO ======================== \
+// #region Skybound Isles
+export {
+  SKY_HARBOR,
+  STORM_ISLAND,
+  SKYBOUND_ISLANDS,
+  SKY_BRIDGES,
+  SKYBOUND_REGION,
+  WINDSPIRE,
+  SKY_SOLID_BOXES,
+  getSkyIsland,
+  isInsideSkyboundRegion,
+  type ISkyIsland,
+  type ISkyBridge,
+  type SkyLayer,
+} from './landmarks/skyboundIsles/skyboundLayout';
+export {
+  SKY_CLOUDS,
+  SKY_ROUTES,
+  SKY_REST_PLATFORMS,
+  SKY_CLOUD_MAZE,
+  type ISkyRestPlatform,
+} from './landmarks/skyboundIsles/skyCloudRoutes';
+export {
+  SKY_CLOUD_KIND_CONFIG,
+  DEFAULT_BOUNCE_VY,
+  STORM_GUST_SPEED_MPS,
+  getSkyCloudRuntimes,
+  resetSkyClouds,
+  stepSkyClouds,
+  skyCloudSurfaceAt,
+  isCloudSolid,
+  type SkyCloudKind,
+  type SkyCloudState,
+  type ISkyCloudDef,
+  type ISkyCloudRuntime,
+} from './landmarks/skyboundIsles/skyCloudSystem';
+export {
+  SKY_WIND_CURRENTS,
+  sampleSkyWindAt,
+  applySkyWind,
+  isWindCurrentActive,
+  setActivatedWindCoreCount,
+  type ISkyWindCurrent,
+  type IWindSample,
+  type SkyWindMode,
+} from './landmarks/skyboundIsles/skyWindSystem';
+export {
+  skyboundSurfaceAt,
+  createSkyFallTracker,
+  updateSkyFallRecovery,
+  type ISkyFallTracker,
+  type ISkySurfaceHit,
+} from './landmarks/skyboundIsles/skyboundSurface';
 // #endregion
 
 // ======================== SETTLEMENTS & FARMS ======================== \\

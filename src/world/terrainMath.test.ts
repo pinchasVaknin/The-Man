@@ -2520,20 +2520,13 @@ test('floatingIslandsShipwrightChestBulkAndSurvivalRebirth_WhenEvaluated_ShouldV
     findNearestMarketStall,
   } = await import('./terrainMath');
 
-  // 1) Floating Islands upper stair-bridges (Main <-> North & Main <-> East) interpolate smoothly without step drops
-  const northBridgeStart = floatingBloomingIslandHeightAt(760, -56);
-  const northBridgeMid = floatingBloomingIslandHeightAt(760, -64.5);
-  const northBridgeEnd = floatingBloomingIslandHeightAt(760, -73);
-  assert.ok(northBridgeStart !== null && Math.abs(northBridgeStart - 68.0) < 0.25);
-  assert.ok(northBridgeMid !== null && northBridgeMid > 69.0 && northBridgeMid < 70.0);
-  assert.ok(northBridgeEnd !== null && Math.abs(northBridgeEnd - 71.0) < 0.25);
-
-  const eastBridgeStart = floatingBloomingIslandHeightAt(784.8, -25.63);
-  const eastBridgeMid = floatingBloomingIslandHeightAt(788.4, -24.27);
-  const eastBridgeEnd = floatingBloomingIslandHeightAt(792.0, -22.91);
-  assert.ok(eastBridgeStart !== null && Math.abs(eastBridgeStart - 68.0) < 0.25);
-  assert.ok(eastBridgeMid !== null && eastBridgeMid > 68.6 && eastBridgeMid < 69.4);
-  assert.ok(eastBridgeEnd !== null && Math.abs(eastBridgeEnd - 70.0) < 0.25);
+  // 1) Skybound Isles stone bridge (Crystal Isles 62 m -> Sky Harbor 68 m) interpolates smoothly without step drops
+  const bridgeStart = floatingBloomingIslandHeightAt(850.6, -17.4, 62.0);
+  const bridgeMid = floatingBloomingIslandHeightAt(836.7, -21.2, 65.0);
+  const bridgeEnd = floatingBloomingIslandHeightAt(822.8, -24.6, 68.0);
+  assert.ok(bridgeStart !== null && Math.abs(bridgeStart - 62.2) < 0.4, `bridge start ${bridgeStart}`);
+  assert.ok(bridgeMid !== null && bridgeMid > 64.4 && bridgeMid < 65.6, `bridge mid ${bridgeMid}`);
+  assert.ok(bridgeEnd !== null && Math.abs(bridgeEnd - 68.0) < 0.25, `bridge end ${bridgeEnd}`);
 
   // 2) Lower waterfall island around (715, -35) is wide dry land so waterfall pool at (720, -35) is well above sea level
   const waterfallBaseGround = groundHeightAt(720, -35);
@@ -3402,135 +3395,42 @@ test('palaceAndMineFixes_WhenTestingStatuesMonkWallsDoorsCauldronsAnd2FWindow_Sh
   resetMonkTempleSystem();
 });
 
-test('floatingSkyArchipelagoAndSinkingClouds_WhenWalkingStandingAndExploring_ShouldEnforceCloudBuoyancyHollowAndGalleonDecks', async () => {
+test('skyboundIsles_WhenQueriedThroughTheTerrainFacade_ShouldResolveDecksClimbTopChestsAndColors', async () => {
   const {
-    FLOATING_BLOOMING_ISLANDS,
-    UNDER_ISLAND_CRYSTAL_HOLLOW_POS,
-    SKY_GALLEON_SHIP_POS,
-    SKY_WALKABLE_CLOUDS,
-    getSkyWalkableCloudStates,
-    resetSkyWalkableClouds,
-    stepSkyWalkableClouds,
+    SKYBOUND_ISLANDS,
+    FLOATING_ISLAND_STAIR_POS,
+    resetSkyClouds,
     floatingBloomingIslandHeightAt,
     sampleMinimapColorAt,
     WORLD_CHESTS,
   } = await import('./terrainMath');
 
-  resetSkyWalkableClouds();
+  resetSkyClouds();
 
-  // 1) Verify all 7 Floating Sky Islands exist and resolve walkable deck heights
-  assert.equal(FLOATING_BLOOMING_ISLANDS.length, 7);
-  for (const isl of FLOATING_BLOOMING_ISLANDS) {
-    const h = floatingBloomingIslandHeightAt(isl.x, isl.z, isl.deckY);
-    assert.ok(
-      h !== null && Math.abs(h - isl.deckY) <= 0.4,
-      `Expected island ${isl.id} at (${isl.x}, ${isl.z}) to resolve near deckY=${isl.deckY}, got ${h}`
-    );
+  // 1) The archipelago has a hub plus at least four major islands on several heights
+  assert.ok(SKYBOUND_ISLANDS.filter((isl) => !isl.optional).length >= 5);
+  assert.ok(new Set(SKYBOUND_ISLANDS.map((isl) => isl.deckY)).size >= 6, 'Expected islands on many different heights');
+  for (const isl of SKYBOUND_ISLANDS) {
+    const h = floatingBloomingIslandHeightAt(isl.checkpoint.x, isl.checkpoint.z, isl.deckY);
+    assert.equal(h, isl.deckY, `Expected ${isl.id} checkpoint to stand on its deck at ${isl.deckY} m, got ${h}`);
   }
 
-  // 2) Verify Under-Island Crystal Hollow (y = 54.0m) & 2-Flight Cliffside Staircase (y = 68.0 -> 61.0 -> 54.0m)
-  const hPos = UNDER_ISLAND_CRYSTAL_HOLLOW_POS;
-  const midStairH = floatingBloomingIslandHeightAt(hPos.stairMidX, hPos.stairMidZ, hPos.stairMidY);
-  assert.ok(
-    midStairH !== null && Math.abs(midStairH - hPos.stairMidY) < 0.25,
-    `Expected Cliffside Staircase mid-landing at ${hPos.stairMidY}m, got ${midStairH}`
-  );
-  const hollowFloorH = floatingBloomingIslandHeightAt(hPos.x, hPos.z, hPos.floorY + 0.5);
-  assert.equal(hollowFloorH, hPos.floorY, 'Expected Under-Island Crystal Hollow floor at 54.0m when currentY < 62.5m');
-  const mainDeckAboveHollowH = floatingBloomingIslandHeightAt(hPos.x, hPos.z, 68.0);
-  assert.ok(
-    mainDeckAboveHollowH !== null && Math.abs(mainDeckAboveHollowH - 68.35) < 0.1,
-    `Expected Main Island deck at ~68.35m when currentY = 68.0m, got ${mainDeckAboveHollowH}`
-  );
-  const northBalconyH = floatingBloomingIslandHeightAt(hPos.x, hPos.northBalconyMinZ + 1.0, hPos.floorY);
-  assert.equal(northBalconyH, hPos.floorY, 'Expected North Suspended Lookout Balcony at 54.0m');
+  // 2) The top of the existing waterfall climb lands on the Sky Harbor deck
+  const climbTopH = floatingBloomingIslandHeightAt(FLOATING_ISLAND_STAIR_POS.topX + 0.5, FLOATING_ISLAND_STAIR_POS.z, 68.0);
+  assert.equal(climbTopH, 68.0);
 
-  // 3) Verify Moored Royal Sky Galleon Gangplank, Main Deck (72.6m), and Stern Quarterdeck (74.6m)
-  const sg = SKY_GALLEON_SHIP_POS;
-  const gangplankMidX = (sg.gangplankMinX + sg.gangplankMaxX) * 0.5;
-  const gangplankH = floatingBloomingIslandHeightAt(gangplankMidX, sg.z, 72.3);
-  assert.ok(gangplankH !== null && gangplankH >= 72.0 && gangplankH <= 72.6);
-  const galleonMainH = floatingBloomingIslandHeightAt(sg.x, sg.z + 5.0, sg.mainDeckY);
-  assert.equal(galleonMainH, sg.mainDeckY, 'Expected Royal Sky Galleon Main Deck at 72.6m');
-  const galleonQuarterH = floatingBloomingIslandHeightAt(sg.x, sg.quarterDeckMaxZ - 2.0, sg.quarterDeckY);
-  assert.equal(galleonQuarterH, sg.quarterDeckY, 'Expected Royal Sky Galleon Quarterdeck at 74.6m');
-
-  // 4) Sinking Cloud Mechanics:
-  //    - Walking (horizSpeed >= 1.25 m/s) keeps the cloud buoyant and solid!
-  //    - Standing still (horizSpeed < 1.25 m/s) sinks the cloud and dissolves it after 1.25s, then reforms after 3.0s!
-  const sinkingCloud = SKY_WALKABLE_CLOUDS.find((c) => c.id === 'cloud-se-1')!;
-  assert.equal(sinkingCloud.kind, 'sinking');
-
-  // Walk across the cloud at 4.2 m/s for 2.0 seconds -> must NOT dissolve!
-  for (let tick = 0; tick < 20; tick++) {
-    stepSkyWalkableClouds(0.1, tick * 0.1, sinkingCloud.x, sinkingCloud.y, sinkingCloud.z, 4.2, 0);
+  // 3) Every sky chest stands exactly on an archipelago surface
+  for (const chest of WORLD_CHESTS.filter((c) => c.id.startsWith('chest-sky-'))) {
+    const h = floatingBloomingIslandHeightAt(chest.x, chest.z, chest.y);
+    assert.equal(h, chest.y, `Expected ${chest.id} to stand on a deck at ${chest.y} m, got ${h}`);
   }
-  const stAfterWalk = getSkyWalkableCloudStates().find((s) => s.id === 'cloud-se-1')!;
-  assert.equal(stAfterWalk.dissolved, false, 'Expected sinking cloud to stay solid while player keeps walking');
-  assert.ok(
-    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y) !== null,
-    'Expected walkable height on sinking cloud while player keeps moving'
-  );
+  assert.equal(WORLD_CHESTS.filter((c) => c.id.startsWith('chest-sky-')).length, 7);
 
-  // Now stand still (vx = 0, vz = 0) on the sinking cloud for 1.35 seconds -> must sink and dissolve!
-  for (let tick = 0; tick < 14; tick++) {
-    stepSkyWalkableClouds(
-      0.1,
-      2.0 + tick * 0.1,
-      sinkingCloud.x,
-      stAfterWalk.currentY,
-      sinkingCloud.z,
-      0,
-      0
-    );
-  }
-  assert.equal(stAfterWalk.dissolved, true, 'Expected sinking cloud to dissolve when standing still for >= 1.25s');
-  assert.equal(
-    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y),
-    null,
-    'Expected dissolved cloud to return null height so the stationary player falls through'
-  );
+  // 4) Island decks show as stone on the minimap, not grass
+  const hubColor = sampleMinimapColorAt(760, -35);
+  assert.ok(hubColor[0] > 180 && hubColor[1] > 180, `Expected a pale stone hub colour, got ${hubColor}`);
 
-  // Wait 3.1 seconds off the cloud -> cloud reforms!
-  for (let tick = 0; tick < 31; tick++) {
-    stepSkyWalkableClouds(0.1, 4.0 + tick * 0.1, 0, 0, 0, 0, 0);
-  }
-  assert.equal(stAfterWalk.dissolved, false, 'Expected dissolved cloud to reform after 3.0s');
-  assert.ok(
-    floatingBloomingIslandHeightAt(sinkingCloud.x, sinkingCloud.z, sinkingCloud.y) !== null,
-    'Expected reformed cloud to be walkable again'
-  );
-
-  // 5) Golden Nimbus Checkpoint Cloud ('golden') never sinks or dissolves even when standing still
-  const goldenCloud = SKY_WALKABLE_CLOUDS.find((c) => c.kind === 'golden')!;
-  for (let tick = 0; tick < 25; tick++) {
-    stepSkyWalkableClouds(0.1, tick * 0.1, goldenCloud.x, goldenCloud.y, goldenCloud.z, 0, 0);
-  }
-  const goldenState = getSkyWalkableCloudStates().find((s) => s.id === goldenCloud.id)!;
-  assert.equal(goldenState.dissolved, false, 'Expected golden checkpoint cloud never to dissolve');
-  assert.equal(goldenState.sinkOffset, 0, 'Expected golden checkpoint cloud never to sink');
-
-  // 6) Verify all 7 Sky Archipelago treasure chests, 35 clouds (including Western Cloud-Sea Ring), and 7 distinct non-green realm surface colors
-  assert.equal(SKY_WALKABLE_CLOUDS.length, 35, 'Expected 35 walkable sky clouds including Western Cloud-Sea Ring');
-  assert.ok(SKY_WALKABLE_CLOUDS.some((c) => c.id === 'cloud-ring-2' && c.kind === 'golden'));
-  const metropolisColor = sampleMinimapColorAt(760, -35);
-  assert.ok(metropolisColor[0] > metropolisColor[1], 'Expected golden-ivory Metropolis color instead of old green grass');
-  for (const chestId of [
-    'chest-sky-under-hollow',
-    'chest-sky-galleon-captain',
-    'chest-sky-storm-citadel',
-    'chest-sky-phoenix-aerie',
-    'chest-sky-crown-zenith',
-    'chest-sky-metropolis-sanctum',
-    'chest-sky-chrono-observatory',
-  ]) {
-    assert.ok(
-      WORLD_CHESTS.some((c) => c.id === chestId),
-      `Expected ${chestId} to be registered in WORLD_CHESTS`
-    );
-  }
-
-  resetSkyWalkableClouds();
+  resetSkyClouds();
 });
 // #endregion
 

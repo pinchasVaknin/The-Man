@@ -843,10 +843,10 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 240,
     contents: ['dwarven_warhammer', 'dwarven_pickaxe', 'dwarven_gold_ore', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
-  // Floating Sky Archipelago — Celestial Sky-Metropolis Grand Treasury Chest
+  // Skybound Isles — Sky Harbor Treasury Chest (arrival plaza side)
   {
     id: 'chest-sky-metropolis-sanctum',
-    name: 'Celestial Sky-Metropolis Treasury Chest',
+    name: 'Sky Harbor Treasury Chest',
     x: 760.0,
     y: 68.0,
     z: -15.5,
@@ -854,68 +854,68 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 175,
     contents: ['dwarven_warhammer', 'sapphire_gem', 'amethyst_gem', 'crystal_gem'],
   },
-  // Floating Sky Archipelago — Eastern Chrono-Astrolabe Relic Chest
+  // Skybound Isles — Sky Observatory Relic Chest
   {
     id: 'chest-sky-chrono-observatory',
-    name: 'Chrono-Astrolabe Celestial Relic Chest',
-    x: 812.5,
-    y: 70.0,
-    z: -18.0,
+    name: 'Sky Observatory Relic Chest',
+    x: 806.0,
+    y: 98.0,
+    z: -132.0,
     interactRadius: 4.4,
     goldCoins: 155,
     contents: ['crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
   },
-  // Floating Sky Archipelago — Under-Island Crystal Hollow Heart Chest
+  // Skybound Isles — Hidden Isle Chest (end of the Endless Descent)
   {
     id: 'chest-sky-under-hollow',
-    name: 'Heart of the Sky-Island Crystal Chest',
-    x: 760.0,
-    y: 54.0,
-    z: -35.0,
+    name: 'Hidden Isle Crystal Chest',
+    x: 795.0,
+    y: 30.0,
+    z: 62.0,
     interactRadius: 4.4,
     goldCoins: 145,
     contents: ['crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
   },
-  // Floating Sky Archipelago — Royal Sky Galleon Captain's Coffer
+  // Skybound Isles — Forgotten Airship Captain's Coffer
   {
     id: 'chest-sky-galleon-captain',
-    name: "Royal Sky-Galleon Captain's Coffer",
-    x: 828.0,
-    y: 74.6,
-    z: 24.5,
+    name: "Forgotten Airship Captain's Coffer",
+    x: 846.0,
+    y: 45.0,
+    z: 70.0,
     interactRadius: 4.4,
     goldCoins: 165,
     contents: ['dwarven_gold_ore', 'sapphire_gem', 'crystal_gem', 'amethyst_gem'],
   },
-  // Floating Sky Archipelago — Storm Citadel Thunder-God Vault Chest
+  // Skybound Isles — Storm Island Vault Chest
   {
     id: 'chest-sky-storm-citadel',
-    name: 'Storm Citadel Thunder-God Vault Chest',
-    x: 828.0,
-    y: 88.0,
-    z: -96.5,
+    name: 'Storm Island Vault Chest',
+    x: 892.0,
+    y: 115.0,
+    z: -120.0,
     interactRadius: 4.4,
     goldCoins: 210,
     contents: ['dwarven_warhammer', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
   },
-  // Floating Sky Archipelago — Celestial Phoenix Golden Relic Chest
+  // Skybound Isles — Floating Garden Chest
   {
     id: 'chest-sky-phoenix-aerie',
-    name: 'Celestial Phoenix Golden Relic Chest',
-    x: 734.0,
-    y: 76.0,
-    z: 38.5,
+    name: 'Floating Garden Chest',
+    x: 722.0,
+    y: 71.0,
+    z: 62.0,
     interactRadius: 4.4,
     goldCoins: 185,
     contents: ['amethyst_gem', 'crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
   },
-  // Floating Sky Archipelago — Crown of the Heavens Zenith Chest
+  // Skybound Isles — Ancient Sky Ruins Chest
   {
     id: 'chest-sky-crown-zenith',
-    name: 'Crown of the Heavens Zenith Chest',
-    x: 856.0,
-    y: 104.0,
-    z: -58.5,
+    name: 'Ancient Sky Ruins Chest',
+    x: 698.0,
+    y: 82.0,
+    z: -128.0,
     interactRadius: 4.4,
     goldCoins: 320,
     contents: ['dwarven_warhammer', 'crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],

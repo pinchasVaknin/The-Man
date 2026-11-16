@@ -34,8 +34,16 @@ import {
   resolveHorizontalBoxCollision,
   FLOATING_ISLAND_STAIR_POS,
   SKY_WIND_GEYSERS,
-  stepSkyWalkableClouds,
-  skyWalkableCloudHeightAt,
+  stepSkyClouds,
+  skyCloudSurfaceAt,
+  sampleSkyWindAt,
+  applySkyWind,
+  skyboundSurfaceAt,
+  isInsideSkyboundRegion,
+  createSkyFallTracker,
+  updateSkyFallRecovery,
+  DEFAULT_BOUNCE_VY,
+  STORM_GUST_SPEED_MPS,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -88,6 +96,10 @@ export const STAMINA_EXHAUSTION_RECOVERY_THRESHOLD = 24;
 
 let activePlayerStateRegistry: IPlayerState | null = null;
 let skyCloudElapsedClock = 0;
+/** Remembers the last Skybound Isles island the player stood on, for fall recovery. */
+const skyFallTracker = createSkyFallTracker();
+/** Feet within this distance (m) of a cloud top count as standing on it. */
+const SKY_CLOUD_CONTACT_M = 0.6;
 
 /**
  * Summary: Returns the currently active player state instance (if initialized).
@@ -1406,29 +1418,27 @@ export function stepPlayerPhysics(
     }
   }
 
-  // Walkable & Sinking Sky Clouds (active in the Floating Sky Archipelago region x >= 680, y >= 42):
-  // - Standing still (< 1.25 m/s) on a 'sinking', 'storm', or 'drifting' cloud causes it to sink and dissolve!
-  // - Keeping moving (>= 1.25 m/s) keeps the cloud buoyant.
-  // - 'bouncy' cumulus clouds automatically launch the player upward, and 'drifting' clouds carry the player horizontally.
-  if (state.x >= 680.0 && state.y >= 42.0) {
+  // Skybound Isles: walkable clouds (sink, collapse, bounce, storm gusts) and wind currents.
+  if (!state.isFlying && isInsideSkyboundRegion(state.x, state.z)) {
     skyCloudElapsedClock += dt;
-    stepSkyWalkableClouds(
-      dt,
-      skyCloudElapsedClock,
-      state.x,
-      state.y,
-      state.z,
-      state.vx,
-      state.vz
-    );
-    const cloudHit = skyWalkableCloudHeightAt(state.x, state.z, state.y);
-    if (cloudHit !== null && Math.abs(state.y - cloudHit.y) <= 1.35) {
-      if (cloudHit.cloud.kind === 'drifting') {
-        state.x += cloudHit.state.vx * dt;
-        state.z += cloudHit.state.vz * dt;
+    stepSkyClouds(dt, skyCloudElapsedClock, state.x, state.y, state.z, Math.hypot(state.vx, state.vz));
+    const cloudHit = skyCloudSurfaceAt(state.x, state.z, state.y);
+    if (cloudHit !== null && Math.abs(state.y - cloudHit.y) <= SKY_CLOUD_CONTACT_M) {
+      const cloudDef = cloudHit.cloud.def;
+      if (cloudDef.kind === 'bounce' && state.vy <= 1.5) {
+        state.vy = cloudDef.bounceVy ?? DEFAULT_BOUNCE_VY;
+        state.onGround = false;
+        state.coyoteTimer = 0;
       }
-      if (cloudHit.cloud.kind === 'bouncy' && state.vy <= 1.5) {
-        state.vy = cloudHit.cloud.bounceVy ?? 16.0;
+      if (cloudHit.cloud.gustActive && cloudDef.gustDirX !== undefined && cloudDef.gustDirZ !== undefined) {
+        state.x += cloudDef.gustDirX * STORM_GUST_SPEED_MPS * dt;
+        state.z += cloudDef.gustDirZ * STORM_GUST_SPEED_MPS * dt;
+      }
+    }
+    const wind = sampleSkyWindAt(state.x, state.y, state.z, skyCloudElapsedClock);
+    if (wind !== null) {
+      applySkyWind(state, wind, dt, GRAVITY);
+      if (wind.targetVy !== null && wind.targetVy > 0.5) {
         state.onGround = false;
         state.coyoteTimer = 0;
       }
@@ -1867,6 +1877,24 @@ export function stepPlayerPhysics(
       waterSurfaceY !== null &&
       walkSurface.surface === 'ground' &&
       state.y < waterSurfaceY - 0.08;
+  }
+
+  // Skybound Isles fall recovery: a player who drops below the archipelago after standing on it
+  // is put back on the checkpoint of the island they last stood near, instead of falling to the sea.
+  if (!state.isFlying && isInsideSkyboundRegion(state.x, state.z)) {
+    const skySurface = state.onGround ? skyboundSurfaceAt(state.x, state.z, state.y + 0.1) : null;
+    const standingOnSky = skySurface !== null && Math.abs(skySurface.y - state.y) <= 0.3;
+    const checkpoint = updateSkyFallRecovery(skyFallTracker, state.x, state.y, state.z, state.onGround, standingOnSky);
+    if (checkpoint !== null) {
+      state.x = checkpoint.x;
+      state.y = checkpoint.y;
+      state.z = checkpoint.z;
+      state.vx = 0;
+      state.vy = 0;
+      state.vz = 0;
+      state.onGround = true;
+      state.lastLandingSpeed = 0;
+    }
   }
 
   state.currentBiome = getSurfaceBiomeAt(state.x, state.z, state.y);

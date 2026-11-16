@@ -16,7 +16,8 @@ import {
   BEAR_MOUNTAIN_CAVES,
   CROCODILE_RIVER_BEND_POS,
   VOLCANO_SANCTUM_POS,
-  FLOATING_BLOOMING_ISLANDS,
+  SKYBOUND_ISLANDS,
+  STORM_ISLAND,
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHWEST_OASIS_POS,
   MURKY_SWAMP_BIOME_POS,
@@ -1509,11 +1510,11 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: VOLCANO_SANCTUM_POS.x + 108.0, z: VOLCANO_SANCTUM_POS.z + 72.0, species: 'lion' },
     { x: VOLCANO_SANCTUM_POS.x - 118.0, z: VOLCANO_SANCTUM_POS.z - 54.0, species: 'lion' },
     { x: VOLCANO_SANCTUM_POS.x - 16.0, z: VOLCANO_SANCTUM_POS.z - 122.0, species: 'lion' },
-    // Royal Blooming Stags — roaming the 3 Large Floating Blooming Sky Islands in the East (4)
-    { x: FLOATING_BLOOMING_ISLANDS[0].x, z: FLOATING_BLOOMING_ISLANDS[0].z + 7, species: 'stag' },
-    { x: FLOATING_BLOOMING_ISLANDS[0].x - 11, z: FLOATING_BLOOMING_ISLANDS[0].z - 6, species: 'stag' },
-    { x: FLOATING_BLOOMING_ISLANDS[1].x, z: FLOATING_BLOOMING_ISLANDS[1].z, species: 'stag' },
-    { x: FLOATING_BLOOMING_ISLANDS[2].x, z: FLOATING_BLOOMING_ISLANDS[2].z, species: 'stag' },
+    // Royal Stag herd — lives on Storm Island, the optional upper island of the Skybound Isles (4)
+    { x: STORM_ISLAND.x - 6, z: STORM_ISLAND.z + 5, species: 'stag' },
+    { x: STORM_ISLAND.x + 7, z: STORM_ISLAND.z - 4, species: 'stag' },
+    { x: STORM_ISLAND.x - 3, z: STORM_ISLAND.z - 8, species: 'stag' },
+    { x: STORM_ISLAND.x + 4, z: STORM_ISLAND.z + 9, species: 'stag' },
     // Secluded Southern Pass Valley Deer beyond the Mountain Gorge Pass (2)
     { x: 96, z: 724, species: 'deer' },
     { x: 114, z: 708, species: 'deer' },
@@ -1937,10 +1938,10 @@ function advanceAnimalWithWaterShoreRecovery(
     return;
   }
 
-  // Keep animals living on the Floating Blooming Sky Islands within their island deck rim
+  // Keep animals living on the Skybound Isles within their island deck rim
   if (a.y >= 18.0) {
-    for (let i = 0; i < FLOATING_BLOOMING_ISLANDS.length; i++) {
-      const isl = FLOATING_BLOOMING_ISLANDS[i];
+    for (let i = 0; i < SKYBOUND_ISLANDS.length; i++) {
+      const isl = SKYBOUND_ISLANDS[i];
       if (Math.hypot(a.homeX - isl.x, a.homeZ - isl.z) <= isl.radius + 1.0) {
         const dxIsl = nextX - isl.x;
         const dzIsl = nextZ - isl.z;

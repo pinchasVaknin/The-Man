@@ -14,7 +14,6 @@ import {
   WATERFALL_CLIFF_POS,
   WATERFALL_POOL_POS,
   VOLCANO_SANCTUM_POS,
-  FLOATING_BLOOMING_ISLANDS,
   FLOATING_ISLAND_STAIR_POS,
   SOUTHERN_DRAGON_RUINS_POS,
   DESERT_DRAGON_PASS_POS,
@@ -23,6 +22,7 @@ import {
   SMUGGLER_ISLAND_POS,
   SAILABLE_SHIP_INITIAL_POS,
 } from './coreLandmarks';
+import { SKY_SOLID_BOXES } from './skyboundIsles/skyboundLayout';
 import {
   HUNTER_LODGE_POS,
   LAKESIDE_TEA_PAVILION_POS,
@@ -1500,49 +1500,8 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       maxY: SAKURA_SANCTUARY_POS.height + 6.8 * sc,
     };
   }),
-
-  // 9) Celestial Sky Archipelago Architecture: Stargate Pylons, Spire Cathedral Buttresses, Vault Chests & Obelisks
-  ...[-6.2, 6.2].map((zOff, idx) => ({
-    id: `floating-sky-watchtower-${idx + 1}`,
-    minX: FLOATING_ISLAND_STAIR_POS.topX + 4.8 - 1.25,
-    maxX: FLOATING_ISLAND_STAIR_POS.topX + 4.8 + 1.25,
-    minZ: FLOATING_ISLAND_STAIR_POS.z + zOff - 1.25,
-    maxZ: FLOATING_ISLAND_STAIR_POS.z + zOff + 1.25,
-    minY: 68.0,
-    maxY: 82.0,
-  })),
-  ...Array.from({ length: 8 }, (_, c) => {
-    const ang = (c / 8) * Math.PI * 2 + Math.PI / 8;
-    const cx = FLOATING_BLOOMING_ISLANDS[0].x + Math.cos(ang) * 7.4;
-    const cz = FLOATING_BLOOMING_ISLANDS[0].z + Math.sin(ang) * 7.4;
-    return {
-      id: `floating-temple-col-${c + 1}`,
-      minX: cx - 0.55,
-      maxX: cx + 0.55,
-      minZ: cz - 0.55,
-      maxZ: cz + 0.55,
-      minY: 68.0,
-      maxY: 79.0,
-    };
-  }),
-  {
-    id: 'floating-barracks-chest',
-    minX: FLOATING_BLOOMING_ISLANDS[0].x - 0.65,
-    maxX: FLOATING_BLOOMING_ISLANDS[0].x + 0.65,
-    minZ: FLOATING_BLOOMING_ISLANDS[0].z + 19.5 - 0.45,
-    maxZ: FLOATING_BLOOMING_ISLANDS[0].z + 19.5 + 0.45,
-    minY: 68.0,
-    maxY: 69.2,
-  },
-  {
-    id: 'floating-east-island-chest',
-    minX: FLOATING_BLOOMING_ISLANDS[2].x + 5.5 - 0.65,
-    maxX: FLOATING_BLOOMING_ISLANDS[2].x + 5.5 + 0.65,
-    minZ: FLOATING_BLOOMING_ISLANDS[2].z - 0.45,
-    maxZ: FLOATING_BLOOMING_ISLANDS[2].z + 0.45,
-    minY: 70.0,
-    maxY: 71.2,
-  },
+  // 9) Skybound Isles structures (Windspire)
+  ...SKY_SOLID_BOXES,
 ];
 // #endregion
 
@@ -1657,7 +1616,6 @@ export const CLEAR_ZONES = [
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z - 105.0, r: 24.0 },
   { x: VOLCANO_SANCTUM_POS.x, z: VOLCANO_SANCTUM_POS.z + 105.0, r: 24.0 },
   { x: FLOATING_ISLAND_STAIR_POS.waterfallX - 5.0, z: FLOATING_ISLAND_STAIR_POS.z, r: 36.0 },
-  ...FLOATING_BLOOMING_ISLANDS.map((isl) => ({ x: isl.x, z: isl.z, r: isl.radius + 6.0 })),
   { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, r: 36.0 },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, r: 48.0 },
   { x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, r: 34.0 },

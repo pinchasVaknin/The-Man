@@ -43,7 +43,8 @@ import { createReadyDemonDragon, DEMON_DRAGON_STATES } from '../models/DemonDrag
 import {
   BEAR_MOUNTAIN_CAVES,
   CROCODILE_RIVER_BEND_POS,
-  FLOATING_BLOOMING_ISLANDS,
+  SKY_HARBOR,
+  STORM_ISLAND,
   FLOATING_ISLAND_STAIR_POS,
   FLOATING_WATERFALL_STEP_ISLANDS,
   SKY_WIND_GEYSERS,
@@ -1114,8 +1115,8 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
   }
 
   // Verify Special Ideas: Celestial Sanctuary Bed, Sky-Waterfall Hydro-Elevator, and Sky Wind-Geyser Launch Pads
-  const skyBed = findNearestBed(FLOATING_BLOOMING_ISLANDS[0].x, 68.35, FLOATING_BLOOMING_ISLANDS[0].z);
-  assert.ok(skyBed && skyBed.id === 'bed-floating-sky-sanctuary', 'Main Floating Sky Island must have the Celestial Star-Sanctuary Bed');
+  const skyBed = findNearestBed(760.0, 68.35, -35.0);
+  assert.ok(skyBed && skyBed.id === 'bed-floating-sky-sanctuary', 'Sky Harbor must have the Celestial Star-Sanctuary Bed');
 
   const testPlayer = createInitialPlayerState();
   testPlayer.x = FLOATING_ISLAND_STAIR_POS.waterfallX;
@@ -1167,14 +1168,14 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
   mainStag.isFleeing = true;
   mainStag.fleeCooldown = 3.0;
   for (let i = 0; i < 40; i++) {
-    stepSmallAnimals([mainStag], 0.05, 300 + i * 0.05, FLOATING_BLOOMING_ISLANDS[0].x, FLOATING_BLOOMING_ISLANDS[0].z, [], 1.0, undefined, 5.0, false, false, 0);
+    stepSmallAnimals([mainStag], 0.05, 300 + i * 0.05, STORM_ISLAND.x, STORM_ISLAND.z, [], 1.0, undefined, 5.0, false, false, 0);
   }
   const stagDistFromMainCenter = Math.hypot(
-    mainStag.x - FLOATING_BLOOMING_ISLANDS[0].x,
-    mainStag.z - FLOATING_BLOOMING_ISLANDS[0].z
+    mainStag.x - STORM_ISLAND.x,
+    mainStag.z - STORM_ISLAND.z
   );
   assert.ok(
-    stagDistFromMainCenter <= FLOATING_BLOOMING_ISLANDS[0].radius - 1.5 && mainStag.y >= 67.5,
+    stagDistFromMainCenter <= STORM_ISLAND.radius - 1.5 && mainStag.y >= STORM_ISLAND.deckY - 0.5,
     `Stag on floating island must stay within the island rim and never fall off (dist=${stagDistFromMainCenter.toFixed(2)}m, y=${mainStag.y.toFixed(2)}m)`
   );
 
@@ -1562,9 +1563,9 @@ test('mountPhysicsStaminaSpacebarAttackAndArrowRecovery_WhenEvaluated_ShouldFoll
   const horses = createInitialRideableHorses();
   const player = createInitialPlayerState();
 
-  // 1. Verify Far-East Floating Sky Islands (x >= 760) & Far-West Volcano Badlands (x = -620)
-  assert.equal(FLOATING_BLOOMING_ISLANDS[0].x, 760);
-  assert.equal(FLOATING_BLOOMING_ISLANDS[2].x, 807);
+  // 1. Verify Far-East Skybound Isles (x >= 760) & Far-West Volcano Badlands (x = -620)
+  assert.equal(SKY_HARBOR.x, 778);
+  assert.equal(STORM_ISLAND.x, 885);
   assert.equal(VOLCANO_SANCTUM_POS.x, -620);
   assert.ok(
     volcanicBadlandsFactorAt(VOLCANO_SANCTUM_POS.x + 80, VOLCANO_SANCTUM_POS.z) > 0.7,
