@@ -147,10 +147,22 @@ export function buildPropGeometry(kind: IMinePropKind, tintColor: number = MINER
       ]);
     case 'anvil':
       return mergeParts([
-        box(0.5, 0.45, 0.4, P.darkOak),
-        box(0.35, 0.2, 0.25, P.iron, 0, 0.45),
-        box(1.1, 0.22, 0.35, P.iron, 0.1, 0.65),
-        part(new THREE.ConeGeometry(0.16, 0.4, 6), P.iron, -0.62, 0.76, 0, 0, 0, Math.PI / 2),
+        // Stepped octagonal dark-stone & gold smithing plinth
+        cyl(0.66, 0.72, 0.12, P.darkGranite, 0, 0, 0, 8),
+        cyl(0.62, 0.62, 0.04, P.gold, 0, 0.12, 0, 8),
+        cyl(0.54, 0.58, 0.08, P.granite, 0, 0.16, 0, 8),
+        // Heavy Runic Dragon-Horn Anvil block & golden waist collar
+        box(0.62, 0.22, 0.42, P.darkGranite, 0, 0.24),
+        box(0.66, 0.06, 0.46, P.gold, 0, 0.46),
+        box(0.46, 0.16, 0.32, P.iron, 0, 0.52),
+        box(0.92, 0.18, 0.42, P.iron, 0, 0.68),
+        box(0.96, 0.04, 0.44, P.gold, 0, 0.84),
+        // Twin Golden Dragon-Horn Beaks protruding from both ends of the anvil
+        part(new THREE.ConeGeometry(0.15, 0.42, 6), P.gold, -0.67, 0.77, 0, 0, 0, Math.PI / 2),
+        part(new THREE.ConeGeometry(0.15, 0.42, 6), P.gold, 0.67, 0.77, 0, 0, 0, -Math.PI / 2),
+        // Glowing hot forged Dwarven weapon resting on the anvil face
+        box(0.76, 0.04, 0.05, P.gold, 0, 0.88, 0),
+        box(0.34, 0.04, 0.34, P.ember, 0.16, 0.89, 0),
       ]);
     case 'longTable':
       return mergeParts([

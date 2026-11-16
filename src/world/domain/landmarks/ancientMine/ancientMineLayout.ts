@@ -501,7 +501,6 @@ export const MINE_GUARD_RAILS: readonly IMineGuardRail[] = [
   railRun('bridge-east', 'lx', 5, 207, 293, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('bridge-landing-north-west', 'lz', 293, -10, -5, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('bridge-landing-north-east', 'lz', 293, 5, 10, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
-  railRun('bridge-landing-west', 'lx', -10, 293, 299, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   railRun('heroes-path-inner-lower', 'lx', -98, 207, 225, MINE_LEVEL_Y.chasmLedge - 1.5, MINE_LEVEL_Y.chasmLedge),
   ...stairRailRuns('heroes-path-inner-f1', 'lx', -98, 225, 242, MINE_LEVEL_Y.chasmLedge, MINE_LEVEL_Y.heroesMidLanding),
   railRun('heroes-path-inner-mid', 'lx', -98, 242, 262, MINE_LEVEL_Y.heroesMidLanding - 1.5, MINE_LEVEL_Y.heroesMidLanding),
@@ -869,7 +868,7 @@ export const MINE_SURFACES: readonly IMineSurface[] = [
   },
   {
     id: 'chasm-abyss-south-west', area: 'chasm', layer: 0,
-    footprint: { kind: 'rect', minLx: -98, maxLx: -10, minLz: 293, maxLz: 299 },
+    footprint: { kind: 'rect', minLx: -98, maxLx: -14, minLz: 293, maxLz: 299 },
     height: { kind: 'flat', y: MINE_LEVEL_Y.abyssBottom }, material: 'abyss', ceilingY: CEILING_Y.chasm,
   },
   {

@@ -1217,6 +1217,50 @@ function buildCentralHubScaffoldingAndGoldChute(kit: Kit, ctx: ISetPieceContext)
   ctx.addTorch(-22.6, U + 2.4, 49.5, 0xffa840, 6.0);
   ctx.addTorch(-15.4, U + 2.4, 49.5, 0xffa840, 6.0);
   ctx.addTorch(-27.0, S + 2.8, 26.8, 0xffb448, 6.5);
+
+  // Master Blacksmith Stage & Runic Anvil Platform for Fili Anvilwright at (-28.0, 31.5, y = S)
+  buildBlacksmithAnvilStage(kit, ctx, -28.0, S, 31.5);
+}
+
+/**
+ * Summary: Builds the ornate octagonal stone-and-gold smithing stage (dais), glowing molten rune
+ *          circle, corner anvil-guard posts, and molten quenching basin under a Blacksmith Dwarf's anvil.
+ */
+function buildBlacksmithAnvilStage(
+  kit: Kit,
+  ctx: ISetPieceContext,
+  ax: number,
+  ay: number,
+  az: number
+): void {
+  const { m } = kit;
+  const stage = new THREE.Group();
+  stage.position.set(ax, ay, az);
+  kit.add(stage);
+
+  // Low-profile stepped octagonal obsidian & gold smithing stage (non-overlapping Y tiers)
+  kit.cyl(1.65, 1.78, 0.06, m.darkStone, 0, 0.03, 0, 8, stage);
+  kit.cyl(1.52, 1.56, 0.03, m.gold, 0, 0.075, 0, 8, stage);
+  kit.cyl(1.36, 1.42, 0.05, m.stone, 0, 0.115, 0, 8, stage);
+
+  // Glowing molten rune ring inlaid on top of the smithing stage around the anvil
+  const runeRing = new THREE.Mesh(ctx.own(new THREE.TorusGeometry(1.12, 0.04, 6, 24)), m.molten);
+  runeRing.rotation.x = -Math.PI / 2;
+  runeRing.position.set(0, 0.145, 0);
+  stage.add(runeRing);
+
+  // Octagonal molten quenching basin on the side flank of the anvil stage (clear of the smith's North/South standing spots)
+  kit.cyl(0.42, 0.48, 0.48, m.darkStone, -1.05, 0.28, 0, 8, stage);
+  kit.cyl(0.45, 0.45, 0.06, m.gold, -1.05, 0.52, 0, 8, stage);
+  kit.cyl(0.36, 0.36, 0.05, m.molten, -1.05, 0.53, 0, 10, stage);
+
+  // Pair of ornate golden anvil-guard posts on the East & West flanks of the stage
+  for (const sideX of [-1.38, 1.38]) {
+    kit.box(0.28, 0.78, 0.28, m.darkStone, sideX, 0.06, -0.45, stage);
+    kit.box(0.34, 0.1, 0.34, m.gold, sideX, 0.84, -0.45, stage);
+    kit.box(0.18, 0.16, 0.18, m.molten, sideX, 0.94, -0.45, stage);
+  }
+  ctx.addLight(ax, ay + 1.8, az, 0xff8c24, 6.5);
 }
 // #endregion
 
@@ -2402,6 +2446,11 @@ function buildFoundry(kit: Kit, ctx: ISetPieceContext): { ladlePivot: THREE.Grou
   kit.chain(0, 0, U + gw.height - 1.1, U + 4.4, ladlePivot);
   kit.cyl(0.8, 0.55, 1.1, m.iron, 0, U + 3.9, 0, 12, ladlePivot);
   kit.cyl(0.7, 0.7, 0.08, m.molten, 0, U + 4.45, 0, 12, ladlePivot);
+
+  // Master Blacksmith Stages & Runic Anvil Platforms for Kili Forgehammer at (80, 115, U) and (100, 116, U)
+  buildBlacksmithAnvilStage(kit, ctx, 80.0, U, 115.0);
+  buildBlacksmithAnvilStage(kit, ctx, 100.0, U, 116.0);
+
   return { ladlePivot };
 }
 // #endregion

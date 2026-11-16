@@ -287,12 +287,36 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'crate', lx: -62, lz: 191 },
   { kind: 'crate', lx: -63.5, lz: 192.4, yaw: 0.5 },
   { kind: 'barrel', lx: -66, lz: 191.5 },
-  { kind: 'orePile', lx: 40, lz: 200, tint: 'dark' },
-  { kind: 'orePile', lx: 56, lz: 197, tint: 'dark' },
   // Flanking braziers at the Left-Wall Doorway to the Circular Staircase Chamber (lx = 70, lz = 194..202).
   { kind: 'brazier', lx: 68.5, lz: 192.8 },
   { kind: 'brazier', lx: 68.5, lz: 203.2 },
-  // Deep Moria Sanctum at the bottom of the Circular Staircase (lx: 102..138, lz: 244..276, y = -63.35).
+  // War Room Entry Corridor & Spiral Staircase Descent Banners along the outer walls (lx: 70..136, lz: 194..244).
+  ...[81, 89, 97].flatMap((lx) => [
+    { kind: 'banner' as const, lx, lz: 194.15, yaw: 0, lift: 2.4 },
+    { kind: 'banner' as const, lx, lz: 201.85, yaw: Math.PI, lift: 2.4 },
+  ]),
+  { kind: 'banner', lx: 111, lz: 194.15, yaw: 0, lift: 2.2 },
+  { kind: 'banner', lx: 121, lz: 194.15, yaw: 0, lift: 2.2 },
+  { kind: 'banner', lx: 131, lz: 194.15, yaw: 0, lift: 2.2 },
+  ...[199, 208, 216, 224].map((lz) => ({
+    kind: 'banner' as const,
+    lx: 135.85,
+    lz,
+    yaw: -QUARTER,
+    lift: 2.2,
+  })),
+  { kind: 'banner', lx: 128, lz: 227.85, yaw: Math.PI, lift: 2.2 },
+  { kind: 'banner', lx: 118, lz: 227.85, yaw: Math.PI, lift: 2.2 },
+  ...[224, 232, 239].map((lz) => ({
+    kind: 'banner' as const,
+    lx: 102.15,
+    lz,
+    yaw: QUARTER,
+    lift: 2.2,
+  })),
+  { kind: 'banner', lx: 109.85, lz: 232, yaw: -QUARTER, lift: 2.2 },
+  { kind: 'banner', lx: 109.85, lz: 239, yaw: -QUARTER, lift: 2.2 },
+  // Deep Moria War Room at the bottom of the Circular Staircase (lx: 102..138, lz: 244..276, y = -63.35).
   { kind: 'brazier', lx: 112, lz: 250 },
   { kind: 'brazier', lx: 128, lz: 250 },
   { kind: 'brazier', lx: 112, lz: 268 },
@@ -300,6 +324,12 @@ export const LOWER_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'weaponRack', lx: 104, lz: 258, yaw: QUARTER },
   { kind: 'crystalCluster', lx: 135, lz: 254, tint: 'blue' },
   { kind: 'crystalCluster', lx: 135, lz: 266, tint: 'gold' },
+  ...[248, 255, 261, 270].flatMap((lz) => [
+    { kind: 'banner' as const, lx: 102.15, lz, yaw: QUARTER, lift: 3.2 },
+    { kind: 'banner' as const, lx: 137.85, lz, yaw: -QUARTER, lift: 3.2 },
+  ]),
+  { kind: 'banner', lx: 108.5, lz: 275.85, yaw: Math.PI, lift: 3.4 },
+  { kind: 'banner', lx: 131.5, lz: 275.85, yaw: Math.PI, lift: 3.4 },
 
   // Great Bridge: braziers along both parapets.
   ...[216, 233, 250, 267, 284].flatMap((lz) => [
@@ -348,15 +378,18 @@ export const DEEP_LEVEL_PROPS: readonly IMinePropPlacement[] = [
   { kind: 'stoneBlock', lx: -8, lz: 324, yaw: 0.5 },
   { kind: 'stoneBlock', lx: 7.5, lz: 350, yaw: -0.3 },
   { kind: 'stoneBlock', lx: -20, lz: 334.5, yaw: 1.1 },
-  { kind: 'orePile', lx: -6, lz: 327, tint: 'dark' },
-  { kind: 'orePile', lx: 9, lz: 347, tint: 'dark' },
-  { kind: 'orePile', lx: 22, lz: 352, tint: 'dark' },
 
-  // Dragon forge: braziers at the passage foot and basalt rubble along the north landing.
+  // Ancient passage descending into the Dragon Forge: Dwarven banners on both walls replacing the old stone panels.
+  ...[360, 366, 372, 378, 382.2].flatMap((lz) => [
+    { kind: 'banner' as const, lx: -4.85, lz, yaw: QUARTER, lift: 1.5 },
+    { kind: 'banner' as const, lx: 4.85, lz, yaw: -QUARTER, lift: 1.5 },
+  ]),
+
+  // Dragon forge: braziers at the passage foot, royal banners on the north wall, and crates along the north landing.
   { kind: 'brazier', lx: -7, lz: 386.5 },
   { kind: 'brazier', lx: 7, lz: 386.5 },
-  { kind: 'orePile', lx: -28, lz: 392, tint: 'dark' },
-  { kind: 'orePile', lx: 28, lz: 392, tint: 'dark' },
+  { kind: 'banner', lx: -10.5, lz: 384.2, yaw: 0, lift: 3.2 },
+  { kind: 'banner', lx: 10.5, lz: 384.2, yaw: 0, lift: 3.2 },
   { kind: 'stoneBlock', lx: -22, lz: 388, yaw: 0.7 },
   { kind: 'stoneBlock', lx: 24, lz: 388, yaw: -0.4 },
   { kind: 'crate', lx: 18, lz: 390 },

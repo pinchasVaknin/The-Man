@@ -188,6 +188,12 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
     // Secret Vault Stairs & Royal Treasure Vault
     z >= 385;
 
+  const isWallBoulderExcludedZone = (x: number, z: number): boolean =>
+    isDressedArchitecturalZone(x, z) ||
+    // Grand Descent (non-rail descent from the Central Hall) and every chamber continuing from it
+    (z >= 120 && x >= -35 && x <= 38) ||
+    z >= 145;
+
   for (const foot of wallFeet) {
     if (foot.height < MIN_WALL_HEIGHT_FOR_BOULDERS) continue;
     const length = Math.hypot(foot.x1 - foot.x0, foot.z1 - foot.z0);
@@ -202,7 +208,7 @@ export function addRockDressing(ctx: IDressingContext, wallFeet: readonly IWallF
       e.set(random() * 3, random() * 6, random() * 3);
       q.setFromEuler(e);
       m.compose(new THREE.Vector3(x, y, z), q, new THREE.Vector3(size, size * (0.7 + random() * 0.6), size));
-      if (isDressedArchitecturalZone(x, z)) continue;
+      if (isWallBoulderExcludedZone(x, z)) continue;
       boulders.push(m.clone());
     }
   }

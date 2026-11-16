@@ -379,8 +379,13 @@ function facesBetween(
     const isAHigher = a0.height > b0.height;
     const high = isAHigher ? a0 : b0;
     const low = isAHigher ? b0 : a0;
+    const facing: 1 | -1 = isAHigher ? 1 : -1;
+    const isSpanningBridge = high.surfaceId === 'great-bridge' || high.surfaceId === 'diamond-chasm-bridge';
     const y0 = low.material === 'abyss' ? high.height - ABYSS_LIP_DEPTH : low.height;
-    faces.push({ y0, y1: high.height, facing: isAHigher ? 1 : -1, color: stepColor(high), isRock: false, isWall: false });
+    faces.push({ y0, y1: high.height, facing, color: stepColor(high), isRock: false, isWall: false });
+    if (low.material === 'abyss' && !isSpanningBridge && y0 > low.height + 0.05) {
+      faces.push({ y0: low.height, y1: y0, facing, color: ROCK_COLOR, isRock: true, isWall: false });
+    }
   }
 
   const airA = openAirIntervals(a0, a1);

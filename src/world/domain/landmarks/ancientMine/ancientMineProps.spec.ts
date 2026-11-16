@@ -64,5 +64,45 @@ describe('ancientMineProps', () => {
     // Assert
     assert.deepEqual(missing, []);
   });
+
+  it('passageBanners_WhenPlacedAlongDragonDescent_ShouldFlankBothWestAndEastWalls', () => {
+    // Arrange & Act
+    const passageBanners = ALL_MINE_PROPS.filter(
+      (p) => p.kind === 'banner' && p.lz >= 358 && p.lz <= 383,
+    );
+    const westBanners = passageBanners.filter((p) => p.lx < 0);
+    const eastBanners = passageBanners.filter((p) => p.lx > 0);
+
+    // Assert
+    assert.equal(westBanners.length, 5);
+    assert.equal(eastBanners.length, 5);
+  });
+
+  it('removedForgeAnvilShrines_WhenQueried_ShouldNotHaveSolidFixtureColliderBoxes', () => {
+    // Arrange
+    const removedFixtureIds = [
+      'ancient-mine-fixture-forge-anvil-shrine-west',
+      'ancient-mine-fixture-forge-anvil-shrine-east',
+    ];
+
+    // Act
+    const present = removedFixtureIds.filter((id) =>
+      ANCIENT_MINE_COLLIDER_BOXES.some((b) => b.id === id),
+    );
+
+    // Assert
+    assert.deepEqual(present, []);
+  });
+
+  it('warRoomDescentAndChamberBanners_WhenPlaced_ShouldAdornCorridorStairsAndSanctum', () => {
+    // Arrange & Act
+    const warRoomBanners = ALL_MINE_PROPS.filter(
+      (p) => p.kind === 'banner' && p.lx >= 80 && p.lz >= 194 && p.lz <= 276,
+    );
+
+    // Assert
+    assert.ok(warRoomBanners.length >= 20);
+  });
 });
 // #endregion
+

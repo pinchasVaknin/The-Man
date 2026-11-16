@@ -402,16 +402,13 @@ function buildGolemChamber(ctx: ISetPieceContext, runeMat: THREE.Material): void
 // #endregion
 
 // #region Ancient Passage
-/** Summary: Pilasters, carved relief panels and torches stepping down both walls of the passage, plus full-height arch into the Forge. */
+/** Summary: Pilasters, Dwarven banners and torches stepping down both walls of the passage, plus full-height arch into the Forge. */
 function buildPassage(ctx: ISetPieceContext): void {
   const m = ctx.materials;
   for (let lz = 357; lz <= 381; lz += 6) {
     const floor = sampleAncientMineFloor(0, lz, LEDGE)?.height ?? FORGE;
     for (const x of [-4.75, 4.75]) {
       addBox(ctx, 0.5, -32 - floor, 0.9, m.stone, x, floor, lz);
-      addBox(ctx, 0.12, 2.6, 2.6, m.darkStone, x * 1.03, floor + 1.6, lz + 3);
-      addBox(ctx, 0.14, 0.18, 2.0, m.gold, x * 1.035, floor + 3.6, lz + 3);
-      addBox(ctx, 0.14, 1.2, 0.18, m.gold, x * 1.035, floor + 2.4, lz + 3);
     }
     ctx.addTorch(-4.3, floor + 2.8, lz, 0xff9a30, 5);
     ctx.addTorch(4.3, floor + 2.8, lz, 0xff9a30, 5);
