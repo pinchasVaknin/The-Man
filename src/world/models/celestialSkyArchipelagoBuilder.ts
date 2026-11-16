@@ -3,8 +3,8 @@
 // DESIGN: Two parts. The waterfall climb (ground stargate dock, aether-vortex beam and the
 //         57 helical steps) is built here unchanged. The archipelago it leads to, the
 //         Skybound Isles, is built by `skyboundIslesBuilder.ts` and only animated from here.
-// SUMMARY: Builds the climb, the wind-ring geysers (climb foot and volcano) and the
-//          Skybound Isles group, and returns one per-frame update for all of them.
+// SUMMARY: Builds the climb, the wind-ring geysers (climb foot and volcano), the
+//          Skybound Isles group and the Sky Harbor hub, and returns one per-frame update for all of them.
 // ============================================================================
 
 import * as THREE from 'three';
@@ -18,6 +18,7 @@ import {
 } from '../terrainMath';
 import type { IWorldModelBuildContext } from './types';
 import { buildSkyboundIslesBlockout } from './skyboundIslesBuilder';
+import { buildSkyHarbor } from './skyHarborBuilder';
 
 export interface ICelestialSkyArchipelagoBuildResult {
   readonly floatingIslandsGroup: THREE.Group;
@@ -396,6 +397,8 @@ export function buildCelestialSkyArchipelagoModels(
   // ==========================================================================
   const skybound = buildSkyboundIslesBlockout(ctx);
   floatingIslandsGroup.add(skybound.group);
+  const skyHarbor = buildSkyHarbor(ctx);
+  floatingIslandsGroup.add(skyHarbor.group);
 
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({
@@ -427,6 +430,7 @@ export function buildCelestialSkyArchipelagoModels(
         }
 
         skybound.update(elapsedTime);
+        skyHarbor.update(elapsedTime);
       }
 
       // Animate Celestial Wind-Ring & Thermal Launch Pads

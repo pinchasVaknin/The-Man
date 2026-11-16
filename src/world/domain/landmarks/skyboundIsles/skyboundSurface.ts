@@ -5,7 +5,7 @@
 //         stops a player falling past an island from being snapped up onto it.
 //         Fall recovery remembers the last island the player stood on and puts them back on
 //         that island's checkpoint once they drop below the archipelago.
-// SUMMARY: Walkable height of islands, bridges, rest platforms and clouds, and the
+// SUMMARY: Walkable height of islands, bridges, rest platforms, Sky Harbor additions and clouds, and the
 //          fall-recovery tracker. Does not move the player; the physics step does that.
 // ============================================================================
 
@@ -14,12 +14,13 @@
 import { SKY_BRIDGES, SKYBOUND_ISLANDS, SKYBOUND_REGION, getSkyIsland, isInsideSkyboundRegion, type ISkyIsland } from './skyboundLayout';
 import { SKY_REST_PLATFORMS } from './skyCloudRoutes';
 import { skyCloudSurfaceAt } from './skyCloudSystem';
+import { visitSkyHarborSurfaces } from './skyHarborLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Types
 /** Summary: What kind of thing the feet stand on. */
-export type SkySurfaceKind = 'island' | 'bridge' | 'platform' | 'cloud';
+export type SkySurfaceKind = 'island' | 'bridge' | 'platform' | 'cloud' | 'deck' | 'ramp' | 'stair' | 'pad';
 
 /** Summary: A walkable surface hit. */
 export interface ISkySurfaceHit {
@@ -86,6 +87,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
     const p = SKY_REST_PLATFORMS[i];
     if (Math.hypot(x - p.x, z - p.z) <= p.radius) consider(p.y, 'platform', p.id);
   }
+  visitSkyHarborSurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);
   if (cloud !== null) consider(cloud.y, 'cloud', cloud.cloud.def.id);
   return best;

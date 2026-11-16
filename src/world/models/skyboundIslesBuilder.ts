@@ -5,9 +5,9 @@
 //         the collision. Clouds get one material each because their opacity is per cloud;
 //         everything else shares a handful of materials.
 // SUMMARY: Builds and animates the visible archipelago: island decks with rocky undersides,
-//          the Windspire, the bridge, rest platforms, the walkable clouds (sinking, collapsing,
+//          the bridge, rest platforms, the walkable clouds (sinking, collapsing,
 //          storm warnings, phantom fading) and the moving rings that show each wind current.
-//          The waterfall climb is built by the celestial ascent builder, not here.
+//          The waterfall climb and the Sky Harbor hub (incl. the Windspire) have their own builders.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -15,11 +15,9 @@
 import * as THREE from 'three';
 import {
   SKYBOUND_ISLANDS,
-  SKY_HARBOR,
   SKY_BRIDGES,
   SKY_REST_PLATFORMS,
   SKY_WIND_CURRENTS,
-  WINDSPIRE,
   getSkyCloudRuntimes,
   isWindCurrentActive,
   type ISkyIsland,
@@ -36,7 +34,7 @@ import type { IWorldModelBuildContext } from './types';
 /** Summary: What the blockout builder hands back to the frame loop. */
 export interface ISkyboundIslesBuildResult {
   readonly group: THREE.Group;
-  /** Animates clouds, wind rings and the Windspire; call once per frame while nearby. */
+  /** Animates clouds and wind rings; call once per frame while nearby. */
   readonly update: (elapsedSec: number) => void;
 }
 
@@ -103,8 +101,6 @@ export function buildSkyboundIslesBlockout(ctx: IWorldModelBuildContext): ISkybo
 
   const shared = createSharedAssets(ctx);
   for (const isl of SKYBOUND_ISLANDS) group.add(buildIsland(ctx, shared, isl));
-  const windspire = buildWindspire(ctx, shared);
-  group.add(windspire.root);
   for (const br of SKY_BRIDGES) group.add(buildBridge(ctx, shared, br.ax, br.ay, br.az, br.bx, br.by, br.bz, br.halfWidth));
   for (const p of SKY_REST_PLATFORMS) group.add(buildRestPlatform(shared, p.x, p.y, p.z, p.radius));
   buildChestsAndBed(shared, group);
@@ -117,11 +113,6 @@ export function buildSkyboundIslesBlockout(ctx: IWorldModelBuildContext): ISkybo
     update: (elapsedSec: number) => {
       animateClouds(cloudVisuals, elapsedSec);
       animateWindRings(windRings, elapsedSec);
-      windspire.crystal.rotation.y = elapsedSec * 0.6;
-      for (let r = 0; r < windspire.rings.length; r++) {
-        windspire.rings[r].rotation.z = elapsedSec * (r % 2 === 0 ? 0.4 : -0.55);
-        windspire.rings[r].rotation.x = Math.PI / 2 + Math.sin(elapsedSec * 0.3 + r) * 0.12;
-      }
     },
   };
 }
@@ -193,35 +184,6 @@ function buildIsland(ctx: IWorldModelBuildContext, shared: ISharedAssets, isl: I
   underside.position.set(isl.x, isl.deckY - deckThickness - undersideDepth / 2, isl.z);
   root.add(deck, underside);
   return root;
-}
-
-/** Windspire blockout: the hub's central tower, its wind crystal and three tilted rings. */
-function buildWindspire(ctx: IWorldModelBuildContext, shared: ISharedAssets): { root: THREE.Group; crystal: THREE.Mesh; rings: THREE.Mesh[] } {
-  const root = new THREE.Group();
-  root.name = 'windspire';
-  const towerGeo = new THREE.CylinderGeometry(WINDSPIRE.radius * 0.72, WINDSPIRE.radius, WINDSPIRE.height, 8);
-  const crystalGeo = new THREE.OctahedronGeometry(3.2, 0);
-  crystalGeo.scale(1, 1.8, 1);
-  ctx.disposableGeometries.push(towerGeo, crystalGeo);
-
-  const tower = new THREE.Mesh(towerGeo, shared.stoneMat);
-  tower.position.set(SKY_HARBOR.x, SKY_HARBOR.deckY + WINDSPIRE.height / 2, SKY_HARBOR.z);
-  tower.castShadow = !ctx.isSoftwareGl;
-  const crystal = new THREE.Mesh(crystalGeo, shared.crystalMat);
-  crystal.position.set(SKY_HARBOR.x, SKY_HARBOR.deckY + WINDSPIRE.height + 6.5, SKY_HARBOR.z);
-  root.add(tower, crystal);
-
-  const rings: THREE.Mesh[] = [];
-  for (let r = 0; r < 3; r++) {
-    const ring = new THREE.Mesh(shared.ringGeo, shared.goldMat);
-    ring.scale.setScalar(5.5 + r * 1.6);
-    ring.position.copy(crystal.position);
-    ring.rotation.x = Math.PI / 2;
-    ring.rotation.y = r * 0.6;
-    root.add(ring);
-    rings.push(ring);
-  }
-  return { root, crystal, rings };
 }
 
 /** Straight stone ramp between two rim points. */

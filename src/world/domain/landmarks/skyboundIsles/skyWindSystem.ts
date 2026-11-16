@@ -50,6 +50,20 @@ export interface ISkyWindCurrent {
   readonly maxFallSpeed?: number;
   /** Number of Wind Cores needed before the current runs; undefined = always on. */
   readonly unlockedByCores?: number;
+  /** When set, the current only runs while this wind flower is open. */
+  readonly flowerId?: string;
+}
+
+/** Summary: A garden flower that opens when the player comes close and releases an updraft. */
+export interface ISkyWindFlower {
+  readonly id: string;
+  readonly x: number;
+  readonly z: number;
+  readonly deckY: number;
+  /** Horizontal distance (m) at which the flower opens. */
+  readonly triggerRadius: number;
+  /** Seconds the flower stays open after the player leaves. */
+  readonly holdOpenSec: number;
 }
 
 /** Summary: What the wind does to the player at one position this frame. */
@@ -82,6 +96,19 @@ const STREAM_CENTERING_PER_SEC = 2.2;
 const VERTICAL_EASE_PER_SEC = 8.0;
 /** How fast (1/s) a too-fast fall eases toward a downdraft's cap. */
 const FALL_CAP_EASE_PER_SEC = 8.0;
+// #endregion
+
+// #region Wind Flowers
+/**
+ * Summary: The two wind flowers of the Sky Garden: one lifts to the canopy perch, one to the Windspire balcony.
+ * Design: Their columns have no exit push. A player who does not steer just hovers at the top and
+ *         settles back down inside the column; only steering out drops them onto the target.
+ */
+export const SKY_WIND_FLOWERS: readonly ISkyWindFlower[] = [
+  { id: 'wind-flower-perch', x: 765.0, z: -72.5, deckY: 68.0, triggerRadius: 3.0, holdOpenSec: 6.0 },
+  { id: 'wind-flower-windspire', x: 785.0, z: -49.0, deckY: 68.0, triggerRadius: 3.0, holdOpenSec: 6.0 },
+];
+const WIND_FLOWER_COLUMN_RADIUS_M = 1.6;
 // #endregion
 
 // #region Currents
@@ -165,6 +192,28 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
     speed: 9.0,
   },
   {
+    id: 'wind-flower-perch-updraft',
+    mode: 'updraft',
+    path: [
+      { x: 765.0, y: 67.5, z: -72.5 },
+      { x: 765.0, y: 77.0, z: -72.5 },
+    ],
+    radius: WIND_FLOWER_COLUMN_RADIUS_M,
+    speed: 7.0,
+    flowerId: 'wind-flower-perch',
+  },
+  {
+    id: 'wind-flower-windspire-updraft',
+    mode: 'updraft',
+    path: [
+      { x: 785.0, y: 67.5, z: -49.0 },
+      { x: 785.0, y: 82.0, z: -49.0 },
+    ],
+    radius: WIND_FLOWER_COLUMN_RADIUS_M,
+    speed: 8.0,
+    flowerId: 'wind-flower-windspire',
+  },
+  {
     id: 'wind-windspire-shortcut',
     mode: 'stream',
     path: [
@@ -181,6 +230,8 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
 // ======================== MODULE STATE ======================== \\
 // #region Progression State
 let activatedWindCores = 0;
+/** Seconds each wind flower stays open; 0 = closed. */
+const flowerOpenSec = new Map<string, number>();
 // #endregion
 
 // ======================== PUBLIC API ======================== \\
@@ -198,7 +249,38 @@ export function setActivatedWindCoreCount(count: number): void {
  * @param current The current definition.
  */
 export function isWindCurrentActive(current: ISkyWindCurrent): boolean {
+  if (current.flowerId !== undefined && (flowerOpenSec.get(current.flowerId) ?? 0) <= 0) return false;
   return current.unlockedByCores === undefined || activatedWindCores >= current.unlockedByCores;
+}
+
+/**
+ * Summary: Opens wind flowers the player is standing next to and lets the others close.
+ * @param dt Frame time in seconds.
+ * @param playerX Feet X.
+ * @param playerY Feet Y.
+ * @param playerZ Feet Z.
+ */
+export function stepSkyWindFlowers(dt: number, playerX: number, playerY: number, playerZ: number): void {
+  for (const flower of SKY_WIND_FLOWERS) {
+    const near =
+      Math.hypot(playerX - flower.x, playerZ - flower.z) <= flower.triggerRadius &&
+      Math.abs(playerY - flower.deckY) <= 3.0;
+    const left = flowerOpenSec.get(flower.id) ?? 0;
+    flowerOpenSec.set(flower.id, near ? flower.holdOpenSec : Math.max(0, left - dt));
+  }
+}
+
+/**
+ * Summary: How open a wind flower is, for the renderer: 1 = open, 0 = closed.
+ * @param id Flower id.
+ */
+export function getWindFlowerOpenness(id: string): number {
+  return Math.min(1, (flowerOpenSec.get(id) ?? 0) / 1.0);
+}
+
+/** Summary: Closes every wind flower (used by tests and world reset). */
+export function resetSkyWindFlowers(): void {
+  flowerOpenSec.clear();
 }
 // #endregion
 

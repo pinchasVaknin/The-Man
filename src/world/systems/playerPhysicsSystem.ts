@@ -44,6 +44,8 @@ import {
   updateSkyFallRecovery,
   DEFAULT_BOUNCE_VY,
   STORM_GUST_SPEED_MPS,
+  skyBouncePadAt,
+  stepSkyWindFlowers,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -100,6 +102,10 @@ let skyCloudElapsedClock = 0;
 const skyFallTracker = createSkyFallTracker();
 /** Feet within this distance (m) of a cloud top count as standing on it. */
 const SKY_CLOUD_CONTACT_M = 0.6;
+/** True while a sky wind current lifted the player on the previous frame. */
+let skyWindLiftingLastFrame = false;
+/** True from a mushroom / bounce-cloud launch until the top of that jump. */
+let skyLaunchUntilApex = false;
 
 /**
  * Summary: Returns the currently active player state instance (if initialized).
@@ -1384,7 +1390,10 @@ export function stepPlayerPhysics(
       state.jumpBufferTimer = 0;
     }
 
-    if (!input.jumpHeld && state.vy > 1.8 && state.vy < 8.5) {
+    // Short-hop cut when the jump key is released early; skipped while sky wind lifts the player
+    // or during a mushroom / bounce-cloud launch, whose height must not depend on holding jump.
+    if (!state.onGround && state.vy <= 0) skyLaunchUntilApex = false;
+    if (!input.jumpHeld && state.vy > 1.8 && state.vy < 8.5 && !skyWindLiftingLastFrame && !skyLaunchUntilApex) {
       state.vy *= 0.65;
     }
 
@@ -1418,7 +1427,7 @@ export function stepPlayerPhysics(
     }
   }
 
-  // Skybound Isles: walkable clouds (sink, collapse, bounce, storm gusts) and wind currents.
+  // Skybound Isles: walkable clouds (sink, collapse, bounce, storm gusts), bounce mushrooms, wind flowers and wind currents.
   if (!state.isFlying && isInsideSkyboundRegion(state.x, state.z)) {
     skyCloudElapsedClock += dt;
     stepSkyClouds(dt, skyCloudElapsedClock, state.x, state.y, state.z, Math.hypot(state.vx, state.vz));
@@ -1429,20 +1438,32 @@ export function stepPlayerPhysics(
         state.vy = cloudDef.bounceVy ?? DEFAULT_BOUNCE_VY;
         state.onGround = false;
         state.coyoteTimer = 0;
+        skyLaunchUntilApex = true;
       }
       if (cloudHit.cloud.gustActive && cloudDef.gustDirX !== undefined && cloudDef.gustDirZ !== undefined) {
         state.x += cloudDef.gustDirX * STORM_GUST_SPEED_MPS * dt;
         state.z += cloudDef.gustDirZ * STORM_GUST_SPEED_MPS * dt;
       }
     }
+    const bouncePad = skyBouncePadAt(state.x, state.y, state.z);
+    if (bouncePad !== null && state.vy <= 1.5) {
+      state.vy = bouncePad.bounceVy;
+      state.onGround = false;
+      state.coyoteTimer = 0;
+      skyLaunchUntilApex = true;
+    }
+    stepSkyWindFlowers(dt, state.x, state.y, state.z);
     const wind = sampleSkyWindAt(state.x, state.y, state.z, skyCloudElapsedClock);
+    skyWindLiftingLastFrame = wind !== null && wind.targetVy !== null && wind.targetVy > 0.5;
     if (wind !== null) {
       applySkyWind(state, wind, dt, GRAVITY);
-      if (wind.targetVy !== null && wind.targetVy > 0.5) {
+      if (skyWindLiftingLastFrame) {
         state.onGround = false;
         state.coyoteTimer = 0;
       }
     }
+  } else {
+    skyWindLiftingLastFrame = false;
   }
 
   let nextX = state.x + state.vx * dt;

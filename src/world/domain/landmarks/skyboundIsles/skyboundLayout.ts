@@ -141,26 +141,6 @@ export const SKYBOUND_ISLANDS: readonly ISkyIsland[] = [
 /** Summary: Size of the Windspire, the central tower standing on the centre of Sky Harbor. */
 export const WINDSPIRE = { radius: 6.0, height: 40.0 } as const;
 
-/** Summary: Solid boxes of the archipelago's structures (the player cannot walk through them). */
-export const SKY_SOLID_BOXES: ReadonlyArray<{
-  readonly id: string;
-  readonly minX: number;
-  readonly maxX: number;
-  readonly minZ: number;
-  readonly maxZ: number;
-  readonly minY: number;
-  readonly maxY: number;
-}> = [
-  {
-    id: 'skybound-windspire',
-    minX: SKY_HARBOR.x - WINDSPIRE.radius * 0.8,
-    maxX: SKY_HARBOR.x + WINDSPIRE.radius * 0.8,
-    minZ: SKY_HARBOR.z - WINDSPIRE.radius * 0.8,
-    maxZ: SKY_HARBOR.z + WINDSPIRE.radius * 0.8,
-    minY: SKY_HARBOR.deckY,
-    maxY: SKY_HARBOR.deckY + WINDSPIRE.height,
-  },
-];
 // #endregion
 
 // #region Bridges

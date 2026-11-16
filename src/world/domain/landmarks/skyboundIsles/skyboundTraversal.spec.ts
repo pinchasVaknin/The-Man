@@ -15,8 +15,9 @@ import assert from 'node:assert/strict';
 import { SKY_BRIDGES, SKY_HARBOR } from './skyboundLayout';
 import { SKY_CLOUDS, SKY_CLOUD_MAZE, SKY_REST_PLATFORMS, SKY_ROUTES, type IRouteHop } from './skyCloudRoutes';
 import { resetSkyClouds } from './skyCloudSystem';
-import { applySkyWind, sampleSkyWindAt, setActivatedWindCoreCount } from './skyWindSystem';
-import { createSkyFallTracker, skyboundSurfaceAt, updateSkyFallRecovery, type ISkySurfaceHit } from './skyboundSurface';
+import { resetSkyWindFlowers, sampleSkyWindAt, setActivatedWindCoreCount } from './skyWindSystem';
+import { createSkyFallTracker, skyboundSurfaceAt, updateSkyFallRecovery } from './skyboundSurface';
+import { STAND_STILL, simulateSkyPlayer, type SimPilot } from './skyboundTestSim';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -36,7 +37,6 @@ const PLAYER = {
 
 /** Summary: Fraction of the theoretical jump reach a "fair" route jump may use. */
 const FAIR_JUMP_FRACTION = 0.85;
-const FRAME_SEC = 1 / 60;
 // #endregion
 
 // #region Jump Arc
@@ -58,76 +58,13 @@ function edgeGap(a: { x: number; z: number; radius: number }, b: { x: number; z:
 // #endregion
 
 // #region Simulated Player
-interface ISimBody {
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vz: number;
-  vy: number;
-  grounded: boolean;
-  surface: ISkySurfaceHit | null;
-}
-
-/** Decides each frame where the simulated player walks (null = no input) and whether to jump. */
-type SimPilot = (body: ISimBody, t: number) => { towardX: number; towardZ: number; jump?: boolean } | null;
-
-/** Steps a simulated player until it is grounded and still for 1 s, or `maxSec` runs out. */
-function simulate(start: { x: number; y: number; z: number }, pilot: SimPilot, maxSec: number): ISimBody {
-  const body: ISimBody = { ...start, vx: 0, vz: 0, vy: 0, grounded: true, surface: skyboundSurfaceAt(start.x, start.z, start.y) };
-  let restSec = 0;
-  for (let t = 0; t < maxSec; t += FRAME_SEC) {
-    const cmd = pilot(body, t);
-    let targetVx = 0;
-    let targetVz = 0;
-    if (cmd) {
-      const dx = cmd.towardX - body.x;
-      const dz = cmd.towardZ - body.z;
-      const len = Math.hypot(dx, dz);
-      if (len > 0.3) {
-        targetVx = (dx / len) * PLAYER.walkSpeed;
-        targetVz = (dz / len) * PLAYER.walkSpeed;
-      }
-      if (cmd.jump && body.grounded) {
-        body.vy = PLAYER.jumpVy;
-        body.grounded = false;
-      }
-    }
-    const damp = 1 - Math.exp(-(body.grounded ? PLAYER.groundAccel : PLAYER.airAccel) * FRAME_SEC);
-    body.vx += (targetVx - body.vx) * damp;
-    body.vz += (targetVz - body.vz) * damp;
-    body.vy -= PLAYER.gravity * FRAME_SEC;
-
-    const wind = sampleSkyWindAt(body.x, body.y, body.z, t);
-    if (wind) applySkyWind(body, wind, FRAME_SEC, PLAYER.gravity);
-
-    const prevY = body.y;
-    body.x += body.vx * FRAME_SEC;
-    body.z += body.vz * FRAME_SEC;
-    body.y += body.vy * FRAME_SEC;
-    const floor = skyboundSurfaceAt(body.x, body.z, prevY);
-    if (floor && body.y <= floor.y && body.vy <= 0) {
-      body.y = floor.y;
-      body.vy = 0;
-      body.grounded = true;
-      body.surface = floor;
-    } else if (body.y > (floor?.y ?? -Infinity) + 0.05) {
-      body.grounded = false;
-      body.surface = null;
-    }
-    if (body.y < 0) return body;
-    restSec = body.grounded && Math.hypot(body.vx, body.vz) < 0.2 && !wind ? restSec + FRAME_SEC : 0;
-    if (restSec > 1) return body;
-  }
-  return body;
-}
-
-const STAND_STILL: SimPilot = () => null;
+const simulate = simulateSkyPlayer;
 // #endregion
 
 // ======================== TESTS ======================== \\
 beforeEach(() => {
   resetSkyClouds();
+  resetSkyWindFlowers();
   setActivatedWindCoreCount(0);
 });
 
