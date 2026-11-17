@@ -922,13 +922,13 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 90,
     contents: ['amethyst_gem', 'crystal_gem'],
   },
-  // Skybound Isles — Ancient Sky Ruins Chest
+  // Skybound Isles — Ancient Sky Ruins: chest inside the temple, behind the rune-sealed door
   {
     id: 'chest-sky-crown-zenith',
-    name: 'Ancient Sky Ruins Chest',
-    x: 698.0,
+    name: 'Temple of the Winds Chest',
+    x: 705.0,
     y: 82.0,
-    z: -128.0,
+    z: -138.0,
     interactRadius: 4.4,
     goldCoins: 320,
     contents: ['dwarven_warhammer', 'crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],

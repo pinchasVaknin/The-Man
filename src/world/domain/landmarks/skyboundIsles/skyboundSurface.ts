@@ -18,6 +18,7 @@ import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type I
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
 import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
 import { CRYSTAL_SOLID_BOXES, visitCrystalIslesSurfaces } from './crystalIslesLayout';
+import { RUINS_SOLID_BOXES, visitAncientRuinsSurfaces } from './ancientRuinsLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -94,6 +95,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
   visitFloatingGardenSurfaces(x, z, consider);
   visitObservatorySurfaces(x, z, consider);
   visitCrystalIslesSurfaces(x, z, consider);
+  visitAncientRuinsSurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);
   if (cloud !== null) consider(cloud.y, 'cloud', cloud.cloud.def.id);
   return best;
@@ -110,6 +112,7 @@ export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [
   ...GARDEN_SOLID_BOXES,
   ...OBSERVATORY_SOLID_BOXES,
   ...CRYSTAL_SOLID_BOXES,
+  ...RUINS_SOLID_BOXES,
 ];
 
 /**

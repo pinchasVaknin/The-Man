@@ -88,7 +88,7 @@ export const SKYBOUND_ISLANDS: readonly ISkyIsland[] = [
     x: 705.0,
     z: -118.0,
     deckY: 82.0,
-    radius: 24.0,
+    radius: 30.0,
     layer: 'central',
     optional: false,
     checkpoint: { x: 712.0, z: -104.0 },

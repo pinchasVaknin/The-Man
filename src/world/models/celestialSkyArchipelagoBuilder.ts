@@ -22,6 +22,7 @@ import { buildSkyHarbor } from './skyHarborBuilder';
 import { buildFloatingGarden } from './floatingGardenBuilder';
 import { buildObservatory } from './observatoryBuilder';
 import { buildCrystalIsles } from './crystalIslesBuilder';
+import { buildAncientRuins } from './ancientRuinsBuilder';
 
 export interface ICelestialSkyArchipelagoBuildResult {
   readonly floatingIslandsGroup: THREE.Group;
@@ -408,6 +409,8 @@ export function buildCelestialSkyArchipelagoModels(
   floatingIslandsGroup.add(observatory.group);
   const crystalIsles = buildCrystalIsles(ctx);
   floatingIslandsGroup.add(crystalIsles.group);
+  const ancientRuins = buildAncientRuins(ctx);
+  floatingIslandsGroup.add(ancientRuins.group);
 
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({
@@ -443,6 +446,7 @@ export function buildCelestialSkyArchipelagoModels(
         floatingGarden.update(elapsedTime);
         observatory.update(elapsedTime);
         crystalIsles.update(elapsedTime);
+        ancientRuins.update(elapsedTime);
       }
 
       // Animate Celestial Wind-Ring & Thermal Launch Pads

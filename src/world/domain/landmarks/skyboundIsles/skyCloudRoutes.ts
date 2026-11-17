@@ -12,6 +12,7 @@
 // #region Imports
 import { getSkyIsland, type ISkyIsland } from './skyboundLayout';
 import type { ISkyCloudDef, SkyCloudKind } from './skyCloudSystem';
+import { RUINS_COLUMN_TOP, RUINS_STAIR_LANDING } from './ancientRuinsLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -206,6 +207,16 @@ addRoute(
     { ...STORM_VORTEX_ANCHOR, kind: 'wind' },
   ],
   [{ kinds: ['storm'], cloudRadius: STORM_RADIUS_M }]
+);
+
+// Ruins lone column: from the broken stair's landing, one bounce cloud up to the column top (a rune).
+addRoute(
+  'ruins-colonnade',
+  [
+    { x: RUINS_STAIR_LANDING.x, y: RUINS_STAIR_LANDING.y, z: RUINS_STAIR_LANDING.z, radius: RUINS_STAIR_LANDING.radius, kind: 'platform' },
+    { x: RUINS_COLUMN_TOP.x, y: RUINS_COLUMN_TOP.y, z: RUINS_COLUMN_TOP.z, radius: RUINS_COLUMN_TOP.radius, kind: 'platform' },
+  ],
+  [{ kinds: ['bounce'], cloudRadius: SOFT_RADIUS_M, bounceVy: 15.5, riseFromStart: 0.3 }]
 );
 
 // Endless Descent: Sky Harbor dock -> Forgotten Airship -> Hidden Isle.

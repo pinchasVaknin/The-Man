@@ -168,9 +168,27 @@ export {
   type ICrystalStrikeResult,
 } from './landmarks/skyboundIsles/skyCrystalMining';
 export {
+  RUINS_TEMPLE,
+  RUINS_TEMPLE_DOOR,
+  RUINS_CHEST_SPOT,
+  RUINS_PORTICO_COLUMNS,
+  RUINS_CLUE_WALL,
+  RUINS_STAIR_LANDING,
+  RUINS_BROKEN_STAIR,
+  RUINS_COLUMN_TOP,
+  RUINS_SEALED_ROOM,
+  RUINS_SEALED_CRACK,
+  RUINS_BROKEN_BRIDGE,
+  RUINS_STATUES,
+  RUINS_RUNES,
+  RUINS_SOLID_BOXES,
+  type IRuinsPlatform,
+} from './landmarks/skyboundIsles/ancientRuinsLayout';
+export {
   SKY_MECHANISMS,
   OBSERVATORY_RING_STEPS,
   OBSERVATORY_RING_SOLUTION,
+  RUINS_RUNE_COUNT,
   createSkyPuzzleState,
   getSkyPuzzleState,
   resetSkyPuzzles,

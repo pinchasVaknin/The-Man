@@ -2,7 +2,8 @@
 // MODULE: World / Domain / Landmarks / Skybound Isles (test support)
 // DESIGN: A small stand-in for the on-foot player controller: same gravity, jump speed,
 //         walking speed and air control as playerPhysicsSystem.ts, the same wind application
-//         (`applySkyWind`), bounce pads, wind-flower triggering and height-aware solid boxes.
+//         (`applySkyWind`), bounce pads and bounce clouds, wind-flower triggering and height-aware
+//         solid boxes.
 //         Used only by the traversal specs, so routes are proven by "walking" them.
 // SUMMARY: Simulated player for Skybound Isles traversal tests. Not used by the game.
 // ============================================================================
@@ -12,6 +13,7 @@
 import { pointInsideSolidBuildingBox } from '../../collisionWorld';
 import { applySkyWind, sampleSkyWindAt, stepSkyWindFlowers } from './skyWindSystem';
 import { closedSkyGates } from './skyPuzzles';
+import { DEFAULT_BOUNCE_VY, skyCloudSurfaceAt } from './skyCloudSystem';
 import { SKYBOUND_SOLID_BOXES, skyBouncePadAt, skyboundSurfaceAt, type ISkySurfaceHit } from './skyboundSurface';
 // #endregion
 
@@ -106,6 +108,12 @@ export function simulateSkyPlayer(start: { x: number; y: number; z: number }, pi
     const pad = skyBouncePadAt(body.x, body.y, body.z);
     if (pad && body.vy <= 1.5) {
       body.vy = pad.bounceVy;
+      body.grounded = false;
+    }
+    // Bounce clouds launch like in the game's physics step.
+    const cloud = skyCloudSurfaceAt(body.x, body.z, body.y);
+    if (cloud && cloud.cloud.def.kind === 'bounce' && Math.abs(body.y - cloud.y) <= 0.6 && body.vy <= 1.5) {
+      body.vy = cloud.cloud.def.bounceVy ?? DEFAULT_BOUNCE_VY;
       body.grounded = false;
     }
     const wind = sampleSkyWindAt(body.x, body.y, body.z, t);

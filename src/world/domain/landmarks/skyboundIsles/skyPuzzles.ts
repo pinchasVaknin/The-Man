@@ -5,13 +5,14 @@
 //         with the interact key; each one belongs to a puzzle. Gates are boxes that block
 //         only while their puzzle is unsolved; the physics step pushes the player out of them.
 // SUMMARY: Puzzle state, the mechanisms the player can use, activation rules, closed gates,
-//          and save/restore of the state: the Observatory rings and the Crystal resonance.
+//          and save/restore of the state: Observatory rings, Crystal resonance, Ruins runes.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { OBSERVATORY_CHAMBER_GATE, OBSERVATORY_LEVERS } from './observatoryLayout';
 import { CRYSTAL_PASSAGE_GATE, RESONANCE_CRYSTALS, RESONANCE_ORDER } from './crystalIslesLayout';
+import { RUINS_RUNES, RUINS_TEMPLE_DOOR } from './ancientRuinsLayout';
 import { getSkyIsland } from './skyboundLayout';
 import type { ISkySolidBox } from './skyHarborLayout';
 // #endregion
@@ -19,9 +20,9 @@ import type { ISkySolidBox } from './skyHarborLayout';
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Types
 /** Summary: Ids of the archipelago puzzles. */
-export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance';
+export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance' | 'ruins-temple';
 
-const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance'];
+const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance', 'ruins-temple'];
 
 /** Summary: Saved state of every archipelago puzzle. */
 export interface ISkyPuzzleState {
@@ -29,6 +30,8 @@ export interface ISkyPuzzleState {
   observatoryRings: [number, number, number];
   /** How many resonance crystals have been touched in the right order so far (0..3). */
   crystalResonanceProgress: number;
+  /** Ids of the Ruins temple runes awakened so far (any order). */
+  ruinsRunesLit: string[];
   solved: SkyPuzzleId[];
 }
 
@@ -52,6 +55,8 @@ export interface ISkyActivationResult {
   readonly solvedPuzzle: SkyPuzzleId | null;
   /** A sequence puzzle was answered wrongly and started over. */
   readonly sequenceReset: boolean;
+  /** Ruins runes awake after this activation (0 when the mechanism is not a rune). */
+  readonly runesLit: number;
 }
 // #endregion
 
@@ -91,12 +96,25 @@ export const SKY_MECHANISMS: readonly ISkyMechanism[] = [
     interactRadius: 2.6,
     labelKey: 'hud.sky_touch_crystal',
   })),
+  ...RUINS_RUNES.map((r) => ({
+    id: r.id,
+    puzzleId: 'ruins-temple' as const,
+    x: r.x,
+    y: r.y,
+    z: r.z,
+    interactRadius: 2.4,
+    labelKey: 'hud.sky_awaken_rune',
+  })),
 ];
+
+/** Summary: Number of runes that open the Ruins temple door. */
+export const RUINS_RUNE_COUNT = RUINS_RUNES.length;
 
 /** Summary: Gates and the puzzle that opens each. */
 const SKY_GATES: ReadonlyArray<{ readonly puzzleId: SkyPuzzleId; readonly box: ISkySolidBox }> = [
   { puzzleId: 'observatory-rings', box: OBSERVATORY_CHAMBER_GATE },
   { puzzleId: 'crystal-resonance', box: CRYSTAL_PASSAGE_GATE },
+  { puzzleId: 'ruins-temple', box: RUINS_TEMPLE_DOOR },
 ];
 // #endregion
 
@@ -109,7 +127,7 @@ let state: ISkyPuzzleState = createSkyPuzzleState();
 // #region State Access
 /** Summary: A fresh, unsolved puzzle state. */
 export function createSkyPuzzleState(): ISkyPuzzleState {
-  return { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, solved: [] };
+  return { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, ruinsRunesLit: [], solved: [] };
 }
 
 /** Summary: The live puzzle state (read-only view for renderers and the HUD). */
@@ -124,7 +142,12 @@ export function resetSkyPuzzles(): void {
 
 /** Summary: A copy of the state for the save file. */
 export function exportSkyPuzzleState(): ISkyPuzzleState {
-  return { observatoryRings: [...state.observatoryRings], crystalResonanceProgress: state.crystalResonanceProgress, solved: [...state.solved] };
+  return {
+    observatoryRings: [...state.observatoryRings],
+    crystalResonanceProgress: state.crystalResonanceProgress,
+    ruinsRunesLit: [...state.ruinsRunesLit],
+    solved: [...state.solved],
+  };
 }
 
 /**
@@ -138,6 +161,7 @@ export function importSkyPuzzleState(saved: Partial<ISkyPuzzleState> | undefined
   state = {
     observatoryRings: [0, 1, 2].map((i) => normalizeStep(Number(rings[i]) || 0)) as [number, number, number],
     crystalResonanceProgress: Math.max(0, Math.min(RESONANCE_ORDER.length, progress)),
+    ruinsRunesLit: Array.isArray(saved?.ruinsRunesLit) ? RUINS_RUNES.map((r) => r.id).filter((id) => saved.ruinsRunesLit!.includes(id)) : [],
     solved: Array.isArray(saved?.solved) ? saved.solved.filter((id): id is SkyPuzzleId => KNOWN_PUZZLES.includes(id as SkyPuzzleId)) : [],
   };
 }
@@ -174,7 +198,8 @@ export function findNearestSkyMechanism(x: number, y: number, z: number): ISkyMe
 }
 
 /**
- * Summary: Uses a mechanism: turns an Observatory ring one step, or touches a resonance crystal.
+ * Summary: Uses a mechanism: turns an Observatory ring one step, touches a resonance crystal,
+ *          or awakens a Ruins rune (runes stay awake; all four open the temple).
  * Design: A solved puzzle locks its mechanisms. Touching a resonance crystal out of order
  *         silences them all and the sequence starts again from the first crystal.
  * @param id Mechanism id.
@@ -184,6 +209,7 @@ export function activateSkyMechanism(id: string): ISkyActivationResult {
   const lever = OBSERVATORY_LEVERS.find((l) => l.id === id);
   if (lever) return turnObservatoryRing(lever.ringIndex);
   if (RESONANCE_ORDER.includes(id)) return touchResonanceCrystal(id);
+  if (RUINS_RUNES.some((r) => r.id === id)) return awakenRune(id);
   return NOTHING_CHANGED;
 }
 // #endregion
@@ -202,14 +228,14 @@ export function skyGatesWithState(): ReadonlyArray<{ readonly box: ISkySolidBox;
 
 // ======================== PRIVATE HELPERS ======================== \\
 // #region Puzzle Rules
-const NOTHING_CHANGED: ISkyActivationResult = { changed: false, solvedPuzzle: null, sequenceReset: false };
+const NOTHING_CHANGED: ISkyActivationResult = { changed: false, solvedPuzzle: null, sequenceReset: false, runesLit: 0 };
 
 function turnObservatoryRing(ringIndex: number): ISkyActivationResult {
   if (isSkyPuzzleSolved('observatory-rings')) return NOTHING_CHANGED;
   state.observatoryRings[ringIndex] = normalizeStep(state.observatoryRings[ringIndex] + 1);
   const solvedNow = state.observatoryRings.every((step, i) => step === OBSERVATORY_RING_SOLUTION[i]);
   if (solvedNow) state.solved.push('observatory-rings');
-  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false };
+  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false, runesLit: 0 };
 }
 
 function touchResonanceCrystal(id: string): ISkyActivationResult {
@@ -217,12 +243,20 @@ function touchResonanceCrystal(id: string): ISkyActivationResult {
   if (RESONANCE_ORDER[state.crystalResonanceProgress] !== id) {
     // A wrong crystal silences the chord; touching the first crystal again counts as a fresh start.
     state.crystalResonanceProgress = RESONANCE_ORDER[0] === id ? 1 : 0;
-    return { changed: true, solvedPuzzle: null, sequenceReset: true };
+    return { changed: true, solvedPuzzle: null, sequenceReset: true, runesLit: 0 };
   }
   state.crystalResonanceProgress += 1;
   const solvedNow = state.crystalResonanceProgress === RESONANCE_ORDER.length;
   if (solvedNow) state.solved.push('crystal-resonance');
-  return { changed: true, solvedPuzzle: solvedNow ? 'crystal-resonance' : null, sequenceReset: false };
+  return { changed: true, solvedPuzzle: solvedNow ? 'crystal-resonance' : null, sequenceReset: false, runesLit: 0 };
+}
+
+function awakenRune(id: string): ISkyActivationResult {
+  if (state.ruinsRunesLit.includes(id)) return { ...NOTHING_CHANGED, runesLit: state.ruinsRunesLit.length };
+  state.ruinsRunesLit.push(id);
+  const solvedNow = state.ruinsRunesLit.length === RUINS_RUNE_COUNT && !isSkyPuzzleSolved('ruins-temple');
+  if (solvedNow) state.solved.push('ruins-temple');
+  return { changed: true, solvedPuzzle: solvedNow ? 'ruins-temple' : null, sequenceReset: false, runesLit: state.ruinsRunesLit.length };
 }
 // #endregion
 
