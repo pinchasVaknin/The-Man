@@ -70,6 +70,14 @@ export const en = {
       "description": "Jin sword.",
       "lore": "Jin sword."
     },
+    "wind_glider": {
+      "name": "Wind Glider",
+      "short": "Glider",
+      "category": "Gear",
+      "stat": "Hold Jump While Falling · Glide",
+      "description": "A sail of Windspire silk on a light frame. Hold jump while falling to glide slowly forward; a gliding landing never hurts.",
+      "lore": "Woven by the keepers of the Windspire, it only opens for those who woke all four Wind Cores."
+    },
     "torch": {
       "name": "Torch",
       "short": "Torch",

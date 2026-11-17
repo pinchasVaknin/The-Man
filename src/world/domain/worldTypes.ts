@@ -74,6 +74,7 @@ export type InventoryItemId =
   | 'dragonbone_bow'
   | 'celestial_jin_sword'
   | 'torch'
+  | 'wind_glider'
   | 'unarmed'
   | 'arrow_normal'
   | 'arrow_fire'
@@ -240,6 +241,7 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('crystal_core_drill', 'gear', 3.6, 310, 1, { rarity: 'epic' }),
   createCatalogItem('prospector_lantern', 'gear', 1.8, 185, 1, { rarity: 'refined' }),
   createCatalogItem('torch', 'gear', 1.5, 45, 1, { starterOwned: true, rarity: 'common' }),
+  createCatalogItem('wind_glider', 'gear', 2.8, 900, 1, { rarity: 'legendary', lootOnly: true }),
   createCatalogItem('arrow_normal', 'ammo', 1, 5, 1, { starterOwned: true, rarity: 'common' }),
   createCatalogItem('arrow_fire', 'ammo', 1, 12, 1, { starterOwned: true, rarity: 'refined' }),
   createCatalogItem('arrow_wind', 'ammo', 0.8, 15, 1, { starterOwned: true, rarity: 'refined' }),
@@ -455,6 +457,7 @@ export interface IPlayerState {
   swordBlockProgress?: number; // 0..1 smooth interpolation into horizontal block stance
   bowZoomHeld?: boolean; // Right-click closer zoom in bow mode (without drawing arrow)
   telescopeViewId?: string | null; // Skybound Isles balcony telescope the player is looking through
+  isGliding?: boolean; // Wind Glider open (jump held while falling with the glider in the inventory)
   bowReleaseKick?: number; // 0..1 recoil kick right after releasing an arrow
   weaponSwayX?: number; // Smooth camera-turn horizontal weapon lag
   weaponSwayY?: number; // Smooth camera-pitch/vertical weapon lag

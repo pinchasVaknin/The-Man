@@ -920,7 +920,7 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     z: -35.0,
     interactRadius: 4.4,
     goldCoins: 400,
-    contents: ['sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'amethyst_gem', 'crystal_gem', 'crystal_gem'],
+    contents: ['wind_glider', 'sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'amethyst_gem', 'crystal_gem', 'crystal_gem'],
   },
   // Skybound Isles — Floating Garden: chest hidden in the root nook under the north cliff
   {

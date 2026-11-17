@@ -100,6 +100,12 @@ export const STAMINA_EXHAUSTION_RECOVERY_THRESHOLD = 24;
 
 let activePlayerStateRegistry: IPlayerState | null = null;
 let skyCloudElapsedClock = 0;
+/** Steady fall speed (m/s) while the Wind Glider is open; well under the fall-damage speed. */
+export const WIND_GLIDER_FALL_SPEED_MPS = 2.2;
+/** Extra forward speed (m/s) the glider adds while the player holds forward. */
+const WIND_GLIDER_FORWARD_BOOST_MPS = 3.0;
+/** How fast (1/s) a fast fall is braked when the glider opens. */
+const WIND_GLIDER_BRAKE_PER_SEC = 8.0;
 /** Remembers the last Skybound Isles island the player stood on, for fall recovery. */
 const skyFallTracker = createSkyFallTracker();
 /** Feet within this distance (m) of a cloud top count as standing on it. */
@@ -1469,6 +1475,31 @@ export function stepPlayerPhysics(
     }
   } else {
     skyWindLiftingLastFrame = false;
+  }
+
+  // Wind Glider: holding jump while falling, with the glider in the inventory, brakes the fall
+  // to a slow glide (no fall damage on landing) and adds forward speed while forward is held.
+  const canGlide =
+    !state.isFlying &&
+    !state.isSwimming &&
+    !state.mountedHorseId &&
+    !state.climbingLadderId &&
+    !state.onGround &&
+    input.jumpHeld &&
+    state.vy < 0 &&
+    Boolean(state.ownedItemIds?.includes('wind_glider'));
+  // Only written once the glider has been used, so players who never glide keep the same state shape.
+  if (canGlide || state.isGliding !== undefined) state.isGliding = canGlide;
+  if (canGlide) {
+    if (state.vy < -WIND_GLIDER_FALL_SPEED_MPS) {
+      state.vy += (-WIND_GLIDER_FALL_SPEED_MPS - state.vy) * (1 - Math.exp(-WIND_GLIDER_BRAKE_PER_SEC * dt));
+      // Snap the last bit so gravity cannot hold the glide just under the cap.
+      if (state.vy > -WIND_GLIDER_FALL_SPEED_MPS - 0.6) state.vy = -WIND_GLIDER_FALL_SPEED_MPS;
+    }
+    if (input.forward > 0.1) {
+      state.x += -Math.sin(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
+      state.z += -Math.cos(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
+    }
   }
 
   let nextX = state.x + state.vx * dt;

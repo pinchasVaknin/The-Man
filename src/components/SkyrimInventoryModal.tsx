@@ -112,6 +112,7 @@ export const ITEM_SHORT_NAMES: Record<InventoryItemId, string> = {
   sword: t('items.sword.short'),
   woodcutter_axe: t('items.woodcutter_axe.short'),
   torch: t('items.torch.short'),
+  wind_glider: t('items.wind_glider.short'),
   unarmed: t('items.unarmed.short'),
   arrow_normal: t('items.arrow_normal.short'),
   arrow_fire: t('items.arrow_fire.short'),

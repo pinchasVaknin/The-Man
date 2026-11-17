@@ -59,6 +59,15 @@ const torchIcon: IconRenderStrategy = (className) => (
 );
 ICON_STRATEGIES.set('torch', torchIcon);
 
+const windGliderIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <path d="M2 10c4-5 16-5 20 0" />
+    <path d="M2 10l10 4 10-4" />
+    <path d="M12 14v6" />
+  </svg>
+);
+ICON_STRATEGIES.set('wind_glider', windGliderIcon);
+
 const arrowIcon: IconRenderStrategy = (className) => (
   <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
     <path d="M5 19L19 5" />
@@ -791,6 +800,15 @@ ARTWORK_STRATEGIES.set('crystal_core_drill', (sizeClass) => (
     <circle cx="80" cy="80" r="64" fill="#38bdf8" fillOpacity="0.2" />
     <rect x="58" y="36" width="44" height="38" rx="6" fill="#d97706" stroke="#fef08a" strokeWidth="3.5" />
     <polygon points="68,74 92,74 80,136" fill="#7dd3fc" stroke="#e0f2fe" strokeWidth="3" />
+  </svg>
+));
+ARTWORK_STRATEGIES.set('wind_glider', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none`}>
+    <path d="M14 70c26-38 106-38 132 0" className="stroke-sky-300" strokeWidth="5" />
+    <path d="M14 70l66 26 66-26" className="stroke-sky-200" strokeWidth="3.5" />
+    <path d="M40 54l40 42 40-42" className="stroke-sky-400" strokeWidth="2" />
+    <path d="M80 96v34" className="stroke-amber-300" strokeWidth="4" />
+    <circle cx="80" cy="134" r="5" className="fill-amber-300" />
   </svg>
 ));
 ARTWORK_STRATEGIES.set('prospector_lantern', (sizeClass) => (

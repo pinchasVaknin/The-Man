@@ -840,6 +840,39 @@ export function buildPlayerAndCombatSystems(
   );
   scene.add(playerCharacterGroup);
 
+  // 10C-2) Wind Glider canopy: a wide, shallow sail (three panels, the outer two bent down) on
+  // shroud lines high above the ranger. It is only 1 m deep front to back, so the third-person
+  // camera behind the player still sees under it. Shown only while gliding.
+  const gliderPanelGeo = new THREE.BoxGeometry(1, 0.05, 1.0);
+  const gliderCanopyMat = new THREE.MeshStandardMaterial({
+    color: 0xbae6fd,
+    emissive: 0x0ea5e9,
+    emissiveIntensity: 0.35,
+    roughness: 0.6,
+    side: THREE.DoubleSide,
+  });
+  const gliderLineGeo = new THREE.CylinderGeometry(0.012, 0.012, 1, 4);
+  disposableGeometries.push(gliderPanelGeo, gliderLineGeo);
+  disposableMaterials.push(gliderCanopyMat);
+  const gliderCanopyGroup = new THREE.Group();
+  const centrePanel = new THREE.Mesh(gliderPanelGeo, gliderCanopyMat);
+  centrePanel.scale.x = 1.4;
+  gliderCanopyGroup.add(centrePanel);
+  for (const side of [-1, 1]) {
+    const wing = new THREE.Mesh(gliderPanelGeo, gliderCanopyMat);
+    wing.position.set(side * 1.15, -0.2, 0);
+    wing.rotation.z = side * -0.42;
+    gliderCanopyGroup.add(wing);
+    const line = new THREE.Mesh(gliderLineGeo, rangerDarkLeatherMat);
+    line.scale.y = 1.9;
+    line.position.set(side * 0.75, -1.05, 0);
+    line.rotation.z = side * 0.45;
+    gliderCanopyGroup.add(line);
+  }
+  gliderCanopyGroup.position.set(0, 3.4, 0);
+  gliderCanopyGroup.visible = false;
+  playerCharacterGroup.add(gliderCanopyGroup);
+
   // 10D) DEDICATED SKYRIM STYLE FIRST-PERSON HANDS & WEAPONS VIEWMODEL
   const fpViewModelGroup = new THREE.Group();
   fpViewModelGroup.visible = false;
@@ -1865,6 +1898,7 @@ export function buildPlayerAndCombatSystems(
     bowGroup.visible = bowInHands;
     stowedBackBowGroup.visible = ownsBow && !bowInHands;
     thirdPersonTorchGroup.visible = torchActive;
+    gliderCanopyGroup.visible = Boolean(playerState.isGliding);
     thirdPersonSwordGroup.visible = ownsSword && swordActive && !isAxeEquipped;
     thirdPersonAxeGroup.visible = ownsSword && swordActive && isAxeEquipped;
 
