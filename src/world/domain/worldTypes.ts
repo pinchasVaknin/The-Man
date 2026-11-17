@@ -130,6 +130,7 @@ export type InventoryItemId =
   | 'trap_fish'
   | 'twine_fiber'
   | 'wild_berries'
+  | 'storm_fruit'
   | 'grain_seeds'
   | 'dwarven_battle_axe'
   | 'dwarven_shield'
@@ -298,6 +299,7 @@ export const INVENTORY_ITEMS: readonly IInventoryItemDef[] = [
   createCatalogItem('trap_fish', 'gear', 1.4, 65, 1, { rarity: 'common' }),
   createCatalogItem('twine_fiber', 'materials', 0.4, 15, 1, { rarity: 'common' }),
   createCatalogItem('wild_berries', 'food', 0.3, 10, 1, { rarity: 'common' }),
+  createCatalogItem('storm_fruit', 'food', 0.3, 30, 1, { rarity: 'refined' }),
   createCatalogItem('grain_seeds', 'materials', 0.3, 8, 1, { rarity: 'common' }),
   createCatalogItem('unarmed', 'gear', 0, 0, 1, { starterOwned: true, rarity: 'common' }),
 ];
@@ -458,6 +460,7 @@ export interface IPlayerState {
   bowZoomHeld?: boolean; // Right-click closer zoom in bow mode (without drawing arrow)
   telescopeViewId?: string | null; // Skybound Isles balcony telescope the player is looking through
   isGliding?: boolean; // Wind Glider open (jump held while falling with the glider in the inventory)
+  heldStormFruit?: boolean; // Storm Fruit held in hand: left-click throws one, right-click puts it away
   bowReleaseKick?: number; // 0..1 recoil kick right after releasing an arrow
   weaponSwayX?: number; // Smooth camera-turn horizontal weapon lag
   weaponSwayY?: number; // Smooth camera-pitch/vertical weapon lag

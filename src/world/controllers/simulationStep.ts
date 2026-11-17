@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { stepStormFruitThrows } from '../systems/stormFruitSystem';
 import { isWorldPausedByMenu } from '../domain/uiPause';
 import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
@@ -705,6 +706,14 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           lookPitchDelta: lookState.accumPitchDelta,
           landingDip: simulationState.landingDip,
         });
+
+        // Storm Fruit in flight: a stag it reaches is calmed; a fruit that lands is lost
+        const stormFruit = stepStormFruitThrows(rawDt, liveWildlife);
+        if (stormFruit.calmed.length > 0) {
+          hudFeedback.lootNotification = t('hud.stag_calmed');
+          hudFeedback.lootNotificationTimer = 2.4;
+          emitHudSnapshot();
+        }
 
         // Step active 3D Arrows in flight
         if (activeArrows.length > 0) {

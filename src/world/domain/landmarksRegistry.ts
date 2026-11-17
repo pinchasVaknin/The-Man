@@ -168,6 +168,18 @@ export {
   type ICrystalStrikeResult,
 } from './landmarks/skyboundIsles/skyCrystalMining';
 export {
+  STORM_FRUIT_BUSHES,
+  STORM_FRUIT_REGROW_SEC,
+  exportStormFruitState,
+  getStormFruitRegrowSec,
+  importStormFruitState,
+  isStormFruitReady,
+  pickStormFruitAt,
+  resetStormFruit,
+  stepStormFruitRegrowth,
+  type IStormFruitBushState,
+} from './landmarks/skyboundIsles/skyStormFruit';
+export {
   SKY_PICKUPS,
   SKY_PICKUP_HOVER_M,
   collectSkyPickupsAt,

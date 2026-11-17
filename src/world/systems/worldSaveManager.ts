@@ -22,6 +22,7 @@ import {
   importSkyPickupState,
   resetSkyPickups,
 } from '../domain/landmarks/skyboundIsles/skyPickups';
+import { exportStormFruitState, importStormFruitState, resetStormFruit, type IStormFruitBushState } from '../domain/landmarksRegistry';
 import {
   configureSailableShipsForGameMode,
   getActiveSailableShip,
@@ -140,6 +141,8 @@ export interface IWorldSaveSnapshot {
   skyPuzzles?: ISkyPuzzleState;
   /** Skybound Isles floating pickups already taken. Absent in older saves. */
   skyPickups?: string[];
+  /** Storm Fruit bushes still growing their fruit back. Absent in older saves. */
+  stormFruitBushes?: IStormFruitBushState[];
 }
 
 const STORAGE_KEY_PREFIX = 'THE_MAN_WORLD_SAVE_';
@@ -426,7 +429,8 @@ export function captureCurrentWorldSnapshot(
     openedChests: player.openedChestIds ? [...player.openedChestIds] : [],
     timeOfDayHours: worldHours,
     skyPuzzles: exportSkyPuzzleState(),
-    skyPickups: exportSkyPickupState()
+    skyPickups: exportSkyPickupState(),
+    stormFruitBushes: exportStormFruitState()
   };
 }
 
@@ -639,6 +643,7 @@ export function applyWorldSnapshotToLiveSystems(
   // 6. Restore Skybound Isles puzzles (older saves start unsolved)
   importSkyPuzzleState(snapshot.skyPuzzles);
   importSkyPickupState(snapshot.skyPickups);
+  importStormFruitState(snapshot.stormFruitBushes);
 }
 
 /**
@@ -728,6 +733,7 @@ export function resetLiveWorldToFreshBaseline(
   resetActiveTempleMonksState();
   resetSkyPuzzles();
   resetSkyPickups();
+  resetStormFruit();
 
   openDoorIds.clear();
 }

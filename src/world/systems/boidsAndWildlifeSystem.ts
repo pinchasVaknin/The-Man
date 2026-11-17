@@ -202,6 +202,7 @@ export interface ISmallAnimalState {
   corpseLootItems?: InventoryItemId[]; // remaining items inside animal corpse container
   isTamed?: boolean; // true after player tames & mounts a Royal Stag or Mystical CatLion
   isStagAggro?: boolean; // true while a Royal Stag is hostile because the player is within its aggro radius
+  isStagCalmed?: boolean; // true after Storm Fruit calmed a Royal Stag; it stays calm while the player is near
   isMountedByPlayer?: boolean; // true while actively ridden by the player
   isBoss?: boolean; // true for the giant central Volcano Sanctum Boss CatLion
   canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
@@ -3677,17 +3678,40 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
 export const STAG_AGGRO_RADIUS_M = 3.0;
 /** Horizontal distance (m) the player must back off to before a hostile stag calms (hysteresis). */
 export const STAG_AGGRO_RELEASE_M = 4.5;
+/** Distance (m) a Storm Fruit calm holds to: a fruit is thrown from up to about 10 m away, so the calm
+ *  must survive a player who threw from that far. Past this the stag is no longer calm. */
+export const STAG_CALM_RELEASE_M = 10.0;
 /** Largest height difference (m) that still counts as the same level for stag aggro. */
 const STAG_AGGRO_HEIGHT_M = 2.5;
 
 /** Updates a stag's proximity aggro: hostile inside the radius, calm again only past the release distance. */
 function updateStagProximityAggro(a: ISmallAnimalState, distP: number, playerY: number | undefined): void {
   const sameLevel = playerY === undefined || Math.abs(playerY - a.y) <= STAG_AGGRO_HEIGHT_M;
+  if (a.isStagCalmed) {
+    // A calmed stag forgets the calm only once the player has really gone away.
+    if (distP > STAG_CALM_RELEASE_M || !sameLevel) a.isStagCalmed = false;
+    a.isStagAggro = false;
+    return;
+  }
   if (a.isStagAggro) {
     if (distP > STAG_AGGRO_RELEASE_M || !sameLevel) a.isStagAggro = false;
   } else if (distP <= STAG_AGGRO_RADIUS_M && sameLevel) {
     a.isStagAggro = true;
   }
+}
+
+/**
+ * Summary: Calms a Royal Stag that was hit by Storm Fruit: it stops being hostile at once and stays
+ *          calm while the player stays within the release distance.
+ * @param a The stag.
+ * @returns True when the stag was calmed by this call (a tamed or dead stag cannot be calmed).
+ */
+export function calmRoyalStag(a: ISmallAnimalState): boolean {
+  if (a.species !== 'stag' || a.isTamed || a.isDead) return false;
+  a.isStagCalmed = true;
+  a.isStagAggro = false;
+  a.aiBehavior = undefined;
+  return true;
 }
 
 function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number, prevActionTimer: number): boolean {
@@ -3708,6 +3732,7 @@ function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: n
     const isStagLeashedOut = Boolean(a.isLeashedReturning);
     const isProvokedStag =
       !a.isTamed &&
+      !a.isStagCalmed &&
       !isStagLeashedOut &&
       ((a.wokenUpTimer ?? 0) > 0 && (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9) || Boolean(a.isStagAggro));
 

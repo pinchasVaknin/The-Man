@@ -70,6 +70,14 @@ export const en = {
       "description": "Jin sword.",
       "lore": "Jin sword."
     },
+    "storm_fruit": {
+      "name": "Storm Fruit",
+      "short": "Storm Fruit",
+      "category": "Food",
+      "stat": "Throw To Calm Stags",
+      "description": "A hard, sour fruit that grows only on Storm Island. Hold it in hand and throw it at a royal stag to calm it while you stay close.",
+      "lore": "The stags of the storm eat nothing else, and a stag that catches the scent of this fruit forgets it was angry."
+    },
     "wind_glider": {
       "name": "Wind Glider",
       "short": "Glider",
@@ -1052,6 +1060,11 @@ export const en = {
     "crystal_resonance_solved": "The three crystals sing as one — the crystal wall melts away",
     "crystal_needs_pickaxe": "This crystal deposit can only be mined with a pickaxe",
     "crystal_mined": "Mined the crystal deposit: {count} gems",
+    "storm_fruit_picked": "Picked a Storm Fruit",
+    "storm_fruit_hold": "Holding Storm Fruit: left-click throws, right-click puts it away",
+    "storm_fruit_put_away": "Put the Storm Fruit away",
+    "storm_fruit_none_left": "No Storm Fruit left",
+    "stag_calmed": "The stag calms",
     "sky_pickup_item": "Picked up: {item}",
     "sky_pickup_gold": "Picked up {count} gold",
     "sky_awaken_rune": "Awaken the rune",

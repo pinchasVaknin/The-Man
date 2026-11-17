@@ -23,6 +23,8 @@ import type { PerspectiveCamera } from 'three';
 import { matchesKeyBinding } from '../../config/keyBindingMatch';
 import { cancelBowDraw, equipInventoryItem, MIN_BOW_DRAW_TO_SHOOT } from '../systems/combatAndInventorySystem';
 import { findLookedAtWatchtowerLadder } from '../domain/landmarks/interactionLandmarks';
+import { throwStormFruit } from '../systems/stormFruitSystem';
+import { t } from '../../locales';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -156,8 +158,16 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
         if (boundItem) {
           if (boundItem.startsWith('trap_')) {
             deployTrapFromInventory(boundItem);
+          } else if (boundItem === 'storm_fruit') {
+            playerState.heldTrapItemId = null;
+            playerState.heldStormFruit = true;
+            hudFeedback.lootNotification = t('hud.storm_fruit_hold');
+            hudFeedback.lootNotificationTimer = 2.6;
+            soundEngine.playFootstep('trail', 1.15);
+            emitHudSnapshot();
           } else {
             playerState.heldTrapItemId = null;
+            playerState.heldStormFruit = false;
             equipInventoryItem(playerState, boundItem);
             soundEngine.playFootstep('trail', 1.15);
             emitHudSnapshot();
@@ -184,10 +194,11 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
         e.code === 'KeyR' &&
         !e.repeat &&
         gameStateRef.current === 'playing' &&
-        playerState.heldTrapItemId
+        (playerState.heldTrapItemId || playerState.heldStormFruit)
       ) {
         e.preventDefault();
         playerState.heldTrapItemId = null;
+        playerState.heldStormFruit = false;
         hudFeedback.lootNotification = 'Put trap away.';
         hudFeedback.lootNotificationTimer = 2.0;
         soundEngine.playFootstep('trail', 0.88);
@@ -304,6 +315,28 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
         document.body.dataset.worldMapModalOpen === 'true'
       ) {
         return;
+      }
+
+      // Holding Storm Fruit: Left-Click throws one at the aim, Right-Click puts it away
+      if (playerState.heldStormFruit) {
+        if (e.button === 0) {
+          if (throwStormFruit(playerState)) {
+            soundEngine.playFootstep('trail', 1.0);
+          } else {
+            playerState.heldStormFruit = false;
+            hudFeedback.lootNotification = t('hud.storm_fruit_none_left');
+            hudFeedback.lootNotificationTimer = 2.0;
+          }
+          emitHudSnapshot();
+          return;
+        } else if (e.button === 2) {
+          playerState.heldStormFruit = false;
+          hudFeedback.lootNotification = t('hud.storm_fruit_put_away');
+          hudFeedback.lootNotificationTimer = 2.0;
+          soundEngine.playFootstep('trail', 0.88);
+          emitHudSnapshot();
+          return;
+        }
       }
 
       // When holding a trap in hands: Left-Click places it immediately (and keeps holding if more remain), Right-Click puts it away
