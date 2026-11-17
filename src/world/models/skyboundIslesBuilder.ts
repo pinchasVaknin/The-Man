@@ -13,6 +13,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   SKYBOUND_ISLANDS,
   SKY_BRIDGES,
@@ -100,7 +101,7 @@ export function buildSkyboundIslesBlockout(ctx: IWorldModelBuildContext): ISkybo
   group.name = 'skybound-isles';
 
   const shared = createSharedAssets(ctx);
-  for (const isl of SKYBOUND_ISLANDS) group.add(buildIsland(ctx, shared, isl));
+  group.add(...buildMergedIslands(ctx, shared, SKYBOUND_ISLANDS));
   for (const br of SKY_BRIDGES) group.add(buildBridge(ctx, shared, br.ax, br.ay, br.az, br.bx, br.by, br.bz, br.halfWidth));
   for (const p of SKY_REST_PLATFORMS) group.add(buildRestPlatform(shared, p.x, p.y, p.z, p.radius));
   buildChestsAndBed(shared, group);
@@ -188,26 +189,78 @@ function shadeRockByHeight(geo: THREE.BufferGeometry): void {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 }
 
-/** Deck slab whose top is exactly at `deckY`, plus a rocky cone underneath. */
-function buildIsland(ctx: IWorldModelBuildContext, shared: ISharedAssets, isl: ISkyIsland): THREE.Group {
-  const colors = ISLAND_COLORS[isl.id] ?? { deck: 0xd6d3c8, rock: 0x6b6458 };
-  const deckMat = new THREE.MeshStandardMaterial({ color: colors.deck, roughness: 0.85 });
-  const rockMat = new THREE.MeshStandardMaterial({ color: colors.rock, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1, vertexColors: true });
+/**
+ * Summary: Writes a tint into a geometry's vertex colours. With `keepShade`, the existing colour is kept as a
+ *          brightness and multiplied by the tint (used for the rock underside's height gradient).
+ * @param geo The geometry to paint.
+ * @param tint The island's colour.
+ * @param keepShade Whether to multiply by the geometry's existing vertex brightness.
+ */
+function paintVertices(geo: THREE.BufferGeometry, tint: THREE.Color, keepShade: boolean): void {
+  const count = geo.getAttribute('position').count;
+  const existing = keepShade ? (geo.getAttribute('color') as THREE.BufferAttribute | undefined) : undefined;
+  const out = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const shade = existing ? existing.getX(i) : 1;
+    out[i * 3] = tint.r * shade;
+    out[i * 3 + 1] = tint.g * shade;
+    out[i * 3 + 2] = tint.b * shade;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(out, 3));
+}
+
+/**
+ * Summary: Builds every island's deck and rock underside as two merged meshes (one per material).
+ *          Each island's colour is baked into its vertices, so the whole archipelago costs two draw calls
+ *          instead of two per island.
+ * @param ctx Shared build context.
+ * @param shared Shared geometry.
+ * @param islands The islands to build.
+ * @returns The merged deck mesh and the merged underside mesh.
+ */
+function buildMergedIslands(ctx: IWorldModelBuildContext, shared: ISharedAssets, islands: readonly ISkyIsland[]): THREE.Mesh[] {
+  const deckThickness = 2.4;
+  const deckParts: THREE.BufferGeometry[] = [];
+  const rockParts: THREE.BufferGeometry[] = [];
+  const unitQuat = new THREE.Quaternion();
+  for (const isl of islands) {
+    const colors = ISLAND_COLORS[isl.id] ?? { deck: 0xd6d3c8, rock: 0x6b6458 };
+    const deck = shared.deckGeo.clone();
+    deck.applyMatrix4(
+      new THREE.Matrix4().compose(new THREE.Vector3(isl.x, isl.deckY - deckThickness / 2, isl.z), unitQuat, new THREE.Vector3(isl.radius, deckThickness, isl.radius))
+    );
+    paintVertices(deck, new THREE.Color(colors.deck), false);
+    deckParts.push(deck);
+
+    const undersideDepth = isl.radius * 1.1;
+    const underside = shared.undersideGeo.clone();
+    underside.applyMatrix4(
+      new THREE.Matrix4().compose(
+        new THREE.Vector3(isl.x, isl.deckY - deckThickness - undersideDepth / 2, isl.z),
+        unitQuat,
+        new THREE.Vector3(isl.radius * 0.98, undersideDepth, isl.radius * 0.98)
+      )
+    );
+    paintVertices(underside, new THREE.Color(colors.rock), true);
+    rockParts.push(underside);
+  }
+
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, vertexColors: true });
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1, vertexColors: true });
   ctx.disposableMaterials.push(deckMat, rockMat);
 
-  const root = new THREE.Group();
-  root.name = `island-${isl.id}`;
-  const deckThickness = 2.4;
-  const deck = new THREE.Mesh(shared.deckGeo, deckMat);
-  deck.scale.set(isl.radius, deckThickness, isl.radius);
-  deck.position.set(isl.x, isl.deckY - deckThickness / 2, isl.z);
-  deck.receiveShadow = !ctx.isSoftwareGl;
-  const undersideDepth = isl.radius * 1.1;
-  const underside = new THREE.Mesh(shared.undersideGeo, rockMat);
-  underside.scale.set(isl.radius * 0.98, undersideDepth, isl.radius * 0.98);
-  underside.position.set(isl.x, isl.deckY - deckThickness - undersideDepth / 2, isl.z);
-  root.add(deck, underside);
-  return root;
+  const deckGeo = mergeGeometries(deckParts, false);
+  const rockGeo = mergeGeometries(rockParts, false);
+  for (const g of [...deckParts, ...rockParts]) g.dispose();
+  if (!deckGeo || !rockGeo) throw new Error('SKYBOUND_ISLAND_MERGE_FAILED: island parts do not share attributes');
+  ctx.disposableGeometries.push(deckGeo, rockGeo);
+
+  const deckMesh = new THREE.Mesh(deckGeo, deckMat);
+  deckMesh.name = 'skybound-island-decks';
+  deckMesh.receiveShadow = !ctx.isSoftwareGl;
+  const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+  rockMesh.name = 'skybound-island-undersides';
+  return [deckMesh, rockMesh];
 }
 
 /** Straight stone ramp between two rim points. */
