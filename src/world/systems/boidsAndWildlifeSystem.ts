@@ -201,6 +201,7 @@ export interface ISmallAnimalState {
   isLooted?: boolean; // true after player collects loot with [E]
   corpseLootItems?: InventoryItemId[]; // remaining items inside animal corpse container
   isTamed?: boolean; // true after player tames & mounts a Royal Stag or Mystical CatLion
+  isStagAggro?: boolean; // true while a Royal Stag is hostile because the player is within its aggro radius
   isMountedByPlayer?: boolean; // true while actively ridden by the player
   isBoss?: boolean; // true for the giant central Volcano Sanctum Boss CatLion
   canBeTamed?: boolean; // true only for Stags and the giant central Volcano Boss CatLion
@@ -3672,9 +3673,27 @@ function stepPredatorAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: n
 /**
  * Summary: Handles one block of the animal step for `a`. Returns true when the animal is finished for this frame.
  */
+/** Horizontal distance (m) at which a Royal Stag turns hostile when the player comes this close. */
+export const STAG_AGGRO_RADIUS_M = 3.0;
+/** Horizontal distance (m) the player must back off to before a hostile stag calms (hysteresis). */
+export const STAG_AGGRO_RELEASE_M = 4.5;
+/** Largest height difference (m) that still counts as the same level for stag aggro. */
+const STAG_AGGRO_HEIGHT_M = 2.5;
+
+/** Updates a stag's proximity aggro: hostile inside the radius, calm again only past the release distance. */
+function updateStagProximityAggro(a: ISmallAnimalState, distP: number, playerY: number | undefined): void {
+  const sameLevel = playerY === undefined || Math.abs(playerY - a.y) <= STAG_AGGRO_HEIGHT_M;
+  if (a.isStagAggro) {
+    if (distP > STAG_AGGRO_RELEASE_M || !sameLevel) a.isStagAggro = false;
+  } else if (distP <= STAG_AGGRO_RADIUS_M && sameLevel) {
+    a.isStagAggro = true;
+  }
+}
+
 function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: number, prevActionTimer: number): boolean {
   const { elapsedTime, playerStateRef, playerX, playerZ, safeDt } = frame;
   if (a.species === 'stag') {
+    updateStagProximityAggro(a, distP, playerStateRef?.y);
     const stagDistFromHome = Math.hypot(a.x - a.homeX, a.z - a.homeZ);
     const playerDistFromStagHome = Math.hypot(playerX - a.homeX, playerZ - a.homeZ);
     if (!a.isLeashedReturning) {
@@ -3690,8 +3709,7 @@ function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: n
     const isProvokedStag =
       !a.isTamed &&
       !isStagLeashedOut &&
-      (a.wokenUpTimer ?? 0) > 0 &&
-      (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9);
+      ((a.wokenUpTimer ?? 0) > 0 && (a.hp ?? a.maxHp ?? 9) < (a.maxHp ?? 9) || Boolean(a.isStagAggro));
 
     if (isProvokedStag) {
       a.isResting = false;
@@ -3754,7 +3772,7 @@ function stepStagAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP: n
       return true;
     }
 
-    // Unprovoked Stag: 100% neutral on the Floating Sky Islands (never flees, never attacks)
+    // Unprovoked Stag: neutral on Storm Island until the player comes within the aggro radius (never flees)
     a.alertLevel = 'grazing';
     a.isFleeing = false;
     a.fleeCooldown = 0;
