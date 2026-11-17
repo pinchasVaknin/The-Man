@@ -27,6 +27,8 @@ import { buildWindCores } from './windCoresBuilder';
 import { buildSkyPickups } from './skyPickupsBuilder';
 import { buildStormFruit } from './stormFruitBuilder';
 import { buildAirshipWreck } from './airshipWreckBuilder';
+import { buildSkyTree } from './skyTreeBuilder';
+import { buildSkyTreeFoliage } from './skyTreeFoliageBuilder';
 
 export interface ICelestialSkyArchipelagoBuildResult {
   readonly floatingIslandsGroup: THREE.Group;
@@ -423,6 +425,10 @@ export function buildCelestialSkyArchipelagoModels(
   floatingIslandsGroup.add(stormFruit.group);
   const airshipWreck = buildAirshipWreck(ctx);
   floatingIslandsGroup.add(airshipWreck.group);
+  const skyTree = buildSkyTree(ctx);
+  floatingIslandsGroup.add(skyTree.group);
+  const skyTreeFoliage = buildSkyTreeFoliage(ctx);
+  floatingIslandsGroup.add(skyTreeFoliage.group);
 
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({

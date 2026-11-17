@@ -977,6 +977,17 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 260,
     contents: ['sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
   },
+  // Skybound Isles — Giant Sky Tree: the mushroom grotto behind the tree's roots
+  {
+    id: 'chest-sky-tree-grotto',
+    name: 'Mushroom Grotto Chest',
+    x: 902.0,
+    y: 64.0,
+    z: -32.6,
+    interactRadius: 4.4,
+    goldCoins: 210,
+    contents: ['amethyst_gem', 'crystal_gem', 'sapphire_gem'],
+  },
   // Skybound Isles — Forgotten Airship wreck: hidden under the crate, only opens once the crate is pushed aside
   {
     id: 'chest-sky-airship-hatch',

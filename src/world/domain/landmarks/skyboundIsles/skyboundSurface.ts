@@ -18,6 +18,7 @@ import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type I
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
 import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
 import { visitAirshipWreckSurfaces } from './airshipWreckLayout';
+import { SKY_TREE_GROTTO_MUSHROOM, SKY_TREE_GROTTO_WALLS, SKY_TREE_TRUNK_BOX, visitSkyTreeSurfaces } from './skyTreeLayout';
 import { CRYSTAL_SOLID_BOXES, visitCrystalIslesSurfaces } from './crystalIslesLayout';
 import { RUINS_SOLID_BOXES, visitAncientRuinsSurfaces } from './ancientRuinsLayout';
 import { WIND_CORE_SOLID_BOXES } from './windCoresLayout';
@@ -97,6 +98,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
   visitFloatingGardenSurfaces(x, z, consider);
   visitObservatorySurfaces(x, z, consider);
   visitAirshipWreckSurfaces(x, z, consider);
+  visitSkyTreeSurfaces(x, z, consider);
   visitCrystalIslesSurfaces(x, z, consider);
   visitAncientRuinsSurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);
@@ -107,7 +109,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
 
 // #region Bounce Pads And Solids
 /** Summary: Every bounce mushroom of the archipelago (Sky Harbor garden and Floating Garden). */
-export const SKYBOUND_BOUNCE_PADS: readonly ISkyBouncePad[] = [...SKY_BOUNCE_PADS, ...GARDEN_BOUNCE_PADS];
+export const SKYBOUND_BOUNCE_PADS: readonly ISkyBouncePad[] = [...SKY_BOUNCE_PADS, ...GARDEN_BOUNCE_PADS, SKY_TREE_GROTTO_MUSHROOM];
 
 /** Summary: Every solid box of the archipelago's structures, props and railings. */
 export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [
@@ -117,6 +119,8 @@ export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [
   ...CRYSTAL_SOLID_BOXES,
   ...RUINS_SOLID_BOXES,
   ...WIND_CORE_SOLID_BOXES,
+  SKY_TREE_TRUNK_BOX,
+  ...SKY_TREE_GROTTO_WALLS,
 ];
 
 /**

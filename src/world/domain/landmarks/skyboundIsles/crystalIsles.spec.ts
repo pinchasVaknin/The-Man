@@ -109,7 +109,10 @@ describe('crystal isles crystals keep paths open', () => {
     ['hub bridge end', 851.6, MAIN.deckY, -17.6],
     ['cloud maze entry rim', MAIN.x + 1.2, MAIN.deckY, MAIN.z + MAIN.radius - 0.5],
     ['passage approach', CRYSTAL_PASSAGE_GATE.minX - 2, MAIN.deckY, CRYSTAL_PASSAGE_RAMP.az],
-    ...CRYSTAL_ISLETS.map((i): [string, number, number, number] => [`${i.id} centre`, i.x, i.y, i.z]),
+    // The Giant Sky Tree's trunk fills the north-east islet's centre, so that islet is checked beside its trunk.
+  ...CRYSTAL_ISLETS.map((i): [string, number, number, number] =>
+    i.id === 'crystal-islet-north-east' ? [`${i.id} beside the tree`, i.x - 2.5, i.y, i.z] : [`${i.id} centre`, i.x, i.y, i.z]
+  ),
   ];
   for (const [name, x, y, z] of spots) {
     it(`${name}_WhenStoodOn_ShouldNotBeBlockedByAnyCrystal`, () => {
