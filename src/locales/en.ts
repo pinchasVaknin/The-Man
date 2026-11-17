@@ -1052,6 +1052,8 @@ export const en = {
     "crystal_resonance_solved": "The three crystals sing as one — the crystal wall melts away",
     "crystal_needs_pickaxe": "This crystal deposit can only be mined with a pickaxe",
     "crystal_mined": "Mined the crystal deposit: {count} gems",
+    "sky_pickup_item": "Picked up: {item}",
+    "sky_pickup_gold": "Picked up {count} gold",
     "sky_awaken_rune": "Awaken the rune",
     "ruins_rune_awakened": "The rune awakens ({count}/4)",
     "ruins_temple_opened": "All four runes blaze — the great temple door grinds open",

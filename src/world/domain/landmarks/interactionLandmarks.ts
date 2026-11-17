@@ -944,6 +944,39 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 320,
     contents: ['dwarven_warhammer', 'crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
   },
+  // Skybound Isles — Cloud Maze: the short, dangerous branch (storm clouds) ends here
+  {
+    id: 'chest-sky-maze-west',
+    name: 'Cloud Maze Storm Chest',
+    x: 867.8,
+    y: 60.4,
+    z: 49.8,
+    interactRadius: 4.4,
+    goldCoins: 140,
+    contents: ['sapphire_gem', 'amethyst_gem', 'crystal_gem'],
+  },
+  // Skybound Isles — Cloud Maze: the long, safer branch (phantom cloud) ends here
+  {
+    id: 'chest-sky-maze-east',
+    name: 'Cloud Maze Wanderer Chest',
+    x: 900.6,
+    y: 60.4,
+    z: 49.8,
+    interactRadius: 4.4,
+    goldCoins: 110,
+    contents: ['crystal_gem', 'amethyst_gem'],
+  },
+  // Skybound Isles — secret ledge north-east of the Observatory (phantom path, 3 Wind Cores)
+  {
+    id: 'chest-sky-secret-ledge',
+    name: 'Phantom Ledge Chest',
+    x: 838.5,
+    y: 99.0,
+    z: -153.0,
+    interactRadius: 4.4,
+    goldCoins: 260,
+    contents: ['sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
+  },
 ] as const;
 
 /**

@@ -62,6 +62,8 @@ interface ISegmentSpec {
   readonly riseFromStart?: number;
   /** Lower bound on the number of clouds (more, smaller hops on steep descents). */
   readonly minCount?: number;
+  /** The segment's clouds stay hidden until this many Wind Cores are active. */
+  readonly requiredWindCores?: number;
 }
 // #endregion
 
@@ -84,6 +86,10 @@ export const CLOUD_RUN_REST: ISkyRestPlatform = { id: 'rest-cloud-run', x: 770.0
 export const RUINS_UPDRAFT_BASE: ISkyRestPlatform = { id: 'rest-ruins-updraft-base', x: 752.0, y: 84.5, z: -120.0, radius: 3.5 };
 /** Summary: Platform at the top of the Ruins updraft, one bounce below the Observatory. */
 export const RUINS_UPDRAFT_TOP: ISkyRestPlatform = { id: 'rest-ruins-updraft-top', x: 762.0, y: 92.0, z: -121.0, radius: 3.5 };
+/** Summary: Secret ledge north-east of the Observatory, reached by the phantom path after three Wind Cores. */
+export const SECRET_LEDGE: ISkyRestPlatform = { id: 'rest-secret-ledge', x: 838.0, y: 99.0, z: -152.0, radius: 4.0 };
+/** Wind Cores needed before the phantom path to the secret ledge appears. */
+export const SECRET_PATH_REQUIRED_CORES = 3;
 /** Summary: Column of the vortex that lifts the player up onto Storm Island. */
 export const STORM_VORTEX_ANCHOR = { x: 858.0, y: 99.0, z: -112.0, radius: 4.0 } as const;
 // #endregion
@@ -162,6 +168,7 @@ function fillSegment(routeId: string, segIndex: number, a: IAnchor, b: IAnchor, 
       bounceVy: kind === 'bounce' ? seg.bounceVy : undefined,
       gustDirX: kind === 'storm' ? -uz : undefined,
       gustDirZ: kind === 'storm' ? ux : undefined,
+      requiredWindCores: seg.requiredWindCores,
     });
   }
   return clouds;
@@ -217,6 +224,13 @@ addRoute(
     { x: RUINS_COLUMN_TOP.x, y: RUINS_COLUMN_TOP.y, z: RUINS_COLUMN_TOP.z, radius: RUINS_COLUMN_TOP.radius, kind: 'platform' },
   ],
   [{ kinds: ['bounce'], cloudRadius: SOFT_RADIUS_M, bounceVy: 15.5, riseFromStart: 0.3 }]
+);
+
+// Secret path (hidden): Observatory north-east rim -> phantom clouds -> secret ledge. Appears at 3 cores.
+addRoute(
+  'secret-ledge',
+  [rimToward('sky-observatory', SECRET_LEDGE.x, SECRET_LEDGE.z), platformAnchor(SECRET_LEDGE)],
+  [{ kinds: ['phantom'], cloudRadius: SOFT_RADIUS_M, requiredWindCores: SECRET_PATH_REQUIRED_CORES }]
 );
 
 // Endless Descent: Sky Harbor dock -> Forgotten Airship -> Hidden Isle.
@@ -293,6 +307,7 @@ export const SKY_REST_PLATFORMS: readonly ISkyRestPlatform[] = [
   CLOUD_RUN_REST,
   RUINS_UPDRAFT_BASE,
   RUINS_UPDRAFT_TOP,
+  SECRET_LEDGE,
   ...mazePlatforms,
 ];
 

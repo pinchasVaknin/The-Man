@@ -12,6 +12,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { SKY_CLOUDS } from './skyCloudRoutes';
+import { getActiveWindCoreCount } from './skyPuzzles';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -46,6 +47,8 @@ export interface ISkyCloudDef {
   /** Unit direction of a `storm` cloud's gust push. */
   readonly gustDirX?: number;
   readonly gustDirZ?: number;
+  /** Phantom clouds only: the cloud stays hidden and not solid until this many Wind Cores are active. */
+  readonly requiredWindCores?: number;
 }
 
 /** Summary: Tuning of one cloud kind. Durations are in seconds, distances in metres. */
@@ -297,6 +300,7 @@ export function skyCloudSurfaceAt(
  * @param rt The cloud runtime.
  */
 export function isCloudSolid(rt: ISkyCloudRuntime): boolean {
+  if (isLockedByWindCores(rt.def)) return false;
   if (rt.state === 'gone' || rt.state === 'regenerating') return false;
   if (rt.def.kind === 'phantom' && rt.presence < PHANTOM_SOLID_PRESENCE) return false;
   if (rt.state === 'collapsing') {
@@ -353,8 +357,17 @@ function updateStormGust(rt: ISkyCloudRuntime, elapsedSec: number): void {
   rt.gustWarning = !rt.gustActive && cycle >= activeFrom - STORM_GUST_WARNING_SEC;
 }
 
+/** A cloud that waits for more Wind Cores than are active is neither seen nor solid. */
+function isLockedByWindCores(def: ISkyCloudDef): boolean {
+  return def.requiredWindCores !== undefined && getActiveWindCoreCount() < def.requiredWindCores;
+}
+
 function updatePhantomPresence(rt: ISkyCloudRuntime, elapsedSec: number): void {
   if (rt.def.kind !== 'phantom') return;
+  if (isLockedByWindCores(rt.def)) {
+    rt.presence = 0;
+    return;
+  }
   const period = PHANTOM_PRESENT_SEC + PHANTOM_HIDDEN_SEC + PHANTOM_FADE_SEC * 2;
   const t = positiveModulo(elapsedSec + rt.def.phase, period);
   if (t < PHANTOM_PRESENT_SEC) rt.presence = 1;

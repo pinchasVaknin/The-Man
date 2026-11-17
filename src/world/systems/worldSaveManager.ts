@@ -18,6 +18,11 @@ import {
   type ISkyPuzzleState,
 } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import {
+  exportSkyPickupState,
+  importSkyPickupState,
+  resetSkyPickups,
+} from '../domain/landmarks/skyboundIsles/skyPickups';
+import {
   configureSailableShipsForGameMode,
   getActiveSailableShip,
   getAllSailableShips,
@@ -133,6 +138,8 @@ export interface IWorldSaveSnapshot {
   inGameHoursElapsed?: number;
   /** Skybound Isles puzzle progress (ring positions, solved puzzles). Absent in older saves. */
   skyPuzzles?: ISkyPuzzleState;
+  /** Skybound Isles floating pickups already taken. Absent in older saves. */
+  skyPickups?: string[];
 }
 
 const STORAGE_KEY_PREFIX = 'THE_MAN_WORLD_SAVE_';
@@ -418,7 +425,8 @@ export function captureCurrentWorldSnapshot(
     openDoors: Array.from(openDoorIds),
     openedChests: player.openedChestIds ? [...player.openedChestIds] : [],
     timeOfDayHours: worldHours,
-    skyPuzzles: exportSkyPuzzleState()
+    skyPuzzles: exportSkyPuzzleState(),
+    skyPickups: exportSkyPickupState()
   };
 }
 
@@ -630,6 +638,7 @@ export function applyWorldSnapshotToLiveSystems(
 
   // 6. Restore Skybound Isles puzzles (older saves start unsolved)
   importSkyPuzzleState(snapshot.skyPuzzles);
+  importSkyPickupState(snapshot.skyPickups);
 }
 
 /**
@@ -718,6 +727,7 @@ export function resetLiveWorldToFreshBaseline(
   resetActiveWorldBirds();
   resetActiveTempleMonksState();
   resetSkyPuzzles();
+  resetSkyPickups();
 
   openDoorIds.clear();
 }

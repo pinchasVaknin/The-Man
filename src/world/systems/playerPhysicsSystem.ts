@@ -48,6 +48,7 @@ import {
   stepSkyWindFlowers,
   closedSkyGates,
   stepCrystalDeposits,
+  collectSkyPickupsAt,
   VOLCANO_SANCTUM_POS,
   NORDIC_FROST_SHRINE_POS,
   DESERT_PYRAMID_SANCTUARY_POS,
@@ -106,6 +107,21 @@ export const WIND_GLIDER_FALL_SPEED_MPS = 2.2;
 const WIND_GLIDER_FORWARD_BOOST_MPS = 3.0;
 /** How fast (1/s) a fast fall is braked when the glider opens. */
 const WIND_GLIDER_BRAKE_PER_SEC = 8.0;
+/** Puts the loot of every Skybound Isles pickup the player touches into the inventory. */
+function collectSkyPickups(state: IPlayerState): void {
+  for (const pickup of collectSkyPickupsAt(state.x, state.y, state.z)) {
+    if (pickup.itemId) {
+      if (!state.ownedItemIds) state.ownedItemIds = [];
+      state.ownedItemIds.push(pickup.itemId);
+      state.lastLootNotification = { text: t('hud.sky_pickup_item', { item: t(`items.${pickup.itemId}.name`) }), timer: 2.6 };
+    }
+    if (pickup.gold) {
+      state.goldCoins = (state.goldCoins ?? 0) + pickup.gold;
+      state.lastLootNotification = { text: t('hud.sky_pickup_gold', { count: String(pickup.gold) }), timer: 2.6 };
+    }
+  }
+}
+
 /** Remembers the last Skybound Isles island the player stood on, for fall recovery. */
 const skyFallTracker = createSkyFallTracker();
 /** Feet within this distance (m) of a cloud top count as standing on it. */
@@ -1437,6 +1453,8 @@ export function stepPlayerPhysics(
 
   // Skybound Isles crystal deposits regrow everywhere, also while the player is away.
   stepCrystalDeposits(dt);
+  // Skybound Isles floating pickups: passing through one puts its loot in the inventory.
+  if (isInsideSkyboundRegion(state.x, state.z)) collectSkyPickups(state);
 
   // Skybound Isles: walkable clouds (sink, collapse, bounce, storm gusts), bounce mushrooms, wind flowers and wind currents.
   if (!state.isFlying && isInsideSkyboundRegion(state.x, state.z)) {

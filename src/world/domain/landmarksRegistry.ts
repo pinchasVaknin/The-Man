@@ -168,6 +168,16 @@ export {
   type ICrystalStrikeResult,
 } from './landmarks/skyboundIsles/skyCrystalMining';
 export {
+  SKY_PICKUPS,
+  SKY_PICKUP_HOVER_M,
+  collectSkyPickupsAt,
+  isSkyPickupCollected,
+  resetSkyPickups,
+  exportSkyPickupState,
+  importSkyPickupState,
+  type ISkyPickupDef,
+} from './landmarks/skyboundIsles/skyPickups';
+export {
   RUINS_TEMPLE,
   RUINS_TEMPLE_DOOR,
   RUINS_CHEST_SPOT,
