@@ -102,7 +102,7 @@ describe('ancient ruins temple and runes', () => {
     // Act
     const again = activateSkyMechanism(RUINS_RUNES[0].id);
     // Assert
-    assert.deepEqual(again, { changed: false, solvedPuzzle: null, sequenceReset: false, runesLit: 1 });
+    assert.deepEqual(again, { changed: false, solvedPuzzle: null, sequenceReset: false, runesLit: 1, coresActive: 0 });
   });
 
   it('runes_WhenSavedAndRestored_ShouldStayAwake', () => {

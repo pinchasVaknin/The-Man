@@ -175,6 +175,13 @@ export const WINDSPIRE_TOP_LANDING = {
   y: WINDSPIRE_STAIR.topY,
 } as const;
 
+/**
+ * Summary: Summit platform on top of the Windspire, below the floating crystal.
+ * Design: Reached only by the summit updraft (four Wind Cores); its railing leaves a gap on
+ *         the east side, where the updraft arrives.
+ */
+export const WINDSPIRE_SUMMIT = { cx: SKY_HARBOR.x, cz: SKY_HARBOR.z, radius: 7.0, y: DECK_Y + WINDSPIRE.height + 2.0, arrivalAngle: 0 } as const;
+
 /** Summary: The four empty Wind Core sockets on the deck around the tower (diagonals, radius 14 m). */
 export const WIND_CORE_SOCKETS = [1, 3, 5, 7].map((k) => {
   const ang = (k * Math.PI) / 4;
@@ -361,6 +368,27 @@ addCurvedRail(
 }
 addCurvedRail('rail-windspire-balcony', WINDSPIRE_BALCONY.cx, WINDSPIRE_BALCONY.cz, WINDSPIRE_BALCONY.outerR - 0.2, 0, Math.PI * 2, 28, () => WINDSPIRE_BALCONY.y);
 WIND_CORE_SOCKETS.forEach((s) => addBox(s.id, s.x, s.z, 0.8, 0.8, DECK_Y, DECK_Y + 1.2));
+// Summit railing: all the way round except the east gap where the summit updraft arrives.
+{
+  const r = WINDSPIRE_SUMMIT.radius - 0.2;
+  const segments = 24;
+  const chord = (2 * Math.PI * r) / segments;
+  for (let i = 0; i < segments; i++) {
+    const ang = ((i + 0.5) / segments) * Math.PI * 2;
+    const gap = Math.abs(Math.atan2(Math.sin(ang - WINDSPIRE_SUMMIT.arrivalAngle), Math.cos(ang - WINDSPIRE_SUMMIT.arrivalAngle)));
+    if (gap < 0.45) continue;
+    addBox(
+      `rail-windspire-summit-${i}`,
+      WINDSPIRE_SUMMIT.cx + Math.cos(ang) * r,
+      WINDSPIRE_SUMMIT.cz + Math.sin(ang) * r,
+      chord * 0.55,
+      RAIL_THICKNESS_M / 2,
+      WINDSPIRE_SUMMIT.y,
+      WINDSPIRE_SUMMIT.y + RAIL_HEIGHT_M,
+      Math.atan2(-Math.cos(ang), -Math.sin(ang))
+    );
+  }
+}
 
 // Garden: mushroom stems (the caps are bounce surfaces) and the perch tree trunk.
 SKY_BOUNCE_PADS.forEach((p) => addBox(`${p.id}-stem`, p.x, p.z, 0.45, 0.45, DECK_Y, p.topY - 0.05));
@@ -419,6 +447,7 @@ export function visitSkyHarborSurfaces(
   }
   if (dist >= WINDSPIRE_BALCONY.innerR && dist <= WINDSPIRE_BALCONY.outerR) visit(WINDSPIRE_BALCONY.y, 'deck', 'windspire-balcony');
 
+  if (dist <= WINDSPIRE_SUMMIT.radius) visit(WINDSPIRE_SUMMIT.y, 'deck', 'windspire-summit');
   if (Math.hypot(x - GARDEN_CANOPY_PERCH.x, z - GARDEN_CANOPY_PERCH.z) <= GARDEN_CANOPY_PERCH.radius) {
     visit(GARDEN_CANOPY_PERCH.y, 'deck', GARDEN_CANOPY_PERCH.id);
   }

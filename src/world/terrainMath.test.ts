@@ -3424,7 +3424,7 @@ test('skyboundIsles_WhenQueriedThroughTheTerrainFacade_ShouldResolveDecksClimbTo
     const h = floatingBloomingIslandHeightAt(chest.x, chest.z, chest.y);
     assert.equal(h, chest.y, `Expected ${chest.id} to stand on a deck at ${chest.y} m, got ${h}`);
   }
-  assert.equal(WORLD_CHESTS.filter((c) => c.id.startsWith('chest-sky-')).length, 8);
+  assert.equal(WORLD_CHESTS.filter((c) => c.id.startsWith('chest-sky-')).length, 9);
 
   // 4) Island decks show as stone on the minimap, not grass
   const hubColor = sampleMinimapColorAt(760, -35);

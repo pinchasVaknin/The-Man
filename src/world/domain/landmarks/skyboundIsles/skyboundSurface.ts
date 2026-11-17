@@ -19,6 +19,7 @@ import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } f
 import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
 import { CRYSTAL_SOLID_BOXES, visitCrystalIslesSurfaces } from './crystalIslesLayout';
 import { RUINS_SOLID_BOXES, visitAncientRuinsSurfaces } from './ancientRuinsLayout';
+import { WIND_CORE_SOLID_BOXES } from './windCoresLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -113,6 +114,7 @@ export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [
   ...OBSERVATORY_SOLID_BOXES,
   ...CRYSTAL_SOLID_BOXES,
   ...RUINS_SOLID_BOXES,
+  ...WIND_CORE_SOLID_BOXES,
 ];
 
 /**

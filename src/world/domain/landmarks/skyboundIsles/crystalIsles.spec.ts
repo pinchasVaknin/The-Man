@@ -197,7 +197,7 @@ describe('crystal isles resonance puzzle', () => {
     // Act
     const result = activateSkyMechanism(RESONANCE_ORDER[2]);
     // Assert
-    assert.deepEqual(result, { changed: true, solvedPuzzle: null, sequenceReset: true, runesLit: 0 });
+    assert.deepEqual(result, { changed: true, solvedPuzzle: null, sequenceReset: true, runesLit: 0, coresActive: 0 });
   });
 
   it('resonance_WhenAMistakeIsFollowedByTheFullOrder_ShouldStillBeSolvable', () => {

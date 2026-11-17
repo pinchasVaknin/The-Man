@@ -1788,6 +1788,28 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {/* Skybound Isles Wind Core progress */}
+            {telemetry.skyWindCores && (
+              <div
+                data-testid="wind-cores-counter"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sky-100 shadow-2xl"
+                style={{ backgroundColor: 'rgba(8, 24, 40, 0.88)', border: '1px solid rgba(125, 211, 252, 0.6)' }}
+              >
+                <span className="inline-flex gap-1" aria-hidden="true">
+                  {Array.from({ length: telemetry.skyWindCores.total }, (_, i) => (
+                    <span
+                      key={i}
+                      className="inline-block w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: i < (telemetry.skyWindCores?.active ?? 0) ? '#7dd3fc' : 'rgba(148, 163, 184, 0.35)' }}
+                    />
+                  ))}
+                </span>
+                <span className="text-xs font-semibold tracking-wide">
+                  {t('hud.wind_cores_counter', { active: telemetry.skyWindCores.active, total: telemetry.skyWindCores.total })}
+                </span>
+              </div>
+            )}
+
             {/* Skybound Isles Puzzle Mechanism Prompt (levers, runes, resonance crystals) */}
             {telemetry.nearbySkyMechanism && (
               <div

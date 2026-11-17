@@ -13,6 +13,9 @@
 // #region Imports
 import { RUINS_UPDRAFT_BASE, RUINS_UPDRAFT_TOP, STORM_VORTEX_ANCHOR } from './skyCloudRoutes';
 import { GARDEN_WIND_FLOWER_SPOT } from './floatingGardenLayout';
+import { WINDSPIRE_BALCONY, WINDSPIRE_SUMMIT } from './skyHarborLayout';
+import { WIND_CORE_UNLOCKS } from './windCoresLayout';
+import { getActiveWindCoreCount } from './skyPuzzles';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -236,14 +239,26 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
     ],
     radius: 3.0,
     speed: 9.0,
-    unlockedByCores: 4,
+    unlockedByCores: WIND_CORE_UNLOCKS.observatoryShortcut,
+  },
+  {
+    id: 'wind-windspire-summit',
+    mode: 'updraft',
+    path: [
+      { x: WINDSPIRE_SUMMIT.cx + 10.5, y: WINDSPIRE_BALCONY.y - 0.5, z: WINDSPIRE_SUMMIT.cz },
+      { x: WINDSPIRE_SUMMIT.cx + 10.5, y: WINDSPIRE_SUMMIT.y + 2.0, z: WINDSPIRE_SUMMIT.cz },
+    ],
+    radius: 1.6,
+    speed: 8.0,
+    exit: { x: WINDSPIRE_SUMMIT.cx, y: WINDSPIRE_SUMMIT.y, z: WINDSPIRE_SUMMIT.cz },
+    exitSpeed: 4.5,
+    unlockedByCores: WIND_CORE_UNLOCKS.summit,
   },
 ];
 // #endregion
 
 // ======================== MODULE STATE ======================== \\
 // #region Progression State
-let activatedWindCores = 0;
 /** Seconds each wind flower stays open; 0 = closed. */
 const flowerOpenSec = new Map<string, number>();
 // #endregion
@@ -251,20 +266,12 @@ const flowerOpenSec = new Map<string, number>();
 // ======================== PUBLIC API ======================== \\
 // #region Activation
 /**
- * Summary: Tells the wind system how many Wind Cores are active (progression hook).
- * @param count Number of activated cores, 0 or more.
- */
-export function setActivatedWindCoreCount(count: number): void {
-  activatedWindCores = Math.max(0, Math.floor(count));
-}
-
-/**
  * Summary: Whether a current is running right now.
  * @param current The current definition.
  */
 export function isWindCurrentActive(current: ISkyWindCurrent): boolean {
   if (current.flowerId !== undefined && (flowerOpenSec.get(current.flowerId) ?? 0) <= 0) return false;
-  return current.unlockedByCores === undefined || activatedWindCores >= current.unlockedByCores;
+  return current.unlockedByCores === undefined || getActiveWindCoreCount() >= current.unlockedByCores;
 }
 
 /**

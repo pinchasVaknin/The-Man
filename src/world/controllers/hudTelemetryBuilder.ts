@@ -28,6 +28,9 @@ import {
 } from '../terrainMath';
 import { WATER_LEVEL } from '../domain/landmarksRegistry';
 import { getSkyTelescope } from '../domain/landmarks/skyboundIsles/skyTelescopes';
+import { getActiveWindCoreCount } from '../domain/landmarks/skyboundIsles/skyPuzzles';
+import { WIND_CORES } from '../domain/landmarks/skyboundIsles/windCoresLayout';
+import { isInsideSkyboundRegion } from '../domain/landmarks/skyboundIsles/skyboundLayout';
 import { t } from '../../locales';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
 import {
@@ -338,6 +341,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     ...(nearTelescope ? { nearbyTelescope: { id: nearTelescope.id, islandName: skyIslandName(nearTelescope.targetIslandId) } } : {}),
     ...(viewingTelescope ? { telescopeView: { islandName: skyIslandName(viewingTelescope.targetIslandId) } } : {}),
     ...(nearMechanism ? { nearbySkyMechanism: { id: nearMechanism.id, label: t(nearMechanism.labelKey) } } : {}),
+    ...(isInsideSkyboundRegion(player.x, player.z) ? { skyWindCores: { active: getActiveWindCoreCount(), total: WIND_CORES.length } } : {}),
     ...(nearbyPlacedTrap ? { nearbyPlacedTrap } : {}),
     ...(player.heldTrapItemId
       ? (() => {

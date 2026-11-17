@@ -15,7 +15,9 @@ import assert from 'node:assert/strict';
 import { SKY_BRIDGES, SKY_HARBOR } from './skyboundLayout';
 import { SKY_CLOUDS, SKY_CLOUD_MAZE, SKY_REST_PLATFORMS, SKY_ROUTES, type IRouteHop } from './skyCloudRoutes';
 import { resetSkyClouds } from './skyCloudSystem';
-import { resetSkyWindFlowers, sampleSkyWindAt, setActivatedWindCoreCount } from './skyWindSystem';
+import { resetSkyWindFlowers, sampleSkyWindAt } from './skyWindSystem';
+import { activateSkyMechanism, resetSkyPuzzles } from './skyPuzzles';
+import { WIND_CORES } from './windCoresLayout';
 import { createSkyFallTracker, skyboundSurfaceAt, updateSkyFallRecovery } from './skyboundSurface';
 import { STAND_STILL, simulateSkyPlayer, type SimPilot } from './skyboundTestSim';
 // #endregion
@@ -65,7 +67,7 @@ const simulate = simulateSkyPlayer;
 beforeEach(() => {
   resetSkyClouds();
   resetSkyWindFlowers();
-  setActivatedWindCoreCount(0);
+  resetSkyPuzzles();
 });
 
 // #region Route Reachability
@@ -223,9 +225,9 @@ describe('sky wind journeys', () => {
     assert.equal(sample, null);
   });
 
-  it('windspireShortcut_WhenFourWindCoresAreActive_ShouldCarryThePlayerToTheObservatory', () => {
-    // Arrange
-    setActivatedWindCoreCount(4);
+  it('windspireShortcut_WhenTwoWindCoresAreActive_ShouldCarryThePlayerToTheObservatory', () => {
+    // Arrange: the shortcut opens at two Wind Cores.
+    WIND_CORES.slice(0, 2).forEach((c) => activateSkyMechanism(c.id));
     const start = { x: 782.0, y: 68.0, z: -58.0 };
     // Act
     const end = simulate(start, STAND_STILL, 60);

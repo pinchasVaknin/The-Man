@@ -12,6 +12,7 @@ import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
 import { shouldExitTelescopeView, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import { activateSkyMechanism } from '../domain/landmarks/skyboundIsles/skyPuzzles';
+import { WIND_CORE_UNLOCKS } from '../domain/landmarks/skyboundIsles/windCoresLayout';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../../core/perfStats';
@@ -486,6 +487,13 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 if (activation.changed) soundEngine.playFootstep('bridge', 0.8);
                 const isCrystal = bestInteract.mechanism.puzzleId === 'crystal-resonance';
                 const isRune = bestInteract.mechanism.puzzleId === 'ruins-temple';
+                const isCore = bestInteract.mechanism.puzzleId === 'wind-cores';
+                const windCoreMessage = (count: number): string =>
+                  count >= WIND_CORE_UNLOCKS.summit
+                    ? t('hud.windspire_awake')
+                    : count === WIND_CORE_UNLOCKS.observatoryShortcut
+                      ? t('hud.wind_core_shortcut_opened')
+                      : t('hud.wind_core_activated', { count: String(count) });
                 const message =
                   activation.solvedPuzzle === 'observatory-rings'
                     ? t('hud.observatory_chamber_opened')
@@ -499,7 +507,9 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                             ? t('hud.crystal_resonance_note')
                             : isRune && activation.changed
                               ? t('hud.ruins_rune_awakened', { count: String(activation.runesLit) })
-                              : null;
+                              : isCore && activation.changed
+                                ? windCoreMessage(activation.coresActive)
+                                : null;
                 if (message) {
                   hudFeedback.lootNotification = message;
                   hudFeedback.lootNotificationTimer = activation.solvedPuzzle ? 5.0 : 2.6;

@@ -132,6 +132,11 @@ export interface ITelemetrySnapshot {
     id: string;
     label: string;
   } | null;
+  /** Wind Core progress, shown while the player is in the Skybound Isles. */
+  skyWindCores?: {
+    active: number;
+    total: number;
+  } | null;
   /** Island seen through the telescope the player is looking through, if any. */
   telescopeView?: {
     islandName: string;

@@ -5,7 +5,8 @@
 //         with the interact key; each one belongs to a puzzle. Gates are boxes that block
 //         only while their puzzle is unsolved; the physics step pushes the player out of them.
 // SUMMARY: Puzzle state, the mechanisms the player can use, activation rules, closed gates,
-//          and save/restore of the state: Observatory rings, Crystal resonance, Ruins runes.
+//          and save/restore of the state: Observatory rings, Crystal resonance, Ruins runes and
+//          the Wind Cores.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -13,6 +14,7 @@
 import { OBSERVATORY_CHAMBER_GATE, OBSERVATORY_LEVERS } from './observatoryLayout';
 import { CRYSTAL_PASSAGE_GATE, RESONANCE_CRYSTALS, RESONANCE_ORDER } from './crystalIslesLayout';
 import { RUINS_RUNES, RUINS_TEMPLE_DOOR } from './ancientRuinsLayout';
+import { WIND_CORES } from './windCoresLayout';
 import { getSkyIsland } from './skyboundLayout';
 import type { ISkySolidBox } from './skyHarborLayout';
 // #endregion
@@ -21,6 +23,9 @@ import type { ISkySolidBox } from './skyHarborLayout';
 // #region Types
 /** Summary: Ids of the archipelago puzzles. */
 export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance' | 'ruins-temple';
+
+/** Summary: What a mechanism belongs to: a puzzle, or the Wind Core progression. */
+export type SkyMechanismGroup = SkyPuzzleId | 'wind-cores';
 
 const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance', 'ruins-temple'];
 
@@ -32,13 +37,15 @@ export interface ISkyPuzzleState {
   crystalResonanceProgress: number;
   /** Ids of the Ruins temple runes awakened so far (any order). */
   ruinsRunesLit: string[];
+  /** Ids of the Wind Cores activated so far (any order). */
+  windCoresActive: string[];
   solved: SkyPuzzleId[];
 }
 
 /** Summary: Something the player activates with the interact key. */
 export interface ISkyMechanism {
   readonly id: string;
-  readonly puzzleId: SkyPuzzleId;
+  readonly puzzleId: SkyMechanismGroup;
   readonly x: number;
   /** Floor height the mechanism stands on. */
   readonly y: number;
@@ -57,6 +64,8 @@ export interface ISkyActivationResult {
   readonly sequenceReset: boolean;
   /** Ruins runes awake after this activation (0 when the mechanism is not a rune). */
   readonly runesLit: number;
+  /** Wind Cores active after this activation (0 when the mechanism is not a core). */
+  readonly coresActive: number;
 }
 // #endregion
 
@@ -105,6 +114,15 @@ export const SKY_MECHANISMS: readonly ISkyMechanism[] = [
     interactRadius: 2.4,
     labelKey: 'hud.sky_awaken_rune',
   })),
+  ...WIND_CORES.map((c) => ({
+    id: c.id,
+    puzzleId: 'wind-cores' as const,
+    x: c.x,
+    y: c.y,
+    z: c.z,
+    interactRadius: 2.4,
+    labelKey: 'hud.sky_activate_wind_core',
+  })),
 ];
 
 /** Summary: Number of runes that open the Ruins temple door. */
@@ -127,7 +145,7 @@ let state: ISkyPuzzleState = createSkyPuzzleState();
 // #region State Access
 /** Summary: A fresh, unsolved puzzle state. */
 export function createSkyPuzzleState(): ISkyPuzzleState {
-  return { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, ruinsRunesLit: [], solved: [] };
+  return { observatoryRings: [0, 0, 0], crystalResonanceProgress: 0, ruinsRunesLit: [], windCoresActive: [], solved: [] };
 }
 
 /** Summary: The live puzzle state (read-only view for renderers and the HUD). */
@@ -146,6 +164,7 @@ export function exportSkyPuzzleState(): ISkyPuzzleState {
     observatoryRings: [...state.observatoryRings],
     crystalResonanceProgress: state.crystalResonanceProgress,
     ruinsRunesLit: [...state.ruinsRunesLit],
+    windCoresActive: [...state.windCoresActive],
     solved: [...state.solved],
   };
 }
@@ -162,8 +181,22 @@ export function importSkyPuzzleState(saved: Partial<ISkyPuzzleState> | undefined
     observatoryRings: [0, 1, 2].map((i) => normalizeStep(Number(rings[i]) || 0)) as [number, number, number],
     crystalResonanceProgress: Math.max(0, Math.min(RESONANCE_ORDER.length, progress)),
     ruinsRunesLit: Array.isArray(saved?.ruinsRunesLit) ? RUINS_RUNES.map((r) => r.id).filter((id) => saved.ruinsRunesLit!.includes(id)) : [],
+    windCoresActive: Array.isArray(saved?.windCoresActive) ? WIND_CORES.map((c) => c.id).filter((id) => saved.windCoresActive!.includes(id)) : [],
     solved: Array.isArray(saved?.solved) ? saved.solved.filter((id): id is SkyPuzzleId => KNOWN_PUZZLES.includes(id as SkyPuzzleId)) : [],
   };
+}
+
+/** Summary: How many Wind Cores are active (drives the Windspire and its wind unlocks). */
+export function getActiveWindCoreCount(): number {
+  return state.windCoresActive.length;
+}
+
+/**
+ * Summary: Whether a Wind Core is active.
+ * @param id Wind Core id.
+ */
+export function isWindCoreActive(id: string): boolean {
+  return state.windCoresActive.includes(id);
 }
 
 /**
@@ -199,7 +232,8 @@ export function findNearestSkyMechanism(x: number, y: number, z: number): ISkyMe
 
 /**
  * Summary: Uses a mechanism: turns an Observatory ring one step, touches a resonance crystal,
- *          or awakens a Ruins rune (runes stay awake; all four open the temple).
+ *          awakens a Ruins rune (runes stay awake; all four open the temple), or activates a
+ *          Wind Core.
  * Design: A solved puzzle locks its mechanisms. Touching a resonance crystal out of order
  *         silences them all and the sequence starts again from the first crystal.
  * @param id Mechanism id.
@@ -210,6 +244,7 @@ export function activateSkyMechanism(id: string): ISkyActivationResult {
   if (lever) return turnObservatoryRing(lever.ringIndex);
   if (RESONANCE_ORDER.includes(id)) return touchResonanceCrystal(id);
   if (RUINS_RUNES.some((r) => r.id === id)) return awakenRune(id);
+  if (WIND_CORES.some((c) => c.id === id)) return activateWindCore(id);
   return NOTHING_CHANGED;
 }
 // #endregion
@@ -228,14 +263,14 @@ export function skyGatesWithState(): ReadonlyArray<{ readonly box: ISkySolidBox;
 
 // ======================== PRIVATE HELPERS ======================== \\
 // #region Puzzle Rules
-const NOTHING_CHANGED: ISkyActivationResult = { changed: false, solvedPuzzle: null, sequenceReset: false, runesLit: 0 };
+const NOTHING_CHANGED: ISkyActivationResult = { changed: false, solvedPuzzle: null, sequenceReset: false, runesLit: 0, coresActive: 0 };
 
 function turnObservatoryRing(ringIndex: number): ISkyActivationResult {
   if (isSkyPuzzleSolved('observatory-rings')) return NOTHING_CHANGED;
   state.observatoryRings[ringIndex] = normalizeStep(state.observatoryRings[ringIndex] + 1);
   const solvedNow = state.observatoryRings.every((step, i) => step === OBSERVATORY_RING_SOLUTION[i]);
   if (solvedNow) state.solved.push('observatory-rings');
-  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false, runesLit: 0 };
+  return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false, runesLit: 0, coresActive: 0 };
 }
 
 function touchResonanceCrystal(id: string): ISkyActivationResult {
@@ -243,12 +278,18 @@ function touchResonanceCrystal(id: string): ISkyActivationResult {
   if (RESONANCE_ORDER[state.crystalResonanceProgress] !== id) {
     // A wrong crystal silences the chord; touching the first crystal again counts as a fresh start.
     state.crystalResonanceProgress = RESONANCE_ORDER[0] === id ? 1 : 0;
-    return { changed: true, solvedPuzzle: null, sequenceReset: true, runesLit: 0 };
+    return { changed: true, solvedPuzzle: null, sequenceReset: true, runesLit: 0, coresActive: 0 };
   }
   state.crystalResonanceProgress += 1;
   const solvedNow = state.crystalResonanceProgress === RESONANCE_ORDER.length;
   if (solvedNow) state.solved.push('crystal-resonance');
-  return { changed: true, solvedPuzzle: solvedNow ? 'crystal-resonance' : null, sequenceReset: false, runesLit: 0 };
+  return { changed: true, solvedPuzzle: solvedNow ? 'crystal-resonance' : null, sequenceReset: false, runesLit: 0, coresActive: 0 };
+}
+
+function activateWindCore(id: string): ISkyActivationResult {
+  if (state.windCoresActive.includes(id)) return { ...NOTHING_CHANGED, coresActive: state.windCoresActive.length };
+  state.windCoresActive.push(id);
+  return { changed: true, solvedPuzzle: null, sequenceReset: false, runesLit: 0, coresActive: state.windCoresActive.length };
 }
 
 function awakenRune(id: string): ISkyActivationResult {
@@ -256,7 +297,7 @@ function awakenRune(id: string): ISkyActivationResult {
   state.ruinsRunesLit.push(id);
   const solvedNow = state.ruinsRunesLit.length === RUINS_RUNE_COUNT && !isSkyPuzzleSolved('ruins-temple');
   if (solvedNow) state.solved.push('ruins-temple');
-  return { changed: true, solvedPuzzle: solvedNow ? 'ruins-temple' : null, sequenceReset: false, runesLit: state.ruinsRunesLit.length };
+  return { changed: true, solvedPuzzle: solvedNow ? 'ruins-temple' : null, sequenceReset: false, runesLit: state.ruinsRunesLit.length, coresActive: 0 };
 }
 // #endregion
 

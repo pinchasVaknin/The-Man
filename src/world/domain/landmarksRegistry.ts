@@ -88,7 +88,6 @@ export {
   sampleSkyWindAt,
   applySkyWind,
   isWindCurrentActive,
-  setActivatedWindCoreCount,
   SKY_WIND_FLOWERS,
   stepSkyWindFlowers,
   getWindFlowerOpenness,
@@ -109,6 +108,7 @@ export {
   WINDSPIRE_STAIR,
   WINDSPIRE_BALCONY,
   WINDSPIRE_TOP_LANDING,
+  WINDSPIRE_SUMMIT,
   WIND_CORE_SOCKETS,
   SKY_GARDEN_AREA,
   GARDEN_CANOPY_PERCH,
@@ -185,6 +185,12 @@ export {
   type IRuinsPlatform,
 } from './landmarks/skyboundIsles/ancientRuinsLayout';
 export {
+  WIND_CORES,
+  WIND_CORE_UNLOCKS,
+  WIND_CORE_SOLID_BOXES,
+  type IWindCoreDef,
+} from './landmarks/skyboundIsles/windCoresLayout';
+export {
   SKY_MECHANISMS,
   OBSERVATORY_RING_STEPS,
   OBSERVATORY_RING_SOLUTION,
@@ -195,11 +201,14 @@ export {
   exportSkyPuzzleState,
   importSkyPuzzleState,
   isSkyPuzzleSolved,
+  getActiveWindCoreCount,
+  isWindCoreActive,
   findNearestSkyMechanism,
   activateSkyMechanism,
   closedSkyGates,
   skyGatesWithState,
   type SkyPuzzleId,
+  type SkyMechanismGroup,
   type ISkyPuzzleState,
   type ISkyMechanism,
   type ISkyActivationResult,

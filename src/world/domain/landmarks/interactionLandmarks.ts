@@ -911,6 +911,17 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 185,
     contents: ['amethyst_gem', 'crystal_gem', 'sapphire_gem', 'dwarven_gold_ore'],
   },
+  // Skybound Isles — Windspire summit: the reward for waking all four Wind Cores
+  {
+    id: 'chest-sky-windspire-summit',
+    name: 'Windspire Summit Chest',
+    x: 773.0,
+    y: 110.0,
+    z: -35.0,
+    interactRadius: 4.4,
+    goldCoins: 400,
+    contents: ['sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'amethyst_gem', 'crystal_gem', 'crystal_gem'],
+  },
   // Skybound Isles — Floating Garden: chest hidden in the root nook under the north cliff
   {
     id: 'chest-sky-garden-roots',

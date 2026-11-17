@@ -1047,6 +1047,11 @@ export const en = {
     "sky_awaken_rune": "Awaken the rune",
     "ruins_rune_awakened": "The rune awakens ({count}/4)",
     "ruins_temple_opened": "All four runes blaze — the great temple door grinds open",
+    "sky_activate_wind_core": "Activate the Wind Core",
+    "wind_core_activated": "The Wind Core flares — its light streams to the Windspire ({count}/4)",
+    "wind_core_shortcut_opened": "Two Wind Cores burn — a wind current now rises from Sky Harbor to the Observatory",
+    "windspire_awake": "All four Wind Cores burn — the Windspire wakes, and a wind current rises to its summit",
+    "wind_cores_counter": "Wind Cores {active}/{total}",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
   },
