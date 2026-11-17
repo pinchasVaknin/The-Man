@@ -141,6 +141,7 @@ function createSharedAssets(ctx: IWorldModelBuildContext): ISharedAssets {
   const deckGeo = new THREE.CylinderGeometry(1, 1, 1, 40);
   const undersideGeo = new THREE.ConeGeometry(1, 1, 18);
   undersideGeo.rotateX(Math.PI);
+  shadeRockByHeight(undersideGeo);
   const platformGeo = new THREE.CylinderGeometry(1, 0.7, 1, 16);
   const puffGeo = new THREE.IcosahedronGeometry(1, 2);
   puffGeo.scale(1, 0.5, 1);
@@ -164,11 +165,34 @@ function createSharedAssets(ctx: IWorldModelBuildContext): ISharedAssets {
 // #endregion
 
 // #region Islands And Structures
+/**
+ * Summary: Adds a height gradient to a rock geometry: the top keeps full colour, the tip fades darker,
+ *          so each floating island reads as a solid mass lit from above.
+ * @param geo The rock geometry, already oriented with its tip at the bottom.
+ */
+function shadeRockByHeight(geo: THREE.BufferGeometry): void {
+  const pos = geo.getAttribute('position');
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < pos.count; i++) {
+    minY = Math.min(minY, pos.getY(i));
+    maxY = Math.max(maxY, pos.getY(i));
+  }
+  const span = Math.max(1e-6, maxY - minY);
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const t = (pos.getY(i) - minY) / span;
+    const shade = 0.45 + 0.55 * t;
+    colors.set([shade, shade, shade], i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+}
+
 /** Deck slab whose top is exactly at `deckY`, plus a rocky cone underneath. */
 function buildIsland(ctx: IWorldModelBuildContext, shared: ISharedAssets, isl: ISkyIsland): THREE.Group {
   const colors = ISLAND_COLORS[isl.id] ?? { deck: 0xd6d3c8, rock: 0x6b6458 };
   const deckMat = new THREE.MeshStandardMaterial({ color: colors.deck, roughness: 0.85 });
-  const rockMat = new THREE.MeshStandardMaterial({ color: colors.rock, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1 });
+  const rockMat = new THREE.MeshStandardMaterial({ color: colors.rock, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1, vertexColors: true });
   ctx.disposableMaterials.push(deckMat, rockMat);
 
   const root = new THREE.Group();

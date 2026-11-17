@@ -519,6 +519,48 @@ export class NatureSoundEngine {
     this.playBirdChirp(atten);
   }
 
+  /** Summary: A soft two-note chime, for a Skybound Isles puzzle being solved. */
+  public playSkyChime() {
+    if (!this.initialized) this.init();
+    if (!this.ctx || !this.masterGain || this.muted) return;
+    const now = this.ctx.currentTime;
+    for (const [freq, delay] of [[659.25, 0], [987.77, 0.12]] as const) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.001, now + delay);
+      env.gain.linearRampToValueAtTime(0.12, now + delay + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.4);
+      osc.connect(env);
+      env.connect(this.masterGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + 1.5);
+    }
+  }
+
+  /** Summary: A short rising air whoosh, for a thrown Storm Fruit. */
+  public playWindWhoosh() {
+    if (!this.initialized) this.init();
+    if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
+    const now = this.ctx.currentTime;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.4;
+    filter.frequency.setValueAtTime(300, now);
+    filter.frequency.exponentialRampToValueAtTime(1200, now + 0.45);
+    const env = this.ctx.createGain();
+    env.gain.setValueAtTime(0.001, now);
+    env.gain.linearRampToValueAtTime(0.1, now + 0.05);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    src.connect(filter);
+    filter.connect(env);
+    env.connect(this.masterGain);
+    src.start(now, this.randomSource() * 0.8, 0.5);
+  }
+
   public playCritterScamper(distance = 8) {
     if (!this.initialized) this.init();
     if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;

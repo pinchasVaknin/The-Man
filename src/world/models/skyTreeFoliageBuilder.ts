@@ -25,6 +25,8 @@ import type { IWorldModelBuildContext } from './types';
 /** Summary: What the foliage builder hands back to the scene. */
 export interface ISkyTreeFoliageBuildResult {
   readonly group: THREE.Group;
+  /** Sways the canopy and vines; call once per frame while nearby. */
+  readonly update: (elapsedSec: number) => void;
 }
 // #endregion
 
@@ -52,6 +54,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   const rootMat = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.95 });
   const glowMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x22d3ee, emissiveIntensity: 1.4, roughness: 0.4 });
   const blobGeo = new THREE.IcosahedronGeometry(1, 1);
+  const vines: THREE.Mesh[] = [];
   const vineGeo = new THREE.CylinderGeometry(0.07, 0.05, 1, 5);
   const rootGeo = new THREE.CylinderGeometry(0.2, 0.45, 1, 6);
   const glowGeo = new THREE.SphereGeometry(0.16, 8, 6);
@@ -60,6 +63,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
 
   const topY = SKY_TREE.topY;
   // Canopy: leafy blobs ringed around the top of the trunk, above the observation platform.
+  const blobs: THREE.Mesh[] = [];
   for (let i = 0; i < CANOPY_BLOB_COUNT; i++) {
     const a = (i / CANOPY_BLOB_COUNT) * Math.PI * 2;
     const r = 2.5 + (i % 3) * 1.2;
@@ -68,6 +72,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
     blob.scale.set(s, s * 0.7, s);
     blob.position.set(SKY_TREE.x + Math.cos(a) * r, topY + 1.5 + (i % 2) * 0.8, SKY_TREE.z + Math.sin(a) * r);
     group.add(blob);
+    blobs.push(blob);
   }
 
   // Vines: hang from the spiral's outer edge, several metres long, with a glowing tip.
@@ -83,6 +88,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
     vine.scale.set(1, length, 1);
     vine.position.set(cx, branchY - length / 2, cz);
     group.add(vine);
+    vines.push(vine);
     if (i % 2 === 0) {
       const tip = new THREE.Mesh(glowGeo, glowMat);
       tip.position.set(cx, branchY - length, cz);
@@ -125,6 +131,19 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   group.add(cap);
   ctx.disposableGeometries.push(capGeo);
 
-  return { group };
+  // Idle motion: the canopy breathes and the vines sway in the air, so the tree never looks frozen.
+  const restLeafY = blobs.map((b) => b.position.y);
+  const restVineZ = vines.map((v) => v.rotation.z);
+  return {
+    group,
+    update: (elapsedSec: number) => {
+      blobs.forEach((b, i) => {
+        b.position.y = restLeafY[i] + Math.sin(elapsedSec * 0.9 + i * 0.7) * 0.25;
+      });
+      vines.forEach((v, i) => {
+        v.rotation.z = restVineZ[i] + Math.sin(elapsedSec * 1.3 + i * 1.1) * 0.06;
+      });
+    },
+  };
 }
 // #endregion

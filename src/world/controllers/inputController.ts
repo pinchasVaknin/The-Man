@@ -321,7 +321,7 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
       if (playerState.heldStormFruit) {
         if (e.button === 0) {
           if (throwStormFruit(playerState)) {
-            soundEngine.playFootstep('trail', 1.0);
+            soundEngine.playWindWhoosh();
           } else {
             playerState.heldStormFruit = false;
             hudFeedback.lootNotification = t('hud.storm_fruit_none_left');

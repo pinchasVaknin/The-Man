@@ -512,7 +512,8 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 // Boarded nearby minecart directly!
               } else if (bestInteract.kind === 'sky_mechanism' && bestInteract.mechanism) {
                 const activation = activateSkyMechanism(bestInteract.mechanism.id);
-                if (activation.changed) soundEngine.playFootstep('bridge', 0.8);
+                if (activation.solvedPuzzle) soundEngine.playSkyChime();
+                else if (activation.changed) soundEngine.playFootstep('bridge', 0.8);
                 const isCrystal = bestInteract.mechanism.puzzleId === 'crystal-resonance';
                 const isRune = bestInteract.mechanism.puzzleId === 'ruins-temple';
                 const isCore = bestInteract.mechanism.puzzleId === 'wind-cores';
