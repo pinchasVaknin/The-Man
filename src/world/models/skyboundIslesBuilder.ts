@@ -227,6 +227,8 @@ function buildRestPlatform(shared: ISharedAssets, x: number, y: number, z: numbe
 function buildChestsAndBed(shared: ISharedAssets, group: THREE.Group): void {
   for (const chest of WORLD_CHESTS) {
     if (!chest.id.startsWith('chest-sky-')) continue;
+    // The hatch chest is drawn by the airship wreck builder, only once the crate is pushed.
+    if (chest.requiresSkyPuzzle) continue;
     const body = new THREE.Mesh(shared.boxGeo, shared.woodMat);
     body.scale.set(1.45, 0.85, 0.95);
     body.position.set(chest.x, chest.y + 0.43, chest.z);

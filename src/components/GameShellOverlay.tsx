@@ -1582,6 +1582,47 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {telemetry.nearbyJournal && !telemetry.journal && (
+              <div
+                data-testid="journal-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(15, 13, 10, 0.92)',
+                  border: '1px solid rgba(251, 191, 36, 0.72)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold text-xs text-amber-100">{t('hud.read_journal')}</span>
+              </div>
+            )}
+
+            {telemetry.journal && (
+              <div
+                data-testid="journal-panel"
+                className="flex flex-col gap-2 px-5 py-4 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  maxWidth: '520px',
+                  backgroundColor: 'rgba(28, 22, 14, 0.95)',
+                  border: '1px solid rgba(251, 191, 36, 0.72)',
+                }}
+              >
+                <h3 className="font-semibold text-base text-amber-100">{telemetry.journal.title}</h3>
+                {telemetry.journal.lines.map((line) => (
+                  <p key={line} className="text-sm leading-relaxed text-stone-200">
+                    {line}
+                  </p>
+                ))}
+                <div className="flex items-center gap-2 pt-1 text-xs text-stone-300">
+                  <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                    {formatKeyCodeLabel(kb.interactDoor)}
+                  </kbd>
+                  <span>{t('hud.journal_close')}</span>
+                </div>
+              </div>
+            )}
+
             {telemetry.nearbyStormFruitBush && !telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && (
               <div
                 data-testid="storm-fruit-harvest-prompt"

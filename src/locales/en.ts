@@ -5,6 +5,15 @@
 // ============================================================================
 
 export const en = {
+  "journal": {
+    "airship": {
+      "title": "Captain's last log",
+      "line_1": "Day 41. The hull split on the storm wall, and the wind took the mast and half the crew.",
+      "line_2": "The navigation lever still answers. Pull it and the wind carries the hull's last cargo down to the hidden isle.",
+      "line_3": "My coin is in the hatch under the crate. I hid it the night we moored.",
+      "line_4": "The storm stags on the high isle are not to be trusted. Offer them storm fruit, and keep your distance."
+    }
+  },
   "items": {
     "bow": {
       "name": "Hunting Bow",
@@ -1061,6 +1070,12 @@ export const en = {
     "crystal_needs_pickaxe": "This crystal deposit can only be mined with a pickaxe",
     "crystal_mined": "Mined the crystal deposit: {count} gems",
     "storm_fruit_picked": "Picked a Storm Fruit",
+    "sky_pull_navigation": "Pull the navigation lever",
+    "sky_push_crate": "Push the crate aside",
+    "airship_hatch_opened": "The crate slides aside: a hatch is underneath, with a chest in it",
+    "read_journal": "Read the captain's journal",
+    "journal_close": "Close",
+    "airship_navigation_on": "The lever holds: a wind current now runs down to the Hidden Isle",
     "storm_fruit_harvest": "Harvest Storm Fruit",
     "storm_fruit_hold": "Holding Storm Fruit: left-click throws, right-click puts it away",
     "storm_fruit_put_away": "Put the Storm Fruit away",

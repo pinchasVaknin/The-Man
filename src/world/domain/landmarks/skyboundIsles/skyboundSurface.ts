@@ -17,6 +17,7 @@ import { skyCloudSurfaceAt } from './skyCloudSystem';
 import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type ISkyBouncePad, type ISkySolidBox } from './skyHarborLayout';
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
 import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
+import { visitAirshipWreckSurfaces } from './airshipWreckLayout';
 import { CRYSTAL_SOLID_BOXES, visitCrystalIslesSurfaces } from './crystalIslesLayout';
 import { RUINS_SOLID_BOXES, visitAncientRuinsSurfaces } from './ancientRuinsLayout';
 import { WIND_CORE_SOLID_BOXES } from './windCoresLayout';
@@ -95,6 +96,7 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
   visitSkyHarborSurfaces(x, z, consider);
   visitFloatingGardenSurfaces(x, z, consider);
   visitObservatorySurfaces(x, z, consider);
+  visitAirshipWreckSurfaces(x, z, consider);
   visitCrystalIslesSurfaces(x, z, consider);
   visitAncientRuinsSurfaces(x, z, consider);
   const cloud = skyCloudSurfaceAt(x, z, currentY);

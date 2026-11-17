@@ -9,6 +9,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { Result } from '../../core/Result';
+import type { SkyPuzzleId } from './landmarks/skyboundIsles/skyPuzzles';
 import { t } from '../../locales';
 export { Result };
 export { AppException, InfrastructureCorruptedException, InvalidResultAccessException } from '../../core/AppException';
@@ -181,6 +182,8 @@ export interface IWorldChest {
   readonly contents: readonly InventoryItemId[];
   readonly isCorpse?: boolean;
   goldCoins?: number;
+  /** When set, the chest is hidden and cannot be opened until this Skybound Isles puzzle is solved. */
+  readonly requiresSkyPuzzle?: SkyPuzzleId;
 }
 
 function createCatalogItem(

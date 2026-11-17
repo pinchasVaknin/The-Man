@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { stepStormFruitThrows } from '../systems/stormFruitSystem';
+import { closeSkyJournal, findReadableSkyJournal, getOpenSkyJournal, openSkyJournal } from '../domain/landmarks/skyboundIsles/skyJournal';
 import { isWorldPausedByMenu } from '../domain/uiPause';
 import { easeWeatherSnapshot } from '../domain/weatherEase';
 import { t } from '../../locales';
@@ -405,7 +406,11 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
 
         // Interactive Looting of Hunted Animal, Opening Chest, Sleeping in Bed, Trapper's Workbench, Minecart Driving, OR Door Toggle when pressing interactDoor ([E])
         if (keysJustPressed.has(kb.interactDoor)) {
-          if (playerState.telescopeViewId) {
+          if (getOpenSkyJournal()) {
+            // Close the captain's journal panel.
+            closeSkyJournal();
+            emitHudSnapshot();
+          } else if (playerState.telescopeViewId) {
             // Step back from the Skybound Isles telescope.
             playerState.telescopeViewId = null;
             emitHudSnapshot();
@@ -482,11 +487,20 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 4.8
               );
               // Storm Fruit: E on a ready bush in front of the player harvests its fruit (only when nothing else is looked at)
+              // Captain's journal: E on the journal in front of the player opens its panel
+              const journal =
+                bestInteract.kind === 'none'
+                  ? findReadableSkyJournal(playerState.x, playerState.y, playerState.z, playerState.yaw)
+                  : null;
               const stormBush =
                 bestInteract.kind === 'none'
                   ? findHarvestableStormFruitBush(playerState.x, playerState.y, playerState.z, playerState.yaw)
                   : null;
-              if (stormBush) {
+              if (journal) {
+                openSkyJournal(journal);
+                soundEngine.playFootstep('trail', 0.9);
+                emitHudSnapshot();
+              } else if (stormBush) {
                 harvestStormFruitBush(stormBush.id);
                 if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
                 playerState.ownedItemIds.push('storm_fruit');
@@ -511,6 +525,10 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 const message =
                   activation.solvedPuzzle === 'observatory-rings'
                     ? t('hud.observatory_chamber_opened')
+                    : activation.solvedPuzzle === 'airship-navigation'
+                      ? t('hud.airship_navigation_on')
+                      : activation.solvedPuzzle === 'airship-hatch'
+                        ? t('hud.airship_hatch_opened')
                     : activation.solvedPuzzle === 'crystal-resonance'
                       ? t('hud.crystal_resonance_solved')
                       : activation.solvedPuzzle === 'ruins-temple'

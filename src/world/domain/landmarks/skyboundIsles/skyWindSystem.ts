@@ -15,7 +15,8 @@ import { RUINS_UPDRAFT_BASE, RUINS_UPDRAFT_TOP, STORM_VORTEX_ANCHOR } from './sk
 import { GARDEN_WIND_FLOWER_SPOT } from './floatingGardenLayout';
 import { WINDSPIRE_BALCONY, WINDSPIRE_SUMMIT } from './skyHarborLayout';
 import { WIND_CORE_UNLOCKS } from './windCoresLayout';
-import { getActiveWindCoreCount } from './skyPuzzles';
+import { getActiveWindCoreCount, isSkyPuzzleSolved, type SkyPuzzleId } from './skyPuzzles';
+import { AIRSHIP_NAVIGATION_CURRENT } from './airshipWreckLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -54,6 +55,8 @@ export interface ISkyWindCurrent {
   readonly maxFallSpeed?: number;
   /** Number of Wind Cores needed before the current runs; undefined = always on. */
   readonly unlockedByCores?: number;
+  /** When set, the current only runs once this puzzle is solved. */
+  readonly unlockedByPuzzle?: SkyPuzzleId;
   /** When set, the current only runs while this wind flower is open. */
   readonly flowerId?: string;
 }
@@ -125,6 +128,7 @@ const WIND_FLOWER_COLUMN_RADIUS_M = 1.6;
  *         -> (bridge) -> Sky Harbor -> (Cloud Run) -> Garden.
  */
 export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
+  AIRSHIP_NAVIGATION_CURRENT,
   {
     id: 'wind-garden-to-ruins',
     mode: 'stream',
@@ -271,6 +275,7 @@ const flowerOpenSec = new Map<string, number>();
  */
 export function isWindCurrentActive(current: ISkyWindCurrent): boolean {
   if (current.flowerId !== undefined && (flowerOpenSec.get(current.flowerId) ?? 0) <= 0) return false;
+  if (current.unlockedByPuzzle !== undefined && !isSkyPuzzleSolved(current.unlockedByPuzzle)) return false;
   return current.unlockedByCores === undefined || getActiveWindCoreCount() >= current.unlockedByCores;
 }
 

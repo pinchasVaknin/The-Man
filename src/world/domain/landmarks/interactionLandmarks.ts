@@ -16,7 +16,7 @@ import { HUNTER_LODGE_POS, VALLEY_FARMS } from './settlementLandmarks';
 import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
 import { MINE_LEVEL_Y, MINE_POI, TREASURE_ISLAND } from './ancientMine/ancientMineLayout';
 import { findNearestSkyTelescope, type ISkyTelescope } from './skyboundIsles/skyTelescopes';
-import { findNearestSkyMechanism, type ISkyMechanism } from './skyboundIsles/skyPuzzles';
+import { findNearestSkyMechanism, isSkyPuzzleSolved, type ISkyMechanism } from './skyboundIsles/skyPuzzles';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -883,7 +883,7 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     id: 'chest-sky-galleon-captain',
     name: "Forgotten Airship Captain's Coffer",
     x: 846.0,
-    y: 45.0,
+    y: 46.0,
     z: 70.0,
     interactRadius: 4.4,
     goldCoins: 165,
@@ -977,6 +977,18 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 260,
     contents: ['sapphire_gem', 'sapphire_gem', 'amethyst_gem', 'crystal_gem', 'dwarven_gold_ore'],
   },
+  // Skybound Isles — Forgotten Airship wreck: hidden under the crate, only opens once the crate is pushed aside
+  {
+    id: 'chest-sky-airship-hatch',
+    name: "Captain's Hatch Chest",
+    x: 849.9,
+    y: 46.0,
+    z: 67.1,
+    interactRadius: 4.4,
+    goldCoins: 180,
+    contents: ['crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
+    requiresSkyPuzzle: 'airship-hatch',
+  },
 ] as const;
 
 /**
@@ -1004,6 +1016,7 @@ export function findNearestWorldChest(
   for (let i = 0; i < WORLD_CHESTS.length; i++) {
     const c = WORLD_CHESTS[i];
     if (openedIds && openedIds.includes(c.id)) continue;
+    if (c.requiresSkyPuzzle && !isSkyPuzzleSolved(c.requiresSkyPuzzle)) continue;
     if (Math.abs(y - c.y) > 2.25) continue;
     const maxR = hasGaze
       ? Math.min(distOverride ?? c.interactRadius, 2.8)

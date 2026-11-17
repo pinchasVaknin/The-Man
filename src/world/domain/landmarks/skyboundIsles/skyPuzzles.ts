@@ -15,6 +15,7 @@ import { OBSERVATORY_CHAMBER_GATE, OBSERVATORY_LEVERS } from './observatoryLayou
 import { CRYSTAL_PASSAGE_GATE, RESONANCE_CRYSTALS, RESONANCE_ORDER } from './crystalIslesLayout';
 import { RUINS_RUNES, RUINS_TEMPLE_DOOR } from './ancientRuinsLayout';
 import { WIND_CORES } from './windCoresLayout';
+import { AIRSHIP_CRATE_GATE, AIRSHIP_CRATE_PUSH_POINT, AIRSHIP_NAVIGATION_LEVER } from './airshipWreckLayout';
 import { getSkyIsland } from './skyboundLayout';
 import type { ISkySolidBox } from './skyHarborLayout';
 // #endregion
@@ -22,12 +23,12 @@ import type { ISkySolidBox } from './skyHarborLayout';
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Types
 /** Summary: Ids of the archipelago puzzles. */
-export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance' | 'ruins-temple';
+export type SkyPuzzleId = 'observatory-rings' | 'crystal-resonance' | 'ruins-temple' | 'airship-navigation' | 'airship-hatch';
 
 /** Summary: What a mechanism belongs to: a puzzle, or the Wind Core progression. */
 export type SkyMechanismGroup = SkyPuzzleId | 'wind-cores';
 
-const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance', 'ruins-temple'];
+const KNOWN_PUZZLES: readonly SkyPuzzleId[] = ['observatory-rings', 'crystal-resonance', 'ruins-temple', 'airship-navigation', 'airship-hatch'];
 
 /** Summary: Saved state of every archipelago puzzle. */
 export interface ISkyPuzzleState {
@@ -87,6 +88,24 @@ const OBSERVATORY_DECK_Y = getSkyIsland('sky-observatory')!.deckY;
 // #region Mechanisms And Gates
 /** Summary: Every mechanism of every archipelago puzzle. */
 export const SKY_MECHANISMS: readonly ISkyMechanism[] = [
+  {
+    id: AIRSHIP_CRATE_PUSH_POINT.id,
+    puzzleId: 'airship-hatch' as const,
+    x: AIRSHIP_CRATE_PUSH_POINT.x,
+    y: AIRSHIP_CRATE_PUSH_POINT.y,
+    z: AIRSHIP_CRATE_PUSH_POINT.z,
+    interactRadius: 2.6,
+    labelKey: 'hud.sky_push_crate',
+  },
+  {
+    id: AIRSHIP_NAVIGATION_LEVER.id,
+    puzzleId: 'airship-navigation' as const,
+    x: AIRSHIP_NAVIGATION_LEVER.x,
+    y: AIRSHIP_NAVIGATION_LEVER.y,
+    z: AIRSHIP_NAVIGATION_LEVER.z,
+    interactRadius: 2.4,
+    labelKey: 'hud.sky_pull_navigation',
+  },
   ...OBSERVATORY_LEVERS.map((l) => ({
     id: l.id,
     puzzleId: 'observatory-rings' as const,
@@ -133,6 +152,7 @@ const SKY_GATES: ReadonlyArray<{ readonly puzzleId: SkyPuzzleId; readonly box: I
   { puzzleId: 'observatory-rings', box: OBSERVATORY_CHAMBER_GATE },
   { puzzleId: 'crystal-resonance', box: CRYSTAL_PASSAGE_GATE },
   { puzzleId: 'ruins-temple', box: RUINS_TEMPLE_DOOR },
+  { puzzleId: 'airship-hatch', box: AIRSHIP_CRATE_GATE },
 ];
 // #endregion
 
@@ -245,6 +265,8 @@ export function activateSkyMechanism(id: string): ISkyActivationResult {
   if (RESONANCE_ORDER.includes(id)) return touchResonanceCrystal(id);
   if (RUINS_RUNES.some((r) => r.id === id)) return awakenRune(id);
   if (WIND_CORES.some((c) => c.id === id)) return activateWindCore(id);
+  if (id === AIRSHIP_NAVIGATION_LEVER.id) return pullNavigationLever();
+  if (id === AIRSHIP_CRATE_PUSH_POINT.id) return pushAirshipCrate();
   return NOTHING_CHANGED;
 }
 // #endregion
@@ -271,6 +293,18 @@ function turnObservatoryRing(ringIndex: number): ISkyActivationResult {
   const solvedNow = state.observatoryRings.every((step, i) => step === OBSERVATORY_RING_SOLUTION[i]);
   if (solvedNow) state.solved.push('observatory-rings');
   return { changed: true, solvedPuzzle: solvedNow ? 'observatory-rings' : null, sequenceReset: false, runesLit: 0, coresActive: 0 };
+}
+
+function pushAirshipCrate(): ISkyActivationResult {
+  if (isSkyPuzzleSolved('airship-hatch')) return NOTHING_CHANGED;
+  state.solved.push('airship-hatch');
+  return { changed: true, solvedPuzzle: 'airship-hatch', sequenceReset: false, runesLit: 0, coresActive: 0 };
+}
+
+function pullNavigationLever(): ISkyActivationResult {
+  if (isSkyPuzzleSolved('airship-navigation')) return NOTHING_CHANGED;
+  state.solved.push('airship-navigation');
+  return { changed: true, solvedPuzzle: 'airship-navigation', sequenceReset: false, runesLit: 0, coresActive: 0 };
 }
 
 function touchResonanceCrystal(id: string): ISkyActivationResult {

@@ -26,6 +26,7 @@ import { buildAncientRuins } from './ancientRuinsBuilder';
 import { buildWindCores } from './windCoresBuilder';
 import { buildSkyPickups } from './skyPickupsBuilder';
 import { buildStormFruit } from './stormFruitBuilder';
+import { buildAirshipWreck } from './airshipWreckBuilder';
 
 export interface ICelestialSkyArchipelagoBuildResult {
   readonly floatingIslandsGroup: THREE.Group;
@@ -420,6 +421,8 @@ export function buildCelestialSkyArchipelagoModels(
   floatingIslandsGroup.add(skyPickups.group);
   const stormFruit = buildStormFruit(ctx);
   floatingIslandsGroup.add(stormFruit.group);
+  const airshipWreck = buildAirshipWreck(ctx);
+  floatingIslandsGroup.add(airshipWreck.group);
 
   scene.add(floatingIslandsGroup);
   distanceCulledObjects.push({
@@ -459,6 +462,7 @@ export function buildCelestialSkyArchipelagoModels(
         windCores.update(elapsedTime);
         skyPickups.update(elapsedTime);
         stormFruit.update(elapsedTime);
+        airshipWreck.update(elapsedTime);
       }
 
       // Animate Celestial Wind-Ring & Thermal Launch Pads
