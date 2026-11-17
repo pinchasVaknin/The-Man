@@ -105,7 +105,7 @@ import {
   resetActiveWorldBirds,
   type ISmallAnimalState,
 } from '../systems/boidsAndWildlifeSystem';
-import { WATER_LEVEL } from '../domain/landmarksRegistry';
+import { WATER_LEVEL, findHarvestableStormFruitBush, harvestStormFruitBush } from '../domain/landmarksRegistry';
 import { parseAndValidateUrlOverrides } from '../../core/config';
 import { createWorldScene } from '../builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../soundEngine';
@@ -481,7 +481,20 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 playerState.z,
                 4.8
               );
-              if (nearMinecartStation && tryBoardOrExitMinecart()) {
+              // Storm Fruit: E on a ready bush in front of the player harvests its fruit (only when nothing else is looked at)
+              const stormBush =
+                bestInteract.kind === 'none'
+                  ? findHarvestableStormFruitBush(playerState.x, playerState.y, playerState.z, playerState.yaw)
+                  : null;
+              if (stormBush) {
+                harvestStormFruitBush(stormBush.id);
+                if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
+                playerState.ownedItemIds.push('storm_fruit');
+                hudFeedback.lootNotification = t('hud.storm_fruit_picked');
+                hudFeedback.lootNotificationTimer = 2.2;
+                soundEngine.playFootstep('trail', 1.1);
+                emitHudSnapshot();
+              } else if (nearMinecartStation && tryBoardOrExitMinecart()) {
                 // Boarded nearby minecart directly!
               } else if (bestInteract.kind === 'sky_mechanism' && bestInteract.mechanism) {
                 const activation = activateSkyMechanism(bestInteract.mechanism.id);

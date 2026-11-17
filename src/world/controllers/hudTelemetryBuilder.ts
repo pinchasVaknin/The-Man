@@ -30,6 +30,7 @@ import { WATER_LEVEL } from '../domain/landmarksRegistry';
 import { getSkyTelescope } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import { getActiveWindCoreCount } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import { WIND_CORES } from '../domain/landmarks/skyboundIsles/windCoresLayout';
+import { findHarvestableStormFruitBush } from '../domain/landmarksRegistry';
 import { isInsideSkyboundRegion } from '../domain/landmarks/skyboundIsles/skyboundLayout';
 import { t } from '../../locales';
 import { findNearestRideableHorse } from '../systems/playerPhysicsSystem';
@@ -118,6 +119,8 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const viewingTelescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
   const nearTelescope = !viewingTelescope && lookedAt.kind === 'telescope' ? lookedAt.telescope : null;
   const nearMechanism = lookedAt.kind === 'sky_mechanism' ? lookedAt.mechanism : null;
+  const nearStormBush =
+    lookedAt.kind === 'none' ? findHarvestableStormFruitBush(player.x, player.y, player.z, player.yaw) : null;
   const nearTrapWorkbench =
     lookedAt.kind === 'trap_workbench' && lookedAt.trapWorkbench
       ? {
@@ -338,6 +341,7 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
         }
       : null,
     ...(nearTrapWorkbench ? { nearbyTrapWorkbench: nearTrapWorkbench } : {}),
+    ...(nearStormBush ? { nearbyStormFruitBush: true } : {}),
     ...(nearTelescope ? { nearbyTelescope: { id: nearTelescope.id, islandName: skyIslandName(nearTelescope.targetIslandId) } } : {}),
     ...(viewingTelescope ? { telescopeView: { islandName: skyIslandName(viewingTelescope.targetIslandId) } } : {}),
     ...(nearMechanism ? { nearbySkyMechanism: { id: nearMechanism.id, label: t(nearMechanism.labelKey) } } : {}),

@@ -18,7 +18,8 @@ import {
   getStormFruitRegrowSec,
   importStormFruitState,
   isStormFruitReady,
-  pickStormFruitAt,
+  findHarvestableStormFruitBush,
+  harvestStormFruitBush,
   resetStormFruit,
   stepStormFruitRegrowth,
 } from '../domain/landmarksRegistry';
@@ -68,38 +69,56 @@ beforeEach(() => {
   resetStormFruitThrows();
 });
 
-// #region Picking
+// #region Harvesting
+/** The player standing 1 m south of a bush, looking at it. */
+function playerLookingAt(bush: { x: number; z: number }, yaw = 0): { x: number; y: number; z: number; yaw: number } {
+  return { x: bush.x, y: BUSH.y, z: bush.z + 1.0, yaw };
+}
+
 describe('storm fruit bushes', () => {
-  it('stormFruitBush_WhenTouchedWhileReady_ShouldGiveOneFruitAndGoBare', () => {
-    // Arrange / Act
-    const picked = pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z);
+  it('stormFruitBush_WhenLookedAtWhileReady_ShouldHarvestOneFruitAndGoBare', () => {
+    // Arrange
+    const p = playerLookingAt(BUSH);
+    // Act
+    const found = findHarvestableStormFruitBush(p.x, p.y, p.z, p.yaw);
+    const harvested = found ? harvestStormFruitBush(found.id) : false;
     // Assert
-    assert.equal(picked, 1);
+    assert.equal(found?.id, BUSH.id);
+    assert.equal(harvested, true);
     assert.equal(isStormFruitReady(BUSH.id), false);
   });
 
-  it('stormFruitBush_WhenTouchedWhileBare_ShouldGiveNothing', () => {
-    // Arrange
-    pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z);
+  it('stormFruitBush_WhenItIsBehindThePlayer_ShouldNotBeHarvestable', () => {
+    // Arrange: facing away from the bush (yaw π faces +z, the bush is at -z from the player).
+    const p = playerLookingAt(BUSH, Math.PI);
     // Act
-    const picked = pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z);
+    const found = findHarvestableStormFruitBush(p.x, p.y, p.z, p.yaw);
     // Assert
-    assert.equal(picked, 0);
+    assert.equal(found, null);
+  });
+
+  it('stormFruitBush_WhenHarvestedWhileBare_ShouldGiveNothing', () => {
+    // Arrange
+    harvestStormFruitBush(BUSH.id);
+    // Act
+    const harvested = harvestStormFruitBush(BUSH.id);
+    // Assert
+    assert.equal(harvested, false);
   });
 
   it('stormFruitBush_WhenItHasRegrown_ShouldBeReadyAgain', () => {
     // Arrange
-    pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z);
+    harvestStormFruitBush(BUSH.id);
     // Act
     stepStormFruitRegrowth(STORM_FRUIT_REGROW_SEC + 0.1);
     // Assert
     assert.equal(getStormFruitRegrowSec(BUSH.id), 0);
-    assert.equal(pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z), 1);
+    assert.equal(harvestStormFruitBush(BUSH.id), true);
   });
 
   it('stormFruitBushes_WhenSavedAndLoaded_ShouldKeepTheRegrowTimeAndDropUnknownBushes', () => {
     // Arrange
-    pickStormFruitAt(BUSH.x, BUSH.y, BUSH.z);
+    harvestStormFruitBush(BUSH.id);
     stepStormFruitRegrowth(30);
     const saved = [...exportStormFruitState(), { id: 'bush-that-no-longer-exists', regrowSec: 50 }];
     resetStormFruit();

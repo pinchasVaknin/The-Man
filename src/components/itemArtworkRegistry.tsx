@@ -153,6 +153,16 @@ const berriesIcon: IconRenderStrategy = (className) => (
 );
 ICON_STRATEGIES.set('wild_berries', berriesIcon);
 
+const stormFruitIcon: IconRenderStrategy = (className) => (
+  <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
+    <circle cx="12" cy="13.5" r="7" />
+    <path d="M12 6.5 C12 4.5, 13.5 3.5, 15.5 3.5" />
+    <path d="M12 6.5 C10.5 5, 9 5, 7.5 6" />
+    <path d="M5.5 11 Q12 16 18.5 11" />
+  </svg>
+);
+ICON_STRATEGIES.set('storm_fruit', stormFruitIcon);
+
 const seedsIcon: IconRenderStrategy = (className) => (
   <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current stroke-2 shrink-0`}>
     <ellipse cx="8" cy="12" rx="3" ry="5" transform="rotate(-25 8 12)" />
@@ -360,6 +370,21 @@ ARTWORK_STRATEGIES.set('twine_fiber', (sizeClass) => (
   </svg>
 ));
 
+ARTWORK_STRATEGIES.set('storm_fruit', (sizeClass) => (
+  <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
+    <circle cx="80" cy="80" r="64" fill="#0ea5e9" fillOpacity="0.16" />
+    {/* Storm swirl behind the fruit */}
+    <path d="M24 92 C44 70, 62 70, 74 84" fill="none" stroke="#7dd3fc" strokeWidth="3" strokeLinecap="round" />
+    <path d="M136 70 C116 92, 98 92, 86 78" fill="none" stroke="#7dd3fc" strokeWidth="3" strokeLinecap="round" />
+    {/* Leaf and stem */}
+    <path d="M80 50 C72 30, 56 28, 50 38 C64 46, 74 48, 80 50 Z" fill="#16a34a" stroke="#86efac" strokeWidth="2" />
+    <path d="M80 50 V36" stroke="#78350f" strokeWidth="4" strokeLinecap="round" />
+    {/* The fruit: amber with a bright storm highlight */}
+    <circle cx="80" cy="96" r="42" fill="#ea580c" stroke="#fdba74" strokeWidth="4" />
+    <circle cx="80" cy="96" r="30" fill="#f97316" fillOpacity="0.6" />
+    <ellipse cx="64" cy="80" rx="10" ry="6" fill="#ffffff" fillOpacity="0.55" transform="rotate(-25 64 80)" />
+  </svg>
+));
 ARTWORK_STRATEGIES.set('wild_berries', (sizeClass) => (
   <svg viewBox="0 0 160 160" className={`${sizeClass} fill-none drop-shadow-2xl`}>
     <circle cx="80" cy="80" r="64" fill="#dc2626" fillOpacity="0.22" />

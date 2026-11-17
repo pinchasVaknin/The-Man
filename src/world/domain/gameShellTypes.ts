@@ -71,6 +71,7 @@ export interface ITelemetrySnapshot {
     name: string;
     woodYield: number;
   } | null;
+  nearbyStormFruitBush?: boolean;
   nearbyChest?: {
     id: string;
     name: string;

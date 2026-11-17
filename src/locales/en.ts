@@ -1061,6 +1061,7 @@ export const en = {
     "crystal_needs_pickaxe": "This crystal deposit can only be mined with a pickaxe",
     "crystal_mined": "Mined the crystal deposit: {count} gems",
     "storm_fruit_picked": "Picked a Storm Fruit",
+    "storm_fruit_harvest": "Harvest Storm Fruit",
     "storm_fruit_hold": "Holding Storm Fruit: left-click throws, right-click puts it away",
     "storm_fruit_put_away": "Put the Storm Fruit away",
     "storm_fruit_none_left": "No Storm Fruit left",

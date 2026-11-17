@@ -1582,6 +1582,22 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {telemetry.nearbyStormFruitBush && !telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && (
+              <div
+                data-testid="storm-fruit-harvest-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-stone-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(15, 13, 10, 0.92)',
+                  border: '1px solid rgba(251, 191, 36, 0.72)',
+                }}
+              >
+                <kbd className="px-2 py-0.5 rounded-md bg-amber-400 text-stone-950 font-mono-tabular font-bold text-xs shadow">
+                  {formatKeyCodeLabel(kb.interactDoor)}
+                </kbd>
+                <span className="font-semibold text-xs text-amber-100">{t('hud.storm_fruit_harvest')}</span>
+              </div>
+            )}
+
             {telemetry.nearbyChest && !telemetry.nearbyDeadAnimal && !telemetry.nearbyFallenTree && (
               <div
                 data-testid="open-chest-prompt"

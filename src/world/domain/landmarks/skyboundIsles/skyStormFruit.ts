@@ -1,10 +1,10 @@
 // ============================================================================
 // MODULE: World / Domain / Landmarks / Skybound Isles
-// DESIGN: Storm Fruit grows on a few bushes on Storm Island, around the royal stag herd. Walking
-//         into a bush picks one fruit, and that bush then stays bare until it has regrown. The
+// DESIGN: Storm Fruit grows on a few bushes on Storm Island, around the royal stag herd. The player
+//         looks at a ready bush and presses E to harvest its fruit; the bush then stays bare until it has regrown. The
 //         bush state is kept here and saved with the world; the caller puts the fruit into the
 //         inventory, so this module never touches the player.
-// SUMMARY: Storm Fruit bush definitions, picking by touch, regrowth, and save/restore.
+// SUMMARY: Storm Fruit bush definitions, harvesting with E, regrowth, and save/restore.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -34,10 +34,12 @@ export interface IStormFruitBushState {
 // #region Tuning
 /** Seconds a picked bush takes to grow its fruit back. */
 export const STORM_FRUIT_REGROW_SEC = 120;
-/** Horizontal reach (m) from the player's axis to a bush for picking. */
-const PICK_RADIUS_M = 1.3;
-/** Largest height difference (m) between the player's feet and the bush for picking. */
-const PICK_HEIGHT_M = 2.0;
+/** Reach (m) from the player to a bush for harvesting with E. */
+const HARVEST_REACH_M = 2.2;
+/** Largest height difference (m) between the player's feet and the bush for harvesting. */
+const HARVEST_HEIGHT_M = 2.0;
+/** Smallest cosine between the aim and the bush for harvesting (roughly a 70 degree cone). */
+const HARVEST_MIN_DOT = 0.35;
 // #endregion
 
 // #region Definitions
@@ -105,26 +107,45 @@ export function importStormFruitState(saved: readonly IStormFruitBushState[] | u
 }
 // #endregion
 
-// #region Picking
+// #region Harvesting
 /**
- * Summary: Picks the fruit of every ready bush the player is touching.
+ * Summary: Finds the ready bush the player is looking at, within harvesting reach.
  * @param x Player feet X.
  * @param feetY Player feet Y.
  * @param z Player feet Z.
- * @returns The number of fruit picked by this call (0 when no ready bush is in reach).
+ * @param yaw Player yaw (forward is (-sin yaw, -cos yaw)).
+ * @returns The nearest ready bush in front of the player, or null.
  */
-export function pickStormFruitAt(x: number, feetY: number, z: number): number {
-  let picked = 0;
+export function findHarvestableStormFruitBush(x: number, feetY: number, z: number, yaw: number): IStormFruitBush | null {
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  let best: IStormFruitBush | null = null;
+  let bestDist = Infinity;
   for (const bush of STORM_FRUIT_BUSHES) {
     if (!isStormFruitReady(bush.id)) continue;
-    if (Math.abs(feetY - bush.y) > PICK_HEIGHT_M) continue;
-    if (Math.hypot(x - bush.x, z - bush.z) > PICK_RADIUS_M) continue;
-    regrowSecById.set(bush.id, STORM_FRUIT_REGROW_SEC);
-    picked += 1;
+    if (Math.abs(feetY - bush.y) > HARVEST_HEIGHT_M) continue;
+    const dx = bush.x - x;
+    const dz = bush.z - z;
+    const dist = Math.hypot(dx, dz);
+    if (dist > HARVEST_REACH_M) continue;
+    // Must be roughly in front of the player: a bush behind them is not harvested.
+    if (dist > 0.6 && (dx * fwdX + dz * fwdZ) / dist < HARVEST_MIN_DOT) continue;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = bush;
+    }
   }
-  return picked;
+  return best;
 }
 
-/** Summary: The item id a picked bush yields. */
-export const STORM_FRUIT_ITEM: InventoryItemId = 'storm_fruit';
+/**
+ * Summary: Harvests one bush: it gives its fruit and starts regrowing.
+ * @param id The bush id.
+ * @returns True when a ready bush was harvested; false when it was bare or unknown.
+ */
+export function harvestStormFruitBush(id: string): boolean {
+  if (!STORM_FRUIT_BUSHES.some((b) => b.id === id) || !isStormFruitReady(id)) return false;
+  regrowSecById.set(id, STORM_FRUIT_REGROW_SEC);
+  return true;
+}
 // #endregion
