@@ -28,6 +28,7 @@ import {
 } from '../world/terrainMath';
 import { t } from '../locales';
 import type { Result } from '../core/Result';
+import { getActiveSkyHoverbike, SKY_HOVERBIKE_PRICE_GOLD } from '../world/systems/skyHoverbikeSystem';
 import { renderArtifactArtwork } from './itemArtworkRegistry';
 export { renderArtifactArtwork };
 
@@ -319,6 +320,9 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
   const isShipwrightMarket = Boolean(
     !inChestModal && nearbyMarket?.id === 'market-harbor-shipwright'
   );
+  const isHoverbikeMarket = Boolean(
+    !inChestModal && nearbyMarket?.id === 'market-sky-hoverbike'
+  );
   const inHarborMarket = Boolean(nearbyMarket && !inChestModal);
   const inSplitContainerMode = inHarborMarket || inChestModal;
   const allShips: readonly ISailableShipState[] = isShipwrightMarket ? getAllSailableShips() : [];
@@ -326,6 +330,7 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
     ? (allShips.find((sh) => sh.tierId === selectedShipTier) ?? allShips[0] ?? null)
     : null;
   const dockBlockingShip = isShipwrightMarket ? isHarborShipDockOccupied(18.0) : null;
+  const activeHoverbike = isHoverbikeMarket ? getActiveSkyHoverbike() : null;
 
   // Personal Inventory Mode (Outside Market/Chest): ONLY show items currently owned by the player!
   const activePersonalTab: 'all' | 'weapons' | 'clothing' | 'traps' | 'materials' | 'food' =
@@ -542,14 +547,20 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
             <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-700/70">
               <div>
                 <h2 className="font-display-he text-xl font-bold text-amber-300">
-                  {isShipwrightMarket ? 'Owned Fleet' : t('ui.my_gear_left')}
+                  {isShipwrightMarket
+                    ? 'Owned Fleet'
+                    : isHoverbikeMarket
+                      ? 'Active Sky-Bike'
+                      : t('ui.my_gear_left')}
                 </h2>
                 <p className="text-xs text-stone-400">
                   {isShipwrightMarket
                     ? 'Commissioned ships appear on the World Map [M] and at the Harbor Pier'
-                    : inChestModal
-                      ? 'Select an item to store in the chest or equip'
-                      : t('ui.my_gear_hint')}
+                    : isHoverbikeMarket
+                      ? 'Spawned hoverbike waits on the Sky Dock launch pad ([F] or [E] to mount)'
+                      : inChestModal
+                        ? 'Select an item to store in the chest or equip'
+                        : t('ui.my_gear_hint')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -574,12 +585,34 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
                   {isShipwrightMarket
                     ? `${allShips.filter((sh) => sh.spawned).length} / ${allShips.length}`
-                    : t('ui.items_count', { count: playerOwnedMarketItems.length })}
+                    : isHoverbikeMarket
+                      ? `${activeHoverbike?.spawned ? 1 : 0} / 1`
+                      : t('ui.items_count', { count: playerOwnedMarketItems.length })}
                 </span>
               </div>
             </div>
 
-            {isShipwrightMarket ? (
+            {isHoverbikeMarket ? (
+              <div data-testid="hoverbike-owned-list" className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {!activeHoverbike?.spawned ? (
+                  <div className="py-10 text-center text-xs text-stone-400">
+                    No Sky-Bike is currently deployed on the dock launch pad. Commission one from the center panel!
+                  </div>
+                ) : (
+                  <div className="w-full flex flex-col gap-1 px-3 py-2.5 text-left border-l-2 border-cyan-400 bg-cyan-950/40 text-white font-bold">
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-sm font-bold text-cyan-200">{activeHoverbike.name}</span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-mono-tabular bg-emerald-950/80 border border-emerald-400/40 text-emerald-300">
+                        Active on Dock Pad
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono-tabular text-stone-300">
+                      Position: ({Math.round(activeHoverbike.x)}, {Math.round(activeHoverbike.y)}, {Math.round(activeHoverbike.z)}) · [F]/[E] Mount · [Space] Fly
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : isShipwrightMarket ? (
               <div
                 data-testid="shipwright-owned-fleet-list"
                 className="flex-1 overflow-y-auto space-y-2 pr-1"
@@ -717,7 +750,87 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
               </div>
             )}
 
-            {isShipwrightMarket && inspectedShip ? (
+            {isHoverbikeMarket && activeHoverbike ? (
+              <div data-testid="hoverbike-center-showcase" className="w-full flex flex-col items-center">
+                <div className="px-3 py-1 text-xs font-bold mb-3 border bg-cyan-950/60 border-cyan-400/50 text-cyan-200">
+                  ⚡ Sky-Harbor Dock · Aether Hoverbike Workshop
+                </div>
+
+                <div className="relative w-36 h-36 flex items-center justify-center mb-3 bg-stone-900/80 border border-cyan-500/40">
+                  <svg viewBox="0 0 96 96" className="w-28 h-28">
+                    <ellipse cx="48" cy="70" rx="32" ry="6" fill="#083344" stroke="#38bdf8" strokeWidth="1.5" />
+                    <path d="M18 54 L42 40 L76 46 L66 60 L24 60 Z" fill="#1d4ed8" stroke="#f59e0b" strokeWidth="2" />
+                    <path d="M36 40 L52 30 L64 38 Z" fill="#7dd3fc" opacity="0.85" />
+                    <circle cx="24" cy="58" r="6" fill="#38bdf8" />
+                    <circle cx="70" cy="56" r="6" fill="#38bdf8" />
+                  </svg>
+                </div>
+
+                <h2
+                  data-testid="inspected-hoverbike-title"
+                  className="font-display-he text-xl sm:text-2xl font-bold text-white mb-2"
+                >
+                  {activeHoverbike.name}
+                </h2>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-stone-300 mb-3">
+                  <span className="text-cyan-300 font-semibold font-mono-tabular">
+                    Cruise: 22 m/s · Boost: 34 m/s
+                  </span>
+                  <span className="text-stone-600">·</span>
+                  <span className="text-amber-300 font-semibold font-mono-tabular">
+                    3D Flight: [Space] Ascend / [C] Descend
+                  </span>
+                </div>
+
+                <p className="max-w-sm text-xs sm:text-sm text-stone-300/90 leading-relaxed mb-3">
+                  Single-seat Aether-Crystal repulsor hoverbike built at Sky Harbor Dock. Drives smoothly over islands and flies freely between floating islands across the sky!
+                </p>
+
+                <div className="mb-3 px-3 py-1.5 text-xs font-mono-tabular font-bold bg-stone-900/90 border border-stone-700 text-amber-300">
+                  {activeHoverbike.spawned
+                    ? 'Recall to Launch Pad: Free (0 🪙)'
+                    : godMode
+                      ? 'Price: Free (0 🪙 in God Mode)'
+                      : `Purchase Price: ${SKY_HOVERBIKE_PRICE_GOLD} 🪙 Gold`}
+                </div>
+
+                {tradeFeedback && (
+                  <div
+                    data-testid="trade-feedback-banner"
+                    className="w-full mb-3 px-4 py-1.5 text-xs font-bold text-amber-200 bg-stone-900/95 border border-amber-400/50"
+                  >
+                    {tradeFeedback}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  data-testid="hoverbike-buy-btn"
+                  disabled={!activeHoverbike.spawned && !godMode && goldCoins < SKY_HOVERBIKE_PRICE_GOLD}
+                  onClick={() => {
+                    const res = onBuyShip?.('sky-hoverbike');
+                    if (res) {
+                      setTradeFeedback(res.message);
+                      setShipTick((n) => n + 1);
+                    }
+                  }}
+                  className={`w-full py-2.5 px-5 text-sm font-bold transition-colors ${
+                    !activeHoverbike.spawned && !godMode && goldCoins < SKY_HOVERBIKE_PRICE_GOLD
+                      ? 'bg-stone-800 text-stone-400 cursor-not-allowed'
+                      : 'bg-cyan-400 hover:bg-cyan-300 text-stone-950 cursor-pointer'
+                  }`}
+                >
+                  {activeHoverbike.spawned
+                    ? `Recall Sky-Bike to Dock Launch Pad [${interactKeyLabel}]`
+                    : !godMode && goldCoins < SKY_HOVERBIKE_PRICE_GOLD
+                      ? `Insufficient Gold (${SKY_HOVERBIKE_PRICE_GOLD} 🪙)`
+                      : godMode
+                        ? `Spawn Sky-Bike on Dock Pad (Free · God Mode) [${interactKeyLabel}]`
+                        : `Purchase & Spawn Sky-Bike (${SKY_HOVERBIKE_PRICE_GOLD} 🪙) [${interactKeyLabel}]`}
+                </button>
+              </div>
+            ) : isShipwrightMarket && inspectedShip ? (
               <div data-testid="shipwright-center-showcase" className="w-full flex flex-col items-center">
                 <div className="px-3 py-1 text-xs font-bold mb-3 border bg-sky-950/60 border-sky-400/50 text-sky-200">
                   ⚓ Royal Galleon Shipyard · Harbor Shipwright
@@ -1119,16 +1232,20 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 <h2 className="font-display-he text-xl font-bold text-emerald-300">
                   {isShipwrightMarket
                     ? 'Harbor Shipyard Catalog (4 Ship Classes)'
-                    : inChestModal
-                      ? nearbyChest?.name ?? "Hunter's Cabin Chest"
-                      : t('ui.merchant_goods_right')}
+                    : isHoverbikeMarket
+                      ? 'Sky-Dock Hoverbike Catalog (1 Model)'
+                      : inChestModal
+                        ? nearbyChest?.name ?? "Hunter's Cabin Chest"
+                        : t('ui.merchant_goods_right')}
                 </h2>
                 <p className="text-xs text-stone-400">
                   {isShipwrightMarket
                     ? 'Max 1 ship owned per class · Appears at the Harbor Pier & World Map'
-                    : inChestModal
-                      ? 'Select an item from the chest to take'
-                      : t('ui.merchant_goods_hint')}
+                    : isHoverbikeMarket
+                      ? 'Single standard Aether Hoverbike model · Spawns on the Dock Launch Pad'
+                      : inChestModal
+                        ? 'Select an item from the chest to take'
+                        : t('ui.merchant_goods_hint')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1161,16 +1278,40 @@ export const SkyrimInventoryModal = React.memo<ISkyrimInventoryModalProps>(({
                 <span className="text-xs font-mono-tabular text-stone-300 bg-stone-800/80 px-2 py-0.5">
                   {isShipwrightMarket
                     ? `${allShips.length} Ships`
-                    : t('ui.items_count', {
-                        count:
-                          rightColumnItems.length +
-                          (inChestModal && (nearbyChest?.goldCoins ?? 0) > 0 ? 1 : 0),
-                      })}
+                    : isHoverbikeMarket
+                      ? '1 Model'
+                      : t('ui.items_count', {
+                          count:
+                            rightColumnItems.length +
+                            (inChestModal && (nearbyChest?.goldCoins ?? 0) > 0 ? 1 : 0),
+                        })}
                 </span>
               </div>
             </div>
 
-            {isShipwrightMarket ? (
+            {isHoverbikeMarket && activeHoverbike ? (
+              <div data-testid="hoverbike-catalog-list" className="flex-1 overflow-y-auto space-y-2 pr-1">
+                <div className="w-full flex items-center justify-between px-3 py-3 text-left border-l-2 border-cyan-400 bg-cyan-950/40 text-white font-bold">
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className="truncate text-sm sm:text-base font-bold">{activeHoverbike.name}</span>
+                    <span className="text-[11px] text-stone-300 font-mono-tabular">
+                      Speed: 22–34 m/s · 3D Flight Enabled
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 text-xs font-mono-tabular">
+                    {activeHoverbike.spawned ? (
+                      <span className="px-2 py-0.5 bg-emerald-950/90 border border-emerald-400/40 text-emerald-300 font-bold">
+                        Spawned
+                      </span>
+                    ) : (
+                      <span className="text-amber-300 font-bold">
+                        {godMode ? '0 🪙 (Free)' : `${SKY_HOVERBIKE_PRICE_GOLD} 🪙`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : isShipwrightMarket ? (
               <div
                 data-testid="shipwright-catalog-list"
                 className="flex-1 overflow-y-auto space-y-2 pr-1"

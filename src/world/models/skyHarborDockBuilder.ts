@@ -23,6 +23,7 @@ import {
   DOCK_CRATES,
   DOCK_CRANE,
 } from '../domain/landmarksRegistry';
+import { SKY_HOVERBIKE_SHOP_POS } from '../systems/skyHoverbikeSystem';
 import { addRope, boxMesh, deckSlab, type IHarborMaterials } from './skyHarborShared';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
@@ -35,6 +36,7 @@ export interface ISkyDockVisual {
   readonly propellers: THREE.Mesh[];
   readonly balloons: THREE.Object3D[];
   readonly hoverbikes: THREE.Group[];
+  readonly spawnedHoverbike: THREE.Group;
   readonly merchantNpc: THREE.Group;
 }
 
@@ -52,11 +54,12 @@ export function buildSkyDock(
   box: THREE.BoxGeometry,
   group: THREE.Group
 ): ISkyDockVisual {
-  // 1. Raised Stone-Curbed Timber Quay Apron (sits cleanly at DECK_Y + 0.06..0.09, eliminating all z-fighting)
+  // 1. Raised Stone-Curbed Timber Quay Apron (sits cleanly at DECK_Y + 0.06..0.098, eliminating all z-fighting
+  //    and hosting the Hoverbike Merchant Shop on the dock leading to the pier)
   const apronCx = 804.5;
-  const apronCz = -8.5;
-  const apronW = 15.6;
-  const apronD = 11.6;
+  const apronCz = -7.8;
+  const apronW = 16.4;
+  const apronD = 14.0;
   group.add(
     boxMesh(box, mats.stone, apronCx, DECK_Y + 0.035, apronCz, apronW + 0.8, 0.07, apronD + 0.8),
     boxMesh(box, mats.darkStone, apronCx, DECK_Y + 0.055, apronCz - apronD / 2 - 0.2, apronW + 0.8, 0.12, 0.42),
@@ -188,7 +191,7 @@ export function buildSkyDock(
   const balloons: THREE.Object3D[] = [];
   for (const [bx, bz, h] of [
     [797.0, -19.5, 12.5],
-    [801.0, -2.5, 14.5],
+    [801.0, -14.2, 14.5],
   ] as const) {
     const bGroup = new THREE.Group();
     bGroup.position.set(bx, DECK_Y + h, bz);
@@ -246,10 +249,10 @@ export function buildSkyDock(
     ]);
   }
 
-  // 5. Sky-Bike / Hoverbike Merchant Shop ("חנות אופנועי אוויר") in the Dock Plaza
-  const { hoverbikes, merchantNpc } = buildHoverbikeShop(ctx, mats, box, group);
+  // 5. Sky-Bike / Hoverbike Merchant Shop ("חנות אופנועי אוויר") on the Dock Apron facing inward toward Sky Harbor
+  const { hoverbikes, spawnedHoverbike, merchantNpc } = buildHoverbikeShop(ctx, mats, box, group);
 
-  return { airship, propellers, balloons, hoverbikes, merchantNpc };
+  return { airship, propellers, balloons, hoverbikes, spawnedHoverbike, merchantNpc };
 }
 // #endregion
 
@@ -456,32 +459,113 @@ function buildMooredAirship(
 // ======================== HOVERBIKE / SKY-BIKE MERCHANT SHOP ======================== \\
 // #region Hoverbike Emporium
 /**
- * Summary: Builds the Sky-Bike / Hoverbike Merchant Stall ("סדנת אופנועי אוויר") in the dock area
- *          with a friendly Aviator Mechanic NPC and 2 hovering aero-cycles on display pads.
+ * Summary: Builds a single Aether Hoverbike ("אופנוע אוויר אתרי") 3D model oriented with its
+ *          nose along `+Z` so `rotation.y = yaw` points directly along `(sin(yaw), 0, cos(yaw))`.
+ */
+function createAetherHoverbikeMesh(
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  fuselageGeo: THREE.CylinderGeometry,
+  noseConeGeo: THREE.ConeGeometry,
+  hoverRingGeo: THREE.TorusGeometry,
+  aeroCobaltMat: THREE.Material,
+  leatherMat: THREE.Material
+): THREE.Group {
+  const outer = new THREE.Group();
+  outer.rotation.order = 'YXZ';
+
+  // Inner assembly rotated +90 deg around Y so the nose (-X in local part coords) points to +Z
+  const bike = new THREE.Group();
+  bike.rotation.y = Math.PI / 2;
+
+  const body = new THREE.Mesh(fuselageGeo, aeroCobaltMat);
+  const nose = new THREE.Mesh(noseConeGeo, mats.gold);
+  nose.position.set(-1.45, 0.04, 0);
+  const saddle = boxMesh(box, leatherMat, 0.15, 0.32, 0, 0.95, 0.18, 0.46);
+  const backrest = boxMesh(box, leatherMat, 0.62, 0.48, 0, 0.18, 0.28, 0.44);
+  const stem = boxMesh(box, mats.gold, -0.68, 0.42, 0, 0.14, 0.48, 0.14, 0);
+  const handlebars = boxMesh(box, mats.gold, -0.58, 0.64, 0, 0.14, 0.1, 1.15);
+  const gripsL = boxMesh(box, leatherMat, -0.52, 0.64, -0.58, 0.24, 0.12, 0.16);
+  const gripsR = boxMesh(box, leatherMat, -0.52, 0.64, 0.58, 0.24, 0.12, 0.16);
+  const windshield = boxMesh(box, mats.crystal, -0.92, 0.52, 0, 0.45, 0.38, 0.52);
+  windshield.rotation.z = -0.55;
+
+  const frontFork = boxMesh(box, mats.gold, -1.15, -0.18, 0, 0.85, 0.14, 0.36);
+  frontFork.rotation.z = 0.38;
+  const rearFork = boxMesh(box, mats.gold, 1.05, -0.18, 0, 0.85, 0.14, 0.36);
+  rearFork.rotation.z = -0.35;
+
+  const frontRepulsor = new THREE.Mesh(hoverRingGeo, mats.crystal);
+  frontRepulsor.position.set(-1.38, -0.34, 0);
+  const frontRim = new THREE.Mesh(hoverRingGeo, mats.gold);
+  frontRim.scale.setScalar(1.14);
+  frontRim.position.set(-1.38, -0.34, 0);
+
+  const rearRepulsor = new THREE.Mesh(hoverRingGeo, mats.crystal);
+  rearRepulsor.scale.setScalar(1.15);
+  rearRepulsor.position.set(1.28, -0.34, 0);
+  const rearRim = new THREE.Mesh(hoverRingGeo, mats.gold);
+  rearRim.scale.setScalar(1.28);
+  rearRim.position.set(1.28, -0.34, 0);
+
+  for (const tz of [-0.32, 0.32]) {
+    bike.add(
+      boxMesh(box, mats.gold, 1.05, 0.12, tz, 0.78, 0.22, 0.22),
+      boxMesh(box, mats.lanternGlow, 1.48, 0.12, tz, 0.16, 0.18, 0.18)
+    );
+  }
+
+  bike.add(
+    body,
+    nose,
+    saddle,
+    backrest,
+    stem,
+    handlebars,
+    gripsL,
+    gripsR,
+    windshield,
+    frontFork,
+    rearFork,
+    frontRepulsor,
+    frontRim,
+    rearRepulsor,
+    rearRim
+  );
+  outer.add(bike);
+  return outer;
+}
+
+/**
+ * Summary: Builds the Sky-Bike / Hoverbike Merchant Stall ("סדנת אופנועי אוויר") on the raised
+ *          timber dock apron leading to the pier, with its open front (`+Z`) facing inward toward
+ *          the interior of Sky Harbor, 1 display hoverbike model, a dock launch pad, and 1 world-space
+ *          rideable/flyable hoverbike.
  */
 function buildHoverbikeShop(
   ctx: IWorldModelBuildContext,
   mats: IHarborMaterials,
   box: THREE.BoxGeometry,
   group: THREE.Group
-): { hoverbikes: THREE.Group[]; merchantNpc: THREE.Group } {
+): { hoverbikes: THREE.Group[]; spawnedHoverbike: THREE.Group; merchantNpc: THREE.Group } {
   const shopRoot = new THREE.Group();
   shopRoot.name = 'sky-hoverbike-shop';
-  // Positioned on the dockside plaza just west of the crane, facing North-East toward the dock apron
-  shopRoot.position.set(792.5, DECK_Y, -14.8);
-  shopRoot.rotation.y = 0.38;
+  // Positioned right on the raised timber dock apron leading to the pier, facing inward toward Sky Harbor (780, -35)
+  shopRoot.position.set(SKY_HOVERBIKE_SHOP_POS.x, SKY_HOVERBIKE_SHOP_POS.y, SKY_HOVERBIKE_SHOP_POS.z);
+  shopRoot.rotation.y = SKY_HOVERBIKE_SHOP_POS.yaw;
 
   const hoverRingGeo = new THREE.TorusGeometry(0.56, 0.09, 8, 24);
   hoverRingGeo.rotateX(Math.PI / 2);
   const padRingGeo = new THREE.TorusGeometry(1.65, 0.08, 8, 28);
   padRingGeo.rotateX(Math.PI / 2);
+  const padBaseGeo = new THREE.CylinderGeometry(1.65, 1.82, 0.12, 24);
   const fuselageGeo = new THREE.CylinderGeometry(0.28, 0.36, 2.2, 12);
   fuselageGeo.rotateZ(Math.PI / 2);
   const noseConeGeo = new THREE.ConeGeometry(0.32, 0.85, 12);
   noseConeGeo.rotateZ(Math.PI / 2);
   const headGeo = new THREE.SphereGeometry(0.24, 12, 10);
   const torsoGeo = new THREE.CylinderGeometry(0.32, 0.26, 0.92, 10);
-  ctx.disposableGeometries.push(hoverRingGeo, padRingGeo, fuselageGeo, noseConeGeo, headGeo, torsoGeo);
+  ctx.disposableGeometries.push(hoverRingGeo, padRingGeo, padBaseGeo, fuselageGeo, noseConeGeo, headGeo, torsoGeo);
 
   const aeroCobaltMat = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
@@ -490,28 +574,21 @@ function buildHoverbikeShop(
     roughness: 0.22,
     metalness: 0.78,
   });
-  const aeroCrimsonMat = new THREE.MeshStandardMaterial({
-    color: 0xdc2626,
-    emissive: 0x991b1b,
-    emissiveIntensity: 0.3,
-    roughness: 0.24,
-    metalness: 0.75,
-  });
   const leatherMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.65 });
   const skinMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.55 });
-  ctx.disposableMaterials.push(aeroCobaltMat, aeroCrimsonMat, leatherMat, skinMat);
+  ctx.disposableMaterials.push(aeroCobaltMat, leatherMat, skinMat);
 
-  // 1. Workshop Pavilion Platform, Timber Posts, Vaulted Canopy Roof & Counter
+  // 1. Workshop Pavilion Platform, Timber Posts, Vaulted Canopy Roof & Front Counter
   shopRoot.add(
-    // Stepped stone & timber workshop floor
-    boxMesh(box, mats.stone, 0, 0.06, 0, 7.2, 0.12, 4.6),
-    boxMesh(box, mats.wood, 0, 0.14, 0, 6.8, 0.08, 4.2),
+    // Stepped stone & timber workshop floor sitting on the dock apron
+    boxMesh(box, mats.stone, 0, 0.05, 0, 7.2, 0.1, 4.6),
+    boxMesh(box, mats.wood, 0, 0.12, 0, 6.8, 0.06, 4.2),
     // 4 Corner timber-and-brass pillars
     boxMesh(box, mats.darkWood, -3.1, 1.85, -1.8, 0.28, 3.5, 0.28),
     boxMesh(box, mats.darkWood, 3.1, 1.85, -1.8, 0.28, 3.5, 0.28),
     boxMesh(box, mats.darkWood, -3.1, 1.85, 1.8, 0.28, 3.5, 0.28),
     boxMesh(box, mats.darkWood, 3.1, 1.85, 1.8, 0.28, 3.5, 0.28),
-    // Back workshop tool-wall & spare aether-turbine shelf
+    // Back workshop tool-wall & spare aether-turbine shelf (at local -Z, facing away from the island)
     boxMesh(box, mats.darkWood, 0, 1.65, -1.85, 6.2, 2.8, 0.22),
     boxMesh(box, mats.gold, 0, 2.2, -1.7, 5.4, 0.12, 0.35),
     boxMesh(box, mats.crystal, -1.8, 2.48, -1.68, 0.38, 0.44, 0.28),
@@ -520,16 +597,16 @@ function buildHoverbikeShop(
     boxMesh(box, mats.darkWood, 0, 3.65, 0, 7.6, 0.28, 5.0),
     boxMesh(box, mats.canvas, 0, 3.98, 0, 7.1, 0.42, 4.5),
     boxMesh(box, mats.gold, 0, 4.28, 0, 5.8, 0.22, 3.2),
-    // Front sales counter with brass trim & glowing crystal ledger
-    boxMesh(box, mats.darkWood, -0.6, 0.68, 1.25, 4.2, 1.05, 0.78),
-    boxMesh(box, mats.gold, -0.6, 1.22, 1.25, 4.35, 0.1, 0.88),
-    boxMesh(box, mats.crystal, -1.6, 1.38, 1.25, 0.45, 0.24, 0.35),
-    // Hanging warm workshop lanterns
+    // Front sales counter with brass trim & glowing crystal ledger (at local +Z, facing inward toward Sky Harbor)
+    boxMesh(box, mats.darkWood, -1.1, 0.68, 1.25, 3.4, 1.05, 0.78),
+    boxMesh(box, mats.gold, -1.1, 1.22, 1.25, 3.55, 0.1, 0.88),
+    boxMesh(box, mats.crystal, -1.8, 1.38, 1.25, 0.45, 0.24, 0.35),
+    // Hanging warm workshop lanterns at the open front
     boxMesh(box, mats.lanternGlow, -2.8, 3.25, 1.8, 0.32, 0.44, 0.32),
     boxMesh(box, mats.lanternGlow, 2.8, 3.25, 1.8, 0.32, 0.44, 0.32)
   );
 
-  // Rooftop Iconic Hoverbike Sign Emblem above the shop entrance
+  // Rooftop Iconic Hoverbike Sign Emblem above the shop front entrance
   const signBoard = boxMesh(box, mats.darkStone, 0, 4.35, 2.38, 3.8, 0.78, 0.18);
   const signBorder = boxMesh(box, mats.gold, 0, 4.35, 2.39, 3.95, 0.88, 0.14);
   const signBikeIcon = new THREE.Mesh(fuselageGeo, mats.gold);
@@ -545,9 +622,9 @@ function buildHoverbikeShop(
   signWheelR.position.set(0.68, 4.22, 2.5);
   shopRoot.add(signBoard, signBorder, signBikeIcon, signWheelF, signWheelR);
 
-  // 2. Friendly Sky-Mechanic Merchant NPC behind the counter
+  // 2. Friendly Sky-Mechanic Merchant NPC behind the front counter facing inward (+Z)
   const merchantNpc = new THREE.Group();
-  merchantNpc.position.set(-0.4, 0.18, 0.25);
+  merchantNpc.position.set(-0.9, 0.16, 0.28);
   const legs = boxMesh(box, leatherMat, 0, 0.42, 0, 0.42, 0.84, 0.28);
   const torso = new THREE.Mesh(torsoGeo, aeroCobaltMat);
   torso.position.y = 1.22;
@@ -555,7 +632,6 @@ function buildHoverbikeShop(
   const shoulders = boxMesh(box, mats.gold, 0, 1.58, 0, 0.76, 0.18, 0.34);
   const head = new THREE.Mesh(headGeo, skinMat);
   head.position.y = 1.92;
-  // Aviator helmet & glowing brass goggles on forehead
   const cap = boxMesh(box, leatherMat, 0, 2.08, -0.02, 0.46, 0.22, 0.46);
   const goggles = boxMesh(box, mats.crystal, 0, 2.04, 0.22, 0.38, 0.12, 0.1);
   const rightArm = boxMesh(box, aeroCobaltMat, -0.44, 1.38, 0.18, 0.18, 0.62, 0.18, 0.3);
@@ -563,101 +639,76 @@ function buildHoverbikeShop(
   merchantNpc.add(legs, torso, apron, shoulders, head, cap, goggles, rightArm, leftArm);
   shopRoot.add(merchantNpc);
 
-  // 3. Two Hovering Sky-Bikes / Aero-Cycles (אופנועי אוויר) on Glowing Display Pads beside the Shop
+  // 3. Single Showroom Display Hoverbike ("אופנוע אוויר אתרי") inside the Pavilion beside the Counter
   const hoverbikes: THREE.Group[] = [];
-  const bikeSpecs: ReadonlyArray<{
-    readonly x: number;
-    readonly z: number;
-    readonly yaw: number;
-    readonly mat: THREE.Material;
-  }> = [
-    { x: -2.2, z: 3.9, yaw: 0.32, mat: aeroCobaltMat },
-    { x: 2.3, z: 3.9, yaw: -0.28, mat: aeroCrimsonMat },
-  ];
+  const showroomPad = new THREE.Mesh(padBaseGeo, mats.darkStone);
+  showroomPad.scale.set(0.82, 1, 0.82);
+  showroomPad.position.set(1.65, 0.18, 0.55);
+  const showroomRing = new THREE.Mesh(padRingGeo, mats.crystal);
+  showroomRing.scale.setScalar(0.82);
+  showroomRing.position.set(1.65, 0.25, 0.55);
+  shopRoot.add(showroomPad, showroomRing);
 
-  for (const spec of bikeSpecs) {
-    // Glowing circular repulsor display pad on the ground
-    const padBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.65, 1.82, 0.14, 24),
-      mats.darkStone
-    );
-    ctx.disposableGeometries.push(padBase.geometry);
-    padBase.position.set(spec.x, 0.07, spec.z);
-    const padRing = new THREE.Mesh(padRingGeo, mats.crystal);
-    padRing.position.set(spec.x, 0.15, spec.z);
-    shopRoot.add(padBase, padRing);
-
-    // The Hoverbike ("אופנוע אוויר") assembly hovering above the pad
-    const bike = new THREE.Group();
-    bike.position.set(spec.x, 0.92, spec.z);
-    bike.rotation.y = spec.yaw;
-    bike.userData.baseY = 0.92;
-
-    // Aerodynamic fuselage & front nose cone
-    const body = new THREE.Mesh(fuselageGeo, spec.mat);
-    const nose = new THREE.Mesh(noseConeGeo, mats.gold);
-    nose.position.set(-1.45, 0.04, 0);
-    // Sculpted leather saddle & backrest
-    const saddle = boxMesh(box, leatherMat, 0.15, 0.32, 0, 0.95, 0.18, 0.46);
-    const backrest = boxMesh(box, leatherMat, 0.62, 0.48, 0, 0.18, 0.28, 0.44);
-    // Swept-back brass handlebars, instrument dash & crystal windshield
-    const stem = boxMesh(box, mats.gold, -0.68, 0.42, 0, 0.14, 0.48, 0.14, 0);
-    const handlebars = boxMesh(box, mats.gold, -0.58, 0.64, 0, 0.14, 0.1, 1.15);
-    const gripsL = boxMesh(box, leatherMat, -0.52, 0.64, -0.58, 0.24, 0.12, 0.16);
-    const gripsR = boxMesh(box, leatherMat, -0.52, 0.64, 0.58, 0.24, 0.12, 0.16);
-    const windshield = boxMesh(box, mats.crystal, -0.92, 0.52, 0, 0.45, 0.38, 0.52);
-    windshield.rotation.z = -0.55;
-
-    // Twin front & rear glowing Repulsor Levitation Rings (hover-wheels) + angled aero-forks
-    const frontFork = boxMesh(box, mats.gold, -1.15, -0.18, 0, 0.85, 0.14, 0.36);
-    frontFork.rotation.z = 0.38;
-    const rearFork = boxMesh(box, mats.gold, 1.05, -0.18, 0, 0.85, 0.14, 0.36);
-    rearFork.rotation.z = -0.35;
-
-    const frontRepulsor = new THREE.Mesh(hoverRingGeo, mats.crystal);
-    frontRepulsor.position.set(-1.38, -0.34, 0);
-    const frontRim = new THREE.Mesh(hoverRingGeo, mats.gold);
-    frontRim.scale.setScalar(1.14);
-    frontRim.position.set(-1.38, -0.34, 0);
-
-    const rearRepulsor = new THREE.Mesh(hoverRingGeo, mats.crystal);
-    rearRepulsor.scale.setScalar(1.15);
-    rearRepulsor.position.set(1.28, -0.34, 0);
-    const rearRim = new THREE.Mesh(hoverRingGeo, mats.gold);
-    rearRim.scale.setScalar(1.28);
-    rearRim.position.set(1.28, -0.34, 0);
-
-    // Twin rear brass jet thrusters with glowing plasma cores
-    for (const tz of [-0.32, 0.32]) {
-      bike.add(
-        boxMesh(box, mats.gold, 1.05, 0.12, tz, 0.78, 0.22, 0.22),
-        boxMesh(box, mats.lanternGlow, 1.48, 0.12, tz, 0.16, 0.18, 0.18)
-      );
-    }
-
-    bike.add(
-      body,
-      nose,
-      saddle,
-      backrest,
-      stem,
-      handlebars,
-      gripsL,
-      gripsR,
-      windshield,
-      frontFork,
-      rearFork,
-      frontRepulsor,
-      frontRim,
-      rearRepulsor,
-      rearRim
-    );
-    shopRoot.add(bike);
-    hoverbikes.push(bike);
-  }
+  const displayBike = createAetherHoverbikeMesh(
+    mats,
+    box,
+    fuselageGeo,
+    noseConeGeo,
+    hoverRingGeo,
+    aeroCobaltMat,
+    leatherMat
+  );
+  displayBike.position.set(1.65, 0.92, 0.55);
+  displayBike.rotation.y = 0.25;
+  displayBike.userData.baseY = 0.92;
+  shopRoot.add(displayBike);
+  hoverbikes.push(displayBike);
 
   group.add(shopRoot);
-  return { hoverbikes, merchantNpc };
+
+  // 4. Glowing Hoverbike Launch Pad on the Timber Dock Apron in front of the Shop
+  const launchPadBase = new THREE.Mesh(padBaseGeo, mats.darkStone);
+  launchPadBase.position.set(
+    SKY_HOVERBIKE_SHOP_POS.padX,
+    SKY_HOVERBIKE_SHOP_POS.padY + 0.04,
+    SKY_HOVERBIKE_SHOP_POS.padZ
+  );
+  const launchPadRing = new THREE.Mesh(padRingGeo, mats.crystal);
+  launchPadRing.position.set(
+    SKY_HOVERBIKE_SHOP_POS.padX,
+    SKY_HOVERBIKE_SHOP_POS.padY + 0.11,
+    SKY_HOVERBIKE_SHOP_POS.padZ
+  );
+  const launchPadInnerRing = new THREE.Mesh(padRingGeo, mats.gold);
+  launchPadInnerRing.scale.setScalar(0.68);
+  launchPadInnerRing.position.set(
+    SKY_HOVERBIKE_SHOP_POS.padX,
+    SKY_HOVERBIKE_SHOP_POS.padY + 0.115,
+    SKY_HOVERBIKE_SHOP_POS.padZ
+  );
+  group.add(launchPadBase, launchPadRing, launchPadInnerRing);
+
+  // 5. Dynamic World-Space Rideable & Flyable Aether Hoverbike (added to `ctx.scene` so it stays visible anywhere in the world)
+  const spawnedHoverbike = createAetherHoverbikeMesh(
+    mats,
+    box,
+    fuselageGeo,
+    noseConeGeo,
+    hoverRingGeo,
+    aeroCobaltMat,
+    leatherMat
+  );
+  spawnedHoverbike.name = 'rideable-sky-hoverbike';
+  spawnedHoverbike.visible = false;
+  spawnedHoverbike.position.set(
+    SKY_HOVERBIKE_SHOP_POS.padX,
+    SKY_HOVERBIKE_SHOP_POS.padY + 0.58,
+    SKY_HOVERBIKE_SHOP_POS.padZ
+  );
+  ctx.scene.add(spawnedHoverbike);
+
+  return { hoverbikes, spawnedHoverbike, merchantNpc };
 }
 // #endregion
+
 

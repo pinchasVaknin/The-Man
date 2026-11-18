@@ -105,7 +105,7 @@ export function buildObservatory(ctx: IWorldModelBuildContext): IObservatoryBuil
   const gate = buildChamber(mats, box, group);
   buildBalcony(ctx, mats, brassMat, box, group);
   const armillary = buildDial(ctx, mats, brassMat, darkBrassMat, celestialGlobeMat, box, gemDim, group);
-  const giantTelescopeMount = buildGiantTelescope(ctx, mats, brassMat, darkBrassMat, box, group);
+  const giantTelescope = buildGiantTelescope(ctx, mats, brassMat, darkBrassMat, box, group);
   group.add(buildRailInstances(ctx, box, brassMat, OBSERVATORY_SOLID_BOXES));
 
   const giantScope = SKY_TELESCOPES.find((sc) => sc.id === 'telescope-observatory-giant');
@@ -136,11 +136,11 @@ export function buildObservatory(ctx: IWorldModelBuildContext): IObservatoryBuil
       if (giantScope) {
         const aim = getTelescopeRuntimeAim();
         const isLooking = aim.id === giantScope.id;
-        giantTelescopeMount.visible = !isLooking;
+        giantTelescope.stand.visible = !isLooking;
         if (isLooking) {
           const view = telescopeViewFor(giantScope);
           const aimed = aimedTelescopeLookPoint(view, aim.yaw, aim.pitch);
-          giantTelescopeMount.lookAt(aimed.lookX, aimed.lookY, aimed.lookZ);
+          giantTelescope.head.lookAt(aimed.lookX, aimed.lookY, aimed.lookZ);
         }
       }
     },
@@ -152,7 +152,7 @@ export function buildObservatory(ctx: IWorldModelBuildContext): IObservatoryBuil
 // #region Cosmic Starfield Ground Mosaic & Starlight Trees
 function buildStarryObservatoryGround(
   ctx: IWorldModelBuildContext,
-  mats: IHarborMaterials,
+  _mats: IHarborMaterials,
   brassMat: THREE.MeshStandardMaterial,
   diamondCrystalMat: THREE.MeshStandardMaterial,
   box: THREE.BoxGeometry,
@@ -163,12 +163,11 @@ function buildStarryObservatoryGround(
   const maxR = ISLAND.radius - 0.8;
 
   const cosmosFloorGeo = new THREE.CylinderGeometry(maxR, maxR + 0.3, 0.05, 64);
-  const nebulaDiscGeo = new THREE.CylinderGeometry(1, 1, 0.04, 32);
-  const astrolabeRingGeo = new THREE.RingGeometry(0.97, 1.0, 64);
-  astrolabeRingGeo.rotateX(-Math.PI / 2);
+  const astrolabeRingGeo = new THREE.TorusGeometry(1.0, 0.018, 8, 64);
+  astrolabeRingGeo.rotateX(Math.PI / 2);
   const starPrismGeo = new THREE.OctahedronGeometry(0.22, 0);
   starPrismGeo.scale(1.15, 0.35, 1.15);
-  ctx.disposableGeometries.push(cosmosFloorGeo, nebulaDiscGeo, astrolabeRingGeo, starPrismGeo);
+  ctx.disposableGeometries.push(cosmosFloorGeo, astrolabeRingGeo, starPrismGeo);
 
   const cosmosFloorMat = new THREE.MeshStandardMaterial({
     color: 0x090f26,
@@ -178,18 +177,9 @@ function buildStarryObservatoryGround(
     metalness: 0.25,
     bumpMap: ctx.textures.rockBump,
     bumpScale: 0.025,
-  });
-  const nebulaVioletMat = new THREE.MeshStandardMaterial({
-    color: 0x2e1065,
-    emissive: 0x581c87,
-    emissiveIntensity: 0.75,
-    roughness: 0.4,
-  });
-  const nebulaCyanMat = new THREE.MeshStandardMaterial({
-    color: 0x082f49,
-    emissive: 0x0369a1,
-    emissiveIntensity: 0.75,
-    roughness: 0.4,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
   });
   const starMeshMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
@@ -197,35 +187,19 @@ function buildStarryObservatoryGround(
     emissiveIntensity: 2.2,
     roughness: 0.15,
   });
-  ctx.disposableMaterials.push(cosmosFloorMat, nebulaVioletMat, nebulaCyanMat, starMeshMat);
+  ctx.disposableMaterials.push(cosmosFloorMat, starMeshMat);
 
-  // 1. Deep midnight-indigo cosmic starfield floor covering the island deck (no walkways)
+  // 1. Deep midnight-indigo cosmic starfield floor covering the island deck (top surface at DECK_Y + 0.06, zero z-fighting)
   const cosmosFloor = new THREE.Mesh(cosmosFloorGeo, cosmosFloorMat);
-  cosmosFloor.position.set(cx, DECK_Y + 0.015, cz);
+  cosmosFloor.position.set(cx, DECK_Y + 0.035, cz);
   cosmosFloor.receiveShadow = !ctx.isSoftwareGl;
   group.add(cosmosFloor);
 
-  // 2. Soft luminous Nebula & Milky-Way clouds inlaid across the starry ground
-  const nebulaPatches: ReadonlyArray<readonly [number, number, number, number, number, boolean]> = [
-    [cx + 6.5, cz + 4.5, 9.5, 5.2, 0.45, true],
-    [cx - 8.0, cz + 6.0, 8.2, 4.8, -0.35, false],
-    [cx + 9.0, cz - 11.0, 7.8, 4.5, 0.8, false],
-    [cx - 12.0, cz - 8.5, 7.5, 4.2, -0.6, true],
-    [cx + 1.0, cz + 14.5, 9.0, 4.0, 0.12, true],
-  ];
-  for (const [nx, nz, rx, rz, rotY, isViolet] of nebulaPatches) {
-    const patch = new THREE.Mesh(nebulaDiscGeo, isViolet ? nebulaVioletMat : nebulaCyanMat);
-    patch.scale.set(rx, 1, rz);
-    patch.position.set(nx, DECK_Y + 0.026, nz);
-    patch.rotation.y = rotY;
-    group.add(patch);
-  }
-
-  // 3. Concentric golden celestial astrolabe rings & 12 zodiac meridian rays etched into the starry floor
+  // 2. Concentric golden 3D celestial astrolabe rings & 12 zodiac meridian rays etched cleanly above the starry floor
   for (const r of [7.5, 14.2, 20.8, maxR]) {
     const ring = new THREE.Mesh(astrolabeRingGeo, brassMat);
-    ring.scale.setScalar(r);
-    ring.position.set(cx, DECK_Y + 0.042, cz);
+    ring.scale.set(r, 1, r);
+    ring.position.set(cx, DECK_Y + 0.068, cz);
     group.add(ring);
   }
   for (let m = 0; m < 12; m++) {
@@ -239,17 +213,17 @@ function buildStarryObservatoryGround(
         box,
         brassMat,
         cx + Math.cos(ang) * midR,
-        DECK_Y + 0.036,
+        DECK_Y + 0.072,
         cz + Math.sin(ang) * midR,
         rayLen,
-        0.02,
+        0.022,
         0.09,
         -ang
       )
     );
   }
 
-  // 4. Engraved Constellation Lines & Bright Anchor Stars across the island floor
+  // 3. Engraved Constellation Lines & Bright Anchor Stars across the island floor
   const constellations: ReadonlyArray<ReadonlyArray<readonly [number, number]>> = [
     // Southern Crown & Archer Arc
     [
@@ -292,7 +266,7 @@ function buildStarryObservatoryGround(
       const [ax, az] = poly[i];
       const majorStar = new THREE.Mesh(starPrismGeo, diamondCrystalMat);
       majorStar.scale.set(1.8, 0.65, 1.8);
-      majorStar.position.set(ax, DECK_Y + 0.055, az);
+      majorStar.position.set(ax, DECK_Y + 0.105, az);
       majorStar.rotation.y = i * 0.7;
       group.add(majorStar);
 
@@ -302,12 +276,12 @@ function buildStarryObservatoryGround(
         const dz = bz - az;
         const len = Math.hypot(dx, dz);
         const yaw = Math.atan2(-dz, dx);
-        group.add(boxMesh(box, brassMat, (ax + bx) / 2, DECK_Y + 0.044, (az + bz) / 2, len, 0.025, 0.07, yaw));
+        group.add(boxMesh(box, brassMat, (ax + bx) / 2, DECK_Y + 0.082, (az + bz) / 2, len, 0.026, 0.07, yaw));
       }
     }
   }
 
-  // 5. 150 Instanced Glowing Starfield Stars scattered across the cosmic floor
+  // 4. 150 Instanced Glowing Starfield Stars scattered across the cosmic floor
   const stars = new THREE.InstancedMesh(starPrismGeo, starMeshMat, STARFIELD_STAR_COUNT);
   const mat4 = new THREE.Matrix4();
   const pos = new THREE.Vector3();
@@ -320,7 +294,7 @@ function buildStarryObservatoryGround(
     const sx = cx + Math.cos(ang) * r;
     const sz = cz + Math.sin(ang) * r;
     const starScale = 0.55 + ((i * 7) % 5) * 0.26;
-    pos.set(sx, DECK_Y + 0.048, sz);
+    pos.set(sx, DECK_Y + 0.088, sz);
     quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (i * 0.785) % (Math.PI * 2));
     scl.set(starScale, starScale * 0.45, starScale);
     mat4.compose(pos, quat, scl);
@@ -360,8 +334,8 @@ function buildTower(
   const ribGeo = new THREE.TorusGeometry(outerR + 0.32, 0.16, 8, 28, Math.PI / 2);
   const corniceGeo = new THREE.CylinderGeometry(outerR + 0.65, outerR + 0.55, 0.65, 40);
   const floorGeo = new THREE.CylinderGeometry(T.innerR, T.innerR, 0.08, 40);
-  const floorInlayGeo = new THREE.RingGeometry(T.innerR * 0.45, T.innerR * 0.52, 36);
-  floorInlayGeo.rotateX(-Math.PI / 2);
+  const floorInlayGeo = new THREE.TorusGeometry(T.innerR * 0.48, 0.025, 8, 40);
+  floorInlayGeo.rotateX(Math.PI / 2);
   const crystalGeo = new THREE.OctahedronGeometry(1.45, 0);
   crystalGeo.scale(1, 2.35, 1);
   const haloGeo = new THREE.TorusGeometry(2.1, 0.09, 8, 36);
@@ -464,9 +438,9 @@ function buildTower(
   }
 
   const floor = new THREE.Mesh(floorGeo, mats.marble);
-  floor.position.set(T.x, DECK_Y + 0.04, T.z);
+  floor.position.set(T.x, DECK_Y + 0.08, T.z);
   const inlay = new THREE.Mesh(floorInlayGeo, brassMat);
-  inlay.position.set(T.x, DECK_Y + 0.09, T.z);
+  inlay.position.set(T.x, DECK_Y + 0.125, T.z);
   group.add(floor, inlay);
 
   const crystalBaseY = T.wallTopY + outerR + 2.8;
@@ -527,7 +501,7 @@ function buildChamber(mats: IHarborMaterials, box: THREE.BoxGeometry, group: THR
     group.add(boxMesh(box, mats.stone, (wall.minX + wall.maxX) / 2, (wall.minY + wall.maxY) / 2, (wall.minZ + wall.maxZ) / 2, wall.maxX - wall.minX, wall.maxY - wall.minY, wall.maxZ - wall.minZ));
   }
   group.add(boxMesh(box, mats.stone, (C.minX + C.maxX) / 2, C.ceilingY + 0.3, (C.minZ + C.maxZ) / 2, C.maxX - C.minX + 1.0, 0.6, C.maxZ - C.minZ + 0.6));
-  group.add(boxMesh(box, mats.runeDim, (C.minX + C.maxX) / 2, DECK_Y + 0.05, (C.minZ + C.maxZ) / 2, 2.4, 0.06, 2.4));
+  group.add(boxMesh(box, mats.runeDim, (C.minX + C.maxX) / 2, DECK_Y + 0.09, (C.minZ + C.maxZ) / 2, 2.4, 0.06, 2.4));
 
   const g = OBSERVATORY_CHAMBER_GATE;
   const gate = new THREE.Group();
@@ -726,7 +700,7 @@ function buildGiantTelescope(
   darkBrassMat: THREE.MeshStandardMaterial,
   box: THREE.BoxGeometry,
   group: THREE.Group
-): THREE.Group {
+): { stand: THREE.Group; head: THREE.Group } {
   const t = OBSERVATORY_GIANT_TELESCOPE;
   const plat = OBSERVATORY_TELESCOPE_PLATFORM;
   const stair = OBSERVATORY_TELESCOPE_STAIR;
@@ -826,6 +800,6 @@ function buildGiantTelescope(
     shard.rotation.z = tilt;
     group.add(shard);
   }
-  return telescopeStandGroup;
+  return { stand: telescopeStandGroup, head: mount };
 }
 // #endregion

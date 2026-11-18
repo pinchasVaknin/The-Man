@@ -47,6 +47,8 @@ import {
 } from './skyHarborShared';
 import { buildSkyDock } from './skyHarborDockBuilder';
 import { buildWindspire } from './skyHarborWindspireBuilder';
+import { createReadyKoiFish, type KoiFish } from './KoiFish';
+import { getActiveSkyHoverbike } from '../systems/skyHoverbikeSystem';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -56,6 +58,8 @@ export interface ISkyHarborBuildResult {
   readonly group: THREE.Group;
   /** Animates the Windspire, wind flowers, Koi fish, hoverbikes, airship and balloons; call once per frame while nearby. */
   readonly update: (elapsedSec: number) => void;
+  /** Updates the world-space rideable hoverbike anywhere in the world. */
+  readonly updateHoverbike: (elapsedSec: number) => void;
 }
 
 interface IWindFlowerVisual {
@@ -65,8 +69,8 @@ interface IWindFlowerVisual {
 }
 
 interface IKoiFishVisual {
+  readonly ctrl: KoiFish;
   readonly root: THREE.Group;
-  readonly tailPivot: THREE.Group;
   readonly pondX: number;
   readonly pondZ: number;
   readonly orbitR: number;
@@ -112,9 +116,25 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
   const dock = buildSkyDock(ctx, mats, unitBox, group);
   buildRailings(ctx, mats, unitBox, group);
 
+  let prevElapsedSec = 0;
+
+  const updateHoverbike = (elapsedSec: number): void => {
+    const liveBike = getActiveSkyHoverbike();
+    dock.spawnedHoverbike.visible = liveBike.spawned;
+    if (liveBike.spawned) {
+      const idleBob = Math.abs(liveBike.speed) < 0.5 && !liveBike.isAirborne ? Math.sin(elapsedSec * 2.8) * 0.05 : 0;
+      dock.spawnedHoverbike.position.set(liveBike.x, liveBike.y + idleBob, liveBike.z);
+      dock.spawnedHoverbike.rotation.set(-liveBike.pitch, liveBike.yaw, liveBike.roll);
+    }
+  };
+
   return {
     group,
+    updateHoverbike,
     update: (elapsedSec: number) => {
+      const dt = Math.min(0.1, Math.max(0.004, elapsedSec - prevElapsedSec));
+      prevElapsedSec = elapsedSec;
+
       windspire.update(elapsedSec);
       for (const flower of flowers) {
         const open = getWindFlowerOpenness(flower.id);
@@ -123,7 +143,7 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
         });
         flower.glow.scale.setScalar(0.4 + open * 0.8);
       }
-      // Animate swimming Koi fish in the deep garden pond
+      // Animate 3D rigged KoiFish models in the deep garden pond
       for (let i = 0; i < koiFish.length; i++) {
         const koi = koiFish[i];
         const t = elapsedSec * koi.speed + koi.phase;
@@ -132,9 +152,10 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
         const z0 = koi.pondZ + (koi.figureEight ? Math.sin(t * 2) * koi.orbitR * 0.55 : Math.sin(t) * koi.orbitR);
         const x1 = koi.pondX + Math.cos(nextT) * koi.orbitR;
         const z1 = koi.pondZ + (koi.figureEight ? Math.sin(nextT * 2) * koi.orbitR * 0.55 : Math.sin(nextT) * koi.orbitR);
-        koi.root.position.set(x0, DECK_Y + 0.195 + Math.sin(elapsedSec * 2.2 + i) * 0.005, z0);
+        koi.root.position.set(x0, DECK_Y + 0.195 + Math.sin(elapsedSec * 2.2 + i) * 0.006, z0);
         koi.root.rotation.y = Math.atan2(x1 - x0, z1 - z0);
-        koi.tailPivot.rotation.y = Math.sin(elapsedSec * 7.8 + i * 1.3) * 0.36;
+        const turnSignal = koi.figureEight ? Math.cos(t * 2) * 0.45 : koi.speed > 0 ? 0.25 : -0.25;
+        koi.ctrl.update(dt, turnSignal);
       }
       // Rotate Windspire Summit telescopes with live player aim & clear stand/barrel while looking through
       const aim = getTelescopeRuntimeAim();
@@ -158,8 +179,9 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
         bike.position.y = bike.userData.baseY + Math.sin(elapsedSec * 2.4 + i * 1.6) * 0.09;
         bike.rotation.z = Math.sin(elapsedSec * 1.7 + i) * 0.03;
       });
-      dock.merchantNpc.position.y = 0.18 + Math.sin(elapsedSec * 2.0) * 0.015;
+      dock.merchantNpc.position.y = 0.16 + Math.sin(elapsedSec * 2.0) * 0.015;
       dock.merchantNpc.rotation.y = Math.sin(elapsedSec * 0.9) * 0.18;
+      updateHoverbike(elapsedSec);
     },
   };
 }
@@ -484,7 +506,7 @@ function buildSkyGarden(
 function buildDeepKoiPond(
   ctx: IWorldModelBuildContext,
   mats: IHarborMaterials,
-  box: THREE.BoxGeometry,
+  _box: THREE.BoxGeometry,
   discGeo: THREE.CylinderGeometry,
   group: THREE.Group
 ): IKoiFishVisual[] {
@@ -514,19 +536,11 @@ function buildDeepKoiPond(
     depthWrite: false,
   });
   const lilyPadMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65 });
-  const koiOrangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xc2410c, emissiveIntensity: 0.35, roughness: 0.3 });
-  const koiWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0xe2e8f0, emissiveIntensity: 0.25, roughness: 0.3 });
-  const koiGoldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, emissiveIntensity: 0.4, roughness: 0.25 });
-  const koiCrimsonMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x991b1b, emissiveIntensity: 0.35, roughness: 0.3 });
   ctx.disposableMaterials.push(
     deepBasinMat,
     midShelfMat,
     clearSurfaceMat,
-    lilyPadMat,
-    koiOrangeMat,
-    koiWhiteMat,
-    koiGoldMat,
-    koiCrimsonMat
+    lilyPadMat
   );
 
   const curbWallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.68, 0.28, 40, 1, true);
@@ -537,21 +551,13 @@ function buildDeepKoiPond(
   copingRingGeo.rotateX(-Math.PI / 2);
   const boulderGeo = new THREE.IcosahedronGeometry(0.55, 1);
   const lilyPadGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.025, 14, 1, false, 0, Math.PI * 1.82);
-  const koiBodyGeo = new THREE.SphereGeometry(1, 14, 10);
-  koiBodyGeo.scale(0.14, 0.1, 0.38);
-  const koiTailGeo = new THREE.ConeGeometry(0.15, 0.28, 4);
-  koiTailGeo.scale(0.35, 1, 1.15);
-  koiTailGeo.rotateX(Math.PI / 2);
-  koiTailGeo.translate(0, 0, -0.14);
   ctx.disposableGeometries.push(
     curbWallGeo,
     innerWallGeo,
     shelfRingGeo,
     copingRingGeo,
     boulderGeo,
-    lilyPadGeo,
-    koiBodyGeo,
-    koiTailGeo
+    lilyPadGeo
   );
 
   // 1. Multi-layered recessed basin creating a deep, crystal-clear Koi pond (raised above the garden lawn top at DECK_Y + 0.094)
@@ -611,48 +617,47 @@ function buildDeepKoiPond(
     }
   }
 
-  // 4. Seven 3D Koi Fish (Kohaku orange/white, Yamabuki gold, Showa crimson) swimming in the pond
+  // 4. Seven rigged 3D KoiFish models (`createReadyKoiFish`) swimming in the pond
   const koiSpecs: ReadonlyArray<{
     readonly orbitR: number;
     readonly speed: number;
     readonly phase: number;
     readonly figureEight: boolean;
-    readonly bodyMat: THREE.Material;
-    readonly spotMat: THREE.Material;
+    readonly tintHex?: number;
     readonly scale: number;
   }> = [
-    { orbitR: 1.5, speed: 0.55, phase: 0.0, figureEight: false, bodyMat: koiOrangeMat, spotMat: koiWhiteMat, scale: 1.15 },
-    { orbitR: 2.3, speed: -0.45, phase: 1.2, figureEight: false, bodyMat: koiWhiteMat, spotMat: koiCrimsonMat, scale: 1.05 },
-    { orbitR: 3.1, speed: 0.38, phase: 2.4, figureEight: false, bodyMat: koiGoldMat, spotMat: koiOrangeMat, scale: 1.22 },
-    { orbitR: 2.7, speed: 0.48, phase: 3.6, figureEight: true, bodyMat: koiCrimsonMat, spotMat: koiWhiteMat, scale: 1.0 },
-    { orbitR: 1.9, speed: -0.52, phase: 4.7, figureEight: false, bodyMat: koiWhiteMat, spotMat: koiOrangeMat, scale: 0.95 },
-    { orbitR: 3.4, speed: -0.35, phase: 5.5, figureEight: false, bodyMat: koiOrangeMat, spotMat: koiGoldMat, scale: 1.1 },
-    { orbitR: 2.2, speed: 0.42, phase: 2.9, figureEight: true, bodyMat: koiGoldMat, spotMat: koiWhiteMat, scale: 1.08 },
+    { orbitR: 1.5, speed: 0.55, phase: 0.0, figureEight: false, tintHex: undefined, scale: 0.85 },
+    { orbitR: 2.3, speed: -0.45, phase: 1.2, figureEight: false, tintHex: 0xffedd5, scale: 0.78 },
+    { orbitR: 3.1, speed: 0.38, phase: 2.4, figureEight: false, tintHex: 0xfde047, scale: 0.92 },
+    { orbitR: 2.7, speed: 0.48, phase: 3.6, figureEight: true, tintHex: 0xfca5a5, scale: 0.76 },
+    { orbitR: 1.9, speed: -0.52, phase: 4.7, figureEight: false, tintHex: undefined, scale: 0.72 },
+    { orbitR: 3.4, speed: -0.35, phase: 5.5, figureEight: false, tintHex: 0xfdba74, scale: 0.84 },
+    { orbitR: 2.2, speed: 0.42, phase: 2.9, figureEight: true, tintHex: 0xfef08a, scale: 0.80 },
   ];
 
-  return koiSpecs.map((spec) => {
-    const root = new THREE.Group();
-    root.scale.setScalar(spec.scale);
-    const body = new THREE.Mesh(koiBodyGeo, spec.bodyMat);
-    const dorsalSpot = new THREE.Mesh(koiBodyGeo, spec.spotMat);
-    dorsalSpot.scale.set(0.72, 0.55, 0.52);
-    dorsalSpot.position.set(0, 0.055, 0.04);
-    const finL = boxMesh(box, spec.spotMat, -0.14, -0.01, 0.08, 0.18, 0.015, 0.12, 0.45);
-    const finR = boxMesh(box, spec.spotMat, 0.14, -0.01, 0.08, 0.18, 0.015, 0.12, -0.45);
-    const dorsalFin = boxMesh(box, spec.spotMat, 0, 0.1, -0.02, 0.02, 0.09, 0.22);
+  return koiSpecs.map((spec, idx) => {
+    const ctrl = createReadyKoiFish({
+      scale: spec.scale,
+      castShadow: false,
+      receiveShadow: false,
+      initialState: 'walk',
+      tintHex: spec.tintHex,
+    });
+    ctrl.setPhaseOffset(idx * 0.23);
+    ctx.disposableGeometries.push(ctrl.mesh.geometry);
+    if (Array.isArray(ctrl.mesh.material)) {
+      ctx.disposableMaterials.push(...ctrl.mesh.material);
+    } else {
+      ctx.disposableMaterials.push(ctrl.mesh.material);
+    }
 
-    const tailPivot = new THREE.Group();
-    tailPivot.position.set(0, 0, -0.32);
-    const tail = new THREE.Mesh(koiTailGeo, spec.spotMat);
-    tailPivot.add(tail);
-
-    root.add(body, dorsalSpot, finL, finR, dorsalFin, tailPivot);
-    root.position.set(pond.x + spec.orbitR, DECK_Y + 0.068, pond.z);
+    const root = ctrl.object;
+    root.position.set(pond.x + spec.orbitR, DECK_Y + 0.195, pond.z);
     group.add(root);
 
     return {
+      ctrl,
       root,
-      tailPivot,
       pondX: pond.x,
       pondZ: pond.z,
       orbitR: spec.orbitR,

@@ -1449,10 +1449,11 @@ export function buildPlayerAndCombatSystems(
     const swordActive = !isSwim && equippedTool === 'sword' && !isAimingBow;
     const fireArrowActive = !isSwim && arrowKind === 'fire' && isAimingBow;
     const isMountedShip = playerState.mountedHorseId === 'sailable-ship';
+    const isMountedHoverbike = playerState.mountedHorseId === 'sky-hoverbike';
     const isMountedStag = Boolean(playerState.mountedHorseId?.startsWith('mount-stag-'));
     const isMountedLion = Boolean(playerState.mountedHorseId?.startsWith('mount-lion-'));
-    const mountLift = isMountedShip ? 0.0 : isMountedStag ? 1.12 : isMountedLion ? 1.54 : isMounted ? 0.72 : 0.0;
-    const saddleHeightBonus = isMountedShip ? 0.0 : isMountedStag ? 1.06 : isMountedLion ? 1.48 : isMounted ? 0.68 : 0.0;
+    const mountLift = isMountedShip ? 0.0 : isMountedHoverbike ? -0.14 : isMountedStag ? 1.12 : isMountedLion ? 1.54 : isMounted ? 0.72 : 0.0;
+    const saddleHeightBonus = isMountedShip ? 0.0 : isMountedHoverbike ? 0.12 : isMountedStag ? 1.06 : isMountedLion ? 1.48 : isMounted ? 0.68 : 0.0;
     const horseBaseYaw = isMounted
       ? (playerState.mountedHorseYaw ?? playerState.yaw)
       : playerState.yaw;

@@ -15,6 +15,13 @@ import { t } from '../../locales';
 import { shouldExitTelescopeView, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import { activateSkyMechanism } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import { WIND_CORE_UNLOCKS } from '../domain/landmarks/skyboundIsles/windCoresLayout';
+import {
+  buyOrSpawnHoverbikeFromMerchant,
+  getActiveSkyHoverbike,
+  isNearSkyHoverbikeMerchant,
+  isNearSpawnedSkyHoverbike,
+  SKY_HOVERBIKE_ID,
+} from '../systems/skyHoverbikeSystem';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../../core/perfStats';
@@ -416,6 +423,52 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             emitHudSnapshot();
           } else if (restState.activeMinecartRide && tryBoardOrExitMinecart()) {
             // Exited active minecart via [E]
+          } else if (playerState.mountedHorseId === SKY_HOVERBIKE_ID) {
+            const bike = getActiveSkyHoverbike();
+            bike.speed = 0;
+            bike.vx = 0;
+            bike.vy = 0;
+            bike.vz = 0;
+            bike.pitch = 0;
+            bike.roll = 0;
+            playerState.mountedHorseId = null;
+            playerState.x = bike.x + Math.cos(bike.yaw) * 1.15;
+            playerState.z = bike.z - Math.sin(bike.yaw) * 1.15;
+            playerState.y = Math.max(walkableHeightValueAt(playerState.x, playerState.z, playerState.y), playerState.y - 0.55);
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.vz = 0;
+            capturePreviousPlayerPose();
+            soundEngine.playFootstep('bridge', 1.05);
+            emitHudSnapshot();
+          } else if (isNearSkyHoverbikeMerchant(playerState.x, playerState.y, playerState.z)) {
+            const res = buyOrSpawnHoverbikeFromMerchant(
+              playerState,
+              gameSettingsRef.current.godMode !== false
+            );
+            hudFeedback.lootNotification = res.message;
+            hudFeedback.lootNotificationTimer = 5.0;
+            soundEngine.playFootstep('bridge', 1.18);
+            emitHudSnapshot();
+          } else if (isNearSpawnedSkyHoverbike(playerState.x, playerState.y, playerState.z)) {
+            const bike = getActiveSkyHoverbike();
+            playerState.mountedHorseId = SKY_HOVERBIKE_ID;
+            playerState.mountedHorseYaw = bike.yaw;
+            playerState.isFlying = false;
+            playerState.climbingLadderId = null;
+            playerState.x = bike.x;
+            playerState.y = bike.y;
+            playerState.z = bike.z;
+            playerState.yaw = bike.yaw + Math.PI;
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.vz = 0;
+            capturePreviousPlayerPose();
+            hudFeedback.lootNotification =
+              'עלית על אופנוע האוויר האתרי! [W/S] נסיעה · [Space] המראה וטיסה · [C] הנמכה · [Shift] האצה · [F]/[E] ירידה';
+            hudFeedback.lootNotificationTimer = 4.8;
+            soundEngine.playFootstep('bridge', 1.15);
+            emitHudSnapshot();
           } else if (isPlayerNearEastForkSwitchLever(playerState.x, playerState.y, playerState.z)) {
             const newBranch = toggleEastForkSwitchBranch();
             hudFeedback.lootNotification =
@@ -798,6 +851,13 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
         const toggleMountHorsePressed = keysJustPressed.has(kb.mountHorse);
         if (toggleMountHorsePressed && tryBoardOrExitMinecart()) {
           // Handled rideable minecart boarding/exiting via [F]
+        } else if (
+          toggleMountHorsePressed &&
+          !playerState.mountedHorseId &&
+          !getActiveSkyHoverbike().spawned &&
+          isNearSkyHoverbikeMerchant(playerState.x, playerState.y, playerState.z, 5.2)
+        ) {
+          buyOrSpawnHoverbikeFromMerchant(playerState, gameSettingsRef.current.godMode !== false);
         }
 
         const triggerFlyToggle = actionState.pendingFlyToggle;
@@ -1097,6 +1157,11 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             } else if (playerState.mountedHorseId.startsWith('mount-lion-')) {
               hudFeedback.lootNotification = 'Mounted Mystical Boss CatLion! (Space: Stationary Attack, Shift: Sprint)';
               hudFeedback.lootNotificationTimer = 4.2;
+              emitHudSnapshot();
+            } else if (playerState.mountedHorseId === SKY_HOVERBIKE_ID) {
+              hudFeedback.lootNotification =
+                'עלית על אופנוע האוויר האתרי! [W/S] נסיעה · [Space] המראה וטיסה · [C] הנמכה · [Shift] האצה · [F]/[E] ירידה';
+              hudFeedback.lootNotificationTimer = 4.8;
               emitHudSnapshot();
             }
           }

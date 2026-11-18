@@ -400,6 +400,8 @@ export function buildCelestialSkyArchipelagoModels(
         skyParticles.update(elapsedTime);
         windStreamers.update(elapsedTime);
         skyTreeFoliage.update(elapsedTime);
+      } else {
+        skyHarbor.updateHoverbike(elapsedTime);
       }
 
       // Animate Celestial Wind-Ring & Thermal Launch Pads

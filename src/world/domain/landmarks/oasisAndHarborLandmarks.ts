@@ -458,6 +458,16 @@ export const MARKET_STALL_LOCATIONS = [
       'prospector_lantern',
     ] as readonly InventoryItemId[],
   },
+  {
+    id: 'market-sky-hoverbike',
+    name: 'סדנת אופנועי אוויר — לחץ [E] לרכישת/שיגור אופנוע אוויר אתרי (150 זהב)',
+    shopType: 'hoverbike' as const,
+    x: 805.2,
+    y: 68.08,
+    z: -4.9,
+    radius: 4.6,
+    allowedItemIds: [] as readonly InventoryItemId[],
+  },
 ] as const;
 
 /**

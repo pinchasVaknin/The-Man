@@ -11,6 +11,7 @@ import type { IObstacle } from '../world/domain/worldTypes';
 import { restoreFelledTrees, type ISavedFelledTree } from '../world/systems/treeFellingSystem';
 import { setPendingDeadDwarfIds } from '../world/builders/dwarvenKingdomBuilder';
 import { decodeRevealedMap, mapExplorationState } from '../world/domain/mapExploration';
+import { buyOrSpawnHoverbikeFromMerchant } from '../world/systems/skyHoverbikeSystem';
 import { t } from '../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
@@ -711,7 +712,15 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         }
         return 0;
       },
-      onBuyShip: (tierId) => buyShip(tierId, gameSettingsRef.current.godMode !== false),
+      onBuyShip: (tierId) => {
+        if (tierId === 'sky-hoverbike') {
+          const res = buyOrSpawnHoverbikeFromMerchant(playerState, gameSettingsRef.current.godMode !== false);
+          if (res.ok) soundEngine.playFootstep('bridge', 1.15);
+          emitHudSnapshot();
+          return res;
+        }
+        return buyShip(tierId, gameSettingsRef.current.godMode !== false);
+      },
       onOpenChest: (chestId) => {
         openDoorIds.add(chestId);
         if (!playerState.openedChestIds) playerState.openedChestIds = [];

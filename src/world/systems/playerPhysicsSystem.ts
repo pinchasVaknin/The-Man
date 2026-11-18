@@ -58,6 +58,11 @@ import {
   findLookedAtWatchtowerLadder,
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
+import {
+  getActiveSkyHoverbike,
+  SKY_HOVERBIKE_ID,
+  stepSkyHoverbikePhysics,
+} from './skyHoverbikeSystem';
 import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import { sampleAncientMineFloor } from '../domain/landmarks/ancientMine/ancientMineFloor';
 import { applyMineLavaHazard } from './mineLavaHazard';
@@ -721,6 +726,25 @@ export function findNearestRideableHorse(
       }
     }
   }
+
+  // Check proximity to the spawned Sky-Harbor Aether Hoverbike
+  const hoverbike = getActiveSkyHoverbike();
+  if (hoverbike.spawned) {
+    const bikeDist = Math.hypot(px - hoverbike.x, pz - hoverbike.z);
+    if (bikeDist <= Math.max(maxDist, 4.2) && Math.abs(py - hoverbike.y) <= 3.2 && bikeDist <= bestDist + 0.4) {
+      bestDist = bikeDist;
+      best = {
+        id: SKY_HOVERBIKE_ID,
+        name: hoverbike.nameHe,
+        x: hoverbike.x,
+        y: hoverbike.y,
+        z: hoverbike.z,
+        yaw: hoverbike.yaw,
+        speed: Math.abs(hoverbike.speed),
+        gaitPhase: hoverbike.hoverPhase,
+      };
+    }
+  }
   return best;
 }
 // #endregion
@@ -786,6 +810,25 @@ export function stepPlayerPhysics(
         state.vy = 0;
         state.vz = 0;
         state.onGround = true;
+      } else if (dismountingId === SKY_HOVERBIKE_ID) {
+        const bike = getActiveSkyHoverbike();
+        bike.speed = 0;
+        bike.vx = 0;
+        bike.vy = 0;
+        bike.vz = 0;
+        bike.pitch = 0;
+        bike.roll = 0;
+        const sideX = Math.cos(bike.yaw) * 1.15;
+        const sideZ = -Math.sin(bike.yaw) * 1.15;
+        state.x = bike.x + sideX;
+        state.z = bike.z + sideZ;
+        const groundY = walkableHeightValueAt(state.x, state.z, state.y);
+        state.y = Math.max(groundY, state.y - 0.55);
+        bike.y = Math.max(walkableHeightValueAt(bike.x, bike.z, bike.y) + 0.55, bike.y);
+        state.vx = 0;
+        state.vy = 0;
+        state.vz = 0;
+        state.onGround = Math.abs(state.y - groundY) < 0.25;
       } else {
         const shipUnderPlayer =
           findSailableShipContainingPoint(state.x, state.z, state.y, 2.2) ?? getActiveSailableShip();
@@ -909,7 +952,7 @@ export function stepPlayerPhysics(
           state.x = nearHorse.x;
           state.z = nearHorse.z;
           state.y = nearHorse.y;
-          state.yaw = nearHorse.yaw;
+          state.yaw = nearHorse.id === SKY_HOVERBIKE_ID ? nearHorse.yaw + Math.PI : nearHorse.yaw;
           state.vx = 0;
           state.vy = 0;
           state.vz = 0;
@@ -959,6 +1002,16 @@ export function stepPlayerPhysics(
     } else {
       state.vy = 0;
     }
+  }
+
+  if (state.mountedHorseId === SKY_HOVERBIKE_ID) {
+    return stepSkyHoverbikePhysics(
+      state,
+      input,
+      dt,
+      walkableHeightValueAt,
+      getWaterSurfaceHeightAt
+    );
   }
 
   if (state.mountedHorseId?.startsWith('sailable-ship')) {
