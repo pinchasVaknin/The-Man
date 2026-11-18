@@ -12,7 +12,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { getSkyIsland } from './skyboundLayout';
-import type { ISkyRamp, ISkySolidBox } from './skyHarborLayout';
+import type { ISkyDeckRect, ISkyRamp, ISkySolidBox } from './skyHarborLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -103,8 +103,30 @@ export const OBSERVATORY_LEVERS = [
   { id: 'observatory-lever-inner', ringIndex: 2, x: OBSERVATORY_DIAL.x + 3.5, z: OBSERVATORY_DIAL.z + 6.0 },
 ] as const;
 
-/** Summary: Giant telescope on the north-west of the island (base position). */
+/** Summary: Giant telescope on the south-west of the island (base position). */
 export const OBSERVATORY_GIANT_TELESCOPE = { x: ISLAND.x - 15.0, z: ISLAND.z + 10.0 } as const;
+
+/** Summary: Walkable elevated platform where the Giant Brass Telescope stands. */
+export const OBSERVATORY_TELESCOPE_PLATFORM: ISkyDeckRect = {
+  id: 'observatory-telescope-platform',
+  minX: OBSERVATORY_GIANT_TELESCOPE.x - 2.4,
+  maxX: OBSERVATORY_GIANT_TELESCOPE.x + 2.4,
+  minZ: OBSERVATORY_GIANT_TELESCOPE.z - 2.4,
+  maxZ: OBSERVATORY_GIANT_TELESCOPE.z + 2.4,
+  y: DECK_Y + 2.4,
+};
+
+/** Summary: Walkable staircase rising from the north deck up onto the Giant Telescope platform. */
+export const OBSERVATORY_TELESCOPE_STAIR: ISkyRamp = {
+  id: 'observatory-telescope-stair',
+  ax: OBSERVATORY_GIANT_TELESCOPE.x,
+  ay: DECK_Y,
+  az: OBSERVATORY_GIANT_TELESCOPE.z - 6.4,
+  bx: OBSERVATORY_GIANT_TELESCOPE.x,
+  by: OBSERVATORY_TELESCOPE_PLATFORM.y,
+  bz: OBSERVATORY_TELESCOPE_PLATFORM.minZ + 0.2,
+  halfWidth: 1.25,
+};
 // #endregion
 
 // ======================== SOLID BOXES ======================== \\
@@ -175,12 +197,20 @@ addRing('rail-observatory-balcony', OBSERVATORY_BALCONY.x, OBSERVATORY_BALCONY.z
   }
 }
 
-// Armillary dais (octagon), levers and the giant telescope base.
+// Armillary dais (octagon), levers, and the Giant Telescope platform railings & tripod stand.
 const D = OBSERVATORY_DIAL;
 addBox('observatory-dial-dais-a', D.x, D.z, 3.0, 3.0, DECK_Y, D.daisTopY);
 addBox('observatory-dial-dais-b', D.x, D.z, 3.0, 3.0, DECK_Y, D.daisTopY, Math.PI / 4);
 OBSERVATORY_LEVERS.forEach((l) => addBox(l.id, l.x, l.z, 0.25, 0.25, DECK_Y, DECK_Y + 1.25));
-addBox('observatory-giant-telescope-base', OBSERVATORY_GIANT_TELESCOPE.x, OBSERVATORY_GIANT_TELESCOPE.z, 1.6, 1.6, DECK_Y, DECK_Y + 3.0);
+{
+  const p = OBSERVATORY_TELESCOPE_PLATFORM;
+  const rt = RAIL_THICKNESS_M / 2;
+  const topY = p.y + RAIL_HEIGHT_M;
+  addBox('rail-observatory-telescope-west', p.minX, (p.minZ + p.maxZ) / 2, rt, (p.maxZ - p.minZ) / 2, p.y, topY);
+  addBox('rail-observatory-telescope-east', p.maxX, (p.minZ + p.maxZ) / 2, rt, (p.maxZ - p.minZ) / 2, p.y, topY);
+  addBox('rail-observatory-telescope-south', (p.minX + p.maxX) / 2, p.maxZ, (p.maxX - p.minX) / 2, rt, p.y, topY);
+  addBox('observatory-giant-telescope-stand', OBSERVATORY_GIANT_TELESCOPE.x, OBSERVATORY_GIANT_TELESCOPE.z, 0.32, 0.32, p.y, p.y + 1.3);
+}
 
 /** Summary: Every static solid box of the Sky Observatory (the chamber gate is separate). */
 export const OBSERVATORY_SOLID_BOXES: readonly ISkySolidBox[] = boxes;
@@ -199,10 +229,13 @@ export function visitObservatorySurfaces(x: number, z: number, visit: (y: number
   if (Math.abs(x - ISLAND.x) > 40 || Math.abs(z - ISLAND.z) > 40) return;
   const d = Math.hypot(x - OBSERVATORY_BALCONY.x, z - OBSERVATORY_BALCONY.z);
   if (d >= OBSERVATORY_BALCONY.innerR && d <= OBSERVATORY_BALCONY.outerR) visit(OBSERVATORY_BALCONY.y, 'deck', 'observatory-balcony');
-  const r = OBSERVATORY_BALCONY_RAMP;
-  const sx = r.bx - r.ax;
-  const sz = r.bz - r.az;
-  const u = ((x - r.ax) * sx + (z - r.az) * sz) / (sx * sx + sz * sz);
-  if (u >= 0 && u <= 1 && Math.hypot(x - (r.ax + sx * u), z - (r.az + sz * u)) <= r.halfWidth) visit(r.ay + (r.by - r.ay) * u, 'ramp', r.id);
+  const p = OBSERVATORY_TELESCOPE_PLATFORM;
+  if (x >= p.minX && x <= p.maxX && z >= p.minZ && z <= p.maxZ) visit(p.y, 'deck', p.id);
+  for (const r of [OBSERVATORY_BALCONY_RAMP, OBSERVATORY_TELESCOPE_STAIR]) {
+    const sx = r.bx - r.ax;
+    const sz = r.bz - r.az;
+    const u = ((x - r.ax) * sx + (z - r.az) * sz) / (sx * sx + sz * sz);
+    if (u >= 0 && u <= 1 && Math.hypot(x - (r.ax + sx * u), z - (r.az + sz * u)) <= r.halfWidth) visit(r.ay + (r.by - r.ay) * u, 'ramp', r.id);
+  }
 }
 // #endregion

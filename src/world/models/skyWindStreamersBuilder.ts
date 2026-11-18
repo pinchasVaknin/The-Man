@@ -81,9 +81,10 @@ export function buildSkyWindStreamers(ctx: IWorldModelBuildContext): ISkyWindStr
         }
         const path = current.path;
         const segments = path.length - 1;
-        const t = (elapsedSec * 0.4 * (current.speed / 6) + s.phase) % 1;
+        if (segments <= 0) continue;
+        const t = (((elapsedSec * 0.4 * (current.speed / 6) + s.phase) % 1) + 1) % 1;
         const along = t * segments;
-        const seg = Math.min(segments - 1, Math.floor(along));
+        const seg = Math.max(0, Math.min(segments - 1, Math.floor(along)));
         const u = along - seg;
         const a = path[seg];
         const b = path[seg + 1];

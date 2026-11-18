@@ -12,11 +12,12 @@
 // #region Imports
 import { getSkyIsland, SKY_HARBOR } from './skyboundLayout';
 import { BALCONY_TELESCOPE_SPOTS } from './skyHarborLayout';
+import { OBSERVATORY_GIANT_TELESCOPE, OBSERVATORY_TELESCOPE_PLATFORM } from './observatoryLayout';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Types
-/** Summary: A balcony telescope fixed on one island. */
+/** Summary: A telescope mounted on the Windspire balcony or the Sky Observatory platform. */
 export interface ISkyTelescope {
   readonly id: string;
   readonly balconyId: string;
@@ -48,38 +49,61 @@ export interface ITelescopeView {
 /** Narrowest and widest telescope field of view (degrees); each view frames its island in between. */
 export const TELESCOPE_MIN_FOV_DEG = 12;
 export const TELESCOPE_MAX_FOV_DEG = 34;
-/** Height (m) of the eyepiece above the balcony floor. */
-const EYEPIECE_HEIGHT_M = 1.55;
+/** Height (m) of the eyepiece above the floor (clears the 1.1 m platform railings cleanly). */
+const EYEPIECE_HEIGHT_M = 1.92;
 /** The view aims this far (m) above the target island's deck, at its landmark. */
 const TARGET_LIFT_M = 4.0;
 /** Moving the player further than this (m) from the telescope ends the view. */
 const VIEW_LEASH_M = 2.5;
 /** Movement input above this magnitude ends the view. */
 const MOVE_INPUT_EXIT = 0.1;
-
-/**
- * Which island each balcony's telescope watches.
- * Design: Only islands at or a little above eye height: looking up at a high island shows
- *         nothing but the rock under its deck.
- */
-const TARGET_BY_BALCONY: Record<string, string> = {
-  'balcony-north': 'ancient-sky-ruins',
-  'balcony-east': 'crystal-isles',
-  'balcony-south-west': 'floating-garden',
-};
 // #endregion
 
 // #region Telescopes
-/** Summary: The three balcony telescopes. */
-export const SKY_TELESCOPES: readonly ISkyTelescope[] = BALCONY_TELESCOPE_SPOTS.map((spot) => ({
-  id: `telescope-${spot.balconyId}`,
-  balconyId: spot.balconyId,
-  x: spot.x,
-  y: SKY_HARBOR.deckY,
-  z: spot.z,
-  targetIslandId: TARGET_BY_BALCONY[spot.balconyId] ?? SKY_HARBOR.id,
-  interactRadius: 2.6,
-}));
+/** Summary: The two Windspire balcony telescopes on Sky Harbor plus the Giant Telescope on Sky Observatory. */
+export const SKY_TELESCOPES: readonly ISkyTelescope[] = [
+  ...BALCONY_TELESCOPE_SPOTS.map((spot) => ({
+    id: `telescope-${spot.balconyId}`,
+    balconyId: spot.balconyId,
+    x: spot.x,
+    y: spot.y,
+    z: spot.z,
+    targetIslandId: spot.targetIslandId,
+    interactRadius: 2.6,
+  })),
+  {
+    id: 'telescope-observatory-giant',
+    balconyId: OBSERVATORY_TELESCOPE_PLATFORM.id,
+    x: OBSERVATORY_GIANT_TELESCOPE.x,
+    y: OBSERVATORY_TELESCOPE_PLATFORM.y,
+    z: OBSERVATORY_GIANT_TELESCOPE.z,
+    targetIslandId: 'floating-garden',
+    interactRadius: 2.8,
+  },
+];
+// #endregion
+
+// #region Runtime Aim State
+let activeTelescopeRuntime: { id: string | null; yaw: number; pitch: number } = {
+  id: null,
+  yaw: 0,
+  pitch: 0,
+};
+
+/**
+ * Summary: Updates the live runtime aim of the currently active telescope so 3D telescope models
+ *          can rotate with the player's aim and clear the sightline while active.
+ */
+export function syncTelescopeRuntimeAim(id: string | null, yaw: number, pitch: number): void {
+  activeTelescopeRuntime = { id, yaw, pitch };
+}
+
+/**
+ * Summary: Reads the currently active telescope id and live yaw/pitch aim.
+ */
+export function getTelescopeRuntimeAim(): { readonly id: string | null; readonly yaw: number; readonly pitch: number } {
+  return activeTelescopeRuntime;
+}
 // #endregion
 
 // ======================== PUBLIC QUERIES ======================== \\
@@ -117,7 +141,7 @@ export function findNearestSkyTelescope(x: number, y: number, z: number): ISkyTe
 
 // #region View
 /**
- * Summary: Camera placement and facing while looking through `scope`.
+ * Summary: Camera placement and default facing while looking through `scope`.
  * @param scope The telescope.
  * @returns The view; a telescope whose target is unknown looks back at the hub.
  */
@@ -143,6 +167,36 @@ export function telescopeViewFor(scope: ISkyTelescope): ITelescopeView {
     yaw: Math.atan2(-dx, -dz),
     pitch: Math.atan2(lookY - eyeY, Math.hypot(dx, dz)),
     fovDeg: Math.max(TELESCOPE_MIN_FOV_DEG, Math.min(TELESCOPE_MAX_FOV_DEG, framingDeg)),
+  };
+}
+
+/**
+ * Summary: Computes the live look-at target when the player rotates a telescope with `yaw` and `pitch`.
+ * Design: When `yaw === 0 && pitch === 0` (or matches `view.yaw`/`view.pitch`), returns the exact
+ *         landmark `lookX/Y/Z`; otherwise projects along the player's live forward vector `(-sin yaw cos pitch, sin pitch, -cos yaw cos pitch)`.
+ */
+export function aimedTelescopeLookPoint(
+  view: ITelescopeView,
+  yaw: number,
+  pitch: number
+): { readonly lookX: number; readonly lookY: number; readonly lookZ: number } {
+  const isUntouchedInitial =
+    (yaw === 0 && pitch === 0) ||
+    (Math.abs(yaw - 0.04) < 1e-6 && Math.abs(pitch - -0.04) < 1e-6) ||
+    (Math.abs(yaw - view.yaw) < 1e-6 && Math.abs(pitch - view.pitch) < 1e-6);
+  if (isUntouchedInitial) {
+    return { lookX: view.lookX, lookY: view.lookY, lookZ: view.lookZ };
+  }
+  const dist = Math.hypot(view.lookX - view.eyeX, view.lookY - view.eyeY, view.lookZ - view.eyeZ) || 100;
+  const clampedPitch = Math.max(-1.2, Math.min(1.2, pitch));
+  const cosP = Math.cos(clampedPitch);
+  const fwdX = -Math.sin(yaw) * cosP;
+  const fwdY = Math.sin(clampedPitch);
+  const fwdZ = -Math.cos(yaw) * cosP;
+  return {
+    lookX: view.eyeX + fwdX * dist,
+    lookY: view.eyeY + fwdY * dist,
+    lookZ: view.eyeZ + fwdZ * dist,
   };
 }
 

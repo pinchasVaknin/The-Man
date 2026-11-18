@@ -1114,9 +1114,9 @@ test('volcanoSanctumFloatingIslandsBearCaveEntranceAndWaterEntry_WhenEvaluated_S
     );
   }
 
-  // Verify Special Ideas: Celestial Sanctuary Bed, Sky-Waterfall Hydro-Elevator, and Sky Wind-Geyser Launch Pads
+  // Verify Sky Harbor arrival plaza is clear of beds and Sky-Waterfall Hydro-Elevator works
   const skyBed = findNearestBed(760.0, 68.35, -35.0);
-  assert.ok(skyBed && skyBed.id === 'bed-floating-sky-sanctuary', 'Sky Harbor must have the Celestial Star-Sanctuary Bed');
+  assert.equal(skyBed, null, 'Sky Harbor plaza should not have a bed blocking the plaza');
 
   const testPlayer = createInitialPlayerState();
   testPlayer.x = FLOATING_ISLAND_STAIR_POS.waterfallX;

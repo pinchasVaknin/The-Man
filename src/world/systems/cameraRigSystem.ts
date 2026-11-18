@@ -11,7 +11,12 @@
 import type { IPlayerState } from '../domain/worldTypes';
 import { PLAYER_EYE_HEIGHT } from '../domain/landmarks/coreLandmarks';
 import { firstSolidHitFraction } from '../domain/collisionWorld';
-import { getSkyTelescope, telescopeViewFor } from '../domain/landmarks/skyboundIsles/skyTelescopes';
+import {
+  aimedTelescopeLookPoint,
+  getSkyTelescope,
+  syncTelescopeRuntimeAim,
+  telescopeViewFor,
+} from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import {
   getRoofHeightAt,
   walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
@@ -147,20 +152,25 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
     return;
   }
 
-  // Looking through a Skybound Isles balcony telescope: eye at the eyepiece, aimed at its island.
+  // Looking through a Skybound Isles telescope: eye at the eyepiece, aimed along the player's live yaw/pitch.
   const telescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
   if (telescope) {
     const view = telescopeViewFor(telescope);
+    const aimed = aimedTelescopeLookPoint(view, player.yaw, player.pitch);
+    const effYaw = player.yaw === 0 && player.pitch === 0 ? view.yaw : player.yaw;
+    const effPitch = player.yaw === 0 && player.pitch === 0 ? view.pitch : player.pitch;
+    syncTelescopeRuntimeAim(telescope.id, effYaw, effPitch);
     out.mode = 'lookAt';
     out.x = view.eyeX;
     out.y = view.eyeY;
     out.z = view.eyeZ;
-    out.lookX = view.lookX;
-    out.lookY = view.lookY;
-    out.lookZ = view.lookZ;
+    out.lookX = aimed.lookX;
+    out.lookY = aimed.lookY;
+    out.lookZ = aimed.lookZ;
     out.roll = 0;
     return;
   }
+  syncTelescopeRuntimeAim(null, player.yaw, player.pitch);
 
   if (player.cameraPerspective === 'third_person') {
     writeThirdPersonPose(

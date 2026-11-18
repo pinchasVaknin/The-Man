@@ -157,10 +157,10 @@ function addWall(id: string, x0: number, z0: number, x1: number, z1: number, top
 // Temple: west, east and north walls, and the south wall on both sides of the door.
 const T = RUINS_TEMPLE;
 addWall('ruins-temple-wall-west', T.minX, T.minZ, T.minX, T.maxZ, T.wallTopY);
-addWall('ruins-temple-wall-east', T.maxX, T.minZ, T.maxX, T.maxZ, T.wallTopY - 2.5);
+addWall('ruins-temple-wall-east', T.maxX, T.minZ, T.maxX, T.maxZ, T.wallTopY);
 addWall('ruins-temple-wall-north', T.minX, T.minZ, T.maxX, T.minZ, T.wallTopY);
 addWall('ruins-temple-wall-south-w', T.minX, T.maxZ, wx(-DOOR_HALF_WIDTH) - WALL_THICKNESS_M / 2, T.maxZ, T.wallTopY);
-addWall('ruins-temple-wall-south-e', wx(DOOR_HALF_WIDTH) + WALL_THICKNESS_M / 2, T.maxZ, T.maxX, T.maxZ, T.wallTopY - 1.5);
+addWall('ruins-temple-wall-south-e', wx(DOOR_HALF_WIDTH) + WALL_THICKNESS_M / 2, T.maxZ, T.maxX, T.maxZ, T.wallTopY);
 RUINS_PORTICO_COLUMNS.forEach((c, i) => addBox(`ruins-portico-column-${i}`, c.x, c.z, 0.7, 0.7, DECK_Y, DECK_Y + c.height));
 
 // Lone column (its top is a walkable disc) and the landing's support pier.

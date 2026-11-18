@@ -327,8 +327,8 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
     soundEngine.setMuted(mutedRef.current);
     soundEngine.setPaused(gameStateRef.current !== 'playing');
 
-    // Simulation time of the interpolated moment being drawn.
-    const renderTime = simulationState.elapsedTotal - (1 - alpha) * stepSeconds;
+    // Simulation time of the interpolated moment being drawn (clamped >= 0 before the first step completes).
+    const renderTime = Math.max(0, simulationState.elapsedTotal - (1 - alpha) * stepSeconds);
     _sunVec.set(
       simulationState.currentAtmo.sunDirX,
       simulationState.currentAtmo.sunDirY,

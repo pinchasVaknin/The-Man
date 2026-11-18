@@ -1530,6 +1530,22 @@ export function buildPlayerAndCombatSystems(
       playerTorchLight.intensity = 0;
     }
 
+    if (playerState.telescopeViewId) {
+      swimRippleMesh.visible = false;
+      fpViewModelGroup.visible = false;
+      rangerUpperTorsoPivot.visible = false;
+      rangerBodyGroup.visible = false;
+      rangerLeftLeg.visible = false;
+      rangerRightLeg.visible = false;
+      bowGroup.visible = false;
+      stowedBackBowGroup.visible = false;
+      thirdPersonTorchGroup.visible = false;
+      thirdPersonSwordGroup.visible = false;
+      thirdPersonAxeGroup.visible = false;
+      gliderCanopyGroup.visible = false;
+      return;
+    }
+
     if (playerState.isSleeping) {
       // Lying horizontally on the bed mattress on back (head on pillow at -Z, feet stretched toward +Z)
       const footOffsetX = Math.sin(horseBaseYaw) * 0.78;

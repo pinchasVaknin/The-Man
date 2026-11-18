@@ -110,32 +110,10 @@ export const PLAZA_LANTERNS = [
 
 // ======================== OBSERVATION BALCONIES ======================== \\
 // #region Balconies
-const BALCONIES: readonly IBalconySpec[] = [
-  { deck: { id: 'balcony-north', minX: 774.0, maxX: 782.0, minZ: -89.0, maxZ: -79.0, y: DECK_Y }, openSide: 'maxZ' },
-  { deck: { id: 'balcony-east', minX: 821.0, maxX: 831.0, minZ: -45.0, maxZ: -37.0, y: DECK_Y }, openSide: 'minX' },
-  { deck: { id: 'balcony-south-west', minX: 746.0, maxX: 754.0, minZ: -0.8, maxZ: 9.2, y: DECK_Y }, openSide: 'minZ' },
-];
+const BALCONIES: readonly IBalconySpec[] = [];
 
-/** Summary: The three observation balconies jutting out past the rim. */
-export const SKY_BALCONIES: readonly ISkyDeckRect[] = BALCONIES.map((b) => b.deck);
-
-/** Summary: Where each balcony's telescope stands (outer end, centred). */
-export const BALCONY_TELESCOPE_SPOTS = BALCONIES.map((b) => {
-  const d = b.deck;
-  const cx = (d.minX + d.maxX) / 2;
-  const cz = (d.minZ + d.maxZ) / 2;
-  const inset = 1.6;
-  switch (b.openSide) {
-    case 'maxZ':
-      return { balconyId: d.id, x: cx, z: d.minZ + inset };
-    case 'minZ':
-      return { balconyId: d.id, x: cx, z: d.maxZ - inset };
-    case 'minX':
-      return { balconyId: d.id, x: d.maxX - inset, z: cz };
-    default:
-      return { balconyId: d.id, x: d.minX + inset, z: cz };
-  }
-});
+/** Summary: Observation balconies on the outer rim (removed per design; telescopes stand on the Windspire Balcony). */
+export const SKY_BALCONIES: readonly ISkyDeckRect[] = [];
 // #endregion
 
 // ======================== WINDSPIRE ======================== \\
@@ -187,6 +165,24 @@ export const WIND_CORE_SOCKETS = [1, 3, 5, 7].map((k) => {
   const ang = (k * Math.PI) / 4;
   return { id: `wind-core-socket-${(k + 1) / 2}`, x: SKY_HARBOR.x + Math.cos(ang) * 14.0, z: SKY_HARBOR.z + Math.sin(ang) * 14.0 };
 });
+
+/** Summary: The two telescopes mounted on top of the Windspire Summit (`WINDSPIRE_SUMMIT`), flanking the summit treasure chest on either side. */
+export const BALCONY_TELESCOPE_SPOTS = [
+  {
+    balconyId: 'windspire-north-west',
+    x: 774.2,
+    y: WINDSPIRE_SUMMIT.y,
+    z: -39.2,
+    targetIslandId: 'ancient-sky-ruins',
+  },
+  {
+    balconyId: 'windspire-south-east',
+    x: 774.2,
+    y: WINDSPIRE_SUMMIT.y,
+    z: -30.8,
+    targetIslandId: 'crystal-isles',
+  },
+] as const;
 // #endregion
 
 // ======================== SKY GARDEN ======================== \\
@@ -213,10 +209,9 @@ export const GARDEN_TREES = [
   { x: 783.0, z: -77.5, scale: 0.8 },
 ] as const;
 
-/** Summary: Small decorative ponds (visual only; the deck stays walkable). */
+/** Summary: Deep decorative Koi pond in the northern Sky Garden (visual only; the deck stays walkable). */
 export const GARDEN_PONDS = [
-  { x: 784.0, z: -63.0, radius: 3.2 },
-  { x: 761.0, z: -78.0, radius: 2.0 },
+  { x: 784.0, z: -61.5, radius: 4.6 },
 ] as const;
 // #endregion
 
@@ -328,9 +323,9 @@ PLAZA_PILLARS.forEach((p, i) => addBox(`plaza-pillar-${i}`, p.x, p.z, 0.6, 0.6, 
 PLAZA_BENCHES.forEach((b, i) => addBox(`plaza-bench-${i}`, b.x, b.z, 1.1, 0.35, DECK_Y, DECK_Y + 0.5));
 PLAZA_LANTERNS.forEach((l, i) => addBox(`plaza-lantern-${i}`, l.x, l.z, 0.2, 0.2, DECK_Y, DECK_Y + 3.2));
 
-// Balcony railings and telescope stands.
+// Balcony railings and Windspire telescope stands.
 for (const b of BALCONIES) addRectRails(b.deck, [b.openSide]);
-BALCONY_TELESCOPE_SPOTS.forEach((t) => addBox(`telescope-stand-${t.balconyId}`, t.x, t.z, 0.3, 0.3, DECK_Y, DECK_Y + 1.3));
+BALCONY_TELESCOPE_SPOTS.forEach((t) => addBox(`telescope-stand-${t.balconyId}`, t.x, t.z, 0.28, 0.28, t.y, t.y + 1.3));
 
 // Windspire: two square boxes (0 and 45 degrees) make an octagon inside the stair's inner edge.
 addBox('windspire-core-a', SKY_HARBOR.x, SKY_HARBOR.z, 4.4, 4.4, DECK_Y, DECK_Y + WINDSPIRE.height);

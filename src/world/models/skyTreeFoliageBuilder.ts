@@ -1,10 +1,10 @@
 // ============================================================================
 // MODULE: World / Models / Skybound Isles / Giant Sky Tree foliage
-// DESIGN: Decoration only: a canopy above the observation platform, vines hanging from the spiral's
-//         outer edge, exposed roots at the base, and glowing growth. Everything sits outside the walkable
-//         band of the spiral, so nothing here changes what the player can stand on. Each kind of piece is
-//         one instanced mesh, so the tree costs a handful of draw calls however many pieces it has.
-// SUMMARY: Builds the Giant Sky Tree's canopy, hanging vines, roots and glowing growth.
+// DESIGN: Decoration only: a multi-layered overarching canopy above the observation platform,
+//         vines hanging from the spiral's outer edge, sweeping roots at the base, and a richly
+//         dressed bioluminescent mushroom grotto. Everything sits outside the walkable band of
+//         the spiral, so nothing here changes what the player can stand on.
+// SUMMARY: Builds the Giant Sky Tree's overarching canopy, hanging vines, roots and mushroom grotto.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -32,12 +32,11 @@ export interface ISkyTreeFoliageBuildResult {
 // #endregion
 
 // #region Tuning
-const CANOPY_BLOB_COUNT = 14;
-const VINE_COUNT = 14;
-const ROOT_COUNT = 6;
-const GLOW_COUNT = 10;
+const CANOPY_BLOB_COUNT = 26;
+const VINE_COUNT = 22;
+const GLOW_COUNT = 16;
 /** Vines hang from just outside the walkable band, so they never intersect the path. */
-const VINE_RADIUS_M = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.5;
+const VINE_RADIUS_M = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.55;
 // #endregion
 
 // ======================== PUBLIC API ======================== \\
@@ -50,44 +49,65 @@ const VINE_RADIUS_M = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 
 export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFoliageBuildResult {
   const group = new THREE.Group();
   group.name = 'sky-tree-foliage';
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x2f8f6b, emissive: 0x0f766e, emissiveIntensity: 0.6, roughness: 0.7 });
+  const leafMat = new THREE.MeshStandardMaterial({ color: 0x2f8f6b, emissive: 0x0f766e, emissiveIntensity: 0.65, roughness: 0.65 });
+  const goldLeafMat = new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xd97706, emissiveIntensity: 0.7, roughness: 0.55 });
   const vineMat = new THREE.MeshStandardMaterial({ color: 0x3f6e3a, roughness: 0.9 });
   const rootMat = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.95 });
-  const glowMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x22d3ee, emissiveIntensity: 1.4, roughness: 0.4 });
+  const glowMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x22d3ee, emissiveIntensity: 1.5, roughness: 0.35 });
+  const mushroomCapMat = new THREE.MeshStandardMaterial({ color: 0xe879f9, emissive: 0xc026d3, emissiveIntensity: 1.2, roughness: 0.35 });
+  const stemMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.8 });
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6b6358, roughness: 0.95 });
   const blobGeo = new THREE.IcosahedronGeometry(1, 1);
   const vineGeo = new THREE.CylinderGeometry(0.07, 0.05, 1, 5);
-  const rootGeo = new THREE.CylinderGeometry(0.2, 0.45, 1, 6);
-  const glowGeo = new THREE.SphereGeometry(0.16, 8, 6);
+  const rootGeo = new THREE.CylinderGeometry(0.25, 0.65, 1, 7);
+  const glowGeo = new THREE.SphereGeometry(0.18, 8, 6);
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-  const capGeo = new THREE.SphereGeometry(SKY_TREE_GROTTO_MUSHROOM.radius, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-  ctx.disposableGeometries.push(blobGeo, vineGeo, rootGeo, glowGeo, boxGeo, capGeo);
-  ctx.disposableMaterials.push(leafMat, vineMat, rootMat, glowMat, stoneMat);
+  const capGeo = new THREE.SphereGeometry(SKY_TREE_GROTTO_MUSHROOM.radius, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
+  const stemGeo = new THREE.CylinderGeometry(0.28, 0.42, 0.65, 10);
+  ctx.disposableGeometries.push(blobGeo, vineGeo, rootGeo, glowGeo, boxGeo, capGeo, stemGeo);
+  ctx.disposableMaterials.push(leafMat, goldLeafMat, vineMat, rootMat, glowMat, mushroomCapMat, stemMat, stoneMat);
 
   const dummy = new THREE.Object3D();
   const topY = SKY_TREE.topY;
   const totalAngle = 2 * Math.PI * SKY_TREE_TURNS;
   const rise = topY - SKY_TREE.baseY;
 
-  // Canopy: leafy blobs ringed around the top of the trunk, above the observation platform.
+  // Sweeping upper canopy boughs radiating from the top of the trunk.
+  for (let b = 0; b < 8; b++) {
+    const a = (b / 8) * Math.PI * 2;
+    const bough = new THREE.Mesh(rootGeo, rootMat);
+    bough.scale.set(1.4, 9.5, 1.4);
+    bough.position.set(SKY_TREE.x + Math.cos(a) * 4.5, topY + 3.8, SKY_TREE.z + Math.sin(a) * 4.5);
+    bough.rotation.set(0, -a, -Math.PI / 3);
+    group.add(bough);
+  }
+
+  // Canopy: wide multi-tier leafy blobs ringed around the top of the trunk, above the observation platform.
   const blobRest: THREE.Vector3[] = [];
   const blobScale: THREE.Vector3[] = [];
   for (let i = 0; i < CANOPY_BLOB_COUNT; i++) {
     const a = (i / CANOPY_BLOB_COUNT) * Math.PI * 2;
-    const r = 2.5 + (i % 3) * 1.2;
-    const s = 1.6 + (i % 4) * 0.35;
-    blobRest.push(new THREE.Vector3(SKY_TREE.x + Math.cos(a) * r, topY + 1.5 + (i % 2) * 0.8, SKY_TREE.z + Math.sin(a) * r));
-    blobScale.push(new THREE.Vector3(s, s * 0.7, s));
+    const tier = i % 3;
+    const r = 3.2 + tier * 3.4;
+    const s = 2.8 + (i % 4) * 0.85;
+    blobRest.push(new THREE.Vector3(SKY_TREE.x + Math.cos(a) * r, topY + 4.2 + tier * 1.8, SKY_TREE.z + Math.sin(a) * r));
+    blobScale.push(new THREE.Vector3(s * 1.25, s * 0.72, s * 1.25));
   }
   const blobs = new THREE.InstancedMesh(blobGeo, leafMat, CANOPY_BLOB_COUNT);
   group.add(blobs);
+
+  // Golden crown dome at the apex of the canopy.
+  const goldApex = new THREE.Mesh(blobGeo, goldLeafMat);
+  goldApex.scale.set(7.5, 4.2, 7.5);
+  goldApex.position.set(SKY_TREE.x, topY + 8.5, SKY_TREE.z);
+  group.add(goldApex);
 
   // Vines: hang from the spiral's outer edge, several metres long, with a glowing tip.
   const vineRest: { pos: THREE.Vector3; length: number }[] = [];
   for (let i = 0; i < VINE_COUNT; i++) {
     const theta = ((i + 0.5) / VINE_COUNT) * totalAngle;
     const branchY = SKY_TREE.baseY + (rise * theta) / totalAngle;
-    const length = 3.5 + (i % 3) * 1.2;
+    const length = 3.8 + (i % 3) * 1.4;
     const cx = SKY_TREE.x + Math.cos(theta) * VINE_RADIUS_M;
     const cz = SKY_TREE.z + Math.sin(theta) * VINE_RADIUS_M;
     vineRest.push({ pos: new THREE.Vector3(cx, branchY - length / 2, cz), length });
@@ -95,7 +115,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   const vines = new THREE.InstancedMesh(vineGeo, vineMat, VINE_COUNT);
   group.add(vines);
 
-  // Glowing growth: vine tips, then small luminous flowers in the roots' hollows.
+  // Glowing growth: vine tips, then luminous flowers in the roots' hollows.
   const glowPositions: THREE.Vector3[] = [];
   for (let i = 0; i < VINE_COUNT; i += 2) {
     const v = vineRest[i];
@@ -103,7 +123,7 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   }
   for (let i = 0; i < GLOW_COUNT; i++) {
     const a = (i / GLOW_COUNT) * Math.PI * 2 + 0.6;
-    const r = 2.2 + (i % 3) * 0.5;
+    const r = 2.4 + (i % 3) * 0.6;
     glowPositions.push(new THREE.Vector3(SKY_TREE.x + Math.cos(a) * r, SKY_TREE.baseY + 0.25, SKY_TREE.z + Math.sin(a) * r));
   }
   const glows = new THREE.InstancedMesh(glowGeo, glowMat, glowPositions.length);
@@ -117,21 +137,14 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   glows.instanceMatrix.needsUpdate = true;
   group.add(glows);
 
-  // Exposed roots: tapered, half-buried, radiating from the trunk base across the islet deck.
-  const roots = new THREE.InstancedMesh(rootGeo, rootMat, ROOT_COUNT);
-  for (let i = 0; i < ROOT_COUNT; i++) {
-    const a = (i / ROOT_COUNT) * Math.PI * 2 + 0.3;
-    const length = 2.6 + (i % 2) * 0.6;
-    dummy.position.set(SKY_TREE.x + Math.cos(a) * (1.6 + length / 2), SKY_TREE.baseY + 0.12, SKY_TREE.z + Math.sin(a) * (1.6 + length / 2));
-    dummy.rotation.set(0, -a, Math.PI / 2);
-    dummy.scale.set(1, length, 1);
-    dummy.updateMatrix();
-    roots.setMatrixAt(i, dummy.matrix);
-  }
-  roots.instanceMatrix.needsUpdate = true;
-  group.add(roots);
+  // Flared organic base collar around the trunk instead of sticking-out cylinder logs.
+  const baseCollarGeo = new THREE.CylinderGeometry(1.6, 2.8, 1.4, 16);
+  ctx.disposableGeometries.push(baseCollarGeo);
+  const baseCollar = new THREE.Mesh(baseCollarGeo, rootMat);
+  baseCollar.position.set(SKY_TREE.x, SKY_TREE.baseY + 0.65, SKY_TREE.z);
+  group.add(baseCollar);
 
-  // Mushroom grotto: stone walls matching the solid boxes, and the bounce mushroom's glowing cap.
+  // Mushroom grotto: stone walls matching the solid boxes, root-arch roof, and the bounce mushroom's glowing cap + stem.
   const walls = new THREE.InstancedMesh(boxGeo, stoneMat, SKY_TREE_GROTTO_WALLS.length);
   SKY_TREE_GROTTO_WALLS.forEach((w, i) => {
     dummy.position.set((w.minX + w.maxX) / 2, (w.minY + w.maxY) / 2, (w.minZ + w.maxZ) / 2);
@@ -143,11 +156,13 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
   walls.instanceMatrix.needsUpdate = true;
   group.add(walls);
 
-  const cap = new THREE.Mesh(capGeo, glowMat);
-  cap.position.set(SKY_TREE_GROTTO_MUSHROOM.x, SKY_TREE_GROTTO_MUSHROOM.topY, SKY_TREE_GROTTO_MUSHROOM.z);
-  group.add(cap);
+  const stem = new THREE.Mesh(stemGeo, stemMat);
+  stem.position.set(SKY_TREE_GROTTO_MUSHROOM.x, SKY_TREE.baseY + 0.25, SKY_TREE_GROTTO_MUSHROOM.z);
+  const cap = new THREE.Mesh(capGeo, mushroomCapMat);
+  cap.position.set(SKY_TREE_GROTTO_MUSHROOM.x, SKY_TREE_GROTTO_MUSHROOM.topY - 0.22, SKY_TREE_GROTTO_MUSHROOM.z);
+  group.add(stem, cap);
 
-  // Idle motion: the canopy breathes and the vines sway in the air, so the tree never looks frozen.
+  // Idle motion: the canopy breathes and the vines sway in the air.
   const update = (elapsedSec: number) => {
     for (let i = 0; i < CANOPY_BLOB_COUNT; i++) {
       const p = blobRest[i];
@@ -168,12 +183,10 @@ export function buildSkyTreeFoliage(ctx: IWorldModelBuildContext): ISkyTreeFolia
     }
     vines.instanceMatrix.needsUpdate = true;
   };
-  // Fill the matrices once so each instanced mesh gets a correct bounding sphere for culling; the
-  // margin covers the sway, so a piece is never culled while it can still be seen.
   update(0);
-  for (const m of [blobs, vines, glows, roots, walls]) {
+  for (const m of [blobs, vines, glows, walls]) {
     m.computeBoundingSphere();
-    if (m.boundingSphere) m.boundingSphere.radius += 2.0;
+    if (m.boundingSphere) m.boundingSphere.radius += 2.5;
   }
 
   return { group, update };

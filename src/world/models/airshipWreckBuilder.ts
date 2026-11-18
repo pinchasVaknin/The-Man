@@ -1,8 +1,9 @@
 // ============================================================================
 // MODULE: World / Models / Skybound Isles / Forgotten Airship wreck
-// DESIGN: The hull is a weathered wooden box that matches the walkable hull deck, and the
-//         navigation lever is a brass post with a knob. The lever glows once its puzzle is solved.
-// SUMMARY: Builds the broken hull and the navigation lever of the Forgotten Airship wreck.
+// DESIGN: Clean, well-proportioned wooden hull deck matching `AIRSHIP_WRECK_HULL` with
+//         subtle side gunwale kerbs, brass navigation lever, pushable crate, hatch chest,
+//         and captain's journal (free of visual clutter on the small lower island).
+// SUMMARY: Builds the broken sky-galleon hull and navigation lever of the Forgotten Airship wreck.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -39,7 +40,7 @@ const LEVER_POST_HEIGHT_M = 1.3;
 // ======================== PUBLIC API ======================== \\
 // #region Build
 /**
- * Summary: Builds the broken hull and the navigation lever.
+ * Summary: Builds the broken sky-galleon hull and the navigation lever.
  * @param ctx Shared build context.
  * @returns The root group (not yet added to the scene) and the per-frame update.
  */
@@ -47,18 +48,32 @@ export function buildAirshipWreck(ctx: IWorldModelBuildContext): IAirshipWreckBu
   const group = new THREE.Group();
   group.name = 'airship-wreck';
   const h = AIRSHIP_WRECK_HULL;
-  const hullGeo = new THREE.BoxGeometry(h.maxX - h.minX, HULL_THICKNESS_M, h.maxZ - h.minZ);
-  const hullMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 0.9 });
+  const cx = (h.minX + h.maxX) / 2;
+  const cz = (h.minZ + h.maxZ) / 2;
+  const sx = h.maxX - h.minX;
+  const sz = h.maxZ - h.minZ;
+
+  const hullGeo = new THREE.BoxGeometry(sx, HULL_THICKNESS_M, sz);
+  const gunwaleGeo = new THREE.BoxGeometry(0.24, 0.28, sz);
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 0.88, bumpMap: ctx.textures.rockBump, bumpScale: 0.04 });
+  const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a3119, roughness: 0.9 });
   const brassMat = new THREE.MeshStandardMaterial({ color: 0xb08d3a, metalness: 0.7, roughness: 0.35 });
   const litMat = new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: 0xfacc15, emissiveIntensity: 1.6, roughness: 0.3 });
   const postGeo = new THREE.CylinderGeometry(0.08, 0.1, LEVER_POST_HEIGHT_M, 8);
   const knobGeo = new THREE.SphereGeometry(0.22, 10, 8);
-  ctx.disposableGeometries.push(hullGeo, postGeo, knobGeo);
-  ctx.disposableMaterials.push(hullMat, brassMat, litMat);
+  ctx.disposableGeometries.push(hullGeo, gunwaleGeo, postGeo, knobGeo);
+  ctx.disposableMaterials.push(hullMat, darkWoodMat, brassMat, litMat);
 
   const hull = new THREE.Mesh(hullGeo, hullMat);
-  hull.position.set((h.minX + h.maxX) / 2, h.y - HULL_THICKNESS_M / 2, (h.minZ + h.maxZ) / 2);
+  hull.position.set(cx, h.y - HULL_THICKNESS_M / 2, cz);
   group.add(hull);
+
+  // Clean low wooden side gunwales framing the hull deck without protruding clutter
+  for (const side of [-1, 1]) {
+    const gunwale = new THREE.Mesh(gunwaleGeo, darkWoodMat);
+    gunwale.position.set(cx + side * (sx / 2 - 0.12), h.y + 0.14, cz);
+    group.add(gunwale);
+  }
 
   const lever = AIRSHIP_NAVIGATION_LEVER;
   const post = new THREE.Mesh(postGeo, brassMat);

@@ -39,7 +39,7 @@ const RUINS_DECK_Y = getSkyIsland('ancient-sky-ruins')!.deckY;
 
 /** Summary: The four Wind Cores, one per main island, in socket order. */
 export const WIND_CORES: readonly IWindCoreDef[] = [
-  { id: 'wind-core-garden', islandId: 'floating-garden', x: SKY_TREE.x + 4.6, y: SKY_TREE_CROWN.y, z: SKY_TREE.z, socketIndex: 0 },
+  { id: 'wind-core-garden', islandId: 'floating-garden', x: SKY_TREE.x + 5.8, y: SKY_TREE_CROWN.y, z: SKY_TREE.z, socketIndex: 0 },
   { id: 'wind-core-observatory', islandId: 'sky-observatory', x: OBSERVATORY_CHAMBER.minX + 0.9, y: OBSERVATORY_DECK_Y, z: OBSERVATORY_CHAMBER.minZ + 3.2, socketIndex: 1 },
   { id: 'wind-core-crystal', islandId: 'crystal-isles', x: CRYSTAL_GROTTO.minX + 2.0, y: CRYSTAL_GROTTO.y, z: CRYSTAL_GROTTO.minZ + 1.5, socketIndex: 2 },
   { id: 'wind-core-ruins', islandId: 'ancient-sky-ruins', x: RUINS_TEMPLE.minX + 3.5, y: RUINS_DECK_Y, z: RUINS_TEMPLE.minZ + 2.5, socketIndex: 3 },

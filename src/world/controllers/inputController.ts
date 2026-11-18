@@ -381,7 +381,9 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
         }
       } else if (e.button === 0) {
         lookState.isDraggingLook = true;
-        if (!playerState.isSwimming && playerState.equippedTool === 'sword') {
+        if (playerState.telescopeViewId) {
+          // Looking through a telescope: left-click drags or locks pointer to pan the telescope without drawing weapons
+        } else if (!playerState.isSwimming && playerState.equippedTool === 'sword') {
           // Left mouse button with Sword: tap for quick horizontal cleave, hold >= 0.24s for Heavy Forward Air-Cleaving Power Attack!
           actionState.isSwordAttackHeld = true;
           actionState.swordHoldDuration = 0;
@@ -430,14 +432,18 @@ export function attachInputListeners(ctx: IInputControllerContext): () => void {
       if (document.pointerLockElement === renderer.domElement) {
         lookState.accumYawDelta -= e.movementX * 0.0022 * sens;
         lookState.accumPitchDelta -= e.movementY * 0.0022 * sens;
-      } else if (lookState.isDraggingLook) {
-        const dx = e.clientX - lookState.lastPointerX;
-        const dy = e.clientY - lookState.lastPointerY;
+      } else if (lookState.isDraggingLook || playerState.telescopeViewId) {
+        const hasPrev = lookState.lastPointerX !== 0 || lookState.lastPointerY !== 0;
+        const dx = hasPrev ? e.clientX - lookState.lastPointerX : 0;
+        const dy = hasPrev ? e.clientY - lookState.lastPointerY : 0;
         lookState.lastPointerX = e.clientX;
         lookState.lastPointerY = e.clientY;
         lookState.accumYawDelta -= dx * 0.0045 * sens;
         lookState.accumPitchDelta -= dy * 0.0045 * sens;
-        if (Math.hypot(e.clientX - lookState.mouseDownStartX, e.clientY - lookState.mouseDownStartY) > 16) {
+        if (
+          lookState.isDraggingLook &&
+          Math.hypot(e.clientX - lookState.mouseDownStartX, e.clientY - lookState.mouseDownStartY) > 16
+        ) {
           lookState.mouseMovedWhileDown = true;
         }
       }

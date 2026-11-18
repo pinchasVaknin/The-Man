@@ -129,7 +129,7 @@ export function buildCelestialSkyArchipelagoModels(
   const floatingCrystals: THREE.Mesh[] = [];
 
   // ==========================================================================
-  // 2. GROUND BASE & ASCENT: ASTRAL STARGATE DOCK & HELICAL CLOUD-CRYSTAL TOWER
+  // 2. GROUND BASE & ASCENT: CLEAN CENTRAL WATERFALL COLUMN & SPIRAL STEPPING ISLANDS
   // ==========================================================================
   const wfX = FLOATING_ISLAND_STAIR_POS.waterfallX;
   const wfZ = FLOATING_ISLAND_STAIR_POS.waterfallZ;
@@ -137,99 +137,22 @@ export function buildCelestialSkyArchipelagoModels(
   const wfTopY = FLOATING_ISLAND_STAIR_POS.topY;
   const wfHeight = wfTopY - wfFootY;
 
-  // 2A. Octagonal Lapis-Obsidian & Gold Star-Compass Sanctum rising from the sea at (wfX - 5, 3.25, wfZ)
-  const dockOctagonOuterGeo = new THREE.CylinderGeometry(23.5, 27.0, 1.4, 8);
-  const dockOctagonInnerGeo = new THREE.CylinderGeometry(18.5, 19.5, 0.45, 8);
-  const dockStarPointGeo = new THREE.ConeGeometry(5.5, 14.0, 4);
-  dockStarPointGeo.rotateX(Math.PI / 2);
-  const dockButtressMonolithGeo = new THREE.BoxGeometry(4.2, 11.5, 6.8);
-  const stargateRingGeo = new THREE.TorusGeometry(8.6, 0.58, 10, 32);
-  const stargateInnerRingGeo = new THREE.TorusGeometry(7.2, 0.26, 8, 28);
-  const westStarRampGeo = new THREE.BoxGeometry(18.5, 0.55, 8.6);
-  const entryPlazaSlabGeo = new THREE.BoxGeometry(11.0, 0.52, 8.4);
-
-  disposableGeometries.push(
-    dockOctagonOuterGeo,
-    dockOctagonInnerGeo,
-    dockStarPointGeo,
-    dockButtressMonolithGeo,
-    stargateRingGeo,
-    stargateInnerRingGeo,
-    westStarRampGeo,
-    entryPlazaSlabGeo
-  );
-
-  const dockCenterX = wfX - 5.0;
-  const dockBaseMesh = new THREE.Mesh(dockOctagonOuterGeo, astralLapisMat);
-  dockBaseMesh.position.set(dockCenterX, 3.25 - 0.72, wfZ);
-  dockBaseMesh.receiveShadow = !isSoftwareGl;
-  floatingIslandsGroup.add(dockBaseMesh);
-
-  const dockInlayMesh = new THREE.Mesh(dockOctagonInnerGeo, celestialIvoryMat);
-  dockInlayMesh.position.set(dockCenterX, 3.25 - 0.2, wfZ);
-  dockInlayMesh.receiveShadow = !isSoftwareGl;
-  floatingIslandsGroup.add(dockInlayMesh);
-
-  // 8 Star-Compass Points & Sea-Wall Obsidian-Gold Buttresses around the Ground Sanctum
-  for (let b = 0; b < 8; b++) {
-    const bAng = (b / 8) * Math.PI * 2;
-    const bx = dockCenterX + Math.cos(bAng) * 24.5;
-    const bz = wfZ + Math.sin(bAng) * 24.5;
-
-    const starPt = new THREE.Mesh(dockStarPointGeo, celestialGoldMat);
-    starPt.position.set(bx, 2.2, bz);
-    starPt.rotation.y = -bAng + Math.PI / 2;
-    floatingIslandsGroup.add(starPt);
-
-    const monolith = new THREE.Mesh(dockButtressMonolithGeo, astralLapisMat);
-    monolith.position.set(dockCenterX + Math.cos(bAng) * 31.0, -1.2, wfZ + Math.sin(bAng) * 31.0);
-    monolith.rotation.y = -bAng;
-    floatingIslandsGroup.add(monolith);
-
-    const pylonCrys = new THREE.Mesh(crystalPrismGeo, b % 2 === 0 ? aetherCyanCrystalMat : radiantSunGoldMat);
-    pylonCrys.scale.set(1.35, 2.2, 1.35);
-    pylonCrys.position.set(dockCenterX + Math.cos(bAng) * 21.8, 5.8, wfZ + Math.sin(bAng) * 21.8);
-    floatingIslandsGroup.add(pylonCrys);
-    floatingCrystals.push(pylonCrys);
-  }
-
-  // Western Shoreline Golden Star-Ramp & Entry Plaza
-  const westRampMesh = new THREE.Mesh(westStarRampGeo, celestialGoldMat);
-  westRampMesh.position.set(FLOATING_ISLAND_STAIR_POS.entryRampStartX - 8.2, 2.02, wfZ);
-  westRampMesh.rotation.z = Math.atan2(3.18 - 1.15, 16.5);
-  floatingIslandsGroup.add(westRampMesh);
-
-  const entryPlazaMesh = new THREE.Mesh(entryPlazaSlabGeo, celestialIvoryMat);
-  entryPlazaMesh.position.set(FLOATING_ISLAND_STAIR_POS.entryRampStartX + 4.7, 3.12, wfZ);
-  entryPlazaMesh.rotation.z = 0.024;
-  floatingIslandsGroup.add(entryPlazaMesh);
-
-  // Colossal Vertical Rotating Stargate Portal Ring at the Ground Entrance (entryGateX)
-  const entryGateX = FLOATING_ISLAND_STAIR_POS.entryRampStartX + 1.5;
-  const groundStargateOuter = new THREE.Mesh(stargateRingGeo, celestialGoldMat);
-  groundStargateOuter.rotation.y = Math.PI / 2;
-  groundStargateOuter.position.set(entryGateX, 8.8, wfZ);
-  const groundStargateInner = new THREE.Mesh(stargateInnerRingGeo, aetherCyanCrystalMat);
-  groundStargateInner.rotation.y = Math.PI / 2;
-  groundStargateInner.position.set(entryGateX, 8.8, wfZ);
-  floatingIslandsGroup.add(groundStargateOuter, groundStargateInner);
-
-  // 2B. Central 65-Meter Spiraling Aether-Vortex Beam & Rotating Golden Starlight Rings at (wfX, wfZ)
+  // Clean central circular ring at the base of the rising waterfall column on the natural green island
   const vortexCoreGeo = new THREE.CylinderGeometry(1.85, 2.65, wfHeight, 16, 1, true);
   const vortexHelixCageGeo = new THREE.CylinderGeometry(3.2, 3.8, wfHeight, 8, 1, true);
-  const vortexRingGeo = new THREE.TorusGeometry(3.4, 0.22, 8, 8);
+  const vortexRingGeo = new THREE.TorusGeometry(3.4, 0.22, 8, 24);
   vortexRingGeo.rotateX(Math.PI / 2);
-  const vortexBaseStarGeo = new THREE.CylinderGeometry(7.8, 8.4, 0.42, 8);
+  const vortexBaseCircleGeo = new THREE.CylinderGeometry(5.2, 5.6, 0.36, 32);
 
-  disposableGeometries.push(vortexCoreGeo, vortexHelixCageGeo, vortexRingGeo, vortexBaseStarGeo);
+  disposableGeometries.push(vortexCoreGeo, vortexHelixCageGeo, vortexRingGeo, vortexBaseCircleGeo);
 
   const vortexCoreMesh = new THREE.Mesh(vortexCoreGeo, aetherBeamCoreMat);
   vortexCoreMesh.position.set(wfX, wfFootY + wfHeight * 0.5, wfZ);
   const vortexGoldRibbonMesh = new THREE.Mesh(vortexHelixCageGeo, liquidGoldStreamMat);
   vortexGoldRibbonMesh.position.set(wfX, wfFootY + wfHeight * 0.5, wfZ);
-  const vortexBaseStar = new THREE.Mesh(vortexBaseStarGeo, celestialGoldMat);
-  vortexBaseStar.position.set(wfX, wfFootY + 0.08, wfZ);
-  floatingIslandsGroup.add(vortexCoreMesh, vortexGoldRibbonMesh, vortexBaseStar);
+  const vortexBaseCircle = new THREE.Mesh(vortexBaseCircleGeo, celestialGoldMat);
+  vortexBaseCircle.position.set(wfX, wfFootY + 0.08, wfZ);
+  floatingIslandsGroup.add(vortexCoreMesh, vortexGoldRibbonMesh, vortexBaseCircle);
 
   // Upper Aether-Bridge Conduit connecting the top of the Vortex (720, -35) to the Metropolis Western Gate (733, -35) at y=68.0
   const upperConduitDeckGeo = new THREE.BoxGeometry(16.0, 0.9, 8.2);
@@ -450,11 +373,10 @@ export function buildCelestialSkyArchipelagoModels(
       if (isWithinViewDistance(SKY_HARBOR.x, SKY_HARBOR.z, playerX, playerZ, ARCHIPELAGO_ANIMATION_RADIUS, VIEW_DISTANCE)) {
         aetherCyanCrystalMat.emissiveIntensity = 2.0 + Math.sin(elapsedTime * 2.5) * 0.45;
 
-        // Rotate Ground Stargate Inner Ring & Rising Aether-Vortex Beam Rings
-        groundStargateInner.rotation.z = elapsedTime * 0.85;
+        // Rotate Rising Aether-Vortex Beam Rings
         vortexGoldRibbonMesh.rotation.y = elapsedTime * 1.25;
         for (let r = 0; r < vortexRings.length; r++) {
-          const riseT = (elapsedTime * 0.38 + r / vortexRings.length) % 1.0;
+          const riseT = (((elapsedTime * 0.38 + r / vortexRings.length) % 1.0) + 1.0) % 1.0;
           const vRing = vortexRings[r];
           vRing.position.y = wfFootY + riseT * wfHeight;
           vRing.rotation.y = elapsedTime * (r % 2 === 0 ? 1.5 : -1.5);
@@ -483,7 +405,7 @@ export function buildCelestialSkyArchipelagoModels(
       // Animate Celestial Wind-Ring & Thermal Launch Pads
       for (let i = 0; i < animatedGeyserRings.length; i++) {
         const item = animatedGeyserRings[i];
-        const cycle = (elapsedTime * 0.65 + (item.ringIndex % 3) * 0.33) % 1.0;
+        const cycle = (((elapsedTime * 0.65 + (item.ringIndex % 3) * 0.33) % 1.0) + 1.0) % 1.0;
         item.mesh.position.y = item.baseY + 0.35 + cycle * 2.2;
         item.mesh.scale.setScalar(1.05 - cycle * 0.45);
         item.mesh.rotation.y = elapsedTime * 1.8 + item.ringIndex;

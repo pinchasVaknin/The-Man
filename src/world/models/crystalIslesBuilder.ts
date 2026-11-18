@@ -1,12 +1,9 @@
 // ============================================================================
 // MODULE: World / Models / Skybound Isles / Crystal Isles
-// DESIGN: Placed from the Crystal Isles domain data. Crystals are sunk into the rock (their
-//         bases start below the deck) so they read as grown out of it, not set on top.
-//         Repeated crystals are instanced; resonance crystals and deposits are separate meshes
-//         because their glow and size follow the puzzle and mining state every frame.
-// SUMMARY: Builds and animates the Crystal Isles: islets and floating stepping rocks, the
-//          giant crystal and veins, the clue pillar, the resonance crystals, the crystal-walled
-//          passage with its melting gate, the grotto, and the mineable deposits.
+// DESIGN: Placed from the Crystal Isles domain data with a clean, spacious, uncluttered
+//         deck: central cathedral crystal spire, serene bioluminescent pool, resonance
+//         crystals, clue pillar, grotto staircase & gate, and floating stepping rocks.
+// SUMMARY: Builds and animates the Crystal Isles.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -32,7 +29,14 @@ import {
   isSkyPuzzleSolved,
   type ICrystalDisc,
 } from '../domain/landmarksRegistry';
-import { boxMesh, buildRailInstances, createMaterials, deckSlab, rampSlab, type IHarborMaterials } from './skyHarborShared';
+import {
+  boxMesh,
+  buildRailInstances,
+  createMaterials,
+  deckSlab,
+  rampSlab,
+  type IHarborMaterials,
+} from './skyHarborShared';
 import type { IWorldModelBuildContext } from './types';
 // #endregion
 
@@ -70,14 +74,16 @@ export function buildCrystalIsles(ctx: IWorldModelBuildContext): ICrystalIslesBu
   const mats = createMaterials(ctx);
   const box = new THREE.BoxGeometry(1, 1, 1);
   const shardGeo = new THREE.OctahedronGeometry(1, 0);
-  shardGeo.scale(0.45, 1.6, 0.45);
+  shardGeo.scale(0.45, 1.65, 0.45);
   ctx.disposableGeometries.push(box, shardGeo);
-  const blueCrystal = new THREE.MeshStandardMaterial({ color: 0x60a5fa, emissive: 0x1d4ed8, emissiveIntensity: 0.9, roughness: 0.15, transparent: true, opacity: 0.9 });
-  const violetCrystal = new THREE.MeshStandardMaterial({ color: 0xc084fc, emissive: 0x7e22ce, emissiveIntensity: 0.9, roughness: 0.15, transparent: true, opacity: 0.9 });
-  ctx.disposableMaterials.push(blueCrystal, violetCrystal);
 
-  const rocks = buildIsletsAndRocks(ctx, group);
-  buildGiantCrystalAndVeins(ctx, mats, box, shardGeo, blueCrystal, violetCrystal, group);
+  const blueCrystal = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x0284c7, emissiveIntensity: 1.15, roughness: 0.12, transparent: true, opacity: 0.92 });
+  const violetCrystal = new THREE.MeshStandardMaterial({ color: 0xe879f9, emissive: 0x9333ea, emissiveIntensity: 1.25, roughness: 0.12, transparent: true, opacity: 0.92 });
+  const riverGlowMat = new THREE.MeshStandardMaterial({ color: 0xa5f3fc, emissive: 0x38bdf8, emissiveIntensity: 1.35, roughness: 0.18 });
+  ctx.disposableMaterials.push(blueCrystal, violetCrystal, riverGlowMat);
+
+  const rocks = buildIsletsAndRocks(ctx, violetCrystal, riverGlowMat, group);
+  buildCentralCrystalAndPool(ctx, mats, box, shardGeo, blueCrystal, violetCrystal, riverGlowMat, group);
   const resonance = buildResonanceCrystals(ctx, mats, box, shardGeo, group);
   const gate = buildPassageAndGrotto(ctx, mats, box, shardGeo, violetCrystal, group);
   const deposits = buildDeposits(shardGeo, blueCrystal, violetCrystal, group);
@@ -90,7 +96,7 @@ export function buildCrystalIsles(ctx: IWorldModelBuildContext): ICrystalIslesBu
       const solved = isSkyPuzzleSolved('crystal-resonance');
       for (const r of resonance) {
         const lit = solved || RESONANCE_ORDER.indexOf(r.id) < progress;
-        r.material.emissiveIntensity = lit ? 2.4 + Math.sin(elapsedSec * 4) * 0.5 : 0.5;
+        r.material.emissiveIntensity = lit ? 2.5 + Math.sin(elapsedSec * 4) * 0.5 : 0.55;
       }
       const gateScale = solved ? Math.max(0.001, gate.scale.y - 0.02) : 1;
       gate.scale.set(1, gateScale, 1);
@@ -105,46 +111,59 @@ export function buildCrystalIsles(ctx: IWorldModelBuildContext): ICrystalIslesBu
       rocks.forEach((rock, i) => {
         rock.position.y = rock.userData.baseY + Math.sin(elapsedSec * 0.9 + i) * 0.04;
       });
-      blueCrystal.emissiveIntensity = 0.8 + Math.sin(elapsedSec * 1.3) * 0.2;
-      violetCrystal.emissiveIntensity = 0.8 + Math.cos(elapsedSec * 1.1) * 0.2;
+      blueCrystal.emissiveIntensity = 1.05 + Math.sin(elapsedSec * 1.3) * 0.25;
+      violetCrystal.emissiveIntensity = 1.15 + Math.cos(elapsedSec * 1.1) * 0.25;
+      riverGlowMat.emissiveIntensity = 1.3 + Math.sin(elapsedSec * 2.0) * 0.25;
     },
   };
 }
 // #endregion
 
 // ======================== PRIVATE HELPERS ======================== \\
-// #region Islets And Rocks
-function buildIsletsAndRocks(ctx: IWorldModelBuildContext, group: THREE.Group): THREE.Group[] {
-  const topGeo = new THREE.CylinderGeometry(1, 1, 1, 18);
+// #region Islets & Stepping Rocks
+function buildIsletsAndRocks(
+  ctx: IWorldModelBuildContext,
+  violetCrystal: THREE.Material,
+  riverGlowMat: THREE.Material,
+  group: THREE.Group
+): THREE.Group[] {
+  const topGeo = new THREE.CylinderGeometry(1, 1.04, 1, 18);
+  const rimGeo = new THREE.TorusGeometry(1, 0.05, 8, 24);
+  rimGeo.rotateX(Math.PI / 2);
   const underGeo = new THREE.ConeGeometry(1, 1, 9);
   underGeo.rotateX(Math.PI);
-  ctx.disposableGeometries.push(topGeo, underGeo);
-  const deckMat = new THREE.MeshStandardMaterial({ color: 0x8e7fd0, roughness: 0.85 });
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x3d3566, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1 });
+  ctx.disposableGeometries.push(topGeo, rimGeo, underGeo);
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0x583c87, roughness: 0.85 });
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x2a1f4a, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.1 });
   ctx.disposableMaterials.push(deckMat, rockMat);
 
-  const disc = (d: ICrystalDisc, thickness: number, depth: number): THREE.Group => {
+  const disc = (d: ICrystalDisc, thickness: number, depth: number, isViolet: boolean): THREE.Group => {
     const g = new THREE.Group();
     g.position.set(d.x, d.y, d.z);
     g.userData.baseY = d.y;
     const top = new THREE.Mesh(topGeo, deckMat);
     top.scale.set(d.radius, thickness, d.radius);
     top.position.y = -thickness / 2;
+    const rim = new THREE.Mesh(rimGeo, isViolet ? violetCrystal : riverGlowMat);
+    rim.scale.set(d.radius - 0.06, d.radius - 0.06, 1);
+    rim.position.y = 0.02;
     const under = new THREE.Mesh(underGeo, rockMat);
     under.scale.set(d.radius * 0.95, depth, d.radius * 0.95);
     under.position.y = -thickness - depth / 2;
-    g.add(top, under);
+    g.add(top, rim, under);
     return g;
   };
 
-  for (const islet of CRYSTAL_ISLETS) {
-    const g = disc(islet, 1.6, islet.radius * 1.4);
-    group.add(g);
+  for (let i = 0; i < CRYSTAL_ISLETS.length; i++) {
+    const islet = CRYSTAL_ISLETS[i];
+    group.add(disc(islet, 1.6, islet.radius * 1.45, i % 2 === 0));
   }
+
   const rocks: THREE.Group[] = [];
   for (const path of CRYSTAL_STEPPING_ROCKS) {
-    for (const rock of path.rocks) {
-      const g = disc(rock, 0.6, rock.radius * 1.6);
+    for (let rIdx = 0; rIdx < path.rocks.length; rIdx++) {
+      const rock = path.rocks[rIdx];
+      const g = disc(rock, 0.68, rock.radius * 1.65, rIdx % 2 === 1);
       group.add(g);
       rocks.push(g);
     }
@@ -153,57 +172,64 @@ function buildIsletsAndRocks(ctx: IWorldModelBuildContext, group: THREE.Group): 
 }
 // #endregion
 
-// #region Giant Crystal And Veins
-function buildGiantCrystalAndVeins(
+// #region Central Crystal Monolith, Serene Pool & Clean Clusters
+function buildCentralCrystalAndPool(
   ctx: IWorldModelBuildContext,
   mats: IHarborMaterials,
   box: THREE.BoxGeometry,
   shardGeo: THREE.BufferGeometry,
   blue: THREE.Material,
   violet: THREE.Material,
+  riverGlowMat: THREE.Material,
   group: THREE.Group
 ): void {
   const giantGeo = new THREE.OctahedronGeometry(1, 0);
-  giantGeo.scale(GIANT_CRYSTAL.radius * 1.2, GIANT_CRYSTAL.height * 0.62, GIANT_CRYSTAL.radius * 1.2);
-  ctx.disposableGeometries.push(giantGeo);
-  const giant = new THREE.Mesh(giantGeo, mats.crystal);
-  // Sunk by a third of its height, so it grows out of the deck.
-  giant.position.set(GIANT_CRYSTAL.x, DECK_Y + GIANT_CRYSTAL.height * 0.3, GIANT_CRYSTAL.z);
+  giantGeo.scale(GIANT_CRYSTAL.radius * 1.15, GIANT_CRYSTAL.height * 0.68, GIANT_CRYSTAL.radius * 1.15);
+  const poolGeo = new THREE.CylinderGeometry(1, 1, 0.06, 32);
+  ctx.disposableGeometries.push(giantGeo, poolGeo);
+
+  // 1. Central cathedral crystal monolith (`GIANT_CRYSTAL`) with two clean flanking companion spires.
+  const giant = new THREE.Mesh(giantGeo, violet);
+  giant.position.set(GIANT_CRYSTAL.x, DECK_Y + GIANT_CRYSTAL.height * 0.34, GIANT_CRYSTAL.z);
   group.add(giant);
-  for (let k = 0; k < 6; k++) {
-    const a = (k / 6) * Math.PI * 2;
-    const satellite = new THREE.Mesh(shardGeo, k % 2 === 0 ? violet : blue);
-    satellite.scale.setScalar(1.6 + (k % 3) * 0.4);
-    satellite.position.set(GIANT_CRYSTAL.x + Math.cos(a) * 3.2, DECK_Y + 0.6, GIANT_CRYSTAL.z + Math.sin(a) * 3.2);
-    satellite.rotation.set(Math.sin(a) * 0.4, 0, -Math.cos(a) * 0.4);
-    group.add(satellite);
+
+  for (const [ox, oz, hScale, wScale, tiltZ, isViolet] of [
+    [-1.4, -0.6, 0.72, 0.68, 0.07, false],
+    [1.3, 0.5, 0.66, 0.62, -0.08, true],
+  ] as const) {
+    const twin = new THREE.Mesh(giantGeo, isViolet ? violet : blue);
+    twin.scale.set(wScale, hScale, wScale);
+    twin.position.set(GIANT_CRYSTAL.x + ox, DECK_Y + GIANT_CRYSTAL.height * 0.3 * hScale, GIANT_CRYSTAL.z + oz);
+    twin.rotation.z = tiltZ;
+    group.add(twin);
   }
 
-  // Glowing mineral veins radiating across the deck from the giant crystal.
-  for (let k = 0; k < 7; k++) {
-    const a = (k / 7) * Math.PI * 2 + 0.3;
-    const len = 8 + (k % 3) * 4;
-    const cx = GIANT_CRYSTAL.x + Math.cos(a) * (3.5 + len / 2);
-    const cz = GIANT_CRYSTAL.z + Math.sin(a) * (3.5 + len / 2);
-    group.add(boxMesh(box, k % 2 === 0 ? violet : blue, cx, DECK_Y + 0.03, cz, len, 0.05, 0.25, -a));
-  }
+  // 2. Clean bioluminescent pool in front of the central crystal (flush with deck, zero clutter).
+  const mainPool = new THREE.Mesh(poolGeo, riverGlowMat);
+  mainPool.scale.set(5.6, 1, 4.2);
+  mainPool.position.set(MAIN.x - 1.5, DECK_Y + 0.03, MAIN.z + 8.5);
+  const poolRim = new THREE.Mesh(poolGeo, mats.darkStone);
+  poolRim.scale.set(6.2, 0.65, 4.8);
+  poolRim.position.set(MAIN.x - 1.5, DECK_Y + 0.015, MAIN.z + 8.5);
+  group.add(poolRim, mainPool);
 
-  // Crystal clusters from the layout (they are solid there), bases sunk into the rock.
+  // 3. Layout crystal clusters (matching collision boxes cleanly, without extra bush clutter).
   for (const violetOnes of [true, false]) {
     const list = CRYSTAL_CLUSTERS.filter((c) => c.violet === violetOnes);
     const mesh = new THREE.InstancedMesh(shardGeo, violetOnes ? violet : blue, list.length);
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     list.forEach((c, i) => {
-      q.setFromEuler(new THREE.Euler(((i % 5) - 2) * 0.12, i * 1.3, ((i % 3) - 1) * 0.15));
-      m.compose(new THREE.Vector3(c.x, c.y + 0.4 * c.scale, c.z), q, new THREE.Vector3(c.scale, c.scale, c.scale));
+      q.setFromEuler(new THREE.Euler(((i % 5) - 2) * 0.1, i * 1.3, ((i % 3) - 1) * 0.12));
+      m.compose(new THREE.Vector3(c.x, c.y + 0.45 * c.scale, c.z), q, new THREE.Vector3(c.scale * 0.95, c.scale * 1.15, c.scale * 0.95));
       mesh.setMatrixAt(i, m);
     });
     mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
     group.add(mesh);
   }
 
-  // Clue pillar: three gems stacked top to bottom in the resonance order.
+  // 4. Clue pillar: three gems stacked top to bottom in the resonance order.
   const p = RESONANCE_CLUE_PILLAR;
   group.add(boxMesh(box, mats.darkStone, p.x, DECK_Y + 1.6, p.z, 0.9, 3.2, 0.9));
   const gemGeo = new THREE.SphereGeometry(0.22, 12, 8);
@@ -230,12 +256,12 @@ function buildResonanceCrystals(
   group: THREE.Group
 ): IResonanceVisual[] {
   return RESONANCE_CRYSTALS.map((c) => {
-    const material = new THREE.MeshStandardMaterial({ color: RESONANCE_COLORS[c.color], emissive: RESONANCE_COLORS[c.color], emissiveIntensity: 0.5, roughness: 0.1, transparent: true, opacity: 0.92 });
+    const material = new THREE.MeshStandardMaterial({ color: RESONANCE_COLORS[c.color], emissive: RESONANCE_COLORS[c.color], emissiveIntensity: 0.55, roughness: 0.1, transparent: true, opacity: 0.92 });
     ctx.disposableMaterials.push(material);
     group.add(boxMesh(box, mats.darkStone, c.x, c.y + 0.3, c.z, 1.4, 0.6, 1.4, 0.4));
     const shard = new THREE.Mesh(shardGeo, material);
-    shard.scale.set(1.3, 1.3, 1.3);
-    shard.position.set(c.x, c.y + 1.9, c.z);
+    shard.scale.set(1.4, 1.45, 1.4);
+    shard.position.set(c.x, c.y + 2.0, c.z);
     group.add(shard);
     return { id: c.id, material };
   });
@@ -267,7 +293,6 @@ function buildPassageAndGrotto(
   under.position.set((G.minX + G.maxX) / 2, G.y - 4.8, (G.minZ + G.maxZ) / 2);
   group.add(under);
 
-  // The gate: a sheet of crystal shards that melts down when the resonance is solved.
   const g = CRYSTAL_PASSAGE_GATE;
   const gate = new THREE.Group();
   gate.position.set((g.minX + g.maxX) / 2, g.minY, (g.minZ + g.maxZ) / 2);

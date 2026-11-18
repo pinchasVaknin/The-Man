@@ -11,8 +11,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { getSkyIsland } from './skyboundLayout';
-import { SKY_BALCONIES } from './skyHarborLayout';
-import { SKY_TELESCOPES, shouldExitTelescopeView, telescopeViewFor } from './skyTelescopes';
+import { BALCONY_TELESCOPE_SPOTS } from './skyHarborLayout';
+import { OBSERVATORY_TELESCOPE_PLATFORM } from './observatoryLayout';
+import { SKY_TELESCOPES, getTelescopeRuntimeAim, shouldExitTelescopeView, telescopeViewFor } from './skyTelescopes';
 import { resolveBestLookedAtInteraction } from '../interactionLandmarks';
 import { computeTargetFov, createCameraPose, createCameraRigState, stepCameraRig } from '../../../systems/cameraRigSystem';
 import { createInitialPlayerState } from '../../../systems/playerPhysicsSystem';
@@ -21,13 +22,13 @@ import { createInitialPlayerState } from '../../../systems/playerPhysicsSystem';
 // ======================== TESTS ======================== \\
 // #region Placement
 describe('sky telescopes placement', () => {
-  it('skyTelescopes_WhenCounted_ShouldStandOneOnEveryBalcony', () => {
+  it('skyTelescopes_WhenCounted_ShouldIncludeTwoOnWindspireBalconyAndOneGiantOnObservatory', () => {
     // Arrange
-    const balconyIds = SKY_BALCONIES.map((b) => b.id).sort();
+    const expectedIds = [...BALCONY_TELESCOPE_SPOTS.map((b) => b.balconyId), OBSERVATORY_TELESCOPE_PLATFORM.id].sort();
     // Act
     const telescopeBalconies = SKY_TELESCOPES.map((t) => t.balconyId).sort();
     // Assert
-    assert.deepEqual(telescopeBalconies, balconyIds);
+    assert.deepEqual(telescopeBalconies, expectedIds);
   });
 
   for (const scope of SKY_TELESCOPES) {
@@ -150,5 +151,28 @@ describe('sky telescopes in the game systems', () => {
       { mode: 'lookAt', lookX: view.lookX, lookY: view.lookY, lookZ: view.lookZ, fov: view.fovDeg }
     );
   });
+
+  it('cameraRig_WhenPlayerPansAndTiltsWhileInTelescopeView_ShouldRotateTheLookTargetAndRuntimeAim', () => {
+    // Arrange
+    const scope = SKY_TELESCOPES[2]; // Giant Observatory Telescope
+    const player = createInitialPlayerState();
+    player.x = scope.x;
+    player.y = scope.y;
+    player.z = scope.z;
+    player.telescopeViewId = scope.id;
+    const view = telescopeViewFor(scope);
+    player.yaw = view.yaw + 0.65;
+    player.pitch = 0.25;
+    const rig = createCameraRigState();
+    const pose = createCameraPose();
+    // Act
+    stepCameraRig(rig, { player, dt: 1 / 60, elapsedSeconds: 0, landingDip: 0, isSleepingInBed: false }, pose);
+    const runtimeAim = getTelescopeRuntimeAim();
+    // Assert
+    assert.notEqual(pose.lookX, view.lookX);
+    assert.ok(pose.lookY > view.eyeY, 'looking upward with positive pitch should raise lookY above eyeY');
+    assert.deepEqual(runtimeAim, { id: scope.id, yaw: player.yaw, pitch: player.pitch });
+  });
 });
 // #endregion
+

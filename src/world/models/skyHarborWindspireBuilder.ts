@@ -5,7 +5,8 @@
 //         per core, the energy channels light at three, the crystal burns brighter with each
 //         core, and each socket lights when its own core is active.
 // SUMMARY: Builds and animates the Windspire: tower, runes, channels, crystal and rings,
-//          the spiral stair, top landing, balcony ring, Wind Core sockets and summit platform.
+//          the ornate helical staircase with golden nosings & entry portal, balcony ring,
+//          Wind Core sockets and summit platform.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -37,7 +38,7 @@ export interface IWindspireVisual {
 
 // #region Tuning
 const DECK_Y = SKY_HARBOR.deckY;
-const STAIR_STEP_COUNT = 64;
+const STAIR_STEP_COUNT = 72;
 // #endregion
 
 // ======================== PUBLIC API ======================== \\
@@ -76,25 +77,98 @@ export function buildWindspire(
   crown.position.set(cx, WINDSPIRE_SUMMIT.y - 0.6 - 1.5, cz);
   group.add(tower, plinth, crown);
 
-  // Carved rune bands and four dim energy channels running up the tower (they will light up with Wind Cores).
-  for (const bandY of [6, 16, 26, 34]) {
-    const r = WINDSPIRE.radius - (bandY / WINDSPIRE.height) * WINDSPIRE.radius * 0.28 + 0.05;
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
-      group.add(boxMesh(box, mats.runeDim, cx + Math.cos(a) * r, DECK_Y + bandY, cz + Math.sin(a) * r, 0.1, 0.6, 2.2, -a));
+  // Sculpted octagonal belt cornices & gold relief rings hugging the exact taper of the 8-sided Windspire tower.
+  for (const bandY of [7, 15, 23, 31]) {
+    const t = bandY / WINDSPIRE.height;
+    const rAtY = WINDSPIRE.radius * (1 - t * 0.28);
+    const beltGeo = new THREE.CylinderGeometry(rAtY + 0.36, rAtY + 0.44, 0.72, 8);
+    const goldBeltGeo = new THREE.CylinderGeometry(rAtY + 0.48, rAtY + 0.48, 0.18, 8);
+    ctx.disposableGeometries.push(beltGeo, goldBeltGeo);
+    const belt = new THREE.Mesh(beltGeo, mats.marble);
+    belt.position.set(cx, DECK_Y + bandY, cz);
+    const goldBelt = new THREE.Mesh(goldBeltGeo, mats.gold);
+    goldBelt.position.set(cx, DECK_Y + bandY + 0.28, cz);
+    group.add(belt, goldBelt);
+  }
+
+  // 8 Sculpted marble & gold corner buttress pilasters tilted along the exact slope of the Windspire tower.
+  const slopeAngle = Math.atan2(WINDSPIRE.radius * 0.28, WINDSPIRE.height);
+  const ribHeight = WINDSPIRE.height * 0.88;
+  const ribMidY = WINDSPIRE.height * 0.46;
+  const ribMidR = WINDSPIRE.radius * (1 - (ribMidY / WINDSPIRE.height) * 0.28) + 0.08;
+  const lancetArchGeo = new THREE.TorusGeometry(0.48, 0.11, 6, 14, Math.PI);
+  const brazierBowlGeo = new THREE.CylinderGeometry(0.45, 0.24, 0.36, 8);
+  const brazierFlameGeo = new THREE.OctahedronGeometry(0.32, 0);
+  brazierFlameGeo.scale(1, 1.65, 1);
+  ctx.disposableGeometries.push(lancetArchGeo, brazierBowlGeo, brazierFlameGeo);
+
+  const warmEmberOffMat = new THREE.MeshStandardMaterial({
+    color: 0x78350f,
+    emissive: 0x451a03,
+    emissiveIntensity: 0.35,
+    roughness: 0.45,
+  });
+  const warmSunLitMat = new THREE.MeshStandardMaterial({
+    color: 0xfef08a,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 2.4,
+    roughness: 0.2,
+  });
+  const crystalMat = mats.crystal.clone();
+  ctx.disposableMaterials.push(warmEmberOffMat, warmSunLitMat, crystalMat);
+
+  const towerLights: THREE.Mesh[] = [];
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    const ribGroup = new THREE.Group();
+    ribGroup.position.set(cx + Math.cos(a) * ribMidR, DECK_Y + ribMidY, cz + Math.sin(a) * ribMidR);
+    ribGroup.rotation.y = -a;
+    ribGroup.rotation.z = slopeAngle;
+    ribGroup.add(
+      boxMesh(box, mats.marble, 0, 0, 0, 0.42, ribHeight, 0.48),
+      boxMesh(box, mats.gold, 0.16, 0, 0, 0.14, ribHeight * 0.96, 0.22)
+    );
+    group.add(ribGroup);
+
+    // Stepped stone buttress Spur at the base of each corner rib
+    const baseR = WINDSPIRE.radius + 0.35;
+    group.add(
+      boxMesh(box, mats.darkStone, cx + Math.cos(a) * baseR, DECK_Y + 1.8, cz + Math.sin(a) * baseR, 0.95, 3.6, 0.72, -a),
+      boxMesh(box, mats.gold, cx + Math.cos(a) * baseR, DECK_Y + 3.68, cz + Math.sin(a) * baseR, 1.02, 0.18, 0.78, -a)
+    );
+
+    // Arched gothic lancet windows on the 8 faces at two upper tiers (`y = 19m` and `y = 27m`)
+    const faceA = a + Math.PI / 8;
+    for (const winY of [19, 27]) {
+      const rFace = WINDSPIRE.radius * (1 - (winY / WINDSPIRE.height) * 0.28) * Math.cos(Math.PI / 8) + 0.04;
+      const wx = cx + Math.cos(faceA) * rFace;
+      const wz = cz + Math.sin(faceA) * rFace;
+      const pane = boxMesh(box, warmEmberOffMat, wx, DECK_Y + winY, wz, 0.12, 2.4, 0.88, -faceA);
+      const frameL = boxMesh(box, mats.gold, wx + Math.sin(faceA) * 0.48, DECK_Y + winY, wz - Math.cos(faceA) * 0.48, 0.18, 2.5, 0.14, -faceA);
+      const frameR = boxMesh(box, mats.gold, wx - Math.sin(faceA) * 0.48, DECK_Y + winY, wz + Math.cos(faceA) * 0.48, 0.18, 2.5, 0.14, -faceA);
+      const sill = boxMesh(box, mats.marble, wx, DECK_Y + winY - 1.28, wz, 0.28, 0.22, 1.18, -faceA);
+      const arch = new THREE.Mesh(lancetArchGeo, mats.gold);
+      arch.position.set(wx, DECK_Y + winY + 1.2, wz);
+      arch.rotation.y = -faceA + Math.PI / 2;
+      group.add(pane, frameL, frameR, sill, arch);
+      towerLights.push(pane);
     }
   }
-  const channels: THREE.Mesh[] = [];
-  for (let k = 0; k < 4; k++) {
-    const a = (k / 4) * Math.PI * 2;
-    const r = WINDSPIRE.radius * 0.86 + 0.05;
-    const channel = boxMesh(box, mats.runeDim, cx + Math.cos(a) * r, DECK_Y + WINDSPIRE.height * 0.55, cz + Math.sin(a) * r, 0.12, WINDSPIRE.height * 0.8, 0.35, -a);
-    group.add(channel);
-    channels.push(channel);
+
+  // 8 Golden Balcony Braziers around the Windspire Balcony railing (`WINDSPIRE_BALCONY`)
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
+    const brR = WINDSPIRE_BALCONY.outerR - 0.35;
+    const bx = cx + Math.cos(a) * brR;
+    const bz = cz + Math.sin(a) * brR;
+    group.add(boxMesh(box, mats.marble, bx, WINDSPIRE_BALCONY.y + 0.55, bz, 0.52, 1.1, 0.52));
+    const bowl = new THREE.Mesh(brazierBowlGeo, mats.gold);
+    bowl.position.set(bx, WINDSPIRE_BALCONY.y + 1.22, bz);
+    const flame = new THREE.Mesh(brazierFlameGeo, warmSunLitMat);
+    flame.position.set(bx, WINDSPIRE_BALCONY.y + 1.65, bz);
+    group.add(bowl, flame);
+    towerLights.push(flame);
   }
-  const litMat = new THREE.MeshStandardMaterial({ color: 0xbae6fd, emissive: 0x38bdf8, emissiveIntensity: 2.2, roughness: 0.25 });
-  const crystalMat = mats.crystal.clone();
-  ctx.disposableMaterials.push(litMat, crystalMat);
 
   // The crystal floats high enough to leave head room over the summit platform.
   const crystalBaseY = DECK_Y + WINDSPIRE.height + 10.0;
@@ -103,8 +177,6 @@ export function buildWindspire(
   group.add(crystal);
   const rings: THREE.Mesh[] = [];
   for (let r = 0; r < 3; r++) {
-    // Each ring gets its own heading (pivot) and a gentle tilt of at most 0.3 rad, so even the
-    // widest ring stays above the summit platform's head room while it spins in its own plane.
     const pivot = new THREE.Group();
     pivot.position.set(cx, crystalBaseY, cz);
     pivot.rotation.y = r * 1.1;
@@ -145,7 +217,7 @@ export function buildWindspire(
     group.add(boxMesh(box, mats.darkStone, s.x, DECK_Y + 0.6, s.z, 1.6, 1.2, 1.6, Math.PI / 4));
     const rim = new THREE.Mesh(socketRimGeo, mats.gold);
     rim.position.set(s.x, DECK_Y + 1.22, s.z);
-    const stone = boxMesh(box, mats.runeDim, s.x, DECK_Y + 1.15, s.z, 0.7, 0.12, 0.7, Math.PI / 4);
+    const stone = boxMesh(box, warmEmberOffMat, s.x, DECK_Y + 1.15, s.z, 0.7, 0.12, 0.7, Math.PI / 4);
     group.add(rim, stone);
     socketStones.push(stone);
   }
@@ -162,8 +234,6 @@ export function buildWindspire(
   group.add(summit, summitRim);
   return {
     update: (elapsedSec: number) => {
-      // The Windspire wakes with the Wind Cores: one more ring turns per core, the energy
-      // channels light at three, and the crystal burns brighter with every core.
       const cores = getActiveWindCoreCount();
       crystal.rotation.y = elapsedSec * (0.3 + cores * 0.25);
       crystal.position.y = crystalBaseY + Math.sin(elapsedSec * 0.9) * 0.4;
@@ -171,43 +241,84 @@ export function buildWindspire(
       rings.forEach((ring, r) => {
         if (cores > r) ring.rotation.z = elapsedSec * (r % 2 === 0 ? 0.35 : -0.5) * (cores >= 4 ? 2 : 1);
       });
-      for (const channel of channels) channel.material = cores >= 3 ? litMat : mats.runeDim;
+      for (const pane of towerLights) pane.material = cores >= 1 ? warmSunLitMat : warmEmberOffMat;
       for (const core of WIND_CORES) {
-        socketStones[core.socketIndex].material = isWindCoreActive(core.id) ? litMat : mats.runeDim;
+        socketStones[core.socketIndex].material = isWindCoreActive(core.id) ? warmSunLitMat : warmEmberOffMat;
       }
     },
   };
 }
 
-
-
-/** Instanced stair treads along the helix, each sitting just under the walkable surface. */
+/** Instanced carved marble stair treads with golden nosings, outer helical kerbs, support brackets, and a Western Staircase Portal Arch. */
 function buildWindspireStair(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
   const s = WINDSPIRE_STAIR;
   const sweep = s.turns * Math.PI * 2;
   const width = s.outerR - s.innerR;
   const midR = (s.innerR + s.outerR) / 2;
   const tread = (midR * sweep) / STAIR_STEP_COUNT;
-  const steps = new THREE.InstancedMesh(box, mats.stone, STAIR_STEP_COUNT);
+  const steps = new THREE.InstancedMesh(box, mats.marble, STAIR_STEP_COUNT);
+  const trims = new THREE.InstancedMesh(box, mats.gold, STAIR_STEP_COUNT);
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+
   for (let i = 0; i < STAIR_STEP_COUNT; i++) {
     const u = (i + 0.5) / STAIR_STEP_COUNT;
     const a = s.startAngle + sweep * u;
     const topY = s.baseY + (s.topY - s.baseY) * u;
-    const thickness = 0.5;
-    q.setFromAxisAngle(up, Math.atan2(-Math.cos(a), -Math.sin(a)));
+    const thickness = 0.52;
+    const yaw = Math.atan2(-Math.cos(a), -Math.sin(a));
+    q.setFromAxisAngle(up, yaw);
     m.compose(
       new THREE.Vector3(s.cx + Math.cos(a) * midR, topY - thickness / 2, s.cz + Math.sin(a) * midR),
       q,
-      new THREE.Vector3(tread * 1.08, thickness, width)
+      new THREE.Vector3(tread * 1.12, thickness, width)
     );
     steps.setMatrixAt(i, m);
+
+    // Golden tread nosing & outer rim accent along every step.
+    m.compose(
+      new THREE.Vector3(s.cx + Math.cos(a) * midR, topY + 0.01, s.cz + Math.sin(a) * midR),
+      q,
+      new THREE.Vector3(tread * 0.42, 0.04, width * 1.02)
+    );
+    trims.setMatrixAt(i, m);
+
+    // Architectural stone support brackets connecting every 6th step into the Windspire tower wall.
+    if (i % 6 === 0 && i > 2) {
+      group.add(
+        boxMesh(
+          box,
+          mats.darkStone,
+          s.cx + Math.cos(a) * (s.innerR + 0.45),
+          topY - 0.85,
+          s.cz + Math.sin(a) * (s.innerR + 0.45),
+          0.42,
+          1.2,
+          1.1,
+          yaw
+        )
+      );
+    }
   }
   steps.instanceMatrix.needsUpdate = true;
+  trims.instanceMatrix.needsUpdate = true;
   steps.castShadow = !ctx.isSoftwareGl;
   steps.receiveShadow = !ctx.isSoftwareGl;
-  group.add(steps);
+  group.add(steps, trims);
+
+  // Grand Western Staircase Threshold Portal at `startAngle = Math.PI` (`(s.cx - midR, s.baseY, s.cz)`).
+  const entryX = s.cx + Math.cos(s.startAngle) * midR;
+  const entryZ = s.cz + Math.sin(s.startAngle) * midR;
+  const portalArchGeo = new THREE.TorusGeometry(width * 0.56, 0.22, 8, 20, Math.PI);
+  ctx.disposableGeometries.push(portalArchGeo);
+  const portalArch = new THREE.Mesh(portalArchGeo, mats.gold);
+  portalArch.position.set(entryX, s.baseY + 2.4, entryZ + 0.35);
+  group.add(portalArch);
+  for (const rx of [s.innerR + 0.15, s.outerR - 0.15]) {
+    const px = s.cx - rx;
+    group.add(boxMesh(box, mats.marble, px, s.baseY + 1.2, entryZ + 0.35, 0.42, 2.4, 0.42));
+    group.add(boxMesh(box, mats.lanternGlow, px, s.baseY + 2.6, entryZ + 0.35, 0.28, 0.28, 0.28));
+  }
 }
 // #endregion

@@ -1,14 +1,12 @@
 // ============================================================================
 // MODULE: World / Models / Skybound Isles / Sky Harbor
-// DESIGN: Every mesh is placed from the Sky Harbor domain data (plaza, balconies, Windspire
-//         stair and balcony, garden pads and flowers, dock and airship), and railings are drawn
-//         straight from the solid boxes, so what you see is what collides. Repeated pieces
-//         (stair steps, railings, flowers, plaza pillars) are instanced.
-// SUMMARY: Builds and animates the hub of the Skybound Isles: arrival plaza and gate,
-//          Windspire (tower, runes, rings, spiral stair, landing, balcony ring, Wind Core
-//          sockets), Sky Garden (trees, ponds, mushrooms, wind flowers, perch), Sky Dock
-//          (pier, crates, crane, balloons, moored airship) and the observation balconies with
-//          their telescopes.
+// DESIGN: Placed from the Sky Harbor domain data:
+//         - Textured stone/marble pillars with carved plinths, fluted corner pilasters,
+//           belt courses, and Gothic lantern spires on the Arrival Gate & Plaza Colonnade.
+//         - A clean circular ring road encircling the central Windspire tower with
+//           straight radial avenues extending from the ring to every Harbor landmark.
+//         - Real 3D botanical broadleaf trees alongside custom lavender/pink blossom trees.
+// SUMMARY: Builds and animates Sky Harbor.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -30,11 +28,23 @@ import {
   SKY_HARBOR_SOLID_BOXES,
   SKY_WIND_FLOWERS,
   SKY_TELESCOPES,
+  aimedTelescopeLookPoint,
+  getTelescopeRuntimeAim,
   telescopeViewFor,
   getWindFlowerOpenness,
+  type ISkyTelescope,
 } from '../domain/landmarksRegistry';
 import type { IWorldModelBuildContext } from './types';
-import { boxMesh, buildRailInstances, createMaterials, deckSlab, type IHarborMaterials } from './skyHarborShared';
+import {
+  boxMesh,
+  buildCircularRingPathway,
+  buildInstancedSkyTrees,
+  buildRailInstances,
+  buildSteppedPathway,
+  createMaterials,
+  deckSlab,
+  type IHarborMaterials,
+} from './skyHarborShared';
 import { buildSkyDock } from './skyHarborDockBuilder';
 import { buildWindspire } from './skyHarborWindspireBuilder';
 // #endregion
@@ -44,21 +54,36 @@ import { buildWindspire } from './skyHarborWindspireBuilder';
 /** Summary: What the Sky Harbor builder hands back to the frame loop. */
 export interface ISkyHarborBuildResult {
   readonly group: THREE.Group;
-  /** Animates the Windspire, wind flowers, airship and balloons; call once per frame while nearby. */
+  /** Animates the Windspire, wind flowers, Koi fish, hoverbikes, airship and balloons; call once per frame while nearby. */
   readonly update: (elapsedSec: number) => void;
 }
-
 
 interface IWindFlowerVisual {
   readonly id: string;
   readonly petals: THREE.Mesh[];
   readonly glow: THREE.Mesh;
 }
+
+interface IKoiFishVisual {
+  readonly root: THREE.Group;
+  readonly tailPivot: THREE.Group;
+  readonly pondX: number;
+  readonly pondZ: number;
+  readonly orbitR: number;
+  readonly speed: number;
+  readonly phase: number;
+  readonly figureEight: boolean;
+}
+
+interface IHarborTelescopeVisual {
+  readonly scope: ISkyTelescope;
+  readonly stand: THREE.Group;
+  readonly head: THREE.Group;
+}
 // #endregion
 
 // #region Tuning
 const DECK_Y = SKY_HARBOR.deckY;
-/** Thin lift (m) for flat decals laid on the deck, so they never z-fight with it. */
 const DECAL_LIFT_M = 0.03;
 const GARDEN_FLOWER_COUNT = 90;
 const FLOWER_COLORS = [0xf0abfc, 0x93c5fd, 0xfde68a, 0x99f6e4, 0xfda4af] as const;
@@ -68,7 +93,7 @@ const FLOWER_COLORS = [0xf0abfc, 0x93c5fd, 0xfde68a, 0x99f6e4, 0xfda4af] as cons
 // #region Build
 /**
  * Summary: Builds every Sky Harbor addition and returns its frame update.
- * @param ctx Shared build context (disposal lists, obstacles, software-GL flag, textures).
+ * @param ctx Shared build context.
  * @returns The root group (not yet added to the scene) and the per-frame update.
  */
 export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildResult {
@@ -79,10 +104,11 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
   ctx.disposableGeometries.push(unitBox);
 
   buildArrivalPlaza(ctx, mats, unitBox, group);
+  buildHarborPathways(ctx, mats, unitBox, group);
   buildBalconies(mats, unitBox, group);
-  buildTelescopes(ctx, mats, unitBox, group);
+  const telescopes = buildTelescopes(ctx, mats, unitBox, group);
   const windspire = buildWindspire(ctx, mats, unitBox, group);
-  const flowers = buildSkyGarden(ctx, mats, unitBox, group);
+  const { flowers, koiFish } = buildSkyGarden(ctx, mats, unitBox, group);
   const dock = buildSkyDock(ctx, mats, unitBox, group);
   buildRailings(ctx, mats, unitBox, group);
 
@@ -97,6 +123,30 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
         });
         flower.glow.scale.setScalar(0.4 + open * 0.8);
       }
+      // Animate swimming Koi fish in the deep garden pond
+      for (let i = 0; i < koiFish.length; i++) {
+        const koi = koiFish[i];
+        const t = elapsedSec * koi.speed + koi.phase;
+        const nextT = t + 0.05;
+        const x0 = koi.pondX + Math.cos(t) * koi.orbitR;
+        const z0 = koi.pondZ + (koi.figureEight ? Math.sin(t * 2) * koi.orbitR * 0.55 : Math.sin(t) * koi.orbitR);
+        const x1 = koi.pondX + Math.cos(nextT) * koi.orbitR;
+        const z1 = koi.pondZ + (koi.figureEight ? Math.sin(nextT * 2) * koi.orbitR * 0.55 : Math.sin(nextT) * koi.orbitR);
+        koi.root.position.set(x0, DECK_Y + 0.195 + Math.sin(elapsedSec * 2.2 + i) * 0.005, z0);
+        koi.root.rotation.y = Math.atan2(x1 - x0, z1 - z0);
+        koi.tailPivot.rotation.y = Math.sin(elapsedSec * 7.8 + i * 1.3) * 0.36;
+      }
+      // Rotate Windspire Summit telescopes with live player aim & clear stand/barrel while looking through
+      const aim = getTelescopeRuntimeAim();
+      for (const tele of telescopes) {
+        const isLooking = aim.id === tele.scope.id;
+        tele.stand.visible = !isLooking;
+        if (isLooking) {
+          const view = telescopeViewFor(tele.scope);
+          const aimed = aimedTelescopeLookPoint(view, aim.yaw, aim.pitch);
+          tele.head.lookAt(aimed.lookX, aimed.lookY, aimed.lookZ);
+        }
+      }
       dock.airship.position.y = Math.sin(elapsedSec * 0.8) * 0.06;
       dock.propellers.forEach((p, i) => {
         p.rotation.x = elapsedSec * (i % 2 === 0 ? 2.2 : -2.2);
@@ -104,56 +154,153 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
       dock.balloons.forEach((b, i) => {
         b.position.y = b.userData.baseY + Math.sin(elapsedSec * 0.7 + i) * 0.35;
       });
+      dock.hoverbikes.forEach((bike, i) => {
+        bike.position.y = bike.userData.baseY + Math.sin(elapsedSec * 2.4 + i * 1.6) * 0.09;
+        bike.rotation.z = Math.sin(elapsedSec * 1.7 + i) * 0.03;
+      });
+      dock.merchantNpc.position.y = 0.18 + Math.sin(elapsedSec * 2.0) * 0.015;
+      dock.merchantNpc.rotation.y = Math.sin(elapsedSec * 0.9) * 0.18;
     },
   };
 }
 // #endregion
 
 // ======================== PRIVATE HELPERS ======================== \\
-// #region Arrival Plaza
+// #region Arrival Plaza, Textured Gate Pillars & Circular Ring Pathways
 function buildArrivalPlaza(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
   const p = ARRIVAL_PLAZA;
-  const paving = boxMesh(box, mats.marble, (p.minX + p.maxX) / 2, DECK_Y + DECAL_LIFT_M - 0.05, (p.minZ + p.maxZ) / 2, p.maxX - p.minX, 0.1, p.maxZ - p.minZ);
-  paving.receiveShadow = !ctx.isSoftwareGl;
-  group.add(paving);
+  const plazaCx = (p.minX + p.maxX) / 2;
+  const plazaCz = (p.minZ + p.maxZ) / 2;
 
-  const inlayGeo = new THREE.RingGeometry(4.2, 4.8, 48);
+  const slateSpireMat = new THREE.MeshStandardMaterial({
+    color: 0x27303f,
+    roughness: 0.55,
+    metalness: 0.35,
+    bumpMap: ctx.textures.rockBump,
+    bumpScale: 0.05,
+  });
+  const silverBlueMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    map: ctx.textures.rockAlbedo,
+    roughness: 0.65,
+    metalness: 0.2,
+    bumpMap: ctx.textures.rockBump,
+    bumpScale: 0.05,
+  });
+  ctx.disposableMaterials.push(slateSpireMat, silverBlueMat);
+
+  // Sculpted rounded-octagonal Marble & Carved-Stone Arrival Rotunda (replacing the abrupt square floor slab)
+  // that flows seamlessly into the Grand Processional Avenue toward the central Windspire Plaza.
+  const arrivalDiscGeo = new THREE.CylinderGeometry(12.2, 12.6, 0.1, 32);
+  const arrivalStoneBorderGeo = new THREE.RingGeometry(11.6, 12.65, 32);
+  arrivalStoneBorderGeo.rotateX(-Math.PI / 2);
+  const inlayGeo = new THREE.RingGeometry(4.2, 4.9, 48);
   inlayGeo.rotateX(-Math.PI / 2);
-  const runeRingGeo = new THREE.RingGeometry(2.0, 2.3, 8);
-  runeRingGeo.rotateX(-Math.PI / 2);
-  ctx.disposableGeometries.push(inlayGeo, runeRingGeo);
-  const inlay = new THREE.Mesh(inlayGeo, mats.gold);
-  inlay.position.set(752.0, DECK_Y + DECAL_LIFT_M * 2, -35.0);
-  const runeRing = new THREE.Mesh(runeRingGeo, mats.runeDim);
-  runeRing.position.set(752.0, DECK_Y + DECAL_LIFT_M * 2, -35.0);
-  group.add(inlay, runeRing);
+  const outerRingGeo = new THREE.RingGeometry(7.2, 8.1, 48);
+  outerRingGeo.rotateX(-Math.PI / 2);
+  const spireRoofGeo = new THREE.ConeGeometry(1.15, 3.8, 8);
+  const lanternCageGeo = new THREE.CylinderGeometry(0.68, 0.62, 1.35, 8);
+  ctx.disposableGeometries.push(arrivalDiscGeo, arrivalStoneBorderGeo, inlayGeo, outerRingGeo, spireRoofGeo, lanternCageGeo);
 
-  // Monumental gate: two tall pillars, a lintel and a hanging wind crystal.
+  const arrivalDisc = new THREE.Mesh(arrivalDiscGeo, mats.marble);
+  arrivalDisc.scale.set(1.12, 1, 1.05);
+  arrivalDisc.position.set(plazaCx + 1.5, DECK_Y + DECAL_LIFT_M - 0.03, plazaCz);
+  arrivalDisc.receiveShadow = !ctx.isSoftwareGl;
+  const arrivalBorder = new THREE.Mesh(arrivalStoneBorderGeo, silverBlueMat);
+  arrivalBorder.scale.set(1.12, 1.05, 1);
+  arrivalBorder.position.set(plazaCx + 1.5, DECK_Y + DECAL_LIFT_M * 1.6, plazaCz);
+  const inlay = new THREE.Mesh(inlayGeo, mats.gold);
+  inlay.position.set(plazaCx + 1.5, DECK_Y + DECAL_LIFT_M * 2, plazaCz);
+  const outerRing = new THREE.Mesh(outerRingGeo, silverBlueMat);
+  outerRing.position.set(plazaCx + 1.5, DECK_Y + DECAL_LIFT_M * 2, plazaCz);
+  group.add(arrivalDisc, arrivalBorder, inlay, outerRing);
+
+  // Monumental Arrival Gate: richly textured stone/marble pillars with carved base plinths,
+  // corner stone pilasters, horizontal relief bands, corbel capitals, lantern chambers, and spire roofs.
   const g = ARRIVAL_GATE;
+  const w = g.pillarHalf * 2;
   for (const pz of g.pillarZ) {
-    group.add(boxMesh(box, mats.stone, g.x, DECK_Y + g.height / 2, pz, g.pillarHalf * 2, g.height, g.pillarHalf * 2));
-    group.add(boxMesh(box, mats.gold, g.x, DECK_Y + g.height - 0.4, pz, g.pillarHalf * 2.3, 0.5, g.pillarHalf * 2.3));
+    // Stepped stone plinth base
+    group.add(boxMesh(box, mats.darkStone, g.x, DECK_Y + 0.35, pz, w + 0.55, 0.7, w + 0.55));
+    group.add(boxMesh(box, mats.stone, g.x, DECK_Y + 0.95, pz, w + 0.3, 0.55, w + 0.3));
+    group.add(boxMesh(box, mats.gold, g.x, DECK_Y + 1.28, pz, w + 0.36, 0.12, w + 0.36));
+
+    // Textured marble main shaft
+    group.add(boxMesh(box, mats.marble, g.x, DECK_Y + g.height / 2, pz, w, g.height, w));
+
+    // 4 Corner stone pilasters + recessed vertical fluting ribs for deep 3D architectural relief
+    const cornerOff = g.pillarHalf - 0.12;
+    for (const [cx, cz] of [
+      [-cornerOff, -cornerOff],
+      [cornerOff, -cornerOff],
+      [-cornerOff, cornerOff],
+      [cornerOff, cornerOff],
+    ] as const) {
+      group.add(boxMesh(box, mats.stone, g.x + cx, DECK_Y + g.height / 2, pz + cz, 0.38, g.height - 0.6, 0.38));
+    }
+    for (const [fx, fz, sx, sz] of [
+      [-g.pillarHalf - 0.04, 0, 0.14, 0.55],
+      [g.pillarHalf + 0.04, 0, 0.14, 0.55],
+      [0, -g.pillarHalf - 0.04, 0.55, 0.14],
+      [0, g.pillarHalf + 0.04, 0.55, 0.14],
+    ] as const) {
+      group.add(boxMesh(box, mats.darkStone, g.x + fx, DECK_Y + g.height / 2, pz + fz, sx, g.height - 1.8, sz));
+    }
+
+    // Carved horizontal stone & gold belt courses along the pillar shaft
+    for (const bandY of [4.2, 7.8, 11.2]) {
+      group.add(boxMesh(box, mats.stone, g.x, DECK_Y + bandY, pz, w + 0.28, 0.34, w + 0.28));
+      group.add(boxMesh(box, mats.gold, g.x, DECK_Y + bandY + 0.2, pz, w + 0.32, 0.09, w + 0.32));
+    }
+
+    // Capital, lantern chamber, and pointed spire roof
+    group.add(boxMesh(box, mats.stone, g.x, DECK_Y + g.height - 0.65, pz, w + 0.35, 0.45, w + 0.35));
+    group.add(boxMesh(box, mats.gold, g.x, DECK_Y + g.height - 0.25, pz, w + 0.52, 0.38, w + 0.52));
+    const lantern = new THREE.Mesh(lanternCageGeo, mats.lanternGlow);
+    lantern.position.set(g.x, DECK_Y + g.height + 0.65, pz);
+    const spire = new THREE.Mesh(spireRoofGeo, slateSpireMat);
+    spire.position.set(g.x, DECK_Y + g.height + 3.1, pz);
+    group.add(lantern, spire);
   }
   const span = Math.abs(g.pillarZ[1] - g.pillarZ[0]) + g.pillarHalf * 4;
-  group.add(boxMesh(box, mats.stone, g.x, DECK_Y + g.height + 1.0, (g.pillarZ[0] + g.pillarZ[1]) / 2, g.pillarHalf * 2.6, 2.0, span));
-  group.add(boxMesh(box, mats.runeDim, g.x - g.pillarHalf * 1.32, DECK_Y + g.height + 1.0, (g.pillarZ[0] + g.pillarZ[1]) / 2, 0.06, 0.5, span * 0.8));
-  const gateCrystalGeo = new THREE.OctahedronGeometry(1.2, 0);
-  gateCrystalGeo.scale(1, 1.7, 1);
+  const midGateZ = (g.pillarZ[0] + g.pillarZ[1]) / 2;
+  group.add(boxMesh(box, mats.stone, g.x, DECK_Y + g.height + 0.45, midGateZ, g.pillarHalf * 1.75, 0.65, span));
+  group.add(boxMesh(box, slateSpireMat, g.x, DECK_Y + g.height + 1.05, midGateZ, g.pillarHalf * 1.5, 0.75, span));
+  group.add(boxMesh(box, mats.gold, g.x - g.pillarHalf * 0.92, DECK_Y + g.height + 0.8, midGateZ, 0.14, 0.48, span * 0.88));
+  group.add(boxMesh(box, mats.gold, g.x + g.pillarHalf * 0.92, DECK_Y + g.height + 0.8, midGateZ, 0.14, 0.48, span * 0.88));
+
+  const gateCrystalGeo = new THREE.OctahedronGeometry(1.25, 0);
+  gateCrystalGeo.scale(1, 1.75, 1);
   ctx.disposableGeometries.push(gateCrystalGeo);
   const gateCrystal = new THREE.Mesh(gateCrystalGeo, mats.crystal);
-  gateCrystal.position.set(g.x, DECK_Y + g.height - 2.5, (g.pillarZ[0] + g.pillarZ[1]) / 2);
+  gateCrystal.position.set(g.x, DECK_Y + g.height - 2.4, midGateZ);
   group.add(gateCrystal);
 
-  // Colonnade pillars (instanced fluted columns with capitals).
-  const columnGeo = new THREE.CylinderGeometry(0.5, 0.6, 7.0, 10);
-  ctx.disposableGeometries.push(columnGeo);
-  const columns = new THREE.InstancedMesh(columnGeo, mats.stone, PLAZA_PILLARS.length);
+  // Colonnade Gothic Spire Lantern Pillars with carved stone bases, textured shafts, middle collar bands, and capitals.
+  const columnGeo = new THREE.CylinderGeometry(0.54, 0.66, 6.0, 16);
+  const collarRingGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.32, 16);
+  ctx.disposableGeometries.push(columnGeo, collarRingGeo);
+  const columns = new THREE.InstancedMesh(columnGeo, mats.marble, PLAZA_PILLARS.length);
   const m = new THREE.Matrix4();
   PLAZA_PILLARS.forEach((pl, i) => {
-    columns.setMatrixAt(i, m.makeTranslation(pl.x, DECK_Y + 3.5, pl.z));
-    group.add(boxMesh(box, mats.gold, pl.x, DECK_Y + 7.1, pl.z, 1.5, 0.3, 1.5));
+    columns.setMatrixAt(i, m.makeTranslation(pl.x, DECK_Y + 3.3, pl.z));
+    // Carved base plinth
+    group.add(boxMesh(box, mats.darkStone, pl.x, DECK_Y + 0.22, pl.z, 1.55, 0.44, 1.55));
+    group.add(boxMesh(box, mats.stone, pl.x, DECK_Y + 0.55, pl.z, 1.32, 0.26, 1.32));
+    // Mid-shaft stone collar ring
+    const midCollar = new THREE.Mesh(collarRingGeo, mats.stone);
+    midCollar.position.set(pl.x, DECK_Y + 3.4, pl.z);
+    // Stepped capital, lantern cage, and pointed spire roof
+    group.add(midCollar, boxMesh(box, mats.stone, pl.x, DECK_Y + 6.45, pl.z, 1.48, 0.36, 1.48));
+    group.add(boxMesh(box, mats.gold, pl.x, DECK_Y + 6.72, pl.z, 1.58, 0.16, 1.58));
+    const cage = new THREE.Mesh(lanternCageGeo, mats.lanternGlow);
+    cage.position.set(pl.x, DECK_Y + 7.45, pl.z);
+    const roof = new THREE.Mesh(spireRoofGeo, slateSpireMat);
+    roof.position.set(pl.x, DECK_Y + 9.85, pl.z);
+    group.add(cage, roof);
   });
   columns.instanceMatrix.needsUpdate = true;
+  columns.computeBoundingSphere();
   group.add(columns);
 
   for (const b of PLAZA_BENCHES) {
@@ -161,127 +308,534 @@ function buildArrivalPlaza(ctx: IWorldModelBuildContext, mats: IHarborMaterials,
     group.add(boxMesh(box, mats.darkStone, b.x - 0.8, DECK_Y + 0.17, b.z, 0.25, 0.34, 0.6));
     group.add(boxMesh(box, mats.darkStone, b.x + 0.8, DECK_Y + 0.17, b.z, 0.25, 0.34, 0.6));
   }
-  const glowGeo = new THREE.SphereGeometry(0.32, 10, 8);
-  ctx.disposableGeometries.push(glowGeo);
+  const glowGeo = new THREE.SphereGeometry(0.35, 10, 8);
+  const miniSpireGeo = new THREE.ConeGeometry(0.48, 1.1, 8);
+  ctx.disposableGeometries.push(glowGeo, miniSpireGeo);
   for (const l of PLAZA_LANTERNS) {
-    group.add(boxMesh(box, mats.darkWood, l.x, DECK_Y + 1.5, l.z, 0.3, 3.0, 0.3));
+    group.add(boxMesh(box, mats.darkStone, l.x, DECK_Y + 0.2, l.z, 0.56, 0.4, 0.56));
+    group.add(boxMesh(box, mats.stone, l.x, DECK_Y + 1.5, l.z, 0.36, 3.0, 0.36));
     const glow = new THREE.Mesh(glowGeo, mats.lanternGlow);
-    glow.position.set(l.x, DECK_Y + 3.2, l.z);
-    group.add(glow);
+    glow.position.set(l.x, DECK_Y + 3.25, l.z);
+    const cap = new THREE.Mesh(miniSpireGeo, slateSpireMat);
+    cap.position.set(l.x, DECK_Y + 4.0, l.z);
+    group.add(glow, cap);
+  }
+}
+
+/**
+ * Summary: Builds a grand circular Windspire Central Court (`r = 9.0..14.8m`) connected seamlessly
+ *          to the Western Arrival Rotunda via a wide processional avenue, plus clean avenues to
+ *          the Northern Sky Garden and the Eastern Stone Viaduct Bridge.
+ */
+function buildHarborPathways(
+  ctx: IWorldModelBuildContext,
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  group: THREE.Group
+): void {
+  const cx = SKY_HARBOR.x;
+  const cz = SKY_HARBOR.z;
+  const ringInnerR = 8.8;
+  const ringOuterR = 14.8;
+
+  // 1. Grand Circular Windspire Central Court with textured stone & marble concentric paving
+  const courtFillGeo = new THREE.CylinderGeometry(ringInnerR + 0.2, ringInnerR + 0.2, 0.07, 32);
+  ctx.disposableGeometries.push(courtFillGeo);
+  const courtFill = new THREE.Mesh(courtFillGeo, mats.stone);
+  courtFill.position.set(cx, DECK_Y + 0.02, cz);
+  group.add(courtFill);
+  group.add(buildCircularRingPathway(ctx, mats.marble, mats.gold, cx, cz, ringInnerR, ringOuterR, DECK_Y));
+
+  const spokeFromRing = (tx: number, tz: number): readonly [readonly [number, number], readonly [number, number]] => {
+    const dx = tx - cx;
+    const dz = tz - cz;
+    const len = Math.hypot(dx, dz) || 1;
+    const rStart = ringOuterR - 0.3;
+    return [
+      [cx + (dx / len) * rStart, cz + (dz / len) * rStart],
+      [tx, tz],
+    ];
+  };
+
+  // 2. Clean avenues to actual destinations (removed the diagonal SE dock spoke so it never overlaps the dock apron)
+  const radialAvenues: ReadonlyArray<{
+    readonly points: ReadonlyArray<readonly [number, number]>;
+    readonly width: number;
+  }> = [
+    // Grand West Processional Avenue: connects the Arrival Rotunda seamlessly into the Windspire Central Ring
+    {
+      points: [
+        [751.0, -35.0],
+        [cx - ringOuterR + 0.4, -35.0],
+      ],
+      width: 6.4,
+    },
+    // North Garden Promenade: Central Ring -> Northern Crescent Sky Garden & Koi Pond
+    { points: spokeFromRing(778.0, -64.0), width: 3.2 },
+    // East Viaduct Avenue: Central Ring -> Stone Viaduct Bridge to Crystal Isles
+    { points: spokeFromRing(821.0, -25.0), width: 3.2 },
+  ];
+
+  for (const ave of radialAvenues) {
+    group.add(buildSteppedPathway(box, mats.marble, mats.gold, ave.points, ave.width, DECK_Y));
   }
 }
 // #endregion
 
-// #region Balconies
+// #region Balconies & Telescopes
 function buildBalconies(mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
-  for (const b of SKY_BALCONIES) group.add(deckSlab(box, mats.stone, b, 0.6));
+  for (const b of SKY_BALCONIES) group.add(deckSlab(box, mats.marble, b, 0.65));
 }
 
-
-/** Brass telescopes on wooden stands, each tube aimed at the island it watches. */
-function buildTelescopes(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
+function buildTelescopes(
+  ctx: IWorldModelBuildContext,
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  group: THREE.Group
+): IHarborTelescopeVisual[] {
   const tubeGeo = new THREE.CylinderGeometry(0.16, 0.24, 1.8, 12);
   tubeGeo.rotateX(Math.PI / 2);
   const lensGeo = new THREE.CircleGeometry(0.24, 16);
   ctx.disposableGeometries.push(tubeGeo, lensGeo);
+  const visuals: IHarborTelescopeVisual[] = [];
   for (const scope of SKY_TELESCOPES) {
+    // Only render the telescopes belonging to Sky Harbor's Windspire Summit here;
+    // the Giant Observatory Telescope has its own monumental brass model on Sky Observatory.
+    if (!scope.balconyId.startsWith('windspire-')) continue;
     const view = telescopeViewFor(scope);
-    group.add(boxMesh(box, mats.darkWood, scope.x, scope.y + 0.65, scope.z, 0.18, 1.3, 0.18));
+    const stand = new THREE.Group();
+    stand.add(
+      boxMesh(box, mats.darkStone, scope.x, scope.y + 0.08, scope.z, 0.72, 0.16, 0.72),
+      boxMesh(box, mats.gold, scope.x, scope.y + 0.72, scope.z, 0.2, 1.35, 0.2)
+    );
     for (let k = 0; k < 3; k++) {
       const a = (k / 3) * Math.PI * 2;
-      const leg = boxMesh(box, mats.darkWood, scope.x + Math.cos(a) * 0.32, scope.y + 0.35, scope.z + Math.sin(a) * 0.32, 0.08, 0.75, 0.08);
+      const leg = boxMesh(box, mats.darkWood, scope.x + Math.cos(a) * 0.34, scope.y + 0.42, scope.z + Math.sin(a) * 0.34, 0.09, 0.85, 0.09);
       leg.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35);
-      group.add(leg);
+      stand.add(leg);
     }
     const head = new THREE.Group();
-    head.position.set(scope.x, scope.y + 1.42, scope.z);
+    head.position.set(scope.x, scope.y + 1.55, scope.z);
     head.lookAt(view.lookX, view.lookY, view.lookZ);
     const tube = new THREE.Mesh(tubeGeo, mats.gold);
     tube.position.z = 0.35;
     const lens = new THREE.Mesh(lensGeo, mats.crystal);
     lens.position.z = 1.26;
     head.add(tube, lens);
-    group.add(head);
+    stand.add(head);
+    group.add(stand);
+    visuals.push({ scope, stand, head });
   }
+  return visuals;
 }
 
-/** Every railing collision box drawn as a stone rail; one instanced mesh for all of them. */
 function buildRailings(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
   group.add(buildRailInstances(ctx, box, mats.marble, SKY_HARBOR_SOLID_BOXES));
 }
 // #endregion
 
-// #region Sky Garden
-function buildSkyGarden(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): IWindFlowerVisual[] {
+// #region Sky Garden, Deep Koi Pond, Belvedere Tower & Trees
+function buildSkyGarden(
+  ctx: IWorldModelBuildContext,
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  group: THREE.Group
+): { flowers: IWindFlowerVisual[]; koiFish: IKoiFishVisual[] } {
   const a = SKY_GARDEN_AREA;
-  const discGeo = new THREE.CylinderGeometry(1, 1, 0.08, 40);
+  const discGeo = new THREE.CylinderGeometry(1, 1, 0.08, 32);
   ctx.disposableGeometries.push(discGeo);
-  const lawn = new THREE.Mesh(discGeo, mats.grass);
-  lawn.scale.set(a.rx, 1, a.rz);
-  lawn.position.set(a.cx, DECK_Y + DECAL_LIFT_M, a.cz);
-  lawn.receiveShadow = !ctx.isSoftwareGl;
-  group.add(lawn);
 
-  for (const p of GARDEN_PONDS) {
-    const pond = new THREE.Mesh(discGeo, mats.water);
-    pond.scale.set(p.radius, 1, p.radius);
-    pond.position.set(p.x, DECK_Y + DECAL_LIFT_M * 3, p.z);
-    group.add(pond);
+  // Sculpted multi-lobed crescent garden along the northern rim, bordered by carved stone garden curbing.
+  const gardenLobes: ReadonlyArray<{ x: number; z: number; rx: number; rz: number; rotY: number; lift: number }> = [
+    { x: a.cx - 8.5, z: a.cz - 3.5, rx: 11.5, rz: 7.2, rotY: -0.28, lift: 0.04 },
+    { x: a.cx + 7.5, z: a.cz - 3.0, rx: 12.0, rz: 7.5, rotY: 0.25, lift: 0.045 },
+    { x: a.cx - 1.0, z: a.cz - 6.8, rx: 14.5, rz: 6.5, rotY: 0.05, lift: 0.05 },
+    { x: a.cx + 12.5, z: a.cz + 1.5, rx: 7.8, rz: 5.8, rotY: 0.42, lift: 0.035 },
+    { x: a.cx - 13.0, z: a.cz + 1.0, rx: 7.5, rz: 5.5, rotY: -0.38, lift: 0.035 },
+  ];
+  for (const lobe of gardenLobes) {
+    const curb = new THREE.Mesh(discGeo, mats.stone);
+    curb.scale.set(lobe.rx + 0.55, 0.85, lobe.rz + 0.55);
+    curb.position.set(lobe.x, DECK_Y + lobe.lift * 0.6, lobe.z);
+    curb.rotation.y = lobe.rotY;
+
+    const lawn = new THREE.Mesh(discGeo, mats.grass);
+    lawn.scale.set(lobe.rx, 1.1, lobe.rz);
+    lawn.position.set(lobe.x, DECK_Y + lobe.lift, lobe.z);
+    lawn.rotation.y = lobe.rotY;
+    lawn.receiveShadow = !ctx.isSoftwareGl;
+    group.add(curb, lawn);
   }
-  // Water channel from the big pond toward the tower, with a small arched bridge over it.
-  const pond = GARDEN_PONDS[0];
-  group.add(boxMesh(box, mats.water, pond.x - 1.0, DECK_Y + DECAL_LIFT_M * 3, pond.z + 6.5, 0.9, 0.06, 9.0));
-  const archGeo = new THREE.TorusGeometry(1.4, 0.18, 6, 16, Math.PI);
-  ctx.disposableGeometries.push(archGeo);
-  const arch = new THREE.Mesh(archGeo, mats.wood);
-  arch.position.set(pond.x - 1.0, DECK_Y, pond.z + 7.5);
-  arch.rotation.y = Math.PI / 2;
-  group.add(arch);
 
-  buildGardenTrees(ctx, mats, group);
+  const koiFish = buildDeepKoiPond(ctx, mats, box, discGeo, group);
+  buildGardenTrees(ctx, group);
   buildGardenFlowers(ctx, mats, group);
   buildMushrooms(ctx, mats, group);
+  buildPavilionAndCliffBlossoms(ctx, mats, box, group);
 
-  // Canopy perch: wooden platform in the giant tree's crown.
+  return { flowers: buildWindFlowers(ctx, mats, group), koiFish };
+}
+
+/**
+ * Summary: Builds a multi-layered deep Koi pond with a dark stone basin, mid-water emerald shelf,
+ *          translucent surface water, mossy shoreline boulders, lily pads, lotus flowers, and
+ *          7 animated swimming 3D Koi fish.
+ */
+function buildDeepKoiPond(
+  ctx: IWorldModelBuildContext,
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  discGeo: THREE.CylinderGeometry,
+  group: THREE.Group
+): IKoiFishVisual[] {
+  const pond = GARDEN_PONDS[0];
+  const r = pond.radius;
+
+  const deepBasinMat = new THREE.MeshStandardMaterial({
+    color: 0x03111f,
+    emissive: 0x020c18,
+    emissiveIntensity: 0.45,
+    roughness: 0.88,
+  });
+  const midShelfMat = new THREE.MeshStandardMaterial({
+    color: 0x073b54,
+    emissive: 0x052c42,
+    emissiveIntensity: 0.35,
+    roughness: 0.55,
+  });
+  const clearSurfaceMat = new THREE.MeshStandardMaterial({
+    color: 0x0284c7,
+    emissive: 0x0369a1,
+    emissiveIntensity: 0.28,
+    roughness: 0.08,
+    metalness: 0.22,
+    transparent: true,
+    opacity: 0.38,
+    depthWrite: false,
+  });
+  const lilyPadMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65 });
+  const koiOrangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xc2410c, emissiveIntensity: 0.35, roughness: 0.3 });
+  const koiWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0xe2e8f0, emissiveIntensity: 0.25, roughness: 0.3 });
+  const koiGoldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xca8a04, emissiveIntensity: 0.4, roughness: 0.25 });
+  const koiCrimsonMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x991b1b, emissiveIntensity: 0.35, roughness: 0.3 });
+  ctx.disposableMaterials.push(
+    deepBasinMat,
+    midShelfMat,
+    clearSurfaceMat,
+    lilyPadMat,
+    koiOrangeMat,
+    koiWhiteMat,
+    koiGoldMat,
+    koiCrimsonMat
+  );
+
+  const curbWallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.68, 0.28, 40, 1, true);
+  const innerWallGeo = new THREE.CylinderGeometry(r - 0.05, r - 0.25, 0.26, 40, 1, true);
+  const shelfRingGeo = new THREE.RingGeometry(r * 0.68, r * 0.99, 40);
+  shelfRingGeo.rotateX(-Math.PI / 2);
+  const copingRingGeo = new THREE.RingGeometry(r - 0.08, r + 0.62, 40);
+  copingRingGeo.rotateX(-Math.PI / 2);
+  const boulderGeo = new THREE.IcosahedronGeometry(0.55, 1);
+  const lilyPadGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.025, 14, 1, false, 0, Math.PI * 1.82);
+  const koiBodyGeo = new THREE.SphereGeometry(1, 14, 10);
+  koiBodyGeo.scale(0.14, 0.1, 0.38);
+  const koiTailGeo = new THREE.ConeGeometry(0.15, 0.28, 4);
+  koiTailGeo.scale(0.35, 1, 1.15);
+  koiTailGeo.rotateX(Math.PI / 2);
+  koiTailGeo.translate(0, 0, -0.14);
+  ctx.disposableGeometries.push(
+    curbWallGeo,
+    innerWallGeo,
+    shelfRingGeo,
+    copingRingGeo,
+    boulderGeo,
+    lilyPadGeo,
+    koiBodyGeo,
+    koiTailGeo
+  );
+
+  // 1. Multi-layered recessed basin creating a deep, crystal-clear Koi pond (raised above the garden lawn top at DECK_Y + 0.094)
+  const outerWall = new THREE.Mesh(curbWallGeo, mats.stone);
+  outerWall.position.set(pond.x, DECK_Y + 0.17, pond.z);
+  const innerWall = new THREE.Mesh(innerWallGeo, midShelfMat);
+  innerWall.position.set(pond.x, DECK_Y + 0.16, pond.z);
+
+  const coping = new THREE.Mesh(copingRingGeo, mats.marble);
+  coping.position.set(pond.x, DECK_Y + 0.312, pond.z);
+
+  const deepBottom = new THREE.Mesh(discGeo, deepBasinMat);
+  deepBottom.scale.set(r * 0.99, 0.25, r * 0.99);
+  deepBottom.position.set(pond.x, DECK_Y + 0.105, pond.z);
+
+  const midShelf = new THREE.Mesh(shelfRingGeo, midShelfMat);
+  midShelf.position.set(pond.x, DECK_Y + 0.132, pond.z);
+
+  const waterSurface = new THREE.Mesh(discGeo, clearSurfaceMat);
+  waterSurface.scale.set(r * 0.99, 0.2, r * 0.99);
+  waterSurface.position.set(pond.x, DECK_Y + 0.25, pond.z);
+
+  group.add(outerWall, innerWall, coping, deepBottom, midShelf, waterSurface);
+
+  // 2. Sculpted shoreline boulders around the pond rim
+  for (let b = 0; b < 12; b++) {
+    const ang = (b / 12) * Math.PI * 2 + 0.18;
+    const br = r + 0.28 + (b % 3) * 0.14;
+    const rock = new THREE.Mesh(boulderGeo, b % 2 === 0 ? mats.darkStone : mats.stone);
+    const s = 0.65 + (b % 3) * 0.28;
+    rock.scale.set(s * 1.2, s * 0.72, s);
+    rock.position.set(pond.x + Math.cos(ang) * br, DECK_Y + 0.25 * s, pond.z + Math.sin(ang) * br);
+    rock.rotation.y = ang * 1.7;
+    group.add(rock);
+  }
+
+  // 3. Floating green lily pads & pink lotus blossoms on the pond surface
+  const lilySpots: ReadonlyArray<readonly [number, number, number, boolean]> = [
+    [-2.4, -1.8, 0.4, true],
+    [-1.6, -2.5, 1.9, false],
+    [2.5, -1.6, 2.8, true],
+    [2.9, -0.7, 0.9, false],
+    [-2.2, 2.1, 4.1, true],
+    [1.8, 2.4, 5.2, true],
+    [0.8, 2.9, 3.4, false],
+  ];
+  for (const [lx, lz, rot, hasLotus] of lilySpots) {
+    const pad = new THREE.Mesh(lilyPadGeo, lilyPadMat);
+    pad.position.set(pond.x + lx, DECK_Y + 0.265, pond.z + lz);
+    pad.rotation.y = rot;
+    group.add(pad);
+    if (hasLotus) {
+      const lotus = new THREE.Mesh(boulderGeo, mats.petal);
+      lotus.scale.set(0.28, 0.18, 0.28);
+      lotus.position.set(pond.x + lx, DECK_Y + 0.305, pond.z + lz);
+      group.add(lotus);
+    }
+  }
+
+  // 4. Seven 3D Koi Fish (Kohaku orange/white, Yamabuki gold, Showa crimson) swimming in the pond
+  const koiSpecs: ReadonlyArray<{
+    readonly orbitR: number;
+    readonly speed: number;
+    readonly phase: number;
+    readonly figureEight: boolean;
+    readonly bodyMat: THREE.Material;
+    readonly spotMat: THREE.Material;
+    readonly scale: number;
+  }> = [
+    { orbitR: 1.5, speed: 0.55, phase: 0.0, figureEight: false, bodyMat: koiOrangeMat, spotMat: koiWhiteMat, scale: 1.15 },
+    { orbitR: 2.3, speed: -0.45, phase: 1.2, figureEight: false, bodyMat: koiWhiteMat, spotMat: koiCrimsonMat, scale: 1.05 },
+    { orbitR: 3.1, speed: 0.38, phase: 2.4, figureEight: false, bodyMat: koiGoldMat, spotMat: koiOrangeMat, scale: 1.22 },
+    { orbitR: 2.7, speed: 0.48, phase: 3.6, figureEight: true, bodyMat: koiCrimsonMat, spotMat: koiWhiteMat, scale: 1.0 },
+    { orbitR: 1.9, speed: -0.52, phase: 4.7, figureEight: false, bodyMat: koiWhiteMat, spotMat: koiOrangeMat, scale: 0.95 },
+    { orbitR: 3.4, speed: -0.35, phase: 5.5, figureEight: false, bodyMat: koiOrangeMat, spotMat: koiGoldMat, scale: 1.1 },
+    { orbitR: 2.2, speed: 0.42, phase: 2.9, figureEight: true, bodyMat: koiGoldMat, spotMat: koiWhiteMat, scale: 1.08 },
+  ];
+
+  return koiSpecs.map((spec) => {
+    const root = new THREE.Group();
+    root.scale.setScalar(spec.scale);
+    const body = new THREE.Mesh(koiBodyGeo, spec.bodyMat);
+    const dorsalSpot = new THREE.Mesh(koiBodyGeo, spec.spotMat);
+    dorsalSpot.scale.set(0.72, 0.55, 0.52);
+    dorsalSpot.position.set(0, 0.055, 0.04);
+    const finL = boxMesh(box, spec.spotMat, -0.14, -0.01, 0.08, 0.18, 0.015, 0.12, 0.45);
+    const finR = boxMesh(box, spec.spotMat, 0.14, -0.01, 0.08, 0.18, 0.015, 0.12, -0.45);
+    const dorsalFin = boxMesh(box, spec.spotMat, 0, 0.1, -0.02, 0.02, 0.09, 0.22);
+
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0, -0.32);
+    const tail = new THREE.Mesh(koiTailGeo, spec.spotMat);
+    tailPivot.add(tail);
+
+    root.add(body, dorsalSpot, finL, finR, dorsalFin, tailPivot);
+    root.position.set(pond.x + spec.orbitR, DECK_Y + 0.068, pond.z);
+    group.add(root);
+
+    return {
+      root,
+      tailPivot,
+      pondX: pond.x,
+      pondZ: pond.z,
+      orbitR: spec.orbitR,
+      speed: spec.speed,
+      phase: spec.phase,
+      figureEight: spec.figureEight,
+    };
+  });
+}
+
+/**
+ * Summary: Builds the renovated Celestial Garden Belvedere Tower (`GARDEN_CANOPY_PERCH`) with
+ *          sculpted stone buttresses, a corbeled gallery crown, marble balustrade, 6 classical
+ *          columns, full circular entablature ring, and ribbed dome + cliff blossoms.
+ */
+function buildPavilionAndCliffBlossoms(
+  ctx: IWorldModelBuildContext,
+  mats: IHarborMaterials,
+  box: THREE.BoxGeometry,
+  group: THREE.Group
+): void {
   const perch = GARDEN_CANOPY_PERCH;
-  const perchGeo = new THREE.CylinderGeometry(perch.radius, perch.radius * 0.8, 0.4, 16);
-  ctx.disposableGeometries.push(perchGeo);
-  const perchDeck = new THREE.Mesh(perchGeo, mats.wood);
-  perchDeck.position.set(perch.x, perch.y - 0.2, perch.z);
-  group.add(perchDeck, boxMesh(box, mats.darkWood, perch.x, (DECK_Y + perch.y) / 2, perch.z, 1.4, perch.y - DECK_Y, 1.4));
-  const crownGeo = new THREE.IcosahedronGeometry(1, 1);
-  ctx.disposableGeometries.push(crownGeo);
-  for (const [ox, oy, oz, sc] of [[2.6, 1.8, 1.2, 2.4], [-2.4, 2.2, -1.0, 2.2], [0.4, 3.2, -2.4, 2.0]] as const) {
-    const leaves = new THREE.Mesh(crownGeo, mats.leaves);
-    leaves.scale.setScalar(sc);
-    leaves.position.set(perch.x + ox, perch.y + oy, perch.z + oz);
-    group.add(leaves);
+  const towerH = perch.y - DECK_Y;
+  const perchGeo = new THREE.CylinderGeometry(perch.radius + 0.08, perch.radius * 0.92, 0.52, 32);
+  const corbelFlareGeo = new THREE.CylinderGeometry(perch.radius * 0.92, 1.05, 1.45, 24);
+  const centralPillarGeo = new THREE.CylinderGeometry(0.95, 1.18, towerH - 1.2, 20);
+  const baseOctagonGeo = new THREE.CylinderGeometry(1.75, 2.15, 1.1, 8);
+  const rimTorusGeo = new THREE.TorusGeometry(perch.radius + 0.06, 0.08, 8, 32);
+  rimTorusGeo.rotateX(Math.PI / 2);
+  const pavColGeo = new THREE.CylinderGeometry(0.2, 0.24, 4.1, 14);
+  const entablatureGeo = new THREE.CylinderGeometry(perch.radius + 0.26, perch.radius + 0.2, 0.42, 32);
+  const domeGeo = new THREE.SphereGeometry(perch.radius + 0.24, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.48);
+  const domeRibGeo = new THREE.TorusGeometry(perch.radius + 0.26, 0.06, 8, 20, Math.PI * 0.48);
+  const finialGeo = new THREE.ConeGeometry(0.38, 1.9, 8);
+  const blossomPetalGeo = new THREE.ConeGeometry(0.85, 2.2, 5);
+  ctx.disposableGeometries.push(
+    perchGeo,
+    corbelFlareGeo,
+    centralPillarGeo,
+    baseOctagonGeo,
+    rimTorusGeo,
+    pavColGeo,
+    entablatureGeo,
+    domeGeo,
+    domeRibGeo,
+    finialGeo,
+    blossomPetalGeo
+  );
+
+  const domeMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    map: ctx.textures.rockAlbedo,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 0.15,
+    roughness: 0.45,
+    bumpMap: ctx.textures.rockBump,
+    bumpScale: 0.04,
+  });
+  const whiteBlossomMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0xe2e8f0, emissiveIntensity: 0.3, roughness: 0.5 });
+  ctx.disposableMaterials.push(domeMat, whiteBlossomMat);
+
+  // 1. Stepped Octagonal Foundation, Buttressed Tower Shaft & Corbeled Capital under the Perch
+  const baseOctagon = new THREE.Mesh(baseOctagonGeo, mats.darkStone);
+  baseOctagon.position.set(perch.x, DECK_Y + 0.55, perch.z);
+  const centralCol = new THREE.Mesh(centralPillarGeo, mats.marble);
+  centralCol.position.set(perch.x, DECK_Y + (towerH - 1.2) / 2 + 0.4, perch.z);
+  const corbelFlare = new THREE.Mesh(corbelFlareGeo, mats.stone);
+  corbelFlare.position.set(perch.x, perch.y - 0.95, perch.z);
+  const perchDeck = new THREE.Mesh(perchGeo, mats.marble);
+  perchDeck.position.set(perch.x, perch.y - 0.24, perch.z);
+  const deckGoldRim = new THREE.Mesh(rimTorusGeo, mats.gold);
+  deckGoldRim.position.set(perch.x, perch.y - 0.04, perch.z);
+
+  group.add(
+    baseOctagon,
+    centralCol,
+    corbelFlare,
+    perchDeck,
+    deckGoldRim,
+    boxMesh(box, mats.gold, perch.x, DECK_Y + 1.12, perch.z, 2.5, 0.14, 2.5),
+    boxMesh(box, mats.gold, perch.x, DECK_Y + towerH * 0.5, perch.z, 2.1, 0.18, 2.1)
+  );
+
+  // 4 Sculpted flying buttress ribs flanking the tower shaft
+  for (let b = 0; b < 4; b++) {
+    const ba = (b / 4) * Math.PI * 2 + Math.PI / 4;
+    const bx = perch.x + Math.cos(ba) * 1.25;
+    const bz = perch.z + Math.sin(ba) * 1.25;
+    group.add(
+      boxMesh(box, mats.stone, bx, DECK_Y + towerH * 0.45, bz, 0.42, towerH * 0.78, 0.72, -ba),
+      boxMesh(box, mats.gold, bx, perch.y - 0.9, bz, 0.48, 0.35, 0.88, -ba)
+    );
   }
 
-  return buildWindFlowers(ctx, mats, group);
-}
+  // 2. Low Marble-and-Gold Balustrade around the northern (outer cliff) arc of the Perch
+  for (let r = 0; r < 7; r++) {
+    const ang = -Math.PI * 0.88 + (r / 6) * Math.PI * 0.76;
+    const rx = perch.x + Math.cos(ang) * (perch.radius - 0.16);
+    const rz = perch.z + Math.sin(ang) * (perch.radius - 0.16);
+    const tangentYaw = Math.atan2(-Math.cos(ang), -Math.sin(ang));
+    group.add(
+      boxMesh(box, mats.stone, rx, perch.y + 0.38, rz, 0.62, 0.72, 0.18, tangentYaw),
+      boxMesh(box, mats.gold, rx, perch.y + 0.78, rz, 0.66, 0.1, 0.22, tangentYaw)
+    );
+  }
 
-function buildGardenTrees(ctx: IWorldModelBuildContext, mats: IHarborMaterials, group: THREE.Group): void {
-  const trunkGeo = new THREE.CylinderGeometry(0.35, 0.55, 6.0, 8);
-  const canopyGeo = new THREE.IcosahedronGeometry(2.6, 1);
-  ctx.disposableGeometries.push(trunkGeo, canopyGeo);
-  for (const t of GARDEN_TREES) {
-    const trunk = new THREE.Mesh(trunkGeo, mats.darkWood);
-    trunk.scale.setScalar(t.scale);
-    trunk.position.set(t.x, DECK_Y + 3.0 * t.scale, t.z);
-    const canopy = new THREE.Mesh(canopyGeo, mats.leaves);
-    canopy.scale.setScalar(t.scale);
-    canopy.position.set(t.x, DECK_Y + 6.6 * t.scale, t.z);
-    canopy.castShadow = !ctx.isSoftwareGl;
-    group.add(trunk, canopy);
+  // 3. Six Classical Columns, Full Circular Entablature Ring & Ribbed Celestial Dome
+  const roofY = perch.y + 4.15;
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
+    const cx = perch.x + Math.cos(a) * (perch.radius - 0.24);
+    const cz = perch.z + Math.sin(a) * (perch.radius - 0.24);
+    const col = new THREE.Mesh(pavColGeo, mats.marble);
+    col.position.set(cx, perch.y + 2.05, cz);
+    group.add(
+      col,
+      boxMesh(box, mats.stone, cx, perch.y + 0.14, cz, 0.54, 0.28, 0.54),
+      boxMesh(box, mats.gold, cx, perch.y + 0.3, cz, 0.48, 0.08, 0.48),
+      boxMesh(box, mats.gold, cx, roofY - 0.14, cz, 0.56, 0.24, 0.56)
+    );
+  }
+
+  const entablature = new THREE.Mesh(entablatureGeo, mats.stone);
+  entablature.position.set(perch.x, roofY + 0.15, perch.z);
+  const roofGoldRim = new THREE.Mesh(rimTorusGeo, mats.gold);
+  roofGoldRim.scale.setScalar(1.08);
+  roofGoldRim.position.set(perch.x, roofY + 0.36, perch.z);
+  const dome = new THREE.Mesh(domeGeo, domeMat);
+  dome.position.set(perch.x, roofY + 0.32, perch.z);
+  group.add(entablature, roofGoldRim, dome);
+
+  // 6 Golden meridian ribs curving up the Belvedere dome
+  for (let k = 0; k < 6; k++) {
+    const rib = new THREE.Mesh(domeRibGeo, mats.gold);
+    rib.position.set(perch.x, roofY + 0.32, perch.z);
+    rib.rotation.z = Math.PI / 2;
+    rib.rotation.y = (k / 6) * Math.PI * 2 + Math.PI / 6;
+    group.add(rib);
+  }
+
+  const finial = new THREE.Mesh(finialGeo, mats.gold);
+  finial.position.set(perch.x, roofY + perch.radius + 1.25, perch.z);
+  const finialOrb = boxMesh(box, mats.crystal, perch.x, roofY + perch.radius + 2.25, perch.z, 0.38, 0.55, 0.38);
+  group.add(finial, finialOrb);
+
+  // Giant white cliff-edge magnolia/lotus blossoms adorning the rocky flanks of Sky Harbor.
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2 + 0.2;
+    const r = SKY_HARBOR.radius * 0.96;
+    const bx = SKY_HARBOR.x + Math.cos(ang) * r;
+    const bz = SKY_HARBOR.z + Math.sin(ang) * r;
+    const by = DECK_Y - 2.2 - (i % 3) * 1.8;
+    const flowerCluster = new THREE.Group();
+    flowerCluster.position.set(bx, by, bz);
+    flowerCluster.rotation.y = -ang;
+    for (let p = 0; p < 5; p++) {
+      const pa = (p / 5) * Math.PI * 2;
+      const petal = new THREE.Mesh(blossomPetalGeo, whiteBlossomMat);
+      petal.position.set(0.3, Math.sin(pa) * 0.5, Math.cos(pa) * 0.5);
+      petal.rotation.set(pa * 0.3, 0, -Math.PI / 3);
+      flowerCluster.add(petal);
+    }
+    group.add(flowerCluster);
   }
 }
 
-/** Glowing flowers scattered over the lawn (deterministic positions, instanced, per-instance colour). */
+function buildGardenTrees(ctx: IWorldModelBuildContext, group: THREE.Group): void {
+  buildInstancedSkyTrees(
+    ctx,
+    group,
+    GARDEN_TREES.map((t) => ({
+      x: t.x,
+      y: DECK_Y,
+      z: t.z,
+      scale: t.scale,
+      style: 'broadleaf' as const,
+    }))
+  );
+}
+
 function buildGardenFlowers(ctx: IWorldModelBuildContext, mats: IHarborMaterials, group: THREE.Group): void {
-  const flowerGeo = new THREE.ConeGeometry(0.22, 0.5, 6);
-  flowerGeo.rotateX(Math.PI);
-  const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.35, roughness: 0.6 });
+  const flowerGeo = new THREE.CylinderGeometry(0.18, 0.06, 0.06, 6);
+  const flowerMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 });
   ctx.disposableGeometries.push(flowerGeo);
   ctx.disposableMaterials.push(flowerMat);
   const flowers = new THREE.InstancedMesh(flowerGeo, flowerMat, GARDEN_FLOWER_COUNT);
@@ -289,14 +843,14 @@ function buildGardenFlowers(ctx: IWorldModelBuildContext, mats: IHarborMaterials
   const m = new THREE.Matrix4();
   const color = new THREE.Color();
   for (let i = 0; i < GARDEN_FLOWER_COUNT; i++) {
-    // Golden-angle spiral inside the lawn ellipse keeps the spread even and repeatable.
     const r = Math.sqrt((i + 0.5) / GARDEN_FLOWER_COUNT) * 0.92;
     const ang = i * 2.39996;
-    m.makeTranslation(a.cx + Math.cos(ang) * r * a.rx, DECK_Y + 0.3, a.cz + Math.sin(ang) * r * a.rz);
+    m.makeTranslation(a.cx + Math.cos(ang) * r * a.rx, DECK_Y + 0.05, a.cz + Math.sin(ang) * r * a.rz);
     flowers.setMatrixAt(i, m);
     flowers.setColorAt(i, color.setHex(FLOWER_COLORS[i % FLOWER_COLORS.length]));
   }
   flowers.instanceMatrix.needsUpdate = true;
+  flowers.computeBoundingSphere();
   group.add(flowers);
 }
 
@@ -323,7 +877,6 @@ function buildMushrooms(ctx: IWorldModelBuildContext, mats: IHarborMaterials, gr
   }
 }
 
-/** Wind flowers: a stem, five petals that fold open as the flower opens, and a glowing heart. */
 function buildWindFlowers(ctx: IWorldModelBuildContext, mats: IHarborMaterials, group: THREE.Group): IWindFlowerVisual[] {
   const petalGeo = new THREE.PlaneGeometry(0.9, 1.6);
   petalGeo.translate(0, 0.8, 0);

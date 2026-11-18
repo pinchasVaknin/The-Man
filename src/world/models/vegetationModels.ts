@@ -627,6 +627,132 @@ export function buildSharedFloraMaterials(
     },
   };
 }
+
+export interface IInstancedFloraTreePlacement {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly scale: number;
+  readonly floraKey: TreeFloraKey;
+  readonly seed?: number;
+}
+
+/**
+ * Summary: Builds memory-optimized `THREE.InstancedMesh` tree batches into `parent` that share the exact same
+ *          unpacked `masterFloraDrivers` geometries and `gpuInstancedMaterials` as the main world's forest trees.
+ */
+export function buildInstancedFloraTreeBatch(
+  ctx: IWorldModelBuildContext,
+  parent: THREE.Object3D,
+  placements: readonly IInstancedFloraTreePlacement[]
+): void {
+  if (placements.length === 0) return;
+
+  // Ensure masterFloraDrivers are populated even if called in an isolated test before buildVegetationModels(ctx)
+  if (masterFloraDrivers.size === 0) {
+    const { gpuInstancedMaterials } = buildSharedFloraMaterials(
+      ctx.disposableTextures,
+      ctx.disposableMaterials,
+      ctx.swayMaterials
+    );
+    const treeKeys: TreeFloraKey[] = [
+      'pinetree',
+      'oakgreen',
+      'oakyellow',
+      'animtree',
+      'animtree_wide',
+      'animtree_compact',
+    ];
+    for (const key of treeKeys) {
+      const spec = FLORA_SPECS[key];
+      const lod0Submeshes = unpackFloraBundle(spec.packB64);
+      const submeshProtos: IFloraSubmeshProto[] = [];
+      for (const sub0 of lod0Submeshes) {
+        if (sub0.matId === 7) continue;
+        const lod0 = buildStaticFloraSubmeshGeometry(sub0, true, ctx.disposableGeometries);
+        submeshProtos.push({
+          matId: sub0.matId,
+          material: gpuInstancedMaterials[sub0.matId],
+          lod0Geometry: lod0.geometry,
+          lod1Geometry: lod0.geometry,
+          lod0Triangles: lod0.triangleCount,
+          lod1Triangles: lod0.triangleCount,
+        });
+      }
+      masterFloraDrivers.set(key, {
+        key,
+        submeshProtos,
+        lod0TotalTriangles: 0,
+        lod1TotalTriangles: 0,
+      });
+    }
+  }
+
+  const byKey = new Map<TreeFloraKey, IInstancedFloraTreePlacement[]>();
+  for (const p of placements) {
+    let list = byKey.get(p.floraKey);
+    if (!list) {
+      list = [];
+      byKey.set(p.floraKey, list);
+    }
+    list.push(p);
+  }
+
+  const dummy = new THREE.Object3D();
+  const tint = new THREE.Color();
+
+  for (const [floraKey, list] of byKey) {
+    const driver = masterFloraDrivers.get(floraKey);
+    if (!driver) continue;
+    const spec = FLORA_SPECS[floraKey];
+    const unitScale = spec.baseScale;
+    const n = list.length;
+
+    const isPine = floraKey === 'pinetree';
+    const isYellow = floraKey === 'oakyellow';
+    const tintHueBase = isPine ? 0.28 : isYellow ? 0.1 : 0.25;
+    const tintHueSpread = isPine ? 0.03 : 0.04;
+    const tintSat = isPine ? 0.12 : isYellow ? 0.18 : 0.14;
+
+    const meshes = driver.submeshProtos.map(
+      (proto) => new THREE.InstancedMesh(proto.lod0Geometry, proto.material, n)
+    );
+
+    for (let i = 0; i < n; i++) {
+      const t = list[i];
+      const seed =
+        t.seed ??
+        Math.abs(Math.sin(t.x * 12.9898 + t.z * 78.233) * 43758.5453) % 1;
+      dummy.position.set(t.x, t.y - 0.08, t.z);
+      dummy.rotation.set(0, seed * Math.PI * 2, 0);
+      dummy.scale.setScalar(t.scale * unitScale);
+      dummy.updateMatrix();
+
+      tint.setHSL(
+        tintHueBase + (seed - 0.5) * tintHueSpread,
+        tintSat,
+        0.92 + (seed - 0.5) * 0.12
+      );
+
+      for (let m = 0; m < meshes.length; m++) {
+        meshes[m].setMatrixAt(i, dummy.matrix);
+        meshes[m].setColorAt(i, tint);
+      }
+    }
+
+    for (let m = 0; m < meshes.length; m++) {
+      const im = meshes[m];
+      im.count = n;
+      im.instanceMatrix.needsUpdate = true;
+      if (im.instanceColor) im.instanceColor.needsUpdate = true;
+      im.computeBoundingSphere();
+      im.frustumCulled = true;
+      im.castShadow = !ctx.isSoftwareGl;
+      im.receiveShadow = !ctx.isSoftwareGl;
+      parent.add(im);
+    }
+  }
+}
 // #endregion
 
 // ======================== DYNAMIC TREE FELLING, GPU WIND & SECTOR LOD SYNC ======================== \\

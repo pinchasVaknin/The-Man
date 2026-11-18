@@ -19,6 +19,8 @@ import {
   OBSERVATORY_CHAMBER,
   OBSERVATORY_CHEST_SPOT,
   OBSERVATORY_LEVERS,
+  OBSERVATORY_TELESCOPE_PLATFORM,
+  OBSERVATORY_TELESCOPE_STAIR,
   OBSERVATORY_TOWER,
 } from './observatoryLayout';
 import {
@@ -204,6 +206,21 @@ describe('sky observatory balcony', () => {
     const end = simulateSkyPlayer(start, pilot, 5);
     // Assert
     assert.equal(end.surface?.id, 'observatory-balcony', describeEnd(end));
+  });
+
+  it('giantTelescopeStair_WhenWalkedFromTheDeck_ShouldReachTheTelescopePlatform', () => {
+    // Arrange
+    const s = OBSERVATORY_TELESCOPE_STAIR;
+    const p = OBSERVATORY_TELESCOPE_PLATFORM;
+    const route = [
+      { x: s.ax, z: s.az },
+      { x: (p.minX + p.maxX) / 2, z: (p.minZ + p.maxZ) / 2 - 0.6 },
+    ];
+    // Act
+    const end = simulateSkyPlayer({ x: s.ax, y: ISLAND.deckY, z: s.az - 1.5 }, followWaypoints(route), 15);
+    // Assert
+    assert.equal(end.surface?.id, OBSERVATORY_TELESCOPE_PLATFORM.id, describeEnd(end));
+    assert.equal(end.y, OBSERVATORY_TELESCOPE_PLATFORM.y);
   });
 });
 // #endregion

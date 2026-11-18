@@ -652,15 +652,6 @@ export const WORLD_BEDS: readonly IWorldBedDef[] = [
     }));
     return [...backRow, ...sideRow];
   }),
-  {
-    id: 'bed-floating-sky-sanctuary',
-    name: 'Celestial Star-Sanctuary Canopy Bed',
-    x: 760.0,
-    y: 68.35,
-    z: -35.0,
-    yaw: 0,
-    interactRadius: 3.6,
-  },
 ] as const;
 
 /**
@@ -999,6 +990,17 @@ export const WORLD_CHESTS: readonly IWorldChest[] = [
     goldCoins: 180,
     contents: ['crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
     requiresSkyPuzzle: 'airship-hatch',
+  },
+  // Skybound Isles — World Tree Hollow Crown Sanctum Chest (reached via hollow mushroom parkour or exterior tree climb)
+  {
+    id: 'chest-sky-world-tree-hollow',
+    name: 'World Tree Crown Sanctum Chest',
+    x: 736.0,
+    y: 84.5,
+    z: 69.8,
+    interactRadius: 4.4,
+    goldCoins: 295,
+    contents: ['dwarven_warhammer', 'crystal_gem', 'sapphire_gem', 'amethyst_gem', 'dwarven_gold_ore'],
   },
 ] as const;
 
