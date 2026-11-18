@@ -643,7 +643,7 @@ function buildDeepKoiPond(
       initialState: 'walk',
       tintHex: spec.tintHex,
     });
-    ctrl.setPhaseOffset(idx * 0.23);
+    ctrl.setNormalizedPhase(idx * 0.23);
     ctx.disposableGeometries.push(ctrl.mesh.geometry);
     if (Array.isArray(ctrl.mesh.material)) {
       ctx.disposableMaterials.push(...ctrl.mesh.material);

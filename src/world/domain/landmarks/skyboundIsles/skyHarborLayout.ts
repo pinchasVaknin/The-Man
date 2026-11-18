@@ -14,6 +14,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports
 import { SKY_HARBOR, WINDSPIRE } from './skyboundLayout';
+import { SKY_HOVERBIKE_SHOP_POS } from '../../../systems/skyHoverbikeSystem';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -400,6 +401,19 @@ DOCK_CRATES.forEach((c, i) => addBox(`dock-crate-${i}`, c.x, c.z, 0.6, 0.6, c.to
 addBox('dock-crane-base', DOCK_CRANE.x, DOCK_CRANE.z, 1.0, 1.0, DECK_Y, DECK_Y + DOCK_CRANE.height);
 addBox('dock-mooring-post-a', 820.0, -5.6, 0.25, 0.25, DECK_Y, DECK_Y + 1.0);
 addBox('dock-mooring-post-b', 832.0, -5.6, 0.25, 0.25, DECK_Y, DECK_Y + 1.0);
+
+// Hoverbike shop pavilion: corner pillars, back tool-wall and the front counter (local shop space, rotated by the shop yaw).
+function addShopBox(id: string, localX: number, localZ: number, halfX: number, halfZ: number, height: number): void {
+  const { x, y, z, yaw } = SKY_HOVERBIKE_SHOP_POS;
+  const wx = x + localX * Math.cos(yaw) + localZ * Math.sin(yaw);
+  const wz = z - localX * Math.sin(yaw) + localZ * Math.cos(yaw);
+  addBox(id, wx, wz, halfX, halfZ, y, y + height, yaw);
+}
+for (const [i, [px, pz]] of ([[-3.1, -1.8], [3.1, -1.8], [-3.1, 1.8], [3.1, 1.8]] as const).entries()) {
+  addShopBox(`hoverbike-shop-pillar-${i}`, px, pz, 0.14, 0.14, 3.5);
+}
+addShopBox('hoverbike-shop-back-wall', 0, -1.85, 3.1, 0.11, 2.8);
+addShopBox('hoverbike-shop-counter', -1.1, 1.25, 1.7, 0.39, 1.2);
 
 /** Summary: Every solid box of the Sky Harbor props, railings and structures. */
 export const SKY_HARBOR_SOLID_BOXES: readonly ISkySolidBox[] = boxes;

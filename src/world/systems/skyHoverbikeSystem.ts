@@ -210,7 +210,7 @@ export function stepSkyHoverbikePhysics(
   input: IPlayerInput,
   dt: number,
   walkableHeightAt: (x: number, z: number, refY?: number) => number,
-  waterSurfaceHeightAt?: (x: number, z: number) => number
+  waterSurfaceHeightAt?: (x: number, z: number) => number | null
 ): { steppedFoot: boolean; landedImpact: number } {
   const bike = activeSkyHoverbike;
   bike.spawned = true;
@@ -261,7 +261,7 @@ export function stepSkyHoverbikePhysics(
 
   // 3. Vertical Hover Cushion & Full 3D Aerial Flight ([Space] to Ascend, [C]/relaxed to Descend, plus pitch climb)
   const terrainY = walkableHeightAt(nextX, nextZ, bike.y);
-  const waterY = waterSurfaceHeightAt ? waterSurfaceHeightAt(nextX, nextZ) : -Infinity;
+  const waterY = waterSurfaceHeightAt ? (waterSurfaceHeightAt(nextX, nextZ) ?? -Infinity) : -Infinity;
   const surfaceY = Math.max(terrainY, waterY);
   const hoverCushionY = surfaceY + 0.58;
 
@@ -334,12 +334,7 @@ export function stepSkyHoverbikePhysics(
   state.onGround = !bike.isAirborne;
   state.isJumping = bike.isAirborne;
   state.isSwimming = false;
-  state.walkPace =
-    Math.abs(bike.speed) < 0.4
-      ? 'idle'
-      : input.sprint
-        ? 'fast'
-        : 'normal';
+  state.walkPace = input.sprint && Math.abs(bike.speed) >= 0.4 ? 'fast' : 'normal';
 
   return { steppedFoot: false, landedImpact: 0 };
 }

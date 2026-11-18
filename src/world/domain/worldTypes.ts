@@ -441,6 +441,8 @@ export interface IPlayerState {
   climbingLadderId?: string | null;
   mountedHorseId?: string | null;
   mountedHorseYaw?: number;
+  mountedHorsePitch?: number;
+  isJumping?: boolean;
   cameraPerspective?: CameraPerspectiveMode;
   equippedTool?: EquippedToolSlot;
   arrowKind?: ArrowElementKind;

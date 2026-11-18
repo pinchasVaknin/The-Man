@@ -465,7 +465,7 @@ export const MARKET_STALL_LOCATIONS = [
     x: 805.2,
     y: 68.08,
     z: -4.9,
-    radius: 4.6,
+    radius: 4.5,
     allowedItemIds: [] as readonly InventoryItemId[],
   },
 ] as const;
