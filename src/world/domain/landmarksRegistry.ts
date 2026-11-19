@@ -391,3 +391,36 @@ export {
 } from './collisionWorld';
 // #endregion
 
+// ======================== SACRED CLOUD MOUNTAIN ======================== \\
+// #region Sacred Cloud Mountain
+export {
+  SACRED_CLOUD_MOUNTAIN_POS,
+  CHINESE_BAGUA_PLATFORM_POS,
+  SACRED_MOUNTAIN_APPROACH_WAYPOINTS,
+  SACRED_MOUNTAIN_CAIRN_MARKERS,
+  SACRED_MOUNTAIN_SPIRAL_SEGMENTS,
+  SACRED_LOTUS_STEPPING_STONES,
+  SACRED_CLOUD_MOUNTAIN_SOLID_BOXES,
+  sacredMountainHullRadiusAtY,
+  sacredMountainBaseConeHeightAtR,
+  sacredMountainTerrainHeightAt,
+  isInsideSacredCloudMountainNoSnowZone,
+  isInsideSacredCloudMountainZone,
+  sacredMountainApproachDistanceAt,
+  sampleSacredSpiralAtS,
+  teardropPoolSignedDist,
+  chineseBaguaPlatformWalkableHeightAt,
+  sacredCloudMountainWalkableHeightAt,
+  sacredCloudMountainWaterSurfaceAt,
+  evaluateSkyDragonPatrol,
+  type IApproachWaypoint,
+  type ISacredMountainCairnMarker,
+  type TSacredSpiralSegmentKind,
+  type ISacredSpiralSegment,
+  type ILotusSteppingStoneDef,
+  type TSkyDragonPatrolPhase,
+  type ISkyDragonPatrolSample,
+} from './landmarks/sacredCloudMountainLandmarks';
+// #endregion
+
+

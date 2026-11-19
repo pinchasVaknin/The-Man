@@ -1095,6 +1095,10 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
           simulationState.currentAtmo = applyDynamicAtmosphere(timeState.worldHours, simulationState.currentWeather);
           return Number(timeState.worldHours.toFixed(2));
         },
+        setSimulationElapsed: (seconds) => {
+          simulationState.elapsedTotal = Math.max(0, seconds);
+          return Number(simulationState.elapsedTotal.toFixed(2));
+        },
         getCurrentAtmo: () => simulationState.currentAtmo,
         getCurrentWeather: () => simulationState.currentWeather,
         toggleColliderDebug: (visible?: boolean) =>

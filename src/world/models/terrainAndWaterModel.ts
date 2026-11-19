@@ -20,6 +20,9 @@ import {
   regionalForestDensityAt,
   southwestOasisBiomeFactorAt,
   northernSnowZoneFactorAt,
+  isInsideSacredCloudMountainNoSnowZone,
+  sacredMountainApproachDistanceAt,
+  SACRED_CLOUD_MOUNTAIN_POS,
   fbm2D,
 } from '../terrainMath';
 import {
@@ -302,6 +305,7 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const cDesertSand = new THREE.Color(0xdcb478);
   const cDesertTerracotta = new THREE.Color(0xc27d4e);
   const cTrail = new THREE.Color(0x8c7355);
+  const cSnowTrail = new THREE.Color(0xeaf2fa);
   const cRock = new THREE.Color(0x706c66);
   const cPeak = new THREE.Color(0x9b9790);
   const cSnow = new THREE.Color(0xeef5fc);
@@ -331,11 +335,19 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
       const vertCount = posAttr.count;
       const colors = new Float32Array(vertCount * 3);
 
-      // Pass 1: Sample ground height once per vertex
+      // Pass 1: Sample ground height once per vertex (tucking coarse 5m visual chunk cleanly beneath the 0.75m polar Sacred Mountain mesh)
       for (let i = 0; i < vertCount; i++) {
         const wx = cx + posAttr.getX(i);
         const wz = cz + posAttr.getZ(i);
-        posAttr.setY(i, groundHeightAt(wx, wz));
+        let vy = groundHeightAt(wx, wz);
+        const smDx = wx - SACRED_CLOUD_MOUNTAIN_POS.x;
+        const smDz = wz - SACRED_CLOUD_MOUNTAIN_POS.z;
+        const smR = Math.hypot(smDx, smDz);
+        if (smR < 89.5) {
+          const underW = smoothstepLocal(89.5, 80.0, smR);
+          vy = vy * (1.0 - underW) + 18.0 * underW;
+        }
+        posAttr.setY(i, vy);
       }
 
       // Compute analytical mesh normals directly from the height grid instead of 4 extra groundHeightAt calls per vertex
@@ -352,8 +364,9 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         const tf = trailFactorAt(wx, wz);
         const bf = birchGroveFactorAt(wx, wz);
         const swDesert = southwestOasisBiomeFactorAt(wx, wz);
-        const tundraFactor = northernTundraFactorAt(wx, wz);
-        const snowFactor = northernSnowZoneFactorAt(wx, wz);
+        const noSnowSacred = isInsideSacredCloudMountainNoSnowZone(wx, wz);
+        const tundraFactor = noSnowSacred ? 0 : northernTundraFactorAt(wx, wz);
+        const snowFactor = noSnowSacred ? 0 : northernSnowZoneFactorAt(wx, wz);
         const coastX = easternCoastlineXAt(wz);
         const macroNoise = fbm2D(wx * 0.035 + 2.1, wz * 0.035 - 6.3, 2) * 0.5 + 0.5;
 
@@ -398,6 +411,9 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
           if (swDesert > 0.35) {
             tmpColor.lerp(cDesertTerracotta, rockMix * 0.65);
             tmpColor.lerp(cRock, rockMix * 0.45);
+          } else if (noSnowSacred) {
+            tmpColor.lerp(cDesertTerracotta, rockMix * 0.42);
+            tmpColor.lerp(cRock, rockMix * 0.48);
           } else {
             tmpColor.lerp(y > 20 ? cPeak : cRock, rockMix);
           }
@@ -406,6 +422,13 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         // Blend alpine snow frost onto high northern mountains & ridges
         if (snowFactor > 0.15 && ny > 0.62) {
           tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
+        }
+
+        // Bright snow-colored approach trail leading from the Fortress corridor to Sacred Cloud Mountain
+        const sacredAppD = sacredMountainApproachDistanceAt(wx, wz).dist;
+        if (sacredAppD < 4.6) {
+          const snowTrailMix = 1.0 - smoothstepLocal(1.8, 4.6, sacredAppD);
+          tmpColor.lerp(cSnowTrail, snowTrailMix * 0.92);
         }
 
         // Blend basalt foothills & scorched volcanic ashlands across the Western Volcanic Badlands

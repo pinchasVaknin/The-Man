@@ -63,6 +63,7 @@ export interface IWindowDebugBridgeDeps {
   executeSwordSlash: (isHeavy?: boolean) => ReturnType<typeof triggerSwordSlash> | null;
   getWorldHours: () => number;
   setWorldHoursAndApply: (hours: number) => number;
+  setSimulationElapsed?: (seconds: number) => number;
   getCurrentAtmo: () => IDynamicAtmosphereState;
   getCurrentWeather: () => IWeatherStateSnapshot;
   toggleColliderDebug?: (visible?: boolean) => boolean;
@@ -336,6 +337,13 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     }
     const validHours = validateWorldHour(hours);
     return setWorldHoursAndApply(validHours);
+  });
+
+  bind('setSimulationElapsed', (seconds: unknown) => {
+    if (typeof seconds !== 'number' || !Number.isFinite(seconds) || !deps.setSimulationElapsed) {
+      return null;
+    }
+    return deps.setSimulationElapsed(Math.max(0, seconds));
   });
 
   bind('getPlayerState', () => {

@@ -53,6 +53,11 @@ import {
   FORTRESS_Z_OFFSET,
 } from './fortressLandmarks';
 import { ANCIENT_MINE_COLLIDER_BOXES } from './ancientMine/ancientMineWorld';
+import {
+  SACRED_CLOUD_MOUNTAIN_POS,
+  CHINESE_BAGUA_PLATFORM_POS,
+  SACRED_CLOUD_MOUNTAIN_SOLID_BOXES,
+} from './sacredCloudMountainLandmarks';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -1502,6 +1507,8 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   }),
   // 9) Skybound Isles: Sky Harbor and island props, railings and structures
   ...SKYBOUND_SOLID_BOXES,
+  // 10) Sacred Cloud Mountain spiral railings, Paifang pillars, Yin-Yang deck fences & summit props
+  ...SACRED_CLOUD_MOUNTAIN_SOLID_BOXES,
 ];
 // #endregion
 
@@ -1542,6 +1549,7 @@ export const FLAT_BUILDING_TERRACES = [
   { x: FLOATING_ISLAND_STAIR_POS.waterfallX - 5.0, z: FLOATING_ISLAND_STAIR_POS.z, innerR: 22.0, outerR: 34.0, targetH: 3.25 },
   { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, innerR: 28.0, outerR: 42.0, targetH: NORDIC_FROST_SHRINE_POS.floorY },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, innerR: 42.0, outerR: 58.0, targetH: DESERT_PYRAMID_SANCTUARY_POS.baseY },
+  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, innerR: 9.0, outerR: 16.5, targetH: CHINESE_BAGUA_PLATFORM_POS.baseY },
 ] as const;
 // #endregion
 
@@ -1619,6 +1627,8 @@ export const CLEAR_ZONES = [
   { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, r: 36.0 },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, r: 48.0 },
   { x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, r: 34.0 },
+  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, r: 16.0 },
+  { x: SACRED_CLOUD_MOUNTAIN_POS.x, z: SACRED_CLOUD_MOUNTAIN_POS.z, r: SACRED_CLOUD_MOUNTAIN_POS.zoneRadius },
 ];
 // #endregion
 
@@ -1822,6 +1832,12 @@ export const COLLIDABLE_WORLD_ENTITY_REGISTRY: readonly ICollidableWorldEntity[]
     solidBoxIds: RIVERSIDE_WINDMILLS.flatMap((wm) =>
       Array.from({ length: 8 }, (_, sIdx) => `${wm.id}-seg-${sIdx + 1}`)
     ),
+  },
+  {
+    entityId: 'sacred-cloud-mountain-sanctuary',
+    category: 'building',
+    collidable: true,
+    solidBoxIds: SACRED_CLOUD_MOUNTAIN_SOLID_BOXES.map((b) => b.id),
   },
 ] as const;
 

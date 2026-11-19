@@ -56,6 +56,7 @@ import {
   getLadderById,
   findWatchtowerLadderAt,
   findLookedAtWatchtowerLadder,
+  isInsideSacredCloudMountainZone,
 } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
 import {
@@ -1167,8 +1168,9 @@ export function stepPlayerPhysics(
       }
     } else {
       const baseGroundY = groundHeightAt(state.x, state.z);
+      const onSacredMtn = isInsideSacredCloudMountainZone(state.x, state.z);
       const floorY =
-        state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0)
+        !onSacredMtn && (state.y > 76.0 || (state.y > baseGroundY + 18.0 && state.x < 280.0))
           ? Math.max(baseGroundY, WATER_LEVEL - 0.5)
           : Math.max(walkableHeightValueAt(state.x, state.z, state.y), WATER_LEVEL - 0.5);
       if (state.y < floorY + 0.15 && input.relaxed) {

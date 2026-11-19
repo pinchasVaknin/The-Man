@@ -327,14 +327,19 @@ export function applyDynamicAtmosphereToScene(
   if (flash > 0.1) {
     _outdoorFogColor.lerp(_lightningColor, flash * 0.55);
   }
+  const altitudeClearFactor =
+    playerPos && playerPos.y > 72.0 && fogStrength < 0.4
+      ? 1.0 - smoothstep01(72.0, 96.0, playerPos.y) * 0.46
+      : 1.0;
   const outdoorFogDensity =
-    atmo.fogDensity +
-    (weather
-      ? weather.rainIntensity * 0.0045 +
-        sandHaze * 0.0065 +
-        weather.snowIntensity * 0.0035 +
-        fogStrength * 0.022
-      : 0);
+    (atmo.fogDensity +
+      (weather
+        ? weather.rainIntensity * 0.0045 +
+          sandHaze * 0.0065 +
+          weather.snowIntensity * 0.0035 +
+          fogStrength * 0.022
+        : 0)) *
+    altitudeClearFactor;
   const outdoorExposure = atmo.exposure + flash * 0.35;
   waterMaterial.color.setHex(atmo.waterDeepHex);
 

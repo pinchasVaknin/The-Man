@@ -42,6 +42,7 @@ import { buildHarborModels } from './models/harborModels';
 import { buildOasisModels } from './models/oasisModels';
 import { buildVolcanoAndFloatingIslandsModels } from './models/volcanoAndFloatingIslandsModels';
 import { buildAtlantisAndShipModels } from './models/atlantisAndShipModels';
+import { buildSacredCloudMountainModel } from './models/sacredCloudMountainBuilder';
 import { buildEnvironmentAtmosphereModels } from './models/environmentAtmosphereModels';
 import { createArchitecturalSharedAssets } from './models/architecturalHelpers';
 import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
@@ -183,6 +184,8 @@ export async function buildRealisticWorld(
   const { updateVolcanoAndFloatingIslands } = buildVolcanoAndFloatingIslandsModels(ctx);
   await yieldToBrowser();
   const { updateAtlantisAndShip } = buildAtlantisAndShipModels(ctx);
+  await yieldToBrowser();
+  const { updateSacredCloudMountain } = buildSacredCloudMountainModel(ctx);
 
   await stage('sky and weather');
   const { birdsGroup, pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
@@ -309,6 +312,7 @@ export async function buildRealisticWorld(
     updateOasis(elapsedTime);
     updateVolcanoAndFloatingIslands(elapsedTime, playerX, playerZ);
     updateAtlantisAndShip(elapsedTime, playerX, playerZ);
+    updateSacredCloudMountain(elapsedTime, playerX, playerZ);
     updateEnvironment(
       elapsedTime,
       playerX,

@@ -105,17 +105,17 @@ export async function createWorldScene(
   const bgColor = new THREE.Color(0xd8e3e8);
   scene.background = bgColor;
 
-  // 3. Camera (reasonable sight distance for optimal rendering)
+  // 3. Camera (extended vista range so high peaks above the clouds stay unclipped)
   const camera = new THREE.PerspectiveCamera(
     68,
     (container.clientWidth || window.innerWidth) / (container.clientHeight || window.innerHeight),
     0.12,
-    250
+    360
   );
 
   // 4. Physical Sky & Sun/Moon Disc
   const sky = new Sky();
-  sky.scale.setScalar(420);
+  sky.scale.setScalar(640);
   scene.add(sky);
 
   const sunDiscGeo = new THREE.SphereGeometry(5.5, 20, 20);

@@ -19,6 +19,7 @@ import {
   groundHeightAt,
   southernCliffsidePassTrailHeightAt,
   isWithinViewDistance,
+  evaluateSkyDragonPatrol,
   VIEW_DISTANCE,
 } from '../terrainMath';
 import { createArchitecturalSharedAssets } from './architecturalHelpers';
@@ -1376,24 +1377,18 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
           : 0.016;
       lastDragonElapsedTime = elapsedTime;
 
-      // 1. Flying Ice Dragon (DemonDragon) above the Northern Chinese Fortress
-      const d1Time = elapsedTime * 0.16;
-      const d1X = Math.sin(d1Time) * 78.0 + 22.0;
-      const d1Z = -265.0 + Math.sin(d1Time * 2.0) * 58.0;
-      const d1Vis = isWithinViewDistance(d1X, d1Z, playerX, playerZ, 55, VIEW_DISTANCE);
+      // 1. Flying Ice Dragon (DemonDragon) patrolling Fortress skies and landing/taking off at Sacred Cloud Mountain summit
+      const d1Patrol = evaluateSkyDragonPatrol(elapsedTime);
+      const d1Vis = isWithinViewDistance(d1Patrol.x, d1Patrol.z, playerX, playerZ, 95, VIEW_DISTANCE);
       skyDragonGroup.visible = d1Vis;
       if (d1Vis) {
-        const d1Y = 72.0 + FORTRESS_Y_OFFSET + Math.cos(d1Time * 1.5) * 4.5;
-        const d1VelX = Math.cos(d1Time) * 78.0 * 0.16;
-        const d1VelZ = Math.cos(d1Time * 2.0) * 58.0 * 0.32;
-        const d1Yaw = Math.atan2(d1VelX, d1VelZ);
-        const d1Bank = -Math.sin(d1Time) * 0.22;
-        skyDragonGroup.position.set(d1X, d1Y, d1Z);
+        skyDragonGroup.position.set(d1Patrol.x, d1Patrol.y, d1Patrol.z);
         skyDragonGroup.rotation.order = 'YXZ';
-        skyDragonGroup.rotation.y = d1Yaw;
-        skyDragonGroup.rotation.z = d1Bank;
-        demonDragonCtrl.setState('fly');
-        demonDragonCtrl.update(dt, d1Bank);
+        skyDragonGroup.rotation.y = d1Patrol.yaw;
+        skyDragonGroup.rotation.x = d1Patrol.pitch;
+        skyDragonGroup.rotation.z = d1Patrol.bank;
+        demonDragonCtrl.setState(d1Patrol.animState);
+        demonDragonCtrl.update(dt, d1Patrol.bank);
       }
 
       // 2. Colossal Forest Dragon (ForestDragon) inside & soaring above the Ancient Southern Citadel Ruins

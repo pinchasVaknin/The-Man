@@ -60,6 +60,17 @@ import {
   desertPyramidHeightAt,
   FLAT_BUILDING_TERRACES,
   CLEAR_ZONES,
+  SACRED_CLOUD_MOUNTAIN_POS,
+  CHINESE_BAGUA_PLATFORM_POS,
+  SACRED_MOUNTAIN_CAIRN_MARKERS,
+  isInsideSacredCloudMountainNoSnowZone,
+  isInsideSacredCloudMountainZone,
+  sacredMountainApproachDistanceAt,
+  chineseBaguaPlatformWalkableHeightAt,
+  sacredCloudMountainWalkableHeightAt,
+  sacredCloudMountainWaterSurfaceAt,
+  sacredMountainTerrainHeightAt,
+  teardropPoolSignedDist,
 } from '../domain/landmarksRegistry';
 import {
   southernMineCeilingHeightAt,
@@ -254,7 +265,7 @@ export function volcanicBadlandsFactorAt(x: number, z: number): number {
  * @returns 0 in temperate meadows, rising smoothly to 1 in sub-alpine northern tundra.
  */
 export function northernTundraFactorAt(x: number, z: number): number {
-  if (z > -38.0 || isChineseFortressWalkableZone(x, z)) return 0;
+  if (z > -38.0 || isChineseFortressWalkableZone(x, z) || isInsideSacredCloudMountainNoSnowZone(x, z)) return 0;
   const warp = fbm2D(x * 0.015 - 2.1, z * 0.015 + 4.3, 2) * 24.0;
   const latFactor = smoothstep(-45.0, -155.0, z + warp);
   const h = groundHeightAt(x, z);
@@ -785,6 +796,9 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 72, -45, 106, -62),
     distToSegment(x, z, 106, -62, sakuraGateEntryX, sakuraGateEntryZ),
     distToSegment(x, z, 106, -62, 0, -74 + FZ),
+    distToSegment(x, z, 42, -256, 70, -228),
+    distToSegment(x, z, 70, -228, 106, -188),
+    distToSegment(x, z, 106, -188, sakuraGateEntryX, sakuraGateEntryZ),
     distToSegment(x, z, 22, 12, 54, 36),
     distToSegment(x, z, 54, 36, 88, 62),
     distToSegment(x, z, 88, 62, BIRCH_GROVE_CENTER.x, BIRCH_GROVE_CENTER.z)
@@ -809,6 +823,8 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, -88, 52, HUNTER_LODGE_POS.x, HUNTER_LODGE_POS.z - 5.2)
   );
 
+  const sacredApproachDist = sacredMountainApproachDistanceAt(x, z).dist;
+
   const minDist = Math.min(
     ringDist,
     southTrailDist,
@@ -816,7 +832,8 @@ export function trailFactorAt(x: number, z: number): number {
     bridgeTrailDist,
     eastTrailDist,
     northTrailDist,
-    westTrailDist
+    westTrailDist,
+    sacredApproachDist
   );
   return 1.0 - smoothstep(1.3, 3.2, minDist);
 }
@@ -1566,6 +1583,23 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
+  // Gentle natural trail smoothing toward Sacred Cloud Mountain (never carves downward into a sunken bowl)
+  if (x >= 10.0 && x <= 125.0 && z <= -244.0 && z >= -704.0) {
+    const app = sacredMountainApproachDistanceAt(x, z);
+    if (app.dist < 6.5) {
+      const startProtect = x < 16.0 ? smoothstep(10.0, 16.0, x) : 1.0;
+      const appW = (1.0 - smoothstep(2.4, 6.5, app.dist)) * startProtect * 0.65;
+      const smoothH = Math.max(h * 0.35 + app.targetElevY * 0.65, h - 0.6);
+      h = h * (1.0 - appW) + smoothH * appW;
+    }
+  }
+  // Single unified natural stepped mountain heightfield (30.8m -> 104.0m with carved spiral benches & round pond)
+  const smDx = x - SACRED_CLOUD_MOUNTAIN_POS.x;
+  const smDz = z - SACRED_CLOUD_MOUNTAIN_POS.z;
+  if (Math.abs(smDx) < 90.5 && Math.abs(smDz) < 90.5 && smDx * smDx + smDz * smDz < 90.0 * 90.0) {
+    h = sacredMountainTerrainHeightAt(x, z, h);
+  }
+
   return h;
 }
 
@@ -1623,6 +1657,10 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
  * @returns Water surface height in meters, or null where there is no water.
  */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
+  const sacredPoolWaterY = sacredCloudMountainWaterSurfaceAt(x, z, currentY);
+  if (sacredPoolWaterY !== null) {
+    return sacredPoolWaterY;
+  }
   if (isInsideSouthernMine(x, z, currentY)) {
     // The Ancient Mine's lagoon and channel; bridges over them are dry floors in the layout.
     return ancientMineWaterSurfaceAt(x, z, currentY);
@@ -1653,7 +1691,11 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
  * @returns Snow cover from 0 (none) to 1 (full).
  */
 export function northernSnowZoneFactorAt(x: number, z: number): number {
-  if (z >= -40.0 || isChineseFortressWalkableZone(x, z)) {
+  if (
+    z >= -40.0 ||
+    isChineseFortressWalkableZone(x, z) ||
+    isInsideSacredCloudMountainNoSnowZone(x, z)
+  ) {
     return 0;
   }
   const h = groundHeightAt(x, z);
@@ -1915,6 +1957,16 @@ export function walkableHeightAt(
   const floatingIslandY = floatingBloomingIslandHeightAt(x, z, currentY);
   if (floatingIslandY !== null) {
     return writeWalkableSample(out, floatingIslandY, 'bridge');
+  }
+
+  const chineseBagua = chineseBaguaPlatformWalkableHeightAt(x, z, currentY);
+  if (chineseBagua !== null) {
+    return writeWalkableSample(out, chineseBagua.height, chineseBagua.surface);
+  }
+
+  const sacredMtn = sacredCloudMountainWalkableHeightAt(x, z, currentY);
+  if (sacredMtn !== null) {
+    return writeWalkableSample(out, sacredMtn.height, sacredMtn.surface);
   }
 
   const groundH = groundHeightAt(x, z);
@@ -2400,6 +2452,48 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
     }
   }
 
+  // Relocated Octagonal Yin-Yang Bagua Platform in Chinese Fortress / Sakura Monks corridor (76, -234)
+  const baguaDx = x - CHINESE_BAGUA_PLATFORM_POS.x;
+  const baguaDz = z - CHINESE_BAGUA_PLATFORM_POS.z;
+  const baguaMapDist = Math.hypot(baguaDx, baguaDz);
+  if (baguaMapDist <= CHINESE_BAGUA_PLATFORM_POS.radius + 0.4) {
+    if (baguaMapDist <= 2.9) {
+      return baguaDx + baguaDz * 0.25 > 0 ? [242, 238, 226] : [36, 40, 48]; // Yin-Yang Medallion
+    }
+    return [186, 134, 78]; // Honey Cedar Octagon Deck
+  }
+
+  // Sacred Cloud Mountain Peak, Sandy Stepped Mountain, Natural Grass/Sand, Round Lotus Pond & Pink Tree (104, -760)
+  const sacredMtnMapDist = Math.hypot(x - SACRED_CLOUD_MOUNTAIN_POS.x, z - SACRED_CLOUD_MOUNTAIN_POS.z);
+  if (sacredMtnMapDist <= SACRED_CLOUD_MOUNTAIN_POS.footHullRadius) {
+    if (sacredMtnMapDist <= SACRED_CLOUD_MOUNTAIN_POS.summitRadius) {
+      const poolD = teardropPoolSignedDist(x, z);
+      if (poolD <= 0.0) {
+        return [48, 206, 218]; // Sacred Round Lotus Pond
+      }
+      if (Math.hypot(x - SACRED_CLOUD_MOUNTAIN_POS.summitTreeX, z - SACRED_CLOUD_MOUNTAIN_POS.summitTreeZ) <= 3.9) {
+        return [244, 154, 194]; // Sacred Summit Pink Blossom Tree Crown
+      }
+      if (poolD <= 2.3) {
+        return [218, 198, 148]; // Warm Natural Shore Sand
+      }
+      return [88, 142, 68]; // Natural Sunlit Alpine Meadow Grass (zero snow)
+    }
+    if (
+      sacredMtnMapDist >= 64.0 &&
+      Math.abs(x - SACRED_CLOUD_MOUNTAIN_POS.footGatewayX) <= 4.5 &&
+      Math.abs(z - SACRED_CLOUD_MOUNTAIN_POS.footGatewayZ) <= 4.5
+    ) {
+      return [188, 146, 98]; // Mountain Foot Trailhead Gateway
+    }
+    const spiralShade = 0.72 + 0.28 * (1.0 - sacredMtnMapDist / SACRED_CLOUD_MOUNTAIN_POS.footHullRadius);
+    return [
+      Math.round(186 * spiralShade),
+      Math.round(148 * spiralShade),
+      Math.round(98 * spiralShade),
+    ]; // Warm Natural Mountain Sand
+  }
+
   if (isChineseFortressWalkableZone(x, z)) {
     if (
       (Math.abs(x) <= 22.0 && z >= -216.0 + FZ && z <= -189.5 + FZ) ||
@@ -2667,6 +2761,19 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
       Math.min(255, Math.round((156 * (1 - snowF) + 244 * snowF) * shade)),
       Math.min(255, Math.round((154 * (1 - snowF) + 252 * snowF) * shade)),
     ];
+  }
+
+  // Bright Snowy Approach Trail leading from the Fortress area to the Sacred Cloud Mountain Foot
+  const sacredApp = sacredMountainApproachDistanceAt(x, z);
+  if (sacredApp.dist < 3.2) {
+    const snowTrailW = 1.0 - smoothstep(1.3, 3.2, sacredApp.dist);
+    if (snowTrailW > 0.25) {
+      return [
+        Math.min(255, Math.round(236 * shade)),
+        Math.min(255, Math.round(244 * shade)),
+        Math.min(255, Math.round(252 * shade)),
+      ];
+    }
   }
 
   // Steep Mountain Ridges, Northern Frost Tundra Plateau & Desert Sandstone Crags
@@ -3073,8 +3180,18 @@ export function generateWorldObstacles(): IObstacleCylinder[] {
       ) {
         continue;
       }
-      // Never spawn trees or boulders on the Southern Cliffside Mountain Pass corridor
+      // Never spawn trees or boulders on the Southern Cliffside Mountain Pass corridor or Sacred Cloud Mountain
       if (x >= 88.0 && x <= 116.0 && z >= 504.0 && z <= 692.0) continue;
+      if (isInsideSacredCloudMountainZone(x, z)) continue;
+      let nearCairn = false;
+      for (let cm = 0; cm < SACRED_MOUNTAIN_CAIRN_MARKERS.length; cm++) {
+        const mk = SACRED_MOUNTAIN_CAIRN_MARKERS[cm];
+        if (Math.hypot(x - mk.x, z - mk.z) < 4.5) {
+          nearCairn = true;
+          break;
+        }
+      }
+      if (nearCairn) continue;
       if (x >= 195 && z >= 85 && z <= 325) continue;
       if (x >= 245 && z > 325) continue;
 

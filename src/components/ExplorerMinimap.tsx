@@ -32,6 +32,8 @@ import {
   SOUTHERN_MINE_POS,
   SOUTHWEST_OASIS_POS,
   VOLCANO_SANCTUM_POS,
+  SACRED_CLOUD_MOUNTAIN_POS,
+  CHINESE_BAGUA_PLATFORM_POS,
 } from '../world/domain/landmarksRegistry';
 
 /**
@@ -88,6 +90,8 @@ interface IWorldMapLandmarkPin {
 
 const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'fortress', label: 'Imperial Fortress', x: CHINESE_FORTRESS_POS.x, z: CHINESE_FORTRESS_POS.z, color: '#fbbf24' },
+  { id: 'bagua_terrace', label: 'Yin-Yang Bagua Terrace', x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, color: '#f59e0b' },
+  { id: 'sacred_cloud_mountain', label: 'Cloudspire Peak & Lotus Pool', x: SACRED_CLOUD_MOUNTAIN_POS.x, z: SACRED_CLOUD_MOUNTAIN_POS.z, color: '#f43f5e' },
   { id: 'nordic_shrine', label: 'Nordic Frost Shrine & Hot Springs', x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, color: '#22d3ee' },
   { id: 'lodge', label: 'Hunter Lodge', x: HUNTER_LODGE_POS.x, z: HUNTER_LODGE_POS.z, color: '#a3e635' },
   { id: 'harbor', label: 'Harbor & Market', x: SOUTHEAST_HARBOR_POS.x, z: SOUTHEAST_HARBOR_POS.z, color: '#38bdf8' },
