@@ -126,7 +126,7 @@ const GLB_CHUNK_HEADER_BYTES = 8;
 
 // ======================== DECODING ======================== \\
 // #region Decoding
-function findSkinnedMesh(gltf: GLTF): THREE.SkinnedMesh {
+export function findSkinnedMesh(gltf: GLTF): THREE.SkinnedMesh {
   let found: THREE.SkinnedMesh | null = null;
   gltf.scene.traverse((object) => {
     if (!found && (object as THREE.SkinnedMesh).isSkinnedMesh) found = object as THREE.SkinnedMesh;
@@ -140,7 +140,7 @@ function findSkinnedMesh(gltf: GLTF): THREE.SkinnedMesh {
  * Design: Reads element by element so it also works when the file stores the attribute with a byte
  *         stride (GLTFExporter pads 3-byte integer attributes to 4), where `array` holds the padding.
  */
-function dequantize(attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, divisor: number): Float32Array {
+export function dequantize(attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, divisor: number): Float32Array {
   const { count, itemSize } = attribute;
   const interleaved = (attribute as THREE.InterleavedBufferAttribute).isInterleavedBufferAttribute
     ? (attribute as THREE.InterleavedBufferAttribute)
@@ -164,7 +164,7 @@ function dequantize(attribute: THREE.BufferAttribute | THREE.InterleavedBufferAt
  *         builds the mesh, which rounds quantized u8 weights again; reading the untouched input
  *         bytes keeps the exact stored values.
  */
-function readStoredSkinWeights(gltf: GLTF, bytes: ArrayBuffer): { readonly values: ArrayLike<number>; readonly isQuantized: boolean } {
+export function readStoredSkinWeights(gltf: GLTF, bytes: ArrayBuffer): { readonly values: ArrayLike<number>; readonly isQuantized: boolean } {
   const json = gltf.parser.json as {
     meshes: Array<{ primitives: Array<{ attributes: Record<string, number> }> }>;
     accessors: Array<{ bufferView: number; byteOffset?: number; count: number; componentType: number }>;
