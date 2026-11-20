@@ -1,54 +1,26 @@
 // ============================================================================
 // MODULE: World / Models / Plants / Flora GLB Tests
-// DESIGN: Equality tests: every shipped plant GLB must decode to exactly what the packed data
-//         modules unpack to today, so the data modules can be removed without changing a vertex
-// SUMMARY: Compares all 10 GLBs against their base64 packs (high, LOD, textures) and checks the
-//          encoder round trip and the corrupt-file guards.
+// DESIGN: Structural checks on the real files in public/models/plants plus encoder round trip
+// SUMMARY: Checks that all 10 shipped GLBs decode into consistent high and LOD meshes with
+//          textures, and covers the encoder round trip and the corrupt-file guards.
 // ============================================================================
 
-// ======================== IMPORTS & TEST DEPENDENCIES ======================== \
+// ======================== IMPORTS & TEST DEPENDENCIES ======================== \\
 // #region Imports & Test Dependencies
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { decodeFloraGlb, encodeFloraGlb } from './floraGlb';
-import { unpackFloraBundle, type FloraSubmeshData } from './floraRuntime';
+import { FLORA_MODEL_FILE_NAMES, FLORA_MODEL_IDS } from './floraAssets';
+import type { FloraSubmeshData } from './floraRuntime';
 import { InfrastructureCorruptedException } from '../../../core/AppException';
-import * as animTree from './AnimTree_Complete';
-import * as animTreeCompact from './AnimTreeCompact_Complete';
-import * as animTreeWide from './AnimTreeWide_Complete';
-import * as cornflower from './Cornflower_Complete';
-import * as forestBush from './ForestBush_Complete';
-import * as forestFern from './ForestFern_Complete';
-import * as oakGreen from './OakGreen_Complete';
-import * as oakYellow from './OakYellow_Complete';
-import * as pineTree from './PineTree_Complete';
-import * as whiteFlower from './WhiteFlower_Complete';
 // #endregion
 
-// ======================== FIXTURES ======================== \
+// ======================== FIXTURES ======================== \\
 // #region Fixtures
-const PLANTS: ReadonlyArray<readonly [string, string, Record<string, unknown>]> = [
-  ['anim-tree', 'ANIMTREE', animTree],
-  ['anim-tree-wide', 'ANIMTREEWIDE', animTreeWide],
-  ['anim-tree-compact', 'ANIMTREECOMPACT', animTreeCompact],
-  ['pine-tree', 'PINETREE', pineTree],
-  ['oak-green', 'OAKGREEN', oakGreen],
-  ['oak-yellow', 'OAKYELLOW', oakYellow],
-  ['forest-bush', 'FORESTBUSH', forestBush],
-  ['forest-fern', 'FORESTFERN', forestFern],
-  ['cornflower', 'CORNFLOWER', cornflower],
-  ['white-flower', 'WHITEFLOWER', whiteFlower],
-];
-
 async function readPlantGlb(fileName: string): Promise<ArrayBuffer> {
   const bytes = await readFile(new URL(`../../../../public/models/plants/${fileName}.glb`, import.meta.url));
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-}
-
-function dataUriBytes(uri: string): Uint8Array {
-  const binary = atob(uri.slice(uri.indexOf(',') + 1));
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 function assertSameSubmeshes(actual: FloraSubmeshData[], expected: FloraSubmeshData[]): void {
@@ -61,23 +33,31 @@ function assertSameSubmeshes(actual: FloraSubmeshData[], expected: FloraSubmeshD
     assert.deepEqual(actual[i].indices, expected[i].indices);
   }
 }
+
+function countTriangles(submeshes: FloraSubmeshData[]): number {
+  return submeshes.reduce((sum, sub) => sum + sub.indices.length / 3, 0);
+}
 // #endregion
 
-// ======================== TESTS ======================== \
-// #region Equality With The Packed Data
-for (const [fileName, prefix, data] of PLANTS) {
-  test(`decodeFloraGlb_When${prefix}GlbIsRead_ShouldEqualItsPackedDataExactly`, async () => {
-    const decoded = decodeFloraGlb(await readPlantGlb(fileName));
+// ======================== TESTS ======================== \\
+// #region Shipped Plant Files
+for (const id of FLORA_MODEL_IDS) {
+  test(`decodeFloraGlb_When${id}GlbIsRead_ShouldHaveConsistentHighAndLodMeshes`, async () => {
+    const decoded = decodeFloraGlb(await readPlantGlb(FLORA_MODEL_FILE_NAMES[id]));
 
-    assertSameSubmeshes(decoded.high, unpackFloraBundle(data[`${prefix}_PACK_B64`] as string));
-    assertSameSubmeshes(decoded.low, unpackFloraBundle(data[`${prefix}_LOD_PACK_B64`] as string));
-
-    const textures = data[`${prefix}_TEXTURES`] as Record<number, string>;
-    assert.deepEqual(Object.keys(decoded.textures).sort(), Object.keys(textures).sort());
-    for (const [matId, uri] of Object.entries(textures)) {
-      assert.deepEqual(decoded.textures[Number(matId)].data, dataUriBytes(uri));
-      assert.equal(decoded.textures[Number(matId)].mimeType, /^data:([^;]+);/.exec(uri)![1]);
+    for (const submeshes of [decoded.high, decoded.low]) {
+      assert.ok(submeshes.length > 0, 'a plant has at least one submesh');
+      for (const sub of submeshes) {
+        const vertexCount = sub.positions.length / 3;
+        assert.equal(sub.positions.length % 3, 0);
+        assert.equal(sub.normals.length, sub.positions.length);
+        assert.equal(sub.uvs.length, vertexCount * 2);
+        assert.equal(sub.indices.length % 3, 0);
+        assert.ok(sub.indices.every((index) => index < vertexCount), 'indices stay inside the vertex range');
+      }
     }
+    assert.ok(countTriangles(decoded.low) < countTriangles(decoded.high), 'the LOD mesh is lighter than the full mesh');
+    assert.ok(Object.keys(decoded.textures).length > 0, 'a plant ships at least one texture');
   });
 }
 // #endregion
