@@ -303,7 +303,7 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
   const lions = animals.filter((a) => a.species === 'lion');
   const stags = animals.filter((a) => a.species === 'stag');
   const hippos = animals.filter((a) => a.species === 'hippo');
-  const koifish = animals.filter((a) => a.species === 'koifish');
+  const koifish = animals.filter((a) => a.species === 'koifish' && a.pondId === undefined);
   const dolphins = animals.filter((a) => a.species === 'dolphin');
   assert.equal(bears.length, 7, 'Expected 7 forest/mountain cavern bears (including multiple bears inside the caves)');
   assert.equal(jaguars.length, 5, 'Expected 5 jaguars in Southwest Desert & Southern Forest');
@@ -1865,8 +1865,9 @@ test('colossalVolcanoBaffledCorridorsBossArenaLockStagJumpMomentumAndSouthernMou
 });
 
 test('stepSmallAnimals_WhenHippoKoiAndDolphinSimulate_ShouldStayInRespectiveAquaticAndSemiAquaticBiomes', () => {
+  // Koi of enclosed ponds (mine lagoon, sky ponds) are covered by koiPonds.spec.ts.
   const animals = createInitialSmallAnimals().filter(
-    (a) => a.species === 'hippo' || a.species === 'koifish' || a.species === 'dolphin'
+    (a) => a.species === 'hippo' || (a.species === 'koifish' && a.pondId === undefined) || a.species === 'dolphin'
   );
   assert.equal(animals.length, 33, 'Expected 12 hippos + 15 koi fish + 6 dolphins');
 

@@ -41,6 +41,7 @@ import {
   sailableShipDeckHeightAt,
 } from './sailableShipSystem';
 import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
+import { ENCLOSED_KOI_PONDS, findKoiPond } from './koiPonds';
 import {
   getActivePlacedTrapsRef,
   generateCaughtAnimalLoot,
@@ -178,6 +179,8 @@ export interface ISmallAnimalState {
   stimulusX?: number;
   stimulusZ?: number;
   caveIndex?: number;
+  /** Koi only: id of the enclosed pond (see koiPonds.ts) this fish lives in; absent for terrain lakes. */
+  pondId?: string;
   isFleeing?: boolean;
   fleeCooldown: number;
   isResting: boolean;
@@ -1440,6 +1443,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     z: number;
     species: GroundAnimalSpecies;
     caveIndex?: number;
+    pondId?: string;
   }> = [
     // Rabbits in rural meadows & Hunter's Lodge woods (8)
     { x: 68, z: 26, species: 'rabbit' },
@@ -1573,6 +1577,20 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     { x: 870, z: 424, species: 'dolphin' },
   ];
 
+  // Koi that live in enclosed ponds (mine lagoon, sky ponds): a school around each pond's center.
+  for (const pond of ENCLOSED_KOI_PONDS) {
+    for (let k = 0; k < pond.fishCount; k++) {
+      const angle = (k / pond.fishCount) * Math.PI * 2 + k * 0.37;
+      const ring = 0.45 + 0.4 * (((k * 7) % 5) / 4);
+      spawnCandidates.push({
+        x: pond.centerX + Math.cos(angle) * pond.patrolRadiusX * ring,
+        z: pond.centerZ + Math.sin(angle) * pond.patrolRadiusZ * ring,
+        species: 'koifish',
+        pondId: pond.id,
+      });
+    }
+  }
+
   for (let i = 0; i < spawnCandidates.length; i++) {
     const c = spawnCandidates[i];
     const gy = walkableHeightValueAt(c.x, c.z);
@@ -1600,10 +1618,13 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
                       ? 2 + (i % 2)
                       : 1 + (i % 3);
     const maxHp = getAnimalMaxHp(c.species, level, isVolcanoSanctumMysticLion);
+    const spawnPond = findKoiPond(c.pondId);
     const waterSurfY =
-      Math.hypot(c.x - SOUTHWEST_OASIS_POS.x, c.z - SOUTHWEST_OASIS_POS.z) <= 13.5
-        ? SOUTHWEST_OASIS_POS.lagoonWaterY
-        : WATER_LEVEL;
+      spawnPond !== undefined
+        ? spawnPond.surfaceY
+        : Math.hypot(c.x - SOUTHWEST_OASIS_POS.x, c.z - SOUTHWEST_OASIS_POS.z) <= 13.5
+          ? SOUTHWEST_OASIS_POS.lagoonWaterY
+          : WATER_LEVEL;
     const isAquaticInit =
       c.species === 'koifish' ||
       c.species === 'dolphin' ||
@@ -1641,6 +1662,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       stompWarningDone: false,
       inWater: isAquaticInit,
       caveIndex: c.caveIndex,
+      pondId: c.pondId,
       isFleeing: false,
       fleeCooldown: 0,
       isResting: false,
@@ -4063,16 +4085,34 @@ function stepHippoAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, prevAct
 function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: number, frame: ISmallAnimalStepFrame, tally: ISmallAnimalStepTally, distP: number): boolean {
   const { elapsedTime, isAttacking, isNightRest, isPlayerSneaking, playerSpeed, playerX, playerZ, safeDt } = frame;
   if (a.species === 'koifish') {
+    // Fish of an enclosed pond ask the pond for its water; fish of the terrain lakes use the world water level.
+    const pond = findKoiPond(a.pondId);
     const localWaterY =
-      Math.hypot(a.homeX - SOUTHWEST_OASIS_POS.x, a.homeZ - SOUTHWEST_OASIS_POS.z) <= 13.5
-        ? SOUTHWEST_OASIS_POS.lagoonWaterY
-        : WATER_LEVEL;
+      pond !== undefined
+        ? pond.surfaceY
+        : Math.hypot(a.homeX - SOUTHWEST_OASIS_POS.x, a.homeZ - SOUTHWEST_OASIS_POS.z) <= 13.5
+          ? SOUTHWEST_OASIS_POS.lagoonWaterY
+          : WATER_LEVEL;
+    /** Water depth at a point (<= 0 where there is none). */
+    const depthAt = (x: number, z: number): number => {
+      if (pond === undefined) return localWaterY - walkableHeightValueAt(x, z);
+      const column = pond.columnAt(x, z, a.y);
+      return column === null ? -1 : column.surfaceY - column.bedY;
+    };
+    /** Height of the bed under a point. */
+    const bedAt = (x: number, z: number): number => {
+      if (pond === undefined) return groundHeightAt(x, z);
+      return pond.columnAt(x, z, a.y)?.bedY ?? localWaterY - 1;
+    };
     a.inWater = true;
     a.isSeekingShelter = false;
     a.pounceHeight = 0;
 
+    // A pond on another level (a mine under the surface, a sky island) ignores a player far above or below it.
+    const playerLevelGap = Math.abs((frame.playerStateRef?.y ?? a.y) - a.y);
+    const effectiveDistP = pond !== undefined && playerLevelGap > 6 ? Infinity : distP;
     const startleDist = isPlayerSneaking ? 2.5 : 7.5;
-    if (distP < startleDist && (playerSpeed > 0.25 || isAttacking)) {
+    if (effectiveDistP < startleDist && (playerSpeed > 0.25 || isAttacking)) {
       if (a.alertLevel !== 'fleeing') {
         tally.scamperedCritterCount++;
       }
@@ -4096,7 +4136,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
       a.aiBehavior = 'sleeping';
       a.vx = 0;
       a.vz = 0;
-      const sleepTargetY = Math.max(groundHeightAt(a.x, a.z) + 0.16, localWaterY - 0.65);
+      const sleepTargetY = Math.max(bedAt(a.x, a.z) + 0.16, localWaterY - 0.65);
       a.y += (sleepTargetY - (a.y ?? sleepTargetY)) * Math.min(1, safeDt * 3.0);
       return true;
     }
@@ -4105,7 +4145,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
     // Check if an armed Woven Fish Trap ('trap_fish') is in range in the same pond/lagoon
     let chosenFishTrap: { x: number; z: number; dist: number } | null = null;
     const placedTraps = getActivePlacedTrapsRef();
-    if (placedTraps.length > 0 && a.alertLevel !== 'fleeing' && distP >= startleDist) {
+    if (placedTraps.length > 0 && a.alertLevel !== 'fleeing' && effectiveDistP >= startleDist) {
       for (let tIdx = 0; tIdx < placedTraps.length; tIdx++) {
         const tr = placedTraps[tIdx];
         if (tr.status !== 'armed' || tr.kind !== 'trap_fish') continue;
@@ -4177,11 +4217,11 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
       // the Central Lake (-2, 1.5), or a smaller pond/lagoon, so lake fish roam across the ENTIRE lake!
       const inWestLagoonLake = Math.hypot(a.homeX - -138.0, a.homeZ - 42.0) <= 28.0;
       const inCentralLake = Math.hypot(a.homeX - -2.0, a.homeZ - 1.5) <= 22.0;
-      const basinCenterX = inWestLagoonLake ? -138.0 : inCentralLake ? -2.0 : a.homeX;
-      const basinCenterZ = inWestLagoonLake ? 42.0 : inCentralLake ? 1.5 : a.homeZ;
-      const patrolRadX = inWestLagoonLake ? 16.5 : inCentralLake ? 12.5 : 4.2;
-      const patrolRadZ = inWestLagoonLake ? 14.0 : inCentralLake ? 11.5 : 3.8;
-      const maxBasinRadius = inWestLagoonLake ? 21.0 : inCentralLake ? 15.5 : 4.8;
+      const basinCenterX = pond ? pond.centerX : inWestLagoonLake ? -138.0 : inCentralLake ? -2.0 : a.homeX;
+      const basinCenterZ = pond ? pond.centerZ : inWestLagoonLake ? 42.0 : inCentralLake ? 1.5 : a.homeZ;
+      const patrolRadX = pond ? pond.patrolRadiusX : inWestLagoonLake ? 16.5 : inCentralLake ? 12.5 : 4.2;
+      const patrolRadZ = pond ? pond.patrolRadiusZ : inWestLagoonLake ? 14.0 : inCentralLake ? 11.5 : 3.8;
+      const maxBasinRadius = pond ? pond.maxRadius : inWestLagoonLake ? 21.0 : inCentralLake ? 15.5 : 4.8;
 
       // Smooth figure-8 / wandering school current across the entire lake basin
       const schoolPhase = elapsedTime * 0.24 + a.id * 1.15;
@@ -4240,7 +4280,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
     const minSafeDepth = 0.22;
     const aheadX = a.x + Math.sin(desiredYaw) * feelerDist;
     const aheadZ = a.z + Math.cos(desiredYaw) * feelerDist;
-    const aheadDepth = localWaterY - walkableHeightValueAt(aheadX, aheadZ);
+    const aheadDepth = depthAt(aheadX, aheadZ);
     if (aheadDepth < minSafeDepth) {
       let bestFeelerYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
       let bestDepth = -999;
@@ -4249,7 +4289,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
         const testYaw = desiredYaw + feelerOffsets[f];
         const tx = a.x + Math.sin(testYaw) * feelerDist;
         const tz = a.z + Math.cos(testYaw) * feelerDist;
-        const dWater = localWaterY - walkableHeightValueAt(tx, tz);
+        const dWater = depthAt(tx, tz);
         if (dWater > bestDepth) {
           bestDepth = dWater;
           bestFeelerYaw = testYaw;
@@ -4269,7 +4309,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
 
     let nextX = a.x + a.vx * safeDt;
     let nextZ = a.z + a.vz * safeDt;
-    const nextDepth = localWaterY - walkableHeightValueAt(nextX, nextZ);
+    const nextDepth = depthAt(nextX, nextZ);
     if (nextDepth < 0.14) {
       // Turn smoothly toward home water center if shoreline reached
       const toHomeYaw = Math.atan2(a.homeX - a.x, a.homeZ - a.z);
@@ -4283,7 +4323,7 @@ function stepKoiFishAI(a: ISmallAnimalState, animals: ISmallAnimalState[], i: nu
     a.x = nextX;
     a.z = nextZ;
     const nibbleOffset = a.aiBehavior === 'grazing' ? 0.04 : 0;
-    const minBedY = groundHeightAt(a.x, a.z) + 0.16;
+    const minBedY = bedAt(a.x, a.z) + 0.16;
     a.y = Math.max(
       minBedY,
       localWaterY -

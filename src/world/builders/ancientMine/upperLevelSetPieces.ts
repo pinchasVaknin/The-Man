@@ -33,7 +33,6 @@ import {
   subdivideRailPolyline3D,
 } from '../../systems/dwarvenMineAndCaravanSystem';
 import { MINE_PALETTE, buildPropGeometry } from './propGeometries';
-import { createReadyKoiFish, type KoiFish } from '../../models/KoiFish';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -1806,94 +1805,15 @@ function buildWaterworks(
     sparkles.push({ mesh, baseY, phase: i * 0.85 });
   }
 
-  // 10 Animated KoiFish instances (`createReadyKoiFish`) swimming inside the Lagoon Pool
-  const fishSchool: {
-    root: THREE.Group;
-    koi: KoiFish;
-    cx: number;
-    cz: number;
-    rx: number;
-    rz: number;
-    depthY: number;
-    speed: number;
-    phase: number;
-    lastYaw: number;
-  }[] = [];
+  // The lagoon's koi are real wildlife (see koiPonds.ts: MINE_LAGOON_POND); only the sparkles are animated here.
 
-  const fishOrbits: readonly [number, number, number, number][] = [
-    [-92.0, 68.0, 7.5, 9.0],
-    [-82.0, 60.0, 8.0, 7.0],
-    [-78.0, 74.0, 7.0, 8.5],
-    [-86.0, 78.0, 6.5, 7.5],
-    [-72.0, 66.0, 5.5, 8.0],
-    [-96.0, 72.0, 5.5, 6.0],
-    [-84.0, 53.0, 6.0, 4.5],
-    [-80.0, 84.0, 5.5, 4.5],
-    [-74.0, 56.0, 5.0, 5.0],
-    [-90.0, 62.0, 6.5, 6.5],
-  ];
-
-  for (let i = 0; i < fishOrbits.length; i++) {
-    const [cx, cz, rx, rz] = fishOrbits[i];
-    const koi = createReadyKoiFish({
-      scale: 0.62 + (i % 3) * 0.09,
-      initialState: 'walk',
-      tintHex: i % 3 === 1 ? 0xffedd5 : i % 3 === 2 ? 0xfef08a : undefined,
-      castShadow: false,
-      receiveShadow: false,
-    });
-    ctx.own(koi.mesh.geometry);
-    if (Array.isArray(koi.mesh.material)) {
-      ctx.ownMaterial(...koi.mesh.material);
-    } else {
-      ctx.ownMaterial(koi.mesh.material);
-    }
-    const root = new THREE.Group();
-    root.userData.isAnimated = true;
-    root.add(koi.object);
-    kit.add(root);
-
-    fishSchool.push({
-      root,
-      koi,
-      cx,
-      cz,
-      rx,
-      rz,
-      depthY: lagoonWaterY - 0.52 - (i % 3) * 0.26,
-      speed: 0.42 + (i % 4) * 0.07,
-      phase: i * 1.35,
-      lastYaw: 0,
-    });
-  }
-
-  let lastLagoonTime: number | null = null;
   const updateLagoonLife = (t: number): void => {
-    const rawDt = lastLagoonTime === null ? 1 / 60 : t - lastLagoonTime;
-    lastLagoonTime = t;
-    const dt = Math.max(0.001, Math.min(0.1, rawDt));
-
     for (let i = 0; i < sparkles.length; i++) {
       const s = sparkles[i];
       const pulse = 0.65 + 0.45 * Math.sin(t * 3.2 + s.phase);
       s.mesh.position.y = s.baseY + Math.sin(t * 1.8 + s.phase) * 0.14;
       s.mesh.rotation.y = t * 1.5 + s.phase;
       s.mesh.scale.setScalar(pulse);
-    }
-    for (let i = 0; i < fishSchool.length; i++) {
-      const f = fishSchool[i];
-      const a = t * f.speed + f.phase;
-      const x = f.cx + Math.cos(a) * f.rx;
-      const z = f.cz + Math.sin(a) * f.rz + Math.sin(a * 2) * 1.2;
-      const vx = -Math.sin(a) * f.rx * f.speed;
-      const vz = (Math.cos(a) * f.rz + 2 * Math.cos(a * 2) * 1.2) * f.speed;
-      const yaw = Math.atan2(vx, vz);
-      const dYaw = Math.atan2(Math.sin(yaw - f.lastYaw), Math.cos(yaw - f.lastYaw));
-      f.lastYaw = yaw;
-      f.root.position.set(x, f.depthY + Math.sin(t * 2.1 + f.phase) * 0.08, z);
-      f.root.rotation.y = yaw;
-      f.koi.moveSpeed = Math.hypot(vx, vz);
-      f.koi.update(dt, Math.max(-1, Math.min(1, (dYaw / dt) * 0.35)));
     }
   };
 

@@ -1568,6 +1568,146 @@
     "y": -1.56,
     "yaw": 1.273553,
     "z": 424
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -135.25,
+    "y": -10.33,
+    "yaw": 2.643553,
+    "z": 492
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -136.718265,
+    "y": -10.33,
+    "yaw": 4.013553,
+    "z": 499.649108
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -147.266854,
+    "y": -10.33,
+    "yaw": 5.383553,
+    "z": 502.837232
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -150.161461,
+    "y": -10.33,
+    "yaw": 0.470367,
+    "z": 493.125063
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -149.410588,
+    "y": -10.33,
+    "yaw": 1.840367,
+    "z": 484.099915
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -140.139766,
+    "y": -10.33,
+    "yaw": 3.210367,
+    "z": 485.943966
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.666301,
+    "y": -10.33,
+    "yaw": 4.580367,
+    "z": 489.369298
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.28982,
+    "y": -10.33,
+    "yaw": 5.950367,
+    "z": 499.712005
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -143.090474,
+    "y": -10.33,
+    "yaw": 1.037182,
+    "z": 499.632439
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -152.178882,
+    "y": -10.33,
+    "yaw": 2.407182,
+    "z": 496.471521
    }
   ],
   "birds": [
@@ -3329,6 +3469,146 @@
     "y": -1.56,
     "yaw": 1.273553,
     "z": 424
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -135.25,
+    "y": -10.33,
+    "yaw": 2.643553,
+    "z": 492
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -136.718265,
+    "y": -10.33,
+    "yaw": 4.013553,
+    "z": 499.649108
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -147.266854,
+    "y": -10.33,
+    "yaw": 5.383553,
+    "z": 502.837232
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -150.161461,
+    "y": -10.33,
+    "yaw": 0.470367,
+    "z": 493.125063
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -149.410588,
+    "y": -10.33,
+    "yaw": 1.840367,
+    "z": 484.099915
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -140.139766,
+    "y": -10.33,
+    "yaw": 3.210367,
+    "z": 485.943966
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.666301,
+    "y": -10.33,
+    "yaw": 4.580367,
+    "z": 489.369298
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.28982,
+    "y": -10.33,
+    "yaw": 5.950367,
+    "z": 499.712005
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -143.090474,
+    "y": -10.33,
+    "yaw": 1.037182,
+    "z": 499.632439
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -152.178882,
+    "y": -10.33,
+    "yaw": 2.407182,
+    "z": 496.471521
    }
   ],
   "birds": [
@@ -3529,13 +3809,13 @@
     "id": 0,
     "isDead": false,
     "species": "rabbit",
-    "vx": -2.397649,
-    "vz": 6.363276,
+    "vx": -2.444508,
+    "vz": 6.345422,
     "wakeMeter": 0,
-    "x": 89.320118,
+    "x": 88.246124,
     "y": 2.55,
-    "yaw": 1.330918,
-    "z": 23.794681
+    "yaw": -0.090108,
+    "z": 24.114116
    },
    {
     "aiBehavior": "grazing",
@@ -3552,18 +3832,18 @@
     "z": 18
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 2,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.285722,
-    "vz": 0.318763,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 62.582202,
-    "y": 0.250058,
-    "yaw": 0.730793,
-    "z": -21.046673
+    "x": 62.569831,
+    "y": 0.259135,
+    "yaw": 0.732208,
+    "z": -21.060474
    },
    {
     "aiBehavior": "grazing",
@@ -3585,27 +3865,27 @@
     "id": 4,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.8945,
-    "vz": -0.891389,
+    "vx": -0.905331,
+    "vz": -0.902182,
     "wakeMeter": 0,
-    "x": 71.330239,
-    "y": 1.737286,
+    "x": 71.405141,
+    "y": 1.740016,
     "yaw": -2.354452,
-    "z": 51.339526
+    "z": 51.414168
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 5,
     "isDead": false,
     "species": "rabbit",
-    "vx": 5.914648,
-    "vz": -3.355135,
+    "vx": 0.196961,
+    "vz": 1.040326,
     "wakeMeter": 0,
-    "x": -69.383386,
-    "y": 2.064799,
-    "yaw": 2.086793,
-    "z": 57.438117
+    "x": -71.975605,
+    "y": 2.117629,
+    "yaw": 0.187112,
+    "z": 58.128849
    },
    {
     "aiBehavior": "wandering",
@@ -3613,41 +3893,41 @@
     "id": 6,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.962331,
-    "vz": 1.077248,
+    "vx": 0.969206,
+    "vz": 1.084943,
     "wakeMeter": 0,
-    "x": 85.671458,
-    "y": 1.676664,
+    "x": 85.623227,
+    "y": 1.675763,
     "yaw": 0.729115,
-    "z": 49.871055
+    "z": 49.817064
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 7,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.309908,
-    "vz": -5.259723,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -85.228537,
-    "y": 2.198665,
-    "yaw": 2.455124,
-    "z": 46.366833
+    "x": -87.048039,
+    "y": 2.161677,
+    "yaw": -1.401103,
+    "z": 48.522253
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 8,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0.530153,
-    "vz": 1.667764,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -69.092944,
-    "y": 1.604311,
-    "yaw": 0.307781,
-    "z": 14.875478
+    "x": -69.235441,
+    "y": 2.779284,
+    "yaw": 0.537167,
+    "z": 14.214314
    },
    {
     "aiBehavior": "grazing",
@@ -3658,10 +3938,10 @@
     "vx": 2.197629,
     "vz": -1.814643,
     "wakeMeter": 0,
-    "x": -29.333859,
-    "y": 2.639927,
+    "x": -30.176284,
+    "y": 2.132485,
     "yaw": 2.261029,
-    "z": -29.504416
+    "z": -28.808803
    },
    {
     "aiBehavior": "wandering",
@@ -3672,10 +3952,10 @@
     "vx": -1.056406,
     "vz": -1.395172,
     "wakeMeter": 0,
-    "x": 39.685033,
-    "y": 1.814171,
+    "x": 39.843494,
+    "y": 1.822203,
     "yaw": -2.493508,
-    "z": -34.776847
+    "z": -34.567571
    },
    {
     "aiBehavior": "grazing",
@@ -3683,13 +3963,13 @@
     "id": 11,
     "isDead": false,
     "species": "squirrel",
-    "vx": -1.883858,
-    "vz": 2.138593,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 145.48819,
-    "y": 2.364692,
+    "x": 145.063103,
+    "y": 2.416199,
     "yaw": -0.722154,
-    "z": 114.851457
+    "z": 115.334023
    },
    {
     "aiBehavior": "grazing",
@@ -3714,10 +3994,10 @@
     "vx": 0.237548,
     "vz": -2.840083,
     "wakeMeter": 0,
-    "x": 138.486973,
-    "y": 4.258066,
+    "x": 138.510728,
+    "y": 4.245225,
     "yaw": 3.058146,
-    "z": 92.17783
+    "z": 91.893822
    },
    {
     "aiBehavior": "wandering",
@@ -3728,10 +4008,10 @@
     "vx": 0.343069,
     "vz": -1.716043,
     "wakeMeter": 0,
-    "x": 172.905881,
-    "y": 1.874436,
+    "x": 172.974495,
+    "y": 1.872266,
     "yaw": 2.944276,
-    "z": 109.079992
+    "z": 108.736783
    },
    {
     "aiBehavior": "grazing",
@@ -3770,10 +4050,10 @@
     "vx": -0.451591,
     "vz": 2.813995,
     "wakeMeter": 0,
-    "x": 70.893601,
-    "y": 1.083755,
+    "x": 70.923707,
+    "y": 1.082353,
     "yaw": -0.159124,
-    "z": -5.105713
+    "z": -5.293313
    },
    {
     "aiBehavior": "grazing",
@@ -3785,7 +4065,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 125.511005,
-    "y": 2.975353,
+    "y": 2.712853,
     "yaw": 2.386723,
     "z": -24.051243
    },
@@ -3795,13 +4075,13 @@
     "id": 19,
     "isDead": false,
     "species": "deer",
-    "vx": -0.315144,
-    "vz": -1.312403,
+    "vx": -0.33299,
+    "vz": -1.386724,
     "wakeMeter": 0,
-    "x": -68.401332,
-    "y": 7.658034,
+    "x": -68.228,
+    "y": 7.14435,
     "yaw": -2.905927,
-    "z": -19.671331
+    "z": -18.949497
    },
    {
     "aiBehavior": "wandering",
@@ -3809,13 +4089,13 @@
     "id": 20,
     "isDead": false,
     "species": "deer",
-    "vx": 0.987228,
-    "vz": -0.502541,
+    "vx": 1.076543,
+    "vz": -0.548006,
     "wakeMeter": 0,
-    "x": -74.958917,
-    "y": 1.815433,
+    "x": -75.576926,
+    "y": 1.829579,
     "yaw": 2.041652,
-    "z": 22.451959
+    "z": 22.766552
    },
    {
     "aiBehavior": "grazing",
@@ -3874,41 +4154,41 @@
     "z": 191.786407
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 25,
     "isDead": false,
     "species": "sheep",
-    "vx": -1.073405,
-    "vz": 0.41148,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -112.592016,
-    "y": 2.198702,
-    "yaw": -1.204733,
-    "z": 142.226944
+    "x": -112,
+    "y": 2.141988,
+    "yaw": 2.834073,
+    "z": 142
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 26,
     "isDead": false,
     "species": "sheep",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.025513,
+    "vz": 0.323157,
     "wakeMeter": 0,
-    "x": -108.024407,
-    "y": 2.047794,
-    "yaw": 1.204127,
-    "z": 146.334485
+    "x": -108.318205,
+    "y": 2.058965,
+    "yaw": -1.265529,
+    "z": 146.100272
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 27,
     "isDead": false,
     "species": "sheep",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.493962,
+    "vz": -0.79252,
     "wakeMeter": 0,
     "x": -114.904592,
     "y": 2.35,
@@ -3949,13 +4229,13 @@
     "id": 30,
     "isDead": false,
     "species": "sheep",
-    "vx": -0.031325,
-    "vz": -1.100087,
+    "vx": -0.031393,
+    "vz": -1.10246,
     "wakeMeter": 0,
-    "x": 97.963138,
-    "y": 1.795894,
+    "x": 97.96366,
+    "y": 1.795857,
     "yaw": -3.113125,
-    "z": 60.705473
+    "z": 60.723808
    },
    {
     "aiBehavior": "grazing",
@@ -4000,32 +4280,32 @@
     "z": -90.8
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 34,
     "isDead": false,
     "species": "bear",
-    "vx": -1.678411,
+    "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -164.850827,
-    "y": 2.399452,
-    "yaw": -1.570796,
+    "x": -164,
+    "y": 2.498088,
+    "yaw": 2.597703,
     "z": -45
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 35,
     "isDead": false,
     "species": "bear",
-    "vx": 1.483239,
-    "vz": -0.82572,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -199.358115,
+    "x": -200.2,
     "y": 2.25,
-    "yaw": 2.07877,
-    "z": -40.068678
+    "yaw": 3.967703,
+    "z": -39.6
    },
    {
     "aiBehavior": "grazing",
@@ -4154,18 +4434,18 @@
     "z": 336
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 45,
     "isDead": false,
     "species": "jaguar",
-    "vx": 0.292768,
-    "vz": 1.429047,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -147.925543,
-    "y": 2.287147,
-    "yaw": 0.202073,
-    "z": 228.363435
+    "x": -148,
+    "y": 2.274318,
+    "yaw": 5.101332,
+    "z": 228
    },
    {
     "aiBehavior": "grazing",
@@ -4196,18 +4476,18 @@
     "z": -88
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 48,
     "isDead": false,
     "species": "wolf",
-    "vx": -0.382278,
-    "vz": 1.047254,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -158.051436,
-    "y": 12.163348,
-    "yaw": 3.838147,
-    "z": -111.85909
+    "x": -158,
+    "y": 12.187244,
+    "yaw": 2.928147,
+    "z": -112
    },
    {
     "aiBehavior": "wandering",
@@ -4215,13 +4495,13 @@
     "id": 49,
     "isDead": false,
     "species": "wolf",
-    "vx": 1.208195,
-    "vz": -1.26585,
+    "vx": 1.205286,
+    "vz": -1.262802,
     "wakeMeter": 0,
-    "x": -115.751256,
-    "y": 1.765426,
+    "x": -116.697138,
+    "y": 1.629056,
     "yaw": 2.379494,
-    "z": 83.643947
+    "z": 84.634965
    },
    {
     "aiBehavior": "wandering",
@@ -4232,13 +4512,13 @@
     "vx": 1.708285,
     "vz": -0.37982,
     "wakeMeter": 0,
-    "x": 143.364605,
+    "x": 143.734733,
     "y": 11.5,
     "yaw": 1.789578,
-    "z": -119.637448
+    "z": -119.719743
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 51,
     "isDead": false,
@@ -4266,18 +4546,18 @@
     "z": 262
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 53,
     "isDead": false,
     "species": "rhino",
-    "vx": 1.5438,
-    "vz": -0.695761,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -285.147336,
-    "y": 2.631086,
-    "yaw": 1.994216,
-    "z": 247.615721
+    "x": -286,
+    "y": 2.769747,
+    "yaw": 3.494962,
+    "z": 248
    },
    {
     "aiBehavior": "sitting",
@@ -4294,18 +4574,18 @@
     "z": 115
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 55,
     "isDead": false,
     "species": "lion",
-    "vx": 1.532053,
-    "vz": -0.843189,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -508.938553,
-    "y": 3.177765,
-    "yaw": 2.07392,
-    "z": 104.865451
+    "x": -511,
+    "y": 3.180319,
+    "yaw": 6.234962,
+    "z": 106
    },
    {
     "aiBehavior": "grazing",
@@ -4322,7 +4602,7 @@
     "z": 124
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 57,
     "isDead": false,
@@ -4392,32 +4672,32 @@
     "z": -107
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 62,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.219849,
+    "vz": 1.367227,
     "wakeMeter": 0,
-    "x": 892,
+    "x": 892.233681,
     "y": 115,
-    "yaw": 3.258591,
-    "z": -116
+    "yaw": 0.159434,
+    "z": -114.546749
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 63,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.106238,
+    "vz": 0.939488,
     "wakeMeter": 0,
-    "x": 882,
+    "x": 881.348361,
     "y": 115,
-    "yaw": 4.628591,
-    "z": -120
+    "yaw": -0.86673,
+    "z": -119.446587
    },
    {
     "aiBehavior": "grazing",
@@ -4532,18 +4812,18 @@
     "z": 538
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 72,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.178868,
-    "vz": -5.364426,
+    "vx": -0.792548,
+    "vz": -1.262202,
     "wakeMeter": 0,
-    "x": -74.282907,
-    "y": 1.862685,
-    "yaw": 2.479791,
-    "z": 30.36338
+    "x": -75.894609,
+    "y": 1.889067,
+    "yaw": -2.580904,
+    "z": 32.633516
    },
    {
     "aiBehavior": "wandering",
@@ -4551,13 +4831,13 @@
     "id": 73,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.619118,
-    "vz": 0.586568,
+    "vx": -0.667424,
+    "vz": 0.634937,
     "wakeMeter": 0,
-    "x": -73.069121,
-    "y": 12.801652,
-    "yaw": -0.812388,
-    "z": -27.758778
+    "x": -72.726489,
+    "y": 13.191542,
+    "yaw": -0.810338,
+    "z": -28.083811
    },
    {
     "aiBehavior": "grazing",
@@ -4574,22 +4854,22 @@
     "z": -36
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 75,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.583178,
+    "vz": -2.789696,
     "wakeMeter": 0,
-    "x": -76.684043,
-    "y": 3.844935,
+    "x": -76.814205,
+    "y": 2.177004,
     "yaw": 2.935513,
-    "z": 47.704977
+    "z": 48.327618
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 76,
     "isDead": false,
     "species": "squirrel",
@@ -4597,23 +4877,23 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -101.128742,
-    "y": 4.691964,
-    "yaw": 1.176095,
+    "y": 3.654464,
+    "yaw": -1.965498,
     "z": 53.956091
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 77,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.454001,
+    "vz": 2.813607,
     "wakeMeter": 0,
-    "x": -66.991462,
-    "y": 3.653946,
+    "x": -67.091998,
+    "y": 2.073223,
     "yaw": 0.15998,
-    "z": 48.25027
+    "z": 47.627214
    },
    {
     "aiBehavior": "grazing",
@@ -4625,7 +4905,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -61.794564,
-    "y": 2.08017,
+    "y": 3.31767,
     "yaw": 0.917688,
     "z": 26.091373
    },
@@ -4803,41 +5083,41 @@
     "id": 91,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.285754,
-    "vz": 0.219547,
+    "vx": 0.166186,
+    "vz": -0.117351,
     "wakeMeter": 0,
-    "x": -127.917863,
-    "y": -0.363543,
-    "yaw": -0.915681,
-    "z": 45.936893
-   },
-   {
-    "aiBehavior": "wandering",
-    "alertLevel": "grazing",
-    "id": 92,
-    "isDead": false,
-    "species": "koifish",
-    "vx": -1.412416,
-    "vz": -0.542642,
-    "wakeMeter": 0,
-    "x": -137.16729,
-    "y": -0.358277,
-    "yaw": -1.937603,
-    "z": 39.213136
+    "x": -128.083392,
+    "y": -0.386748,
+    "yaw": -4.097551,
+    "z": 45.852106
    },
    {
     "aiBehavior": "grazing",
     "alertLevel": "grazing",
+    "id": 92,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.334592,
+    "vz": 1.085369,
+    "wakeMeter": 0,
+    "x": -136.109619,
+    "y": -0.360238,
+    "yaw": -0.299031,
+    "z": 39.17945
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 93,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.175106,
-    "vz": -1.027475,
+    "vx": -1.657202,
+    "vz": -2.204087,
     "wakeMeter": 0,
-    "x": -146.168248,
-    "y": -0.347792,
-    "yaw": -2.972791,
-    "z": 41.757825
+    "x": -145.602965,
+    "y": -0.404842,
+    "yaw": 3.786294,
+    "z": 42.817026
    },
    {
     "aiBehavior": "wandering",
@@ -4845,27 +5125,27 @@
     "id": 94,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.632692,
-    "vz": 1.733104,
+    "vx": -0.914912,
+    "vz": 1.211305,
     "wakeMeter": 0,
-    "x": -140.258507,
-    "y": -0.404993,
-    "yaw": 0.35003,
-    "z": 30.451693
+    "x": -140.765722,
+    "y": -0.376964,
+    "yaw": 5.636294,
+    "z": 28.758011
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 95,
     "isDead": false,
     "species": "koifish",
-    "vx": 4.524316,
-    "vz": 0.661792,
+    "vx": -0.055599,
+    "vz": -1.021488,
     "wakeMeter": 0,
-    "x": -130.430472,
-    "y": -0.388092,
-    "yaw": 1.425552,
-    "z": 52.647773
+    "x": -132.283376,
+    "y": -0.316161,
+    "yaw": -3.087217,
+    "z": 53.165825
    },
    {
     "aiBehavior": "wandering",
@@ -4873,13 +5153,13 @@
     "id": 96,
     "isDead": false,
     "species": "koifish",
-    "vx": 1.136243,
-    "vz": 0.936534,
+    "vx": 2.246243,
+    "vz": 1.051149,
     "wakeMeter": 0,
-    "x": -150.62367,
-    "y": -0.357603,
-    "yaw": 0.88145,
-    "z": 37.747375
+    "x": -151.625618,
+    "y": -0.35924,
+    "yaw": 7.416294,
+    "z": 36.969588
    },
    {
     "aiBehavior": "wandering",
@@ -4887,13 +5167,13 @@
     "id": 97,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.237275,
-    "vz": 0.890128,
+    "vx": -0.643445,
+    "vz": 1.374883,
     "wakeMeter": 0,
-    "x": -125.341721,
-    "y": -0.359793,
-    "yaw": -0.947151,
-    "z": 37.78865
+    "x": -124.393481,
+    "y": -0.398388,
+    "yaw": -0.437722,
+    "z": 36.950288
    },
    {
     "aiBehavior": "wandering",
@@ -4901,13 +5181,13 @@
     "id": 98,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.321615,
-    "vz": -1.481431,
+    "vx": -0.272556,
+    "vz": -1.29965,
     "wakeMeter": 0,
-    "x": -144.304587,
-    "y": -0.39272,
-    "yaw": -2.927813,
-    "z": 50.165746
+    "x": -143.944979,
+    "y": -0.403359,
+    "yaw": -2.934873,
+    "z": 51.394618
    },
    {
     "aiBehavior": "wandering",
@@ -4915,13 +5195,13 @@
     "id": 99,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.300597,
-    "vz": 1.46182,
+    "vx": 0.935925,
+    "vz": 0.86166,
     "wakeMeter": 0,
-    "x": -43.726733,
-    "y": -0.400462,
-    "yaw": -0.202805,
-    "z": -31.307688
+    "x": -43.923124,
+    "y": -0.381219,
+    "yaw": 0.826689,
+    "z": -31.86655
    },
    {
     "aiBehavior": "wandering",
@@ -4929,13 +5209,13 @@
     "id": 100,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.892547,
-    "vz": 1.234374,
+    "vx": 1.280105,
+    "vz": 0.892378,
     "wakeMeter": 0,
-    "x": -37.912756,
-    "y": -0.399857,
-    "yaw": 0.626046,
-    "z": -36.389995
+    "x": -38.346366,
+    "y": -0.404564,
+    "yaw": 0.962011,
+    "z": -36.82098
    },
    {
     "aiBehavior": "wandering",
@@ -4943,13 +5223,13 @@
     "id": 101,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.897734,
-    "vz": 1.224091,
+    "vx": 0.165045,
+    "vz": 1.509001,
     "wakeMeter": 0,
-    "x": -42.872208,
-    "y": -0.36987,
-    "yaw": -0.632784,
-    "z": -35.315311
+    "x": -42.691989,
+    "y": -0.391828,
+    "yaw": 0.108941,
+    "z": -35.934016
    },
    {
     "aiBehavior": "wandering",
@@ -4957,13 +5237,13 @@
     "id": 102,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.694813,
-    "vz": 1.829171,
+    "vx": 1.211443,
+    "vz": 1.364202,
     "wakeMeter": 0,
-    "x": -40.63817,
-    "y": -0.355267,
-    "yaw": -0.74729,
-    "z": -29.866172
+    "x": -40.561399,
+    "y": -0.361348,
+    "yaw": -5.557027,
+    "z": -30.695969
    },
    {
     "aiBehavior": "wandering",
@@ -4971,13 +5251,13 @@
     "id": 103,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.287252,
-    "vz": 1.490788,
+    "vx": 1.30126,
+    "vz": 0.785284,
     "wakeMeter": 0,
-    "x": -40.339947,
-    "y": -0.376898,
-    "yaw": 0.190352,
-    "z": -31.544262
+    "x": -40.6843,
+    "y": -0.358971,
+    "yaw": 1.027822,
+    "z": -32.056653
    },
    {
     "aiBehavior": "grazing",
@@ -5090,113 +5370,253 @@
     "y": -1.56,
     "yaw": 1.273553,
     "z": 424
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -135.25,
+    "y": -10.33,
+    "yaw": 2.643553,
+    "z": 492
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -136.718265,
+    "y": -10.33,
+    "yaw": 4.013553,
+    "z": 499.649108
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -147.266854,
+    "y": -10.33,
+    "yaw": 5.383553,
+    "z": 502.837232
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -150.161461,
+    "y": -10.33,
+    "yaw": 0.470367,
+    "z": 493.125063
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -149.410588,
+    "y": -10.33,
+    "yaw": 1.840367,
+    "z": 484.099915
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -140.139766,
+    "y": -10.33,
+    "yaw": 3.210367,
+    "z": 485.943966
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.666301,
+    "y": -10.33,
+    "yaw": 4.580367,
+    "z": 489.369298
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.28982,
+    "y": -10.33,
+    "yaw": 5.950367,
+    "z": 499.712005
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -143.090474,
+    "y": -10.33,
+    "yaw": 1.037182,
+    "z": 499.632439
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -152.178882,
+    "y": -10.33,
+    "yaw": 2.407182,
+    "z": 496.471521
    }
   ],
   "birds": [
    {
-    "x": -52.022515,
-    "y": 29.201406,
-    "z": 30.782007
+    "x": -49.008295,
+    "y": 30.941058,
+    "z": 30.371053
    },
    {
-    "x": -54.912949,
-    "y": 29.10036,
-    "z": 38.202035
+    "x": -53.414653,
+    "y": 31.114133,
+    "z": 39.5263
    },
    {
-    "x": -60.234257,
-    "y": 29.221983,
-    "z": 44.057239
+    "x": -59.997333,
+    "y": 31.049025,
+    "z": 46.446586
    },
    {
-    "x": -56.252788,
-    "y": 30.184706,
-    "z": 35.173647
+    "x": -54.115125,
+    "y": 30.454228,
+    "z": 36.873918
    },
    {
-    "x": -54.477994,
-    "y": 26.840897,
-    "z": 28.424528
+    "x": -51.458537,
+    "y": 26.056587,
+    "z": 27.016976
    },
    {
-    "x": -40.082463,
-    "y": 24.033207,
-    "z": 0.788568
+    "x": -39.874246,
+    "y": 22.272921,
+    "z": 2.512978
    },
    {
-    "x": -15.96676,
-    "y": 14.315622,
-    "z": -4.164224
+    "x": -18.103024,
+    "y": 14.492527,
+    "z": -3.612403
    },
    {
-    "x": -8.297593,
-    "y": 15.809728,
-    "z": -9.276884
+    "x": -10.128089,
+    "y": 15.856935,
+    "z": -9.192232
    },
    {
-    "x": 0.597001,
-    "y": 26.198211,
-    "z": -11.808893
+    "x": -0.857448,
+    "y": 26.229631,
+    "z": -11.034428
    },
    {
-    "x": 13.197847,
-    "y": 20.003536,
-    "z": 22.374608
+    "x": 12.36745,
+    "y": 19.465096,
+    "z": 20.642132
    },
    {
-    "x": 16.986461,
-    "y": 20.947077,
-    "z": 24.448113
+    "x": 15.757791,
+    "y": 20.15975,
+    "z": 23.484959
    },
    {
-    "x": 21.095342,
-    "y": 22.923975,
-    "z": 33.071022
+    "x": 19.871165,
+    "y": 22.127623,
+    "z": 32.27738
    },
    {
-    "x": 82.245013,
-    "y": 7.047666,
-    "z": -29.781227
+    "x": 82.211259,
+    "y": 7.127666,
+    "z": -29.759765
    },
    {
-    "x": 59.211467,
-    "y": 11.893024,
-    "z": 16.196253
+    "x": 58.777703,
+    "y": 12.323261,
+    "z": 15.527268
    },
    {
-    "x": 31.344235,
-    "y": 20.584285,
-    "z": 23.336446
+    "x": 31.969589,
+    "y": 19.96106,
+    "z": 22.578085
    },
    {
-    "x": 7.068864,
-    "y": 20.41711,
-    "z": -17.489124
+    "x": 8.495938,
+    "y": 20.125282,
+    "z": -17.333854
    },
    {
-    "x": 2.925488,
-    "y": 19.943675,
-    "z": -17.917644
+    "x": 4.388592,
+    "y": 19.415243,
+    "z": -17.891858
    },
    {
-    "x": -4.898982,
-    "y": 21.662012,
-    "z": -20.210902
+    "x": -3.616066,
+    "y": 20.901308,
+    "z": -21.096982
    },
    {
-    "x": 37.972799,
-    "y": 27.89963,
-    "z": -37.73056
+    "x": 37.672461,
+    "y": 26.748761,
+    "z": -37.388982
    },
    {
-    "x": 42.179538,
+    "x": 41.904538,
     "y": 21.999001,
-    "z": -68.318664
+    "z": -67.84235
    },
    {
-    "x": 64.065332,
-    "y": 20.06405,
-    "z": -70.572151
+    "x": 63.940686,
+    "y": 19.950497,
+    "z": -70.500187
    },
    {
     "x": 84.619633,
@@ -5214,34 +5634,34 @@
     "z": -7.560554
    },
    {
-    "x": -14.864414,
-    "y": 16.228514,
-    "z": -12.877601
+    "x": -16.800812,
+    "y": 16.642838,
+    "z": -12.653821
    },
    {
-    "x": -12.104968,
-    "y": 17.153071,
-    "z": -9.733025
+    "x": -13.865565,
+    "y": 17.339624,
+    "z": -9.165348
    },
    {
-    "x": -16.493719,
-    "y": 13.159797,
-    "z": -8.335218
+    "x": -18.781591,
+    "y": 13.290462,
+    "z": -7.6354
    },
    {
-    "x": -84.389734,
-    "y": 24.605669,
-    "z": -26.563232
+    "x": -81.334624,
+    "y": 24.540063,
+    "z": -25.586042
    },
    {
-    "x": -89.045072,
-    "y": 24.350417,
-    "z": -27.283284
+    "x": -86.03449,
+    "y": 24.163761,
+    "z": -26.190265
    },
    {
-    "x": -92.013531,
+    "x": -90.501031,
     "y": 28.552858,
-    "z": -56.897774
+    "z": -54.278047
    },
    {
     "x": -66.671779,
@@ -5249,35 +5669,35 @@
     "z": -46.081512
    },
    {
-    "x": -42.360878,
-    "y": 43.540904,
-    "z": -77.859357
+    "x": -42.94083,
+    "y": 46.216459,
+    "z": -77.308936
    },
    {
-    "x": -40.291009,
-    "y": 40.500253,
-    "z": -80.864834
+    "x": -40.63943,
+    "y": 42.929241,
+    "z": -80.60776
    },
    {
-    "x": -28.280075,
-    "y": 16.170234,
+    "x": -27.890096,
+    "y": 18.493973,
     "z": -58.8
    },
    {
-    "x": -7.190716,
-    "y": 11.024812,
-    "z": -45.153783
+    "x": -7.33559,
+    "y": 13.048983,
+    "z": -45.237426
    },
    {
-    "x": -4.876729,
-    "y": 23.915333,
-    "z": -19.037469
+    "x": -4.67658,
+    "y": 24.593466,
+    "z": -20.629033
    }
   ],
   "frame": 449,
   "result": {
-   "nearestBirdDist": 420.371912,
-   "nearestCritterDist": 28.353451,
+   "nearestBirdDist": 750.820009,
+   "nearestCritterDist": 39.698948,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }
@@ -5290,13 +5710,13 @@
     "id": 0,
     "isDead": false,
     "species": "rabbit",
-    "vx": -2.397649,
-    "vz": 6.363276,
+    "vx": -2.444508,
+    "vz": 6.345422,
     "wakeMeter": 0,
-    "x": 89.320118,
+    "x": 88.246124,
     "y": 2.55,
-    "yaw": 1.330918,
-    "z": 23.794681
+    "yaw": -0.090108,
+    "z": 24.114116
    },
    {
     "aiBehavior": "grazing",
@@ -5313,18 +5733,18 @@
     "z": 18
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 2,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.285722,
-    "vz": 0.318763,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 62.582202,
-    "y": 0.250058,
-    "yaw": 0.730793,
-    "z": -21.046673
+    "x": 62.569831,
+    "y": 0.259135,
+    "yaw": 0.732208,
+    "z": -21.060474
    },
    {
     "aiBehavior": "grazing",
@@ -5346,27 +5766,27 @@
     "id": 4,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.8945,
-    "vz": -0.891389,
+    "vx": -0.905331,
+    "vz": -0.902182,
     "wakeMeter": 0,
-    "x": 71.330239,
-    "y": 1.737286,
+    "x": 71.405141,
+    "y": 1.740016,
     "yaw": -2.354452,
-    "z": 51.339526
+    "z": 51.414168
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 5,
     "isDead": false,
     "species": "rabbit",
-    "vx": 5.914648,
-    "vz": -3.355135,
+    "vx": 0.196961,
+    "vz": 1.040326,
     "wakeMeter": 0,
-    "x": -69.383386,
-    "y": 2.064799,
-    "yaw": 2.086793,
-    "z": 57.438117
+    "x": -71.975605,
+    "y": 2.117629,
+    "yaw": 0.187112,
+    "z": 58.128849
    },
    {
     "aiBehavior": "wandering",
@@ -5374,41 +5794,41 @@
     "id": 6,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.962331,
-    "vz": 1.077248,
+    "vx": 0.969206,
+    "vz": 1.084943,
     "wakeMeter": 0,
-    "x": 85.671458,
-    "y": 1.676664,
+    "x": 85.623227,
+    "y": 1.675763,
     "yaw": 0.729115,
-    "z": 49.871055
+    "z": 49.817064
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 7,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.309908,
-    "vz": -5.259723,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -85.228537,
-    "y": 2.198665,
-    "yaw": 2.455124,
-    "z": 46.366833
+    "x": -87.048039,
+    "y": 2.161677,
+    "yaw": -1.401103,
+    "z": 48.522253
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 8,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0.530153,
-    "vz": 1.667764,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -69.092944,
-    "y": 1.604311,
-    "yaw": 0.307781,
-    "z": 14.875478
+    "x": -69.235441,
+    "y": 2.779284,
+    "yaw": 0.537167,
+    "z": 14.214314
    },
    {
     "aiBehavior": "grazing",
@@ -5419,10 +5839,10 @@
     "vx": 2.197629,
     "vz": -1.814643,
     "wakeMeter": 0,
-    "x": -29.333859,
-    "y": 2.639927,
+    "x": -30.176284,
+    "y": 2.132485,
     "yaw": 2.261029,
-    "z": -29.504416
+    "z": -28.808803
    },
    {
     "aiBehavior": "wandering",
@@ -5433,10 +5853,10 @@
     "vx": -1.056406,
     "vz": -1.395172,
     "wakeMeter": 0,
-    "x": 39.685033,
-    "y": 1.814171,
+    "x": 39.843494,
+    "y": 1.822203,
     "yaw": -2.493508,
-    "z": -34.776847
+    "z": -34.567571
    },
    {
     "aiBehavior": "grazing",
@@ -5444,13 +5864,13 @@
     "id": 11,
     "isDead": false,
     "species": "squirrel",
-    "vx": -1.883858,
-    "vz": 2.138593,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 145.48819,
-    "y": 2.364692,
+    "x": 145.063103,
+    "y": 2.416199,
     "yaw": -0.722154,
-    "z": 114.851457
+    "z": 115.334023
    },
    {
     "aiBehavior": "grazing",
@@ -5475,10 +5895,10 @@
     "vx": 0.237548,
     "vz": -2.840083,
     "wakeMeter": 0,
-    "x": 138.486973,
-    "y": 4.258066,
+    "x": 138.510728,
+    "y": 4.245225,
     "yaw": 3.058146,
-    "z": 92.17783
+    "z": 91.893822
    },
    {
     "aiBehavior": "wandering",
@@ -5489,10 +5909,10 @@
     "vx": 0.343069,
     "vz": -1.716043,
     "wakeMeter": 0,
-    "x": 172.905881,
-    "y": 1.874436,
+    "x": 172.974495,
+    "y": 1.872266,
     "yaw": 2.944276,
-    "z": 109.079992
+    "z": 108.736783
    },
    {
     "aiBehavior": "grazing",
@@ -5531,10 +5951,10 @@
     "vx": -0.451591,
     "vz": 2.813995,
     "wakeMeter": 0,
-    "x": 70.893601,
-    "y": 1.083755,
+    "x": 70.923707,
+    "y": 1.082353,
     "yaw": -0.159124,
-    "z": -5.105713
+    "z": -5.293313
    },
    {
     "aiBehavior": "grazing",
@@ -5546,7 +5966,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 125.511005,
-    "y": 2.975353,
+    "y": 2.712853,
     "yaw": 2.386723,
     "z": -24.051243
    },
@@ -5556,13 +5976,13 @@
     "id": 19,
     "isDead": false,
     "species": "deer",
-    "vx": -0.315144,
-    "vz": -1.312403,
+    "vx": -0.33299,
+    "vz": -1.386724,
     "wakeMeter": 0,
-    "x": -68.401332,
-    "y": 7.658034,
+    "x": -68.228,
+    "y": 7.14435,
     "yaw": -2.905927,
-    "z": -19.671331
+    "z": -18.949497
    },
    {
     "aiBehavior": "wandering",
@@ -5570,13 +5990,13 @@
     "id": 20,
     "isDead": false,
     "species": "deer",
-    "vx": 0.987228,
-    "vz": -0.502541,
+    "vx": 1.076543,
+    "vz": -0.548006,
     "wakeMeter": 0,
-    "x": -74.958917,
-    "y": 1.815433,
+    "x": -75.576926,
+    "y": 1.829579,
     "yaw": 2.041652,
-    "z": 22.451959
+    "z": 22.766552
    },
    {
     "aiBehavior": "grazing",
@@ -5635,41 +6055,41 @@
     "z": 191.786407
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 25,
     "isDead": false,
     "species": "sheep",
-    "vx": -1.073405,
-    "vz": 0.41148,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -112.592016,
-    "y": 2.198702,
-    "yaw": -1.204733,
-    "z": 142.226944
+    "x": -112,
+    "y": 2.141988,
+    "yaw": 2.834073,
+    "z": 142
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 26,
     "isDead": false,
     "species": "sheep",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.025513,
+    "vz": 0.323157,
     "wakeMeter": 0,
-    "x": -108.024407,
-    "y": 2.047794,
-    "yaw": 1.204127,
-    "z": 146.334485
+    "x": -108.318205,
+    "y": 2.058965,
+    "yaw": -1.265529,
+    "z": 146.100272
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 27,
     "isDead": false,
     "species": "sheep",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.493962,
+    "vz": -0.79252,
     "wakeMeter": 0,
     "x": -114.904592,
     "y": 2.35,
@@ -5710,13 +6130,13 @@
     "id": 30,
     "isDead": false,
     "species": "sheep",
-    "vx": -0.031325,
-    "vz": -1.100087,
+    "vx": -0.031393,
+    "vz": -1.10246,
     "wakeMeter": 0,
-    "x": 97.963138,
-    "y": 1.795894,
+    "x": 97.96366,
+    "y": 1.795857,
     "yaw": -3.113125,
-    "z": 60.705473
+    "z": 60.723808
    },
    {
     "aiBehavior": "grazing",
@@ -5761,32 +6181,32 @@
     "z": -90.8
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 34,
     "isDead": false,
     "species": "bear",
-    "vx": -1.678411,
+    "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -164.850827,
-    "y": 2.399452,
-    "yaw": -1.570796,
+    "x": -164,
+    "y": 2.498088,
+    "yaw": 2.597703,
     "z": -45
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 35,
     "isDead": false,
     "species": "bear",
-    "vx": 1.483239,
-    "vz": -0.82572,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -199.358115,
+    "x": -200.2,
     "y": 2.25,
-    "yaw": 2.07877,
-    "z": -40.068678
+    "yaw": 3.967703,
+    "z": -39.6
    },
    {
     "aiBehavior": "grazing",
@@ -5915,18 +6335,18 @@
     "z": 336
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 45,
     "isDead": false,
     "species": "jaguar",
-    "vx": 0.292768,
-    "vz": 1.429047,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -147.925543,
-    "y": 2.287147,
-    "yaw": 0.202073,
-    "z": 228.363435
+    "x": -148,
+    "y": 2.274318,
+    "yaw": 5.101332,
+    "z": 228
    },
    {
     "aiBehavior": "grazing",
@@ -5957,18 +6377,18 @@
     "z": -88
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 48,
     "isDead": false,
     "species": "wolf",
-    "vx": -0.382278,
-    "vz": 1.047254,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -158.051436,
-    "y": 12.163348,
-    "yaw": 3.838147,
-    "z": -111.85909
+    "x": -158,
+    "y": 12.187244,
+    "yaw": 2.928147,
+    "z": -112
    },
    {
     "aiBehavior": "wandering",
@@ -5976,13 +6396,13 @@
     "id": 49,
     "isDead": false,
     "species": "wolf",
-    "vx": 1.208195,
-    "vz": -1.26585,
+    "vx": 1.205286,
+    "vz": -1.262802,
     "wakeMeter": 0,
-    "x": -115.751256,
-    "y": 1.765426,
+    "x": -116.697138,
+    "y": 1.629056,
     "yaw": 2.379494,
-    "z": 83.643947
+    "z": 84.634965
    },
    {
     "aiBehavior": "wandering",
@@ -5993,13 +6413,13 @@
     "vx": 1.708285,
     "vz": -0.37982,
     "wakeMeter": 0,
-    "x": 143.364605,
+    "x": 143.734733,
     "y": 11.5,
     "yaw": 1.789578,
-    "z": -119.637448
+    "z": -119.719743
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 51,
     "isDead": false,
@@ -6027,18 +6447,18 @@
     "z": 262
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 53,
     "isDead": false,
     "species": "rhino",
-    "vx": 1.5438,
-    "vz": -0.695761,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -285.147336,
-    "y": 2.631086,
-    "yaw": 1.994216,
-    "z": 247.615721
+    "x": -286,
+    "y": 2.769747,
+    "yaw": 3.494962,
+    "z": 248
    },
    {
     "aiBehavior": "sitting",
@@ -6055,35 +6475,35 @@
     "z": 115
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 55,
     "isDead": false,
     "species": "lion",
-    "vx": 1.533141,
-    "vz": -0.843788,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -505.105924,
-    "y": 2.942465,
-    "yaw": 2.07392,
-    "z": 102.756103
+    "x": -511,
+    "y": 3.180319,
+    "yaw": 6.234962,
+    "z": 106
    },
    {
-    "aiBehavior": "attacking",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 56,
     "isDead": false,
     "species": "lion",
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -510.468207,
-    "y": 3.255888,
-    "yaw": 1.738486,
-    "z": 123.909978
+    "x": -511,
+    "y": 3.228362,
+    "yaw": 1.321776,
+    "z": 124
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 57,
     "isDead": false,
@@ -6153,46 +6573,46 @@
     "z": -107
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 62,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.155767,
+    "vz": -0.848333,
     "wakeMeter": 0,
-    "x": 892,
+    "x": 890.090852,
     "y": 115,
-    "yaw": 3.258591,
-    "z": -116
+    "yaw": -2.203979,
+    "z": -115.218973
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 63,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.72083,
+    "vz": 0.612174,
     "wakeMeter": 0,
-    "x": 882,
+    "x": 879.06274,
     "y": 115,
-    "yaw": 4.628591,
-    "z": -120
+    "yaw": -0.86673,
+    "z": -117.505492
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 64,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.464924,
+    "vz": -1.34446,
     "wakeMeter": 0,
-    "x": 889,
+    "x": 888.602988,
     "y": 115,
-    "yaw": 5.998591,
-    "z": -103
+    "yaw": -2.808658,
+    "z": -104.148075
    },
    {
     "aiBehavior": "grazing",
@@ -6293,18 +6713,18 @@
     "z": 538
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 72,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.178868,
-    "vz": -5.364426,
+    "vx": -0.792548,
+    "vz": -1.262202,
     "wakeMeter": 0,
-    "x": -74.282907,
-    "y": 1.862685,
-    "yaw": 2.479791,
-    "z": 30.36338
+    "x": -75.894609,
+    "y": 1.889067,
+    "yaw": -2.580904,
+    "z": 32.633516
    },
    {
     "aiBehavior": "wandering",
@@ -6312,13 +6732,13 @@
     "id": 73,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.619118,
-    "vz": 0.586568,
+    "vx": -0.667424,
+    "vz": 0.634937,
     "wakeMeter": 0,
-    "x": -73.069121,
-    "y": 12.801652,
-    "yaw": -0.812388,
-    "z": -27.758778
+    "x": -72.726489,
+    "y": 13.191542,
+    "yaw": -0.810338,
+    "z": -28.083811
    },
    {
     "aiBehavior": "grazing",
@@ -6335,22 +6755,22 @@
     "z": -36
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 75,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.583178,
+    "vz": -2.789696,
     "wakeMeter": 0,
-    "x": -76.684043,
-    "y": 3.844935,
+    "x": -76.814205,
+    "y": 2.177004,
     "yaw": 2.935513,
-    "z": 47.704977
+    "z": 48.327618
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 76,
     "isDead": false,
     "species": "squirrel",
@@ -6358,23 +6778,23 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -101.128742,
-    "y": 4.691964,
-    "yaw": 1.176095,
+    "y": 3.654464,
+    "yaw": -1.965498,
     "z": 53.956091
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 77,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.454001,
+    "vz": 2.813607,
     "wakeMeter": 0,
-    "x": -66.991462,
-    "y": 3.653946,
+    "x": -67.091998,
+    "y": 2.073223,
     "yaw": 0.15998,
-    "z": 48.25027
+    "z": 47.627214
    },
    {
     "aiBehavior": "grazing",
@@ -6386,7 +6806,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -61.794564,
-    "y": 2.08017,
+    "y": 3.31767,
     "yaw": 0.917688,
     "z": 26.091373
    },
@@ -6564,41 +6984,41 @@
     "id": 91,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.285754,
-    "vz": 0.219547,
+    "vx": 0.166186,
+    "vz": -0.117351,
     "wakeMeter": 0,
-    "x": -127.917863,
-    "y": -0.363543,
-    "yaw": -0.915681,
-    "z": 45.936893
-   },
-   {
-    "aiBehavior": "wandering",
-    "alertLevel": "grazing",
-    "id": 92,
-    "isDead": false,
-    "species": "koifish",
-    "vx": -1.412416,
-    "vz": -0.542642,
-    "wakeMeter": 0,
-    "x": -137.16729,
-    "y": -0.358277,
-    "yaw": -1.937603,
-    "z": 39.213136
+    "x": -128.083392,
+    "y": -0.386748,
+    "yaw": -4.097551,
+    "z": 45.852106
    },
    {
     "aiBehavior": "grazing",
     "alertLevel": "grazing",
+    "id": 92,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.334592,
+    "vz": 1.085369,
+    "wakeMeter": 0,
+    "x": -136.109619,
+    "y": -0.360238,
+    "yaw": -0.299031,
+    "z": 39.17945
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 93,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.175106,
-    "vz": -1.027475,
+    "vx": -1.657202,
+    "vz": -2.204087,
     "wakeMeter": 0,
-    "x": -146.168248,
-    "y": -0.347792,
-    "yaw": -2.972791,
-    "z": 41.757825
+    "x": -145.602965,
+    "y": -0.404842,
+    "yaw": 3.786294,
+    "z": 42.817026
    },
    {
     "aiBehavior": "wandering",
@@ -6606,27 +7026,27 @@
     "id": 94,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.632692,
-    "vz": 1.733104,
+    "vx": -0.914912,
+    "vz": 1.211305,
     "wakeMeter": 0,
-    "x": -140.258507,
-    "y": -0.404993,
-    "yaw": 0.35003,
-    "z": 30.451693
+    "x": -140.765722,
+    "y": -0.376964,
+    "yaw": 5.636294,
+    "z": 28.758011
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 95,
     "isDead": false,
     "species": "koifish",
-    "vx": 4.524316,
-    "vz": 0.661792,
+    "vx": -0.055599,
+    "vz": -1.021488,
     "wakeMeter": 0,
-    "x": -130.430472,
-    "y": -0.388092,
-    "yaw": 1.425552,
-    "z": 52.647773
+    "x": -132.283376,
+    "y": -0.316161,
+    "yaw": -3.087217,
+    "z": 53.165825
    },
    {
     "aiBehavior": "wandering",
@@ -6634,13 +7054,13 @@
     "id": 96,
     "isDead": false,
     "species": "koifish",
-    "vx": 1.136243,
-    "vz": 0.936534,
+    "vx": 2.246243,
+    "vz": 1.051149,
     "wakeMeter": 0,
-    "x": -150.62367,
-    "y": -0.357603,
-    "yaw": 0.88145,
-    "z": 37.747375
+    "x": -151.625618,
+    "y": -0.35924,
+    "yaw": 7.416294,
+    "z": 36.969588
    },
    {
     "aiBehavior": "wandering",
@@ -6648,13 +7068,13 @@
     "id": 97,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.237275,
-    "vz": 0.890128,
+    "vx": -0.643445,
+    "vz": 1.374883,
     "wakeMeter": 0,
-    "x": -125.341721,
-    "y": -0.359793,
-    "yaw": -0.947151,
-    "z": 37.78865
+    "x": -124.393481,
+    "y": -0.398388,
+    "yaw": -0.437722,
+    "z": 36.950288
    },
    {
     "aiBehavior": "wandering",
@@ -6662,13 +7082,13 @@
     "id": 98,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.321615,
-    "vz": -1.481431,
+    "vx": -0.272556,
+    "vz": -1.29965,
     "wakeMeter": 0,
-    "x": -144.304587,
-    "y": -0.39272,
-    "yaw": -2.927813,
-    "z": 50.165746
+    "x": -143.944979,
+    "y": -0.403359,
+    "yaw": -2.934873,
+    "z": 51.394618
    },
    {
     "aiBehavior": "wandering",
@@ -6676,13 +7096,13 @@
     "id": 99,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.300597,
-    "vz": 1.46182,
+    "vx": 0.935925,
+    "vz": 0.86166,
     "wakeMeter": 0,
-    "x": -43.726733,
-    "y": -0.400462,
-    "yaw": -0.202805,
-    "z": -31.307688
+    "x": -43.923124,
+    "y": -0.381219,
+    "yaw": 0.826689,
+    "z": -31.86655
    },
    {
     "aiBehavior": "wandering",
@@ -6690,13 +7110,13 @@
     "id": 100,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.892547,
-    "vz": 1.234374,
+    "vx": 1.280105,
+    "vz": 0.892378,
     "wakeMeter": 0,
-    "x": -37.912756,
-    "y": -0.399857,
-    "yaw": 0.626046,
-    "z": -36.389995
+    "x": -38.346366,
+    "y": -0.404564,
+    "yaw": 0.962011,
+    "z": -36.82098
    },
    {
     "aiBehavior": "wandering",
@@ -6704,13 +7124,13 @@
     "id": 101,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.897734,
-    "vz": 1.224091,
+    "vx": 0.165045,
+    "vz": 1.509001,
     "wakeMeter": 0,
-    "x": -42.872208,
-    "y": -0.36987,
-    "yaw": -0.632784,
-    "z": -35.315311
+    "x": -42.691989,
+    "y": -0.391828,
+    "yaw": 0.108941,
+    "z": -35.934016
    },
    {
     "aiBehavior": "wandering",
@@ -6718,13 +7138,13 @@
     "id": 102,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.694813,
-    "vz": 1.829171,
+    "vx": 1.211443,
+    "vz": 1.364202,
     "wakeMeter": 0,
-    "x": -40.63817,
-    "y": -0.355267,
-    "yaw": -0.74729,
-    "z": -29.866172
+    "x": -40.561399,
+    "y": -0.361348,
+    "yaw": -5.557027,
+    "z": -30.695969
    },
    {
     "aiBehavior": "wandering",
@@ -6732,13 +7152,13 @@
     "id": 103,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.287252,
-    "vz": 1.490788,
+    "vx": 1.30126,
+    "vz": 0.785284,
     "wakeMeter": 0,
-    "x": -40.339947,
-    "y": -0.376898,
-    "yaw": 0.190352,
-    "z": -31.544262
+    "x": -40.6843,
+    "y": -0.358971,
+    "yaw": 1.027822,
+    "z": -32.056653
    },
    {
     "aiBehavior": "grazing",
@@ -6851,113 +7271,253 @@
     "y": -1.56,
     "yaw": 1.273553,
     "z": 424
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -135.25,
+    "y": -10.33,
+    "yaw": 2.643553,
+    "z": 492
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -136.718265,
+    "y": -10.33,
+    "yaw": 4.013553,
+    "z": 499.649108
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -147.266854,
+    "y": -10.33,
+    "yaw": 5.383553,
+    "z": 502.837232
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -150.161461,
+    "y": -10.33,
+    "yaw": 0.470367,
+    "z": 493.125063
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -149.410588,
+    "y": -10.33,
+    "yaw": 1.840367,
+    "z": 484.099915
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -140.139766,
+    "y": -10.33,
+    "yaw": 3.210367,
+    "z": 485.943966
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.666301,
+    "y": -10.33,
+    "yaw": 4.580367,
+    "z": 489.369298
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -132.28982,
+    "y": -10.33,
+    "yaw": 5.950367,
+    "z": 499.712005
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -143.090474,
+    "y": -10.33,
+    "yaw": 1.037182,
+    "z": 499.632439
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0,
+    "vz": 0,
+    "wakeMeter": 0,
+    "x": -152.178882,
+    "y": -10.33,
+    "yaw": 2.407182,
+    "z": 496.471521
    }
   ],
   "birds": [
    {
-    "x": -52.022515,
-    "y": 29.201406,
-    "z": 30.782007
+    "x": -49.008295,
+    "y": 30.941058,
+    "z": 30.371053
    },
    {
-    "x": -54.912949,
-    "y": 29.10036,
-    "z": 38.202035
+    "x": -53.414653,
+    "y": 31.114133,
+    "z": 39.5263
    },
    {
-    "x": -60.234257,
-    "y": 29.221983,
-    "z": 44.057239
+    "x": -59.997333,
+    "y": 31.049025,
+    "z": 46.446586
    },
    {
-    "x": -56.252788,
-    "y": 30.184706,
-    "z": 35.173647
+    "x": -54.115125,
+    "y": 30.454228,
+    "z": 36.873918
    },
    {
-    "x": -54.477994,
-    "y": 26.840897,
-    "z": 28.424528
+    "x": -51.458537,
+    "y": 26.056587,
+    "z": 27.016976
    },
    {
-    "x": -40.082463,
-    "y": 24.033207,
-    "z": 0.788568
+    "x": -39.874246,
+    "y": 22.272921,
+    "z": 2.512978
    },
    {
-    "x": -15.96676,
-    "y": 14.315622,
-    "z": -4.164224
+    "x": -18.103024,
+    "y": 14.492527,
+    "z": -3.612403
    },
    {
-    "x": -8.297593,
-    "y": 15.809728,
-    "z": -9.276884
+    "x": -10.128089,
+    "y": 15.856935,
+    "z": -9.192232
    },
    {
-    "x": 0.597001,
-    "y": 26.198211,
-    "z": -11.808893
+    "x": -0.857448,
+    "y": 26.229631,
+    "z": -11.034428
    },
    {
-    "x": 13.197847,
-    "y": 20.003536,
-    "z": 22.374608
+    "x": 12.36745,
+    "y": 19.465096,
+    "z": 20.642132
    },
    {
-    "x": 16.986461,
-    "y": 20.947077,
-    "z": 24.448113
+    "x": 15.757791,
+    "y": 20.15975,
+    "z": 23.484959
    },
    {
-    "x": 21.095342,
-    "y": 22.923975,
-    "z": 33.071022
+    "x": 19.871165,
+    "y": 22.127623,
+    "z": 32.27738
    },
    {
-    "x": 82.245013,
-    "y": 7.047666,
-    "z": -29.781227
+    "x": 82.211259,
+    "y": 7.127666,
+    "z": -29.759765
    },
    {
-    "x": 59.211467,
-    "y": 11.893024,
-    "z": 16.196253
+    "x": 58.777703,
+    "y": 12.323261,
+    "z": 15.527268
    },
    {
-    "x": 31.344235,
-    "y": 20.584285,
-    "z": 23.336446
+    "x": 31.969589,
+    "y": 19.96106,
+    "z": 22.578085
    },
    {
-    "x": 7.068864,
-    "y": 20.41711,
-    "z": -17.489124
+    "x": 8.495938,
+    "y": 20.125282,
+    "z": -17.333854
    },
    {
-    "x": 2.925488,
-    "y": 19.943675,
-    "z": -17.917644
+    "x": 4.388592,
+    "y": 19.415243,
+    "z": -17.891858
    },
    {
-    "x": -4.898982,
-    "y": 21.662012,
-    "z": -20.210902
+    "x": -3.616066,
+    "y": 20.901308,
+    "z": -21.096982
    },
    {
-    "x": 37.972799,
-    "y": 27.89963,
-    "z": -37.73056
+    "x": 37.672461,
+    "y": 26.748761,
+    "z": -37.388982
    },
    {
-    "x": 42.179538,
+    "x": 41.904538,
     "y": 21.999001,
-    "z": -68.318664
+    "z": -67.84235
    },
    {
-    "x": 64.065332,
-    "y": 20.06405,
-    "z": -70.572151
+    "x": 63.940686,
+    "y": 19.950497,
+    "z": -70.500187
    },
    {
     "x": 84.619633,
@@ -6975,34 +7535,34 @@
     "z": -7.560554
    },
    {
-    "x": -14.864414,
-    "y": 16.228514,
-    "z": -12.877601
+    "x": -16.800812,
+    "y": 16.642838,
+    "z": -12.653821
    },
    {
-    "x": -12.104968,
-    "y": 17.153071,
-    "z": -9.733025
+    "x": -13.865565,
+    "y": 17.339624,
+    "z": -9.165348
    },
    {
-    "x": -16.493719,
-    "y": 13.159797,
-    "z": -8.335218
+    "x": -18.781591,
+    "y": 13.290462,
+    "z": -7.6354
    },
    {
-    "x": -84.389734,
-    "y": 24.605669,
-    "z": -26.563232
+    "x": -81.334624,
+    "y": 24.540063,
+    "z": -25.586042
    },
    {
-    "x": -89.045072,
-    "y": 24.350417,
-    "z": -27.283284
+    "x": -86.03449,
+    "y": 24.163761,
+    "z": -26.190265
    },
    {
-    "x": -92.013531,
+    "x": -90.501031,
     "y": 28.552858,
-    "z": -56.897774
+    "z": -54.278047
    },
    {
     "x": -66.671779,
@@ -7010,35 +7570,35 @@
     "z": -46.081512
    },
    {
-    "x": -42.360878,
-    "y": 43.540904,
-    "z": -77.859357
+    "x": -42.94083,
+    "y": 46.216459,
+    "z": -77.308936
    },
    {
-    "x": -40.291009,
-    "y": 40.500253,
-    "z": -80.864834
+    "x": -40.63943,
+    "y": 42.929241,
+    "z": -80.60776
    },
    {
-    "x": -28.280075,
-    "y": 16.170234,
+    "x": -27.890096,
+    "y": 18.493973,
     "z": -58.8
    },
    {
-    "x": -7.190716,
-    "y": 11.024812,
-    "z": -45.153783
+    "x": -7.33559,
+    "y": 13.048983,
+    "z": -45.237426
    },
    {
-    "x": -4.876729,
-    "y": 23.915333,
-    "z": -19.037469
+    "x": -4.67658,
+    "y": 24.593466,
+    "z": -20.629033
    }
   ],
   "frame": 599,
   "result": {
-   "nearestBirdDist": 446.907049,
-   "nearestCritterDist": 0.802054,
+   "nearestBirdDist": 788.575234,
+   "nearestCritterDist": 1.917301,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }
@@ -7051,13 +7611,13 @@
     "id": 0,
     "isDead": false,
     "species": "rabbit",
-    "vx": -2.397649,
-    "vz": 6.363276,
+    "vx": -2.444508,
+    "vz": 6.345422,
     "wakeMeter": 0,
-    "x": 89.320118,
+    "x": 88.246124,
     "y": 2.55,
-    "yaw": 1.330918,
-    "z": 23.794681
+    "yaw": -0.090108,
+    "z": 24.114116
    },
    {
     "aiBehavior": "grazing",
@@ -7074,18 +7634,18 @@
     "z": 18
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 2,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.285722,
-    "vz": 0.318763,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 62.582202,
-    "y": 0.250058,
-    "yaw": 0.730793,
-    "z": -21.046673
+    "x": 62.569831,
+    "y": 0.259135,
+    "yaw": 0.732208,
+    "z": -21.060474
    },
    {
     "aiBehavior": "grazing",
@@ -7107,27 +7667,27 @@
     "id": 4,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.8945,
-    "vz": -0.891389,
+    "vx": -0.905331,
+    "vz": -0.902182,
     "wakeMeter": 0,
-    "x": 71.330239,
-    "y": 1.737286,
+    "x": 71.405141,
+    "y": 1.740016,
     "yaw": -2.354452,
-    "z": 51.339526
+    "z": 51.414168
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 5,
     "isDead": false,
     "species": "rabbit",
-    "vx": 5.925781,
-    "vz": -3.335435,
+    "vx": 0.196961,
+    "vz": 1.040326,
     "wakeMeter": 0,
-    "x": -68.593529,
-    "y": 2.047424,
-    "yaw": 2.083466,
-    "z": 56.992954
+    "x": -71.975605,
+    "y": 2.117629,
+    "yaw": 0.187112,
+    "z": 58.128849
    },
    {
     "aiBehavior": "wandering",
@@ -7135,41 +7695,41 @@
     "id": 6,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.962331,
-    "vz": 1.077248,
+    "vx": 0.969206,
+    "vz": 1.084943,
     "wakeMeter": 0,
-    "x": 85.671458,
-    "y": 1.676664,
+    "x": 85.623227,
+    "y": 1.675763,
     "yaw": 0.729115,
-    "z": 49.871055
+    "z": 49.817064
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 7,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.305803,
-    "vz": -5.263084,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -84.797896,
-    "y": 2.207169,
-    "yaw": 2.455904,
-    "z": 45.840574
+    "x": -87.048039,
+    "y": 2.161677,
+    "yaw": -1.401103,
+    "z": 48.522253
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 8,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0.530153,
-    "vz": 1.667764,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -69.092944,
-    "y": 1.604311,
-    "yaw": 0.307781,
-    "z": 14.875478
+    "x": -69.235441,
+    "y": 2.779284,
+    "yaw": 0.537167,
+    "z": 14.214314
    },
    {
     "aiBehavior": "grazing",
@@ -7180,10 +7740,10 @@
     "vx": 2.197629,
     "vz": -1.814643,
     "wakeMeter": 0,
-    "x": -29.333859,
-    "y": 2.639927,
+    "x": -30.176284,
+    "y": 2.132485,
     "yaw": 2.261029,
-    "z": -29.504416
+    "z": -28.808803
    },
    {
     "aiBehavior": "wandering",
@@ -7194,10 +7754,10 @@
     "vx": -1.056406,
     "vz": -1.395172,
     "wakeMeter": 0,
-    "x": 39.685033,
-    "y": 1.814171,
+    "x": 39.843494,
+    "y": 1.822203,
     "yaw": -2.493508,
-    "z": -34.776847
+    "z": -34.567571
    },
    {
     "aiBehavior": "grazing",
@@ -7209,7 +7769,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 145.063103,
-    "y": 2.626199,
+    "y": 2.591199,
     "yaw": -0.722154,
     "z": 115.334023
    },
@@ -7236,10 +7796,10 @@
     "vx": 0.237548,
     "vz": -2.840083,
     "wakeMeter": 0,
-    "x": 138.518646,
-    "y": 4.240612,
+    "x": 138.510728,
+    "y": 4.245225,
     "yaw": 3.058146,
-    "z": 91.799152
+    "z": 91.893822
    },
    {
     "aiBehavior": "wandering",
@@ -7250,10 +7810,10 @@
     "vx": 0.343069,
     "vz": -1.716043,
     "wakeMeter": 0,
-    "x": 172.968777,
-    "y": 1.872437,
+    "x": 173.043108,
+    "y": 1.870368,
     "yaw": 2.944276,
-    "z": 108.765384
+    "z": 108.393574
    },
    {
     "aiBehavior": "grazing",
@@ -7292,10 +7852,10 @@
     "vx": -0.451591,
     "vz": 2.813995,
     "wakeMeter": 0,
-    "x": 70.893601,
-    "y": 1.083755,
+    "x": 70.923707,
+    "y": 1.082353,
     "yaw": -0.159124,
-    "z": -5.105713
+    "z": -5.293313
    },
    {
     "aiBehavior": "grazing",
@@ -7307,7 +7867,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 125.511005,
-    "y": 2.975353,
+    "y": 2.712853,
     "yaw": 2.386723,
     "z": -24.051243
    },
@@ -7317,13 +7877,13 @@
     "id": 19,
     "isDead": false,
     "species": "deer",
-    "vx": -0.315144,
-    "vz": -1.312403,
+    "vx": -0.33299,
+    "vz": -1.386724,
     "wakeMeter": 0,
-    "x": -68.401332,
-    "y": 7.658034,
+    "x": -68.228,
+    "y": 7.14435,
     "yaw": -2.905927,
-    "z": -19.671331
+    "z": -18.949497
    },
    {
     "aiBehavior": "wandering",
@@ -7331,17 +7891,17 @@
     "id": 20,
     "isDead": false,
     "species": "deer",
-    "vx": 0.987228,
-    "vz": -0.502541,
+    "vx": 1.076543,
+    "vz": -0.548006,
     "wakeMeter": 0,
-    "x": -74.958917,
-    "y": 1.815433,
+    "x": -75.576926,
+    "y": 1.829579,
     "yaw": 2.041652,
-    "z": 22.451959
+    "z": 22.766552
    },
    {
-    "aiBehavior": "listening",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 21,
     "isDead": false,
     "species": "deer",
@@ -7350,12 +7910,12 @@
     "wakeMeter": 0,
     "x": -124,
     "y": 1.748219,
-    "yaw": 4.087259,
+    "yaw": 3.637259,
     "z": 192
    },
    {
-    "aiBehavior": "listening",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 22,
     "isDead": false,
     "species": "deer",
@@ -7364,7 +7924,7 @@
     "wakeMeter": 0,
     "x": -96,
     "y": 1.588396,
-    "yaw": 5.832259,
+    "yaw": 5.007259,
     "z": 196
    },
    {
@@ -7373,13 +7933,13 @@
     "id": 23,
     "isDead": false,
     "species": "deer",
-    "vx": 1.092623,
-    "vz": 0.570494,
+    "vx": 1.201989,
+    "vz": 0.627598,
     "wakeMeter": 0,
-    "x": 78.251856,
-    "y": 1.890066,
+    "x": 78.406629,
+    "y": 1.887408,
     "yaw": 1.0896,
-    "z": 188.131502
+    "z": 188.212314
    },
    {
     "aiBehavior": "grazing",
@@ -7404,10 +7964,10 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -112.592016,
-    "y": 2.198702,
-    "yaw": -1.204733,
-    "z": 142.226944
+    "x": -112,
+    "y": 2.141988,
+    "yaw": 2.834073,
+    "z": 142
    },
    {
     "aiBehavior": "wandering",
@@ -7415,13 +7975,13 @@
     "id": 26,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.851935,
-    "vz": 0.292569,
+    "vx": -1.025513,
+    "vz": 0.323157,
     "wakeMeter": 0,
-    "x": -107.87013,
-    "y": 2.038656,
-    "yaw": 1.239998,
-    "z": 146.387466
+    "x": -108.318205,
+    "y": 2.058965,
+    "yaw": -1.265529,
+    "z": 146.100272
    },
    {
     "aiBehavior": "wandering",
@@ -7429,27 +7989,27 @@
     "id": 27,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.021356,
-    "vz": -0.893959,
+    "vx": 0.493962,
+    "vz": -0.79252,
     "wakeMeter": 0,
-    "x": -114.900725,
+    "x": -114.904592,
     "y": 2.35,
-    "yaw": 3.117708,
-    "z": 147.685039
+    "yaw": 4.074073,
+    "z": 147.846926
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 28,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.853456,
-    "vz": -0.067299,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -95.865514,
-    "y": 1.430116,
-    "yaw": 1.649488,
-    "z": 117.989395
+    "x": -96,
+    "y": 1.429934,
+    "yaw": 0.660888,
+    "z": 118
    },
    {
     "aiBehavior": "grazing",
@@ -7471,13 +8031,13 @@
     "id": 30,
     "isDead": false,
     "species": "sheep",
-    "vx": -0.031325,
-    "vz": -1.100087,
+    "vx": -0.031393,
+    "vz": -1.10246,
     "wakeMeter": 0,
-    "x": 97.963138,
-    "y": 1.795894,
+    "x": 97.96366,
+    "y": 1.795857,
     "yaw": -3.113125,
-    "z": 60.705473
+    "z": 60.723808
    },
    {
     "aiBehavior": "grazing",
@@ -7522,32 +8082,32 @@
     "z": -90.8
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 34,
     "isDead": false,
     "species": "bear",
-    "vx": -1.678411,
+    "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -164.850827,
-    "y": 2.399452,
-    "yaw": -1.570796,
+    "x": -164,
+    "y": 2.498088,
+    "yaw": 2.597703,
     "z": -45
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 35,
     "isDead": false,
     "species": "bear",
-    "vx": 1.483239,
-    "vz": -0.82572,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -199.358115,
+    "x": -200.2,
     "y": 2.25,
-    "yaw": 2.07877,
-    "z": -40.068678
+    "yaw": 3.967703,
+    "z": -39.6
    },
    {
     "aiBehavior": "wandering",
@@ -7555,13 +8115,13 @@
     "id": 36,
     "isDead": false,
     "species": "bear",
-    "vx": 0.861067,
-    "vz": 1.14809,
+    "vx": 1.041644,
+    "vz": 1.388859,
     "wakeMeter": 0,
-    "x": 38.208003,
-    "y": 2.308237,
-    "yaw": 6.877703,
-    "z": 274.277337
+    "x": 38.870884,
+    "y": 2.25,
+    "yaw": 0.643501,
+    "z": 275.161179
    },
    {
     "aiBehavior": "grazing",
@@ -7578,7 +8138,7 @@
     "z": 308.2
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 38,
     "isDead": false,
@@ -7586,24 +8146,24 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": 122,
+    "x": 122.019123,
     "y": 0.24,
-    "yaw": 1.794518,
-    "z": 468
+    "yaw": 1.773818,
+    "z": 467.996063
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 39,
     "isDead": false,
     "species": "crocodile",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.806039,
+    "vz": 0.784503,
     "wakeMeter": 0,
-    "x": 141,
+    "x": 141.507335,
     "y": 0.24,
-    "yaw": 3.164518,
-    "z": 480
+    "yaw": 0.798937,
+    "z": 480.49378
    },
    {
     "aiBehavior": "grazing",
@@ -7615,12 +8175,12 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 128,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 4.534518,
     "z": 484
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 41,
     "isDead": false,
@@ -7629,12 +8189,12 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 138,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 5.904518,
     "z": 466
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 42,
     "isDead": false,
@@ -7643,7 +8203,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 116,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 0.991332,
     "z": 476
    },
@@ -7662,46 +8222,46 @@
     "z": 236
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 44,
     "isDead": false,
     "species": "jaguar",
-    "vx": 0.798425,
-    "vz": 0.148225,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -267.934707,
+    "x": -268,
     "y": 5.5,
-    "yaw": 3.171332,
-    "z": 336.012121
+    "yaw": 3.731332,
+    "z": 336
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 45,
     "isDead": false,
     "species": "jaguar",
-    "vx": -0.140701,
-    "vz": -0.886581,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -147.920725,
-    "y": 2.286687,
-    "yaw": 1.05082,
-    "z": 228.350808
+    "x": -148,
+    "y": 2.274318,
+    "yaw": 5.101332,
+    "z": 228
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 46,
     "isDead": false,
     "species": "jaguar",
-    "vx": -1.172264,
-    "vz": 0.606532,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -84.225318,
-    "y": 2.345766,
-    "yaw": -1.071853,
-    "z": 246.11658
+    "x": -84,
+    "y": 2.347802,
+    "yaw": 0.188147,
+    "z": 246
    },
    {
     "aiBehavior": "grazing",
@@ -7718,18 +8278,18 @@
     "z": -88
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 48,
     "isDead": false,
     "species": "wolf",
-    "vx": -0.382278,
-    "vz": 1.047254,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -158.051436,
-    "y": 12.163348,
-    "yaw": 3.838147,
-    "z": -111.85909
+    "x": -158,
+    "y": 12.187244,
+    "yaw": 2.928147,
+    "z": -112
    },
    {
     "aiBehavior": "wandering",
@@ -7737,13 +8297,13 @@
     "id": 49,
     "isDead": false,
     "species": "wolf",
-    "vx": 1.208244,
-    "vz": -1.265901,
+    "vx": 1.205286,
+    "vz": -1.262802,
     "wakeMeter": 0,
-    "x": -115.489474,
-    "y": 1.803693,
+    "x": -116.697138,
+    "y": 1.629056,
     "yaw": 2.379494,
-    "z": 83.369672
+    "z": 84.634965
    },
    {
     "aiBehavior": "wandering",
@@ -7754,13 +8314,13 @@
     "vx": 1.708285,
     "vz": -0.37982,
     "wakeMeter": 0,
-    "x": 143.364605,
+    "x": 143.734733,
     "y": 11.5,
     "yaw": 1.789578,
-    "z": -119.637448
+    "z": -119.719743
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 51,
     "isDead": false,
@@ -7788,18 +8348,18 @@
     "z": 262
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 53,
     "isDead": false,
     "species": "rhino",
-    "vx": 1.579414,
-    "vz": -0.711812,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -284.755792,
-    "y": 2.571594,
-    "yaw": 1.994216,
-    "z": 247.43926
+    "x": -286,
+    "y": 2.769747,
+    "yaw": 3.494962,
+    "z": 248
    },
    {
     "aiBehavior": "sitting",
@@ -7816,18 +8376,18 @@
     "z": 115
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 55,
     "isDead": false,
     "species": "lion",
-    "vx": 1.533141,
-    "vz": -0.843788,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -504.95261,
-    "y": 2.91829,
-    "yaw": 2.07392,
-    "z": 102.671724
+    "x": -511,
+    "y": 3.180319,
+    "yaw": 6.234962,
+    "z": 106
    },
    {
     "aiBehavior": "grazing",
@@ -7838,13 +8398,13 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -510.468207,
-    "y": 3.255888,
-    "yaw": 1.738486,
-    "z": 123.909978
+    "x": -511,
+    "y": 3.228362,
+    "yaw": 1.321776,
+    "z": 124
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 57,
     "isDead": false,
@@ -7914,46 +8474,46 @@
     "z": -107
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 62,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.130887,
+    "vz": -0.830148,
     "wakeMeter": 0,
-    "x": 892,
+    "x": 889.957676,
     "y": 115,
-    "yaw": 3.258591,
-    "z": -116
+    "yaw": -2.204023,
+    "z": -115.31673
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 63,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.705231,
+    "vz": 0.598927,
     "wakeMeter": 0,
-    "x": 882,
+    "x": 878.979686,
     "y": 115,
-    "yaw": 4.628591,
-    "z": -120
+    "yaw": -0.86673,
+    "z": -117.434957
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 64,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.457325,
+    "vz": -1.322488,
     "wakeMeter": 0,
-    "x": 889,
+    "x": 888.549242,
     "y": 115,
-    "yaw": 5.998591,
-    "z": -103
+    "yaw": -2.808658,
+    "z": -104.303495
    },
    {
     "aiBehavior": "grazing",
@@ -8026,18 +8586,18 @@
     "z": 274
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 70,
     "isDead": false,
     "species": "rhino",
-    "vx": 0.061621,
-    "vz": 0.359717,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -441.997893,
+    "x": -442,
     "y": 2.35,
-    "yaw": 1.44222,
-    "z": 318.012302
+    "yaw": 1.65222,
+    "z": 318
    },
    {
     "aiBehavior": "grazing",
@@ -8054,18 +8614,18 @@
     "z": 538
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 72,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.178868,
-    "vz": -5.364426,
+    "vx": -0.792548,
+    "vz": -1.262202,
     "wakeMeter": 0,
-    "x": -74.282907,
-    "y": 1.862685,
-    "yaw": 2.479791,
-    "z": 30.36338
+    "x": -75.894609,
+    "y": 1.889067,
+    "yaw": -2.580904,
+    "z": 32.633516
    },
    {
     "aiBehavior": "wandering",
@@ -8073,13 +8633,13 @@
     "id": 73,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.619118,
-    "vz": 0.586568,
+    "vx": -0.667424,
+    "vz": 0.634937,
     "wakeMeter": 0,
-    "x": -73.069121,
-    "y": 12.801652,
-    "yaw": -0.812388,
-    "z": -27.758778
+    "x": -72.726489,
+    "y": 13.191542,
+    "yaw": -0.810338,
+    "z": -28.083811
    },
    {
     "aiBehavior": "grazing",
@@ -8096,22 +8656,22 @@
     "z": -36
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 75,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.583178,
+    "vz": -2.789696,
     "wakeMeter": 0,
-    "x": -76.684043,
-    "y": 4.218268,
+    "x": -76.814205,
+    "y": 2.177004,
     "yaw": 2.935513,
-    "z": 47.704977
+    "z": 48.327618
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 76,
     "isDead": false,
     "species": "squirrel",
@@ -8119,23 +8679,23 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -101.128742,
-    "y": 5.171964,
-    "yaw": 1.176095,
+    "y": 3.654464,
+    "yaw": -1.965498,
     "z": 53.956091
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 77,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.454001,
+    "vz": 2.813607,
     "wakeMeter": 0,
-    "x": -66.991462,
-    "y": 3.973946,
+    "x": -67.091998,
+    "y": 2.073223,
     "yaw": 0.15998,
-    "z": 48.25027
+    "z": 47.627214
    },
    {
     "aiBehavior": "grazing",
@@ -8147,7 +8707,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -61.794564,
-    "y": 2.08017,
+    "y": 3.31767,
     "yaw": 0.917688,
     "z": 26.091373
    },
@@ -8320,32 +8880,32 @@
     "z": 826
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 91,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.111532,
-    "vz": 0.085691,
+    "vx": 0.166186,
+    "vz": -0.117351,
     "wakeMeter": 0,
-    "x": -127.936639,
-    "y": -0.355599,
-    "yaw": -0.915681,
-    "z": 45.95132
+    "x": -128.083392,
+    "y": -0.386748,
+    "yaw": -4.097551,
+    "z": 45.852106
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 92,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.718645,
-    "vz": -1.163121,
+    "vx": -0.334592,
+    "vz": 1.085369,
     "wakeMeter": 0,
-    "x": -137.352387,
-    "y": -0.403326,
-    "yaw": -2.165758,
-    "z": 39.099339
+    "x": -136.109619,
+    "y": -0.360238,
+    "yaw": -0.299031,
+    "z": 39.17945
    },
    {
     "aiBehavior": "wandering",
@@ -8353,41 +8913,41 @@
     "id": 93,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.392193,
-    "vz": -1.219322,
+    "vx": -1.657202,
+    "vz": -2.204087,
     "wakeMeter": 0,
-    "x": -146.151193,
-    "y": -0.377574,
-    "yaw": -3.452791,
-    "z": 41.601572
+    "x": -145.602965,
+    "y": -0.404842,
+    "yaw": 3.786294,
+    "z": 42.817026
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 94,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.652085,
-    "vz": 1.362689,
+    "vx": -0.914912,
+    "vz": 1.211305,
     "wakeMeter": 0,
-    "x": -140.189011,
-    "y": -0.315542,
-    "yaw": 0.446323,
-    "z": 30.59977
+    "x": -140.765722,
+    "y": -0.376964,
+    "yaw": 5.636294,
+    "z": 28.758011
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 95,
     "isDead": false,
     "species": "koifish",
-    "vx": 2.114063,
-    "vz": -4.202949,
+    "vx": -0.055599,
+    "vz": -1.021488,
     "wakeMeter": 0,
-    "x": -129.809051,
-    "y": -0.370857,
-    "yaw": 2.675552,
-    "z": 52.270954
+    "x": -132.283376,
+    "y": -0.316161,
+    "yaw": -3.087217,
+    "z": 53.165825
    },
    {
     "aiBehavior": "wandering",
@@ -8395,13 +8955,13 @@
     "id": 96,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.584293,
-    "vz": 1.376415,
+    "vx": 2.246243,
+    "vz": 1.051149,
     "wakeMeter": 0,
-    "x": -150.511049,
-    "y": -0.398874,
-    "yaw": 0.40145,
-    "z": 37.908211
+    "x": -151.625618,
+    "y": -0.35924,
+    "yaw": 7.416294,
+    "z": 36.969588
    },
    {
     "aiBehavior": "wandering",
@@ -8409,13 +8969,13 @@
     "id": 97,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.413033,
-    "vz": 0.564659,
+    "vx": -0.643445,
+    "vz": 1.374883,
     "wakeMeter": 0,
-    "x": -125.478975,
-    "y": -0.400846,
-    "yaw": -1.190628,
-    "z": 37.853697
+    "x": -124.393481,
+    "y": -0.398388,
+    "yaw": -0.437722,
+    "z": 36.950288
    },
    {
     "aiBehavior": "wandering",
@@ -8423,13 +8983,13 @@
     "id": 98,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.403383,
-    "vz": -1.462446,
+    "vx": -0.272556,
+    "vz": -1.29965,
     "wakeMeter": 0,
-    "x": -144.286604,
-    "y": -0.371451,
-    "yaw": 2.872457,
-    "z": 49.941383
+    "x": -143.944979,
+    "y": -0.403359,
+    "yaw": -2.934873,
+    "z": 51.394618
    },
    {
     "aiBehavior": "wandering",
@@ -8437,13 +8997,13 @@
     "id": 99,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.300597,
-    "vz": 1.46182,
+    "vx": 0.935925,
+    "vz": 0.86166,
     "wakeMeter": 0,
-    "x": -43.726733,
-    "y": -0.400462,
-    "yaw": -0.202805,
-    "z": -31.307688
+    "x": -43.923124,
+    "y": -0.381219,
+    "yaw": 0.826689,
+    "z": -31.86655
    },
    {
     "aiBehavior": "wandering",
@@ -8451,13 +9011,13 @@
     "id": 100,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.892547,
-    "vz": 1.234374,
+    "vx": 1.280105,
+    "vz": 0.892378,
     "wakeMeter": 0,
-    "x": -37.912756,
-    "y": -0.399857,
-    "yaw": 0.626046,
-    "z": -36.389995
+    "x": -38.346366,
+    "y": -0.404564,
+    "yaw": 0.962011,
+    "z": -36.82098
    },
    {
     "aiBehavior": "wandering",
@@ -8465,13 +9025,13 @@
     "id": 101,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.897734,
-    "vz": 1.224091,
+    "vx": 0.165045,
+    "vz": 1.509001,
     "wakeMeter": 0,
-    "x": -42.872208,
-    "y": -0.36987,
-    "yaw": -0.632784,
-    "z": -35.315311
+    "x": -42.691989,
+    "y": -0.391828,
+    "yaw": 0.108941,
+    "z": -35.934016
    },
    {
     "aiBehavior": "wandering",
@@ -8479,13 +9039,13 @@
     "id": 102,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.694813,
-    "vz": 1.829171,
+    "vx": 1.211443,
+    "vz": 1.364202,
     "wakeMeter": 0,
-    "x": -40.63817,
-    "y": -0.355267,
-    "yaw": -0.74729,
-    "z": -29.866172
+    "x": -40.561399,
+    "y": -0.361348,
+    "yaw": -5.557027,
+    "z": -30.695969
    },
    {
     "aiBehavior": "wandering",
@@ -8493,27 +9053,27 @@
     "id": 103,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.287252,
-    "vz": 1.490788,
+    "vx": 1.30126,
+    "vz": 0.785284,
     "wakeMeter": 0,
-    "x": -40.339947,
-    "y": -0.376898,
-    "yaw": 0.190352,
-    "z": -31.544262
+    "x": -40.6843,
+    "y": -0.358971,
+    "yaw": 1.027822,
+    "z": -32.056653
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 104,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.117705,
-    "vz": 0.180976,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -308.053628,
-    "y": 3.46,
-    "yaw": -0.576649,
-    "z": 316.017715
+    "x": -308,
+    "y": -0.38,
+    "yaw": 4.249923,
+    "z": 316
    },
    {
     "aiBehavior": "grazing",
@@ -8521,13 +9081,13 @@
     "id": 105,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.143454,
-    "vz": 0.024244,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -313.993043,
-    "y": 3.46,
-    "yaw": 1.403377,
-    "z": 321.034201
+    "x": -314,
+    "y": -0.38,
+    "yaw": 5.619923,
+    "z": 321
    },
    {
     "aiBehavior": "wandering",
@@ -8535,13 +9095,13 @@
     "id": 106,
     "isDead": false,
     "species": "dolphin",
-    "vx": 3.170526,
-    "vz": 2.139466,
+    "vx": 2.660399,
+    "vz": 1.661524,
     "wakeMeter": 0,
-    "x": 323.160579,
-    "y": -0.396856,
-    "yaw": 0.977185,
-    "z": 248.753097
+    "x": 322.882616,
+    "y": -0.401615,
+    "yaw": 1.012528,
+    "z": 248.458947
    },
    {
     "aiBehavior": "wandering",
@@ -8549,13 +9109,13 @@
     "id": 107,
     "isDead": false,
     "species": "dolphin",
-    "vx": 2.225757,
-    "vz": 3.143728,
+    "vx": 2.306249,
+    "vz": 3.117637,
     "wakeMeter": 0,
-    "x": 336.874397,
-    "y": -0.336163,
-    "yaw": 0.616074,
-    "z": 263.153384
+    "x": 336.938167,
+    "y": -0.348165,
+    "yaw": 0.636904,
+    "z": 263.185763
    },
    {
     "aiBehavior": "wandering",
@@ -8563,13 +9123,13 @@
     "id": 108,
     "isDead": false,
     "species": "dolphin",
-    "vx": -3.204922,
-    "vz": 2.189323,
+    "vx": -1.933639,
+    "vz": 3.017977,
     "wakeMeter": 0,
-    "x": 454.831574,
-    "y": -0.301982,
-    "yaw": -0.971494,
-    "z": 229.045415
+    "x": 455.544011,
+    "y": -0.322574,
+    "yaw": 5.613405,
+    "z": 228.895894
    },
    {
     "aiBehavior": "wandering",
@@ -8577,148 +9137,288 @@
     "id": 109,
     "isDead": false,
     "species": "dolphin",
-    "vx": -3.807372,
-    "vz": -1.163459,
+    "vx": -3.447059,
+    "vz": -0.607217,
     "wakeMeter": 0,
-    "x": 472.220379,
-    "y": -0.351744,
-    "yaw": -1.867365,
-    "z": 245.53103
+    "x": 473.120309,
+    "y": -0.300032,
+    "yaw": -1.745163,
+    "z": 245.863784
    },
    {
-    "aiBehavior": "charging",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 110,
     "isDead": false,
     "species": "dolphin",
-    "vx": -0.374768,
-    "vz": -4.106807,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 853.431885,
-    "y": -1.551903,
-    "yaw": -3.050589,
-    "z": 403.204917
+    "x": 854,
+    "y": -1.56,
+    "yaw": 6.186738,
+    "z": 406
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 111,
     "isDead": false,
     "species": "dolphin",
-    "vx": 3.891037,
-    "vz": -1.300317,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 872.37003,
-    "y": -1.505599,
-    "yaw": 1.893311,
-    "z": 422.979766
+    "x": 870,
+    "y": -1.56,
+    "yaw": 1.273553,
+    "z": 424
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -1.411897,
+    "vz": -0.557557,
+    "wakeMeter": 0,
+    "x": -136.256618,
+    "y": -10.353095,
+    "yaw": -1.946898,
+    "z": 491.112837
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -1.472284,
+    "vz": -1.653791,
+    "wakeMeter": 0,
+    "x": -137.758765,
+    "y": -10.345402,
+    "yaw": -2.414192,
+    "z": 498.492511
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0.471853,
+    "vz": -1.442802,
+    "wakeMeter": 0,
+    "x": -147.811086,
+    "y": -10.315145,
+    "yaw": 2.825518,
+    "z": 502.008191
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 1.33343,
+    "vz": 0.163186,
+    "wakeMeter": 0,
+    "x": -148.789595,
+    "y": -10.266651,
+    "yaw": 1.449022,
+    "z": 493.437607
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 1.906302,
+    "vz": 1.979153,
+    "wakeMeter": 0,
+    "x": -147.642017,
+    "y": -10.332363,
+    "yaw": 0.766651,
+    "z": 485.513236
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.281989,
+    "vz": 1.491578,
+    "wakeMeter": 0,
+    "x": -141.029273,
+    "y": -10.354613,
+    "yaw": -0.186849,
+    "z": 486.241649
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -1.034935,
+    "vz": 0.064977,
+    "wakeMeter": 0,
+    "x": -133.981216,
+    "y": -10.300805,
+    "yaw": -1.508095,
+    "z": 489.461099
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -1.454766,
+    "vz": -1.654886,
+    "wakeMeter": 0,
+    "x": -134.322671,
+    "y": -10.311167,
+    "yaw": -2.42046,
+    "z": 499.12253
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0.353459,
+    "vz": -1.476276,
+    "wakeMeter": 0,
+    "x": -142.316517,
+    "y": -10.30912,
+    "yaw": 2.906591,
+    "z": 498.662399
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 1.304839,
+    "vz": -0.37726,
+    "wakeMeter": 0,
+    "x": -151.223049,
+    "y": -10.337662,
+    "yaw": 1.852245,
+    "z": 496.1386
    }
   ],
   "birds": [
    {
-    "x": -52.022515,
-    "y": 29.201406,
-    "z": 30.782007
+    "x": -49.008295,
+    "y": 30.941058,
+    "z": 30.371053
    },
    {
-    "x": -54.912949,
-    "y": 29.10036,
-    "z": 38.202035
+    "x": -53.414653,
+    "y": 31.114133,
+    "z": 39.5263
    },
    {
-    "x": -59.907475,
-    "y": 29.130361,
-    "z": 43.616267
+    "x": -59.997333,
+    "y": 31.049025,
+    "z": 46.446586
    },
    {
-    "x": -56.252788,
-    "y": 30.184706,
-    "z": 35.173647
+    "x": -54.115125,
+    "y": 30.454228,
+    "z": 36.873918
    },
    {
-    "x": -54.477994,
-    "y": 26.840897,
-    "z": 28.424528
+    "x": -51.458537,
+    "y": 26.056587,
+    "z": 27.016976
    },
    {
-    "x": -40.082463,
-    "y": 24.033207,
-    "z": 0.788568
+    "x": -39.874246,
+    "y": 22.272921,
+    "z": 2.512978
    },
    {
-    "x": -15.96676,
-    "y": 14.315622,
-    "z": -4.164224
+    "x": -18.103024,
+    "y": 14.492527,
+    "z": -3.612403
    },
    {
-    "x": -8.297593,
-    "y": 15.809728,
-    "z": -9.276884
+    "x": -10.128089,
+    "y": 15.856935,
+    "z": -9.192232
    },
    {
-    "x": 0.597001,
-    "y": 26.198211,
-    "z": -11.808893
+    "x": -0.857448,
+    "y": 26.229631,
+    "z": -11.034428
    },
    {
-    "x": 13.197847,
-    "y": 20.003536,
-    "z": 22.374608
+    "x": 12.36745,
+    "y": 19.465096,
+    "z": 20.642132
    },
    {
-    "x": 16.986461,
-    "y": 20.947077,
-    "z": 24.448113
+    "x": 15.757791,
+    "y": 20.15975,
+    "z": 23.484959
    },
    {
-    "x": 21.095342,
-    "y": 22.923975,
-    "z": 33.071022
+    "x": 19.871165,
+    "y": 22.127623,
+    "z": 32.27738
    },
    {
-    "x": 82.245013,
-    "y": 7.047666,
-    "z": -29.781227
+    "x": 82.211259,
+    "y": 7.127666,
+    "z": -29.759765
    },
    {
-    "x": 59.211467,
-    "y": 11.893024,
-    "z": 16.196253
+    "x": 58.777703,
+    "y": 12.323261,
+    "z": 15.527268
    },
    {
-    "x": 31.344235,
-    "y": 20.584285,
-    "z": 23.336446
+    "x": 31.969589,
+    "y": 19.96106,
+    "z": 22.578085
    },
    {
-    "x": 7.068864,
-    "y": 20.41711,
-    "z": -17.489124
+    "x": 8.495938,
+    "y": 20.125282,
+    "z": -17.333854
    },
    {
-    "x": 2.925488,
-    "y": 19.943675,
-    "z": -17.917644
+    "x": 4.388592,
+    "y": 19.415243,
+    "z": -17.891858
    },
    {
-    "x": -4.898982,
-    "y": 21.662012,
-    "z": -20.210902
+    "x": -3.616066,
+    "y": 20.901308,
+    "z": -21.096982
    },
    {
-    "x": 37.972799,
-    "y": 27.89963,
-    "z": -37.73056
+    "x": 37.672461,
+    "y": 26.748761,
+    "z": -37.388982
    },
    {
-    "x": 42.179538,
+    "x": 41.904538,
     "y": 21.999001,
-    "z": -68.318664
+    "z": -67.84235
    },
    {
-    "x": 64.065332,
-    "y": 20.06405,
-    "z": -70.572151
+    "x": 63.940686,
+    "y": 19.950497,
+    "z": -70.500187
    },
    {
     "x": 84.619633,
@@ -8736,34 +9436,34 @@
     "z": -7.560554
    },
    {
-    "x": -14.864414,
-    "y": 16.228514,
-    "z": -12.877601
+    "x": -16.800812,
+    "y": 16.642838,
+    "z": -12.653821
    },
    {
-    "x": -12.104968,
-    "y": 17.153071,
-    "z": -9.733025
+    "x": -13.865565,
+    "y": 17.339624,
+    "z": -9.165348
    },
    {
-    "x": -16.493719,
-    "y": 13.159797,
-    "z": -8.335218
+    "x": -18.781591,
+    "y": 13.290462,
+    "z": -7.6354
    },
    {
-    "x": -84.389734,
-    "y": 24.605669,
-    "z": -26.563232
+    "x": -81.334624,
+    "y": 24.540063,
+    "z": -25.586042
    },
    {
-    "x": -89.045072,
-    "y": 24.350417,
-    "z": -27.283284
+    "x": -86.03449,
+    "y": 24.163761,
+    "z": -26.190265
    },
    {
-    "x": -92.013531,
+    "x": -90.501031,
     "y": 28.552858,
-    "z": -56.897774
+    "z": -54.278047
    },
    {
     "x": -66.671779,
@@ -8771,35 +9471,35 @@
     "z": -46.081512
    },
    {
-    "x": -42.360878,
-    "y": 43.540904,
-    "z": -77.859357
+    "x": -42.94083,
+    "y": 46.216459,
+    "z": -77.308936
    },
    {
-    "x": -40.291009,
-    "y": 40.500253,
-    "z": -80.864834
+    "x": -40.63943,
+    "y": 42.929241,
+    "z": -80.60776
    },
    {
-    "x": -28.280075,
-    "y": 16.170234,
+    "x": -27.890096,
+    "y": 18.493973,
     "z": -58.8
    },
    {
-    "x": -7.190716,
-    "y": 11.024812,
-    "z": -45.153783
+    "x": -7.33559,
+    "y": 13.048983,
+    "z": -45.237426
    },
    {
-    "x": -4.876729,
-    "y": 23.915333,
-    "z": -19.037469
+    "x": -4.67658,
+    "y": 24.593466,
+    "z": -20.629033
    }
   ],
   "frame": 749,
   "result": {
-   "nearestBirdDist": 822.207768,
-   "nearestCritterDist": 50.455434,
+   "nearestBirdDist": 423.032027,
+   "nearestCritterDist": 38.486491,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }
@@ -8812,13 +9512,13 @@
     "id": 0,
     "isDead": false,
     "species": "rabbit",
-    "vx": -2.397649,
-    "vz": 6.363276,
+    "vx": -2.444508,
+    "vz": 6.345422,
     "wakeMeter": 0,
-    "x": 89.320118,
+    "x": 88.246124,
     "y": 2.55,
-    "yaw": 1.330918,
-    "z": 23.794681
+    "yaw": -0.090108,
+    "z": 24.114116
    },
    {
     "aiBehavior": "grazing",
@@ -8835,18 +9535,18 @@
     "z": 18
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 2,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.285722,
-    "vz": 0.318763,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 62.582202,
-    "y": 0.250058,
-    "yaw": 0.730793,
-    "z": -21.046673
+    "x": 62.569831,
+    "y": 0.259135,
+    "yaw": 0.732208,
+    "z": -21.060474
    },
    {
     "aiBehavior": "grazing",
@@ -8868,27 +9568,27 @@
     "id": 4,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.8945,
-    "vz": -0.891389,
+    "vx": -0.905331,
+    "vz": -0.902182,
     "wakeMeter": 0,
-    "x": 71.330239,
-    "y": 1.737286,
+    "x": 71.405141,
+    "y": 1.740016,
     "yaw": -2.354452,
-    "z": 51.339526
+    "z": 51.414168
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 5,
     "isDead": false,
     "species": "rabbit",
-    "vx": 5.925781,
-    "vz": -3.335435,
+    "vx": 0.196961,
+    "vz": 1.040326,
     "wakeMeter": 0,
-    "x": -68.593529,
-    "y": 2.047424,
-    "yaw": 2.083466,
-    "z": 56.992954
+    "x": -71.975605,
+    "y": 2.117629,
+    "yaw": 0.187112,
+    "z": 58.128849
    },
    {
     "aiBehavior": "wandering",
@@ -8896,41 +9596,41 @@
     "id": 6,
     "isDead": false,
     "species": "rabbit",
-    "vx": 0.962331,
-    "vz": 1.077248,
+    "vx": 0.969206,
+    "vz": 1.084943,
     "wakeMeter": 0,
-    "x": 85.671458,
-    "y": 1.676664,
+    "x": 85.623227,
+    "y": 1.675763,
     "yaw": 0.729115,
-    "z": 49.871055
+    "z": 49.817064
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 7,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.305803,
-    "vz": -5.263084,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -84.797896,
-    "y": 2.207169,
-    "yaw": 2.455904,
-    "z": 45.840574
+    "x": -87.048039,
+    "y": 2.161677,
+    "yaw": -1.401103,
+    "z": 48.522253
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 8,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0.530153,
-    "vz": 1.667764,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -69.092944,
-    "y": 1.604311,
-    "yaw": 0.307781,
-    "z": 14.875478
+    "x": -69.235441,
+    "y": 2.779284,
+    "yaw": 0.537167,
+    "z": 14.214314
    },
    {
     "aiBehavior": "grazing",
@@ -8941,10 +9641,10 @@
     "vx": 2.197629,
     "vz": -1.814643,
     "wakeMeter": 0,
-    "x": -29.333859,
-    "y": 2.639927,
+    "x": -30.176284,
+    "y": 2.132485,
     "yaw": 2.261029,
-    "z": -29.504416
+    "z": -28.808803
    },
    {
     "aiBehavior": "wandering",
@@ -8955,10 +9655,10 @@
     "vx": -1.056406,
     "vz": -1.395172,
     "wakeMeter": 0,
-    "x": 39.685033,
-    "y": 1.814171,
+    "x": 39.843494,
+    "y": 1.822203,
     "yaw": -2.493508,
-    "z": -34.776847
+    "z": -34.567571
    },
    {
     "aiBehavior": "grazing",
@@ -8970,7 +9670,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 145.063103,
-    "y": 2.626199,
+    "y": 2.591199,
     "yaw": -0.722154,
     "z": 115.334023
    },
@@ -8997,10 +9697,10 @@
     "vx": 0.237548,
     "vz": -2.840083,
     "wakeMeter": 0,
-    "x": 138.518646,
-    "y": 4.240612,
+    "x": 138.510728,
+    "y": 4.245225,
     "yaw": 3.058146,
-    "z": 91.799152
+    "z": 91.893822
    },
    {
     "aiBehavior": "wandering",
@@ -9011,10 +9711,10 @@
     "vx": 0.343069,
     "vz": -1.716043,
     "wakeMeter": 0,
-    "x": 172.968777,
-    "y": 1.872437,
+    "x": 173.043108,
+    "y": 1.870368,
     "yaw": 2.944276,
-    "z": 108.765384
+    "z": 108.393574
    },
    {
     "aiBehavior": "grazing",
@@ -9053,10 +9753,10 @@
     "vx": -0.451591,
     "vz": 2.813995,
     "wakeMeter": 0,
-    "x": 70.893601,
-    "y": 1.083755,
+    "x": 70.923707,
+    "y": 1.082353,
     "yaw": -0.159124,
-    "z": -5.105713
+    "z": -5.293313
    },
    {
     "aiBehavior": "grazing",
@@ -9068,7 +9768,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 125.511005,
-    "y": 2.975353,
+    "y": 2.712853,
     "yaw": 2.386723,
     "z": -24.051243
    },
@@ -9078,13 +9778,13 @@
     "id": 19,
     "isDead": false,
     "species": "deer",
-    "vx": -0.315144,
-    "vz": -1.312403,
+    "vx": -0.33299,
+    "vz": -1.386724,
     "wakeMeter": 0,
-    "x": -68.401332,
-    "y": 7.658034,
+    "x": -68.228,
+    "y": 7.14435,
     "yaw": -2.905927,
-    "z": -19.671331
+    "z": -18.949497
    },
    {
     "aiBehavior": "wandering",
@@ -9092,17 +9792,17 @@
     "id": 20,
     "isDead": false,
     "species": "deer",
-    "vx": 0.987228,
-    "vz": -0.502541,
+    "vx": 1.076543,
+    "vz": -0.548006,
     "wakeMeter": 0,
-    "x": -74.958917,
-    "y": 1.815433,
+    "x": -75.576926,
+    "y": 1.829579,
     "yaw": 2.041652,
-    "z": 22.451959
+    "z": 22.766552
    },
    {
-    "aiBehavior": "listening",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 21,
     "isDead": false,
     "species": "deer",
@@ -9111,12 +9811,12 @@
     "wakeMeter": 0,
     "x": -124,
     "y": 1.748219,
-    "yaw": 4.087259,
+    "yaw": 3.637259,
     "z": 192
    },
    {
-    "aiBehavior": "listening",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 22,
     "isDead": false,
     "species": "deer",
@@ -9125,7 +9825,7 @@
     "wakeMeter": 0,
     "x": -96,
     "y": 1.588396,
-    "yaw": 5.832259,
+    "yaw": 5.007259,
     "z": 196
    },
    {
@@ -9134,13 +9834,13 @@
     "id": 23,
     "isDead": false,
     "species": "deer",
-    "vx": 1.092623,
-    "vz": 0.570494,
+    "vx": 1.201989,
+    "vz": 0.627598,
     "wakeMeter": 0,
-    "x": 78.251856,
-    "y": 1.890066,
+    "x": 78.406629,
+    "y": 1.887408,
     "yaw": 1.0896,
-    "z": 188.131502
+    "z": 188.212314
    },
    {
     "aiBehavior": "grazing",
@@ -9165,10 +9865,10 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -112.592016,
-    "y": 2.198702,
-    "yaw": -1.204733,
-    "z": 142.226944
+    "x": -112,
+    "y": 2.141988,
+    "yaw": 2.834073,
+    "z": 142
    },
    {
     "aiBehavior": "wandering",
@@ -9176,13 +9876,13 @@
     "id": 26,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.851935,
-    "vz": 0.292569,
+    "vx": -1.025513,
+    "vz": 0.323157,
     "wakeMeter": 0,
-    "x": -107.87013,
-    "y": 2.038656,
-    "yaw": 1.239998,
-    "z": 146.387466
+    "x": -108.318205,
+    "y": 2.058965,
+    "yaw": -1.265529,
+    "z": 146.100272
    },
    {
     "aiBehavior": "wandering",
@@ -9190,27 +9890,27 @@
     "id": 27,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.021356,
-    "vz": -0.893959,
+    "vx": 0.493962,
+    "vz": -0.79252,
     "wakeMeter": 0,
-    "x": -114.900725,
+    "x": -114.904592,
     "y": 2.35,
-    "yaw": 3.117708,
-    "z": 147.685039
+    "yaw": 4.074073,
+    "z": 147.846926
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 28,
     "isDead": false,
     "species": "sheep",
-    "vx": 0.853456,
-    "vz": -0.067299,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -95.865514,
-    "y": 1.430116,
-    "yaw": 1.649488,
-    "z": 117.989395
+    "x": -96,
+    "y": 1.429934,
+    "yaw": 0.660888,
+    "z": 118
    },
    {
     "aiBehavior": "grazing",
@@ -9232,13 +9932,13 @@
     "id": 30,
     "isDead": false,
     "species": "sheep",
-    "vx": -0.031325,
-    "vz": -1.100087,
+    "vx": -0.031393,
+    "vz": -1.10246,
     "wakeMeter": 0,
-    "x": 97.963138,
-    "y": 1.795894,
+    "x": 97.96366,
+    "y": 1.795857,
     "yaw": -3.113125,
-    "z": 60.705473
+    "z": 60.723808
    },
    {
     "aiBehavior": "grazing",
@@ -9283,32 +9983,32 @@
     "z": -90.8
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 34,
     "isDead": false,
     "species": "bear",
-    "vx": -1.678411,
+    "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -164.850827,
-    "y": 2.399452,
-    "yaw": -1.570796,
+    "x": -164,
+    "y": 2.498088,
+    "yaw": 2.597703,
     "z": -45
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 35,
     "isDead": false,
     "species": "bear",
-    "vx": 1.483239,
-    "vz": -0.82572,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -199.358115,
+    "x": -200.2,
     "y": 2.25,
-    "yaw": 2.07877,
-    "z": -40.068678
+    "yaw": 3.967703,
+    "z": -39.6
    },
    {
     "aiBehavior": "wandering",
@@ -9316,13 +10016,13 @@
     "id": 36,
     "isDead": false,
     "species": "bear",
-    "vx": 0.861067,
-    "vz": 1.14809,
+    "vx": 1.041644,
+    "vz": 1.388859,
     "wakeMeter": 0,
-    "x": 38.208003,
-    "y": 2.308237,
-    "yaw": 6.877703,
-    "z": 274.277337
+    "x": 38.870884,
+    "y": 2.25,
+    "yaw": 0.643501,
+    "z": 275.161179
    },
    {
     "aiBehavior": "grazing",
@@ -9339,7 +10039,7 @@
     "z": 308.2
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 38,
     "isDead": false,
@@ -9347,24 +10047,24 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": 122,
+    "x": 122.019123,
     "y": 0.24,
-    "yaw": 1.794518,
-    "z": 468
+    "yaw": 1.773818,
+    "z": 467.996063
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 39,
     "isDead": false,
     "species": "crocodile",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.806039,
+    "vz": 0.784503,
     "wakeMeter": 0,
-    "x": 141,
+    "x": 141.507335,
     "y": 0.24,
-    "yaw": 3.164518,
-    "z": 480
+    "yaw": 0.798937,
+    "z": 480.49378
    },
    {
     "aiBehavior": "grazing",
@@ -9376,12 +10076,12 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 128,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 4.534518,
     "z": 484
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 41,
     "isDead": false,
@@ -9390,12 +10090,12 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 138,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 5.904518,
     "z": 466
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "sitting",
     "alertLevel": "grazing",
     "id": 42,
     "isDead": false,
@@ -9404,7 +10104,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": 116,
-    "y": 0.08,
+    "y": -0.24,
     "yaw": 0.991332,
     "z": 476
    },
@@ -9423,46 +10123,46 @@
     "z": 236
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 44,
     "isDead": false,
     "species": "jaguar",
-    "vx": 0.798425,
-    "vz": 0.148225,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -267.934707,
+    "x": -268,
     "y": 5.5,
-    "yaw": 3.171332,
-    "z": 336.012121
+    "yaw": 3.731332,
+    "z": 336
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 45,
     "isDead": false,
     "species": "jaguar",
-    "vx": -0.140701,
-    "vz": -0.886581,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -147.920725,
-    "y": 2.286687,
-    "yaw": 1.05082,
-    "z": 228.350808
+    "x": -148,
+    "y": 2.274318,
+    "yaw": 5.101332,
+    "z": 228
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 46,
     "isDead": false,
     "species": "jaguar",
-    "vx": -1.172264,
-    "vz": 0.606532,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -84.225318,
-    "y": 2.345766,
-    "yaw": -1.071853,
-    "z": 246.11658
+    "x": -84,
+    "y": 2.347802,
+    "yaw": 0.188147,
+    "z": 246
    },
    {
     "aiBehavior": "grazing",
@@ -9479,18 +10179,18 @@
     "z": -88
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 48,
     "isDead": false,
     "species": "wolf",
-    "vx": -0.382278,
-    "vz": 1.047254,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -158.051436,
-    "y": 12.163348,
-    "yaw": 3.838147,
-    "z": -111.85909
+    "x": -158,
+    "y": 12.187244,
+    "yaw": 2.928147,
+    "z": -112
    },
    {
     "aiBehavior": "wandering",
@@ -9498,13 +10198,13 @@
     "id": 49,
     "isDead": false,
     "species": "wolf",
-    "vx": 1.208244,
-    "vz": -1.265901,
+    "vx": 1.205286,
+    "vz": -1.262802,
     "wakeMeter": 0,
-    "x": -115.489474,
-    "y": 1.803693,
+    "x": -116.697138,
+    "y": 1.629056,
     "yaw": 2.379494,
-    "z": 83.369672
+    "z": 84.634965
    },
    {
     "aiBehavior": "wandering",
@@ -9515,13 +10215,13 @@
     "vx": 1.708285,
     "vz": -0.37982,
     "wakeMeter": 0,
-    "x": 143.364605,
+    "x": 143.734733,
     "y": 11.5,
     "yaw": 1.789578,
-    "z": -119.637448
+    "z": -119.719743
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 51,
     "isDead": false,
@@ -9549,18 +10249,18 @@
     "z": 262
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 53,
     "isDead": false,
     "species": "rhino",
-    "vx": 1.579414,
-    "vz": -0.711812,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -284.755792,
-    "y": 2.571594,
-    "yaw": 1.994216,
-    "z": 247.43926
+    "x": -286,
+    "y": 2.769747,
+    "yaw": 3.494962,
+    "z": 248
    },
    {
     "aiBehavior": "sitting",
@@ -9577,18 +10277,18 @@
     "z": 115
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 55,
     "isDead": false,
     "species": "lion",
-    "vx": 1.533141,
-    "vz": -0.843788,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -504.95261,
-    "y": 2.91829,
-    "yaw": 2.07392,
-    "z": 102.671724
+    "x": -511,
+    "y": 3.180319,
+    "yaw": 6.234962,
+    "z": 106
    },
    {
     "aiBehavior": "grazing",
@@ -9599,13 +10299,13 @@
     "vx": 0,
     "vz": 0,
     "wakeMeter": 0,
-    "x": -510.468207,
-    "y": 3.255888,
-    "yaw": 1.738486,
-    "z": 123.909978
+    "x": -511,
+    "y": 3.228362,
+    "yaw": 1.321776,
+    "z": 124
    },
    {
-    "aiBehavior": "sitting",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 57,
     "isDead": false,
@@ -9675,46 +10375,46 @@
     "z": -107
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 62,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -1.130887,
+    "vz": -0.830148,
     "wakeMeter": 0,
-    "x": 892,
+    "x": 889.957676,
     "y": 115,
-    "yaw": 3.258591,
-    "z": -116
+    "yaw": -2.204023,
+    "z": -115.31673
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 63,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.705231,
+    "vz": 0.598927,
     "wakeMeter": 0,
-    "x": 882,
+    "x": 878.979686,
     "y": 115,
-    "yaw": 4.628591,
-    "z": -120
+    "yaw": -0.86673,
+    "z": -117.434957
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 64,
     "isDead": false,
     "species": "stag",
-    "vx": 0,
-    "vz": 0,
+    "vx": -0.457325,
+    "vz": -1.322488,
     "wakeMeter": 0,
-    "x": 889,
+    "x": 888.549242,
     "y": 115,
-    "yaw": 5.998591,
-    "z": -103
+    "yaw": -2.808658,
+    "z": -104.303495
    },
    {
     "aiBehavior": "grazing",
@@ -9787,18 +10487,18 @@
     "z": 274
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 70,
     "isDead": false,
     "species": "rhino",
-    "vx": 0.061621,
-    "vz": 0.359717,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -441.997893,
+    "x": -442,
     "y": 2.35,
-    "yaw": 1.44222,
-    "z": 318.012302
+    "yaw": 1.65222,
+    "z": 318
    },
    {
     "aiBehavior": "grazing",
@@ -9815,18 +10515,18 @@
     "z": 538
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
     "id": 72,
     "isDead": false,
     "species": "rabbit",
-    "vx": 4.178868,
-    "vz": -5.364426,
+    "vx": -0.792548,
+    "vz": -1.262202,
     "wakeMeter": 0,
-    "x": -74.282907,
-    "y": 1.862685,
-    "yaw": 2.479791,
-    "z": 30.36338
+    "x": -75.894609,
+    "y": 1.889067,
+    "yaw": -2.580904,
+    "z": 32.633516
    },
    {
     "aiBehavior": "wandering",
@@ -9834,13 +10534,13 @@
     "id": 73,
     "isDead": false,
     "species": "rabbit",
-    "vx": -0.619118,
-    "vz": 0.586568,
+    "vx": -0.667424,
+    "vz": 0.634937,
     "wakeMeter": 0,
-    "x": -73.069121,
-    "y": 12.801652,
-    "yaw": -0.812388,
-    "z": -27.758778
+    "x": -72.726489,
+    "y": 13.191542,
+    "yaw": -0.810338,
+    "z": -28.083811
    },
    {
     "aiBehavior": "grazing",
@@ -9857,22 +10557,22 @@
     "z": -36
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 75,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.583178,
+    "vz": -2.789696,
     "wakeMeter": 0,
-    "x": -76.684043,
-    "y": 4.218268,
+    "x": -76.814205,
+    "y": 2.177004,
     "yaw": 2.935513,
-    "z": 47.704977
+    "z": 48.327618
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 76,
     "isDead": false,
     "species": "squirrel",
@@ -9880,23 +10580,23 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -101.128742,
-    "y": 5.171964,
-    "yaw": 1.176095,
+    "y": 3.654464,
+    "yaw": -1.965498,
     "z": 53.956091
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 77,
     "isDead": false,
     "species": "squirrel",
-    "vx": 0,
-    "vz": 0,
+    "vx": 0.454001,
+    "vz": 2.813607,
     "wakeMeter": 0,
-    "x": -66.991462,
-    "y": 3.973946,
+    "x": -67.091998,
+    "y": 2.073223,
     "yaw": 0.15998,
-    "z": 48.25027
+    "z": 47.627214
    },
    {
     "aiBehavior": "grazing",
@@ -9908,7 +10608,7 @@
     "vz": 0,
     "wakeMeter": 0,
     "x": -61.794564,
-    "y": 2.08017,
+    "y": 3.31767,
     "yaw": 0.917688,
     "z": 26.091373
    },
@@ -10081,32 +10781,32 @@
     "z": 826
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 91,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.111532,
-    "vz": 0.085691,
+    "vx": 0.166186,
+    "vz": -0.117351,
     "wakeMeter": 0,
-    "x": -127.936639,
-    "y": -0.355599,
-    "yaw": -0.915681,
-    "z": 45.95132
+    "x": -128.083392,
+    "y": -0.386748,
+    "yaw": -4.097551,
+    "z": 45.852106
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 92,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.718645,
-    "vz": -1.163121,
+    "vx": -0.334592,
+    "vz": 1.085369,
     "wakeMeter": 0,
-    "x": -137.352387,
-    "y": -0.403326,
-    "yaw": -2.165758,
-    "z": 39.099339
+    "x": -136.109619,
+    "y": -0.360238,
+    "yaw": -0.299031,
+    "z": 39.17945
    },
    {
     "aiBehavior": "wandering",
@@ -10114,41 +10814,41 @@
     "id": 93,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.392193,
-    "vz": -1.219322,
+    "vx": -1.657202,
+    "vz": -2.204087,
     "wakeMeter": 0,
-    "x": -146.151193,
-    "y": -0.377574,
-    "yaw": -3.452791,
-    "z": 41.601572
+    "x": -145.602965,
+    "y": -0.404842,
+    "yaw": 3.786294,
+    "z": 42.817026
    },
    {
-    "aiBehavior": "grazing",
+    "aiBehavior": "wandering",
     "alertLevel": "grazing",
     "id": 94,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.652085,
-    "vz": 1.362689,
+    "vx": -0.914912,
+    "vz": 1.211305,
     "wakeMeter": 0,
-    "x": -140.189011,
-    "y": -0.315542,
-    "yaw": 0.446323,
-    "z": 30.59977
+    "x": -140.765722,
+    "y": -0.376964,
+    "yaw": 5.636294,
+    "z": 28.758011
    },
    {
-    "aiBehavior": "fleeing",
-    "alertLevel": "fleeing",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 95,
     "isDead": false,
     "species": "koifish",
-    "vx": 2.114063,
-    "vz": -4.202949,
+    "vx": -0.055599,
+    "vz": -1.021488,
     "wakeMeter": 0,
-    "x": -129.809051,
-    "y": -0.370857,
-    "yaw": 2.675552,
-    "z": 52.270954
+    "x": -132.283376,
+    "y": -0.316161,
+    "yaw": -3.087217,
+    "z": 53.165825
    },
    {
     "aiBehavior": "wandering",
@@ -10156,13 +10856,13 @@
     "id": 96,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.584293,
-    "vz": 1.376415,
+    "vx": 2.246243,
+    "vz": 1.051149,
     "wakeMeter": 0,
-    "x": -150.511049,
-    "y": -0.398874,
-    "yaw": 0.40145,
-    "z": 37.908211
+    "x": -151.625618,
+    "y": -0.35924,
+    "yaw": 7.416294,
+    "z": 36.969588
    },
    {
     "aiBehavior": "wandering",
@@ -10170,13 +10870,13 @@
     "id": 97,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.413033,
-    "vz": 0.564659,
+    "vx": -0.643445,
+    "vz": 1.374883,
     "wakeMeter": 0,
-    "x": -125.478975,
-    "y": -0.400846,
-    "yaw": -1.190628,
-    "z": 37.853697
+    "x": -124.393481,
+    "y": -0.398388,
+    "yaw": -0.437722,
+    "z": 36.950288
    },
    {
     "aiBehavior": "wandering",
@@ -10184,13 +10884,13 @@
     "id": 98,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.403383,
-    "vz": -1.462446,
+    "vx": -0.272556,
+    "vz": -1.29965,
     "wakeMeter": 0,
-    "x": -144.286604,
-    "y": -0.371451,
-    "yaw": 2.872457,
-    "z": 49.941383
+    "x": -143.944979,
+    "y": -0.403359,
+    "yaw": -2.934873,
+    "z": 51.394618
    },
    {
     "aiBehavior": "wandering",
@@ -10198,13 +10898,13 @@
     "id": 99,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.300597,
-    "vz": 1.46182,
+    "vx": 0.935925,
+    "vz": 0.86166,
     "wakeMeter": 0,
-    "x": -43.726733,
-    "y": -0.400462,
-    "yaw": -0.202805,
-    "z": -31.307688
+    "x": -43.923124,
+    "y": -0.381219,
+    "yaw": 0.826689,
+    "z": -31.86655
    },
    {
     "aiBehavior": "wandering",
@@ -10212,13 +10912,13 @@
     "id": 100,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.892547,
-    "vz": 1.234374,
+    "vx": 1.280105,
+    "vz": 0.892378,
     "wakeMeter": 0,
-    "x": -37.912756,
-    "y": -0.399857,
-    "yaw": 0.626046,
-    "z": -36.389995
+    "x": -38.346366,
+    "y": -0.404564,
+    "yaw": 0.962011,
+    "z": -36.82098
    },
    {
     "aiBehavior": "wandering",
@@ -10226,13 +10926,13 @@
     "id": 101,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.897734,
-    "vz": 1.224091,
+    "vx": 0.165045,
+    "vz": 1.509001,
     "wakeMeter": 0,
-    "x": -42.872208,
-    "y": -0.36987,
-    "yaw": -0.632784,
-    "z": -35.315311
+    "x": -42.691989,
+    "y": -0.391828,
+    "yaw": 0.108941,
+    "z": -35.934016
    },
    {
     "aiBehavior": "wandering",
@@ -10240,13 +10940,13 @@
     "id": 102,
     "isDead": false,
     "species": "koifish",
-    "vx": -1.694813,
-    "vz": 1.829171,
+    "vx": 1.211443,
+    "vz": 1.364202,
     "wakeMeter": 0,
-    "x": -40.63817,
-    "y": -0.355267,
-    "yaw": -0.74729,
-    "z": -29.866172
+    "x": -40.561399,
+    "y": -0.361348,
+    "yaw": -5.557027,
+    "z": -30.695969
    },
    {
     "aiBehavior": "wandering",
@@ -10254,27 +10954,27 @@
     "id": 103,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.287252,
-    "vz": 1.490788,
+    "vx": 1.30126,
+    "vz": 0.785284,
     "wakeMeter": 0,
-    "x": -40.339947,
-    "y": -0.376898,
-    "yaw": 0.190352,
-    "z": -31.544262
+    "x": -40.6843,
+    "y": -0.358971,
+    "yaw": 1.027822,
+    "z": -32.056653
    },
    {
-    "aiBehavior": "wandering",
+    "aiBehavior": "grazing",
     "alertLevel": "grazing",
     "id": 104,
     "isDead": false,
     "species": "koifish",
-    "vx": -0.117705,
-    "vz": 0.180976,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -308.053628,
-    "y": 3.46,
-    "yaw": -0.576649,
-    "z": 316.017715
+    "x": -308,
+    "y": -0.38,
+    "yaw": 4.249923,
+    "z": 316
    },
    {
     "aiBehavior": "grazing",
@@ -10282,13 +10982,13 @@
     "id": 105,
     "isDead": false,
     "species": "koifish",
-    "vx": 0.143454,
-    "vz": 0.024244,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": -313.993043,
-    "y": 3.46,
-    "yaw": 1.403377,
-    "z": 321.034201
+    "x": -314,
+    "y": -0.38,
+    "yaw": 5.619923,
+    "z": 321
    },
    {
     "aiBehavior": "wandering",
@@ -10296,13 +10996,13 @@
     "id": 106,
     "isDead": false,
     "species": "dolphin",
-    "vx": 3.170526,
-    "vz": 2.139466,
+    "vx": 2.660399,
+    "vz": 1.661524,
     "wakeMeter": 0,
-    "x": 323.160579,
-    "y": -0.396856,
-    "yaw": 0.977185,
-    "z": 248.753097
+    "x": 322.882616,
+    "y": -0.401615,
+    "yaw": 1.012528,
+    "z": 248.458947
    },
    {
     "aiBehavior": "wandering",
@@ -10310,13 +11010,13 @@
     "id": 107,
     "isDead": false,
     "species": "dolphin",
-    "vx": 2.225757,
-    "vz": 3.143728,
+    "vx": 2.306249,
+    "vz": 3.117637,
     "wakeMeter": 0,
-    "x": 336.874397,
-    "y": -0.336163,
-    "yaw": 0.616074,
-    "z": 263.153384
+    "x": 336.938167,
+    "y": -0.348165,
+    "yaw": 0.636904,
+    "z": 263.185763
    },
    {
     "aiBehavior": "wandering",
@@ -10324,13 +11024,13 @@
     "id": 108,
     "isDead": false,
     "species": "dolphin",
-    "vx": -3.204922,
-    "vz": 2.189323,
+    "vx": -1.933639,
+    "vz": 3.017977,
     "wakeMeter": 0,
-    "x": 454.831574,
-    "y": -0.301982,
-    "yaw": -0.971494,
-    "z": 229.045415
+    "x": 455.544011,
+    "y": -0.322574,
+    "yaw": 5.613405,
+    "z": 228.895894
    },
    {
     "aiBehavior": "wandering",
@@ -10338,148 +11038,288 @@
     "id": 109,
     "isDead": false,
     "species": "dolphin",
-    "vx": -3.807372,
-    "vz": -1.163459,
+    "vx": -3.447059,
+    "vz": -0.607217,
     "wakeMeter": 0,
-    "x": 472.220379,
-    "y": -0.351744,
-    "yaw": -1.867365,
-    "z": 245.53103
+    "x": 473.120309,
+    "y": -0.300032,
+    "yaw": -1.745163,
+    "z": 245.863784
    },
    {
-    "aiBehavior": "stalking",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 110,
     "isDead": false,
     "species": "dolphin",
-    "vx": -0.324137,
-    "vz": -4.467739,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 845.313785,
-    "y": -1.606918,
-    "yaw": -3.069169,
-    "z": 402.285501
+    "x": 854,
+    "y": -1.56,
+    "yaw": 6.186738,
+    "z": 406
    },
    {
-    "aiBehavior": "stalking",
-    "alertLevel": "curious",
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
     "id": 111,
     "isDead": false,
     "species": "dolphin",
-    "vx": 3.950596,
-    "vz": -2.712391,
+    "vx": 0,
+    "vz": 0,
     "wakeMeter": 0,
-    "x": 874.710943,
-    "y": -1.55388,
-    "yaw": 2.172457,
-    "z": 416.559531
+    "x": 870,
+    "y": -1.56,
+    "yaw": 1.273553,
+    "z": 424
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 112,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -2.040189,
+    "vz": -0.602337,
+    "wakeMeter": 0,
+    "x": -139.409948,
+    "y": -10.333604,
+    "yaw": -1.857877,
+    "z": 489.908496
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 113,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.898305,
+    "vz": -1.224629,
+    "wakeMeter": 0,
+    "x": -141.109468,
+    "y": -10.354801,
+    "yaw": -2.508715,
+    "z": 494.562365
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 114,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 1.082541,
+    "vz": -0.947969,
+    "wakeMeter": 0,
+    "x": -145.74661,
+    "y": -10.299665,
+    "yaw": 2.290016,
+    "z": 498.88013
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 115,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 2.724166,
+    "vz": 0.313175,
+    "wakeMeter": 0,
+    "x": -144.829875,
+    "y": -10.310369,
+    "yaw": 1.456337,
+    "z": 493.919369
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 116,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0.885504,
+    "vz": 1.233008,
+    "wakeMeter": 0,
+    "x": -144.692615,
+    "y": -10.309833,
+    "yaw": 0.622814,
+    "z": 488.956653
+   },
+   {
+    "aiBehavior": "grazing",
+    "alertLevel": "grazing",
+    "id": 117,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.770838,
+    "vz": 0.699844,
+    "wakeMeter": 0,
+    "x": -142.687977,
+    "y": -10.298841,
+    "yaw": -0.833634,
+    "z": 489.336071
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 118,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -2.19797,
+    "vz": -0.618424,
+    "wakeMeter": 0,
+    "x": -138.815341,
+    "y": -10.354897,
+    "yaw": -1.845067,
+    "z": 489.105076
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 119,
+    "isDead": false,
+    "species": "koifish",
+    "vx": -0.86051,
+    "vz": -1.25054,
+    "wakeMeter": 0,
+    "x": -136.661263,
+    "y": -10.334479,
+    "yaw": -2.538891,
+    "z": 495.978556
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 120,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 0.81075,
+    "vz": -1.030797,
+    "wakeMeter": 0,
+    "x": -141.039173,
+    "y": -10.307499,
+    "yaw": 2.475121,
+    "z": 495.634218
+   },
+   {
+    "aiBehavior": "wandering",
+    "alertLevel": "grazing",
+    "id": 121,
+    "isDead": false,
+    "species": "koifish",
+    "vx": 1.532933,
+    "vz": -0.272702,
+    "wakeMeter": 0,
+    "x": -146.086625,
+    "y": -10.313483,
+    "yaw": 1.74685,
+    "z": 494.937921
    }
   ],
   "birds": [
    {
-    "x": -52.022515,
-    "y": 29.201406,
-    "z": 30.782007
+    "x": -49.008295,
+    "y": 30.941058,
+    "z": 30.371053
    },
    {
-    "x": -54.912949,
-    "y": 29.10036,
-    "z": 38.202035
+    "x": -53.414653,
+    "y": 31.114133,
+    "z": 39.5263
    },
    {
-    "x": -59.907475,
-    "y": 29.130361,
-    "z": 43.616267
+    "x": -59.997333,
+    "y": 31.049025,
+    "z": 46.446586
    },
    {
-    "x": -56.252788,
-    "y": 30.184706,
-    "z": 35.173647
+    "x": -54.115125,
+    "y": 30.454228,
+    "z": 36.873918
    },
    {
-    "x": -54.477994,
-    "y": 26.840897,
-    "z": 28.424528
+    "x": -51.458537,
+    "y": 26.056587,
+    "z": 27.016976
    },
    {
-    "x": -40.082463,
-    "y": 24.033207,
-    "z": 0.788568
+    "x": -39.874246,
+    "y": 22.272921,
+    "z": 2.512978
    },
    {
-    "x": -15.96676,
-    "y": 14.315622,
-    "z": -4.164224
+    "x": -18.103024,
+    "y": 14.492527,
+    "z": -3.612403
    },
    {
-    "x": -8.297593,
-    "y": 15.809728,
-    "z": -9.276884
+    "x": -10.128089,
+    "y": 15.856935,
+    "z": -9.192232
    },
    {
-    "x": 0.597001,
-    "y": 26.198211,
-    "z": -11.808893
+    "x": -0.857448,
+    "y": 26.229631,
+    "z": -11.034428
    },
    {
-    "x": 13.197847,
-    "y": 20.003536,
-    "z": 22.374608
+    "x": 12.36745,
+    "y": 19.465096,
+    "z": 20.642132
    },
    {
-    "x": 16.986461,
-    "y": 20.947077,
-    "z": 24.448113
+    "x": 15.757791,
+    "y": 20.15975,
+    "z": 23.484959
    },
    {
-    "x": 21.095342,
-    "y": 22.923975,
-    "z": 33.071022
+    "x": 19.871165,
+    "y": 22.127623,
+    "z": 32.27738
    },
    {
-    "x": 82.245013,
-    "y": 7.047666,
-    "z": -29.781227
+    "x": 82.211259,
+    "y": 7.127666,
+    "z": -29.759765
    },
    {
-    "x": 59.211467,
-    "y": 11.893024,
-    "z": 16.196253
+    "x": 58.777703,
+    "y": 12.323261,
+    "z": 15.527268
    },
    {
-    "x": 31.344235,
-    "y": 20.584285,
-    "z": 23.336446
+    "x": 31.969589,
+    "y": 19.96106,
+    "z": 22.578085
    },
    {
-    "x": 7.068864,
-    "y": 20.41711,
-    "z": -17.489124
+    "x": 8.495938,
+    "y": 20.125282,
+    "z": -17.333854
    },
    {
-    "x": 2.925488,
-    "y": 19.943675,
-    "z": -17.917644
+    "x": 4.388592,
+    "y": 19.415243,
+    "z": -17.891858
    },
    {
-    "x": -4.898982,
-    "y": 21.662012,
-    "z": -20.210902
+    "x": -3.616066,
+    "y": 20.901308,
+    "z": -21.096982
    },
    {
-    "x": 37.972799,
-    "y": 27.89963,
-    "z": -37.73056
+    "x": 37.672461,
+    "y": 26.748761,
+    "z": -37.388982
    },
    {
-    "x": 42.179538,
+    "x": 41.904538,
     "y": 21.999001,
-    "z": -68.318664
+    "z": -67.84235
    },
    {
-    "x": 64.065332,
-    "y": 20.06405,
-    "z": -70.572151
+    "x": 63.940686,
+    "y": 19.950497,
+    "z": -70.500187
    },
    {
     "x": 84.619633,
@@ -10497,34 +11337,34 @@
     "z": -7.560554
    },
    {
-    "x": -14.864414,
-    "y": 16.228514,
-    "z": -12.877601
+    "x": -16.800812,
+    "y": 16.642838,
+    "z": -12.653821
    },
    {
-    "x": -12.104968,
-    "y": 17.153071,
-    "z": -9.733025
+    "x": -13.865565,
+    "y": 17.339624,
+    "z": -9.165348
    },
    {
-    "x": -16.493719,
-    "y": 13.159797,
-    "z": -8.335218
+    "x": -18.781591,
+    "y": 13.290462,
+    "z": -7.6354
    },
    {
-    "x": -84.389734,
-    "y": 24.605669,
-    "z": -26.563232
+    "x": -81.334624,
+    "y": 24.540063,
+    "z": -25.586042
    },
    {
-    "x": -89.045072,
-    "y": 24.350417,
-    "z": -27.283284
+    "x": -86.03449,
+    "y": 24.163761,
+    "z": -26.190265
    },
    {
-    "x": -92.013531,
+    "x": -90.501031,
     "y": 28.552858,
-    "z": -56.897774
+    "z": -54.278047
    },
    {
     "x": -66.671779,
@@ -10532,35 +11372,35 @@
     "z": -46.081512
    },
    {
-    "x": -42.360878,
-    "y": 43.540904,
-    "z": -77.859357
+    "x": -42.94083,
+    "y": 46.216459,
+    "z": -77.308936
    },
    {
-    "x": -40.291009,
-    "y": 40.500253,
-    "z": -80.864834
+    "x": -40.63943,
+    "y": 42.929241,
+    "z": -80.60776
    },
    {
-    "x": -28.280075,
-    "y": 16.170234,
+    "x": -27.890096,
+    "y": 18.493973,
     "z": -58.8
    },
    {
-    "x": -7.190716,
-    "y": 11.024812,
-    "z": -45.153783
+    "x": -7.33559,
+    "y": 13.048983,
+    "z": -45.237426
    },
    {
-    "x": -4.876729,
-    "y": 23.915333,
-    "z": -19.037469
+    "x": -4.67658,
+    "y": 24.593466,
+    "z": -20.629033
    }
   ],
   "frame": 899,
   "result": {
-   "nearestBirdDist": 884.089938,
-   "nearestCritterDist": 10.327231,
+   "nearestBirdDist": 457.513651,
+   "nearestCritterDist": 3.667925,
    "scamperedCritterCount": 0,
    "startledFlockCount": 0
   }
