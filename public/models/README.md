@@ -4,8 +4,9 @@ Files here are served as-is at `/models/<path>` and are not part of the JavaScri
 
 ## `animals/`
 
-One GLB per animal: `bear`, `crocodile`, `jaguar`, `wolf`, `rhino`, `demon-dragon`,
-`forest-dragon`, `deer`. Each file holds the skinned mesh, the skeleton, the embedded JPEG
+One GLB per animal, 15 in all, every one in the same format (`theman-animal-model@1`): `bear`,
+`crocodile`, `jaguar`, `wolf`, `rhino`, `demon-dragon`, `forest-dragon`, `deer`, `horse`, `stag`,
+`cat-lion`, `dove`, `dolphin`, `hippo`, `koi-fish`. Each file holds the skinned mesh, the skeleton, the embedded JPEG
 texture and, for every animal except the deer, the 13 baked animation clips (24 keyframes
 each). The deer's animations are procedural IK code in `src/world/models/animals/Deer_Complete.ts`.
 
@@ -13,8 +14,15 @@ each). The deer's animations are procedural IK code in `src/world/models/animals
   (`KHR_mesh_quantization`), exactly as the original packs were.
 - `asset.extras` carries `format: "theman-animal-model@1"`, the root-motion joint, the exact
   clip durations and the original parent table.
-- Loaded at runtime by `src/world/models/animalModelAssets.ts` (three's `GLTFLoader`); the
-  animals appear in the world as their files arrive.
+- Loaded at runtime by `src/world/models/animalModelAssets.ts` (three's `GLTFLoader`). Each model has a
+  priority (`ANIMAL_MODEL_PRIORITY`): `blocking` models (`horse`, `stag`, `cat-lion`, `dove`, `dolphin`,
+  `hippo`, `koi-fish`) are built synchronously with the world, so the 'vegetation' loading stage waits for
+  them; `deferred` models (the other eight) appear in the world as their files arrive.
+- The last seven were exported with `THREE.GLTFExporter` from their old base64 data and patched to match
+  the first eight (extras, texture, int8 normals). Normals may be stored with a 4-byte stride, which the
+  decoder handles. The converter and the base64 modules are in commit `196529d`
+  (`scripts/convertClipRigAnimalsToGlb.ts`); the same commit's equality test proved all 13 rig arrays
+  and the texture bytes identical to the old data (only -0 vs +0 in a few matrix entries differs).
 - `src/world/models/__golden__/*-model.json` pins geometry, skeleton and animation poses;
   re-export a model only together with an intentional golden update.
 

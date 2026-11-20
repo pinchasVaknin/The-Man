@@ -33,17 +33,38 @@ export type AnimalModelId =
   | 'hippo'
   | 'koi-fish';
 
-/** Summary: All model ids, in load order (the most common animals first). */
-export const ANIMAL_MODEL_IDS: readonly AnimalModelId[] = [
-  'deer',
-  'bear',
-  'wolf',
-  'jaguar',
-  'crocodile',
-  'rhino',
-  'forest-dragon',
-  'demon-dragon',
-];
+/**
+ * Summary: When a model is needed.
+ * Design: 'blocking' models are built synchronously while the world is built (the riding animals and the
+ *         animals that live in builders without a deferred wrapper), so the loading screen waits for
+ *         them. 'deferred' models are wrapped in DeferredAnimalModel and appear when their file arrives.
+ */
+export type AnimalModelPriority = 'blocking' | 'deferred';
+
+/** Summary: The priority of every animal model. */
+export const ANIMAL_MODEL_PRIORITY: Readonly<Record<AnimalModelId, AnimalModelPriority>> = {
+  horse: 'blocking',
+  stag: 'blocking',
+  'cat-lion': 'blocking',
+  dove: 'blocking',
+  dolphin: 'blocking',
+  hippo: 'blocking',
+  'koi-fish': 'blocking',
+  deer: 'deferred',
+  bear: 'deferred',
+  wolf: 'deferred',
+  jaguar: 'deferred',
+  crocodile: 'deferred',
+  rhino: 'deferred',
+  'forest-dragon': 'deferred',
+  'demon-dragon': 'deferred',
+};
+
+/** Summary: All model ids, in load order: blocking models first, then the deferred ones (most common animals first). */
+export const ANIMAL_MODEL_IDS = (Object.keys(ANIMAL_MODEL_PRIORITY) as AnimalModelId[]);
+
+/** Summary: The ids the loading screen waits for. */
+export const BLOCKING_ANIMAL_MODEL_IDS: readonly AnimalModelId[] = ANIMAL_MODEL_IDS.filter((id) => ANIMAL_MODEL_PRIORITY[id] === 'blocking');
 
 /**
  * Summary: Decoded skinned mesh with baked clips, in the layout the clip-driven animators read.
@@ -340,6 +361,15 @@ export function loadAnimalModel(
  */
 export function preloadAllAnimalModels(fetcher?: AnimalModelFetcher): Promise<IAnimalModelAsset[]> {
   return Promise.all(ANIMAL_MODEL_IDS.map((id) => loadAnimalModel(id, fetcher)));
+}
+
+/**
+ * Summary: Starts loading the blocking models only (see AnimalModelPriority).
+ * @param fetcher Byte source (the server by default).
+ * @returns Resolves when every blocking model is loaded.
+ */
+export function preloadBlockingAnimalModels(fetcher?: AnimalModelFetcher): Promise<IAnimalModelAsset[]> {
+  return Promise.all(BLOCKING_ANIMAL_MODEL_IDS.map((id) => loadAnimalModel(id, fetcher)));
 }
 
 /** Summary: True once the model is loaded and can be built synchronously. */
