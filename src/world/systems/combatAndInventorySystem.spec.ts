@@ -841,7 +841,7 @@ test('woodcutterAxeTreeFellingDamageAndHarvestPlusMultiQuantityAnimalLoot_WhenEv
 });
 
 test('plantWeatherAnimationsAndWatersideCornflowers_WhenEvaluated_ShouldMapWeatherClipsAndPlaceFlowersStrictlyNearWater', async () => {
-  const { resolvePlantAnimationStateForWeather } = await import('../models/vegetationModels');
+  const { resolvePlantAnimationStateForWeather } = await import('../models/structures/vegetationModels');
   const {
     isNearWaterForFlowers,
     generateWatersideCornflowerPositions,
@@ -899,7 +899,7 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
     buildVegetationModels,
     getRegisteredFloraSpeciesKeys,
     updateChoppableTreesVisuals,
-  } = await import('../models/vegetationModels');
+  } = await import('../models/structures/vegetationModels');
   const {
     FloraModel,
     unpackFloraBundle,
@@ -971,7 +971,7 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
     },
   });
 
-  const { getFloraLodAndShaderStats } = await import('../models/vegetationModels');
+  const { getFloraLodAndShaderStats } = await import('../models/structures/vegetationModels');
   const registeredKeys = getRegisteredFloraSpeciesKeys();
   assert.deepEqual(
     registeredKeys,

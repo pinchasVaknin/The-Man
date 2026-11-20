@@ -34,7 +34,8 @@ src/
     controllers/         adapters between input/browser and systems (frame schedulers,
                          movement intent, HUD telemetry builder, debug bridge)
     builders/            create three.js objects (scene, wildlife layer, player rigs)
-    models/              landmark meshes + animal model facades, GLB asset library
+    models/              animal model facades, GLB asset library, plants, characters, equipment
+      structures/        procedural landmark and scenery builders (code only, no model files)
   lab/                   Character & Animation Lab (developer tool, lazy-loaded)
   testSupport/           golden-master helper, test-only model preloading
 public/models/animals/   animal GLB files (served as static assets)

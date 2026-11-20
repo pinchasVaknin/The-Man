@@ -29,22 +29,22 @@ import {
   buildColliderDebugWireframes,
   type IColliderDebugHandles,
 } from './builders/colliderDebugBuilder';
-import { buildTerrainAndWaterModel } from './models/terrainAndWaterModel';
+import { buildTerrainAndWaterModel } from './models/structures/terrainAndWaterModel';
 import {
   buildVegetationModels,
   updateChoppableTreesVisuals,
-} from './models/vegetationModels';
-import { buildSettlementModels } from './models/settlementModels';
-import { buildFarmhouseModels } from './models/farmhouseModels';
-import { buildFortressModels } from './models/fortressModels';
-import { buildSanctuaryAndDragonModels } from './models/sanctuaryAndDragonModels';
-import { buildHarborModels } from './models/harborModels';
-import { buildOasisModels } from './models/oasisModels';
-import { buildVolcanoAndFloatingIslandsModels } from './models/volcanoAndFloatingIslandsModels';
-import { buildAtlantisAndShipModels } from './models/atlantisAndShipModels';
-import { buildSacredCloudMountainModel } from './models/sacredCloudMountainBuilder';
-import { buildEnvironmentAtmosphereModels } from './models/environmentAtmosphereModels';
-import { createArchitecturalSharedAssets } from './models/architecturalHelpers';
+} from './models/structures/vegetationModels';
+import { buildSettlementModels } from './models/structures/settlementModels';
+import { buildFarmhouseModels } from './models/structures/farmhouseModels';
+import { buildFortressModels } from './models/structures/fortressModels';
+import { buildSanctuaryAndDragonModels } from './models/structures/sanctuaryAndDragonModels';
+import { buildHarborModels } from './models/structures/harborModels';
+import { buildOasisModels } from './models/structures/oasisModels';
+import { buildVolcanoAndFloatingIslandsModels } from './models/structures/volcanoAndFloatingIslandsModels';
+import { buildAtlantisAndShipModels } from './models/structures/atlantisAndShipModels';
+import { buildSacredCloudMountainModel } from './models/structures/sacredCloudMountainBuilder';
+import { buildEnvironmentAtmosphereModels } from './models/structures/environmentAtmosphereModels';
+import { createArchitecturalSharedAssets } from './models/structures/architecturalHelpers';
 import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
 import type {
   IDistanceCulledObject,

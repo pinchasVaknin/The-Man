@@ -9,7 +9,7 @@
 // #region Imports & Dependencies
 import type * as THREE from 'three';
 import type { IPlacedTrap } from '../systems/animalTrapsSystem';
-import { createPlacedTrapMesh } from '../models/placedTrapModels';
+import { createPlacedTrapMesh } from '../models/structures/placedTrapModels';
 import { disposeObjectTree } from '../../core/disposeObjectTree';
 // #endregion
 

@@ -602,7 +602,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.shaolin_monk.world_location'),
     worldCoordinatesText: `(${CHINESE_FORTRESS_POS.x}, ${CHINESE_FORTRESS_POS.z})`,
     worldInstanceCount: 8,
-    sourceFile: 'src/world/models/fortressModels.ts',
+    sourceFile: 'src/world/models/structures/fortressModels.ts',
     description:
       t('lab.entities.shaolin_monk.description'),
     defaultCameraDistance: 3.9,
@@ -768,7 +768,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.tai_chi_monk.world_location'),
     worldCoordinatesText: `(${SAKURA_SANCTUARY_POS.x}, ${SAKURA_SANCTUARY_POS.z})`,
     worldInstanceCount: 4,
-    sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
+    sourceFile: 'src/world/models/structures/sanctuaryAndDragonModels.ts',
     description:
       t('lab.entities.tai_chi_monk.description'),
     defaultCameraDistance: 3.8,
@@ -2179,7 +2179,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.grazing_sheep.world_location'),
     worldCoordinatesText: `(${VALLEY_FARMS[0].x}, ${VALLEY_FARMS[0].z})`,
     worldInstanceCount: 5,
-    sourceFile: 'src/world/models/farmhouseModels.ts',
+    sourceFile: 'src/world/models/structures/farmhouseModels.ts',
     description:
       t('lab.entities.grazing_sheep.description'),
     defaultCameraDistance: 2.5,
@@ -2337,7 +2337,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.woodland_squirrel.world_location'),
     worldCoordinatesText: t('lab.entities.woodland_squirrel.world_coordinates'),
     worldInstanceCount: 14,
-    sourceFile: 'src/world/models/environmentAtmosphereModels.ts',
+    sourceFile: 'src/world/models/structures/environmentAtmosphereModels.ts',
     description:
       t('lab.entities.woodland_squirrel.description'),
     defaultCameraDistance: 1.85,
@@ -2640,7 +2640,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.harbor_seagull.world_location'),
     worldCoordinatesText: `(${SOUTHEAST_HARBOR_POS.x}, ${SOUTHEAST_HARBOR_POS.z})`,
     worldInstanceCount: 10,
-    sourceFile: 'src/world/models/harborModels.ts',
+    sourceFile: 'src/world/models/structures/harborModels.ts',
     description:
       t('lab.entities.harbor_seagull.description'),
     defaultCameraDistance: 2.75,
@@ -2902,7 +2902,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.meadow_butterfly.world_location'),
     worldCoordinatesText: t('lab.entities.meadow_butterfly.world_coordinates'),
     worldInstanceCount: 18,
-    sourceFile: 'src/world/models/environmentAtmosphereModels.ts',
+    sourceFile: 'src/world/models/structures/environmentAtmosphereModels.ts',
     description:
       t('lab.entities.meadow_butterfly.description'),
     defaultCameraDistance: 2.45,
@@ -2996,7 +2996,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.imperial_sky_dragon.world_location'),
     worldCoordinatesText: t('lab.entities.imperial_sky_dragon.world_coordinates'),
     worldInstanceCount: 1,
-    sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
+    sourceFile: 'src/world/models/structures/sanctuaryAndDragonModels.ts',
     description:
       t('lab.entities.imperial_sky_dragon.description'),
     defaultCameraDistance: 6.2,
@@ -3765,7 +3765,7 @@ export const LAB_ENTITIES: readonly ILabEntityDef[] = [
     worldLocation: t('lab.entities.golden_buddha.world_location'),
     worldCoordinatesText: `(${SAKURA_SANCTUARY_POS.x}, ${SAKURA_SANCTUARY_POS.z})`,
     worldInstanceCount: 1,
-    sourceFile: 'src/world/models/sanctuaryAndDragonModels.ts',
+    sourceFile: 'src/world/models/structures/sanctuaryAndDragonModels.ts',
     description:
       t('lab.entities.golden_buddha.description'),
     defaultCameraDistance: 4.8,

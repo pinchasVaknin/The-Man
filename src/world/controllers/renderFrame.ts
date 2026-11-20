@@ -160,7 +160,7 @@ import {
 import {
   buildTrapPlacementPreviewGhost,
   type ITrapPlacementPreviewGhost,
-} from '../models/placedTrapModels';
+} from '../models/structures/placedTrapModels';
 import {
   INVENTORY_ITEMS,
   INVENTORY_ITEM_MAP,

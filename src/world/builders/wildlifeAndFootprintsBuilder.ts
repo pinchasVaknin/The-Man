@@ -33,7 +33,7 @@ import { createReadyHippo, type Hippo, type HippoState } from '../models/Hippo';
 import { createReadyKoiFish, type KoiFish, type KoiFishState } from '../models/KoiFish';
 import { createReadyDolphin, type Dolphin, type DolphinState } from '../models/Dolphin';
 import { createReadyDove, type DoveController } from '../models/Dove';
-import { buildBearPawClampedTrapMesh } from '../models/placedTrapModels';
+import { buildBearPawClampedTrapMesh } from '../models/structures/placedTrapModels';
 import {
   getSurfaceNormalAt,
   computeSlopePitchAndRoll,

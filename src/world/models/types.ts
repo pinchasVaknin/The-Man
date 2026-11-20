@@ -10,7 +10,7 @@ import type { ILogger } from '../../core/ILogger';
 import type * as THREE from 'three';
 import type { IWorldTextureSet } from '../proceduralTextures';
 import type { IObstacleCylinder } from '../domain/worldTypes';
-import type { IArchitecturalSharedAssets } from './architecturalHelpers';
+import type { IArchitecturalSharedAssets } from './structures/architecturalHelpers';
 // #endregion
 
 // ======================== SHARED BUILDER INTERFACES ======================== \\
