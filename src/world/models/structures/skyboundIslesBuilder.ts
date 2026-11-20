@@ -27,6 +27,9 @@ import {
   type SkyCloudKind,
 } from '../../domain/landmarksRegistry';
 import { WORLD_CHESTS } from '../../domain/landmarks/interactionLandmarks';
+import { SKY_HARBOR } from '../../domain/landmarks/skyboundIsles/skyboundLayout';
+import { SKY_HARBOR_POND } from '../../domain/landmarks/skyboundIsles/skyHarborPond';
+import { createSlabWithHole } from './slabWithHole';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -256,23 +259,41 @@ function buildMergedIslands(ctx: IWorldModelBuildContext, shared: ISharedAssets,
     const rimColor = new THREE.Color(colors.rim);
     const rockColor = new THREE.Color(colors.rock);
 
+    // The Sky Harbor deck is cut open where the Sky Garden pond is sunk into it.
+    const pondHole = isl.id === SKY_HARBOR.id
+      ? { x: SKY_HARBOR_POND.x - isl.x, z: SKY_HARBOR_POND.z - isl.z, radius: SKY_HARBOR_POND.radius }
+      : undefined;
+
     // Top walkable deck disc
-    const deck = shared.deckGeo.clone();
-    deck.applyMatrix4(
-      new THREE.Matrix4().compose(new THREE.Vector3(isl.x, isl.deckY - deckThickness / 2, isl.z), unitQuat, new THREE.Vector3(isl.radius, deckThickness, isl.radius))
-    );
+    let deck: THREE.BufferGeometry;
+    if (pondHole) {
+      deck = createSlabWithHole(isl.radius * 1.01, isl.radius * 1.01, deckThickness, pondHole);
+      deck.translate(isl.x, isl.deckY - deckThickness, isl.z);
+    } else {
+      deck = shared.deckGeo.clone();
+      deck.applyMatrix4(
+        new THREE.Matrix4().compose(new THREE.Vector3(isl.x, isl.deckY - deckThickness / 2, isl.z), unitQuat, new THREE.Vector3(isl.radius, deckThickness, isl.radius))
+      );
+    }
     paintVertices(deck, deckColor, false, true);
     deckParts.push(deck);
 
     // Stepped coastal cliff ledge collar just under the top edge so the island rim looks sculpted and natural
-    const collar = shared.deckGeo.clone();
-    collar.applyMatrix4(
-      new THREE.Matrix4().compose(
-        new THREE.Vector3(isl.x, isl.deckY - deckThickness * 0.72, isl.z),
-        unitQuat,
-        new THREE.Vector3(isl.radius * 1.035, deckThickness * 0.65, isl.radius * 1.035)
-      )
-    );
+    let collar: THREE.BufferGeometry;
+    if (pondHole) {
+      const collarHeight = deckThickness * 0.65;
+      collar = createSlabWithHole(isl.radius * 1.035, isl.radius * 1.035, collarHeight, pondHole);
+      collar.translate(isl.x, isl.deckY - deckThickness * 0.72 - collarHeight / 2, isl.z);
+    } else {
+      collar = shared.deckGeo.clone();
+      collar.applyMatrix4(
+        new THREE.Matrix4().compose(
+          new THREE.Vector3(isl.x, isl.deckY - deckThickness * 0.72, isl.z),
+          unitQuat,
+          new THREE.Vector3(isl.radius * 1.035, deckThickness * 0.65, isl.radius * 1.035)
+        )
+      );
+    }
     paintVertices(collar, rimColor, false, true);
     deckParts.push(collar);
 
@@ -340,7 +361,8 @@ function buildMergedIslands(ctx: IWorldModelBuildContext, shared: ISharedAssets,
   const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, bumpMap: ctx.textures.rockBump, bumpScale: 0.12, vertexColors: true });
   ctx.disposableMaterials.push(deckMat, rockMat);
 
-  const deckGeo = mergeGeometries(deckParts, false);
+  // Extruded slabs are not indexed; merging needs every part to be, so index state is made uniform.
+  const deckGeo = mergeGeometries(deckParts.map((part) => (part.index ? part.toNonIndexed() : part)), false);
   const rockGeo = mergeGeometries(rockParts, false);
   for (const g of [...deckParts, ...rockParts]) g.dispose();
   if (!deckGeo || !rockGeo) throw new Error('SKYBOUND_ISLAND_MERGE_FAILED: island parts do not share attributes');

@@ -460,7 +460,7 @@ export const MARKET_STALL_LOCATIONS = [
   },
   {
     id: 'market-sky-hoverbike',
-    name: 'סדנת אופנועי אוויר — לחץ [E] לרכישת/שיגור אופנוע אוויר אתרי (150 זהב)',
+    name: t('hoverbike.shop_name'),
     shopType: 'hoverbike' as const,
     x: 805.2,
     y: 68.08,

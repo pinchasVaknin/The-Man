@@ -13,6 +13,7 @@
 // #region Imports
 import { SKY_BRIDGES, SKYBOUND_ISLANDS, SKYBOUND_REGION, getSkyIsland, isInsideSkyboundRegion, type ISkyIsland } from './skyboundLayout';
 import { SKY_REST_PLATFORMS } from './skyCloudRoutes';
+import { skyHarborPondBedY } from './skyHarborPond';
 import { skyCloudSurfaceAt } from './skyCloudSystem';
 import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type ISkyBouncePad, type ISkySolidBox } from './skyHarborLayout';
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
@@ -51,6 +52,7 @@ export interface ISkyCheckpoint {
 // #endregion
 
 // #region Tuning
+const SKY_HARBOR_ID = 'sky-harbor';
 /** Feet may be at most this far (m) below a surface and still land on it. */
 const LANDING_TOLERANCE_M = 1.5;
 /** Respawned feet are put this far (m) above the checkpoint deck. */
@@ -75,9 +77,13 @@ export function skyboundSurfaceAt(x: number, z: number, currentY?: number): ISky
     if (best === null || y > best.y) best = { y, kind, id };
   };
 
+  // The Sky Harbor deck has a round hole where the Sky Garden pond is; there the walkable surface is the pond bed.
+  const pondBedY = skyHarborPondBedY(x, z);
   for (let i = 0; i < SKYBOUND_ISLANDS.length; i++) {
     const isl = SKYBOUND_ISLANDS[i];
-    if (Math.hypot(x - isl.x, z - isl.z) <= isl.radius) consider(isl.deckY, 'island', isl.id);
+    if (Math.hypot(x - isl.x, z - isl.z) > isl.radius) continue;
+    if (isl.id === SKY_HARBOR_ID && pondBedY !== null) consider(pondBedY, 'island', 'sky-harbor-pond');
+    else consider(isl.deckY, 'island', isl.id);
   }
   for (let i = 0; i < SKY_BRIDGES.length; i++) {
     const br = SKY_BRIDGES[i];

@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { skyHarborPondWaterSurfaceAt } from '../domain/landmarks/skyboundIsles/skyHarborPond';
 import { t } from '../../locales';
 import type { BiomeType, IObstacleCylinder } from '../domain/worldTypes';
 import { hash2D, fbm2D, smoothstep, distToSegment } from '../domain/noiseAndMath';
@@ -1660,6 +1661,10 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   const sacredPoolWaterY = sacredCloudMountainWaterSurfaceAt(x, z, currentY);
   if (sacredPoolWaterY !== null) {
     return sacredPoolWaterY;
+  }
+  const skyHarborPondWaterY = skyHarborPondWaterSurfaceAt(x, z, currentY);
+  if (skyHarborPondWaterY !== null) {
+    return skyHarborPondWaterY;
   }
   if (isInsideSouthernMine(x, z, currentY)) {
     // The Ancient Mine's lagoon and channel; bridges over them are dry floors in the layout.

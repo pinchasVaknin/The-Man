@@ -51,7 +51,6 @@ const SPAWN_AUTHORITIES: Readonly<Record<string, string>> = {
 
 /** Files that still break the rule. Remove an entry when its file is fixed; the test enforces that. */
 const KNOWN_VIOLATIONS: Readonly<Record<string, string>> = {
-  'world/models/structures/skyHarborBuilder.ts': 'sky harbor koi swim on a loop with no behavior (central island phase)',
 };
 // #endregion
 

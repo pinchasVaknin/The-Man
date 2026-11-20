@@ -432,6 +432,8 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             bike.pitch = 0;
             bike.roll = 0;
             playerState.mountedHorseId = null;
+            // [E] is also the mount key: consume it so the physics step below does not board the bike again.
+            keysJustPressed.delete(kb.mountHorse);
             playerState.x = bike.x + Math.cos(bike.yaw) * 1.15;
             playerState.z = bike.z - Math.sin(bike.yaw) * 1.15;
             playerState.y = Math.max(walkableHeightValueAt(playerState.x, playerState.z, playerState.y), playerState.y - 0.55);
@@ -464,8 +466,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             playerState.vy = 0;
             playerState.vz = 0;
             capturePreviousPlayerPose();
-            hudFeedback.lootNotification =
-              'עלית על אופנוע האוויר האתרי! [W/S] נסיעה · [Space] המראה וטיסה · [C] הנמכה · [Shift] האצה · [F]/[E] ירידה';
+            hudFeedback.lootNotification = t('hoverbike.mounted');
             hudFeedback.lootNotificationTimer = 4.8;
             soundEngine.playFootstep('bridge', 1.15);
             emitHudSnapshot();
@@ -1159,8 +1160,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               hudFeedback.lootNotificationTimer = 4.2;
               emitHudSnapshot();
             } else if (playerState.mountedHorseId === SKY_HOVERBIKE_ID) {
-              hudFeedback.lootNotification =
-                'עלית על אופנוע האוויר האתרי! [W/S] נסיעה · [Space] המראה וטיסה · [C] הנמכה · [Shift] האצה · [F]/[E] ירידה';
+              hudFeedback.lootNotification = t('hoverbike.mounted');
               hudFeedback.lootNotificationTimer = 4.8;
               emitHudSnapshot();
             }

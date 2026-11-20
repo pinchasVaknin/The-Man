@@ -7,6 +7,7 @@
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
+import { isInsideSkyHarborPond } from '../domain/landmarks/skyboundIsles/skyHarborPond';
 import { t } from '../../locales';
 import {
   DEFAULT_STARTER_OWNED_ITEM_IDS,
@@ -736,7 +737,7 @@ export function findNearestRideableHorse(
       bestDist = bikeDist;
       best = {
         id: SKY_HOVERBIKE_ID,
-        name: hoverbike.nameHe,
+        name: hoverbike.name,
         x: hoverbike.x,
         y: hoverbike.y,
         z: hoverbike.z,
@@ -1902,7 +1903,9 @@ export function stepPlayerPhysics(
     !standingOnBoulder &&
     waterSurfaceY !== null &&
     (walkSurface.surface === 'ground' ||
-      (walkSurface.surface === 'bridge' && isInsideSouthernMine(state.x, state.z, state.y))) &&
+      (walkSurface.surface === 'bridge' && isInsideSouthernMine(state.x, state.z, state.y)) ||
+      // The Sky Harbor pond bed is reported as a sky ('bridge') surface; it holds real water.
+      (walkSurface.surface === 'bridge' && isInsideSkyHarborPond(state.x, state.z))) &&
     waterSurfaceY - effectiveWalkHeight >= 0.65;
 
   let landedImpact = 0;
@@ -2023,7 +2026,7 @@ export function stepPlayerPhysics(
     state.inWater =
       !standingOnBoulder &&
       waterSurfaceY !== null &&
-      walkSurface.surface === 'ground' &&
+      (walkSurface.surface === 'ground' || (walkSurface.surface === 'bridge' && isInsideSkyHarborPond(state.x, state.z))) &&
       state.y < waterSurfaceY - 0.08;
   }
 

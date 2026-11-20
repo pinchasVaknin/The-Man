@@ -1051,7 +1051,16 @@ export const en = {
     "door_open": "Open",
     "climb": "Climb",
     "dismount": "Dismount",
+    "dismount_horse": "Dismount Horse",
+    "dismount_stag": "Dismount Stag",
+    "dismount_lion": "Dismount CatLion",
+    "dismount_hoverbike": "Dismount Hoverbike",
+    "disembark_ship": "Drop Anchor / Disembark",
     "ride_horse": "Ride Horse",
+    "ride_stag": "Ride Stag",
+    "ride_lion": "Ride CatLion",
+    "ride_hoverbike": "Ride Hoverbike",
+    "sail_ship": "Sail Ship",
     "dive": "Dive",
     "surface": "Surface",
     "collider_debug_title": "Collider Wireframes Debug",
@@ -1093,6 +1102,13 @@ export const en = {
     "wind_cores_counter": "Wind Cores {active}/{total}",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
+  },
+  "hoverbike": {
+    "model_name": "Aether Hoverbike (Sky Model I)",
+    "shop_name": "Aether Hoverbike Workshop: press [E] to buy or launch a Sky-Bike",
+    "recalled": "The Aether hoverbike is back on the dock launch pad! Press [F] or [E] next to it to ride and fly.",
+    "purchased": "You bought an Aether hoverbike! It waits on the launch pad in front of the shop. Press [F] or [E] to ride ([W/S] drive, [Space] lift off, [C] lower).",
+    "mounted": "You mounted the Aether hoverbike! [W/S] drive · [Space] lift off and fly · [C] lower · [Shift] boost · [E] dismount"
   },
   "errors": {
     "boundary": {

@@ -8,6 +8,7 @@
 // ============================================================================
 
 import type { IPlayerInput, IPlayerState } from '../domain/worldTypes';
+import { t } from '../../locales';
 
 export const SKY_HOVERBIKE_ID = 'sky-hoverbike' as const;
 export const SKY_HOVERBIKE_PRICE_GOLD = 150;
@@ -44,7 +45,6 @@ export interface ISkyHoverbikeState {
   readonly id: typeof SKY_HOVERBIKE_ID;
   readonly modelId: 'aether-mk1';
   readonly name: string;
-  readonly nameHe: string;
   readonly priceGold: number;
   x: number;
   y: number;
@@ -74,8 +74,7 @@ function createDefaultSkyHoverbikeState(): ISkyHoverbikeState {
   return {
     id: SKY_HOVERBIKE_ID,
     modelId: 'aether-mk1',
-    name: 'Sky-Harbor Aether Hoverbike',
-    nameHe: 'אופנוע אוויר אתרי (דגם רקיע א׳)',
+    name: t('hoverbike.model_name'),
     priceGold: SKY_HOVERBIKE_PRICE_GOLD,
     x: SKY_HOVERBIKE_SHOP_POS.padX,
     y: SKY_HOVERBIKE_SHOP_POS.padY + 0.55,
@@ -184,9 +183,7 @@ export function buyOrSpawnHoverbikeFromMerchant(
   activeSkyHoverbike.speed = 0;
   activeSkyHoverbike.isAirborne = false;
 
-  const message = wasPurchased
-    ? 'אופנוע האוויר האתרי הוחזר למשטח השיגור ברציף! לחץ [F] או [E] עליו לרכיבה וטיסה.'
-    : 'רכשת אופנוע אוויר אתרי! הוא מוכן על משטח השיגור מול החנות — לחץ [F] או [E] לרכיבה וטיסה ([W/S] נסיעה, [Space] המראה, [C] הנמכה).';
+  const message = wasPurchased ? t('hoverbike.recalled') : t('hoverbike.purchased');
 
   player.lastLootNotification = {
     text: message,

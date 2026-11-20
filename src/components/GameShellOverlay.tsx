@@ -26,6 +26,7 @@ import {
 import { Result } from '../core/Result';
 import { t } from '../locales';
 import type { GameStateMode, ITelemetrySnapshot, IVirtualMoveState } from '../world/domain/gameShellTypes';
+import { getMountPromptKey } from '../world/domain/mountPrompt';
 import { ExplorerMinimap } from './ExplorerMinimap';
 import {
   SkyrimInventoryModal,
@@ -1796,13 +1797,7 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
                     {formatKeyCodeLabel(kb.mountHorse)}
                   </kbd>
                   <span className="font-semibold tracking-wide text-sm text-amber-100">
-                    {telemetry.mountedHorseId === 'sailable-ship'
-                      ? 'Drop Anchor / Disembark'
-                      : telemetry.mountedHorseId
-                        ? t('hud.dismount')
-                        : telemetry.nearbyHorse?.id === 'sailable-ship'
-                          ? 'Sail Ship'
-                          : t('hud.ride_horse')}
+                    {t(getMountPromptKey(telemetry.mountedHorseId, telemetry.nearbyHorse?.id))}
                   </span>
                 </div>
               )}

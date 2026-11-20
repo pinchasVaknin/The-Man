@@ -47,7 +47,8 @@ import {
 } from './skyHarborShared';
 import { buildSkyDock } from './skyHarborDockBuilder';
 import { buildWindspire } from './skyHarborWindspireBuilder';
-import { createReadyKoiFish, type KoiFish } from '../KoiFish';
+import { SKY_HARBOR_POND, skyHarborPondBedY } from '../../domain/landmarks/skyboundIsles/skyHarborPond';
+import { createPondCutoutMaterial } from './pondCutoutMaterial';
 import { getActiveSkyHoverbike } from '../../systems/skyHoverbikeSystem';
 // #endregion
 
@@ -66,17 +67,6 @@ interface IWindFlowerVisual {
   readonly id: string;
   readonly petals: THREE.Mesh[];
   readonly glow: THREE.Mesh;
-}
-
-interface IKoiFishVisual {
-  readonly ctrl: KoiFish;
-  readonly root: THREE.Group;
-  readonly pondX: number;
-  readonly pondZ: number;
-  readonly orbitR: number;
-  readonly speed: number;
-  readonly phase: number;
-  readonly figureEight: boolean;
 }
 
 interface IHarborTelescopeVisual {
@@ -112,7 +102,7 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
   buildBalconies(mats, unitBox, group);
   const telescopes = buildTelescopes(ctx, mats, unitBox, group);
   const windspire = buildWindspire(ctx, mats, unitBox, group);
-  const { flowers, koiFish } = buildSkyGarden(ctx, mats, unitBox, group);
+  const { flowers } = buildSkyGarden(ctx, mats, unitBox, group);
   const dock = buildSkyDock(ctx, mats, unitBox, group);
   buildRailings(ctx, mats, unitBox, group);
 
@@ -142,20 +132,6 @@ export function buildSkyHarbor(ctx: IWorldModelBuildContext): ISkyHarborBuildRes
           petal.rotation.x = -0.25 - open * 1.05;
         });
         flower.glow.scale.setScalar(0.4 + open * 0.8);
-      }
-      // Animate 3D rigged KoiFish models in the deep garden pond
-      for (let i = 0; i < koiFish.length; i++) {
-        const koi = koiFish[i];
-        const t = elapsedSec * koi.speed + koi.phase;
-        const nextT = t + 0.05;
-        const x0 = koi.pondX + Math.cos(t) * koi.orbitR;
-        const z0 = koi.pondZ + (koi.figureEight ? Math.sin(t * 2) * koi.orbitR * 0.55 : Math.sin(t) * koi.orbitR);
-        const x1 = koi.pondX + Math.cos(nextT) * koi.orbitR;
-        const z1 = koi.pondZ + (koi.figureEight ? Math.sin(nextT * 2) * koi.orbitR * 0.55 : Math.sin(nextT) * koi.orbitR);
-        koi.root.position.set(x0, DECK_Y + 0.195 + Math.sin(elapsedSec * 2.2 + i) * 0.006, z0);
-        koi.root.rotation.y = Math.atan2(x1 - x0, z1 - z0);
-        const turnSignal = koi.figureEight ? Math.cos(t * 2) * 0.45 : koi.speed > 0 ? 0.25 : -0.25;
-        koi.ctrl.update(dt, turnSignal);
       }
       // Rotate Windspire Summit telescopes with live player aim & clear stand/barrel while looking through
       const aim = getTelescopeRuntimeAim();
@@ -462,7 +438,7 @@ function buildSkyGarden(
   mats: IHarborMaterials,
   box: THREE.BoxGeometry,
   group: THREE.Group
-): { flowers: IWindFlowerVisual[]; koiFish: IKoiFishVisual[] } {
+): { flowers: IWindFlowerVisual[] } {
   const a = SKY_GARDEN_AREA;
   const discGeo = new THREE.CylinderGeometry(1, 1, 0.08, 32);
   ctx.disposableGeometries.push(discGeo);
@@ -475,13 +451,17 @@ function buildSkyGarden(
     { x: a.cx + 12.5, z: a.cz + 1.5, rx: 7.8, rz: 5.8, rotY: 0.42, lift: 0.035 },
     { x: a.cx - 13.0, z: a.cz + 1.0, rx: 7.5, rz: 5.5, rotY: -0.38, lift: 0.035 },
   ];
+  // The lawn lobes and their curbs are cut open where the pond is sunk into the deck.
+  const lobeCurbMat = createPondCutoutMaterial(mats.stone as THREE.MeshStandardMaterial, SKY_HARBOR_POND.x, SKY_HARBOR_POND.z, SKY_HARBOR_POND.radius);
+  const lobeLawnMat = createPondCutoutMaterial(mats.grass as THREE.MeshStandardMaterial, SKY_HARBOR_POND.x, SKY_HARBOR_POND.z, SKY_HARBOR_POND.radius);
+  ctx.disposableMaterials.push(lobeCurbMat, lobeLawnMat);
   for (const lobe of gardenLobes) {
-    const curb = new THREE.Mesh(discGeo, mats.stone);
+    const curb = new THREE.Mesh(discGeo, lobeCurbMat);
     curb.scale.set(lobe.rx + 0.55, 0.85, lobe.rz + 0.55);
     curb.position.set(lobe.x, DECK_Y + lobe.lift * 0.6, lobe.z);
     curb.rotation.y = lobe.rotY;
 
-    const lawn = new THREE.Mesh(discGeo, mats.grass);
+    const lawn = new THREE.Mesh(discGeo, lobeLawnMat);
     lawn.scale.set(lobe.rx, 1.1, lobe.rz);
     lawn.position.set(lobe.x, DECK_Y + lobe.lift, lobe.z);
     lawn.rotation.y = lobe.rotY;
@@ -489,42 +469,32 @@ function buildSkyGarden(
     group.add(curb, lawn);
   }
 
-  const koiFish = buildDeepKoiPond(ctx, mats, box, discGeo, group);
+  buildSunkenPond(ctx, mats, discGeo, group);
   buildGardenTrees(ctx, group);
   buildGardenFlowers(ctx, mats, group);
   buildMushrooms(ctx, mats, group);
   buildPavilionAndCliffBlossoms(ctx, mats, box, group);
 
-  return { flowers: buildWindFlowers(ctx, mats, group), koiFish };
+  return { flowers: buildWindFlowers(ctx, mats, group) };
 }
 
 /**
- * Summary: Builds a multi-layered deep Koi pond with a dark stone basin, mid-water emerald shelf,
- *          translucent surface water, mossy shoreline boulders, lily pads, lotus flowers, and
- *          7 animated swimming 3D Koi fish.
+ * Summary: Builds the Sky Garden pond as a real sunken pool: a bowl that slopes from ankle depth at the rim to
+ *          about two meters in the middle, a translucent water surface just under deck level, a marble
+ *          coping, shoreline boulders, lily pads and lotus blossoms. The deck and the lawns are cut open
+ *          around it (see skyboundIslesBuilder and the lawn cutout). The fish are real koi of the
+ *          wildlife system (koiPonds.ts), not decoration.
  */
-function buildDeepKoiPond(
+function buildSunkenPond(
   ctx: IWorldModelBuildContext,
   mats: IHarborMaterials,
-  _box: THREE.BoxGeometry,
   discGeo: THREE.CylinderGeometry,
   group: THREE.Group
-): IKoiFishVisual[] {
-  const pond = GARDEN_PONDS[0];
+): void {
+  const pond = SKY_HARBOR_POND;
   const r = pond.radius;
 
-  const deepBasinMat = new THREE.MeshStandardMaterial({
-    color: 0x03111f,
-    emissive: 0x020c18,
-    emissiveIntensity: 0.45,
-    roughness: 0.88,
-  });
-  const midShelfMat = new THREE.MeshStandardMaterial({
-    color: 0x073b54,
-    emissive: 0x052c42,
-    emissiveIntensity: 0.35,
-    roughness: 0.55,
-  });
+  const bowlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.82, side: THREE.DoubleSide });
   const clearSurfaceMat = new THREE.MeshStandardMaterial({
     color: 0x0284c7,
     emissive: 0x0369a1,
@@ -532,69 +502,66 @@ function buildDeepKoiPond(
     roughness: 0.08,
     metalness: 0.22,
     transparent: true,
-    opacity: 0.38,
+    opacity: 0.42,
     depthWrite: false,
   });
   const lilyPadMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65 });
-  ctx.disposableMaterials.push(
-    deepBasinMat,
-    midShelfMat,
-    clearSurfaceMat,
-    lilyPadMat
-  );
+  ctx.disposableMaterials.push(bowlMat, clearSurfaceMat, lilyPadMat);
 
-  const curbWallGeo = new THREE.CylinderGeometry(r + 0.58, r + 0.68, 0.28, 40, 1, true);
-  const innerWallGeo = new THREE.CylinderGeometry(r - 0.05, r - 0.25, 0.26, 40, 1, true);
-  const shelfRingGeo = new THREE.RingGeometry(r * 0.68, r * 0.99, 40);
-  shelfRingGeo.rotateX(-Math.PI / 2);
-  const copingRingGeo = new THREE.RingGeometry(r - 0.08, r + 0.62, 40);
+  // 1. The bowl: a surface of revolution following the same bed curve the player walks on, sandy in the
+  //    shallows and dark teal in the deep.
+  const RING_STEPS = 24;
+  const profile: THREE.Vector2[] = [];
+  for (let step = 0; step <= RING_STEPS; step++) {
+    const distance = (step / RING_STEPS) * r;
+    profile.push(new THREE.Vector2(distance, (skyHarborPondBedY(pond.x + distance, pond.z) ?? pond.rimBedY) - pond.deckY));
+  }
+  const bowlGeo = new THREE.LatheGeometry(profile, 40);
+  const bowlPosition = bowlGeo.getAttribute('position');
+  const bowlColors = new Float32Array(bowlPosition.count * 3);
+  const sand = new THREE.Color(0xc9b98a);
+  const deep = new THREE.Color(0x0a3550);
+  const tint = new THREE.Color();
+  for (let i = 0; i < bowlPosition.count; i++) {
+    const depthFraction = (bowlPosition.getY(i) - (pond.centerBedY - pond.deckY)) / (pond.rimBedY - pond.centerBedY);
+    tint.copy(deep).lerp(sand, Math.min(1, Math.max(0, depthFraction)));
+    bowlColors[i * 3] = tint.r;
+    bowlColors[i * 3 + 1] = tint.g;
+    bowlColors[i * 3 + 2] = tint.b;
+  }
+  bowlGeo.setAttribute('color', new THREE.BufferAttribute(bowlColors, 3));
+  const bowl = new THREE.Mesh(bowlGeo, bowlMat);
+  bowl.position.set(pond.x, pond.deckY, pond.z);
+  bowl.receiveShadow = !ctx.isSoftwareGl;
+
+  const waterSurface = new THREE.Mesh(discGeo, clearSurfaceMat);
+  waterSurface.scale.set(r * 0.995, 0.2, r * 0.995);
+  waterSurface.position.set(pond.x, pond.surfaceY, pond.z);
+
+  const copingRingGeo = new THREE.RingGeometry(r - 0.02, r + 0.5, 40);
   copingRingGeo.rotateX(-Math.PI / 2);
   const boulderGeo = new THREE.IcosahedronGeometry(0.55, 1);
   const lilyPadGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.025, 14, 1, false, 0, Math.PI * 1.82);
-  ctx.disposableGeometries.push(
-    curbWallGeo,
-    innerWallGeo,
-    shelfRingGeo,
-    copingRingGeo,
-    boulderGeo,
-    lilyPadGeo
-  );
-
-  // 1. Multi-layered recessed basin creating a deep, crystal-clear Koi pond (raised above the garden lawn top at DECK_Y + 0.094)
-  const outerWall = new THREE.Mesh(curbWallGeo, mats.stone);
-  outerWall.position.set(pond.x, DECK_Y + 0.17, pond.z);
-  const innerWall = new THREE.Mesh(innerWallGeo, midShelfMat);
-  innerWall.position.set(pond.x, DECK_Y + 0.16, pond.z);
+  ctx.disposableGeometries.push(bowlGeo, copingRingGeo, boulderGeo, lilyPadGeo);
 
   const coping = new THREE.Mesh(copingRingGeo, mats.marble);
-  coping.position.set(pond.x, DECK_Y + 0.312, pond.z);
+  coping.position.set(pond.x, pond.deckY + 0.1, pond.z);
+  group.add(bowl, waterSurface, coping);
 
-  const deepBottom = new THREE.Mesh(discGeo, deepBasinMat);
-  deepBottom.scale.set(r * 0.99, 0.25, r * 0.99);
-  deepBottom.position.set(pond.x, DECK_Y + 0.105, pond.z);
-
-  const midShelf = new THREE.Mesh(shelfRingGeo, midShelfMat);
-  midShelf.position.set(pond.x, DECK_Y + 0.132, pond.z);
-
-  const waterSurface = new THREE.Mesh(discGeo, clearSurfaceMat);
-  waterSurface.scale.set(r * 0.99, 0.2, r * 0.99);
-  waterSurface.position.set(pond.x, DECK_Y + 0.25, pond.z);
-
-  group.add(outerWall, innerWall, coping, deepBottom, midShelf, waterSurface);
-
-  // 2. Sculpted shoreline boulders around the pond rim
+  // 2. Sculpted shoreline boulders around the rim, leaving the +x side open as the wading entrance
   for (let b = 0; b < 12; b++) {
     const ang = (b / 12) * Math.PI * 2 + 0.18;
-    const br = r + 0.28 + (b % 3) * 0.14;
+    if (Math.cos(ang) > 0.55) continue;
+    const br = r + 0.62 + (b % 3) * 0.14;
     const rock = new THREE.Mesh(boulderGeo, b % 2 === 0 ? mats.darkStone : mats.stone);
     const s = 0.65 + (b % 3) * 0.28;
     rock.scale.set(s * 1.2, s * 0.72, s);
-    rock.position.set(pond.x + Math.cos(ang) * br, DECK_Y + 0.25 * s, pond.z + Math.sin(ang) * br);
+    rock.position.set(pond.x + Math.cos(ang) * br, pond.deckY + 0.25 * s, pond.z + Math.sin(ang) * br);
     rock.rotation.y = ang * 1.7;
     group.add(rock);
   }
 
-  // 3. Floating green lily pads & pink lotus blossoms on the pond surface
+  // 3. Floating green lily pads and pink lotus blossoms on the water surface
   const lilySpots: ReadonlyArray<readonly [number, number, number, boolean]> = [
     [-2.4, -1.8, 0.4, true],
     [-1.6, -2.5, 1.9, false],
@@ -606,66 +573,16 @@ function buildDeepKoiPond(
   ];
   for (const [lx, lz, rot, hasLotus] of lilySpots) {
     const pad = new THREE.Mesh(lilyPadGeo, lilyPadMat);
-    pad.position.set(pond.x + lx, DECK_Y + 0.265, pond.z + lz);
+    pad.position.set(pond.x + lx, pond.surfaceY + 0.025, pond.z + lz);
     pad.rotation.y = rot;
     group.add(pad);
     if (hasLotus) {
       const lotus = new THREE.Mesh(boulderGeo, mats.petal);
       lotus.scale.set(0.28, 0.18, 0.28);
-      lotus.position.set(pond.x + lx, DECK_Y + 0.305, pond.z + lz);
+      lotus.position.set(pond.x + lx, pond.surfaceY + 0.07, pond.z + lz);
       group.add(lotus);
     }
   }
-
-  // 4. Seven rigged 3D KoiFish models (`createReadyKoiFish`) swimming in the pond
-  const koiSpecs: ReadonlyArray<{
-    readonly orbitR: number;
-    readonly speed: number;
-    readonly phase: number;
-    readonly figureEight: boolean;
-    readonly tintHex?: number;
-    readonly scale: number;
-  }> = [
-    { orbitR: 1.5, speed: 0.55, phase: 0.0, figureEight: false, tintHex: undefined, scale: 0.85 },
-    { orbitR: 2.3, speed: -0.45, phase: 1.2, figureEight: false, tintHex: 0xffedd5, scale: 0.78 },
-    { orbitR: 3.1, speed: 0.38, phase: 2.4, figureEight: false, tintHex: 0xfde047, scale: 0.92 },
-    { orbitR: 2.7, speed: 0.48, phase: 3.6, figureEight: true, tintHex: 0xfca5a5, scale: 0.76 },
-    { orbitR: 1.9, speed: -0.52, phase: 4.7, figureEight: false, tintHex: undefined, scale: 0.72 },
-    { orbitR: 3.4, speed: -0.35, phase: 5.5, figureEight: false, tintHex: 0xfdba74, scale: 0.84 },
-    { orbitR: 2.2, speed: 0.42, phase: 2.9, figureEight: true, tintHex: 0xfef08a, scale: 0.80 },
-  ];
-
-  return koiSpecs.map((spec, idx) => {
-    const ctrl = createReadyKoiFish({
-      scale: spec.scale,
-      castShadow: false,
-      receiveShadow: false,
-      initialState: 'walk',
-      tintHex: spec.tintHex,
-    });
-    ctrl.setNormalizedPhase(idx * 0.23);
-    ctx.disposableGeometries.push(ctrl.mesh.geometry);
-    if (Array.isArray(ctrl.mesh.material)) {
-      ctx.disposableMaterials.push(...ctrl.mesh.material);
-    } else {
-      ctx.disposableMaterials.push(ctrl.mesh.material);
-    }
-
-    const root = ctrl.object;
-    root.position.set(pond.x + spec.orbitR, DECK_Y + 0.195, pond.z);
-    group.add(root);
-
-    return {
-      ctrl,
-      root,
-      pondX: pond.x,
-      pondZ: pond.z,
-      orbitR: spec.orbitR,
-      speed: spec.speed,
-      phase: spec.phase,
-      figureEight: spec.figureEight,
-    };
-  });
 }
 
 /**

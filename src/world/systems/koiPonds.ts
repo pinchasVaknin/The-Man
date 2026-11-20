@@ -11,6 +11,7 @@
 // #region Imports & Dependencies
 import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import { sampleAncientMineFloor } from '../domain/landmarks/ancientMine/ancientMineFloor';
+import { SKY_HARBOR_POND, skyHarborPondColumnAt } from '../domain/landmarks/skyboundIsles/skyHarborPond';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -61,8 +62,21 @@ export const MINE_LAGOON_POND: IKoiPond = {
   },
 };
 
+/** Summary: The Sky Harbor Sky Garden pond: a sunken pool in the island deck, shallow at the rim and deep in the middle. */
+export const SKY_HARBOR_KOI_POND: IKoiPond = {
+  id: 'sky-harbor-pond',
+  centerX: SKY_HARBOR_POND.x,
+  centerZ: SKY_HARBOR_POND.z,
+  patrolRadiusX: SKY_HARBOR_POND.radius * 0.5,
+  patrolRadiusZ: SKY_HARBOR_POND.radius * 0.5,
+  maxRadius: SKY_HARBOR_POND.radius * 0.72,
+  surfaceY: SKY_HARBOR_POND.surfaceY,
+  fishCount: 7,
+  columnAt: (x, z) => skyHarborPondColumnAt(x, z),
+};
+
 /** Summary: Every enclosed koi pond. */
-export const ENCLOSED_KOI_PONDS: readonly IKoiPond[] = [MINE_LAGOON_POND];
+export const ENCLOSED_KOI_PONDS: readonly IKoiPond[] = [MINE_LAGOON_POND, SKY_HARBOR_KOI_POND];
 
 /** Summary: Finds a pond by id, or undefined. */
 export function findKoiPond(id: string | undefined): IKoiPond | undefined {

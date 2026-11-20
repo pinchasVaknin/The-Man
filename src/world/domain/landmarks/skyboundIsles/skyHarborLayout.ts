@@ -236,13 +236,15 @@ export const AIRSHIP_GANGPLANK: ISkyRamp = {
   halfWidth: 1.2,
 };
 
-/** Summary: Cargo crates on the dock (1.1 m high, so a jump gets you on top); one is stacked. */
+/** Summary: Cargo crates on the dock (1.1 m high, so a jump gets you on top); one stack of two. */
 export const DOCK_CRATES = [
-  { x: 799.0, z: -10.0, top: DECK_Y + 1.1 },
-  { x: 800.4, z: -10.0, top: DECK_Y + 1.1 },
-  { x: 799.7, z: -8.6, top: DECK_Y + 1.1 },
+  // A group well clear of the hoverbike launch pad (800.6, -7.8): the bike no longer spawns inside a crate.
+  { x: 795.0, z: -13.0, top: DECK_Y + 1.1 },
+  { x: 796.4, z: -13.0, top: DECK_Y + 1.1 },
+  { x: 795.7, z: -11.6, top: DECK_Y + 1.1 },
+  // A stack of two, the upper crate sitting directly on the lower one (it used to hang beside it in the air).
   { x: 803.0, z: -14.5, top: DECK_Y + 1.1 },
-  { x: 803.0, z: -14.5 + 1.4, top: DECK_Y + 2.2 },
+  { x: 803.0, z: -14.5, top: DECK_Y + 2.2 },
 ] as const;
 
 /** Summary: Dock crane base position. */
