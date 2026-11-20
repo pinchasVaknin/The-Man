@@ -24,7 +24,14 @@ export type AnimalModelId =
   | 'rhino'
   | 'demon-dragon'
   | 'forest-dragon'
-  | 'deer';
+  | 'deer'
+  | 'cat-lion'
+  | 'stag'
+  | 'dove'
+  | 'horse'
+  | 'dolphin'
+  | 'hippo'
+  | 'koi-fish';
 
 /** Summary: All model ids, in load order (the most common animals first). */
 export const ANIMAL_MODEL_IDS: readonly AnimalModelId[] = [
@@ -107,12 +114,26 @@ function findSkinnedMesh(gltf: GLTF): THREE.SkinnedMesh {
   return found;
 }
 
-/** Converts a (possibly normalized integer) attribute to floats, using the original pack's dequantization. */
-function dequantize(attribute: THREE.BufferAttribute, divisor: number): Float32Array {
-  const source = attribute.array;
-  if (!attribute.normalized) return new Float32Array(source);
-  const out = new Float32Array(source.length);
-  for (let i = 0; i < source.length; i++) out[i] = source[i] / divisor;
+/**
+ * Converts a (possibly normalized integer) attribute to floats, using the original pack's dequantization.
+ * Design: Reads element by element so it also works when the file stores the attribute with a byte
+ *         stride (GLTFExporter pads 3-byte integer attributes to 4), where `array` holds the padding.
+ */
+function dequantize(attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, divisor: number): Float32Array {
+  const { count, itemSize } = attribute;
+  const interleaved = (attribute as THREE.InterleavedBufferAttribute).isInterleavedBufferAttribute
+    ? (attribute as THREE.InterleavedBufferAttribute)
+    : null;
+  const source = interleaved ? interleaved.data.array : (attribute as THREE.BufferAttribute).array;
+  const stride = interleaved ? interleaved.data.stride : itemSize;
+  const offset = interleaved ? interleaved.offset : 0;
+  const out = new Float32Array(count * itemSize);
+  for (let i = 0; i < count; i++) {
+    for (let k = 0; k < itemSize; k++) {
+      const raw = source[i * stride + offset + k];
+      out[i * itemSize + k] = attribute.normalized ? raw / divisor : raw;
+    }
+  }
   return out;
 }
 
@@ -208,8 +229,8 @@ function decodeClipRig(
   const skinIndexAttribute = geometry.getAttribute('skinIndex') as THREE.BufferAttribute;
   return {
     positions: new Float32Array(geometry.getAttribute('position').array),
-    normals: dequantize(geometry.getAttribute('normal') as THREE.BufferAttribute, 127),
-    uvs: dequantize(geometry.getAttribute('uv') as THREE.BufferAttribute, 65535),
+    normals: dequantize(geometry.getAttribute('normal'), 127),
+    uvs: dequantize(geometry.getAttribute('uv'), 65535),
     skinIndices: Uint8Array.from(skinIndexAttribute.array),
     skinWeights: decodeSkinWeights(storedWeights.values, storedWeights.isQuantized),
     indices: Uint16Array.from(geometry.index?.array ?? []),
