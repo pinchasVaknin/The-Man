@@ -9,6 +9,7 @@
 // #region Imports & Test Dependencies
 import { before, describe, it } from 'node:test';
 import { preloadAnimalModelsForTests } from '../testSupport/animalModelsForTests';
+import { preloadSaddleModelsForTests } from '../testSupport/saddleModelsForTests';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_LAB_POSE_OVERRIDES,
@@ -34,6 +35,7 @@ import {
 describe('Character & Animation Lab Catalog', () => {
   before(async () => {
     await preloadAnimalModelsForTests();
+    await preloadSaddleModelsForTests();
   });
 
   it('organizes all world entities into 2 distinct categories: characters and animals', () => {

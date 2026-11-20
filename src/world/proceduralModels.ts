@@ -31,6 +31,7 @@ import {
 } from './builders/colliderDebugBuilder';
 import { buildTerrainAndWaterModel } from './models/structures/terrainAndWaterModel';
 import { preloadAllFloraModels } from './models/plants/floraAssets';
+import { preloadAllSaddleModels } from './models/equipment/saddleAssets';
 import {
   buildVegetationModels,
   updateChoppableTreesVisuals,
@@ -168,9 +169,9 @@ export async function buildRealisticWorld(
   await stage('terrain and water');
   const { waterMaterial, terrainMaterial } = buildTerrainAndWaterModel(ctx);
   await stage('vegetation');
-  // The plant GLBs must be here before the synchronous vegetation build; they are already
-  // downloading since app start, so this usually returns at once.
-  await preloadAllFloraModels();
+  // The plant and saddle GLBs must be here before the synchronous vegetation and wildlife builds;
+  // they are already downloading since app start, so this usually returns at once.
+  await Promise.all([preloadAllFloraModels(), preloadAllSaddleModels()]);
   buildVegetationModels(ctx);
   await stage('settlements');
   const { rowboatGroup, updateSettlement } = buildSettlementModels(ctx);

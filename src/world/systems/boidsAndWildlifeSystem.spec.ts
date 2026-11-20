@@ -9,6 +9,7 @@
 // #region Imports and Test Dependencies
 import { before, test } from 'node:test';
 import { preloadAnimalModelsForTests } from '../../testSupport/animalModelsForTests';
+import { preloadSaddleModelsForTests } from '../../testSupport/saddleModelsForTests';
 import assert from 'node:assert/strict';
 import {
   createInitialBoidBirds,
@@ -86,6 +87,7 @@ import {
 
 before(async () => {
   await preloadAnimalModelsForTests();
+  await preloadSaddleModelsForTests();
 });
 
 // ======================== HAPPY PATH TESTS ======================== \\

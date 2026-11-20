@@ -2,13 +2,14 @@
 // MODULE: World / Models / Equipment / Saddle Runtime
 // DESIGN: One shared implementation parameterized by a spec (previously two near-identical files);
 //         the saddle files keep only their spec and packed data
-// SUMMARY: Unpacks a packed saddle mesh, skins a copy of it onto a creature's skeleton with the
-//          creature's mount preset, and caches the decoded data and texture. Holds no model data.
+// SUMMARY: Skins a copy of a saddle mesh onto a creature's skeleton with the creature's mount
+//          preset and caches the loaded mesh and texture. Holds no model data.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import * as THREE from 'three';
+import { getLoadedSaddleModel, getSaddleTextureUrl, type SaddleModelId } from './saddleAssets';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -60,53 +61,6 @@ export interface ISaddleModelSpec {
   readonly metalness: number;
   /** Texture color when no image can be decoded (node tests). */
   readonly fallbackColorRgb: readonly [number, number, number];
-}
-// #endregion
-
-// ======================== UNPACKING ======================== \\
-// #region Unpack Saddle Bundle
-const POSITION_SCALE = 8000.0;
-const NORMAL_SCALE = 127.0;
-const UV_SCALE = 65535.0;
-
-/**
- * Summary: Decodes a packed saddle (int16 positions, int8 normals, uint16 uvs, uint16 indices).
- * @param b64 The base64 pack.
- * @param spec Vertex and index counts of this saddle.
- */
-export function unpackSaddleBundle(b64: string, spec: ISaddleModelSpec): UnpackedSaddleData {
-  const binStr = atob(b64);
-  const bytes = new Uint8Array(binStr.length);
-  for (let i = 0; i < binStr.length; i++) {
-    bytes[i] = binStr.charCodeAt(i);
-  }
-  const buf = bytes.buffer;
-  const { vertexCount, indexCount } = spec;
-  let off = 0;
-
-  const posI16 = new Int16Array(buf, off, vertexCount * 3);
-  off += vertexCount * 3 * 2;
-  const positions = new Float32Array(vertexCount * 3);
-  for (let i = 0; i < positions.length; i++) {
-    positions[i] = posI16[i] / POSITION_SCALE;
-  }
-
-  const normalsI8 = new Int8Array(buf, off, vertexCount * 3);
-  off = (off + vertexCount * 3 + 3) & ~3;
-  const normals = new Float32Array(vertexCount * 3);
-  for (let i = 0; i < normals.length; i++) {
-    normals[i] = normalsI8[i] / NORMAL_SCALE;
-  }
-
-  const uvsU16 = new Uint16Array(buf, off, vertexCount * 2);
-  off += vertexCount * 2 * 2;
-  const uvs = new Float32Array(vertexCount * 2);
-  for (let i = 0; i < uvs.length; i++) {
-    uvs[i] = uvsU16[i] / UV_SCALE;
-  }
-
-  const indices = new Uint16Array(buf, off, indexCount);
-  return { positions, normals, uvs, indices };
 }
 // #endregion
 
@@ -287,13 +241,12 @@ export class Saddle {
 // #region Saddle Asset Cache
 /**
  * Summary: Creates the lazy, cached accessors one saddle model needs.
- * Design: Unpacks and builds the texture on first use, like the per-file caches it replaces. Without
- *         an `Image` (node tests) the texture is a single fallback-colored pixel.
+ * Design: Reads the loaded GLB data on first use (the model must be loaded first) and builds the
+ *         texture once. Without an `Image` (node tests) the texture is a single fallback-colored pixel.
  * @param spec The saddle model's spec.
- * @param packB64 The model's base64 pack.
- * @param textureUri The model's texture data URI.
+ * @param modelId Which saddle GLB this model reads (see saddleAssets).
  */
-export function createSaddleAccessors(spec: ISaddleModelSpec, packB64: string, textureUri: string): {
+export function createSaddleAccessors(spec: ISaddleModelSpec, modelId: SaddleModelId): {
   createReadySaddle: (options?: SaddleOptions) => Saddle;
   mountReadySaddleOnCreature: (
     creature: { object: THREE.Group; rig: { skeleton: THREE.Skeleton } },
@@ -305,11 +258,11 @@ export function createSaddleAccessors(spec: ISaddleModelSpec, packB64: string, t
   let cachedTexture: THREE.Texture | null = null;
 
   const getAssets = (): { data: UnpackedSaddleData; texture: THREE.Texture } => {
-    cachedData ??= unpackSaddleBundle(packB64, spec);
+    cachedData ??= getLoadedSaddleModel(modelId).mesh;
     if (!cachedTexture) {
       if (typeof Image !== 'undefined') {
         const img = new Image();
-        img.src = textureUri;
+        img.src = getSaddleTextureUrl(modelId);
         const tex = new THREE.Texture(img);
         tex.flipY = false;
         tex.colorSpace = THREE.SRGBColorSpace;

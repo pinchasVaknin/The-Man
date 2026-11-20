@@ -34,3 +34,17 @@ every primitive carries its material id in `extras.matId`, and the textures are 
 - These files replaced base64 data modules (`plants/*_Complete.ts`) and a one-off converter,
   removed in the commit after `cdf2936`. To re-export a plant from the old data, check out
   `cdf2936` and run `npx tsx scripts/convertFloraToGlb.ts`.
+
+## `equipment/`
+
+`saddle.glb` and `western-saddle.glb`: one mesh each (float positions, normals, UVs, 16-bit
+indices) plus a JPEG texture, as plain glTF 2.0. `asset.extras.format` is `"theman-saddle-model@1"`.
+The mesh is the flat saddle; it is fitted and skinned onto a horse, cat-lion or stag at runtime
+by `src/world/models/equipment/saddleRuntime.ts` using the presets in `Saddle_Complete.ts` and
+`WesternSaddle_Complete.ts`.
+
+- Read and written by `equipment/saddleGlb.ts` (shared container code in `models/glbContainer.ts`).
+- Loaded by `equipment/saddleAssets.ts`; the download starts at app start and the 'vegetation'
+  loading stage waits for it (before the wildlife that mounts the saddles is built).
+- The base64 data modules and the converter were removed after commit `1a4de8b`; check that
+  commit out and run `npx tsx scripts/convertSaddlesToGlb.ts` to re-export.

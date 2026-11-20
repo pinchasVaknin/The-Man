@@ -1,9 +1,8 @@
 // ============================================================================
 // MODULE: World / Models / Equipment / Saddle GLB Tests
-// DESIGN: Equality tests: each shipped saddle GLB must decode to exactly what the packed data
-//         module unpacks to today, so the data can be removed without changing a vertex
-// SUMMARY: Compares both GLBs against their base64 packs (mesh arrays and texture bytes) and
-//          checks the encoder round trip and the corrupt-file guards.
+// DESIGN: Structural checks on the real files in public/models/equipment plus encoder round trip
+// SUMMARY: Checks both shipped saddle GLBs decode into a consistent mesh with a texture, and covers
+//          the encoder round trip and the corrupt-file guard.
 // ============================================================================
 
 // ======================== IMPORTS & TEST DEPENDENCIES ======================== \
@@ -12,18 +11,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { decodeSaddleGlb, encodeSaddleGlb } from './saddleGlb';
-import { unpackSaddleBundle, type ISaddleModelSpec } from './saddleRuntime';
-import { SADDLE_PACK_B64, SADDLE_SPEC, SADDLE_TEX_B64 } from './Saddle_Complete';
-import { WESTERN_SADDLE_PACK_B64, WESTERN_SADDLE_SPEC, WESTERN_SADDLE_TEX_B64 } from './WesternSaddle_Complete';
+import { SADDLE_MODEL_IDS } from './saddleAssets';
+import { SADDLE_SPEC } from './Saddle_Complete';
+import { WESTERN_SADDLE_SPEC } from './WesternSaddle_Complete';
+import type { ISaddleModelSpec } from './saddleRuntime';
 import { InfrastructureCorruptedException } from '../../../core/AppException';
 // #endregion
 
 // ======================== FIXTURES ======================== \
 // #region Fixtures
-const SADDLES: ReadonlyArray<readonly [string, ISaddleModelSpec, string, string]> = [
-  ['saddle', SADDLE_SPEC, SADDLE_PACK_B64, SADDLE_TEX_B64],
-  ['western-saddle', WESTERN_SADDLE_SPEC, WESTERN_SADDLE_PACK_B64, WESTERN_SADDLE_TEX_B64],
-];
+const SPEC_BY_ID: Record<(typeof SADDLE_MODEL_IDS)[number], ISaddleModelSpec> = {
+  saddle: SADDLE_SPEC,
+  'western-saddle': WESTERN_SADDLE_SPEC,
+};
 
 async function readSaddleGlb(fileName: string): Promise<ArrayBuffer> {
   const bytes = await readFile(new URL(`../../../../public/models/equipment/${fileName}.glb`, import.meta.url));
@@ -37,18 +37,19 @@ function dataUriBytes(uri: string): Uint8Array {
 // #endregion
 
 // ======================== TESTS ======================== \
-// #region Equality With The Packed Data
-for (const [fileName, spec, pack, texture] of SADDLES) {
-  test(`decodeSaddleGlb_When${spec.name}GlbIsRead_ShouldEqualItsPackedDataExactly`, async () => {
-    const decoded = decodeSaddleGlb(await readSaddleGlb(fileName));
-    const expected = unpackSaddleBundle(pack, spec);
+// #region Shipped Saddle Files
+for (const id of SADDLE_MODEL_IDS) {
+  test(`decodeSaddleGlb_When${id}GlbIsRead_ShouldMatchItsSpecAndHaveATexture`, async () => {
+    const spec = SPEC_BY_ID[id];
 
-    assert.deepEqual(decoded.mesh.positions, expected.positions);
-    assert.deepEqual(decoded.mesh.normals, expected.normals);
-    assert.deepEqual(decoded.mesh.uvs, expected.uvs);
-    assert.deepEqual(decoded.mesh.indices, expected.indices);
-    assert.deepEqual(decoded.texture.data, dataUriBytes(texture));
-    assert.equal(decoded.texture.mimeType, /^data:([^;]+);/.exec(texture)![1]);
+    const decoded = decodeSaddleGlb(await readSaddleGlb(id));
+
+    assert.equal(decoded.mesh.positions.length, spec.vertexCount * 3);
+    assert.equal(decoded.mesh.normals.length, spec.vertexCount * 3);
+    assert.equal(decoded.mesh.uvs.length, spec.vertexCount * 2);
+    assert.equal(decoded.mesh.indices.length, spec.indexCount);
+    assert.ok(decoded.mesh.indices.every((index) => index < spec.vertexCount), 'indices stay inside the vertex range');
+    assert.ok(decoded.texture.data.length > 0, 'a saddle ships a texture');
   });
 }
 // #endregion

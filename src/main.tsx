@@ -14,6 +14,7 @@ import { createAppServices } from './app/compositionRoot';
 import { AppServicesProvider } from './app/AppServicesContext';
 import { preloadAllAnimalModels } from './world/models/animalModelAssets';
 import { preloadAllFloraModels } from './world/models/plants/floraAssets';
+import { preloadAllSaddleModels } from './world/models/equipment/saddleAssets';
 import './index.css';
 // #endregion
 
@@ -36,6 +37,10 @@ preloadAllAnimalModels().catch((err: unknown) => {
 // them), so start them now. A failure is logged here and surfaces again when the world is built.
 preloadAllFloraModels().catch((err: unknown) => {
     appServices.logger.warn('Plant models could not be preloaded', { error: String(err) });
+});
+
+preloadAllSaddleModels().catch((err: unknown) => {
+    appServices.logger.warn('Saddle models could not be preloaded', { error: String(err) });
 });
 
 createRoot(rootElement).render(

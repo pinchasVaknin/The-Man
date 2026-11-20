@@ -40,6 +40,7 @@ src/
   testSupport/           golden-master helper, test-only model preloading
 public/models/animals/   animal GLB files (served as static assets)
 public/models/plants/    plant GLB files, loaded during the 'vegetation' loading stage
+public/models/equipment/ saddle GLB files, loaded in the same stage
 devServer/               dev-only Vite middleware (Save-to-file endpoints); imports nothing from src/
 ```
 

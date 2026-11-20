@@ -19,6 +19,7 @@ import { GameShellOverlay } from './components/GameShellOverlay';
 import { GameSettingsModal } from './components/GameSettingsModal';
 import { useAppServices } from './app/AppServicesContext';
 import { preloadAllAnimalModels } from './world/models/animalModelAssets';
+import { preloadAllSaddleModels } from './world/models/equipment/saddleAssets';
 import { telemetryStore } from './core/telemetryStore';
 import {
   loadActiveGameSettings,
@@ -40,8 +41,8 @@ const WEATHER_CYCLE_ORDER: WeatherToggleOption[] = [
  *          together with all animal model files.
  */
 const CharacterLabView = lazy(() =>
-  // The lab builds every animal synchronously, so it waits for all model files first.
-  Promise.all([import('./lab/CharacterLabView'), preloadAllAnimalModels()]).then(([module]) => ({
+  // The lab builds every animal (and their saddles) synchronously, so it waits for all model files first.
+  Promise.all([import('./lab/CharacterLabView'), preloadAllAnimalModels(), preloadAllSaddleModels()]).then(([module]) => ({
     default: module.CharacterLabView,
   }))
 );
