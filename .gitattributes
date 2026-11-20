@@ -1,3 +1,4 @@
 # Normalize text files to LF in the repository; each OS keeps its own line endings on checkout.
 * text=auto
 graphify-out/graph.json merge=graphify
+.githooks/* text eol=lf
