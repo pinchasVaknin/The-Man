@@ -37,6 +37,8 @@ import {
   type FloraQuality,
   type FloraSubmeshData,
   type FloraWindState,
+} from '../plants/floraRuntime';
+import {
   ANIMTREE_PACK_B64,
   ANIMTREE_LOD_PACK_B64,
   ANIMTREE_TEXTURES,

@@ -27,10 +27,8 @@ import {
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildInstancedFloraTreeBatch, type IInstancedFloraTreePlacement } from './vegetationModels';
 import { attachWindSwayShader } from '../../builders/shaderAndMaterialBuilders';
-import {
-  unpackFloraBundle,
-  ANIMTREE_TEXTURES,
-} from '../plants/AnimTree_Complete';
+import { unpackFloraBundle } from '../plants/floraRuntime';
+import { ANIMTREE_TEXTURES } from '../plants/AnimTree_Complete';
 import { ANIMTREEWIDE_PACK_B64 } from '../plants/AnimTreeWide_Complete';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion

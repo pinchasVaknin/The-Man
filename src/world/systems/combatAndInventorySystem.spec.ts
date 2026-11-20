@@ -900,11 +900,8 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
     getRegisteredFloraSpeciesKeys,
     updateChoppableTreesVisuals,
   } = await import('../models/structures/vegetationModels');
-  const {
-    FloraModel,
-    unpackFloraBundle,
-    ANIMTREE_PACK_B64,
-  } = await import('../models/plants/AnimTree_Complete');
+  const { FloraModel, unpackFloraBundle } = await import('../models/plants/floraRuntime');
+  const { ANIMTREE_PACK_B64 } = await import('../models/plants/AnimTree_Complete');
 
   // 1) Verify FloraModel custom standing wind sway, hitTree(), and fellTree() wood-cut ring animation
   const submeshes = unpackFloraBundle(ANIMTREE_PACK_B64);
