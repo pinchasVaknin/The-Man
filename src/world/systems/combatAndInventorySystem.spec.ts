@@ -900,11 +900,13 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
     getRegisteredFloraSpeciesKeys,
     updateChoppableTreesVisuals,
   } = await import('../models/structures/vegetationModels');
-  const { FloraModel, unpackFloraBundle } = await import('../models/plants/floraRuntime');
-  const { ANIMTREE_PACK_B64 } = await import('../models/plants/AnimTree_Complete');
+  const { FloraModel } = await import('../models/plants/floraRuntime');
+  const { getFloraSubmeshes } = await import('../models/plants/floraAssets');
+  const { preloadFloraModelsForTests } = await import('../../testSupport/floraModelsForTests');
+  await preloadFloraModelsForTests();
 
   // 1) Verify FloraModel custom standing wind sway, hitTree(), and fellTree() wood-cut ring animation
-  const submeshes = unpackFloraBundle(ANIMTREE_PACK_B64);
+  const submeshes = getFloraSubmeshes('animtree', 'high');
   const model = new FloraModel('animtree', submeshes, {}, 1.0);
   const cutRingIdx = submeshes.findIndex((s) => s.matId === 7);
   assert.ok(cutRingIdx >= 0, 'Expected tree bundle to include matId === 7 wood-cut ring submesh');

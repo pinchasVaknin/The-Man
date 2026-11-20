@@ -27,9 +27,7 @@ import {
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildInstancedFloraTreeBatch, type IInstancedFloraTreePlacement } from './vegetationModels';
 import { attachWindSwayShader } from '../../builders/shaderAndMaterialBuilders';
-import { unpackFloraBundle } from '../plants/floraRuntime';
-import { ANIMTREE_TEXTURES } from '../plants/AnimTree_Complete';
-import { ANIMTREEWIDE_PACK_B64 } from '../plants/AnimTreeWide_Complete';
+import { getFloraSubmeshes, getFloraTextureUrl } from '../plants/floraAssets';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -422,11 +420,11 @@ function buildExistingModelPinkBlossomTree(
   scale: number
 ): THREE.Group {
   const { disposableGeometries, disposableMaterials, disposableTextures, swayMaterials } = ctx;
-  const submeshes = unpackFloraBundle(ANIMTREEWIDE_PACK_B64);
+  const submeshes = getFloraSubmeshes('animtree_wide', 'high');
 
-  const barkTex = createPlantTextureFromDataUrl(ANIMTREE_TEXTURES[0], disposableTextures);
-  const leafTex1 = createPlantTextureFromDataUrl(ANIMTREE_TEXTURES[1], disposableTextures);
-  const leafTex2 = createPlantTextureFromDataUrl(ANIMTREE_TEXTURES[2], disposableTextures);
+  const barkTex = createPlantTextureFromDataUrl(getFloraTextureUrl('animtree', 0), disposableTextures);
+  const leafTex1 = createPlantTextureFromDataUrl(getFloraTextureUrl('animtree', 1), disposableTextures);
+  const leafTex2 = createPlantTextureFromDataUrl(getFloraTextureUrl('animtree', 2), disposableTextures);
 
   const barkMat = new THREE.MeshStandardMaterial({
     map: barkTex,

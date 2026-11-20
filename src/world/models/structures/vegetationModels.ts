@@ -31,57 +31,13 @@ import {
   FloraModel,
   FloraLODPair,
   createWoodCutRingMaterial,
-  unpackFloraBundle,
   type FloraCategory,
   type FloraKey,
   type FloraQuality,
   type FloraSubmeshData,
   type FloraWindState,
 } from '../plants/floraRuntime';
-import {
-  ANIMTREE_PACK_B64,
-  ANIMTREE_LOD_PACK_B64,
-  ANIMTREE_TEXTURES,
-} from '../plants/AnimTree_Complete';
-import {
-  ANIMTREEWIDE_PACK_B64,
-  ANIMTREEWIDE_LOD_PACK_B64,
-} from '../plants/AnimTreeWide_Complete';
-import {
-  ANIMTREECOMPACT_PACK_B64,
-  ANIMTREECOMPACT_LOD_PACK_B64,
-} from '../plants/AnimTreeCompact_Complete';
-import {
-  PINETREE_PACK_B64,
-  PINETREE_LOD_PACK_B64,
-  PINETREE_TEXTURES,
-} from '../plants/PineTree_Complete';
-import {
-  OAKGREEN_PACK_B64,
-  OAKGREEN_LOD_PACK_B64,
-  OAKGREEN_TEXTURES,
-} from '../plants/OakGreen_Complete';
-import {
-  OAKYELLOW_PACK_B64,
-  OAKYELLOW_LOD_PACK_B64,
-} from '../plants/OakYellow_Complete';
-import {
-  FORESTBUSH_PACK_B64,
-  FORESTBUSH_LOD_PACK_B64,
-  FORESTBUSH_TEXTURES,
-} from '../plants/ForestBush_Complete';
-import {
-  FORESTFERN_PACK_B64,
-  FORESTFERN_LOD_PACK_B64,
-} from '../plants/ForestFern_Complete';
-import {
-  CORNFLOWER_PACK_B64,
-  CORNFLOWER_LOD_PACK_B64,
-} from '../plants/Cornflower_Complete';
-import {
-  WHITEFLOWER_PACK_B64,
-  WHITEFLOWER_LOD_PACK_B64,
-} from '../plants/WhiteFlower_Complete';
+import { getFloraSubmeshes, getFloraTextureUrl } from '../plants/floraAssets';
 
 export { FloraLODPair, type FloraQuality };
 import {
@@ -146,8 +102,6 @@ const OAK_FLORA_VARIANTS: readonly TreeFloraKey[] = [
 interface IFloraSpec {
   key: FloraKey;
   category: FloraCategory;
-  packB64: string;
-  lodPackB64: string;
   baseScale: number;
   maxY: number;
 }
@@ -156,80 +110,60 @@ const FLORA_SPECS: Record<FloraKey, IFloraSpec> = {
   pinetree: {
     key: 'pinetree',
     category: 'other_trees',
-    packB64: PINETREE_PACK_B64,
-    lodPackB64: PINETREE_LOD_PACK_B64,
     baseScale: PINE_MODEL_BASE_SCALE,
     maxY: 4.0,
   },
   oakgreen: {
     key: 'oakgreen',
     category: 'other_trees',
-    packB64: OAKGREEN_PACK_B64,
-    lodPackB64: OAKGREEN_LOD_PACK_B64,
     baseScale: OAK_GREEN_MODEL_BASE_SCALE,
     maxY: 3.5,
   },
   oakyellow: {
     key: 'oakyellow',
     category: 'other_trees',
-    packB64: OAKYELLOW_PACK_B64,
-    lodPackB64: OAKYELLOW_LOD_PACK_B64,
     baseScale: OAK_YELLOW_MODEL_BASE_SCALE,
     maxY: 3.4,
   },
   animtree: {
     key: 'animtree',
     category: 'trees',
-    packB64: ANIMTREE_PACK_B64,
-    lodPackB64: ANIMTREE_LOD_PACK_B64,
     baseScale: ANIM_TREE_MODEL_BASE_SCALE,
     maxY: 3.6,
   },
   animtree_wide: {
     key: 'animtree_wide',
     category: 'trees',
-    packB64: ANIMTREEWIDE_PACK_B64,
-    lodPackB64: ANIMTREEWIDE_LOD_PACK_B64,
     baseScale: ANIM_TREE_WIDE_MODEL_BASE_SCALE,
     maxY: 3.3,
   },
   animtree_compact: {
     key: 'animtree_compact',
     category: 'trees',
-    packB64: ANIMTREECOMPACT_PACK_B64,
-    lodPackB64: ANIMTREECOMPACT_LOD_PACK_B64,
     baseScale: ANIM_TREE_COMPACT_MODEL_BASE_SCALE,
     maxY: 2.9,
   },
   forestbush: {
     key: 'forestbush',
     category: 'vegetation',
-    packB64: FORESTBUSH_PACK_B64,
-    lodPackB64: FORESTBUSH_LOD_PACK_B64,
     baseScale: FOREST_BUSH_BASE_SCALE,
     maxY: 1.25,
   },
   forestfern: {
     key: 'forestfern',
     category: 'vegetation',
-    packB64: FORESTFERN_PACK_B64,
-    lodPackB64: FORESTFERN_LOD_PACK_B64,
     baseScale: FOREST_FERN_BASE_SCALE,
     maxY: 0.85,
   },
   cornflower: {
     key: 'cornflower',
     category: 'vegetation',
-    packB64: CORNFLOWER_PACK_B64,
-    lodPackB64: CORNFLOWER_LOD_PACK_B64,
     baseScale: CORNFLOWER_BASE_SCALE,
     maxY: 1.15,
   },
   whiteflower: {
     key: 'whiteflower',
     category: 'vegetation',
-    packB64: WHITEFLOWER_PACK_B64,
-    lodPackB64: WHITEFLOWER_LOD_PACK_B64,
     baseScale: WHITE_FLOWER_BASE_SCALE,
     maxY: 1.2,
   },
@@ -408,10 +342,10 @@ export function getFloraLodAndShaderStats(): {
 }
 
 /**
- * Safely creates a Three.js texture from a base64 data URI in both browser and headless test environments.
+ * Safely creates a Three.js texture from an image URL in both browser and headless test environments.
  */
 function createPlantTexture(
-  dataUri: string,
+  imageUrl: string,
   disposableTextures: THREE.Texture[]
 ): THREE.Texture {
   const tex = new THREE.Texture();
@@ -425,7 +359,7 @@ function createPlantTexture(
       tex.image = img;
       tex.needsUpdate = true;
     };
-    img.src = dataUri;
+    img.src = imageUrl;
   }
   disposableTextures.push(tex);
   return tex;
@@ -559,13 +493,13 @@ export function buildSharedFloraMaterials(
   gpuInstancedMaterials: Record<number, THREE.MeshStandardMaterial>;
   cpuPoolMaterials: Record<number, THREE.Material>;
 } {
-  const tex0 = createPlantTexture(ANIMTREE_TEXTURES[0], disposableTextures);
-  const tex1 = createPlantTexture(ANIMTREE_TEXTURES[1], disposableTextures);
-  const tex2 = createPlantTexture(ANIMTREE_TEXTURES[2], disposableTextures);
-  const tex3 = createPlantTexture(PINETREE_TEXTURES[3], disposableTextures);
-  const tex4 = createPlantTexture(OAKGREEN_TEXTURES[4], disposableTextures);
-  const tex5 = createPlantTexture(PINETREE_TEXTURES[5], disposableTextures);
-  const tex6 = createPlantTexture(FORESTBUSH_TEXTURES[6], disposableTextures);
+  const tex0 = createPlantTexture(getFloraTextureUrl('animtree', 0), disposableTextures);
+  const tex1 = createPlantTexture(getFloraTextureUrl('animtree', 1), disposableTextures);
+  const tex2 = createPlantTexture(getFloraTextureUrl('animtree', 2), disposableTextures);
+  const tex3 = createPlantTexture(getFloraTextureUrl('pinetree', 3), disposableTextures);
+  const tex4 = createPlantTexture(getFloraTextureUrl('oakgreen', 4), disposableTextures);
+  const tex5 = createPlantTexture(getFloraTextureUrl('pinetree', 5), disposableTextures);
+  const tex6 = createPlantTexture(getFloraTextureUrl('forestbush', 6), disposableTextures);
 
   const makeMatPair = (
     tex: THREE.Texture,
@@ -667,7 +601,7 @@ export function buildInstancedFloraTreeBatch(
     ];
     for (const key of treeKeys) {
       const spec = FLORA_SPECS[key];
-      const lod0Submeshes = unpackFloraBundle(spec.packB64);
+      const lod0Submeshes = getFloraSubmeshes(key, 'high');
       const submeshProtos: IFloraSubmeshProto[] = [];
       for (const sub0 of lod0Submeshes) {
         if (sub0.matId === 7) continue;
@@ -1197,8 +1131,8 @@ export function buildVegetationModels(ctx: IWorldModelBuildContext): void {
     const key = allFloraKeys[k];
     const spec = FLORA_SPECS[key];
     const isTree = spec.category !== 'vegetation';
-    const lod0Submeshes = unpackFloraBundle(spec.packB64);
-    const lod1Submeshes = unpackFloraBundle(spec.lodPackB64);
+    const lod0Submeshes = getFloraSubmeshes(key, 'high');
+    const lod1Submeshes = getFloraSubmeshes(key, 'low');
     unpackedSubmeshesByKey.set(key, lod0Submeshes);
 
     const submeshProtos: IFloraSubmeshProto[] = [];
