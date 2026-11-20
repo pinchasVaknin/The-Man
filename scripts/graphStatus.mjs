@@ -26,6 +26,15 @@ if (builtAt === head) {
   process.exit(0);
 }
 
-const behind = execFileSync('git', ['rev-list', '--count', `${builtAt}..HEAD`], { encoding: 'utf8' }).trim();
-console.log(`graph: STALE (built from ${builtAt.slice(0, 7)}, HEAD is ${head.slice(0, 7)}, ${behind} commit(s) behind)`);
+function countCommitsBehind(from, to) {
+  try {
+    return execFileSync('git', ['rev-list', '--count', `${from}..${to}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return null; // built_at_commit no longer exists, e.g. after a history rewrite
+  }
+}
+
+const behind = countCommitsBehind(builtAt, head);
+const distance = behind === null ? 'built-from commit not in history' : `${behind} commit(s) behind`;
+console.log(`graph: STALE (built from ${builtAt.slice(0, 7)}, HEAD is ${head.slice(0, 7)}, ${distance})`);
 process.exit(1);
