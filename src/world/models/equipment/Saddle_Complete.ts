@@ -53,7 +53,7 @@ export const SADDLE_MOUNT_PRESETS: Record<SaddleMountTarget, SaddleMountPreset> 
   },
 };
 
-const SADDLE_SPEC: ISaddleModelSpec = {
+export const SADDLE_SPEC: ISaddleModelSpec = {
   name: 'Saddle',
   vertexCount: 1941,
   indexCount: 7290,

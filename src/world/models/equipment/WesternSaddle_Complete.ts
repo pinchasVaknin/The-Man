@@ -55,7 +55,7 @@ export const WESTERN_SADDLE_MOUNT_PRESETS: Record<SaddleMountTarget, SaddleMount
   },
 };
 
-const WESTERN_SADDLE_SPEC: ISaddleModelSpec = {
+export const WESTERN_SADDLE_SPEC: ISaddleModelSpec = {
   name: 'WesternSaddle',
   vertexCount: 6724,
   indexCount: 24876,
