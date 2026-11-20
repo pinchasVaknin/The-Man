@@ -8,13 +8,35 @@
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { rmSync } from 'node:fs';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { directFilePersistencePlugin } from './devServer/persistencePlugin.ts';
+
+// public/assets/aistudio is an AI Studio sync folder the app never loads; Vite copies all of
+// public/ into the build, so drop it from the output once the bundle is written.
+function removeAiStudioAssetsPlugin(): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'remove-aistudio-assets',
+    apply: 'build',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      rmSync(path.join(outDir, 'assets', 'aistudio'), { recursive: true, force: true });
+    },
+  };
+}
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), directFilePersistencePlugin(import.meta.dirname)],
+    plugins: [
+      react(),
+      tailwindcss(),
+      directFilePersistencePlugin(import.meta.dirname),
+      removeAiStudioAssetsPlugin(),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),
