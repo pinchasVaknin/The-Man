@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import type { IObstacle } from '../domain/worldTypes';
@@ -9,6 +9,7 @@ import {
   type ISavedFelledTree,
 } from './treeFellingSystem';
 import { buildDwarvenKingdomAndMiners, setPendingDeadDwarfIds } from '../builders/dwarvenKingdomBuilder';
+import { preloadCharacterModelsForTests } from '../../testSupport/characterModelsForTests';
 
 function obstacleList(count: number): IObstacle[] {
   const list: IObstacle[] = [];
@@ -17,6 +18,10 @@ function obstacleList(count: number): IObstacle[] {
   }
   return list;
 }
+
+before(async () => {
+  await preloadCharacterModelsForTests();
+});
 
 describe('felled trees are saved and restored (S2)', () => {
   it('should restore a fallen tree as a stump and a harvested tree as nothing', () => {

@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {
@@ -11,6 +11,7 @@ import {
 import { CHINESE_FORTRESS_POS, FORTRESS_Z_OFFSET } from '../domain/landmarksRegistry';
 import { createInitialPlayerState } from './playerPhysicsSystem';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
+import { preloadCharacterModelsForTests } from '../../testSupport/characterModelsForTests';
 
 const FZ = FORTRESS_Z_OFFSET;
 
@@ -52,6 +53,10 @@ function monkVersusPlayer(dx: number, dy: number, steps: number): { attacks: num
   }
   return { attacks, monkX: monk.x };
 }
+
+before(async () => {
+  await preloadCharacterModelsForTests();
+});
 
 describe('monk reach and attacks (N2)', () => {
   it('should not swing at a player hovering 3 m above the floor', () => {

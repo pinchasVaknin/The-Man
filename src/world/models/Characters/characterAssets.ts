@@ -120,6 +120,31 @@ export async function parseCharacterModelGlb(id: CharacterModelId, bytes: ArrayB
 }
 // #endregion
 
+// ======================== TEXTURE ======================== \
+// #region Character Texture
+/**
+ * Summary: Creates a texture over the model's decoded image, with the flags the characters always used.
+ * Design: Without a decoded image (node tests) the texture is a single pixel of `fallbackRgb`, as before.
+ * @param asset Loaded character.
+ * @param fallbackRgb Pixel color when no image can be decoded.
+ */
+export function createCharacterTexture(asset: ICharacterModelAsset, fallbackRgb: readonly [number, number, number]): THREE.Texture {
+  const image = asset.texture?.image;
+  if (!image) {
+    const fallback = new THREE.DataTexture(new Uint8Array([fallbackRgb[0], fallbackRgb[1], fallbackRgb[2], 255]), 1, 1);
+    fallback.flipY = false;
+    fallback.colorSpace = THREE.SRGBColorSpace;
+    fallback.needsUpdate = true;
+    return fallback;
+  }
+  const texture = new THREE.Texture(image);
+  texture.flipY = false;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+// #endregion
+
 // ======================== LIBRARY ======================== \\
 // #region Library
 const loadedAssets = new Map<CharacterModelId, ICharacterModelAsset>();

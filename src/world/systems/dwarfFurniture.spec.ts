@@ -1,8 +1,13 @@
-import { describe, it } from 'node:test';
+import { before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { buildDwarvenKingdomAndMiners } from '../builders/dwarvenKingdomBuilder';
 import { getNearbySolidBuildingBoxes, pointInsideSolidBuildingBox } from '../domain/collisionWorld';
+import { preloadCharacterModelsForTests } from '../../testSupport/characterModelsForTests';
+
+before(async () => {
+  await preloadCharacterModelsForTests();
+});
 
 describe('dwarves do not clip through furniture on their route (DW1)', () => {
   it('should keep every non-fighting dwarf out of solid boxes over a full day', () => {

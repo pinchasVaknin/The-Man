@@ -8,6 +8,7 @@
 // ======================== IMPORTS & TEST DEPENDENCIES ======================== \\
 // #region Imports & Test Dependencies
 import { before, describe, it } from 'node:test';
+import { preloadCharacterModelsForTests } from '../testSupport/characterModelsForTests';
 import { preloadAnimalModelsForTests } from '../testSupport/animalModelsForTests';
 import { preloadSaddleModelsForTests } from '../testSupport/saddleModelsForTests';
 import assert from 'node:assert/strict';
@@ -35,6 +36,7 @@ import {
 describe('Character & Animation Lab Catalog', () => {
   before(async () => {
     await preloadAnimalModelsForTests();
+    await preloadCharacterModelsForTests();
     await preloadSaddleModelsForTests();
   });
 

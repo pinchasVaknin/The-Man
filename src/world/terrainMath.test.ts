@@ -7,7 +7,7 @@
 
 // ======================== IMPORTS AND TEST DEPENDENCIES ======================== \\
 // #region Imports and Test Dependencies
-import test from 'node:test';
+import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   WATER_LEVEL,
@@ -58,6 +58,7 @@ import {
   runSeasonalWeatherCycle,
   computeWeatherState,
 } from './terrainMath';
+import { preloadCharacterModelsForTests } from '../testSupport/characterModelsForTests';
 // #endregion
 
 // ======================== TEST FIXTURES AND FACTORIES ======================== \\
@@ -66,6 +67,10 @@ import {
 
 // ======================== HAPPY PATH TESTS ======================== \\
 // #region Happy Path Tests
+before(async () => {
+  await preloadCharacterModelsForTests();
+});
+
 test('terrainAndWaterBasins_WhenEvaluatedAtSpawnAndWaterfall_ShouldMaintainCoherentElevations', () => {
   // Arrange
   // Act

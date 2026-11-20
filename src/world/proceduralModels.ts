@@ -33,6 +33,7 @@ import { buildTerrainAndWaterModel } from './models/structures/terrainAndWaterMo
 import { preloadAllFloraModels } from './models/plants/floraAssets';
 import { preloadAllSaddleModels } from './models/equipment/saddleAssets';
 import { preloadBlockingAnimalModels } from './models/animalModelAssets';
+import { preloadAllCharacterModels } from './models/Characters/characterAssets';
 import {
   buildVegetationModels,
   updateChoppableTreesVisuals,
@@ -170,9 +171,14 @@ export async function buildRealisticWorld(
   await stage('terrain and water');
   const { waterMaterial, terrainMaterial } = buildTerrainAndWaterModel(ctx);
   await stage('vegetation');
-  // The plant, saddle and blocking animal GLBs must be here before the synchronous vegetation, settlement and
+  // The plant, saddle, character and blocking animal GLBs must be here before the synchronous vegetation, settlement and
   // wildlife builds; they are already downloading since app start, so this usually returns at once.
-  await Promise.all([preloadAllFloraModels(), preloadAllSaddleModels(), preloadBlockingAnimalModels()]);
+  await Promise.all([
+    preloadAllFloraModels(),
+    preloadAllSaddleModels(),
+    preloadAllCharacterModels(),
+    preloadBlockingAnimalModels(),
+  ]);
   buildVegetationModels(ctx);
   await stage('settlements');
   const { rowboatGroup, updateSettlement } = buildSettlementModels(ctx);

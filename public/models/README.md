@@ -56,3 +56,19 @@ by `src/world/models/equipment/saddleRuntime.ts` using the presets in `Saddle_Co
   loading stage waits for it (before the wildlife that mounts the saddles is built).
 - The base64 data modules and the converter were removed after commit `1a4de8b`; check that
   commit out and run `npx tsx scripts/convertSaddlesToGlb.ts` to re-export.
+
+## `characters/`
+
+`dwarf-warrior.glb` and `warrior-monk.glb`: a skinned mesh (bones `J0`..`Jn`), 11 named animation clips
+(idle, walk, run, sleep, sit, attacks, mine1/mine2 or pray_kneel, death) and a WebP texture
+(`EXT_texture_webp`), as glTF 2.0. `asset.extras.format` is `"theman-character-model@1"` and carries the
+parent table. Normals are int8 (`KHR_mesh_quantization`), possibly with a 4-byte stride.
+
+- Loaded by `src/world/models/Characters/characterAssets.ts` (three's `GLTFLoader`); the download starts
+  at app start and the 'vegetation' loading stage waits for it, before the settlements, mine and temples
+  that build dwarves and monks.
+- `DwarfWarrior_Complete.ts` and `WarriorMonk_Complete.ts` hold the rigs, the animator and the shared
+  material; they read the geometry, skeleton arrays and clips from the loaded model.
+- Exported with `THREE.GLTFExporter` from the old base64 data; the converter
+  (`scripts/convertCharactersToGlb.ts`), the base64 modules and the equality test that proved geometry, rig,
+  every animation track and the texture bytes identical are in commit `ea21bd7`.

@@ -27,11 +27,13 @@ import { getWaterSurfaceHeightAt, walkableHeightAt } from '../terrainAndBiomeSys
 import { SOUTHERN_MINE_POS, CHINESE_FORTRESS_POS, FORTRESS_Z_OFFSET } from '../../domain/landmarksRegistry';
 import { createInitialSmallAnimals, stepSmallAnimals } from '../boidsAndWildlifeSystem';
 import { createInitialPlayerState } from '../../terrainMath';
+import { preloadCharacterModelsForTests } from '../../../testSupport/characterModelsForTests';
 import { preloadAnimalModelsForTests } from '../../../testSupport/animalModelsForTests';
 
 describe('7 User Fixes + 5 Follow-up Fixes + New 13 Mine/Dwarf/Hippo/Palace Fixes Verification Suite', () => {
   before(async () => {
     await preloadAnimalModelsForTests();
+    await preloadCharacterModelsForTests();
   });
 
   it('1) WarriorMonk and DwarfWarrior retain natural 0xffffff texture color (not painted black)', () => {
