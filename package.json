@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
+    "graph:status": "node scripts/graphStatus.mjs",
     "test": "tsx --test \"src/**/*.spec.ts\" \"src/**/*.test.ts\""
   },
   "dependencies": {

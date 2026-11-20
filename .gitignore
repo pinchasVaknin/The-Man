@@ -11,3 +11,7 @@ coverage/
 .playwright-cli/
 graphify-out/cache/
 graphify-out/2026-*/
+
+# Local reference images (not used by the app)
+reference-assets/
+public/assets/aistudio/
