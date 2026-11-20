@@ -83,6 +83,7 @@
 <!-- Numbers and rules that differ from the standards' defaults. One line each, with the reason.
      Example: - security/anti-dos max-page-size: 500 (admin export needs it) -->
 - architecture/hot-path: 60 FPS animation loop and per-tick physics updates in src/world/systems/
+- architecture/creatures: an animated creature (createReady<Animal>, createReadyDwarfWarrior, createReadyWarriorMonk) is created only by the system that owns its behavior (wildlife, mounts, dragons, bird flocks, dwarf and monk AI). A lifeless look, such as a statue or a baked dragon head, goes through createStaticStatue or createStaticDragonPose in src/world/models/statues. Never place a swimming or walking model as decoration. src/world/creatureBoundary.spec.ts enforces this; a new species needs an entry in SPECIES_PROFILES (src/world/systems/wildlifeSpeciesProfiles.ts).
 
 ## Protected paths
 <!-- Changes here are High risk and need explicit approval (contract C6). One glob per line. -->

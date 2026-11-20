@@ -14,7 +14,8 @@
 import * as THREE from 'three';
 import { sampleAncientMineFloor } from '../../domain/landmarks/ancientMine/ancientMineFloor';
 import { HERO_STATUES, MINE_LEVEL_Y, MINE_SOLID_FIXTURES, MINE_SURFACES } from '../../domain/landmarks/ancientMine/ancientMineLayout';
-import { createReadyDwarfWarrior } from '../../models/Characters/DwarfWarrior_Complete';
+import type { DwarfWarriorState } from '../../models/Characters/DwarfWarrior_Complete';
+import { createStaticStatue, type IStatuePose } from '../../models/statues/staticStatue';
 import { perturbGeometryVertices } from '../shaderAndMaterialBuilders';
 import type { ISetPieceContext, ISetPieceUpdate } from './upperLevelSetPieces';
 // #endregion
@@ -300,12 +301,12 @@ function buildStatues(ctx: ISetPieceContext): void {
     statueRoot.add(trimCap);
 
     // Instantiate our articulated DwarfWarrior model for the statue.
-    const dwarf = createReadyDwarfWarrior({
-      driveRootMotion: false,
+    const dwarf = createStaticStatue({
+      kind: 'dwarf-warrior',
       castShadow: false,
       receiveShadow: true,
+      pose: statuePoseFor(statue),
     });
-    poseStatueDwarf(dwarf, statue);
     dwarf.group.position.set(0, plinthH + 0.03, 0);
     dwarf.group.scale.setScalar(dwarfScale);
 
@@ -391,22 +392,11 @@ function buildStatues(ctx: ISetPieceContext): void {
   }
 }
 
-function poseStatueDwarf(dwarf: ReturnType<typeof createReadyDwarfWarrior>, statue: IHeroStatue): void {
-  if (statue.pose === 'firstKing') {
-    dwarf.setState('attack2', 0);
-    dwarf.update(0.18);
-  } else if (statue.pose === 'hammerKing' || statue.pose === 'axeWarrior') {
-    dwarf.setState('attack1', 0);
-    dwarf.update(0.32);
-  } else if (statue.pose === 'shieldGuardian') {
-    dwarf.setState('attack3', 0);
-    dwarf.update(0.45);
-  } else {
-    dwarf.setState('idle', 0);
-    dwarf.update(0.25);
-  }
-  dwarf.group.updateMatrixWorld(true);
-  dwarf.skinnedMesh.skeleton.update();
+function statuePoseFor(statue: IHeroStatue): IStatuePose<DwarfWarriorState> {
+  if (statue.pose === 'firstKing') return { clip: 'attack2', atSeconds: 0.18 };
+  if (statue.pose === 'hammerKing' || statue.pose === 'axeWarrior') return { clip: 'attack1', atSeconds: 0.32 };
+  if (statue.pose === 'shieldGuardian') return { clip: 'attack3', atSeconds: 0.45 };
+  return { clip: 'idle', atSeconds: 0.25 };
 }
 // #endregion
 

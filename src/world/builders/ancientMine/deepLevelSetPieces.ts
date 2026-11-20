@@ -22,8 +22,7 @@ import {
   TREASURE_ISLAND,
 } from '../../domain/landmarks/ancientMine/ancientMineLayout';
 import { isAnimalModelLoaded, loadAnimalModel } from '../../models/animalModelAssets';
-import { createReadyDemonDragon } from '../../models/DemonDragon';
-import { createReadyForestDragon } from '../../models/ForestDragon';
+import { createStaticDragonPose } from '../../models/statues/staticStatue';
 import { box, cyl, mergeParts, part, type IPart } from './propGeometries';
 import type { ISetPieceContext, ISetPieceUpdate } from './upperLevelSetPieces';
 // #endregion
@@ -556,13 +555,7 @@ function bakeSkinnedHeadSubtree(
  * Summary: Builds the colossal baked open-jaw Red DemonDragon head for the center furnace.
  */
 function bakeDemonDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
-  const demon = createReadyDemonDragon();
-  demon.rig.resetToRest();
-  if (demon.rig.bones[23] !== undefined) {
-    demon.rig.bones[23].quaternion.set(-0.55, 0, 0, 0.835).normalize();
-  }
-  demon.object.updateMatrixWorld(true);
-  demon.mesh.skeleton.update();
+  const demon = createStaticDragonPose('demon-dragon', [{ bone: 23, quaternion: [-0.55, 0, 0, 0.835] }]);
 
   // Exact skull symmetry plane of DemonDragon: anchorX = -0.0942, anchorY = 0.54, anchorZ = 0.82.
   const geometry = ctx.own(
@@ -591,14 +584,8 @@ function bakeDemonDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
  *   render with smooth studio shading.
  */
 function bakeForestDragonHeadNow(ctx: ISetPieceContext): IBakedDragonHeadAsset {
-  const forest = createReadyForestDragon();
-  forest.rig.resetToRest();
-  // Apply the open-mouth jaw pose from the ForestDragon 'roar' animation clip (frames 9..12)
-  if (forest.rig.bones[35] !== undefined) {
-    forest.rig.bones[35].quaternion.set(0.813097, 0.582128, 0, 0).normalize();
-  }
-  forest.object.updateMatrixWorld(true);
-  forest.mesh.skeleton.update();
+  // The open-mouth jaw pose from the ForestDragon 'roar' animation clip (frames 9..12)
+  const forest = createStaticDragonPose('forest-dragon', [{ bone: 35, quaternion: [0.813097, 0.582128, 0, 0] }]);
 
   const srcGeo = forest.mesh.geometry;
   const indexAttr = srcGeo.index;

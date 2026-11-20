@@ -35,7 +35,7 @@ import {
   registerTempleStatue,
   spawnTempleMonk,
 } from '../../systems/monkTempleSystem';
-import { createReadyWarriorMonk } from '../Characters/WarriorMonk_Complete';
+import { createStaticStatue } from '../statues/staticStatue';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -1186,16 +1186,15 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   const pHalo = new THREE.Mesh(statueHaloRingGeo, archAssets.imperialGoldMat);
   pHalo.position.set(0, 3.25, -0.48);
 
-  const goldenStatueMonk = createReadyWarriorMonk({
+  const goldenStatueMonk = createStaticStatue({
+    kind: 'warrior-monk',
     weaponVisible: true,
     tintHex: 0xfbbf24,
     scale: 1.85,
     castShadow: !isSoftwareGl,
     receiveShadow: !isSoftwareGl,
+    pose: { clip: 'pray_kneel', atSeconds: 0.25, blendSeconds: 0.01 },
   });
-  goldenStatueMonk.driveRootMotion = false;
-  goldenStatueMonk.setState('pray_kneel', 0.01);
-  goldenStatueMonk.update(0.25);
   goldenStatueMonk.group.position.set(0, 1.49, 0);
   const bronzeStatueMat = new THREE.MeshStandardMaterial({
     color: 0xd4af37,

@@ -23,7 +23,6 @@ import {
 import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildDwarvenKingdomAndMiners } from '../../builders/dwarvenKingdomBuilder';
 import { buildAncientMine } from '../../builders/ancientMine/ancientMineBuilder';
-import { createReadyDwarfWarrior } from '../Characters/DwarfWarrior_Complete';
 import {
   DWARVEN_MINER_STATIONS,
   DWARVEN_MINECART_ROUTES,

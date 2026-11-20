@@ -25,7 +25,7 @@ import {
   spawnTempleMonk,
   updateMonkTempleSystem,
 } from '../../systems/monkTempleSystem';
-import { createReadyWarriorMonk } from '../Characters/WarriorMonk_Complete';
+import { createStaticStatue } from '../statues/staticStatue';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -621,16 +621,15 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   }
 
   // Sculpted 3D Grandmaster Monk figure in antique gilded bronze & carved stone
-  const sculptedStatueMonk = createReadyWarriorMonk({
+  const sculptedStatueMonk = createStaticStatue({
+    kind: 'warrior-monk',
     weaponVisible: true,
     tintHex: 0xd4af37,
     scale: 2.15,
     castShadow: !isSoftwareGl,
     receiveShadow: !isSoftwareGl,
+    pose: { clip: 'pray_kneel', atSeconds: 0.35, blendSeconds: 0.01 },
   });
-  sculptedStatueMonk.driveRootMotion = false;
-  sculptedStatueMonk.setState('pray_kneel', 0.01);
-  sculptedStatueMonk.update(0.35);
   sculptedStatueMonk.group.position.set(0, 1.12, 0);
   sculptedStatueMonk.group.rotation.y = 0; // Faces +Z toward the Great Hall entrance doors
   const bronzeStatueMat = new THREE.MeshStandardMaterial({

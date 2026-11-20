@@ -30,6 +30,7 @@ import {
   type IDwarfWarriorRig,
   type DwarfWarriorState,
 } from '../models/Characters/DwarfWarrior_Complete';
+import { createStaticStatue } from '../models/statues/staticStatue';
 
 import { steerAroundWalls } from '../domain/wallNavigation';
 import type { IPlayerState, IArrowProjectile, InventoryItemId } from '../domain/worldTypes';
@@ -700,22 +701,14 @@ export function buildDwarvenKingdomAndMiners(
     );
 
     // Sculpted 3D Colossal Dwarven King figure using the articulated DwarfWarrior rig
-    const kingStatueRig = createReadyDwarfWarrior({
-      initialState: 'idle',
+    const kingStatueRig = createStaticStatue({
+      kind: 'dwarf-warrior',
       weaponVisible: true,
-      driveRootMotion: false,
       castShadow: true,
       receiveShadow: true,
       scale: 3.35,
+      pose: s === 0 ? { clip: 'attack1', atSeconds: 0.32 } : { clip: 'attack2', atSeconds: 0.18 },
     });
-    kingStatueRig.driveRootMotion = false;
-    if (s === 0) {
-      kingStatueRig.setState('attack1', 0);
-      kingStatueRig.update(0.32);
-    } else {
-      kingStatueRig.setState('attack2', 0);
-      kingStatueRig.update(0.18);
-    }
     kingStatueRig.group.position.set(0, 3.04, 0);
     kingStatueRig.group.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
