@@ -69,7 +69,6 @@ export interface IAnimatedWorldHandles {
   terrainMaterial: THREE.MeshStandardMaterial;
   swayMaterials: THREE.MeshStandardMaterial[];
   rowboatGroup: THREE.Group;
-  birdsGroup: THREE.Group;
   pollenPoints: THREE.Points;
   starsMaterial: THREE.PointsMaterial;
   lanternLights: THREE.PointLight[];
@@ -200,7 +199,7 @@ export async function buildRealisticWorld(
   const { updateSacredCloudMountain } = buildSacredCloudMountainModel(ctx);
 
   await stage('sky and weather');
-  const { birdsGroup, pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
+  const { pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
     buildEnvironmentAtmosphereModels(ctx);
 
   const furnitureWoodMat = new THREE.MeshStandardMaterial({
@@ -362,7 +361,6 @@ export async function buildRealisticWorld(
     terrainMaterial,
     swayMaterials,
     rowboatGroup,
-    birdsGroup,
     pollenPoints,
     starsMaterial,
     lanternLights,

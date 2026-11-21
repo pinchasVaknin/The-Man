@@ -1510,8 +1510,8 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
   });
 
   // ======================== 9. SOUTHEAST HARBOR BAY & COASTAL DOLPHIN REEF (330, 256) ======================== \\
-  const dolphinReefGroup = new THREE.Group();
-  dolphinReefGroup.position.set(330, 0, 256);
+  const marineReefGroup = new THREE.Group();
+  marineReefGroup.position.set(330, 0, 256);
   const reefRockGeo = new THREE.DodecahedronGeometry(1.6, 1);
   const kelpBladeGeo = new THREE.ConeGeometry(0.22, 2.4, 5);
   kelpBladeGeo.translate(0, 1.2, 0);
@@ -1534,22 +1534,22 @@ export function buildOasisModels(ctx: IWorldModelBuildContext): IOasisModelsResu
     seaStack.position.set(rx, WATER_LEVEL - 0.35, rz);
     seaStack.scale.set(rScale * 1.3, rScale * 0.75, rScale * 1.1);
     seaStack.rotation.y = r * 1.2;
-    dolphinReefGroup.add(seaStack);
+    marineReefGroup.add(seaStack);
 
     const coral = new THREE.Mesh(lotusBlossomGeo, reefCoralMat);
     coral.position.set(rx + 0.8, WATER_LEVEL - 0.18, rz - 0.6);
     coral.scale.setScalar(2.1);
-    dolphinReefGroup.add(coral);
+    marineReefGroup.add(coral);
 
     for (let k = 0; k < 3; k++) {
       const kelp = new THREE.Mesh(kelpBladeGeo, papyrusGreenMat);
       kelp.position.set(rx + (k - 1) * 0.7, WATER_LEVEL - 1.85, rz + (k % 2) * 0.6);
       kelp.rotation.z = (k - 1) * 0.14;
-      dolphinReefGroup.add(kelp);
+      marineReefGroup.add(kelp);
     }
   }
-  scene.add(dolphinReefGroup);
-  distanceCulledObjects.push({ obj: dolphinReefGroup, cx: 330, cz: 256, radius: 42 });
+  scene.add(marineReefGroup);
+  distanceCulledObjects.push({ obj: marineReefGroup, cx: 330, cz: 256, radius: 42 });
 
   return {
     updateOasis: (elapsedTime: number) => {

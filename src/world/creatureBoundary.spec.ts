@@ -23,7 +23,27 @@ import { fileURLToPath } from 'node:url';
 // #region Rules
 const SOURCE_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
-const CREATURE_FACTORY = /\bcreateReady(Bear|Crocodile|Jaguar|Wolf|Rhino|CatLion|Stag|Deer|Hippo|KoiFish|Dolphin|Dove|Horse|DemonDragon|ForestDragon|DwarfWarrior|WarriorMonk)\b/;
+/** Words that name a creature. A procedural group whose name holds one of them (as a whole camelCase word) is a creature. */
+const CREATURE_WORDS = new Set([
+  'bear', 'crocodile', 'jaguar', 'wolf', 'rhino', 'lion', 'stag', 'deer', 'hippo', 'fish', 'koi', 'dolphin', 'dove', 'bird', 'gull', 'gulls', 'seagulls',
+  'seagull', 'horse', 'dragon', 'dwarf', 'monk', 'butterfly', 'butterflies', 'squirrel', 'rabbit', 'fox', 'boar', 'npc', 'merchant', 'villager',
+]);
+
+/** Procedural creature groups that are allowed, keyed file#identifier, with the reason. */
+const PROCEDURAL_ALLOWED: Readonly<Record<string, string>> = {
+  'world/models/structures/harborModels.ts#npcGroup': 'harbor merchant, bound to a market stall (trade interaction)',
+  'world/models/structures/harborModels.ts#swNpcGroup': 'south-west harbor merchant, bound to a market stall (trade interaction)',
+  'world/models/structures/skyHarborDockBuilder.ts#merchantNpc': 'sky harbor merchant, bound to the market-sky-hoverbike stall',
+  'world/models/structures/placedTrapModels.ts#doveGroup': 'caught critter shown inside a trap (the trap system owns its state and loot)',
+  'world/models/structures/placedTrapModels.ts#fish': 'caught fish shown inside a trap (the trap system owns its state and loot)',
+};
+
+/** Procedural creature groups that still break the rule, keyed file#identifier. Remove an entry when it is fixed. */
+const PROCEDURAL_KNOWN_VIOLATIONS: Readonly<Record<string, string>> = {
+  'world/models/structures/environmentAtmosphereModels.ts#butterfliesGroup': 'meadow butterflies loop without behavior: make them wildlife or remove them',
+  'world/models/structures/harborModels.ts#harborSeagullsGroup': 'orbiting gulls loop without behavior: make them wildlife or remove them',
+  'world/models/structures/harborModels.ts#gull': 'single gull of the orbiting flock above',
+};
 
 /** Files that define the models: the animal and character modules and their one-line facades. */
 function definesCreatureModel(file: string): boolean {
@@ -42,7 +62,6 @@ const SPAWN_AUTHORITIES: Readonly<Record<string, string>> = {
   'world/builders/wildlifeAndFootprintsBuilder.ts': 'wildlife system (species profiles, AI, hits, traps, loot)',
   'world/models/structures/settlementModels.ts': 'rideable horses (mount system)',
   'world/models/structures/sanctuaryAndDragonModels.ts': 'living sanctuary dragons (dragon fire system)',
-  'world/models/structures/environmentAtmosphereModels.ts': 'bird flocks',
   'world/builders/dwarvenKingdomBuilder.ts': 'live dwarf miners (dwarf AI, loot)',
   'world/builders/ancientMine/mineDwarvesAi.ts': 'mine dwarves AI',
   'world/systems/monkTempleSystem.ts': 'temple monks AI',
@@ -64,10 +83,42 @@ function listSourceFiles(directory: string): string[] {
   });
 }
 
+function relativeSourceFiles(): string[] {
+  return listSourceFiles(SOURCE_ROOT).map((full) => path.relative(SOURCE_ROOT, full).split(path.sep).join('/'));
+}
+
+function read(file: string): string {
+  return readFileSync(path.join(SOURCE_ROOT, file), 'utf8');
+}
+
+/** Every createReady<Name> exported anywhere, so a new creature model is covered the moment it exists. */
+function creatureFactoryPattern(): RegExp {
+  const names = new Set<string>();
+  for (const file of relativeSourceFiles()) {
+    for (const match of read(file).matchAll(/export (?:async )?function (createReady\w+)/g)) names.add(match[1]);
+  }
+  return new RegExp(String.raw`\b(` + [...names].join('|') + String.raw`)\b`);
+}
+
 function creatureFactoryFiles(): string[] {
-  return listSourceFiles(SOURCE_ROOT)
-    .map((full) => path.relative(SOURCE_ROOT, full).split(path.sep).join('/'))
-    .filter((file) => CREATURE_FACTORY.test(readFileSync(path.join(SOURCE_ROOT, file), 'utf8')));
+  const factory = creatureFactoryPattern();
+  return relativeSourceFiles().filter((file) => factory.test(read(file)));
+}
+
+function splitCamelCase(name: string): string[] {
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(' ');
+}
+
+/** Procedural creatures: a THREE.Group (or Object3D) variable whose name is a creature word, outside the model definitions. */
+function proceduralCreatureGroups(): string[] {
+  const found: string[] = [];
+  for (const file of relativeSourceFiles()) {
+    if (definesCreatureModel(file) || file in SPAWN_AUTHORITIES) continue;
+    for (const match of read(file).matchAll(/\b(?:const|let)\s+(\w+)\s*=\s*new THREE\.(?:Group|Object3D)\(/g)) {
+      if (splitCamelCase(match[1]).some((word) => CREATURE_WORDS.has(word))) found.push(`${file}#${match[1]}`);
+    }
+  }
+  return found;
 }
 // #endregion
 
@@ -99,5 +150,22 @@ test('creatureFactories_WhenASpawnAuthorityStopsCreatingCreatures_ShouldBeRemove
   const stale = Object.keys(SPAWN_AUTHORITIES).filter((file) => !using.has(file));
 
   assert.deepEqual(stale, [], 'Remove these files from SPAWN_AUTHORITIES: they no longer create creatures.');
+});
+test('proceduralCreatures_WhenAGroupNamedAfterACreatureIsBuiltOutsideTheOwningSystems_ShouldNotExist', () => {
+  const offenders = proceduralCreatureGroups().filter((key) => !(key in PROCEDURAL_ALLOWED) && !(key in PROCEDURAL_KNOWN_VIOLATIONS));
+
+  assert.deepEqual(
+    offenders,
+    [],
+    'These groups look like creatures but have no behavior system. Make them real wildlife, make them a createStaticStatue, or list them in PROCEDURAL_ALLOWED with a reason:'
+  );
+});
+
+test('proceduralCreatures_WhenAListedGroupDisappears_ShouldBeRemovedFromTheLists', () => {
+  const present = new Set(proceduralCreatureGroups());
+
+  const stale = [...Object.keys(PROCEDURAL_ALLOWED), ...Object.keys(PROCEDURAL_KNOWN_VIOLATIONS)].filter((key) => !present.has(key));
+
+  assert.deepEqual(stale, [], 'Remove these entries: the group no longer exists.');
 });
 // #endregion
