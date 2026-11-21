@@ -474,8 +474,8 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
             const newBranch = toggleEastForkSwitchBranch();
             hudFeedback.lootNotification =
               newBranch === 'left'
-                ? "מתג המסילה הועבר שמאלה [A] — מסלול מערת המית'ריל והגבישים"
-                : 'מתג המסילה הועבר ימינה [D] — מסלול היכל מאזארבול וקבר באלין';
+                ? t('minecart.switch_left')
+                : t('minecart.switch_right');
             hudFeedback.lootNotificationTimer = 4.2;
             soundEngine.playFootstep('bridge', 1.15);
             emitHudSnapshot();
@@ -919,7 +919,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 setRideableMinecartVisualProgress(restState.activeMinecartRide.lineId, 0, 0, 0);
                 restState.activeMinecartRide.lineId = 'minecart-line-east-fork-left';
                 setActivePlayerRiddenMinecartLineId('minecart-line-east-fork-left');
-                hudFeedback.lootNotification = "ניווט מסילה שמאלה [A] — מערת כריית המית'ריל והגבישים";
+                hudFeedback.lootNotification = t('minecart.turn_left');
                 hudFeedback.lootNotificationTimer = 3.5;
                 soundEngine.playFootstep('bridge', 1.12);
                 emitHudSnapshot();
@@ -931,7 +931,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 setRideableMinecartVisualProgress(restState.activeMinecartRide.lineId, 0, 0, 0);
                 restState.activeMinecartRide.lineId = 'minecart-line-east-fork-right';
                 setActivePlayerRiddenMinecartLineId('minecart-line-east-fork-right');
-                hudFeedback.lootNotification = 'ניווט מסילה ימינה [D] — היכל מאזארבול וקבר באלין';
+                hudFeedback.lootNotification = t('minecart.turn_right');
                 hudFeedback.lootNotificationTimer = 3.5;
                 soundEngine.playFootstep('bridge', 1.12);
                 emitHudSnapshot();
@@ -972,7 +972,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
                 0.001
               );
               hudFeedback.lootNotification =
-                'חצית את השער המזרחי — לחץ [A] שמאלה או [D] ימינה לבחירת מסלול בפיצול!';
+                t('minecart.fork_ahead');
               hudFeedback.lootNotificationTimer = 4.2;
               emitHudSnapshot();
             } else if (

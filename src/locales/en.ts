@@ -1110,6 +1110,13 @@ export const en = {
     "purchased": "You bought an Aether hoverbike! It waits on the launch pad in front of the shop. Press [F] or [E] to ride ([W/S] drive, [Space] lift off, [C] lower).",
     "mounted": "You mounted the Aether hoverbike! [W/S] drive · [Space] lift off and fly · [C] lower · [Shift] boost · [E] dismount"
   },
+  "minecart": {
+    "switch_left": "Rail switch set left [A]: Mithril Mine and Crystal Cave route",
+    "switch_right": "Rail switch set right [D]: Mazarbul Hall and Balin's Tomb route",
+    "turn_left": "Rail turned left [A]: Mithril mining cave and crystals",
+    "turn_right": "Rail turned right [D]: Mazarbul Hall and Balin's Tomb",
+    "fork_ahead": "You crossed the east gate. Press [A] to go left or [D] to go right to choose a route at the fork!"
+  },
   "errors": {
     "boundary": {
       "title": "TheMan — Encountered an Issue",
