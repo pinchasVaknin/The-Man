@@ -201,6 +201,10 @@ function isInPassageCorridor(x: number, z: number): boolean {
   return x > CRYSTAL_PASSAGE_GATE.minX - 4.0 && Math.abs(z - PASSAGE_Z) < PASSAGE_HALF_WIDTH + 3.0;
 }
 
+/** Crystals added to the deck on top of the original spiral, and the least distance (m) between any two crystals. */
+const EXTRA_DECK_CRYSTALS = 14;
+const EXTRA_CRYSTAL_SPACING_M = 2.4;
+
 function buildClusters(): ICrystalCluster[] {
   const spots = keepClearSpots();
   const clear = (x: number, z: number): boolean => spots.every((p) => Math.hypot(x - p.x, z - p.z) > p.r) && !isInPassageCorridor(x, z);
@@ -220,6 +224,28 @@ function buildClusters(): ICrystalCluster[] {
       const x = islet.x + Math.cos(a) * islet.radius * 0.72;
       const z = islet.z + Math.sin(a) * islet.radius * 0.72;
       if (clear(x, z)) clusters.push({ x, y: islet.y, z, scale: 0.8 + (k % 3) * 0.45, violet: k % 2 === 0 });
+    }
+  }
+  // A few more crystals, added after the originals so none of them moves: a second golden-angle spiral on the deck
+  // and an inner ring on each islet, both kept clear of paths and puzzle pieces and of the existing crystals.
+  const farFromOthers = (x: number, z: number): boolean => clusters.every((c) => Math.hypot(x - c.x, z - c.z) > EXTRA_CRYSTAL_SPACING_M);
+  let extraOnDeck = 0;
+  for (let j = 0; j < 60 && extraOnDeck < EXTRA_DECK_CRYSTALS; j++) {
+    const r = (0.28 + 0.62 * ((j * 0.618034) % 1)) * MAIN.radius * 0.88;
+    const a = j * 2.39996 + 0.9;
+    const x = MAIN.x + Math.cos(a) * r;
+    const z = MAIN.z + Math.sin(a) * r;
+    if (clear(x, z) && farFromOthers(x, z)) {
+      clusters.push({ x, y: DECK_Y, z, scale: 0.7 + (j % 4) * 0.3, violet: j % 2 === 0 });
+      extraOnDeck++;
+    }
+  }
+  for (const islet of CRYSTAL_ISLETS) {
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2 + 1.1;
+      const x = islet.x + Math.cos(a) * islet.radius * 0.42;
+      const z = islet.z + Math.sin(a) * islet.radius * 0.42;
+      if (clear(x, z) && farFromOthers(x, z)) clusters.push({ x, y: islet.y, z, scale: 0.7 + (k % 3) * 0.3, violet: k % 2 === 1 });
     }
   }
   return clusters;

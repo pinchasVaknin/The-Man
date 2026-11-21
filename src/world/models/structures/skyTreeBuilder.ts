@@ -1,9 +1,10 @@
 // ============================================================================
 // MODULE: World / Models / Skybound Isles / Giant Sky Tree
 // DESIGN: The trunk is a gnarled ancient World-Tree column with glowing rune veins and buttress
-//         flares, the branch path is a 3D stepped wooden spiral staircase with carved treads,
-//         outer handrail ribbons, underside support boughs, and a welcoming root-arch portal at
-//         its base, and the observation platform is a carved sanctum disc at the top.
+//         flares, the branch path is a spiral staircase whose planks lie flush on the walkable ramp
+//         (tilted to its slope, so what you see is what you stand on), with a solid side skirt, handrails on
+//         both edges and a welcoming root-arch portal at its base, and the observation platform is a
+//         carved sanctum disc at the top.
 // SUMMARY: Builds the Giant Sky Tree's trunk, 3D spiral staircase and top sanctum platform.
 // ============================================================================
 
@@ -56,7 +57,6 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   // Main trunk + gnarled vertical bark ribs + flaring root buttresses + glowing cyan rune strips.
   const trunkGeo = new THREE.CylinderGeometry(SKY_TREE_TRUNK_HALF_M * 1.05, SKY_TREE_TRUNK_HALF_M * 1.48, height, 16);
   const ribGeo = new THREE.CylinderGeometry(0.32, 0.62, height, 8);
-  const strutGeo = new THREE.CylinderGeometry(0.2, 0.3, 1, 6);
   const postGeo = new THREE.CylinderGeometry(0.09, 0.11, 1.05, 6);
   const shardGeo = new THREE.OctahedronGeometry(0.85, 0);
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -88,6 +88,10 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   const railPositions: number[] = [];
   const railIndices: number[] = [];
   const outerRailR = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.14;
+  const innerRailR = SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_BRANCH_HALF_WIDTH_M - 0.14;
+  const innerRailPositions: number[] = [];
+  const skirtPositions: number[] = [];
+  const skirtIndices: number[] = [];
 
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
@@ -101,10 +105,20 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
     }
     railPositions.push(SKY_TREE.x + cx * outerRailR, y + 0.72, SKY_TREE.z + sz * outerRailR);
     railPositions.push(SKY_TREE.x + cx * outerRailR, y + 0.86, SKY_TREE.z + sz * outerRailR);
+    innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.72, SKY_TREE.z + sz * innerRailR);
+    innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.86, SKY_TREE.z + sz * innerRailR);
+    // Side skirts: a plank-thick wall under each edge of the walkway, so it reads as a built stair, not a sheet.
+    for (const edgeR of [SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_BRANCH_HALF_WIDTH_M, SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M]) {
+      skirtPositions.push(SKY_TREE.x + cx * edgeR, y - 0.12, SKY_TREE.z + sz * edgeR);
+      skirtPositions.push(SKY_TREE.x + cx * edgeR, y - 0.5, SKY_TREE.z + sz * edgeR);
+    }
     if (i < steps) {
       const a = i * 2;
       indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
       railIndices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      // Skirt strips: inner edge uses vertices 0..1 of each pair of slots, outer edge 2..3.
+      const s = i * 4;
+      skirtIndices.push(s, s + 1, s + 4, s + 1, s + 5, s + 4, s + 2, s + 3, s + 6, s + 3, s + 7, s + 6);
     }
   }
   const branchGeo = new THREE.BufferGeometry();
@@ -118,30 +132,53 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   railGeo.setIndex(railIndices);
   railGeo.computeVertexNormals();
   const railMesh = new THREE.Mesh(railGeo, branchMat);
-  group.add(branch, railMesh);
 
-  // 2. Individual 3D horizontal carved wooden stair treads along the spiral (`STAIR_TREADS_COUNT = 112`).
+  const innerRailGeo = new THREE.BufferGeometry();
+  innerRailGeo.setAttribute('position', new THREE.Float32BufferAttribute(innerRailPositions, 3));
+  innerRailGeo.setIndex(railIndices);
+  innerRailGeo.computeVertexNormals();
+  const innerRailMesh = new THREE.Mesh(innerRailGeo, branchMat);
+
+  const skirtGeo = new THREE.BufferGeometry();
+  skirtGeo.setAttribute('position', new THREE.Float32BufferAttribute(skirtPositions, 3));
+  skirtGeo.setIndex(skirtIndices);
+  skirtGeo.computeVertexNormals();
+  const skirtMesh = new THREE.Mesh(skirtGeo, barkMat);
+  skirtMesh.material = barkMat.clone();
+  (skirtMesh.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+  ctx.disposableMaterials.push(skirtMesh.material as THREE.MeshStandardMaterial);
+  group.add(branch, railMesh, innerRailMesh, skirtMesh);
+
+  // 2. Wooden planks laid flush on the walkable ramp: each plank is tilted to the ramp's slope, so the surface you see
+  //    is the surface you stand on. Thin gaps between planks give the stair its rhythm.
   const treadMeshes = new THREE.InstancedMesh(boxGeo, treadMat, STAIR_TREADS_COUNT);
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
+  const tilt = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
+  const alongZ = new THREE.Vector3(0, 0, 1);
   const sweep = SKY_TREE_TURNS * Math.PI * 2;
-  const treadDepth = (SKY_TREE_SPIRAL_RADIUS_M * sweep) / STAIR_TREADS_COUNT;
-  const treadWidth = SKY_TREE_BRANCH_HALF_WIDTH_M * 1.96;
+  const pathLength = SKY_TREE_SPIRAL_RADIUS_M * sweep;
+  const treadPitch = pathLength / STAIR_TREADS_COUNT;
+  const slope = Math.atan2(height, pathLength);
+  const plankThickness = 0.14;
+  const treadWidth = SKY_TREE_BRANCH_HALF_WIDTH_M * 2;
 
   for (let i = 0; i < STAIR_TREADS_COUNT; i++) {
     const u = (i + 0.5) / STAIR_TREADS_COUNT;
     const theta = u * sweep;
     const y = SKY_TREE.baseY + height * u;
     q.setFromAxisAngle(up, Math.atan2(-Math.cos(theta), -Math.sin(theta)));
+    tilt.setFromAxisAngle(alongZ, slope);
+    q.multiply(tilt);
     m.compose(
       new THREE.Vector3(
         SKY_TREE.x + Math.cos(theta) * SKY_TREE_SPIRAL_RADIUS_M,
-        y - 0.08,
+        y + plankThickness / 2 - 0.1,
         SKY_TREE.z + Math.sin(theta) * SKY_TREE_SPIRAL_RADIUS_M
       ),
       q,
-      new THREE.Vector3(treadDepth * 1.05, 0.18, treadWidth)
+      new THREE.Vector3(treadPitch * 0.92, plankThickness, treadWidth)
     );
     treadMeshes.setMatrixAt(i, m);
   }
@@ -159,26 +196,17 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   portalRune.position.set(entryX, SKY_TREE.baseY + 1.9, entryZ);
   group.add(portalArch, portalRune);
 
-  // 4. Radial bough struts connecting the central trunk to the underside of the spiral path, plus outer balustrade posts.
-  const strutCount = 28;
-  for (let i = 1; i <= strutCount; i++) {
-    const t = i / (strutCount + 1);
+  // 4. Balustrade posts along both handrails.
+  const postCount = 56;
+  for (let i = 1; i <= postCount; i++) {
+    const t = i / (postCount + 1);
     const theta = t * 2 * Math.PI * SKY_TREE_TURNS;
     const y = SKY_TREE.baseY + height * t;
-    const cx = Math.cos(theta);
-    const sz = Math.sin(theta);
-
-    const strutLen = SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_TRUNK_HALF_M * 0.8;
-    const midR = SKY_TREE_TRUNK_HALF_M * 0.8 + strutLen * 0.5;
-    const strut = new THREE.Mesh(strutGeo, barkMat);
-    strut.scale.set(1, strutLen, 1);
-    strut.position.set(SKY_TREE.x + cx * midR, y - 0.65, SKY_TREE.z + sz * midR);
-    strut.rotation.set(0, -theta, Math.PI / 2 - 0.25);
-    group.add(strut);
-
-    const post = new THREE.Mesh(postGeo, barkMat);
-    post.position.set(SKY_TREE.x + cx * outerRailR, y + 0.42, SKY_TREE.z + sz * outerRailR);
-    group.add(post);
+    for (const railR of [outerRailR, innerRailR]) {
+      const post = new THREE.Mesh(postGeo, barkMat);
+      post.position.set(SKY_TREE.x + Math.cos(theta) * railR, y + 0.42, SKY_TREE.z + Math.sin(theta) * railR);
+      group.add(post);
+    }
   }
 
   // Top observation platform with golden rune trim and central floating crystal spire.
@@ -194,7 +222,7 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   topCrystal.position.set(SKY_TREE.x, SKY_TREE.topY + 3.4, SKY_TREE.z);
   group.add(top, topRing, topCrystal);
 
-  ctx.disposableGeometries.push(trunkGeo, ribGeo, strutGeo, postGeo, shardGeo, boxGeo, portalArchGeo, branchGeo, railGeo, topGeo, topRingGeo);
+  ctx.disposableGeometries.push(trunkGeo, ribGeo, postGeo, shardGeo, boxGeo, portalArchGeo, branchGeo, railGeo, innerRailGeo, skirtGeo, topGeo, topRingGeo);
   ctx.disposableMaterials.push(barkMat, branchMat, treadMat, topMat, runeMat, goldMat);
   return { group };
 }
