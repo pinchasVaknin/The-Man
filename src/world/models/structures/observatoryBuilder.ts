@@ -40,7 +40,6 @@ import {
 } from '../../domain/landmarksRegistry';
 import {
   boxMesh,
-  buildInstancedSkyTrees,
   buildRailInstances,
   createMaterials,
   deckSlab,
@@ -149,7 +148,7 @@ export function buildObservatory(ctx: IWorldModelBuildContext): IObservatoryBuil
 // #endregion
 
 // ======================== PRIVATE HELPERS ======================== \\
-// #region Cosmic Starfield Ground Mosaic & Starlight Trees
+// #region Cosmic Starfield Ground Mosaic
 function buildStarryObservatoryGround(
   ctx: IWorldModelBuildContext,
   _mats: IHarborMaterials,
@@ -305,12 +304,6 @@ function buildStarryObservatoryGround(
   if (stars.instanceColor) stars.instanceColor.needsUpdate = true;
   stars.computeBoundingSphere();
   group.add(stars);
-
-  // Memory-optimized instanced world trees on the outer NW and SE cliff rims (outside all puzzle sightlines).
-  buildInstancedSkyTrees(ctx, group, [
-    { x: ISLAND.x - 16.5, y: DECK_Y, z: ISLAND.z - 10.5, scale: 0.88, style: 'pine' },
-    { x: ISLAND.x + 16.5, y: DECK_Y, z: ISLAND.z + 10.5, scale: 0.85, style: 'pine' },
-  ]);
 }
 // #endregion
 
