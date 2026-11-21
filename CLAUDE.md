@@ -11,3 +11,7 @@ Before planning or changing code in this repository:
 Existing code keeps its current style unless the task is to refactor it. New code follows the standards.
 Edit this project's rules in `.standards/profile.md`, not inside this block: the block is rewritten on re-install.
 <!-- build-protocol:end -->
+
+## Dependencies
+
+npm and `package-lock.json` are the only official dependency manager. Running `bun` locally is fine, but `bun.lock` and `bun.lockb` are git-ignored and must never be committed or pushed; every install or change of a package goes through `npm` and is recorded in `package-lock.json`. The rule lives in `.standards/profile.md`.

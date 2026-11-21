@@ -14,3 +14,7 @@ graphify-out/
 
 # AI Studio sync folder (not used by the app, removed from dist by vite.config.ts)
 public/assets/aistudio/
+
+# npm and package-lock.json are the only dependency manager; bun may be used locally but its lockfiles never go to git
+bun.lock
+bun.lockb
