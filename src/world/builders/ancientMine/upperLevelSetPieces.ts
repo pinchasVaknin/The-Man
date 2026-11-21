@@ -292,7 +292,7 @@ function buildPortal(kit: Kit, ctx: ISetPieceContext): void {
 
 // #region Starting Hall Grand Overhead Chandeliers & Dwarven Market Stalls
 /**
- * Summary: Builds 6 colossal multi-tiered Dwarven iron-and-gold overhead chandeliers (`נברשות ענק`)
+ * Summary: Builds 6 colossal multi-tiered Dwarven iron-and-gold overhead chandeliers
  *          suspended from the domed ceiling of the starting hall (`upper-central-hub`) for bright warm
  *          illumination, plus 3 detailed Dwarven Market Stalls along the West Entry Promenade (`lx = -11.5`):
  *          1. Weapons & Armor Stall (`lz = 49.0`): hammers, battle axes, shields, and horned helmets.
@@ -472,7 +472,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     const stall1 = buildStallFrame(49.0, m.gold);
     const cy = 1.174;
 
-    // 1a. Dwarven Warhammer (`פטיש קרב גמדים`) on the south end of the counter
+    // 1a. Dwarven Warhammer on the south end of the counter
     const hammer = new THREE.Group();
     hammer.position.set(0.18, cy + 0.08, -1.25);
     hammer.rotation.y = 0.35;
@@ -481,7 +481,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     kit.box(0.44, 0.24, 0.26, m.iron, 0, 0.04, -0.38, hammer);
     kit.box(0.48, 0.08, 0.28, m.gold, 0, 0.12, -0.38, hammer);
 
-    // 1b. Double-Bit Dwarven Battle Axe (`גרזן קרב דו-להבי`) in the center-south of the counter
+    // 1b. Double-Bit Dwarven Battle Axe in the center-south of the counter
     const axe = new THREE.Group();
     axe.position.set(0.22, cy + 0.06, -0.35);
     axe.rotation.y = -0.25;
@@ -490,7 +490,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     kit.box(0.68, 0.06, 0.38, m.iron, 0, 0.02, -0.36, axe);
     kit.box(0.72, 0.04, 0.12, m.gold, 0, 0.03, -0.36, axe);
 
-    // 1c. Round Iron & Gold Dwarven Shield (`מגן גמדים`) propped on an angled display stand
+    // 1c. Round Iron & Gold Dwarven Shield propped on an angled display stand
     const shield = new THREE.Group();
     shield.position.set(0.15, cy + 0.38, 0.55);
     shield.rotation.z = -0.45;
@@ -505,7 +505,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     shieldBoss.position.set(0.04, 0, 0);
     shield.add(shieldBoss);
 
-    // 1d. Horned Dwarven Helmet (`קסדת גמדים`) on an armor stand bust on the north end of the counter
+    // 1d. Horned Dwarven Helmet on an armor stand bust on the north end of the counter
     const helm = new THREE.Group();
     helm.position.set(0.18, cy, 1.38);
     stall1.add(helm);
@@ -535,7 +535,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     const stall2 = buildStallFrame(56.5, diamondMat);
     const cy = 1.174;
 
-    // 2a. Stacked Pyramid of Gleaming Gold Ingots (`מטילי זהב`) on the south side of the counter
+    // 2a. Stacked Pyramid of Gleaming Gold Ingots on the south side of the counter
     for (let row = 0; row < 3; row++) {
       const count = 3 - row;
       for (let k = 0; k < count; k++) {
@@ -552,7 +552,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
       }
     }
 
-    // 2b. Velvet Display Cushion with Brilliantly Glowing Faceted Diamonds (`יהלומים זוהרים`) — stacked without overlap
+    // 2b. Velvet Display Cushion with Brilliantly Glowing Faceted Diamonds — stacked without overlap
     kit.box(0.58, 0.028, 0.88, m.gold, 0.22, cy, -0.35, stall2);
     kit.box(0.52, 0.042, 0.82, m.darkStone, 0.22, cy + 0.028, -0.35, stall2);
     const diaGeo = ctx.own(new THREE.OctahedronGeometry(0.16, 0));
@@ -569,7 +569,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
       stall2.add(dia);
     }
 
-    // 2c. Brass Jeweler's Balance Scale (`מאזני שקילה לזהב ויהלומים`) in the center-north
+    // 2c. Brass Jeweler's Balance Scale in the center-north
     const scaleGrp = new THREE.Group();
     scaleGrp.position.set(0.2, cy, 0.55);
     stall2.add(scaleGrp);
@@ -608,7 +608,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     const stall3 = buildStallFrame(64.0, m.iron);
     const cy = 1.174;
 
-    // 3a. Heavy Dwarven Pickaxe & Glowing Mithril Pickaxe (`מקוש גמדים ומקוש מית'ריל`) on display stands
+    // 3a. Heavy Dwarven Pickaxe & Glowing Mithril Pickaxe on display stands
     for (const [pz, headMat] of [
       [-1.35, m.iron],
       [-0.75, mithrilMat],
@@ -622,12 +622,12 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
       kit.box(0.14, 0.11, 0.14, m.gold, 0, 0.02, -0.36, pick);
     }
 
-    // 3b. Dwarven Stone-Carving Chisel Set & Mallet (`ערכת אזמלים ופטישי סיתות`)
+    // 3b. Dwarven Stone-Carving Chisel Set & Mallet
     for (let c = 0; c < 4; c++) {
       kit.box(0.38, 0.04, 0.05, c % 2 === 0 ? m.iron : m.gold, 0.22, cy + 0.02, -0.15 + c * 0.11, stall3);
     }
 
-    // 3c. Mechanical Rotary Crystal-Core Drill (`מקדח גבישים מכני`) in the center-north
+    // 3c. Mechanical Rotary Crystal-Core Drill in the center-north
     const drill = new THREE.Group();
     drill.position.set(0.22, cy + 0.18, 0.68);
     stall3.add(drill);
@@ -639,7 +639,7 @@ function buildStartingHallChandeliersAndMarketStalls(kit: Kit, ctx: ISetPieceCon
     drillBit.position.set(0.32, 0.0, 0);
     drill.add(drillBit);
 
-    // 3d. Brass Prospector's Rune Lantern (`עששית כורים`) on the north corner of the counter
+    // 3d. Brass Prospector's Rune Lantern on the north corner of the counter
     const lantern = new THREE.Group();
     lantern.position.set(0.24, cy, 1.45);
     stall3.add(lantern);
@@ -2218,7 +2218,7 @@ function buildGalleries(
   ctx.addLight(173.0, DM + 6.5, -42.0, 0xbae6fd, 10.0);
 
   // ===========================================================================
-  // ROOM 2 (RIGHT BRANCH): GRAND DWARVEN STORAGE WAREHOUSE WITH MANY CABINETS (`מחסן עם המון ארונות`)
+  // ROOM 2 (RIGHT BRANCH): GRAND DWARVEN STORAGE WAREHOUSE WITH MANY CABINETS
   // (`mazarbul-tomb-hall`, lx: 148..192, lz: 96..130, y = -17.35)
   // ===========================================================================
   // 6 Colossal Moria Carved Stone & Gold Columns inside the Warehouse (`ceilingY = -5.5`, height = 11.85m)
@@ -2235,7 +2235,7 @@ function buildGalleries(
     }
   }
 
-  // Helper to build a tall Dwarven Oak, Iron & Gold Storage Cabinet (`ארון אחסון גמדים גבוה`)
+  // Helper to build a tall Dwarven Oak, Iron & Gold Storage Cabinet
   // Width along local Z = 3.6m, Depth along local X = 1.35m, Height = 4.2m, rotated by `yaw`
   const buildDwarvenStorageCabinet = (
     cx: number,

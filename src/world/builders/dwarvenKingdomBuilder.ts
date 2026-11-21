@@ -828,7 +828,7 @@ export function buildDwarvenKingdomAndMiners(
   const dhBedBlanketGeo = new THREE.BoxGeometry(1.4, 0.08, 1.38);
   const dhBedPillowGeo = new THREE.BoxGeometry(0.96, 0.14, 0.42);
 
-  // Proper Dwarven Wooden Bench geometries (`ספסלים נורמליים` with seat, 4 legs, stretcher & backrest)
+  // Proper Dwarven Wooden Bench geometries (with seat, 4 legs, stretcher & backrest)
   const dhBenchSeatGeo = new THREE.BoxGeometry(1.85, 0.09, 0.54);
   const dhBenchBackGeo = new THREE.BoxGeometry(1.85, 0.46, 0.08);
   const dhBenchLegGeo = new THREE.BoxGeometry(0.11, 0.44, 0.11);
@@ -1002,7 +1002,7 @@ export function buildDwarvenKingdomAndMiners(
       dhGroup.add(bed);
     }
 
-    // 2 Proper Indoor Wooden Benches (`ספסלים נורמליים`) + 4-Legged Oak Table in the North-Front nook
+    // 2 Proper Indoor Wooden Benches + 4-Legged Oak Table in the North-Front nook
     const benchNorth = createDwarvenWoodenBench();
     benchNorth.position.set(dh.dirX * 1.55, 0.18, -2.55);
     benchNorth.rotation.y = 0; // Backrest toward North (-Z), faces South (+Z)
@@ -1024,7 +1024,7 @@ export function buildDwarvenKingdomAndMiners(
       }
     }
 
-    // Outdoor Porch Wooden Bench (`ספסל עץ נורמלי`) facing the Dwarven King's Road
+    // Outdoor Porch Wooden Bench facing the Dwarven King's Road
     const porchBench = createDwarvenWoodenBench();
     porchBench.position.set(dh.dirX * (dh.halfW + 1.35), 0.02, -2.45);
     porchBench.rotation.y = dh.dirX === 1 ? Math.PI / 2 : -Math.PI / 2;

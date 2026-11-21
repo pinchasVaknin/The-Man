@@ -7,7 +7,7 @@
 //         2) Renovated Royal Celestial Sky-Galleon airship with sculpted planked hull, golden
 //            strakes, bow figurehead, windowed captain's cabin, helm wheel, ribbed dirigible
 //            envelope with tail fins, and twin brass engine nacelles with spinning propellers.
-//         3) Sky-Bike / Hoverbike Merchant Shop ("חנות אופנועי אוויר") on the dock plaza with
+//         3) Sky-Bike / Hoverbike Merchant Shop on the dock plaza with
 //            a steampunk workshop stall, aviator merchant NPC, and hovering aero-cycles.
 // SUMMARY: Builds the Sky Dock, Hoverbike Shop, netted hot-air balloons, and moored airship.
 // ============================================================================
@@ -249,7 +249,7 @@ export function buildSkyDock(
     ]);
   }
 
-  // 5. Sky-Bike / Hoverbike Merchant Shop ("חנות אופנועי אוויר") on the Dock Apron facing inward toward Sky Harbor
+  // 5. Sky-Bike / Hoverbike Merchant Shop on the Dock Apron facing inward toward Sky Harbor
   const { hoverbikes, spawnedHoverbike, merchantNpc } = buildHoverbikeShop(ctx, mats, box, group);
 
   return { airship, propellers, balloons, hoverbikes, spawnedHoverbike, merchantNpc };
@@ -459,7 +459,7 @@ function buildMooredAirship(
 // ======================== HOVERBIKE / SKY-BIKE MERCHANT SHOP ======================== \\
 // #region Hoverbike Emporium
 /**
- * Summary: Builds a single Aether Hoverbike ("אופנוע אוויר אתרי") 3D model oriented with its
+ * Summary: Builds a single Aether Hoverbike 3D model oriented with its
  *          nose along `+Z` so `rotation.y = yaw` points directly along `(sin(yaw), 0, cos(yaw))`.
  */
 function createAetherHoverbikeMesh(
@@ -537,7 +537,7 @@ function createAetherHoverbikeMesh(
 }
 
 /**
- * Summary: Builds the Sky-Bike / Hoverbike Merchant Stall ("סדנת אופנועי אוויר") on the raised
+ * Summary: Builds the Sky-Bike / Hoverbike Merchant Stall on the raised
  *          timber dock apron leading to the pier, with its open front (`+Z`) facing inward toward
  *          the interior of Sky Harbor, 1 display hoverbike model, a dock launch pad, and 1 world-space
  *          rideable/flyable hoverbike.
@@ -639,7 +639,7 @@ function buildHoverbikeShop(
   merchantNpc.add(legs, torso, apron, shoulders, head, cap, goggles, rightArm, leftArm);
   shopRoot.add(merchantNpc);
 
-  // 3. Single Showroom Display Hoverbike ("אופנוע אוויר אתרי") inside the Pavilion beside the Counter
+  // 3. Single Showroom Display Hoverbike inside the Pavilion beside the Counter
   const hoverbikes: THREE.Group[] = [];
   const showroomPad = new THREE.Mesh(padBaseGeo, mats.darkStone);
   showroomPad.scale.set(0.82, 1, 0.82);

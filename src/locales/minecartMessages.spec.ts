@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { t } from './index';
+import { containsHebrew } from '../tooling/hebrewGuard';
 
 const KEYS = ['switch_left', 'switch_right', 'turn_left', 'turn_right', 'fork_ahead'] as const;
 
@@ -15,7 +16,7 @@ for (const key of KEYS) {
     const text = t(`minecart.${key}`);
 
     assert.notEqual(text, `minecart.${key}`, 'the key must exist in the dictionary');
-    assert.ok(!/[֐-׿]/.test(text), `"${text}" must be English`);
+    assert.ok(!containsHebrew(text), `"${text}" must be English`);
     assert.ok(/\[[AD]\]/.test(text), `"${text}" must name the A or D key`);
   });
 }

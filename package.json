@@ -10,6 +10,7 @@
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
     "graph:status": "node scripts/graphStatus.mjs",
+    "check:hebrew": "tsx scripts/checkNoHebrew.ts",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "test": "tsx --test \"src/**/*.spec.ts\" \"src/**/*.test.ts\""
   },

@@ -1,7 +1,7 @@
 // ============================================================================
 // MODULE: World / Systems / Sky-Harbor Aether Hoverbike System
 // DESIGN: Pure state & 3D flight/hover physics for the Sky-Harbor Aether Hoverbike
-//         ("אופנוע אוויר אתרי") sold by the Aviator Mechanic on the Sky Harbor Dock.
+//         sold by the Aviator Mechanic on the Sky Harbor Dock.
 //         Supports 1 hoverbike model type, interactive merchant purchase/recall,
 //         repulsor ground-hover driving ([W/S/A/D] + mouse steer), and full 3D aerial
 //         flight ([Space] ascend, [C]/[Ctrl] descend, [Shift] aether afterburner boost).

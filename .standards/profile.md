@@ -84,6 +84,7 @@
      Example: - security/anti-dos max-page-size: 500 (admin export needs it) -->
 - architecture/hot-path: 60 FPS animation loop and per-tick physics updates in src/world/systems/
 - dependencies: npm and package-lock.json are the only official dependency manager. bun may be run locally to speed up scripts or checks, but bun.lock and bun.lockb are git-ignored and must never be committed or pushed; every install or change of a package goes through npm and is recorded in package-lock.json.
+- language/hebrew: no Hebrew anywhere in the repository (code, comments, strings, docs); UI text is English in src/locales/en.ts. src/tooling/hebrewGuard.spec.ts fails on any Hebrew letter in a tracked text file, `npm run check:hebrew` lists them, and .githooks/pre-commit blocks a commit that stages one.
 - architecture/creatures: an animated creature (createReady<Animal>, createReadyDwarfWarrior, createReadyWarriorMonk) is created only by the system that owns its behavior (wildlife, mounts, dragons, bird flocks, dwarf and monk AI). A lifeless look, such as a statue or a baked dragon head, goes through createStaticStatue or createStaticDragonPose in src/world/models/statues. Never place a swimming or walking model as decoration. src/world/creatureBoundary.spec.ts enforces this; a new species needs an entry in SPECIES_PROFILES (src/world/systems/wildlifeSpeciesProfiles.ts).
 
 ## Protected paths

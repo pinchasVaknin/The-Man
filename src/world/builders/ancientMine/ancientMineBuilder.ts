@@ -174,7 +174,7 @@ export function buildAncientMine(ctx: IAncientMineBuildContext): IAncientMineHan
     goldRing.position.set(x, y - 0.13, z);
     group.add(goldRing);
 
-    // Thick, warm-lit oak wooden torch stick (`המקל של הלפיד`) extending down from the burner cup
+    // Thick, warm-lit oak wooden torch stick extending down from the burner cup
     const stick = new THREE.Mesh(torchStickGeo, torchWoodMat);
     stick.position.set(x, y - 0.72, z);
     group.add(stick);

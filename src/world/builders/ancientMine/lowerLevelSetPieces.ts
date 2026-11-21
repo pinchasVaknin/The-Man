@@ -740,7 +740,7 @@ function buildGreatHallCircularStaircaseChamber(
     [109.65, -63.35, 243.2, -1, 0],
   ]);
 
-  // 4) DWARVEN WAR ROOM (חדר מלחמה) AT THE BOTTOM OF THE SPIRAL STAIRS (lx = 102..138, lz = 244..276, y = -63.35)
+  // 4) DWARVEN WAR ROOM AT THE BOTTOM OF THE SPIRAL STAIRS (lx = 102..138, lz = 244..276, y = -63.35)
   const sanctumColH = 21.35; // Reaches ceilingY = -42.0
   const crimsonMat = new THREE.MeshStandardMaterial({
     color: 0x991b1b,
@@ -832,7 +832,7 @@ function buildGreatHallCircularStaircaseChamber(
     }
   }
 
-  // 4d) TWIN CEREMONIAL DWARVEN WAR DRUMS ("תופי מלחמה גמדיים") AT THE NORTH FLANK (lx = 114.5 & 125.5, lz = 247.2)
+  // 4d) TWIN CEREMONIAL DWARVEN WAR DRUMS AT THE NORTH FLANK (lx = 114.5 & 125.5, lz = 247.2)
   const drumHeadMat = new THREE.MeshStandardMaterial({ color: 0xe7d8b9, roughness: 0.75 });
   ctx.ownMaterial(drumHeadMat);
   for (const drumX of [114.5, 125.5] as const) {

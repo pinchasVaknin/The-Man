@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks a commit that stages Hebrew text (see scripts/checkNoHebrew.ts and src/tooling/hebrewGuard.ts).
+command -v npx >/dev/null 2>&1 || exit 0
+npx --no-install tsx scripts/checkNoHebrew.ts --staged || exit 1

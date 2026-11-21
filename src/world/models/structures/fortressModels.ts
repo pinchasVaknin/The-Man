@@ -1172,7 +1172,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     pInner.position.set(pavCarpetCenterX, pavFloor2Y + 0.025, pavCenterZ);
     fortressGroup.add(pBorder, pInner);
 
-    // Straw Beds (מיטות קש) on the 1st Floor Barracks (for the Guard Shift Rotation monks) and 2nd Floor Dormitory
+    // Straw Beds on the 1st Floor Barracks (for the Guard Shift Rotation monks) and 2nd Floor Dormitory
     const strawMat = new THREE.MeshStandardMaterial({
       color: 0xd9a441,
       roughness: 0.92,
@@ -1509,7 +1509,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     fortressGroup.add(targetGroup);
   }
 
-  // --- 8) MONASTERY WOODEN BENCHES (ספסלים) & WARRIOR MONKS WITH GUARD SHIFT ROTATION (שומרים בחילוף) ---
+  // --- 8) MONASTERY WOODEN BENCHES & WARRIOR MONKS WITH GUARD SHIFT ROTATION ---
   const monkBenchWoodMat = new THREE.MeshStandardMaterial({
     color: 0x5c2c16,
     roughness: 0.78,

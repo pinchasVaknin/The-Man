@@ -15,3 +15,7 @@ Edit this project's rules in `.standards/profile.md`, not inside this block: the
 ## Dependencies
 
 npm and `package-lock.json` are the only official dependency manager. Running `bun` locally is fine, but `bun.lock` and `bun.lockb` are git-ignored and must never be committed or pushed; every install or change of a package goes through `npm` and is recorded in `package-lock.json`. The rule lives in `.standards/profile.md`.
+
+## Language
+
+No Hebrew anywhere in the repository: code, comments, strings and docs are English, and UI text lives in `src/locales/en.ts`. This is enforced: `src/tooling/hebrewGuard.spec.ts` fails on any Hebrew letter in a tracked text file, `npm run check:hebrew` lists the lines, and the `.githooks/pre-commit` hook blocks a commit that stages one. Chat with the user may be in Hebrew; nothing in the files may be.
