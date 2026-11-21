@@ -39,12 +39,12 @@ import {
 import {
   SKY_TREE_HOLLOW_ENTRANCE,
   SKY_TREE_ROOT_CLIMB_START,
+  GARDEN_FOOTBRIDGE,
 } from '../../domain/landmarks/skyboundIsles/floatingGardenLayout';
 import {
   boxMesh,
   buildInstancedSkyTrees,
   buildRailInstances,
-  buildSteppedPathway,
   createMaterials,
   deckSlab,
   rampSlab,
@@ -58,7 +58,7 @@ import type { IWorldModelBuildContext } from '../types';
 /** Summary: What the Floating Garden builder hands back to the frame loop. */
 export interface IFloatingGardenBuildResult {
   readonly group: THREE.Group;
-  /** Animates the waterfalls, their mist, and the World Tree's glowing runes & crystals. */
+  /** Animates the waterfalls, their mist, and the World Tree's glowing runes. */
   readonly update: (elapsedSec: number) => void;
 }
 // #endregion
@@ -109,8 +109,6 @@ export function buildFloatingGarden(ctx: IWorldModelBuildContext): IFloatingGard
       });
       waterfall.caveGlow.emissiveIntensity = 1.25 + Math.sin(elapsedSec * 1.7) * 0.35;
       treeAnim.runeMat.emissiveIntensity = 1.6 + Math.sin(elapsedSec * 2.1) * 0.45;
-      treeAnim.heartCrystal.rotation.y = elapsedSec * 0.65;
-      treeAnim.heartCrystal.position.y = SKY_TREE_CROWN.y + 2.3 + Math.sin(elapsedSec * 1.8) * 0.22;
     },
   };
 }
@@ -121,11 +119,10 @@ export function buildFloatingGarden(ctx: IWorldModelBuildContext): IFloatingGard
 function buildLakeAndStream(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
   const discGeo = new THREE.CylinderGeometry(1, 1, 0.08, 40);
   const padGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.04, 12, 1, false, 0.4, Math.PI * 1.8);
-  const archGeo = new THREE.TorusGeometry(2.2, 0.28, 8, 24, Math.PI);
   const rockGeo = new THREE.DodecahedronGeometry(1, 1);
   const springFallGeo = new THREE.CylinderGeometry(0.65, 1.35, 5.8, 12, 1, true);
   const mistPuffGeo = new THREE.IcosahedronGeometry(1, 1);
-  ctx.disposableGeometries.push(discGeo, padGeo, archGeo, rockGeo, springFallGeo, mistPuffGeo);
+  ctx.disposableGeometries.push(discGeo, padGeo, rockGeo, springFallGeo, mistPuffGeo);
 
   // Foreground Lake at the front-west of the island (`GARDEN_LAKE`).
   const lake = new THREE.Mesh(discGeo, mats.water);
@@ -203,30 +200,21 @@ function buildLakeAndStream(ctx: IWorldModelBuildContext, mats: IHarborMaterials
   group.add(boxMesh(box, mats.stone, s.x, DECK_Y + DECAL_LIFT_M, (s.fromZ + s.toZ) / 2, s.halfWidth * 2 + 1.1, 0.08, length));
   group.add(boxMesh(box, mats.water, s.x, DECK_Y + DECAL_LIFT_M * 3, (s.fromZ + s.toZ) / 2, s.halfWidth * 2, 0.08, length));
 
-  // Ornate stepped stone-and-gold arched footbridge over the stream at `z = GARDEN.z + 2.0`, connecting the central plaza to the west side.
-  const bridgeZ = GARDEN.z + 2.0;
-  const arch = new THREE.Mesh(archGeo, mats.stone);
-  arch.scale.set(1.35, 0.42, 1.85);
-  arch.position.set(s.x, DECK_Y + 0.04, bridgeZ);
-  arch.rotation.y = Math.PI / 2;
-  group.add(arch);
-
-  for (let step = -4; step <= 4; step++) {
-    const sx = s.x + step * 0.65;
-    const h = Math.max(0.06, 0.42 - Math.abs(step) * 0.08);
-    group.add(boxMesh(box, mats.marble, sx, DECK_Y + h, bridgeZ, 0.56, 0.1, 2.5));
-    group.add(boxMesh(box, mats.gold, sx, DECK_Y + h + 0.06, bridgeZ, 0.48, 0.03, 1.1));
-  }
-  for (const dz of [-1.15, 1.15]) {
-    const rail = new THREE.Mesh(archGeo, mats.gold);
-    rail.scale.set(1.38, 0.52, 0.32);
-    rail.position.set(s.x, DECK_Y + 0.28, bridgeZ + dz);
-    rail.rotation.y = Math.PI / 2;
-    group.add(rail);
-    for (const dx of [-2.6, 0, 2.6]) {
-      const py = dx === 0 ? DECK_Y + 0.95 : DECK_Y + 0.55;
-      group.add(boxMesh(box, mats.marble, s.x + dx, py, bridgeZ + dz, 0.26, 0.85, 0.26));
-      group.add(boxMesh(box, mats.lanternGlow, s.x + dx, py + 0.52, bridgeZ + dz, 0.22, 0.22, 0.22));
+  // Flat marble footbridge over the stream, connecting the central plaza to the west side. The walkway is level
+  // with the deck; the two side railings are real collision rails (see GARDEN_FOOTBRIDGE) and are drawn here
+  // as posts with lanterns and a handrail.
+  const bridge = GARDEN_FOOTBRIDGE;
+  const deckLength = bridge.halfLength * 2;
+  group.add(boxMesh(box, mats.marble, bridge.x, DECK_Y + 0.05, bridge.z, deckLength, 0.1, bridge.halfWidth * 2 + 0.3));
+  group.add(boxMesh(box, mats.gold, bridge.x, DECK_Y + 0.11, bridge.z, deckLength - 0.4, 0.03, 0.9));
+  for (const side of [-1, 1]) {
+    const railZ = bridge.z + side * (bridge.halfWidth + 0.15);
+    group.add(boxMesh(box, mats.gold, bridge.x, DECK_Y + 1.02, railZ, deckLength, 0.08, 0.14));
+    for (const dx of [-bridge.halfLength + 0.15, -bridge.halfLength / 2, 0, bridge.halfLength / 2, bridge.halfLength - 0.15]) {
+      group.add(boxMesh(box, mats.marble, bridge.x + dx, DECK_Y + 0.55, railZ, 0.22, 1.1, 0.22));
+    }
+    for (const dx of [-bridge.halfLength + 0.15, bridge.halfLength - 0.15]) {
+      group.add(boxMesh(box, mats.lanternGlow, bridge.x + dx, DECK_Y + 1.28, railZ, 0.2, 0.2, 0.2));
     }
   }
 }
@@ -363,7 +351,7 @@ function buildColossalWorldTree(
   mats: IHarborMaterials,
   box: THREE.BoxGeometry,
   group: THREE.Group
-): { runeMat: THREE.MeshStandardMaterial; heartCrystal: THREE.Group } {
+): { runeMat: THREE.MeshStandardMaterial } {
   const t = SKY_TREE;
 
   // Deeply grooved procedural bark textures so the colossal World Tree looks organic and ancient.
@@ -595,13 +583,45 @@ function buildColossalWorldTree(
     }
   }
 
-  // Foliage collar ring around the base of the upper trunk (`y = upperStartY + 1.4`).
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
-    const collarLeaf = new THREE.Mesh(canopyGeo, i % 2 === 0 ? emeraldLeafMat : goldLeafMat);
-    collarLeaf.scale.set(4.5, 2.5, 4.5);
-    collarLeaf.position.set(t.x + Math.cos(a) * 9.2, upperStartY + 1.4, t.z + Math.sin(a) * 9.2);
-    group.add(collarLeaf);
+  // Wooden canopy (awning) around the base of the upper trunk (`y = upperStartY + 1.4`), replacing the ring of
+  // leaf blobs: a shallow plank roof sloping outward from the boughs, a heavy rim beam with a gold trim, and
+  // radial rafters underneath. It is a roof only; the crown ring below stays open and walkable.
+  {
+    const roofY = upperStartY + 1.4;
+    const innerR = 6.9;
+    const outerR = 11.2;
+    const rise = 2.1;
+    const roofGeo = new THREE.CylinderGeometry(innerR, outerR, rise, 56, 1, true);
+    const rimGeo = new THREE.TorusGeometry(outerR, 0.26, 8, 56);
+    rimGeo.rotateX(Math.PI / 2);
+    const trimGeo = new THREE.TorusGeometry(outerR + 0.1, 0.07, 6, 56);
+    trimGeo.rotateX(Math.PI / 2);
+    ctx.disposableGeometries.push(roofGeo, rimGeo, trimGeo);
+    const roofMat = mats.wood.clone();
+    roofMat.side = THREE.DoubleSide;
+    ctx.disposableMaterials.push(roofMat);
+
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(t.x, roofY, t.z);
+    roof.castShadow = !ctx.isSoftwareGl;
+    const rim = new THREE.Mesh(rimGeo, mats.darkWood);
+    rim.position.set(t.x, roofY - rise / 2, t.z);
+    const trim = new THREE.Mesh(trimGeo, mats.gold);
+    trim.position.set(t.x, roofY - rise / 2 - 0.02, t.z);
+    group.add(roof, rim, trim);
+
+    // Radial rafters: boxes laid along the slope from the inner edge down to the rim.
+    const rafterCount = 16;
+    const slope = Math.atan2(rise, outerR - innerR);
+    const rafterLength = Math.hypot(outerR - innerR, rise);
+    for (let i = 0; i < rafterCount; i++) {
+      const a = (i / rafterCount) * Math.PI * 2;
+      const midR = (innerR + outerR) / 2;
+      const rafter = boxMesh(box, mats.darkWood, 0, 0, 0, rafterLength, 0.22, 0.3);
+      rafter.position.set(t.x + Math.cos(a) * midR, roofY - 0.18, t.z + Math.sin(a) * midR);
+      rafter.rotation.set(0, -a, -slope, 'YZX');
+      group.add(rafter);
+    }
   }
 
   // 4. Fourteen monumental primary canopy branches fanning out to `r = 48m` wrapping around the island!
@@ -673,22 +693,6 @@ function buildColossalWorldTree(
   outerRim.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y + 0.08, SKY_TREE_CROWN.z);
   group.add(innerRim, outerRim);
 
-  // Floating Heart Crystal of the World Tree hovering above the East side of the crown sanctum (`wind-core-garden`).
-  const heartCrystal = new THREE.Group();
-  heartCrystal.position.set(SKY_TREE.x + 5.8, SKY_TREE_CROWN.y + 2.3, SKY_TREE.z);
-  const mainShard = new THREE.Mesh(crystalGeo, crystalMat);
-  mainShard.scale.set(0.75, 1.9, 0.75);
-  heartCrystal.add(mainShard);
-  for (let k = 0; k < 4; k++) {
-    const a = (k / 4) * Math.PI * 2;
-    const sub = new THREE.Mesh(crystalGeo, runeMat);
-    sub.scale.set(0.32, 0.95, 0.32);
-    sub.position.set(Math.cos(a) * 0.7, -0.3, Math.sin(a) * 0.7);
-    sub.rotation.z = (k % 2 === 0 ? 1 : -1) * 0.35;
-    heartCrystal.add(sub);
-  }
-  group.add(heartCrystal);
-
   // Ornate Treasure Chest on the South rim of the Crown Sanctum (`SKY_TREE_HOLLOW_CHEST_SPOT`).
   const cs = SKY_TREE_HOLLOW_CHEST_SPOT;
   group.add(boxMesh(box, mats.stone, cs.x, cs.y + 0.12, cs.z, 1.5, 0.24, 1.1));
@@ -719,7 +723,7 @@ function buildColossalWorldTree(
     }
   }
 
-  return { runeMat, heartCrystal };
+  return { runeMat };
 }
 
 /** Builds each exterior tree climb platform supported by an organic tree bough growing out of the World Tree trunk, plus a golden rim & guiding lantern. */
@@ -849,56 +853,9 @@ function buildRootPath(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box
 }
 // #endregion
 
-// #region Dressing, Real 3D Trees & Continuous Stone Pathways
+// #region Dressing And Real 3D Trees
 function buildGardenDressing(ctx: IWorldModelBuildContext, mats: IHarborMaterials, box: THREE.BoxGeometry, group: THREE.Group): void {
-  const towerCylGeo = new THREE.CylinderGeometry(2.2, 2.5, 8.5, 12);
-  const towerRoofGeo = new THREE.ConeGeometry(2.7, 3.2, 12);
-  ctx.disposableGeometries.push(towerCylGeo, towerRoofGeo);
-
-  const goldAccentMat = new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xf59e0b, emissiveIntensity: 0.55, roughness: 0.6 });
-  const cyanAccentMat = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x06b6d4, emissiveIntensity: 0.55, roughness: 0.55 });
-  ctx.disposableMaterials.push(goldAccentMat, cyanAccentMat);
-
-  // 1. Clean continuous stone pathways leading from the open front arrival plaza past the foreground lake
-  //    to the central plaza in front of the World Tree (`(wx(6), wz(1.5))`), where the player can either walk
-  //    straight into the wide hollow trunk (`SKY_TREE_HOLLOW_ENTRANCE`) or head east around the trunk to climb
-  //    the exterior branches (`SKY_TREE_ROOT_CLIMB_START`), or cross the stream bridge to the Waterfall Cave!
-  const centralPlaza = [GARDEN.x + 6.0, GARDEN.z + 1.5] as const;
-  const paths = [
-    // Main arrival avenue from the NE front of the island to the central plaza and straight into the hollow World Tree
-    [
-      [GARDEN.x + 15.5, GARDEN.z - 22.0],
-      [GARDEN.x + 8.0, GARDEN.z - 10.0],
-      centralPlaza,
-      [SKY_TREE_HOLLOW_ENTRANCE.x, SKY_TREE_HOLLOW_ENTRANCE.z],
-      [SKY_TREE.x, SKY_TREE.z - 1.5],
-    ],
-    // East branch from the central plaza to the Exterior Tree Climb Start (`SKY_TREE_ROOT_CLIMB_START`)
-    [
-      centralPlaza,
-      [SKY_TREE_ROOT_CLIMB_START.x, SKY_TREE_ROOT_CLIMB_START.z],
-    ],
-    // West avenue from the central plaza across the Stream Footbridge (`z = wz(2.0)`) to the Waterfall Cave Staircase
-    [
-      centralPlaza,
-      [GARDEN_STREAM.x + 2.8, GARDEN.z + 2.0],
-      [GARDEN_STREAM.x - 2.8, GARDEN.z + 2.0],
-      [GARDEN.x - 19.5, GARDEN.z + 12.0],
-      [GARDEN_CAVE_RAMP.ax, GARDEN_CAVE_RAMP.az],
-    ],
-    // Front lakeside promenade to the North Root Nook Staircase (`GARDEN_ROOT_RAMP`)
-    [
-      [GARDEN.x + 8.0, GARDEN.z - 10.0],
-      [GARDEN.x + 1.5, GARDEN.z - 21.0],
-      [GARDEN_ROOT_RAMP.ax, GARDEN_ROOT_RAMP.az],
-    ],
-  ] as const;
-
-  for (const pts of paths) {
-    group.add(buildSteppedPathway(box, mats.marble, mats.gold, pts, 2.2, DECK_Y));
-  }
-
-  // 2. Memory-optimized instanced world trees (`pine`, `broadleaf`, `ancient`) sharing the main world's InstancedMesh drivers.
+  // Memory-optimized instanced world trees (`pine`, `broadleaf`, `ancient`) sharing the main world's InstancedMesh drivers.
   buildInstancedSkyTrees(
     ctx,
     group,
@@ -924,24 +881,6 @@ function buildGardenDressing(ctx: IWorldModelBuildContext, mats: IHarborMaterial
       style,
     }))
   );
-
-  // Scenic stone watchtower & ruined citadel bastion on the west ridge overlooking the foreground lake & stream.
-  const towerX = GARDEN.x - 25.5;
-  const towerZ = GARDEN.z - 1.5;
-  const watchtower = new THREE.Mesh(towerCylGeo, mats.stone);
-  watchtower.position.set(towerX, DECK_Y + 4.25, towerZ);
-  const watchRoof = new THREE.Mesh(towerRoofGeo, mats.darkStone);
-  watchRoof.position.set(towerX, DECK_Y + 10.1, towerZ);
-  group.add(watchtower, watchRoof);
-
-  for (const [lx, lz, h] of [
-    [-26, 4.0, 3.8],
-    [-26, 8.0, 2.6],
-    [-22, 6.0, 1.8],
-  ] as const) {
-    group.add(boxMesh(box, mats.stone, GARDEN.x + lx, DECK_Y + h / 2, GARDEN.z + lz, 1.1, h, 1.1));
-  }
-  group.add(boxMesh(box, mats.stone, GARDEN.x - 26, DECK_Y + 3.9, GARDEN.z + 6.0, 1.1, 0.55, 5.2));
 
   // Low colorful wildflower blossoms spread lightly over the grass (skipping the lake, stream, and World Tree base).
   const flowerGeo = new THREE.CylinderGeometry(0.18, 0.06, 0.06, 6);

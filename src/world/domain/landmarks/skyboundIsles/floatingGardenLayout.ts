@@ -52,6 +52,9 @@ export const GARDEN_LAKE = { x: wx(-8), z: wz(-11), rx: 11.0, rz: 7.2 } as const
 /** Summary: Stream channel from the foreground lake south to the waterfall lip (visual). */
 export const GARDEN_STREAM = { x: wx(-10), fromZ: wz(-4), toZ: wz(41.0), halfWidth: 1.6 } as const;
 
+/** Summary: The flat footbridge over the stream: it crosses along x, with a railing on each side. */
+export const GARDEN_FOOTBRIDGE = { x: wx(-10), z: wz(2.0), halfLength: 2.9, halfWidth: 1.25 } as const;
+
 /**
  * Summary: Stone lip the stream pours off. It reaches past the rim and is the roof of the
  *          waterfall cave below; it is walkable at deck height.
@@ -246,6 +249,19 @@ function addRampRails(ramp: ISkyRamp, fromU: number, toU: number): void {
       addBox(`rail-${ramp.id}-${side > 0 ? 'r' : 'l'}-${i}`, cx, cz, half, RAIL_THICKNESS_M / 2, Math.min(floor, ramp.ay + (ramp.by - ramp.ay) * u1), Math.max(floor, ramp.ay + (ramp.by - ramp.ay) * u1) + RAIL_HEIGHT_M, yaw);
     }
   }
+}
+
+// Footbridge railing: one rail along each side of the walkway.
+for (const side of [-1, 1]) {
+  addBox(
+    `rail-garden-footbridge-${side > 0 ? 's' : 'n'}`,
+    GARDEN_FOOTBRIDGE.x,
+    GARDEN_FOOTBRIDGE.z + side * (GARDEN_FOOTBRIDGE.halfWidth + RAIL_THICKNESS_M / 2),
+    GARDEN_FOOTBRIDGE.halfLength,
+    RAIL_THICKNESS_M / 2,
+    DECK_Y,
+    DECK_Y + RAIL_HEIGHT_M
+  );
 }
 
 // Cave: back and side walls, the lip's underside, and the ledge railing toward the water.
