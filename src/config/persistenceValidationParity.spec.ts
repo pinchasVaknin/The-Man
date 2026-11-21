@@ -12,7 +12,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateGameSettings, validateLabOverrides } from './persistedSettingsValidation';
-import { checkGameSettingsPayload, checkLabOverridesPayload } from '../../devServer/persistenceValidation.ts';
+import { checkGameSettingsPayload, checkLabOverridesPayload, isSameOriginRequest } from '../../devServer/persistenceValidation.ts';
 import { SAVED_GAME_SETTINGS } from './savedGameSettings';
 import { SAVED_LAB_OVERRIDES } from './savedLabOverrides';
 import { DEFAULT_LAB_POSE_OVERRIDES } from '../lab/labCatalog';
@@ -106,5 +106,22 @@ test('validators_WhenGivenSavedDefaults_ShouldAccept', () => {
   // Arrange, Act & Assert
   assert.equal(checkGameSettingsPayload(SAVED_GAME_SETTINGS).ok, true);
   assert.equal(checkLabOverridesPayload(SAVED_LAB_OVERRIDES).ok, true);
+});
+// #endregion
+
+// #region Same-Origin Check
+test('isSameOriginRequest_WhenOriginIsHttpOrHttpsOfTheSameHost_ShouldBeTrue', () => {
+  // Arrange & Act & Assert
+  assert.equal(isSameOriginRequest('http://localhost:3000', 'localhost:3000'), true);
+  assert.equal(isSameOriginRequest('https://preview.example.com', 'preview.example.com'), true);
+  assert.equal(isSameOriginRequest(undefined, 'localhost:3000'), true);
+});
+
+test('isSameOriginRequest_WhenOriginIsAnotherHostOrScheme_ShouldBeFalse', () => {
+  // Arrange & Act & Assert
+  assert.equal(isSameOriginRequest('https://evil.example.com', 'localhost:3000'), false);
+  assert.equal(isSameOriginRequest('http://localhost:3001', 'localhost:3000'), false);
+  assert.equal(isSameOriginRequest('ftp://localhost:3000', 'localhost:3000'), false);
+  assert.equal(isSameOriginRequest('https://localhost:3000', undefined), false);
 });
 // #endregion

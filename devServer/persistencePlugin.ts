@@ -13,7 +13,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage } from 'node:http';
 import type { Plugin } from 'vite';
-import { checkGameSettingsPayload, checkLabOverridesPayload } from './persistenceValidation.ts';
+import { checkGameSettingsPayload, checkLabOverridesPayload, isSameOriginRequest } from './persistenceValidation.ts';
 // #endregion
 
 // ======================== DEV-ONLY FILE PERSISTENCE ======================== \\
@@ -55,7 +55,7 @@ class PersistenceRequestError extends Error {
 /** Summary: Rejects cross-origin browser requests (CSRF) and non-JSON bodies before reading them. */
 function assertTrustedJsonRequest(req: IncomingMessage): void {
   const origin = req.headers.origin;
-  if (origin !== undefined && origin !== `http://${req.headers.host}`) {
+  if (!isSameOriginRequest(origin, req.headers.host)) {
     throw new PersistenceRequestError('FORBIDDEN_ORIGIN');
   }
   if (!(req.headers['content-type'] ?? '').startsWith('application/json')) {

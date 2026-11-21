@@ -191,3 +191,15 @@ function isNumberInRange(value: unknown, range: readonly [number, number]): valu
   return typeof value === 'number' && Number.isFinite(value) && value >= range[0] && value <= range[1];
 }
 // #endregion
+
+/**
+ * Summary: True when a request's Origin header is the dev server itself. Both http:// and https:// count, because
+ *          hosted previews (Google AI Studio) serve the page through an https proxy that forwards the same Host.
+ * @param origin The Origin header, or undefined when the browser sent none (same-origin GET/non-CORS).
+ * @param host The Host header of the request.
+ */
+export function isSameOriginRequest(origin: string | undefined, host: string | undefined): boolean {
+  if (origin === undefined) return true;
+  if (host === undefined || host === '') return false;
+  return origin === `http://${host}` || origin === `https://${host}`;
+}
