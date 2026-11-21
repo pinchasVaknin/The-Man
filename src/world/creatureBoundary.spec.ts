@@ -39,11 +39,7 @@ const PROCEDURAL_ALLOWED: Readonly<Record<string, string>> = {
 };
 
 /** Procedural creature groups that still break the rule, keyed file#identifier. Remove an entry when it is fixed. */
-const PROCEDURAL_KNOWN_VIOLATIONS: Readonly<Record<string, string>> = {
-  'world/models/structures/environmentAtmosphereModels.ts#butterfliesGroup': 'meadow butterflies loop without behavior: make them wildlife or remove them',
-  'world/models/structures/harborModels.ts#harborSeagullsGroup': 'orbiting gulls loop without behavior: make them wildlife or remove them',
-  'world/models/structures/harborModels.ts#gull': 'single gull of the orbiting flock above',
-};
+const PROCEDURAL_KNOWN_VIOLATIONS: Readonly<Record<string, string>> = {};
 
 /** Files that define the models: the animal and character modules and their one-line facades. */
 function definesCreatureModel(file: string): boolean {

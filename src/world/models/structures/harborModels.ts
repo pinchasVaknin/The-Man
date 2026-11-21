@@ -2,7 +2,7 @@
 // MODULE: World / Models / Harbor Models
 // DESIGN: Far south-east coastal harbor town, galleon ship, and lighthouse (SRP)
 // SUMMARY: Constructs walled harbor quay, bazaar market, cargo warehouses,
-//          amphitheater, 42m 3-masted galleon, 26m lighthouse, and soaring seagulls.
+//          amphitheater, 42m 3-masted galleon and 26m lighthouse.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -25,7 +25,6 @@ import type { IWorldModelBuildContext } from '../types';
 export interface IHarborModelHandles {
   readonly harborGroup: THREE.Group;
   readonly lighthouseBeaconGroup: THREE.Group;
-  readonly harborSeagullsGroup: THREE.Group;
   readonly updateHarbor: (elapsedTime: number, playerX: number, playerZ: number) => void;
 }
 // #endregion
@@ -145,7 +144,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     side: THREE.DoubleSide,
     depthWrite: false,
   });
-  const seagullMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
 
   // High-detail procedural Harbor textures (Plaza Cobblestone, Coastal Stucco Masonry & Striped Awning Cloth)
   const createHarborCobbleTexture = (): THREE.CanvasTexture => {
@@ -338,7 +336,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     mineMoltenCoalMat,
     sailClothMat,
     lhBeamMat,
-    seagullMat,
     harborPlazaPavingMat,
     harborStuccoWallMat,
     harborSlateRoofMat,
@@ -2532,81 +2529,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     radius: 65,
   });
 
-  // 9) SOARING WHITE COASTAL SEAGULLS ABOVE THE HARBOR (Full Sculpted 3D Anatomy)
-  const harborSeagullsGroup = new THREE.Group();
-  harborSeagullsGroup.visible = false;
-  const seagullMantleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.55 });
-  const seagullTipMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
-  const seagullBeakMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 });
-  disposableMaterials.push(seagullMantleMat, seagullTipMat, seagullBeakMat);
-
-  const gullTorsoGeo = new THREE.ConeGeometry(0.14, 0.66, 6);
-  gullTorsoGeo.rotateX(Math.PI / 2);
-  const gullBreastGeo = new THREE.SphereGeometry(0.13, 6, 5);
-  gullBreastGeo.scale(0.95, 0.85, 1.35);
-  gullBreastGeo.translate(0, -0.02, 0.12);
-  const gullHeadGeo = new THREE.SphereGeometry(0.095, 6, 5);
-  gullHeadGeo.translate(0, 0.05, 0.35);
-  const gullBeakGeo = new THREE.ConeGeometry(0.032, 0.16, 5);
-  gullBeakGeo.rotateX(Math.PI / 2);
-  gullBeakGeo.translate(0, 0.04, 0.47);
-  const gullTailGeo = new THREE.ConeGeometry(0.15, 0.30, 5);
-  gullTailGeo.rotateX(-Math.PI / 2);
-  gullTailGeo.scale(1.2, 0.22, 1.0);
-  gullTailGeo.translate(0, 0.01, -0.40);
-  const seagullWingInnerGeo = new THREE.BoxGeometry(0.48, 0.032, 0.22);
-  const seagullWingOuterGeo = new THREE.BoxGeometry(0.44, 0.024, 0.16);
-  disposableGeometries.push(
-    gullTorsoGeo,
-    gullBreastGeo,
-    gullHeadGeo,
-    gullBeakGeo,
-    gullTailGeo,
-    seagullWingInnerGeo,
-    seagullWingOuterGeo
-  );
-
-  for (let g = 0; g < 10; g++) {
-    const gull = new THREE.Group();
-    const torso = new THREE.Mesh(gullTorsoGeo, seagullMat);
-    const breast = new THREE.Mesh(gullBreastGeo, seagullMat);
-    const head = new THREE.Mesh(gullHeadGeo, seagullMat);
-    const beak = new THREE.Mesh(gullBeakGeo, seagullBeakMat);
-    const tail = new THREE.Mesh(gullTailGeo, seagullMat);
-
-    const leftWingPivot = new THREE.Group();
-    leftWingPivot.position.set(-0.09, 0.02, 0.04);
-    const lwInner = new THREE.Mesh(seagullWingInnerGeo, seagullMantleMat);
-    lwInner.position.set(-0.22, 0, 0);
-    const lwOuter = new THREE.Mesh(seagullWingOuterGeo, seagullTipMat);
-    lwOuter.position.set(-0.62, 0.01, -0.03);
-    lwOuter.rotation.y = 0.14;
-    lwOuter.rotation.z = 0.08;
-    leftWingPivot.add(lwInner, lwOuter);
-
-    const rightWingPivot = new THREE.Group();
-    rightWingPivot.position.set(0.09, 0.02, 0.04);
-    const rwInner = new THREE.Mesh(seagullWingInnerGeo, seagullMantleMat);
-    rwInner.position.set(0.22, 0, 0);
-    const rwOuter = new THREE.Mesh(seagullWingOuterGeo, seagullTipMat);
-    rwOuter.position.set(0.62, 0.01, -0.03);
-    rwOuter.rotation.y = -0.14;
-    rwOuter.rotation.z = -0.08;
-    rightWingPivot.add(rwInner, rwOuter);
-
-    gull.add(torso, breast, head, beak, tail, leftWingPivot, rightWingPivot);
-    gull.userData = {
-      orbitRadius: 18 + (g % 4) * 9,
-      orbitSpeed: 0.22 + (g % 3) * 0.05,
-      phase: (g / 10) * Math.PI * 2,
-      altitude: 19 + (g % 4) * 3.5,
-      leftWingPivot,
-      rightWingPivot,
-    };
-    harborSeagullsGroup.add(gull);
-  }
-  scene.add(harborSeagullsGroup);
-
   const updateHarbor = (elapsedTime: number, playerX: number, playerZ: number) => {
     if (harborGroup.visible) {
       lighthouseBeaconGroup.rotation.y = elapsedTime * 0.65;
@@ -2616,33 +2538,11 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
         armPivot.rotation.z = -0.22 + Math.cos(elapsedTime * 2.4 + m) * 0.12;
       }
     }
-    const nearHarborGulls = isWithinViewDistance(272, 252, playerX, playerZ, 65, 180);
-    harborSeagullsGroup.visible = nearHarborGulls;
-    if (nearHarborGulls) {
-      const gulls = harborSeagullsGroup.children;
-      for (let g = 0; g < gulls.length; g++) {
-        const gull = gulls[g];
-        const ud = gull.userData;
-        const ang = elapsedTime * ud.orbitSpeed + ud.phase;
-        const gx = 272 + Math.cos(ang) * ud.orbitRadius;
-        const gz = 252 + Math.sin(ang) * ud.orbitRadius;
-        gull.position.set(gx, ud.altitude + Math.sin(elapsedTime * 1.2 + ud.phase) * 1.4, gz);
-        gull.rotation.order = 'YXZ';
-        gull.rotation.y = Math.atan2(-Math.sin(ang), Math.cos(ang));
-        gull.rotation.z = -0.16;
-        const flap = Math.sin(elapsedTime * 6.0 + ud.phase * 2) * 0.42;
-        if (ud.leftWingPivot && ud.rightWingPivot) {
-          ud.leftWingPivot.rotation.z = 0.08 + flap;
-          ud.rightWingPivot.rotation.z = -0.08 - flap;
-        }
-      }
-    }
   };
 
   return {
     harborGroup,
     lighthouseBeaconGroup,
-    harborSeagullsGroup,
     updateHarbor,
   };
 }

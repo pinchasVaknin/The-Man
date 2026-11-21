@@ -40,7 +40,7 @@ import {
   isEntityOnSailableShipDeck,
   sailableShipDeckHeightAt,
 } from './sailableShipSystem';
-import { SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
+import { FLYER_PROFILES, SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
 import { ENCLOSED_KOI_PONDS, findKoiPond } from './koiPonds';
 import {
   getActivePlacedTrapsRef,
@@ -89,8 +89,11 @@ export type AnimalAiBehavior =
   | 'seeking_shelter'
   | 'dead';
 
+export type BoidBirdSpecies = 'dove' | 'seagull';
+
 export interface IBirdFlockConfig {
   readonly id: number;
+  readonly species: BoidBirdSpecies;
   readonly centerX: number;
   readonly centerZ: number;
   readonly patrolRadius: number;
@@ -99,9 +102,11 @@ export interface IBirdFlockConfig {
 }
 
 export const BIRD_FLOCK_CONFIGS: readonly IBirdFlockConfig[] = [
-  { id: 0, centerX: -12, centerZ: 18, patrolRadius: 28, cruiseAltitudeAboveGround: 14, count: 12 },
-  { id: 1, centerX: 48, centerZ: -24, patrolRadius: 34, cruiseAltitudeAboveGround: 16, count: 12 },
-  { id: 2, centerX: -46, centerZ: -38, patrolRadius: 32, cruiseAltitudeAboveGround: 18, count: 12 },
+  { id: 0, species: 'dove', centerX: -12, centerZ: 18, patrolRadius: 28, cruiseAltitudeAboveGround: 14, count: 12 },
+  { id: 1, species: 'dove', centerX: 48, centerZ: -24, patrolRadius: 34, cruiseAltitudeAboveGround: 16, count: 12 },
+  { id: 2, species: 'dove', centerX: -46, centerZ: -38, patrolRadius: 32, cruiseAltitudeAboveGround: 18, count: 12 },
+  // Harbor seagulls: same flocking, startle, hit and loot rules as the doves, patrolling over the harbor water.
+  { id: 3, species: 'seagull', centerX: 272, centerZ: 252, patrolRadius: 30, cruiseAltitudeAboveGround: 12, count: 10 },
 ];
 
 /**
@@ -111,6 +116,7 @@ export const BIRD_FLOCK_CONFIGS: readonly IBirdFlockConfig[] = [
 export interface IBoidBirdState {
   id: number;
   flockId?: number;
+  species?: BoidBirdSpecies;
   x: number;
   y: number;
   z: number;
@@ -1377,7 +1383,7 @@ export function ensureSafeOffscreenAnimalSpawns(
 }
 
 /**
- * Summary: Creates the initial deterministic population of flocking birds (36 birds across 3 flocks).
+ * Summary: Creates the initial deterministic population of flocking birds (doves in 3 flocks, seagulls over the harbor).
  */
 export function createInitialBoidBirds(): IBoidBirdState[] {
   const birds: IBoidBirdState[] = [];
@@ -1395,6 +1401,7 @@ export function createInitialBoidBirds(): IBoidBirdState[] {
       birds.push({
         id: id++,
         flockId: cfg.id,
+        species: cfg.species,
         x: hx,
         y: gy + cfg.cruiseAltitudeAboveGround + (i % 4) * 1.4,
         z: hz,
@@ -5229,6 +5236,7 @@ export function stepBoidsAndWildlife(
         if (candidate.isDead || candidate.isLooted || candidate.targetTrapId || candidate.startleTimer > 0) {
           continue;
         }
+        if (candidate.species === 'seagull') continue; // net traps are baited for doves
         const d = Math.hypot(candidate.x - trap.x, candidate.z - trap.z);
         if (d > attractRad) continue;
         if (!candidate.declinedTrapIds) candidate.declinedTrapIds = {};
@@ -5284,6 +5292,7 @@ export function stepBoidsAndWildlife(
 
     // Check player startle FIRST so a bird descending or walking to a trap flees if it sees the player!
     if (
+      FLYER_PROFILES[b.species ?? 'dove'].fearsPlayer &&
       distToPlayer < birdStartleDist &&
       (Boolean(b.targetTrapId) ||
         playerSpeed > (isPlayerSneaking ? 3.5 : 2.5) ||

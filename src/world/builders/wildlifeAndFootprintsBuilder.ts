@@ -32,7 +32,10 @@ import { createReadyStag, type Stag, type StagState } from '../models/Stag';
 import { createReadyHippo, type Hippo, type HippoState } from '../models/Hippo';
 import { createReadyKoiFish, type KoiFish, type KoiFishState } from '../models/KoiFish';
 import { createReadyDolphin, type Dolphin, type DolphinState } from '../models/Dolphin';
-import { createReadyDove, type DoveController } from '../models/Dove';
+import { createReadyDove } from '../models/Dove';
+import { createReadyButterfly, BUTTERFLY_SHARED_RESOURCES } from '../models/animals/Butterfly';
+import { createInitialButterflies, stepButterflies } from '../systems/butterflyWildlifeSystem';
+import { createReadySeagull, SEAGULL_SHARED_RESOURCES } from '../models/animals/Seagull';
 import { buildBearPawClampedTrapMesh } from '../models/structures/placedTrapModels';
 import {
   getSurfaceNormalAt,
@@ -91,10 +94,15 @@ export function buildWildlifeAndFootprintsLayer(
   scene.add(layerGroup);
 
   // --- 1. FLOCKING BOID BIRDS / DOVES (Rigged 75-joint Dove_Complete.ts) ---
-  const birdMeshes: Array<{
-    root: THREE.Group;
-    doveCtrl: DoveController;
-  }> = [];
+  interface IBirdRig {
+    readonly object: THREE.Object3D;
+    setState(state: 'fly' | 'flee' | 'walk' | 'eat' | 'death'): void;
+    update(dt: number): void;
+  }
+  const birdMeshes: Array<{ root: THREE.Group; rig: IBirdRig }> = [];
+
+  disposableGeometries.push(...SEAGULL_SHARED_RESOURCES.geometries);
+  disposableMaterials.push(...SEAGULL_SHARED_RESOURCES.materials);
 
   for (let i = 0; i < birds.length; i++) {
     const b = birds[i];
@@ -102,26 +110,42 @@ export function buildWildlifeAndFootprintsLayer(
     root.visible = false;
     root.position.set(b.x, b.y, b.z);
 
-    const doveCtrl = createReadyDove({
-      scale: 0.42,
-      castShadow: false,
-      receiveShadow: false,
-    });
-    doveCtrl.setState('fly');
-    doveCtrl.animator.time = (i * 0.19) % 0.77;
-
-    const doveMat = doveCtrl.mesh.material;
-    if (Array.isArray(doveMat)) {
-      for (const m of doveMat) disposableMaterials.push(m);
+    let rig: IBirdRig;
+    if (b.species === 'seagull') {
+      rig = createReadySeagull(i * 0.7);
     } else {
-      disposableMaterials.push(doveMat);
+      const doveCtrl = createReadyDove({
+        scale: 0.42,
+        castShadow: false,
+        receiveShadow: false,
+      });
+      doveCtrl.animator.time = (i * 0.19) % 0.77;
+      const doveMat = doveCtrl.mesh.material;
+      if (Array.isArray(doveMat)) {
+        for (const m of doveMat) disposableMaterials.push(m);
+      } else {
+        disposableMaterials.push(doveMat);
+      }
+      disposableGeometries.push(doveCtrl.mesh.geometry);
+      rig = doveCtrl;
     }
-    disposableGeometries.push(doveCtrl.mesh.geometry);
+    rig.setState('fly');
 
-    root.add(doveCtrl.object);
+    root.add(rig.object);
     layerGroup.add(root);
-    birdMeshes.push({ root, doveCtrl });
+    birdMeshes.push({ root, rig });
   }
+
+  // --- 1b. MEADOW BUTTERFLIES (butterflyWildlifeSystem: flutter routine, night rest, hits) ---
+  const butterflies = createInitialButterflies();
+  disposableGeometries.push(...BUTTERFLY_SHARED_RESOURCES.geometries);
+  disposableMaterials.push(...BUTTERFLY_SHARED_RESOURCES.materials);
+  const butterflyRigs = butterflies.map((b) => {
+    const rig = createReadyButterfly(b.colorIndex);
+    rig.object.visible = false;
+    layerGroup.add(rig.object);
+    return rig;
+  });
 
   // --- 2. GROUND ANIMALS (Rabbits, Squirrels, Forest Deer & Grazing Sheep) ---
   const rabbitFurMat = new THREE.MeshStandardMaterial({
@@ -698,6 +722,7 @@ export function buildWildlifeAndFootprintsLayer(
         daylightFactor,
         rainIntensity
       );
+      stepButterflies(butterflies, elapsedTime, daylightFactor);
       stepFootprintTrailSystem(
         footprintState,
         playerState.x,
@@ -760,6 +785,18 @@ export function buildWildlifeAndFootprintsLayer(
       }
     },
     syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => {
+      // Sync butterfly meshes (hidden at night, when dead, or beyond 95 m)
+      for (let i = 0; i < butterflies.length; i++) {
+        const b = butterflies[i];
+        const rig = butterflyRigs[i];
+        const far = renderPlayer !== undefined && Math.hypot(b.x - renderPlayer.x, b.z - renderPlayer.z) > 95;
+        rig.object.visible = !b.hidden && !far;
+        if (!rig.object.visible) continue;
+        rig.object.position.set(b.x, b.y, b.z);
+        rig.object.rotation.y = b.yaw;
+        rig.flap(elapsedTime, i * 1.4);
+      }
+
       // Sync bird meshes (with distance + camera frustum culling, ground walking/eating, and death state)
       for (let i = 0; i < birds.length; i++) {
         const b = birds[i];
@@ -794,11 +831,11 @@ export function buildWildlifeAndFootprintsLayer(
 
         if (b.isDead) {
           m.root.rotation.set(0, b.yaw ?? 0, 0, 'YXZ');
-          m.doveCtrl.setState('death');
+          m.rig.setState('death');
           if (dt > 0) {
-            m.doveCtrl.update(dt);
-            m.doveCtrl.object.position.set(0, 0, 0);
-            m.doveCtrl.object.rotation.set(0, 0, 0);
+            m.rig.update(dt);
+            m.rig.object.position.set(0, 0, 0);
+            m.rig.object.rotation.set(0, 0, 0);
           }
           continue;
         }
@@ -806,22 +843,22 @@ export function buildWildlifeAndFootprintsLayer(
         if (b.groundState === 'walking_to_bait') {
           const walkYaw = b.yaw ?? Math.atan2(b.vx, b.vz);
           m.root.rotation.set(0, walkYaw, 0, 'YXZ');
-          m.doveCtrl.setState('walk');
+          m.rig.setState('walk');
           if (dt > 0) {
-            m.doveCtrl.update(dt * 1.18);
-            m.doveCtrl.object.position.set(0, 0, 0);
-            m.doveCtrl.object.rotation.set(0, 0, 0);
+            m.rig.update(dt * 1.18);
+            m.rig.object.position.set(0, 0, 0);
+            m.rig.object.rotation.set(0, 0, 0);
           }
           continue;
         }
 
         if (b.groundState === 'eating_bait') {
           m.root.rotation.set(0, b.yaw ?? 0, 0, 'YXZ');
-          m.doveCtrl.setState('eat');
+          m.rig.setState('eat');
           if (dt > 0) {
-            m.doveCtrl.update(dt * 1.05);
-            m.doveCtrl.object.position.set(0, 0, 0);
-            m.doveCtrl.object.rotation.set(0, 0, 0);
+            m.rig.update(dt * 1.05);
+            m.rig.object.position.set(0, 0, 0);
+            m.rig.object.rotation.set(0, 0, 0);
           }
           continue;
         }
@@ -831,11 +868,11 @@ export function buildWildlifeAndFootprintsLayer(
         const pitch = -Math.atan2(b.vy, horizSpd) * 0.5;
         m.root.rotation.set(pitch, yaw, 0, 'YXZ');
 
-        m.doveCtrl.setState(b.startleTimer > 0 ? 'flee' : 'fly');
+        m.rig.setState(b.startleTimer > 0 ? 'flee' : 'fly');
         if (dt > 0) {
-          m.doveCtrl.update(dt * (b.startleTimer > 0 ? 1.35 : 1.0));
-          m.doveCtrl.object.position.set(0, 0, 0);
-          m.doveCtrl.object.rotation.set(0, 0, 0);
+          m.rig.update(dt * (b.startleTimer > 0 ? 1.35 : 1.0));
+          m.rig.object.position.set(0, 0, 0);
+          m.rig.object.rotation.set(0, 0, 0);
         }
       }
 

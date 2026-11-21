@@ -321,3 +321,19 @@ export const SPECIES_PROFILES: Readonly<Record<GroundAnimalSpecies, ISpeciesProf
 };
 // #endregion
 
+
+// ======================== FLYING SPECIES ======================== \
+// #region Flying Species
+/** Summary: Tuning of one flocking flyer (boid-bird system), separate from the ground-animal table. */
+export interface IFlyerProfile {
+  /** True when the animal scatters from a nearby, moving or armed player. Seagulls and butterflies are indifferent. */
+  readonly fearsPlayer: boolean;
+}
+
+/** Summary: Per-species behavior of the flocking birds. Doves scatter from people; seagulls ignore them. */
+export const FLYER_PROFILES: Readonly<Record<'dove' | 'seagull' | 'butterfly', IFlyerProfile>> = {
+  dove: { fearsPlayer: true },
+  seagull: { fearsPlayer: false },
+  butterfly: { fearsPlayer: false },
+};
+// #endregion

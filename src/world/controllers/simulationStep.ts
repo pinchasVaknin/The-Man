@@ -522,7 +522,7 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
               if (!playerState.ownedItemIds) playerState.ownedItemIds = [];
               playerState.ownedItemIds.push('raw_game_meat', 'raw_game_meat', 'animal_bone');
               awardSkillXp(playerState, 'archery', 24);
-              hudFeedback.lootNotification = 'Harvested Wild Dove: Raw Game Meat ×2, Animal Bone ×1';
+              hudFeedback.lootNotification = `Harvested ${nearDeadBird.species === 'seagull' ? 'Seagull' : 'Wild Dove'}: Raw Game Meat ×2, Animal Bone ×1`;
               hudFeedback.lootNotificationTimer = 4.5;
               soundEngine.playFootstep('trail', 1.18);
               emitHudSnapshot();

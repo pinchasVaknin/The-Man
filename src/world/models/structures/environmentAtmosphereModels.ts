@@ -1,8 +1,8 @@
 // ============================================================================
 // MODULE: World / Models / Environment Atmosphere Models
-// DESIGN: Volumetric mist, celestial starfield, dynamic cloud layers, and meadow butterflies (SRP)
+// DESIGN: Volumetric mist, celestial starfield, and dynamic cloud layers (SRP)
 // SUMMARY: Constructs mist banks, stars dome, cloud clusters, drifting pollen,
-//          and meadow butterflies with frame updates. Deer, squirrels and doves live in the wildlife system.
+//          with frame updates. All animals, butterflies included, live in the wildlife system.
 // ============================================================================
 
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
@@ -47,7 +47,7 @@ export interface IEnvironmentAtmosphereHandle {
 // ======================== MODEL BUILDER ======================== \\
 // #region Model Builder
 /**
- * Summary: Constructs environmental atmosphere layers, celestial bodies, and meadow butterflies.
+ * Summary: Constructs environmental atmosphere layers, and celestial bodies.
  * @param ctx Shared build context (scene, textures, disposal lists).
  * @returns Handles for animating the atmosphere layers each frame.
  */
@@ -55,47 +55,6 @@ export function buildEnvironmentAtmosphereModels(
   ctx: IWorldModelBuildContext
 ): IEnvironmentAtmosphereHandle {
   const { scene, isSoftwareGl, disposableGeometries, disposableMaterials, mistMaterials } = ctx;
-
-  // 3. Fluttering Meadow Butterflies (with articulated flapping wings & varied colors)
-  const butterfliesGroup = new THREE.Group();
-  const bflyColors = [0x67e8f9, 0xfbbf24, 0xf472b6];
-  const bflyMats = bflyColors.map(
-    (c) =>
-      new THREE.MeshBasicMaterial({
-        color: c,
-        side: THREE.DoubleSide,
-      })
-  );
-  disposableMaterials.push(...bflyMats);
-
-  const bflyWingGeo = new THREE.PlaneGeometry(0.13, 0.095);
-  disposableGeometries.push(bflyWingGeo);
-
-  for (let i = 0; i < 18; i++) {
-    const bfly = new THREE.Group();
-    const mat = bflyMats[i % bflyMats.length];
-    const lWingPivot = new THREE.Group();
-    const lWing = new THREE.Mesh(bflyWingGeo, mat);
-    lWing.position.set(-0.065, 0, 0);
-    lWingPivot.add(lWing);
-
-    const rWingPivot = new THREE.Group();
-    const rWing = new THREE.Mesh(bflyWingGeo, mat);
-    rWing.position.set(0.065, 0, 0);
-    rWingPivot.add(rWing);
-
-    bfly.add(lWingPivot, rWingPivot);
-    bfly.userData = {
-      offsetX: (hash2D(i, 41) - 0.5) * 36,
-      offsetZ: (hash2D(i, 47) - 0.5) * 36 + 18,
-      phase: i * 0.85,
-      speed: 0.65 + hash2D(i, 53) * 0.5,
-      lWingPivot,
-      rWingPivot,
-    };
-    butterfliesGroup.add(bfly);
-  }
-  scene.add(butterfliesGroup);
 
   // 4. Real Morning Mist Banks
   const mSize = 256;
@@ -655,31 +614,6 @@ export function buildEnvironmentAtmosphereModels(
     } else {
       lightningBoltLine.visible = false;
       lightningLight.visible = false;
-    }
-
-    // Update Fluttering Butterflies (with animated wing flapping)
-    const animalsSleepingAtNight = nightFactor > 0.65;
-    const nearButterflies =
-      !animalsSleepingAtNight && isWithinViewDistance(0, 18, playerX, playerZ, 45, 95);
-    butterfliesGroup.visible = nearButterflies;
-    if (nearButterflies) {
-      const bflies = butterfliesGroup.children;
-      for (let i = 0; i < bflies.length; i++) {
-        const bf = bflies[i];
-        const ud = bf.userData;
-        const t = elapsedTime * ud.speed + ud.phase;
-        const bx = ud.offsetX + Math.sin(t) * 4.5;
-        const bz = ud.offsetZ + Math.cos(t * 0.8) * 4.5;
-        const by =
-          Math.max(WATER_LEVEL + 0.3, groundHeightAt(bx, bz)) + 1.2 + Math.sin(t * 2.5) * 0.65;
-        bf.position.set(bx, by, bz);
-        bf.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t * 0.8) * 0.8);
-        const wingFlap = Math.sin(elapsedTime * 19.0 + i * 1.4) * 0.68;
-        if (ud.lWingPivot && ud.rWingPivot) {
-          ud.lWingPivot.rotation.z = wingFlap;
-          ud.rWingPivot.rotation.z = -wingFlap;
-        }
-      }
     }
   };
 

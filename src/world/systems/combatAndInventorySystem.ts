@@ -11,6 +11,7 @@ import { t } from '../../locales';
 import { Result } from '../../core/Result';
 import { isInsideSkyboundRegion } from '../domain/landmarks/skyboundIsles/skyboundLayout';
 import { strikeCrystalDeposit } from '../domain/landmarks/skyboundIsles/skyCrystalMining';
+import { hitButterflyNear } from './butterflyWildlifeSystem';
 import {
   INVENTORY_ITEM_MAP,
   DEFAULT_STARTER_OWNED_ITEM_IDS,
@@ -1377,6 +1378,12 @@ export function evaluateSwordStrikeWindowHit(
       }
     }
 
+    if (hitButterflyNear(sx, sy, sz, 1.2 + (isHeavy ? 0.35 : 0.15), 1.4)) {
+      state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'target' };
+      state.swordHitStopTimer = 0.045;
+      return { comboIndex, isHeavy, hitKind: 'target', hitTarget: null, killedAnimal: true, hitAnySurface: true };
+    }
+
     const activeBirds = getActiveWorldBirds();
     for (let bIdx = 0; bIdx < activeBirds.length; bIdx++) {
       const bird = activeBirds[bIdx];
@@ -1959,6 +1966,19 @@ export function stepArrowsPhysics(
               struck = true;
               break;
             }
+          }
+          if (struck) break;
+
+          if (hitButterflyNear(arr.x, arr.y, arr.z, 1.1, 1.2)) {
+            arr.stuck = true;
+            arr.vx = 0;
+            arr.vy = 0;
+            arr.vz = 0;
+            arr.hitKind = 'ground';
+            arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
+            killedAnimal = true;
+            hitAnySurface = true;
+            struck = true;
           }
           if (struck) break;
 

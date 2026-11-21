@@ -1367,7 +1367,7 @@ test('wildlifeAndBoids_WhenPlayerApproachesFauna_ShouldSimulateFlockingSteeringA
   const birds = createInitialBoidBirds();
   const animals = createInitialSmallAnimals();
   // Assert
-  assert.equal(birds.length, 36);
+  assert.equal(birds.length, 46);
   // Species coverage instead of a fixed head count, so adding animals never breaks this test.
   const spawnedSpecies = new Set(animals.map((animal) => animal.species));
   const requiredSpecies = ['rabbit', 'squirrel', 'deer', 'sheep', 'bear', 'crocodile', 'jaguar', 'wolf', 'rhino'] as const;
