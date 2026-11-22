@@ -24,11 +24,11 @@ import {
   stepStormFruitRegrowth,
 } from '../domain/landmarksRegistry';
 import { STORM_ISLAND } from '../domain/landmarks/skyboundIsles/skyboundLayout';
-import { createInitialPlayerState } from './playerPhysicsSystem';
+import { createInitialPlayerState, stepPlayerPhysics } from './playerPhysicsSystem';
 import { resetStormFruitThrows, stepStormFruitThrows, throwStormFruit, getStormFruitThrows } from './stormFruitSystem';
 import { createInitialSmallAnimals, stepSmallAnimals, STAG_CALM_RELEASE_M } from './boidsAndWildlifeSystem';
 import type { ISmallAnimalState } from './boidsAndWildlifeSystem';
-import type { IPlayerState } from '../domain/worldTypes';
+import type { IPlayerInput, IPlayerState } from '../domain/worldTypes';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -126,6 +126,29 @@ describe('storm fruit bushes', () => {
     importStormFruitState(saved);
     // Assert
     assert.deepEqual(exportStormFruitState(), [{ id: BUSH.id, regrowSec: STORM_FRUIT_REGROW_SEC - 30 }]);
+  });
+
+  it('stormFruitBush_WhenPlayerIsFlying_ShouldStillTickRegrowthInStepPlayerPhysics', () => {
+    // Arrange
+    harvestStormFruitBush(BUSH.id);
+    const player = createInitialPlayerState();
+    player.isFlying = true;
+    const noKeys: IPlayerInput = {
+      forward: 0,
+      right: 0,
+      sprint: false,
+      relaxed: false,
+      jumpPressed: false,
+      jumpHeld: false,
+      lookYawDelta: 0,
+      lookPitchDelta: 0,
+    };
+    const before = getStormFruitRegrowSec(BUSH.id);
+    // Act
+    stepPlayerPhysics(player, noKeys, [], 0.1);
+    const after = getStormFruitRegrowSec(BUSH.id);
+    // Assert
+    assert.ok(after < before, `expected regrowSec to decrease while flying (${before} -> ${after})`);
   });
 });
 // #endregion

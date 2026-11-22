@@ -15,6 +15,7 @@ import { getSkyIsland } from './skyboundLayout';
 import { resetSkyClouds } from './skyCloudSystem';
 import { resetSkyWindFlowers } from './skyWindSystem';
 import {
+  CRYSTAL_CLUSTERS,
   CRYSTAL_DEPOSITS,
   CRYSTAL_GROTTO,
   CRYSTAL_ISLETS,
@@ -23,6 +24,7 @@ import {
   CRYSTAL_STEPPING_ROCKS,
   RESONANCE_ORDER,
 } from './crystalIslesLayout';
+import { SKY_TREE, SKY_TREE_BRANCH_HALF_WIDTH_M, SKY_TREE_SPIRAL_RADIUS_M } from './skyTreeLayout';
 import { activateSkyMechanism, isSkyPuzzleSolved, resetSkyPuzzles } from './skyPuzzles';
 import {
   CRYSTAL_CHIPS_TO_MINE,
@@ -148,6 +150,17 @@ describe('crystal isles crystals keep paths open', () => {
       assert.equal(end.surface?.id, islet.id, describeEnd(end));
     });
   }
+
+  it('northEastIslet_WhenPlacingCrystalClusters_ShouldKeepTheSkyTreeStairsAndGateClear', () => {
+    // Arrange
+    const clearRadius = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.8;
+    // Act
+    const blockingClusters = CRYSTAL_CLUSTERS.filter(
+      (c) => Math.hypot(c.x - SKY_TREE.x, c.z - SKY_TREE.z) < clearRadius
+    );
+    // Assert
+    assert.deepEqual(blockingClusters, []);
+  });
 });
 // #endregion
 

@@ -35,6 +35,14 @@ export const SKY_TREE_TURNS = 2.5;
 export const SKY_TREE_TRUNK_HALF_M = 1.4;
 /** Summary: Radius (m) of the observation platform at the top. Kept inside the spiral's inner edge, so the spiral's last turn is not overlapped (the player steps across the small gap). */
 export const SKY_TREE_TOP_RADIUS_M = 4.0;
+/** Summary: Radius (m) of the spiral staircase's outer handrail. */
+export const SKY_TREE_OUTER_RAIL_R = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.14;
+/** Summary: Radius (m) of the spiral staircase's inner handrail. */
+export const SKY_TREE_INNER_RAIL_R = SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_BRANCH_HALF_WIDTH_M - 0.14;
+/** Summary: Fraction of the spiral where the inner handrail opens onto the top observation platform. */
+export const SKY_TREE_INNER_RAIL_END_T = 0.96;
+const RAIL_HEIGHT_M = 1.15;
+const RAIL_THICKNESS_M = 0.3;
 // #endregion
 
 // #region Definitions
@@ -48,6 +56,51 @@ export const SKY_TREE_TRUNK_BOX: ISkySolidBox = {
   minY: SKY_TREE.baseY,
   maxY: SKY_TREE.topY,
 };
+
+function buildSpiralRailBoxes(
+  idPrefix: string,
+  radius: number,
+  endFraction: number,
+  segments: number,
+  maxTopY = Infinity
+): ISkySolidBox[] {
+  const totalAngle = 2 * Math.PI * SKY_TREE_TURNS * endFraction;
+  const rise = (SKY_TREE.topY - SKY_TREE.baseY) * endFraction;
+  const chord = (2 * Math.PI * radius * (totalAngle / (2 * Math.PI))) / segments;
+  const halfLen = chord * 0.56;
+  const halfThick = RAIL_THICKNESS_M / 2;
+  const out: ISkySolidBox[] = [];
+  for (let i = 0; i < segments; i++) {
+    const u = (i + 0.5) / segments;
+    const ang = totalAngle * u;
+    const px = SKY_TREE.x + Math.cos(ang) * radius;
+    const pz = SKY_TREE.z + Math.sin(ang) * radius;
+    const yaw = Math.atan2(-Math.cos(ang), -Math.sin(ang));
+    const floor = SKY_TREE.baseY + rise * u;
+    out.push({
+      id: `${idPrefix}-${i}`,
+      minX: px - halfLen,
+      maxX: px + halfLen,
+      minZ: pz - halfThick,
+      maxZ: pz + halfThick,
+      minY: floor,
+      maxY: Math.min(floor + RAIL_HEIGHT_M, maxTopY),
+      yaw,
+    });
+  }
+  return out;
+}
+
+/**
+ * Summary: Tangential solid railing boxes along both the outer and inner edges of the Giant Sky Tree
+ *          spiral staircase so the player cannot fall off either side while climbing.
+ *          The inner rail opens cleanly near the top landing (`SKY_TREE_INNER_RAIL_END_T`) and stays
+ *          below `SKY_TREE.topY` so stepping onto the top platform is unobstructed.
+ */
+export const SKY_TREE_RAIL_BOXES: readonly ISkySolidBox[] = [
+  ...buildSpiralRailBoxes('rail-sky-tree-outer', SKY_TREE_OUTER_RAIL_R, 1.0, 72),
+  ...buildSpiralRailBoxes('rail-sky-tree-inner', SKY_TREE_INNER_RAIL_R, SKY_TREE_INNER_RAIL_END_T, 60, SKY_TREE.topY - 0.1),
+];
 // #endregion
 
 // ======================== PUBLIC API ======================== \\

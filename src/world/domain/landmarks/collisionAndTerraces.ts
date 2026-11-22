@@ -51,6 +51,7 @@ import {
   CHINESE_FORTRESS_POS,
   FORTRESS_Y_OFFSET,
   FORTRESS_Z_OFFSET,
+  chineseFortressStairHeightAt,
 } from './fortressLandmarks';
 import { ANCIENT_MINE_COLLIDER_BOXES } from './ancientMine/ancientMineWorld';
 import {
@@ -409,27 +410,27 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: LAKESIDE_TEA_PAVILION_POS.deckHeight,
     maxY: LAKESIDE_TEA_PAVILION_POS.deckHeight + 0.55,
   },
-  { id: 'main-hall-back-wall', minX: -22.3, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -215.2 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-west-wall', minX: -22.3, maxX: -21.2, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-east-wall', minX: 21.2, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 42.5 + FY },
+  { id: 'main-hall-back-wall', minX: -22.3, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -215.2 + FZ, minY: 26.0 + FY, maxY: 37.4 + FY },
+  { id: 'main-hall-west-wall', minX: -22.3, maxX: -21.2, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 37.4 + FY },
+  { id: 'main-hall-east-wall', minX: 21.2, maxX: 22.3, minZ: -216.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 37.4 + FY },
   { id: 'main-hall-front-west', minX: -22.3, maxX: -2.2, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 32.2 + FY },
   { id: 'main-hall-front-east', minX: 2.2, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 26.0 + FY, maxY: 32.2 + FY },
-  { id: 'main-hall-front-upper-west', minX: -22.3, maxX: -4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 42.5 + FY },
-  { id: 'main-hall-front-upper-east', minX: 4.5, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 42.5 + FY },
+  { id: 'main-hall-front-upper-west', minX: -22.3, maxX: -4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 37.4 + FY },
+  { id: 'main-hall-front-upper-east', minX: 4.5, maxX: 22.3, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 32.2 + FY, maxY: 37.4 + FY },
   { id: 'main-hall-front-window-sill', minX: -4.5, maxX: 4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 30.8 + FY, maxY: 32.65 + FY },
-  { id: 'main-hall-front-window-header', minX: -4.5, maxX: 4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 36.55 + FY, maxY: 42.5 + FY },
-  { id: 'west-pav-back-wall', minX: -39.3, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -170.9 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'west-pav-west-wall', minX: -39.3, maxX: -38.2, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'west-pav-east-wall', minX: -21.8, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'west-pav-front-left', minX: -39.3, maxX: -31.6, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'west-pav-front-right', minX: -28.4, maxX: -20.7, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'west-pav-front-upper', minX: -32.2, maxX: -27.8, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 30.2 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-back-wall', minX: 20.7, maxX: 39.3, minZ: -172.0 + FZ, maxZ: -170.9 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-west-wall', minX: 20.7, maxX: 21.8, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-east-wall', minX: 38.2, maxX: 39.3, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-front-left', minX: 20.7, maxX: 28.4, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-front-right', minX: 31.6, maxX: 39.3, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 38.5 + FY },
-  { id: 'east-pav-front-upper', minX: 27.8, maxX: 32.2, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 30.2 + FY, maxY: 38.5 + FY },
+  { id: 'main-hall-front-window-header', minX: -4.5, maxX: 4.5, minZ: -190.3 + FZ, maxZ: -189.3 + FZ, minY: 36.55 + FY, maxY: 37.4 + FY },
+  { id: 'west-pav-back-wall', minX: -39.3, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -170.9 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'west-pav-west-wall', minX: -39.3, maxX: -38.2, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'west-pav-east-wall', minX: -21.8, maxX: -20.7, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'west-pav-front-left', minX: -39.3, maxX: -31.6, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'west-pav-front-right', minX: -28.4, maxX: -20.7, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'west-pav-front-upper', minX: -32.2, maxX: -27.8, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 30.2 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-back-wall', minX: 20.7, maxX: 39.3, minZ: -172.0 + FZ, maxZ: -170.9 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-west-wall', minX: 20.7, maxX: 21.8, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-east-wall', minX: 38.2, maxX: 39.3, minZ: -172.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-front-left', minX: 20.7, maxX: 28.4, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-front-right', minX: 31.6, maxX: 39.3, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 26.0 + FY, maxY: 35.6 + FY },
+  { id: 'east-pav-front-upper', minX: 27.8, maxX: 32.2, minZ: -157.0 + FZ, maxZ: -156.0 + FZ, minY: 30.2 + FY, maxY: 35.6 + FY },
   { id: 'sw-wt-outer-west', minX: -52.2, maxX: -50.4, minZ: -134.5 + FZ, maxZ: -122.5 + FZ, minY: 26.0 + FY, maxY: 32.15 + FY },
   { id: 'sw-wt-outer-south', minX: -51.5, maxX: -39.6, minZ: -123.6 + FZ, maxZ: -122.0 + FZ, minY: 26.0 + FY, maxY: 32.15 + FY },
   { id: 'sw-wt-inner-east-courtyard', minX: -40.5, maxX: -39.5, minZ: -134.4 + FZ, maxZ: -126.6 + FZ, minY: 26.0 + FY, maxY: 32.15 + FY },
@@ -484,20 +485,73 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   { id: 'rampart-outer-north', minX: -52.8, maxX: 52.8, minZ: -220.8 + FZ, maxZ: -219.4 + FZ, minY: 30.5 + FY, maxY: 32.15 + FY },
   { id: 'rampart-outer-south-west', minX: -52.8, maxX: -4.2, minZ: -122.6 + FZ, maxZ: -121.4 + FZ, minY: 30.5 + FY, maxY: 32.15 + FY },
   { id: 'rampart-outer-south-east', minX: 4.2, maxX: 52.8, minZ: -122.6 + FZ, maxZ: -121.4 + FZ, minY: 30.5 + FY, maxY: 32.15 + FY },
-  { id: 'rampart-stair-top-fence-north-west', minX: -48.0, maxX: -44.0, minZ: -157.0 + FZ, maxZ: -156.2 + FZ, minY: 28.0 + FY, maxY: 32.15 + FY },
-  { id: 'rampart-stair-top-fence-north-east', minX: 44.0, maxX: 48.0, minZ: -157.0 + FZ, maxZ: -156.2 + FZ, minY: 28.0 + FY, maxY: 32.15 + FY },
-  { id: 'rampart-stair-side-fence-west', minX: -44.6, maxX: -43.9, minZ: -157.0 + FZ, maxZ: -142.2 + FZ, minY: 26.0 + FY, maxY: 32.15 + FY },
-  { id: 'rampart-stair-side-fence-east', minX: 43.9, maxX: 44.6, minZ: -157.0 + FZ, maxZ: -142.2 + FZ, minY: 26.0 + FY, maxY: 32.15 + FY },
+  { id: 'rampart-stair-landing-west', minX: -47.9, maxX: -44.2, minZ: -156.6 + FZ, maxZ: -152.0 + FZ, minY: 26.0 + FY, maxY: 31.2 + FY },
+  { id: 'rampart-stair-landing-east', minX: 44.2, maxX: 47.9, minZ: -156.6 + FZ, maxZ: -152.0 + FZ, minY: 26.0 + FY, maxY: 31.2 + FY },
+  { id: 'rampart-stair-top-fence-north-west', minX: -47.9, maxX: -44.1, minZ: -156.75 + FZ, maxZ: -156.25 + FZ, minY: 31.1 + FY, maxY: 32.7 + FY },
+  { id: 'rampart-stair-top-fence-north-east', minX: 44.1, maxX: 47.9, minZ: -156.75 + FZ, maxZ: -156.25 + FZ, minY: 31.1 + FY, maxY: 32.7 + FY },
+  { id: 'rampart-stair-top-fence-inner-west', minX: -44.52, maxX: -44.08, minZ: -156.6 + FZ, maxZ: -152.0 + FZ, minY: 31.1 + FY, maxY: 32.7 + FY },
+  { id: 'rampart-stair-top-fence-inner-east', minX: 44.08, maxX: 44.52, minZ: -156.6 + FZ, maxZ: -152.0 + FZ, minY: 31.1 + FY, maxY: 32.7 + FY },
+  ...[-44.3, 44.3].flatMap((railX) => {
+    const side = railX < 0 ? 'west' : 'east';
+    const rampartRise = CHINESE_FORTRESS_POS.rampartHeight - CHINESE_FORTRESS_POS.summitHeight;
+    return Array.from({ length: 5 }, (_, seg) => {
+      const zSouth = -142.0 + FZ - seg * 2.0;
+      const zNorth = zSouth - 2.0;
+      const yLow = CHINESE_FORTRESS_POS.summitHeight + (seg / 5) * rampartRise;
+      const yHigh = CHINESE_FORTRESS_POS.summitHeight + ((seg + 1) / 5) * rampartRise;
+      return {
+        id: `rampart-stair-side-fence-${side}-${seg}`,
+        minX: railX - 0.22,
+        maxX: railX + 0.22,
+        minZ: zNorth,
+        maxZ: zSouth,
+        minY: Math.max(CHINESE_FORTRESS_POS.summitHeight, yLow - 0.15),
+        maxY: yHigh + 1.15,
+      };
+    });
+  }),
   { id: 'mid-terrace-fence-front-west', minX: -14.8, maxX: -3.95, minZ: -104.35 + FZ, maxZ: -103.65 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
   { id: 'mid-terrace-fence-front-east', minX: 3.95, maxX: 14.8, minZ: -104.35 + FZ, maxZ: -103.65 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
   { id: 'mid-terrace-fence-side-west', minX: -14.9, maxX: -14.1, minZ: -114.4 + FZ, maxZ: -103.6 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
   { id: 'mid-terrace-fence-side-east', minX: 14.1, maxX: 14.9, minZ: -114.4 + FZ, maxZ: -103.6 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
   { id: 'mid-terrace-fence-back-west', minX: -14.8, maxX: -3.95, minZ: -114.4 + FZ, maxZ: -113.7 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
   { id: 'mid-terrace-fence-back-east', minX: 3.95, maxX: 14.8, minZ: -114.4 + FZ, maxZ: -113.7 + FZ, minY: 21.0 + FY, maxY: 23.0 + FY },
-  { id: 'fortress-stair-rail-west-lower', minX: -4.7, maxX: -3.85, minZ: -104.2 + FZ, maxZ: -77.8 + FZ, minY: 11.0 + FY, maxY: 23.0 + FY },
-  { id: 'fortress-stair-rail-east-lower', minX: 3.85, maxX: 4.7, minZ: -104.2 + FZ, maxZ: -77.8 + FZ, minY: 11.0 + FY, maxY: 23.0 + FY },
-  { id: 'fortress-stair-rail-west-upper', minX: -4.7, maxX: -3.85, minZ: -122.2 + FZ, maxZ: -113.8 + FZ, minY: 21.0 + FY, maxY: 27.0 + FY },
-  { id: 'fortress-stair-rail-east-upper', minX: 3.85, maxX: 4.7, minZ: -122.2 + FZ, maxZ: -113.8 + FZ, minY: 21.0 + FY, maxY: 27.0 + FY },
+  ...[-3.85, 3.85].flatMap((railX) => {
+    const side = railX < 0 ? 'west' : 'east';
+    const lowerLen = CHINESE_FORTRESS_POS.stairFootZ - CHINESE_FORTRESS_POS.stairMidZ;
+    const upperLen = CHINESE_FORTRESS_POS.upperStairFootZ - CHINESE_FORTRESS_POS.upperStairTopZ;
+    const lowerSegs = Array.from({ length: 8 }, (_, seg) => {
+      const zSouth = CHINESE_FORTRESS_POS.stairFootZ - (seg / 8) * lowerLen;
+      const zNorth = CHINESE_FORTRESS_POS.stairFootZ - ((seg + 1) / 8) * lowerLen;
+      const yLow = chineseFortressStairHeightAt(zSouth);
+      const yHigh = chineseFortressStairHeightAt(zNorth);
+      return {
+        id: `fortress-stair-rail-${side}-lower-${seg}`,
+        minX: railX - 0.34,
+        maxX: railX + 0.34,
+        minZ: zNorth,
+        maxZ: zSouth,
+        minY: Math.max(CHINESE_FORTRESS_POS.stairBaseHeight, yLow - 2.0),
+        maxY: yHigh + 1.55,
+      };
+    });
+    const upperSegs = Array.from({ length: 4 }, (_, seg) => {
+      const zSouth = CHINESE_FORTRESS_POS.upperStairFootZ - (seg / 4) * upperLen;
+      const zNorth = CHINESE_FORTRESS_POS.upperStairFootZ - ((seg + 1) / 4) * upperLen;
+      const yLow = chineseFortressStairHeightAt(zSouth);
+      const yHigh = chineseFortressStairHeightAt(zNorth);
+      return {
+        id: `fortress-stair-rail-${side}-upper-${seg}`,
+        minX: railX - 0.34,
+        maxX: railX + 0.34,
+        minZ: zNorth,
+        maxZ: zSouth,
+        minY: Math.max(CHINESE_FORTRESS_POS.midLandingHeight - 0.5, yLow - 1.5),
+        maxY: yHigh + 1.55,
+      };
+    });
+    return [...lowerSegs, ...upperSegs];
+  }),
   { id: 'fortress-incense-west', minX: -9.1, maxX: -7.3, minZ: -133.4 + FZ, maxZ: -131.6 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
   { id: 'fortress-incense-east', minX: 7.3, maxX: 9.1, minZ: -133.4 + FZ, maxZ: -131.6 + FZ, minY: 26.0 + FY, maxY: 27.65 + FY },
   // 4 Courtyard Huabiao Dragon Pillars
@@ -578,7 +632,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
       minZ: pz - 0.46,
       maxZ: pz + 0.46,
       minY: 26.35 + FY,
-      maxY: 39.5 + FY,
+      maxY: 37.4 + FY,
     }))
   ),
   ...[-3.2, 3.2].map((bx, idx) => ({
@@ -590,7 +644,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 26.35 + FY,
     maxY: 26.88 + FY,
   })),
-  // Main Hall 2F Dojo Objects: 6 Wooden Dummies, 4 Weapon Racks & Bronze Gong Frame
+  // Main Hall 2F Dojo Objects: 6 Wooden Dummies, 4 Hanging Sandbags, 9 Balance Poles, 4 Weapon Racks & Bronze Gong Frame
   ...[
     [-17.8, -206.3 + FZ],
     [-17.8, -199.3 + FZ],
@@ -604,17 +658,45 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxX: dx + 0.56,
     minZ: dz - 0.56,
     maxZ: dz + 0.56,
-    minY: 34.15 + FY,
-    maxY: 36.0 + FY,
+    minY: 32.2 + FY,
+    maxY: 34.0 + FY,
   })),
+  ...[
+    [-13.0, -206.0 + FZ],
+    [-13.0, -199.6 + FZ],
+    [3.2, -199.3 + FZ],
+    [8.0, -199.3 + FZ],
+  ].map(([sbX, sbZ], idx) => ({
+    id: `palace-dojo-sandbag-${idx}`,
+    minX: sbX - 0.36,
+    maxX: sbX + 0.36,
+    minZ: sbZ - 0.36,
+    maxZ: sbZ + 0.36,
+    minY: 33.2 + FY,
+    maxY: 35.1 + FY,
+  })),
+  ...Array.from({ length: 9 }, (_, p) => {
+    const px = -7.2 + (p % 3) * 2.2;
+    const pz = -202.8 + FZ + 1.4 + Math.floor(p / 3) * 2.1;
+    const pScaleY = 0.75 + ((p * 3) % 4) * 0.25;
+    return {
+      id: `palace-dojo-balance-pole-${p}`,
+      minX: px - 0.22,
+      maxX: px + 0.22,
+      minZ: pz - 0.22,
+      maxZ: pz + 0.22,
+      minY: 32.2 + FY,
+      maxY: 32.24 + FY + 0.75 * pScaleY,
+    };
+  }),
   ...[-16.0, -9.5, 0.5, 7.0].map((wrX, idx) => ({
     id: `palace-dojo-weapon-rack-${idx}`,
     minX: wrX - 1.32,
     maxX: wrX + 1.32,
     minZ: -215.25 + FZ - 0.35,
     maxZ: -215.25 + FZ + 0.35,
-    minY: 34.15 + FY,
-    maxY: 36.7 + FY,
+    minY: 32.2 + FY,
+    maxY: 34.95 + FY,
   })),
   {
     id: 'palace-dojo-gong-frame',
@@ -622,8 +704,8 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxX: -5.0 + 1.22,
     minZ: -214.95 + FZ - 0.28,
     maxZ: -214.95 + FZ + 0.28,
-    minY: 34.15 + FY,
-    maxY: 36.75 + FY,
+    minY: 32.2 + FY,
+    maxY: 34.8 + FY,
   },
   // West & East Pagoda Pavilions 1F & 2F Interior Furniture (Tea Table, Wardrobes, Straw Beds)
   ...[-30.0, 30.0].flatMap((px) => {
@@ -631,7 +713,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     const innerDir = isWest ? 1 : -1;
     const tag = isWest ? 'west' : 'east';
     const pavF1 = 26.3 + FY;
-    const pavF2 = 31.6 + FY;
+    const pavF2 = 31.4 + FY;
     return [
       {
         id: `palace-${tag}-pav-table-1f`,
@@ -1012,9 +1094,9 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: 3.65,
     maxY: 4.5,
   })),
-  { id: 'hall-interior-stair-rail-w', minX: 13.2, maxX: 13.55, minZ: -206.0 + FZ, maxZ: -194.2 + FZ, minY: 26.35 + FY, maxY: 35.8 + FY },
-  { id: 'west-pavilion-stair-rail-inner', minX: -35.15, maxX: -34.8, minZ: -167.4 + FZ, maxZ: -159.6 + FZ, minY: 26.3 + FY, maxY: 32.8 + FY },
-  { id: 'east-pavilion-stair-rail-inner', minX: 34.8, maxX: 35.15, minZ: -167.4 + FZ, maxZ: -159.6 + FZ, minY: 26.3 + FY, maxY: 32.8 + FY },
+  { id: 'hall-interior-stair-rail-w', minX: 13.3, maxX: 13.55, minZ: -206.0 + FZ, maxZ: -194.0 + FZ, minY: 32.2 + FY, maxY: 33.25 + FY },
+  { id: 'west-pavilion-stair-rail-inner', minX: -35.08, maxX: -34.82, minZ: -167.5 + FZ, maxZ: -159.5 + FZ, minY: 31.4 + FY, maxY: 32.4 + FY },
+  { id: 'east-pavilion-stair-rail-inner', minX: 34.82, maxX: 35.08, minZ: -167.5 + FZ, maxZ: -159.5 + FZ, minY: 31.4 + FY, maxY: 32.4 + FY },
   { id: 'galleon-mast-fore', minX: 281.6, maxX: 282.4, minZ: 235.4, maxZ: 236.2, minY: 3.65, maxY: 25.3 },
   { id: 'galleon-mast-main', minX: 281.6, maxX: 282.4, minZ: 243.4, maxZ: 244.2, minY: 3.65, maxY: 29.0 },
   { id: 'galleon-mast-mizzen', minX: 281.6, maxX: 282.4, minZ: 251.0, maxZ: 251.8, minY: 3.65, maxY: 24.8 },

@@ -33,7 +33,7 @@ export interface IStormFruitBushState {
 
 // #region Tuning
 /** Seconds a picked bush takes to grow its fruit back. */
-export const STORM_FRUIT_REGROW_SEC = 120;
+export const STORM_FRUIT_REGROW_SEC = 40;
 /** Reach (m) from the player to a bush for harvesting with E. */
 const HARVEST_REACH_M = 2.2;
 /** Largest height difference (m) between the player's feet and the bush for harvesting. */
@@ -43,12 +43,14 @@ const HARVEST_MIN_DOT = 0.35;
 // #endregion
 
 // #region Definitions
-/** Summary: The four bushes, all on the deck of Storm Island within reach of the herd. */
+/** Summary: The six thorny storm bushes on the deck of Storm Island within reach of the herd. */
 export const STORM_FRUIT_BUSHES: readonly IStormFruitBush[] = [
   { id: 'storm-fruit-bush-0', x: 889.0, y: STORM_ISLAND.deckY, z: -101.5 },
   { id: 'storm-fruit-bush-1', x: 872.0, y: STORM_ISLAND.deckY, z: -121.0 },
   { id: 'storm-fruit-bush-2', x: 895.0, y: STORM_ISLAND.deckY, z: -122.0 },
   { id: 'storm-fruit-bush-3', x: 899.0, y: STORM_ISLAND.deckY, z: -108.0 },
+  { id: 'storm-fruit-bush-4', x: 878.5, y: STORM_ISLAND.deckY, z: -96.5 },
+  { id: 'storm-fruit-bush-5', x: 900.5, y: STORM_ISLAND.deckY, z: -116.5 },
 ];
 // #endregion
 

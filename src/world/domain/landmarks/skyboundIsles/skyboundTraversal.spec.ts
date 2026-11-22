@@ -12,14 +12,14 @@
 // #region Imports
 import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { SKY_BRIDGES, SKY_HARBOR } from './skyboundLayout';
+import { SKYBOUND_ISLANDS, SKY_BRIDGES, SKY_HARBOR } from './skyboundLayout';
 import { SKY_CLOUDS, SKY_CLOUD_MAZE, SKY_REST_PLATFORMS, SKY_ROUTES, type IRouteHop } from './skyCloudRoutes';
 import { resetSkyClouds } from './skyCloudSystem';
-import { resetSkyWindFlowers, sampleSkyWindAt } from './skyWindSystem';
+import { SKY_WIND_CURRENTS, resetSkyWindFlowers, sampleSkyWindAt } from './skyWindSystem';
 import { activateSkyMechanism, resetSkyPuzzles } from './skyPuzzles';
 import { WIND_CORES } from './windCoresLayout';
 import { createSkyFallTracker, skyboundSurfaceAt, updateSkyFallRecovery } from './skyboundSurface';
-import { STAND_STILL, simulateSkyPlayer, type SimPilot } from './skyboundTestSim';
+import { STAND_STILL, simulateSkyPlayer, type ISimBody, type SimPilot } from './skyboundTestSim';
 // #endregion
 
 // ======================== TEST FIXTURES & FACTORIES ======================== \\
@@ -233,6 +233,57 @@ describe('sky wind journeys', () => {
     const end = simulate(start, STAND_STILL, 60);
     // Assert
     assert.equal(end.surface?.id, 'sky-observatory', `ended at (${end.x.toFixed(1)}, ${end.y.toFixed(1)}, ${end.z.toFixed(1)})`);
+  });
+
+  it('skyWindStreams_AllPathPointsAboveOverlappingIslandDecks', () => {
+    for (const current of SKY_WIND_CURRENTS) {
+      if (current.mode !== 'stream' && current.mode !== 'downdraft') continue;
+      for (let s = 0; s < current.path.length - 1; s++) {
+        const a = current.path[s];
+        const b = current.path[s + 1];
+        for (const u of [0, 0.5, 1]) {
+          const px = a.x + (b.x - a.x) * u;
+          const py = a.y + (b.y - a.y) * u;
+          const pz = a.z + (b.z - a.z) * u;
+          for (const isl of SKYBOUND_ISLANDS) {
+            const dist = Math.hypot(px - isl.x, pz - isl.z);
+            if (dist < isl.radius) {
+              assert.ok(
+                py >= isl.deckY - 0.1,
+                `${current.id} seg ${s}@${u} crosses inside ${isl.id} (dist=${dist.toFixed(1)}<${isl.radius}) below deck (${py.toFixed(2)} < ${isl.deckY})`
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('skyWindStreams_SimulatedPlayerNeverClipsUpThroughIslandUndersideOrFloor', () => {
+    WIND_CORES.slice(0, 2).forEach((c) => activateSkyMechanism(c.id));
+    const assertClearsIslands = (label: string) => (body: ISimBody) => {
+      for (const isl of SKYBOUND_ISLANDS) {
+        const dist = Math.hypot(body.x - isl.x, body.z - isl.z);
+        if (dist < isl.radius - 0.5) {
+          assert.ok(
+            body.y >= isl.deckY - 0.1,
+            `${label} player dropped below ${isl.id} deck at (${body.x.toFixed(1)}, ${body.y.toFixed(2)}, ${body.z.toFixed(1)})`
+          );
+        }
+      }
+    };
+
+    const g2r = simulate({ x: 713.0, y: 71.0, z: 35.0 }, STAND_STILL, 60, assertClearsIslands('wind-garden-to-ruins'));
+    assert.equal(g2r.surface?.id, 'ancient-sky-ruins');
+
+    const o2c = simulate({ x: 813.0, y: 98.0, z: -105.0 }, STAND_STILL, 60, assertClearsIslands('wind-observatory-to-crystal'));
+    assert.equal(o2c.surface?.id, 'crystal-isles');
+
+    const hRet = simulate({ x: 796.0, y: 30.0, z: 53.0 }, STAND_STILL, 60, assertClearsIslands('wind-hidden-return'));
+    assert.equal(hRet.surface?.id, SKY_HARBOR.id);
+
+    const shortcut = simulate({ x: 782.0, y: 68.0, z: -58.0 }, STAND_STILL, 60, assertClearsIslands('wind-windspire-shortcut'));
+    assert.equal(shortcut.surface?.id, 'sky-observatory');
   });
 });
 // #endregion

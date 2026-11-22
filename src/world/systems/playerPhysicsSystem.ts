@@ -793,6 +793,10 @@ export function stepPlayerPhysics(
     return { steppedFoot: false, landedImpact: 0 };
   }
 
+  // Skybound Isles crystal deposits and Storm Fruit bushes regrow everywhere, including while flying or mounted.
+  stepCrystalDeposits(dt);
+  stepStormFruitRegrowth(dt);
+
   state.yaw += input.lookYawDelta;
   state.pitch = Math.max(-1.38, Math.min(1.38, state.pitch + input.lookPitchDelta));
 
@@ -1508,10 +1512,7 @@ export function stepPlayerPhysics(
     }
   }
 
-  // Skybound Isles crystal deposits regrow everywhere, also while the player is away.
-  stepCrystalDeposits(dt);
   // Skybound Isles floating pickups: passing through one puts its loot in the inventory.
-  stepStormFruitRegrowth(dt);
   if (isInsideSkyboundRegion(state.x, state.z)) {
     collectSkyPickups(state);
   }
@@ -1648,17 +1649,9 @@ export function stepPlayerPhysics(
 
         if (box.minY !== undefined && state.y + 1.55 < box.minY) continue;
         let effectiveMaxY = box.maxY;
-        if (
-          box.id === 'fortress-stair-rail-west-lower' ||
-          box.id === 'fortress-stair-rail-east-lower' ||
-          box.id === 'fortress-stair-rail-west-upper' ||
-          box.id === 'fortress-stair-rail-east-upper'
-        ) {
+        if (box.id.startsWith('fortress-stair-rail-')) {
           effectiveMaxY = chineseFortressStairHeightAt(nextZ) + 0.98;
-        } else if (
-          box.id === 'rampart-stair-side-fence-west' ||
-          box.id === 'rampart-stair-side-fence-east'
-        ) {
+        } else if (box.id.startsWith('rampart-stair-side-fence-')) {
           const tStair = Math.max(
             0,
             Math.min(

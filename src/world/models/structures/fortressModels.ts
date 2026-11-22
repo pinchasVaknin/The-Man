@@ -294,12 +294,12 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const thickWallNGeo = new THREE.BoxGeometry(80.0, rampartH, 4.2);
   const thickWallSFlankGeo = new THREE.BoxGeometry(35.6, rampartH, 4.2);
   const merlonGeo = new THREE.BoxGeometry(1.2, 0.95, 0.65);
-  const rampartStepGeo = new THREE.BoxGeometry(3.4, 0.34, 0.62);
-  const rampartLandingDeckGeo = new THREE.BoxGeometry(3.6, rampartH, 4.6);
-  const rampartLandingTopPavingGeo = new THREE.BoxGeometry(3.7, 0.24, 4.7);
-  const rampartLandingFenceNorthGeo = new THREE.BoxGeometry(3.6, 1.15, 0.38);
-  const rampartLandingFenceInnerGeo = new THREE.BoxGeometry(0.38, 1.15, 4.6);
-  const rampartStairRailSideGeo = new THREE.BoxGeometry(0.32, 1.05, 10.4);
+  const rampartStepGeo = new THREE.BoxGeometry(3.48, 0.4, 0.72);
+  const rampartLandingDeckGeo = new THREE.BoxGeometry(3.64, rampartH - 0.16, 4.6);
+  const rampartLandingTopPavingGeo = new THREE.BoxGeometry(3.56, 0.24, 4.72);
+  const rampartLandingFenceNorthGeo = new THREE.BoxGeometry(3.4, 1.12, 0.36);
+  const rampartLandingFenceInnerGeo = new THREE.BoxGeometry(0.36, 1.1, 4.4);
+  const rampartStairRailSideGeo = new THREE.BoxGeometry(0.3, 1.02, 10.2);
 
   disposableGeometries.push(
     fortressFoundationGeo,
@@ -348,48 +348,50 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       fortressGroup.add(merlon);
     }
 
-    const stairCenterX = isWest ? -46.1 : 46.1;
+    const stairCenterX = isWest ? -46.14 : 46.14;
     const wallSteps = 18;
-    for (let s = 0; s <= wallSteps; s++) {
-      const t = s / wallSteps;
+    for (let s = 0; s < wallSteps; s++) {
+      const t = (s + 0.5) / wallSteps;
       const sz = -142.0 + FZ - t * 10.0;
       const sy = summitY + t * rampartH;
       const wStep = new THREE.Mesh(rampartStepGeo, fortressStoneMat);
-      wStep.position.set(stairCenterX, sy - 0.15, sz);
+      wStep.position.set(stairCenterX, sy - 0.2, sz);
       wStep.receiveShadow = !isSoftwareGl;
       fortressGroup.add(wStep);
     }
 
     const innerRailX = isWest ? -44.3 : 44.3;
     const stairRail = new THREE.Mesh(rampartStairRailSideGeo, archAssets.carvedMarbleMat);
-    stairRail.position.set(innerRailX, summitY + rampartH * 0.5 + 0.45, -147.0 + FZ);
+    stairRail.position.set(innerRailX, summitY + rampartH * 0.5 + 0.48, -147.0 + FZ);
     stairRail.rotation.x = Math.atan2(rampartH, 10.0);
     fortressGroup.add(stairRail);
 
     const landingCenterZ = -154.3 + FZ;
     const landingBlock = new THREE.Mesh(rampartLandingDeckGeo, fortressStoneMat);
-    landingBlock.position.set(stairCenterX, summitY + rampartH * 0.5, landingCenterZ);
+    landingBlock.position.set(stairCenterX, summitY + (rampartH - 0.16) * 0.5, landingCenterZ);
     landingBlock.receiveShadow = !isSoftwareGl;
     const landingPaving = new THREE.Mesh(rampartLandingTopPavingGeo, archAssets.carvedMarbleMat);
-    landingPaving.position.set(stairCenterX, rampartY - 0.1, landingCenterZ);
+    landingPaving.position.set(isWest ? -46.04 : 46.04, rampartY - 0.1, landingCenterZ);
     landingPaving.receiveShadow = !isSoftwareGl;
 
     const northFence = new THREE.Mesh(rampartLandingFenceNorthGeo, archAssets.carvedMarbleMat);
-    northFence.position.set(stairCenterX, rampartY + 0.58, -156.5 + FZ);
+    northFence.position.set(isWest ? -46.0 : 46.0, rampartY + 0.58, -156.5 + FZ);
     const innerFence = new THREE.Mesh(rampartLandingFenceInnerGeo, archAssets.carvedMarbleMat);
-    innerFence.position.set(innerRailX, rampartY + 0.58, landingCenterZ);
+    innerFence.position.set(innerRailX, rampartY + 0.57, landingCenterZ);
     fortressGroup.add(landingBlock, landingPaving, northFence, innerFence);
 
-    for (const [postX, postZ] of [
-      [innerRailX, -152.1 + FZ],
-      [innerRailX, -154.3 + FZ],
-      [innerRailX, -156.5 + FZ],
-      [isWest ? -47.7 : 47.7, -156.5 + FZ],
+    for (const [postX, postY, postZ] of [
+      [innerRailX, summitY, -142.0 + FZ],
+      [innerRailX, summitY + rampartH * 0.5, -147.0 + FZ],
+      [innerRailX, rampartY, -152.1 + FZ],
+      [innerRailX, rampartY, -154.3 + FZ],
+      [innerRailX, rampartY, -156.5 + FZ],
+      [isWest ? -47.7 : 47.7, rampartY, -156.5 + FZ],
     ]) {
       const post = new THREE.Mesh(balustradePostGeo, archAssets.carvedMarbleMat);
-      post.position.set(postX, rampartY, postZ);
+      post.position.set(postX, postY, postZ);
       const cap = new THREE.Mesh(balustradeCapGeo, archAssets.carvedMarbleMat);
-      cap.position.set(postX, rampartY, postZ);
+      cap.position.set(postX, postY, postZ);
       fortressGroup.add(post, cap);
     }
   }
@@ -499,6 +501,8 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const hallThroneDaisGeo = new THREE.BoxGeometry(9.6, 0.72, 5.4);
   const hallThroneScreenGeo = new THREE.BoxGeometry(8.2, 4.0, 0.4);
 
+  const hallStairGuardRailGeo = new THREE.BoxGeometry(0.18, 0.95, 12.0);
+
   disposableGeometries.push(
     hallPlinthGeo,
     hallEntryStepsGeo,
@@ -517,7 +521,8 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     hallPillarGeo,
     hallStairStepGeo,
     hallThroneDaisGeo,
-    hallThroneScreenGeo
+    hallThroneScreenGeo,
+    hallStairGuardRailGeo
   );
 
   const hallPlinth = new THREE.Mesh(hallPlinthGeo, archAssets.carvedMarbleMat);
@@ -537,7 +542,9 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   f2Front.position.set(16.0, hallFloor2Y - 0.11, -191.9 + FZ);
   const f2Back = new THREE.Mesh(hallWoodFloor2BackPatchGeo, imperialWoodFloorMat);
   f2Back.position.set(16.0, hallFloor2Y - 0.11, -210.8 + FZ);
-  fortressGroup.add(f2Main, f2Right, f2Front, f2Back);
+  const hallStairGuardRail = new THREE.Mesh(hallStairGuardRailGeo, archAssets.imperialCrimsonMat);
+  hallStairGuardRail.position.set(13.42, hallFloor2Y + 0.47, -200.0 + FZ);
+  fortressGroup.add(f2Main, f2Right, f2Front, f2Back, hallStairGuardRail);
 
   const hallBackWall = new THREE.Mesh(hallWallBackGeo, archAssets.imperialCrimsonMat);
   hallBackWall.position.set(0, hallFloor1Y + (hallH1 + hallH2) * 0.5, hallBackZ);
@@ -564,7 +571,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   hallWinSill.position.set(0, hallFloor2Y - 0.52, hallFrontZ);
   const hallWinCap = new THREE.Mesh(hallWindowSillCapGeo, archAssets.imperialGoldMat);
   hallWinCap.position.set(0, hallFloor2Y + 0.42, hallFrontZ);
-  const hallWinHeader = new THREE.Mesh(hallWindowHeaderGeo, archAssets.jadeBeamMat);
+  const hallWinHeader = new THREE.Mesh(hallWindowHeaderGeo, archAssets.imperialCrimsonMat);
   hallWinHeader.position.set(0, hallFloor2Y + hallH2 - 0.42, hallFrontZ);
   fortressGroup.add(hallWinSill, hallWinCap, hallWinHeader);
 
@@ -608,7 +615,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   stBaseOct.position.y = 0.26;
   const stMidLotus = new THREE.Mesh(statueMidLotusGeo, archAssets.imperialCrimsonMat);
   stMidLotus.position.y = 0.70;
-  const stTopJade = new THREE.Mesh(statueTopJadeGeo, archAssets.jadeBeamMat);
+  const stTopJade = new THREE.Mesh(statueTopJadeGeo, archAssets.imperialCrimsonMat);
   stTopJade.position.y = 1.00;
   const stHalo = new THREE.Mesh(statueHaloRingGeo, archAssets.imperialGoldMat);
   stHalo.position.set(0, 3.15, -0.42);

@@ -455,7 +455,11 @@ export function createArchitecturalSharedAssets(ctx: IWorldModelBuildContext): I
     return fg;
   }
 
-  function createOrnatePaifangGate(gateZ: number, gateY: number): THREE.Group {
+  function createOrnatePaifangGate(
+    gateZ: number,
+    gateY: number,
+    beamMat: THREE.MeshStandardMaterial = imperialCrimsonMat
+  ): THREE.Group {
     const paifangGroup = new THREE.Group();
     paifangGroup.position.set(0, gateY, gateZ);
 
@@ -476,14 +480,14 @@ export function createArchitecturalSharedAssets(ctx: IWorldModelBuildContext): I
       paifangGroup.add(drum, col);
     }
 
-    const centerBeam = new THREE.Mesh(paifangBeamCenterGeo, jadeBeamMat);
+    const centerBeam = new THREE.Mesh(paifangBeamCenterGeo, beamMat);
     centerBeam.position.set(0, 6.35, 0);
     const plaque = new THREE.Mesh(paifangPlaqueGeo, imperialGoldMat);
     plaque.position.set(0, 6.95, 0);
     paifangGroup.add(centerBeam, plaque);
 
     for (const sx of [-4.1, 4.1]) {
-      const sideBeam = new THREE.Mesh(paifangBeamSideGeo, jadeBeamMat);
+      const sideBeam = new THREE.Mesh(paifangBeamSideGeo, beamMat);
       sideBeam.position.set(sx, 5.2, 0);
       paifangGroup.add(sideBeam);
     }

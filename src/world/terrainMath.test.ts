@@ -3437,5 +3437,61 @@ test('skyboundIsles_WhenQueriedThroughTheTerrainFacade_ShouldResolveDecksClimbTo
 
   resetSkyClouds();
 });
+
+test('monkPalace_ShouldHaveSteppedStairRailsAccurate2FDojoCollidersTrimmedBuildingWallsAnd2FGuardrails', async () => {
+  const { SOLID_BUILDING_BOXES } = await import('./terrainMath');
+  const boxMap = new Map(SOLID_BUILDING_BOXES.map((b) => [b.id, b]));
+  const FY = FORTRESS_Y_OFFSET;
+
+  // #1: Approach stair railings and rampart stair railings are segmented stepped colliders, not monoliths
+  const lowerWestSeg0 = boxMap.get('fortress-stair-rail-west-lower-0');
+  const lowerWestSeg7 = boxMap.get('fortress-stair-rail-west-lower-7');
+  assert.ok(lowerWestSeg0 && lowerWestSeg7, 'Expected segmented lower palace stair rails');
+  assert.ok((lowerWestSeg0.maxY ?? 0) < 15.0 + FY, `Lower stair foot rail should stay low, got maxY=${lowerWestSeg0.maxY}`);
+  assert.ok((lowerWestSeg7.minY ?? 0) > 15.0 + FY, `Upper segment of lower rail should rise with stairs, got minY=${lowerWestSeg7.minY}`);
+
+  const rampartSeg0 = boxMap.get('rampart-stair-side-fence-west-0');
+  const rampartSeg4 = boxMap.get('rampart-stair-side-fence-west-4');
+  assert.ok(rampartSeg0 && rampartSeg4, 'Expected segmented rampart stair side fences');
+  assert.ok((rampartSeg0.maxY ?? 0) < 29.0 + FY, `Rampart stair foot fence should match stair height, got maxY=${rampartSeg0.maxY}`);
+  assert.ok((rampartSeg4.minY ?? 0) > 29.5 + FY, `Rampart stair top fence should rise with stairs, got minY=${rampartSeg4.minY}`);
+
+  // #4: 2F Dojo objects sit on mainHallFloor2Y (32.2 + FY), and sandbags + balance poles have colliders
+  const dojoFloor2Y = CHINESE_FORTRESS_POS.mainHallFloor2Y;
+  for (let i = 0; i < 6; i++) {
+    const dummy = boxMap.get(`palace-dojo-dummy-${i}`);
+    assert.ok(dummy, `Missing palace-dojo-dummy-${i}`);
+    assert.ok(Math.abs((dummy.minY ?? 0) - dojoFloor2Y) < 0.05, `Dummy ${i} minY should rest on 2F floor ${dojoFloor2Y}, got ${dummy.minY}`);
+  }
+  for (let i = 0; i < 4; i++) {
+    const bag = boxMap.get(`palace-dojo-sandbag-${i}`);
+    assert.ok(bag, `Missing 2F Dojo sandbag collider palace-dojo-sandbag-${i}`);
+  }
+  for (let i = 0; i < 9; i++) {
+    const pole = boxMap.get(`palace-dojo-balance-pole-${i}`);
+    assert.ok(pole, `Missing 2F Dojo balance pole collider palace-dojo-balance-pole-${i}`);
+    assert.ok(Math.abs((pole.minY ?? 0) - dojoFloor2Y) < 0.05);
+  }
+  const gong = boxMap.get('palace-dojo-gong-frame');
+  assert.ok(gong && Math.abs((gong.minY ?? 0) - dojoFloor2Y) < 0.05);
+
+  // #5: Interior building stair rails are compact 2F stairwell guardrails (not floor-to-ceiling monoliths)
+  const hallRail = boxMap.get('hall-interior-stair-rail-w');
+  const westPavRail = boxMap.get('west-pavilion-stair-rail-inner');
+  const eastPavRail = boxMap.get('east-pavilion-stair-rail-inner');
+  assert.ok(hallRail && Math.abs((hallRail.minY ?? 0) - dojoFloor2Y) < 0.05 && (hallRail.maxY ?? 999) <= dojoFloor2Y + 1.15);
+  assert.ok(westPavRail && Math.abs((westPavRail.minY ?? 0) - CHINESE_FORTRESS_POS.pavilionFloor2Y) < 0.05 && (westPavRail.maxY ?? 999) <= CHINESE_FORTRESS_POS.pavilionFloor2Y + 1.1);
+  assert.ok(eastPavRail && Math.abs((eastPavRail.minY ?? 0) - CHINESE_FORTRESS_POS.pavilionFloor2Y) < 0.05 && (eastPavRail.maxY ?? 999) <= CHINESE_FORTRESS_POS.pavilionFloor2Y + 1.1);
+
+  // #6: All 3 building wall colliders end flush with their 3D wall tops (37.4+FY / 35.6+FY)
+  for (const id of ['main-hall-back-wall', 'main-hall-west-wall', 'main-hall-east-wall', 'main-hall-front-upper-west', 'main-hall-front-upper-east', 'main-hall-front-window-header']) {
+    const wall = boxMap.get(id);
+    assert.ok(wall && Math.abs((wall.maxY ?? 0) - (37.4 + FY)) < 0.05, `${id} maxY should equal 37.4+FY, got ${wall?.maxY}`);
+  }
+  for (const id of ['west-pav-back-wall', 'west-pav-west-wall', 'west-pav-east-wall', 'east-pav-back-wall', 'east-pav-west-wall', 'east-pav-east-wall']) {
+    const wall = boxMap.get(id);
+    assert.ok(wall && Math.abs((wall.maxY ?? 0) - (35.6 + FY)) < 0.05, `${id} maxY should equal 35.6+FY, got ${wall?.maxY}`);
+  }
+});
 // #endregion
 

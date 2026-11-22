@@ -21,8 +21,10 @@ import {
   GARDEN_CAVE_FLOOR,
   GARDEN_CAVE_LEDGE,
   GARDEN_CAVE_RAMP,
+  GARDEN_FOOTBRIDGE,
   GARDEN_ROOT_NOOK,
   GARDEN_ROOT_RAMP,
+  GARDEN_SOLID_BOXES,
   GARDEN_WIND_FLOWER_SPOT,
   SKY_TREE,
   SKY_TREE_BRANCH_HIGH,
@@ -216,6 +218,21 @@ describe('floating garden root path', () => {
     const end = simulateSkyPlayer({ x: GARDEN_ROOT_RAMP.ax, y: GARDEN.deckY, z: GARDEN_ROOT_RAMP.az + 3 }, followWaypoints(route), 30);
     // Assert
     assert.equal(end.surface?.id, GARDEN_ROOT_NOOK.id, describeEnd(end));
+  });
+
+  it('exteriorPlatforms_WhenSolidBoxesBuilt_ShouldNotIncludeOrphanPostHitboxes', () => {
+    // Arrange / Act
+    const orphanPosts = GARDEN_SOLID_BOXES.filter((b) => b.id.endsWith('-post'));
+    // Assert
+    assert.deepEqual(orphanPosts, []);
+  });
+
+  it('gardenFootbridge_WhenQueried_ShouldSitCleanlyAboveStreamWater', () => {
+    // Arrange / Act
+    const hit = skyboundSurfaceAt(GARDEN_FOOTBRIDGE.x, GARDEN_FOOTBRIDGE.z, GARDEN.deckY + 0.5);
+    // Assert
+    assert.equal(hit?.id, 'garden-footbridge');
+    assert.ok(hit !== null && hit.y > GARDEN.deckY + 0.25, `footbridge height ${hit?.y} is too close to water`);
   });
 });
 // #endregion

@@ -11,8 +11,20 @@
 // #region Imports
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { SKY_TREE, SKY_TREE_GROTTO, SKY_TREE_GROTTO_MUSHROOM, SKY_TREE_GROTTO_WALLS, SKY_TREE_SPIRAL_RADIUS_M, SKY_TREE_TRUNK_BOX, SKY_TREE_TURNS } from './skyTreeLayout';
+import {
+  SKY_TREE,
+  SKY_TREE_GROTTO,
+  SKY_TREE_GROTTO_MUSHROOM,
+  SKY_TREE_GROTTO_WALLS,
+  SKY_TREE_INNER_RAIL_R,
+  SKY_TREE_OUTER_RAIL_R,
+  SKY_TREE_RAIL_BOXES,
+  SKY_TREE_SPIRAL_RADIUS_M,
+  SKY_TREE_TRUNK_BOX,
+  SKY_TREE_TURNS,
+} from './skyTreeLayout';
 import { SKYBOUND_BOUNCE_PADS, SKYBOUND_SOLID_BOXES, skyBouncePadAt, skyboundSurfaceAt } from './skyboundSurface';
+import { blockingSkyHarborBox, simulateSkyPlayer } from './skyboundTestSim';
 import { findNearestWorldChest } from '../interactionLandmarks';
 // #endregion
 
@@ -74,6 +86,42 @@ describe('giant sky tree spiral', () => {
     const hit = skyboundSurfaceAt(p.x, p.z, SKY_TREE.baseY + 0.2);
     // Assert
     assert.equal(hit?.y, SKY_TREE.baseY);
+  });
+
+  it('spiralRailings_WhenWalkedOutwardOrInwardMidSpiral_ShouldBlockFallingOffEitherSide', () => {
+    // Arrange: both inner and outer rail hitboxes must be registered in SKYBOUND_SOLID_BOXES.
+    assert.ok(SKY_TREE_RAIL_BOXES.some((b) => b.id.startsWith('rail-sky-tree-outer-')));
+    assert.ok(SKY_TREE_RAIL_BOXES.some((b) => b.id.startsWith('rail-sky-tree-inner-')));
+    assert.ok(SKY_TREE_RAIL_BOXES.every((b) => SKYBOUND_SOLID_BOXES.some((s) => s.id === b.id)));
+
+    // Start mid-spiral at theta = 1.6 * Math.PI (well above base, well below top).
+    const startTheta = 1.6 * Math.PI;
+    const mid = spiralPoint(startTheta);
+    const ux = Math.cos(startTheta);
+    const uz = Math.sin(startTheta);
+
+    // Act: walk outward toward the outer railing and inward toward the inner railing.
+    const outwardEnd = simulateSkyPlayer(
+      { x: mid.x, y: mid.y, z: mid.z },
+      (_b, t) => (t < 3 ? { towardX: mid.x + ux * 4, towardZ: mid.z + uz * 4 } : null),
+      3.5
+    );
+    const inwardEnd = simulateSkyPlayer(
+      { x: mid.x, y: mid.y, z: mid.z },
+      (_b, t) => (t < 3 ? { towardX: mid.x - ux * 4, towardZ: mid.z - uz * 4 } : null),
+      3.5
+    );
+
+    const outwardR = Math.hypot(outwardEnd.x - SKY_TREE.x, outwardEnd.z - SKY_TREE.z);
+    const inwardR = Math.hypot(inwardEnd.x - SKY_TREE.x, inwardEnd.z - SKY_TREE.z);
+
+    // Assert: player stays on the spiral (does not fall off outward or inward past the rails).
+    assert.equal(outwardEnd.surface?.id, 'sky-tree-spiral');
+    assert.ok(outwardR < SKY_TREE_OUTER_RAIL_R + 0.2, `escaped outward rail at r=${outwardR.toFixed(2)}`);
+    assert.equal(inwardEnd.surface?.id, 'sky-tree-spiral');
+    assert.ok(inwardR > SKY_TREE_INNER_RAIL_R - 0.2, `escaped inward rail at r=${inwardR.toFixed(2)}`);
+    assert.ok(blockingSkyHarborBox(SKY_TREE.x + ux * SKY_TREE_OUTER_RAIL_R, mid.y + 0.4, SKY_TREE.z + uz * SKY_TREE_OUTER_RAIL_R));
+    assert.ok(blockingSkyHarborBox(SKY_TREE.x + ux * SKY_TREE_INNER_RAIL_R, mid.y + 0.4, SKY_TREE.z + uz * SKY_TREE_INNER_RAIL_R));
   });
 });
 // #endregion

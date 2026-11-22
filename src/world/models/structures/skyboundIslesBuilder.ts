@@ -65,7 +65,7 @@ const ISLAND_COLORS: Record<string, { deck: number; rim: number; rock: number }>
   'ancient-sky-ruins': { deck: 0x7c9068, rim: 0x627352, rock: 0x4b5344 },
   'sky-observatory': { deck: 0xb9c3d6, rim: 0x8e9bb2, rock: 0x454f63 },
   'crystal-isles': { deck: 0x583c87, rim: 0x432c68, rock: 0x2a1f4a },
-  'storm-island': { deck: 0x4a4f63, rim: 0x363b4d, rock: 0x272a36 },
+  'storm-island': { deck: 0x26293a, rim: 0x1b1d29, rock: 0x131520 },
   'forgotten-airship': { deck: 0x8a6440, rim: 0x6e4e30, rock: 0x4a3a2c },
   'hidden-isle': { deck: 0x5fb3a6, rim: 0x438e82, rock: 0x2f5550 },
 };
@@ -108,7 +108,7 @@ export function buildSkyboundIslesBlockout(ctx: IWorldModelBuildContext): ISkybo
   group.add(...buildMergedIslands(ctx, shared, SKYBOUND_ISLANDS));
   for (const br of SKY_BRIDGES) group.add(buildBridge(ctx, shared, br.ax, br.ay, br.az, br.bx, br.by, br.bz, br.halfWidth));
   for (const p of SKY_REST_PLATFORMS) group.add(buildRestPlatform(shared, p.x, p.y, p.z, p.radius));
-  buildStormAndHiddenDressing(ctx, shared, group);
+  const updateStormDressing = buildStormAndHiddenDressing(ctx, shared, group);
   buildChestsAndBed(shared, group);
 
   const cloudVisuals = getSkyCloudRuntimes().map((rt) => buildCloud(ctx, shared, rt, group));
@@ -119,6 +119,7 @@ export function buildSkyboundIslesBlockout(ctx: IWorldModelBuildContext): ISkybo
     update: (elapsedSec: number) => {
       animateClouds(cloudVisuals, elapsedSec);
       animateWindRings(windRings, elapsedSec);
+      updateStormDressing(elapsedSec);
     },
   };
 }
@@ -496,18 +497,18 @@ function buildBridge(
     }
   }
 
-  // Approach transition plazas at both bridge ends so the bridge merges cleanly into each island deck
+  // Approach transition plazas at both bridge ends sitting cleanly ABOVE the island avenues/kerbs
   for (const [ex, ey, ez] of [
     [ax - ux * 1.4, ay, az - uz * 1.4],
     [bx + ux * 1.4, by, bz + uz * 1.4],
   ] as const) {
     const pad = new THREE.Mesh(shared.platformGeo, shared.stoneMat);
-    pad.scale.set(halfWidth * 1.25, 0.12, halfWidth * 1.25);
-    pad.position.set(ex, ey - 0.03, ez);
+    pad.scale.set(halfWidth * 1.25, 0.14, halfWidth * 1.25);
+    pad.position.set(ex, ey - 0.01, ez);
     const padRim = new THREE.Mesh(shared.ringGeo, shared.goldMat);
     padRim.scale.setScalar(halfWidth * 1.18);
     padRim.rotation.x = Math.PI / 2;
-    padRim.position.set(ex, ey + 0.03, ez);
+    padRim.position.set(ex, ey + 0.065, ez);
     group.add(pad, padRim);
   }
 
@@ -545,48 +546,416 @@ function buildRestPlatform(shared: ISharedAssets, x: number, y: number, z: numbe
 }
 
 /**
- * Summary: Adds clean, uncrowded sanctuary accents to Storm Island and Hidden Isle.
+ * Summary: Builds a haunted, atmospheric Storm Sanctum on Storm Island (twisted dead trees,
+ *          ruined gothic arch & stag-bone shrine, crooked tombstones, flickering witchfire cage
+ *          lanterns, obsidian tesla conductors, lightning bolts, and drifting ground mist) plus
+ *          the Sanctuary Ring on Hidden Isle.
  */
-function buildStormAndHiddenDressing(ctx: IWorldModelBuildContext, shared: ISharedAssets, group: THREE.Group): void {
+function buildStormAndHiddenDressing(
+  ctx: IWorldModelBuildContext,
+  shared: ISharedAssets,
+  group: THREE.Group
+): (elapsedSec: number) => void {
   const storm = getSkyIsland('storm-island');
   const hidden = getSkyIsland('hidden-isle');
   const shardGeo = new THREE.OctahedronGeometry(1.0, 0);
   shardGeo.scale(0.55, 1.85, 0.55);
   ctx.disposableGeometries.push(shardGeo);
 
+  const mistPuffs: Array<{ mesh: THREE.Mesh; baseX: number; baseZ: number; phase: number }> = [];
+  const lightningArcs: Array<{ mesh: THREE.Mesh; phase: number }> = [];
+  let witchfireMat: THREE.MeshStandardMaterial | null = null;
+  let arcaneVioletMat: THREE.MeshStandardMaterial | null = null;
+
   if (storm) {
     const sy = storm.deckY;
-    // Central Tempest Rune Sanctuary Circle on Storm Island
-    const outerRing = new THREE.Mesh(shared.ringGeo, shared.goldMat);
-    outerRing.scale.setScalar(8.5);
-    outerRing.rotation.x = Math.PI / 2;
-    outerRing.position.set(storm.x, sy + 0.03, storm.z);
-    const innerRing = new THREE.Mesh(shared.ringGeo, shared.crystalMat);
-    innerRing.scale.setScalar(4.2);
-    innerRing.rotation.x = Math.PI / 2;
-    innerRing.position.set(storm.x, sy + 0.04, storm.z);
-    group.add(outerRing, innerRing);
+    const stormGroup = new THREE.Group();
+    stormGroup.name = 'storm-island-spooky-dressing';
 
-    // 4 clean perimeter lightning conductor pylons around the outer rim
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const r = storm.radius * 0.8;
+    const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 8);
+    const branchGeo = new THREE.ConeGeometry(0.18, 1.0, 6);
+    const slabGeo = new THREE.CylinderGeometry(1, 1, 0.05, 24);
+    const skullGeo = new THREE.DodecahedronGeometry(0.32, 0);
+    const mistGeo = new THREE.CylinderGeometry(1, 1.15, 0.28, 14);
+    ctx.disposableGeometries.push(cylGeo, branchGeo, slabGeo, skullGeo, mistGeo);
+
+    const std = (params: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial => {
+      const m = new THREE.MeshStandardMaterial(params);
+      ctx.disposableMaterials.push(m);
+      return m;
+    };
+    const obsidianMat = std({
+      color: 0x181a24,
+      map: ctx.textures.rockAlbedo,
+      bumpMap: ctx.textures.rockBump,
+      bumpScale: 0.12,
+      roughness: 0.88,
+    });
+    const deadBarkMat = std({
+      color: 0x201924,
+      map: ctx.textures.timberAlbedo,
+      bumpMap: ctx.textures.barkBump,
+      bumpScale: 0.1,
+      roughness: 0.94,
+    });
+    const wroughtIronMat = std({ color: 0x222630, metalness: 0.72, roughness: 0.5 });
+    const boneMat = std({ color: 0xd6cfc2, roughness: 0.85 });
+    witchfireMat = std({
+      color: 0xa5f3fc,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 1.85,
+      roughness: 0.2,
+    });
+    arcaneVioletMat = std({
+      color: 0xc084fc,
+      emissive: 0x9333ea,
+      emissiveIntensity: 1.45,
+      roughness: 0.25,
+    });
+    const flatRuneGeo = new THREE.RingGeometry(0.95, 1.0, 36);
+    flatRuneGeo.rotateX(-Math.PI / 2);
+    const emberGeo = new THREE.OctahedronGeometry(0.08, 0);
+    ctx.disposableGeometries.push(flatRuneGeo, emberGeo);
+
+    const runeMat = std({
+      color: 0x6b21a8,
+      emissive: 0x4c1d95,
+      emissiveIntensity: 0.7,
+      roughness: 0.4,
+      side: THREE.DoubleSide,
+    });
+    const runeCyanMat = std({
+      color: 0x0e7490,
+      emissive: 0x06b6d4,
+      emissiveIntensity: 0.85,
+      roughness: 0.35,
+      side: THREE.DoubleSide,
+    });
+    const fogMat = new THREE.MeshBasicMaterial({
+      color: 0x3b0764,
+      transparent: true,
+      opacity: 0.08,
+      depthWrite: false,
+    });
+    ctx.disposableMaterials.push(fogMat);
+
+    // 1. Dark Obsidian Ritual Dais & Flat Etched Arcane Rune Rings at the heart of Storm Island
+    const ritualSlab = new THREE.Mesh(slabGeo, obsidianMat);
+    ritualSlab.scale.set(9.2, 1, 9.2);
+    ritualSlab.position.set(storm.x, sy + 0.01, storm.z);
+    const outerRune = new THREE.Mesh(flatRuneGeo, runeMat);
+    outerRune.scale.setScalar(8.7);
+    outerRune.position.set(storm.x, sy + 0.042, storm.z);
+    const midRune = new THREE.Mesh(flatRuneGeo, runeMat);
+    midRune.scale.setScalar(6.5);
+    midRune.position.set(storm.x, sy + 0.043, storm.z);
+    const innerRune = new THREE.Mesh(flatRuneGeo, runeCyanMat);
+    innerRune.scale.setScalar(4.3);
+    innerRune.position.set(storm.x, sy + 0.045, storm.z);
+    stormGroup.add(ritualSlab, outerRune, midRune, innerRune);
+
+    // Subtle etched radial spokes on the obsidian slab
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const spoke = new THREE.Mesh(shared.boxGeo, runeMat);
+      spoke.scale.set(4.1, 0.02, 0.14);
+      spoke.position.set(storm.x + Math.cos(a) * 6.5, sy + 0.042, storm.z + Math.sin(a) * 6.5);
+      spoke.rotation.y = -a;
+      stormGroup.add(spoke);
+    }
+
+    // 2. 4 Jagged Obsidian Tesla Conductors with pulsing violet/cyan crystals & lightning bolts
+    const pylonAngles = [0.92, 2.52, -1.62, -0.52];
+    for (let i = 0; i < pylonAngles.length; i++) {
+      const a = pylonAngles[i];
+      const r = i === 3 ? storm.radius * 0.9 : storm.radius * 0.87;
       const px = storm.x + Math.cos(a) * r;
       const pz = storm.z + Math.sin(a) * r;
 
-      const pylon = new THREE.Mesh(shared.boxGeo, shared.darkStoneMat);
-      pylon.scale.set(0.9, 4.8, 0.9);
-      pylon.position.set(px, sy + 2.4, pz);
+      const plinth = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      plinth.scale.set(1.65, 0.7, 1.65);
+      plinth.position.set(px, sy + 0.35, pz);
+      plinth.rotation.y = -a;
+
+      const pylon = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      pylon.scale.set(0.92, 5.4, 0.92);
+      pylon.position.set(px, sy + 2.8, pz);
       pylon.rotation.y = -a;
-      const collar = new THREE.Mesh(shared.boxGeo, shared.goldMat);
-      collar.scale.set(1.15, 0.28, 1.15);
-      collar.position.set(px, sy + 4.75, pz);
-      collar.rotation.y = -a;
-      const crystal = new THREE.Mesh(shardGeo, shared.crystalMat);
-      crystal.scale.setScalar(0.95);
-      crystal.position.set(px, sy + 5.9, pz);
-      group.add(pylon, collar, crystal);
+      pylon.rotation.z = (i % 2 === 0 ? 1 : -1) * 0.04;
+
+      const ironCoil = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      ironCoil.scale.set(1.22, 0.32, 1.22);
+      ironCoil.position.set(px, sy + 5.2, pz);
+      ironCoil.rotation.y = -a;
+
+      const crystal = new THREE.Mesh(shardGeo, i % 2 === 0 ? arcaneVioletMat : witchfireMat);
+      crystal.scale.setScalar(1.05);
+      crystal.position.set(px, sy + 6.4, pz);
+
+      // Jagged glowing lightning arc rising off the spire crystal
+      const arc = new THREE.Mesh(shared.boltGeo, shared.boltMat);
+      arc.scale.set(0.9, 1.8, 0.9);
+      arc.position.set(px, sy + 8.6, pz);
+      arc.rotation.z = Math.PI + (i % 2 === 0 ? 0.22 : -0.22);
+      lightningArcs.push({ mesh: arc, phase: i * 1.45 });
+
+      stormGroup.add(plinth, pylon, ironCoil, crystal, arc);
     }
+
+    // 3. Eastern Shattered Gothic Sanctum Archway, Stag-Skull Storm Altar & Broken Columns
+    {
+      const shrineX = storm.x + 17.2;
+      const shrineZ = storm.z;
+      const shrineGroup = new THREE.Group();
+      shrineGroup.position.set(shrineX, sy, shrineZ);
+      shrineGroup.rotation.y = Math.PI / 2;
+
+      // Cracked altar dais + stone altar table
+      const dais = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      dais.scale.set(5.4, 0.45, 3.2);
+      dais.position.set(0, 0.225, 0);
+      const altar = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      altar.scale.set(2.4, 1.1, 1.2);
+      altar.position.set(0, 0.9, 0.4);
+      const skull = new THREE.Mesh(skullGeo, boneMat);
+      skull.scale.set(1.15, 0.95, 1.35);
+      skull.position.set(0, 1.65, 0.4);
+      // Bone antlers crowning the altar skull
+      for (const side of [-1, 1]) {
+        const antler = new THREE.Mesh(branchGeo, boneMat);
+        antler.scale.set(0.55, 1.15, 0.55);
+        antler.position.set(side * 0.42, 2.05, 0.36);
+        antler.rotation.z = -side * 0.58;
+        const tine = new THREE.Mesh(branchGeo, boneMat);
+        tine.scale.set(0.38, 0.65, 0.38);
+        tine.position.set(side * 0.62, 2.22, 0.36);
+        tine.rotation.z = -side * 0.15;
+        shrineGroup.add(antler, tine);
+      }
+
+      // Towering ruined Gothic archway behind the altar
+      for (const side of [-1, 1]) {
+        const pillar = new THREE.Mesh(shared.boxGeo, obsidianMat);
+        pillar.scale.set(1.05, 6.2, 1.05);
+        pillar.position.set(side * 2.35, 3.1, -0.65);
+        const cap = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+        cap.scale.set(1.25, 0.35, 1.25);
+        cap.position.set(side * 2.35, 6.2, -0.65);
+        const fire = new THREE.Mesh(shared.dripGeo, witchfireMat);
+        fire.scale.setScalar(1.3);
+        fire.position.set(side * 2.35, 6.65, -0.65);
+        shrineGroup.add(pillar, cap, fire);
+      }
+      const arch = new THREE.Mesh(shared.archGeo, obsidianMat);
+      arch.scale.set(2.35, 2.5, 1.15);
+      arch.position.set(0, 6.1, -0.65);
+      const runeKeystone = new THREE.Mesh(shardGeo, arcaneVioletMat);
+      runeKeystone.scale.setScalar(0.75);
+      runeKeystone.position.set(0, 8.2, -0.65);
+      // Flanking glowing iron braziers beside the altar steps
+      for (const side of [-1, 1]) {
+        const bowl = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+        bowl.scale.set(0.65, 0.9, 0.65);
+        bowl.position.set(side * 2.1, 0.65, 1.35);
+        const flame = new THREE.Mesh(shared.dripGeo, witchfireMat);
+        flame.scale.set(1.25, 1.65, 1.25);
+        flame.position.set(side * 2.1, 1.25, 1.35);
+        shrineGroup.add(bowl, flame);
+      }
+      shrineGroup.add(dais, altar, skull, arch, runeKeystone);
+      stormGroup.add(shrineGroup);
+    }
+
+    // 4. Five Twisted Dead Storm-Trees with pivoted connected limbs & gnarled cliff-gripping roots
+    const treeSpecs: ReadonlyArray<{ angle: number; r: number; scale: number }> = [
+      { angle: 1.4, r: 17.4, scale: 1.15 },
+      { angle: -1.18, r: 17.2, scale: 1.05 },
+      { angle: -2.1, r: 17.6, scale: 1.2 },
+      { angle: 0.5, r: 18.0, scale: 1.0 },
+      { angle: 2.24, r: 17.8, scale: 1.1 },
+    ];
+    for (let ti = 0; ti < treeSpecs.length; ti++) {
+      const ts = treeSpecs[ti];
+      const tx = storm.x + Math.cos(ts.angle) * ts.r;
+      const tz = storm.z + Math.sin(ts.angle) * ts.r;
+      const tree = new THREE.Group();
+      tree.position.set(tx, sy, tz);
+      tree.rotation.y = ti * 1.4;
+      tree.scale.setScalar(ts.scale);
+
+      // Lower crooked trunk + seamless twisted upper trunk rooted inside lower top
+      const lowerTrunk = new THREE.Mesh(cylGeo, deadBarkMat);
+      lowerTrunk.scale.set(0.42, 3.2, 0.42);
+      lowerTrunk.position.set(0, 1.55, 0);
+      lowerTrunk.rotation.z = 0.08;
+
+      const upperGroup = new THREE.Group();
+      upperGroup.position.set(-0.18, 2.9, 0);
+      upperGroup.rotation.z = 0.22;
+      upperGroup.rotation.x = 0.1;
+      const upperTrunk = new THREE.Mesh(cylGeo, deadBarkMat);
+      upperTrunk.scale.set(0.28, 2.9, 0.28);
+      upperTrunk.position.y = 1.35;
+      upperGroup.add(upperTrunk);
+
+      // Subtle glowing violet storm-scar embedded inside the lower bark
+      const scar = new THREE.Mesh(shared.boxGeo, arcaneVioletMat);
+      scar.scale.set(0.1, 1.9, 0.52);
+      scar.position.set(-0.02, 1.65, 0);
+      scar.rotation.z = 0.08;
+
+      tree.add(lowerTrunk, upperGroup, scar);
+
+      // Gnarled cliff-gripping roots hugging the deck
+      for (let rIdx = 0; rIdx < 4; rIdx++) {
+        const ra = (rIdx / 4) * Math.PI * 2 + 0.4;
+        const rootPivot = new THREE.Group();
+        rootPivot.position.set(0, 0.22, 0);
+        rootPivot.rotation.y = ra;
+        rootPivot.rotation.z = -1.12;
+        const rootMesh = new THREE.Mesh(branchGeo, deadBarkMat);
+        rootMesh.scale.set(1.15, 1.65, 1.15);
+        rootMesh.position.y = 0.72;
+        rootPivot.add(rootMesh);
+        tree.add(rootPivot);
+      }
+      // Connected claw branches sprouting directly from trunk joints (pivot-anchored)
+      for (const [py, yaw, tilt, bScale] of [
+        [1.1, 0.4, 0.92, 2.2],
+        [1.6, 2.4, 0.85, 2.0],
+        [2.2, 4.1, 0.78, 1.85],
+        [2.65, 5.5, 0.55, 1.65],
+      ] as const) {
+        const branchPivot = new THREE.Group();
+        branchPivot.position.set(0, py, 0);
+        branchPivot.rotation.y = yaw;
+        branchPivot.rotation.z = tilt;
+        const limb = new THREE.Mesh(branchGeo, deadBarkMat);
+        limb.scale.set(0.75, bScale, 0.75);
+        limb.position.y = bScale * 0.48;
+        branchPivot.add(limb);
+        upperGroup.add(branchPivot);
+      }
+      stormGroup.add(tree);
+    }
+
+    // 5. Crooked Tombstones, Skull Cairns, Broken Pillars & Wrought-Iron Witchfire Lanterns
+    const graveAngles = [1.15, 1.68, -0.88, -1.38, -1.85, -2.35, 0.72, 2.75];
+    for (let gi = 0; gi < graveAngles.length; gi++) {
+      const ga = graveAngles[gi];
+      const gr = storm.radius * (gi % 2 === 0 ? 0.84 : 0.76);
+      const gx = storm.x + Math.cos(ga) * gr;
+      const gz = storm.z + Math.sin(ga) * gr;
+
+      const grave = new THREE.Group();
+      grave.position.set(gx, sy, gz);
+      grave.rotation.y = -ga + Math.PI / 2;
+      grave.rotation.z = (gi % 2 === 0 ? 1 : -1) * (0.08 + (gi % 3) * 0.04);
+
+      const base = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      base.scale.set(1.05, 0.25, 0.65);
+      base.position.y = 0.125;
+      const stone = new THREE.Mesh(shared.boxGeo, shared.darkStoneMat);
+      stone.scale.set(0.78, 1.35 + (gi % 3) * 0.3, 0.26);
+      stone.position.y = 0.75;
+      grave.add(base, stone);
+
+      if (gi % 2 === 0) {
+        const rune = new THREE.Mesh(shared.boxGeo, arcaneVioletMat);
+        rune.scale.set(0.22, 0.42, 0.29);
+        rune.position.y = 0.88;
+        grave.add(rune);
+      } else {
+        const skull = new THREE.Mesh(skullGeo, boneMat);
+        skull.scale.setScalar(0.65);
+        skull.position.set(0.28, 0.35, 0.3);
+        grave.add(skull);
+      }
+      stormGroup.add(grave);
+    }
+
+    // 6 Wrought-iron hanging cage lanterns casting eerie spectral teal-blue witchfire
+    const lanternAngles = [0.25, 1.05, 2.1, -0.98, -1.98, -2.72];
+    for (let li = 0; li < lanternAngles.length; li++) {
+      const la = lanternAngles[li];
+      const lr = storm.radius * 0.82;
+      const lx = storm.x + Math.cos(la) * lr;
+      const lz = storm.z + Math.sin(la) * lr;
+      const post = new THREE.Group();
+      post.position.set(lx, sy, lz);
+      post.rotation.y = -la + Math.PI;
+      const ironPole = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      ironPole.scale.set(0.18, 2.8, 0.18);
+      ironPole.position.set(0, 1.4, 0);
+      const ironArm = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      ironArm.scale.set(0.78, 0.14, 0.16);
+      ironArm.position.set(0.32, 2.75, 0);
+      // Hanging chain + top/bottom iron caps + 4 cage bars enclosing the witchfire lantern
+      const chain = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      chain.scale.set(0.05, 0.25, 0.05);
+      chain.position.set(0.62, 2.6, 0);
+      const capTop = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      capTop.scale.set(0.38, 0.08, 0.38);
+      capTop.position.set(0.62, 2.48, 0);
+      const capBot = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+      capBot.scale.set(0.36, 0.07, 0.36);
+      capBot.position.set(0.62, 2.04, 0);
+      const ironGlow = new THREE.Mesh(shared.boxGeo, witchfireMat);
+      ironGlow.scale.set(0.24, 0.36, 0.24);
+      ironGlow.position.set(0.62, 2.26, 0);
+      post.add(ironPole, ironArm, chain, capTop, capBot, ironGlow);
+      for (const cx of [-0.15, 0.15]) {
+        for (const cz of [-0.15, 0.15]) {
+          const bar = new THREE.Mesh(shared.boxGeo, wroughtIronMat);
+          bar.scale.set(0.04, 0.42, 0.04);
+          bar.position.set(0.62 + cx, 2.26, cz);
+          post.add(bar);
+        }
+      }
+      stormGroup.add(post);
+    }
+
+    // 4 Jagged Cracked Obsidian Rune Menhirs standing near the outer edge
+    for (const [ma, tilt] of [
+      [1.88, 0.09],
+      [-2.48, -0.08],
+      [-0.3, 0.1],
+      [0.34, -0.07],
+    ] as const) {
+      const mx = storm.x + Math.cos(ma) * (storm.radius * 0.64);
+      const mz = storm.z + Math.sin(ma) * (storm.radius * 0.64);
+      const menhir = new THREE.Mesh(shared.boxGeo, obsidianMat);
+      menhir.scale.set(0.9, 2.65, 0.55);
+      menhir.position.set(mx, sy + 1.25, mz);
+      menhir.rotation.y = -ma;
+      menhir.rotation.z = tilt;
+      const menhirRune = new THREE.Mesh(shared.boxGeo, runeMat);
+      menhirRune.scale.set(0.24, 1.15, 0.58);
+      menhirRune.position.set(mx, sy + 1.35, mz);
+      menhirRune.rotation.y = -ma;
+      menhirRune.rotation.z = tilt;
+      stormGroup.add(menhir, menhirRune);
+    }
+
+    // 6. Soft Low-Lying Ground Fog Wisps + Floating Spectral Ember Motes
+    for (let fi = 0; fi < 10; fi++) {
+      const fa = (fi / 10) * Math.PI * 2;
+      const fr = 6.0 + (fi % 3) * 4.2;
+      const fx = storm.x + Math.cos(fa) * fr;
+      const fz = storm.z + Math.sin(fa) * fr;
+      const mist = new THREE.Mesh(mistGeo, fogMat);
+      mist.scale.set(2.2 + (fi % 3) * 0.8, 0.7, 2.2 + (fi % 3) * 0.8);
+      mist.position.set(fx, sy + 0.1, fz);
+      mistPuffs.push({ mesh: mist, baseX: fx, baseZ: fz, phase: fi * 0.85 });
+      stormGroup.add(mist);
+
+      const mote = new THREE.Mesh(emberGeo, fi % 2 === 0 ? witchfireMat : arcaneVioletMat);
+      mote.position.set(fx, sy + 1.1 + (fi % 4) * 0.45, fz);
+      mistPuffs.push({ mesh: mote, baseX: fx, baseZ: fz, phase: fi * 1.3 });
+      stormGroup.add(mote);
+    }
+
+    group.add(stormGroup);
   }
 
   if (hidden) {
@@ -598,6 +967,28 @@ function buildStormAndHiddenDressing(ctx: IWorldModelBuildContext, shared: IShar
     sanctumRing.position.set(hidden.x, hy + 0.03, hidden.z);
     group.add(sanctumRing);
   }
+
+  return (elapsedSec: number) => {
+    if (witchfireMat) {
+      witchfireMat.emissiveIntensity = 1.65 + Math.sin(elapsedSec * 5.2) * 0.45 + Math.cos(elapsedSec * 9.7) * 0.2;
+    }
+    if (arcaneVioletMat) {
+      arcaneVioletMat.emissiveIntensity = 1.25 + Math.sin(elapsedSec * 2.4) * 0.35;
+    }
+    for (let i = 0; i < mistPuffs.length; i++) {
+      const p = mistPuffs[i];
+      p.mesh.position.x = p.baseX + Math.sin(elapsedSec * 0.45 + p.phase) * 1.1;
+      p.mesh.position.z = p.baseZ + Math.cos(elapsedSec * 0.38 + p.phase) * 1.1;
+    }
+    for (let i = 0; i < lightningArcs.length; i++) {
+      const arc = lightningArcs[i];
+      const pulse = Math.sin(elapsedSec * 7.5 + arc.phase) * Math.sin(elapsedSec * 3.1 + arc.phase * 2);
+      arc.mesh.visible = pulse > 0.32;
+      if (arc.mesh.visible) {
+        arc.mesh.rotation.y = elapsedSec * 14 + arc.phase;
+      }
+    }
+  };
 }
 
 /** Ornate vaulted treasure chests at every sky chest. */
@@ -610,6 +1001,9 @@ function buildChestsAndBed(shared: ISharedAssets, group: THREE.Group): void {
     if (chest.id === 'chest-sky-windspire-summit') {
       // Face East (+X) toward the Windspire Summit roof entrance (`arrivalAngle = 0`)
       chestGroup.rotation.y = Math.PI / 2;
+    } else if (chest.id === 'chest-sky-world-tree-hollow' || chest.id === 'chest-sky-tree-grotto') {
+      // Face North (-Z) inward toward the World Tree crown sanctum / grotto opening
+      chestGroup.rotation.y = Math.PI;
     }
 
     const plinth = new THREE.Mesh(shared.boxGeo, shared.darkStoneMat);

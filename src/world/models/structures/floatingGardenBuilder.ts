@@ -24,7 +24,6 @@ import {
   GARDEN_CAVE_RAMP,
   SKY_TREE,
   SKY_TREE_HOLLOW_PADS,
-  SKY_TREE_HOLLOW_CHEST_SPOT,
   SKY_TREE_ROOT_LANDING,
   GARDEN_BOUNCE_PADS,
   SKY_TREE_BRANCH_LOW,
@@ -38,6 +37,7 @@ import {
 } from '../../domain/landmarksRegistry';
 import {
   SKY_TREE_HOLLOW_ENTRANCE,
+  SKY_TREE_ROOT_CLIMB_RAMPS,
   SKY_TREE_ROOT_CLIMB_START,
   GARDEN_FOOTBRIDGE,
 } from '../../domain/landmarks/skyboundIsles/floatingGardenLayout';
@@ -200,21 +200,32 @@ function buildLakeAndStream(ctx: IWorldModelBuildContext, mats: IHarborMaterials
   group.add(boxMesh(box, mats.stone, s.x, DECK_Y + DECAL_LIFT_M, (s.fromZ + s.toZ) / 2, s.halfWidth * 2 + 1.1, 0.08, length));
   group.add(boxMesh(box, mats.water, s.x, DECK_Y + DECAL_LIFT_M * 3, (s.fromZ + s.toZ) / 2, s.halfWidth * 2, 0.08, length));
 
-  // Flat marble footbridge over the stream, connecting the central plaza to the west side. The walkway is level
-  // with the deck; the two side railings are real collision rails (see GARDEN_FOOTBRIDGE) and are drawn here
-  // as posts with lanterns and a handrail.
+  // Arched marble footbridge spanning cleanly ABOVE the stream water (`GARDEN_FOOTBRIDGE.y = DECK_Y + 0.36` vs water top `DECK_Y + 0.13`),
+  // with stepped stone approach thresholds at both ends and twin lantern railings.
   const bridge = GARDEN_FOOTBRIDGE;
   const deckLength = bridge.halfLength * 2;
-  group.add(boxMesh(box, mats.marble, bridge.x, DECK_Y + 0.05, bridge.z, deckLength, 0.1, bridge.halfWidth * 2 + 0.3));
-  group.add(boxMesh(box, mats.gold, bridge.x, DECK_Y + 0.11, bridge.z, deckLength - 0.4, 0.03, 0.9));
+  const bridgeBottomClearY = bridge.y - 0.16;
+  group.add(
+    boxMesh(box, mats.marble, bridge.x, bridge.y - 0.08, bridge.z, deckLength - 0.4, 0.16, bridge.halfWidth * 2 + 0.3),
+    boxMesh(box, mats.gold, bridge.x, bridge.y + 0.015, bridge.z, deckLength - 0.8, 0.03, 0.9)
+  );
+  for (const xSide of [-1, 1]) {
+    const endX = bridge.x + xSide * (bridge.halfLength - 0.15);
+    group.add(
+      boxMesh(box, mats.stone, endX, DECK_Y + 0.1, bridge.z, 0.7, 0.2, bridge.halfWidth * 2 + 0.4),
+      boxMesh(box, mats.marble, bridge.x + xSide * (bridge.halfLength - 0.42), bridge.y - 0.06, bridge.z, 0.55, 0.12, bridge.halfWidth * 2 + 0.3)
+    );
+  }
   for (const side of [-1, 1]) {
     const railZ = bridge.z + side * (bridge.halfWidth + 0.15);
-    group.add(boxMesh(box, mats.gold, bridge.x, DECK_Y + 1.02, railZ, deckLength, 0.08, 0.14));
+    group.add(boxMesh(box, mats.gold, bridge.x, bridge.y + 1.02, railZ, deckLength, 0.08, 0.14));
     for (const dx of [-bridge.halfLength + 0.15, -bridge.halfLength / 2, 0, bridge.halfLength / 2, bridge.halfLength - 0.15]) {
-      group.add(boxMesh(box, mats.marble, bridge.x + dx, DECK_Y + 0.55, railZ, 0.22, 1.1, 0.22));
+      const postBottom = Math.abs(dx) > bridge.halfLength - 0.4 ? DECK_Y : bridgeBottomClearY;
+      const postTop = bridge.y + 1.08;
+      group.add(boxMesh(box, mats.marble, bridge.x + dx, (postBottom + postTop) / 2, railZ, 0.22, postTop - postBottom, 0.22));
     }
     for (const dx of [-bridge.halfLength + 0.15, bridge.halfLength - 0.15]) {
-      group.add(boxMesh(box, mats.lanternGlow, bridge.x + dx, DECK_Y + 1.28, railZ, 0.2, 0.2, 0.2));
+      group.add(boxMesh(box, mats.lanternGlow, bridge.x + dx, bridge.y + 1.24, railZ, 0.2, 0.2, 0.2));
     }
   }
 }
@@ -386,11 +397,14 @@ function buildColossalWorldTree(
   const boughGeo = new THREE.CylinderGeometry(0.55, 1.85, 1, 10);
   const canopyGeo = new THREE.IcosahedronGeometry(1, 1);
   const platformGeo = new THREE.CylinderGeometry(1, 0.84, 0.52, 24);
-  const platformRimGeo = new THREE.TorusGeometry(1, 0.08, 8, 28);
-  platformRimGeo.rotateX(Math.PI / 2);
   const crystalGeo = new THREE.OctahedronGeometry(1, 0);
-  const crownCollarGeo = new THREE.TorusGeometry(SKY_TREE_CROWN.outerR - 0.15, 0.95, 12, 48);
+  const crownCollarGeo = new THREE.TorusGeometry(SKY_TREE_CROWN.outerR - 0.25, 0.62, 12, 48);
   crownCollarGeo.rotateX(Math.PI / 2);
+
+  // Stop the hollow inner shell and exterior bark buttresses cleanly below the crown floor slab (`0.42m` thick)
+  // so no vertical rib top caps are coplanar with the 2nd floor crown deck (`SKY_TREE_CROWN.y`).
+  const crownSlabThickness = 0.42;
+  const lowerTrunkHeight = SKY_TREE_CROWN.y - DECK_Y - crownSlabThickness * 0.85;
 
   // Sculpted flared trunk base skirt (open at the North entrance: theta = Math.PI in CylinderGeometry, theta = Math.PI/2 in RingGeometry)
   const cylArcStart = Math.PI + 0.64;
@@ -398,7 +412,7 @@ function buildColossalWorldTree(
   const ringArcStart = Math.PI / 2 + 0.64;
   const ringArcLength = Math.PI * 2 - 1.28;
   const baseFlareGeo = new THREE.CylinderGeometry(t.hollowOuterR + 0.1, t.baseRadius, 3.1, 36, 1, true, cylArcStart, cylArcLength);
-  const innerShellGeo = new THREE.CylinderGeometry(t.hollowInnerR + 0.12, t.hollowInnerR + 0.22, SKY_TREE_CROWN.y - DECK_Y, 32, 1, true, cylArcStart, cylArcLength);
+  const innerShellGeo = new THREE.CylinderGeometry(t.hollowInnerR + 0.12, t.hollowInnerR + 0.22, lowerTrunkHeight, 32, 1, true, cylArcStart, cylArcLength);
   const groundSkirtGeo = new THREE.RingGeometry(t.hollowInnerR - 0.2, t.baseRadius + 0.6, 44, 1, ringArcStart, ringArcLength);
   groundSkirtGeo.rotateX(-Math.PI / 2);
   ctx.disposableGeometries.push(
@@ -406,7 +420,6 @@ function buildColossalWorldTree(
     boughGeo,
     canopyGeo,
     platformGeo,
-    platformRimGeo,
     crystalGeo,
     crownCollarGeo,
     baseFlareGeo,
@@ -415,7 +428,7 @@ function buildColossalWorldTree(
   );
 
   // 1. Ultra-wide hollow lower & mid trunk: continuous inner bark shell + sculpted outer bark buttresses + flared base collar.
-  const trunkHeight = SKY_TREE_CROWN.y - DECK_Y;
+  const trunkHeight = lowerTrunkHeight;
   const innerShell = new THREE.Mesh(innerShellGeo, innerBarkMat);
   innerShell.position.set(t.x, DECK_Y + trunkHeight / 2, t.z);
   group.add(innerShell);
@@ -473,9 +486,9 @@ function buildColossalWorldTree(
     }
   }
 
-  // Organic gnarled bark collar wrapping the underside of the Crown Sanctum (`SKY_TREE_CROWN`).
+  // Organic gnarled bark collar cradling the underside of the Crown Sanctum slab (`SKY_TREE_CROWN.y - 0.85`).
   const crownCollar = new THREE.Mesh(crownCollarGeo, barkMat);
-  crownCollar.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y - 0.38, SKY_TREE_CROWN.z);
+  crownCollar.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y - 0.85, SKY_TREE_CROWN.z);
   group.add(crownCollar);
 
   // 2. Grand North-facing Hollow Entrance Archway (`SKY_TREE_HOLLOW_ENTRANCE`) facing the center of the island!
@@ -509,22 +522,40 @@ function buildColossalWorldTree(
     group.add(portalGem);
   }
 
-  // Exterior Branch Staircase Threshold Arch at `SKY_TREE_ROOT_CLIMB_START` on the east flank of the World Tree.
+  // Exterior Branch Staircase Threshold Arch aligned perpendicular to the start of `sky-tree-climb-root-a`.
   const climbStart = SKY_TREE_ROOT_CLIMB_START;
-  const climbArch = new THREE.Mesh(doorArchGeo, barkMat);
-  climbArch.scale.set(0.65, 0.72, 0.65);
-  climbArch.position.set(climbStart.x, DECK_Y + 2.2, climbStart.z);
-  climbArch.rotation.y = 0.22;
-  const climbRuneArch = new THREE.Mesh(doorArchGeo, runeMat);
-  climbRuneArch.scale.set(0.67, 0.74, 0.36);
-  climbRuneArch.position.set(climbStart.x, DECK_Y + 2.25, climbStart.z);
-  climbRuneArch.rotation.y = 0.22;
+  const climbRamp = SKY_TREE_ROOT_CLIMB_RAMPS[0];
+  const rdx = climbRamp.bx - climbRamp.ax;
+  const rdz = climbRamp.bz - climbRamp.az;
+  const rLen = Math.hypot(rdx, rdz) || 1;
+  const rux = rdx / rLen;
+  const ruz = rdz / rLen;
+  // Normal across the stair width: (ruz, -rux); arch local +X aligns with (cos(yaw), -sin(yaw)) when yaw = atan2(rux, ruz).
+  const climbGateYaw = Math.atan2(rux, ruz);
+  const pillarHalfSpan = climbRamp.halfWidth + 0.28;
+  const pillarHeight = 2.35;
+  const climbArchGeo = new THREE.TorusGeometry(pillarHalfSpan, 0.22, 10, 24, Math.PI);
+  const climbRuneArchGeo = new THREE.TorusGeometry(pillarHalfSpan - 0.15, 0.065, 8, 24, Math.PI);
+  ctx.disposableGeometries.push(climbArchGeo, climbRuneArchGeo);
+
+  const climbArch = new THREE.Mesh(climbArchGeo, barkMat);
+  climbArch.position.set(climbStart.x, DECK_Y + pillarHeight, climbStart.z);
+  climbArch.rotation.y = climbGateYaw;
+  const climbRuneArch = new THREE.Mesh(climbRuneArchGeo, runeMat);
+  climbRuneArch.position.set(climbStart.x, DECK_Y + pillarHeight, climbStart.z);
+  climbRuneArch.rotation.y = climbGateYaw;
   group.add(climbArch, climbRuneArch);
-  for (const dx of [-1.95, 1.95]) {
-    group.add(boxMesh(box, barkMat, climbStart.x + dx, DECK_Y + 1.15, climbStart.z, 0.48, 2.3, 0.48));
+
+  for (const side of [-1, 1]) {
+    const px = climbStart.x + ruz * pillarHalfSpan * side;
+    const pz = climbStart.z - rux * pillarHalfSpan * side;
+    group.add(
+      boxMesh(box, barkMat, px, DECK_Y + pillarHeight / 2, pz, 0.46, pillarHeight, 0.46, climbGateYaw),
+      boxMesh(box, mats.gold, px, DECK_Y + pillarHeight, pz, 0.56, 0.16, 0.56, climbGateYaw)
+    );
     const lantern = new THREE.Mesh(crystalGeo, crystalMat);
-    lantern.scale.set(0.28, 0.65, 0.28);
-    lantern.position.set(climbStart.x + dx, DECK_Y + 2.65, climbStart.z);
+    lantern.scale.set(0.24, 0.54, 0.24);
+    lantern.position.set(px, DECK_Y + pillarHeight + 0.46, pz);
     group.add(lantern);
   }
 
@@ -671,16 +702,18 @@ function buildColossalWorldTree(
   apexDome.position.set(t.x, DECK_Y + t.height + 3.2, t.z);
   group.add(apexDome);
 
-  // 5. Crown Sanctum Ring Floor (`SKY_TREE_CROWN`), Heart Crystal Cluster, and Sanctum Treasure Chest.
-  const ringGeo = new THREE.RingGeometry(SKY_TREE_CROWN.innerR, SKY_TREE_CROWN.outerR, 48);
-  ringGeo.rotateX(Math.PI / 2);
-  ctx.disposableGeometries.push(ringGeo);
-  const woodTwoSided = mats.wood.clone();
-  woodTwoSided.side = THREE.DoubleSide;
-  ctx.disposableMaterials.push(woodTwoSided);
-  const ring = new THREE.Mesh(ringGeo, woodTwoSided);
-  ring.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y, SKY_TREE_CROWN.z);
-  group.add(ring);
+  // 5. Crown Sanctum Solid Annular Slab (`SKY_TREE_CROWN`) — extruded thickness prevents any Z-fighting with supporting ribs below.
+  const crownShape = new THREE.Shape();
+  crownShape.absarc(0, 0, SKY_TREE_CROWN.outerR, 0, Math.PI * 2, false);
+  const crownHole = new THREE.Path();
+  crownHole.absarc(0, 0, SKY_TREE_CROWN.innerR, 0, Math.PI * 2, true);
+  crownShape.holes.push(crownHole);
+  const crownSlabGeo = new THREE.ExtrudeGeometry(crownShape, { depth: crownSlabThickness, bevelEnabled: false, curveSegments: 48 });
+  crownSlabGeo.rotateX(Math.PI / 2);
+  ctx.disposableGeometries.push(crownSlabGeo);
+  const crownSlab = new THREE.Mesh(crownSlabGeo, mats.wood);
+  crownSlab.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y, SKY_TREE_CROWN.z);
+  group.add(crownSlab);
 
   const innerRimGeo = new THREE.TorusGeometry(SKY_TREE_CROWN.innerR + 0.1, 0.14, 8, 36);
   innerRimGeo.rotateX(Math.PI / 2);
@@ -693,16 +726,9 @@ function buildColossalWorldTree(
   outerRim.position.set(SKY_TREE_CROWN.x, SKY_TREE_CROWN.y + 0.08, SKY_TREE_CROWN.z);
   group.add(innerRim, outerRim);
 
-  // Ornate Treasure Chest on the South rim of the Crown Sanctum (`SKY_TREE_HOLLOW_CHEST_SPOT`).
-  const cs = SKY_TREE_HOLLOW_CHEST_SPOT;
-  group.add(boxMesh(box, mats.stone, cs.x, cs.y + 0.12, cs.z, 1.5, 0.24, 1.1));
-  group.add(boxMesh(box, mats.darkWood, cs.x, cs.y + 0.48, cs.z, 1.1, 0.52, 0.74));
-  group.add(boxMesh(box, mats.gold, cs.x, cs.y + 0.78, cs.z, 1.14, 0.22, 0.78));
-  group.add(boxMesh(box, runeMat, cs.x, cs.y + 0.58, cs.z - 0.38, 0.22, 0.22, 0.08));
-
   // 6. Walkable exterior platforms (`SKY_TREE_ROOT_LANDING`, `SKY_TREE_BRANCH_LOW`, `SKY_TREE_BRANCH_HIGH`) supported by organic tree boughs + carved staircase ramps.
   for (const p of [SKY_TREE_ROOT_LANDING, SKY_TREE_BRANCH_LOW, SKY_TREE_BRANCH_HIGH]) {
-    group.add(...platformMeshes(mats, barkMat, runeMat, box, platformGeo, platformRimGeo, boughGeo, crystalGeo, p));
+    group.add(...platformMeshes(ctx, mats, barkMat, runeMat, box, platformGeo, boughGeo, crystalGeo, p));
   }
   for (const b of SKY_TREE_BRANCHES) {
     group.add(rampSlab(box, mats.darkWood, b, 0.55));
@@ -726,14 +752,14 @@ function buildColossalWorldTree(
   return { runeMat };
 }
 
-/** Builds each exterior tree climb platform supported by an organic tree bough growing out of the World Tree trunk, plus a golden rim & guiding lantern. */
+/** Builds each exterior tree climb platform supported by an organic tree bough growing out of the World Tree trunk, plus a circular golden rim & guiding lantern. */
 function platformMeshes(
+  ctx: IWorldModelBuildContext,
   mats: IHarborMaterials,
   barkMat: THREE.Material,
   runeMat: THREE.Material,
   box: THREE.BoxGeometry,
   geo: THREE.CylinderGeometry,
-  rimGeo: THREE.TorusGeometry,
   boughGeo: THREE.CylinderGeometry,
   crystalGeo: THREE.OctahedronGeometry,
   p: IGardenPlatform
@@ -742,9 +768,11 @@ function platformMeshes(
   deck.scale.set(p.radius, 1, p.radius);
   deck.position.set(p.x, p.y - 0.24, p.z);
 
+  const rimGeo = new THREE.TorusGeometry(p.radius - 0.05, 0.075, 8, 36);
+  rimGeo.rotateX(Math.PI / 2);
+  ctx.disposableGeometries.push(rimGeo);
   const rim = new THREE.Mesh(rimGeo, mats.gold);
-  rim.scale.set(p.radius - 0.08, p.radius - 0.08, 1);
-  rim.position.set(p.x, p.y + 0.02, p.z);
+  rim.position.set(p.x, p.y + 0.01, p.z);
 
   // Angled organic support bough growing out of the main World Tree trunk to the underside of the platform.
   const ang = Math.atan2(p.z - SKY_TREE.z, p.x - SKY_TREE.x);

@@ -92,7 +92,7 @@ export function buildSkyDock(
   const pierW = pier.maxZ - pier.minZ;
 
   group.add(
-    deckSlab(box, mats.wood, pier, 0.42),
+    deckSlab(box, mats.wood, { ...pier, y: DECK_Y + 0.035 }, 0.42),
     // Stone quay threshold & heavy cliff-edge masonry abutment wall anchored into Sky Harbor's eastern cliff face
     boxMesh(box, mats.stone, pier.minX + 0.3, DECK_Y + 0.06, pierCz, 1.2, 0.14, pierW + 0.8),
     boxMesh(box, mats.darkStone, pier.minX + 2.2, DECK_Y - 4.2, pierCz, 5.2, 8.0, pierW + 1.4),

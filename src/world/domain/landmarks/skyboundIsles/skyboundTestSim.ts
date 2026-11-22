@@ -71,7 +71,12 @@ export const STAND_STILL: SimPilot = () => null;
  * @param maxSec Time limit in seconds.
  * @returns The final body.
  */
-export function simulateSkyPlayer(start: { x: number; y: number; z: number }, pilot: SimPilot, maxSec: number): ISimBody {
+export function simulateSkyPlayer(
+  start: { x: number; y: number; z: number },
+  pilot: SimPilot,
+  maxSec: number,
+  onStep?: (body: ISimBody) => void
+): ISimBody {
   const body: ISimBody = {
     ...start,
     vx: 0,
@@ -137,6 +142,7 @@ export function simulateSkyPlayer(start: { x: number; y: number; z: number }, pi
       body.grounded = false;
       body.surface = null;
     }
+    onStep?.(body);
     if (body.y < 0) return body;
     restSec = body.grounded && Math.hypot(body.vx, body.vz) < 0.2 && !wind ? restSec + FRAME_SEC : 0;
     if (restSec > 1) return body;

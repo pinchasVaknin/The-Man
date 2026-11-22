@@ -14,6 +14,9 @@ import * as THREE from 'three';
 import {
   SKY_TREE,
   SKY_TREE_BRANCH_HALF_WIDTH_M,
+  SKY_TREE_INNER_RAIL_END_T,
+  SKY_TREE_INNER_RAIL_R,
+  SKY_TREE_OUTER_RAIL_R,
   SKY_TREE_SPIRAL_RADIUS_M,
   SKY_TREE_TOP_RADIUS_M,
   SKY_TREE_TRUNK_HALF_M,
@@ -60,7 +63,9 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   const postGeo = new THREE.CylinderGeometry(0.09, 0.11, 1.05, 6);
   const shardGeo = new THREE.OctahedronGeometry(0.85, 0);
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-  const portalArchGeo = new THREE.TorusGeometry(1.45, 0.22, 8, 18, Math.PI);
+  const archSpanR = SKY_TREE_BRANCH_HALF_WIDTH_M + 0.14;
+  const portalArchGeo = new THREE.TorusGeometry(archSpanR, 0.2, 10, 22, Math.PI);
+  const portalRuneGeo = new THREE.TorusGeometry(archSpanR - 0.14, 0.065, 8, 22, Math.PI);
   const trunk = new THREE.Mesh(trunkGeo, barkMat);
   trunk.position.set(SKY_TREE.x, SKY_TREE.baseY + height / 2, SKY_TREE.z);
   trunk.castShadow = !ctx.isSoftwareGl;
@@ -87,9 +92,11 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   const indices: number[] = [];
   const railPositions: number[] = [];
   const railIndices: number[] = [];
-  const outerRailR = SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M + 0.14;
-  const innerRailR = SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_BRANCH_HALF_WIDTH_M - 0.14;
+  const outerRailR = SKY_TREE_OUTER_RAIL_R;
+  const innerRailR = SKY_TREE_INNER_RAIL_R;
+  const innerSteps = Math.floor(steps * SKY_TREE_INNER_RAIL_END_T);
   const innerRailPositions: number[] = [];
+  const innerRailIndices: number[] = [];
   const skirtPositions: number[] = [];
   const skirtIndices: number[] = [];
 
@@ -105,8 +112,14 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
     }
     railPositions.push(SKY_TREE.x + cx * outerRailR, y + 0.72, SKY_TREE.z + sz * outerRailR);
     railPositions.push(SKY_TREE.x + cx * outerRailR, y + 0.86, SKY_TREE.z + sz * outerRailR);
-    innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.72, SKY_TREE.z + sz * innerRailR);
-    innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.86, SKY_TREE.z + sz * innerRailR);
+    if (i <= innerSteps) {
+      innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.72, SKY_TREE.z + sz * innerRailR);
+      innerRailPositions.push(SKY_TREE.x + cx * innerRailR, y + 0.86, SKY_TREE.z + sz * innerRailR);
+      if (i < innerSteps) {
+        const a = i * 2;
+        innerRailIndices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      }
+    }
     // Side skirts: a plank-thick wall under each edge of the walkway, so it reads as a built stair, not a sheet.
     for (const edgeR of [SKY_TREE_SPIRAL_RADIUS_M - SKY_TREE_BRANCH_HALF_WIDTH_M, SKY_TREE_SPIRAL_RADIUS_M + SKY_TREE_BRANCH_HALF_WIDTH_M]) {
       skirtPositions.push(SKY_TREE.x + cx * edgeR, y - 0.12, SKY_TREE.z + sz * edgeR);
@@ -135,7 +148,7 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
 
   const innerRailGeo = new THREE.BufferGeometry();
   innerRailGeo.setAttribute('position', new THREE.Float32BufferAttribute(innerRailPositions, 3));
-  innerRailGeo.setIndex(railIndices);
+  innerRailGeo.setIndex(innerRailIndices);
   innerRailGeo.computeVertexNormals();
   const innerRailMesh = new THREE.Mesh(innerRailGeo, branchMat);
 
@@ -186,14 +199,28 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   treadMeshes.computeBoundingSphere();
   group.add(treadMeshes);
 
-  // 3. Welcoming Root-Arch Threshold Portal at the base of the spiral staircase (`theta = 0`).
+  // 3. Welcoming Root-Arch Threshold Portal grounded on twin pillars at the base of the spiral staircase (`theta = 0`).
   const entryX = SKY_TREE.x + SKY_TREE_SPIRAL_RADIUS_M;
   const entryZ = SKY_TREE.z;
+  const gatePillarH = 2.15;
+  const springY = SKY_TREE.baseY + gatePillarH;
+  for (const pillarR of [innerRailR, outerRailR]) {
+    const px = SKY_TREE.x + pillarR;
+    const pillar = new THREE.Mesh(boxGeo, barkMat);
+    pillar.scale.set(0.36, gatePillarH, 0.36);
+    pillar.position.set(px, SKY_TREE.baseY + gatePillarH / 2, entryZ);
+    const cap = new THREE.Mesh(boxGeo, goldMat);
+    cap.scale.set(0.46, 0.14, 0.46);
+    cap.position.set(px, springY, entryZ);
+    const runeStrip = new THREE.Mesh(boxGeo, runeMat);
+    runeStrip.scale.set(0.1, gatePillarH * 0.72, 0.4);
+    runeStrip.position.set(px, SKY_TREE.baseY + gatePillarH * 0.5, entryZ);
+    group.add(pillar, cap, runeStrip);
+  }
   const portalArch = new THREE.Mesh(portalArchGeo, barkMat);
-  portalArch.position.set(entryX, SKY_TREE.baseY + 1.85, entryZ);
-  const portalRune = new THREE.Mesh(portalArchGeo, runeMat);
-  portalRune.scale.set(1.02, 1.02, 0.5);
-  portalRune.position.set(entryX, SKY_TREE.baseY + 1.9, entryZ);
+  portalArch.position.set(entryX, springY, entryZ);
+  const portalRune = new THREE.Mesh(portalRuneGeo, runeMat);
+  portalRune.position.set(entryX, springY, entryZ);
   group.add(portalArch, portalRune);
 
   // 4. Balustrade posts along both handrails.
@@ -202,7 +229,7 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
     const t = i / (postCount + 1);
     const theta = t * 2 * Math.PI * SKY_TREE_TURNS;
     const y = SKY_TREE.baseY + height * t;
-    for (const railR of [outerRailR, innerRailR]) {
+    for (const railR of t <= SKY_TREE_INNER_RAIL_END_T ? [outerRailR, innerRailR] : [outerRailR]) {
       const post = new THREE.Mesh(postGeo, barkMat);
       post.position.set(SKY_TREE.x + Math.cos(theta) * railR, y + 0.42, SKY_TREE.z + Math.sin(theta) * railR);
       group.add(post);
@@ -222,7 +249,7 @@ export function buildSkyTree(ctx: IWorldModelBuildContext): ISkyTreeBuildResult 
   topCrystal.position.set(SKY_TREE.x, SKY_TREE.topY + 3.4, SKY_TREE.z);
   group.add(top, topRing, topCrystal);
 
-  ctx.disposableGeometries.push(trunkGeo, ribGeo, postGeo, shardGeo, boxGeo, portalArchGeo, branchGeo, railGeo, innerRailGeo, skirtGeo, topGeo, topRingGeo);
+  ctx.disposableGeometries.push(trunkGeo, ribGeo, postGeo, shardGeo, boxGeo, portalArchGeo, portalRuneGeo, branchGeo, railGeo, innerRailGeo, skirtGeo, topGeo, topRingGeo);
   ctx.disposableMaterials.push(barkMat, branchMat, treadMat, topMat, runeMat, goldMat);
   return { group };
 }

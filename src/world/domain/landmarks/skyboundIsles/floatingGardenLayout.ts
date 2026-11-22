@@ -52,8 +52,11 @@ export const GARDEN_LAKE = { x: wx(-8), z: wz(-11), rx: 11.0, rz: 7.2 } as const
 /** Summary: Stream channel from the foreground lake south to the waterfall lip (visual). */
 export const GARDEN_STREAM = { x: wx(-10), fromZ: wz(-4), toZ: wz(41.0), halfWidth: 1.6 } as const;
 
-/** Summary: The flat footbridge over the stream: it crosses along x, with a railing on each side. */
-export const GARDEN_FOOTBRIDGE = { x: wx(-10), z: wz(2.0), halfLength: 2.9, halfWidth: 1.25 } as const;
+/** Summary: Walkable deck height (m) of the arched footbridge, cleanly above the stream water surface (`DECK_Y + 0.13`). */
+export const GARDEN_FOOTBRIDGE_DECK_Y = DECK_Y + 0.36;
+
+/** Summary: The raised footbridge over the stream: it crosses along x, with a railing on each side. */
+export const GARDEN_FOOTBRIDGE = { x: wx(-10), z: wz(2.0), y: GARDEN_FOOTBRIDGE_DECK_Y, halfLength: 2.9, halfWidth: 1.25 } as const;
 
 /**
  * Summary: Stone lip the stream pours off. It reaches past the rim and is the roof of the
@@ -251,7 +254,7 @@ function addRampRails(ramp: ISkyRamp, fromU: number, toU: number): void {
   }
 }
 
-// Footbridge railing: one rail along each side of the walkway.
+// Footbridge railing: one rail along each side of the raised walkway.
 for (const side of [-1, 1]) {
   addBox(
     `rail-garden-footbridge-${side > 0 ? 's' : 'n'}`,
@@ -259,8 +262,8 @@ for (const side of [-1, 1]) {
     GARDEN_FOOTBRIDGE.z + side * (GARDEN_FOOTBRIDGE.halfWidth + RAIL_THICKNESS_M / 2),
     GARDEN_FOOTBRIDGE.halfLength,
     RAIL_THICKNESS_M / 2,
-    DECK_Y,
-    DECK_Y + RAIL_HEIGHT_M
+    GARDEN_FOOTBRIDGE.y,
+    GARDEN_FOOTBRIDGE.y + RAIL_HEIGHT_M
   );
 }
 
@@ -301,9 +304,6 @@ addRampRails(GARDEN_CAVE_RAMP, 0.45, 0.92);
 // Exterior mushroom stems (thick) and interior hollow parkour mushroom stems (slender so they don't obstruct jumps).
 GARDEN_BOUNCE_PADS.slice(0, 2).forEach((p) => addBox(`${p.id}-stem`, p.x, p.z, 0.5, 0.5, DECK_Y, p.topY - 0.05));
 SKY_TREE_HOLLOW_PADS.forEach((p) => addBox(`${p.id}-stem`, p.x, p.z, 0.22, 0.22, DECK_Y, p.topY - 0.1));
-for (const p of [SKY_TREE_ROOT_LANDING, SKY_TREE_BRANCH_LOW, SKY_TREE_BRANCH_HIGH]) {
-  addBox(`${p.id}-post`, p.x, p.z, 0.45, 0.45, DECK_Y, p.y - 0.4);
-}
 // Crown railing: full circle around the outer rim except a gap where the upper branch arrives.
 {
   const arrive = Math.atan2(SKY_TREE_BRANCHES[1].bz - SKY_TREE_CROWN.z, SKY_TREE_BRANCHES[1].bx - SKY_TREE_CROWN.x);
@@ -347,6 +347,12 @@ export function visitFloatingGardenSurfaces(
   if (Math.abs(x - GARDEN.x) > 60 || Math.abs(z - GARDEN.z) > 60) return;
   for (const d of [GARDEN_WATERFALL_LIP, GARDEN_CAVE_FLOOR, GARDEN_CAVE_LEDGE]) {
     if (x >= d.minX && x <= d.maxX && z >= d.minZ && z <= d.maxZ) visit(d.y, 'deck', d.id);
+  }
+  if (
+    Math.abs(x - GARDEN_FOOTBRIDGE.x) <= GARDEN_FOOTBRIDGE.halfLength &&
+    Math.abs(z - GARDEN_FOOTBRIDGE.z) <= GARDEN_FOOTBRIDGE.halfWidth
+  ) {
+    visit(GARDEN_FOOTBRIDGE.y, 'deck', 'garden-footbridge');
   }
   for (const r of [GARDEN_CAVE_RAMP, GARDEN_ROOT_RAMP, ...SKY_TREE_BRANCHES]) {
     const sx = r.bx - r.ax;

@@ -101,16 +101,35 @@ export const AIRSHIP_JOURNAL = {
 };
 // #endregion
 
+/** Summary: Wooden boarding ramp from the island deck (north side) up onto the wreck hull deck. */
+export const AIRSHIP_BOARDING_RAMP = {
+  id: 'airship-boarding-ramp',
+  ax: 836.0,
+  ay: AIRSHIP.deckY,
+  az: 63.6,
+  bx: 836.0,
+  by: AIRSHIP_WRECK_HULL.y,
+  bz: AIRSHIP_WRECK_HULL.minZ + 0.1,
+  halfWidth: 1.15,
+} as const;
+
 // ======================== PUBLIC API ======================== \\
 // #region Surfaces
 /**
- * Summary: Reports the hull deck when the point is on it.
+ * Summary: Reports the hull deck and boarding ramp when the point is on them.
  * @param x Point X.
  * @param z Point Z.
- * @param visit Called with the deck height and id for the hull.
+ * @param visit Called with the deck height and id for the hull or boarding ramp.
  */
-export function visitAirshipWreckSurfaces(x: number, z: number, visit: (y: number, kind: 'deck', id: string) => void): void {
+export function visitAirshipWreckSurfaces(x: number, z: number, visit: (y: number, kind: 'deck' | 'ramp', id: string) => void): void {
   const h = AIRSHIP_WRECK_HULL;
   if (x >= h.minX && x <= h.maxX && z >= h.minZ && z <= h.maxZ) visit(h.y, 'deck', h.id);
+  const r = AIRSHIP_BOARDING_RAMP;
+  const sx = r.bx - r.ax;
+  const sz = r.bz - r.az;
+  const u = ((x - r.ax) * sx + (z - r.az) * sz) / (sx * sx + sz * sz);
+  if (u >= 0 && u <= 1 && Math.hypot(x - (r.ax + sx * u), z - (r.az + sz * u)) <= r.halfWidth) {
+    visit(r.ay + (r.by - r.ay) * u, 'ramp', r.id);
+  }
 }
 // #endregion

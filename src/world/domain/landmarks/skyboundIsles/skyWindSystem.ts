@@ -120,24 +120,85 @@ export const SKY_WIND_FLOWERS: readonly ISkyWindFlower[] = [
 const WIND_FLOWER_COLUMN_RADIUS_M = 1.6;
 // #endregion
 
+// #region Curve Helper
+/**
+ * Evaluates a centripetal/uniform Catmull-Rom spline through `pts` and resamples it at
+ * `segments + 1` arc-length-uniform points, so both physics segments and visual rings/streamers
+ * traverse smooth elevated arcs without clipping through higher island decks or undersides.
+ */
+function buildSmoothArcPath(pts: readonly IWindPoint[], segments = 14): IWindPoint[] {
+  if (pts.length < 2) return [...pts];
+  const samples: IWindPoint[] = [];
+  const cumLen: number[] = [0];
+  const denseSteps = (pts.length - 1) * 24;
+  const at = (idx: number): IWindPoint => pts[Math.max(0, Math.min(pts.length - 1, idx))];
+
+  for (let i = 0; i <= denseSteps; i++) {
+    const raw = (i / denseSteps) * (pts.length - 1);
+    const s = Math.min(pts.length - 2, Math.floor(raw));
+    const u = raw - s;
+    const p0 = at(s - 1);
+    const p1 = at(s);
+    const p2 = at(s + 1);
+    const p3 = at(s + 2);
+    const u2 = u * u;
+    const u3 = u2 * u;
+    const interp = (a: number, b: number, c: number, d: number): number =>
+      0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u2 + (-a + 3 * b - 3 * c + d) * u3);
+    const p: IWindPoint = {
+      x: interp(p0.x, p1.x, p2.x, p3.x),
+      y: interp(p0.y, p1.y, p2.y, p3.y),
+      z: interp(p0.z, p1.z, p2.z, p3.z),
+    };
+    if (i > 0) {
+      const prev = samples[samples.length - 1];
+      cumLen.push(cumLen[cumLen.length - 1] + Math.hypot(p.x - prev.x, p.y - prev.y, p.z - prev.z));
+    }
+    samples.push(p);
+  }
+
+  const totalLen = cumLen[cumLen.length - 1] || 1;
+  const out: IWindPoint[] = [pts[0]];
+  let cursor = 0;
+  for (let k = 1; k < segments; k++) {
+    const target = (k / segments) * totalLen;
+    while (cursor < cumLen.length - 2 && cumLen[cursor + 1] < target) cursor++;
+    const segSpan = cumLen[cursor + 1] - cumLen[cursor] || 1;
+    const f = Math.max(0, Math.min(1, (target - cumLen[cursor]) / segSpan));
+    const a = samples[cursor];
+    const b = samples[cursor + 1];
+    out.push({
+      x: a.x + (b.x - a.x) * f,
+      y: a.y + (b.y - a.y) * f,
+      z: a.z + (b.z - a.z) * f,
+    });
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+// #endregion
+
 // #region Currents
 /**
  * Summary: All wind currents of the archipelago.
  * Design: Together with the cloud routes they close the main loop: Garden -> (stream) ->
  *         Ruins -> (clouds + updraft) -> Observatory -> (descending stream) -> Crystal Isles
  *         -> (bridge) -> Sky Harbor -> (Cloud Run) -> Garden.
+ *         Every stream between islands arcs high enough to clear the destination island rim
+ *         above its deck height before curving down to land.
  */
 export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
   AIRSHIP_NAVIGATION_CURRENT,
   {
     id: 'wind-garden-to-ruins',
     mode: 'stream',
-    path: [
+    path: buildSmoothArcPath([
       { x: 712.0, y: 72.5, z: 34.0 },
-      { x: 696.0, y: 80.0, z: -10.0 },
-      { x: 692.0, y: 84.0, z: -60.0 },
+      { x: 702.0, y: 78.5, z: 12.0 },
+      { x: 692.0, y: 88.5, z: -38.0 },
+      { x: 694.5, y: 89.0, z: -80.0 },
       { x: 700.0, y: 84.5, z: -104.0 },
-    ],
+    ], 16),
     radius: 3.0,
     speed: 9.0,
   },
@@ -156,11 +217,13 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
   {
     id: 'wind-observatory-to-crystal',
     mode: 'stream',
-    path: [
+    path: buildSmoothArcPath([
       { x: 814.0, y: 99.2, z: -104.0 },
-      { x: 840.0, y: 85.0, z: -60.0 },
-      { x: 866.0, y: 64.0, z: -22.0 },
-    ],
+      { x: 822.0, y: 100.2, z: -92.0 },
+      { x: 842.0, y: 88.0, z: -58.0 },
+      { x: 858.0, y: 73.0, z: -34.0 },
+      { x: 866.0, y: 64.2, z: -22.0 },
+    ], 14),
     radius: 3.0,
     speed: 9.0,
   },
@@ -180,12 +243,13 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
   {
     id: 'wind-observatory-downdraft',
     mode: 'downdraft',
-    path: [
+    path: buildSmoothArcPath([
       // Starts just below and beyond the south rim: a player standing on the deck is outside
       // it, a player who walks off the edge drops straight into it.
       { x: 800.0, y: 95.5, z: -91.0 },
-      { x: 795.0, y: 69.0, z: -66.0 },
-    ],
+      { x: 798.5, y: 83.5, z: -78.0 },
+      { x: 795.0, y: 69.2, z: -66.0 },
+    ], 8),
     radius: 3.0,
     speed: 3.0,
     maxFallSpeed: 3.0,
@@ -193,11 +257,13 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
   {
     id: 'wind-hidden-return',
     mode: 'stream',
-    path: [
+    path: buildSmoothArcPath([
       { x: 796.0, y: 31.5, z: 52.0 },
-      { x: 792.0, y: 52.0, z: 25.0 },
-      { x: 788.0, y: 70.0, z: 4.0 },
-    ],
+      { x: 795.0, y: 50.0, z: 36.0 },
+      { x: 792.0, y: 71.5, z: 16.0 },
+      { x: 789.8, y: 74.5, z: 8.5 },
+      { x: 788.0, y: 70.2, z: 4.0 },
+    ], 14),
     radius: 3.0,
     speed: 9.0,
   },
@@ -237,10 +303,13 @@ export const SKY_WIND_CURRENTS: readonly ISkyWindCurrent[] = [
   {
     id: 'wind-windspire-shortcut',
     mode: 'stream',
-    path: [
+    path: buildSmoothArcPath([
       { x: 782.0, y: 69.5, z: -58.0 },
-      { x: 795.0, y: 100.0, z: -106.0 },
-    ],
+      { x: 785.0, y: 88.0, z: -72.0 },
+      { x: 789.0, y: 103.8, z: -87.0 },
+      { x: 792.2, y: 105.5, z: -94.0 },
+      { x: 795.0, y: 100.2, z: -106.0 },
+    ], 14),
     radius: 3.0,
     speed: 9.0,
     unlockedByCores: WIND_CORE_UNLOCKS.observatoryShortcut,

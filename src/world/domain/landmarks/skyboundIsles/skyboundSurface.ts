@@ -19,7 +19,7 @@ import { SKY_BOUNCE_PADS, SKY_HARBOR_SOLID_BOXES, visitSkyHarborSurfaces, type I
 import { GARDEN_BOUNCE_PADS, GARDEN_SOLID_BOXES, visitFloatingGardenSurfaces } from './floatingGardenLayout';
 import { OBSERVATORY_SOLID_BOXES, visitObservatorySurfaces } from './observatoryLayout';
 import { visitAirshipWreckSurfaces } from './airshipWreckLayout';
-import { SKY_TREE_GROTTO_MUSHROOM, SKY_TREE_GROTTO_WALLS, SKY_TREE_TRUNK_BOX, visitSkyTreeSurfaces } from './skyTreeLayout';
+import { SKY_TREE_GROTTO_MUSHROOM, SKY_TREE_GROTTO_WALLS, SKY_TREE_RAIL_BOXES, SKY_TREE_TRUNK_BOX, visitSkyTreeSurfaces } from './skyTreeLayout';
 import { CRYSTAL_SOLID_BOXES, visitCrystalIslesSurfaces } from './crystalIslesLayout';
 import { RUINS_SOLID_BOXES, visitAncientRuinsSurfaces } from './ancientRuinsLayout';
 import { WIND_CORE_SOLID_BOXES } from './windCoresLayout';
@@ -126,6 +126,7 @@ export const SKYBOUND_SOLID_BOXES: readonly ISkySolidBox[] = [
   ...RUINS_SOLID_BOXES,
   ...WIND_CORE_SOLID_BOXES,
   SKY_TREE_TRUNK_BOX,
+  ...SKY_TREE_RAIL_BOXES,
   ...SKY_TREE_GROTTO_WALLS,
 ];
 

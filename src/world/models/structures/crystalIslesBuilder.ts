@@ -145,7 +145,7 @@ function buildIsletsAndRocks(
     top.scale.set(d.radius, thickness, d.radius);
     top.position.y = -thickness / 2;
     const rim = new THREE.Mesh(rimGeo, isViolet ? violetCrystal : riverGlowMat);
-    rim.scale.set(d.radius - 0.06, d.radius - 0.06, 1);
+    rim.scale.set(d.radius - 0.06, 1, d.radius - 0.06);
     rim.position.y = 0.02;
     const under = new THREE.Mesh(underGeo, rockMat);
     under.scale.set(d.radius * 0.95, depth, d.radius * 0.95);

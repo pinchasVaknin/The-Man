@@ -192,7 +192,7 @@ function keepClearSpots(): Array<{ x: number; z: number; r: number }> {
     const len = Math.hypot(dx, dz);
     spots.push({ x: MAIN.x + (dx / len) * MAIN.radius, z: MAIN.z + (dz / len) * MAIN.radius, r: 6.0 });
     spots.push({ x: islet.x - (dx / len) * islet.radius, z: islet.z - (dz / len) * islet.radius, r: 4.0 });
-    spots.push({ x: islet.x, z: islet.z, r: 2.5 });
+    spots.push({ x: islet.x, z: islet.z, r: islet.id === 'crystal-islet-north-east' ? islet.radius : 2.5 });
   }
   return spots;
 }
