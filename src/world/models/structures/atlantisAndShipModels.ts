@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import {
+  ATLANTIS_DEAD_KING_STATUE_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
   NORDIC_FROST_SHRINE_POS,
@@ -22,6 +23,7 @@ import {
   SHIP_CATALOG,
   type ISailableShipState,
 } from '../../systems/sailableShipSystem';
+import { createStatueModelInstance, loadStatueModel } from '../statues/statueAssets';
 import type { IWorldModelBuildContext } from '../types';
 
 export interface IAtlantisAndShipHandles {
@@ -259,6 +261,78 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   poseidonStatueGroup.scale.setScalar(1.36);
   poseidonStatueGroup.add(sPed, sRobe, sTorso, sHead, sCrown, tridentGroup);
   atlantisGroup.add(poseidonStatueGroup);
+
+  // 2B-2) Monumental Dead King Skeleton Statue on an Atlantean Stepped Pedestal (ded_king_skelton.glb)
+  const deadKingMonumentGroup = new THREE.Group();
+  deadKingMonumentGroup.name = 'atlantis-dead-king-monument';
+  deadKingMonumentGroup.position.set(
+    ATLANTIS_DEAD_KING_STATUE_POS.localX,
+    arenaY,
+    ATLANTIS_DEAD_KING_STATUE_POS.localZ
+  );
+
+  const dkBasePlinthGeo = new THREE.CylinderGeometry(3.8, 4.15, 0.48, 8);
+  const dkMidTierGeo = new THREE.CylinderGeometry(3.45, 3.7, 0.72, 8);
+  const dkGoldBandGeo = new THREE.CylinderGeometry(3.52, 3.52, 0.14, 8);
+  const dkTopCapGeo = new THREE.CylinderGeometry(3.38, 3.48, 0.24, 8);
+  const dkCornerPillarGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.2, 6);
+  disposableGeometries.push(
+    dkBasePlinthGeo,
+    dkMidTierGeo,
+    dkGoldBandGeo,
+    dkTopCapGeo,
+    dkCornerPillarGeo
+  );
+
+  const dkBasePlinth = new THREE.Mesh(dkBasePlinthGeo, atlanteanTealStoneMat);
+  dkBasePlinth.position.y = 0.24;
+  dkBasePlinth.receiveShadow = !isSoftwareGl;
+  const dkMidTier = new THREE.Mesh(dkMidTierGeo, atlanteanMarbleMat);
+  dkMidTier.position.y = 0.48 + 0.36;
+  dkMidTier.castShadow = !isSoftwareGl;
+  dkMidTier.receiveShadow = !isSoftwareGl;
+  const dkGoldBand = new THREE.Mesh(dkGoldBandGeo, orichalcumGoldMat);
+  dkGoldBand.position.y = 1.15;
+  const dkTopCap = new THREE.Mesh(dkTopCapGeo, atlanteanTealStoneMat);
+  dkTopCap.position.y = ATLANTIS_DEAD_KING_STATUE_POS.pedestalHeight - 0.12;
+  dkTopCap.receiveShadow = !isSoftwareGl;
+  deadKingMonumentGroup.add(dkBasePlinth, dkMidTier, dkGoldBand, dkTopCap);
+
+  for (let c = 0; c < 4; c++) {
+    const cAng = (c / 4) * Math.PI * 2 + Math.PI / 4;
+    const cx = Math.cos(cAng) * 3.72;
+    const cz = Math.sin(cAng) * 3.72;
+    const pillar = new THREE.Mesh(dkCornerPillarGeo, atlanteanTealStoneMat);
+    pillar.position.set(cx, 0.6, cz);
+    const gem = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
+    gem.scale.setScalar(0.18);
+    gem.position.set(cx, 1.38, cz);
+    deadKingMonumentGroup.add(pillar, gem);
+  }
+
+  const deadKingMountGroup = new THREE.Group();
+  deadKingMountGroup.name = 'atlantis-dead-king-statue-mount';
+  deadKingMountGroup.position.y = ATLANTIS_DEAD_KING_STATUE_POS.pedestalHeight;
+  deadKingMountGroup.rotation.y = ATLANTIS_DEAD_KING_STATUE_POS.facingYaw;
+  deadKingMonumentGroup.add(deadKingMountGroup);
+  atlantisGroup.add(deadKingMonumentGroup);
+
+  loadStatueModel('ded_king_skelton')
+    .then((asset) => {
+      if (!atlantisGroup.parent) return;
+      const statueInstance = createStatueModelInstance(asset, {
+        scale: ATLANTIS_DEAD_KING_STATUE_POS.statueScale,
+        castShadow: !isSoftwareGl,
+        receiveShadow: !isSoftwareGl,
+      });
+      deadKingMountGroup.add(statueInstance);
+    })
+    .catch((err: unknown) => {
+      ctx.logger.warn('Atlantis Dead King statue model could not be loaded', {
+        statueId: 'ded_king_skelton',
+        error: String(err),
+      });
+    });
 
   // Central Levitating Boss Seal Astrolabe & Bioluminescent Crystal Core above Poseidon
   const bossSealAstrolabeGroup = new THREE.Group();
@@ -831,7 +905,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   }
 
   // ============================================================================
-  // 4. NORDIC FROST GIANT SHRINE & GEOTHERMAL HOT SPRINGS (-320, -290)
+  // 4. NORTHERN GEOTHERMAL HOT SPRINGS & LAKESIDE TEA PLAZA (-320, -290)
   // ============================================================================
   const nordicShrineGroup = new THREE.Group();
   const nfX = NORDIC_FROST_SHRINE_POS.x;
@@ -846,14 +920,21 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     roughness: 0.72,
     metalness: 0.08,
   });
+  const wetRiverStoneMat = new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    map: textures.rockAlbedo,
+    roughness: 0.35,
+    metalness: 0.1,
+  });
   const geothermalWaterMat = new THREE.MeshStandardMaterial({
     color: 0x22d3ee,
     emissive: 0x0891b2,
-    emissiveIntensity: 0.55,
-    roughness: 0.14,
-    metalness: 0.18,
+    emissiveIntensity: 0.42,
+    roughness: 0.12,
+    metalness: 0.16,
     transparent: true,
-    opacity: 0.86,
+    opacity: 0.72,
+    depthWrite: false,
   });
   const goldenSandstoneMat = new THREE.MeshStandardMaterial({
     color: 0xd9a05b,
@@ -863,43 +944,224 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     roughness: 0.68,
     metalness: 0.06,
   });
-  disposableMaterials.push(nordicGraniteMat, geothermalWaterMat, goldenSandstoneMat);
+  const onsenTimberMat = new THREE.MeshStandardMaterial({
+    color: 0x7c4a26,
+    map: textures.timberAlbedo,
+    bumpMap: textures.barkBump,
+    bumpScale: 0.03,
+    roughness: 0.65,
+    metalness: 0.05,
+  });
+  const ceramicCupMat = new THREE.MeshStandardMaterial({
+    color: 0xf1f5f9,
+    roughness: 0.25,
+    metalness: 0.08,
+  });
+  const foldedTowelMat = new THREE.MeshStandardMaterial({
+    color: 0xfef3c7,
+    roughness: 0.85,
+  });
+  const steamWispMat = new THREE.MeshBasicMaterial({
+    color: 0xecfeff,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+  });
+  disposableMaterials.push(
+    nordicGraniteMat,
+    wetRiverStoneMat,
+    geothermalWaterMat,
+    goldenSandstoneMat,
+    onsenTimberMat,
+    ceramicCupMat,
+    foldedTowelMat,
+    steamWispMat
+  );
 
-  const springRimGeo = new THREE.TorusGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.6, 0.85, 8, 28);
+  // Open curved granite rim around the pool with a wide South stairwell opening
+  const rimStartAng = Math.PI * 0.5 + 0.24;
+  const rimArcLen = Math.PI * 2.0 - 0.48;
+  const springRimGeo = new THREE.TorusGeometry(
+    NORDIC_FROST_SHRINE_POS.poolRadius + 0.55,
+    0.62,
+    8,
+    28,
+    rimArcLen
+  );
   springRimGeo.rotateX(Math.PI / 2);
-  const springWaterDiscGeo = new THREE.CircleGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.2, 28);
+  const shallowShelfGeo = new THREE.RingGeometry(7.6, NORDIC_FROST_SHRINE_POS.poolRadius + 0.15, 28);
+  shallowShelfGeo.rotateX(-Math.PI / 2);
+  const midShelfGeo = new THREE.RingGeometry(4.3, 7.6, 28);
+  midShelfGeo.rotateX(-Math.PI / 2);
+  const deepBasinGeo = new THREE.CircleGeometry(4.3, 24);
+  deepBasinGeo.rotateX(-Math.PI / 2);
+  const springWaterDiscGeo = new THREE.CircleGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.2, 32);
   springWaterDiscGeo.rotateX(-Math.PI / 2);
-  const runestoneMonolithGeo = new THREE.BoxGeometry(1.65, 6.2, 0.95);
-  const runestoneGlyphStripGeo = new THREE.BoxGeometry(0.32, 4.4, 1.02);
+  const springStairStepGeo = new THREE.BoxGeometry(4.4, 0.26, 1.48);
   const altarDaisSlabGeo = new THREE.CylinderGeometry(4.4, 5.2, 1.05, 8);
+  const steamPuffGeo = new THREE.IcosahedronGeometry(0.95, 1);
+
+  const onsenTableTopGeo = new THREE.BoxGeometry(1.38, 0.11, 2.86);
+  const onsenTableLegGeo = new THREE.BoxGeometry(0.14, 0.74, 0.14);
+  const onsenBenchGeo = new THREE.BoxGeometry(0.56, 0.1, 2.45);
+  const onsenBenchLegGeo = new THREE.BoxGeometry(0.12, 0.38, 0.12);
+  const onsenTeapotGeo = new THREE.SphereGeometry(0.16, 10, 8);
+  const onsenBowlGeo = new THREE.CylinderGeometry(0.13, 0.08, 0.1, 10);
+  const onsenCupGeo = new THREE.CylinderGeometry(0.055, 0.045, 0.09, 8);
+  const onsenTowelBenchGeo = new THREE.BoxGeometry(1.42, 0.12, 0.68);
+  const onsenTowelStackGeo = new THREE.BoxGeometry(0.46, 0.16, 0.38);
+  const onsenBucketGeo = new THREE.CylinderGeometry(0.22, 0.18, 0.24, 10);
+  const onsenPostGeo = new THREE.BoxGeometry(0.18, 2.35, 0.18);
+  const onsenArmGeo = new THREE.BoxGeometry(0.55, 0.12, 0.12);
+
   disposableGeometries.push(
     springRimGeo,
+    shallowShelfGeo,
+    midShelfGeo,
+    deepBasinGeo,
     springWaterDiscGeo,
-    runestoneMonolithGeo,
-    runestoneGlyphStripGeo,
-    altarDaisSlabGeo
+    springStairStepGeo,
+    altarDaisSlabGeo,
+    steamPuffGeo,
+    onsenTableTopGeo,
+    onsenTableLegGeo,
+    onsenBenchGeo,
+    onsenBenchLegGeo,
+    onsenTeapotGeo,
+    onsenBowlGeo,
+    onsenCupGeo,
+    onsenTowelBenchGeo,
+    onsenTowelStackGeo,
+    onsenBucketGeo,
+    onsenPostGeo,
+    onsenArmGeo
   );
 
   const springRimMesh = new THREE.Mesh(springRimGeo, nordicGraniteMat);
-  springRimMesh.position.set(nfX, nfFloorY + 0.15, nfZ);
+  springRimMesh.position.set(nfX, nfFloorY + 0.05, nfZ);
+  springRimMesh.rotation.y = -rimStartAng;
+  const shallowShelfMesh = new THREE.Mesh(shallowShelfGeo, wetRiverStoneMat);
+  shallowShelfMesh.position.set(nfX, 17.92, nfZ);
+  const midShelfMesh = new THREE.Mesh(midShelfGeo, wetRiverStoneMat);
+  midShelfMesh.position.set(nfX, 17.5, nfZ);
+  const deepBasinMesh = new THREE.Mesh(deepBasinGeo, wetRiverStoneMat);
+  deepBasinMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.poolFloorY + 0.03, nfZ);
   const springWaterMesh = new THREE.Mesh(springWaterDiscGeo, geothermalWaterMat);
   springWaterMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.poolWaterY, nfZ);
-  nordicShrineGroup.add(springRimMesh, springWaterMesh);
+  nordicShrineGroup.add(springRimMesh, shallowShelfMesh, midShelfMesh, deepBasinMesh, springWaterMesh);
 
-  // 8 Ancient Carved Nordic Runestones with Glowing Cyan-Ice Runes encircling the Geothermal Pool
-  for (let i = 0; i < 8; i++) {
-    const ang = (i / 8) * Math.PI * 2 + Math.PI / 8;
-    const rx = nfX + Math.cos(ang) * 15.0;
-    const rz = nfZ + Math.sin(ang) * 15.0;
-    const stoneGroup = new THREE.Group();
-    stoneGroup.position.set(rx, nfFloorY, rz);
-    stoneGroup.rotation.y = -ang + Math.PI / 2;
-    const monolith = new THREE.Mesh(runestoneMonolithGeo, nordicGraniteMat);
-    monolith.position.y = 3.1;
-    const glyph = new THREE.Mesh(runestoneGlyphStripGeo, biolumCyanMat);
-    glyph.position.y = 3.2;
-    stoneGroup.add(monolith, glyph);
-    nordicShrineGroup.add(stoneGroup);
+  // Submerged & entry granite stone stairs on the South side descending cleanly from plaza into water
+  for (let s = 0; s < 5; s++) {
+    const t = s / 4;
+    const stepZ = nfZ + 11.1 - t * 5.6;
+    const stepY = nfFloorY - t * (nfFloorY - 17.5);
+    const stMesh = new THREE.Mesh(springStairStepGeo, wetRiverStoneMat);
+    stMesh.position.set(nfX, stepY - 0.12, stepZ);
+    nordicShrineGroup.add(stMesh);
+  }
+
+  // Rising Geothermal Steam Wisps hovering and drifting above the hot spring water
+  const steamWisps: Array<{
+    mesh: THREE.Mesh;
+    baseX: number;
+    baseZ: number;
+    phase: number;
+    speed: number;
+    baseScale: number;
+  }> = [];
+  for (let w = 0; w < 22; w++) {
+    const ang = w * 2.39996;
+    const rad = 1.4 + Math.sqrt((w + 0.5) / 22) * 7.8;
+    const sx = nfX + Math.cos(ang) * rad;
+    const sz = nfZ + Math.sin(ang) * rad;
+    const wMesh = new THREE.Mesh(steamPuffGeo, steamWispMat);
+    const bScale = 0.65 + (w % 4) * 0.24;
+    wMesh.scale.set(bScale * 1.4, bScale * 0.62, bScale * 1.4);
+    wMesh.position.set(sx, NORDIC_FROST_SHRINE_POS.poolWaterY + 0.25, sz);
+    nordicShrineGroup.add(wMesh);
+    steamWisps.push({
+      mesh: wMesh,
+      baseX: sx,
+      baseZ: sz,
+      phase: w * 0.43,
+      speed: 0.42 + (w % 5) * 0.08,
+      baseScale: bScale,
+    });
+  }
+
+  // Lakeside Wooden Dining Table, Benches, Tea Set & Bowls on the Western Plaza Shore (-335.2, -290.0)
+  const tblX = nfX - 15.2;
+  const tblZ = nfZ;
+  const tableTop = new THREE.Mesh(onsenTableTopGeo, onsenTimberMat);
+  tableTop.position.set(tblX, nfFloorY + 0.78, tblZ);
+  tableTop.castShadow = !isSoftwareGl;
+  tableTop.receiveShadow = !isSoftwareGl;
+  nordicShrineGroup.add(tableTop);
+  for (const lx of [-0.52, 0.52]) {
+    for (const lz of [-1.18, 1.18]) {
+      const leg = new THREE.Mesh(onsenTableLegGeo, onsenTimberMat);
+      leg.position.set(tblX + lx, nfFloorY + 0.37, tblZ + lz);
+      nordicShrineGroup.add(leg);
+    }
+  }
+  for (const bSide of [-1.42, 1.42]) {
+    const bx = tblX + bSide;
+    const bench = new THREE.Mesh(onsenBenchGeo, onsenTimberMat);
+    bench.position.set(bx, nfFloorY + 0.42, tblZ);
+    bench.castShadow = !isSoftwareGl;
+    nordicShrineGroup.add(bench);
+    for (const lz of [-0.95, 0.95]) {
+      const bLeg = new THREE.Mesh(onsenBenchLegGeo, onsenTimberMat);
+      bLeg.position.set(bx, nfFloorY + 0.19, tblZ + lz);
+      nordicShrineGroup.add(bLeg);
+    }
+  }
+  const teapot = new THREE.Mesh(onsenTeapotGeo, onsenTimberMat);
+  teapot.position.set(tblX, nfFloorY + 0.96, tblZ);
+  nordicShrineGroup.add(teapot);
+  for (const bz of [-0.82, 0.82]) {
+    for (const bxOff of [-0.34, 0.34]) {
+      const bowl = new THREE.Mesh(onsenBowlGeo, ceramicCupMat);
+      bowl.position.set(tblX + bxOff, nfFloorY + 0.88, tblZ + bz);
+      const cup = new THREE.Mesh(onsenCupGeo, ceramicCupMat);
+      cup.position.set(tblX + bxOff * 0.6, nfFloorY + 0.88, tblZ + bz * 0.45);
+      nordicShrineGroup.add(bowl, cup);
+    }
+  }
+
+  // Bathside Folded Towel Bench, Cedar Wash Buckets & Warm Lantern Posts
+  const towelX = nfX - 12.45;
+  const towelZ = nfZ + 7.5;
+  const towelBench = new THREE.Mesh(onsenTowelBenchGeo, onsenTimberMat);
+  towelBench.position.set(towelX, nfFloorY + 0.44, towelZ);
+  nordicShrineGroup.add(towelBench);
+  for (const lx of [-0.52, 0.52]) {
+    for (const lz of [-0.22, 0.22]) {
+      const bLeg = new THREE.Mesh(onsenBenchLegGeo, onsenTimberMat);
+      bLeg.position.set(towelX + lx, nfFloorY + 0.19, towelZ + lz);
+      nordicShrineGroup.add(bLeg);
+    }
+  }
+  const towelStack = new THREE.Mesh(onsenTowelStackGeo, foldedTowelMat);
+  towelStack.position.set(towelX - 0.3, nfFloorY + 0.58, towelZ);
+  const bucket = new THREE.Mesh(onsenBucketGeo, onsenTimberMat);
+  bucket.position.set(towelX + 0.35, nfFloorY + 0.62, towelZ);
+  nordicShrineGroup.add(towelStack, bucket);
+
+  for (const [lx, lz, armSign] of [
+    [tblX, tblZ - 2.25, 1],
+    [tblX, tblZ + 2.25, 1],
+    [nfX - 3.0, nfZ + 11.4, 1],
+    [nfX + 3.0, nfZ + 11.4, -1],
+  ] as const) {
+    const post = new THREE.Mesh(onsenPostGeo, onsenTimberMat);
+    post.position.set(lx, nfFloorY + 1.175, lz);
+    const arm = new THREE.Mesh(onsenArmGeo, onsenTimberMat);
+    arm.position.set(lx + armSign * 0.22, nfFloorY + 2.25, lz);
+    const lantern = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+    lantern.scale.setScalar(1.25);
+    lantern.position.set(lx + armSign * 0.42, nfFloorY + 2.02, lz);
+    nordicShrineGroup.add(post, arm, lantern);
   }
 
   // Northern Raised Frost-Rune Altar Dais & Floating Ice Crystal at (x: -320, z: -306.5)
@@ -1115,11 +1377,23 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       astroRing2.rotation.y = Math.cos(elapsedTime * 0.6) * 0.52;
     }
 
-    // 3) Animate Nordic Frost Shrine Floating Rune Crystal & Desert Sun Pyramid Disc when visible
+    // 3) Animate Nordic Hot Spring Floating Rune Crystal, Rising Geothermal Steam & Desert Sun Pyramid Disc when visible
     if (nordicShrineGroup.visible) {
       nordicFloatingCrystal.position.y =
         NORDIC_FROST_SHRINE_POS.altarDaisY + 2.4 + Math.sin(elapsedTime * 1.8) * 0.28;
       nordicFloatingCrystal.rotation.y = elapsedTime * 0.9;
+      for (let w = 0; w < steamWisps.length; w++) {
+        const sw = steamWisps[w];
+        const cycle = (elapsedTime * sw.speed + sw.phase) % 1.0;
+        const arc = Math.sin(cycle * Math.PI);
+        sw.mesh.position.set(
+          sw.baseX + Math.sin(elapsedTime * 0.7 + sw.phase * 4.0) * 0.65,
+          NORDIC_FROST_SHRINE_POS.poolWaterY + 0.15 + cycle * 3.1,
+          sw.baseZ + Math.cos(elapsedTime * 0.6 + sw.phase * 3.0) * 0.65
+        );
+        const sFactor = sw.baseScale * (0.7 + cycle * 0.9);
+        sw.mesh.scale.set(sFactor * 1.45, sFactor * (0.55 + arc * 0.35), sFactor * 1.45);
+      }
     }
     if (desertPyramidGroup.visible) {
       pyramidSunDisc.rotation.y = elapsedTime * 0.75;

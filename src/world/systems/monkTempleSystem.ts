@@ -16,14 +16,17 @@ import {
   createReadyWarriorMonk,
 } from '../models/Characters/WarriorMonk_Complete';
 import {
+  CHINESE_BAGUA_PLATFORM_POS,
   CHINESE_FORTRESS_POS,
   FORTRESS_Z_OFFSET,
+  NORDIC_FROST_SHRINE_POS,
   SAKURA_SANCTUARY_POS,
   SAKURA_SANCTUARY_YAW,
   isWithinViewDistance,
 } from '../domain/landmarksRegistry';
 import { walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { getPlayerState } from './combatAndInventorySystem';
+import { isSleepingAllowedAt } from './worldClockSystem';
 
 export type MonkRole =
   | 'entrance_guard_left'
@@ -31,9 +34,12 @@ export type MonkRole =
   | 'tower_guard'
   | 'courtyard_bench'
   | 'dummy_trainer'
+  | 'dojo_trainer'
   | 'shrine_devotee'
   | 'courtyard_patrol'
-  | 'sanctuary_master';
+  | 'sanctuary_master'
+  | 'bagua_sparring'
+  | 'hotspring_commuter';
 
 export interface IWoodenDummyHandle {
   group: THREE.Group;
@@ -91,6 +97,18 @@ export type GuardShiftState =
   | 'relieving_to_post'
   | 'returning_to_bed';
 
+export type MonkNightSleepState =
+  | 'awake'
+  | 'walking_to_bed'
+  | 'sleeping_in_bed'
+  | 'waking_to_post';
+
+export type HotSpringCommuteState =
+  | 'to_spring'
+  | 'at_spring'
+  | 'to_fortress'
+  | 'at_fortress';
+
 export interface IActiveTempleMonk {
   id: string;
   role: MonkRole;
@@ -110,6 +128,10 @@ export interface IActiveTempleMonk {
   nextShiftChangeTime?: number;
   routeToPost?: ReadonlyArray<readonly [number, number, number]>;
   routeCursor?: number;
+  staysAwakeAtNight?: boolean;
+  sleepRoute?: ReadonlyArray<readonly [number, number, number]>;
+  sleepState?: MonkNightSleepState;
+  sleepCursor?: number;
   bedX?: number;
   bedY?: number;
   bedZ?: number;
@@ -119,6 +141,9 @@ export interface IActiveTempleMonk {
   isReturningFromAggro?: boolean;
   patrolWaypoints?: ReadonlyArray<readonly [number, number, number]>;
   waypointIndex: number;
+  commuteState?: HotSpringCommuteState;
+  commuteCursor?: number;
+  commutePauseTimer?: number;
   dummyIndex?: number;
   phaseOffset: number;
   scheduleTimer: number;
@@ -231,8 +256,9 @@ export function resetActiveTempleMonksState(): void {
       mk.bedZ !== undefined;
     const effectiveBedY =
       mk.bedY !== undefined &&
-      Math.abs(mk.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08
-        ? CHINESE_FORTRESS_POS.pavilionFloor1Y + 0.38
+      (Math.abs(mk.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08 ||
+        Math.abs(mk.bedY - CHINESE_FORTRESS_POS.pavilionFloor2Y) < 0.08)
+        ? mk.bedY + 0.38
         : mk.bedY;
     mk.bedY = effectiveBedY;
     mk.x = startsInBed ? mk.bedX! : mk.homeX;
@@ -244,7 +270,14 @@ export function resetActiveTempleMonksState(): void {
       mk.nextShiftChangeTime = 14.0 + mk.phaseOffset * 6.0;
       mk.routeCursor = startsInBed ? 0 : Math.max(0, (mk.routeToPost?.length ?? 1) - 1);
     }
+    mk.sleepState = 'awake';
+    mk.sleepCursor = 0;
     mk.waypointIndex = 0;
+    if (mk.role === 'hotspring_commuter') {
+      mk.commuteState = 'to_spring';
+      mk.commuteCursor = 1;
+      mk.commutePauseTimer = 0;
+    }
     mk.scheduleTimer = (mk.phaseOffset * 1.7) % 3.2;
     mk.scheduleStage = Math.floor(mk.phaseOffset * 3) % 5;
     mk.isAggro = false;
@@ -331,6 +364,8 @@ export function spawnTempleMonk(config: {
   postId?: string;
   shiftStartOnDuty?: boolean;
   routeToPost?: ReadonlyArray<readonly [number, number, number]>;
+  staysAwakeAtNight?: boolean;
+  sleepRoute?: ReadonlyArray<readonly [number, number, number]>;
   bedX?: number;
   bedY?: number;
   bedZ?: number;
@@ -357,8 +392,9 @@ export function spawnTempleMonk(config: {
 
   const normalizedBedY =
     config.bedY !== undefined &&
-    Math.abs(config.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08
-      ? CHINESE_FORTRESS_POS.pavilionFloor1Y + 0.38
+    (Math.abs(config.bedY - CHINESE_FORTRESS_POS.pavilionFloor1Y) < 0.08 ||
+      Math.abs(config.bedY - CHINESE_FORTRESS_POS.pavilionFloor2Y) < 0.08)
+      ? config.bedY + 0.38
       : config.bedY;
   const startsInBed =
     config.shiftStartOnDuty === false &&
@@ -568,6 +604,10 @@ export function spawnTempleMonk(config: {
     nextShiftChangeTime: 14.0 + config.phaseOffset * 6.0,
     routeToPost: computedRouteToPost,
     routeCursor: startsInBed ? 0 : Math.max(0, (computedRouteToPost?.length ?? 1) - 1),
+    staysAwakeAtNight: config.staysAwakeAtNight,
+    sleepRoute: config.sleepRoute,
+    sleepState: 'awake',
+    sleepCursor: 0,
     bedX: config.bedX,
     bedY: normalizedBedY,
     bedZ: config.bedZ,
@@ -577,6 +617,9 @@ export function spawnTempleMonk(config: {
     isReturningFromAggro: false,
     patrolWaypoints: config.patrolWaypoints,
     waypointIndex: 0,
+    commuteState: config.role === 'hotspring_commuter' ? 'to_spring' : undefined,
+    commuteCursor: config.role === 'hotspring_commuter' ? 1 : 0,
+    commutePauseTimer: 0,
     dummyIndex: config.dummyIndex,
     phaseOffset: config.phaseOffset,
     scheduleTimer: (config.phaseOffset * 1.7) % 3.2,
@@ -840,6 +883,30 @@ export function isPlayerInsideMonkTerritory(
   if (isSanctuaryMonk) {
     return Math.hypot(playerX - SAKURA_SANCTUARY_POS.x, playerZ - SAKURA_SANCTUARY_POS.z) <= 34.0;
   }
+  if (
+    monk.role === 'bagua_sparring' ||
+    Math.hypot(monk.homeX - NORDIC_FROST_SHRINE_POS.x, monk.homeZ - NORDIC_FROST_SHRINE_POS.z) < 55.0
+  ) {
+    return (
+      Math.hypot(playerX - NORDIC_FROST_SHRINE_POS.x, playerZ - NORDIC_FROST_SHRINE_POS.z) <= 52.0 ||
+      Math.hypot(playerX - CHINESE_BAGUA_PLATFORM_POS.x, playerZ - CHINESE_BAGUA_PLATFORM_POS.z) <= 28.0
+    );
+  }
+  if (monk.role === 'hotspring_commuter') {
+    const inFortress =
+      Math.abs(playerX - CHINESE_FORTRESS_POS.x) <= 64.0 &&
+      playerZ >= CHINESE_FORTRESS_POS.plazaMinZ - 24.0 &&
+      playerZ <= CHINESE_FORTRESS_POS.upperGateZ + 18.0;
+    const nearSpring =
+      Math.hypot(playerX - NORDIC_FROST_SHRINE_POS.x, playerZ - NORDIC_FROST_SHRINE_POS.z) <= 46.0;
+    return inFortress || nearSpring || Math.hypot(playerX - monk.x, playerZ - monk.z) <= 36.0;
+  }
+  if (
+    monk.role === 'tower_guard' &&
+    Math.hypot(monk.homeX - CHINESE_FORTRESS_POS.x, monk.homeZ - (-170 + FORTRESS_Z_OFFSET)) > 110.0
+  ) {
+    return Math.hypot(playerX - monk.homeX, playerZ - monk.homeZ) <= 45.0;
+  }
   return (
     Math.abs(playerX - CHINESE_FORTRESS_POS.x) <= 64.0 &&
     playerZ >= CHINESE_FORTRESS_POS.plazaMinZ - 24.0 &&
@@ -890,12 +957,14 @@ export function updateMonkTempleSystem(
   dt: number,
   elapsedTime: number,
   playerX: number,
-  playerZ: number
+  playerZ: number,
+  worldHours = 12.0
 ): void {
   const safeDt = Math.min(0.1, Math.max(0.001, dt));
   const playerState = getPlayerState();
   const playerY = playerState ? playerState.y : walkableHeightValueAt(playerX, playerZ);
   const FZ = FORTRESS_Z_OFFSET;
+  const isNight = isSleepingAllowedAt(worldHours);
 
   westBarracksDoorOpenTimer = Math.max(0, westBarracksDoorOpenTimer - safeDt);
   eastBarracksDoorOpenTimer = Math.max(0, eastBarracksDoorOpenTimer - safeDt);
@@ -927,11 +996,18 @@ export function updateMonkTempleSystem(
     const mk = activeTempleMonks[i];
     const vis = isWithinViewDistance(mk.x, mk.z, playerX, playerZ, 12, 165);
     mk.group.visible = vis;
+    const isScheduleMoving =
+      mk.shiftState === 'relieving_to_post' ||
+      mk.shiftState === 'returning_to_bed' ||
+      mk.role === 'hotspring_commuter' ||
+      mk.sleepState === 'walking_to_bed' ||
+      mk.sleepState === 'waking_to_post' ||
+      (isNight && mk.sleepRoute !== undefined && !mk.staysAwakeAtNight && mk.sleepState !== 'sleeping_in_bed') ||
+      (!isNight && mk.sleepState === 'sleeping_in_bed');
     if (
       !vis &&
       !mk.isAggro &&
-      mk.shiftState !== 'relieving_to_post' &&
-      mk.shiftState !== 'returning_to_bed' &&
+      !isScheduleMoving &&
       Math.hypot(mk.x - mk.homeX, mk.z - mk.homeZ) < 0.5
     ) {
       continue;
@@ -1198,6 +1274,182 @@ export function updateMonkTempleSystem(
         continue;
       } else {
         mk.isReturningFromAggro = false;
+      }
+    }
+
+    // =========================================================================
+    // C0. NIGHTTIME BARRACKS SLEEP ROUTINE (All non-guard, non-statue monks go
+    //     to their upper-floor / 1F barracks straw beds at night unless they stay
+    //     awake continuing training!)
+    // =========================================================================
+    const canUseNightBed =
+      !mk.staysAwakeAtNight &&
+      mk.shiftState === undefined &&
+      mk.sleepRoute !== undefined &&
+      mk.sleepRoute.length >= 2 &&
+      mk.bedX !== undefined &&
+      mk.bedY !== undefined &&
+      mk.bedZ !== undefined;
+
+    if (canUseNightBed) {
+      const sRoute = mk.sleepRoute!;
+      if (isNight) {
+        if (mk.sleepState !== 'sleeping_in_bed' && mk.sleepState !== 'walking_to_bed') {
+          mk.sleepState = 'walking_to_bed';
+          // Start from index 0 (courtyard/post); if commuter is far from fortress, first walk patrolWaypoints back to fortress!
+          mk.sleepCursor = 0;
+          if (mk.role === 'hotspring_commuter' && mk.patrolWaypoints && mk.patrolWaypoints.length >= 2) {
+            const maxWpIdx = mk.patrolWaypoints.length - 1;
+            if (mk.commuteState === 'at_fortress') {
+              mk.commuteCursor = 0;
+            } else if (mk.commuteState === 'at_spring') {
+              mk.commuteCursor = Math.max(0, maxWpIdx - 1);
+            } else if (mk.commuteState === 'to_spring') {
+              mk.commuteCursor = Math.max(0, Math.min(maxWpIdx, (mk.commuteCursor ?? 1) - 1));
+            } else {
+              mk.commuteCursor = Math.max(0, Math.min(maxWpIdx, mk.commuteCursor ?? 0));
+            }
+          }
+        }
+      } else if (mk.sleepState === 'sleeping_in_bed' || mk.sleepState === 'walking_to_bed') {
+        mk.sleepState = 'waking_to_post';
+        mk.sleepCursor = sRoute.length - 1;
+      }
+
+      if (mk.sleepState === 'sleeping_in_bed') {
+        mk.x = mk.bedX!;
+        mk.y = mk.bedY!;
+        mk.z = mk.bedZ!;
+        mk.yaw = rotateAngleToward(mk.yaw, mk.bedYaw ?? 0, safeDt * 5.5);
+        mk.ctrl.speed = 0;
+        mk.ctrl.setState('sleep', 0.25);
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
+      }
+
+      if (mk.sleepState === 'walking_to_bed') {
+        // For northern hot spring commuters still out on the trail, walk reverse trail waypoints back to fortress courtyard first
+        if (
+          mk.role === 'hotspring_commuter' &&
+          mk.patrolWaypoints &&
+          (mk.sleepCursor ?? 0) === 0 &&
+          (mk.commuteCursor ?? 0) > 0 &&
+          Math.hypot(mk.x - mk.homeX, mk.z - mk.homeZ) > 1.2
+        ) {
+          const wps = mk.patrolWaypoints;
+          const cIdx = Math.max(0, Math.min(wps.length - 1, mk.commuteCursor ?? 0));
+          const wp = wps[cIdx];
+          const dx = wp[0] - mk.x;
+          const dz = wp[2] - mk.z;
+          const distH = Math.hypot(dx, dz);
+          if (distH <= 0.55) {
+            if (cIdx > 0) {
+              mk.commuteCursor = cIdx - 1;
+            } else {
+              mk.commuteCursor = 0;
+            }
+          } else {
+            const walkSpd = 2.65;
+            const step = Math.min(distH, walkSpd * safeDt);
+            mk.x += (dx / distH) * step;
+            mk.z += (dz / distH) * step;
+            const prevWp = wps[Math.min(wps.length - 1, cIdx + 1)];
+            const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+            const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
+            const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+            const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+            const groundedY = Math.abs(walkInfo.height - interpY) <= 2.2 ? walkInfo.height : interpY;
+            mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            mk.ctrl.speed = walkSpd;
+            mk.ctrl.setState('walk', 0.18);
+          }
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          if (vis) mk.ctrl.update(safeDt);
+          continue;
+        }
+
+        const cursor = Math.max(0, Math.min(sRoute.length - 1, mk.sleepCursor ?? 0));
+        const wp = sRoute[cursor];
+        const dx = wp[0] - mk.x;
+        const dy = wp[1] - mk.y;
+        const dz = wp[2] - mk.z;
+        const distH = Math.hypot(dx, dz);
+        if (distH <= 0.38 && Math.abs(dy) <= 0.75) {
+          if (cursor < sRoute.length - 1) {
+            mk.sleepCursor = cursor + 1;
+          } else {
+            mk.sleepState = 'sleeping_in_bed';
+            mk.x = mk.bedX!;
+            mk.y = mk.bedY!;
+            mk.z = mk.bedZ!;
+          }
+        } else {
+          const walkSpd = 2.25;
+          const step = Math.min(distH, walkSpd * safeDt);
+          if (distH > 0.001) {
+            mk.x += (dx / distH) * step;
+            mk.z += (dz / distH) * step;
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+          }
+          const prevWp = sRoute[Math.max(0, cursor - 1)];
+          const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
+          const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+          const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+          const groundedY = Math.abs(walkInfo.height - interpY) <= 1.8 ? walkInfo.height : interpY;
+          mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
+          mk.ctrl.speed = walkSpd;
+          mk.ctrl.setState('walk', 0.18);
+        }
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
+      }
+
+      if (mk.sleepState === 'waking_to_post') {
+        const cursor = Math.max(0, Math.min(sRoute.length - 1, mk.sleepCursor ?? 0));
+        const wp = sRoute[cursor];
+        const dx = wp[0] - mk.x;
+        const dy = wp[1] - mk.y;
+        const dz = wp[2] - mk.z;
+        const distH = Math.hypot(dx, dz);
+        if (distH <= 0.38 && Math.abs(dy) <= 0.75) {
+          if (cursor > 0) {
+            mk.sleepCursor = cursor - 1;
+          } else {
+            mk.sleepState = 'awake';
+            if (mk.role === 'hotspring_commuter') {
+              mk.commuteState = 'to_spring';
+              mk.commuteCursor = 1;
+            }
+          }
+        } else {
+          const walkSpd = 2.25;
+          const step = Math.min(distH, walkSpd * safeDt);
+          if (distH > 0.001) {
+            mk.x += (dx / distH) * step;
+            mk.z += (dz / distH) * step;
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+          }
+          const prevWp = sRoute[Math.min(sRoute.length - 1, cursor + 1)];
+          const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
+          const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+          const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+          const groundedY = Math.abs(walkInfo.height - interpY) <= 1.8 ? walkInfo.height : interpY;
+          mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
+          mk.ctrl.speed = walkSpd;
+          mk.ctrl.setState('walk', 0.18);
+        }
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
       }
     }
 
@@ -1477,14 +1729,8 @@ export function updateMonkTempleSystem(
       continue;
     }
 
-    if (mk.role === 'dummy_trainer') {
-      // ONLY the 4 Courtyard Monks standing directly in front of the wooden dummies practice combat strikes!
-      mk.x = mk.homeX;
-      mk.y = mk.homeY;
-      mk.z = mk.homeZ;
-      mk.yaw = mk.baseYaw;
-      mk.ctrl.speed = 0;
-
+    if (mk.role === 'dummy_trainer' || mk.role === 'dojo_trainer') {
+      // Courtyard dummy trainers & 2F Main Hall Dojo trainers practicing martial strikes & sparring!
       mk.scheduleTimer -= safeDt;
       const dummyStages: ReadonlyArray<{ state: WarriorMonkState; dur: number; hitsDummy: boolean }> = [
         { state: 'attack1', dur: 1.15, hitsDummy: true },
@@ -1511,9 +1757,138 @@ export function updateMonkTempleSystem(
         }
       }
 
+      if (mk.role === 'dojo_trainer' && mk.dummyIndex === undefined) {
+        // Light tatami sparring step forward & back for paired 2F dojo sparrers
+        const stepWave = Math.sin(elapsedTime * 1.45 + mk.phaseOffset) * 0.28;
+        mk.x = mk.homeX + Math.sin(mk.baseYaw) * stepWave;
+        mk.z = mk.homeZ + Math.cos(mk.baseYaw) * stepWave;
+      } else {
+        mk.x = mk.homeX;
+        mk.z = mk.homeZ;
+      }
+      mk.y = mk.homeY;
+      mk.yaw = mk.baseYaw;
+      mk.ctrl.speed = 0;
+
       mk.group.position.set(mk.x, mk.y, mk.z);
       mk.group.rotation.y = mk.yaw;
-      mk.ctrl.update(safeDt);
+      if (vis) mk.ctrl.update(safeDt);
+      continue;
+    }
+
+    if (mk.role === 'bagua_sparring') {
+      // Paired monks sparing playfully face-to-face atop the relocated Yin-Yang Bagua Platform!
+      mk.scheduleTimer -= safeDt;
+      const sparStages: ReadonlyArray<{ state: WarriorMonkState; dur: number; lunge: number }> = [
+        { state: 'attack1', dur: 1.05, lunge: 0.36 },
+        { state: 'staff_spin', dur: 1.35, lunge: 0.08 },
+        { state: 'attack2', dur: 1.05, lunge: 0.42 },
+        { state: 'idle', dur: 0.85, lunge: -0.18 },
+        { state: 'attack3', dur: 1.15, lunge: 0.38 },
+      ];
+      if (mk.scheduleTimer <= 0) {
+        mk.scheduleStage = (mk.scheduleStage + 1) % sparStages.length;
+        const st = sparStages[mk.scheduleStage % sparStages.length];
+        mk.scheduleTimer = st.dur;
+      }
+      const activeStage = sparStages[mk.scheduleStage % sparStages.length];
+      const footwork = activeStage.lunge + Math.sin(elapsedTime * 2.2 + mk.phaseOffset) * 0.12;
+      mk.x = mk.homeX + Math.sin(mk.baseYaw) * footwork;
+      mk.z = mk.homeZ + Math.cos(mk.baseYaw) * footwork;
+      mk.y = mk.homeY;
+      mk.yaw = mk.baseYaw;
+      mk.ctrl.speed = 0;
+      mk.ctrl.setState(activeStage.state, 0.14);
+      mk.group.position.set(mk.x, mk.y, mk.z);
+      mk.group.rotation.y = mk.yaw;
+      if (vis) mk.ctrl.update(safeDt);
+      continue;
+    }
+
+    if (mk.role === 'hotspring_commuter') {
+      // Daytime round-trip between Chinese Fortress and Northern Hot Spring (bathing/dining at spring, then walking back)
+      const waypoints = mk.patrolWaypoints;
+      if (waypoints && waypoints.length >= 2) {
+        if (mk.commuteState === 'at_spring' || mk.commuteState === 'at_fortress') {
+          mk.commutePauseTimer = Math.max(0, (mk.commutePauseTimer ?? 0) - safeDt);
+          mk.ctrl.speed = 0;
+          if (mk.commuteState === 'at_spring') {
+            // Alternate relaxing sit/idle soak at the Hot Spring (sit on lakeside bench if at bench height, idle soak in water)
+            const inWater = mk.y < NORDIC_FROST_SHRINE_POS.poolWaterY - 0.15;
+            const stage = Math.floor((elapsedTime + mk.phaseOffset) * 0.25) % 2;
+            mk.ctrl.setState(inWater ? 'idle' : stage === 0 ? 'sit' : 'idle', 0.28);
+            mk.yaw = rotateAngleToward(
+              mk.yaw,
+              Math.atan2(NORDIC_FROST_SHRINE_POS.x - mk.x, NORDIC_FROST_SHRINE_POS.z - mk.z),
+              safeDt * 4.0
+            );
+            if ((mk.commutePauseTimer ?? 0) <= 0) {
+              mk.commuteState = 'to_fortress';
+              mk.commuteCursor = waypoints.length - 2;
+            }
+          } else {
+            mk.ctrl.setState('idle', 0.25);
+            if ((mk.commutePauseTimer ?? 0) <= 0) {
+              mk.commuteState = 'to_spring';
+              mk.commuteCursor = 1;
+            }
+          }
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          if (vis) mk.ctrl.update(safeDt);
+          continue;
+        }
+
+        const goingToSpring = mk.commuteState !== 'to_fortress';
+        const cursor = Math.max(0, Math.min(waypoints.length - 1, mk.commuteCursor ?? (goingToSpring ? 1 : 0)));
+        const wp = waypoints[cursor];
+        const dx = wp[0] - mk.x;
+        const dz = wp[2] - mk.z;
+        const distWp = Math.hypot(dx, dz);
+        const moveSpd = 2.45;
+        if (distWp <= 0.45) {
+          if (goingToSpring) {
+            if (cursor < waypoints.length - 1) {
+              mk.commuteCursor = cursor + 1;
+            } else {
+              mk.commuteState = 'at_spring';
+              mk.commutePauseTimer = 14.0 + (mk.phaseOffset % 5.0);
+              mk.x = wp[0];
+              mk.y = wp[1];
+              mk.z = wp[2];
+            }
+          } else {
+            if (cursor > 0) {
+              mk.commuteCursor = cursor - 1;
+            } else {
+              mk.commuteState = 'at_fortress';
+              mk.commutePauseTimer = 7.0 + (mk.phaseOffset % 4.0);
+              mk.x = wp[0];
+              mk.y = wp[1];
+              mk.z = wp[2];
+            }
+          }
+        } else {
+          const step = Math.min(distWp, moveSpd * safeDt);
+          mk.x += (dx / distWp) * step;
+          mk.z += (dz / distWp) * step;
+          const prevWp = goingToSpring
+            ? waypoints[Math.max(0, cursor - 1)]
+            : waypoints[Math.min(waypoints.length - 1, cursor + 1)];
+          const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distWp / segLen)) : 1.0;
+          const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
+          const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+          const groundedY = Math.abs(walkInfo.height - interpY) <= 2.2 ? walkInfo.height : interpY;
+          mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
+          mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+          mk.ctrl.speed = moveSpd;
+          mk.ctrl.setState('walk', 0.18);
+        }
+      }
+      mk.group.position.set(mk.x, mk.y, mk.z);
+      mk.group.rotation.y = mk.yaw;
+      if (vis) mk.ctrl.update(safeDt);
       continue;
     }
 
@@ -1620,10 +1995,10 @@ export function updateMonkTempleSystem(
   const minMonkSeparation = 0.88;
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const a = activeTempleMonks[i];
-    if (a.teleportState || a.shiftState === 'sleeping_in_bed') continue;
+    if (a.teleportState || a.shiftState === 'sleeping_in_bed' || a.sleepState === 'sleeping_in_bed') continue;
     for (let j = i + 1; j < activeTempleMonks.length; j++) {
       const b = activeTempleMonks[j];
-      if (b.teleportState || b.shiftState === 'sleeping_in_bed') continue;
+      if (b.teleportState || b.shiftState === 'sleeping_in_bed' || b.sleepState === 'sleeping_in_bed') continue;
       if (Math.abs(a.y - b.y) > 1.8) continue;
 
       let dx = b.x - a.x;
@@ -1643,13 +2018,19 @@ export function updateMonkTempleSystem(
           a.isAggro ||
           a.shiftState === 'relieving_to_post' ||
           a.shiftState === 'returning_to_bed' ||
+          a.sleepState === 'walking_to_bed' ||
+          a.sleepState === 'waking_to_post' ||
           a.role === 'courtyard_patrol' ||
+          a.role === 'hotspring_commuter' ||
           Boolean(a.isReturningFromAggro);
         const bMoving =
           b.isAggro ||
           b.shiftState === 'relieving_to_post' ||
           b.shiftState === 'returning_to_bed' ||
+          b.sleepState === 'walking_to_bed' ||
+          b.sleepState === 'waking_to_post' ||
           b.role === 'courtyard_patrol' ||
+          b.role === 'hotspring_commuter' ||
           Boolean(b.isReturningFromAggro);
 
         const aWeight = aMoving && !bMoving ? 1.0 : !aMoving && bMoving ? 0.0 : 0.5;

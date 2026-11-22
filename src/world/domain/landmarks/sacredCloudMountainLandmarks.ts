@@ -11,6 +11,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { ISolidBuildingBox } from '../worldTypes';
+import type { DemonDragonState } from '../../models/animals/DemonDragon_Complete';
 import { distToSegment } from '../noiseAndMath';
 // #endregion
 
@@ -55,14 +56,14 @@ export const SACRED_CLOUD_MOUNTAIN_POS = {
 } as const;
 
 /**
- * Summary: Relocated Octagonal Yin-Yang Bagua Platform positioned in the scenic ridge corridor
- *          between the Chinese Imperial Fortress and the Sakura Sanctuary of the Warrior Monks.
+ * Summary: Relocated Octagonal Yin-Yang Bagua Platform positioned directly east of the
+ *          Northern Geothermal Hot Spring (-320, -290) so monks spar face-to-face beside it.
  */
 export const CHINESE_BAGUA_PLATFORM_POS = {
-  x: 76.0,
-  z: -234.0,
-  baseY: 28.0,
-  deckY: 29.2,
+  x: -294.0,
+  z: -290.0,
+  baseY: 18.5,
+  deckY: 19.7,
   radius: 6.4,
 } as const;
 
@@ -768,9 +769,11 @@ export type TSkyDragonPatrolPhase =
   | 'takeoff_ascend'
   | 'fly_to_fortress';
 
+export type TSkyDragonNonAttackState = Exclude<DemonDragonState, 'attack' | 'death'>;
+
 export interface ISkyDragonPatrolSample {
   readonly phase: TSkyDragonPatrolPhase;
-  readonly animState: 'fly' | 'idle' | 'roar' | 'call';
+  readonly animState: TSkyDragonNonAttackState;
   readonly x: number;
   readonly y: number;
   readonly z: number;
@@ -812,7 +815,7 @@ const FORT_HOVER_Z = -265.0;
 
 function sampleSkyDragonPos(tRaw: number): {
   phase: TSkyDragonPatrolPhase;
-  animState: 'fly' | 'idle' | 'roar' | 'call';
+  animState: TSkyDragonNonAttackState;
   x: number;
   y: number;
   z: number;
@@ -837,9 +840,10 @@ function sampleSkyDragonPos(tRaw: number): {
 
   if (t < 20.0) {
     const phi = (t / 20.0) * Math.PI * 2.0;
+    const airAnim: TSkyDragonNonAttackState = t < 11.5 ? 'fly' : t < 16.5 ? 'skip' : 'fly';
     return {
       phase: 'fortress_soar',
-      animState: 'fly',
+      animState: airAnim,
       x: FORT_HOVER_X + Math.sin(phi) * 78.0,
       y: FORT_HOVER_Y + Math.cos(phi * 2.0) * 4.5,
       z: FORT_HOVER_Z + Math.sin(phi * 2.0) * 58.0,
@@ -886,13 +890,119 @@ function sampleSkyDragonPos(tRaw: number): {
       pitchOverride: flarePitch,
     };
   }
-  if (t < 52.0) {
-    const localT = t - 38.0;
-    const animState: 'idle' | 'roar' | 'call' =
-      localT < 4.0 ? 'idle' : localT < 7.5 ? 'roar' : localT < 10.5 ? 'idle' : 'call';
+  if (t < 53.8) {
+    // Showcase ALL non-attack grounded animations along the clear northwest summit meadow (keeping dry & clear of tree/pond)
+    if (t < 40.5) {
+      return {
+        phase: 'perched_summit',
+        animState: 'idle',
+        x: perchX,
+        y: perchY,
+        z: perchZ,
+        bank: 0,
+        forcedYaw: perchYaw,
+        pitchOverride: 0,
+      };
+    }
+    const wpA: readonly [number, number] = [perchX, perchZ]; // (97.5, -774.5)
+    const wpB: readonly [number, number] = [93.5, -773.0];
+    const wpC: readonly [number, number] = [90.8, -770.8];
+    const wpD: readonly [number, number] = [89.6, -768.2];
+    const wpE: readonly [number, number] = [93.2, -771.6];
+
+    if (t < 41.8) {
+      const u = smoothstep01(40.5, 41.8, t);
+      const x = wpA[0] + (wpB[0] - wpA[0]) * u;
+      const z = wpA[1] + (wpB[1] - wpA[1]) * u;
+      return {
+        phase: 'perched_summit',
+        animState: 'walk',
+        x,
+        y: perchY,
+        z,
+        bank: 0,
+        forcedYaw: Math.atan2(wpB[0] - wpA[0], wpB[1] - wpA[1]),
+        pitchOverride: 0,
+      };
+    }
+    if (t < 43.0) {
+      const u = smoothstep01(41.8, 43.0, t);
+      const x = wpB[0] + (wpC[0] - wpB[0]) * u;
+      const z = wpB[1] + (wpC[1] - wpB[1]) * u;
+      return {
+        phase: 'perched_summit',
+        animState: 'stalk',
+        x,
+        y: perchY,
+        z,
+        bank: 0,
+        forcedYaw: Math.atan2(wpC[0] - wpB[0], wpC[1] - wpB[1]),
+        pitchOverride: 0,
+      };
+    }
+    if (t < 44.6) {
+      return {
+        phase: 'perched_summit',
+        animState: 'roar',
+        x: wpC[0],
+        y: perchY,
+        z: wpC[1],
+        bank: 0,
+        forcedYaw: 0.55,
+        pitchOverride: 0,
+      };
+    }
+    if (t < 45.8) {
+      const u = smoothstep01(44.6, 45.8, t);
+      const x = wpC[0] + (wpD[0] - wpC[0]) * u;
+      const z = wpC[1] + (wpD[1] - wpC[1]) * u;
+      return {
+        phase: 'perched_summit',
+        animState: 'trot',
+        x,
+        y: perchY,
+        z,
+        bank: 0,
+        forcedYaw: Math.atan2(wpD[0] - wpC[0], wpD[1] - wpC[1]),
+        pitchOverride: 0,
+      };
+    }
+    if (t < 46.9) {
+      const u = smoothstep01(45.8, 46.9, t);
+      const x = wpD[0] + (wpE[0] - wpD[0]) * u;
+      const z = wpD[1] + (wpE[1] - wpD[1]) * u;
+      return {
+        phase: 'perched_summit',
+        animState: 'run',
+        x,
+        y: perchY,
+        z,
+        bank: 0,
+        forcedYaw: Math.atan2(wpE[0] - wpD[0], wpE[1] - wpD[1]),
+        pitchOverride: 0,
+      };
+    }
+    if (t < 47.9) {
+      const u = smoothstep01(46.9, 47.9, t);
+      const x = wpE[0] + (wpA[0] - wpE[0]) * u;
+      const z = wpE[1] + (wpA[1] - wpE[1]) * u;
+      return {
+        phase: 'perched_summit',
+        animState: 'flee',
+        x,
+        y: perchY,
+        z,
+        bank: 0,
+        forcedYaw: lerpAngle(Math.atan2(wpA[0] - wpE[0], wpA[1] - wpE[1]), perchYaw, Math.max(0, (u - 0.6) / 0.4)),
+        pitchOverride: 0,
+      };
+    }
+
+    const stationaryClip: TSkyDragonNonAttackState =
+      t < 49.1 ? 'eat' : t < 50.2 ? 'sit' : t < 51.3 ? 'lie' : t < 52.5 ? 'sleep' : 'call';
     return {
       phase: 'perched_summit',
-      animState,
+      animState: stationaryClip,
       x: perchX,
       y: perchY,
       z: perchZ,
@@ -901,11 +1011,11 @@ function sampleSkyDragonPos(tRaw: number): {
       pitchOverride: 0,
     };
   }
-  if (t < 60.0) {
-    const u = (t - 52.0) / 8.0;
+  if (t < 60.8) {
+    const u = (t - 53.8) / 7.0;
     const [x, y, z] = hermite3D(
       [perchX, perchY, perchZ],
-      [Math.sin(perchYaw) * 28.0, 12.0, Math.cos(perchYaw) * 28.0],
+      [Math.sin(perchYaw) * 28.0, 18.0, Math.cos(perchYaw) * 28.0],
       takeoffEnd,
       [15.0, 24.0, 110.0],
       u
@@ -921,7 +1031,7 @@ function sampleSkyDragonPos(tRaw: number): {
       pitchOverride: climbPitch,
     };
   }
-  const u = (t - 60.0) / 12.0;
+  const u = (t - 60.8) / 11.2;
   const [x, y, z] = hermite3D(
     takeoffEnd,
     [15.0, 24.0, 110.0],

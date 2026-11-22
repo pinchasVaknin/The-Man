@@ -1016,7 +1016,96 @@ test('customFloraModelsAndVegetationBuilder_WhenBuiltAndAnimated_ShouldRegisterA
   const nearStats = getFloraLodAndShaderStats();
   assert.equal(nearStats.sectorLodStates[0]?.activeLod, 0, 'Sector should switch back to LOD0 when player returns near');
 });
+
+test('stepArrowsPhysics_WhenAimedAtArcheryTargetDiscOrLegsOrPastRim_ShouldHitStickAndRespectCircleSilhouette', async () => {
+  const { ARCHERY_TARGETS, ARCHERY_TARGET_DIMENSIONS, walkableHeightValueAt } = await import(
+    '../terrainMath'
+  );
+  const tgt = ARCHERY_TARGETS[1];
+  const baseY = walkableHeightValueAt(tgt.x, tgt.z);
+
+  // 1) High-velocity wind arrow fired into upper-edge of circular disc sticks on the front surface
+  const fastArrow: IArrowProjectile = {
+    id: 901,
+    x: tgt.x + 0.45,
+    y: baseY + ARCHERY_TARGET_DIMENSIONS.discCenterOffsetY + 0.35,
+    z: tgt.z + 2.2,
+    vx: 0,
+    vy: 0,
+    vz: -110.0,
+    yaw: 0,
+    pitch: 0,
+    arrowKind: 'wind',
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  for (let step = 0; step < 5; step++) {
+    stepArrowsPhysics([fastArrow], [], 0.02);
+    if (fastArrow.stuck) break;
+  }
+  assert.equal(fastArrow.stuck, true, 'Expected fast wind arrow to stick cleanly without tunneling');
+  assert.equal(fastArrow.hitKind, 'target');
+  assert.equal(fastArrow.hitTargetId, tgt.id);
+  assert.ok(
+    fastArrow.z > tgt.z + 0.3,
+    `Expected arrow shaft center (${fastArrow.z}) to stay protruding in front of target surface`
+  );
+
+  // 2) Arrow aimed at upper-outer corner outside the circular rim (lx = 0.66, dy = 0.66 => r = 0.93 > 0.72) misses cleanly
+  const cornerMissArrow: IArrowProjectile = {
+    id: 902,
+    x: tgt.x + 0.66,
+    y: baseY + ARCHERY_TARGET_DIMENSIONS.discCenterOffsetY + 0.66,
+    z: tgt.z + 1.2,
+    vx: 0,
+    vy: 0,
+    vz: -45.0,
+    yaw: 0,
+    pitch: 0,
+    arrowKind: 'wind',
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  stepArrowsPhysics([cornerMissArrow], [], 0.05);
+  assert.equal(
+    cornerMissArrow.hitTargetId,
+    null,
+    'Expected arrow outside the circular target shoulder not to hit invisible square corner'
+  );
+
+  // 3) Arrow aimed squarely at a lower front wooden easel leg hits and sticks as target
+  const legArrow: IArrowProjectile = {
+    id: 903,
+    x: tgt.x + 0.43,
+    y: baseY + 0.35,
+    z: tgt.z + 1.2,
+    vx: 0,
+    vy: 0,
+    vz: -40.0,
+    yaw: 0,
+    pitch: 0,
+    stuck: false,
+    hitKind: 'none',
+    hitTargetId: null,
+    age: 0,
+    trail: [],
+  };
+  for (let step = 0; step < 4; step++) {
+    stepArrowsPhysics([legArrow], [], 0.02);
+    if (legArrow.stuck) break;
+  }
+  assert.equal(legArrow.stuck, true, 'Expected arrow hitting easel leg to stick');
+  assert.equal(legArrow.hitKind, 'target');
+  assert.equal(legArrow.hitTargetId, tgt.id);
+});
 // #endregion
+
 
 
 

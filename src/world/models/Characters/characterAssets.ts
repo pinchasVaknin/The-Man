@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { InfrastructureCorruptedException } from '../../../core/AppException';
 import { dequantize, findSkinnedMesh, readStoredSkinWeights } from '../animalModelAssets';
+import { fetchAssetBytes } from '../fetchAssetBytes';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -151,13 +152,8 @@ const loadedAssets = new Map<CharacterModelId, ICharacterModelAsset>();
 const pendingLoads = new Map<CharacterModelId, Promise<ICharacterModelAsset>>();
 
 /** Summary: Default fetcher: GET /models/characters/<id>.glb from the app's base URL. */
-export const fetchCharacterModelFromServer: CharacterModelFetcher = async (id) => {
-  const response = await fetch(`${import.meta.env.BASE_URL}models/characters/${id}.glb`);
-  if (!response.ok) {
-    throw new InfrastructureCorruptedException(`Character model '${id}' could not be downloaded (${response.status}).`);
-  }
-  return response.arrayBuffer();
-};
+export const fetchCharacterModelFromServer: CharacterModelFetcher = (id) =>
+  fetchAssetBytes(`${import.meta.env.BASE_URL}models/characters/${id}.glb`, `Character model '${id}'`);
 
 /**
  * Summary: Loads one character once; later calls share the same promise.

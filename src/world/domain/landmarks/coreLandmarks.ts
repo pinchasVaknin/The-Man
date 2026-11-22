@@ -252,6 +252,22 @@ export const RUINED_ATLANTIS_POS = {
 } as const;
 
 /**
+ * Summary: Placement of the colossal Dead King Skeleton Statue on its stepped Atlantean pedestal
+ *          inside the northwest inner quadrant of Ruined Atlantis, facing the Western Dock approach.
+ */
+export const ATLANTIS_DEAD_KING_STATUE_POS = {
+  localX: -5.55,
+  localZ: -13.4,
+  x: 980.0 - 5.55,
+  z: 420.0 - 13.4,
+  baseY: 2.15,
+  pedestalHeight: 1.4,
+  pedestalHalfExtent: 3.6,
+  statueScale: 6.2,
+  facingYaw: -0.66,
+} as const;
+
+/**
  * Summary: Sailable 3-Masted Royal Explorer Flagship moored beside the Harbor Pier,
  *          equipped with a midships Animal & Mount Deck Stall and Atlantean Wayfinder Compass.
  */
@@ -276,7 +292,7 @@ export const NORDIC_FROST_SHRINE_POS = {
   z: -290.0,
   floorY: 18.5,
   poolWaterY: 18.25,
-  poolFloorY: 17.65,
+  poolFloorY: 16.95,
   altarDaisY: 19.45,
   poolRadius: 11.0,
   outerRadius: 34.0,

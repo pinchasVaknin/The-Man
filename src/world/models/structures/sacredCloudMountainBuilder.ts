@@ -28,6 +28,7 @@ import { attachAnimatedWaterWaveShader } from './terrainAndWaterModel';
 import { buildInstancedFloraTreeBatch, type IInstancedFloraTreePlacement } from './vegetationModels';
 import { attachWindSwayShader } from '../../builders/shaderAndMaterialBuilders';
 import { getFloraSubmeshes, getFloraTextureUrl } from '../plants/floraAssets';
+import { spawnTempleMonk } from '../../systems/monkTempleSystem';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -1331,6 +1332,39 @@ export function buildSacredCloudMountainModel(
     cz: CHINESE_BAGUA_PLATFORM_POS.z,
     radius: 18.0,
     maxDist: 280.0,
+  });
+
+  // Spawn 2 sparring WarriorMonks face-to-face atop the relocated Yin-Yang Bagua disc
+  const baguaSparY = CHINESE_BAGUA_PLATFORM_POS.deckY + 0.37;
+  spawnTempleMonk({
+    id: 'bagua_spar_west',
+    role: 'bagua_sparring',
+    parent: scene,
+    homeX: CHINESE_BAGUA_PLATFORM_POS.x - 1.55,
+    homeY: baguaSparY,
+    homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 0.4,
+    staysAwakeAtNight: true,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'bagua_spar_east',
+    role: 'bagua_sparring',
+    parent: scene,
+    homeX: CHINESE_BAGUA_PLATFORM_POS.x + 1.55,
+    homeY: baguaSparY,
+    homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
+    baseYaw: -Math.PI / 2,
+    phaseOffset: 1.9,
+    staysAwakeAtNight: true,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
   });
 
   // Gentle atmospheric animation (cloud sea drift, cairn flags, pool mist)

@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { InfrastructureCorruptedException } from '../../../core/AppException';
+import { fetchAssetBytes } from '../fetchAssetBytes';
 import { decodeSaddleGlb, type ISaddleModelData } from './saddleGlb';
 // #endregion
 
@@ -30,13 +31,8 @@ const pendingLoads = new Map<SaddleModelId, Promise<ISaddleModelData>>();
 const textureUrls = new Map<SaddleModelId, string>();
 
 /** Summary: Default fetcher: GET /models/equipment/<id>.glb from the app's base URL. */
-export const fetchSaddleModelFromServer: SaddleModelFetcher = async (id) => {
-  const response = await fetch(`${import.meta.env.BASE_URL}models/equipment/${id}.glb`);
-  if (!response.ok) {
-    throw new InfrastructureCorruptedException(`Saddle model '${id}' could not be downloaded (${response.status}).`);
-  }
-  return response.arrayBuffer();
-};
+export const fetchSaddleModelFromServer: SaddleModelFetcher = (id) =>
+  fetchAssetBytes(`${import.meta.env.BASE_URL}models/equipment/${id}.glb`, `Saddle model '${id}'`);
 
 /**
  * Summary: Loads one saddle once; later calls share the same promise.

@@ -9,10 +9,13 @@
 // #region Imports & Dependencies
 import * as THREE from 'three';
 import {
+  ARCHERY_TARGETS,
+  ARCHERY_TARGET_DIMENSIONS,
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
   FORTRESS_Z_OFFSET,
   HILL_WATCHTOWERS,
+  NORDIC_FROST_SHRINE_POS,
   ROPE_BRIDGE_DEF,
   ropeBridgePointInfoAt,
 } from '../../domain/landmarksRegistry';
@@ -26,6 +29,13 @@ import {
   updateMonkTempleSystem,
 } from '../../systems/monkTempleSystem';
 import { createStaticStatue } from '../statues/staticStatue';
+import {
+  createArcheryTargetModelInstance,
+  getLoadedArcheryTargetModel,
+  isArcheryTargetModelLoaded,
+  loadArcheryTargetModel,
+  type IArcheryTargetModelAsset,
+} from '../equipment/archeryTargetAssets';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -37,7 +47,7 @@ import type { IWorldModelBuildContext } from '../types';
  */
 export interface IFortressModelResult {
   fortressGroup: THREE.Group;
-  updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => void;
+  updateFortress: (elapsedTime: number, playerX: number, playerZ: number, worldHours?: number) => void;
 }
 // #endregion
 
@@ -903,6 +913,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   dojoDummyArmGeo.rotateX(Math.PI / 2);
   disposableGeometries.push(dojoDummyBaseGeo, dojoDummyTrunkGeo, dojoDummyArmGeo);
 
+  const dojoDummyIndices: number[] = [];
   for (const [dx, dz, dyaw] of [
     [-17.8, hallCenterZ - 3.5, Math.PI * 0.5],
     [-17.8, hallCenterZ + 3.5, Math.PI * 0.5],
@@ -929,6 +940,19 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       dGroup.add(arm);
     }
     fortressGroup.add(dGroup);
+    if (dx === -7.5 || dx === -2.5) {
+      dojoDummyIndices.push(
+        registerWoodenDummy({
+          group: dGroup,
+          x: dx,
+          y: hallFloor2Y + 0.04,
+          z: dz,
+          baseYaw: dyaw,
+          hitImpulse: 0,
+          hitPhase: 0,
+        })
+      );
+    }
   }
 
   for (const [sbX, sbZ] of [
@@ -1443,25 +1467,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   dummyBaseGeo.translate(0, 0.07, 0);
   const dummyArmPegGeo = new THREE.CylinderGeometry(0.045, 0.035, 0.58, 7);
   dummyArmPegGeo.rotateX(Math.PI / 2);
-  const archeryStandGeo = new THREE.BoxGeometry(0.12, 1.85, 0.12);
-  archeryStandGeo.translate(0, 0.92, 0);
-  const archeryDiscOuterGeo = new THREE.CylinderGeometry(0.72, 0.72, 0.12, 16);
-  archeryDiscOuterGeo.rotateX(Math.PI / 2);
-  const archeryDiscInnerGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.14, 14);
-  archeryDiscInnerGeo.rotateX(Math.PI / 2);
-  const archeryBullseyeGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.16, 12);
-  archeryBullseyeGeo.rotateX(Math.PI / 2);
 
-  disposableGeometries.push(
-    dummyTrunkGeo,
-    dummyBaseGeo,
-    dummyArmPegGeo,
-    archeryStandGeo,
-    archeryDiscOuterGeo,
-    archeryDiscInnerGeo,
-    archeryBullseyeGeo
-  );
+  disposableGeometries.push(dummyTrunkGeo, dummyBaseGeo, dummyArmPegGeo);
 
+  const courtyardDummyIndices: number[] = [];
   for (const [dx, dz, dyaw] of [
     [-14.5, -143.5 + FZ, Math.PI],
     [14.5, -143.5 + FZ, Math.PI],
@@ -1483,37 +1492,55 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       dummyGroup.add(armPeg);
     }
     fortressGroup.add(dummyGroup);
-    registerWoodenDummy({
-      group: dummyGroup,
-      x: dx,
-      y: summitY,
-      z: dz,
-      baseYaw: dyaw,
-      hitImpulse: 0,
-      hitPhase: 0,
-    });
+    courtyardDummyIndices.push(
+      registerWoodenDummy({
+        group: dummyGroup,
+        x: dx,
+        y: summitY,
+        z: dz,
+        baseYaw: dyaw,
+        hitImpulse: 0,
+        hitPhase: 0,
+      })
+    );
   }
 
-  for (const [tx, tz] of [
-    [-18.0, -182.0 + FZ],
-    [-12.5, -182.0 + FZ],
-    [12.5, -182.0 + FZ],
-    [18.0, -182.0 + FZ],
-  ]) {
-    const targetGroup = new THREE.Group();
-    targetGroup.position.set(tx, summitY, tz);
-    const standL = new THREE.Mesh(archeryStandGeo, furnitureWoodMat);
-    standL.position.set(-0.42, 0, 0);
-    const standR = new THREE.Mesh(archeryStandGeo, furnitureWoodMat);
-    standR.position.set(0.42, 0, 0);
-    const discOuter = new THREE.Mesh(archeryDiscOuterGeo, archAssets.carvedMarbleMat);
-    discOuter.position.set(0, 1.25, 0.06);
-    const discInner = new THREE.Mesh(archeryDiscInnerGeo, archAssets.imperialCrimsonMat);
-    discInner.position.set(0, 1.25, 0.06);
-    const bullseye = new THREE.Mesh(archeryBullseyeGeo, archAssets.imperialGoldMat);
-    bullseye.position.set(0, 1.25, 0.06);
-    targetGroup.add(standL, standR, discOuter, discInner, bullseye);
-    fortressGroup.add(targetGroup);
+  const archeryTargetMounts: THREE.Group[] = [];
+  for (const tgt of ARCHERY_TARGETS) {
+    const targetMountGroup = new THREE.Group();
+    targetMountGroup.name = `archery-target-mount-${tgt.id}`;
+    targetMountGroup.position.set(tgt.x, summitY, tgt.z);
+    targetMountGroup.rotation.y = tgt.yaw;
+    fortressGroup.add(targetMountGroup);
+    archeryTargetMounts.push(targetMountGroup);
+  }
+
+  const populateArcheryTargetMounts = (asset: IArcheryTargetModelAsset) => {
+    for (const mount of archeryTargetMounts) {
+      if (mount.children.length > 0) continue;
+      mount.add(
+        createArcheryTargetModelInstance(asset, {
+          scale: ARCHERY_TARGET_DIMENSIONS.scale,
+          castShadow: !isSoftwareGl,
+          receiveShadow: !isSoftwareGl,
+        })
+      );
+    }
+  };
+
+  if (isArcheryTargetModelLoaded()) {
+    populateArcheryTargetMounts(getLoadedArcheryTargetModel());
+  } else {
+    loadArcheryTargetModel()
+      .then((asset) => {
+        if (!fortressGroup.parent) return;
+        populateArcheryTargetMounts(asset);
+      })
+      .catch((err: unknown) => {
+        ctx.logger.warn('Fortress archery target GLB could not be loaded', {
+          error: String(err),
+        });
+      });
   }
 
   // --- 8) MONASTERY WOODEN BENCHES & WARRIOR MONKS WITH GUARD SHIFT ROTATION ---
@@ -1893,7 +1920,47 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     disposableMaterials,
   });
 
-  // 2 Seated Courtyard Bench Monks resting and meditating on the wooden courtyard benches
+  const bedTop2Y = pavFloor2Y + 0.38;
+  const makePav2FBedRoute = (
+    startWps: ReadonlyArray<readonly [number, number, number]>,
+    isWest: boolean,
+    bedX: number,
+    bedZ: number
+  ): ReadonlyArray<readonly [number, number, number]> => {
+    const sideSign = isWest ? -1 : 1;
+    return [
+      ...startWps,
+      [sideSign * 30.0, summitY, -153.5 + FZ],
+      [sideSign * 30.0, pavFloor1Y, -158.0 + FZ],
+      [sideSign * 36.9, pavFloor1Y, -159.0 + FZ],
+      [sideSign * 36.9, pavFloor2Y, -168.4 + FZ],
+      [sideSign * 34.2, pavFloor2Y, -168.4 + FZ],
+      [bedX, pavFloor2Y, -167.8 + FZ],
+      [bedX, bedTop2Y, bedZ],
+    ];
+  };
+  const makeDojoTo2FBedRoute = (
+    startX: number,
+    startZ: number,
+    isWest: boolean,
+    bedX: number,
+    bedZ: number
+  ): ReadonlyArray<readonly [number, number, number]> =>
+    makePav2FBedRoute(
+      [
+        [startX, hallFloor2Y, startZ],
+        [11.5, hallFloor2Y, -207.2 + FZ],
+        [16.0, hallFloor2Y, -207.2 + FZ],
+        [16.0, hallFloor1Y, -193.2 + FZ],
+        [0.0, hallFloor1Y, -191.5 + FZ],
+        [0.0, summitY, -187.5 + FZ],
+      ],
+      isWest,
+      bedX,
+      bedZ
+    );
+
+  // 2 Seated Courtyard Bench Monks resting and meditating on the wooden courtyard benches (sleep in 2F Barracks at night)
   spawnTempleMonk({
     id: 'courtyard_bench_west',
     role: 'courtyard_bench',
@@ -1903,6 +1970,11 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -152.0 + FZ,
     baseYaw: Math.PI / 2,
     phaseOffset: 0.6,
+    bedX: -30.5,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makePav2FBedRoute([[-11.2, summitY, -152.0 + FZ]], true, -30.5, -170.18 + FZ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -1917,31 +1989,94 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -152.0 + FZ,
     baseYaw: -Math.PI / 2,
     phaseOffset: 1.5,
+    bedX: 28.4,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makePav2FBedRoute([[11.2, summitY, -152.0 + FZ]], false, 28.4, -170.18 + FZ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
   });
 
-  // 4 Dummy-Training Monks practicing attacks against the 4 wooden dummies
-  const dummyMonkPlacements: Array<[number, number, number, number, number]> = [
-    [-14.5, summitY, -145.65 + FZ, 0, 0],
-    [14.5, summitY, -145.65 + FZ, 0, 1],
-    [-14.5, summitY, -161.65 + FZ, 0, 2],
-    [14.5, summitY, -161.65 + FZ, 0, 3],
+  // 4 Dummy-Training Monks practicing attacks against the 4 wooden dummies (dummy_monk_0 continues training at night; 1..3 sleep in 2F Barracks)
+  const dummyMonkPlacements: Array<{
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    dIdx: number;
+    staysAwakeAtNight: boolean;
+    isWest: boolean;
+    bedX: number;
+    bedZ: number;
+  }> = [
+    {
+      x: -14.5,
+      y: summitY,
+      z: -145.65 + FZ,
+      yaw: 0,
+      dIdx: courtyardDummyIndices[0] ?? 0,
+      staysAwakeAtNight: true,
+      isWest: true,
+      bedX: -32.6,
+      bedZ: -170.18 + FZ,
+    },
+    {
+      x: 14.5,
+      y: summitY,
+      z: -145.65 + FZ,
+      yaw: 0,
+      dIdx: courtyardDummyIndices[1] ?? 1,
+      staysAwakeAtNight: false,
+      isWest: false,
+      bedX: 32.6,
+      bedZ: -170.18 + FZ,
+    },
+    {
+      x: -14.5,
+      y: summitY,
+      z: -161.65 + FZ,
+      yaw: 0,
+      dIdx: courtyardDummyIndices[2] ?? 2,
+      staysAwakeAtNight: false,
+      isWest: true,
+      bedX: -32.6,
+      bedZ: -170.18 + FZ,
+    },
+    {
+      x: 14.5,
+      y: summitY,
+      z: -161.65 + FZ,
+      yaw: 0,
+      dIdx: courtyardDummyIndices[3] ?? 3,
+      staysAwakeAtNight: false,
+      isWest: false,
+      bedX: 30.5,
+      bedZ: -170.18 + FZ,
+    },
   ];
   for (let m = 0; m < dummyMonkPlacements.length; m++) {
-    const [mx, my, mz, myaw, dIdx] = dummyMonkPlacements[m];
+    const dm = dummyMonkPlacements[m];
     spawnTempleMonk({
       id: `dummy_monk_${m}`,
       role: 'dummy_trainer',
       parent: fortressGroup,
-      homeX: mx,
-      homeY: my,
-      homeZ: mz,
-      baseYaw: myaw,
+      homeX: dm.x,
+      homeY: dm.y,
+      homeZ: dm.z,
+      baseYaw: dm.yaw,
       phaseOffset: m * 0.85,
-      dummyIndex: dIdx,
+      dummyIndex: dm.dIdx,
+      staysAwakeAtNight: dm.staysAwakeAtNight,
+      bedX: dm.bedX,
+      bedY: bedTop2Y,
+      bedZ: dm.bedZ,
+      bedYaw: 0,
+      sleepRoute: dm.staysAwakeAtNight
+        ? undefined
+        : makePav2FBedRoute([[dm.x, dm.y, dm.z]], dm.isWest, dm.bedX, dm.bedZ),
       weaponVisible: true,
       isSoftwareGl,
       disposableGeometries,
@@ -1949,7 +2084,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     });
   }
 
-  // 2 Shrine Devotees inside the Main Citadel Hall seated on wooden benches before the Sacred Golden Guardian Statue
+  // 2 Shrine Devotees inside the Main Citadel Hall seated on wooden benches before the Sacred Golden Guardian Statue (always stay guarding statue)
   spawnTempleMonk({
     id: 'shrine_devotee_west',
     role: 'shrine_devotee',
@@ -1959,6 +2094,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -203.5 + FZ,
     baseYaw: Math.PI,
     phaseOffset: 1.1,
+    staysAwakeAtNight: true,
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -1973,13 +2109,14 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -203.5 + FZ,
     baseYaw: Math.PI,
     phaseOffset: 2.3,
+    staysAwakeAtNight: true,
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
     disposableMaterials,
   });
 
-  // 2 Courtyard Patrol Monks walking, jogging, and practicing staff drills across the courtyard
+  // 2 Courtyard Patrol Monks walking, jogging, and practicing staff drills across the courtyard (sleep in 2F Barracks at night)
   spawnTempleMonk({
     id: 'courtyard_patrol_west',
     role: 'courtyard_patrol',
@@ -1995,6 +2132,11 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       [-3.5, summitY, -176.0 + FZ],
       [-3.5, summitY, -152.0 + FZ],
     ],
+    bedX: -28.4,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makePav2FBedRoute([[-8.5, summitY, -152.0 + FZ]], true, -28.4, -170.18 + FZ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -2015,6 +2157,178 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       [3.5, summitY, -152.0 + FZ],
       [3.5, summitY, -176.0 + FZ],
     ],
+    bedX: 26.3,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makePav2FBedRoute([[8.5, summitY, -176.0 + FZ]], false, 26.3, -170.18 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // 4 Monks actively training inside the 2F Dojo of the Main Imperial Citadel Hall (1 continues training at night; 3 sleep in 2F Barracks)
+  spawnTempleMonk({
+    id: 'dojo_monk_0',
+    role: 'dojo_trainer',
+    parent: fortressGroup,
+    homeX: -7.5,
+    homeY: hallFloor2Y,
+    homeZ: hallCenterZ - 1.75,
+    baseYaw: Math.PI,
+    phaseOffset: 0.3,
+    dummyIndex: dojoDummyIndices[0],
+    staysAwakeAtNight: true,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'dojo_monk_1',
+    role: 'dojo_trainer',
+    parent: fortressGroup,
+    homeX: -2.5,
+    homeY: hallFloor2Y,
+    homeZ: hallCenterZ - 1.75,
+    baseYaw: Math.PI,
+    phaseOffset: 1.4,
+    dummyIndex: dojoDummyIndices[1],
+    bedX: -26.3,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makeDojoTo2FBedRoute(-2.5, hallCenterZ - 1.75, true, -26.3, -170.18 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'dojo_monk_2',
+    role: 'dojo_trainer',
+    parent: fortressGroup,
+    homeX: 5.5,
+    homeY: hallFloor2Y,
+    homeZ: hallCenterZ - 1.55,
+    baseYaw: 0,
+    phaseOffset: 0.9,
+    bedX: 24.2,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makeDojoTo2FBedRoute(5.5, hallCenterZ - 1.55, false, 24.2, -170.18 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'dojo_monk_3',
+    role: 'dojo_trainer',
+    parent: fortressGroup,
+    homeX: 5.5,
+    homeY: hallFloor2Y,
+    homeZ: hallCenterZ + 1.55,
+    baseYaw: Math.PI,
+    phaseOffset: 2.1,
+    bedX: 22.38,
+    bedY: bedTop2Y,
+    bedZ: -166.6 + FZ,
+    bedYaw: Math.PI / 2,
+    sleepRoute: makeDojoTo2FBedRoute(5.5, hallCenterZ + 1.55, false, 22.38, -166.6 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // 3 Hot Spring Commuter Monks walking from the Chinese Fortress down the Grand Staircase & northern trail to the Hot Spring and back (sleep in 2F Barracks at night)
+  const hsX = NORDIC_FROST_SHRINE_POS.x;
+  const hsZ = NORDIC_FROST_SHRINE_POS.z;
+  const stairMidH = CHINESE_FORTRESS_POS.midLandingHeight;
+  const stairFootH = CHINESE_FORTRESS_POS.stairBaseHeight;
+  const sharedFortressToHotSpringTrail: ReadonlyArray<readonly [number, number, number]> = [
+    [0.0, summitY, -135.0 + FZ],
+    [0.0, stairMidH, CHINESE_FORTRESS_POS.stairMidZ - 1.2],
+    [0.0, stairFootH, CHINESE_FORTRESS_POS.stairFootZ + 2.0],
+    [-35.0, groundHeightAt(-35.0, -235.0), -235.0],
+    [-80.0, groundHeightAt(-80.0, -220.0), -220.0],
+    [-135.0, groundHeightAt(-135.0, -205.0), -205.0],
+    [-195.0, groundHeightAt(-195.0, -195.0), -195.0],
+    [-240.0, groundHeightAt(-240.0, -225.0), -225.0],
+    [-285.0, groundHeightAt(-285.0, -255.0), -255.0],
+    [-312.0, 18.5, -272.0],
+    [hsX, 18.5, hsZ + 11.6],
+  ];
+  spawnTempleMonk({
+    id: 'hotspring_commuter_0',
+    role: 'hotspring_commuter',
+    parent: scene,
+    homeX: 0.0,
+    homeY: summitY,
+    homeZ: -135.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0.2,
+    patrolWaypoints: [
+      ...sharedFortressToHotSpringTrail,
+      [hsX, 17.92, hsZ + 8.5],
+      [hsX, 17.5, hsZ + 5.5],
+    ],
+    bedX: -24.2,
+    bedY: bedTop2Y,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: makePav2FBedRoute([[0.0, summitY, -135.0 + FZ]], true, -24.2, -170.18 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'hotspring_commuter_1',
+    role: 'hotspring_commuter',
+    parent: scene,
+    homeX: 0.0,
+    homeY: summitY,
+    homeZ: -135.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 2.0,
+    patrolWaypoints: [
+      ...sharedFortressToHotSpringTrail,
+      [hsX - 11.0, 18.5, hsZ + 10.5],
+      [hsX - 14.05, 18.5, hsZ + 1.8],
+    ],
+    bedX: 22.38,
+    bedY: bedTop2Y,
+    bedZ: -164.65 + FZ,
+    bedYaw: Math.PI / 2,
+    sleepRoute: makePav2FBedRoute([[0.0, summitY, -135.0 + FZ]], false, 22.38, -164.65 + FZ),
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'hotspring_commuter_2',
+    role: 'hotspring_commuter',
+    parent: scene,
+    homeX: 0.0,
+    homeY: summitY,
+    homeZ: -135.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 3.7,
+    patrolWaypoints: [
+      ...sharedFortressToHotSpringTrail,
+      [hsX, 17.92, hsZ + 8.5],
+      [hsX + 4.0, 17.92, hsZ + 4.5],
+    ],
+    bedX: -22.38,
+    bedY: bedTop2Y,
+    bedZ: -166.6 + FZ,
+    bedYaw: -Math.PI / 2,
+    sleepRoute: makePav2FBedRoute([[0.0, summitY, -135.0 + FZ]], true, -22.38, -166.6 + FZ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -2203,6 +2517,29 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       cz: hw.z,
       radius: 30,
     });
+
+    // Spawn a sentinel Watchtower Guard on top of each distant Hill Watchtower deck (stays alert day & night)
+    const lx = -1.65;
+    const lz = -1.65;
+    const gx = hw.x + lx * Math.cos(hw.yaw) + lz * Math.sin(hw.yaw);
+    const gz = hw.z - lx * Math.sin(hw.yaw) + lz * Math.cos(hw.yaw);
+    spawnTempleMonk({
+      id: `hill_tower_guard_${i}`,
+      postId: `hill_tower_${i}`,
+      role: 'tower_guard',
+      parent: scene,
+      homeX: gx,
+      homeY: hw.deckY,
+      homeZ: gz,
+      baseYaw: hw.yaw + Math.PI * 0.75,
+      phaseOffset: 4.4 + i * 0.9,
+      shiftStartOnDuty: true,
+      staysAwakeAtNight: true,
+      weaponVisible: true,
+      isSoftwareGl,
+      disposableGeometries,
+      disposableMaterials,
+    });
   }
 
   // --- 10) WALKABLE ASCENDING ROPE SUSPENSION BRIDGE ---
@@ -2330,13 +2667,13 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
 
   return {
     fortressGroup,
-    updateFortress: (elapsedTime: number, playerX: number, playerZ: number) => {
+    updateFortress: (elapsedTime: number, playerX: number, playerZ: number, worldHours = 12.0) => {
       const dt =
         lastMonkElapsedTime > 0
           ? Math.min(0.1, Math.max(0.001, elapsedTime - lastMonkElapsedTime))
           : 1 / 60;
       lastMonkElapsedTime = elapsedTime;
-      updateMonkTempleSystem(dt, elapsedTime, playerX, playerZ);
+      updateMonkTempleSystem(dt, elapsedTime, playerX, playerZ, worldHours);
     },
   };
 }

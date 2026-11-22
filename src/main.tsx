@@ -16,6 +16,8 @@ import { preloadAllAnimalModels } from './world/models/animalModelAssets';
 import { preloadAllFloraModels } from './world/models/plants/floraAssets';
 import { preloadAllSaddleModels } from './world/models/equipment/saddleAssets';
 import { preloadAllCharacterModels } from './world/models/Characters/characterAssets';
+import { preloadAllStatueModels } from './world/models/statues/statueAssets';
+import { preloadArcheryTargetModel } from './world/models/equipment/archeryTargetAssets';
 import './index.css';
 // #endregion
 
@@ -28,26 +30,6 @@ if (!rootElement) {
 
 const appServices = createAppServices();
 
-// Start downloading the animal models right away, in parallel with building the world;
-// animals appear as their files arrive (see DeferredAnimalModel).
-preloadAllAnimalModels().catch((err: unknown) => {
-    appServices.logger.warn('Animal models could not be preloaded', { error: String(err) });
-});
-
-// The plant files are needed before the world's vegetation is built (the loading screen waits for
-// them), so start them now. A failure is logged here and surfaces again when the world is built.
-preloadAllFloraModels().catch((err: unknown) => {
-    appServices.logger.warn('Plant models could not be preloaded', { error: String(err) });
-});
-
-preloadAllCharacterModels().catch((err: unknown) => {
-    appServices.logger.warn('Character models could not be preloaded', { error: String(err) });
-});
-
-preloadAllSaddleModels().catch((err: unknown) => {
-    appServices.logger.warn('Saddle models could not be preloaded', { error: String(err) });
-});
-
 createRoot(rootElement).render(
     <ErrorBoundary logger={appServices.logger}>
         <AppServicesProvider value={appServices}>
@@ -55,4 +37,30 @@ createRoot(rootElement).render(
         </AppServicesProvider>
     </ErrorBoundary>,
 );
+
+// Queue background GLB downloads after the initial UI renders; fetchAssetBytes bounds concurrency (max 4)
+// and retries HTTP 429/503 automatically so proxy rate limits never stall startup.
+queueMicrotask(() => {
+    void Promise.allSettled([
+        preloadAllFloraModels().catch((err: unknown) => {
+            appServices.logger.warn('Plant models could not be preloaded', { error: String(err) });
+        }),
+        preloadAllSaddleModels().catch((err: unknown) => {
+            appServices.logger.warn('Saddle models could not be preloaded', { error: String(err) });
+        }),
+        preloadAllCharacterModels().catch((err: unknown) => {
+            appServices.logger.warn('Character models could not be preloaded', { error: String(err) });
+        }),
+        preloadAllStatueModels().catch((err: unknown) => {
+            appServices.logger.warn('Statue models could not be preloaded', { error: String(err) });
+        }),
+        preloadArcheryTargetModel().catch((err: unknown) => {
+            appServices.logger.warn('Archery target model could not be preloaded', { error: String(err) });
+        }),
+    ]).then(() => {
+        preloadAllAnimalModels().catch((err: unknown) => {
+            appServices.logger.warn('Animal models could not be preloaded', { error: String(err) });
+        });
+    });
+});
 // #endregion

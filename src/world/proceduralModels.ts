@@ -317,7 +317,7 @@ export async function buildRealisticWorld(
       playerState
     );
     updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
-    updateFortress(elapsedTime, playerX, playerZ);
+    updateFortress(elapsedTime, playerX, playerZ, worldHours);
     updateSanctuaryAndDragon(elapsedTime, playerX, playerZ);
     updateHarbor(elapsedTime, playerX, playerZ);
     updateOasis(elapsedTime);

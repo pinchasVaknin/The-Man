@@ -57,6 +57,16 @@ by `src/world/models/equipment/saddleRuntime.ts` using the presets in `Saddle_Co
 - The base64 data modules and the converter were removed after commit `1a4de8b`; check that
   commit out and run `npx tsx scripts/convertSaddlesToGlb.ts` to re-export.
 
+`Archery target.glb`: static glTF 2.0 prop with embedded PBR materials and textures (wooden
+four-leg easel stand and circular straw bullseye disc).
+
+- Loaded by `src/world/models/equipment/archeryTargetAssets.ts` (three's `GLTFLoader`) and
+  preloaded asynchronously from `src/main.tsx`.
+- Placed at all four Chinese Fortress training range spots (`ARCHERY_TARGETS` in
+  `src/world/domain/landmarks/fortressLandmarks.ts`) by `src/world/models/structures/fortressModels.ts`,
+  with matching physical target disc and easel leg hitboxes in
+  `src/world/systems/combatAndInventorySystem.ts` and `collisionAndTerraces.ts`.
+
 ## `characters/`
 
 `dwarf-warrior.glb` and `warrior-monk.glb`: a skinned mesh (bones `J0`..`Jn`), 11 named animation clips
@@ -72,3 +82,17 @@ parent table. Normals are int8 (`KHR_mesh_quantization`), possibly with a 4-byte
 - Exported with `THREE.GLTFExporter` from the old base64 data; the converter
   (`scripts/convertCharactersToGlb.ts`), the base64 modules and the equality test that proved geometry, rig,
   every animation track and the texture bytes identical are in commit `ea21bd7`.
+
+## `statues/`
+
+Static 3D statue GLB models served from `/models/statues/<id>.glb`, starting with `ded_king_skelton.glb`.
+These are plain glTF 2.0 static meshes with embedded PBR materials and textures (no skeleton or baked
+animation clips).
+
+- Loaded at runtime by `src/world/models/statues/statueAssets.ts` (three's `GLTFLoader`).
+- Preloaded asynchronously in the background from `src/main.tsx` and attached onto its pedestal in
+  Ruined Atlantis by `src/world/models/structures/atlantisAndShipModels.ts` once downloaded, so the
+  initial loading screen does not block on remote statue assets.
+- Rig-based frozen statues created from character or dragon models live in code in
+  `src/world/models/statues/staticStatue.ts`.
+

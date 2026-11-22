@@ -293,6 +293,15 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     return classifySwordAttackPhase(playerState.swordSwingProgress ?? 0);
   });
 
+  bind('setSwordTipTrailDebug', (enabled?: unknown) => {
+    const next =
+      typeof enabled === 'boolean'
+        ? enabled
+        : !Boolean(playerState.swordTipTrailDebug);
+    playerState.swordTipTrailDebug = next;
+    return next;
+  });
+
   bind('setBowZoom', (active = true) => {
     if (playerState.isSwimming) return false;
     playerState.equippedTool = 'bow';

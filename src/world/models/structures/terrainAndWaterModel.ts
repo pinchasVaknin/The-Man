@@ -322,167 +322,172 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   const chunkSegs = isSoftwareGl ? 34 : 44;
   const gridRadius = 4;
 
+  const buildTerrainChunk = (cx: number, cz: number) => {
+    const chunkGeo = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkSegs, chunkSegs);
+    chunkGeo.rotateX(-Math.PI / 2);
+    disposableGeometries.push(chunkGeo);
+
+    const posAttr = chunkGeo.attributes.position;
+    const vertCount = posAttr.count;
+    const colors = new Float32Array(vertCount * 3);
+
+    // Pass 1: Sample ground height once per vertex (tucking coarse 5m visual chunk cleanly beneath the 0.75m polar Sacred Mountain mesh)
+    for (let i = 0; i < vertCount; i++) {
+      const wx = cx + posAttr.getX(i);
+      const wz = cz + posAttr.getZ(i);
+      let vy = groundHeightAt(wx, wz);
+      const smDx = wx - SACRED_CLOUD_MOUNTAIN_POS.x;
+      const smDz = wz - SACRED_CLOUD_MOUNTAIN_POS.z;
+      const smR = Math.hypot(smDx, smDz);
+      if (smR < 89.5) {
+        const underW = smoothstepLocal(89.5, 80.0, smR);
+        vy = vy * (1.0 - underW) + 18.0 * underW;
+      }
+      posAttr.setY(i, vy);
+    }
+
+    // Compute analytical mesh normals directly from the height grid instead of 4 extra groundHeightAt calls per vertex
+    chunkGeo.computeVertexNormals();
+    const normalAttr = chunkGeo.attributes.normal;
+
+    // Pass 2: Compute biome vertex colors using precomputed y and normal.ny
+    for (let i = 0; i < vertCount; i++) {
+      const wx = cx + posAttr.getX(i);
+      const wz = cz + posAttr.getZ(i);
+      const y = posAttr.getY(i);
+      const ny = normalAttr.getY(i);
+
+      const tf = trailFactorAt(wx, wz);
+      const bf = birchGroveFactorAt(wx, wz);
+      const swDesert = southwestOasisBiomeFactorAt(wx, wz);
+      const noSnowSacred = isInsideSacredCloudMountainNoSnowZone(wx, wz);
+      const tundraFactor = noSnowSacred ? 0 : northernTundraFactorAt(wx, wz);
+      const snowFactor = noSnowSacred ? 0 : northernSnowZoneFactorAt(wx, wz);
+      const coastX = easternCoastlineXAt(wz);
+      const macroNoise = fbm2D(wx * 0.035 + 2.1, wz * 0.035 - 6.3, 2) * 0.5 + 0.5;
+
+      if (y < WATER_LEVEL - 0.6) {
+        tmpColor.copy(cLakebed).lerp(cSand, Math.max(0, (y + 2.8) / 2.2));
+      } else if (y < WATER_LEVEL + 0.42 || (wx >= coastX - 16.0 && y < WATER_LEVEL + 1.15)) {
+        const maxBeachY = wx >= coastX - 16.0 ? WATER_LEVEL + 1.15 : WATER_LEVEL + 0.42;
+        const shoreT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 0.6)) / (maxBeachY - (WATER_LEVEL - 0.6))));
+        tmpColor.copy(cSand).lerp(cMeadow, shoreT * shoreT);
+      } else {
+        tmpColor.copy(cMeadow).lerp(cLush, macroNoise);
+        const forestDensity = regionalForestDensityAt(wx, wz);
+        if (bf > 0.05) {
+          tmpColor.lerp(cBirchFloor, bf * 0.72);
+        } else if (forestDensity > 0.35 && swDesert < 0.25) {
+          const forestFloorWeight = smoothstepLocal(0.35, 0.85, forestDensity) * 0.68 * (1.0 - swDesert * 4.0);
+          tmpColor.lerp(cForest, forestFloorWeight);
+        }
+        // Vast South-West Savanna Dirt, Terracotta Canyon Soil & Golden Desert Sands
+        if (swDesert > 0.02) {
+          tmpDesertColor
+            .copy(cSavannaDirt)
+            .lerp(cDesertSand, smoothstepLocal(0.25, 0.85, swDesert))
+            .lerp(cDesertTerracotta, macroNoise * 0.38);
+          tmpColor.lerp(tmpDesertColor, Math.min(0.96, swDesert * 1.08));
+        }
+        // Gradual Northern Taiga & Frost Tundra Ecotone before Alpine Snow
+        if (tundraFactor > 0.04) {
+          tmpColor.lerp(cPeak, tundraFactor * 0.55);
+          tmpColor.lerp(cSnow, Math.max(0, tundraFactor - 0.35) * 0.48);
+        }
+      }
+
+      if (tf > 0.01 && y > WATER_LEVEL + 0.15) {
+        tmpColor.lerp(cTrail, tf * 0.85);
+      }
+
+      if (ny < 0.82 || y > 10.5) {
+        const slopeFactor = Math.min(1, Math.max(0, (0.83 - ny) * 5.5));
+        const heightFactor = Math.min(1, Math.max(0, (y - 10.5) / 16.0));
+        const rockMix = Math.max(slopeFactor, heightFactor);
+        if (swDesert > 0.35) {
+          tmpColor.lerp(cDesertTerracotta, rockMix * 0.65);
+          tmpColor.lerp(cRock, rockMix * 0.45);
+        } else if (noSnowSacred) {
+          tmpColor.lerp(cDesertTerracotta, rockMix * 0.42);
+          tmpColor.lerp(cRock, rockMix * 0.48);
+        } else {
+          tmpColor.lerp(y > 20 ? cPeak : cRock, rockMix);
+        }
+      }
+
+      // Blend alpine snow frost onto high northern mountains & ridges
+      if (snowFactor > 0.15 && ny > 0.62) {
+        tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
+      }
+
+      // Bright snow-colored approach trail leading from the Fortress corridor to Sacred Cloud Mountain
+      const sacredAppD = sacredMountainApproachDistanceAt(wx, wz).dist;
+      if (sacredAppD < 4.6) {
+        const snowTrailMix = 1.0 - smoothstepLocal(1.8, 4.6, sacredAppD);
+        tmpColor.lerp(cSnowTrail, snowTrailMix * 0.92);
+      }
+
+      // Blend basalt foothills & scorched volcanic ashlands across the Western Volcanic Badlands
+      const volBadlands = volcanicBadlandsFactorAt(wx, wz);
+      if (volBadlands > 0.02) {
+        const foothillMix = smoothstepLocal(0.02, 0.46, volBadlands);
+        const ashMix = smoothstepLocal(0.38, 0.92, volBadlands);
+        tmpColor.lerp(cSavannaDirt, foothillMix * 0.48);
+        tmpColor.lerp(cVolcanoAsh, ashMix * 0.92);
+      }
+      const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
+      if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 12.0) {
+        const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 12.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
+        tmpColor.lerp(cVolcanoBasalt, volMix * 0.96);
+        if (volDist < 24.5 && y > 26.0) {
+          const magmaGlow = smoothstepLocal(24.5, 16.5, volDist) * (0.5 + 0.5 * macroNoise);
+          tmpColor.lerp(cVolcanoMagma, magmaGlow * 0.9);
+        }
+      }
+
+      // Blend Murky Swamp dark peat mud, bog beds, and mossy hummocks
+      const swampFactor = murkySwampBiomeFactorAt(wx, wz);
+      if (swampFactor > 0.02) {
+        const swampMix = smoothstepLocal(0.02, 0.55, swampFactor);
+        if (y < WATER_LEVEL - 0.05) {
+          tmpColor.lerp(cSwampBogBed, swampMix * 0.92);
+        } else if (y < WATER_LEVEL + 0.22) {
+          tmpColor.lerp(cSwampPeatMud, swampMix * 0.88);
+        } else {
+          tmpColor.lerp(cSwampMoss, swampMix * 0.78);
+          tmpColor.lerp(cSwampPeatMud, (1.0 - macroNoise) * swampMix * 0.42);
+        }
+      }
+
+      colors[i * 3] = tmpColor.r;
+      colors[i * 3 + 1] = tmpColor.g;
+      colors[i * 3 + 2] = tmpColor.b;
+    }
+
+    chunkGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    chunkGeo.computeBoundingSphere();
+
+    const chunkMesh = new THREE.Mesh(chunkGeo, terrainMat);
+    chunkMesh.position.set(cx, 0, cz);
+    chunkMesh.receiveShadow = !isSoftwareGl;
+    scene.add(chunkMesh);
+
+    distanceCulledObjects.push({
+      obj: chunkMesh,
+      cx,
+      cz,
+      radius: chunkSize * 0.72,
+    });
+  };
+
   for (let gx = -gridRadius; gx <= gridRadius; gx++) {
     for (let gz = -gridRadius; gz <= gridRadius; gz++) {
-      const cx = gx * chunkSize;
-      const cz = gz * chunkSize;
-
-      const chunkGeo = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkSegs, chunkSegs);
-      chunkGeo.rotateX(-Math.PI / 2);
-      disposableGeometries.push(chunkGeo);
-
-      const posAttr = chunkGeo.attributes.position;
-      const vertCount = posAttr.count;
-      const colors = new Float32Array(vertCount * 3);
-
-      // Pass 1: Sample ground height once per vertex (tucking coarse 5m visual chunk cleanly beneath the 0.75m polar Sacred Mountain mesh)
-      for (let i = 0; i < vertCount; i++) {
-        const wx = cx + posAttr.getX(i);
-        const wz = cz + posAttr.getZ(i);
-        let vy = groundHeightAt(wx, wz);
-        const smDx = wx - SACRED_CLOUD_MOUNTAIN_POS.x;
-        const smDz = wz - SACRED_CLOUD_MOUNTAIN_POS.z;
-        const smR = Math.hypot(smDx, smDz);
-        if (smR < 89.5) {
-          const underW = smoothstepLocal(89.5, 80.0, smR);
-          vy = vy * (1.0 - underW) + 18.0 * underW;
-        }
-        posAttr.setY(i, vy);
-      }
-
-      // Compute analytical mesh normals directly from the height grid instead of 4 extra groundHeightAt calls per vertex
-      chunkGeo.computeVertexNormals();
-      const normalAttr = chunkGeo.attributes.normal;
-
-      // Pass 2: Compute biome vertex colors using precomputed y and normal.ny
-      for (let i = 0; i < vertCount; i++) {
-        const wx = cx + posAttr.getX(i);
-        const wz = cz + posAttr.getZ(i);
-        const y = posAttr.getY(i);
-        const ny = normalAttr.getY(i);
-
-        const tf = trailFactorAt(wx, wz);
-        const bf = birchGroveFactorAt(wx, wz);
-        const swDesert = southwestOasisBiomeFactorAt(wx, wz);
-        const noSnowSacred = isInsideSacredCloudMountainNoSnowZone(wx, wz);
-        const tundraFactor = noSnowSacred ? 0 : northernTundraFactorAt(wx, wz);
-        const snowFactor = noSnowSacred ? 0 : northernSnowZoneFactorAt(wx, wz);
-        const coastX = easternCoastlineXAt(wz);
-        const macroNoise = fbm2D(wx * 0.035 + 2.1, wz * 0.035 - 6.3, 2) * 0.5 + 0.5;
-
-        if (y < WATER_LEVEL - 0.6) {
-          tmpColor.copy(cLakebed).lerp(cSand, Math.max(0, (y + 2.8) / 2.2));
-        } else if (y < WATER_LEVEL + 0.42 || (wx >= coastX - 16.0 && y < WATER_LEVEL + 1.15)) {
-          const maxBeachY = wx >= coastX - 16.0 ? WATER_LEVEL + 1.15 : WATER_LEVEL + 0.42;
-          const shoreT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 0.6)) / (maxBeachY - (WATER_LEVEL - 0.6))));
-          tmpColor.copy(cSand).lerp(cMeadow, shoreT * shoreT);
-        } else {
-          tmpColor.copy(cMeadow).lerp(cLush, macroNoise);
-          const forestDensity = regionalForestDensityAt(wx, wz);
-          if (bf > 0.05) {
-            tmpColor.lerp(cBirchFloor, bf * 0.72);
-          } else if (forestDensity > 0.35 && swDesert < 0.25) {
-            const forestFloorWeight = smoothstepLocal(0.35, 0.85, forestDensity) * 0.68 * (1.0 - swDesert * 4.0);
-            tmpColor.lerp(cForest, forestFloorWeight);
-          }
-          // Vast South-West Savanna Dirt, Terracotta Canyon Soil & Golden Desert Sands
-          if (swDesert > 0.02) {
-            tmpDesertColor
-              .copy(cSavannaDirt)
-              .lerp(cDesertSand, smoothstepLocal(0.25, 0.85, swDesert))
-              .lerp(cDesertTerracotta, macroNoise * 0.38);
-            tmpColor.lerp(tmpDesertColor, Math.min(0.96, swDesert * 1.08));
-          }
-          // Gradual Northern Taiga & Frost Tundra Ecotone before Alpine Snow
-          if (tundraFactor > 0.04) {
-            tmpColor.lerp(cPeak, tundraFactor * 0.55);
-            tmpColor.lerp(cSnow, Math.max(0, tundraFactor - 0.35) * 0.48);
-          }
-        }
-
-        if (tf > 0.01 && y > WATER_LEVEL + 0.15) {
-          tmpColor.lerp(cTrail, tf * 0.85);
-        }
-
-        if (ny < 0.82 || y > 10.5) {
-          const slopeFactor = Math.min(1, Math.max(0, (0.83 - ny) * 5.5));
-          const heightFactor = Math.min(1, Math.max(0, (y - 10.5) / 16.0));
-          const rockMix = Math.max(slopeFactor, heightFactor);
-          if (swDesert > 0.35) {
-            tmpColor.lerp(cDesertTerracotta, rockMix * 0.65);
-            tmpColor.lerp(cRock, rockMix * 0.45);
-          } else if (noSnowSacred) {
-            tmpColor.lerp(cDesertTerracotta, rockMix * 0.42);
-            tmpColor.lerp(cRock, rockMix * 0.48);
-          } else {
-            tmpColor.lerp(y > 20 ? cPeak : cRock, rockMix);
-          }
-        }
-
-        // Blend alpine snow frost onto high northern mountains & ridges
-        if (snowFactor > 0.15 && ny > 0.62) {
-          tmpColor.lerp(cSnow, Math.min(0.92, (snowFactor - 0.15) * 1.1));
-        }
-
-        // Bright snow-colored approach trail leading from the Fortress corridor to Sacred Cloud Mountain
-        const sacredAppD = sacredMountainApproachDistanceAt(wx, wz).dist;
-        if (sacredAppD < 4.6) {
-          const snowTrailMix = 1.0 - smoothstepLocal(1.8, 4.6, sacredAppD);
-          tmpColor.lerp(cSnowTrail, snowTrailMix * 0.92);
-        }
-
-        // Blend basalt foothills & scorched volcanic ashlands across the Western Volcanic Badlands
-        const volBadlands = volcanicBadlandsFactorAt(wx, wz);
-        if (volBadlands > 0.02) {
-          const foothillMix = smoothstepLocal(0.02, 0.46, volBadlands);
-          const ashMix = smoothstepLocal(0.38, 0.92, volBadlands);
-          tmpColor.lerp(cSavannaDirt, foothillMix * 0.48);
-          tmpColor.lerp(cVolcanoAsh, ashMix * 0.92);
-        }
-        const volDist = Math.hypot(wx - VOLCANO_SANCTUM_POS.x, wz - VOLCANO_SANCTUM_POS.z);
-        if (volDist < VOLCANO_SANCTUM_POS.outerRadius + 12.0) {
-          const volMix = smoothstepLocal(VOLCANO_SANCTUM_POS.outerRadius + 12.0, VOLCANO_SANCTUM_POS.outerRadius - 6.0, volDist);
-          tmpColor.lerp(cVolcanoBasalt, volMix * 0.96);
-          if (volDist < 24.5 && y > 26.0) {
-            const magmaGlow = smoothstepLocal(24.5, 16.5, volDist) * (0.5 + 0.5 * macroNoise);
-            tmpColor.lerp(cVolcanoMagma, magmaGlow * 0.9);
-          }
-        }
-
-        // Blend Murky Swamp dark peat mud, bog beds, and mossy hummocks
-        const swampFactor = murkySwampBiomeFactorAt(wx, wz);
-        if (swampFactor > 0.02) {
-          const swampMix = smoothstepLocal(0.02, 0.55, swampFactor);
-          if (y < WATER_LEVEL - 0.05) {
-            tmpColor.lerp(cSwampBogBed, swampMix * 0.92);
-          } else if (y < WATER_LEVEL + 0.22) {
-            tmpColor.lerp(cSwampPeatMud, swampMix * 0.88);
-          } else {
-            tmpColor.lerp(cSwampMoss, swampMix * 0.78);
-            tmpColor.lerp(cSwampPeatMud, (1.0 - macroNoise) * swampMix * 0.42);
-          }
-        }
-
-        colors[i * 3] = tmpColor.r;
-        colors[i * 3 + 1] = tmpColor.g;
-        colors[i * 3 + 2] = tmpColor.b;
-      }
-
-      chunkGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      chunkGeo.computeBoundingSphere();
-
-      const chunkMesh = new THREE.Mesh(chunkGeo, terrainMat);
-      chunkMesh.position.set(cx, 0, cz);
-      chunkMesh.receiveShadow = !isSoftwareGl;
-      scene.add(chunkMesh);
-
-      distanceCulledObjects.push({
-        obj: chunkMesh,
-        cx,
-        cz,
-        radius: chunkSize * 0.72,
-      });
+      buildTerrainChunk(gx * chunkSize, gz * chunkSize);
     }
+  }
+  // Extra far-eastern ocean seabed chunks (x = 990..1210) so Atlantis & outer eastern waters always sit above a continuous seabed
+  for (let gz = -1; gz <= 3; gz++) {
+    buildTerrainChunk(5 * chunkSize, gz * chunkSize);
   }
 
   // 2. REALISTIC ANIMATED WATER SURFACE (MOVING WAVES & SURFACE RIPPLES)
@@ -535,25 +540,31 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     maxDist: 210,
   });
 
-  // Continuous North-to-South Eastern Sea water surface (z = -900..+900, x = 180..1340)
-  const eastSeaSegsX = isSoftwareGl ? 48 : 84;
-  const eastSeaSegsZ = isSoftwareGl ? 64 : 112;
-  const eastSeaWaterGeo = new THREE.PlaneGeometry(1160, 1800, eastSeaSegsX, eastSeaSegsZ);
-  eastSeaWaterGeo.rotateX(-Math.PI / 2);
-  eastSeaWaterGeo.computeBoundingSphere();
-  disposableGeometries.push(eastSeaWaterGeo);
+  // Continuous North-to-South Eastern Sea water surface tiled per region so Atlantis & outer waters stay visible (z = -900..+900, x = 180..1380)
+  const eastTileW = 400;
+  const eastTileD = 360;
+  const eastTileSegsX = isSoftwareGl ? 20 : 32;
+  const eastTileSegsZ = isSoftwareGl ? 20 : 32;
+  const eastTileGeo = new THREE.PlaneGeometry(eastTileW, eastTileD, eastTileSegsX, eastTileSegsZ);
+  eastTileGeo.rotateX(-Math.PI / 2);
+  eastTileGeo.computeBoundingSphere();
+  disposableGeometries.push(eastTileGeo);
 
-  const eastSeaWaterMesh = new THREE.Mesh(eastSeaWaterGeo, waterMat);
-  eastSeaWaterMesh.position.set(760, WATER_LEVEL, 0);
-  eastSeaWaterMesh.receiveShadow = !isSoftwareGl;
-  scene.add(eastSeaWaterMesh);
-  distanceCulledObjects.push({
-    obj: eastSeaWaterMesh,
-    cx: 480,
-    cz: 0,
-    radius: 300,
-    maxDist: 220,
-  });
+  for (const tileCx of [380, 780, 1180]) {
+    for (const tileCz of [-720, -360, 0, 360, 720]) {
+      const tileMesh = new THREE.Mesh(eastTileGeo, waterMat);
+      tileMesh.position.set(tileCx, WATER_LEVEL, tileCz);
+      tileMesh.receiveShadow = !isSoftwareGl;
+      scene.add(tileMesh);
+      distanceCulledObjects.push({
+        obj: tileMesh,
+        cx: tileCx,
+        cz: tileCz,
+        radius: 280,
+        maxDist: 320,
+      });
+    }
+  }
 
   // Vast Murky Swamp & Hippo Marshland water surface (-95, 790) south of the extended Mountain Ridge
   const swampWaterSegs = isSoftwareGl ? 56 : 96;

@@ -811,10 +811,20 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 0, -25, 0, -78 + FZ),
     distToSegment(x, z, 0, -76, -42, -98),
     distToSegment(x, z, -42, -98, -45, -188),
+    distToSegment(x, z, 0, -78 + FZ, -65, -230),
+    distToSegment(x, z, -65, -230, -195, -195),
     distToSegment(x, z, -24, -18, -42, -30),
     distToSegment(x, z, -42, -30, -85, -105),
     distToSegment(x, z, -85, -105, -195, -195),
-    distToSegment(x, z, -195, -195, NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0)
+    distToSegment(x, z, -195, -195, NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0),
+    distToSegment(
+      x,
+      z,
+      NORDIC_FROST_SHRINE_POS.x + 11.5,
+      NORDIC_FROST_SHRINE_POS.z,
+      NORDIC_FROST_SHRINE_POS.x + 19.5,
+      NORDIC_FROST_SHRINE_POS.z
+    )
   );
 
   const westTrailDist = Math.min(
@@ -1567,14 +1577,27 @@ export function groundHeightAt(x: number, z: number): number {
     }
   }
 
-  // Nordic Frost Giant Shrine & Geothermal Hot Springs Basin at (-320, -290)
+  // Nordic Frost Giant Shrine & Geothermal Hot Springs Basin at (-320, -290) with multi-depth soaking shelves
   const nfDx = x - NORDIC_FROST_SHRINE_POS.x;
   const nfDz = z - NORDIC_FROST_SHRINE_POS.z;
   if (Math.abs(nfDx) <= 22.0 && Math.abs(nfDz) <= 22.0) {
     const nfDist = Math.hypot(nfDx, nfDz);
-    if (nfDist < NORDIC_FROST_SHRINE_POS.poolRadius + 1.5) {
-      const poolCarve = 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.poolRadius - 2.2, NORDIC_FROST_SHRINE_POS.poolRadius + 0.8, nfDist);
-      h = h * (1.0 - poolCarve) + NORDIC_FROST_SHRINE_POS.poolFloorY * poolCarve;
+    if (nfDist < NORDIC_FROST_SHRINE_POS.poolRadius + 1.4) {
+      // Three distinct geothermal depths: shallow wading shelf (17.92m), mid soaking shelf (17.50m), deep center (16.95m)
+      const shallowH = 17.92;
+      const midH = 17.5;
+      const deepH = NORDIC_FROST_SHRINE_POS.poolFloorY;
+      let targetBasinH = shallowH;
+      if (nfDist < 7.8) {
+        const midBlend = 1.0 - smoothstep(6.2, 7.8, nfDist);
+        targetBasinH = shallowH * (1.0 - midBlend) + midH * midBlend;
+      }
+      if (nfDist < 4.5) {
+        const deepBlend = 1.0 - smoothstep(2.6, 4.5, nfDist);
+        targetBasinH = targetBasinH * (1.0 - deepBlend) + deepH * deepBlend;
+      }
+      const poolCarve = 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.poolRadius - 0.6, NORDIC_FROST_SHRINE_POS.poolRadius + 1.1, nfDist);
+      h = h * (1.0 - poolCarve) + targetBasinH * poolCarve;
     }
     // Raised Northern Rune Altar Dais at (x: -320, z: -306.5)
     const altarDist = Math.hypot(nfDx, z - (NORDIC_FROST_SHRINE_POS.z - 16.5));
@@ -1676,6 +1699,13 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   );
   if (lagNorm <= 1.0) {
     return SOUTHWEST_OASIS_POS.lagoonWaterY;
+  }
+  const nfWaterDist = Math.hypot(x - NORDIC_FROST_SHRINE_POS.x, z - NORDIC_FROST_SHRINE_POS.z);
+  if (
+    nfWaterDist <= NORDIC_FROST_SHRINE_POS.poolRadius &&
+    (currentY === undefined || currentY >= 14.0)
+  ) {
+    return NORDIC_FROST_SHRINE_POS.poolWaterY;
   }
   const coastLineX = easternCoastlineXAt(z);
   if (x >= coastLineX - 2.0 && groundHeightAt(x, z) < SOUTHEAST_HARBOR_POS.waterY - 0.05) {
@@ -1972,6 +2002,23 @@ export function walkableHeightAt(
   const sacredMtn = sacredCloudMountainWalkableHeightAt(x, z, currentY);
   if (sacredMtn !== null) {
     return writeWalkableSample(out, sacredMtn.height, sacredMtn.surface);
+  }
+
+  // Northern Hot Spring South underwater entry stairs & stepped soaking ledges (-320, -290)
+  const nfStairDx = Math.abs(x - NORDIC_FROST_SHRINE_POS.x);
+  const nfStairDz = z - NORDIC_FROST_SHRINE_POS.z;
+  if (
+    nfStairDx <= 2.3 &&
+    nfStairDz >= 5.2 &&
+    nfStairDz <= NORDIC_FROST_SHRINE_POS.poolRadius + 0.6 &&
+    (currentY === undefined || currentY >= 15.0)
+  ) {
+    const tStep = Math.max(
+      0,
+      Math.min(1, (nfStairDz - 5.2) / (NORDIC_FROST_SHRINE_POS.poolRadius + 0.6 - 5.2))
+    );
+    const stairH = 17.48 + tStep * (NORDIC_FROST_SHRINE_POS.floorY - 17.48);
+    return writeWalkableSample(out, stairH, 'bridge');
   }
 
   const groundH = groundHeightAt(x, z);
@@ -2628,9 +2675,6 @@ export function sampleMinimapColorAt(x: number, z: number): [number, number, num
   if (nfMapDist <= 24.0) {
     if (nfMapDist <= NORDIC_FROST_SHRINE_POS.poolRadius) {
       return [42, 214, 222]; // Steaming Turquoise Geothermal Pool
-    }
-    if (Math.abs(nfMapDist - 15.0) <= 1.8) {
-      return [112, 224, 248]; // Glowing Cyan-Ice Runestone Ring
     }
     return [192, 204, 214]; // Carved Nordic Stone Sanctuary Plaza
   }

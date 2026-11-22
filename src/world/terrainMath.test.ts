@@ -3493,5 +3493,148 @@ test('monkPalace_ShouldHaveSteppedStairRailsAccurate2FDojoCollidersTrimmedBuildi
     assert.ok(wall && Math.abs((wall.maxY ?? 0) - (35.6 + FY)) < 0.05, `${id} maxY should equal 35.6+FY, got ${wall?.maxY}`);
   }
 });
+
+test('hotSpringAndMonkSchedules_WhenVerifyingMultiDepthPoolBaguaNightBedsDojoAndHillTowerGuards_ShouldSatisfyAllRules', async () => {
+  const THREE = await import('three');
+  const {
+    NORDIC_FROST_SHRINE_POS,
+    CHINESE_BAGUA_PLATFORM_POS,
+    HILL_WATCHTOWERS,
+    SOLID_BUILDING_BOXES,
+    CHINESE_FORTRESS_POS,
+    FORTRESS_Z_OFFSET,
+    getWaterSurfaceHeightAt,
+  } = await import('./terrainMath');
+  const {
+    resetMonkTempleSystem,
+    spawnTempleMonk,
+    updateMonkTempleSystem,
+    isMonkPositionSafeOnPlatform,
+  } = await import('./systems/monkTempleSystem');
+
+  // 1) Northern Hot Spring has 3 enterable depth zones (17.92m, 17.50m, 16.95m), active pool water at 18.25m, and walkable South stairs
+  const hsX = NORDIC_FROST_SHRINE_POS.x;
+  const hsZ = NORDIC_FROST_SHRINE_POS.z;
+  const centerFloor = groundHeightAt(hsX, hsZ);
+  const midDepthFloor = groundHeightAt(hsX + 5.6, hsZ);
+  const shallowFloor = groundHeightAt(hsX + 7.5, hsZ);
+  assert.ok(Math.abs(centerFloor - 16.95) < 0.06, `Expected deep soak basin near 16.95m, got ${centerFloor}`);
+  assert.ok(Math.abs(midDepthFloor - 17.5) < 0.06, `Expected medium soak shelf near 17.50m, got ${midDepthFloor}`);
+  assert.ok(Math.abs(shallowFloor - 17.92) < 0.06, `Expected shallow soak bench near 17.92m, got ${shallowFloor}`);
+
+  const poolWater = getWaterSurfaceHeightAt(hsX, hsZ, 18.0);
+  assert.equal(poolWater, NORDIC_FROST_SHRINE_POS.poolWaterY);
+
+  const stairMidWalk = walkableHeightAt(hsX, hsZ + 8.5, 18.0);
+  assert.ok(
+    stairMidWalk.height > 17.6 && stairMidWalk.height < 18.3,
+    `Expected walkable South stone stair descending into hot spring water, got ${stairMidWalk.height}`
+  );
+
+  // Runestone pillars removed; dining table + benches + towel bench registered in SOLID_BUILDING_BOXES
+  const boxMap = new Map(SOLID_BUILDING_BOXES.map((b) => [b.id, b]));
+  assert.ok(boxMap.has('nordic-hotspring-dining-table'));
+  assert.ok(boxMap.has('nordic-hotspring-bench-west'));
+  assert.ok(boxMap.has('nordic-hotspring-bench-east'));
+  assert.ok(boxMap.has('nordic-hotspring-towel-rack'));
+
+  // Bagua Yin-Yang platform sits directly adjacent to the Hot Spring
+  assert.ok(Math.hypot(CHINESE_BAGUA_PLATFORM_POS.x - hsX, CHINESE_BAGUA_PLATFORM_POS.z - hsZ) <= 30.0);
+
+  // 2) Night schedule (worldHours = 22.0) moves Fortress sleepers + Hot Spring commuters onto 2F Barracks beds while guards, statue keepers & night trainers stay active
+  resetMonkTempleSystem();
+  const mockScene = new THREE.Group();
+  const FZ = FORTRESS_Z_OFFSET;
+  const pav2BedY = CHINESE_FORTRESS_POS.pavilionFloor2Y + 0.38;
+
+  const sleeper = spawnTempleMonk({
+    id: 'test_sleeper_courtyard',
+    role: 'courtyard_bench',
+    parent: mockScene,
+    homeX: -11.2,
+    homeY: CHINESE_FORTRESS_POS.summitHeight,
+    homeZ: -152.0 + FZ,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 0.4,
+    bedX: -30.5,
+    bedY: pav2BedY,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: [
+      [-11.2, CHINESE_FORTRESS_POS.summitHeight, -152.0 + FZ],
+      [-30.0, CHINESE_FORTRESS_POS.summitHeight, -153.5 + FZ],
+      [-30.0, CHINESE_FORTRESS_POS.pavilionFloor1Y, -158.0 + FZ],
+      [-36.9, CHINESE_FORTRESS_POS.pavilionFloor1Y, -159.0 + FZ],
+      [-36.9, CHINESE_FORTRESS_POS.pavilionFloor2Y, -168.4 + FZ],
+      [-30.5, pav2BedY, -170.18 + FZ],
+    ],
+  });
+  const nightTrainer = spawnTempleMonk({
+    id: 'test_night_dojo_trainer',
+    role: 'dojo_trainer',
+    parent: mockScene,
+    homeX: -7.5,
+    homeY: CHINESE_FORTRESS_POS.mainHallFloor2Y,
+    homeZ: -204.5 + FZ,
+    baseYaw: Math.PI,
+    phaseOffset: 0.2,
+    staysAwakeAtNight: true,
+  });
+  const commuter = spawnTempleMonk({
+    id: 'test_hotspring_commuter',
+    role: 'hotspring_commuter',
+    parent: mockScene,
+    homeX: 0.0,
+    homeY: CHINESE_FORTRESS_POS.summitHeight,
+    homeZ: -135.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0.1,
+    patrolWaypoints: [
+      [0.0, CHINESE_FORTRESS_POS.summitHeight, -135.0 + FZ],
+      [hsX, 17.5, hsZ + 5.5],
+    ],
+    bedX: -24.2,
+    bedY: pav2BedY,
+    bedZ: -170.18 + FZ,
+    bedYaw: 0,
+    sleepRoute: [
+      [0.0, CHINESE_FORTRESS_POS.summitHeight, -135.0 + FZ],
+      [-30.0, CHINESE_FORTRESS_POS.pavilionFloor2Y, -168.4 + FZ],
+      [-24.2, pav2BedY, -170.18 + FZ],
+    ],
+  });
+
+  // Daytime travel: commuter advances along trail toward the Hot Spring
+  const startDistToSpring = Math.hypot(commuter.x - hsX, commuter.z - (hsZ + 5.5));
+  for (let s = 0; s < 120; s++) {
+    updateMonkTempleSystem(0.05, s * 0.05, 0, -250, 12.0);
+  }
+  const midDistToSpring = Math.hypot(commuter.x - hsX, commuter.z - (hsZ + 5.5));
+  assert.ok(midDistToSpring < startDistToSpring - 8.0, 'Expected commuter monk to walk toward the Hot Spring during daytime');
+
+  // Nighttime sleep: sleeper & commuter walk to their 2F Barracks beds while nightTrainer continues training on 2F Dojo
+  for (let s = 0; s < 1800; s++) {
+    updateMonkTempleSystem(0.08, 10 + s * 0.08, 0, -250, 22.0);
+  }
+  assert.equal(sleeper.sleepState, 'sleeping_in_bed', 'Expected courtyard sleeper to reach 2F Barracks bed at night');
+  assert.ok(sleeper.y >= CHINESE_FORTRESS_POS.pavilionFloor2Y, 'Expected sleeper resting on 2F bed height');
+  assert.equal(commuter.sleepState, 'sleeping_in_bed', 'Expected Hot Spring commuter to return and sleep in 2F bed at night');
+  assert.equal(nightTrainer.sleepState, 'awake', 'Expected designated night trainer to keep training in 2F Dojo');
+
+  // 3) All 3 distant Hill Watchtowers have safe elevated guard positions atop their upper decks
+  for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
+    const hw = HILL_WATCHTOWERS[i];
+    const gx = hw.x - 1.65 * Math.cos(hw.yaw) - 1.65 * Math.sin(hw.yaw);
+    const gz = hw.z + 1.65 * Math.sin(hw.yaw) - 1.65 * Math.cos(hw.yaw);
+    assert.equal(
+      isMonkPositionSafeOnPlatform(gx, gz, hw.deckY),
+      true,
+      `Expected hill watchtower ${hw.id} guard post at (${gx.toFixed(1)}, ${gz.toFixed(1)}) to be safe on upper deck ${hw.deckY}`
+    );
+  }
+
+  resetMonkTempleSystem();
+});
 // #endregion
+
 

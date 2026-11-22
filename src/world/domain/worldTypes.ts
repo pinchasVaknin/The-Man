@@ -459,6 +459,7 @@ export interface IPlayerState {
   swordStrikePending?: boolean; // true during Phase B Wind-Up until Phase C active strike hit window resolves
   swordHitStopTimer?: number; // brief tactile hit-stop resistance timer upon striking a target/obstacle
   swordDebugFreezeProgress?: number | null; // optional deterministic phase inspection lock
+  swordTipTrailDebug?: boolean; // draws blade-tip swing path in first-person camera space when enabled
   swordChargeTime?: number; // 0..1 windup progress while holding attack button
   swordBlocking?: boolean; // Right-click parry/block guard when sword is equipped
   swordBlockProgress?: number; // 0..1 smooth interpolation into horizontal block stance

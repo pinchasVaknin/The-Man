@@ -115,6 +115,20 @@ export const CORNER_WATCHTOWERS: readonly ICornerWatchtowerDef[] = [
   },
 ] as const;
 
+/** Summary: Exact scaled spatial bounds and hitbox metrics for Archery target.glb (scale = 2.0). */
+export const ARCHERY_TARGET_DIMENSIONS = {
+  scale: 2.0,
+  totalHeight: 1.968,
+  standHalfWidthX: 0.69,
+  standHalfDepthZ: 0.64,
+  discCenterOffsetY: 1.27,
+  discRadius: 0.72,
+  discBackOffsetZ: -0.08,
+  discFrontBottomOffsetZ: 0.36,
+  discTopTiltDeltaZ: -0.12,
+  legRadius: 0.11,
+} as const;
+
 /** Summary: Archery training targets positioned in the fortress courtyard for practice. */
 export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
   {
@@ -123,7 +137,7 @@ export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
     x: -18.0,
     z: -182.0 + FZ,
     yaw: 0.0,
-    bullseyeRadius: 0.95,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
   },
   {
     id: 'target-fortress-hall-nw-inner',
@@ -131,7 +145,7 @@ export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
     x: -12.5,
     z: -182.0 + FZ,
     yaw: 0.0,
-    bullseyeRadius: 0.95,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
   },
   {
     id: 'target-fortress-hall-ne-inner',
@@ -139,7 +153,7 @@ export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
     x: 12.5,
     z: -182.0 + FZ,
     yaw: 0.0,
-    bullseyeRadius: 0.95,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
   },
   {
     id: 'target-fortress-hall-ne-outer',
@@ -147,7 +161,7 @@ export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
     x: 18.0,
     z: -182.0 + FZ,
     yaw: 0.0,
-    bullseyeRadius: 0.95,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
   },
 ] as const;
 

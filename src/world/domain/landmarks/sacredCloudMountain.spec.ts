@@ -288,7 +288,9 @@ test('Round pond, East lotus stepping stones, removed summit rim fence, relocate
   );
   assert.equal(summitFenceBoxes.length, 0, 'Summit rim fence must be removed');
 
-  // Relocated Octagonal Bagua Yin-Yang platform in Chinese Fortress / Monks area
+  // Relocated Octagonal Bagua Yin-Yang platform right next to the Northern Hot Spring (-294, -290)
+  assert.equal(CHINESE_BAGUA_PLATFORM_POS.x, -294.0);
+  assert.equal(CHINESE_BAGUA_PLATFORM_POS.z, -290.0);
   const deckH = walkableHeightAt(
     CHINESE_BAGUA_PLATFORM_POS.x + 4.2,
     CHINESE_BAGUA_PLATFORM_POS.z,
@@ -308,7 +310,7 @@ test('Round pond, East lotus stepping stones, removed summit rim fence, relocate
   assert.equal(contract.valid, true, contract.errors.join('; '));
 });
 
-test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, perches, and takes off again', () => {
+test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, showcases all non-attack animations, and takes off again', () => {
   const soar = evaluateSkyDragonPatrol(5.0);
   assert.equal(soar.phase, 'fortress_soar');
   assert.equal(soar.animState, 'fly');
@@ -348,6 +350,34 @@ test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, perche
     ) > 18.0,
     'Takeoff flight must clear the summit cherry tree'
   );
+
+  // Full 72s cycle showcases all 14 non-attack, non-death DemonDragon animations and never triggers 'attack' or 'death'
+  const seenStates = new Set<string>();
+  for (let s = 0; s < 288; s++) {
+    const sample = evaluateSkyDragonPatrol((s / 288) * 72.0);
+    seenStates.add(sample.animState);
+    assert.notEqual(sample.animState, 'attack', 'Sky dragon must exclude attack animation');
+    assert.notEqual(sample.animState, 'death', 'Sky dragon must exclude death animation');
+    assert.ok(teardropPoolSignedDist(sample.x, sample.z) > 1.0, `Dragon sample t=${((s / 288) * 72).toFixed(2)} drifted into pond`);
+  }
+  for (const expectedAnim of [
+    'fly',
+    'skip',
+    'idle',
+    'walk',
+    'stalk',
+    'roar',
+    'trot',
+    'run',
+    'flee',
+    'eat',
+    'sit',
+    'lie',
+    'sleep',
+    'call',
+  ]) {
+    assert.equal(seenStates.has(expectedAnim), true, `Expected dragon animation '${expectedAnim}' in 72s patrol cycle`);
+  }
 
   // Continuous loop wrap between t = 71.99 and t = 0.01
   const endWrap = evaluateSkyDragonPatrol(71.99);

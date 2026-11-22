@@ -11,6 +11,7 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { InfrastructureCorruptedException } from '../../core/AppException';
+import { fetchAssetBytes } from './fetchAssetBytes';
 // #endregion
 
 // ======================== CONTRACTS ======================== \\
@@ -322,13 +323,8 @@ const loadedAssets = new Map<AnimalModelId, IAnimalModelAsset>();
 const pendingLoads = new Map<AnimalModelId, Promise<IAnimalModelAsset>>();
 
 /** Summary: Default fetcher: GET /models/animals/<id>.glb from the app's base URL. */
-export const fetchAnimalModelFromServer: AnimalModelFetcher = async (id) => {
-  const response = await fetch(`${import.meta.env.BASE_URL}models/animals/${id}.glb`);
-  if (!response.ok) {
-    throw new InfrastructureCorruptedException(`Animal model '${id}' could not be downloaded (${response.status}).`);
-  }
-  return response.arrayBuffer();
-};
+export const fetchAnimalModelFromServer: AnimalModelFetcher = (id) =>
+  fetchAssetBytes(`${import.meta.env.BASE_URL}models/animals/${id}.glb`, `Animal model '${id}'`);
 
 /**
  * Summary: Loads one model once; later calls share the same promise.

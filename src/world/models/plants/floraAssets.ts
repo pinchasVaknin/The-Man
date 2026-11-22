@@ -8,6 +8,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import { InfrastructureCorruptedException } from '../../../core/AppException';
+import { fetchAssetBytes } from '../fetchAssetBytes';
 import { decodeFloraGlb, type IFloraModelData } from './floraGlb';
 import type { FloraKey, FloraQuality, FloraSubmeshData } from './floraRuntime';
 // #endregion
@@ -53,13 +54,11 @@ const pendingLoads = new Map<FloraKey, Promise<IFloraModelData>>();
 const textureUrls = new Map<string, string>();
 
 /** Summary: Default fetcher: GET /models/plants/<file>.glb from the app's base URL. */
-export const fetchFloraModelFromServer: FloraModelFetcher = async (id) => {
-  const response = await fetch(`${import.meta.env.BASE_URL}models/plants/${FLORA_MODEL_FILE_NAMES[id]}.glb`);
-  if (!response.ok) {
-    throw new InfrastructureCorruptedException(`Plant model '${id}' could not be downloaded (${response.status}).`);
-  }
-  return response.arrayBuffer();
-};
+export const fetchFloraModelFromServer: FloraModelFetcher = (id) =>
+  fetchAssetBytes(
+    `${import.meta.env.BASE_URL}models/plants/${FLORA_MODEL_FILE_NAMES[id]}.glb`,
+    `Plant model '${id}'`
+  );
 
 /**
  * Summary: Loads one plant once; later calls share the same promise.

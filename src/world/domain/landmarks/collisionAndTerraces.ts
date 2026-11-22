@@ -21,6 +21,7 @@ import {
   DESERT_PYRAMID_SANCTUARY_POS,
   SMUGGLER_ISLAND_POS,
   SAILABLE_SHIP_INITIAL_POS,
+  ATLANTIS_DEAD_KING_STATUE_POS,
 } from './coreLandmarks';
 import { SKYBOUND_SOLID_BOXES } from './skyboundIsles/skyboundSurface';
 import {
@@ -48,6 +49,8 @@ import {
   SOUTHWEST_OASIS_PALMS,
 } from './oasisAndHarborLandmarks';
 import {
+  ARCHERY_TARGETS,
+  ARCHERY_TARGET_DIMENSIONS,
   CHINESE_FORTRESS_POS,
   FORTRESS_Y_OFFSET,
   FORTRESS_Z_OFFSET,
@@ -580,6 +583,16 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     maxZ: dz + 0.58,
     minY: 26.0 + FY,
     maxY: 27.85 + FY,
+  })),
+  // 4 Courtyard Imperial Archery Targets (Archery target.glb, scale 2.0)
+  ...ARCHERY_TARGETS.map((tgt, idx) => ({
+    id: `fortress-archery-target-${idx}`,
+    minX: tgt.x - ARCHERY_TARGET_DIMENSIONS.standHalfWidthX,
+    maxX: tgt.x + ARCHERY_TARGET_DIMENSIONS.standHalfWidthX,
+    minZ: tgt.z - ARCHERY_TARGET_DIMENSIONS.standHalfDepthZ,
+    maxZ: tgt.z + ARCHERY_TARGET_DIMENSIONS.standHalfDepthZ,
+    minY: 26.0 + FY,
+    maxY: 26.0 + FY + ARCHERY_TARGET_DIMENSIONS.totalHeight,
   })),
   // 4 Courtyard Wooden Benches (rotated ±PI/2 so 2.1m length is along Z and 0.68m depth is along X)
   ...[
@@ -1591,6 +1604,65 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
   ...SKYBOUND_SOLID_BOXES,
   // 10) Sacred Cloud Mountain spiral railings, Paifang pillars, Yin-Yang deck fences & summit props
   ...SACRED_CLOUD_MOUNTAIN_SOLID_BOXES,
+  // 11) Ruined Atlantis Dead King Skeleton Statue pedestal and body
+  {
+    id: 'atlantis-dead-king-statue-pedestal',
+    minX: ATLANTIS_DEAD_KING_STATUE_POS.x - ATLANTIS_DEAD_KING_STATUE_POS.pedestalHalfExtent,
+    maxX: ATLANTIS_DEAD_KING_STATUE_POS.x + ATLANTIS_DEAD_KING_STATUE_POS.pedestalHalfExtent,
+    minZ: ATLANTIS_DEAD_KING_STATUE_POS.z - ATLANTIS_DEAD_KING_STATUE_POS.pedestalHalfExtent,
+    maxZ: ATLANTIS_DEAD_KING_STATUE_POS.z + ATLANTIS_DEAD_KING_STATUE_POS.pedestalHalfExtent,
+    minY: ATLANTIS_DEAD_KING_STATUE_POS.baseY,
+    maxY: ATLANTIS_DEAD_KING_STATUE_POS.baseY + ATLANTIS_DEAD_KING_STATUE_POS.pedestalHeight,
+  },
+  {
+    id: 'atlantis-dead-king-statue-body',
+    minX: ATLANTIS_DEAD_KING_STATUE_POS.x - 2.4,
+    maxX: ATLANTIS_DEAD_KING_STATUE_POS.x + 2.4,
+    minZ: ATLANTIS_DEAD_KING_STATUE_POS.z - 2.4,
+    maxZ: ATLANTIS_DEAD_KING_STATUE_POS.z + 2.4,
+    minY: ATLANTIS_DEAD_KING_STATUE_POS.baseY + ATLANTIS_DEAD_KING_STATUE_POS.pedestalHeight,
+    maxY:
+      ATLANTIS_DEAD_KING_STATUE_POS.baseY +
+      ATLANTIS_DEAD_KING_STATUE_POS.pedestalHeight +
+      ATLANTIS_DEAD_KING_STATUE_POS.statueScale,
+  },
+  // 12) Northern Hot Spring poolside dining table, benches & towel bench
+  {
+    id: 'nordic-hotspring-dining-table',
+    minX: NORDIC_FROST_SHRINE_POS.x - 15.9,
+    maxX: NORDIC_FROST_SHRINE_POS.x - 14.5,
+    minZ: NORDIC_FROST_SHRINE_POS.z - 1.45,
+    maxZ: NORDIC_FROST_SHRINE_POS.z + 1.45,
+    minY: NORDIC_FROST_SHRINE_POS.floorY,
+    maxY: NORDIC_FROST_SHRINE_POS.floorY + 0.86,
+  },
+  {
+    id: 'nordic-hotspring-bench-west',
+    minX: NORDIC_FROST_SHRINE_POS.x - 16.95,
+    maxX: NORDIC_FROST_SHRINE_POS.x - 16.3,
+    minZ: NORDIC_FROST_SHRINE_POS.z - 1.25,
+    maxZ: NORDIC_FROST_SHRINE_POS.z + 1.25,
+    minY: NORDIC_FROST_SHRINE_POS.floorY,
+    maxY: NORDIC_FROST_SHRINE_POS.floorY + 0.48,
+  },
+  {
+    id: 'nordic-hotspring-bench-east',
+    minX: NORDIC_FROST_SHRINE_POS.x - 14.1,
+    maxX: NORDIC_FROST_SHRINE_POS.x - 13.45,
+    minZ: NORDIC_FROST_SHRINE_POS.z - 1.25,
+    maxZ: NORDIC_FROST_SHRINE_POS.z + 1.25,
+    minY: NORDIC_FROST_SHRINE_POS.floorY,
+    maxY: NORDIC_FROST_SHRINE_POS.floorY + 0.48,
+  },
+  {
+    id: 'nordic-hotspring-towel-rack',
+    minX: NORDIC_FROST_SHRINE_POS.x - 13.2,
+    maxX: NORDIC_FROST_SHRINE_POS.x - 11.7,
+    minZ: NORDIC_FROST_SHRINE_POS.z + 7.1,
+    maxZ: NORDIC_FROST_SHRINE_POS.z + 7.9,
+    minY: NORDIC_FROST_SHRINE_POS.floorY,
+    maxY: NORDIC_FROST_SHRINE_POS.floorY + 1.05,
+  },
 ];
 // #endregion
 
@@ -1631,7 +1703,7 @@ export const FLAT_BUILDING_TERRACES = [
   { x: FLOATING_ISLAND_STAIR_POS.waterfallX - 5.0, z: FLOATING_ISLAND_STAIR_POS.z, innerR: 22.0, outerR: 34.0, targetH: 3.25 },
   { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, innerR: 28.0, outerR: 42.0, targetH: NORDIC_FROST_SHRINE_POS.floorY },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, innerR: 42.0, outerR: 58.0, targetH: DESERT_PYRAMID_SANCTUARY_POS.baseY },
-  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, innerR: 9.0, outerR: 16.5, targetH: CHINESE_BAGUA_PLATFORM_POS.baseY },
+  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, innerR: 7.5, outerR: 11.8, targetH: CHINESE_BAGUA_PLATFORM_POS.baseY },
 ] as const;
 // #endregion
 
@@ -1709,7 +1781,7 @@ export const CLEAR_ZONES = [
   { x: NORDIC_FROST_SHRINE_POS.x, z: NORDIC_FROST_SHRINE_POS.z, r: 36.0 },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, r: 48.0 },
   { x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, r: 34.0 },
-  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, r: 16.0 },
+  { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, r: 12.5 },
   { x: SACRED_CLOUD_MOUNTAIN_POS.x, z: SACRED_CLOUD_MOUNTAIN_POS.z, r: SACRED_CLOUD_MOUNTAIN_POS.zoneRadius },
 ];
 // #endregion
@@ -1920,6 +1992,32 @@ export const COLLIDABLE_WORLD_ENTITY_REGISTRY: readonly ICollidableWorldEntity[]
     category: 'building',
     collidable: true,
     solidBoxIds: SACRED_CLOUD_MOUNTAIN_SOLID_BOXES.map((b) => b.id),
+  },
+  {
+    entityId: 'atlantis-dead-king-statue',
+    category: 'prop',
+    collidable: true,
+    solidBoxIds: [
+      'atlantis-dead-king-statue-pedestal',
+      'atlantis-dead-king-statue-body',
+    ],
+  },
+  {
+    entityId: 'fortress-archery-targets',
+    category: 'prop',
+    collidable: true,
+    solidBoxIds: ARCHERY_TARGETS.map((_, idx) => `fortress-archery-target-${idx}`),
+  },
+  {
+    entityId: 'nordic-hotspring-furnishings',
+    category: 'prop',
+    collidable: true,
+    solidBoxIds: [
+      'nordic-hotspring-dining-table',
+      'nordic-hotspring-bench-west',
+      'nordic-hotspring-bench-east',
+      'nordic-hotspring-towel-rack',
+    ],
   },
 ] as const;
 

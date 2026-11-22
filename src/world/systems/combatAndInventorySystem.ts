@@ -35,6 +35,7 @@ import {
   pointInsideSolidBuildingBox,
   getNearbySolidBuildingBoxes,
   ARCHERY_TARGETS,
+  ARCHERY_TARGET_DIMENSIONS,
   MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
   getMarketStallCatalogItems,
@@ -45,6 +46,7 @@ export { getPlayerState };
 import {
   SWORD_ACTIVE_STRIKE_WINDOW_START,
   SWORD_ACTIVE_STRIKE_WINDOW_END,
+  SWORD_IMPACT_HOLD_SECONDS,
   SWORD_STRIKE_CONTACT_APEX,
 } from './swordAttackAnimationSystem';
 import {
@@ -196,6 +198,151 @@ for (const tgt of ARCHERY_TARGETS) {
  */
 export function getNearbyArcheryTargets(x: number, z: number): readonly IArcheryTargetDef[] {
   return ARCHERY_TARGETS_SPATIAL_GRID.query(x, z);
+}
+
+/** Four easel legs matching the scaled Archery target.glb frame in target-local coordinates. */
+const ARCHERY_TARGET_LEG_SEGMENTS = [
+  [-0.46, 0.0, 0.53, -0.35, 1.15, 0.16],
+  [0.46, 0.0, 0.53, 0.35, 1.15, 0.16],
+  [-0.61, 0.0, -0.53, -0.42, 1.15, 0.04],
+  [0.61, 0.0, -0.53, 0.42, 1.15, 0.04],
+] as const;
+
+function pointToSegmentDistSq3D(
+  px: number,
+  py: number,
+  pz: number,
+  ax: number,
+  ay: number,
+  az: number,
+  bx: number,
+  by: number,
+  bz: number
+): number {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abz = bz - az;
+  const lenSq = abx * abx + aby * aby + abz * abz;
+  if (lenSq <= 1e-9) {
+    const dx = px - ax;
+    const dy = py - ay;
+    const dz = pz - az;
+    return dx * dx + dy * dy + dz * dz;
+  }
+  const t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby + (pz - az) * abz) / lenSq));
+  const cx = px - (ax + abx * t);
+  const cy = py - (ay + aby * t);
+  const cz = pz - (az + abz * t);
+  return cx * cx + cy * cy + cz * cz;
+}
+
+function isLocalPointInArcheryTargetHitbox(
+  lx: number,
+  ly: number,
+  lz: number,
+  margin = 0
+): boolean {
+  const d = ARCHERY_TARGET_DIMENSIONS;
+  // 1) Upper circular straw target disc (slightly leaned backward like the 3D model)
+  const discDy = ly - d.discCenterOffsetY;
+  const effectiveDiscR = d.discRadius + margin;
+  if (lx * lx + discDy * discDy <= effectiveDiscR * effectiveDiscR) {
+    const tHeight = Math.max(0, Math.min(1, (ly - 0.57) / 1.4));
+    const minZ = d.discBackOffsetZ - margin;
+    const maxZ = d.discFrontBottomOffsetZ + d.discTopTiltDeltaZ * tHeight + margin;
+    if (lz >= minZ && lz <= maxZ) {
+      return true;
+    }
+  }
+
+  // 2) Four wooden easel support legs beneath/behind the straw disc
+  if (ly >= -margin && ly <= 1.25 + margin) {
+    const legR = d.legRadius + margin;
+    const legRSq = legR * legR;
+    for (let i = 0; i < ARCHERY_TARGET_LEG_SEGMENTS.length; i++) {
+      const seg = ARCHERY_TARGET_LEG_SEGMENTS[i];
+      if (pointToSegmentDistSq3D(lx, ly, lz, seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]) <= legRSq) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Summary: Tests whether a world-space point intersects an archery target's 3D disc or stand legs.
+ */
+export function isWorldPointInArcheryTargetHitbox(
+  tgt: IArcheryTargetDef,
+  baseY: number,
+  wx: number,
+  wy: number,
+  wz: number,
+  margin = 0
+): boolean {
+  const dx = wx - tgt.x;
+  const dz = wz - tgt.z;
+  const cosY = Math.cos(tgt.yaw);
+  const sinY = Math.sin(tgt.yaw);
+  const lx = dx * cosY - dz * sinY;
+  const lz = dx * sinY + dz * cosY;
+  const ly = wy - baseY;
+  return isLocalPointInArcheryTargetHitbox(lx, ly, lz, margin);
+}
+
+/**
+ * Summary: Finds the earliest continuous intersection point along an arrow step against a target.
+ */
+export function findArcheryTargetArrowImpact(
+  tgt: IArcheryTargetDef,
+  baseY: number,
+  prevX: number,
+  prevY: number,
+  prevZ: number,
+  nextX: number,
+  nextY: number,
+  nextZ: number
+): { hitX: number; hitY: number; hitZ: number } | null {
+  const pad = 1.05;
+  if (Math.max(prevX, nextX) < tgt.x - pad || Math.min(prevX, nextX) > tgt.x + pad) return null;
+  if (Math.max(prevZ, nextZ) < tgt.z - pad || Math.min(prevZ, nextZ) > tgt.z + pad) return null;
+  if (
+    Math.max(prevY, nextY) < baseY - 0.1 ||
+    Math.min(prevY, nextY) > baseY + ARCHERY_TARGET_DIMENSIONS.totalHeight + 0.15
+  ) {
+    return null;
+  }
+
+  const cosY = Math.cos(tgt.yaw);
+  const sinY = Math.sin(tgt.yaw);
+  const dx0 = prevX - tgt.x;
+  const dz0 = prevZ - tgt.z;
+  const lx0 = dx0 * cosY - dz0 * sinY;
+  const ly0 = prevY - baseY;
+  const lz0 = dx0 * sinY + dz0 * cosY;
+
+  const dx1 = nextX - tgt.x;
+  const dz1 = nextZ - tgt.z;
+  const lx1 = dx1 * cosY - dz1 * sinY;
+  const ly1 = nextY - baseY;
+  const lz1 = dx1 * sinY + dz1 * cosY;
+
+  const segLen = Math.hypot(lx1 - lx0, ly1 - ly0, lz1 - lz0);
+  const steps = Math.max(1, Math.ceil(segLen / 0.035));
+  for (let s = 0; s <= steps; s++) {
+    const f = s / steps;
+    const lx = lx0 + (lx1 - lx0) * f;
+    const ly = ly0 + (ly1 - ly0) * f;
+    const lz = lz0 + (lz1 - lz0) * f;
+    if (isLocalPointInArcheryTargetHitbox(lx, ly, lz, 0.015)) {
+      return {
+        hitX: prevX + (nextX - prevX) * f,
+        hitY: prevY + (nextY - prevY) * f,
+        hitZ: prevZ + (nextZ - prevZ) * f,
+      };
+    }
+  }
+  return null;
 }
 // #endregion
 
@@ -1246,8 +1393,7 @@ export function evaluateSwordStrikeWindowHit(
     for (let t = 0; t < nearbyTargets.length; t++) {
       const tgt = nearbyTargets[t];
       const baseY = walkableHeightValueAt(tgt.x, tgt.z);
-      const centerY = baseY + 1.35;
-      if (Math.hypot(sx - tgt.x, sy - centerY, sz - tgt.z) <= tgt.bullseyeRadius + (isHeavy ? 0.45 : 0.25)) {
+      if (isWorldPointInArcheryTargetHitbox(tgt, baseY, sx, sy, sz, isHeavy ? 0.35 : 0.2)) {
         state.lastSwordHitPoint = { x: sx, y: sy, z: sz, age: 0, kind: 'target' };
         state.lastArrowHitTarget = tgt.id;
         state.swordHitStopTimer = 0.042;
@@ -1429,6 +1575,7 @@ export function evaluateSwordStrikeWindowHit(
     const nearbyBoxes = getNearbySolidBuildingBoxes(sx, sz);
     for (let b = 0; b < nearbyBoxes.length; b++) {
       const box = nearbyBoxes[b];
+      if (box.id.startsWith('fortress-archery-target-')) continue;
       if (pointInsideSolidBuildingBox(sx, sz, 0.05, box)) {
         if (box.minY !== undefined && sy < box.minY) continue;
         if (box.maxY !== undefined && sy > box.maxY) continue;
@@ -1510,8 +1657,13 @@ export function stepSwordSwingCombat(
 
   let effDt = dt;
   if ((state.swordHitStopTimer ?? 0) > 0) {
-    state.swordHitStopTimer = Math.max(0, (state.swordHitStopTimer ?? 0) - dt);
-    effDt = dt * 0.42; // Tactile resistance slows the blade briefly at impact contact
+    const remainingHold = Math.max(0, (state.swordHitStopTimer ?? 0) - dt);
+    if (remainingHold > 0) {
+      state.swordHitStopTimer = remainingHold;
+      return null;
+    }
+    effDt = dt - (state.swordHitStopTimer ?? 0);
+    state.swordHitStopTimer = 0;
   }
 
   const swingDur = state.swordHeavyAttack ? 0.68 : 0.54;
@@ -1526,6 +1678,11 @@ export function stepSwordSwingCombat(
     state.swordStrikePending = false;
     state.swordSwingProgress = Math.min(nextProg, SWORD_ACTIVE_STRIKE_WINDOW_END);
     strikeResult = evaluateSwordStrikeWindowHit(state, obstacles);
+    state.swordHitStopTimer = Math.max(
+      state.swordHitStopTimer ?? 0,
+      SWORD_IMPACT_HOLD_SECONDS
+    );
+    return strikeResult;
   }
 
   if (nextProg >= 1.0) {
@@ -1784,20 +1941,37 @@ export function stepArrowsPhysics(
 
         let struck = false;
         if (!arrExt.deflectedByMonk) {
-          const nearbyTargets = getNearbyArcheryTargets(arr.x, arr.z);
+          const nearbyTargets = getNearbyArcheryTargets((prevX + arr.x) * 0.5, (prevZ + arr.z) * 0.5);
           for (let t = 0; t < nearbyTargets.length; t++) {
             const tgt = nearbyTargets[t];
             const baseY = walkableHeightValueAt(tgt.x, tgt.z);
-            const centerY = baseY + 1.35;
-            const d3 = Math.hypot(arr.x - tgt.x, arr.y - centerY, arr.z - tgt.z);
-            if (d3 <= tgt.bullseyeRadius) {
+            const impact = findArcheryTargetArrowImpact(
+              tgt,
+              baseY,
+              prevX,
+              prevY,
+              prevZ,
+              arr.x,
+              arr.y,
+              arr.z
+            );
+            if (impact) {
+              const spdNow = Math.hypot(arr.vx, arr.vy, arr.vz) || 1;
+              const dirX = arr.vx / spdNow;
+              const dirY = arr.vy / spdNow;
+              const dirZ = arr.vz / spdNow;
+              arr.trail.push({ x: impact.hitX, y: impact.hitY, z: impact.hitZ, age: 0 });
+              // Seat the arrow center 0.28m back along its trajectory so the tip stays buried inside the target face
+              // while the shaft and fletching stick clearly out of the impact point.
+              arr.x = impact.hitX - dirX * 0.28;
+              arr.y = impact.hitY - dirY * 0.28;
+              arr.z = impact.hitZ - dirZ * 0.28;
               arr.stuck = true;
               arr.vx = 0;
               arr.vy = 0;
               arr.vz = 0;
               arr.hitKind = 'target';
               arr.hitTargetId = tgt.id;
-              arr.trail.push({ x: arr.x, y: arr.y, z: arr.z, age: 0 });
               hitTarget = tgt;
               hitAnySurface = true;
               struck = true;
@@ -2038,6 +2212,7 @@ export function stepArrowsPhysics(
           const nearbyBoxes = getNearbySolidBuildingBoxes(arr.x, arr.z);
           for (let b = 0; b < nearbyBoxes.length; b++) {
             const box = nearbyBoxes[b];
+            if (box.id.startsWith('fortress-archery-target-')) continue;
             if (pointInsideSolidBuildingBox(arr.x, arr.z, 0.04, box)) {
               if (box.minY !== undefined && arr.y < box.minY) continue;
               if (box.maxY !== undefined && arr.y > box.maxY) continue;

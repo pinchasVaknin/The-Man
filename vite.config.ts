@@ -11,6 +11,7 @@ import react from '@vitejs/plugin-react';
 import { rmSync } from 'node:fs';
 import path from 'path';
 import { defineConfig, type Plugin } from 'vite';
+import { devBundlePlugin } from './devServer/devBundlePlugin.ts';
 import { directFilePersistencePlugin } from './devServer/persistencePlugin.ts';
 
 // public/assets/aistudio is an AI Studio sync folder the app never loads; Vite copies all of
@@ -34,6 +35,7 @@ export default defineConfig(() => {
     plugins: [
       react(),
       tailwindcss(),
+      devBundlePlugin(import.meta.dirname),
       directFilePersistencePlugin(import.meta.dirname),
       removeAiStudioAssetsPlugin(),
     ],

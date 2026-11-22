@@ -17,6 +17,7 @@ import {
   IPlayerState,
   computeFirstPersonSwordAttackPose,
 } from '../terrainMath';
+import { SWORD_SWING_KEYFRAMES } from '../systems/swordAttackAnimationSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { DEFAULT_LAB_POSE_OVERRIDES, type ILabPoseOverrides } from '../../lab/labCatalog';
 
@@ -878,15 +879,20 @@ export function buildPlayerAndCombatSystems(
   fpViewModelGroup.visible = false;
   scene.add(fpViewModelGroup);
 
-  const fpSleeveGeo = new THREE.CylinderGeometry(0.036, 0.048, 0.86, 10);
-  fpSleeveGeo.translate(0, 0.03, 0);
-  const fpBracerGeo = new THREE.CylinderGeometry(0.029, 0.037, 0.56, 10);
+  const fpUpperSleeveGeo = new THREE.CylinderGeometry(0.042, 0.052, 1.0, 10);
+  fpUpperSleeveGeo.translate(0, 0.5, 0);
+  const fpElbowJointGeo = new THREE.SphereGeometry(0.041, 10, 10);
+  const fpSleeveGeo = new THREE.CylinderGeometry(0.036, 0.042, 0.44, 10);
+  fpSleeveGeo.translate(0, 0.22, 0);
+  const fpElbowCuffGeo = new THREE.CylinderGeometry(0.041, 0.040, 0.055, 10);
+  fpElbowCuffGeo.translate(0, 0.44, 0);
+  const fpBracerGeo = new THREE.CylinderGeometry(0.028, 0.037, 0.56, 10);
   fpBracerGeo.translate(0, 0.72, 0);
-  const fpVambracePlateGeo = new THREE.BoxGeometry(0.048, 0.42, 0.018);
-  fpVambracePlateGeo.translate(0, 0.73, 0.024);
-  const fpVambraceTrimGeo = new THREE.BoxGeometry(0.014, 0.44, 0.022);
-  fpVambraceTrimGeo.translate(0, 0.73, 0.025);
-  const fpStrapGeo = new THREE.CylinderGeometry(0.033, 0.035, 0.034, 10);
+  const fpVambracePlateGeo = new THREE.BoxGeometry(0.056, 0.42, 0.024);
+  fpVambracePlateGeo.translate(0, 0.72, 0.020);
+  const fpVambraceTrimGeo = new THREE.BoxGeometry(0.016, 0.44, 0.028);
+  fpVambraceTrimGeo.translate(0, 0.72, 0.021);
+  const fpStrapGeo = new THREE.CylinderGeometry(0.034, 0.036, 0.032, 10);
   const fpWristCuffGeo = new THREE.CylinderGeometry(0.033, 0.031, 0.052, 10);
   fpWristCuffGeo.translate(0, 0.975, 0);
   const fpPalmGeo = new THREE.BoxGeometry(0.062, 0.022, 0.072);
@@ -907,7 +913,10 @@ export function buildPlayerAndCombatSystems(
   fpThumbGeo.translate(0, 0, -0.017);
 
   disposableGeometries.push(
+    fpUpperSleeveGeo,
+    fpElbowJointGeo,
     fpSleeveGeo,
+    fpElbowCuffGeo,
     fpBracerGeo,
     fpVambracePlateGeo,
     fpVambraceTrimGeo,
@@ -926,8 +935,14 @@ export function buildPlayerAndCombatSystems(
   const createFirstPersonArmRig = (side: -1 | 1) => {
     const root = new THREE.Group();
 
+    const upperArmUnit = new THREE.Group();
+    const upperSleeveMesh = new THREE.Mesh(fpUpperSleeveGeo, rangerTunicMat);
+    upperArmUnit.add(upperSleeveMesh);
+
     const forearmUnit = new THREE.Group();
+    const elbowMesh = new THREE.Mesh(fpElbowJointGeo, rangerTunicMat);
     const sleeveMesh = new THREE.Mesh(fpSleeveGeo, rangerTunicMat);
+    const elbowCuffMesh = new THREE.Mesh(fpElbowCuffGeo, rangerDarkLeatherMat);
     const bracerMesh = new THREE.Mesh(fpBracerGeo, rangerLeatherMat);
     const vambracePlate = new THREE.Mesh(fpVambracePlateGeo, swordElvenGreenMat);
     const vambraceGoldTrim = new THREE.Mesh(fpVambraceTrimGeo, swordGoldFiligreeMat);
@@ -939,7 +954,9 @@ export function buildPlayerAndCombatSystems(
     const strap3 = new THREE.Mesh(fpStrapGeo, swordGoldFiligreeMat);
     strap3.position.y = 0.92;
     forearmUnit.add(
+      elbowMesh,
       sleeveMesh,
+      elbowCuffMesh,
       bracerMesh,
       vambracePlate,
       vambraceGoldTrim,
@@ -1000,9 +1017,10 @@ export function buildPlayerAndCombatSystems(
     thumbPivot.add(thumbProx, thumbDist);
     handGroup.add(thumbPivot);
 
-    root.add(forearmUnit, handGroup);
+    root.add(upperArmUnit, forearmUnit, handGroup);
     return {
       root,
+      upperArmUnit,
       forearmUnit,
       handGroup,
       fingerPivots,
@@ -1035,6 +1053,34 @@ export function buildPlayerAndCombatSystems(
     arm.thumbPivot.rotation.z = -arm.side * fingerCurl * 0.45;
   };
 
+  const alignUpperArmToElbow = (
+    arm: ReturnType<typeof createFirstPersonArmRig>,
+    shoulderX: number,
+    shoulderY: number,
+    shoulderZ: number,
+    elbowX: number,
+    elbowY: number,
+    elbowZ: number
+  ) => {
+    arm.upperArmUnit.position.set(shoulderX, shoulderY, shoulderZ);
+    _fpArmVec.set(elbowX - shoulderX, elbowY - shoulderY, elbowZ - shoulderZ);
+    const len = Math.max(0.05, _fpArmVec.length());
+    _fpArmVec.divideScalar(len);
+    _fpHandDorsal.set(0, 1, 0);
+    _fpArmX.crossVectors(_fpArmVec, _fpHandDorsal);
+    if (_fpArmX.lengthSq() < 1e-4) {
+      _fpArmX.set(1, 0, 0);
+    } else {
+      _fpArmX.normalize();
+    }
+    _fpArmZ.crossVectors(_fpArmX, _fpArmVec).normalize();
+    _fpForearmBasis.makeBasis(_fpArmX, _fpArmVec, _fpArmZ);
+    arm.upperArmUnit.scale.set(1, len, 1);
+    arm.upperArmUnit.quaternion.setFromRotationMatrix(_fpForearmBasis);
+  };
+
+  const _fpArmUpAxis = new THREE.Vector3(0, 1, 0);
+
   const alignForearmToWrist = (
     arm: ReturnType<typeof createFirstPersonArmRig>,
     elbowX: number,
@@ -1042,13 +1088,17 @@ export function buildPlayerAndCombatSystems(
     elbowZ: number,
     wristX: number,
     wristY: number,
-    wristZ: number
+    wristZ: number,
+    shoulderX?: number,
+    shoulderY?: number,
+    shoulderZ?: number
   ) => {
     arm.forearmUnit.position.set(elbowX, elbowY, elbowZ);
     _fpArmVec.set(wristX - elbowX, wristY - elbowY, wristZ - elbowZ);
     const len = Math.max(0.05, _fpArmVec.length());
     _fpArmVec.divideScalar(len);
     _fpHandDorsal.set(0, 1, 0).applyQuaternion(arm.handGroup.quaternion);
+    _fpHandDorsal.lerp(_fpArmUpAxis, 0.52).normalize();
     _fpArmX.crossVectors(_fpArmVec, _fpHandDorsal);
     if (_fpArmX.lengthSq() < 1e-4) {
       _fpArmX.set(1, 0, 0);
@@ -1059,6 +1109,11 @@ export function buildPlayerAndCombatSystems(
     _fpForearmBasis.makeBasis(_fpArmX, _fpArmVec, _fpArmZ);
     arm.forearmUnit.scale.set(1, len, 1);
     arm.forearmUnit.quaternion.setFromRotationMatrix(_fpForearmBasis);
+
+    const sx = shoulderX ?? arm.side * 0.24;
+    const sy = shoulderY ?? -0.28;
+    const sz = shoulderZ ?? -0.02;
+    alignUpperArmToElbow(arm, sx, sy, sz, elbowX, elbowY, elbowZ);
   };
 
   const poseFpArm = (
@@ -1072,12 +1127,26 @@ export function buildPlayerAndCombatSystems(
     handRx: number,
     handRy: number,
     handRz: number,
-    fingerCurl: number
+    fingerCurl: number,
+    shoulderX?: number,
+    shoulderY?: number,
+    shoulderZ?: number
   ) => {
     arm.handGroup.position.set(wristX, wristY, wristZ);
     arm.handGroup.rotation.order = 'YXZ';
     arm.handGroup.rotation.set(handRx, handRy, handRz);
-    alignForearmToWrist(arm, elbowX, elbowY, elbowZ, wristX, wristY, wristZ);
+    alignForearmToWrist(
+      arm,
+      elbowX,
+      elbowY,
+      elbowZ,
+      wristX,
+      wristY,
+      wristZ,
+      shoulderX,
+      shoulderY,
+      shoulderZ
+    );
     applyFingerCurl(arm, fingerCurl);
   };
 
@@ -1176,8 +1245,42 @@ export function buildPlayerAndCombatSystems(
   scene.add(swordClashSparkMesh);
   const _sparkDummy = new THREE.Object3D();
 
-  disposableGeometries.push(fpSlashArcGeo, swordSparkGeo);
-  disposableMaterials.push(fpSlashArcMat, swordSparkMat);
+  const MAX_SWORD_TIP_TRAIL_POINTS = 160;
+  const swordTipTrailPositions = new Float32Array(MAX_SWORD_TIP_TRAIL_POINTS * 3);
+  const swordTipTrailGeo = new THREE.BufferGeometry();
+  const swordTipTrailPosAttr = new THREE.BufferAttribute(swordTipTrailPositions, 3);
+  swordTipTrailGeo.setAttribute('position', swordTipTrailPosAttr);
+  swordTipTrailGeo.setDrawRange(0, 0);
+  const swordTipTrailMat = new THREE.LineBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const fpSwordTipTrailLine = new THREE.Line(swordTipTrailGeo, swordTipTrailMat);
+  fpSwordTipTrailLine.visible = false;
+  fpSwordTipTrailLine.frustumCulled = false;
+  fpSwordTipTrailLine.renderOrder = 999;
+  const swordTipPointsMat = new THREE.PointsMaterial({
+    color: 0xfef08a,
+    size: 0.024,
+    sizeAttenuation: true,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.95,
+  });
+  const fpSwordTipTrailPoints = new THREE.Points(swordTipTrailGeo, swordTipPointsMat);
+  fpSwordTipTrailPoints.visible = false;
+  fpSwordTipTrailPoints.frustumCulled = false;
+  fpSwordTipTrailPoints.renderOrder = 1000;
+  fpViewModelGroup.add(fpSwordTipTrailLine, fpSwordTipTrailPoints);
+  let swordTipTrailCount = 0;
+  let swordTipLastSwingProg = 0;
+
+  disposableGeometries.push(fpSlashArcGeo, swordSparkGeo, swordTipTrailGeo);
+  disposableMaterials.push(fpSlashArcMat, swordSparkMat, swordTipTrailMat, swordTipPointsMat);
 
   // 10E) FADING GRAY SMOKE / AIR WAKE TRAIL BEHIND FLYING ARROWS
   const MAX_TRAIL_VERTS = 28;
@@ -1651,6 +1754,15 @@ export function buildPlayerAndCombatSystems(
 
       fpNockedArrowGroup.visible = false;
       fpSlashArcMesh.visible = false;
+      const tipTrailEnabled = Boolean(
+        playerState.swordTipTrailDebug || SWORD_SWING_KEYFRAMES.debugDrawTipTrail
+      );
+      if (!tipTrailEnabled) {
+        fpSwordTipTrailLine.visible = false;
+        fpSwordTipTrailPoints.visible = false;
+        swordTipTrailCount = 0;
+        swordTipLastSwingProg = 0;
+      }
 
       if (isSwim) {
         fpBowRig.bowGroup.visible = false;
@@ -1837,7 +1949,10 @@ export function buildPlayerAndCombatSystems(
           poseResult.rightArm.handRx,
           poseResult.rightArm.handRy,
           poseResult.rightArm.handRz,
-          poseResult.rightArm.fingerCurl
+          poseResult.rightArm.fingerCurl,
+          poseResult.rightArm.shoulderX,
+          poseResult.rightArm.shoulderY,
+          poseResult.rightArm.shoulderZ
         );
         poseFpArm(
           fpLeftArm,
@@ -1850,8 +1965,42 @@ export function buildPlayerAndCombatSystems(
           poseResult.leftArm.handRx,
           poseResult.leftArm.handRy,
           poseResult.leftArm.handRz,
-          poseResult.leftArm.fingerCurl
+          poseResult.leftArm.fingerCurl,
+          poseResult.leftArm.shoulderX,
+          poseResult.leftArm.shoulderY,
+          poseResult.leftArm.shoulderZ
         );
+
+        if (tipTrailEnabled) {
+          if (swordSwing > 0.001 && (swordTipLastSwingProg <= 0.001 || swordSwing < swordTipLastSwingProg - 0.12)) {
+            swordTipTrailCount = 0;
+          }
+          if (swordSwing > 0.001 && swordTipTrailCount < MAX_SWORD_TIP_TRAIL_POINTS) {
+            const tx = poseResult.swordTipCamera.x;
+            const ty = poseResult.swordTipCamera.y;
+            const tz = poseResult.swordTipCamera.z;
+            const shouldAppend =
+              swordTipTrailCount === 0 ||
+              Math.hypot(
+                tx - swordTipTrailPositions[(swordTipTrailCount - 1) * 3],
+                ty - swordTipTrailPositions[(swordTipTrailCount - 1) * 3 + 1],
+                tz - swordTipTrailPositions[(swordTipTrailCount - 1) * 3 + 2]
+              ) > 0.008;
+            if (shouldAppend) {
+              const idx = swordTipTrailCount * 3;
+              swordTipTrailPositions[idx] = tx;
+              swordTipTrailPositions[idx + 1] = ty;
+              swordTipTrailPositions[idx + 2] = tz;
+              swordTipTrailCount++;
+              swordTipTrailGeo.setDrawRange(0, swordTipTrailCount);
+              swordTipTrailPosAttr.needsUpdate = true;
+            }
+          }
+          swordTipLastSwingProg = swordSwing;
+          const showTrail = swordTipTrailCount >= 2;
+          fpSwordTipTrailLine.visible = showTrail;
+          fpSwordTipTrailPoints.visible = showTrail;
+        }
       } else if (torchActive) {
         fpBowRig.bowGroup.visible = false;
         fpTorch.tGroup.visible = true;
