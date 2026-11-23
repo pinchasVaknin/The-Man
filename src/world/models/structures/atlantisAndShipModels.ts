@@ -9,6 +9,8 @@
 
 import * as THREE from 'three';
 import {
+  CHINESE_FORTRESS_POS,
+  FORTRESS_Z_OFFSET,
   ATLANTIS_DEAD_KING_STATUE_POS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
@@ -17,13 +19,16 @@ import {
   SMUGGLER_ISLAND_POS,
   VIEW_DISTANCE,
   isWithinViewDistance,
+  groundHeightAt,
 } from '../../terrainMath';
 import {
   getAllSailableShips,
   SHIP_CATALOG,
   type ISailableShipState,
 } from '../../systems/sailableShipSystem';
+import { registerWoodenDummy, spawnTempleMonk } from '../../systems/monkTempleSystem';
 import { createStatueModelInstance, loadStatueModel } from '../statues/statueAssets';
+import { createShipModelInstance, loadShipModel } from '../vehicles/shipAssets';
 import type { IWorldModelBuildContext } from '../types';
 
 export interface IAtlantisAndShipHandles {
@@ -125,6 +130,13 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     opacity: 0.62,
     side: THREE.DoubleSide,
   });
+  const atlantisShoreFoamMat = new THREE.MeshBasicMaterial({
+    color: 0xdbeafe,
+    transparent: true,
+    opacity: 0.42,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
   disposableMaterials.push(
     atlanteanMarbleMat,
     atlanteanTealStoneMat,
@@ -136,7 +148,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     orichalcumGoldMat,
     biolumCyanMat,
     sailCanvasMat,
-    wakeFoamMat
+    wakeFoamMat,
+    atlantisShoreFoamMat
   );
 
   // ============================================================================
@@ -190,8 +203,20 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   const centerSealPlinth = new THREE.Mesh(centerSealPlinthGeo, atlanteanTealStoneMat);
   centerSealPlinth.position.y = arenaY + 0.22;
 
+  const arenaWaterFoamGeo = new THREE.RingGeometry(34.6, 36.8, 48);
+  arenaWaterFoamGeo.rotateX(-Math.PI / 2);
+  const dockSideFoamGeo = new THREE.PlaneGeometry(60.0, 1.35);
+  dockSideFoamGeo.rotateX(-Math.PI / 2);
+  const outerPlinthFoamGeo = new THREE.RingGeometry(5.9, 7.2, 20);
+  outerPlinthFoamGeo.rotateX(-Math.PI / 2);
+  disposableGeometries.push(arenaWaterFoamGeo, dockSideFoamGeo, outerPlinthFoamGeo);
+
+  const arenaWaterFoam = new THREE.Mesh(arenaWaterFoamGeo, atlantisShoreFoamMat);
+  arenaWaterFoam.position.y = 0.06;
+
   atlantisGroup.add(
     arenaSlab,
+    arenaWaterFoam,
     arenaInnerStep,
     orichalcumOuterRing,
     cyanMidRing,
@@ -477,6 +502,10 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     segSlab.position.y = -1.4;
     segGroup.add(segSlab);
 
+    const plinthFoam = new THREE.Mesh(outerPlinthFoamGeo, atlantisShoreFoamMat);
+    plinthFoam.position.set(sx, 0.06, sz);
+    atlantisGroup.add(plinthFoam);
+
     if (s % 2 === 0) {
       const obelisk = new THREE.Mesh(outerObeliskGeo, atlanteanTealStoneMat);
       obelisk.rotation.z = (s % 4 === 0 ? 1 : -1) * 0.15;
@@ -528,6 +557,11 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   const dockDeckMesh = new THREE.Mesh(dockDeckGeo, atlanteanMarbleMat);
   dockDeckMesh.position.set((dockStartLocalX + dockEndLocalX) * 0.5, arenaY - 1.7, 0);
   atlantisGroup.add(dockDeckMesh);
+  for (const foamSideZ of [-5.25, 5.25]) {
+    const dockFoamStrip = new THREE.Mesh(dockSideFoamGeo, atlantisShoreFoamMat);
+    dockFoamStrip.position.set((dockStartLocalX + dockEndLocalX) * 0.5 - 1.0, 0.06, foamSideZ);
+    atlantisGroup.add(dockFoamStrip);
+  }
 
   // Twin 18m Atlantean Beacon Lighthouses & Coiled Sea-Serpent Statues at Dock Head (localX = -91.5)
   for (const sideZ of [-4.4, 4.4]) {
@@ -714,6 +748,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
 
   const shipVisualHandles: IShipTierVisualHandle[] = [];
   const allShips = getAllSailableShips();
+  const shipFallbackGroups: THREE.Group[] = [];
 
   for (let sIdx = 0; sIdx < allShips.length; sIdx++) {
     const sState = allShips[sIdx];
@@ -724,6 +759,10 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     tierRoot.rotation.y = sState.yaw;
     tierRoot.scale.set(def.scale, 1.0, def.scale);
     tierRoot.visible = sState.spawned;
+
+    // Fallback procedural hull/rigging visible immediately until async ship.glb resolves
+    const fallbackHullGroup = new THREE.Group();
+    fallbackHullGroup.name = `ship-fallback-${sState.tierId}`;
 
     const tierTrimMat =
       def.tierId === 'royal_flagship'
@@ -754,7 +793,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     const cRailStern = new THREE.Mesh(flagshipRailSternGeo, imperialGoldMat);
     cRailStern.position.set(0, 0.82, 10.8);
 
-    tierRoot.add(
+    fallbackHullGroup.add(
       cHull,
       cBow,
       cBowsprit,
@@ -771,7 +810,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       figNeck.position.set(0, 0.25, -12.6);
       const figHead = new THREE.Mesh(figureheadHeadGeo, orichalcumGoldMat);
       figHead.position.set(0, 1.15, -13.4);
-      tierRoot.add(figNeck, figHead);
+      fallbackHullGroup.add(figNeck, figHead);
     }
 
     // Open-View Side Tie Posts & Hay/Trough for Onboard Animals (no center cross-bar blocking sight)
@@ -790,7 +829,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     const hay1 = new THREE.Mesh(hayBaleGeo, hayStrawMat);
     hay1.position.set(3.1, 0.26, -3.6);
     animalStallGroup.add(trough, hay1);
-    tierRoot.add(animalStallGroup);
+    fallbackHullGroup.add(animalStallGroup);
 
     // Broadside Cannons on Caravel, Galleon, and Flagship
     if (def.tierId !== 'sloop') {
@@ -801,7 +840,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
           carriage.position.set(side * 3.7, 0.21, cz);
           const barrel = new THREE.Mesh(cannonBarrelGeo, bronzeCannonMat);
           barrel.position.set(side * 4.05, 0.52, cz);
-          tierRoot.add(carriage, barrel);
+          fallbackHullGroup.add(carriage, barrel);
         }
       }
     }
@@ -819,17 +858,17 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       const mast = new THREE.Mesh(flagshipMastGeo, shipHullWoodMat);
       mast.position.set(0, 0, mz);
       mast.scale.y = mScale;
-      tierRoot.add(mast);
+      fallbackHullGroup.add(mast);
 
       if (hasCrowsNest) {
         const nest = new THREE.Mesh(crowsNestGeo, imperialDoorWoodMat);
         nest.position.set(0, 13.8 * mScale, mz);
-        tierRoot.add(nest);
+        fallbackHullGroup.add(nest);
       }
 
       const pennant = new THREE.Mesh(royalPennantGeo, imperialCrimsonMat);
       pennant.position.set(0, 17.2 * mScale, mz + 1.4);
-      tierRoot.add(pennant);
+      fallbackHullGroup.add(pennant);
 
       // Sails elevated to 8.4m and 13.2m so the lower 6.2m above the deck is completely clear!
       for (const sy of [8.4 * mScale, 13.2 * mScale]) {
@@ -839,11 +878,15 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         const sail = new THREE.Mesh(flagshipSailGeo, sailCanvasMat);
         sail.position.set(0, sy, mz - 0.26);
         sail.scale.x = mScale;
-        tierRoot.add(yard, sail);
+        fallbackHullGroup.add(yard, sail);
       }
     }
 
-    // Interactive Helm Stand, Ship's Wheel & Wayfinder Compass on the Aft Quarterdeck (z = 3.85)
+    tierRoot.add(fallbackHullGroup);
+    shipFallbackGroups.push(fallbackHullGroup);
+
+    // Interactive Helm Stand, Ship's Wheel & Lanterns for Procedural Fallback Hull
+    // (hidden cleanly once detailed ship.glb with its own carved helm & lanterns loads)
     const helmStand = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
     helmStand.position.set(0, 1.02, 3.85);
     const shipWheelPivot = new THREE.Group();
@@ -856,8 +899,24 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       shipWheelPivot.add(spoke);
     }
 
+    for (const [lx, ly, lz] of [
+      [-3.8, 1.55, 10.4],
+      [3.8, 1.55, 10.4],
+      [-4.1, 1.35, 3.8],
+      [4.1, 1.35, 3.8],
+    ] as const) {
+      const lamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+      lamp.position.set(lx, ly, lz);
+      fallbackHullGroup.add(lamp);
+    }
+    fallbackHullGroup.add(helmStand, shipWheelPivot);
+
+    // Compact glowing Wayfinder Compass Binnacle mounted cleanly forward of ship.glb quarterdeck rail
     const wayfinderBinnacleGroup = new THREE.Group();
-    wayfinderBinnacleGroup.position.set(0, 1.54, 3.72);
+    wayfinderBinnacleGroup.position.set(0, 1.05, 3.35);
+    const binnaclePedestal = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
+    binnaclePedestal.scale.set(0.65, 0.72, 0.65);
+    binnaclePedestal.position.set(0, -0.45, 0);
     const helmCompassCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
     helmCompassCrystal.scale.setScalar(0.11);
     const wayfinderNeedleGroup = new THREE.Group();
@@ -867,20 +926,9 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     const wayfinderTail = new THREE.Mesh(wayfinderTailGeo, orichalcumGoldMat);
     wayfinderTail.position.set(0, 0.14, 0.12);
     wayfinderNeedleGroup.add(wayfinderSpear, wayfinderTail);
-    wayfinderBinnacleGroup.add(helmCompassCrystal, wayfinderNeedleGroup);
+    wayfinderBinnacleGroup.add(binnaclePedestal, helmCompassCrystal, wayfinderNeedleGroup);
 
-    for (const [lx, ly, lz] of [
-      [-3.8, 1.55, 10.4],
-      [3.8, 1.55, 10.4],
-      [-4.1, 1.35, 3.8],
-      [4.1, 1.35, 3.8],
-    ] as const) {
-      const lamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
-      lamp.position.set(lx, ly, lz);
-      tierRoot.add(lamp);
-    }
-
-    tierRoot.add(helmStand, shipWheelPivot, wayfinderBinnacleGroup);
+    tierRoot.add(wayfinderBinnacleGroup);
 
     const bowWakeGroup = new THREE.Group();
     bowWakeGroup.position.set(0, -1.52, -12.6);
@@ -904,8 +952,47 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     });
   }
 
+  // Moored decorative bay ship north-east of the pier channel in deep harbor water
+  const mooredEscortRoot = new THREE.Group();
+  mooredEscortRoot.name = 'harbor-bay-ship-glb';
+  mooredEscortRoot.position.set(318.0, 2.55, 218.0);
+  mooredEscortRoot.rotation.y = -Math.PI * 0.68;
+  sailableShipGroup.add(mooredEscortRoot);
+
+  // Swap procedural fallback fleet hulls to the detailed ship.glb model once loaded
+  void loadShipModel()
+    .then((shipAsset) => {
+      for (let i = 0; i < shipVisualHandles.length; i++) {
+        const handle = shipVisualHandles[i];
+        const fallback = shipFallbackGroups[i];
+        if (fallback) {
+          fallback.visible = false;
+        }
+        const shipMesh = createShipModelInstance(shipAsset, {
+          scale: 25.5,
+          castShadow: !isSoftwareGl,
+          receiveShadow: !isSoftwareGl,
+        });
+        handle.root.add(shipMesh);
+      }
+      const escortMesh = createShipModelInstance(shipAsset, {
+        scale: 27.0,
+        castShadow: !isSoftwareGl,
+        receiveShadow: !isSoftwareGl,
+      });
+      mooredEscortRoot.add(escortMesh);
+    })
+    .catch(() => {
+      // Procedural fallback fleet hull stays active cleanly if GLB fails in restricted environments
+    });
+
   // ============================================================================
-  // 4. NORTHERN GEOTHERMAL HOT SPRINGS & LAKESIDE TEA PLAZA (-320, -290)
+  // 4. ELEVATED NORTHERN GEOTHERMAL HOT SPRING & MARTIAL SANCTUARY COMPOUND (-310, -290, 34.0m)
+  //    - Raised stone citadel plateau cleanly above the surrounding ridge (zero pit)
+  //    - Open-air (roofless) multi-depth geothermal pool + Frost Crystal Altar
+  //    - Covered West Onsen Tea & Dining Pavilion overlooking the pool
+  //    - Covered North Bathhouse Cloister Gallery connecting West & East wings
+  //    - Covered East Martial Dojo Veranda & Armory beside the Bagua Sparring Stage
   // ============================================================================
   const nordicShrineGroup = new THREE.Group();
   const nfX = NORDIC_FROST_SHRINE_POS.x;
@@ -952,6 +1039,20 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     roughness: 0.65,
     metalness: 0.05,
   });
+  const compoundPlasterMat = new THREE.MeshStandardMaterial({
+    color: 0xe7dfd3,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.02,
+    roughness: 0.82,
+    metalness: 0.03,
+  });
+  const slateRoofMat = new THREE.MeshStandardMaterial({
+    color: 0x293241,
+    map: textures.rockAlbedo,
+    roughness: 0.62,
+    metalness: 0.16,
+  });
   const ceramicCupMat = new THREE.MeshStandardMaterial({
     color: 0xf1f5f9,
     roughness: 0.25,
@@ -973,12 +1074,195 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     geothermalWaterMat,
     goldenSandstoneMat,
     onsenTimberMat,
+    compoundPlasterMat,
+    slateRoofMat,
     ceramicCupMat,
     foldedTowelMat,
     steamWispMat
   );
 
-  // Open curved granite rim around the pool with a wide South stairwell opening
+  // Granite Citadel Retaining Plinth & Courtyard Deck Slabs (leaving open circular cutout for the geothermal basin!)
+  const addGraniteDeckSlab = (minX: number, maxX: number, minZ: number, maxZ: number, topY: number, height: number) => {
+    const geo = new THREE.BoxGeometry(maxX - minX, height, maxZ - minZ);
+    disposableGeometries.push(geo);
+    const mesh = new THREE.Mesh(geo, nordicGraniteMat);
+    mesh.position.set((minX + maxX) * 0.5, topY - height * 0.5, (minZ + maxZ) * 0.5);
+    mesh.receiveShadow = !isSoftwareGl;
+    mesh.castShadow = !isSoftwareGl;
+    nordicShrineGroup.add(mesh);
+  };
+  const cMinX = NORDIC_FROST_SHRINE_POS.compoundMinX; // -344
+  const cMaxX = NORDIC_FROST_SHRINE_POS.compoundMaxX; // -274
+  const cMinZ = NORDIC_FROST_SHRINE_POS.compoundMinZ; // -317
+  const cMaxZ = NORDIC_FROST_SHRINE_POS.compoundMaxZ; // -267
+  const collarHalf = 16.0;
+  const poolCutMinX = nfX - collarHalf; // -336
+  const poolCutMaxX = nfX + collarHalf; // -304
+  const poolCutMinZ = nfZ - collarHalf; // -306
+  const poolCutMaxZ = nfZ + collarHalf; // -274
+  const plinthH = 7.5;
+  addGraniteDeckSlab(cMinX, poolCutMinX, cMinZ, cMaxZ, nfFloorY, plinthH);
+  addGraniteDeckSlab(poolCutMaxX, cMaxX, cMinZ, cMaxZ, nfFloorY, plinthH);
+  addGraniteDeckSlab(poolCutMinX, poolCutMaxX, cMinZ, poolCutMinZ, nfFloorY, plinthH);
+  addGraniteDeckSlab(poolCutMinX, poolCutMaxX, poolCutMaxZ, cMaxZ, nfFloorY, plinthH);
+
+  // Seamless circular stone collar filling [-16..+16]^2 around the circular pool (zero corner gaps!)
+  const poolCollarShape = new THREE.Shape();
+  const cExt = collarHalf + 0.02;
+  poolCollarShape.moveTo(-cExt, -cExt);
+  poolCollarShape.lineTo(cExt, -cExt);
+  poolCollarShape.lineTo(cExt, cExt);
+  poolCollarShape.lineTo(-cExt, cExt);
+  poolCollarShape.closePath();
+  const poolCollarHole = new THREE.Path();
+  poolCollarHole.absarc(0, 0, NORDIC_FROST_SHRINE_POS.poolRadius - 0.08, 0, Math.PI * 2, true);
+  poolCollarShape.holes.push(poolCollarHole);
+  const poolCollarGeo = new THREE.ExtrudeGeometry(poolCollarShape, {
+    depth: plinthH,
+    bevelEnabled: false,
+    curveSegments: 48,
+  });
+  poolCollarGeo.rotateX(Math.PI / 2);
+  disposableGeometries.push(poolCollarGeo);
+  const poolCollarMesh = new THREE.Mesh(poolCollarGeo, nordicGraniteMat);
+  poolCollarMesh.position.set(nfX, nfFloorY, nfZ);
+  poolCollarMesh.receiveShadow = !isSoftwareGl;
+  poolCollarMesh.castShadow = !isSoftwareGl;
+  nordicShrineGroup.add(poolCollarMesh);
+
+  // Monumental South Entrance Granite Staircase climbing from approach trail (31.2m) to Gate (34.0m)
+  // Non-overlapping step depths tucked cleanly inside balustrades so zero coplanar faces flicker.
+  const gateCx = NORDIC_FROST_SHRINE_POS.gateCenterX;
+  const gateHalfW = NORDIC_FROST_SHRINE_POS.gateHalfWidth;
+  const gateZ = NORDIC_FROST_SHRINE_POS.gateZ;
+  const stairBotZ = NORDIC_FROST_SHRINE_POS.stairBottomZ;
+  const stairBotY = NORDIC_FROST_SHRINE_POS.stairBottomY;
+  const gateStepCount = 12;
+  const stepRun = (stairBotZ - gateZ) / gateStepCount;
+  const stepRise = (nfFloorY - stairBotY) / gateStepCount;
+  const gateStepGeo = new THREE.BoxGeometry((gateHalfW - 0.44) * 2, 1.8, stepRun - 0.02);
+  const gateBalustradeGeo = new THREE.BoxGeometry(0.64, 1.5, stairBotZ - gateZ + 0.8);
+  disposableGeometries.push(gateStepGeo, gateBalustradeGeo);
+  for (let s = 0; s < gateStepCount; s++) {
+    const stepZ = stairBotZ - (s + 0.5) * stepRun;
+    const stepTopY = stairBotY + (s + 1) * stepRise;
+    const stepMesh = new THREE.Mesh(gateStepGeo, wetRiverStoneMat);
+    stepMesh.position.set(gateCx, stepTopY - 0.9, stepZ);
+    stepMesh.receiveShadow = !isSoftwareGl;
+    nordicShrineGroup.add(stepMesh);
+  }
+  for (const sideSign of [-1, 1]) {
+    const bx = gateCx + sideSign * (gateHalfW - 0.05);
+    const bal = new THREE.Mesh(gateBalustradeGeo, nordicGraniteMat);
+    bal.position.set(bx, (stairBotY + nfFloorY) * 0.5 + 0.35, (gateZ + stairBotZ) * 0.5);
+    bal.rotation.x = Math.atan2(nfFloorY - stairBotY, stairBotZ - gateZ);
+    nordicShrineGroup.add(bal);
+  }
+
+  // Compound Outer Temple Walls (with wide 10m open South Imperial Paifang Gatehouse)
+  const compoundWallHeight = 4.2;
+  const addCompoundWallSegment = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+    const w = maxX - minX;
+    const d = maxZ - minZ;
+    const baseGeo = new THREE.BoxGeometry(w + 0.25, 0.9, d + 0.25);
+    const bodyGeo = new THREE.BoxGeometry(w, compoundWallHeight - 0.9, d);
+    const capGeo = new THREE.BoxGeometry(w + 0.5, 0.32, d + 0.5);
+    disposableGeometries.push(baseGeo, bodyGeo, capGeo);
+
+    const baseM = new THREE.Mesh(baseGeo, nordicGraniteMat);
+    baseM.position.set((minX + maxX) * 0.5, nfFloorY + 0.45, (minZ + maxZ) * 0.5);
+    const bodyM = new THREE.Mesh(bodyGeo, compoundPlasterMat);
+    bodyM.position.set((minX + maxX) * 0.5, nfFloorY + 0.9 + (compoundWallHeight - 0.9) * 0.5, (minZ + maxZ) * 0.5);
+    bodyM.castShadow = !isSoftwareGl;
+    bodyM.receiveShadow = !isSoftwareGl;
+    const capM = new THREE.Mesh(capGeo, slateRoofMat);
+    capM.position.set((minX + maxX) * 0.5, nfFloorY + compoundWallHeight + 0.12, (minZ + maxZ) * 0.5);
+    nordicShrineGroup.add(baseM, bodyM, capM);
+  };
+  addCompoundWallSegment(cMinX, cMaxX, cMinZ - 0.4, cMinZ + 0.55); // North wall
+  addCompoundWallSegment(cMinX - 0.4, cMinX + 0.55, cMinZ, cMaxZ); // West wall
+  addCompoundWallSegment(cMaxX - 0.55, cMaxX + 0.4, cMinZ, cMaxZ); // East wall
+  addCompoundWallSegment(cMinX, gateCx - gateHalfW, cMaxZ - 0.55, cMaxZ + 0.4); // South-West wall
+  addCompoundWallSegment(gateCx + gateHalfW, cMaxX, cMaxZ - 0.55, cMaxZ + 0.4); // South-East wall
+
+  // Grand South Paifang Gatehouse Archway at (-310, -267)
+  const gatePillarGeo = new THREE.CylinderGeometry(0.42, 0.48, 6.0, 12);
+  const gateBeamGeo = new THREE.BoxGeometry(gateHalfW * 2 + 3.2, 0.55, 0.85);
+  const gateRoofLowerGeo = new THREE.ConeGeometry(gateHalfW + 3.0, 2.2, 4);
+  gateRoofLowerGeo.rotateY(Math.PI / 4);
+  gateRoofLowerGeo.scale(1.45, 1.0, 0.55);
+  disposableGeometries.push(gatePillarGeo, gateBeamGeo, gateRoofLowerGeo);
+  for (const sideSign of [-1, 1]) {
+    const px = gateCx + sideSign * (gateHalfW + 0.1);
+    const pillar = new THREE.Mesh(gatePillarGeo, imperialCrimsonMat);
+    pillar.position.set(px, nfFloorY + 3.0, gateZ);
+    pillar.castShadow = !isSoftwareGl;
+    const gateLamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+    gateLamp.scale.setScalar(1.35);
+    gateLamp.position.set(px, nfFloorY + 3.8, gateZ + 0.85);
+    nordicShrineGroup.add(pillar, gateLamp);
+  }
+  const gateBeam = new THREE.Mesh(gateBeamGeo, imperialCrimsonMat);
+  gateBeam.position.set(gateCx, nfFloorY + 5.75, gateZ);
+  const gatePlaqueGeo = new THREE.BoxGeometry(3.8, 0.85, 0.96);
+  disposableGeometries.push(gatePlaqueGeo);
+  const gatePlaque = new THREE.Mesh(gatePlaqueGeo, imperialGoldMat);
+  gatePlaque.position.set(gateCx, nfFloorY + 5.75, gateZ);
+  const gateRoof = new THREE.Mesh(gateRoofLowerGeo, slateRoofMat);
+  gateRoof.position.set(gateCx, nfFloorY + 7.05, gateZ);
+  nordicShrineGroup.add(gateBeam, gatePlaque, gateRoof);
+
+  // Covered Pavilion Helper (builds raised timber beams, crimson columns, and pitched curved slate roofs — NEVER covers the Hot Spring!)
+  const buildCoveredWingRoof = (minX: number, maxX: number, minZ: number, maxZ: number, eavesY: number, ridgeHeight: number, openSide: 'east' | 'south' | 'west') => {
+    const w = maxX - minX;
+    const d = maxZ - minZ;
+    const cx = (minX + maxX) * 0.5;
+    const cz = (minZ + maxZ) * 0.5;
+
+    const colGeo = new THREE.CylinderGeometry(0.24, 0.28, eavesY - nfFloorY, 10);
+    const fasciaGeo = new THREE.BoxGeometry(w + 1.4, 0.38, d + 1.4);
+    const roofTier1Geo = new THREE.BoxGeometry(w + 2.2, 0.35, d + 2.2);
+    const roofTier2Geo = new THREE.BoxGeometry(w * 0.72, ridgeHeight, d * 0.72);
+    const ridgeBeamGeo = new THREE.BoxGeometry(w > d ? w * 0.74 : 0.42, 0.42, d >= w ? d * 0.74 : 0.42);
+    disposableGeometries.push(colGeo, fasciaGeo, roofTier1Geo, roofTier2Geo, ridgeBeamGeo);
+
+    const fascia = new THREE.Mesh(fasciaGeo, imperialCrimsonMat);
+    fascia.position.set(cx, eavesY, cz);
+    const roof1 = new THREE.Mesh(roofTier1Geo, slateRoofMat);
+    roof1.position.set(cx, eavesY + 0.34, cz);
+    roof1.castShadow = !isSoftwareGl;
+    const roof2 = new THREE.Mesh(roofTier2Geo, slateRoofMat);
+    roof2.position.set(cx, eavesY + 0.5 + ridgeHeight * 0.5, cz);
+    const ridge = new THREE.Mesh(ridgeBeamGeo, imperialGoldMat);
+    ridge.position.set(cx, eavesY + 0.55 + ridgeHeight, cz);
+    nordicShrineGroup.add(fascia, roof1, roof2, ridge);
+
+    // Corner & span timber columns positioned along the wing perimeter
+    const xs = w > 18 ? [minX + 0.6, minX + w * 0.28, minX + w * 0.5, minX + w * 0.72, maxX - 0.6] : [minX + 0.5, maxX - 0.5];
+    const zs = d > 18 ? [minZ + 0.6, minZ + d * 0.33, minZ + d * 0.67, maxZ - 0.6] : [minZ + 0.5, maxZ - 0.5];
+    for (const px of xs) {
+      for (const pz of zs) {
+        const isInteriorCol = px > minX + 1.0 && px < maxX - 1.0 && pz > minZ + 1.0 && pz < maxZ - 1.0;
+        if (isInteriorCol) continue;
+        // Keep open courtyard edge airy with slightly inset structural posts
+        if (openSide === 'east' && Math.abs(px - maxX) < 1.0 && Math.abs(pz - cz) < 3.0) continue;
+        if (openSide === 'west' && Math.abs(px - minX) < 1.0 && Math.abs(pz - cz) < 3.0) continue;
+        const col = new THREE.Mesh(colGeo, imperialCrimsonMat);
+        col.position.set(px, (nfFloorY + eavesY) * 0.5, pz);
+        col.castShadow = !isSoftwareGl;
+        nordicShrineGroup.add(col);
+      }
+    }
+  };
+
+  // Covered West Onsen Tea & Dining Pavilion (x: -343..-333, z: -302..-278)
+  buildCoveredWingRoof(-343.0, -333.2, -302.0, -278.0, nfFloorY + 4.4, 1.55, 'east');
+  // Covered North Bathhouse Cloister Gallery connecting West & East wings behind the Frost Altar (x: -343..-275, z: -316.5..-310.8)
+  buildCoveredWingRoof(-343.0, -275.0, -316.5, -310.8, nfFloorY + 4.6, 1.45, 'south');
+  // Covered East Martial Dojo Wing & Armory (x: -284.5..-275.0, z: -306.0..-274.0)
+  buildCoveredWingRoof(-284.5, -275.0, -306.0, -274.0, nfFloorY + 4.5, 1.65, 'west');
+
+  // Open curved granite rim around the roofless pool with a wide South stairwell opening
   const rimStartAng = Math.PI * 0.5 + 0.24;
   const rimArcLen = Math.PI * 2.0 - 0.48;
   const springRimGeo = new THREE.TorusGeometry(
@@ -998,7 +1282,6 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   const springWaterDiscGeo = new THREE.CircleGeometry(NORDIC_FROST_SHRINE_POS.poolRadius + 0.2, 32);
   springWaterDiscGeo.rotateX(-Math.PI / 2);
   const springStairStepGeo = new THREE.BoxGeometry(4.4, 0.26, 1.48);
-  const altarDaisSlabGeo = new THREE.CylinderGeometry(4.4, 5.2, 1.05, 8);
   const steamPuffGeo = new THREE.IcosahedronGeometry(0.95, 1);
 
   const onsenTableTopGeo = new THREE.BoxGeometry(1.38, 0.11, 2.86);
@@ -1021,7 +1304,6 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     deepBasinGeo,
     springWaterDiscGeo,
     springStairStepGeo,
-    altarDaisSlabGeo,
     steamPuffGeo,
     onsenTableTopGeo,
     onsenTableLegGeo,
@@ -1041,26 +1323,26 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   springRimMesh.position.set(nfX, nfFloorY + 0.05, nfZ);
   springRimMesh.rotation.y = -rimStartAng;
   const shallowShelfMesh = new THREE.Mesh(shallowShelfGeo, wetRiverStoneMat);
-  shallowShelfMesh.position.set(nfX, 17.92, nfZ);
+  shallowShelfMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.shallowShelfY, nfZ);
   const midShelfMesh = new THREE.Mesh(midShelfGeo, wetRiverStoneMat);
-  midShelfMesh.position.set(nfX, 17.5, nfZ);
+  midShelfMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.midShelfY, nfZ);
   const deepBasinMesh = new THREE.Mesh(deepBasinGeo, wetRiverStoneMat);
   deepBasinMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.poolFloorY + 0.03, nfZ);
   const springWaterMesh = new THREE.Mesh(springWaterDiscGeo, geothermalWaterMat);
   springWaterMesh.position.set(nfX, NORDIC_FROST_SHRINE_POS.poolWaterY, nfZ);
   nordicShrineGroup.add(springRimMesh, shallowShelfMesh, midShelfMesh, deepBasinMesh, springWaterMesh);
 
-  // Submerged & entry granite stone stairs on the South side descending cleanly from plaza into water
+  // Submerged & entry granite stone stairs on the South side descending cleanly from courtyard into water
   for (let s = 0; s < 5; s++) {
     const t = s / 4;
     const stepZ = nfZ + 11.1 - t * 5.6;
-    const stepY = nfFloorY - t * (nfFloorY - 17.5);
+    const stepY = nfFloorY - t * (nfFloorY - NORDIC_FROST_SHRINE_POS.midShelfY);
     const stMesh = new THREE.Mesh(springStairStepGeo, wetRiverStoneMat);
     stMesh.position.set(nfX, stepY - 0.12, stepZ);
     nordicShrineGroup.add(stMesh);
   }
 
-  // Rising Geothermal Steam Wisps hovering and drifting above the hot spring water
+  // Rising Geothermal Steam Wisps hovering and drifting above the open-air hot spring water
   const steamWisps: Array<{
     mesh: THREE.Mesh;
     baseX: number;
@@ -1089,8 +1371,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     });
   }
 
-  // Lakeside Wooden Dining Table, Benches, Tea Set & Bowls on the Western Plaza Shore (-335.2, -290.0)
-  const tblX = nfX - 15.2;
+  // Onsen Wooden Dining Table, Benches, Tea Set & Bowls inside Covered West Dining Pavilion (-336.5, -290.0)
+  const tblX = nfX - 16.5;
   const tblZ = nfZ;
   const tableTop = new THREE.Mesh(onsenTableTopGeo, onsenTimberMat);
   tableTop.position.set(tblX, nfFloorY + 0.78, tblZ);
@@ -1153,6 +1435,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     [tblX, tblZ + 2.25, 1],
     [nfX - 3.0, nfZ + 11.4, 1],
     [nfX + 3.0, nfZ + 11.4, -1],
+    [-285.5, -298.0, -1],
+    [-285.5, -282.0, -1],
   ] as const) {
     const post = new THREE.Mesh(onsenPostGeo, onsenTimberMat);
     post.position.set(lx, nfFloorY + 1.175, lz);
@@ -1164,21 +1448,540 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     nordicShrineGroup.add(post, arm, lantern);
   }
 
-  // Northern Raised Frost-Rune Altar Dais & Floating Ice Crystal at (x: -320, z: -306.5)
-  const altarZ = nfZ - 16.5;
-  const altarDais = new THREE.Mesh(altarDaisSlabGeo, nordicGraniteMat);
-  altarDais.position.set(nfX, nfFloorY + 0.52, altarZ);
-  const nordicFloatingCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
-  nordicFloatingCrystal.scale.setScalar(0.58);
-  nordicFloatingCrystal.position.set(nfX, NORDIC_FROST_SHRINE_POS.altarDaisY + 2.4, altarZ);
-  nordicShrineGroup.add(altarDais, nordicFloatingCrystal);
+  // East Martial Training Wing: 2 Bamboo Staff Weapon Racks + 2 Interactive Wooden Training Dummies + Trainer Monks
+  const rackPostGeo = new THREE.BoxGeometry(0.14, 1.9, 0.14);
+  const rackRailGeo = new THREE.BoxGeometry(0.1, 0.1, 2.8);
+  const rackStaffGeo = new THREE.CylinderGeometry(0.035, 0.035, 2.05, 6);
+  const dummyBaseGeo = new THREE.CylinderGeometry(0.42, 0.48, 0.16, 10);
+  const dummyTrunkGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.68, 10);
+  const dummyArmGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.62, 6);
+  disposableGeometries.push(rackPostGeo, rackRailGeo, rackStaffGeo, dummyBaseGeo, dummyTrunkGeo, dummyArmGeo);
+
+  for (const rz of [-298.0, -282.0]) {
+    for (const zOff of [-1.25, 1.25]) {
+      const rp = new THREE.Mesh(rackPostGeo, onsenTimberMat);
+      rp.position.set(-276.5, nfFloorY + 0.95, rz + zOff);
+      nordicShrineGroup.add(rp);
+    }
+    for (const ry of [0.55, 1.45]) {
+      const rr = new THREE.Mesh(rackRailGeo, onsenTimberMat);
+      rr.position.set(-276.5, nfFloorY + ry, rz);
+      nordicShrineGroup.add(rr);
+    }
+    for (const sOff of [-0.9, -0.3, 0.3, 0.9]) {
+      const st = new THREE.Mesh(rackStaffGeo, imperialGoldMat);
+      st.position.set(-276.62, nfFloorY + 1.04, rz + sOff);
+      st.rotation.z = 0.08;
+      nordicShrineGroup.add(st);
+    }
+  }
+
+  const compoundDummyIndices: number[] = [];
+  for (const dz of [-295.0, -285.0]) {
+    const dx = -280.5;
+    const dGroup = new THREE.Group();
+    dGroup.position.set(dx, nfFloorY, dz);
+    const dBase = new THREE.Mesh(dummyBaseGeo, onsenTimberMat);
+    dBase.position.y = 0.08;
+    const dTrunk = new THREE.Mesh(dummyTrunkGeo, onsenTimberMat);
+    dTrunk.position.y = 0.92;
+    dTrunk.castShadow = !isSoftwareGl;
+    dGroup.add(dBase, dTrunk);
+    for (const armY of [1.28, 1.05]) {
+      const arm = new THREE.Mesh(dummyArmGeo, imperialDoorWoodMat);
+      arm.position.set(-0.28, armY, (armY > 1.15 ? 0.14 : -0.14));
+      arm.rotation.z = Math.PI / 2;
+      dGroup.add(arm);
+    }
+    nordicShrineGroup.add(dGroup);
+    compoundDummyIndices.push(
+      registerWoodenDummy({
+        group: dGroup,
+        x: dx,
+        y: nfFloorY,
+        z: dz,
+        baseYaw: -Math.PI / 2,
+        hitImpulse: 0,
+        hitPhase: 0,
+      })
+    );
+  }
+
+  const FZ = FORTRESS_Z_OFFSET;
+  const fortSummitY = CHINESE_FORTRESS_POS.summitHeight;
+  const pavFloor1Y = CHINESE_FORTRESS_POS.pavilionFloor1Y;
+  const pavFloor2Y = CHINESE_FORTRESS_POS.pavilionFloor2Y;
+  const compoundTrainerBedY = pavFloor2Y + 0.38;
+  spawnTempleMonk({
+    id: 'hotspring_trainer_0',
+    role: 'dummy_trainer',
+    parent: scene,
+    homeX: -282.1,
+    homeY: nfFloorY,
+    homeZ: -295.0,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 0.7,
+    dummyIndex: compoundDummyIndices[0],
+    staysAwakeAtNight: true,
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+  spawnTempleMonk({
+    id: 'hotspring_trainer_1',
+    role: 'dummy_trainer',
+    parent: scene,
+    homeX: -282.1,
+    homeY: nfFloorY,
+    homeZ: -285.0,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 2.3,
+    dummyIndex: compoundDummyIndices[1],
+    bedX: 22.38,
+    bedY: compoundTrainerBedY,
+    bedZ: -160.75 + FZ,
+    bedYaw: Math.PI / 2,
+    sleepRoute: [
+      [-282.1, nfFloorY, -285.0],
+      [gateCx, nfFloorY, gateZ - 2.0],
+      [gateCx, stairBotY, stairBotZ],
+      [-285.0, groundHeightAt(-285.0, -255.0), -255.0],
+      [-240.0, groundHeightAt(-240.0, -225.0), -225.0],
+      [-195.0, groundHeightAt(-195.0, -195.0), -195.0],
+      [-135.0, groundHeightAt(-135.0, -205.0), -205.0],
+      [-80.0, groundHeightAt(-80.0, -220.0), -220.0],
+      [-35.0, groundHeightAt(-35.0, -235.0), -235.0],
+      [0.0, CHINESE_FORTRESS_POS.stairBaseHeight, CHINESE_FORTRESS_POS.stairFootZ + 2.0],
+      [0.0, CHINESE_FORTRESS_POS.midLandingHeight, CHINESE_FORTRESS_POS.stairMidZ - 1.2],
+      [0.0, fortSummitY, -135.0 + FZ],
+      [30.0, fortSummitY, -153.5 + FZ],
+      [30.0, pavFloor1Y, -158.0 + FZ],
+      [36.9, pavFloor1Y, -159.0 + FZ],
+      [36.9, pavFloor2Y, -168.4 + FZ],
+      [34.2, pavFloor2Y, -168.4 + FZ],
+      [24.5, pavFloor2Y, -167.8 + FZ],
+      [24.5, pavFloor2Y, -160.75 + FZ],
+      [22.38, compoundTrainerBedY, -160.75 + FZ],
+    ],
+    weaponVisible: true,
+    isSoftwareGl,
+    disposableGeometries,
+    disposableMaterials,
+  });
+
+  // Rich East-Asian Onsen Courtyard Furnishings, North Waterfall Cliff, Poolside Stone-Lantern Fence, Targets & Banners:
+  const jadeBambooMat = new THREE.MeshStandardMaterial({
+    color: 0x3b8c47,
+    roughness: 0.56,
+    metalness: 0.05,
+  });
+  const warmEmberMat = new THREE.MeshStandardMaterial({
+    color: 0xff7b24,
+    emissive: 0xff5500,
+    emissiveIntensity: 1.45,
+    roughness: 0.4,
+  });
+  const targetFaceMat = new THREE.MeshStandardMaterial({
+    color: 0xf5ebd6,
+    roughness: 0.72,
+  });
+  const targetNavyMat = new THREE.MeshStandardMaterial({
+    color: 0x1e3a5f,
+    roughness: 0.58,
+  });
+  const waterfallFoamMat = new THREE.MeshStandardMaterial({
+    color: 0xe0f7fa,
+    emissive: 0x67e8f9,
+    emissiveIntensity: 0.45,
+    roughness: 0.35,
+    transparent: true,
+    opacity: 0.82,
+  });
+  disposableMaterials.push(jadeBambooMat, warmEmberMat, targetFaceMat, targetNavyMat, waterfallFoamMat);
+
+  // A) North Onsen Tea Veranda (-305.5, -307.6) tucked gracefully under North Cloister Gallery east of Waterfall Cliff
+  const northTblX = nfX + 14.5;
+  const northTblZ = nfZ - 17.6;
+  const northTableTopGeo = new THREE.BoxGeometry(2.6, 0.11, 1.18);
+  const northBenchGeo = new THREE.BoxGeometry(2.3, 0.1, 0.52);
+  const sakeFlaskGeo = new THREE.CylinderGeometry(0.055, 0.09, 0.24, 10);
+  disposableGeometries.push(northTableTopGeo, northBenchGeo, sakeFlaskGeo);
+
+  const northTableTop = new THREE.Mesh(northTableTopGeo, onsenTimberMat);
+  northTableTop.position.set(northTblX, nfFloorY + 0.66, northTblZ);
+  northTableTop.castShadow = !isSoftwareGl;
+  northTableTop.receiveShadow = !isSoftwareGl;
+  nordicShrineGroup.add(northTableTop);
+  for (const lx of [-1.05, 1.05]) {
+    for (const lz of [-0.44, 0.44]) {
+      const leg = new THREE.Mesh(onsenTableLegGeo, onsenTimberMat);
+      leg.scale.y = 0.85;
+      leg.position.set(northTblX + lx, nfFloorY + 0.31, northTblZ + lz);
+      nordicShrineGroup.add(leg);
+    }
+  }
+  for (const bOffZ of [-1.15, 1.15]) {
+    const nBench = new THREE.Mesh(northBenchGeo, onsenTimberMat);
+    nBench.position.set(northTblX, nfFloorY + 0.41, northTblZ + bOffZ);
+    nBench.castShadow = !isSoftwareGl;
+    nordicShrineGroup.add(nBench);
+    for (const lx of [-0.88, 0.88]) {
+      const bLeg = new THREE.Mesh(onsenBenchLegGeo, onsenTimberMat);
+      bLeg.position.set(northTblX + lx, nfFloorY + 0.19, northTblZ + bOffZ);
+      nordicShrineGroup.add(bLeg);
+    }
+  }
+  const nTeapot = new THREE.Mesh(onsenTeapotGeo, onsenTimberMat);
+  nTeapot.position.set(northTblX - 0.15, nfFloorY + 0.84, northTblZ);
+  const nFlask1 = new THREE.Mesh(sakeFlaskGeo, ceramicCupMat);
+  nFlask1.position.set(northTblX + 0.52, nfFloorY + 0.82, northTblZ + 0.18);
+  const nFlask2 = new THREE.Mesh(sakeFlaskGeo, ceramicCupMat);
+  nFlask2.position.set(northTblX - 0.62, nfFloorY + 0.82, northTblZ - 0.15);
+  nordicShrineGroup.add(nTeapot, nFlask1, nFlask2);
+  for (const cxOff of [-0.42, 0.28]) {
+    for (const czOff of [-0.28, 0.28]) {
+      const cup = new THREE.Mesh(onsenCupGeo, ceramicCupMat);
+      cup.position.set(northTblX + cxOff, nfFloorY + 0.76, northTblZ + czOff);
+      nordicShrineGroup.add(cup);
+    }
+  }
+
+  // B) North Basalt Cliffside Rockery & Twin Cascading Geothermal Waterfalls feeding the Hot Spring Pool
+  const waterfallCliffMat = new THREE.MeshStandardMaterial({
+    color: 0x566170,
+    map: textures.rockAlbedo,
+    bumpMap: textures.rockBump,
+    bumpScale: 0.08,
+    roughness: 0.92,
+    metalness: 0.04,
+    flatShading: true,
+  });
+  disposableMaterials.push(waterfallCliffMat);
+  const cliffBoulderGeo = new THREE.DodecahedronGeometry(1.0, 0);
+  const cliffLedgeGeo = new THREE.BoxGeometry(5.2, 1.0, 2.2);
+  const waterfallStreamGeo = new THREE.BoxGeometry(1.38, 1.0, 0.24);
+  const waterfallPoolSplashGeo = new THREE.TorusGeometry(0.95, 0.22, 7, 16);
+  waterfallPoolSplashGeo.rotateX(Math.PI / 2);
+  const spoutBambooGeo = new THREE.CylinderGeometry(0.09, 0.1, 1.55, 8);
+  disposableGeometries.push(
+    cliffBoulderGeo,
+    cliffLedgeGeo,
+    waterfallStreamGeo,
+    waterfallPoolSplashGeo,
+    spoutBambooGeo
+  );
+
+  // Rugged stepped dark-stone cliff tiers rising cleanly along the North pool mouth (x: -325..-315, z: -306.5..-301.8)
+  for (const [bx, byOff, bz, sx, sy, sz, ry] of [
+    [nfX, 3.1, nfZ - 14.8, 3.6, 3.5, 2.2, 0.2],
+    [nfX - 2.9, 2.2, nfZ - 14.3, 2.4, 2.5, 2.0, -0.4],
+    [nfX + 2.9, 2.3, nfZ - 14.2, 2.4, 2.6, 2.0, 0.5],
+    [nfX - 4.3, 1.05, nfZ - 12.8, 1.65, 1.35, 1.5, 0.8],
+    [nfX + 4.3, 1.05, nfZ - 12.8, 1.65, 1.35, 1.5, -0.6],
+    [nfX - 1.9, 1.45, nfZ - 12.7, 1.35, 1.55, 1.35, 0.3],
+    [nfX + 1.9, 1.45, nfZ - 12.7, 1.35, 1.55, 1.35, -0.3],
+    [nfX, 1.5, nfZ - 13.2, 1.25, 1.6, 1.25, 0.1],
+  ] as const) {
+    const crag = new THREE.Mesh(cliffBoulderGeo, waterfallCliffMat);
+    crag.scale.set(sx, sy, sz);
+    crag.rotation.y = ry;
+    crag.position.set(bx, nfFloorY + byOff, bz);
+    crag.castShadow = !isSoftwareGl;
+    crag.receiveShadow = !isSoftwareGl;
+    nordicShrineGroup.add(crag);
+  }
+  const upperWaterfallBasin = new THREE.Mesh(cliffLedgeGeo, waterfallCliffMat);
+  upperWaterfallBasin.position.set(nfX, nfFloorY + 3.4, nfZ - 13.7);
+  nordicShrineGroup.add(upperWaterfallBasin);
+
+  // Shishi-Odoshi Bamboo Fountain integrated neatly into the center cascade ledge
+  const spoutPipe = new THREE.Mesh(spoutBambooGeo, jadeBambooMat);
+  spoutPipe.position.set(nfX, nfFloorY + 1.45, nfZ - 12.05);
+  spoutPipe.rotation.x = Math.PI * 0.42;
+  nordicShrineGroup.add(spoutPipe);
+
+  const waterfallRibbons: THREE.Mesh[] = [];
+  for (const wfXOff of [-1.25, 1.25]) {
+    const upperFall = new THREE.Mesh(waterfallStreamGeo, geothermalWaterMat);
+    upperFall.scale.set(0.95, 2.25, 1.0);
+    upperFall.position.set(nfX + wfXOff, nfFloorY + 4.2, nfZ - 12.6);
+    upperFall.rotation.x = 0.24;
+
+    const lowerFall = new THREE.Mesh(waterfallStreamGeo, geothermalWaterMat);
+    lowerFall.scale.set(1.12, 3.65, 1.1);
+    lowerFall.position.set(nfX + wfXOff, nfFloorY + 1.55, nfZ - 11.4);
+    lowerFall.rotation.x = 0.22;
+
+    const splashFoam = new THREE.Mesh(waterfallPoolSplashGeo, waterfallFoamMat);
+    splashFoam.position.set(nfX + wfXOff, NORDIC_FROST_SHRINE_POS.poolWaterY + 0.08, nfZ - 10.65);
+    nordicShrineGroup.add(upperFall, lowerFall, splashFoam);
+    waterfallRibbons.push(upperFall, lowerFall, splashFoam);
+  }
+
+  // C) Curved Poolside Timber Fence & 12 Carved Granite Lantern Pillars framing the Pool Perimeter (South stairs left open)
+  const pedBaseGeo = new THREE.BoxGeometry(0.62, 0.28, 0.62);
+  const pedShaftGeo = new THREE.BoxGeometry(0.42, 0.82, 0.42);
+  const pedLanternGeo = new THREE.BoxGeometry(0.38, 0.36, 0.38);
+  const pedCapGeo = new THREE.ConeGeometry(0.46, 0.3, 4);
+  pedCapGeo.rotateY(Math.PI / 4);
+  const fenceRailUnitGeo = new THREE.BoxGeometry(0.1, 0.09, 1.0);
+  const fencePicketGeo = new THREE.BoxGeometry(0.08, 0.78, 0.08);
+  disposableGeometries.push(
+    pedBaseGeo,
+    pedShaftGeo,
+    pedLanternGeo,
+    pedCapGeo,
+    fenceRailUnitGeo,
+    fencePicketGeo
+  );
+
+  const addStoneLanternPedestal = (lx: number, lz: number, yaw = 0) => {
+    const pGrp = new THREE.Group();
+    pGrp.position.set(lx, nfFloorY, lz);
+    pGrp.rotation.y = yaw;
+    const base = new THREE.Mesh(pedBaseGeo, nordicGraniteMat);
+    base.position.y = 0.14;
+    const shaft = new THREE.Mesh(pedShaftGeo, nordicGraniteMat);
+    shaft.position.y = 0.69;
+    const glow = new THREE.Mesh(pedLanternGeo, warmLanternMat);
+    glow.position.y = 1.28;
+    const cap = new THREE.Mesh(pedCapGeo, slateRoofMat);
+    cap.position.y = 1.61;
+    pGrp.add(base, shaft, glow, cap);
+    nordicShrineGroup.add(pGrp);
+  };
+
+  const addFenceSpan = (ax: number, az: number, bx: number, bz: number) => {
+    const spanLen = Math.hypot(bx - ax, bz - az);
+    const yaw = Math.atan2(bx - ax, bz - az);
+    const midX = (ax + bx) * 0.5;
+    const midZ = (az + bz) * 0.5;
+    for (const railY of [0.46, 0.86]) {
+      const rail = new THREE.Mesh(fenceRailUnitGeo, onsenTimberMat);
+      rail.scale.z = spanLen;
+      rail.position.set(midX, nfFloorY + railY, midZ);
+      rail.rotation.y = yaw;
+      rail.castShadow = !isSoftwareGl;
+      nordicShrineGroup.add(rail);
+    }
+    for (const frac of [0.33, 0.67]) {
+      const pk = new THREE.Mesh(fencePicketGeo, onsenTimberMat);
+      pk.position.set(ax + (bx - ax) * frac, nfFloorY + 0.48, az + (bz - az) * frac);
+      pk.rotation.y = yaw;
+      nordicShrineGroup.add(pk);
+    }
+  };
+
+  const fenceR = NORDIC_FROST_SHRINE_POS.poolRadius + 0.72; // 12.12m cleanly around circular rim
+  const addFenceArc = (angStart: number, angEnd: number, segs: number) => {
+    const pts: Array<{ x: number; z: number; yaw: number }> = [];
+    for (let i = 0; i <= segs; i++) {
+      const ang = angStart + (i / segs) * (angEnd - angStart);
+      pts.push({
+        x: nfX + Math.cos(ang) * fenceR,
+        z: nfZ + Math.sin(ang) * fenceR,
+        yaw: -ang,
+      });
+    }
+    for (let i = 0; i < pts.length; i++) {
+      addStoneLanternPedestal(pts[i].x, pts[i].z, pts[i].yaw);
+      if (i + 1 < pts.length) {
+        addFenceSpan(pts[i].x, pts[i].z, pts[i + 1].x, pts[i + 1].z);
+      }
+    }
+  };
+  // West perimeter arc (South-West of stair entry up to West side of North Waterfall)
+  addFenceArc(Math.PI * 0.5 + 0.42, Math.PI * 1.5 - 0.36, 4);
+  // East perimeter arc (East side of North Waterfall around East rim to South-East of stair entry)
+  addFenceArc(Math.PI * 1.5 + 0.36, Math.PI * 2.5 - 0.42, 4);
+
+  // South Courtyard Approach Lantern Pillars flanking the Gatehouse Stair Entrance
+  addStoneLanternPedestal(gateCx - gateHalfW - 0.8, gateZ - 0.2, 0);
+  addStoneLanternPedestal(gateCx + gateHalfW + 0.8, gateZ - 0.2, 0);
+
+  // D) Painted Concentric Bullseye Archery Targets, Supply Crates/Barrels & Crimson Gold-Emblem Colonnade Banners
+  const targetStandPostGeo = new THREE.BoxGeometry(0.11, 1.55, 0.11);
+  const targetStrawDrumGeo = new THREE.CylinderGeometry(0.76, 0.76, 0.22, 20);
+  targetStrawDrumGeo.rotateZ(Math.PI / 2);
+  const targetRingOuterGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.04, 20);
+  targetRingOuterGeo.rotateZ(Math.PI / 2);
+  const targetRingMidGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.05, 20);
+  targetRingMidGeo.rotateZ(Math.PI / 2);
+  const targetBullseyeGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.06, 16);
+  targetBullseyeGeo.rotateZ(Math.PI / 2);
+  const hsCrateGeo = new THREE.BoxGeometry(0.95, 0.88, 0.95);
+  const hsBarrelGeo = new THREE.CylinderGeometry(0.36, 0.34, 0.94, 12);
+  const hsBannerClothGeo = new THREE.BoxGeometry(0.64, 2.25, 0.07);
+  const hsBannerEmblemGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.09, 14);
+  hsBannerEmblemGeo.rotateX(Math.PI / 2);
+  disposableGeometries.push(
+    targetStandPostGeo,
+    targetStrawDrumGeo,
+    targetRingOuterGeo,
+    targetRingMidGeo,
+    targetBullseyeGeo,
+    hsCrateGeo,
+    hsBarrelGeo,
+    hsBannerClothGeo,
+    hsBannerEmblemGeo
+  );
+
+  for (const tz of [-303.2, -276.8]) {
+    const tGrp = new THREE.Group();
+    tGrp.position.set(-277.6, nfFloorY, tz);
+    for (const legZ of [-0.42, 0.42]) {
+      const fLeg = new THREE.Mesh(targetStandPostGeo, onsenTimberMat);
+      fLeg.position.set(-0.08, 0.75, legZ);
+      fLeg.rotation.z = -0.14;
+      tGrp.add(fLeg);
+    }
+    const backLeg = new THREE.Mesh(targetStandPostGeo, onsenTimberMat);
+    backLeg.position.set(0.45, 0.72, 0);
+    backLeg.rotation.z = 0.42;
+    const drum = new THREE.Mesh(targetStrawDrumGeo, foldedTowelMat);
+    drum.position.set(-0.12, 1.38, 0);
+    drum.rotation.z = -0.12;
+    const ring1 = new THREE.Mesh(targetRingOuterGeo, targetNavyMat);
+    ring1.position.set(-0.23, 1.39, 0);
+    ring1.rotation.z = -0.12;
+    const ring2 = new THREE.Mesh(targetRingMidGeo, targetFaceMat);
+    ring2.position.set(-0.25, 1.395, 0);
+    ring2.rotation.z = -0.12;
+    const ring3 = new THREE.Mesh(targetBullseyeGeo, imperialCrimsonMat);
+    ring3.position.set(-0.27, 1.4, 0);
+    ring3.rotation.z = -0.12;
+    tGrp.add(backLeg, drum, ring1, ring2, ring3);
+    nordicShrineGroup.add(tGrp);
+  }
+
+  // East Wing Armory Supply Crates & Barrels tucked along East wall
+  for (const [cx, cz] of [
+    [-276.8, -305.0],
+    [-276.8, -275.0],
+  ] as const) {
+    const cr = new THREE.Mesh(hsCrateGeo, onsenTimberMat);
+    cr.position.set(cx, nfFloorY + 0.44, cz);
+    const br = new THREE.Mesh(hsBarrelGeo, onsenTimberMat);
+    br.position.set(cx - 0.95, nfFloorY + 0.47, cz + (cz < -290 ? 0.2 : -0.2));
+    nordicShrineGroup.add(cr, br);
+  }
+
+  // Crimson & Gold-Medallion Colonnade Banners hanging under West, North & East Pavilions
+  for (const [bx, bz, yaw] of [
+    [-333.5, -296.0, Math.PI / 2],
+    [-333.5, -284.0, Math.PI / 2],
+    [-331.0, -311.0, 0],
+    [-310.0, -311.0, 0],
+    [-296.0, -311.0, 0],
+    [-282.0, -311.0, 0],
+    [-284.2, -300.0, Math.PI / 2],
+    [-284.2, -288.0, Math.PI / 2],
+    [-284.2, -278.0, Math.PI / 2],
+  ] as const) {
+    const bMesh = new THREE.Mesh(hsBannerClothGeo, imperialCrimsonMat);
+    bMesh.position.set(bx, nfFloorY + 3.05, bz);
+    bMesh.rotation.y = yaw;
+    const bSeal = new THREE.Mesh(hsBannerEmblemGeo, imperialGoldMat);
+    bSeal.position.set(bx, nfFloorY + 3.25, bz);
+    bSeal.rotation.y = yaw;
+    nordicShrineGroup.add(bMesh, bSeal);
+  }
+
+  // E) Twin Guardian Stone Braziers with Warm Embers & Crimson Gatehouse Banners inside South Entrance
+  const brazierBaseGeo = new THREE.CylinderGeometry(0.55, 0.72, 1.05, 8);
+  const brazierBowlGeo = new THREE.CylinderGeometry(0.75, 0.45, 0.42, 8);
+  const brazierEmberGeo = new THREE.IcosahedronGeometry(0.46, 1);
+  const bannerClothGeo = new THREE.BoxGeometry(0.62, 2.35, 0.08);
+  disposableGeometries.push(brazierBaseGeo, brazierBowlGeo, brazierEmberGeo, bannerClothGeo);
+  for (const sideSign of [-1, 1]) {
+    const brX = gateCx + sideSign * 5.4;
+    const brZ = gateZ - 3.0;
+    const brBase = new THREE.Mesh(brazierBaseGeo, nordicGraniteMat);
+    brBase.position.set(brX, nfFloorY + 0.525, brZ);
+    const brBowl = new THREE.Mesh(brazierBowlGeo, wetRiverStoneMat);
+    brBowl.position.set(brX, nfFloorY + 1.24, brZ);
+    const brEmber = new THREE.Mesh(brazierEmberGeo, warmEmberMat);
+    brEmber.scale.set(1.0, 0.65, 1.0);
+    brEmber.position.set(brX, nfFloorY + 1.44, brZ);
+    const banner = new THREE.Mesh(bannerClothGeo, imperialCrimsonMat);
+    banner.position.set(gateCx + sideSign * (gateHalfW + 0.1), nfFloorY + 3.4, gateZ - 0.55);
+    nordicShrineGroup.add(brBase, brBowl, brEmber, banner);
+  }
+
+  // F) East Martial Dojo Ceremonial Crimson Gong Stand, Bagua Spectator Benches & SE Poolside Footbath Bench
+  const gongPostGeo = new THREE.BoxGeometry(0.18, 2.55, 0.18);
+  const gongBarGeo = new THREE.BoxGeometry(0.24, 0.22, 2.25);
+  const gongDiscGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.12, 24);
+  gongDiscGeo.rotateZ(Math.PI / 2);
+  disposableGeometries.push(gongPostGeo, gongBarGeo, gongDiscGeo);
+  const gongX = -285.2;
+  const gongZ = -302.8;
+  for (const zOff of [-0.92, 0.92]) {
+    const gPost = new THREE.Mesh(gongPostGeo, imperialCrimsonMat);
+    gPost.position.set(gongX, nfFloorY + 1.275, gongZ + zOff);
+    nordicShrineGroup.add(gPost);
+  }
+  const gTop = new THREE.Mesh(gongBarGeo, imperialCrimsonMat);
+  gTop.position.set(gongX, nfFloorY + 2.48, gongZ);
+  const gDisc = new THREE.Mesh(gongDiscGeo, imperialGoldMat);
+  gDisc.position.set(gongX, nfFloorY + 1.48, gongZ);
+  nordicShrineGroup.add(gTop, gDisc);
+
+  // Two Bagua Arena Spectator Benches & SE Towel/Footbath Bench
+  for (const [sbx, sbz, sbyaw] of [
+    [-302.6, -282.5, Math.PI * 0.28],
+    [-287.2, -279.6, -Math.PI * 0.25],
+    [-314.8, -277.6, Math.PI * 0.5],
+  ] as const) {
+    const bGrp = new THREE.Group();
+    bGrp.position.set(sbx, nfFloorY, sbz);
+    bGrp.rotation.y = sbyaw;
+    const seat = new THREE.Mesh(onsenTowelBenchGeo, onsenTimberMat);
+    seat.position.y = 0.42;
+    bGrp.add(seat);
+    for (const lx of [-0.52, 0.52]) {
+      for (const lz of [-0.22, 0.22]) {
+        const leg = new THREE.Mesh(onsenBenchLegGeo, onsenTimberMat);
+        leg.position.set(lx, 0.19, lz);
+        bGrp.add(leg);
+      }
+    }
+    if (sbx < -310) {
+      const sTowel = new THREE.Mesh(onsenTowelStackGeo, foldedTowelMat);
+      sTowel.position.set(-0.28, 0.56, 0);
+      const sBucket = new THREE.Mesh(onsenBucketGeo, onsenTimberMat);
+      sBucket.position.set(0.32, 0.58, 0);
+      bGrp.add(sTowel, sBucket);
+    }
+    nordicShrineGroup.add(bGrp);
+  }
+
+  // G) Hanging Eave Lanterns along West Pavilion, North Cloister, and East Dojo Veranda
+  for (const [hx, hy, hz] of [
+    [-333.8, nfFloorY + 3.65, -298.0],
+    [-333.8, nfFloorY + 3.65, -290.0],
+    [-333.8, nfFloorY + 3.65, -282.0],
+    [-330.0, nfFloorY + 3.8, -311.2],
+    [-320.0, nfFloorY + 3.8, -311.2],
+    [-310.0, nfFloorY + 3.8, -311.2],
+    [-292.0, nfFloorY + 3.8, -311.2],
+    [-284.0, nfFloorY + 3.7, -301.0],
+    [-284.0, nfFloorY + 3.7, -290.0],
+    [-284.0, nfFloorY + 3.7, -279.0],
+  ] as const) {
+    const hLamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
+    hLamp.scale.set(1.15, 1.45, 1.15);
+    hLamp.position.set(hx, hy, hz);
+    nordicShrineGroup.add(hLamp);
+  }
 
   scene.add(nordicShrineGroup);
   distanceCulledObjects.push({
     obj: nordicShrineGroup,
-    cx: nfX,
+    cx: -310.0,
     cz: nfZ,
-    radius: 42.0,
+    radius: 56.0,
   });
 
   // ============================================================================
@@ -1365,9 +2168,15 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         }
       }
     }
+    mooredEscortRoot.position.y = 2.55 + idleWaveBob * 0.85;
+    mooredEscortRoot.rotation.z = idleWaveRoll * 0.85;
+    mooredEscortRoot.visible = isWithinViewDistance(292.0, 226.0, playerX, playerZ, 28.0, VIEW_DISTANCE);
 
-    // 2) Animate Ruined Atlantis Boss Seal Astrolabe Rings & Crystal Core when visible
+    // 2) Animate Ruined Atlantis Boss Seal Astrolabe Rings, Waterline Foam & Crystal Core when visible
     if (atlantisGroup.visible) {
+      atlantisShoreFoamMat.opacity = 0.34 + 0.14 * (0.5 + 0.5 * Math.sin(elapsedTime * 1.9));
+      const foamPulse = 1.0 + Math.sin(elapsedTime * 1.6) * 0.012;
+      arenaWaterFoam.scale.set(foamPulse, 1.0, foamPulse);
       bossSealAstrolabeGroup.position.y =
         arenaY + 13.8 + Math.sin(elapsedTime * 1.5) * 0.48;
       sealCrystal.rotation.y = elapsedTime * 0.95;
@@ -1377,11 +2186,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       astroRing2.rotation.y = Math.cos(elapsedTime * 0.6) * 0.52;
     }
 
-    // 3) Animate Nordic Hot Spring Floating Rune Crystal, Rising Geothermal Steam & Desert Sun Pyramid Disc when visible
+    // 3) Animate Nordic Hot Spring Rising Geothermal Steam & Desert Sun Pyramid Disc when visible
     if (nordicShrineGroup.visible) {
-      nordicFloatingCrystal.position.y =
-        NORDIC_FROST_SHRINE_POS.altarDaisY + 2.4 + Math.sin(elapsedTime * 1.8) * 0.28;
-      nordicFloatingCrystal.rotation.y = elapsedTime * 0.9;
       for (let w = 0; w < steamWisps.length; w++) {
         const sw = steamWisps[w];
         const cycle = (elapsedTime * sw.speed + sw.phase) % 1.0;
@@ -1393,6 +2199,13 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         );
         const sFactor = sw.baseScale * (0.7 + cycle * 0.9);
         sw.mesh.scale.set(sFactor * 1.45, sFactor * (0.55 + arc * 0.35), sFactor * 1.45);
+      }
+      for (let f = 0; f < waterfallRibbons.length; f++) {
+        const mesh = waterfallRibbons[f];
+        if (f % 3 === 2) {
+          const pulse = 0.92 + Math.sin(elapsedTime * 4.8 + f) * 0.12;
+          mesh.scale.set(pulse, 1.0, pulse);
+        }
       }
     }
     if (desertPyramidGroup.visible) {

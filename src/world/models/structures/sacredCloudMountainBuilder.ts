@@ -29,6 +29,7 @@ import { buildInstancedFloraTreeBatch, type IInstancedFloraTreePlacement } from 
 import { attachWindSwayShader } from '../../builders/shaderAndMaterialBuilders';
 import { getFloraSubmeshes, getFloraTextureUrl } from '../plants/floraAssets';
 import { spawnTempleMonk } from '../../systems/monkTempleSystem';
+import { CHINESE_FORTRESS_POS, FORTRESS_Z_OFFSET } from '../../domain/landmarksRegistry';
 import type { IWorldModelBuildContext } from '../types';
 // #endregion
 
@@ -1300,15 +1301,63 @@ export function buildSacredCloudMountainModel(
 
   const swDirX = -Math.SQRT1_2;
   const swDirZ = Math.SQRT1_2;
+  const swRightX = -swDirZ;
+  const swRightZ = swDirX;
   const swYaw = Math.atan2(swDirX, swDirZ);
-  const baguaStepGeo = new THREE.BoxGeometry(3.4, 0.28, 0.78);
-  disposableGeometries.push(baguaStepGeo);
+
+  const baguaCheekUpperGeo = new THREE.BoxGeometry(0.32, 1.02, 1.55);
+  const baguaCheekLowerGeo = new THREE.BoxGeometry(0.32, 0.6, 1.74);
+  const baguaLanternBaseGeo = new THREE.BoxGeometry(0.56, 0.45, 0.56);
+  const baguaLanternCageGeo = new THREE.BoxGeometry(0.42, 0.42, 0.42);
+  const baguaLanternCapGeo = new THREE.ConeGeometry(0.46, 0.28, 4);
+  baguaLanternCapGeo.rotateY(Math.PI / 4);
+  disposableGeometries.push(
+    baguaCheekUpperGeo,
+    baguaCheekLowerGeo,
+    baguaLanternBaseGeo,
+    baguaLanternCageGeo,
+    baguaLanternCapGeo
+  );
+
   for (let s = 0; s < 5; s++) {
-    const along = 5.65 + s * 0.68;
-    const stMesh = new THREE.Mesh(baguaStepGeo, slateStepMat);
-    stMesh.position.set(swDirX * along, -0.14 - s * 0.24, swDirZ * along);
+    const along = 5.74 + s * 0.62;
+    const stepTopY = -0.02 - s * 0.24;
+    const stepH = stepTopY - -1.19;
+    const stepGeo = new THREE.BoxGeometry(3.2, stepH, 0.6);
+    disposableGeometries.push(stepGeo);
+    const stMesh = new THREE.Mesh(stepGeo, slateStepMat);
+    stMesh.position.set(swDirX * along, -1.19 + stepH * 0.5, swDirZ * along);
     stMesh.rotation.y = swYaw;
+    stMesh.castShadow = !isSoftwareGl;
+    stMesh.receiveShadow = !isSoftwareGl;
     baguaWorldGroup.add(stMesh);
+  }
+
+  for (const sideSign of [-1, 1] as const) {
+    const pxOff = swRightX * sideSign * 1.78;
+    const pzOff = swRightZ * sideSign * 1.78;
+
+    const cheekUpper = new THREE.Mesh(baguaCheekUpperGeo, graniteTrimMat);
+    cheekUpper.position.set(swDirX * 6.22 + pxOff, -0.69, swDirZ * 6.22 + pzOff);
+    cheekUpper.rotation.y = swYaw;
+
+    const cheekLower = new THREE.Mesh(baguaCheekLowerGeo, graniteTrimMat);
+    cheekLower.position.set(swDirX * 7.89 + pxOff, -0.9, swDirZ * 7.89 + pzOff);
+    cheekLower.rotation.y = swYaw;
+    baguaWorldGroup.add(cheekUpper, cheekLower);
+
+    const postX = swDirX * 8.48 + pxOff;
+    const postZ = swDirZ * 8.48 + pzOff;
+    const lBase = new THREE.Mesh(baguaLanternBaseGeo, graniteTrimMat);
+    lBase.position.set(postX, -0.375, postZ);
+    lBase.rotation.y = swYaw;
+    const lCage = new THREE.Mesh(baguaLanternCageGeo, lanternGlowMat);
+    lCage.position.set(postX, 0.06, postZ);
+    lCage.rotation.y = swYaw;
+    const lCap = new THREE.Mesh(baguaLanternCapGeo, roofSlateMat);
+    lCap.position.set(postX, 0.41, postZ);
+    lCap.rotation.y = swYaw;
+    baguaWorldGroup.add(lBase, lCage, lCap);
   }
 
   const stele = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.55, 0.28), graniteTrimMat);
@@ -1316,6 +1365,30 @@ export function buildSacredCloudMountainModel(
   stele.rotation.y = -0.5;
   disposableGeometries.push(stele.geometry);
   baguaWorldGroup.add(stele);
+
+  // Two Cedar Meditation / Rest Benches atop the octagonal outer Bagua deck for resting sparrers & spectators
+  const baguaBenchSeatGeo = new THREE.BoxGeometry(1.55, 0.11, 0.56);
+  const baguaBenchLegGeo = new THREE.BoxGeometry(0.12, 0.36, 0.48);
+  disposableGeometries.push(baguaBenchSeatGeo, baguaBenchLegGeo);
+  for (const [bx, bz, byaw] of [
+    [-3.45, -3.45, Math.PI / 4],
+    [3.45, 3.45, -3 * Math.PI / 4],
+  ] as const) {
+    const benchGrp = new THREE.Group();
+    benchGrp.position.set(bx, 0, bz);
+    benchGrp.rotation.y = byaw;
+    const seat = new THREE.Mesh(baguaBenchSeatGeo, warmCedarDeckMat);
+    seat.position.y = 0.41;
+    seat.castShadow = !isSoftwareGl;
+    seat.receiveShadow = !isSoftwareGl;
+    benchGrp.add(seat);
+    for (const lx of [-0.58, 0.58]) {
+      const leg = new THREE.Mesh(baguaBenchLegGeo, darkWoodRailMat);
+      leg.position.set(lx, 0.18, 0);
+      benchGrp.add(leg);
+    }
+    baguaWorldGroup.add(benchGrp);
+  }
 
   if (!isSoftwareGl) {
     const baguaLight = new THREE.PointLight(0xffcf7a, 0, 20.0, 1.4);
@@ -1334,18 +1407,74 @@ export function buildSacredCloudMountainModel(
     maxDist: 280.0,
   });
 
-  // Spawn 2 sparring WarriorMonks face-to-face atop the relocated Yin-Yang Bagua disc
+  // Spawn 2 sparring WarriorMonks face-to-face atop the relocated Yin-Yang Bagua disc (they walk back to Fortress 2F beds to sleep at night)
   const baguaSparY = CHINESE_BAGUA_PLATFORM_POS.deckY + 0.37;
+  const FZ = FORTRESS_Z_OFFSET;
+  const fortSummitY = CHINESE_FORTRESS_POS.summitHeight;
+  const pavFloor1Y = CHINESE_FORTRESS_POS.pavilionFloor1Y;
+  const pavFloor2Y = CHINESE_FORTRESS_POS.pavilionFloor2Y;
+  const bedTop2Y = pavFloor2Y + 0.38;
+  const baguaToFortressTrail: ReadonlyArray<readonly [number, number, number]> = [
+    [CHINESE_BAGUA_PLATFORM_POS.x - 4.0, CHINESE_BAGUA_PLATFORM_POS.deckY, CHINESE_BAGUA_PLATFORM_POS.z + 4.0],
+    [CHINESE_BAGUA_PLATFORM_POS.x - 5.8, CHINESE_BAGUA_PLATFORM_POS.baseY, CHINESE_BAGUA_PLATFORM_POS.z + 5.8],
+    [-310.0, 34.0, -269.0],
+    [-310.0, 31.2, -255.0],
+    [-285.0, groundHeightAt(-285.0, -255.0), -255.0],
+    [-240.0, groundHeightAt(-240.0, -225.0), -225.0],
+    [-195.0, groundHeightAt(-195.0, -195.0), -195.0],
+    [-135.0, groundHeightAt(-135.0, -205.0), -205.0],
+    [-80.0, groundHeightAt(-80.0, -220.0), -220.0],
+    [-35.0, groundHeightAt(-35.0, -235.0), -235.0],
+    [0.0, CHINESE_FORTRESS_POS.stairBaseHeight, CHINESE_FORTRESS_POS.stairFootZ + 2.0],
+    [0.0, CHINESE_FORTRESS_POS.midLandingHeight, CHINESE_FORTRESS_POS.stairMidZ - 1.2],
+    [0.0, fortSummitY, -135.0 + FZ],
+  ];
+  const makeBaguaNightSleepRoute = (
+    startX: number,
+    startZ: number,
+    isWest: boolean,
+    bedX: number,
+    bedZ: number
+  ): ReadonlyArray<readonly [number, number, number]> => {
+    const sideSign = isWest ? -1 : 1;
+    return [
+      [startX, baguaSparY, startZ],
+      ...baguaToFortressTrail,
+      [sideSign * 30.0, fortSummitY, -153.5 + FZ],
+      [sideSign * 30.0, pavFloor1Y, -158.0 + FZ],
+      [sideSign * 36.9, pavFloor1Y, -159.0 + FZ],
+      [sideSign * 36.9, pavFloor2Y, -168.4 + FZ],
+      [sideSign * 34.2, pavFloor2Y, -168.4 + FZ],
+      [bedX, pavFloor2Y, -167.8 + FZ],
+      [bedX, bedTop2Y, bedZ],
+    ];
+  };
+
   spawnTempleMonk({
     id: 'bagua_spar_west',
     role: 'bagua_sparring',
+    partnerId: 'bagua_spar_east',
+    restBenchX: CHINESE_BAGUA_PLATFORM_POS.x - 3.45,
+    restBenchY: CHINESE_BAGUA_PLATFORM_POS.deckY,
+    restBenchZ: CHINESE_BAGUA_PLATFORM_POS.z - 3.45,
+    restBenchYaw: Math.PI / 4,
     parent: scene,
     homeX: CHINESE_BAGUA_PLATFORM_POS.x - 1.55,
     homeY: baguaSparY,
     homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
     baseYaw: Math.PI / 2,
     phaseOffset: 0.4,
-    staysAwakeAtNight: true,
+    bedX: -22.38,
+    bedY: bedTop2Y,
+    bedZ: -164.65 + FZ,
+    bedYaw: -Math.PI / 2,
+    sleepRoute: makeBaguaNightSleepRoute(
+      CHINESE_BAGUA_PLATFORM_POS.x - 1.55,
+      CHINESE_BAGUA_PLATFORM_POS.z,
+      true,
+      -22.38,
+      -164.65 + FZ
+    ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -1354,13 +1483,28 @@ export function buildSacredCloudMountainModel(
   spawnTempleMonk({
     id: 'bagua_spar_east',
     role: 'bagua_sparring',
+    partnerId: 'bagua_spar_west',
+    restBenchX: CHINESE_BAGUA_PLATFORM_POS.x + 3.45,
+    restBenchY: CHINESE_BAGUA_PLATFORM_POS.deckY,
+    restBenchZ: CHINESE_BAGUA_PLATFORM_POS.z + 3.45,
+    restBenchYaw: -3 * Math.PI / 4,
     parent: scene,
     homeX: CHINESE_BAGUA_PLATFORM_POS.x + 1.55,
     homeY: baguaSparY,
     homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
     baseYaw: -Math.PI / 2,
     phaseOffset: 1.9,
-    staysAwakeAtNight: true,
+    bedX: 22.38,
+    bedY: bedTop2Y,
+    bedZ: -162.7 + FZ,
+    bedYaw: Math.PI / 2,
+    sleepRoute: makeBaguaNightSleepRoute(
+      CHINESE_BAGUA_PLATFORM_POS.x + 1.55,
+      CHINESE_BAGUA_PLATFORM_POS.z,
+      false,
+      22.38,
+      -162.7 + FZ
+    ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,

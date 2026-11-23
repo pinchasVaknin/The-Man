@@ -359,8 +359,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   ropeCoilGeo.rotateX(Math.PI / 2);
   const streetLampPostGeo = new THREE.CylinderGeometry(0.11, 0.16, 4.4, 8);
   const streetLampArmGeo = new THREE.BoxGeometry(1.1, 0.12, 0.12);
-  const oceanWaterGeo = new THREE.PlaneGeometry(680.0, 680.0, isSoftwareGl ? 32 : 56, isSoftwareGl ? 32 : 56);
-  oceanWaterGeo.rotateX(-Math.PI / 2);
   const cannonCarriageGeo = new THREE.BoxGeometry(1.35, 0.52, 0.72);
   const cannonBarrelGeo = new THREE.CylinderGeometry(0.18, 0.24, 1.85, 10);
   cannonBarrelGeo.rotateZ(Math.PI / 2);
@@ -378,7 +376,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
     ropeCoilGeo,
     streetLampPostGeo,
     streetLampArmGeo,
-    oceanWaterGeo,
     cannonCarriageGeo,
     cannonBarrelGeo,
     cannonBallGeo
@@ -391,8 +388,6 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   quayCurbMesh.position.set(254.6, hPlazaY + 0.04, 263.0);
   const seaWallMesh = new THREE.Mesh(harborSeaWallGeo, fortressStoneMat);
   seaWallMesh.position.set(255.2, hPlazaY - 2.3, 263.0);
-  const openOceanMesh = new THREE.Mesh(oceanWaterGeo, waterMat);
-  openOceanMesh.position.set(594.5, hWaterY, 420.0);
 
   // Decorative Imperial Plaza Medallion & Royal Promenade Stone Runners
   const medOuter = new THREE.Mesh(plazaMedallionOuterGeo, carvedMarbleMat);
@@ -401,7 +396,7 @@ export function buildHarborModels(ctx: IWorldModelBuildContext): IHarborModelHan
   medInner.position.set(SOUTHEAST_HARBOR_POS.fountainX, hPlazaY + 0.02, SOUTHEAST_HARBOR_POS.fountainZ);
   const westGateRunner = new THREE.Mesh(plazaWalkwayRunnerGeo, carvedMarbleMat);
   westGateRunner.position.set(216.0, hPlazaY + 0.01, SOUTHEAST_HARBOR_POS.fountainZ);
-  harborGroup.add(quayMesh, quayCurbMesh, seaWallMesh, openOceanMesh, medOuter, medInner, westGateRunner);
+  harborGroup.add(quayMesh, quayCurbMesh, seaWallMesh, medOuter, medInner, westGateRunner);
 
   // Quayside Cast-Iron Mooring Bollards, Coiled Hemp Ropes & Ornate Harbor Streetlamps
   for (const bz of [220.0, 232.0, 245.5, 258.5, 271.0, 285.0, 301.0]) {

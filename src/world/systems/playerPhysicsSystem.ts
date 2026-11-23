@@ -27,6 +27,7 @@ import {
   FORTRESS_Z_OFFSET,
   CHINESE_FORTRESS_POS,
   HILL_WATCHTOWERS,
+  ROPE_BRIDGE_DEF,
   FORTRESS_DOORS,
   SOLID_BUILDING_BOXES,
   getNearbySolidBuildingBoxes,
@@ -1741,6 +1742,45 @@ export function stepPlayerPhysics(
         nextZ = hw.z - lx * sinP + lz * cosP;
       }
     }
+
+    // Rope Suspension Bridge side cable railings (prevent walking sideways off through the visible side ropes)
+    if (!state.isFlying) {
+      const rbVx = ROPE_BRIDGE_DEF.bx - ROPE_BRIDGE_DEF.ax;
+      const rbVz = ROPE_BRIDGE_DEF.bz - ROPE_BRIDGE_DEF.az;
+      const rbLenSq = rbVx * rbVx + rbVz * rbVz;
+      const rbLen = Math.sqrt(rbLenSq);
+      const tCurr = ((state.x - ROPE_BRIDGE_DEF.ax) * rbVx + (state.z - ROPE_BRIDGE_DEF.az) * rbVz) / rbLenSq;
+      const tNext = ((nextX - ROPE_BRIDGE_DEF.ax) * rbVx + (nextZ - ROPE_BRIDGE_DEF.az) * rbVz) / rbLenSq;
+      const tMin = ROPE_BRIDGE_DEF.deckEdgeT;
+      const tMax = 1.0 - tMin;
+      if (tNext >= tMin && tNext <= tMax) {
+        const dirX = rbVx / rbLen;
+        const dirZ = rbVz / rbLen;
+        const rightX = -dirZ;
+        const rightZ = dirX;
+        const projCurrX = ROPE_BRIDGE_DEF.ax + tCurr * rbVx;
+        const projCurrZ = ROPE_BRIDGE_DEF.az + tCurr * rbVz;
+        const prevPerp = (state.x - projCurrX) * rightX + (state.z - projCurrZ) * rightZ;
+        const projNextX = ROPE_BRIDGE_DEF.ax + tNext * rbVx;
+        const projNextZ = ROPE_BRIDGE_DEF.az + tNext * rbVz;
+        const nextPerp = (nextX - projNextX) * rightX + (nextZ - projNextZ) * rightZ;
+        const u = tNext <= 0.5
+          ? Math.max(0, Math.min(1, (tNext - tMin) / (0.5 - tMin)))
+          : Math.max(0, Math.min(1, (tNext - 0.5) / (tMax - 0.5)));
+        const linearY = tNext <= 0.5
+          ? ROPE_BRIDGE_DEF.ay + u * (ROPE_BRIDGE_DEF.my - ROPE_BRIDGE_DEF.ay)
+          : ROPE_BRIDGE_DEF.my + u * (ROPE_BRIDGE_DEF.by - ROPE_BRIDGE_DEF.my);
+        const deckY = linearY - 4 * ROPE_BRIDGE_DEF.sag * u * (1 - u);
+        const railInnerMax = 1.24 - playerRadius - 0.04;
+        if (state.y >= deckY - 0.55 && state.y <= deckY + 1.25 && Math.abs(prevPerp) <= 1.55) {
+          if (Math.abs(nextPerp) > railInnerMax) {
+            const clampedPerp = Math.sign(nextPerp) * railInnerMax;
+            nextX = projNextX + clampedPerp * rightX;
+            nextZ = projNextZ + clampedPerp * rightZ;
+          }
+        }
+      }
+    }
   }
 
   for (let i = 0; i < FORTRESS_DOORS.length; i++) {
@@ -2137,7 +2177,8 @@ export function stepPlayerPhysics(
     }
     const inNordicHotSpring =
       Math.hypot(state.x - NORDIC_FROST_SHRINE_POS.x, state.z - NORDIC_FROST_SHRINE_POS.z) <=
-      NORDIC_FROST_SHRINE_POS.poolRadius + 2.5;
+        NORDIC_FROST_SHRINE_POS.poolRadius + 2.5 &&
+      state.y >= NORDIC_FROST_SHRINE_POS.poolFloorY - 1.5;
     const onSunPyramidAltar =
       Math.hypot(state.x - DESERT_PYRAMID_SANCTUARY_POS.x, state.z - DESERT_PYRAMID_SANCTUARY_POS.z) <=
         6.5 && state.y >= DESERT_PYRAMID_SANCTUARY_POS.topY - 0.5;

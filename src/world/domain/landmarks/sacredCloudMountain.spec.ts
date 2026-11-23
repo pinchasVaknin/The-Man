@@ -339,7 +339,7 @@ test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, showca
   const perchedRoar = evaluateSkyDragonPatrol(44.0);
   assert.equal(perchedRoar.animState, 'roar');
 
-  const takeoff = evaluateSkyDragonPatrol(57.0);
+  const takeoff = evaluateSkyDragonPatrol(79.5);
   assert.equal(takeoff.phase, 'takeoff_ascend');
   assert.equal(takeoff.animState, 'fly');
   assert.ok(takeoff.y > SACRED_CLOUD_MOUNTAIN_POS.summitY + 12.0);
@@ -351,14 +351,14 @@ test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, showca
     'Takeoff flight must clear the summit cherry tree'
   );
 
-  // Full 72s cycle showcases all 14 non-attack, non-death DemonDragon animations and never triggers 'attack' or 'death'
+  // Full 96s cycle showcases all 14 non-attack, non-death DemonDragon animations and never triggers 'attack' or 'death'
   const seenStates = new Set<string>();
-  for (let s = 0; s < 288; s++) {
-    const sample = evaluateSkyDragonPatrol((s / 288) * 72.0);
+  for (let s = 0; s < 384; s++) {
+    const sample = evaluateSkyDragonPatrol((s / 384) * 96.0);
     seenStates.add(sample.animState);
     assert.notEqual(sample.animState, 'attack', 'Sky dragon must exclude attack animation');
     assert.notEqual(sample.animState, 'death', 'Sky dragon must exclude death animation');
-    assert.ok(teardropPoolSignedDist(sample.x, sample.z) > 1.0, `Dragon sample t=${((s / 288) * 72).toFixed(2)} drifted into pond`);
+    assert.ok(teardropPoolSignedDist(sample.x, sample.z) > 1.0, `Dragon sample t=${((s / 384) * 96).toFixed(2)} drifted into pond`);
   }
   for (const expectedAnim of [
     'fly',
@@ -376,11 +376,20 @@ test('Sky Dragon periodically descends onto Sacred Cloud Mountain summit, showca
     'sleep',
     'call',
   ]) {
-    assert.equal(seenStates.has(expectedAnim), true, `Expected dragon animation '${expectedAnim}' in 72s patrol cycle`);
+    assert.equal(seenStates.has(expectedAnim), true, `Expected dragon animation '${expectedAnim}' in 96s patrol cycle`);
   }
 
-  // Continuous loop wrap between t = 71.99 and t = 0.01
-  const endWrap = evaluateSkyDragonPatrol(71.99);
+  // Smooth perched heading transitions without sudden snapping jumps
+  let prevSample = evaluateSkyDragonPatrol(38.1);
+  for (let t = 38.35; t <= 75.8; t += 0.25) {
+    const curSample = evaluateSkyDragonPatrol(t);
+    const dyaw = Math.abs(Math.atan2(Math.sin(curSample.yaw - prevSample.yaw), Math.cos(curSample.yaw - prevSample.yaw)));
+    assert.ok(dyaw < 0.75, `Unexpected snappy dragon yaw jump (${dyaw.toFixed(2)} rad) at t=${t.toFixed(2)}`);
+    prevSample = curSample;
+  }
+
+  // Continuous loop wrap between t = 95.99 and t = 0.01
+  const endWrap = evaluateSkyDragonPatrol(95.99);
   const startWrap = evaluateSkyDragonPatrol(0.01);
   assert.ok(Math.hypot(endWrap.x - startWrap.x, endWrap.z - startWrap.z) < 2.5);
 });

@@ -1296,12 +1296,13 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const wtH2 = wtFloor3Y - wtFloor2Y;
   const wtH3 = 4.3;
 
+  const wtWall1H = wtH1 - 0.24;
   const wtFloor1Geo = new THREE.BoxGeometry(10.2, 0.25, 10.2);
   const wtUpperDeckMainGeo = new THREE.BoxGeometry(8.2, 0.24, 10.2);
   const wtUpperDeckSideGeo = new THREE.BoxGeometry(2.0, 0.24, 8.2);
-  const wtWallSolidZGeo = new THREE.BoxGeometry(11.65, wtH1, 0.65);
-  const wtWallSolidXGeo = new THREE.BoxGeometry(0.65, wtH1, 10.35);
-  const wtWallDoorFlankGeo = new THREE.BoxGeometry(4.1, wtH1, 0.65);
+  const wtWallSolidZGeo = new THREE.BoxGeometry(11.65, wtWall1H, 0.65);
+  const wtWallSolidXGeo = new THREE.BoxGeometry(0.65, wtWall1H, 10.3);
+  const wtWallDoorFlankGeo = new THREE.BoxGeometry(4.1, wtWall1H, 0.65);
   const wtCornerPillarGeo = new THREE.CylinderGeometry(0.32, 0.36, wtH2 + wtH3, 10);
   const wtParapetRailZGeo = new THREE.BoxGeometry(9.6, 1.05, 0.36);
   const wtParapetRailXGeo = new THREE.BoxGeometry(0.36, 1.05, 9.6);
@@ -1356,16 +1357,16 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
 
     const solidZWallPos = isSouth ? tw.cz + 5.5 : tw.cz - 5.5;
     const solidZWall = new THREE.Mesh(wtWallSolidZGeo, fortressStoneMat);
-    solidZWall.position.set(tw.cx, wtFloor1Y + wtH1 * 0.5, solidZWallPos);
+    solidZWall.position.set(tw.cx, wtFloor1Y + wtWall1H * 0.5, solidZWallPos);
     const westWall = new THREE.Mesh(wtWallSolidXGeo, fortressStoneMat);
-    westWall.position.set(tw.cx - 5.5, wtFloor1Y + wtH1 * 0.5, tw.cz);
+    westWall.position.set(tw.cx - 5.5, wtFloor1Y + wtWall1H * 0.5, tw.cz);
     const eastWall = new THREE.Mesh(wtWallSolidXGeo, fortressStoneMat);
-    eastWall.position.set(tw.cx + 5.5, wtFloor1Y + wtH1 * 0.5, tw.cz);
+    eastWall.position.set(tw.cx + 5.5, wtFloor1Y + wtWall1H * 0.5, tw.cz);
     fortressGroup.add(solidZWall, westWall, eastWall);
 
     for (const fx of [tw.cx - 3.45, tw.cx + 3.45]) {
       const fFlank = new THREE.Mesh(wtWallDoorFlankGeo, fortressStoneMat);
-      fFlank.position.set(fx, wtFloor1Y + wtH1 * 0.5, tw.doorZ);
+      fFlank.position.set(fx, wtFloor1Y + wtWall1H * 0.5, tw.doorZ);
       fortressGroup.add(fFlank);
     }
 
@@ -1410,33 +1411,33 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     }
 
     const outerZWallFloor2 = new THREE.Mesh(wtParapetRailZGeo, fortressStoneMat);
-    outerZWallFloor2.position.set(tw.cx, wtFloor2Y + 0.52, isSouth ? tw.cz + 5.2 : tw.cz - 5.2);
+    outerZWallFloor2.position.set(tw.cx, wtFloor2Y + 0.53, isSouth ? tw.cz + 5.2 : tw.cz - 5.2);
     const outerXWallFloor2 = new THREE.Mesh(wtParapetRailXGeo, fortressStoneMat);
-    outerXWallFloor2.position.set(isWest ? tw.cx - 5.2 : tw.cx + 5.2, wtFloor2Y + 0.52, tw.cz);
+    outerXWallFloor2.position.set(isWest ? tw.cx - 5.2 : tw.cx + 5.2, wtFloor2Y + 0.53, tw.cz);
     fortressGroup.add(outerZWallFloor2, outerXWallFloor2);
 
     const innerZRail = new THREE.Mesh(wtFloor2InnerParapetZGeo, archAssets.imperialCrimsonMat);
     innerZRail.position.set(
       tw.cx + (isWest ? 1.7 : -1.7),
-      wtFloor2Y + 0.52,
+      wtFloor2Y + 0.53,
       isSouth ? tw.cz - 5.2 : tw.cz + 5.2
     );
     const innerXRail = new THREE.Mesh(wtFloor2InnerParapetXGeo, archAssets.imperialCrimsonMat);
     innerXRail.position.set(
       isWest ? tw.cx + 5.2 : tw.cx - 5.2,
-      wtFloor2Y + 0.52,
+      wtFloor2Y + 0.53,
       tw.cz + (isSouth ? -1.7 : 1.7)
     );
     fortressGroup.add(innerZRail, innerXRail);
 
     for (const rz of [tw.cz - 5.2, tw.cz + 5.2]) {
       const railZ = new THREE.Mesh(wtParapetRailZGeo, archAssets.imperialCrimsonMat);
-      railZ.position.set(tw.cx, wtFloor3Y + 0.52, rz);
+      railZ.position.set(tw.cx, wtFloor3Y + 0.53, rz);
       fortressGroup.add(railZ);
     }
     for (const rx of [tw.cx - 5.2, tw.cx + 5.2]) {
       const railX = new THREE.Mesh(wtParapetRailXGeo, archAssets.imperialCrimsonMat);
-      railX.position.set(rx, wtFloor3Y + 0.52, tw.cz);
+      railX.position.set(rx, wtFloor3Y + 0.53, tw.cz);
       fortressGroup.add(railX);
     }
 
@@ -1928,6 +1929,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     bedZ: number
   ): ReadonlyArray<readonly [number, number, number]> => {
     const sideSign = isWest ? -1 : 1;
+    const isInnerWallBed = Math.abs(bedX) < 23.0;
     return [
       ...startWps,
       [sideSign * 30.0, summitY, -153.5 + FZ],
@@ -1935,7 +1937,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       [sideSign * 36.9, pavFloor1Y, -159.0 + FZ],
       [sideSign * 36.9, pavFloor2Y, -168.4 + FZ],
       [sideSign * 34.2, pavFloor2Y, -168.4 + FZ],
-      [bedX, pavFloor2Y, -167.8 + FZ],
+      isInnerWallBed
+        ? [sideSign * 24.5, pavFloor2Y, -167.8 + FZ]
+        : [bedX, pavFloor2Y, -167.8 + FZ],
+      ...(isInnerWallBed ? ([[sideSign * 24.5, pavFloor2Y, bedZ]] as const) : []),
       [bedX, bedTop2Y, bedZ],
     ];
   };
@@ -1949,8 +1954,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     makePav2FBedRoute(
       [
         [startX, hallFloor2Y, startZ],
-        [11.5, hallFloor2Y, -207.2 + FZ],
-        [16.0, hallFloor2Y, -207.2 + FZ],
+        [startX, hallFloor2Y, hallCenterZ],
+        [11.5, hallFloor2Y, hallCenterZ],
+        [11.5, hallFloor2Y, -207.5 + FZ],
+        [16.0, hallFloor2Y, -207.5 + FZ],
         [16.0, hallFloor1Y, -193.2 + FZ],
         [0.0, hallFloor1Y, -191.5 + FZ],
         [0.0, summitY, -187.5 + FZ],
@@ -2000,17 +2007,17 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     disposableMaterials,
   });
 
-  // 4 Dummy-Training Monks practicing attacks against the 4 wooden dummies (dummy_monk_0 continues training at night; 1..3 sleep in 2F Barracks)
+  // 4 Dummy-Training Monks practicing attacks against the 4 wooden dummies (all 4 sleep in 2F Barracks at night)
   const dummyMonkPlacements: Array<{
     x: number;
     y: number;
     z: number;
     yaw: number;
     dIdx: number;
-    staysAwakeAtNight: boolean;
     isWest: boolean;
     bedX: number;
     bedZ: number;
+    bedYaw: number;
   }> = [
     {
       x: -14.5,
@@ -2018,10 +2025,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       z: -145.65 + FZ,
       yaw: 0,
       dIdx: courtyardDummyIndices[0] ?? 0,
-      staysAwakeAtNight: true,
       isWest: true,
-      bedX: -32.6,
-      bedZ: -170.18 + FZ,
+      bedX: -22.38,
+      bedZ: -162.7 + FZ,
+      bedYaw: -Math.PI / 2,
     },
     {
       x: 14.5,
@@ -2029,10 +2036,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       z: -145.65 + FZ,
       yaw: 0,
       dIdx: courtyardDummyIndices[1] ?? 1,
-      staysAwakeAtNight: false,
       isWest: false,
       bedX: 32.6,
       bedZ: -170.18 + FZ,
+      bedYaw: 0,
     },
     {
       x: -14.5,
@@ -2040,10 +2047,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       z: -161.65 + FZ,
       yaw: 0,
       dIdx: courtyardDummyIndices[2] ?? 2,
-      staysAwakeAtNight: false,
       isWest: true,
       bedX: -32.6,
       bedZ: -170.18 + FZ,
+      bedYaw: 0,
     },
     {
       x: 14.5,
@@ -2051,10 +2058,10 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       z: -161.65 + FZ,
       yaw: 0,
       dIdx: courtyardDummyIndices[3] ?? 3,
-      staysAwakeAtNight: false,
       isWest: false,
       bedX: 30.5,
       bedZ: -170.18 + FZ,
+      bedYaw: 0,
     },
   ];
   for (let m = 0; m < dummyMonkPlacements.length; m++) {
@@ -2069,14 +2076,11 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       baseYaw: dm.yaw,
       phaseOffset: m * 0.85,
       dummyIndex: dm.dIdx,
-      staysAwakeAtNight: dm.staysAwakeAtNight,
       bedX: dm.bedX,
       bedY: bedTop2Y,
       bedZ: dm.bedZ,
-      bedYaw: 0,
-      sleepRoute: dm.staysAwakeAtNight
-        ? undefined
-        : makePav2FBedRoute([[dm.x, dm.y, dm.z]], dm.isWest, dm.bedX, dm.bedZ),
+      bedYaw: dm.bedYaw,
+      sleepRoute: makePav2FBedRoute([[dm.x, dm.y, dm.z]], dm.isWest, dm.bedX, dm.bedZ),
       weaponVisible: true,
       isSoftwareGl,
       disposableGeometries,
@@ -2168,7 +2172,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     disposableMaterials,
   });
 
-  // 4 Monks actively training inside the 2F Dojo of the Main Imperial Citadel Hall (1 continues training at night; 3 sleep in 2F Barracks)
+  // 4 Monks actively training inside the 2F Dojo of the Main Imperial Citadel Hall (all 4 sleep in 2F Barracks at night)
   spawnTempleMonk({
     id: 'dojo_monk_0',
     role: 'dojo_trainer',
@@ -2179,7 +2183,11 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     baseYaw: Math.PI,
     phaseOffset: 0.3,
     dummyIndex: dojoDummyIndices[0],
-    staysAwakeAtNight: true,
+    bedX: -22.38,
+    bedY: bedTop2Y,
+    bedZ: -160.75 + FZ,
+    bedYaw: -Math.PI / 2,
+    sleepRoute: makeDojoTo2FBedRoute(-7.5, hallCenterZ - 1.75, true, -22.38, -160.75 + FZ),
     weaponVisible: true,
     isSoftwareGl,
     disposableGeometries,
@@ -2208,6 +2216,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   spawnTempleMonk({
     id: 'dojo_monk_2',
     role: 'dojo_trainer',
+    partnerId: 'dojo_monk_3',
     parent: fortressGroup,
     homeX: 5.5,
     homeY: hallFloor2Y,
@@ -2227,6 +2236,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   spawnTempleMonk({
     id: 'dojo_monk_3',
     role: 'dojo_trainer',
+    partnerId: 'dojo_monk_2',
     parent: fortressGroup,
     homeX: 5.5,
     homeY: hallFloor2Y,
@@ -2244,9 +2254,16 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     disposableMaterials,
   });
 
-  // 3 Hot Spring Commuter Monks walking from the Chinese Fortress down the Grand Staircase & northern trail to the Hot Spring and back (sleep in 2F Barracks at night)
+  // 3 Hot Spring Commuter Monks walking from the Chinese Fortress down the Grand Staircase & northern trail to the raised 34.0m Hot Spring Sanctuary and back (sleep in 2F Barracks at night)
   const hsX = NORDIC_FROST_SHRINE_POS.x;
   const hsZ = NORDIC_FROST_SHRINE_POS.z;
+  const hsFloorY = NORDIC_FROST_SHRINE_POS.floorY;
+  const hsShallowY = NORDIC_FROST_SHRINE_POS.shallowShelfY;
+  const hsMidY = NORDIC_FROST_SHRINE_POS.midShelfY;
+  const gateX = NORDIC_FROST_SHRINE_POS.gateCenterX;
+  const gateZ = NORDIC_FROST_SHRINE_POS.gateZ;
+  const stairBotZ = NORDIC_FROST_SHRINE_POS.stairBottomZ;
+  const stairBotY = NORDIC_FROST_SHRINE_POS.stairBottomY;
   const stairMidH = CHINESE_FORTRESS_POS.midLandingHeight;
   const stairFootH = CHINESE_FORTRESS_POS.stairBaseHeight;
   const sharedFortressToHotSpringTrail: ReadonlyArray<readonly [number, number, number]> = [
@@ -2259,8 +2276,9 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     [-195.0, groundHeightAt(-195.0, -195.0), -195.0],
     [-240.0, groundHeightAt(-240.0, -225.0), -225.0],
     [-285.0, groundHeightAt(-285.0, -255.0), -255.0],
-    [-312.0, 18.5, -272.0],
-    [hsX, 18.5, hsZ + 11.6],
+    [gateX, stairBotY, stairBotZ],
+    [gateX, hsFloorY, gateZ - 2.0],
+    [hsX, hsFloorY, hsZ + 11.6],
   ];
   spawnTempleMonk({
     id: 'hotspring_commuter_0',
@@ -2273,8 +2291,8 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     phaseOffset: 0.2,
     patrolWaypoints: [
       ...sharedFortressToHotSpringTrail,
-      [hsX, 17.92, hsZ + 8.5],
-      [hsX, 17.5, hsZ + 5.5],
+      [hsX, hsShallowY, hsZ + 8.5],
+      [hsX, hsMidY, hsZ + 5.5],
     ],
     bedX: -24.2,
     bedY: bedTop2Y,
@@ -2295,10 +2313,12 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -135.0 + FZ,
     baseYaw: 0,
     phaseOffset: 2.0,
+    initialCommuteState: 'to_spring',
+    initialCommuteCursor: 6,
     patrolWaypoints: [
       ...sharedFortressToHotSpringTrail,
-      [hsX - 11.0, 18.5, hsZ + 10.5],
-      [hsX - 14.05, 18.5, hsZ + 1.8],
+      [hsX - 11.5, hsFloorY, hsZ + 10.5],
+      [hsX - 15.0, hsFloorY, hsZ + 1.8],
     ],
     bedX: 22.38,
     bedY: bedTop2Y,
@@ -2319,10 +2339,12 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     homeZ: -135.0 + FZ,
     baseYaw: 0,
     phaseOffset: 3.7,
+    initialCommuteState: 'at_spring',
+    initialCommutePauseTimer: 12.0,
     patrolWaypoints: [
       ...sharedFortressToHotSpringTrail,
-      [hsX, 17.92, hsZ + 8.5],
-      [hsX + 4.0, 17.92, hsZ + 4.5],
+      [hsX, hsShallowY, hsZ + 8.5],
+      [hsX + 4.0, hsShallowY, hsZ + 4.5],
     ],
     bedX: -22.38,
     bedY: bedTop2Y,
@@ -2347,17 +2369,18 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   // --- 9) 3 TALL TWO-STORY HILL WATCHTOWERS ---
   const hwBasePlinthGeo = new THREE.BoxGeometry(7.8, 1.4, 7.8);
   const hwGroundFloorWoodGeo = new THREE.BoxGeometry(7.0, 0.22, 7.0);
-  const hwFloor1WallH = 9.0;
+  const hwRoofSupportY = 9.0;
+  const hwFloor1WallH = hwRoofSupportY - 0.24;
   const hwWallSolidZGeo = new THREE.BoxGeometry(7.2, hwFloor1WallH, 0.46);
-  const hwWallSolidXGeo = new THREE.BoxGeometry(0.46, hwFloor1WallH, 7.2);
+  const hwWallSolidXGeo = new THREE.BoxGeometry(0.46, hwFloor1WallH, 6.44);
   const hwWallDoorFlankGeo = new THREE.BoxGeometry(2.5, hwFloor1WallH, 0.46);
-  const hwWallDoorLintelGeo = new THREE.BoxGeometry(2.3, hwFloor1WallH - 3.2, 0.48);
+  const hwWallDoorLintelGeo = new THREE.BoxGeometry(2.18, hwFloor1WallH - 3.2, 0.48);
   const hwDeckMainGeo = new THREE.BoxGeometry(7.2, 0.24, 5.2);
   const hwDeckSideStripGeo = new THREE.BoxGeometry(4.9, 0.24, 2.0);
   const hwUpperPillarGeo = new THREE.CylinderGeometry(0.24, 0.28, 4.2, 8);
   hwUpperPillarGeo.translate(0, 2.1, 0);
   const hwRailFullZGeo = new THREE.BoxGeometry(7.2, 0.98, 0.2);
-  const hwRailFullXGeo = new THREE.BoxGeometry(0.2, 0.98, 7.2);
+  const hwRailFullXGeo = new THREE.BoxGeometry(0.2, 0.98, 6.76);
   const hwRailBridgeFlankGeo = new THREE.BoxGeometry(1.9, 0.98, 0.2);
   const hwBridgeGatePostGeo = new THREE.BoxGeometry(0.26, 1.28, 0.26);
   const hwLadderRailGeo = new THREE.BoxGeometry(0.11, 9.2, 0.11);
@@ -2453,13 +2476,13 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     hwGroup.add(guardTable, guardCrate, hwSleepingBag, archAssets.createRedChineseLantern(0, 4.25, 0));
 
     const hwSkirtRoof1 = archAssets.createChinesePerimeterSkirtRoof(7.6, 7.6, 1.55, 0.95);
-    hwSkirtRoof1.position.set(0, hwFloor1WallH + 0.12, 0);
+    hwSkirtRoof1.position.set(0, hwRoofSupportY + 0.04, 0);
     hwGroup.add(hwSkirtRoof1);
 
     for (const px of [-3.25, 3.25]) {
       for (const pz of [-3.25, 3.25]) {
         const col = new THREE.Mesh(hwUpperPillarGeo, archAssets.imperialCrimsonMat);
-        col.position.set(px, hwFloor1WallH, pz);
+        col.position.set(px, hwRoofSupportY, pz);
         hwGroup.add(col);
       }
     }
@@ -2484,22 +2507,22 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
       if (hw.bridgeSideLocalZ === sideZ) {
         for (const sideX of [-1, 1]) {
           const rFlank = new THREE.Mesh(hwRailBridgeFlankGeo, archAssets.imperialCrimsonMat);
-          rFlank.position.set(sideX * 2.6, deckH + 0.49, rz);
+          rFlank.position.set(sideX * 2.6, deckH + 0.495, rz);
           const gatePost = new THREE.Mesh(hwBridgeGatePostGeo, archAssets.imperialGoldMat);
-          gatePost.position.set(sideX * 1.65, deckH + 0.64, rz);
+          gatePost.position.set(sideX * 1.65, deckH + 0.645, rz);
           hwGroup.add(rFlank, gatePost);
         }
       } else {
         const rFullZ = new THREE.Mesh(hwRailFullZGeo, archAssets.imperialCrimsonMat);
-        rFullZ.position.set(0, deckH + 0.49, rz);
+        rFullZ.position.set(0, deckH + 0.495, rz);
         hwGroup.add(rFullZ);
       }
     }
 
     const rW = new THREE.Mesh(hwRailFullXGeo, archAssets.imperialCrimsonMat);
-    rW.position.set(-3.5, deckH + 0.49, 0);
+    rW.position.set(-3.5, deckH + 0.495, 0);
     const rE = new THREE.Mesh(hwRailFullXGeo, archAssets.imperialCrimsonMat);
-    rE.position.set(3.5, deckH + 0.49, 0);
+    rE.position.set(3.5, deckH + 0.495, 0);
     hwGroup.add(rW, rE);
 
     const hwRoof = archAssets.createChinesePagodaRoof(9.6, 9.6, 3.0);
@@ -2598,7 +2621,7 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
     midPylonGroup.add(overheadBeam);
   }
   const saddleDeck = new THREE.Mesh(pylonSaddleDeckGeo, imperialWoodFloorMat);
-  saddleDeck.position.set(0, saddleLocalY - 0.14, 0);
+  saddleDeck.position.set(0, saddleLocalY - 0.26, 0);
   midPylonGroup.add(
     saddleDeck,
     archAssets.createRedChineseLantern(-1.75, saddleLocalY + 3.15, 0),
@@ -2607,8 +2630,12 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   ropeBridgeGroup.add(midPylonGroup);
 
   const numBridgePlanks = 116;
-  const tStart = ROPE_BRIDGE_DEF.deckEdgeT;
-  const tEnd = 1.0 - ROPE_BRIDGE_DEF.deckEdgeT;
+  const rbLen = Math.hypot(
+    ROPE_BRIDGE_DEF.bx - ROPE_BRIDGE_DEF.ax,
+    ROPE_BRIDGE_DEF.bz - ROPE_BRIDGE_DEF.az
+  );
+  const tStart = 3.82 / rbLen;
+  const tEnd = 1.0 - tStart;
   const perpRightX = Math.cos(rbBridgeYaw);
   const perpRightZ = -Math.sin(rbBridgeYaw);
   const leftHandPoints: THREE.Vector3[] = [];

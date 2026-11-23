@@ -62,8 +62,8 @@ export const SACRED_CLOUD_MOUNTAIN_POS = {
 export const CHINESE_BAGUA_PLATFORM_POS = {
   x: -294.0,
   z: -290.0,
-  baseY: 18.5,
-  deckY: 19.7,
+  baseY: 34.0,
+  deckY: 35.2,
   radius: 6.4,
 } as const;
 
@@ -808,7 +808,7 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + diff * t;
 }
 
-const SKY_DRAGON_CYCLE_SEC = 72.0;
+const SKY_DRAGON_CYCLE_SEC = 96.0;
 const FORT_HOVER_X = 22.0;
 const FORT_HOVER_Y = 95.0;
 const FORT_HOVER_Z = -265.0;
@@ -890,9 +890,34 @@ function sampleSkyDragonPos(tRaw: number): {
       pitchOverride: flarePitch,
     };
   }
-  if (t < 53.8) {
-    // Showcase ALL non-attack grounded animations along the clear northwest summit meadow (keeping dry & clear of tree/pond)
-    if (t < 40.5) {
+  if (t < 76.0) {
+    // Showcase ALL 12 grounded non-attack, non-death animations unhurriedly across spacious NW summit meadow arcs
+    const wpA: readonly [number, number] = [perchX, perchZ]; // (97.5, -774.5)
+    const wpB: readonly [number, number] = [92.5, -773.2];
+    const wpC: readonly [number, number] = [88.8, -770.2];
+    const wpD: readonly [number, number] = [86.8, -765.8];
+    const wpE: readonly [number, number] = [88.5, -761.0];
+
+    const yawAB = Math.atan2(wpB[0] - wpA[0], wpB[1] - wpA[1]);
+    const yawBC = Math.atan2(wpC[0] - wpB[0], wpC[1] - wpB[1]);
+    const yawCD = Math.atan2(wpD[0] - wpC[0], wpD[1] - wpC[1]);
+    const yawDE = Math.atan2(wpE[0] - wpD[0], wpE[1] - wpD[1]);
+    const yawEA = Math.atan2(wpA[0] - wpE[0], wpA[1] - wpE[1]);
+    const roarYaw = 0.42;
+
+    const perchedYawAt = (time: number): number => {
+      if (time < 41.3) return lerpAngle(perchYaw, yawAB, smoothstep01(39.8, 41.3, time));
+      if (time < 43.9) return lerpAngle(yawAB, roarYaw, smoothstep01(42.2, 43.9, time));
+      if (time < 46.4) return lerpAngle(roarYaw, yawBC, smoothstep01(45.0, 46.4, time));
+      if (time < 49.6) return lerpAngle(yawBC, yawCD, smoothstep01(48.4, 49.6, time));
+      if (time < 52.6) return lerpAngle(yawCD, yawDE, smoothstep01(51.4, 52.6, time));
+      if (time < 55.6) return lerpAngle(yawDE, yawEA, smoothstep01(53.8, 55.6, time));
+      return lerpAngle(yawEA, perchYaw, smoothstep01(56.6, 58.4, time));
+    };
+
+    const yaw = perchedYawAt(t);
+
+    if (t < 40.8) {
       return {
         phase: 'perched_summit',
         animState: 'idle',
@@ -900,106 +925,91 @@ function sampleSkyDragonPos(tRaw: number): {
         y: perchY,
         z: perchZ,
         bank: 0,
-        forcedYaw: perchYaw,
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
-    const wpA: readonly [number, number] = [perchX, perchZ]; // (97.5, -774.5)
-    const wpB: readonly [number, number] = [93.5, -773.0];
-    const wpC: readonly [number, number] = [90.8, -770.8];
-    const wpD: readonly [number, number] = [89.6, -768.2];
-    const wpE: readonly [number, number] = [93.2, -771.6];
 
-    if (t < 41.8) {
-      const u = smoothstep01(40.5, 41.8, t);
-      const x = wpA[0] + (wpB[0] - wpA[0]) * u;
-      const z = wpA[1] + (wpB[1] - wpA[1]) * u;
+    if (t < 43.4) {
+      const u = smoothstep01(40.8, 43.4, t);
       return {
         phase: 'perched_summit',
         animState: 'walk',
-        x,
+        x: wpA[0] + (wpB[0] - wpA[0]) * u,
         y: perchY,
-        z,
+        z: wpA[1] + (wpB[1] - wpA[1]) * u,
         bank: 0,
-        forcedYaw: Math.atan2(wpB[0] - wpA[0], wpB[1] - wpA[1]),
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
-    if (t < 43.0) {
-      const u = smoothstep01(41.8, 43.0, t);
-      const x = wpB[0] + (wpC[0] - wpB[0]) * u;
-      const z = wpB[1] + (wpC[1] - wpB[1]) * u;
-      return {
-        phase: 'perched_summit',
-        animState: 'stalk',
-        x,
-        y: perchY,
-        z,
-        bank: 0,
-        forcedYaw: Math.atan2(wpC[0] - wpB[0], wpC[1] - wpB[1]),
-        pitchOverride: 0,
-      };
-    }
-    if (t < 44.6) {
+    if (t < 46.0) {
       return {
         phase: 'perched_summit',
         animState: 'roar',
-        x: wpC[0],
+        x: wpB[0],
         y: perchY,
-        z: wpC[1],
+        z: wpB[1],
         bank: 0,
-        forcedYaw: 0.55,
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
-    if (t < 45.8) {
-      const u = smoothstep01(44.6, 45.8, t);
-      const x = wpC[0] + (wpD[0] - wpC[0]) * u;
-      const z = wpC[1] + (wpD[1] - wpC[1]) * u;
+    if (t < 49.2) {
+      const u = smoothstep01(46.0, 49.2, t);
+      return {
+        phase: 'perched_summit',
+        animState: 'stalk',
+        x: wpB[0] + (wpC[0] - wpB[0]) * u,
+        y: perchY,
+        z: wpB[1] + (wpC[1] - wpB[1]) * u,
+        bank: 0,
+        forcedYaw: yaw,
+        pitchOverride: 0,
+      };
+    }
+    if (t < 52.2) {
+      const u = smoothstep01(49.2, 52.2, t);
       return {
         phase: 'perched_summit',
         animState: 'trot',
-        x,
+        x: wpC[0] + (wpD[0] - wpC[0]) * u,
         y: perchY,
-        z,
+        z: wpC[1] + (wpD[1] - wpC[1]) * u,
         bank: 0,
-        forcedYaw: Math.atan2(wpD[0] - wpC[0], wpD[1] - wpC[1]),
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
-    if (t < 46.9) {
-      const u = smoothstep01(45.8, 46.9, t);
-      const x = wpD[0] + (wpE[0] - wpD[0]) * u;
-      const z = wpD[1] + (wpE[1] - wpD[1]) * u;
+    if (t < 55.0) {
+      const u = smoothstep01(52.2, 55.0, t);
       return {
         phase: 'perched_summit',
         animState: 'run',
-        x,
+        x: wpD[0] + (wpE[0] - wpD[0]) * u,
         y: perchY,
-        z,
+        z: wpD[1] + (wpE[1] - wpD[1]) * u,
         bank: 0,
-        forcedYaw: Math.atan2(wpE[0] - wpD[0], wpE[1] - wpD[1]),
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
-    if (t < 47.9) {
-      const u = smoothstep01(46.9, 47.9, t);
-      const x = wpE[0] + (wpA[0] - wpE[0]) * u;
-      const z = wpE[1] + (wpA[1] - wpE[1]) * u;
+    if (t < 57.8) {
+      const u = smoothstep01(55.0, 57.8, t);
       return {
         phase: 'perched_summit',
         animState: 'flee',
-        x,
+        x: wpE[0] + (wpA[0] - wpE[0]) * u,
         y: perchY,
-        z,
+        z: wpE[1] + (wpA[1] - wpE[1]) * u,
         bank: 0,
-        forcedYaw: lerpAngle(Math.atan2(wpA[0] - wpE[0], wpA[1] - wpE[1]), perchYaw, Math.max(0, (u - 0.6) / 0.4)),
+        forcedYaw: yaw,
         pitchOverride: 0,
       };
     }
 
     const stationaryClip: TSkyDragonNonAttackState =
-      t < 49.1 ? 'eat' : t < 50.2 ? 'sit' : t < 51.3 ? 'lie' : t < 52.5 ? 'sleep' : 'call';
+      t < 61.0 ? 'eat' : t < 64.2 ? 'sit' : t < 67.6 ? 'lie' : t < 71.8 ? 'sleep' : 'call';
     return {
       phase: 'perched_summit',
       animState: stationaryClip,
@@ -1007,12 +1017,12 @@ function sampleSkyDragonPos(tRaw: number): {
       y: perchY,
       z: perchZ,
       bank: 0,
-      forcedYaw: perchYaw,
+      forcedYaw: yaw,
       pitchOverride: 0,
     };
   }
-  if (t < 60.8) {
-    const u = (t - 53.8) / 7.0;
+  if (t < 83.5) {
+    const u = (t - 76.0) / 7.5;
     const [x, y, z] = hermite3D(
       [perchX, perchY, perchZ],
       [Math.sin(perchYaw) * 28.0, 18.0, Math.cos(perchYaw) * 28.0],
@@ -1031,7 +1041,7 @@ function sampleSkyDragonPos(tRaw: number): {
       pitchOverride: climbPitch,
     };
   }
-  const u = (t - 60.8) / 11.2;
+  const u = (t - 83.5) / 12.5;
   const [x, y, z] = hermite3D(
     takeoffEnd,
     [15.0, 24.0, 110.0],
@@ -1050,9 +1060,9 @@ function sampleSkyDragonPos(tRaw: number): {
 }
 
 /**
- * Summary: Evaluates the continuous 72s Sky Dragon patrol connecting Fortress aerial figure-8,
- *          northbound flight, spiral descent onto Sacred Cloud Mountain summit (103, 104.28, -773.5),
- *          summit perch (idle/roar/call), wing-spread takeoff, and return flight.
+ * Summary: Evaluates the continuous 96s Red Dragon patrol connecting Fortress aerial figure-8,
+ *          northbound flight, spiral descent onto Sacred Cloud Mountain summit (97.5, 104.14, -774.5),
+ *          unhurried summit showcase across all non-attack animations, wing-spread takeoff, and return flight.
  */
 export function evaluateSkyDragonPatrol(elapsedTime: number): ISkyDragonPatrolSample {
   const cur = sampleSkyDragonPos(elapsedTime);

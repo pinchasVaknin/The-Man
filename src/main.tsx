@@ -18,6 +18,7 @@ import { preloadAllSaddleModels } from './world/models/equipment/saddleAssets';
 import { preloadAllCharacterModels } from './world/models/Characters/characterAssets';
 import { preloadAllStatueModels } from './world/models/statues/statueAssets';
 import { preloadArcheryTargetModel } from './world/models/equipment/archeryTargetAssets';
+import { preloadShipModel } from './world/models/vehicles/shipAssets';
 import './index.css';
 // #endregion
 
@@ -56,6 +57,9 @@ queueMicrotask(() => {
         }),
         preloadArcheryTargetModel().catch((err: unknown) => {
             appServices.logger.warn('Archery target model could not be preloaded', { error: String(err) });
+        }),
+        preloadShipModel().catch((err: unknown) => {
+            appServices.logger.warn('Ship model could not be preloaded', { error: String(err) });
         }),
     ]).then(() => {
         preloadAllAnimalModels().catch((err: unknown) => {

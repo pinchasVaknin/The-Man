@@ -274,7 +274,7 @@ export const ATLANTIS_DEAD_KING_STATUE_POS = {
 export const SAILABLE_SHIP_INITIAL_POS = {
   id: 'sailable-ship',
   name: 'Royal Explorer Flagship',
-  homeX: 278.0,
+  homeX: 286.2,
   homeZ: 282.0,
   homeYaw: -Math.PI / 2, // Facing East (+X) toward Ruined Atlantis
   deckY: 2.85,
@@ -283,19 +283,31 @@ export const SAILABLE_SHIP_INITIAL_POS = {
 } as const;
 
 /**
- * Summary: Nordic Frost Giant Shrine & Geothermal Hot Springs Sanctuary in the North-West Snow Alpine region.
- * Design: Steaming turquoise geothermal spring pool surrounded by 8 glowing cyan-ice Nordic runestones,
- *         braziers, and a raised northern rune-altar dais that restores stamina to travelers.
+ * Summary: Northern Hot Springs & East-Asian Martial Sanctuary Citadel in the North-West Snow Alpine region.
+ * Design: Elevated granite sanctuary compound (`floorY = 34.0m`) standing cleanly above the surrounding hills,
+ *         enclosing an open-air (roofless) multi-depth steaming geothermal spring pool, a covered western onsen
+ *         tea & dining pavilion, a northern tea veranda & cloister gallery, and an eastern martial
+ *         training wing alongside the Yin-Yang Bagua sparring stage.
  */
 export const NORDIC_FROST_SHRINE_POS = {
   x: -320.0,
   z: -290.0,
-  floorY: 18.5,
-  poolWaterY: 18.25,
-  poolFloorY: 16.95,
-  altarDaisY: 19.45,
+  floorY: 34.0,
+  shallowShelfY: 33.42,
+  midShelfY: 33.0,
+  poolWaterY: 33.75,
+  poolFloorY: 32.45,
   poolRadius: 11.0,
-  outerRadius: 34.0,
+  outerRadius: 46.0,
+  compoundMinX: -344.0,
+  compoundMaxX: -274.0,
+  compoundMinZ: -317.0,
+  compoundMaxZ: -267.0,
+  gateCenterX: -310.0,
+  gateZ: -267.0,
+  gateHalfWidth: 5.0,
+  stairBottomZ: -255.0,
+  stairBottomY: 31.2,
 } as const;
 
 /**
@@ -540,7 +552,7 @@ export function floatingBloomingIslandHeightAt(
     return 3.18 + rampT * (FLOATING_ISLAND_STAIR_POS.footY - 3.18);
   }
 
-  // 7. Gentle Western Shoreline Landing Steps leading from sea level (x = 681.0, y = 1.15) up to the Entry Plaza (x = 697.5, y = 3.18)
+  // 7. Gentle Western Shoreline Landing Steps leading from sea level (x = 681.0, y = 0.32) up to the Entry Plaza (x = 697.5, y = 3.18)
   if (
     x >= FLOATING_ISLAND_STAIR_POS.entryRampStartX - 16.5 &&
     x < FLOATING_ISLAND_STAIR_POS.entryRampStartX &&
@@ -551,7 +563,7 @@ export function floatingBloomingIslandHeightAt(
       0,
       Math.min(1, (x - (FLOATING_ISLAND_STAIR_POS.entryRampStartX - 16.5)) / 16.5)
     );
-    return 1.15 + shoreT * (3.18 - 1.15);
+    return 0.32 + shoreT * (3.18 - 0.32);
   }
 
   return null;

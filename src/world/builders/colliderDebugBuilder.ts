@@ -13,6 +13,8 @@ import {
   getHillWatchtowerLocalWalls,
   FORTRESS_DOORS,
   HILL_WATCHTOWERS,
+  ROPE_BRIDGE_DEF,
+  ropeBridgePointInfoAt,
   CHINESE_FORTRESS_POS,
   SOUTHEAST_HARBOR_POS,
   SOUTHERN_MINE_POS,
@@ -153,6 +155,34 @@ export function buildColliderDebugWireframes(
         mesh.position.set(tw.x + lx * cosY + lz * sinY, bottom + height * 0.5, tw.z - lx * sinY + lz * cosY);
         mesh.scale.set(width, height, depth);
         mesh.rotation.y = tw.yaw;
+        group.add(mesh);
+      }
+    }
+  }
+
+  // 3b. ROPE_BRIDGE_DEF side guardrail colliders (Orange wireframes matching player physics)
+  {
+    const rbVx = ROPE_BRIDGE_DEF.bx - ROPE_BRIDGE_DEF.ax;
+    const rbVz = ROPE_BRIDGE_DEF.bz - ROPE_BRIDGE_DEF.az;
+    const rbLen = Math.hypot(rbVx, rbVz);
+    const rbYaw = Math.atan2(rbVx, rbVz);
+    const rightX = Math.cos(rbYaw);
+    const rightZ = -Math.sin(rbYaw);
+    const tMin = ROPE_BRIDGE_DEF.deckEdgeT;
+    const tMax = 1.0 - tMin;
+    const segCount = 24;
+    const segLen = ((tMax - tMin) * rbLen) / segCount;
+    for (let s = 0; s < segCount; s++) {
+      const tMid = tMin + ((s + 0.5) / segCount) * (tMax - tMin);
+      const cx = ROPE_BRIDGE_DEF.ax + tMid * rbVx;
+      const cz = ROPE_BRIDGE_DEF.az + tMid * rbVz;
+      const info = ropeBridgePointInfoAt(cx, cz);
+      const cy = info ? info.height : ROPE_BRIDGE_DEF.my;
+      for (const sideSign of [-1, 1]) {
+        const mesh = new THREE.Mesh(unitBoxGeo, stairGuardWireMat);
+        mesh.position.set(cx + sideSign * 1.24 * rightX, cy + 0.58, cz + sideSign * 1.24 * rightZ);
+        mesh.scale.set(0.12, 1.16, segLen);
+        mesh.rotation.y = rbYaw;
         group.add(mesh);
       }
     }

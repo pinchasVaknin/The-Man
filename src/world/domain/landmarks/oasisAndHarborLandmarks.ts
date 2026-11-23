@@ -244,7 +244,7 @@ export const SOUTHEAST_HARBOR_POS = {
   x: 235.0,
   z: 252.0,
   plazaY: 3.2,
-  waterY: 1.25,
+  waterY: 0.0,
   gateX: 200.0,
   gateZ: 244.0,
   wallWestX: 200.0,

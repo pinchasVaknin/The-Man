@@ -9,6 +9,12 @@
  */
 
 import { steerAroundWalls } from '../domain/wallNavigation';
+import {
+  createMonkNavMemory,
+  stepMonkWalkWithRerouting,
+  type IMonkNavMemory,
+  type IMonkNavPeer,
+} from '../domain/monkNavigation';
 import * as THREE from 'three';
 import {
   WarriorMonk,
@@ -144,7 +150,15 @@ export interface IActiveTempleMonk {
   commuteState?: HotSpringCommuteState;
   commuteCursor?: number;
   commutePauseTimer?: number;
+  initialCommuteState?: HotSpringCommuteState;
+  initialCommuteCursor?: number;
+  initialCommutePauseTimer?: number;
   dummyIndex?: number;
+  partnerId?: string;
+  restBenchX?: number;
+  restBenchY?: number;
+  restBenchZ?: number;
+  restBenchYaw?: number;
   phaseOffset: number;
   scheduleTimer: number;
   scheduleStage: number;
@@ -161,6 +175,11 @@ export interface IActiveTempleMonk {
   teleportPartsGroup?: THREE.Group;
   teleportShards?: IMonkTeleportShard[];
   teleportState?: IMonkTeleportSequence | null;
+  navMemory: IMonkNavMemory;
+  prevFrameX: number;
+  prevFrameZ: number;
+  velX: number;
+  velZ: number;
 }
 
 const activeTempleMonks: IActiveTempleMonk[] = [];
@@ -274,9 +293,33 @@ export function resetActiveTempleMonksState(): void {
     mk.sleepCursor = 0;
     mk.waypointIndex = 0;
     if (mk.role === 'hotspring_commuter') {
-      mk.commuteState = 'to_spring';
-      mk.commuteCursor = 1;
-      mk.commutePauseTimer = 0;
+      const wps = mk.patrolWaypoints;
+      if (wps && wps.length >= 2 && mk.initialCommuteState !== undefined) {
+        mk.commuteState = mk.initialCommuteState;
+        if (mk.initialCommuteState === 'at_spring') {
+          const lastIdx = wps.length - 1;
+          mk.commuteCursor = lastIdx;
+          mk.commutePauseTimer = mk.initialCommutePauseTimer ?? 12.0;
+          mk.x = wps[lastIdx][0];
+          mk.y = wps[lastIdx][1];
+          mk.z = wps[lastIdx][2];
+          mk.yaw = Math.atan2(NORDIC_FROST_SHRINE_POS.x - mk.x, NORDIC_FROST_SHRINE_POS.z - mk.z);
+        } else {
+          const c = Math.max(1, Math.min(wps.length - 1, mk.initialCommuteCursor ?? 1));
+          const prevWp = wps[Math.max(0, c - 1)];
+          const nextWp = wps[c];
+          mk.commuteCursor = c;
+          mk.commutePauseTimer = 0;
+          mk.x = prevWp[0];
+          mk.y = prevWp[1];
+          mk.z = prevWp[2];
+          mk.yaw = Math.atan2(nextWp[0] - prevWp[0], nextWp[2] - prevWp[2]);
+        }
+      } else {
+        mk.commuteState = 'to_spring';
+        mk.commuteCursor = 1;
+        mk.commutePauseTimer = 0;
+      }
     }
     mk.scheduleTimer = (mk.phaseOffset * 1.7) % 3.2;
     mk.scheduleStage = Math.floor(mk.phaseOffset * 3) % 5;
@@ -305,6 +348,11 @@ export function resetActiveTempleMonksState(): void {
     mk.ctrl.setState(startsInBed ? 'sleep' : mk.role === 'courtyard_bench' ? 'sit' : 'idle', 0.05);
     mk.group.position.set(mk.x, mk.y, mk.z);
     mk.group.rotation.set(0, mk.yaw, 0);
+    mk.navMemory = createMonkNavMemory(mk.x, mk.z);
+    mk.prevFrameX = mk.x;
+    mk.prevFrameZ = mk.z;
+    mk.velX = 0;
+    mk.velZ = 0;
   }
 }
 
@@ -377,6 +425,14 @@ export function spawnTempleMonk(config: {
   scale?: number;
   dummyIndex?: number;
   patrolWaypoints?: ReadonlyArray<readonly [number, number, number]>;
+  initialCommuteState?: HotSpringCommuteState;
+  initialCommuteCursor?: number;
+  initialCommutePauseTimer?: number;
+  partnerId?: string;
+  restBenchX?: number;
+  restBenchY?: number;
+  restBenchZ?: number;
+  restBenchYaw?: number;
   isSoftwareGl?: boolean;
   disposableGeometries?: THREE.BufferGeometry[];
   disposableMaterials?: THREE.Material[];
@@ -401,10 +457,43 @@ export function spawnTempleMonk(config: {
     config.bedX !== undefined &&
     normalizedBedY !== undefined &&
     config.bedZ !== undefined;
-  const initX = startsInBed ? config.bedX! : config.homeX;
-  const initY = startsInBed ? normalizedBedY! : config.homeY;
-  const initZ = startsInBed ? config.bedZ! : config.homeZ;
-  const initYaw = startsInBed ? (config.bedYaw ?? config.baseYaw) : config.baseYaw;
+  let initX = startsInBed ? config.bedX! : config.homeX;
+  let initY = startsInBed ? normalizedBedY! : config.homeY;
+  let initZ = startsInBed ? config.bedZ! : config.homeZ;
+  let initYaw = startsInBed ? (config.bedYaw ?? config.baseYaw) : config.baseYaw;
+
+  let initCommuteState: HotSpringCommuteState | undefined =
+    config.role === 'hotspring_commuter' ? config.initialCommuteState ?? 'to_spring' : undefined;
+  let initCommuteCursor = config.role === 'hotspring_commuter' ? config.initialCommuteCursor ?? 1 : 0;
+  let initCommutePauseTimer = 0;
+  if (
+    !startsInBed &&
+    config.role === 'hotspring_commuter' &&
+    config.patrolWaypoints &&
+    config.patrolWaypoints.length >= 2 &&
+    config.initialCommuteState !== undefined
+  ) {
+    const wps = config.patrolWaypoints;
+    if (config.initialCommuteState === 'at_spring') {
+      const lastIdx = wps.length - 1;
+      initCommuteCursor = lastIdx;
+      initCommutePauseTimer = config.initialCommutePauseTimer ?? 12.0;
+      initX = wps[lastIdx][0];
+      initY = wps[lastIdx][1];
+      initZ = wps[lastIdx][2];
+      initYaw = Math.atan2(NORDIC_FROST_SHRINE_POS.x - initX, NORDIC_FROST_SHRINE_POS.z - initZ);
+    } else {
+      const c = Math.max(1, Math.min(wps.length - 1, config.initialCommuteCursor ?? 1));
+      const prevWp = wps[Math.max(0, c - 1)];
+      const nextWp = wps[c];
+      initCommuteState = config.initialCommuteState;
+      initCommuteCursor = c;
+      initX = prevWp[0];
+      initY = prevWp[1];
+      initZ = prevWp[2];
+      initYaw = Math.atan2(nextWp[0] - prevWp[0], nextWp[2] - prevWp[2]);
+    }
+  }
 
   // Build default routeToPost if bedX/bedZ are provided without an explicit routeToPost
   const FZ = FORTRESS_Z_OFFSET;
@@ -617,10 +706,18 @@ export function spawnTempleMonk(config: {
     isReturningFromAggro: false,
     patrolWaypoints: config.patrolWaypoints,
     waypointIndex: 0,
-    commuteState: config.role === 'hotspring_commuter' ? 'to_spring' : undefined,
-    commuteCursor: config.role === 'hotspring_commuter' ? 1 : 0,
-    commutePauseTimer: 0,
+    commuteState: initCommuteState,
+    commuteCursor: initCommuteCursor,
+    commutePauseTimer: initCommutePauseTimer,
+    initialCommuteState: config.initialCommuteState,
+    initialCommuteCursor: config.initialCommuteCursor,
+    initialCommutePauseTimer: config.initialCommutePauseTimer,
     dummyIndex: config.dummyIndex,
+    partnerId: config.partnerId,
+    restBenchX: config.restBenchX,
+    restBenchY: config.restBenchY,
+    restBenchZ: config.restBenchZ,
+    restBenchYaw: config.restBenchYaw,
     phaseOffset: config.phaseOffset,
     scheduleTimer: (config.phaseOffset * 1.7) % 3.2,
     scheduleStage: Math.floor(config.phaseOffset * 3) % 5,
@@ -637,13 +734,24 @@ export function spawnTempleMonk(config: {
     teleportPartsGroup,
     teleportShards,
     teleportState: null,
+    navMemory: createMonkNavMemory(initX, initZ),
+    prevFrameX: initX,
+    prevFrameZ: initZ,
+    velX: 0,
+    velZ: 0,
   };
 
   if (startsInBed) {
     ctrl.setState('sleep', 0.01);
   } else if (config.role === 'courtyard_bench') {
     ctrl.setState('sit', 0.01);
+  } else if (config.role === 'dummy_trainer' || config.role === 'dojo_trainer' || config.role === 'bagua_sparring') {
+    const initialKataAnims: readonly WarriorMonkState[] = ['attack1', 'attack2', 'staff_spin', 'attack3'];
+    ctrl.setState(initialKataAnims[monk.scheduleStage % initialKataAnims.length], 0.01);
+  } else if (config.role === 'hotspring_commuter' && initCommuteState !== 'at_spring') {
+    ctrl.setState('walk', 0.01);
   }
+  ctrl.setNormalizedPhase((config.phaseOffset * 0.37) % 1.0);
 
   activeTempleMonks.push(monk);
   return monk;
@@ -854,6 +962,65 @@ function rotateAngleToward(current: number, target: number, maxStep: number): nu
 }
 
 /**
+ * Summary: Resolves a paired sparrer's designated partner monk.
+ */
+function findSparringPartner(mk: IActiveTempleMonk): IActiveTempleMonk | undefined {
+  if (mk.partnerId) {
+    for (let i = 0; i < activeTempleMonks.length; i++) {
+      if (activeTempleMonks[i].id === mk.partnerId) {
+        return activeTempleMonks[i];
+      }
+    }
+    return undefined;
+  }
+  let bestDist = 8.0;
+  let partner: IActiveTempleMonk | undefined;
+  for (let i = 0; i < activeTempleMonks.length; i++) {
+    const other = activeTempleMonks[i];
+    if (other.id === mk.id || other.role !== mk.role) continue;
+    if (other.role === 'dojo_trainer' && other.dummyIndex !== undefined) continue;
+    const d = Math.hypot(other.homeX - mk.homeX, other.homeZ - mk.homeZ);
+    if (d < bestDist) {
+      bestDist = d;
+      partner = other;
+    }
+  }
+  return partner;
+}
+
+/**
+ * Summary: Returns true when a paired sparrer's partner exists, is peaceful, awake, and on-shift (can meet in the arena).
+ */
+function isSparringPartnerAvailableToMeet(mk: IActiveTempleMonk): boolean {
+  const partner = findSparringPartner(mk);
+  if (!partner) return false;
+  if (
+    partner.isAggro ||
+    Boolean(partner.teleportState) ||
+    partner.deflectTimer > 0 ||
+    Boolean(partner.isReturningFromAggro) ||
+    Boolean(partner.isLeashedReturning)
+  ) {
+    return false;
+  }
+  if ((partner.sleepState ?? 'awake') !== 'awake') return false;
+  if (partner.shiftState && partner.shiftState !== 'on_post') return false;
+  return true;
+}
+
+/**
+ * Summary: Returns true only when a paired sparrer's partner is both available and standing ready at their sparring mark.
+ */
+function isSparringPartnerInPosition(mk: IActiveTempleMonk): boolean {
+  if (!isSparringPartnerAvailableToMeet(mk)) return false;
+  const partner = findSparringPartner(mk);
+  if (!partner) return false;
+  const partnerHomeDist = Math.hypot(partner.x - partner.homeX, partner.z - partner.homeZ);
+  if (partnerHomeDist > 1.45 || Math.abs(partner.y - partner.homeY) > 1.2) return false;
+  return true;
+}
+
+/**
  * Summary: Computes the lateral standby offset (left or right of the guard post) where a relief
  *          guard stops so the on-duty guard can step out first before the relief guard steps into place.
  */
@@ -991,9 +1158,98 @@ export function updateMonkTempleSystem(
     }
   }
 
+  // 1.8 Snapshot peer positions and velocities once per frame for predictive avoidance
+  const buildPeersExcluding = (self: IActiveTempleMonk): IMonkNavPeer[] => {
+    const peers: IMonkNavPeer[] = [];
+    for (let p = 0; p < activeTempleMonks.length; p++) {
+      const other = activeTempleMonks[p];
+      if (other === self || other.teleportState) continue;
+      if (other.shiftState === 'sleeping_in_bed' || other.sleepState === 'sleeping_in_bed') continue;
+      if (Math.abs(other.y - self.y) > 2.0) continue;
+      const otherMoving =
+        other.isAggro ||
+        other.shiftState === 'relieving_to_post' ||
+        other.shiftState === 'returning_to_bed' ||
+        other.sleepState === 'walking_to_bed' ||
+        other.sleepState === 'waking_to_post' ||
+        other.role === 'courtyard_patrol' ||
+        other.role === 'hotspring_commuter' ||
+        Boolean(other.isReturningFromAggro);
+      peers.push({
+        x: other.x,
+        y: other.y,
+        z: other.z,
+        vx: other.velX,
+        vz: other.velZ,
+        moving: otherMoving,
+      });
+    }
+    return peers;
+  };
+
+  const buildSafeSteerFn =
+    (mk: IActiveTempleMonk, allowFloorTransitionRamp: boolean) =>
+    (candX: number, candZ: number, curY: number): boolean => {
+      const curWalk = walkableHeightAt(mk.x, mk.z, curY);
+      const candWalk = walkableHeightAt(
+        candX,
+        candZ,
+        curWalk.surface === 'ground' ? curWalk.height : curY
+      );
+      if (curWalk.surface === 'ground' && candWalk.surface === 'ground') {
+        if (Math.abs(candWalk.height - curWalk.height) > 0.95) return false;
+        const inHotSpringPool =
+          Math.hypot(candX - NORDIC_FROST_SHRINE_POS.x, candZ - NORDIC_FROST_SHRINE_POS.z) <=
+          NORDIC_FROST_SHRINE_POS.poolRadius + 0.5;
+        if (!inHotSpringPool && candWalk.height <= 0.15) return false;
+        return true;
+      }
+      if (allowFloorTransitionRamp && !isMonkPositionSafeOnPlatform(mk.x, mk.z, curY)) {
+        return true;
+      }
+      return isMonkPositionSafeOnPlatform(candX, candZ, curY);
+    };
+
+  const stepMonkDynamicWalk = (
+    mk: IActiveTempleMonk,
+    targetX: number,
+    targetZ: number,
+    targetKey: string,
+    speed: number,
+    allowSkipIfBlocked = false,
+    allowFloorTransitionRamp = false
+  ): { aimDx: number; aimDz: number; recommendSkipWaypoint: boolean } => {
+    const res = stepMonkWalkWithRerouting({
+      x: mk.x,
+      y: mk.y,
+      z: mk.z,
+      targetX,
+      targetZ,
+      targetKey,
+      speed,
+      dt: safeDt,
+      peers: buildPeersExcluding(mk),
+      isSafe: buildSafeSteerFn(mk, allowFloorTransitionRamp),
+      memory: mk.navMemory,
+      bodyRadius: MONK_BODY_RADIUS,
+      allowSkipIfBlocked,
+    });
+    mk.x = res.nextX;
+    mk.z = res.nextZ;
+    return {
+      aimDx: res.aimDx,
+      aimDz: res.aimDz,
+      recommendSkipWaypoint: res.recommendSkipWaypoint,
+    };
+  };
+
   // 2. Step each monk's AI and skeletal animations
   for (let i = 0; i < activeTempleMonks.length; i++) {
     const mk = activeTempleMonks[i];
+    mk.velX = (mk.x - mk.prevFrameX) / safeDt;
+    mk.velZ = (mk.z - mk.prevFrameZ) / safeDt;
+    mk.prevFrameX = mk.x;
+    mk.prevFrameZ = mk.z;
     const vis = isWithinViewDistance(mk.x, mk.z, playerX, playerZ, 12, 165);
     mk.group.visible = vis;
     const isScheduleMoving =
@@ -1256,16 +1512,14 @@ export function updateMonkTempleSystem(
     // =========================================================================
     if (mk.isReturningFromAggro || leashedOutOfTerritory) {
       if (distToHome > 0.35) {
-        const toHx = mk.homeX - mk.x;
-        const toHz = mk.homeZ - mk.z;
         const moveSpd = distToHome > 4.0 ? 4.4 : 1.85;
-        const step = Math.min(distToHome, moveSpd * safeDt);
-        mk.x += (toHx / distToHome) * step;
-        mk.z += (toHz / distToHome) * step;
+        const navRes = stepMonkDynamicWalk(mk, mk.homeX, mk.homeZ, `home:${mk.id}`, moveSpd, false);
         const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
         const targetGroundY = distToHome < 3.5 ? mk.homeY : walkInfo.height;
         mk.y += (targetGroundY - mk.y) * Math.min(1, safeDt * 10.0);
-        mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(toHx, toHz), safeDt * 6.0);
+        if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+          mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.0);
+        }
         mk.ctrl.speed = moveSpd;
         mk.ctrl.setState(distToHome > 4.0 ? 'run' : 'walk', 0.2);
         mk.group.position.set(mk.x, mk.y, mk.z);
@@ -1273,6 +1527,7 @@ export function updateMonkTempleSystem(
         mk.ctrl.update(safeDt);
         continue;
       } else {
+        mk.y = mk.homeY;
         mk.isReturningFromAggro = false;
       }
     }
@@ -1352,17 +1607,32 @@ export function updateMonkTempleSystem(
             }
           } else {
             const walkSpd = 2.65;
-            const step = Math.min(distH, walkSpd * safeDt);
-            mk.x += (dx / distH) * step;
-            mk.z += (dz / distH) * step;
             const prevWp = wps[Math.min(wps.length - 1, cIdx + 1)];
             const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+            const isFloorClimb = Math.abs(wp[1] - prevWp[1]) > 0.4;
+            const navRes = stepMonkDynamicWalk(
+              mk,
+              wp[0],
+              wp[2],
+              `sleep_commute:${cIdx}`,
+              walkSpd,
+              cIdx > 0,
+              isFloorClimb
+            );
+            if (navRes.recommendSkipWaypoint && cIdx > 0 && distH < 4.5) {
+              mk.commuteCursor = cIdx - 1;
+            }
             const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
             const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
             const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
-            const groundedY = Math.abs(walkInfo.height - interpY) <= 2.2 ? walkInfo.height : interpY;
+            const groundedY =
+              walkInfo.surface === 'ground' || Math.abs(walkInfo.height - interpY) <= 3.8
+                ? walkInfo.height
+                : interpY;
             mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
-            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
+            }
             mk.ctrl.speed = walkSpd;
             mk.ctrl.setState('walk', 0.18);
           }
@@ -1389,14 +1659,24 @@ export function updateMonkTempleSystem(
           }
         } else {
           const walkSpd = 2.25;
-          const step = Math.min(distH, walkSpd * safeDt);
-          if (distH > 0.001) {
-            mk.x += (dx / distH) * step;
-            mk.z += (dz / distH) * step;
-            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
-          }
           const prevWp = sRoute[Math.max(0, cursor - 1)];
           const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const isFloorClimb = Math.abs(wp[1] - prevWp[1]) > 0.4;
+          const navRes = stepMonkDynamicWalk(
+            mk,
+            wp[0],
+            wp[2],
+            `to_bed:${cursor}`,
+            walkSpd,
+            cursor < sRoute.length - 1,
+            isFloorClimb
+          );
+          if (navRes.recommendSkipWaypoint && cursor < sRoute.length - 1 && distH < 4.5) {
+            mk.sleepCursor = cursor + 1;
+          }
+          if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
+          }
           const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
           const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
           const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
@@ -1430,14 +1710,24 @@ export function updateMonkTempleSystem(
           }
         } else {
           const walkSpd = 2.25;
-          const step = Math.min(distH, walkSpd * safeDt);
-          if (distH > 0.001) {
-            mk.x += (dx / distH) * step;
-            mk.z += (dz / distH) * step;
-            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
-          }
           const prevWp = sRoute[Math.min(sRoute.length - 1, cursor + 1)];
           const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const isFloorClimb = Math.abs(wp[1] - prevWp[1]) > 0.4;
+          const navRes = stepMonkDynamicWalk(
+            mk,
+            wp[0],
+            wp[2],
+            `wake:${cursor}`,
+            walkSpd,
+            cursor > 0,
+            isFloorClimb
+          );
+          if (navRes.recommendSkipWaypoint && cursor > 0 && distH < 4.5) {
+            mk.sleepCursor = cursor - 1;
+          }
+          if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
+          }
           const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distH / segLen)) : 1.0;
           const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
           const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
@@ -1548,11 +1838,19 @@ export function updateMonkTempleSystem(
             }
           } else {
             const walkSpd = 2.25;
-            const step = Math.min(distHoriz, walkSpd * safeDt);
-            if (distHoriz > 0.001) {
-              mk.x += (dx / distHoriz) * step;
-              mk.z += (dz / distHoriz) * step;
-              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            const navRes = stepMonkDynamicWalk(
+              mk,
+              targetWpX,
+              targetWpZ,
+              `relieve:${cursor}`,
+              walkSpd,
+              cursor < route.length - 1
+            );
+            if (navRes.recommendSkipWaypoint && cursor < route.length - 1 && distHoriz < 4.5) {
+              mk.routeCursor = cursor + 1;
+            }
+            if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
             }
             const prevWp = route[Math.max(0, cursor - 1)];
             const segLen = Math.hypot(targetWpX - prevWp[0], targetWpZ - prevWp[2]);
@@ -1594,11 +1892,19 @@ export function updateMonkTempleSystem(
             }
           } else {
             const walkSpd = 2.15;
-            const step = Math.min(distHoriz, walkSpd * safeDt);
-            if (distHoriz > 0.001) {
-              mk.x += (dx / distHoriz) * step;
-              mk.z += (dz / distHoriz) * step;
-              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+            const navRes = stepMonkDynamicWalk(
+              mk,
+              wp[0],
+              wp[2],
+              `ret_bed:${cursor}`,
+              walkSpd,
+              cursor > 0
+            );
+            if (navRes.recommendSkipWaypoint && cursor > 0 && distHoriz < 4.5) {
+              mk.routeCursor = cursor - 1;
+            }
+            if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+              mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
             }
             const prevWp = route[Math.min(route.length - 1, cursor + 1)];
             const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
@@ -1730,6 +2036,36 @@ export function updateMonkTempleSystem(
     }
 
     if (mk.role === 'dummy_trainer' || mk.role === 'dojo_trainer') {
+      if (mk.role === 'dojo_trainer' && mk.dummyIndex === undefined) {
+        // Paired 2F dojo sparrers: never swing at empty air if partner is attacked, absent, or sleeping
+        const partnerAvailable = isSparringPartnerAvailableToMeet(mk);
+        const partnerInPlace = partnerAvailable && isSparringPartnerInPosition(mk);
+        if (!partnerInPlace) {
+          const distHome = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
+          if (distHome > 0.35) {
+            const walkSpd = 2.0;
+            const dInv = 1 / (distHome || 1);
+            mk.x += (mk.homeX - mk.x) * dInv * Math.min(distHome, walkSpd * safeDt);
+            mk.z += (mk.homeZ - mk.z) * dInv * Math.min(distHome, walkSpd * safeDt);
+            mk.y = mk.homeY;
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(mk.homeX - mk.x, mk.homeZ - mk.z), safeDt * 6.5);
+            mk.ctrl.speed = walkSpd;
+            mk.ctrl.setState('walk', 0.18);
+          } else {
+            mk.x = mk.homeX;
+            mk.y = mk.homeY;
+            mk.z = mk.homeZ;
+            mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 5.0);
+            mk.ctrl.speed = 0;
+            mk.ctrl.setState(partnerAvailable ? 'idle' : 'sit', 0.22);
+          }
+          mk.group.position.set(mk.x, mk.y, mk.z);
+          mk.group.rotation.y = mk.yaw;
+          if (vis) mk.ctrl.update(safeDt);
+          continue;
+        }
+      }
+
       // Courtyard dummy trainers & 2F Main Hall Dojo trainers practicing martial strikes & sparring!
       mk.scheduleTimer -= safeDt;
       const dummyStages: ReadonlyArray<{ state: WarriorMonkState; dur: number; hitsDummy: boolean }> = [
@@ -1777,7 +2113,76 @@ export function updateMonkTempleSystem(
     }
 
     if (mk.role === 'bagua_sparring') {
-      // Paired monks sparing playfully face-to-face atop the relocated Yin-Yang Bagua Platform!
+      // Paired monks sparring playfully face-to-face atop the Yin-Yang Bagua Platform!
+      // If partner is attacked, deflected, sleeping, or missing, calmly walk to the rest bench and sit instead of swinging at empty air!
+      if (!isSparringPartnerAvailableToMeet(mk)) {
+        const waitX = mk.restBenchX ?? mk.homeX;
+        const waitZ = mk.restBenchZ ?? mk.homeZ;
+        const waitYaw = mk.restBenchYaw ?? mk.baseYaw;
+        const dxW = waitX - mk.x;
+        const dzW = waitZ - mk.z;
+        const distWait = Math.hypot(dxW, dzW);
+        if (distWait > 0.35) {
+          const walkSpd = 2.15;
+          const prevX = mk.x;
+          const prevZ = mk.z;
+          const step = Math.min(distWait, walkSpd * safeDt);
+          mk.x += (dxW / distWait) * step;
+          mk.z += (dzW / distWait) * step;
+          clampMonkToPlatformEdge(mk, prevX, prevZ);
+          const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
+          mk.y += (walkInfo.height - mk.y) * Math.min(1, safeDt * 12.0);
+          mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dxW, dzW), safeDt * 7.0);
+          mk.ctrl.speed = walkSpd;
+          mk.ctrl.setState('walk', 0.16);
+        } else {
+          mk.x = waitX;
+          mk.z = waitZ;
+          const waitGroundY = mk.restBenchY ?? walkableHeightAt(waitX, waitZ, mk.y).height;
+          mk.y += (waitGroundY - mk.y) * Math.min(1, safeDt * 12.0);
+          mk.yaw = rotateAngleToward(mk.yaw, waitYaw, safeDt * 6.0);
+          mk.ctrl.speed = 0;
+          mk.ctrl.setState('sit', 0.22);
+        }
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
+      }
+
+      const distToHomePost = Math.hypot(mk.homeX - mk.x, mk.homeZ - mk.z);
+      if (distToHomePost > 0.65) {
+        const walkSpd = 2.25;
+        const prevX = mk.x;
+        const prevZ = mk.z;
+        const step = Math.min(distToHomePost, walkSpd * safeDt);
+        mk.x += ((mk.homeX - mk.x) / distToHomePost) * step;
+        mk.z += ((mk.homeZ - mk.z) / distToHomePost) * step;
+        clampMonkToPlatformEdge(mk, prevX, prevZ);
+        const walkInfo = walkableHeightAt(mk.x, mk.z, mk.y);
+        mk.y += (walkInfo.height - mk.y) * Math.min(1, safeDt * 12.0);
+        mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(mk.homeX - mk.x, mk.homeZ - mk.z), safeDt * 7.0);
+        mk.ctrl.speed = walkSpd;
+        mk.ctrl.setState('walk', 0.16);
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
+      }
+
+      if (!isSparringPartnerInPosition(mk)) {
+        mk.x = mk.homeX;
+        mk.y = mk.homeY;
+        mk.z = mk.homeZ;
+        mk.yaw = rotateAngleToward(mk.yaw, mk.baseYaw, safeDt * 6.0);
+        mk.ctrl.speed = 0;
+        mk.ctrl.setState('idle', 0.2);
+        mk.group.position.set(mk.x, mk.y, mk.z);
+        mk.group.rotation.y = mk.yaw;
+        if (vis) mk.ctrl.update(safeDt);
+        continue;
+      }
+
       mk.scheduleTimer -= safeDt;
       const sparStages: ReadonlyArray<{ state: WarriorMonkState; dur: number; lunge: number }> = [
         { state: 'attack1', dur: 1.05, lunge: 0.36 },
@@ -1869,19 +2274,38 @@ export function updateMonkTempleSystem(
             }
           }
         } else {
-          const step = Math.min(distWp, moveSpd * safeDt);
-          mk.x += (dx / distWp) * step;
-          mk.z += (dz / distWp) * step;
           const prevWp = goingToSpring
             ? waypoints[Math.max(0, cursor - 1)]
             : waypoints[Math.min(waypoints.length - 1, cursor + 1)];
           const segLen = Math.hypot(wp[0] - prevWp[0], wp[2] - prevWp[2]);
+          const isFloorClimb = Math.abs(wp[1] - prevWp[1]) > 0.4;
+          const navRes = stepMonkDynamicWalk(
+            mk,
+            wp[0],
+            wp[2],
+            `commute:${goingToSpring ? 'f' : 'r'}:${cursor}`,
+            moveSpd,
+            goingToSpring ? cursor < waypoints.length - 1 : cursor > 0,
+            isFloorClimb
+          );
+          if (navRes.recommendSkipWaypoint && distWp < 4.5) {
+            if (goingToSpring && cursor < waypoints.length - 1) {
+              mk.commuteCursor = cursor + 1;
+            } else if (!goingToSpring && cursor > 0) {
+              mk.commuteCursor = cursor - 1;
+            }
+          }
           const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distWp / segLen)) : 1.0;
           const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
           const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
-          const groundedY = Math.abs(walkInfo.height - interpY) <= 2.2 ? walkInfo.height : interpY;
+          const groundedY =
+            walkInfo.surface === 'ground' || Math.abs(walkInfo.height - interpY) <= 3.8
+              ? walkInfo.height
+              : interpY;
           mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
-          mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.5);
+          if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);
+          }
           mk.ctrl.speed = moveSpd;
           mk.ctrl.setState('walk', 0.18);
         }
@@ -1919,12 +2343,22 @@ export function updateMonkTempleSystem(
           mk.waypointIndex = (mk.waypointIndex + 1) % waypoints.length;
           mk.scheduleTimer = 2.6;
         } else {
-          const step = Math.min(distWp, moveSpd * safeDt);
-          mk.x += (dx / distWp) * step;
-          mk.z += (dz / distWp) * step;
+          const navRes = stepMonkDynamicWalk(
+            mk,
+            targetWp[0],
+            targetWp[2],
+            `patrol:${mk.waypointIndex % waypoints.length}`,
+            moveSpd,
+            true
+          );
+          if (navRes.recommendSkipWaypoint && distWp < 4.5) {
+            mk.waypointIndex = (mk.waypointIndex + 1) % waypoints.length;
+          }
           const walkInfo = walkableHeightAt(mk.x, mk.z, targetWp[1]);
           mk.y = Math.abs(walkInfo.height - targetWp[1]) <= 1.2 ? walkInfo.height : targetWp[1];
-          mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(dx, dz), safeDt * 6.0);
+          if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
+            mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.0);
+          }
           mk.ctrl.speed = moveSpd;
           mk.ctrl.setState(isJogLeg ? 'run' : 'walk', 0.2);
         }
@@ -2040,10 +2474,14 @@ export function updateMonkTempleSystem(
         const aPrevZ = a.z;
         const bPrevX = b.x;
         const bPrevZ = b.z;
-        a.x -= nx * overlap * aWeight;
-        a.z -= nz * overlap * aWeight;
-        b.x += nx * overlap * bWeight;
-        b.z += nz * overlap * bWeight;
+        // Include tangential passing slip when both monks are walking so head-on walkers slide around shoulders instead of stalling
+        const tangSlip = aMoving && bMoving ? 0.42 : 0.0;
+        const aDirSlip = -nz * tangSlip;
+        const aDirSlipZ = nx * tangSlip;
+        a.x -= (nx - aDirSlip) * overlap * aWeight;
+        a.z -= (nz - aDirSlipZ) * overlap * aWeight;
+        b.x += (nx - aDirSlip) * overlap * bWeight;
+        b.z += (nz - aDirSlipZ) * overlap * bWeight;
         clampMonkToPlatformEdge(a, aPrevX, aPrevZ);
         clampMonkToPlatformEdge(b, bPrevX, bPrevZ);
         a.group.position.set(a.x, a.y, a.z);

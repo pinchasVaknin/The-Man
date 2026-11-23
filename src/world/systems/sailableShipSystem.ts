@@ -399,14 +399,14 @@ export function sailableShipDeckHeightAt(
   currentY?: number,
   ship?: ISailableShipState
 ): number | null {
-  // 1) Harbor Southern Royal Ship Pier (x: 254.0..274.8, z: 278.8..285.2) connecting Harbor Plaza to Ship's home berth
+  // 1) Harbor Southern Royal Ship Pier (x: 254.0..275.4, z: 278.8..285.2) connecting Harbor Plaza to Ship's home berth
   if (
     x >= 254.0 &&
-    x <= 274.8 &&
+    x <= 275.4 &&
     Math.abs(z - SAILABLE_SHIP_INITIAL_POS.homeZ) <= 3.2 &&
     (currentY === undefined || currentY >= 2.0)
   ) {
-    const tPier = Math.max(0, Math.min(1, (x - 254.5) / 19.0));
+    const tPier = Math.max(0, Math.min(1, (x - 254.5) / 19.6));
     return (
       SOUTHEAST_HARBOR_POS.plazaY * (1 - tPier) +
       SAILABLE_SHIP_INITIAL_POS.deckY * tPier

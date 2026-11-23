@@ -177,7 +177,7 @@ export class DemonDragonAnimator {
   state: DemonDragonState = 'walk';
   prevState: DemonDragonState = 'walk';
   blend = 1.0;
-  blendDuration = 0.24;
+  blendDuration = 0.38;
   time = 0;
   prevTime = 0;
   moveSpeed = 1.55;

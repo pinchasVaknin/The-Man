@@ -21,6 +21,7 @@ import {
   SOUTHERN_DRAGON_RUINS_POS,
   SOUTHWEST_OASIS_POS,
   MURKY_SWAMP_BIOME_POS,
+  NORDIC_FROST_SHRINE_POS,
   SOLID_BUILDING_BOXES,
   resolveHorizontalBoxCollision,
   getNearbySolidBuildingBoxes,
@@ -1531,9 +1532,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     // Secluded Southern Pass Valley Deer beyond the Mountain Gorge Pass (2)
     { x: 96, z: 724, species: 'deer' },
     { x: 114, z: 708, species: 'deer' },
-    // Nordic Frost Shrine Alpine Wolf Pack & Desert Sun Pyramid Guardians (4)
-    { x: -302, z: -274, species: 'wolf' },
-    { x: -336, z: -278, species: 'wolf' },
+    // Distant Northern Alpine Wolf Pack (far outside Hot Spring Compound) & Desert Sun Pyramid Guardians (4)
+    { x: -386, z: -246, species: 'wolf' },
+    { x: -376, z: -346, species: 'wolf' },
     { x: -446, z: 274, species: 'jaguar' },
     { x: -442, z: 318, species: 'rhino' },
     // Colossal Ancient Dragon Ruins Dragon (250 HP, vulnerable to arrows & sword)
@@ -1946,6 +1947,45 @@ function resolveAnimalObstacleCollision(
  *          for a land animal that has stepped into or is swimming in water, and advances its position
  *          smoothly so no land animal ever freezes or bounces in place in water.
  */
+function clampOutsideHotSpringCompound(
+  x: number,
+  z: number,
+  vx: number,
+  vz: number,
+  margin = 3.5
+): { clamped: boolean; x: number; z: number; vx: number; vz: number } {
+  const minX = NORDIC_FROST_SHRINE_POS.compoundMinX - margin;
+  const maxX = NORDIC_FROST_SHRINE_POS.compoundMaxX + margin;
+  const minZ = NORDIC_FROST_SHRINE_POS.compoundMinZ - margin;
+  const maxZ = NORDIC_FROST_SHRINE_POS.stairBottomZ + margin;
+  if (x <= minX || x >= maxX || z <= minZ || z >= maxZ) {
+    return { clamped: false, x, z, vx, vz };
+  }
+  const dLeft = x - minX;
+  const dRight = maxX - x;
+  const dTop = z - minZ;
+  const dBottom = maxZ - z;
+  const minD = Math.min(dLeft, dRight, dTop, dBottom);
+  let outX = x;
+  let outZ = z;
+  let outVx = vx;
+  let outVz = vz;
+  if (minD === dLeft) {
+    outX = minX - 0.5;
+    outVx = -Math.max(1.8, Math.abs(vx));
+  } else if (minD === dRight) {
+    outX = maxX + 0.5;
+    outVx = Math.max(1.8, Math.abs(vx));
+  } else if (minD === dTop) {
+    outZ = minZ - 0.5;
+    outVz = -Math.max(1.8, Math.abs(vz));
+  } else {
+    outZ = maxZ + 0.5;
+    outVz = Math.max(1.8, Math.abs(vz));
+  }
+  return { clamped: true, x: outX, z: outZ, vx: outVx, vz: outVz };
+}
+
 function advanceAnimalWithWaterShoreRecovery(
   a: ISmallAnimalState,
   nextX: number,
@@ -1953,6 +1993,17 @@ function advanceAnimalWithWaterShoreRecovery(
   hitObstacle: boolean,
   safeDt: number
 ): void {
+  if (!a.isTamed && !a.isMountedByPlayer && a.species !== 'dragon') {
+    const hsKeepOut = clampOutsideHotSpringCompound(nextX, nextZ, a.vx, a.vz, 3.5);
+    if (hsKeepOut.clamped) {
+      nextX = hsKeepOut.x;
+      nextZ = hsKeepOut.z;
+      a.vx = hsKeepOut.vx;
+      a.vz = hsKeepOut.vz;
+      hitObstacle = true;
+    }
+  }
+
   const isCroc = a.species === 'crocodile';
   const maxPlayableR = PLAYABLE_RADIUS - 15;
   const nextDistFromOrigin = Math.hypot(nextX, nextZ);

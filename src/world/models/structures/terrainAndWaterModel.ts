@@ -46,7 +46,7 @@ import type { IWorldModelBuildContext } from '../types';
 export function attachAnimatedWaterWaveShader(
   mat: THREE.MeshPhysicalMaterial,
   waveHeight = 0.045,
-  rippleStrength = 0.085,
+  rippleStrength = 0.042,
   animatedWaterMaterials?: THREE.MeshPhysicalMaterial[]
 ): void {
   mat.userData.uTime = { value: 0 };
@@ -59,9 +59,13 @@ export function attachAnimatedWaterWaveShader(
         `
         #include <begin_vertex>
         vec4 wp = modelMatrix * vec4(transformed, 1.0);
-        float w1 = sin(wp.x * 0.62 + uTime * 1.85) * cos(wp.z * 0.54 + uTime * 1.45) * ${waveHeight.toFixed(4)};
-        float w2 = sin(wp.x * 1.45 - uTime * 2.45 + wp.z * 1.25) * ${(waveHeight * 0.55).toFixed(4)};
-        transformed.y += w1 + w2;
+        float p1 = dot(wp.xz, vec2(0.52, 0.34));
+        float p2 = dot(wp.xz, vec2(-0.44, 0.58));
+        float p3 = dot(wp.xz, vec2(0.95, -0.78));
+        float w1 = sin(p1 + uTime * 1.75) * ${waveHeight.toFixed(4)};
+        float w2 = cos(p2 - uTime * 1.40) * ${(waveHeight * 0.72).toFixed(4)};
+        float w3 = sin(p3 + uTime * 2.25) * ${(waveHeight * 0.38).toFixed(4)};
+        transformed.y += w1 + w2 + w3;
         vWaterWorldPos = wp.xyz;
         `
       );
@@ -74,8 +78,17 @@ export function attachAnimatedWaterWaveShader(
           discard;
         }
         #include <normal_fragment_maps>
-        float rx = cos(vWaterWorldPos.x * 2.8 + uTime * 2.6) * ${rippleStrength.toFixed(4)} + sin(vWaterWorldPos.z * 3.5 - uTime * 2.1) * ${(rippleStrength * 0.68).toFixed(4)};
-        float rz = sin(vWaterWorldPos.z * 3.0 + uTime * 2.3) * ${rippleStrength.toFixed(4)} + cos(vWaterWorldPos.x * 3.3 + uTime * 2.9) * ${(rippleStrength * 0.68).toFixed(4)};
+        // Multi-directional incommensurate wave ripples with distance attenuation (prevents axis-aligned dot-grid specular aliasing)
+        float camDist = length(cameraPosition - vWaterWorldPos);
+        float distFade = 1.0 - smoothstep(26.0, 145.0, camDist);
+        float r1 = dot(vWaterWorldPos.xz, vec2(1.42, 0.91));
+        float r2 = dot(vWaterWorldPos.xz, vec2(-1.12, 1.54));
+        float r3 = dot(vWaterWorldPos.xz, vec2(0.58, -1.96));
+        float dr1 = cos(r1 + uTime * 2.35);
+        float dr2 = sin(r2 - uTime * 1.95);
+        float dr3 = cos(r3 + uTime * 2.75);
+        float rx = (dr1 * 0.84 - dr2 * 0.59 + dr3 * 0.28) * ${(rippleStrength * 0.52).toFixed(4)} * distFade;
+        float rz = (dr1 * 0.54 + dr2 * 0.81 - dr3 * 0.96) * ${(rippleStrength * 0.52).toFixed(4)} * distFade;
         normal = normalize(normal + vec3(rx, 0.0, rz));
         `
       );
@@ -296,7 +309,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
   disposableMaterials.push(terrainMat);
 
   const cSand = new THREE.Color(0xb8a47e);
-  const cLakebed = new THREE.Color(0x2d3d35);
+  const cLakebed = new THREE.Color(0x1b3a44);
+  const cDeepSea = new THREE.Color(0x072336);
   const cMeadow = new THREE.Color(0x52823a);
   const cLush = new THREE.Color(0x3d692b);
   const cForest = new THREE.Color(0x2d4f20);
@@ -367,7 +381,13 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
       const macroNoise = fbm2D(wx * 0.035 + 2.1, wz * 0.035 - 6.3, 2) * 0.5 + 0.5;
 
       if (y < WATER_LEVEL - 0.6) {
-        tmpColor.copy(cLakebed).lerp(cSand, Math.max(0, (y + 2.8) / 2.2));
+        if (y < WATER_LEVEL - 2.0) {
+          const deepT = Math.min(1, Math.max(0, (WATER_LEVEL - 2.0 - y) / 4.5));
+          tmpColor.copy(cLakebed).lerp(cDeepSea, deepT);
+        } else {
+          const shoalT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 2.0)) / 1.4));
+          tmpColor.copy(cLakebed).lerp(cSand, shoalT * 0.65);
+        }
       } else if (y < WATER_LEVEL + 0.42 || (wx >= coastX - 16.0 && y < WATER_LEVEL + 1.15)) {
         const maxBeachY = wx >= coastX - 16.0 ? WATER_LEVEL + 1.15 : WATER_LEVEL + 0.42;
         const shoreT = Math.max(0, Math.min(1, (y - (WATER_LEVEL - 0.6)) / (maxBeachY - (WATER_LEVEL - 0.6))));
@@ -485,29 +505,31 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
       buildTerrainChunk(gx * chunkSize, gz * chunkSize);
     }
   }
-  // Extra far-eastern ocean seabed chunks (x = 990..1210) so Atlantis & outer eastern waters always sit above a continuous seabed
-  for (let gz = -1; gz <= 3; gz++) {
-    buildTerrainChunk(5 * chunkSize, gz * chunkSize);
+  // Extra far-eastern ocean seabed chunks (x = 990..1430) so Atlantis & outer eastern horizon waters always sit above a continuous seabed
+  for (const gxExtra of [5, 6]) {
+    for (let gz = -2; gz <= 4; gz++) {
+      buildTerrainChunk(gxExtra * chunkSize, gz * chunkSize);
+    }
   }
 
   // 2. REALISTIC ANIMATED WATER SURFACE (MOVING WAVES & SURFACE RIPPLES)
-  const waterSegs = isSoftwareGl ? 56 : 96;
+  const waterSegs = isSoftwareGl ? 64 : 96;
   const waterGeo = new THREE.PlaneGeometry(420, 420, waterSegs, waterSegs);
   waterGeo.rotateX(-Math.PI / 2);
   waterGeo.computeBoundingSphere();
   disposableGeometries.push(waterGeo);
 
   const waterMat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(0x1b566b),
-    roughness: 0.08,
-    metalness: 0.15,
-    clearcoat: isSoftwareGl ? 0 : 0.95,
-    clearcoatRoughness: 0.06,
+    color: new THREE.Color(0x0b4b69),
+    roughness: 0.14,
+    metalness: 0.12,
+    clearcoat: isSoftwareGl ? 0 : 0.72,
+    clearcoatRoughness: 0.12,
     transparent: true,
-    opacity: 0.86,
-    envMapIntensity: 1.35,
+    opacity: 0.91,
+    envMapIntensity: 0.85,
   });
-  attachAnimatedWaterWaveShader(waterMat, 0.048, 0.085, animatedWaterMaterials);
+  attachAnimatedWaterWaveShader(waterMat, 0.052, 0.044, animatedWaterMaterials);
   disposableMaterials.push(waterMat);
 
   const waterMesh = new THREE.Mesh(waterGeo, waterMat);
@@ -540,18 +562,18 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
     maxDist: 210,
   });
 
-  // Continuous North-to-South Eastern Sea water surface tiled per region so Atlantis & outer waters stay visible (z = -900..+900, x = 180..1380)
-  const eastTileW = 400;
+  // Continuous North-to-South Eastern Sea water surface centered on Ruined Atlantis (980, 420) so no seam crosses Atlantis
+  const eastTileW = 320;
   const eastTileD = 360;
-  const eastTileSegsX = isSoftwareGl ? 20 : 32;
-  const eastTileSegsZ = isSoftwareGl ? 20 : 32;
+  const eastTileSegsX = isSoftwareGl ? 48 : 80;
+  const eastTileSegsZ = isSoftwareGl ? 48 : 80;
   const eastTileGeo = new THREE.PlaneGeometry(eastTileW, eastTileD, eastTileSegsX, eastTileSegsZ);
   eastTileGeo.rotateX(-Math.PI / 2);
   eastTileGeo.computeBoundingSphere();
   disposableGeometries.push(eastTileGeo);
 
-  for (const tileCx of [380, 780, 1180]) {
-    for (const tileCz of [-720, -360, 0, 360, 720]) {
+  for (const tileCx of [340, 660, 980, 1300]) {
+    for (const tileCz of [-660, -300, 60, 420, 780]) {
       const tileMesh = new THREE.Mesh(eastTileGeo, waterMat);
       tileMesh.position.set(tileCx, WATER_LEVEL, tileCz);
       tileMesh.receiveShadow = !isSoftwareGl;
@@ -560,8 +582,8 @@ export function buildTerrainAndWaterModel(ctx: IWorldModelBuildContext): ITerrai
         obj: tileMesh,
         cx: tileCx,
         cz: tileCz,
-        radius: 280,
-        maxDist: 320,
+        radius: 260,
+        maxDist: 460,
       });
     }
   }

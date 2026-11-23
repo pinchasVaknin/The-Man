@@ -67,7 +67,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
   const archAssets = ctx.archAssets ?? createArchitecturalSharedAssets(ctx);
 
   // --- 1) TWO DISTINCT 3D DRAGONS ---
-  // Dragon #1: Flying Ice Dragon (DemonDragon_Complete) soaring above the Northern Chinese Fortress
+  // Dragon #1: Crimson Red Sky Dragon (DemonDragon_Complete) soaring above the Northern Chinese Fortress & Sacred Cloud Mountain
   const demonDragonCtrl = new DeferredAnimalModel<DemonDragonState, DemonDragon>(
     'demon-dragon',
     () =>
@@ -1334,6 +1334,7 @@ export function buildSanctuaryAndDragonModels(ctx: IWorldModelBuildContext): ISa
       homeZ: mz,
       baseYaw: myaw,
       phaseOffset: (m + 4) * 0.85,
+      staysAwakeAtNight: true,
       weaponVisible: true,
       tintHex: 0x0d9488,
       isSoftwareGl: ctx.isSoftwareGl,

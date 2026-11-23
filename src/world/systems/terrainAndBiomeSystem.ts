@@ -816,7 +816,24 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, -24, -18, -42, -30),
     distToSegment(x, z, -42, -30, -85, -105),
     distToSegment(x, z, -85, -105, -195, -195),
-    distToSegment(x, z, -195, -195, NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0),
+    distToSegment(x, z, -195, -195, -285, -255),
+    distToSegment(x, z, -285, -255, NORDIC_FROST_SHRINE_POS.gateCenterX, NORDIC_FROST_SHRINE_POS.stairBottomZ),
+    distToSegment(
+      x,
+      z,
+      NORDIC_FROST_SHRINE_POS.gateCenterX,
+      NORDIC_FROST_SHRINE_POS.stairBottomZ,
+      NORDIC_FROST_SHRINE_POS.gateCenterX,
+      NORDIC_FROST_SHRINE_POS.gateZ
+    ),
+    distToSegment(
+      x,
+      z,
+      NORDIC_FROST_SHRINE_POS.gateCenterX,
+      NORDIC_FROST_SHRINE_POS.gateZ,
+      NORDIC_FROST_SHRINE_POS.x,
+      NORDIC_FROST_SHRINE_POS.z + 14.0
+    ),
     distToSegment(
       x,
       z,
@@ -1566,26 +1583,89 @@ export function groundHeightAt(x: number, z: number): number {
 
   // Monumental Ruined Atlantis Sunken Ring & Central Boss Arena Sanctuary in the Deep Eastern Ocean (980, 420)
   // Note: Walkable marble floors (y = 2.15m) are provided by walkableHeightAt() and 3D marble meshes in atlantisGroup,
-  // while the terrain mesh forms the submerged turquoise lagoon shoal (-1.35m) beneath the animated ocean water.
+  // while the terrain mesh forms a deep submerged sapphire ocean lagoon (-4.2m outer to -5.6m inner basin) beneath the animated water.
   const atDx = x - RUINED_ATLANTIS_POS.x;
   const atDz = z - RUINED_ATLANTIS_POS.z;
-  if (Math.abs(atDx) <= 108.0 && Math.abs(atDz) <= 108.0) {
+  if (Math.abs(atDx) <= 112.0 && Math.abs(atDz) <= 112.0) {
     const atDist = Math.hypot(atDx, atDz);
-    if (atDist < 94.0) {
-      const shoalW = 1.0 - smoothstep(74.0, 94.0, atDist);
-      h = h * (1.0 - shoalW) + -1.35 * shoalW;
+    if (atDist < 98.0) {
+      const lagoonW = 1.0 - smoothstep(74.0, 98.0, atDist);
+      const abyssW = 1.0 - smoothstep(38.0, 62.0, atDist);
+      const targetAtDepth = -4.2 - 1.4 * abyssW;
+      h = h * (1.0 - lagoonW) + targetAtDepth * lagoonW;
     }
   }
 
-  // Nordic Frost Giant Shrine & Geothermal Hot Springs Basin at (-320, -290) with multi-depth soaking shelves
+  // Northern Hot Springs & East-Asian Sanctuary Compound at (-320, -290):
+  // Level the elevated 34.0m citadel mound and keep the inner stone deck & stair bed safely below
+  // the 3D granite slabs/circular apron/steps so zero snow terrain triangles z-fight through stone.
+  if (x >= -358.0 && x <= -260.0 && z >= -331.0 && z <= -243.0) {
+    const outX = Math.max(NORDIC_FROST_SHRINE_POS.compoundMinX - 1.5 - x, 0, x - (NORDIC_FROST_SHRINE_POS.compoundMaxX + 1.5));
+    const outZ = Math.max(NORDIC_FROST_SHRINE_POS.compoundMinZ - 1.5 - z, 0, z - (NORDIC_FROST_SHRINE_POS.compoundMaxZ + 0.6));
+    const rectDist = Math.hypot(outX, outZ);
+    if (rectDist < 12.0) {
+      const plateauW = 1.0 - smoothstep(0.0, 12.0, rectDist);
+      const insideCourtyard =
+        x >= NORDIC_FROST_SHRINE_POS.compoundMinX + 0.2 &&
+        x <= NORDIC_FROST_SHRINE_POS.compoundMaxX - 0.2 &&
+        z >= NORDIC_FROST_SHRINE_POS.compoundMinZ + 0.2 &&
+        z <= NORDIC_FROST_SHRINE_POS.compoundMaxZ - 0.2;
+      const distPool = Math.hypot(x - NORDIC_FROST_SHRINE_POS.x, z - NORDIC_FROST_SHRINE_POS.z);
+      const slabRecess =
+        insideCourtyard && distPool > NORDIC_FROST_SHRINE_POS.poolRadius - 0.35
+          ? 0.28 * (1.0 - smoothstep(1.2, 0.0, Math.min(
+              x - NORDIC_FROST_SHRINE_POS.compoundMinX,
+              NORDIC_FROST_SHRINE_POS.compoundMaxX - x,
+              z - NORDIC_FROST_SHRINE_POS.compoundMinZ,
+              NORDIC_FROST_SHRINE_POS.compoundMaxZ - z
+            )))
+          : 0.0;
+      const targetPlateauY = NORDIC_FROST_SHRINE_POS.floorY - slabRecess;
+      h = h * (1.0 - plateauW) + targetPlateauY * plateauW;
+    }
+
+    const stairDx = Math.abs(x - NORDIC_FROST_SHRINE_POS.gateCenterX);
+    if (
+      stairDx < 9.5 &&
+      z >= NORDIC_FROST_SHRINE_POS.gateZ - 0.5 &&
+      z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 5.5
+    ) {
+      const stairRampT = Math.max(
+        0,
+        Math.min(
+          1,
+          (NORDIC_FROST_SHRINE_POS.stairBottomZ - z) /
+            (NORDIC_FROST_SHRINE_POS.stairBottomZ - NORDIC_FROST_SHRINE_POS.gateZ)
+        )
+      );
+      const underSteps =
+        stairDx <= NORDIC_FROST_SHRINE_POS.gateHalfWidth + 0.9 &&
+        z >= NORDIC_FROST_SHRINE_POS.gateZ &&
+        z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 1.2;
+      const stepRecess = underSteps ? 0.65 : 0.0;
+      const stairTargetH =
+        NORDIC_FROST_SHRINE_POS.stairBottomY +
+        stairRampT * (NORDIC_FROST_SHRINE_POS.floorY - NORDIC_FROST_SHRINE_POS.stairBottomY) -
+        stepRecess;
+      const sideBlend = 1.0 - smoothstep(5.4, 9.5, stairDx);
+      const southBlend =
+        z > NORDIC_FROST_SHRINE_POS.stairBottomZ
+          ? 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.stairBottomZ, NORDIC_FROST_SHRINE_POS.stairBottomZ + 5.5, z)
+          : 1.0;
+      const stairW = sideBlend * southBlend;
+      h = h * (1.0 - stairW) + stairTargetH * stairW;
+    }
+  }
+
+  // Northern Hot Springs & East-Asian Sanctuary Basin at (-320, -290) with multi-depth soaking shelves (34.0m courtyard)
   const nfDx = x - NORDIC_FROST_SHRINE_POS.x;
   const nfDz = z - NORDIC_FROST_SHRINE_POS.z;
   if (Math.abs(nfDx) <= 22.0 && Math.abs(nfDz) <= 22.0) {
     const nfDist = Math.hypot(nfDx, nfDz);
     if (nfDist < NORDIC_FROST_SHRINE_POS.poolRadius + 1.4) {
-      // Three distinct geothermal depths: shallow wading shelf (17.92m), mid soaking shelf (17.50m), deep center (16.95m)
-      const shallowH = 17.92;
-      const midH = 17.5;
+      // Three distinct geothermal depths: shallow wading shelf (33.42m), mid soaking shelf (33.00m), deep center (32.45m)
+      const shallowH = NORDIC_FROST_SHRINE_POS.shallowShelfY;
+      const midH = NORDIC_FROST_SHRINE_POS.midShelfY;
       const deepH = NORDIC_FROST_SHRINE_POS.poolFloorY;
       let targetBasinH = shallowH;
       if (nfDist < 7.8) {
@@ -1598,12 +1678,6 @@ export function groundHeightAt(x: number, z: number): number {
       }
       const poolCarve = 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.poolRadius - 0.6, NORDIC_FROST_SHRINE_POS.poolRadius + 1.1, nfDist);
       h = h * (1.0 - poolCarve) + targetBasinH * poolCarve;
-    }
-    // Raised Northern Rune Altar Dais at (x: -320, z: -306.5)
-    const altarDist = Math.hypot(nfDx, z - (NORDIC_FROST_SHRINE_POS.z - 16.5));
-    if (altarDist < 6.2) {
-      const altarW = 1.0 - smoothstep(3.8, 6.2, altarDist);
-      h = h * (1.0 - altarW) + NORDIC_FROST_SHRINE_POS.altarDaisY * altarW;
     }
   }
 
@@ -1703,13 +1777,13 @@ export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number)
   const nfWaterDist = Math.hypot(x - NORDIC_FROST_SHRINE_POS.x, z - NORDIC_FROST_SHRINE_POS.z);
   if (
     nfWaterDist <= NORDIC_FROST_SHRINE_POS.poolRadius &&
-    (currentY === undefined || currentY >= 14.0)
+    (currentY === undefined || currentY >= NORDIC_FROST_SHRINE_POS.poolFloorY - 2.5)
   ) {
     return NORDIC_FROST_SHRINE_POS.poolWaterY;
   }
   const coastLineX = easternCoastlineXAt(z);
-  if (x >= coastLineX - 2.0 && groundHeightAt(x, z) < SOUTHEAST_HARBOR_POS.waterY - 0.05) {
-    return SOUTHEAST_HARBOR_POS.waterY;
+  if (x >= coastLineX - 2.0 && groundHeightAt(x, z) < WATER_LEVEL - 0.05) {
+    return WATER_LEVEL;
   }
   if (groundHeightAt(x, z) < WATER_LEVEL + 0.15) {
     return WATER_LEVEL;
@@ -2011,14 +2085,50 @@ export function walkableHeightAt(
     nfStairDx <= 2.3 &&
     nfStairDz >= 5.2 &&
     nfStairDz <= NORDIC_FROST_SHRINE_POS.poolRadius + 0.6 &&
-    (currentY === undefined || currentY >= 15.0)
+    (currentY === undefined || currentY >= NORDIC_FROST_SHRINE_POS.poolFloorY - 2.0)
   ) {
     const tStep = Math.max(
       0,
       Math.min(1, (nfStairDz - 5.2) / (NORDIC_FROST_SHRINE_POS.poolRadius + 0.6 - 5.2))
     );
-    const stairH = 17.48 + tStep * (NORDIC_FROST_SHRINE_POS.floorY - 17.48);
+    const stairBottomPoolY = NORDIC_FROST_SHRINE_POS.midShelfY - 0.02;
+    const stairH = stairBottomPoolY + tStep * (NORDIC_FROST_SHRINE_POS.floorY - stairBottomPoolY);
     return writeWalkableSample(out, stairH, 'bridge');
+  }
+
+  // Grand South Entrance Staircase climbing from northern trail (~31.2m) up to the 34.0m Compound Gate
+  if (
+    Math.abs(x - NORDIC_FROST_SHRINE_POS.gateCenterX) <= NORDIC_FROST_SHRINE_POS.gateHalfWidth - 0.4 &&
+    z >= NORDIC_FROST_SHRINE_POS.gateZ &&
+    z <= NORDIC_FROST_SHRINE_POS.stairBottomZ &&
+    (currentY === undefined || currentY >= NORDIC_FROST_SHRINE_POS.stairBottomY - 2.5)
+  ) {
+    const tGate = Math.max(
+      0,
+      Math.min(
+        1,
+        (NORDIC_FROST_SHRINE_POS.stairBottomZ - z) /
+          (NORDIC_FROST_SHRINE_POS.stairBottomZ - NORDIC_FROST_SHRINE_POS.gateZ)
+      )
+    );
+    const gateStairH =
+      NORDIC_FROST_SHRINE_POS.stairBottomY +
+      tGate * (NORDIC_FROST_SHRINE_POS.floorY - NORDIC_FROST_SHRINE_POS.stairBottomY);
+    return writeWalkableSample(out, gateStairH, 'bridge');
+  }
+
+  // Elevated Northern Sanctuary Compound Granite Courtyard & Covered Wings (34.0m terrace outside the pool)
+  if (
+    x >= NORDIC_FROST_SHRINE_POS.compoundMinX &&
+    x <= NORDIC_FROST_SHRINE_POS.compoundMaxX &&
+    z >= NORDIC_FROST_SHRINE_POS.compoundMinZ &&
+    z <= NORDIC_FROST_SHRINE_POS.compoundMaxZ &&
+    (currentY === undefined || currentY >= NORDIC_FROST_SHRINE_POS.floorY - 3.0)
+  ) {
+    const distToPool = Math.hypot(x - NORDIC_FROST_SHRINE_POS.x, z - NORDIC_FROST_SHRINE_POS.z);
+    if (distToPool >= NORDIC_FROST_SHRINE_POS.poolRadius + 0.1) {
+      return writeWalkableSample(out, NORDIC_FROST_SHRINE_POS.floorY, 'bridge');
+    }
   }
 
   const groundH = groundHeightAt(x, z);

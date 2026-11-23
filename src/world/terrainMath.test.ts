@@ -729,6 +729,29 @@ test('worldLandmarks_WhenEvaluatingOutpostsAndSuspensionBridge_ShouldVerifyHeigh
     `Expected unobstructed transition from SW Watchtower deck onto Rope Bridge (>6.5m), got ${distWalkedOntoBridge.toFixed(2)}m`
   );
 
+  // Walking sideways into the Rope Bridge cable railings stops the player safely inside the deck (no falling off!)
+  const bridgeRailState = createInitialPlayerState();
+  bridgeRailState.x = ROPE_BRIDGE_DEF.mx;
+  bridgeRailState.z = ROPE_BRIDGE_DEF.mz;
+  bridgeRailState.y = midBridge.height;
+  bridgeRailState.onGround = true;
+  bridgeRailState.yaw = bridgeYaw + Math.PI * 0.5;
+  for (let step = 0; step < 30; step++) {
+    stepPlayerPhysics(
+      bridgeRailState,
+      { forward: 1, right: 0, sprint: true, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      obstacles,
+      0.05,
+      new Set()
+    );
+  }
+  const railCheckInfo = ropeBridgePointInfoAt(bridgeRailState.x, bridgeRailState.z);
+  assert.ok(railCheckInfo !== null, 'Expected rope bridge side guardrail to keep player on the bridge deck');
+  assert.ok(
+    railCheckInfo.perpDist < 1.15 && bridgeRailState.y >= midBridge.height - 0.2,
+    `Expected rope bridge railing hitbox to stop sideways walk inside 1.24m cables, got perpDist=${railCheckInfo.perpDist.toFixed(2)}, y=${bridgeRailState.y.toFixed(2)}`
+  );
+
   // 4) Upgraded Far-South Dwarven Mountain Mine: steep mountain above, sloping shaft descending 12m underground, and Colossal Subterranean Crystal Cavern at y = -9.35m!
   const mountainPeakAboveMine = groundHeightAt(SOUTHERN_MINE_POS.x, SOUTHERN_MINE_POS.entranceZ + 36.0);
   assert.ok(
@@ -2313,11 +2336,19 @@ test('expandedRegionalLandmarksAndSmartWildlifeAI_WhenEvaluated_ShouldVerifyNord
     Math.abs(hotSpringFloor - NORDIC_FROST_SHRINE_POS.poolFloorY) < 0.08,
     `Expected Nordic Hot Spring pool floor at ${NORDIC_FROST_SHRINE_POS.poolFloorY}m, got ${hotSpringFloor}`
   );
-  const altarFloor = groundHeightAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z - 16.5);
+  const northTerrace = walkableHeightAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z - 16.5);
   assert.ok(
-    Math.abs(altarFloor - NORDIC_FROST_SHRINE_POS.altarDaisY) < 0.08,
-    `Expected Nordic Altar Dais at ${NORDIC_FROST_SHRINE_POS.altarDaisY}m, got ${altarFloor}`
+    Math.abs(northTerrace.height - NORDIC_FROST_SHRINE_POS.floorY) < 0.08,
+    `Expected flat Nordic Hot Spring North Tea Veranda floor at ${NORDIC_FROST_SHRINE_POS.floorY}m, got ${northTerrace.height}`
   );
+  // Circular granite collar corners around the pool must sit on walkable 34.0m deck (no snow corner cutouts)
+  for (const [cxOff, czOff] of [[-9, -9], [9, -9], [-9, 9], [9, 9]]) {
+    const cornerWalk = walkableHeightAt(NORDIC_FROST_SHRINE_POS.x + cxOff, NORDIC_FROST_SHRINE_POS.z + czOff);
+    assert.ok(
+      Math.abs(cornerWalk.height - NORDIC_FROST_SHRINE_POS.floorY) < 0.08,
+      `Expected circular pool collar corner (${cxOff},${czOff}) at ${NORDIC_FROST_SHRINE_POS.floorY}m, got ${cornerWalk.height}`
+    );
+  }
   assert.ok(
     trailFactorAt(NORDIC_FROST_SHRINE_POS.x, NORDIC_FROST_SHRINE_POS.z + 14.0) > 0.75,
     'Expected mountain trail to arrive at Nordic Frost Shrine'
@@ -2385,6 +2416,18 @@ test('expandedRegionalLandmarksAndSmartWildlifeAI_WhenEvaluated_ShouldVerifyNord
 
   // 4) Smart Wolf Pack Tactical Flanking & Herbivore Herd Alert Propagation
   const animals = createInitialSmallAnimals();
+  const animalsInHotSpring = animals.filter(
+    (a) =>
+      a.x >= NORDIC_FROST_SHRINE_POS.compoundMinX - 3.0 &&
+      a.x <= NORDIC_FROST_SHRINE_POS.compoundMaxX + 3.0 &&
+      a.z >= NORDIC_FROST_SHRINE_POS.compoundMinZ - 3.0 &&
+      a.z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 3.0
+  );
+  assert.equal(
+    animalsInHotSpring.length,
+    0,
+    `Expected zero wild animals spawned inside Hot Spring compound, found ${animalsInHotSpring.map((a) => `${a.species}@(${a.x},${a.z})`).join(', ')}`
+  );
   const wolves = animals.filter((a) => a.species === 'wolf');
   assert.ok(wolves.length >= 6, `Expected >= 6 wolves including Nordic Shrine pack, got ${wolves.length}`);
   const w0 = wolves[0];
@@ -3512,34 +3555,59 @@ test('hotSpringAndMonkSchedules_WhenVerifyingMultiDepthPoolBaguaNightBedsDojoAnd
     isMonkPositionSafeOnPlatform,
   } = await import('./systems/monkTempleSystem');
 
-  // 1) Northern Hot Spring has 3 enterable depth zones (17.92m, 17.50m, 16.95m), active pool water at 18.25m, and walkable South stairs
+  // 1) Northern Hot Spring & Sanctuary Compound is raised to 34.0m (above surrounding 30-33m hills), has 3 enterable depth zones (33.42m, 33.00m, 32.45m), active pool water at 33.75m, and walkable South stairs
   const hsX = NORDIC_FROST_SHRINE_POS.x;
   const hsZ = NORDIC_FROST_SHRINE_POS.z;
+  assert.equal(NORDIC_FROST_SHRINE_POS.floorY, 34.0);
+  const rimCheckH = groundHeightAt(NORDIC_FROST_SHRINE_POS.gateCenterX, NORDIC_FROST_SHRINE_POS.stairBottomZ);
+  assert.ok(rimCheckH < NORDIC_FROST_SHRINE_POS.floorY, `Expected compound plateau (${NORDIC_FROST_SHRINE_POS.floorY}m) to rise above south trail (${rimCheckH}m)`);
+
   const centerFloor = groundHeightAt(hsX, hsZ);
   const midDepthFloor = groundHeightAt(hsX + 5.6, hsZ);
   const shallowFloor = groundHeightAt(hsX + 7.5, hsZ);
-  assert.ok(Math.abs(centerFloor - 16.95) < 0.06, `Expected deep soak basin near 16.95m, got ${centerFloor}`);
-  assert.ok(Math.abs(midDepthFloor - 17.5) < 0.06, `Expected medium soak shelf near 17.50m, got ${midDepthFloor}`);
-  assert.ok(Math.abs(shallowFloor - 17.92) < 0.06, `Expected shallow soak bench near 17.92m, got ${shallowFloor}`);
+  assert.ok(Math.abs(centerFloor - NORDIC_FROST_SHRINE_POS.poolFloorY) < 0.06, `Expected deep soak basin near ${NORDIC_FROST_SHRINE_POS.poolFloorY}m, got ${centerFloor}`);
+  assert.ok(Math.abs(midDepthFloor - NORDIC_FROST_SHRINE_POS.midShelfY) < 0.06, `Expected medium soak shelf near ${NORDIC_FROST_SHRINE_POS.midShelfY}m, got ${midDepthFloor}`);
+  assert.ok(Math.abs(shallowFloor - NORDIC_FROST_SHRINE_POS.shallowShelfY) < 0.06, `Expected shallow soak bench near ${NORDIC_FROST_SHRINE_POS.shallowShelfY}m, got ${shallowFloor}`);
 
-  const poolWater = getWaterSurfaceHeightAt(hsX, hsZ, 18.0);
+  const poolWater = getWaterSurfaceHeightAt(hsX, hsZ, NORDIC_FROST_SHRINE_POS.floorY);
   assert.equal(poolWater, NORDIC_FROST_SHRINE_POS.poolWaterY);
 
-  const stairMidWalk = walkableHeightAt(hsX, hsZ + 8.5, 18.0);
+  const stairMidWalk = walkableHeightAt(hsX, hsZ + 8.5, NORDIC_FROST_SHRINE_POS.floorY - 0.5);
   assert.ok(
-    stairMidWalk.height > 17.6 && stairMidWalk.height < 18.3,
+    stairMidWalk.height > NORDIC_FROST_SHRINE_POS.midShelfY + 0.1 && stairMidWalk.height < NORDIC_FROST_SHRINE_POS.floorY - 0.1,
     `Expected walkable South stone stair descending into hot spring water, got ${stairMidWalk.height}`
   );
 
-  // Runestone pillars removed; dining table + benches + towel bench registered in SOLID_BUILDING_BOXES
+  // Grand South Entrance Staircase climbs smoothly up to the 34.0m Compound Gate
+  const gateStairMidWalk = walkableHeightAt(
+    NORDIC_FROST_SHRINE_POS.gateCenterX,
+    (NORDIC_FROST_SHRINE_POS.gateZ + NORDIC_FROST_SHRINE_POS.stairBottomZ) * 0.5,
+    NORDIC_FROST_SHRINE_POS.stairBottomY + 1.0
+  );
+  assert.ok(
+    gateStairMidWalk.height > NORDIC_FROST_SHRINE_POS.stairBottomY + 0.5 &&
+      gateStairMidWalk.height < NORDIC_FROST_SHRINE_POS.floorY - 0.5,
+    `Expected walkable South compound staircase, got ${gateStairMidWalk.height}`
+  );
+
+  // Dining table, benches, towel rack, compound perimeter walls, and East training wing dummies/racks registered in SOLID_BUILDING_BOXES
   const boxMap = new Map(SOLID_BUILDING_BOXES.map((b) => [b.id, b]));
   assert.ok(boxMap.has('nordic-hotspring-dining-table'));
   assert.ok(boxMap.has('nordic-hotspring-bench-west'));
   assert.ok(boxMap.has('nordic-hotspring-bench-east'));
   assert.ok(boxMap.has('nordic-hotspring-towel-rack'));
+  assert.ok(boxMap.has('nordic-compound-wall-north'));
+  assert.ok(boxMap.has('nordic-compound-gate-pillar-west'));
+  assert.ok(boxMap.has('nordic-compound-dummy-north'));
+  assert.ok(boxMap.has('nordic-compound-weapon-rack-north'));
+  assert.ok(boxMap.has('nordic-hotspring-north-waterfall'));
+  assert.ok(boxMap.has('nordic-hotspring-archery-target-north'));
+  assert.ok(boxMap.has('nordic-hotspring-archery-target-south'));
+  assert.equal(boxMap.has('nordic-hotspring-planter-nw'), false);
 
-  // Bagua Yin-Yang platform sits directly adjacent to the Hot Spring
+  // Bagua Yin-Yang platform sits directly adjacent to the Hot Spring inside the elevated 34.0m compound
   assert.ok(Math.hypot(CHINESE_BAGUA_PLATFORM_POS.x - hsX, CHINESE_BAGUA_PLATFORM_POS.z - hsZ) <= 30.0);
+  assert.equal(CHINESE_BAGUA_PLATFORM_POS.baseY, NORDIC_FROST_SHRINE_POS.floorY);
 
   // 2) Night schedule (worldHours = 22.0) moves Fortress sleepers + Hot Spring commuters onto 2F Barracks beds while guards, statue keepers & night trainers stay active
   resetMonkTempleSystem();
@@ -3591,7 +3659,7 @@ test('hotSpringAndMonkSchedules_WhenVerifyingMultiDepthPoolBaguaNightBedsDojoAnd
     phaseOffset: 0.1,
     patrolWaypoints: [
       [0.0, CHINESE_FORTRESS_POS.summitHeight, -135.0 + FZ],
-      [hsX, 17.5, hsZ + 5.5],
+      [hsX, NORDIC_FROST_SHRINE_POS.midShelfY, hsZ + 5.5],
     ],
     bedX: -24.2,
     bedY: pav2BedY,
@@ -3631,6 +3699,131 @@ test('hotSpringAndMonkSchedules_WhenVerifyingMultiDepthPoolBaguaNightBedsDojoAnd
       true,
       `Expected hill watchtower ${hw.id} guard post at (${gx.toFixed(1)}, ${gz.toFixed(1)}) to be safe on upper deck ${hw.deckY}`
     );
+  }
+
+  // 4) Staggered Hot Spring commuter starting at spring soaks then walks back to Fortress during daytime, and sleeps in 2F bed at night
+  const { RUINED_ATLANTIS_POS, WATER_LEVEL } = await import('./terrainMath');
+  const springStarter = spawnTempleMonk({
+    id: 'test_spring_starter_commuter',
+    role: 'hotspring_commuter',
+    parent: mockScene,
+    homeX: 0.0,
+    homeY: CHINESE_FORTRESS_POS.summitHeight,
+    homeZ: -135.0 + FZ,
+    baseYaw: 0,
+    phaseOffset: 0.3,
+    initialCommuteState: 'at_spring',
+    initialCommutePauseTimer: 0.5,
+    patrolWaypoints: [
+      [0.0, CHINESE_FORTRESS_POS.summitHeight, -135.0 + FZ],
+      [hsX, NORDIC_FROST_SHRINE_POS.midShelfY, hsZ + 5.5],
+    ],
+    bedX: -22.38,
+    bedY: pav2BedY,
+    bedZ: -166.6 + FZ,
+    bedYaw: -Math.PI / 2,
+    sleepRoute: [
+      [0.0, CHINESE_FORTRESS_POS.summitHeight, -135.0 + FZ],
+      [-30.0, CHINESE_FORTRESS_POS.pavilionFloor2Y, -168.4 + FZ],
+      [-22.38, pav2BedY, -166.6 + FZ],
+    ],
+  });
+  assert.equal(springStarter.commuteState, 'at_spring');
+  assert.ok(Math.hypot(springStarter.x - hsX, springStarter.z - (hsZ + 5.5)) < 0.2);
+  for (let s = 0; s < 40; s++) {
+    updateMonkTempleSystem(0.05, 200 + s * 0.05, hsX, hsZ, 12.0);
+  }
+  assert.equal(springStarter.commuteState, 'to_fortress', 'Expected soaking commuter to begin returning to Fortress');
+
+  // 5) Ruined Atlantis ocean lagoon floor stays deeply submerged (< -3.5m) below WATER_LEVEL (0m)
+  const lagoonFloor = groundHeightAt(RUINED_ATLANTIS_POS.x + 48.0, RUINED_ATLANTIS_POS.z);
+  assert.ok(
+    lagoonFloor < -3.5,
+    `Expected Ruined Atlantis deep lagoon seabed (< -3.5m), got ${lagoonFloor}`
+  );
+  assert.equal(getWaterSurfaceHeightAt(RUINED_ATLANTIS_POS.x + 48.0, RUINED_ATLANTIS_POS.z, 0.5), WATER_LEVEL);
+
+  // 6) Sparring partner sits peacefully on rest bench instead of punching air when partner is provoked, then resumes sparring
+  const baguaY = CHINESE_BAGUA_PLATFORM_POS.deckY + 0.37;
+  const baguaWBenchX = CHINESE_BAGUA_PLATFORM_POS.x - 3.45;
+  const baguaWBenchZ = CHINESE_BAGUA_PLATFORM_POS.z - 3.45;
+  const baguaW = spawnTempleMonk({
+    id: 'test_bagua_w',
+    role: 'bagua_sparring',
+    parent: mockScene,
+    homeX: CHINESE_BAGUA_PLATFORM_POS.x - 1.55,
+    homeY: baguaY,
+    homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
+    baseYaw: Math.PI / 2,
+    phaseOffset: 0,
+    partnerId: 'test_bagua_e',
+    restBenchX: baguaWBenchX,
+    restBenchY: CHINESE_BAGUA_PLATFORM_POS.deckY,
+    restBenchZ: baguaWBenchZ,
+    restBenchYaw: Math.PI / 4,
+  });
+  const baguaE = spawnTempleMonk({
+    id: 'test_bagua_e',
+    role: 'bagua_sparring',
+    parent: mockScene,
+    homeX: CHINESE_BAGUA_PLATFORM_POS.x + 1.55,
+    homeY: baguaY,
+    homeZ: CHINESE_BAGUA_PLATFORM_POS.z,
+    baseYaw: -Math.PI / 2,
+    phaseOffset: 0,
+    partnerId: 'test_bagua_w',
+    restBenchX: CHINESE_BAGUA_PLATFORM_POS.x + 3.45,
+    restBenchY: CHINESE_BAGUA_PLATFORM_POS.deckY,
+    restBenchZ: CHINESE_BAGUA_PLATFORM_POS.z + 3.45,
+    restBenchYaw: -(Math.PI * 3) / 4,
+  });
+  updateMonkTempleSystem(0.05, 300.0, CHINESE_BAGUA_PLATFORM_POS.x, CHINESE_BAGUA_PLATFORM_POS.z, 12.0);
+  assert.ok(
+    baguaW.ctrl.state !== 'sit' && baguaW.ctrl.state !== 'walk',
+    `Expected peaceful bagua pair to spar, got ${baguaW.ctrl.state}`
+  );
+  // Provoke eastern partner -> western partner walks to bench and sits instead of swinging at empty air
+  baguaE.isAggro = true;
+  baguaE.x = CHINESE_BAGUA_PLATFORM_POS.x + 8.0;
+  baguaE.z = CHINESE_BAGUA_PLATFORM_POS.z + 8.0;
+  for (let s = 0; s < 100; s++) {
+    updateMonkTempleSystem(0.05, 305.0 + s * 0.05, CHINESE_BAGUA_PLATFORM_POS.x + 8.0, CHINESE_BAGUA_PLATFORM_POS.z + 8.0, 12.0);
+  }
+  assert.equal(baguaW.ctrl.state, 'sit', `Expected unpartnered sparrer to wait sitting on bench, got ${baguaW.ctrl.state}`);
+  assert.ok(
+    Math.hypot(baguaW.x - baguaWBenchX, baguaW.z - baguaWBenchZ) < 0.25,
+    `Expected waiting sparrer on bench at (${baguaWBenchX.toFixed(2)}, ${baguaWBenchZ.toFixed(2)}), got (${baguaW.x.toFixed(2)}, ${baguaW.z.toFixed(2)})`
+  );
+  // Return partner peacefully -> western partner walks back to post and resumes sparring
+  baguaE.isAggro = false;
+  baguaE.isReturningFromAggro = false;
+  baguaE.x = baguaE.homeX;
+  baguaE.y = baguaE.homeY;
+  baguaE.z = baguaE.homeZ;
+  for (let s = 0; s < 100; s++) {
+    updateMonkTempleSystem(0.05, 315.0 + s * 0.05, CHINESE_BAGUA_PLATFORM_POS.x, CHINESE_BAGUA_PLATFORM_POS.z, 12.0);
+  }
+  assert.notEqual(baguaW.ctrl.state, 'sit', 'Expected sparrer to leave bench and resume martial training when partner returns');
+
+  // 7) Untamed wolf pushing toward the Hot Spring compound is kept strictly outside its perimeter
+  const { createInitialSmallAnimals: createWildAnimals, stepSmallAnimals } = await import('./systems/boidsAndWildlifeSystem');
+  const wolfList = createWildAnimals().filter((a) => a.species === 'wolf');
+  const testWolf = wolfList[0];
+  testWolf.x = NORDIC_FROST_SHRINE_POS.gateCenterX;
+  testWolf.z = NORDIC_FROST_SHRINE_POS.stairBottomZ + 4.5;
+  testWolf.vx = 0;
+  testWolf.vz = -8.0;
+  testWolf.aiBehavior = 'grazing';
+  testWolf.alertLevel = 'grazing';
+  testWolf.isTamed = false;
+  for (let s = 0; s < 60; s++) {
+    stepSmallAnimals([testWolf], 0.05, 400 + s * 0.05, 0, 0, [], 1.0);
+    const insideCompound =
+      testWolf.x > NORDIC_FROST_SHRINE_POS.compoundMinX - 3.2 &&
+      testWolf.x < NORDIC_FROST_SHRINE_POS.compoundMaxX + 3.2 &&
+      testWolf.z > NORDIC_FROST_SHRINE_POS.compoundMinZ - 3.2 &&
+      testWolf.z < NORDIC_FROST_SHRINE_POS.stairBottomZ + 3.2;
+    assert.equal(insideCompound, false, `Wolf breached Hot Spring perimeter at (${testWolf.x.toFixed(2)}, ${testWolf.z.toFixed(2)})`);
   }
 
   resetMonkTempleSystem();
