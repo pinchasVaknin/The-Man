@@ -1560,7 +1560,7 @@ export function buildPlayerAndCombatSystems(
     const horseBaseYaw = isMounted
       ? (playerState.mountedHorseYaw ?? playerState.yaw)
       : playerState.yaw;
-    const mountBackOffset = isMountedShip ? 3.6 : isMountedLion ? 0.28 : 0;
+    const mountBackOffset = isMountedShip ? 0 : isMountedLion ? 0.28 : 0;
     const mountBackOffsetX = Math.sin(horseBaseYaw) * mountBackOffset;
     const mountBackOffsetZ = Math.cos(horseBaseYaw) * mountBackOffset;
     const mountedRelLookYaw = isMounted

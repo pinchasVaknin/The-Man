@@ -30,7 +30,7 @@ import {
   SAKURA_SANCTUARY_YAW,
   isWithinViewDistance,
 } from '../domain/landmarksRegistry';
-import { walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
+import { groundHeightAt, walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { getPlayerState } from './combatAndInventorySystem';
 import { isSleepingAllowedAt } from './worldClockSystem';
 
@@ -2295,13 +2295,22 @@ export function updateMonkTempleSystem(
               mk.commuteCursor = cursor - 1;
             }
           }
-          const prog = segLen > 0.1 ? Math.max(0, Math.min(1, 1.0 - distWp / segLen)) : 1.0;
+          const segDx = wp[0] - prevWp[0];
+          const segDz = wp[2] - prevWp[2];
+          const segLenSq = segDx * segDx + segDz * segDz;
+          const prog =
+            segLenSq > 0.01
+              ? Math.max(0, Math.min(1, ((mk.x - prevWp[0]) * segDx + (mk.z - prevWp[2]) * segDz) / segLenSq))
+              : 1.0;
           const interpY = prevWp[1] + (wp[1] - prevWp[1]) * prog;
           const walkInfo = walkableHeightAt(mk.x, mk.z, interpY);
+          const groundY = groundHeightAt(mk.x, mk.z);
           const groundedY =
-            walkInfo.surface === 'ground' || Math.abs(walkInfo.height - interpY) <= 3.8
-              ? walkInfo.height
-              : interpY;
+            walkInfo.surface === 'ground'
+              ? Math.max(walkInfo.height, groundY)
+              : Math.abs(walkInfo.height - interpY) <= 3.8
+                ? walkInfo.height
+                : Math.max(interpY, groundY);
           mk.y += (groundedY - mk.y) * Math.min(1, safeDt * 14.0);
           if (Math.hypot(navRes.aimDx, navRes.aimDz) > 0.001) {
             mk.yaw = rotateAngleToward(mk.yaw, Math.atan2(navRes.aimDx, navRes.aimDz), safeDt * 6.5);

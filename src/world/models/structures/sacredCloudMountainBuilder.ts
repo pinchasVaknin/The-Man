@@ -17,6 +17,7 @@ import {
   SACRED_CLOUD_MOUNTAIN_POS,
   CHINESE_BAGUA_PLATFORM_POS,
   SACRED_MOUNTAIN_CAIRN_MARKERS,
+  FORTRESS_TO_HOTSPRING_CAIRN_MARKERS,
   SACRED_MOUNTAIN_SPIRAL_SEGMENTS,
   SACRED_LOTUS_STEPPING_STONES,
   sacredMountainApproachDistanceAt,
@@ -690,39 +691,47 @@ export function buildSacredCloudMountainModel(
   const pennantGeo = new THREE.ShapeGeometry(pennantShape);
   disposableGeometries.push(stoneSphereGeo, staffGeo, pennantGeo);
 
-  for (let i = 0; i < SACRED_MOUNTAIN_CAIRN_MARKERS.length; i++) {
-    const mk = SACRED_MOUNTAIN_CAIRN_MARKERS[i];
-    const gy = groundHeightAt(mk.x, mk.z);
-    const holder = new THREE.Group();
-    holder.position.set(mk.x, gy, mk.z);
+  const spawnCairnMarkers = (
+    targetGroup: THREE.Group,
+    markers: typeof SACRED_MOUNTAIN_CAIRN_MARKERS,
+    phaseOffset: number
+  ) => {
+    for (let i = 0; i < markers.length; i++) {
+      const mk = markers[i];
+      const gy = groundHeightAt(mk.x, mk.z);
+      const holder = new THREE.Group();
+      holder.position.set(mk.x, gy, mk.z);
 
-    const stackSpecs: Array<[number, number, number, number, number, number]> = [
-      [-0.14, 0.14, 0.08, 1.15, 0.72, 1.05],
-      [0.14, 0.14, -0.09, 1.05, 0.68, 1.1],
-      [-0.02, 0.14, -0.15, 0.95, 0.65, 0.95],
-      [0.02, 0.34, 0.01, 0.85, 0.62, 0.85],
-      [0.0, 0.51, 0.0, 0.64, 0.54, 0.64],
-    ];
-    for (const [sx, sy, sz, rx, ry, rz] of stackSpecs) {
-      const stone = new THREE.Mesh(stoneSphereGeo, cairnStoneMat);
-      stone.position.set(sx, sy, sz);
-      stone.scale.set(rx, ry, rz);
-      stone.rotation.set(mk.seed * 1.4, sx * 4.0, sz * 4.0);
-      holder.add(stone);
+      const stackSpecs: Array<[number, number, number, number, number, number]> = [
+        [-0.14, 0.14, 0.08, 1.15, 0.72, 1.05],
+        [0.14, 0.14, -0.09, 1.05, 0.68, 1.1],
+        [-0.02, 0.14, -0.15, 0.95, 0.65, 0.95],
+        [0.02, 0.34, 0.01, 0.85, 0.62, 0.85],
+        [0.0, 0.51, 0.0, 0.64, 0.54, 0.64],
+      ];
+      for (const [sx, sy, sz, rx, ry, rz] of stackSpecs) {
+        const stone = new THREE.Mesh(stoneSphereGeo, cairnStoneMat);
+        stone.position.set(sx, sy, sz);
+        stone.scale.set(rx, ry, rz);
+        stone.rotation.set(mk.seed * 1.4, sx * 4.0, sz * 4.0);
+        holder.add(stone);
+      }
+
+      const pole = new THREE.Mesh(staffGeo, rusticLogMat);
+      pole.position.set(0, 0.96, 0);
+      holder.add(pole);
+
+      const flag = new THREE.Mesh(pennantGeo, flagRedMat);
+      flag.position.set(0, 1.5, 0);
+      flag.rotation.y = mk.flagYaw;
+      holder.add(flag);
+      animatedFlags.push({ mesh: flag, baseYaw: mk.flagYaw, phase: phaseOffset + i * 0.9 });
+
+      targetGroup.add(holder);
     }
+  };
 
-    const pole = new THREE.Mesh(staffGeo, rusticLogMat);
-    pole.position.set(0, 0.96, 0);
-    holder.add(pole);
-
-    const flag = new THREE.Mesh(pennantGeo, flagRedMat);
-    flag.position.set(0, 1.5, 0);
-    flag.rotation.y = mk.flagYaw;
-    holder.add(flag);
-    animatedFlags.push({ mesh: flag, baseYaw: mk.flagYaw, phase: i * 0.9 });
-
-    cairnGroup.add(holder);
-  }
+  spawnCairnMarkers(cairnGroup, SACRED_MOUNTAIN_CAIRN_MARKERS, 0);
   scene.add(cairnGroup);
   distanceCulledObjects.push({
     obj: cairnGroup,
@@ -730,6 +739,18 @@ export function buildSacredCloudMountainModel(
     cz: -468.0,
     radius: 260.0,
     maxDist: 380.0,
+  });
+
+  const hotspringCairnGroup = new THREE.Group();
+  hotspringCairnGroup.name = 'fortress-hotspring-trail-cairns';
+  spawnCairnMarkers(hotspringCairnGroup, FORTRESS_TO_HOTSPRING_CAIRN_MARKERS, 10.5);
+  scene.add(hotspringCairnGroup);
+  distanceCulledObjects.push({
+    obj: hotspringCairnGroup,
+    cx: -155.0,
+    cz: -235.0,
+    radius: 195.0,
+    maxDist: 420.0,
   });
 
   // ============================================================================

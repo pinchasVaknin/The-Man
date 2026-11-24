@@ -88,7 +88,8 @@ export interface IAnimatedWorldHandles {
     mountedHorseId?: string | null,
     playerState?: IPlayerState,
     activeArrows?: readonly IArrowProjectile[],
-    worldHours?: number
+    worldHours?: number,
+    alpha?: number
   ) => void;
   /**
    * Advances wildlife (birds, animals, footprints) by one simulation step.
@@ -254,7 +255,8 @@ export async function buildRealisticWorld(
     _mountedHorseId?: string | null,
     playerState?: IPlayerState,
     activeArrows?: readonly IArrowProjectile[],
-    worldHours = 8.5
+    worldHours = 8.5,
+    alpha = 1
   ) => {
     // 1. Distance-cull and directional frustum-cull terrain chunks, vegetation sectors, and landmarks
     for (let i = 0; i < distanceCulledObjects.length; i++) {
@@ -322,7 +324,10 @@ export async function buildRealisticWorld(
     updateHarbor(elapsedTime, playerX, playerZ);
     updateOasis(elapsedTime);
     updateVolcanoAndFloatingIslands(elapsedTime, playerX, playerZ);
-    updateAtlantisAndShip(elapsedTime, playerX, playerZ);
+    updateAtlantisAndShip(elapsedTime, playerX, playerZ, alpha);
+    if (colliderDebugHandles.isVisible()) {
+      colliderDebugHandles.syncDynamicColliders?.();
+    }
     updateSacredCloudMountain(elapsedTime, playerX, playerZ);
     updateEnvironment(
       elapsedTime,

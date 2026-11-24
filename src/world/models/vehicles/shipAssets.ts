@@ -85,6 +85,42 @@ export async function parseShipModelGlb(bytes: ArrayBuffer): Promise<IShipModelA
   box.getSize(size);
   box.getCenter(center);
 
+  const deckOffsetY = box.min.y + size.y * SHIP_GLB_DECK_FRACTION_Y;
+  const smooth01 = (e0: number, e1: number, x: number): number => {
+    const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+  };
+
+  // Raise overhanging aft spanker boom & lower sail hem smoothly upward (+2.55m) above the 2F helm sightline
+  // while leaving the hull, quarterdeck, stern railing (by <= 3.1m), and main masts untouched.
+  gltf.scene.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.geometry?.attributes?.position) return;
+    const pos = mesh.geometry.attributes.position as THREE.BufferAttribute;
+    let modified = false;
+    for (let i = 0; i < pos.count; i++) {
+      const bx = -(pos.getZ(i) - center.z) * SHIP_GLB_BASE_SCALE;
+      const by = (pos.getY(i) - deckOffsetY) * SHIP_GLB_BASE_SCALE;
+      const bz = (pos.getX(i) - center.x) * SHIP_GLB_BASE_SCALE;
+      if (bz > 4.35 && by > 3.12 && Math.abs(bx) < 1.45) {
+        const aftW = smooth01(4.35, 6.1, bz);
+        const heightW = smooth01(3.12, 3.55, by);
+        const centerW = 1.0 - smooth01(0.95, 1.45, Math.abs(bx));
+        const liftW = aftW * heightW * centerW;
+        if (liftW > 0.0001) {
+          pos.setY(i, pos.getY(i) + (2.55 * liftW) / SHIP_GLB_BASE_SCALE);
+          modified = true;
+        }
+      }
+    }
+    if (modified) {
+      pos.needsUpdate = true;
+      mesh.geometry.computeVertexNormals();
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
+    }
+  });
+
   return {
     scene: gltf.scene,
     bounds: {

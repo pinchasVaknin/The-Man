@@ -274,12 +274,13 @@ export const ATLANTIS_DEAD_KING_STATUE_POS = {
 export const SAILABLE_SHIP_INITIAL_POS = {
   id: 'sailable-ship',
   name: 'Royal Explorer Flagship',
-  homeX: 286.2,
-  homeZ: 282.0,
+  homeX: 277.0,
+  homeZ: 288.2,
+  jettyZ: 282.0,
   homeYaw: -Math.PI / 2, // Facing East (+X) toward Ruined Atlantis
   deckY: 2.85,
-  halfW: 4.5,
-  halfL: 11.4,
+  halfW: 3.53,
+  halfL: 12.5,
 } as const;
 
 /**

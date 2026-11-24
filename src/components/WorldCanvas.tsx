@@ -65,6 +65,7 @@ import {
   buyMarketItem,
   sellMarketItem,
   configureSailableShipsForGameMode,
+  capturePreviousSailableShipPoses,
   IGameActions,
   GameWorldMode,
   saveWorldSnapshot,
@@ -1205,6 +1206,7 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
     };
 
     function capturePreviousPlayerPose() {
+      capturePreviousSailableShipPoses();
       previousPlayerPose.x = playerState.x;
       previousPlayerPose.y = playerState.y;
       previousPlayerPose.z = playerState.z;

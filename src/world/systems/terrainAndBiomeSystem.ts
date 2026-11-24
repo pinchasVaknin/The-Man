@@ -34,6 +34,7 @@ import {
   SOUTHWEST_OASIS_POS,
   MAGIC_STONE_CIRCLE_POS,
   SOUTHEAST_HARBOR_POS,
+  SAILABLE_SHIP_INITIAL_POS,
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
   isChineseFortressWalkableZone,
@@ -64,9 +65,11 @@ import {
   SACRED_CLOUD_MOUNTAIN_POS,
   CHINESE_BAGUA_PLATFORM_POS,
   SACRED_MOUNTAIN_CAIRN_MARKERS,
+  FORTRESS_TO_HOTSPRING_WAYPOINTS,
   isInsideSacredCloudMountainNoSnowZone,
   isInsideSacredCloudMountainZone,
   sacredMountainApproachDistanceAt,
+  fortressToHotSpringDistanceAt,
   chineseBaguaPlatformWalkableHeightAt,
   sacredCloudMountainWalkableHeightAt,
   sacredCloudMountainWaterSurfaceAt,
@@ -805,6 +808,14 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 88, 62, BIRCH_GROVE_CENTER.x, BIRCH_GROVE_CENTER.z)
   );
 
+  let hsTrailSegDist = Infinity;
+  for (let i = 0; i < FORTRESS_TO_HOTSPRING_WAYPOINTS.length - 1; i++) {
+    const a = FORTRESS_TO_HOTSPRING_WAYPOINTS[i];
+    const b = FORTRESS_TO_HOTSPRING_WAYPOINTS[i + 1];
+    const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
+    if (d < hsTrailSegDist) hsTrailSegDist = d;
+  }
+
   const northTrailDist = Math.min(
     distToSegment(x, z, 22, -12, 30, -26),
     distToSegment(x, z, 30, -26, 0, -76),
@@ -812,12 +823,9 @@ export function trailFactorAt(x: number, z: number): number {
     distToSegment(x, z, 0, -76, -42, -98),
     distToSegment(x, z, -42, -98, -45, -188),
     distToSegment(x, z, 0, -78 + FZ, -65, -230),
-    distToSegment(x, z, -65, -230, -195, -195),
     distToSegment(x, z, -24, -18, -42, -30),
     distToSegment(x, z, -42, -30, -85, -105),
-    distToSegment(x, z, -85, -105, -195, -195),
-    distToSegment(x, z, -195, -195, -285, -255),
-    distToSegment(x, z, -285, -255, NORDIC_FROST_SHRINE_POS.gateCenterX, NORDIC_FROST_SHRINE_POS.stairBottomZ),
+    hsTrailSegDist,
     distToSegment(
       x,
       z,
@@ -1626,9 +1634,9 @@ export function groundHeightAt(x: number, z: number): number {
 
     const stairDx = Math.abs(x - NORDIC_FROST_SHRINE_POS.gateCenterX);
     if (
-      stairDx < 9.5 &&
+      stairDx < 11.5 &&
       z >= NORDIC_FROST_SHRINE_POS.gateZ - 0.5 &&
-      z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 5.5
+      z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 7.5
     ) {
       const stairRampT = Math.max(
         0,
@@ -1639,18 +1647,18 @@ export function groundHeightAt(x: number, z: number): number {
         )
       );
       const underSteps =
-        stairDx <= NORDIC_FROST_SHRINE_POS.gateHalfWidth + 0.9 &&
+        stairDx <= NORDIC_FROST_SHRINE_POS.gateHalfWidth + 1.2 &&
         z >= NORDIC_FROST_SHRINE_POS.gateZ &&
-        z <= NORDIC_FROST_SHRINE_POS.stairBottomZ + 1.2;
-      const stepRecess = underSteps ? 0.65 : 0.0;
+        z <= NORDIC_FROST_SHRINE_POS.stairBottomZ - 0.05;
+      const stepRecess = underSteps ? 0.72 : 0.0;
       const stairTargetH =
         NORDIC_FROST_SHRINE_POS.stairBottomY +
         stairRampT * (NORDIC_FROST_SHRINE_POS.floorY - NORDIC_FROST_SHRINE_POS.stairBottomY) -
         stepRecess;
-      const sideBlend = 1.0 - smoothstep(5.4, 9.5, stairDx);
+      const sideBlend = 1.0 - smoothstep(7.2, 11.5, stairDx);
       const southBlend =
-        z > NORDIC_FROST_SHRINE_POS.stairBottomZ
-          ? 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.stairBottomZ, NORDIC_FROST_SHRINE_POS.stairBottomZ + 5.5, z)
+        z > NORDIC_FROST_SHRINE_POS.stairBottomZ + 2.0
+          ? 1.0 - smoothstep(NORDIC_FROST_SHRINE_POS.stairBottomZ + 2.0, NORDIC_FROST_SHRINE_POS.stairBottomZ + 7.5, z)
           : 1.0;
       const stairW = sideBlend * southBlend;
       h = h * (1.0 - stairW) + stairTargetH * stairW;
@@ -1691,6 +1699,17 @@ export function groundHeightAt(x: number, z: number): number {
       h = h * (1.0 - appW) + smoothH * appW;
     }
   }
+
+  // Smooth elevated northern trail bed from Chinese Fortress (-12..-315, z: -265..-190) to Hot Spring stair foot
+  if (x <= -10.0 && x >= -316.0 && z <= -185.0 && z >= -265.0) {
+    const hsApp = fortressToHotSpringDistanceAt(x, z);
+    if (hsApp.dist < 7.0) {
+      const eastProtect = x > -18.0 ? smoothstep(-10.0, -18.0, x) : 1.0;
+      const westProtect = x < -304.0 ? smoothstep(-314.0, -304.0, x) : 1.0;
+      const hsAppW = (1.0 - smoothstep(2.6, 7.0, hsApp.dist)) * eastProtect * westProtect * 0.78;
+      h = h * (1.0 - hsAppW) + hsApp.targetElevY * hsAppW;
+    }
+  }
   // Single unified natural stepped mountain heightfield (30.8m -> 104.0m with carved spiral benches & round pond)
   const smDx = x - SACRED_CLOUD_MOUNTAIN_POS.x;
   const smDz = z - SACRED_CLOUD_MOUNTAIN_POS.z;
@@ -1705,8 +1724,11 @@ export function groundHeightAt(x: number, z: number): number {
  * Summary: Checks whether an ocean coordinate (x, z) is deep/clear enough for the Sailable Ship to navigate.
  */
 export function isNavigableOceanForShip(x: number, z: number): boolean {
-  // Keep clear of the Harbor Pier & moored Imperial Galleon
+  // Keep clear of the Harbor Pier, South Boarding Jetty & moored Imperial Galleon
   if (x <= 275.0 && Math.abs(z - SOUTHEAST_HARBOR_POS.pierZ) <= 6.8) {
+    return false;
+  }
+  if (x <= 275.8 && Math.abs(z - SAILABLE_SHIP_INITIAL_POS.jettyZ) <= 3.6) {
     return false;
   }
   if (
@@ -2098,7 +2120,7 @@ export function walkableHeightAt(
 
   // Grand South Entrance Staircase climbing from northern trail (~31.2m) up to the 34.0m Compound Gate
   if (
-    Math.abs(x - NORDIC_FROST_SHRINE_POS.gateCenterX) <= NORDIC_FROST_SHRINE_POS.gateHalfWidth - 0.4 &&
+    Math.abs(x - NORDIC_FROST_SHRINE_POS.gateCenterX) <= NORDIC_FROST_SHRINE_POS.gateHalfWidth - 0.56 &&
     z >= NORDIC_FROST_SHRINE_POS.gateZ &&
     z <= NORDIC_FROST_SHRINE_POS.stairBottomZ &&
     (currentY === undefined || currentY >= NORDIC_FROST_SHRINE_POS.stairBottomY - 2.5)

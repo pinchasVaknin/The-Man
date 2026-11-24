@@ -70,6 +70,9 @@ import {
   isNavigableOceanForShip,
   setSailableShipTransform,
   getActiveSailableShip,
+  findSailableShipById,
+  getInterpolatedSailableShipPose,
+  SHIP_GLB_DECK_METRICS,
   configureSailableShipsForGameMode,
   buyOrSpawnShipFromShipwright,
   IGameActions,
@@ -353,6 +356,16 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
       );
     } else if (gameStateRef.current === 'playing') {
       interpolateRenderPlayer(alpha);
+      if (renderPlayer.mountedHorseId?.startsWith('sailable-ship')) {
+        const helmedShip =
+          findSailableShipById(renderPlayer.mountedHorseId) ?? getActiveSailableShip();
+        const shipPose = getInterpolatedSailableShipPose(helmedShip, alpha);
+        const lz = SHIP_GLB_DECK_METRICS.helmStandPositionBz * (helmedShip.scale || 1.0);
+        renderPlayer.x = shipPose.x + lz * Math.sin(shipPose.yaw);
+        renderPlayer.z = shipPose.z + lz * Math.cos(shipPose.yaw);
+        renderPlayer.y = shipPose.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY;
+        renderPlayer.mountedHorseYaw = shipPose.yaw;
+      }
       const underRoof = isPositionUnderRoof(renderPlayer.x, renderPlayer.y, renderPlayer.z);
       const distToBirdsFlock = Math.hypot(renderPlayer.x, renderPlayer.z - 15);
       const birdProximity = Math.max(0, Math.min(1, 1.0 - (distToBirdsFlock - 35) / 85));
@@ -425,7 +438,8 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
         renderPlayer.mountedHorseId,
         renderPlayer,
         activeArrows,
-        timeState.worldHours
+        timeState.worldHours,
+        alpha
       );
     }
 

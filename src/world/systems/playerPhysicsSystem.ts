@@ -87,9 +87,11 @@ import {
   findSailableShipContainingPoint,
   findSailableShipDisembarkPoint,
   getActiveSailableShip,
+  getSailableShipHelmWorldPosition,
   getSpawnedSailableShips,
   isEntityOnSailableShipDeck,
   placeMountOnShipDeckWithoutStacking,
+  resolveSailableShipHorizontalCollisions,
   setActiveSailableShipByTier,
   stepSailableShipPhysics,
 } from './sailableShipSystem';
@@ -698,30 +700,29 @@ export function findNearestRideableHorse(
     }
   }
 
-  // Check proximity to any Owned/Spawned Sailable Ship
+  // Check proximity to the 2nd-floor steering wheel (helm) of any Owned/Spawned Sailable Ship
   const spawnedShips = getSpawnedSailableShips();
-  let bestShipDist = Infinity;
+  let bestHelmDist = Infinity;
   for (let sIdx = 0; sIdx < spawnedShips.length; sIdx++) {
     const ship = spawnedShips[sIdx];
-    const shipDist = Math.hypot(px - ship.x, pz - ship.z);
-    if (shipDist <= Math.max(maxDist, 11.5) && Math.abs(py - ship.deckY) <= 4.4 && shipDist < bestShipDist) {
-      const dx = px - ship.x;
-      const dz = pz - ship.z;
-      const lz = -dx * Math.sin(ship.yaw) + dz * Math.cos(ship.yaw);
-      const horseOnDeckNearPlayer =
-        best !== null &&
-        isEntityOnSailableShipDeck(best.x, best.z, best.y, ship, 1.5) &&
-        Math.hypot(px - best.x, pz - best.z) <= 2.6 &&
-        lz < 1.2;
-      if (!horseOnDeckNearPlayer) {
-        bestShipDist = shipDist;
+    const helm = getSailableShipHelmWorldPosition(ship);
+    const helmDist = Math.hypot(px - helm.wheelX, pz - helm.wheelZ);
+    if (
+      helmDist <= Math.max(maxDist, 3.6) &&
+      Math.abs(py - helm.wheelY) <= 1.85 &&
+      helmDist < bestHelmDist
+    ) {
+      const horseCloser =
+        best !== null && Math.hypot(px - best.x, pz - best.z) <= helmDist - 0.35;
+      if (!horseCloser) {
+        bestHelmDist = helmDist;
         setActiveSailableShipByTier(ship.tierId);
         best = {
           id: 'sailable-ship',
           name: ship.name,
-          x: ship.x,
-          y: ship.deckY + 0.55,
-          z: ship.z,
+          x: helm.standX,
+          y: helm.standY,
+          z: helm.standZ,
           yaw: ship.yaw,
           speed: Math.abs(ship.speed),
           gaitPhase: ship.wakePhase,
@@ -1700,6 +1701,17 @@ export function stepPlayerPhysics(
     resolveAgainstBoxes();
     nextZ = targetZ;
     resolveAgainstBoxes();
+
+    // Sailable Ship dynamic rotated hull, bulwark railings, stair guards, masts, 2F railings & helm pedestal
+    const spawnedShipList = getSpawnedSailableShips();
+    for (let sIdx = 0; sIdx < spawnedShipList.length; sIdx++) {
+      const ship = spawnedShipList[sIdx];
+      const shipResX = resolveSailableShipHorizontalCollisions(nextX, state.z, state.y, playerRadius, ship);
+      nextX = shipResX.x;
+      const shipResZ = resolveSailableShipHorizontalCollisions(nextX, nextZ, state.y, playerRadius, ship);
+      nextX = shipResZ.x;
+      nextZ = shipResZ.z;
+    }
 
     for (let i = 0; i < HILL_WATCHTOWERS.length; i++) {
       const hw = HILL_WATCHTOWERS[i];

@@ -35,6 +35,7 @@ import {
   pointInsideSolidBuildingBox,
   getNearbySolidBuildingBoxes,
   ARCHERY_TARGETS,
+  HOT_SPRING_ARCHERY_TARGETS,
   ARCHERY_TARGET_DIMENSIONS,
   MARKET_STALL_LOCATIONS,
   findNearestMarketStall,
@@ -184,7 +185,7 @@ export class SpatialHashGrid2D<T> {
 
 /** Precomputed spatial grid for archery targets. */
 export const ARCHERY_TARGETS_SPATIAL_GRID = new SpatialHashGrid2D<IArcheryTargetDef>(32);
-for (const tgt of ARCHERY_TARGETS) {
+for (const tgt of [...ARCHERY_TARGETS, ...HOT_SPRING_ARCHERY_TARGETS]) {
   const r = tgt.bullseyeRadius + 1.0;
   ARCHERY_TARGETS_SPATIAL_GRID.insert(tgt, tgt.x - r, tgt.x + r, tgt.z - r, tgt.z + r);
 }

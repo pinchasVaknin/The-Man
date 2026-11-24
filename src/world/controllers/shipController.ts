@@ -12,6 +12,7 @@ import { getActiveWorldAnimals } from '../systems/boidsAndWildlifeSystem';
 import {
   buyOrSpawnShipFromShipwright,
   getActiveSailableShip,
+  getSailableShipHelmWorldPosition,
   setSailableShipTransform,
 } from '../systems/sailableShipSystem';
 import { isNavigableOceanForShip } from '../systems/terrainAndBiomeSystem';
@@ -68,12 +69,10 @@ export function createShipController(ctx: IShipControllerContext) {
     }
     setSailableShipTransform(worldX, worldZ, undefined, rideableHorses, getActiveWorldAnimals());
     const ship = getActiveSailableShip();
-    const cosY = Math.cos(ship.yaw);
-    const sinY = Math.sin(ship.yaw);
-    const helmOffsetZ = 3.6;
-    playerState.x = ship.x - sinY * helmOffsetZ;
-    playerState.z = ship.z + cosY * helmOffsetZ;
-    playerState.y = ship.deckY + 0.35;
+    const helm = getSailableShipHelmWorldPosition(ship);
+    playerState.x = helm.standX;
+    playerState.z = helm.standZ;
+    playerState.y = helm.standY;
     playerState.vx = 0;
     playerState.vy = 0;
     playerState.vz = 0;

@@ -112,9 +112,9 @@ export function stepCameraRig(rig: ICameraRigState, input: ICameraRigFrameInput,
   const isMountedShip = player.mountedHorseId === 'sailable-ship';
   const isMountedStag = Boolean(player.mountedHorseId?.startsWith('mount-stag-'));
   const isMountedLion = Boolean(player.mountedHorseId?.startsWith('mount-lion-'));
-  const saddleHeightBonus = isMountedShip ? 1.28 : isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
+  const saddleHeightBonus = isMountedShip ? 0.22 : isMountedLion ? 1.48 : isMountedStag ? 1.06 : isMountedOnHorse ? 0.68 : 0;
   const horseYaw = isMountedOnHorse ? (player.mountedHorseYaw ?? player.yaw) : player.yaw;
-  const mountBackOffset = isMountedShip ? 2.45 : isMountedLion ? 0.28 : 0;
+  const mountBackOffset = isMountedShip ? 0 : isMountedLion ? 0.28 : 0;
   const mountBackOffsetX = Math.sin(horseYaw) * mountBackOffset;
   const mountBackOffsetZ = Math.cos(horseYaw) * mountBackOffset;
   const bobScale = isMountedOnHorse ? 0.022 : player.isSwimming ? 0.045 : 0.055;
@@ -259,11 +259,11 @@ function writeThirdPersonPose(
   const rightX = Math.cos(player.yaw);
   const rightZ = -Math.sin(player.yaw);
 
-  const baseDist = isMountedShip ? 12.8 : isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
-  const aimDist = isMountedShip ? 6.2 : isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
+  const baseDist = isMountedShip ? 16.5 : isMountedLion ? 4.85 : isMountedStag ? 4.45 : isMountedOnHorse ? 4.15 : 2.95;
+  const aimDist = isMountedShip ? 7.2 : isMountedLion ? 3.05 : isMountedStag ? 2.75 : isMountedOnHorse ? 2.55 : 1.78;
   const camDist = baseDist + (aimDist - baseDist) * zoom;
   const shoulderSide = 0.44 - 0.86 * zoom;
-  const shoulderUp = (isMountedShip ? 3.45 : 0.28) - 0.12 * zoom;
+  const shoulderUp = (isMountedShip ? 3.6 : 0.28) - 0.12 * zoom;
 
   // C1: sweep from the pivot toward the wanted camera spot. If a solid box stands on the way, pull the camera in
   // in front of it at once; when the path clears, ease the camera back out so it does not jump.

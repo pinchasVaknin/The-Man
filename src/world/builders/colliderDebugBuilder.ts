@@ -21,6 +21,11 @@ import {
   getObstacleColliderMetrics,
   groundHeightAt,
 } from '../terrainMath';
+import {
+  SHIP_GLB_DECK_METRICS,
+  getActiveSailableShip,
+  getSailableShipLocalCollisionBoxes,
+} from '../systems/sailableShipSystem';
 import type { IObstacleCylinder } from '../domain/worldTypes';
 
 // #endregion
@@ -33,6 +38,7 @@ export interface IColliderDebugHandles {
   readonly toggleVisible: () => boolean;
   readonly toggle: (visible?: boolean) => boolean;
   readonly isVisible: () => boolean;
+  readonly syncDynamicColliders?: () => void;
 }
 
 /**
@@ -244,12 +250,66 @@ export function buildColliderDebugWireframes(
     pierMesh.position.set(262.75, 3.12, 252.0);
     group.add(pierMesh);
 
-    const jettyGeo = new THREE.BoxGeometry(20.0, 0.35, 5.6);
+    const jettyGeo = new THREE.BoxGeometry(21.2, 0.35, 5.8);
     disposableGeometries.push(jettyGeo);
     const jettyMesh = new THREE.Mesh(jettyGeo, walkableRampWireMat);
-    jettyMesh.position.set(264.2, 3.02, 282.0);
+    jettyMesh.position.set(264.8, 3.02, 282.0);
     group.add(jettyMesh);
+
+    const jettyApronGeo = new THREE.BoxGeometry(4.4, 0.25, 2.2);
+    disposableGeometries.push(jettyApronGeo);
+    const jettyApronMesh = new THREE.Mesh(jettyApronGeo, walkableRampWireMat);
+    jettyApronMesh.position.set(273.8, 2.83, 285.25);
+    group.add(jettyApronMesh);
   }
+
+  // 5b. Live Sailable Ship (ship.glb) rotated colliders & 1F / Forecastle / Stairs / 2F walkable deck wireframes
+  const sailableShipDebugGroup = new THREE.Group();
+  sailableShipDebugGroup.name = 'SailableShipDebugWireframes';
+  const defaultBoxes = getSailableShipLocalCollisionBoxes({
+    ...getActiveSailableShip(),
+    scale: 1.0,
+    deckY: 0,
+  });
+  for (let i = 0; i < defaultBoxes.length; i++) {
+    const b = defaultBoxes[i];
+    const w = Math.max(0.08, b.maxX - b.minX);
+    const h = Math.max(0.12, b.maxY - b.minY);
+    const d = Math.max(0.08, b.maxZ - b.minZ);
+    const m = new THREE.Mesh(unitBoxGeo, stairGuardWireMat);
+    m.position.set((b.minX + b.maxX) * 0.5, b.minY + h * 0.5, (b.minZ + b.maxZ) * 0.5);
+    m.scale.set(w, h, d);
+    sailableShipDebugGroup.add(m);
+  }
+  const addShipWalkPlane = (minX: number, maxX: number, minZ: number, maxZ: number, yMinZ: number, yMaxZ: number) => {
+    const dz = maxZ - minZ;
+    const dy = yMaxZ - yMinZ;
+    const slopeLen = Math.hypot(dz, dy);
+    const geo = new THREE.BoxGeometry(maxX - minX, 0.1, slopeLen);
+    disposableGeometries.push(geo);
+    const mesh = new THREE.Mesh(geo, walkableRampWireMat);
+    mesh.position.set((minX + maxX) * 0.5, (yMinZ + yMaxZ) * 0.5, (minZ + maxZ) * 0.5);
+    mesh.rotation.x = -Math.atan2(dy, dz);
+    sailableShipDebugGroup.add(mesh);
+  };
+  // Forecastle, 1F Main Deck, Port/Stbd Stairs, and 2F Quarterdeck
+  addShipWalkPlane(-2.2, 2.2, SHIP_GLB_DECK_METRICS.forecastleMinBz, SHIP_GLB_DECK_METRICS.forecastleMaxBz, SHIP_GLB_DECK_METRICS.forecastleOffsetY, SHIP_GLB_DECK_METRICS.forecastleOffsetY);
+  addShipWalkPlane(-2.95, 2.95, SHIP_GLB_DECK_METRICS.forecastleMaxBz, SHIP_GLB_DECK_METRICS.stairStartBz, 0, 0);
+  addShipWalkPlane(-2.85, -SHIP_GLB_DECK_METRICS.stairInnerHalfX, SHIP_GLB_DECK_METRICS.stairStartBz, SHIP_GLB_DECK_METRICS.stairEndBz, 0, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY);
+  addShipWalkPlane(SHIP_GLB_DECK_METRICS.stairInnerHalfX, 2.85, SHIP_GLB_DECK_METRICS.stairStartBz, SHIP_GLB_DECK_METRICS.stairEndBz, 0, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY);
+  addShipWalkPlane(-2.6, 2.6, SHIP_GLB_DECK_METRICS.quarterdeckStartBz, SHIP_GLB_DECK_METRICS.quarterdeckEndBz, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY);
+  group.add(sailableShipDebugGroup);
+
+  const syncDynamicColliders = () => {
+    const activeShip = getActiveSailableShip();
+    sailableShipDebugGroup.visible = activeShip.spawned;
+    if (activeShip.spawned) {
+      sailableShipDebugGroup.position.set(activeShip.x, activeShip.deckY, activeShip.z);
+      sailableShipDebugGroup.rotation.y = activeShip.yaw;
+      sailableShipDebugGroup.scale.set(activeShip.scale || 1.0, 1.0, activeShip.scale || 1.0);
+    }
+  };
+  syncDynamicColliders();
 
   // Ship Quarterdeck Port & Starboard Stairs (z: 254.5..259.5, y: 3.65..6.65)
   const shipX = SOUTHEAST_HARBOR_POS.shipX;
@@ -298,6 +358,7 @@ export function buildColliderDebugWireframes(
       return group.visible;
     },
     isVisible: () => group.visible,
+    syncDynamicColliders,
   };
 }
 // #endregion

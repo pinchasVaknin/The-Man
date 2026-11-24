@@ -39,6 +39,7 @@ import {
 import {
   getActiveSailableShip,
   isEntityOnSailableShipDeck,
+  pushAnimalClearOfShipHull,
   sailableShipDeckHeightAt,
 } from './sailableShipSystem';
 import { FLYER_PROFILES, SPECIES_PROFILES } from './wildlifeSpeciesProfiles';
@@ -2004,6 +2005,21 @@ function advanceAnimalWithWaterShoreRecovery(
     }
   }
 
+  const activeShipForPush = getActiveSailableShip();
+  if (activeShipForPush.spawned) {
+    const tmpX = a.x;
+    const tmpZ = a.z;
+    a.x = nextX;
+    a.z = nextZ;
+    if (pushAnimalClearOfShipHull(activeShipForPush, a)) {
+      nextX = a.x;
+      nextZ = a.z;
+      hitObstacle = true;
+    }
+    a.x = tmpX;
+    a.z = tmpZ;
+  }
+
   const isCroc = a.species === 'crocodile';
   const maxPlayableR = PLAYABLE_RADIUS - 15;
   const nextDistFromOrigin = Math.hypot(nextX, nextZ);
@@ -2320,7 +2336,12 @@ function stepOneSmallAnimal(
 
   // Keep any animal standing on the Sailable Ship deck safely aboard during the voyage!
   const activeShip = getActiveSailableShip();
-  if (isEntityOnSailableShipDeck(a.x, a.z, a.y, activeShip, 1.35)) {
+  if (
+    a.species !== 'dolphin' &&
+    a.species !== 'koifish' &&
+    a.y >= activeShip.deckY - 0.55 &&
+    isEntityOnSailableShipDeck(a.x, a.z, a.y, activeShip, 0.35)
+  ) {
     a.isResting = false;
     a.isFleeing = false;
     a.fleeCooldown = 0;
@@ -4454,8 +4475,9 @@ function stepDolphinAI(a: ISmallAnimalState, frame: ISmallAnimalStepFrame, distP
       a.z += a.vz * safeDt;
       a.yaw = Math.atan2(a.vx, a.vz);
     }
-    const baseDolphinSwimY = a.x > 650 ? WATER_LEVEL - 1.56 : WATER_LEVEL - 0.36;
+    const baseDolphinSwimY = WATER_LEVEL - 1.36;
     a.y = baseDolphinSwimY + Math.sin(elapsedTime * 2.1 + a.id) * 0.06;
+    pushAnimalClearOfShipHull(getActiveSailableShip(), a);
     return true;
   }
   return false;

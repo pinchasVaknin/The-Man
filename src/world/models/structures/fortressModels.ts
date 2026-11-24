@@ -14,6 +14,7 @@ import {
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
   FORTRESS_Z_OFFSET,
+  FORTRESS_TO_HOTSPRING_WAYPOINTS,
   HILL_WATCHTOWERS,
   NORDIC_FROST_SHRINE_POS,
   ROPE_BRIDGE_DEF,
@@ -2267,16 +2268,15 @@ export function buildFortressModels(ctx: IWorldModelBuildContext): IFortressMode
   const stairMidH = CHINESE_FORTRESS_POS.midLandingHeight;
   const stairFootH = CHINESE_FORTRESS_POS.stairBaseHeight;
   const sharedFortressToHotSpringTrail: ReadonlyArray<readonly [number, number, number]> = [
-    [0.0, summitY, -135.0 + FZ],
+    [0.0, summitY, CHINESE_FORTRESS_POS.upperStairTopZ - 3.5],
+    [0.0, stairMidH, CHINESE_FORTRESS_POS.upperStairFootZ + 0.5],
     [0.0, stairMidH, CHINESE_FORTRESS_POS.stairMidZ - 1.2],
     [0.0, stairFootH, CHINESE_FORTRESS_POS.stairFootZ + 2.0],
-    [-35.0, groundHeightAt(-35.0, -235.0), -235.0],
-    [-80.0, groundHeightAt(-80.0, -220.0), -220.0],
-    [-135.0, groundHeightAt(-135.0, -205.0), -205.0],
-    [-195.0, groundHeightAt(-195.0, -195.0), -195.0],
-    [-240.0, groundHeightAt(-240.0, -225.0), -225.0],
-    [-285.0, groundHeightAt(-285.0, -255.0), -255.0],
-    [gateX, stairBotY, stairBotZ],
+    ...FORTRESS_TO_HOTSPRING_WAYPOINTS.map((wp) => [
+      wp.x,
+      Math.max(wp.elevY, groundHeightAt(wp.x, wp.z)),
+      wp.z,
+    ] as const),
     [gateX, hsFloorY, gateZ - 2.0],
     [hsX, hsFloorY, hsZ + 11.6],
   ];

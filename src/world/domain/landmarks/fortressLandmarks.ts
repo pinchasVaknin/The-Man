@@ -165,6 +165,26 @@ export const ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
   },
 ] as const;
 
+/** Summary: Hot Spring East Martial Wing archery targets facing West (-X) toward the courtyard. */
+export const HOT_SPRING_ARCHERY_TARGETS: readonly IArcheryTargetDef[] = [
+  {
+    id: 'nordic-hotspring-archery-target-north',
+    name: 'Hot Spring Martial Target North',
+    x: -277.6,
+    z: -303.2,
+    yaw: -Math.PI / 2,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
+  },
+  {
+    id: 'nordic-hotspring-archery-target-south',
+    name: 'Hot Spring Martial Target South',
+    x: -277.6,
+    z: -276.8,
+    yaw: -Math.PI / 2,
+    bullseyeRadius: ARCHERY_TARGET_DIMENSIONS.discRadius,
+  },
+] as const;
+
 /**
  * Summary: Checks whether coordinates fall within walkable fortress courtyards or staircases.
  * Design: Bounding check against central grand staircases, landings, and summit plaza.

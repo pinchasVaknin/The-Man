@@ -22,10 +22,22 @@ import {
   groundHeightAt,
 } from '../../terrainMath';
 import {
+  HOT_SPRING_ARCHERY_TARGETS,
+  ARCHERY_TARGET_DIMENSIONS,
+} from '../../domain/landmarksRegistry';
+import {
   getAllSailableShips,
+  getInterpolatedSailableShipPose,
   SHIP_CATALOG,
   type ISailableShipState,
 } from '../../systems/sailableShipSystem';
+import {
+  createArcheryTargetModelInstance,
+  getLoadedArcheryTargetModel,
+  isArcheryTargetModelLoaded,
+  loadArcheryTargetModel,
+  type IArcheryTargetModelAsset,
+} from '../equipment/archeryTargetAssets';
 import { registerWoodenDummy, spawnTempleMonk } from '../../systems/monkTempleSystem';
 import { createStatueModelInstance, loadStatueModel } from '../statues/statueAssets';
 import { createShipModelInstance, loadShipModel } from '../vehicles/shipAssets';
@@ -34,7 +46,7 @@ import type { IWorldModelBuildContext } from '../types';
 export interface IAtlantisAndShipHandles {
   atlantisGroup: THREE.Group;
   sailableShipGroup: THREE.Group;
-  updateAtlantisAndShip: (elapsedTime: number, playerX: number, playerZ: number) => void;
+  updateAtlantisAndShip: (elapsedTime: number, playerX: number, playerZ: number, alpha?: number) => void;
 }
 
 export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlantisAndShipHandles {
@@ -613,18 +625,21 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   // ============================================================================
   // 3. HARBOR NORTH BOARDING JETTY & SAILABLE 3-MASTED ROYAL EXPLORER FLAGSHIP
   // ============================================================================
-  // 3A) Wooden Royal Ship Pier connecting Harbor Plaza (254.5, 282.0) to Sailable Ship berth (278.0, 282.0)
+  // 3A) Wooden Royal Ship Pier connecting Harbor Plaza (254.5, 282.0) to Sailable Ship port gangway (277.0, 288.2)
   const harborJettyGroup = new THREE.Group();
-  const jettyDeckGeo = new THREE.BoxGeometry(20.0, 0.28, 5.8);
+  const jettyDeckGeo = new THREE.BoxGeometry(21.2, 0.28, 5.8);
+  const jettyApronGeo = new THREE.BoxGeometry(4.4, 0.22, 2.2);
   const jettyPilingGeo = new THREE.CylinderGeometry(0.24, 0.28, 4.4, 8);
-  disposableGeometries.push(jettyDeckGeo, jettyPilingGeo);
+  disposableGeometries.push(jettyDeckGeo, jettyApronGeo, jettyPilingGeo);
 
   const jettyDeck = new THREE.Mesh(jettyDeckGeo, shipDeckPlankMat);
-  jettyDeck.position.set(264.2, 3.02, SAILABLE_SHIP_INITIAL_POS.homeZ);
+  jettyDeck.position.set(264.8, 3.02, SAILABLE_SHIP_INITIAL_POS.jettyZ);
   jettyDeck.rotation.z = -0.018;
-  harborJettyGroup.add(jettyDeck);
+  const jettyApron = new THREE.Mesh(jettyApronGeo, shipDeckPlankMat);
+  jettyApron.position.set(273.8, 2.83, SAILABLE_SHIP_INITIAL_POS.jettyZ + 3.25);
+  harborJettyGroup.add(jettyDeck, jettyApron);
   for (const jx of [256.5, 261.5, 266.5, 272.0]) {
-    for (const jz of [SAILABLE_SHIP_INITIAL_POS.homeZ - 2.4, SAILABLE_SHIP_INITIAL_POS.homeZ + 2.4]) {
+    for (const jz of [SAILABLE_SHIP_INITIAL_POS.jettyZ - 2.4, SAILABLE_SHIP_INITIAL_POS.jettyZ + 2.4]) {
       const piling = new THREE.Mesh(jettyPilingGeo, shipHullWoodMat);
       piling.position.set(jx, 1.4, jz);
       harborJettyGroup.add(piling);
@@ -634,7 +649,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   distanceCulledObjects.push({
     obj: harborJettyGroup,
     cx: 266.0,
-    cz: SAILABLE_SHIP_INITIAL_POS.homeZ,
+    cz: SAILABLE_SHIP_INITIAL_POS.jettyZ,
     radius: 28.0,
   });
 
@@ -885,12 +900,14 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     tierRoot.add(fallbackHullGroup);
     shipFallbackGroups.push(fallbackHullGroup);
 
-    // Interactive Helm Stand, Ship's Wheel & Lanterns for Procedural Fallback Hull
-    // (hidden cleanly once detailed ship.glb with its own carved helm & lanterns loads)
+    // Interactive Ship's Wheel & Lanterns: keep shipWheelPivot directly on tierRoot at the 2F helm pedestal
+    // so it stays visible and turns smoothly when ship.glb loads!
     const helmStand = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
-    helmStand.position.set(0, 1.02, 3.85);
+    helmStand.position.set(0, 2.26, 8.24);
     const shipWheelPivot = new THREE.Group();
-    shipWheelPivot.position.set(0, 1.42, 4.04);
+    shipWheelPivot.name = 'sailable-ship-active-wheel';
+    shipWheelPivot.position.set(0, 2.72, 8.58);
+    shipWheelPivot.scale.setScalar(0.86);
     const wRim = new THREE.Mesh(wheelRimGeo, imperialGoldMat);
     shipWheelPivot.add(wRim);
     for (let sp = 0; sp < 4; sp++) {
@@ -909,14 +926,15 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
       lamp.position.set(lx, ly, lz);
       fallbackHullGroup.add(lamp);
     }
-    fallbackHullGroup.add(helmStand, shipWheelPivot);
+    fallbackHullGroup.add(helmStand);
+    tierRoot.add(shipWheelPivot);
 
-    // Compact glowing Wayfinder Compass Binnacle mounted cleanly forward of ship.glb quarterdeck rail
+    // Compact glowing Wayfinder Compass Binnacle mounted on top of the 2F helm pedestal
     const wayfinderBinnacleGroup = new THREE.Group();
-    wayfinderBinnacleGroup.position.set(0, 1.05, 3.35);
+    wayfinderBinnacleGroup.position.set(0, 3.12, 8.12);
     const binnaclePedestal = new THREE.Mesh(helmStandGeo, imperialDoorWoodMat);
-    binnaclePedestal.scale.set(0.65, 0.72, 0.65);
-    binnaclePedestal.position.set(0, -0.45, 0);
+    binnaclePedestal.scale.set(0.45, 0.16, 0.45);
+    binnaclePedestal.position.set(0, -0.09, 0);
     const helmCompassCrystal = new THREE.Mesh(crystalObeliskGeo, biolumCyanMat);
     helmCompassCrystal.scale.setScalar(0.11);
     const wayfinderNeedleGroup = new THREE.Group();
@@ -952,13 +970,6 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     });
   }
 
-  // Moored decorative bay ship north-east of the pier channel in deep harbor water
-  const mooredEscortRoot = new THREE.Group();
-  mooredEscortRoot.name = 'harbor-bay-ship-glb';
-  mooredEscortRoot.position.set(318.0, 2.55, 218.0);
-  mooredEscortRoot.rotation.y = -Math.PI * 0.68;
-  sailableShipGroup.add(mooredEscortRoot);
-
   // Swap procedural fallback fleet hulls to the detailed ship.glb model once loaded
   void loadShipModel()
     .then((shipAsset) => {
@@ -975,12 +986,6 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         });
         handle.root.add(shipMesh);
       }
-      const escortMesh = createShipModelInstance(shipAsset, {
-        scale: 27.0,
-        castShadow: !isSoftwareGl,
-        receiveShadow: !isSoftwareGl,
-      });
-      mooredEscortRoot.add(escortMesh);
     })
     .catch(() => {
       // Procedural fallback fleet hull stays active cleanly if GLB fails in restricted environments
@@ -1140,8 +1145,8 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   const gateStepCount = 12;
   const stepRun = (stairBotZ - gateZ) / gateStepCount;
   const stepRise = (nfFloorY - stairBotY) / gateStepCount;
-  const gateStepGeo = new THREE.BoxGeometry((gateHalfW - 0.44) * 2, 1.8, stepRun - 0.02);
-  const gateBalustradeGeo = new THREE.BoxGeometry(0.64, 1.5, stairBotZ - gateZ + 0.8);
+  const gateStepGeo = new THREE.BoxGeometry((gateHalfW - 0.56) * 2, 1.8, stepRun - 0.02);
+  const gateBalustradeGeo = new THREE.BoxGeometry(0.54, 1.45, stairBotZ - gateZ + 0.5);
   disposableGeometries.push(gateStepGeo, gateBalustradeGeo);
   for (let s = 0; s < gateStepCount; s++) {
     const stepZ = stairBotZ - (s + 0.5) * stepRun;
@@ -1152,21 +1157,21 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     nordicShrineGroup.add(stepMesh);
   }
   for (const sideSign of [-1, 1]) {
-    const bx = gateCx + sideSign * (gateHalfW - 0.05);
+    const bx = gateCx + sideSign * (gateHalfW - 0.27);
     const bal = new THREE.Mesh(gateBalustradeGeo, nordicGraniteMat);
-    bal.position.set(bx, (stairBotY + nfFloorY) * 0.5 + 0.35, (gateZ + stairBotZ) * 0.5);
+    bal.position.set(bx, (stairBotY + nfFloorY) * 0.5 + 0.32, (gateZ + stairBotZ) * 0.5);
     bal.rotation.x = Math.atan2(nfFloorY - stairBotY, stairBotZ - gateZ);
     nordicShrineGroup.add(bal);
   }
 
-  // Compound Outer Temple Walls (with wide 10m open South Imperial Paifang Gatehouse)
+  // Compound Outer Temple Walls (with wide open South Imperial Paifang Gatehouse separated cleanly from pillars & stairs)
   const compoundWallHeight = 4.2;
   const addCompoundWallSegment = (minX: number, maxX: number, minZ: number, maxZ: number) => {
     const w = maxX - minX;
     const d = maxZ - minZ;
-    const baseGeo = new THREE.BoxGeometry(w + 0.25, 0.9, d + 0.25);
+    const baseGeo = new THREE.BoxGeometry(w + 0.18, 0.9, d + 0.18);
     const bodyGeo = new THREE.BoxGeometry(w, compoundWallHeight - 0.9, d);
-    const capGeo = new THREE.BoxGeometry(w + 0.5, 0.32, d + 0.5);
+    const capGeo = new THREE.BoxGeometry(w + 0.36, 0.32, d + 0.36);
     disposableGeometries.push(baseGeo, bodyGeo, capGeo);
 
     const baseM = new THREE.Mesh(baseGeo, nordicGraniteMat);
@@ -1182,25 +1187,28 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   addCompoundWallSegment(cMinX, cMaxX, cMinZ - 0.4, cMinZ + 0.55); // North wall
   addCompoundWallSegment(cMinX - 0.4, cMinX + 0.55, cMinZ, cMaxZ); // West wall
   addCompoundWallSegment(cMaxX - 0.55, cMaxX + 0.4, cMinZ, cMaxZ); // East wall
-  addCompoundWallSegment(cMinX, gateCx - gateHalfW, cMaxZ - 0.55, cMaxZ + 0.4); // South-West wall
-  addCompoundWallSegment(gateCx + gateHalfW, cMaxX, cMaxZ - 0.55, cMaxZ + 0.4); // South-East wall
+  addCompoundWallSegment(cMinX, gateCx - gateHalfW - 0.95, cMaxZ - 0.55, cMaxZ + 0.4); // South-West wall
+  addCompoundWallSegment(gateCx + gateHalfW + 0.95, cMaxX, cMaxZ - 0.55, cMaxZ + 0.4); // South-East wall
 
-  // Grand South Paifang Gatehouse Archway at (-310, -267)
-  const gatePillarGeo = new THREE.CylinderGeometry(0.42, 0.48, 6.0, 12);
-  const gateBeamGeo = new THREE.BoxGeometry(gateHalfW * 2 + 3.2, 0.55, 0.85);
+  // Grand South Paifang Gatehouse Archway at (-310, -267) with freestanding crimson pillars & granite plinths
+  const gatePlinthGeo = new THREE.BoxGeometry(0.9, 0.42, 0.9);
+  const gatePillarGeo = new THREE.CylinderGeometry(0.38, 0.42, 5.8, 12);
+  const gateBeamGeo = new THREE.BoxGeometry(gateHalfW * 2 + 2.8, 0.55, 0.85);
   const gateRoofLowerGeo = new THREE.ConeGeometry(gateHalfW + 3.0, 2.2, 4);
   gateRoofLowerGeo.rotateY(Math.PI / 4);
   gateRoofLowerGeo.scale(1.45, 1.0, 0.55);
-  disposableGeometries.push(gatePillarGeo, gateBeamGeo, gateRoofLowerGeo);
+  disposableGeometries.push(gatePlinthGeo, gatePillarGeo, gateBeamGeo, gateRoofLowerGeo);
   for (const sideSign of [-1, 1]) {
-    const px = gateCx + sideSign * (gateHalfW + 0.1);
+    const px = gateCx + sideSign * (gateHalfW + 0.40);
+    const plinth = new THREE.Mesh(gatePlinthGeo, nordicGraniteMat);
+    plinth.position.set(px, nfFloorY + 0.21, gateZ);
     const pillar = new THREE.Mesh(gatePillarGeo, imperialCrimsonMat);
-    pillar.position.set(px, nfFloorY + 3.0, gateZ);
+    pillar.position.set(px, nfFloorY + 0.42 + 2.9, gateZ);
     pillar.castShadow = !isSoftwareGl;
     const gateLamp = new THREE.Mesh(sternLampSphereGeo, warmLanternMat);
     gateLamp.scale.setScalar(1.35);
-    gateLamp.position.set(px, nfFloorY + 3.8, gateZ + 0.85);
-    nordicShrineGroup.add(pillar, gateLamp);
+    gateLamp.position.set(px, nfFloorY + 3.85, gateZ + 0.72);
+    nordicShrineGroup.add(plinth, pillar, gateLamp);
   }
   const gateBeam = new THREE.Mesh(gateBeamGeo, imperialCrimsonMat);
   gateBeam.position.set(gateCx, nfFloorY + 5.75, gateZ);
@@ -1800,59 +1808,53 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   addStoneLanternPedestal(gateCx - gateHalfW - 0.8, gateZ - 0.2, 0);
   addStoneLanternPedestal(gateCx + gateHalfW + 0.8, gateZ - 0.2, 0);
 
-  // D) Painted Concentric Bullseye Archery Targets, Supply Crates/Barrels & Crimson Gold-Emblem Colonnade Banners
-  const targetStandPostGeo = new THREE.BoxGeometry(0.11, 1.55, 0.11);
-  const targetStrawDrumGeo = new THREE.CylinderGeometry(0.76, 0.76, 0.22, 20);
-  targetStrawDrumGeo.rotateZ(Math.PI / 2);
-  const targetRingOuterGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.04, 20);
-  targetRingOuterGeo.rotateZ(Math.PI / 2);
-  const targetRingMidGeo = new THREE.CylinderGeometry(0.44, 0.44, 0.05, 20);
-  targetRingMidGeo.rotateZ(Math.PI / 2);
-  const targetBullseyeGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.06, 16);
-  targetBullseyeGeo.rotateZ(Math.PI / 2);
+  // D) East Martial Wing 3D Archery Targets (Archery target.glb), Supply Crates/Barrels & Crimson Gold-Emblem Colonnade Banners
   const hsCrateGeo = new THREE.BoxGeometry(0.95, 0.88, 0.95);
   const hsBarrelGeo = new THREE.CylinderGeometry(0.36, 0.34, 0.94, 12);
   const hsBannerClothGeo = new THREE.BoxGeometry(0.64, 2.25, 0.07);
   const hsBannerEmblemGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.09, 14);
   hsBannerEmblemGeo.rotateX(Math.PI / 2);
   disposableGeometries.push(
-    targetStandPostGeo,
-    targetStrawDrumGeo,
-    targetRingOuterGeo,
-    targetRingMidGeo,
-    targetBullseyeGeo,
     hsCrateGeo,
     hsBarrelGeo,
     hsBannerClothGeo,
     hsBannerEmblemGeo
   );
 
-  for (const tz of [-303.2, -276.8]) {
-    const tGrp = new THREE.Group();
-    tGrp.position.set(-277.6, nfFloorY, tz);
-    for (const legZ of [-0.42, 0.42]) {
-      const fLeg = new THREE.Mesh(targetStandPostGeo, onsenTimberMat);
-      fLeg.position.set(-0.08, 0.75, legZ);
-      fLeg.rotation.z = -0.14;
-      tGrp.add(fLeg);
+  const hsArcheryTargetMounts: THREE.Group[] = [];
+  for (const tgt of HOT_SPRING_ARCHERY_TARGETS) {
+    const mountGroup = new THREE.Group();
+    mountGroup.name = tgt.id;
+    mountGroup.position.set(tgt.x, nfFloorY, tgt.z);
+    mountGroup.rotation.y = tgt.yaw;
+    nordicShrineGroup.add(mountGroup);
+    hsArcheryTargetMounts.push(mountGroup);
+  }
+
+  const populateHotSpringArcheryTargets = (asset: IArcheryTargetModelAsset) => {
+    for (const mount of hsArcheryTargetMounts) {
+      if (mount.children.length > 0) continue;
+      mount.add(
+        createArcheryTargetModelInstance(asset, {
+          scale: ARCHERY_TARGET_DIMENSIONS.scale,
+          castShadow: !isSoftwareGl,
+          receiveShadow: !isSoftwareGl,
+        })
+      );
     }
-    const backLeg = new THREE.Mesh(targetStandPostGeo, onsenTimberMat);
-    backLeg.position.set(0.45, 0.72, 0);
-    backLeg.rotation.z = 0.42;
-    const drum = new THREE.Mesh(targetStrawDrumGeo, foldedTowelMat);
-    drum.position.set(-0.12, 1.38, 0);
-    drum.rotation.z = -0.12;
-    const ring1 = new THREE.Mesh(targetRingOuterGeo, targetNavyMat);
-    ring1.position.set(-0.23, 1.39, 0);
-    ring1.rotation.z = -0.12;
-    const ring2 = new THREE.Mesh(targetRingMidGeo, targetFaceMat);
-    ring2.position.set(-0.25, 1.395, 0);
-    ring2.rotation.z = -0.12;
-    const ring3 = new THREE.Mesh(targetBullseyeGeo, imperialCrimsonMat);
-    ring3.position.set(-0.27, 1.4, 0);
-    ring3.rotation.z = -0.12;
-    tGrp.add(backLeg, drum, ring1, ring2, ring3);
-    nordicShrineGroup.add(tGrp);
+  };
+
+  if (isArcheryTargetModelLoaded()) {
+    populateHotSpringArcheryTargets(getLoadedArcheryTargetModel());
+  } else {
+    void loadArcheryTargetModel()
+      .then((asset) => {
+        if (!nordicShrineGroup.parent) return;
+        populateHotSpringArcheryTargets(asset);
+      })
+      .catch(() => {
+        // Optional model fallback handled gracefully if unavailable
+      });
   }
 
   // East Wing Armory Supply Crates & Barrels tucked along East wall
@@ -1905,7 +1907,7 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     brEmber.scale.set(1.0, 0.65, 1.0);
     brEmber.position.set(brX, nfFloorY + 1.44, brZ);
     const banner = new THREE.Mesh(bannerClothGeo, imperialCrimsonMat);
-    banner.position.set(gateCx + sideSign * (gateHalfW + 0.1), nfFloorY + 3.4, gateZ - 0.55);
+    banner.position.set(gateCx + sideSign * (gateHalfW + 0.40), nfFloorY + 3.4, gateZ - 0.55);
     nordicShrineGroup.add(brBase, brBowl, brEmber, banner);
   }
 
@@ -2130,8 +2132,13 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
   // ============================================================================
   // 7. PER-FRAME ANIMATION & LIVE SHIP TRANSFORM SYNC
   // ============================================================================
-  const updateAtlantisAndShip = (elapsedTime: number, playerX: number, playerZ: number) => {
-    // 1) Sync all 4 Sailable Ship 3D groups with live sailableShipSystem states
+  const updateAtlantisAndShip = (
+    elapsedTime: number,
+    playerX: number,
+    playerZ: number,
+    alpha = 1
+  ) => {
+    // 1) Sync all 4 Sailable Ship 3D groups with live sailableShipSystem states (alpha-interpolated for zero frame stutter)
     const idleWaveBob = Math.sin(elapsedTime * 1.85) * 0.07;
     const idleWaveRoll = Math.cos(elapsedTime * 1.45) * 0.015;
     for (let i = 0; i < shipVisualHandles.length; i++) {
@@ -2141,24 +2148,25 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         h.root.visible = false;
         continue;
       }
-      h.root.position.set(liveShip.x, liveShip.deckY + idleWaveBob, liveShip.z);
-      h.root.rotation.set(liveShip.pitchAngle, liveShip.yaw, liveShip.rollAngle + idleWaveRoll);
+      const pose = getInterpolatedSailableShipPose(liveShip, alpha);
+      h.root.position.set(pose.x, pose.deckY + idleWaveBob, pose.z);
+      h.root.rotation.set(pose.pitchAngle, pose.yaw, pose.rollAngle + idleWaveRoll);
       h.root.visible = isWithinViewDistance(
-        liveShip.x,
-        liveShip.z,
+        pose.x,
+        pose.z,
         playerX,
         playerZ,
         28.0,
         VIEW_DISTANCE
       );
       if (h.root.visible) {
-        h.wheelPivot.rotation.z = liveShip.wheelAngle;
+        h.wheelPivot.rotation.z = pose.wheelAngle;
         h.compassCrystal.rotation.y = elapsedTime * 1.8;
         const worldAngleToAtlantis = Math.atan2(
-          -(RUINED_ATLANTIS_POS.x - liveShip.x),
-          -(RUINED_ATLANTIS_POS.z - liveShip.z)
+          -(RUINED_ATLANTIS_POS.x - pose.x),
+          -(RUINED_ATLANTIS_POS.z - pose.z)
         );
-        h.wayfinderNeedleGroup.rotation.y = worldAngleToAtlantis - liveShip.yaw;
+        h.wayfinderNeedleGroup.rotation.y = worldAngleToAtlantis - pose.yaw;
 
         const spdRatio = Math.min(1.0, Math.abs(liveShip.speed) / 14.0);
         h.bowWakeGroup.visible = spdRatio > 0.04;
@@ -2168,9 +2176,6 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
         }
       }
     }
-    mooredEscortRoot.position.y = 2.55 + idleWaveBob * 0.85;
-    mooredEscortRoot.rotation.z = idleWaveRoll * 0.85;
-    mooredEscortRoot.visible = isWithinViewDistance(292.0, 226.0, playerX, playerZ, 28.0, VIEW_DISTANCE);
 
     // 2) Animate Ruined Atlantis Boss Seal Astrolabe Rings, Waterline Foam & Crystal Core when visible
     if (atlantisGroup.visible) {

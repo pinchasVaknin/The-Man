@@ -143,16 +143,20 @@ export interface ISacredMountainCairnMarker {
   readonly seed: number;
 }
 
-function buildApproachCairns(): readonly ISacredMountainCairnMarker[] {
+function buildApproachCairns(
+  waypoints: readonly IApproachWaypoint[],
+  idPrefix: string,
+  startAt = 16.0,
+  interval = 25.0
+): readonly ISacredMountainCairnMarker[] {
   const markers: ISacredMountainCairnMarker[] = [];
   let accumDist = 0;
-  let nextMarkAt = 16.0;
-  const interval = 25.0;
+  let nextMarkAt = startAt;
   let idx = 0;
 
-  for (let i = 0; i < SACRED_MOUNTAIN_APPROACH_WAYPOINTS.length - 1; i++) {
-    const a = SACRED_MOUNTAIN_APPROACH_WAYPOINTS[i];
-    const b = SACRED_MOUNTAIN_APPROACH_WAYPOINTS[i + 1];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
     const segLen = Math.hypot(b.x - a.x, b.z - a.z);
     if (segLen < 0.001) continue;
     const tx = (b.x - a.x) / segLen;
@@ -168,7 +172,7 @@ function buildApproachCairns(): readonly ISacredMountainCairnMarker[] {
       const sideSign: 1 | -1 = idx % 2 === 0 ? 1 : -1;
       const vergeOffset = 3.15;
       markers.push({
-        id: `sacred-mtn-cairn-${idx + 1}`,
+        id: `${idPrefix}-${idx + 1}`,
         x: Number((cx + nx * vergeOffset * sideSign).toFixed(2)),
         z: Number((cz + nz * vergeOffset * sideSign).toFixed(2)),
         sideSign,
@@ -187,7 +191,40 @@ function buildApproachCairns(): readonly ISacredMountainCairnMarker[] {
  * Summary: Small stacked-stone cairns topped with crimson triangular Fortress-colored pennant flags
  *          marking the approach route from the Fortress area to the Sacred Cloud Mountain foot.
  */
-export const SACRED_MOUNTAIN_CAIRN_MARKERS: readonly ISacredMountainCairnMarker[] = buildApproachCairns();
+export const SACRED_MOUNTAIN_CAIRN_MARKERS: readonly ISacredMountainCairnMarker[] = buildApproachCairns(
+  SACRED_MOUNTAIN_APPROACH_WAYPOINTS,
+  'sacred-mtn-cairn',
+  16.0,
+  25.0
+);
+
+/**
+ * Summary: Continuous highland approach trail linking the Northern Chinese Palace lower stairs (0, -246)
+ *          westward across the alpine ridge directly to the Northern Hot Spring South Gate staircase (-310, -255).
+ */
+export const FORTRESS_TO_HOTSPRING_WAYPOINTS: readonly IApproachWaypoint[] = [
+  { x: 0.0, z: -246.0, elevY: 25.0 },
+  { x: -18.0, z: -242.0, elevY: 26.2 },
+  { x: -46.0, z: -234.0, elevY: 27.8 },
+  { x: -80.0, z: -222.0, elevY: 29.2 },
+  { x: -118.0, z: -210.0, elevY: 29.6 },
+  { x: -158.0, z: -202.0, elevY: 29.8 },
+  { x: -198.0, z: -202.0, elevY: 30.1 },
+  { x: -236.0, z: -218.0, elevY: 30.5 },
+  { x: -272.0, z: -238.0, elevY: 30.9 },
+  { x: -304.0, z: -250.0, elevY: 31.15 },
+  { x: -310.0, z: -255.0, elevY: 31.2 },
+] as const;
+
+/**
+ * Summary: Stacked-stone cairns with crimson triangular Fortress pennants lining the Palace-to-Hot-Spring trail.
+ */
+export const FORTRESS_TO_HOTSPRING_CAIRN_MARKERS: readonly ISacredMountainCairnMarker[] = buildApproachCairns(
+  FORTRESS_TO_HOTSPRING_WAYPOINTS,
+  'hotspring-trail-cairn',
+  14.0,
+  24.0
+);
 
 export type TSacredSpiralSegmentKind = 'trail' | 'stair';
 
@@ -278,6 +315,35 @@ export function sacredMountainApproachDistanceAt(
   for (let i = 0; i < SACRED_MOUNTAIN_APPROACH_WAYPOINTS.length - 1; i++) {
     const a = SACRED_MOUNTAIN_APPROACH_WAYPOINTS[i];
     const b = SACRED_MOUNTAIN_APPROACH_WAYPOINTS[i + 1];
+    const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
+    if (d < minD) {
+      minD = d;
+      const vx = b.x - a.x;
+      const vz = b.z - a.z;
+      const lenSq = vx * vx + vz * vz;
+      const t = lenSq > 1e-6 ? Math.max(0, Math.min(1, ((x - a.x) * vx + (z - a.z) * vz) / lenSq)) : 0;
+      bestElevY = a.elevY + (b.elevY - a.elevY) * t;
+    }
+  }
+  return { dist: minD, targetElevY: bestElevY };
+}
+
+/**
+ * Summary: Computes minimum distance from `(x, z)` to the Palace-to-Hot-Spring Trail and smooth target elevation.
+ */
+export function fortressToHotSpringDistanceAt(
+  x: number,
+  z: number
+): { dist: number; targetElevY: number } {
+  if (x > 10.0 || x < -324.0 || z > -192.0 || z < -266.0) {
+    return { dist: 999.0, targetElevY: 31.2 };
+  }
+  let minD = 999.0;
+  let bestElevY = 31.2;
+
+  for (let i = 0; i < FORTRESS_TO_HOTSPRING_WAYPOINTS.length - 1; i++) {
+    const a = FORTRESS_TO_HOTSPRING_WAYPOINTS[i];
+    const b = FORTRESS_TO_HOTSPRING_WAYPOINTS[i + 1];
     const d = distToSegment(x, z, a.x, a.z, b.x, b.z);
     if (d < minD) {
       minD = d;

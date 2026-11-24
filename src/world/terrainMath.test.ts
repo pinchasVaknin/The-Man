@@ -30,6 +30,7 @@ import {
   ropeBridgePointInfoAt,
   SOUTHERN_MINE_POS,
   SOUTHEAST_HARBOR_POS,
+  SAILABLE_SHIP_INITIAL_POS,
   MAGIC_STONE_CIRCLE_POS,
   CHINESE_FORTRESS_POS,
   CORNER_WATCHTOWERS,
@@ -3828,6 +3829,364 @@ test('hotSpringAndMonkSchedules_WhenVerifyingMultiDepthPoolBaguaNightBedsDojoAnd
 
   resetMonkTempleSystem();
 });
+
+test('sailableShipGlb_WhenBoardedWalkedAndSteered_ShouldEnforceHullDeck2ndFloorHitboxesAndActiveHelm', async () => {
+  const {
+    SHIP_GLB_DECK_METRICS,
+    getActiveSailableShip,
+    getSailableShipHelmWorldPosition,
+    getSailableShipLocalCollisionBoxes,
+    resetSailableShipState,
+    sailableShipDeckHeightAt,
+    sailableShipLocalToWorld,
+    findSailableShipDisembarkPoint,
+  } = await import('./systems/sailableShipSystem');
+  const { findNearestRideableHorse } = await import('./terrainMath');
+
+  const ship = resetSailableShipState();
+  assert.equal(getActiveSailableShip(), ship);
+
+  // 1) Boarding from South Harbor Jetty -> gangway apron -> Port gangway opening onto 1F main deck
+  const jettyWalk = walkableHeightAt(272.5, SAILABLE_SHIP_INITIAL_POS.jettyZ, 3.0);
+  assert.equal(jettyWalk.surface, 'pier');
+  assert.ok(Math.abs(jettyWalk.height - ship.deckY) < 0.12);
+
+  const apronWalk = walkableHeightAt(273.8, SAILABLE_SHIP_INITIAL_POS.jettyZ + 3.2, 2.85);
+  assert.equal(apronWalk.surface, 'pier');
+  assert.equal(apronWalk.height, ship.deckY);
+
+  // Walking South from jetty apron through the Port gangway gap lands on 1F main deck without wall blocking
+  const walker = createInitialPlayerState();
+  walker.x = 274.0;
+  walker.z = SAILABLE_SHIP_INITIAL_POS.jettyZ + 3.2;
+  walker.y = ship.deckY;
+  walker.yaw = Math.PI; // facing South (+Z) onto the moored ship's Port gangway
+  for (let i = 0; i < 16; i++) {
+    stepPlayerPhysics(
+      walker,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05,
+      new Set()
+    );
+  }
+  assert.ok(
+    Math.abs(walker.z - ship.z) < 2.2 && Math.abs(walker.y - ship.deckY) < 0.15,
+    `Expected smooth boarding onto 1F main deck, got (${walker.x.toFixed(2)}, ${walker.y.toFixed(2)}, ${walker.z.toFixed(2)})`
+  );
+
+  // 2) Forecastle raised bow deck, Side Stairs, and 2nd-floor Quarterdeck heights + anti-snap rules
+  const forecastlePos = sailableShipLocalToWorld(0, -4.2, ship);
+  assert.equal(
+    sailableShipDeckHeightAt(forecastlePos.x, forecastlePos.z, ship.deckY + 0.5, ship),
+    ship.deckY + SHIP_GLB_DECK_METRICS.forecastleOffsetY
+  );
+
+  const portStairMid = sailableShipLocalToWorld(-2.0, 6.5, ship);
+  const stairMidH = sailableShipDeckHeightAt(portStairMid.x, portStairMid.z, ship.deckY + 0.9, ship);
+  assert.ok(
+    stairMidH !== null && Math.abs(stairMidH - (ship.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY * 0.5)) < 0.05,
+    `Expected mid-stair height ~${ship.deckY + 0.91}, got ${stairMidH}`
+  );
+
+  const deck2fCenter = sailableShipLocalToWorld(0, 9.6, ship);
+  assert.equal(
+    sailableShipDeckHeightAt(deck2fCenter.x, deck2fCenter.z, ship.deckY + 1.8, ship),
+    ship.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY
+  );
+  // Standing down on 1F or swimming below must NOT snap straight up through the 2F floor
+  assert.equal(sailableShipDeckHeightAt(deck2fCenter.x, deck2fCenter.z, ship.deckY, ship), null);
+  assert.equal(sailableShipDeckHeightAt(ship.x, ship.z, 0.0, ship), null);
+
+  // 3) Hull, Starboard Rail, 2F Front/Stern Railings, Masts, and Helm Pedestal hitboxes block clipping
+  const colliderIds = new Set(getSailableShipLocalCollisionBoxes(ship).map((b) => b.id));
+  for (const requiredId of [
+    'ship-hull-lower',
+    'ship-rail-port-fwd',
+    'ship-rail-port-aft',
+    'ship-rail-stbd',
+    'ship-aft-cabin-bulkhead',
+    'ship-stair-guard-port',
+    'ship-stair-guard-stbd',
+    'ship-2f-rail-front',
+    'ship-2f-rail-port',
+    'ship-2f-rail-stbd',
+    'ship-2f-rail-stern',
+    'ship-mast-fore',
+    'ship-mast-main',
+    'ship-2f-helm-pedestal',
+  ]) {
+    assert.ok(colliderIds.has(requiredId), `Missing sailable ship collider: ${requiredId}`);
+  }
+
+  // Attempting to walk off the Starboard 1F railing into the ocean is blocked
+  const stbdRailTester = createInitialPlayerState();
+  const stbdDeckStart = sailableShipLocalToWorld(2.2, 2.0, ship);
+  stbdRailTester.x = stbdDeckStart.x;
+  stbdRailTester.z = stbdDeckStart.z;
+  stbdRailTester.y = ship.deckY;
+  stbdRailTester.yaw = Math.PI; // facing South (+Z = starboard side at yaw=-PI/2)
+  for (let i = 0; i < 30; i++) {
+    stepPlayerPhysics(
+      stbdRailTester,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05,
+      new Set()
+    );
+  }
+  assert.ok(
+    stbdRailTester.z < ship.z + 2.85 * ship.scale,
+    `Expected starboard bulwark railing to keep player inside deck, got z=${stbdRailTester.z.toFixed(2)}`
+  );
+
+  // Walking up the Port Staircase from 1F reaches the 2nd floor cleanly, and 2F Front Rail prevents falling off
+  const stairClimber = createInitialPlayerState();
+  const stairFoot = sailableShipLocalToWorld(-2.0, 4.8, ship);
+  stairClimber.x = stairFoot.x;
+  stairClimber.z = stairFoot.z;
+  stairClimber.y = ship.deckY;
+  stairClimber.yaw = Math.PI / 2; // facing West (-X = +Z local toward stern/stairs when ship.yaw = -PI/2)
+  for (let i = 0; i < 45; i++) {
+    stepPlayerPhysics(
+      stairClimber,
+      { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.04,
+      new Set()
+    );
+  }
+  assert.ok(
+    Math.abs(stairClimber.y - (ship.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY)) < 0.18,
+    `Expected climbing port ship stairs to arrive on 2nd floor (${ship.deckY + 1.82}), got y=${stairClimber.y.toFixed(2)}`
+  );
+
+  // 4) Steering wheel activates on 2nd floor behind the wheel, rotates ship.wheelAngle, and disembarks behind wheel
+  const helm = getSailableShipHelmWorldPosition(ship);
+  assert.equal(findNearestRideableHorse(ship.x, ship.deckY, ship.z, []), null, 'Must not grab steering wheel from far away on 1F center');
+  const detectedHelm = findNearestRideableHorse(helm.standX, helm.standY, helm.standZ, []);
+  assert.equal(detectedHelm?.id, 'sailable-ship', 'Standing at the 2nd-floor steering wheel must activate Sail Ship');
+
+  // Press [F] to take the wheel and steer left/right
+  const captain = createInitialPlayerState();
+  captain.x = helm.standX;
+  captain.y = helm.standY;
+  captain.z = helm.standZ;
+  stepPlayerPhysics(
+    captain,
+    { forward: 0, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0, toggleMountHorseRequested: true },
+    [],
+    0.05,
+    new Set(),
+    []
+  );
+  assert.equal(captain.mountedHorseId, 'sailable-ship');
+  stepPlayerPhysics(
+    captain,
+    { forward: 1, right: -1, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+    [],
+    0.1,
+    new Set(),
+    []
+  );
+  assert.ok(ship.wheelAngle > 0.2, `Expected steering left to turn the ship's wheel (>0.2), got ${ship.wheelAngle}`);
+  assert.ok(
+    Math.abs(captain.y - (ship.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY)) < 0.05,
+    `Expected captain standing on 2nd floor behind wheel, got y=${captain.y}`
+  );
+
+  const releaseHelm = findSailableShipDisembarkPoint(ship);
+  assert.ok(
+    Math.abs(releaseHelm.y - (ship.deckY + SHIP_GLB_DECK_METRICS.quarterdeckOffsetY)) < 0.05,
+    `Expected releasing wheel at sea/harbor to keep player on 2F helm deck, got y=${releaseHelm.y}`
+  );
+
+  resetSailableShipState();
+});
+
+test('hotSpringCompoundAndNorthernTrail_ShouldSeparateGateCollidersProvide3DTargetsAndSmoothTrail', async () => {
+  const {
+    ARCHERY_TARGETS,
+    HOT_SPRING_ARCHERY_TARGETS,
+    FORTRESS_TO_HOTSPRING_WAYPOINTS,
+    FORTRESS_TO_HOTSPRING_CAIRN_MARKERS,
+    NORDIC_FROST_SHRINE_POS,
+    SOLID_BUILDING_BOXES,
+    groundHeightAt,
+    trailFactorAt,
+    getNearbyArcheryTargets,
+  } = await import('./terrainMath');
+
+  // 1) Hot Spring South gate walls, pillars, and stair balustrades are cleanly separated in collider space
+  const swWall = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-compound-wall-south-west');
+  const seWall = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-compound-wall-south-east');
+  const wPillar = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-compound-gate-pillar-west');
+  const ePillar = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-compound-gate-pillar-east');
+  const wBal = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-hotspring-stair-balustrade-west');
+  const eBal = SOLID_BUILDING_BOXES.find((b) => b.id === 'nordic-hotspring-stair-balustrade-east');
+  assert.ok(swWall && seWall && wPillar && ePillar && wBal && eBal, 'Expected all Hot Spring gate colliders');
+  assert.ok(swWall.maxX <= wPillar.minX + 0.01, 'SW wall must not enclose West gate pillar');
+  assert.ok(ePillar.maxX <= seWall.minX + 0.01, 'SE wall must not enclose East gate pillar');
+  assert.ok(wPillar.maxX <= wBal.minX + 0.1, 'West pillar must sit outside West stair balustrade');
+  assert.ok(eBal.maxX <= ePillar.minX + 0.1, 'East pillar must sit outside East stair balustrade');
+
+  // Stair bottom terrain seam meets 31.2m cleanly without a lip/pit
+  const footGroundY = groundHeightAt(NORDIC_FROST_SHRINE_POS.gateCenterX, NORDIC_FROST_SHRINE_POS.stairBottomZ);
+  assert.ok(
+    Math.abs(footGroundY - NORDIC_FROST_SHRINE_POS.stairBottomY) < 0.18,
+    `Expected stair foot terrain to meet stairBottomY (${NORDIC_FROST_SHRINE_POS.stairBottomY}), got ${footGroundY}`
+  );
+
+  // 2) Hot Spring East Wing targets use ARCHERY_TARGET_DIMENSIONS without breaking ARCHERY_TARGETS === 4
+  assert.equal(ARCHERY_TARGETS.length, 4);
+  assert.equal(HOT_SPRING_ARCHERY_TARGETS.length, 2);
+  const hsNorth = getNearbyArcheryTargets(-277.6, -303.2);
+  const hsSouth = getNearbyArcheryTargets(-277.6, -276.8);
+  assert.ok(
+    hsNorth.some((t) => t.id === 'nordic-hotspring-archery-target-north'),
+    'Expected North Hot Spring 3D target in spatial query'
+  );
+  assert.ok(
+    hsSouth.some((t) => t.id === 'nordic-hotspring-archery-target-south'),
+    'Expected South Hot Spring 3D target in spatial query'
+  );
+  assert.ok([...hsNorth, ...hsSouth].every((t) => Math.abs(t.yaw - (-Math.PI / 2)) < 0.01));
+
+  // 3) Northern Fortress-to-HotSpring trail waypoints are continuous, smoothed, and lined with cairns
+  assert.ok(FORTRESS_TO_HOTSPRING_CAIRN_MARKERS.length >= 8, 'Expected cairn markers along Fortress->HotSpring trail');
+  for (const wp of FORTRESS_TO_HOTSPRING_WAYPOINTS) {
+    assert.ok(trailFactorAt(wp.x, wp.z) > 0.7, `Expected visible trail surface at (${wp.x}, ${wp.z})`);
+    const gy = groundHeightAt(wp.x, wp.z);
+    assert.ok(Math.abs(gy - wp.elevY) <= 1.75, `Expected smoothed trail height near ${wp.elevY}, got ${gy} at (${wp.x},${wp.z})`);
+  }
+});
+
+test('shipModelAndInterpolationAndDolphins_ShouldKeepDolphinsSubmergedClearHelmSightlineAndPushBowAside', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const THREE = await import('three');
+  const {
+    WATER_LEVEL,
+    getActiveSailableShip,
+    resetSailableShipState,
+    capturePreviousSailableShipPoses,
+    getInterpolatedSailableShipPose,
+    stepSailableShipPhysics,
+    isNavigableOceanForShip,
+    pushNonPassengersClearOfShipHull,
+    stationMountInSailableShipStall,
+    createInitialPlayerState,
+    createInitialSmallAnimals,
+    stepSmallAnimals,
+  } = await import('./terrainMath');
+  const { parseShipModelGlb, createShipModelInstance } = await import('./models/vehicles/shipAssets');
+
+  // 4) Dolphins stay submerged uniformly across Harbor and Atlantis
+  const animals = createInitialSmallAnimals();
+  const dolphins = animals.filter((a) => a.species === 'dolphin');
+  assert.ok(dolphins.length >= 4, 'Expected active dolphins in world wildlife');
+  const harborDolphin = dolphins.find((d) => d.homeX < 500);
+  const atlantisDolphin = dolphins.find((d) => d.homeX > 650);
+  assert.ok(harborDolphin && atlantisDolphin, 'Expected both Harbor and Atlantis dolphins');
+  harborDolphin.x = harborDolphin.homeX;
+  harborDolphin.z = harborDolphin.homeZ;
+  atlantisDolphin.x = atlantisDolphin.homeX;
+  atlantisDolphin.z = atlantisDolphin.homeZ;
+  stepSmallAnimals(animals, 0.05, 5.0, harborDolphin.x, harborDolphin.z);
+  stepSmallAnimals(animals, 0.05, 5.0, atlantisDolphin.x, atlantisDolphin.z);
+  if (harborDolphin.pounceHeight === 0 && atlantisDolphin.pounceHeight === 0) {
+    assert.ok(
+      harborDolphin.y < WATER_LEVEL - 1.15 && harborDolphin.y > WATER_LEVEL - 1.55,
+      `Expected Harbor dolphin submerged at base swim depth ~-1.36m, got y=${harborDolphin.y}`
+    );
+    assert.ok(
+      Math.abs(harborDolphin.y - atlantisDolphin.y) < 0.15,
+      `Expected Harbor dolphin depth (${harborDolphin.y}) to match Atlantis (${atlantisDolphin.y})`
+    );
+  }
+
+  // 5) ship.glb aft helmsman corridor has zero low boom/sail geometry blocking eye-height sightline
+  (globalThis as Record<string, unknown>).self = globalThis;
+  const glbPath = path.resolve(process.cwd(), 'public/models/vehicles/ship.glb');
+  const bytes = fs.readFileSync(glbPath);
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const shipAsset = await parseShipModelGlb(ab);
+  const shipObj = createShipModelInstance(shipAsset, { scale: 25.5 });
+  shipObj.updateMatrixWorld(true);
+  const tmpV = new THREE.Vector3();
+  let blockingEyeVerts = 0;
+  shipObj.traverse((child) => {
+    const mesh = child as InstanceType<typeof THREE.Mesh>;
+    if (!mesh.isMesh || !mesh.geometry?.attributes?.position) return;
+    const pos = mesh.geometry.attributes.position as InstanceType<typeof THREE.BufferAttribute>;
+    for (let i = 0; i < pos.count; i++) {
+      tmpV.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+      if (tmpV.z > 6.5 && tmpV.z < 10.2 && Math.abs(tmpV.x) < 0.75 && tmpV.y > 3.25 && tmpV.y < 4.55) {
+        blockingEyeVerts++;
+      }
+    }
+  });
+  assert.equal(blockingEyeVerts, 0, `Expected clear 2F helm eye-line above quarterdeck, found ${blockingEyeVerts} blocking verts`);
+
+  // 6) Ship previous-pose interpolation smoothly blends position & yaw at alpha=0.5
+  resetSailableShipState();
+  const ship = getActiveSailableShip();
+  ship.x = 310;
+  ship.z = 290;
+  ship.yaw = -Math.PI / 2;
+  capturePreviousSailableShipPoses();
+  const prevX = ship.x;
+  const helmPlayer = createInitialPlayerState();
+  stepSailableShipPhysics(
+    helmPlayer,
+    { forward: 1, right: 0.4, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+    0.1,
+    isNavigableOceanForShip,
+    ship
+  );
+  const midPose = getInterpolatedSailableShipPose(ship, 0.5);
+  assert.ok(midPose.x > prevX && midPose.x < ship.x, 'Expected alpha=0.5 x cleanly between prevX and ship.x');
+
+  // 7) Ship bow pushes swimming dolphin horizontally clear without lifting Y or hijacking homeX/homeZ,
+  //    while an onboard horse stays safely on deck
+  const bowWorld = {
+    x: ship.x - Math.sin(ship.yaw) * 8.0 * ship.scale,
+    z: ship.z - Math.cos(ship.yaw) * 8.0 * ship.scale,
+  };
+  const testDolphin = {
+    id: 999,
+    species: 'dolphin',
+    x: bowWorld.x,
+    y: WATER_LEVEL - 1.36,
+    z: bowWorld.z,
+    yaw: 0,
+    vx: 0,
+    vz: 0,
+    homeX: bowWorld.x,
+    homeZ: bowWorld.z,
+    inWater: true,
+    isDead: false,
+  };
+  const testHorse = {
+    id: 'test-deck-horse',
+    name: 'Deck Horse',
+    x: ship.x,
+    y: ship.deckY,
+    z: ship.z,
+    yaw: ship.yaw,
+    speed: 0,
+    gaitPhase: 0,
+  };
+  stationMountInSailableShipStall(testHorse, 0, ship);
+  pushNonPassengersClearOfShipHull(ship, [testDolphin]);
+  assert.equal(testDolphin.y, WATER_LEVEL - 1.36, 'Dolphin Y must never be lifted onto ship deck');
+  assert.equal(testDolphin.homeX, bowWorld.x, 'Dolphin homeX must stay anchored so it returns after ship passes');
+  assert.equal(testDolphin.homeZ, bowWorld.z, 'Dolphin homeZ must stay anchored so it returns after ship passes');
+  assert.ok(Math.hypot(testDolphin.x - bowWorld.x, testDolphin.z - bowWorld.z) > 1.5, 'Dolphin must be pushed sideways clear of ship bow');
+
+  resetSailableShipState();
+});
 // #endregion
+
 
 
