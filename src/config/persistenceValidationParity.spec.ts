@@ -11,9 +11,15 @@
 // #region Imports & Test Dependencies
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateGameSettings, validateLabOverrides } from './persistedSettingsValidation';
-import { checkGameSettingsPayload, checkLabOverridesPayload, isSameOriginRequest } from '../../devServer/persistenceValidation.ts';
+import { validateGameSettings, validateHitboxOverrides, validateLabOverrides } from './persistedSettingsValidation';
+import {
+  checkGameSettingsPayload,
+  checkHitboxOverridesPayload,
+  checkLabOverridesPayload,
+  isSameOriginRequest,
+} from '../../devServer/persistenceValidation.ts';
 import { SAVED_GAME_SETTINGS } from './savedGameSettings';
+import { SAVED_HITBOX_OVERRIDES } from './savedHitboxOverrides';
 import { SAVED_LAB_OVERRIDES } from './savedLabOverrides';
 import { DEFAULT_LAB_POSE_OVERRIDES } from '../lab/labCatalog';
 // #endregion
@@ -70,6 +76,24 @@ const LAB_CASES: ReadonlyArray<[string, unknown]> = [
   ['bad entity id', { '../etc': SAMPLE_POSE }],
   ['too many entities', Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`entity_${i}`, SAMPLE_POSE]))],
 ];
+
+const HITBOX_CASES: ReadonlyArray<[string, unknown]> = [
+  ['saved hitbox overrides', SAVED_HITBOX_OVERRIDES],
+  ['empty payload', {}],
+  [
+    'valid full payload with unknown field dropped',
+    {
+      boxes: { 'ship-hull-lower': { minX: -3, maxX: 3, minZ: -6, maxZ: 11, minY: -3.9, maxY: 0, extra: 9 } },
+      obstacles: { pinetree: { radiusScale: 1.2, heightScale: 0.9 } },
+      entities: { forest_wolf: { radius: 1.5, height: 1.8, bodyRadius: 0.85 } },
+    },
+  ],
+  ['inverted minX/maxX box', { boxes: { 'bad-box': { minX: 2, maxX: 1, minZ: -1, maxZ: 1 } } }],
+  ['bad box id', { boxes: { '../bad': { minX: -1, maxX: 1, minZ: -1, maxZ: 1 } } }],
+  ['obstacle scale out of range', { obstacles: { pinetree: { radiusScale: 9.0, heightScale: 1.0 } } }],
+  ['entity radius negative', { entities: { forest_wolf: { radius: -1, height: 1.8 } } }],
+  ['not an object', 'bad'],
+];
 // #endregion
 
 // ======================== PARITY TESTS ======================== \\
@@ -102,10 +126,25 @@ test('labOverrideValidators_WhenGivenSameFixtures_ShouldAgree', () => {
   }
 });
 
+test('hitboxOverrideValidators_WhenGivenSameFixtures_ShouldAgree', () => {
+  for (const [name, payload] of HITBOX_CASES) {
+    // Arrange & Act
+    const game = validateHitboxOverrides(payload);
+    const server = checkHitboxOverridesPayload(payload);
+
+    // Assert
+    assert.equal(server.ok, game.isSuccess, `accept/reject differs for: ${name}`);
+    if (server.ok && game.isSuccess) {
+      assert.deepEqual(clone(server.value), clone(game.value), `cleaned value differs for: ${name}`);
+    }
+  }
+});
+
 test('validators_WhenGivenSavedDefaults_ShouldAccept', () => {
   // Arrange, Act & Assert
   assert.equal(checkGameSettingsPayload(SAVED_GAME_SETTINGS).ok, true);
   assert.equal(checkLabOverridesPayload(SAVED_LAB_OVERRIDES).ok, true);
+  assert.equal(checkHitboxOverridesPayload(SAVED_HITBOX_OVERRIDES).ok, true);
 });
 // #endregion
 

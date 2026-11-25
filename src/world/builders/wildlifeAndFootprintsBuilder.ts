@@ -44,6 +44,7 @@ import {
   groundHeightAt,
 } from '../systems/terrainAndBiomeSystem';
 import { WATER_LEVEL } from '../domain/landmarksRegistry';
+import { getInterpolatedShipPassengerPose } from '../systems/sailableShipSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
 import type { ILogger } from '../../core/ILogger';
@@ -72,7 +73,12 @@ export interface IWildlifeAndFootprintsHandles {
     rainIntensity?: number
   ) => void;
   /** Copies the simulated state onto meshes and advances model animations by the frame delta. */
-  readonly syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => void;
+  readonly syncMeshes: (
+    dt: number,
+    elapsedTime: number,
+    renderPlayer?: IPlayerState,
+    alpha?: number
+  ) => void;
   /** Removes the window listeners this layer registered; call when the world is torn down. */
   readonly dispose: () => void;
 }
@@ -784,7 +790,7 @@ export function buildWildlifeAndFootprintsLayer(
         }
       }
     },
-    syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState) => {
+    syncMeshes: (dt: number, elapsedTime: number, renderPlayer?: IPlayerState, alpha = 1) => {
       // Sync butterfly meshes (hidden at night, when dead, or beyond 95 m)
       for (let i = 0; i < butterflies.length; i++) {
         const b = butterflies[i];
@@ -915,22 +921,27 @@ export function buildWildlifeAndFootprintsLayer(
         }
         rig.root.visible = true;
 
-        // When mounted by the player, lock the animal's render coordinates and yaw directly to the interpolated renderPlayer
-        // so there is zero frame-interpolation lag or side-offset between the rider and mount!
-        const renderX = a.isMountedByPlayer && renderPlayer ? renderPlayer.x : a.x;
-        const renderY = a.isMountedByPlayer && renderPlayer ? renderPlayer.y : a.y;
-        const renderZ = a.isMountedByPlayer && renderPlayer ? renderPlayer.z : a.z;
+        // When mounted by the player or standing on a sailing ship's deck, lock render coordinates and yaw
+        // directly to the interpolated pose so there is zero frame-interpolation lag or jitter!
+        const shipPose =
+          !a.isMountedByPlayer
+            ? getInterpolatedShipPassengerPose(a.x, a.y, a.z, a.yaw, alpha)
+            : { x: a.x, y: a.y, z: a.z, yaw: a.yaw, onShip: false };
+        const renderX = a.isMountedByPlayer && renderPlayer ? renderPlayer.x : shipPose.x;
+        const renderY = a.isMountedByPlayer && renderPlayer ? renderPlayer.y : shipPose.y;
+        const renderZ = a.isMountedByPlayer && renderPlayer ? renderPlayer.z : shipPose.z;
         const renderYaw =
           a.isMountedByPlayer && renderPlayer
             ? Math.atan2(
                 Math.sin((renderPlayer.mountedHorseYaw ?? renderPlayer.yaw) + Math.PI),
                 Math.cos((renderPlayer.mountedHorseYaw ?? renderPlayer.yaw) + Math.PI)
               )
-            : a.yaw;
+            : shipPose.yaw;
 
         // Compute terrain slope alignment (pitch & roll) ONLY when close enough (< 55m) and standing on natural ground
         const onNaturalGround =
           !a.isMountedByPlayer &&
+          !shipPose.onShip &&
           distSqToPlayer < 55 * 55 &&
           walkableHeightAt(renderX, renderZ, renderY).surface === 'ground';
         const rawSlope = onNaturalGround
@@ -964,8 +975,8 @@ export function buildWildlifeAndFootprintsLayer(
 
         if (a.isDead) {
           // Hunted animal: collapses and lies motionless on top of the ground until looted with [E]
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch, renderYaw, slope.roll, 'YXZ');
           if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -1130,8 +1141,8 @@ export function buildWildlifeAndFootprintsLayer(
 
         if (a.isResting || ai === 'sleeping') {
           // Sleeping at night or resting inside cave / under tree canopy during rain
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch, renderYaw, slope.roll, 'YXZ');
           if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
             rig.posePivot.position.set(0, 0, 0);
             rig.posePivot.rotation.set(0, 0, 0);
@@ -1246,8 +1257,8 @@ export function buildWildlifeAndFootprintsLayer(
           }
         } else if (a.species === 'bear' && rig.bearCtrl) {
           const swimPitch = a.inWater ? -0.10 : 0;
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch + swimPitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.05 + i * 1.41) % 1;
@@ -1321,8 +1332,8 @@ export function buildWildlifeAndFootprintsLayer(
             }
           }
         } else if (a.species === 'crocodile' && rig.crocodileCtrl) {
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.05 + i * 1.91) % 1;
@@ -1358,8 +1369,8 @@ export function buildWildlifeAndFootprintsLayer(
         } else if (a.species === 'jaguar' && rig.jaguarCtrl) {
           const pounceY = a.inWater ? 0 : (a.pounceHeight ?? 0);
           const pouncePitch = a.inWater ? -0.10 : pounceY > 0.02 ? -0.18 * (pounceY / 0.56) : 0;
-          rig.root.position.set(a.x, a.y + pounceY, a.z);
-          rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY + pounceY, renderZ);
+          rig.root.rotation.set(slope.pitch + pouncePitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.05 + i * 1.57) % 1;
@@ -1400,8 +1411,8 @@ export function buildWildlifeAndFootprintsLayer(
         } else if (a.species === 'wolf' && rig.wolfCtrl) {
           const pounceY = a.inWater ? 0 : (a.pounceHeight ?? 0);
           const pouncePitch = a.inWater ? -0.10 : pounceY > 0.02 ? -0.18 * (pounceY / 0.56) : 0;
-          rig.root.position.set(a.x, a.y + pounceY, a.z);
-          rig.root.rotation.set(slope.pitch + pouncePitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY + pounceY, renderZ);
+          rig.root.rotation.set(slope.pitch + pouncePitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.05 + i * 1.49) % 1;
@@ -1444,8 +1455,8 @@ export function buildWildlifeAndFootprintsLayer(
           rig.wolfCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'rhino' && rig.rhinoCtrl) {
           const swimPitch = a.inWater ? -0.10 : 0;
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch + swimPitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.05 + i * 1.63) % 1;
@@ -1598,8 +1609,8 @@ export function buildWildlifeAndFootprintsLayer(
           rig.stagCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'hippo' && rig.hippoCtrl) {
           const swimPitch = a.inWater && moveSpd > 0.15 ? -0.06 : 0;
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch + swimPitch, renderYaw, slope.roll, 'YXZ');
           rig.posePivot.position.set(0, 0, 0);
           rig.posePivot.rotation.set(0, 0, 0);
           const cycleSlot = (elapsedTime * 0.08 + i * 1.51) % 1;
@@ -1700,8 +1711,8 @@ export function buildWildlifeAndFootprintsLayer(
           rig.dolphinCtrl.update(dt * spd, turnAmount);
         } else if (a.species === 'deer' || a.species === 'sheep') {
           const swimPitch = a.inWater ? -0.10 : 0;
-          rig.root.position.set(a.x, a.y, a.z);
-          rig.root.rotation.set(slope.pitch + swimPitch, a.yaw, slope.roll, 'YXZ');
+          rig.root.position.set(renderX, renderY, renderZ);
+          rig.root.rotation.set(slope.pitch + swimPitch, renderYaw, slope.roll, 'YXZ');
 
           if (a.species === 'deer' && rig.deerGlbCtrl?.isLoaded()) {
             rig.posePivot.position.set(0, 0, 0);
@@ -1788,7 +1799,7 @@ export function buildWildlifeAndFootprintsLayer(
               ? Math.max(0, Math.sin(a.hopPhase)) * 0.22
               : 0;
           const swimPitch = a.inWater ? -0.10 : 0;
-          rig.root.position.set(a.x, a.y + hopHeight, a.z);
+          rig.root.position.set(renderX, renderY + hopHeight, renderZ);
           if (isClimbingTree) {
             const rollOsc =
               a.treeState === 'climb_up' || a.treeState === 'climb_down'
@@ -1796,14 +1807,14 @@ export function buildWildlifeAndFootprintsLayer(
                 : 0;
             rig.root.rotation.set(
               climbPitch,
-              a.yaw,
+              renderYaw,
               rollOsc,
               'YXZ'
             );
           } else {
             rig.root.rotation.set(
               slope.pitch + swimPitch + (hopHeight > 0.02 ? -0.18 : 0),
-              a.yaw,
+              renderYaw,
               slope.roll,
               'YXZ'
             );

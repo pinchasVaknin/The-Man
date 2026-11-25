@@ -13,7 +13,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { IncomingMessage } from 'node:http';
 import type { Plugin } from 'vite';
-import { checkGameSettingsPayload, checkLabOverridesPayload, isSameOriginRequest } from './persistenceValidation.ts';
+import {
+  checkGameSettingsPayload,
+  checkHitboxOverridesPayload,
+  checkLabOverridesPayload,
+  isSameOriginRequest,
+} from './persistenceValidation.ts';
 // #endregion
 
 // ======================== DEV-ONLY FILE PERSISTENCE ======================== \\
@@ -28,6 +33,7 @@ type PersistenceErrorCode =
   | 'INVALID_JSON'
   | 'INVALID_GAME_SETTINGS'
   | 'INVALID_LAB_OVERRIDES'
+  | 'INVALID_HITBOX_OVERRIDES'
   | 'SETTINGS_FILE_MARKERS_MISSING'
   | 'INTERNAL_ERROR';
 
@@ -38,6 +44,7 @@ const STATUS_BY_ERROR: Readonly<Record<PersistenceErrorCode, number>> = {
   INVALID_JSON: 400,
   INVALID_GAME_SETTINGS: 400,
   INVALID_LAB_OVERRIDES: 400,
+  INVALID_HITBOX_OVERRIDES: 400,
   SETTINGS_FILE_MARKERS_MISSING: 500,
   INTERNAL_ERROR: 500,
 };
@@ -102,6 +109,26 @@ export const SAVED_LAB_OVERRIDES: Record<string, ILabPoseOverrides> = ${JSON.str
   return 'src/config/savedLabOverrides.ts';
 }
 
+/** Summary: Rewrites the SAVED_HITBOX_OVERRIDES literal in place from a validated payload. */
+async function saveHitboxOverrides(projectRoot: string, payload: unknown): Promise<string> {
+  const validated = checkHitboxOverridesPayload(payload);
+  if (!validated.ok) throw new PersistenceRequestError('INVALID_HITBOX_OVERRIDES');
+  const targetPath = path.resolve(projectRoot, 'src/config/savedHitboxOverrides.ts');
+  const currentFile = await fs.readFile(targetPath, 'utf-8');
+  const markerStart = 'export const SAVED_HITBOX_OVERRIDES: IHitboxOverridesPayload = ';
+  const startIdx = currentFile.indexOf(markerStart);
+  if (startIdx === -1) {
+    throw new PersistenceRequestError('SETTINGS_FILE_MARKERS_MISSING');
+  }
+  const updatedFile =
+    currentFile.slice(0, startIdx) +
+    markerStart +
+    JSON.stringify(validated.value, null, 2) +
+    ';\n';
+  await fs.writeFile(targetPath, updatedFile, 'utf-8');
+  return 'src/config/savedHitboxOverrides.ts';
+}
+
 /** Summary: Rewrites the SAVED_GAME_SETTINGS literal in place from a validated payload. */
 async function saveGameSettings(projectRoot: string, payload: unknown): Promise<string> {
   const validated = checkGameSettingsPayload(payload);
@@ -126,6 +153,7 @@ async function saveGameSettings(projectRoot: string, payload: unknown): Promise<
 
 const PERSISTENCE_ROUTES: ReadonlyMap<string, (projectRoot: string, payload: unknown) => Promise<string>> = new Map([
   ['/api/save-lab-overrides', saveLabOverrides],
+  ['/api/save-hitbox-overrides', saveHitboxOverrides],
   ['/api/save-game-settings', saveGameSettings],
 ]);
 

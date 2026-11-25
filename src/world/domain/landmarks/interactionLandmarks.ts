@@ -17,6 +17,7 @@ import { DWARVEN_STONE_HOUSES, SOUTHERN_MINE_POS } from './dwarvenLandmarks';
 import { MINE_LEVEL_Y, MINE_POI, TREASURE_ISLAND } from './ancientMine/ancientMineLayout';
 import { findNearestSkyTelescope, type ISkyTelescope } from './skyboundIsles/skyTelescopes';
 import { findNearestSkyMechanism, isSkyPuzzleSolved, type ISkyMechanism } from './skyboundIsles/skyPuzzles';
+import { getAllDynamicSailableShipLadders } from '../../systems/sailableShipSystem';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -104,6 +105,10 @@ export function getLadderById(id: string | null | undefined): IClimbableLadderIn
       floors: [SOUTHWEST_OASIS_POS.observatoryBaseY + 0.15, SOUTHWEST_OASIS_POS.observatoryTopDeckY],
     };
   }
+  const shipLadders = getAllDynamicSailableShipLadders();
+  for (let i = 0; i < shipLadders.length; i++) {
+    if (shipLadders[i].id === id) return shipLadders[i];
+  }
   return null;
 }
 
@@ -141,6 +146,13 @@ export function findWatchtowerLadderAt(x: number, z: number): IClimbableLadderIn
     ) <= 1.6
   ) {
     return getLadderById(SOUTHWEST_OASIS_POS.observatoryLadderId);
+  }
+  const shipLadders = getAllDynamicSailableShipLadders();
+  for (let i = 0; i < shipLadders.length; i++) {
+    const sl = shipLadders[i];
+    if (Math.hypot(x - sl.ladderX, z - sl.ladderZ) <= 2.2) {
+      return sl;
+    }
   }
   return null;
 }
@@ -227,6 +239,17 @@ export function findLookedAtWatchtowerLadder(
     const dist = Math.hypot(dx, dz);
     if (dist <= 4.5 && (dist < 0.75 || (dx * fwdX + dz * fwdZ) / dist >= 0.42)) {
       return getLadderById(SOUTHWEST_OASIS_POS.observatoryLadderId);
+    }
+  }
+  const shipLadders = getAllDynamicSailableShipLadders();
+  for (let i = 0; i < shipLadders.length; i++) {
+    const sl = shipLadders[i];
+    if (y < sl.minY - 0.8 || y > sl.maxY + 1.8) continue;
+    const dx = sl.ladderX - x;
+    const dz = sl.ladderZ - z;
+    const dist = Math.hypot(dx, dz);
+    if (dist <= 5.5 && (dist < 1.1 || (dx * fwdX + dz * fwdZ) / dist >= 0.35)) {
+      return sl;
     }
   }
   return null;

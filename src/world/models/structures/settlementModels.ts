@@ -34,6 +34,7 @@ import {
 import { createBirchBarkTexture } from '../../builders/shaderAndMaterialBuilders';
 import { createReadyHorse, type HorseController, type HorseState } from '../Horse';
 import type { IWorldModelBuildContext } from '../types';
+import { getInterpolatedShipPassengerPose } from '../../systems/sailableShipSystem';
 // #endregion
 
 // ======================== SETTLEMENT MODEL INTERFACE ======================== \\
@@ -52,7 +53,8 @@ export interface ISettlementModelHandles {
     playerZ?: number,
     openDoorIds?: ReadonlySet<string>,
     openedChestIds?: readonly string[],
-    playerState?: IPlayerState
+    playerState?: IPlayerState,
+    alpha?: number
   ) => void;
 }
 // #endregion
@@ -2256,7 +2258,8 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
     playerZ = 0,
     openDoorIds?: ReadonlySet<string>,
     openedChestIds?: readonly string[],
-    playerState?: IPlayerState
+    playerState?: IPlayerState,
+    alpha = 1
   ) => {
     const rawDt = lastHorseUpdateTime > 0 ? elapsedTime - lastHorseUpdateTime : 0.016;
     const dt = rawDt > 0 && rawDt < 0.25 ? rawDt : 0.016;
@@ -2297,35 +2300,42 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
       const isMounted = mountedHorseId === rig.id;
       // When mounted by the player, lock the horse's render coordinates and yaw directly to the
       // interpolated renderPlayer so there is zero frame-interpolation lag or jitter between rider, camera, and horse!
-      const hx =
+      const rawHx =
         isMounted && playerState
           ? playerState.x
           : state
             ? state.x
             : RIDEABLE_HORSES[i].homeX;
-      const hz =
+      const rawHz =
         isMounted && playerState
           ? playerState.z
           : state
             ? state.z
             : RIDEABLE_HORSES[i].homeZ;
-      const inView = isMounted || isWithinViewDistance(hx, hz, playerX, playerZ, 24, 165);
+      const inView = isMounted || isWithinViewDistance(rawHx, rawHz, playerX, playerZ, 24, 165);
       rig.root.visible = inView;
       if (!inView) continue;
 
-      const walkSurf = walkableHeightAt(hx, hz);
-      const hy =
+      const walkSurf = walkableHeightAt(rawHx, rawHz);
+      const rawHy =
         isMounted && playerState
           ? playerState.y
           : state
             ? state.y
             : walkSurf.height;
-      const hyaw =
+      const rawHyaw =
         isMounted && playerState
           ? (playerState.mountedHorseYaw ?? state?.yaw ?? playerState.yaw)
           : state
             ? state.yaw
             : RIDEABLE_HORSES[i].homeYaw;
+      const shipPose = isMounted
+        ? { x: rawHx, y: rawHy, z: rawHz, yaw: rawHyaw, onShip: false }
+        : getInterpolatedShipPassengerPose(rawHx, rawHy, rawHz, rawHyaw, alpha);
+      const hx = shipPose.x;
+      const hy = shipPose.y;
+      const hz = shipPose.z;
+      const hyaw = shipPose.yaw;
       const hspeed = state ? state.speed : 0;
 
       rig.root.position.set(hx, hy, hz);
@@ -2334,7 +2344,7 @@ export function buildSettlementModels(ctx: IWorldModelBuildContext): ISettlement
 
       // Keep mounted horse cleanly upright (matching rider pelvis pivot) and never twist sideways (roll = 0)
       const onGround = !state || !state.isJumping;
-      if (!isMounted && onGround && walkSurf.surface === 'ground') {
+      if (!isMounted && !shipPose.onShip && onGround && walkSurf.surface === 'ground') {
         const n = getSurfaceNormalAt(hx, hz);
         const slope = computeSlopePitchAndRoll(n.nx, n.ny, n.nz, hyaw, 0.28);
         rig.root.rotation.x += (slope.pitch - rig.root.rotation.x) * 0.25;

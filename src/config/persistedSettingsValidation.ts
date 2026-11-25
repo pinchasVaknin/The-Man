@@ -11,6 +11,12 @@
 import { Result } from '../core/Result';
 import type { ILabPoseOverrides, LabEquipmentVisibilityMode } from '../lab/labCatalog';
 import type { FirefliesMode, IGameKeybindings, IGameSettingsConfig } from './savedGameSettings';
+import type {
+  IBoxHitboxOverride,
+  IEntityHitboxOverride,
+  IHitboxOverridesPayload,
+  IObstacleHitboxOverride,
+} from './savedHitboxOverrides';
 import type { CameraPerspectiveMode } from '../world/domain/worldTypes';
 import { GRAPHICS_QUALITIES } from '../world/domain/graphicsQuality';
 // #endregion
@@ -19,6 +25,7 @@ import { GRAPHICS_QUALITIES } from '../world/domain/graphicsQuality';
 // #region Constants & Types
 export type GameSettingsValidationError = 'INVALID_GAME_SETTINGS';
 export type LabOverridesValidationError = 'INVALID_LAB_OVERRIDES';
+export type HitboxOverridesValidationError = 'INVALID_HITBOX_OVERRIDES';
 
 const KEYBINDING_NAMES: readonly (keyof IGameKeybindings)[] = [
   'moveForward', 'moveBackward', 'moveLeft', 'moveRight', 'sprint', 'relaxedWalk', 'jump',
@@ -36,8 +43,19 @@ const WALK_SPEED_RANGE = [0.6, 1.8] as const;
 const JUMP_FORCE_RANGE = [0.7, 1.6] as const;
 
 const ENTITY_ID_PATTERN = /^[a-z0-9_]{1,64}$/;
+const HITBOX_ID_PATTERN = /^[A-Za-z0-9_-]{1,96}$/;
 /** Hard cap on persisted lab entries; the catalog has far fewer entities. */
 const MAX_LAB_ENTITIES = 100;
+const MAX_HITBOX_BOXES = 800;
+const MAX_HITBOX_OBSTACLES = 40;
+const MAX_HITBOX_ENTITIES = 64;
+const HITBOX_COORD_RANGE = [-4096, 4096] as const;
+const HITBOX_Y_RANGE = [-512, 1024] as const;
+const HITBOX_YAW_RANGE = [-Math.PI * 2, Math.PI * 2] as const;
+const HITBOX_SCALE_RANGE = [0.1, 5.0] as const;
+const HITBOX_ENTITY_RADIUS_RANGE = [0.1, 20.0] as const;
+const HITBOX_ENTITY_HEIGHT_RANGE = [0.1, 30.0] as const;
+
 const VISIBILITY_MODES: readonly LabEquipmentVisibilityMode[] = ['auto', 'both', 'right_only', 'left_only', 'none'];
 /** Rotation buttons can stack past the +-180 deg sliders, so allow two full turns. */
 const ROTATION_DEG_LIMIT = 720;
@@ -131,8 +149,127 @@ export function validateLabOverrides(
 }
 // #endregion
 
+// #region Validate Hitbox Overrides
+/**
+ * Summary: Validates an untrusted map of global hitbox overrides (boxes, obstacles, entities).
+ * @param value Parsed JSON from a request body or localStorage.
+ * @returns Result.ok with clean payload, or Result.fail('INVALID_HITBOX_OVERRIDES').
+ */
+export function validateHitboxOverrides(
+  value: unknown
+): Result<IHitboxOverridesPayload, HitboxOverridesValidationError> {
+  const fail = Result.fail<IHitboxOverridesPayload, HitboxOverridesValidationError>('INVALID_HITBOX_OVERRIDES');
+  if (!isPlainObject(value)) return fail;
+
+  const result: {
+    boxes?: Record<string, IBoxHitboxOverride>;
+    obstacles?: Record<string, IObstacleHitboxOverride>;
+    entities?: Record<string, IEntityHitboxOverride>;
+  } = {};
+
+  if (value.boxes !== undefined) {
+    if (!isPlainObject(value.boxes)) return fail;
+    const entries = Object.entries(value.boxes);
+    if (entries.length > MAX_HITBOX_BOXES) return fail;
+    const cleanBoxes: Record<string, IBoxHitboxOverride> = {};
+    for (const [boxId, rawBox] of entries) {
+      if (!HITBOX_ID_PATTERN.test(boxId)) return fail;
+      const box = toBoxHitboxOverride(rawBox);
+      if (!box) return fail;
+      cleanBoxes[boxId] = box;
+    }
+    if (entries.length > 0) result.boxes = cleanBoxes;
+  }
+
+  if (value.obstacles !== undefined) {
+    if (!isPlainObject(value.obstacles)) return fail;
+    const entries = Object.entries(value.obstacles);
+    if (entries.length > MAX_HITBOX_OBSTACLES) return fail;
+    const cleanObs: Record<string, IObstacleHitboxOverride> = {};
+    for (const [obsKey, rawObs] of entries) {
+      if (!ENTITY_ID_PATTERN.test(obsKey)) return fail;
+      const obs = toObstacleHitboxOverride(rawObs);
+      if (!obs) return fail;
+      cleanObs[obsKey] = obs;
+    }
+    if (entries.length > 0) result.obstacles = cleanObs;
+  }
+
+  if (value.entities !== undefined) {
+    if (!isPlainObject(value.entities)) return fail;
+    const entries = Object.entries(value.entities);
+    if (entries.length > MAX_HITBOX_ENTITIES) return fail;
+    const cleanEnt: Record<string, IEntityHitboxOverride> = {};
+    for (const [entId, rawEnt] of entries) {
+      if (!ENTITY_ID_PATTERN.test(entId)) return fail;
+      const ent = toEntityHitboxOverride(rawEnt);
+      if (!ent) return fail;
+      cleanEnt[entId] = ent;
+    }
+    if (entries.length > 0) result.entities = cleanEnt;
+  }
+
+  return Result.ok(result);
+}
+// #endregion
+
 // ======================== PRIVATE HELPERS ======================== \\
 // #region Private Helpers
+function toBoxHitboxOverride(raw: unknown): IBoxHitboxOverride | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.minX, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.maxX, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.minZ, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.maxZ, HITBOX_COORD_RANGE)
+  ) {
+    return null;
+  }
+  if (raw.minX >= raw.maxX || raw.minZ >= raw.maxZ) return null;
+  if (raw.minY !== undefined && !isNumberInRange(raw.minY, HITBOX_Y_RANGE)) return null;
+  if (raw.maxY !== undefined && !isNumberInRange(raw.maxY, HITBOX_Y_RANGE)) return null;
+  if (raw.minY !== undefined && raw.maxY !== undefined && raw.minY >= raw.maxY) return null;
+  if (raw.yaw !== undefined && !isNumberInRange(raw.yaw, HITBOX_YAW_RANGE)) return null;
+  return {
+    minX: raw.minX,
+    maxX: raw.maxX,
+    minZ: raw.minZ,
+    maxZ: raw.maxZ,
+    ...(raw.minY !== undefined ? { minY: raw.minY } : {}),
+    ...(raw.maxY !== undefined ? { maxY: raw.maxY } : {}),
+    ...(raw.yaw !== undefined ? { yaw: raw.yaw } : {}),
+  };
+}
+
+function toObstacleHitboxOverride(raw: unknown): IObstacleHitboxOverride | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.radiusScale, HITBOX_SCALE_RANGE) ||
+    !isNumberInRange(raw.heightScale, HITBOX_SCALE_RANGE)
+  ) {
+    return null;
+  }
+  return { radiusScale: raw.radiusScale, heightScale: raw.heightScale };
+}
+
+function toEntityHitboxOverride(raw: unknown): IEntityHitboxOverride | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.radius, HITBOX_ENTITY_RADIUS_RANGE) ||
+    !isNumberInRange(raw.height, HITBOX_ENTITY_HEIGHT_RANGE)
+  ) {
+    return null;
+  }
+  if (raw.bodyRadius !== undefined && !isNumberInRange(raw.bodyRadius, HITBOX_ENTITY_RADIUS_RANGE)) {
+    return null;
+  }
+  return {
+    radius: raw.radius,
+    height: raw.height,
+    ...(raw.bodyRadius !== undefined ? { bodyRadius: raw.bodyRadius } : {}),
+  };
+}
+
 /** Summary: Maps one entity's raw overrides to a typed value, or null when any field is invalid. */
 function toLabPoseOverrides(raw: unknown): ILabPoseOverrides | null {
   if (!isPlainObject(raw) || !isOneOf(raw.equipmentVisibilityMode, VISIBILITY_MODES)) return null;

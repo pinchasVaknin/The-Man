@@ -3898,13 +3898,16 @@ test('sailableShipGlb_WhenBoardedWalkedAndSteered_ShouldEnforceHullDeck2ndFloorH
   assert.equal(sailableShipDeckHeightAt(deck2fCenter.x, deck2fCenter.z, ship.deckY, ship), null);
   assert.equal(sailableShipDeckHeightAt(ship.x, ship.z, 0.0, ship), null);
 
-  // 3) Hull, Starboard Rail, 2F Front/Stern Railings, Masts, and Helm Pedestal hitboxes block clipping
+  // 3) Hull, Port & Starboard Railings (with symmetric gangways at bz=0..3.5), 2F Railings, Masts, and Helm Pedestal
   const colliderIds = new Set(getSailableShipLocalCollisionBoxes(ship).map((b) => b.id));
   for (const requiredId of [
     'ship-hull-lower',
     'ship-rail-port-fwd',
     'ship-rail-port-aft',
-    'ship-rail-stbd',
+    'ship-rail-port-taper',
+    'ship-rail-stbd-fwd',
+    'ship-rail-stbd-aft',
+    'ship-rail-stbd-taper',
     'ship-aft-cabin-bulkhead',
     'ship-stair-guard-port',
     'ship-stair-guard-stbd',
@@ -3918,10 +3921,11 @@ test('sailableShipGlb_WhenBoardedWalkedAndSteered_ShouldEnforceHullDeck2ndFloorH
   ]) {
     assert.ok(colliderIds.has(requiredId), `Missing sailable ship collider: ${requiredId}`);
   }
+  assert.equal(colliderIds.has('ship-rail-stbd'), false, 'Starboard rail should be split symmetrically around gangway opening');
 
-  // Attempting to walk off the Starboard 1F railing into the ocean is blocked
+  // Attempting to walk off the Starboard 1F railing at bz=4.6 (aft of gangway) into the ocean is blocked
   const stbdRailTester = createInitialPlayerState();
-  const stbdDeckStart = sailableShipLocalToWorld(2.2, 2.0, ship);
+  const stbdDeckStart = sailableShipLocalToWorld(2.2, 4.6, ship);
   stbdRailTester.x = stbdDeckStart.x;
   stbdRailTester.z = stbdDeckStart.z;
   stbdRailTester.y = ship.deckY;
@@ -3939,6 +3943,49 @@ test('sailableShipGlb_WhenBoardedWalkedAndSteered_ShouldEnforceHullDeck2ndFloorH
     stbdRailTester.z < ship.z + 2.85 * ship.scale,
     `Expected starboard bulwark railing to keep player inside deck, got z=${stbdRailTester.z.toFixed(2)}`
   );
+
+  // Starboard gangway opening at bz=1.75 is open symmetrically to Port (no railing blocking x/z passage)
+  const stbdOpening = sailableShipLocalToWorld(3.2, 1.75, ship);
+  const { resolveSailableShipHorizontalCollisions, getSailableShipSideLadders } = await import('./systems/sailableShipSystem');
+  const openRes = resolveSailableShipHorizontalCollisions(stbdOpening.x, stbdOpening.z, ship.deckY, 0.35, ship);
+  assert.equal(openRes.collided, false, 'Starboard gangway at bz=1.75 must stay open for ladder boarding');
+
+  // Climbing both Port and Starboard side boarding ladders from the ocean lifts swimmer cleanly onto deckY
+  const sideLadders = getSailableShipSideLadders(ship);
+  assert.equal(sideLadders.length, 2, 'Expected both Port and Starboard side boarding ladders');
+  for (const sideLad of sideLadders) {
+    const climber = createInitialPlayerState();
+    climber.x = sideLad.standX;
+    climber.z = sideLad.standZ;
+    climber.y = sideLad.minY + 0.2;
+    climber.isSwimming = true;
+    climber.inWater = true;
+    climber.yaw = Math.atan2(-(sideLad.ladderX - sideLad.standX), -(sideLad.ladderZ - sideLad.standZ));
+    // Press Jump to grab the side ladder
+    stepPlayerPhysics(
+      climber,
+      { forward: 0, right: 0, sprint: false, relaxed: false, jumpPressed: true, jumpHeld: true, lookYawDelta: 0, lookPitchDelta: 0 },
+      [],
+      0.05,
+      new Set()
+    );
+    assert.equal(climber.climbingLadderId, sideLad.id, `Expected swimmer to grab ${sideLad.id}`);
+    // Climb up with W (forward: 1) until auto-step-off onto the deck
+    for (let step = 0; step < 30 && climber.climbingLadderId === sideLad.id; step++) {
+      stepPlayerPhysics(
+        climber,
+        { forward: 1, right: 0, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
+        [],
+        0.05,
+        new Set()
+      );
+    }
+    assert.equal(climber.climbingLadderId, null, `Expected swimmer to dismount onto deck at top of ${sideLad.id}`);
+    assert.ok(
+      Math.abs(climber.y - ship.deckY) < 0.2,
+      `Expected ${sideLad.id} climb to land on ship.deckY (${ship.deckY}), got y=${climber.y.toFixed(2)}`
+    );
+  }
 
   // Walking up the Port Staircase from 1F reaches the 2nd floor cleanly, and 2F Front Rail prevents falling off
   const stairClimber = createInitialPlayerState();
@@ -4128,24 +4175,61 @@ test('shipModelAndInterpolationAndDolphins_ShouldKeepDolphinsSubmergedClearHelmS
   });
   assert.equal(blockingEyeVerts, 0, `Expected clear 2F helm eye-line above quarterdeck, found ${blockingEyeVerts} blocking verts`);
 
-  // 6) Ship previous-pose interpolation smoothly blends position & yaw at alpha=0.5
+  // 6) Ship previous-pose interpolation smoothly blends position & yaw at alpha=0.5,
+  //    and onboard unmounted animals/horses interpolate in exact lockstep with the hull
   resetSailableShipState();
   const ship = getActiveSailableShip();
   ship.x = 310;
   ship.z = 290;
   ship.yaw = -Math.PI / 2;
+  const deckLion = {
+    id: 777,
+    species: 'lion',
+    x: ship.x + 1.0,
+    y: ship.deckY,
+    z: ship.z - 0.8,
+    yaw: 0.3,
+    vx: 0,
+    vy: 0,
+    vz: 0,
+    homeX: ship.x + 1.0,
+    homeZ: ship.z - 0.8,
+    inWater: false,
+    isDead: false,
+  };
+  const { getInterpolatedShipPassengerPose } = await import('./systems/sailableShipSystem');
   capturePreviousSailableShipPoses();
   const prevX = ship.x;
+  const prevZ = ship.z;
+  const prevDeckLionX = deckLion.x;
+  const prevDeckLionZ = deckLion.z;
   const helmPlayer = createInitialPlayerState();
   stepSailableShipPhysics(
     helmPlayer,
     { forward: 1, right: 0.4, sprint: false, relaxed: false, jumpPressed: false, jumpHeld: false, lookYawDelta: 0, lookPitchDelta: 0 },
     0.1,
     isNavigableOceanForShip,
-    ship
+    ship,
+    undefined,
+    [deckLion]
   );
   const midPose = getInterpolatedSailableShipPose(ship, 0.5);
   assert.ok(midPose.x > prevX && midPose.x < ship.x, 'Expected alpha=0.5 x cleanly between prevX and ship.x');
+
+  const lionMidPose = getInterpolatedShipPassengerPose(deckLion.x, deckLion.y, deckLion.z, deckLion.yaw, 0.5);
+  assert.equal(lionMidPose.onShip, true, 'Expected deck animal to interpolate with moving ship');
+  const expectedMidDx = lionMidPose.x - prevDeckLionX;
+  const fullDx = deckLion.x - prevDeckLionX;
+  assert.ok(
+    Math.abs(expectedMidDx - fullDx * 0.5) < 0.08,
+    `Expected onboard animal render X at alpha=0.5 to sit halfway between prev (${prevDeckLionX.toFixed(3)}) and curr (${deckLion.x.toFixed(3)}), got ${lionMidPose.x.toFixed(3)}`
+  );
+  const midZDelta = lionMidPose.z - prevDeckLionZ;
+  const fullZDelta = deckLion.z - prevDeckLionZ;
+  assert.ok(
+    Math.abs(midZDelta - fullZDelta * 0.5) < 0.08 && prevZ === ship.prevZ,
+    `Expected onboard animal render Z at alpha=0.5 to move in lockstep with ship`
+  );
 
   // 7) Ship bow pushes swimming dolphin horizontally clear without lifting Y or hijacking homeX/homeZ,
   //    while an onboard horse stays safely on deck

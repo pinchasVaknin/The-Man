@@ -22,16 +22,23 @@ import {
   type LabStageEnvironment,
 } from './labCatalog';
 import { buildLabEntityRig, type ILabEntityRig } from './labModelFactory';
+import type { IHitboxOverridesPayload } from '../config/savedHitboxOverrides';
+import type { ILabHitboxTargetDef, LabStudioMode } from './labHitboxCatalog';
+import { buildLabHitboxPreviewRig, type ILabHitboxRig } from './labHitboxPreview';
 
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
 // #region Constants & Types
 export interface ICharacterLabCanvasProps {
+  readonly labMode?: LabStudioMode;
   readonly entity: ILabEntityDef;
   readonly animation: ILabAnimationDef;
   readonly skin: ILabSkinDef;
   readonly poseOverrides: ILabPoseOverrides;
+  readonly hitboxTarget?: ILabHitboxTargetDef;
+  readonly hitboxOverrides?: IHitboxOverridesPayload;
+  readonly selectedPartId?: string | null;
   readonly playbackSpeed: number;
   readonly isPaused: boolean;
   readonly manualPhase: number;
@@ -52,10 +59,14 @@ export interface ICharacterLabCanvasProps {
 // ======================== LAB CANVAS COMPONENT ======================== \\
 // #region Character Lab Canvas
 export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
+  labMode = 'models',
   entity,
   animation,
   skin,
   poseOverrides,
+  hitboxTarget,
+  hitboxOverrides = {},
+  selectedPartId = null,
   playbackSpeed,
   isPaused,
   manualPhase,
@@ -74,10 +85,14 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
 
   // Refs for live props read inside the animation loop without recreating WebGL context
   const stateRef = useRef({
+    labMode,
     entity,
     animation,
     skin,
     poseOverrides,
+    hitboxTarget,
+    hitboxOverrides,
+    selectedPartId,
     playbackSpeed,
     isPaused,
     manualPhase,
@@ -88,10 +103,14 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
     stageEnvironment,
   });
   stateRef.current = {
+    labMode,
     entity,
     animation,
     skin,
     poseOverrides,
+    hitboxTarget,
+    hitboxOverrides,
+    selectedPartId,
     playbackSpeed,
     isPaused,
     manualPhase,
@@ -105,16 +124,26 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
   const orbitRef = useRef({
     theta: 0.55,
     phi: 0.24,
-    distance: entity.defaultCameraDistance,
-    targetY: entity.defaultCameraTargetY,
+    distance:
+      labMode === 'hitboxes' && hitboxTarget
+        ? hitboxTarget.defaultCameraDistance
+        : entity.defaultCameraDistance,
+    targetY:
+      labMode === 'hitboxes' && hitboxTarget
+        ? hitboxTarget.defaultCameraTargetY
+        : entity.defaultCameraTargetY,
     turntableAngle: 0,
   });
 
   const rigRef = useRef<ILabEntityRig | null>(null);
+  const hitboxRigRef = useRef<ILabHitboxRig | null>(null);
   const sceneObjectsRef = useRef<{
     scene: THREE.Scene;
     renderer: THREE.WebGLRenderer;
     pedestalGroup: THREE.Group;
+    baseDisc: THREE.Mesh;
+    pedestalRing: THREE.Mesh;
+    shadowPlane: THREE.Mesh;
     rulerGroup: THREE.Group;
     gridHelper: THREE.GridHelper;
     hemiLight: THREE.HemisphereLight;
@@ -124,10 +153,11 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
     renderNow: () => void;
   } | null>(null);
 
-  // Apply Camera Preset or Entity Camera framing when entity / preset changes
+  // Apply Camera Preset or Entity / Hitbox Target Camera framing when target / preset changes
   useEffect(() => {
-    const baseDist = entity.defaultCameraDistance;
-    const baseTargetY = entity.defaultCameraTargetY;
+    const activeTarget = labMode === 'hitboxes' ? hitboxTarget : undefined;
+    const baseDist = activeTarget ? activeTarget.defaultCameraDistance : entity.defaultCameraDistance;
+    const baseTargetY = activeTarget ? activeTarget.defaultCameraTargetY : entity.defaultCameraTargetY;
 
     if (cameraPreset === 'front') {
       orbitRef.current.theta = 0;
@@ -136,7 +166,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       orbitRef.current.targetY = baseTargetY;
     } else if (cameraPreset === 'angle') {
       orbitRef.current.theta = 0.58;
-      orbitRef.current.phi = 0.24;
+      orbitRef.current.phi = 0.28;
       orbitRef.current.distance = baseDist;
       orbitRef.current.targetY = baseTargetY;
     } else if (cameraPreset === 'side') {
@@ -156,9 +186,19 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       orbitRef.current.targetY = baseTargetY * 1.18;
     }
     sceneObjectsRef.current?.renderNow();
-  }, [entity.id, entity.defaultCameraDistance, entity.defaultCameraTargetY, cameraPreset, cameraResetNonce]);
+  }, [
+    labMode,
+    entity.id,
+    entity.defaultCameraDistance,
+    entity.defaultCameraTargetY,
+    hitboxTarget?.id,
+    hitboxTarget?.defaultCameraDistance,
+    hitboxTarget?.defaultCameraTargetY,
+    cameraPreset,
+    cameraResetNonce,
+  ]);
 
-  // Rebuild 3D entity rig when entity.id changes
+  // Rebuild 3D entity or hitbox rig when mode, entity.id, or hitboxTarget.id changes
   useEffect(() => {
     const objs = sceneObjectsRef.current;
     if (!objs) return;
@@ -167,6 +207,36 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       objs.pedestalGroup.remove(rigRef.current.root);
       rigRef.current.dispose();
       rigRef.current = null;
+    }
+    if (hitboxRigRef.current) {
+      objs.pedestalGroup.remove(hitboxRigRef.current.root);
+      hitboxRigRef.current.dispose();
+      hitboxRigRef.current = null;
+    }
+
+    const isLargeHitboxStage =
+      labMode === 'hitboxes' && Boolean(hitboxTarget && hitboxTarget.defaultCameraDistance > 7.5);
+    objs.baseDisc.visible = !isLargeHitboxStage;
+    objs.pedestalRing.visible = !isLargeHitboxStage;
+    objs.shadowPlane.visible = !isLargeHitboxStage;
+    objs.rulerGroup.visible = showHeightRuler && !isLargeHitboxStage;
+    objs.gridHelper.scale.setScalar(isLargeHitboxStage ? 3.2 : 1.0);
+
+    if (labMode === 'hitboxes' && hitboxTarget) {
+      const hRig = buildLabHitboxPreviewRig(
+        hitboxTarget,
+        hitboxOverrides,
+        selectedPartId,
+        () => objs.renderNow()
+      );
+      hRig.setWireframe(showWireframe);
+      objs.pedestalGroup.add(hRig.root);
+      hitboxRigRef.current = hRig;
+      orbitRef.current.turntableAngle = 0;
+      objs.pedestalGroup.rotation.y = 0;
+      onRigStatsChange?.(hRig.stats);
+      objs.renderNow();
+      return;
     }
 
     const newRig = buildLabEntityRig(entity.id, skin);
@@ -178,26 +248,36 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
     objs.pedestalGroup.rotation.y = 0;
     onRigStatsChange?.(newRig.stats);
     objs.renderNow();
-  }, [entity.id]);
+  }, [labMode, entity.id, hitboxTarget?.id]);
+
+  // Update interactive hitbox overlays instantaneously when coordinates/selection change
+  useEffect(() => {
+    if (labMode === 'hitboxes' && hitboxRigRef.current) {
+      hitboxRigRef.current.updateOverlays(hitboxOverrides, selectedPartId);
+      sceneObjectsRef.current?.renderNow();
+    }
+  }, [labMode, hitboxOverrides, selectedPartId]);
 
   // Apply skin updates dynamically
   useEffect(() => {
-    rigRef.current?.applySkin(skin);
-    sceneObjectsRef.current?.renderNow();
-  }, [skin]);
+    if (labMode === 'models') {
+      rigRef.current?.applySkin(skin);
+      sceneObjectsRef.current?.renderNow();
+    }
+  }, [labMode, skin]);
 
   // Apply animation selection changes immediately
   useEffect(() => {
-    if (animation.id === 'none') {
+    if (labMode === 'models' && animation.id === 'none') {
       rigRef.current?.applyAnimation('none', 0, 0, poseOverrides);
       sceneObjectsRef.current?.renderNow();
     }
-  }, [animation.id]);
+  }, [labMode, animation.id]);
 
   // Apply pose overrides immediately when paused or in static rest pose
   useEffect(() => {
     const s = stateRef.current;
-    if (s.isPaused || s.animation.id === 'none') {
+    if (s.labMode === 'models' && (s.isPaused || s.animation.id === 'none')) {
       const effectiveSpeed = getEffectiveLabAnimationSpeed(
         poseOverrides,
         s.animation.id,
@@ -218,6 +298,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
   // Apply wireframe updates dynamically
   useEffect(() => {
     rigRef.current?.setWireframe(showWireframe);
+    hitboxRigRef.current?.setWireframe(showWireframe);
     sceneObjectsRef.current?.renderNow();
   }, [showWireframe]);
 
@@ -232,10 +313,12 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
   // Apply 3D height reference ruler visibility
   useEffect(() => {
     if (sceneObjectsRef.current) {
-      sceneObjectsRef.current.rulerGroup.visible = showHeightRuler;
+      const isLargeHitboxStage =
+        labMode === 'hitboxes' && Boolean(hitboxTarget && hitboxTarget.defaultCameraDistance > 7.5);
+      sceneObjectsRef.current.rulerGroup.visible = showHeightRuler && !isLargeHitboxStage;
       sceneObjectsRef.current.renderNow();
     }
-  }, [showHeightRuler]);
+  }, [showHeightRuler, labMode, hitboxTarget?.id]);
 
   // Trigger PNG snapshot download when requested
   useEffect(() => {
@@ -258,9 +341,10 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
   useEffect(() => {
     const objs = sceneObjectsRef.current;
     if (!objs) return;
+    const fogDensity = labMode === 'hitboxes' ? 0.008 : 0.045;
     if (stageEnvironment === 'studio_day') {
       objs.scene.background = new THREE.Color(0x13161c);
-      objs.scene.fog = new THREE.FogExp2(0x13161c, 0.045);
+      objs.scene.fog = new THREE.FogExp2(0x13161c, fogDensity);
       objs.hemiLight.color.setHex(0xfff7ed);
       objs.hemiLight.groundColor.setHex(0x1e293b);
       objs.hemiLight.intensity = 0.95;
@@ -272,7 +356,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       objs.pedestalRingMat.emissive.setHex(0xd97706);
     } else if (stageEnvironment === 'golden_sunset') {
       objs.scene.background = new THREE.Color(0x1c1210);
-      objs.scene.fog = new THREE.FogExp2(0x1c1210, 0.045);
+      objs.scene.fog = new THREE.FogExp2(0x1c1210, fogDensity);
       objs.hemiLight.color.setHex(0xfed7aa);
       objs.hemiLight.groundColor.setHex(0x3b1812);
       objs.hemiLight.intensity = 0.85;
@@ -284,7 +368,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       objs.pedestalRingMat.emissive.setHex(0xea580c);
     } else {
       objs.scene.background = new THREE.Color(0x090d16);
-      objs.scene.fog = new THREE.FogExp2(0x090d16, 0.048);
+      objs.scene.fog = new THREE.FogExp2(0x090d16, fogDensity);
       objs.hemiLight.color.setHex(0x93c5fd);
       objs.hemiLight.groundColor.setHex(0x0f172a);
       objs.hemiLight.intensity = 0.65;
@@ -296,7 +380,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       objs.pedestalRingMat.emissive.setHex(0x0284c7);
     }
     objs.renderNow();
-  }, [stageEnvironment]);
+  }, [stageEnvironment, labMode]);
 
   // Main Three.js Setup & Paced Animation Loop
   useEffect(() => {
@@ -326,7 +410,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x13161c);
-    scene.fog = new THREE.FogExp2(0x13161c, 0.045);
+    scene.fog = new THREE.FogExp2(0x13161c, stateRef.current.labMode === 'hitboxes' ? 0.008 : 0.045);
 
     let envTex: THREE.Texture | null = null;
     if (!isSoftwareGl) {
@@ -338,7 +422,7 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       pmremGenerator.dispose();
     }
 
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 260);
 
     // 3-Point Studio Lighting
     const hemiLight = new THREE.HemisphereLight(0xfff7ed, 0x1e293b, 1.15);
@@ -487,6 +571,9 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       scene,
       renderer,
       pedestalGroup,
+      baseDisc,
+      pedestalRing,
+      shadowPlane,
       rulerGroup,
       gridHelper,
       hemiLight,
@@ -496,21 +583,43 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       renderNow,
     };
 
-    // Build initial entity rig
-    const initialRig = buildLabEntityRig(
-      stateRef.current.entity.id,
-      stateRef.current.skin
-    );
-    initialRig.setWireframe(stateRef.current.showWireframe);
-    initialRig.applyAnimation(
-      stateRef.current.animation.id,
-      0,
-      0,
-      stateRef.current.poseOverrides
-    );
-    pedestalGroup.add(initialRig.root);
-    rigRef.current = initialRig;
-    onRigStatsChange?.(initialRig.stats);
+    const initLarge =
+      stateRef.current.labMode === 'hitboxes' &&
+      Boolean(stateRef.current.hitboxTarget && stateRef.current.hitboxTarget.defaultCameraDistance > 7.5);
+    baseDisc.visible = !initLarge;
+    pedestalRing.visible = !initLarge;
+    shadowPlane.visible = !initLarge;
+    rulerGroup.visible = stateRef.current.showHeightRuler && !initLarge;
+    gridHelper.scale.setScalar(initLarge ? 3.2 : 1.0);
+
+    if (stateRef.current.labMode === 'hitboxes' && stateRef.current.hitboxTarget) {
+      const initialHitboxRig = buildLabHitboxPreviewRig(
+        stateRef.current.hitboxTarget,
+        stateRef.current.hitboxOverrides,
+        stateRef.current.selectedPartId,
+        renderNow
+      );
+      initialHitboxRig.setWireframe(stateRef.current.showWireframe);
+      pedestalGroup.add(initialHitboxRig.root);
+      hitboxRigRef.current = initialHitboxRig;
+      onRigStatsChange?.(initialHitboxRig.stats);
+    } else {
+      // Build initial entity rig
+      const initialRig = buildLabEntityRig(
+        stateRef.current.entity.id,
+        stateRef.current.skin
+      );
+      initialRig.setWireframe(stateRef.current.showWireframe);
+      initialRig.applyAnimation(
+        stateRef.current.animation.id,
+        0,
+        0,
+        stateRef.current.poseOverrides
+      );
+      pedestalGroup.add(initialRig.root);
+      rigRef.current = initialRig;
+      onRigStatsChange?.(initialRig.stats);
+    }
     renderNow();
 
     // Orbit & Zoom Pointer Controls
@@ -546,9 +655,11 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      const maxZoom = stateRef.current.labMode === 'hitboxes' ? 68.0 : 11.0;
+      const zoomSpeed = stateRef.current.labMode === 'hitboxes' ? 0.01 : 0.003;
       orbitRef.current.distance = Math.max(
         1.1,
-        Math.min(11.0, orbitRef.current.distance + e.deltaY * 0.003)
+        Math.min(maxZoom, orbitRef.current.distance + e.deltaY * zoomSpeed)
       );
     };
 
@@ -613,19 +724,21 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
       }
       pedestalGroup.rotation.y = orbitRef.current.turntableAngle;
 
-      const cycleProg = computeLabAnimationCycleProgress(
-        s.animation,
-        elapsedSec,
-        1.0,
-        s.isPaused,
-        s.manualPhase
-      );
+      if (s.labMode === 'models') {
+        const cycleProg = computeLabAnimationCycleProgress(
+          s.animation,
+          elapsedSec,
+          1.0,
+          s.isPaused,
+          s.manualPhase
+        );
 
-      rigRef.current?.applyAnimation(s.animation.id, elapsedSec, cycleProg, s.poseOverrides);
+        rigRef.current?.applyAnimation(s.animation.id, elapsedSec, cycleProg, s.poseOverrides);
 
-      if (onLivePhaseUpdate && !s.isPaused && now - lastPhaseEmit > 120) {
-        lastPhaseEmit = now;
-        onLivePhaseUpdate(cycleProg);
+        if (onLivePhaseUpdate && !s.isPaused && now - lastPhaseEmit > 120) {
+          lastPhaseEmit = now;
+          onLivePhaseUpdate(cycleProg);
+        }
       }
 
       // Compute Camera Orbit Position
@@ -654,6 +767,8 @@ export const CharacterLabCanvas: React.FC<ICharacterLabCanvasProps> = ({
 
       rigRef.current?.dispose();
       rigRef.current = null;
+      hitboxRigRef.current?.dispose();
+      hitboxRigRef.current = null;
       baseDiscGeo.dispose();
       baseDiscMat.dispose();
       pedestalRingGeo.dispose();

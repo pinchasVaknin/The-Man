@@ -959,6 +959,36 @@ export function buildAtlantisAndShipModels(ctx: IWorldModelBuildContext): IAtlan
     bowWakeGroup.add(wakeLeft, wakeRight);
     tierRoot.add(bowWakeGroup);
 
+    // Side Boarding Ladders on BOTH Port (-X) and Starboard (+X) inside the open gangway gaps (bz = 1.75)
+    const ladderRailGeo = new THREE.CylinderGeometry(0.036, 0.036, 2.35, 8);
+    const ladderRungGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.64, 8);
+    ladderRungGeo.rotateZ(Math.PI / 2);
+    const ladderCleatGeo = new THREE.BoxGeometry(0.14, 0.14, 0.82);
+    disposableGeometries.push(ladderRailGeo, ladderRungGeo, ladderCleatGeo);
+
+    for (const sideSign of [-1, 1] as const) {
+      const sideLadderGroup = new THREE.Group();
+      sideLadderGroup.name = sideSign < 0 ? 'sailable-ship-ladder-port' : 'sailable-ship-ladder-stbd';
+      // Positioned flush outside the open gangway hull flank at |bx| = 3.48, bz = 1.75, rotated Y so rungs span Z
+      sideLadderGroup.position.set(sideSign * 3.48, -0.82, 1.75);
+      sideLadderGroup.rotation.y = sideSign < 0 ? -Math.PI / 2 : Math.PI / 2;
+      for (const rx of [-0.3, 0.3]) {
+        const rail = new THREE.Mesh(ladderRailGeo, imperialDoorWoodMat);
+        rail.position.set(rx, 0, 0);
+        sideLadderGroup.add(rail);
+      }
+      for (let r = 0; r < 9; r++) {
+        const rung = new THREE.Mesh(ladderRungGeo, tierTrimMat);
+        rung.position.set(0, -1.04 + r * 0.25, 0.02);
+        sideLadderGroup.add(rung);
+      }
+      const cleat = new THREE.Mesh(ladderCleatGeo, orichalcumGoldMat);
+      cleat.position.set(0, 1.06, -0.05);
+      cleat.rotation.y = Math.PI / 2;
+      sideLadderGroup.add(cleat);
+      tierRoot.add(sideLadderGroup);
+    }
+
     sailableShipGroup.add(tierRoot);
     shipVisualHandles.push({
       state: sState,

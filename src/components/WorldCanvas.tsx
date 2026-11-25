@@ -16,7 +16,7 @@ import { t } from '../locales';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../core/perfStats';
-import { SOLID_BUILDING_BOXES } from '../world/terrainMath';
+import { getEffectiveSolidBuildingBoxes } from '../world/terrainMath';
 import {
   WeatherKind,
   WeatherCycleMode,
@@ -1116,7 +1116,12 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
 
     // 8. Main Animation Loop with Software-WebGL Pacing Guard
     const perfStats = new PerfStats();
-    const perfDebug = createPerfDebugTools({ renderer, scene, perfStats, colliders: SOLID_BUILDING_BOXES });
+    const perfDebug = createPerfDebugTools({
+      renderer,
+      scene,
+      perfStats,
+      colliders: getEffectiveSolidBuildingBoxes,
+    });
 
     const requestPointerLockSafely = () => {
       if (

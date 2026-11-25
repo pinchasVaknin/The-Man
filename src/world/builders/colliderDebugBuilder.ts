@@ -9,7 +9,7 @@
 // #region Imports & Dependencies
 import * as THREE from 'three';
 import {
-  SOLID_BUILDING_BOXES,
+  getEffectiveSolidBuildingBoxes,
   getHillWatchtowerLocalWalls,
   FORTRESS_DOORS,
   HILL_WATCHTOWERS,
@@ -21,6 +21,7 @@ import {
   getObstacleColliderMetrics,
   groundHeightAt,
 } from '../terrainMath';
+import { subscribeHitboxOverridesChanged } from '../domain/hitboxOverrides';
 import {
   SHIP_GLB_DECK_METRICS,
   getActiveSailableShip,
@@ -105,9 +106,11 @@ export function buildColliderDebugWireframes(
   const unitBoxGeo = new THREE.BoxGeometry(1, 1, 1);
   disposableGeometries.push(unitBoxGeo);
 
-  // 1. SOLID_BUILDING_BOXES (Red / Orange for stair guards & ship walls)
-  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
-    const b = SOLID_BUILDING_BOXES[i];
+  // 1. Effective SOLID_BUILDING_BOXES (Red / Orange for stair guards & ship walls)
+  const buildingBoxMeshes: THREE.Mesh[] = [];
+  const initialEffectiveBoxes = getEffectiveSolidBuildingBoxes();
+  for (let i = 0; i < initialEffectiveBoxes.length; i++) {
+    const b = initialEffectiveBoxes[i];
     const cx = (b.minX + b.maxX) * 0.5;
     const cz = (b.minZ + b.maxZ) * 0.5;
     const baseGroundY = groundHeightAt(cx, cz);
@@ -125,6 +128,7 @@ export function buildColliderDebugWireframes(
     if (b.yaw) {
       mesh.rotation.y = b.yaw;
     }
+    buildingBoxMeshes.push(mesh);
     group.add(mesh);
   }
 
@@ -266,6 +270,7 @@ export function buildColliderDebugWireframes(
   // 5b. Live Sailable Ship (ship.glb) rotated colliders & 1F / Forecastle / Stairs / 2F walkable deck wireframes
   const sailableShipDebugGroup = new THREE.Group();
   sailableShipDebugGroup.name = 'SailableShipDebugWireframes';
+  const sailableShipBoxMeshes: THREE.Mesh[] = [];
   const defaultBoxes = getSailableShipLocalCollisionBoxes({
     ...getActiveSailableShip(),
     scale: 1.0,
@@ -279,6 +284,7 @@ export function buildColliderDebugWireframes(
     const m = new THREE.Mesh(unitBoxGeo, stairGuardWireMat);
     m.position.set((b.minX + b.maxX) * 0.5, b.minY + h * 0.5, (b.minZ + b.maxZ) * 0.5);
     m.scale.set(w, h, d);
+    sailableShipBoxMeshes.push(m);
     sailableShipDebugGroup.add(m);
   }
   const addShipWalkPlane = (minX: number, maxX: number, minZ: number, maxZ: number, yMinZ: number, yMaxZ: number) => {
@@ -300,7 +306,60 @@ export function buildColliderDebugWireframes(
   addShipWalkPlane(-2.6, 2.6, SHIP_GLB_DECK_METRICS.quarterdeckStartBz, SHIP_GLB_DECK_METRICS.quarterdeckEndBz, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY, SHIP_GLB_DECK_METRICS.quarterdeckOffsetY);
   group.add(sailableShipDebugGroup);
 
+  let hitboxesDirty = false;
+  subscribeHitboxOverridesChanged(() => {
+    hitboxesDirty = true;
+  });
+
+  const refreshOverriddenWireframes = () => {
+    hitboxesDirty = false;
+    const effBoxes = getEffectiveSolidBuildingBoxes();
+    for (let i = 0; i < effBoxes.length && i < buildingBoxMeshes.length; i++) {
+      const b = effBoxes[i];
+      const mesh = buildingBoxMeshes[i];
+      const cx = (b.minX + b.maxX) * 0.5;
+      const cz = (b.minZ + b.maxZ) * 0.5;
+      const baseGroundY = groundHeightAt(cx, cz);
+      const minY = b.minY !== undefined ? b.minY : baseGroundY - 0.5;
+      const maxY = b.maxY !== undefined ? b.maxY : baseGroundY + 8.0;
+      const w = Math.max(0.08, b.maxX - b.minX);
+      const h = Math.max(0.12, maxY - minY);
+      const d = Math.max(0.08, b.maxZ - b.minZ);
+      mesh.position.set(cx, minY + h * 0.5, cz);
+      mesh.scale.set(w, h, d);
+      mesh.rotation.y = b.yaw ?? 0;
+    }
+    for (let i = 0; i < maxObs; i++) {
+      const o = obstacles[i];
+      const gy = groundHeightAt(o.x, o.z);
+      const metrics = getObstacleColliderMetrics(o);
+      dummy.position.set(o.x, gy + metrics.height * 0.5, o.z);
+      dummy.scale.set(metrics.radius, metrics.height, metrics.radius);
+      dummy.updateMatrix();
+      obsInstanced.setMatrixAt(i, dummy.matrix);
+    }
+    obsInstanced.instanceMatrix.needsUpdate = true;
+
+    const refreshedShipBoxes = getSailableShipLocalCollisionBoxes({
+      ...getActiveSailableShip(),
+      scale: 1.0,
+      deckY: 0,
+    });
+    for (let i = 0; i < refreshedShipBoxes.length && i < sailableShipBoxMeshes.length; i++) {
+      const b = refreshedShipBoxes[i];
+      const m = sailableShipBoxMeshes[i];
+      const w = Math.max(0.08, b.maxX - b.minX);
+      const h = Math.max(0.12, b.maxY - b.minY);
+      const d = Math.max(0.08, b.maxZ - b.minZ);
+      m.position.set((b.minX + b.maxX) * 0.5, b.minY + h * 0.5, (b.minZ + b.maxZ) * 0.5);
+      m.scale.set(w, h, d);
+    }
+  };
+
   const syncDynamicColliders = () => {
+    if (hitboxesDirty) {
+      refreshOverriddenWireframes();
+    }
     const activeShip = getActiveSailableShip();
     sailableShipDebugGroup.visible = activeShip.spawned;
     if (activeShip.spawned) {
@@ -347,14 +406,17 @@ export function buildColliderDebugWireframes(
     group,
     setVisible: (visible: boolean) => {
       group.visible = Boolean(visible);
+      if (group.visible) syncDynamicColliders();
       return group.visible;
     },
     toggleVisible: () => {
       group.visible = !group.visible;
+      if (group.visible) syncDynamicColliders();
       return group.visible;
     },
     toggle: (visible?: boolean) => {
       group.visible = visible !== undefined ? Boolean(visible) : !group.visible;
+      if (group.visible) syncDynamicColliders();
       return group.visible;
     },
     isVisible: () => group.visible,

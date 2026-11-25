@@ -3554,7 +3554,23 @@ export const en = {
       "copied": "✓ Copied to clipboard!",
       "copy_json": "Copy JSON",
       "skins_of": "Variants and skins of {name}",
-      "structure_title": "Entity structure and parts"
+      "structure_title": "Entity structure and parts",
+      "mode_models": "Models & Animations",
+      "mode_hitboxes": "Hitbox Editor",
+      "hitbox_subtitle": "Inspect 3D objects, adjust collision hitboxes globally across the world, or reset to defaults",
+      "hitbox_category": "Object category",
+      "hitbox_search": "Search ships, buildings, props, trees, or entities...",
+      "hitbox_modified": "Custom",
+      "hitbox_parts_title": "Collision boxes ({count})",
+      "hitbox_reset_part": "Reset Part",
+      "hitbox_reset_object": "Reset Object to Default",
+      "hitbox_reset_all": "Reset All ({count})",
+      "hitbox_save_btn": "Save Hitboxes",
+      "hitbox_cylinder_title": "Cylinder collider dimensions",
+      "hitbox_entity_title": "Character / wildlife collider",
+      "hitbox_legend_selected": "Cyan = Selected Hitbox",
+      "hitbox_legend_other": "Amber = Other Parts",
+      "hitbox_legend_body": "Green = Body Radius"
     }
   }
 } as const;

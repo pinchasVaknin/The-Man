@@ -803,6 +803,8 @@ export interface IClimbableLadderInfo {
   readonly minY: number;
   readonly maxY: number;
   readonly floors: readonly number[];
+  readonly topDismountX?: number;
+  readonly topDismountZ?: number;
 }
 
 /**

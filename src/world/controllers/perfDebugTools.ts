@@ -20,7 +20,7 @@ export interface IPerfDebugToolsOptions {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly perfStats: PerfStats;
-  readonly colliders: readonly ISolidBuildingBox[];
+  readonly colliders: readonly ISolidBuildingBox[] | (() => readonly ISolidBuildingBox[]);
 }
 
 /** Summary: The debug surface of one running world. */
@@ -60,7 +60,7 @@ export function createPerfDebugTools(options: IPerfDebugToolsOptions): IPerfDebu
   });
   (window as unknown as { resetPerfStats?: () => void }).resetPerfStats = () => perfStats.reset();
   (window as unknown as { auditColliders?: () => unknown }).auditColliders = () =>
-    auditColliderCoverage(scene, colliders);
+    auditColliderCoverage(scene, typeof colliders === 'function' ? colliders() : colliders);
 
   const hidePanel = (): void => {
     window.clearInterval(timer);

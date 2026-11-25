@@ -41,6 +41,7 @@ import {
   findNearestMarketStall,
   getMarketStallCatalogItems,
 } from '../domain/landmarksRegistry';
+import { getEffectiveEntityHitbox } from '../domain/hitboxOverrides';
 import { groundHeightAt, isInsideVolcanoSanctum, walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { awardSkillXp, getPlayerHeroLevel, getPlayerState } from './playerPhysicsSystem';
 export { getPlayerState };
@@ -2056,52 +2057,19 @@ export function stepArrowsPhysics(
           for (let a = 0; a < activeAnimals.length; a++) {
             const anim = activeAnimals[a];
             if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
+            const animalHitbox = getEffectiveEntityHitbox(anim.species);
             const animRad =
-              anim.species === 'dragon'
-                ? 5.2
-                : anim.species === 'bear'
-                  ? 2.45
-                  : anim.species === 'crocodile'
-                    ? 2.65
-                    : anim.species === 'rhino' || anim.species === 'hippo'
-                      ? 2.65
-                      : anim.species === 'stag'
-                        ? 2.05
-                        : anim.species === 'deer'
-                          ? 1.45
-                          : anim.species === 'lion' && anim.isBoss
-                            ? 3.10
-                            : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                              ? 1.42
-                              : anim.species === 'sheep'
-                                ? 1.05
-                                : anim.species === 'koifish'
-                                  ? 0.56
-                                  : 1.18;
+              anim.species === 'lion' && anim.isBoss
+                ? animalHitbox.radius * (3.1 / 1.42)
+                : animalHitbox.radius;
             // Use anim.y ?? walkableHeightValueAt(anim.x, anim.z) so bears inside mountain caves (at cave.floorY) and flying dragons are accurately hit!
             const rawAnimY =
               (anim.y ?? walkableHeightValueAt(anim.x, anim.z)) + (anim.pounceHeight ?? 0);
             const animGroundY = anim.species === 'koifish' ? rawAnimY - 0.26 : rawAnimY;
             const animHeightSpan =
-              anim.species === 'dragon'
-                ? 6.5
-                : anim.species === 'lion' && anim.isBoss
-                  ? 3.15
-                  : anim.species === 'bear'
-                    ? 3.05
-                    : anim.species === 'rhino' || anim.species === 'hippo'
-                      ? 2.65
-                      : anim.species === 'deer' || anim.species === 'stag'
-                        ? 2.45
-                        : anim.species === 'jaguar' || anim.species === 'wolf' || anim.species === 'lion'
-                          ? 1.75
-                          : anim.species === 'sheep'
-                            ? 1.25
-                            : anim.species === 'crocodile'
-                              ? 1.55
-                              : anim.species === 'koifish'
-                                ? 0.54
-                                : 1.35;
+              anim.species === 'lion' && anim.isBoss
+                ? animalHitbox.height * (3.15 / 1.75)
+                : animalHitbox.height;
             const animMaxY = animGroundY + animHeightSpan;
             const horizDist = Math.hypot(arr.x - anim.x, arr.z - anim.z);
             const minHitY = anim.species === 'koifish' ? animGroundY : animGroundY - 0.35;

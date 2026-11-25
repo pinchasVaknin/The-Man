@@ -59,7 +59,9 @@ import {
   findWatchtowerLadderAt,
   findLookedAtWatchtowerLadder,
   isInsideSacredCloudMountainZone,
+  getObstacleColliderMetrics,
 } from '../domain/landmarksRegistry';
+import { getEffectiveEntityHitbox } from '../domain/hitboxOverrides';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
 import {
   getActiveSkyHoverbike,
@@ -1337,11 +1339,21 @@ export function stepPlayerPhysics(
             break;
           }
         }
-        const awayX = prevLadder.standX - prevLadder.ladderX;
-        const awayZ = prevLadder.standZ - prevLadder.ladderZ;
-        const awayLen = Math.hypot(awayX, awayZ) || 1;
-        state.x = prevLadder.standX + (awayX / awayLen) * 0.45;
-        state.z = prevLadder.standZ + (awayZ / awayLen) * 0.45;
+        if (
+          Math.abs(state.y - prevLadder.maxY) < 0.75 &&
+          prevLadder.topDismountX !== undefined &&
+          prevLadder.topDismountZ !== undefined
+        ) {
+          state.y = prevLadder.maxY;
+          state.x = prevLadder.topDismountX;
+          state.z = prevLadder.topDismountZ;
+        } else {
+          const awayX = prevLadder.standX - prevLadder.ladderX;
+          const awayZ = prevLadder.standZ - prevLadder.ladderZ;
+          const awayLen = Math.hypot(awayX, awayZ) || 1;
+          state.x = prevLadder.standX + (awayX / awayLen) * 0.45;
+          state.z = prevLadder.standZ + (awayZ / awayLen) * 0.45;
+        }
       }
     } else {
       const mountTarget = lookedAtLadder ?? nearbyLadderAtPos;
@@ -1354,6 +1366,9 @@ export function stepPlayerPhysics(
         state.vx = 0;
         state.vz = 0;
         state.vy = 0;
+        state.isSwimming = false;
+        state.inWater = false;
+        state.isFlying = false;
         state.x = mountTarget.standX;
         state.z = mountTarget.standZ;
         state.y = Math.max(mountTarget.minY, Math.min(mountTarget.maxY, state.y));
@@ -1374,6 +1389,15 @@ export function stepPlayerPhysics(
           state.y = activeLadder.floors[fIdx];
           break;
         }
+      }
+      if (
+        Math.abs(state.y - activeLadder.maxY) < 0.75 &&
+        activeLadder.topDismountX !== undefined &&
+        activeLadder.topDismountZ !== undefined
+      ) {
+        state.y = activeLadder.maxY;
+        state.x = activeLadder.topDismountX;
+        state.z = activeLadder.topDismountZ;
       }
       state.climbingLadderId = null;
       activeLadder = null;
@@ -1586,7 +1610,11 @@ export function stepPlayerPhysics(
   let nextX = state.x + state.vx * dt;
   let nextZ = state.z + state.vz * dt;
 
-  const playerRadius = 0.44;
+  const playerRadius = getEffectiveEntityHitbox('ranger_third_person', {
+    radius: 0.44,
+    height: 1.85,
+    bodyRadius: 0.45,
+  }).radius;
   let highestBoulderTopY = -Infinity;
 
   const candidateObstacles =
@@ -1598,13 +1626,14 @@ export function stepPlayerPhysics(
     const dx = nextX - obs.x;
     const dz = nextZ - obs.z;
     if (Math.abs(dx) > 2.5 || Math.abs(dz) > 2.5) continue;
-    const minDist = playerRadius + obs.radius;
+    const { radius: obsRadius } = getObstacleColliderMetrics(obs);
+    const minDist = playerRadius + obsRadius;
     const distSq = dx * dx + dz * dz;
 
     if (obs.kind === 'boulder') {
-      const boulderTopY = groundHeightAt(obs.x, obs.z) + Math.min(1.35, obs.radius * 0.85);
+      const boulderTopY = groundHeightAt(obs.x, obs.z) + Math.min(1.35, obsRadius * 0.85);
       if (state.y >= boulderTopY - 0.58) {
-        if (distSq <= (obs.radius + 0.28) * (obs.radius + 0.28)) {
+        if (distSq <= (obsRadius + 0.28) * (obsRadius + 0.28)) {
           if (boulderTopY > highestBoulderTopY) {
             highestBoulderTopY = boulderTopY;
           }
@@ -1962,6 +1991,18 @@ export function stepPlayerPhysics(
     state.onGround = true;
     state.isSwimming = false;
     state.inWater = false;
+    if (
+      state.vy > 0.1 &&
+      state.y >= activeLadder.maxY - 0.04 &&
+      activeLadder.topDismountX !== undefined &&
+      activeLadder.topDismountZ !== undefined
+    ) {
+      state.x = activeLadder.topDismountX;
+      state.z = activeLadder.topDismountZ;
+      state.y = activeLadder.maxY;
+      state.vy = 0;
+      state.climbingLadderId = null;
+    }
   } else if (isDeepWater && waterSurfaceY !== null && !state.mountedHorseId) {
     const swimTargetY = waterSurfaceY - 0.95;
     const basinFloorY = effectiveWalkHeight + 0.15;

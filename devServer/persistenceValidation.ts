@@ -27,6 +27,33 @@ export interface IPersistedGameSettings {
 
 /** Summary: One lab entity's pose overrides as written to src/config/savedLabOverrides.ts. */
 export type PersistedLabPose = Readonly<Record<string, string | number | Readonly<Record<string, number>>>>;
+
+export interface IPersistedBoxHitbox {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minZ: number;
+  readonly maxZ: number;
+  readonly minY?: number;
+  readonly maxY?: number;
+  readonly yaw?: number;
+}
+
+export interface IPersistedObstacleHitbox {
+  readonly radiusScale: number;
+  readonly heightScale: number;
+}
+
+export interface IPersistedEntityHitbox {
+  readonly radius: number;
+  readonly height: number;
+  readonly bodyRadius?: number;
+}
+
+export interface IPersistedHitboxOverrides {
+  readonly boxes?: Readonly<Record<string, IPersistedBoxHitbox>>;
+  readonly obstacles?: Readonly<Record<string, IPersistedObstacleHitbox>>;
+  readonly entities?: Readonly<Record<string, IPersistedEntityHitbox>>;
+}
 // #endregion
 
 // ======================== RULES ======================== \\
@@ -49,8 +76,19 @@ const WALK_SPEED_RANGE = [0.6, 1.8] as const;
 const JUMP_FORCE_RANGE = [0.7, 1.6] as const;
 
 const ENTITY_ID_PATTERN = /^[a-z0-9_]{1,64}$/;
+const HITBOX_ID_PATTERN = /^[A-Za-z0-9_-]{1,96}$/;
 /** Hard cap on persisted lab entries; the catalog has far fewer entities. */
 const MAX_LAB_ENTITIES = 100;
+const MAX_HITBOX_BOXES = 800;
+const MAX_HITBOX_OBSTACLES = 40;
+const MAX_HITBOX_ENTITIES = 64;
+const HITBOX_COORD_RANGE = [-4096, 4096] as const;
+const HITBOX_Y_RANGE = [-512, 1024] as const;
+const HITBOX_YAW_RANGE = [-Math.PI * 2, Math.PI * 2] as const;
+const HITBOX_SCALE_RANGE = [0.1, 5.0] as const;
+const HITBOX_ENTITY_RADIUS_RANGE = [0.1, 20.0] as const;
+const HITBOX_ENTITY_HEIGHT_RANGE = [0.1, 30.0] as const;
+
 const VISIBILITY_MODES: readonly string[] = ['auto', 'both', 'right_only', 'left_only', 'none'];
 /** Rotation buttons can stack past the +-180 deg sliders, so allow two full turns. */
 const ROTATION_DEG_LIMIT = 720;
@@ -134,10 +172,123 @@ export function checkLabOverridesPayload(value: unknown): PayloadCheck<Record<st
   }
   return { ok: true, value: clean };
 }
+
+/**
+ * Summary: Validates a global hitbox overrides payload (boxes, obstacles, entities).
+ * @param value Parsed JSON request body.
+ * @returns The cleaned overrides, or a rejection.
+ */
+export function checkHitboxOverridesPayload(value: unknown): PayloadCheck<IPersistedHitboxOverrides> {
+  if (!isPlainObject(value)) return REJECTED;
+  const clean: {
+    boxes?: Record<string, IPersistedBoxHitbox>;
+    obstacles?: Record<string, IPersistedObstacleHitbox>;
+    entities?: Record<string, IPersistedEntityHitbox>;
+  } = {};
+
+  if (value.boxes !== undefined) {
+    if (!isPlainObject(value.boxes)) return REJECTED;
+    const entries = Object.entries(value.boxes);
+    if (entries.length > MAX_HITBOX_BOXES) return REJECTED;
+    const cleanBoxes: Record<string, IPersistedBoxHitbox> = {};
+    for (const [boxId, rawBox] of entries) {
+      if (!HITBOX_ID_PATTERN.test(boxId)) return REJECTED;
+      const box = toBoxHitbox(rawBox);
+      if (!box) return REJECTED;
+      cleanBoxes[boxId] = box;
+    }
+    if (entries.length > 0) clean.boxes = cleanBoxes;
+  }
+
+  if (value.obstacles !== undefined) {
+    if (!isPlainObject(value.obstacles)) return REJECTED;
+    const entries = Object.entries(value.obstacles);
+    if (entries.length > MAX_HITBOX_OBSTACLES) return REJECTED;
+    const cleanObs: Record<string, IPersistedObstacleHitbox> = {};
+    for (const [obsKey, rawObs] of entries) {
+      if (!ENTITY_ID_PATTERN.test(obsKey)) return REJECTED;
+      const obs = toObstacleHitbox(rawObs);
+      if (!obs) return REJECTED;
+      cleanObs[obsKey] = obs;
+    }
+    if (entries.length > 0) clean.obstacles = cleanObs;
+  }
+
+  if (value.entities !== undefined) {
+    if (!isPlainObject(value.entities)) return REJECTED;
+    const entries = Object.entries(value.entities);
+    if (entries.length > MAX_HITBOX_ENTITIES) return REJECTED;
+    const cleanEnt: Record<string, IPersistedEntityHitbox> = {};
+    for (const [entId, rawEnt] of entries) {
+      if (!ENTITY_ID_PATTERN.test(entId)) return REJECTED;
+      const ent = toEntityHitbox(rawEnt);
+      if (!ent) return REJECTED;
+      cleanEnt[entId] = ent;
+    }
+    if (entries.length > 0) clean.entities = cleanEnt;
+  }
+
+  return { ok: true, value: clean };
+}
 // #endregion
 
 // ======================== PRIVATE HELPERS ======================== \\
 // #region Private Helpers
+function toBoxHitbox(raw: unknown): IPersistedBoxHitbox | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.minX, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.maxX, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.minZ, HITBOX_COORD_RANGE) ||
+    !isNumberInRange(raw.maxZ, HITBOX_COORD_RANGE)
+  ) {
+    return null;
+  }
+  if (raw.minX >= raw.maxX || raw.minZ >= raw.maxZ) return null;
+  if (raw.minY !== undefined && !isNumberInRange(raw.minY, HITBOX_Y_RANGE)) return null;
+  if (raw.maxY !== undefined && !isNumberInRange(raw.maxY, HITBOX_Y_RANGE)) return null;
+  if (raw.minY !== undefined && raw.maxY !== undefined && raw.minY >= raw.maxY) return null;
+  if (raw.yaw !== undefined && !isNumberInRange(raw.yaw, HITBOX_YAW_RANGE)) return null;
+  return {
+    minX: raw.minX,
+    maxX: raw.maxX,
+    minZ: raw.minZ,
+    maxZ: raw.maxZ,
+    ...(raw.minY !== undefined ? { minY: raw.minY } : {}),
+    ...(raw.maxY !== undefined ? { maxY: raw.maxY } : {}),
+    ...(raw.yaw !== undefined ? { yaw: raw.yaw } : {}),
+  };
+}
+
+function toObstacleHitbox(raw: unknown): IPersistedObstacleHitbox | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.radiusScale, HITBOX_SCALE_RANGE) ||
+    !isNumberInRange(raw.heightScale, HITBOX_SCALE_RANGE)
+  ) {
+    return null;
+  }
+  return { radiusScale: raw.radiusScale, heightScale: raw.heightScale };
+}
+
+function toEntityHitbox(raw: unknown): IPersistedEntityHitbox | null {
+  if (!isPlainObject(raw)) return null;
+  if (
+    !isNumberInRange(raw.radius, HITBOX_ENTITY_RADIUS_RANGE) ||
+    !isNumberInRange(raw.height, HITBOX_ENTITY_HEIGHT_RANGE)
+  ) {
+    return null;
+  }
+  if (raw.bodyRadius !== undefined && !isNumberInRange(raw.bodyRadius, HITBOX_ENTITY_RADIUS_RANGE)) {
+    return null;
+  }
+  return {
+    radius: raw.radius,
+    height: raw.height,
+    ...(raw.bodyRadius !== undefined ? { bodyRadius: raw.bodyRadius } : {}),
+  };
+}
+
 /** Summary: Maps one entity's raw pose to a clean object, or null when any field is invalid. */
 function toLabPose(raw: unknown): PersistedLabPose | null {
   if (!isPlainObject(raw) || !isOneOf(raw.equipmentVisibilityMode, VISIBILITY_MODES)) return null;

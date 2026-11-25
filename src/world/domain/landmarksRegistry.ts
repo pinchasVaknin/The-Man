@@ -391,6 +391,8 @@ export {
   pointInsideSolidBuildingBox,
   resolveHorizontalBoxCollision,
   getNearbySolidBuildingBoxes,
+  getEffectiveSolidBuildingBoxes,
+  invalidateSolidBoxSpatialIndex,
 } from './collisionWorld';
 // #endregion
 

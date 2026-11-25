@@ -7,7 +7,7 @@
 //          (starting with static 'none'), and their skin variants.
 // ============================================================================
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   DEFAULT_LAB_POSE_OVERRIDES,
   LAB_CATEGORIES,
@@ -31,6 +31,31 @@ import {
 } from './labCatalog';
 import { CharacterLabCanvas } from './CharacterLabCanvas';
 import { SAVED_LAB_OVERRIDES } from '../config/savedLabOverrides';
+import type { IHitboxOverridesPayload } from '../config/savedHitboxOverrides';
+import {
+  getActiveHitboxOverrides,
+  resetAllHitboxOverrides,
+  setActiveHitboxOverrides,
+} from '../world/domain/hitboxOverrides';
+import {
+  LAB_HITBOX_CATEGORIES,
+  LAB_HITBOX_TARGETS,
+  countActiveHitboxOverrides,
+  filterHitboxTargets,
+  formatHitboxPartLabel,
+  getDefaultBoxesForTarget,
+  getEffectiveBoxesForTarget,
+  getEffectiveEntityForTarget,
+  getEffectiveObstacleForTarget,
+  isHitboxTargetCustomized,
+  resetPartOverrideInPayload,
+  resetTargetOverridesInPayload,
+  updateBoxOverrideInPayload,
+  updateEntityOverrideInPayload,
+  updateObstacleOverrideInPayload,
+  type LabHitboxCategory,
+  type LabStudioMode,
+} from './labHitboxCatalog';
 import { t } from '../locales';
 import { useAppServices } from '../app/AppServicesContext';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from './labOverridesStorage';
@@ -69,6 +94,15 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
   const [snapshotTriggerNonce, setSnapshotTriggerNonce] = useState<number>(0);
   const [copiedTweaksFeedback, setCopiedTweaksFeedback] = useState<boolean>(false);
   const [saveFileStatus, setSaveFileStatus] = useState<'idle' | 'saving' | 'saved' | 'saved_local'>('idle');
+  const [labMode, setLabMode] = useState<LabStudioMode>('models');
+  const [hitboxCategory, setHitboxCategory] = useState<LabHitboxCategory>('all');
+  const [hitboxSearch, setHitboxSearch] = useState<string>('');
+  const [selectedHitboxTargetId, setSelectedHitboxTargetId] = useState<string>('sailable_ship');
+  const [selectedHitboxPartId, setSelectedHitboxPartId] = useState<string | null>(null);
+  const [hitboxOverrides, setHitboxOverrides] = useState<IHitboxOverridesPayload>(() =>
+    getActiveHitboxOverrides()
+  );
+  const hitboxSaveTimerRef = useRef<number | null>(null);
 
   const [poseOverridesByEntity, setPoseOverridesByEntity] = useState<
     Record<string, ILabPoseOverrides>
@@ -241,6 +275,125 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
     await persistOverridesToCodebase(poseOverridesByEntity);
   }, [persistOverridesToCodebase, poseOverridesByEntity]);
 
+  const filteredHitboxTargets = useMemo(
+    () => filterHitboxTargets(LAB_HITBOX_TARGETS, hitboxCategory, hitboxSearch),
+    [hitboxCategory, hitboxSearch]
+  );
+
+  const activeHitboxTarget = useMemo(
+    () =>
+      LAB_HITBOX_TARGETS.find((tgt) => tgt.id === selectedHitboxTargetId) ??
+      LAB_HITBOX_TARGETS[0],
+    [selectedHitboxTargetId]
+  );
+
+  const activeHitboxDefaultBoxes = useMemo(
+    () => getDefaultBoxesForTarget(activeHitboxTarget),
+    [activeHitboxTarget]
+  );
+
+  const activeHitboxEffectiveBoxes = useMemo(
+    () => getEffectiveBoxesForTarget(activeHitboxTarget, hitboxOverrides),
+    [activeHitboxTarget, hitboxOverrides]
+  );
+
+  useEffect(() => {
+    if (activeHitboxEffectiveBoxes.length > 0) {
+      const stillValid =
+        selectedHitboxPartId !== null &&
+        activeHitboxEffectiveBoxes.some((b) => b.id === selectedHitboxPartId);
+      if (!stillValid) {
+        setSelectedHitboxPartId(activeHitboxEffectiveBoxes[0].id);
+      }
+    } else {
+      setSelectedHitboxPartId(null);
+    }
+  }, [activeHitboxTarget.id, activeHitboxEffectiveBoxes, selectedHitboxPartId]);
+
+  const totalHitboxOverrideCount = useMemo(
+    () => countActiveHitboxOverrides(hitboxOverrides),
+    [hitboxOverrides]
+  );
+
+  const isTargetCustomized = useMemo(
+    () => isHitboxTargetCustomized(activeHitboxTarget, hitboxOverrides),
+    [activeHitboxTarget, hitboxOverrides]
+  );
+
+  const persistHitboxesToCodebase = useCallback(async (payload: IHitboxOverridesPayload) => {
+    setSaveFileStatus('saving');
+    let isSavedToFile = false;
+    try {
+      const clean = setActiveHitboxOverrides(payload, true);
+      const response = await fetch('/api/save-hitbox-overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clean),
+      });
+      isSavedToFile = response.ok;
+    } catch {
+      isSavedToFile = false;
+    }
+    setSaveFileStatus(isSavedToFile ? 'saved' : 'saved_local');
+    window.setTimeout(() => setSaveFileStatus('idle'), 1800);
+  }, []);
+
+  const applyHitboxEdit = useCallback(
+    (nextPayload: IHitboxOverridesPayload, immediatePersist = false) => {
+      const clean = setActiveHitboxOverrides(nextPayload, true);
+      setHitboxOverrides(clean);
+      if (hitboxSaveTimerRef.current !== null) {
+        window.clearTimeout(hitboxSaveTimerRef.current);
+        hitboxSaveTimerRef.current = null;
+      }
+      if (immediatePersist) {
+        void persistHitboxesToCodebase(clean);
+      } else {
+        hitboxSaveTimerRef.current = window.setTimeout(() => {
+          void persistHitboxesToCodebase(clean);
+        }, 260);
+      }
+    },
+    [persistHitboxesToCodebase]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (hitboxSaveTimerRef.current !== null) {
+        window.clearTimeout(hitboxSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleResetPartHitbox = useCallback(
+    (partId: string) => {
+      const next = resetPartOverrideInPayload(activeHitboxTarget, partId, hitboxOverrides);
+      applyHitboxEdit(next, true);
+    },
+    [activeHitboxTarget, hitboxOverrides, applyHitboxEdit]
+  );
+
+  const handleResetTargetHitboxes = useCallback(() => {
+    const next = resetTargetOverridesInPayload(activeHitboxTarget, hitboxOverrides);
+    applyHitboxEdit(next, true);
+  }, [activeHitboxTarget, hitboxOverrides, applyHitboxEdit]);
+
+  const handleResetAllHitboxes = useCallback(() => {
+    const clean = resetAllHitboxOverrides(true);
+    setHitboxOverrides(clean);
+    void persistHitboxesToCodebase(clean);
+  }, [persistHitboxesToCodebase]);
+
+  const handleStepHitboxTarget = useCallback(
+    (delta: -1 | 1) => {
+      const list = filteredHitboxTargets.length > 0 ? filteredHitboxTargets : LAB_HITBOX_TARGETS;
+      const idx = list.findIndex((item) => item.id === activeHitboxTarget.id);
+      const nextIdx = idx < 0 ? 0 : (idx + delta + list.length) % list.length;
+      setSelectedHitboxTargetId(list[nextIdx].id);
+    },
+    [filteredHitboxTargets, activeHitboxTarget.id]
+  );
+
   const filteredEntities = useMemo(
     () => filterLabEntities(LAB_ENTITIES, session.categoryFilter, session.searchQuery),
     [session.categoryFilter, session.searchQuery]
@@ -357,16 +510,55 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             </svg>
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="font-display-he text-lg font-bold text-stone-100 tracking-tight">
                 {t('lab.view.title')}
               </h1>
-              <span className="px-2 py-0.5 text-[11px] font-medium rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                {t('lab.view.category_counts', { characters: categoryCounts.characters, animals: categoryCounts.animals })}
-              </span>
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-stone-900 border border-stone-700/90">
+                <button
+                  type="button"
+                  data-testid="lab-mode-models-btn"
+                  onClick={() => setLabMode('models')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                    labMode === 'models'
+                      ? 'bg-amber-400 text-stone-950'
+                      : 'text-stone-300 hover:text-stone-100'
+                  }`}
+                >
+                  {t('lab.view.mode_models')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="lab-mode-hitboxes-btn"
+                  onClick={() => setLabMode('hitboxes')}
+                  className={`px-2.5 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    labMode === 'hitboxes'
+                      ? 'bg-cyan-400 text-stone-950'
+                      : 'text-stone-300 hover:text-stone-100'
+                  }`}
+                >
+                  <span>{t('lab.view.mode_hitboxes')}</span>
+                  {totalHitboxOverrideCount > 0 && (
+                    <span
+                      className={`px-1.5 py-0 rounded-full text-[10px] font-mono-tabular ${
+                        labMode === 'hitboxes'
+                          ? 'bg-stone-950/20 text-stone-950'
+                          : 'bg-cyan-500/25 text-cyan-300'
+                      }`}
+                    >
+                      {totalHitboxOverrideCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+              {labMode === 'models' && (
+                <span className="hidden xl:inline-block px-2 py-0.5 text-[11px] font-medium rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  {t('lab.view.category_counts', { characters: categoryCounts.characters, animals: categoryCounts.animals })}
+                </span>
+              )}
             </div>
             <p className="text-xs text-stone-400">
-              {t('lab.view.subtitle')}
+              {labMode === 'hitboxes' ? t('lab.view.hitbox_subtitle') : t('lab.view.subtitle')}
             </p>
           </div>
         </div>
@@ -398,11 +590,17 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
           <button
             type="button"
             data-testid="lab-save-to-file-btn"
-            onClick={handleSaveOverridesToFile}
+            onClick={
+              labMode === 'hitboxes'
+                ? () => void persistHitboxesToCodebase(hitboxOverrides)
+                : handleSaveOverridesToFile
+            }
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow ${
               saveFileStatus === 'saved'
                 ? 'bg-emerald-500 text-stone-950 border border-emerald-300'
-                : 'bg-amber-400 hover:bg-amber-300 text-stone-950 border border-amber-300'
+                : labMode === 'hitboxes'
+                  ? 'bg-cyan-400 hover:bg-cyan-300 text-stone-950 border border-cyan-300'
+                  : 'bg-amber-400 hover:bg-amber-300 text-stone-950 border border-amber-300'
             }`}
           >
             <span>
@@ -412,7 +610,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                   ? t('lab.view.saved')
                   : saveFileStatus === 'saved_local'
                     ? t('lab.view.saved_local')
-                    : t('lab.view.save')}
+                    : labMode === 'hitboxes'
+                      ? t('lab.view.hitbox_save_btn')
+                      : t('lab.view.save')}
             </span>
           </button>
 
@@ -435,159 +635,259 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
       {/* ==================================================================== */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* ================================================================== */}
-        {/* 1. PHYSICAL LEFT PANEL (left side: switch between characters and animals + list) */}
+        {/* 1. PHYSICAL LEFT PANEL                                             */}
         {/* ================================================================== */}
         <aside
           data-testid="lab-left-panel"
           className="w-80 lg:w-84 h-full flex flex-col border-r border-stone-800/90 bg-[#121620] shrink-0"
         >
-          {/* Left Panel Header, Scalable Category Dropdown (Drop Box) & Search */}
-          <div className="p-3.5 border-b border-stone-800/80 space-y-2.5">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-0.5">
-                <label
-                  htmlFor="lab-category-select"
-                  className="text-[11px] font-bold text-amber-300/95 tracking-wide"
-                >
-                  {t('lab.view.view_category')}
-                </label>
-                <span className="text-[11px] text-stone-400 font-mono-tabular">
-                  {t('lab.view.items_count', { count: filteredEntities.length })}
-                </span>
-              </div>
-
-              {/* Scalable Drop Box (Select) for Categories */}
-              <div className="relative">
-                <select
-                  id="lab-category-select"
-                  data-testid="lab-category-select"
-                  value={session.categoryFilter}
-                  onChange={(e) =>
-                    handleSelectCategory(e.target.value as LabCategoryFilter)
-                  }
-                  className="w-full appearance-none px-3.5 py-2.5 pl-9 rounded-xl text-xs font-bold bg-stone-900 hover:bg-stone-800/90 border border-stone-700/90 focus:border-amber-400 focus:outline-none text-stone-100 shadow-inner transition-colors cursor-pointer"
-                >
-                  {LAB_CATEGORIES.map((cat) => {
-                    const count =
-                      cat.id === 'characters'
-                        ? categoryCounts.characters
-                        : categoryCounts.animals;
-                    return (
-                      <option
-                        key={cat.id}
-                        value={cat.id}
-                        className="bg-stone-900 text-stone-100 py-1"
-                      >
-                        {cat.label} — {cat.subtitle} ({count})
-                      </option>
-                    );
-                  })}
-                  <option value="all" className="bg-stone-900 text-stone-100 py-1">
-                    {t('lab.view.all_categories', { count: categoryCounts.characters + categoryCounts.animals })}
-                  </option>
-                </select>
-                <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-amber-400">
-                  <svg
-                    viewBox="0 0 20 20"
-                    className="w-4 h-4 fill-current"
-                    aria-hidden="true"
+          {labMode === 'hitboxes' ? (
+            <>
+              <div className="p-3.5 border-b border-stone-800/80 space-y-2.5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <label
+                      htmlFor="hitbox-category-select"
+                      className="text-[11px] font-bold text-cyan-300/95 tracking-wide"
+                    >
+                      {t('lab.view.hitbox_category')}
+                    </label>
+                    <span className="text-[11px] text-stone-400 font-mono-tabular">
+                      {t('lab.view.items_count', { count: filteredHitboxTargets.length })}
+                    </span>
+                  </div>
+                  <select
+                    id="hitbox-category-select"
+                    data-testid="hitbox-category-select"
+                    value={hitboxCategory}
+                    onChange={(e) => setHitboxCategory(e.target.value as LabHitboxCategory)}
+                    className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold bg-stone-900 hover:bg-stone-800/90 border border-stone-700/90 focus:border-cyan-400 focus:outline-none text-stone-100 shadow-inner transition-colors cursor-pointer"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                    {LAB_HITBOX_CATEGORIES.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="bg-stone-900 text-stone-100">
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    data-testid="hitbox-target-search"
+                    value={hitboxSearch}
+                    onChange={(e) => setHitboxSearch(e.target.value)}
+                    placeholder={t('lab.view.hitbox_search')}
+                    className="w-full px-3 py-1.5 rounded-lg text-xs bg-stone-900/95 border border-stone-700/80 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-cyan-400"
+                  />
+                  {hitboxSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setHitboxSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-200 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
 
-            <div className="relative">
-              <input
-                type="text"
-                data-testid="lab-entity-search"
-                value={session.searchQuery}
-                onChange={(e) =>
-                  setSession((prev) => ({ ...prev, searchQuery: e.target.value }))
-                }
-                placeholder={
-                  session.categoryFilter === 'characters'
-                    ? t('lab.view.search_characters')
-                    : session.categoryFilter === 'animals'
-                      ? t('lab.view.search_animals')
-                      : t('lab.view.search_all')
-                }
-                className="w-full px-3 py-1.5 rounded-lg text-xs bg-stone-900/95 border border-stone-700/80 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-400"
-              />
-              {session.searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSession((prev) => ({ ...prev, searchQuery: '' }))}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-200 cursor-pointer"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
+              <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+                {filteredHitboxTargets.map((item) => {
+                  const isSelected = item.id === activeHitboxTarget.id;
+                  const customized = isHitboxTargetCustomized(item, hitboxOverrides);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-testid={`hitbox-target-item-${item.id}`}
+                      onClick={() => setSelectedHitboxTargetId(item.id)}
+                      className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                        isSelected
+                          ? 'bg-cyan-500/15 border-cyan-400/80 shadow-md'
+                          : 'bg-stone-900/65 border-stone-800/80 hover:bg-stone-800/75 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span
+                            className={`text-xs font-bold truncate ${
+                              isSelected ? 'text-cyan-300' : 'text-stone-100'
+                            }`}
+                          >
+                            {item.name}
+                          </span>
+                          {customized && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shrink-0">
+                              {t('lab.view.hitbox_modified')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                          {item.subtitle}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-stone-800 text-stone-300">
+                            {item.categoryLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Left Panel Header, Scalable Category Dropdown (Drop Box) & Search */}
+              <div className="p-3.5 border-b border-stone-800/80 space-y-2.5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <label
+                      htmlFor="lab-category-select"
+                      className="text-[11px] font-bold text-amber-300/95 tracking-wide"
+                    >
+                      {t('lab.view.view_category')}
+                    </label>
+                    <span className="text-[11px] text-stone-400 font-mono-tabular">
+                      {t('lab.view.items_count', { count: filteredEntities.length })}
+                    </span>
+                  </div>
 
-          {/* Scrollable Entities List */}
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
-            {filteredEntities.map((item) => {
-              const isSelected = item.id === activeEntity.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  data-testid={`lab-entity-item-${item.id}`}
-                  onClick={() => handleSelectEntity(item.id)}
-                  className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
-                    isSelected
-                      ? 'bg-amber-500/15 border-amber-400/80 shadow-md'
-                      : 'bg-stone-900/65 border-stone-800/80 hover:bg-stone-800/75 hover:border-stone-700'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-xs font-bold truncate ${
-                          isSelected ? 'text-amber-300' : 'text-stone-100'
-                        }`}
+                  {/* Scalable Drop Box (Select) for Categories */}
+                  <div className="relative">
+                    <select
+                      id="lab-category-select"
+                      data-testid="lab-category-select"
+                      value={session.categoryFilter}
+                      onChange={(e) =>
+                        handleSelectCategory(e.target.value as LabCategoryFilter)
+                      }
+                      className="w-full appearance-none px-3.5 py-2.5 pl-9 rounded-xl text-xs font-bold bg-stone-900 hover:bg-stone-800/90 border border-stone-700/90 focus:border-amber-400 focus:outline-none text-stone-100 shadow-inner transition-colors cursor-pointer"
+                    >
+                      {LAB_CATEGORIES.map((cat) => {
+                        const count =
+                          cat.id === 'characters'
+                            ? categoryCounts.characters
+                            : categoryCounts.animals;
+                        return (
+                          <option
+                            key={cat.id}
+                            value={cat.id}
+                            className="bg-stone-900 text-stone-100 py-1"
+                          >
+                            {cat.label} — {cat.subtitle} ({count})
+                          </option>
+                        );
+                      })}
+                      <option value="all" className="bg-stone-900 text-stone-100 py-1">
+                        {t('lab.view.all_categories', { count: categoryCounts.characters + categoryCounts.animals })}
+                      </option>
+                    </select>
+                    <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-amber-400">
+                      <svg
+                        viewBox="0 0 20 20"
+                        className="w-4 h-4 fill-current"
+                        aria-hidden="true"
                       >
-                        {item.name}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-stone-400 truncate mt-0.5">
-                      {item.subtitle}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-stone-800 text-stone-300">
-                        {item.categoryLabel}
-                      </span>
-                      <span className="text-[10px] text-stone-400">
-                        {t('lab.view.entity_counts', { animations: item.animations.length - 1, skins: item.skins.length })}
-                      </span>
+                        <path
+                          fillRule="evenodd"
+                          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                     </div>
                   </div>
+                </div>
 
-                  {/* Skin Swatch Preview Dots */}
-                  <div className="flex items-center gap-0.5 shrink-0 pt-1">
-                    {item.skins[0].badgeColors.map((hex, i) => (
-                      <span
-                        key={i}
-                        className="w-2.5 h-2.5 rounded-full border border-white/25"
-                        style={{ backgroundColor: hex }}
-                      />
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    data-testid="lab-entity-search"
+                    value={session.searchQuery}
+                    onChange={(e) =>
+                      setSession((prev) => ({ ...prev, searchQuery: e.target.value }))
+                    }
+                    placeholder={
+                      session.categoryFilter === 'characters'
+                        ? t('lab.view.search_characters')
+                        : session.categoryFilter === 'animals'
+                          ? t('lab.view.search_animals')
+                          : t('lab.view.search_all')
+                    }
+                    className="w-full px-3 py-1.5 rounded-lg text-xs bg-stone-900/95 border border-stone-700/80 text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-400"
+                  />
+                  {session.searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSession((prev) => ({ ...prev, searchQuery: '' }))}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-200 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Scrollable Entities List */}
+              <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+                {filteredEntities.map((item) => {
+                  const isSelected = item.id === activeEntity.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      data-testid={`lab-entity-item-${item.id}`}
+                      onClick={() => handleSelectEntity(item.id)}
+                      className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                        isSelected
+                          ? 'bg-amber-500/15 border-amber-400/80 shadow-md'
+                          : 'bg-stone-900/65 border-stone-800/80 hover:bg-stone-800/75 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-xs font-bold truncate ${
+                              isSelected ? 'text-amber-300' : 'text-stone-100'
+                            }`}
+                          >
+                            {item.name}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-400 truncate mt-0.5">
+                          {item.subtitle}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-stone-800 text-stone-300">
+                            {item.categoryLabel}
+                          </span>
+                          <span className="text-[10px] text-stone-400">
+                            {t('lab.view.entity_counts', { animations: item.animations.length - 1, skins: item.skins.length })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Skin Swatch Preview Dots */}
+                      <div className="flex items-center gap-0.5 shrink-0 pt-1">
+                        {item.skins[0].badgeColors.map((hex, i) => (
+                          <span
+                            key={i}
+                            className="w-2.5 h-2.5 rounded-full border border-white/25"
+                            style={{ backgroundColor: hex }}
+                          />
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </aside>
 
         {/* ================================================================== */}
-        {/* 2. CENTER VIEWPORT STAGE (center: 3D view of the character/animal) */}
+        {/* 2. CENTER VIEWPORT STAGE                                           */}
         {/* ================================================================== */}
         <section
           data-testid="lab-center-stage"
@@ -595,10 +895,14 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
         >
           {/* 3D Three.js Studio Canvas */}
           <CharacterLabCanvas
+            labMode={labMode}
             entity={activeEntity}
             animation={activeAnimation}
             skin={activeSkin}
             poseOverrides={activePoseOverrides}
+            hitboxTarget={activeHitboxTarget}
+            hitboxOverrides={hitboxOverrides}
+            selectedPartId={selectedHitboxPartId}
             playbackSpeed={effectiveAnimSpeed}
             isPaused={session.isPaused}
             manualPhase={session.manualPhase}
@@ -614,36 +918,66 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
             onLivePhaseUpdate={setLivePhase}
           />
 
-          {/* Top-Center Entity Info & Stage Display Toggles */}
+          {/* Top-Center Info & Stage Display Toggles */}
           <div className="absolute top-3 inset-x-3 flex items-start justify-between gap-2 pointer-events-none">
-            {/* Active Character / Animal Compact Card */}
-            <div className="px-3 py-2 rounded-xl bg-[#11151e]/92 border border-stone-700/75 pointer-events-auto max-w-[330px]">
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  {activeEntity.categoryLabel}
-                </span>
-                <span className="text-[10px] text-stone-400 truncate">
-                  {t('lab.view.location_count', { location: activeEntity.worldLocation, count: activeEntity.worldInstanceCount })}
-                </span>
-              </div>
-              <h2
-                data-testid="lab-active-entity-title"
-                className="text-sm font-bold text-stone-100 mt-0.5 truncate"
-              >
-                {activeEntity.name}
-              </h2>
-              <div className="flex items-center gap-2.5 mt-1 text-[10px] text-stone-400 font-mono-tabular">
-                <span>{t('lab.view.parts_count', { count: rigStats.meshCount })}</span>
-                <span>{t('lab.view.triangles_count', { count: rigStats.triangleCount })}</span>
-                <span className="truncate">{t('lab.view.skin_label', { name: activeSkin.name })}</span>
-              </div>
+            <div className="px-3 py-2 rounded-xl bg-[#11151e]/92 border border-stone-700/75 pointer-events-auto max-w-[340px]">
+              {labMode === 'hitboxes' ? (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                      {activeHitboxTarget.categoryLabel}
+                    </span>
+                    {isTargetCustomized && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        {t('lab.view.hitbox_modified')}
+                      </span>
+                    )}
+                  </div>
+                  <h2
+                    data-testid="lab-active-hitbox-title"
+                    className="text-sm font-bold text-stone-100 mt-0.5 truncate"
+                  >
+                    {activeHitboxTarget.name}
+                  </h2>
+                  <div className="flex items-center gap-2.5 mt-1 text-[10px] text-stone-400 font-mono-tabular">
+                    <span>{t('lab.view.parts_count', { count: rigStats.meshCount })}</span>
+                    <span>
+                      Anchor ({activeHitboxTarget.anchor.x.toFixed(1)}, {activeHitboxTarget.anchor.y.toFixed(1)}, {activeHitboxTarget.anchor.z.toFixed(1)})
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                      {activeEntity.categoryLabel}
+                    </span>
+                    <span className="text-[10px] text-stone-400 truncate">
+                      {t('lab.view.location_count', { location: activeEntity.worldLocation, count: activeEntity.worldInstanceCount })}
+                    </span>
+                  </div>
+                  <h2
+                    data-testid="lab-active-entity-title"
+                    className="text-sm font-bold text-stone-100 mt-0.5 truncate"
+                  >
+                    {activeEntity.name}
+                  </h2>
+                  <div className="flex items-center gap-2.5 mt-1 text-[10px] text-stone-400 font-mono-tabular">
+                    <span>{t('lab.view.parts_count', { count: rigStats.meshCount })}</span>
+                    <span>{t('lab.view.triangles_count', { count: rigStats.triangleCount })}</span>
+                    <span className="truncate">{t('lab.view.skin_label', { name: activeSkin.name })}</span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Stage Toggles (Prev/Next Entity, Turntable, Height Ruler, Wireframe, Grid, Snapshot) */}
+            {/* Stage Toggles */}
             <div className="flex flex-wrap items-center justify-end gap-1 pointer-events-auto">
               <button
                 type="button"
-                onClick={() => handleStepEntity(-1)}
+                onClick={() =>
+                  labMode === 'hitboxes' ? handleStepHitboxTarget(-1) : handleStepEntity(-1)
+                }
                 title={t('lab.view.previous_entity')}
                 className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-[#11151e]/92 border border-stone-700/80 text-stone-200 hover:border-amber-400 cursor-pointer"
               >
@@ -651,7 +985,9 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               </button>
               <button
                 type="button"
-                onClick={() => handleStepEntity(1)}
+                onClick={() =>
+                  labMode === 'hitboxes' ? handleStepHitboxTarget(1) : handleStepEntity(1)
+                }
                 title={t('lab.view.next_entity')}
                 className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-[#11151e]/92 border border-stone-700/80 text-stone-200 hover:border-amber-400 cursor-pointer"
               >
@@ -671,20 +1007,22 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               >
                 {t('lab.view.turntable')}
               </button>
-              <button
-                type="button"
-                data-testid="lab-toggle-ruler"
-                onClick={() =>
-                  setSession((prev) => ({ ...prev, showHeightRuler: !prev.showHeightRuler }))
-                }
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
-                  session.showHeightRuler
-                    ? 'bg-amber-400 text-stone-950 border-amber-300 font-semibold'
-                    : 'bg-[#11151e]/92 text-stone-200 border-stone-700/80 hover:border-stone-500'
-                }`}
-              >
-                {t('lab.view.height_ruler')}
-              </button>
+              {labMode === 'models' && (
+                <button
+                  type="button"
+                  data-testid="lab-toggle-ruler"
+                  onClick={() =>
+                    setSession((prev) => ({ ...prev, showHeightRuler: !prev.showHeightRuler }))
+                  }
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+                    session.showHeightRuler
+                      ? 'bg-amber-400 text-stone-950 border-amber-300 font-semibold'
+                      : 'bg-[#11151e]/92 text-stone-200 border-stone-700/80 hover:border-stone-500'
+                  }`}
+                >
+                  {t('lab.view.height_ruler')}
+                </button>
+              )}
               <button
                 type="button"
                 data-testid="lab-toggle-wireframe"
@@ -759,254 +1097,686 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
               </div>
             </div>
 
-            {/* Playback Status & Timeline Scrubber Bar */}
-            <div className="px-4 py-2.5 rounded-xl bg-[#11151e]/95 border border-stone-700/85 pointer-events-auto flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <span
-                  data-testid="lab-active-animation-badge"
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                    isStaticNone
-                      ? 'bg-stone-800 text-stone-300 border border-stone-700'
-                      : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  }`}
-                >
-                  {isStaticNone ? t('lab.view.static_mode') : t('lab.view.playing', { name: activeAnimation.name })}
-                </span>
-
-                {!isStaticNone && (
-                  <>
-                    <button
-                      type="button"
-                      data-testid="lab-play-pause-btn"
-                      onClick={() =>
-                        setSession((prev) => ({
-                          ...prev,
-                          isPaused: !prev.isPaused,
-                          manualPhase: livePhase,
-                        }))
-                      }
-                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-400 text-stone-950 hover:bg-amber-300 cursor-pointer"
-                    >
-                      {session.isPaused ? t('lab.view.resume') : t('lab.view.pause')}
-                    </button>
-                    <button
-                      type="button"
-                      data-testid="lab-reset-static-btn"
-                      onClick={() => handleSelectAnimation('none')}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 cursor-pointer"
-                    >
-                      {t('lab.view.reset_pose')}
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Phase Slider, Frame Steppers & Speed Multiplier */}
-              <div className="flex items-center gap-2.5 flex-1 max-w-lg justify-end">
-                {!isStaticNone && (
-                  <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
-                    <button
-                      type="button"
-                      title={t('lab.view.step_back')}
-                      onClick={() => handleStepFrame(-0.05)}
-                      className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
-                    >
-                      -5%
-                    </button>
-                    <span className="text-[11px] text-stone-300 font-mono-tabular w-9 text-center">
-                      {Math.round((session.isPaused ? session.manualPhase : livePhase) * 100)}%
+            {labMode === 'hitboxes' ? (
+              <div className="px-4 py-2.5 rounded-xl bg-[#11151e]/95 border border-cyan-500/35 pointer-events-auto flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1.5 text-cyan-300 font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-cyan-400 inline-block" />
+                    {t('lab.view.hitbox_legend_selected')}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" />
+                    {t('lab.view.hitbox_legend_other')}
+                  </span>
+                  {activeHitboxTarget.kind === 'entity' && (
+                    <span className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" />
+                      {t('lab.view.hitbox_legend_body')}
                     </span>
+                  )}
+                </div>
+                <span className="text-[11px] text-stone-400">
+                  Changes sync globally across game physics, arrows, wildlife & F3 debug
+                </span>
+              </div>
+            ) : (
+              /* Playback Status & Timeline Scrubber Bar */
+              <div className="px-4 py-2.5 rounded-xl bg-[#11151e]/95 border border-stone-700/85 pointer-events-auto flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    data-testid="lab-active-animation-badge"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                      isStaticNone
+                        ? 'bg-stone-800 text-stone-300 border border-stone-700'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    }`}
+                  >
+                    {isStaticNone ? t('lab.view.static_mode') : t('lab.view.playing', { name: activeAnimation.name })}
+                  </span>
+
+                  {!isStaticNone && (
+                    <>
+                      <button
+                        type="button"
+                        data-testid="lab-play-pause-btn"
+                        onClick={() =>
+                          setSession((prev) => ({
+                            ...prev,
+                            isPaused: !prev.isPaused,
+                            manualPhase: livePhase,
+                          }))
+                        }
+                        className="px-3 py-1 rounded-lg text-xs font-semibold bg-amber-400 text-stone-950 hover:bg-amber-300 cursor-pointer"
+                      >
+                        {session.isPaused ? t('lab.view.resume') : t('lab.view.pause')}
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="lab-reset-static-btn"
+                        onClick={() => handleSelectAnimation('none')}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-stone-800 text-stone-200 hover:bg-stone-700 border border-stone-700 cursor-pointer"
+                      >
+                        {t('lab.view.reset_pose')}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Phase Slider, Frame Steppers & Speed Multiplier */}
+                <div className="flex items-center gap-2.5 flex-1 max-w-lg justify-end">
+                  {!isStaticNone && (
+                    <div className="flex items-center gap-1.5 flex-1 min-w-[160px]">
+                      <button
+                        type="button"
+                        title={t('lab.view.step_back')}
+                        onClick={() => handleStepFrame(-0.05)}
+                        className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
+                      >
+                        -5%
+                      </button>
+                      <span className="text-[11px] text-stone-300 font-mono-tabular w-9 text-center">
+                        {Math.round((session.isPaused ? session.manualPhase : livePhase) * 100)}%
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={0.99}
+                        step={0.01}
+                        value={session.isPaused ? session.manualPhase : livePhase}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setLivePhase(val);
+                          setSession((prev) => ({
+                            ...prev,
+                            isPaused: true,
+                            manualPhase: val,
+                          }));
+                        }}
+                        className="flex-1 accent-amber-400 cursor-pointer"
+                      />
+                      <button
+                        type="button"
+                        title={t('lab.view.step_forward')}
+                        onClick={() => handleStepFrame(0.05)}
+                        className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
+                      >
+                        +5%
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-stone-400 ml-1">
+                      {t('lab.view.speed_label')}
+                    </span>
+                    <button
+                      type="button"
+                      data-testid="lab-speed-step-down"
+                      disabled={isStaticNone}
+                      title={t('lab.view.slow_down')}
+                      onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed - 0.1)}
+                      className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
+                        isStaticNone
+                          ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
+                          : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
+                      }`}
+                    >
+                      -
+                    </button>
                     <input
                       type="range"
-                      min={0}
-                      max={0.99}
-                      step={0.01}
-                      value={session.isPaused ? session.manualPhase : livePhase}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setLivePhase(val);
-                        setSession((prev) => ({
-                          ...prev,
-                          isPaused: true,
-                          manualPhase: val,
-                        }));
-                      }}
-                      className="flex-1 accent-amber-400 cursor-pointer"
+                      data-testid="lab-speed-slider"
+                      disabled={isStaticNone}
+                      min={0.1}
+                      max={3.0}
+                      step={0.05}
+                      value={effectiveAnimSpeed}
+                      onChange={(e) =>
+                        handleChangeAnimationSpeed(parseFloat(e.target.value))
+                      }
+                      className="w-20 accent-amber-400 cursor-pointer"
                     />
                     <button
                       type="button"
-                      title={t('lab.view.step_forward')}
-                      onClick={() => handleStepFrame(0.05)}
-                      className="px-1.5 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-[10px] font-mono text-stone-200 border border-stone-700 cursor-pointer"
-                    >
-                      +5%
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[11px] text-stone-400 ml-1">
-                    {t('lab.view.speed_label')}
-                  </span>
-                  <button
-                    type="button"
-                    data-testid="lab-speed-step-down"
-                    disabled={isStaticNone}
-                    title={t('lab.view.slow_down')}
-                    onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed - 0.1)}
-                    className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
-                      isStaticNone
-                        ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
-                        : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
-                    }`}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="range"
-                    data-testid="lab-speed-slider"
-                    disabled={isStaticNone}
-                    min={0.1}
-                    max={3.0}
-                    step={0.05}
-                    value={effectiveAnimSpeed}
-                    onChange={(e) =>
-                      handleChangeAnimationSpeed(parseFloat(e.target.value))
-                    }
-                    className="w-20 accent-amber-400 cursor-pointer"
-                  />
-                  <button
-                    type="button"
-                    data-testid="lab-speed-step-up"
-                    disabled={isStaticNone}
-                    title={t('lab.view.speed_up')}
-                    onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed + 0.1)}
-                    className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
-                      isStaticNone
-                        ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
-                        : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
-                    }`}
-                  >
-                    +
-                  </button>
-                  <span
-                    data-testid="lab-effective-speed-value"
-                    className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[11px] font-mono-tabular text-amber-300 font-bold min-w-[44px] text-center"
-                  >
-                    {effectiveAnimSpeed.toFixed(2)}x
-                  </span>
-                  {SPEED_OPTIONS.map((spd) => (
-                    <button
-                      key={spd}
-                      type="button"
-                      data-testid={`lab-speed-preset-${spd}`}
+                      data-testid="lab-speed-step-up"
                       disabled={isStaticNone}
-                      onClick={() => handleChangeAnimationSpeed(spd)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono-tabular transition-colors ${
+                      title={t('lab.view.speed_up')}
+                      onClick={() => handleChangeAnimationSpeed(effectiveAnimSpeed + 0.1)}
+                      className={`px-1.5 py-0.5 rounded text-[11px] font-mono-tabular border ${
                         isStaticNone
-                          ? 'opacity-40 cursor-not-allowed text-stone-500'
-                          : Math.abs(effectiveAnimSpeed - spd) < 0.01
-                            ? 'bg-amber-400 text-stone-950 font-semibold cursor-pointer'
-                            : 'bg-stone-800 text-stone-300 hover:bg-stone-700 cursor-pointer'
+                          ? 'opacity-40 cursor-not-allowed text-stone-500 border-stone-800'
+                          : 'bg-stone-800 text-stone-200 hover:bg-stone-700 border-stone-700 cursor-pointer'
                       }`}
                     >
-                      {spd}x
+                      +
                     </button>
-                  ))}
+                    <span
+                      data-testid="lab-effective-speed-value"
+                      className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[11px] font-mono-tabular text-amber-300 font-bold min-w-[44px] text-center"
+                    >
+                      {effectiveAnimSpeed.toFixed(2)}x
+                    </span>
+                    {SPEED_OPTIONS.map((spd) => (
+                      <button
+                        key={spd}
+                        type="button"
+                        data-testid={`lab-speed-preset-${spd}`}
+                        disabled={isStaticNone}
+                        onClick={() => handleChangeAnimationSpeed(spd)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-mono-tabular transition-colors ${
+                          isStaticNone
+                            ? 'opacity-40 cursor-not-allowed text-stone-500'
+                            : Math.abs(effectiveAnimSpeed - spd) < 0.01
+                              ? 'bg-amber-400 text-stone-950 font-semibold cursor-pointer'
+                              : 'bg-stone-800 text-stone-300 hover:bg-stone-700 cursor-pointer'
+                        }`}
+                      >
+                        {spd}x
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </section>
 
         {/* ================================================================== */}
-        {/* 3. PHYSICAL RIGHT PANEL (right side: animations | editing & fixes | skins) */}
+        {/* 3. PHYSICAL RIGHT PANEL                                            */}
         {/* ================================================================== */}
         <aside
           data-testid="lab-right-panel"
           className="w-84 lg:w-92 h-full flex flex-col border-l border-stone-800/90 bg-[#121620] shrink-0"
         >
-          {/* Right Panel Top Label / 3-Tab Switcher (animations | editing & fixes | skins) */}
-          <div className="p-3 border-b border-stone-800/80">
-            <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-stone-900 border border-stone-800">
-              <button
-                type="button"
-                data-testid="lab-tab-animations"
-                onClick={() =>
-                  setSession((prev) => ({ ...prev, activeRightTab: 'animations' }))
-                }
-                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                  session.activeRightTab === 'animations'
-                    ? 'bg-amber-400 text-stone-950 shadow'
-                    : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
-                }`}
-              >
-                <span>{t('lab.view.tab_animations')}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
-                    session.activeRightTab === 'animations'
-                      ? 'bg-stone-950/20 text-stone-950'
-                      : 'bg-stone-800 text-stone-300'
-                  }`}
-                >
-                  {activeEntity.animations.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                data-testid="lab-tab-editor"
-                onClick={() =>
-                  setSession((prev) => ({ ...prev, activeRightTab: 'editor' }))
-                }
-                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                  session.activeRightTab === 'editor'
-                    ? 'bg-amber-400 text-stone-950 shadow'
-                    : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
-                }`}
-              >
-                <span>{t('lab.view.tab_editor')}</span>
-                {activeOverrideCount > 0 && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
-                      session.activeRightTab === 'editor'
-                        ? 'bg-stone-950 text-amber-300'
-                        : 'bg-amber-500/25 text-amber-300'
+          {labMode === 'hitboxes' ? (
+            <div data-testid="hitbox-editor-panel" className="flex-1 flex flex-col min-h-0">
+              <div className="p-3 border-b border-stone-800/80 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold text-cyan-300 truncate">
+                      {activeHitboxTarget.name}
+                    </h3>
+                    <p className="text-[10px] text-stone-400 truncate">
+                      {activeHitboxTarget.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    data-testid="hitbox-reset-target-btn"
+                    disabled={!isTargetCustomized}
+                    onClick={handleResetTargetHitboxes}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
+                      isTargetCustomized
+                        ? 'bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 border-rose-500/40 cursor-pointer'
+                        : 'bg-stone-900 text-stone-500 border-stone-800 cursor-not-allowed'
                     }`}
                   >
-                    {activeOverrideCount}
-                  </span>
-                )}
-              </button>
+                    {t('lab.view.hitbox_reset_object')}
+                  </button>
+                  {totalHitboxOverrideCount > 0 && (
+                    <button
+                      type="button"
+                      data-testid="hitbox-reset-all-btn"
+                      onClick={handleResetAllHitboxes}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700 cursor-pointer"
+                    >
+                      {t('lab.view.hitbox_reset_all', { count: totalHitboxOverrideCount })}
+                    </button>
+                  )}
+                </div>
+              </div>
 
-              <button
-                type="button"
-                data-testid="lab-tab-skins"
-                onClick={() =>
-                  setSession((prev) => ({ ...prev, activeRightTab: 'skins' }))
-                }
-                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                  session.activeRightTab === 'skins'
-                    ? 'bg-amber-400 text-stone-950 shadow'
-                    : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
-                }`}
-              >
-                <span>{t('lab.view.tab_skins')}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
-                    session.activeRightTab === 'skins'
-                      ? 'bg-stone-950/20 text-stone-950'
-                      : 'bg-stone-800 text-stone-300'
-                  }`}
-                >
-                  {activeEntity.skins.length}
-                </span>
-              </button>
+              <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                {(activeHitboxTarget.kind === 'ship_boxes' ||
+                  activeHitboxTarget.kind === 'world_boxes') && (() => {
+                  const selectedBox =
+                    activeHitboxEffectiveBoxes.find((b) => b.id === selectedHitboxPartId) ??
+                    activeHitboxEffectiveBoxes[0] ??
+                    null;
+                  const defaultBox = selectedBox
+                    ? activeHitboxDefaultBoxes.find((b) => b.id === selectedBox.id) ?? selectedBox
+                    : null;
+                  const isPartCustom = Boolean(
+                    selectedBox && hitboxOverrides.boxes?.[selectedBox.id] !== undefined
+                  );
+                  const anchor = activeHitboxTarget.anchor;
+
+                  return (
+                    <>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-stone-300">
+                            {t('lab.view.hitbox_parts_title', {
+                              count: activeHitboxEffectiveBoxes.length,
+                            })}
+                          </span>
+                        </div>
+                        <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                          {activeHitboxEffectiveBoxes.map((b) => {
+                            const active = selectedBox?.id === b.id;
+                            const custom = hitboxOverrides.boxes?.[b.id] !== undefined;
+                            return (
+                              <button
+                                key={b.id}
+                                type="button"
+                                data-testid={`hitbox-part-btn-${b.id}`}
+                                onClick={() => setSelectedHitboxPartId(b.id)}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                                  active
+                                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 font-bold'
+                                    : 'bg-stone-900/75 border-stone-800 text-stone-300 hover:bg-stone-800'
+                                }`}
+                              >
+                                <span className="truncate">{formatHitboxPartLabel(b.id)}</span>
+                                {custom && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] bg-cyan-500/25 text-cyan-300 shrink-0">
+                                    {t('lab.view.hitbox_modified')}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {selectedBox && defaultBox && (
+                        <div
+                          data-testid="hitbox-box-bounds-editor"
+                          className="p-3 rounded-xl bg-stone-900/85 border border-cyan-500/35 space-y-2.5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-cyan-200 truncate">
+                              {formatHitboxPartLabel(selectedBox.id)}
+                            </span>
+                            <button
+                              type="button"
+                              data-testid="hitbox-reset-part-btn"
+                              disabled={!isPartCustom}
+                              onClick={() => handleResetPartHitbox(selectedBox.id)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                                isPartCustom
+                                  ? 'bg-rose-500/20 text-rose-200 border-rose-500/40 hover:bg-rose-500/30 cursor-pointer'
+                                  : 'bg-stone-900 text-stone-500 border-stone-800 cursor-not-allowed'
+                              }`}
+                            >
+                              {t('lab.view.hitbox_reset_part')}
+                            </button>
+                          </div>
+
+                          {(
+                            [
+                              { key: 'minX', label: 'Min X', anchorOff: anchor.x },
+                              { key: 'maxX', label: 'Max X', anchorOff: anchor.x },
+                              { key: 'minY', label: 'Min Y', anchorOff: anchor.y },
+                              { key: 'maxY', label: 'Max Y', anchorOff: anchor.y },
+                              { key: 'minZ', label: 'Min Z', anchorOff: anchor.z },
+                              { key: 'maxZ', label: 'Max Z', anchorOff: anchor.z },
+                            ] as const
+                          ).map((field) => {
+                            const rawVal =
+                              selectedBox[field.key] ??
+                              (field.key === 'minY' ? anchor.y : anchor.y + 2);
+                            const defRawVal =
+                              defaultBox[field.key] ??
+                              (field.key === 'minY' ? anchor.y : anchor.y + 2);
+                            const relVal = Math.round((rawVal - field.anchorOff) * 100) / 100;
+                            const minSlide =
+                              Math.round((defRawVal - field.anchorOff - 6.0) * 20) / 20;
+                            const maxSlide =
+                              Math.round((defRawVal - field.anchorOff + 6.0) * 20) / 20;
+
+                            const commitRelValue = (nextRel: number) => {
+                              if (!Number.isFinite(nextRel)) return;
+                              const nextWorld = Math.round((nextRel + field.anchorOff) * 1000) / 1000;
+                              const curMinX = selectedBox.minX;
+                              const curMaxX = selectedBox.maxX;
+                              const curMinZ = selectedBox.minZ;
+                              const curMaxZ = selectedBox.maxZ;
+                              const curMinY = selectedBox.minY ?? 0;
+                              const curMaxY = selectedBox.maxY ?? 2;
+
+                              let nMinX = field.key === 'minX' ? Math.min(nextWorld, curMaxX - 0.05) : curMinX;
+                              let nMaxX = field.key === 'maxX' ? Math.max(nextWorld, curMinX + 0.05) : curMaxX;
+                              let nMinZ = field.key === 'minZ' ? Math.min(nextWorld, curMaxZ - 0.05) : curMinZ;
+                              let nMaxZ = field.key === 'maxZ' ? Math.max(nextWorld, curMinZ + 0.05) : curMaxZ;
+                              let nMinY = field.key === 'minY' ? Math.min(nextWorld, curMaxY - 0.05) : curMinY;
+                              let nMaxY = field.key === 'maxY' ? Math.max(nextWorld, curMinY + 0.05) : curMaxY;
+
+                              nMinX = Math.round(nMinX * 1000) / 1000;
+                              nMaxX = Math.round(nMaxX * 1000) / 1000;
+                              nMinZ = Math.round(nMinZ * 1000) / 1000;
+                              nMaxZ = Math.round(nMaxZ * 1000) / 1000;
+                              nMinY = Math.round(nMinY * 1000) / 1000;
+                              nMaxY = Math.round(nMaxY * 1000) / 1000;
+
+                              const nextPayload = updateBoxOverrideInPayload(
+                                hitboxOverrides,
+                                selectedBox.id,
+                                {
+                                  minX: nMinX,
+                                  maxX: nMaxX,
+                                  minZ: nMinZ,
+                                  maxZ: nMaxZ,
+                                  minY: nMinY,
+                                  maxY: nMaxY,
+                                  ...(selectedBox.yaw !== undefined ? { yaw: selectedBox.yaw } : {}),
+                                }
+                              );
+                              applyHitboxEdit(nextPayload, false);
+                            };
+
+                            return (
+                              <div key={field.key} className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px] gap-2">
+                                  <span className="text-stone-300 font-medium">{field.label}</span>
+                                  <input
+                                    type="number"
+                                    step={0.05}
+                                    data-testid={`hitbox-input-${field.key}`}
+                                    value={relVal}
+                                    onChange={(e) => commitRelValue(parseFloat(e.target.value))}
+                                    className="w-20 px-1.5 py-0.5 rounded bg-stone-950 border border-stone-700 text-right font-mono-tabular text-cyan-300 text-[11px] focus:outline-none focus:border-cyan-400"
+                                  />
+                                </div>
+                                <input
+                                  type="range"
+                                  data-testid={`hitbox-slider-${field.key}`}
+                                  min={minSlide}
+                                  max={maxSlide}
+                                  step={0.05}
+                                  value={Math.max(minSlide, Math.min(maxSlide, relVal))}
+                                  onChange={(e) => commitRelValue(parseFloat(e.target.value))}
+                                  className="w-full accent-cyan-400 cursor-pointer"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
+                {activeHitboxTarget.kind === 'obstacle' &&
+                  activeHitboxTarget.obstacleKey && (() => {
+                    const obsKey = activeHitboxTarget.obstacleKey;
+                    const eff = getEffectiveObstacleForTarget(activeHitboxTarget, hitboxOverrides);
+                    const isCustom = hitboxOverrides.obstacles?.[obsKey] !== undefined;
+                    return (
+                      <div
+                        data-testid="hitbox-obstacle-editor"
+                        className="p-3 rounded-xl bg-stone-900/85 border border-cyan-500/35 space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-cyan-200">
+                            {t('lab.view.hitbox_cylinder_title')}
+                          </span>
+                          <button
+                            type="button"
+                            data-testid="hitbox-reset-part-btn"
+                            disabled={!isCustom}
+                            onClick={() => handleResetPartHitbox(obsKey)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                              isCustom
+                                ? 'bg-rose-500/20 text-rose-200 border-rose-500/40 cursor-pointer'
+                                : 'bg-stone-900 text-stone-500 border-stone-800 cursor-not-allowed'
+                            }`}
+                          >
+                            {t('lab.view.hitbox_reset_part')}
+                          </button>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-stone-300">
+                              Radius Scale ({eff.radius.toFixed(2)}m)
+                            </span>
+                            <span className="font-mono-tabular text-cyan-300 font-bold">
+                              {eff.radiusScale.toFixed(2)}x
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            data-testid="hitbox-slider-radius-scale"
+                            min={0.25}
+                            max={3.0}
+                            step={0.05}
+                            value={eff.radiusScale}
+                            onChange={(e) => {
+                              const nextScale = parseFloat(e.target.value);
+                              const nextPayload = updateObstacleOverrideInPayload(
+                                hitboxOverrides,
+                                obsKey,
+                                { radiusScale: nextScale, heightScale: eff.heightScale }
+                              );
+                              applyHitboxEdit(nextPayload, false);
+                            }}
+                            className="w-full accent-cyan-400 cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-stone-300">
+                              Height Scale ({eff.height.toFixed(1)}m)
+                            </span>
+                            <span className="font-mono-tabular text-cyan-300 font-bold">
+                              {eff.heightScale.toFixed(2)}x
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            data-testid="hitbox-slider-height-scale"
+                            min={0.25}
+                            max={3.0}
+                            step={0.05}
+                            value={eff.heightScale}
+                            onChange={(e) => {
+                              const nextScale = parseFloat(e.target.value);
+                              const nextPayload = updateObstacleOverrideInPayload(
+                                hitboxOverrides,
+                                obsKey,
+                                { radiusScale: eff.radiusScale, heightScale: nextScale }
+                              );
+                              applyHitboxEdit(nextPayload, false);
+                            }}
+                            className="w-full accent-cyan-400 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                {activeHitboxTarget.kind === 'entity' &&
+                  activeHitboxTarget.entityId && (() => {
+                    const entKey = activeHitboxTarget.entityId;
+                    const { defaults, effective } = getEffectiveEntityForTarget(
+                      activeHitboxTarget,
+                      hitboxOverrides
+                    );
+                    const isCustom = hitboxOverrides.entities?.[entKey] !== undefined;
+                    return (
+                      <div
+                        data-testid="hitbox-entity-editor"
+                        className="p-3 rounded-xl bg-stone-900/85 border border-cyan-500/35 space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-cyan-200">
+                            {t('lab.view.hitbox_entity_title')}
+                          </span>
+                          <button
+                            type="button"
+                            data-testid="hitbox-reset-part-btn"
+                            disabled={!isCustom}
+                            onClick={() => handleResetPartHitbox(entKey)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                              isCustom
+                                ? 'bg-rose-500/20 text-rose-200 border-rose-500/40 cursor-pointer'
+                                : 'bg-stone-900 text-stone-500 border-stone-800 cursor-not-allowed'
+                            }`}
+                          >
+                            {t('lab.view.hitbox_reset_part')}
+                          </button>
+                        </div>
+
+                        {(
+                          [
+                            {
+                              key: 'radius',
+                              label: 'Combat Hit Radius (m)',
+                              val: effective.radius,
+                              defVal: defaults.radius,
+                              min: 0.15,
+                              max: 8.0,
+                              step: 0.05,
+                            },
+                            {
+                              key: 'height',
+                              label: 'Vertical Height (m)',
+                              val: effective.height,
+                              defVal: defaults.height,
+                              min: 0.25,
+                              max: 12.0,
+                              step: 0.05,
+                            },
+                            {
+                              key: 'bodyRadius',
+                              label: 'Body Separation Radius (m)',
+                              val: effective.bodyRadius ?? defaults.bodyRadius ?? effective.radius,
+                              defVal: defaults.bodyRadius ?? defaults.radius,
+                              min: 0.15,
+                              max: 6.0,
+                              step: 0.05,
+                            },
+                          ] as const
+                        ).map((fld) => (
+                          <div key={fld.key} className="space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-stone-300">
+                                {fld.label}{' '}
+                                <span className="text-stone-500">(def {fld.defVal.toFixed(2)})</span>
+                              </span>
+                              <span className="font-mono-tabular text-cyan-300 font-bold">
+                                {fld.val.toFixed(2)}m
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              data-testid={`hitbox-slider-entity-${fld.key}`}
+                              min={fld.min}
+                              max={fld.max}
+                              step={fld.step}
+                              value={fld.val}
+                              onChange={(e) => {
+                                const nextVal = parseFloat(e.target.value);
+                                const nextPayload = updateEntityOverrideInPayload(
+                                  hitboxOverrides,
+                                  entKey,
+                                  {
+                                    radius: fld.key === 'radius' ? nextVal : effective.radius,
+                                    height: fld.key === 'height' ? nextVal : effective.height,
+                                    bodyRadius:
+                                      fld.key === 'bodyRadius'
+                                        ? nextVal
+                                        : (effective.bodyRadius ?? defaults.bodyRadius),
+                                  }
+                                );
+                                applyHitboxEdit(nextPayload, false);
+                              }}
+                              className="w-full accent-cyan-400 cursor-pointer"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Right Panel Top Label / 3-Tab Switcher (animations | editing & fixes | skins) */}
+              <div className="p-3 border-b border-stone-800/80">
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-stone-900 border border-stone-800">
+                  <button
+                    type="button"
+                    data-testid="lab-tab-animations"
+                    onClick={() =>
+                      setSession((prev) => ({ ...prev, activeRightTab: 'animations' }))
+                    }
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      session.activeRightTab === 'animations'
+                        ? 'bg-amber-400 text-stone-950 shadow'
+                        : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <span>{t('lab.view.tab_animations')}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
+                        session.activeRightTab === 'animations'
+                          ? 'bg-stone-950/20 text-stone-950'
+                          : 'bg-stone-800 text-stone-300'
+                      }`}
+                    >
+                      {activeEntity.animations.length}
+                    </span>
+                  </button>
 
-          {/* Right Panel Body: Animations List | Editor & Fine-Tuning | Skins List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  <button
+                    type="button"
+                    data-testid="lab-tab-editor"
+                    onClick={() =>
+                      setSession((prev) => ({ ...prev, activeRightTab: 'editor' }))
+                    }
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      session.activeRightTab === 'editor'
+                        ? 'bg-amber-400 text-stone-950 shadow'
+                        : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <span>{t('lab.view.tab_editor')}</span>
+                    {activeOverrideCount > 0 && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
+                          session.activeRightTab === 'editor'
+                            ? 'bg-stone-950 text-amber-300'
+                            : 'bg-amber-500/25 text-amber-300'
+                        }`}
+                      >
+                        {activeOverrideCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    data-testid="lab-tab-skins"
+                    onClick={() =>
+                      setSession((prev) => ({ ...prev, activeRightTab: 'skins' }))
+                    }
+                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      session.activeRightTab === 'skins'
+                        ? 'bg-amber-400 text-stone-950 shadow'
+                        : 'text-stone-300 hover:text-stone-100 hover:bg-stone-800/60'
+                    }`}
+                  >
+                    <span>{t('lab.view.tab_skins')}</span>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono-tabular ${
+                        session.activeRightTab === 'skins'
+                          ? 'bg-stone-950/20 text-stone-950'
+                          : 'bg-stone-800 text-stone-300'
+                      }`}
+                    >
+                      {activeEntity.skins.length}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Panel Body: Animations List | Editor & Fine-Tuning | Skins List */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {session.activeRightTab === 'animations' ? (
               <>
                 <div className="px-1 pb-1 flex items-center justify-between gap-2">
@@ -1852,30 +2622,32 @@ export const CharacterLabView: React.FC<ICharacterLabViewProps> = ({ onClose }) 
                 })}
               </>
             )}
-          </div>
+            </div>
 
-          {/* Right Panel Footer: Entity Anatomy & Codebase Inspector */}
-          <div className="p-3.5 border-t border-stone-800/90 bg-stone-950/60 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-stone-200">{t('lab.view.structure_title')}</span>
-              <span className="text-[10px] text-amber-300 font-mono truncate">
-                {activeEntity.worldCoordinatesText}
-              </span>
-            </div>
-            <p className="text-[11px] text-stone-400 leading-relaxed">
-              {activeEntity.description}
-            </p>
-            <div className="flex flex-wrap gap-1 pt-1">
-              {activeEntity.anatomyTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 rounded-md text-[10px] bg-stone-800/90 text-stone-300 border border-stone-700/60"
-                >
-                  {tag}
+            {/* Right Panel Footer: Entity Anatomy & Codebase Inspector */}
+            <div className="p-3.5 border-t border-stone-800/90 bg-stone-950/60 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-stone-200">{t('lab.view.structure_title')}</span>
+                <span className="text-[10px] text-amber-300 font-mono truncate">
+                  {activeEntity.worldCoordinatesText}
                 </span>
-              ))}
+              </div>
+              <p className="text-[11px] text-stone-400 leading-relaxed">
+                {activeEntity.description}
+              </p>
+              <div className="flex flex-wrap gap-1 pt-1">
+                {activeEntity.anatomyTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 rounded-md text-[10px] bg-stone-800/90 text-stone-300 border border-stone-700/60"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </>
+          )}
         </aside>
       </div>
     </div>

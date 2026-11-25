@@ -25,7 +25,9 @@ import {
   SOLID_BUILDING_BOXES,
   resolveHorizontalBoxCollision,
   getNearbySolidBuildingBoxes,
+  getObstacleColliderMetrics,
 } from '../domain/landmarksRegistry';
+import { getEffectiveEntityHitbox } from '../domain/hitboxOverrides';
 import { hash2D } from '../domain/noiseAndMath';
 import { isSegmentBlockedBySolidBox } from '../domain/collisionWorld';
 import { findWallDetourWaypoint } from '../domain/wallNavigation';
@@ -1881,7 +1883,19 @@ function separateAnimalFromPlayer(a: ISmallAnimalState, frame: ISmallAnimalStepF
   const dx = a.x - player.x;
   const dz = a.z - player.z;
   const dist = Math.hypot(dx, dz);
-  const minDist = SPECIES_PROFILES[a.species].preyBodyRadius + PLAYER_BODY_RADIUS_FOR_ANIMALS;
+  const playerBodyRad =
+    getEffectiveEntityHitbox('ranger_third_person', {
+      radius: 0.44,
+      height: 1.85,
+      bodyRadius: PLAYER_BODY_RADIUS_FOR_ANIMALS,
+    }).bodyRadius ?? PLAYER_BODY_RADIUS_FOR_ANIMALS;
+  const animalBodyRad =
+    getEffectiveEntityHitbox(a.species, {
+      radius: SPECIES_PROFILES[a.species].preyBodyRadius,
+      height: 1.5,
+      bodyRadius: SPECIES_PROFILES[a.species].preyBodyRadius,
+    }).bodyRadius ?? SPECIES_PROFILES[a.species].preyBodyRadius;
+  const minDist = animalBodyRad + playerBodyRad;
   if (dist >= minDist) return;
   // An animal exactly on top of the player is pushed along its own heading.
   const nx = dist > 1e-4 ? dx / dist : Math.sin(a.yaw);
@@ -1889,7 +1903,7 @@ function separateAnimalFromPlayer(a: ISmallAnimalState, frame: ISmallAnimalStepF
   const pushed = resolveAnimalObstacleCollision(
     player.x + nx * minDist,
     player.z + nz * minDist,
-    SPECIES_PROFILES[a.species].preyBodyRadius
+    animalBodyRad
   );
   a.x = pushed.x;
   a.z = pushed.z;
@@ -1922,11 +1936,12 @@ function resolveAnimalObstacleCollision(
     }
   }
 
-  // 2. Nearby world rocks and trunks (O(1) spatial hash lookup)
+  // 2. Nearby world rocks and trunks (O(1) spatial hash lookup using live getObstacleColliderMetrics)
   const obstacles = getNearbyWorldObstacles(x, z, radius + 2.5);
   for (let i = 0; i < obstacles.length; i++) {
     const obs = obstacles[i];
-    const minDist = obs.radius + radius;
+    const { radius: obsRadius } = getObstacleColliderMetrics(obs);
+    const minDist = obsRadius + radius;
     const dx = x - obs.x;
     const dz = z - obs.z;
     if (Math.abs(dx) >= minDist || Math.abs(dz) >= minDist) continue;

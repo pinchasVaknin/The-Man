@@ -9,6 +9,7 @@
 // ======================== IMPORTS & DEPENDENCIES ======================== \\
 // #region Imports & Dependencies
 import type { ICollidableWorldEntity, IHillWatchtowerDef, IObstacleCylinder, ISolidBuildingBox } from '../worldTypes';
+import { applyObstacleHitboxOverride } from '../hitboxOverrides';
 import {
   MAGIC_STONE_CIRCLE_POS,
   WATERFALL_CLIFF_POS,
@@ -2306,38 +2307,56 @@ export function getObstacleColliderMetrics(obs: IObstacleCylinder): {
   readonly radius: number;
   readonly height: number;
 } {
+  let baseRadius = obs.radius;
+  let baseHeight = 8.6 * obs.scale;
+  const key = obs.treeVariant ?? obs.kind;
   if (obs.treeVariant) {
     switch (obs.treeVariant) {
       case 'pinetree':
-        return { radius: obs.radius, height: 14.5 * obs.scale };
+        baseHeight = 14.5 * obs.scale;
+        break;
       case 'oakgreen':
-        return { radius: obs.radius, height: 11.0 * obs.scale };
+        baseHeight = 11.0 * obs.scale;
+        break;
       case 'oakyellow':
-        return { radius: obs.radius, height: 10.8 * obs.scale };
+        baseHeight = 10.8 * obs.scale;
+        break;
       case 'animtree':
-        return { radius: obs.radius, height: 10.0 * obs.scale };
+        baseHeight = 10.0 * obs.scale;
+        break;
       case 'animtree_wide':
-        return { radius: obs.radius, height: 8.8 * obs.scale };
+        baseHeight = 8.8 * obs.scale;
+        break;
       case 'animtree_compact':
-        return { radius: obs.radius, height: 7.9 * obs.scale };
+        baseHeight = 7.9 * obs.scale;
+        break;
+    }
+  } else {
+    switch (obs.kind) {
+      case 'pine':
+        baseHeight = 12.4 * obs.scale;
+        break;
+      case 'birch':
+        baseHeight = 9.4 * obs.scale;
+        break;
+      case 'palm':
+        baseHeight = 9.2 * obs.scale;
+        break;
+      case 'oak':
+        baseHeight = 8.6 * obs.scale;
+        break;
+      case 'acacia':
+        baseHeight = 7.4 * obs.scale;
+        break;
+      case 'boulder':
+        baseHeight = 1.25 * obs.scale;
+        break;
+      case 'pillar':
+        baseHeight = 3.5 * obs.scale;
+        break;
     }
   }
-  switch (obs.kind) {
-    case 'pine':
-      return { radius: obs.radius, height: 12.4 * obs.scale };
-    case 'birch':
-      return { radius: obs.radius, height: 9.4 * obs.scale };
-    case 'palm':
-      return { radius: obs.radius, height: 9.2 * obs.scale };
-    case 'oak':
-      return { radius: obs.radius, height: 8.6 * obs.scale };
-    case 'acacia':
-      return { radius: obs.radius, height: 7.4 * obs.scale };
-    case 'boulder':
-      return { radius: obs.radius, height: 1.25 * obs.scale };
-    case 'pillar':
-      return { radius: obs.radius, height: 3.5 * obs.scale };
-  }
+  return applyObstacleHitboxOverride(key, baseRadius, baseHeight);
 }
 
 // ======================== HILL WATCHTOWER WALLS ======================== \

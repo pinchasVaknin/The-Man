@@ -316,7 +316,8 @@ export async function buildRealisticWorld(
       playerZ,
       openDoorIds,
       playerState?.openedChestIds,
-      playerState
+      playerState,
+      alpha
     );
     updateFarmhousesAndMine(elapsedTime, worldHours, playerX, playerZ);
     updateFortress(elapsedTime, playerX, playerZ, worldHours);
@@ -352,7 +353,7 @@ export async function buildRealisticWorld(
         yaw: Math.atan2(playerX, playerZ + 18),
         pitch: 0,
       } as IPlayerState);
-    wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, cullObserver);
+    wildlifeAndFootprintsLayer.syncMeshes(dt, elapsedTime, cullObserver, alpha);
 
     // 6. Player viewmodel and combat rigs
     updatePlayerAndCombat(elapsedTime, playerState, activeArrows);

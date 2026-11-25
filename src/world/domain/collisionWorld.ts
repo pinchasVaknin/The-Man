@@ -9,6 +9,7 @@
 // #region Imports & Dependencies
 import type { ISolidBuildingBox } from './worldTypes';
 import { SOLID_BUILDING_BOXES } from './landmarks/collisionAndTerraces';
+import { applyBoxHitboxOverride, subscribeHitboxOverridesChanged } from './hitboxOverrides';
 // #endregion
 
 // ======================== BOX GEOMETRY ======================== \
@@ -146,8 +147,36 @@ export function resolveHorizontalBoxCollision(
 const SOLID_BOX_GRID_CELL_SIZE = 32.0;
 const EMPTY_SOLID_BOX_LIST: readonly ISolidBuildingBox[] = [];
 const _nearbySolidBoxesScratch: ISolidBuildingBox[] = [];
+let cachedEffectiveBoxes: ISolidBuildingBox[] | null = null;
 let cachedSolidBoxGrid: Map<number, ISolidBuildingBox[]> | null = null;
 let cachedSolidBoxIndex: Map<ISolidBuildingBox, number> | null = null;
+
+/**
+ * Summary: Invalidates the cached effective box array and spatial hash grid whenever global hitbox overrides change.
+ */
+export function invalidateSolidBoxSpatialIndex(): void {
+  cachedEffectiveBoxes = null;
+  cachedSolidBoxGrid = null;
+  cachedSolidBoxIndex = null;
+}
+
+subscribeHitboxOverridesChanged(() => {
+  invalidateSolidBoxSpatialIndex();
+});
+
+/**
+ * Summary: Returns `SOLID_BUILDING_BOXES` with any active Lab hitbox overrides applied.
+ * Design: Preserves exact object references for un-overridden boxes so `SOLID_BUILDING_BOXES.indexOf(box)` stays valid.
+ */
+export function getEffectiveSolidBuildingBoxes(): readonly ISolidBuildingBox[] {
+  if (cachedEffectiveBoxes) return cachedEffectiveBoxes;
+  const next = new Array<ISolidBuildingBox>(SOLID_BUILDING_BOXES.length);
+  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
+    next[i] = applyBoxHitboxOverride(SOLID_BUILDING_BOXES[i]);
+  }
+  cachedEffectiveBoxes = next;
+  return next;
+}
 
 function encodeSolidBoxCellKey(cx: number, cz: number): number {
   return ((cx + 512) << 10) | ((cz + 512) & 1023);
@@ -156,17 +185,19 @@ function encodeSolidBoxCellKey(cx: number, cz: number): number {
 /** Position of each box in SOLID_BUILDING_BOXES, so multi-cell queries can return them in the same order as a full scan. */
 function getSolidBoxIndex(): Map<ISolidBuildingBox, number> {
   if (cachedSolidBoxIndex) return cachedSolidBoxIndex;
+  const effectiveBoxes = getEffectiveSolidBuildingBoxes();
   const index = new Map<ISolidBuildingBox, number>();
-  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) index.set(SOLID_BUILDING_BOXES[i], i);
+  for (let i = 0; i < effectiveBoxes.length; i++) index.set(effectiveBoxes[i], i);
   cachedSolidBoxIndex = index;
   return index;
 }
 
 function getOrBuildSolidBoxGrid(): Map<number, ISolidBuildingBox[]> {
   if (cachedSolidBoxGrid) return cachedSolidBoxGrid;
+  const effectiveBoxes = getEffectiveSolidBuildingBoxes();
   const grid = new Map<number, ISolidBuildingBox[]>();
-  for (let i = 0; i < SOLID_BUILDING_BOXES.length; i++) {
-    const box = SOLID_BUILDING_BOXES[i];
+  for (let i = 0; i < effectiveBoxes.length; i++) {
+    const box = effectiveBoxes[i];
     const aabb = getSolidBuildingWorldAABB(box);
     const minCx = Math.floor(aabb.minX / SOLID_BOX_GRID_CELL_SIZE);
     const maxCx = Math.floor(aabb.maxX / SOLID_BOX_GRID_CELL_SIZE);

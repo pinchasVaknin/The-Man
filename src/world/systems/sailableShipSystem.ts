@@ -5,13 +5,15 @@
 //          horse & animal deck transport, wave pitch/roll dynamics, and dock disembarkation.
 // ============================================================================
 
-import type { IPlayerInput, IPlayerState, IRideableHorseState } from '../domain/worldTypes';
+import type { IClimbableLadderInfo, IPlayerInput, IPlayerState, IRideableHorseState } from '../domain/worldTypes';
 import {
+  WATER_LEVEL,
   PLAYABLE_RADIUS,
   RUINED_ATLANTIS_POS,
   SAILABLE_SHIP_INITIAL_POS,
   SOUTHEAST_HARBOR_POS,
 } from '../domain/landmarksRegistry';
+import { applyBoxHitboxOverride } from '../domain/hitboxOverrides';
 
 export type ShipTierId = 'sloop' | 'caravel' | 'galleon' | 'royal_flagship';
 
@@ -537,71 +539,122 @@ function getShipDeckHalfWidthAtBaseZ(bz: number): number {
 }
 
 /**
+ * Summary: Immutable base-scale (scale = 1.0, Y relative to deckY = 0) default hitboxes for ship.glb.
+ *          Includes symmetric Port (-X) and Starboard (+X) gangway openings at bz = 0.0..3.5.
+ */
+export const DEFAULT_SAILABLE_SHIP_LOCAL_BOXES: readonly ISailableShipLocalColliderBox[] = [
+  // 1. Solid lower/underwater hull & bowsprit spar (prevents swimming/walking through the ship hull sides or keel)
+  { id: 'ship-hull-lower', minX: -3.35, maxX: 3.35, minZ: -6.2, maxZ: 11.2, minY: -3.9, maxY: -0.05 },
+  { id: 'ship-hull-bow-beak', minX: -1.45, maxX: 1.45, minZ: -9.2, maxZ: -6.2, minY: -3.2, maxY: 1.85 },
+  { id: 'ship-hull-bowsprit', minX: -0.42, maxX: 0.42, minZ: -12.45, maxZ: -6.0, minY: 0.7, maxY: 3.1 },
+
+  // 2. Main Deck (1F) Outer Bulwark Railings (Both Port & Starboard gangway gaps bz=0.0..3.5 left open for Harbor Jetty & Sea Ladder boarding)
+  { id: 'ship-rail-port-fwd', minX: -3.66, maxX: -2.86, minZ: -2.2, maxZ: 0.0, minY: -0.2, maxY: 1.35 },
+  { id: 'ship-rail-port-aft', minX: -3.66, maxX: -2.86, minZ: 3.5, maxZ: 6.0, minY: -0.2, maxY: 2.25 },
+  { id: 'ship-rail-port-taper', minX: -3.22, maxX: -2.8, minZ: 6.0, maxZ: 7.5, minY: -0.2, maxY: 2.3 },
+  { id: 'ship-rail-stbd-fwd', minX: 2.86, maxX: 3.66, minZ: -2.2, maxZ: 0.0, minY: -0.2, maxY: 1.35 },
+  { id: 'ship-rail-stbd-aft', minX: 2.86, maxX: 3.66, minZ: 3.5, maxZ: 6.0, minY: -0.2, maxY: 2.25 },
+  { id: 'ship-rail-stbd-taper', minX: 2.8, maxX: 3.22, minZ: 6.0, maxZ: 7.5, minY: -0.2, maxY: 2.3 },
+
+  // 3. Tapered Bow Forecastle Bulwarks & Nose Cap
+  { id: 'ship-bow-port-mid', minX: -2.92, maxX: -2.28, minZ: -4.6, maxZ: -2.2, minY: -0.1, maxY: 1.65 },
+  { id: 'ship-bow-stbd-mid', minX: 2.28, maxX: 2.92, minZ: -4.6, maxZ: -2.2, minY: -0.1, maxY: 1.65 },
+  { id: 'ship-bow-port-fwd', minX: -2.25, maxX: -1.55, minZ: -6.1, maxZ: -4.4, minY: -0.1, maxY: 1.95 },
+  { id: 'ship-bow-stbd-fwd', minX: 1.55, maxX: 2.25, minZ: -6.1, maxZ: -4.4, minY: -0.1, maxY: 1.95 },
+  { id: 'ship-bow-nose-cap', minX: -1.75, maxX: 1.75, minZ: -6.6, maxZ: -5.85, minY: -0.1, maxY: 2.15 },
+
+  // 4. Aft Cabin Front Bulkhead Wall (solid under 2nd-floor front, between the Port & Starboard staircases)
+  { id: 'ship-aft-cabin-bulkhead', minX: -1.25, maxX: 1.25, minZ: 7.05, maxZ: 7.55, minY: 0.0, maxY: 1.82 },
+
+  // 5. Inner Stairway Guard Stringers (bz = 5.5..7.5, |bx| ~ 1.22)
+  { id: 'ship-stair-guard-port', minX: -1.32, maxX: -1.08, minZ: 5.5, maxZ: 7.5, minY: 0.0, maxY: 2.42, isStairGuard: true },
+  { id: 'ship-stair-guard-stbd', minX: 1.08, maxX: 1.32, minZ: 5.5, maxZ: 7.5, minY: 0.0, maxY: 2.42, isStairGuard: true },
+
+  // 6. Second Floor (2F Quarterdeck) Front Balustrade, Side Railings & Stern Transom
+  { id: 'ship-2f-rail-front', minX: -1.36, maxX: 1.36, minZ: 7.22, maxZ: 7.58, minY: 1.8, maxY: 2.9 },
+  { id: 'ship-2f-rail-port', minX: -2.96, maxX: -2.52, minZ: 7.4, maxZ: 11.3, minY: 1.8, maxY: 2.95 },
+  { id: 'ship-2f-rail-stbd', minX: 2.52, maxX: 2.96, minZ: 7.4, maxZ: 11.3, minY: 1.8, maxY: 2.95 },
+  { id: 'ship-2f-rail-stern', minX: -2.75, maxX: 2.75, minZ: 10.95, maxZ: 11.55, minY: 0.0, maxY: 3.15 },
+
+  // 7. Masts & 2nd-Floor Steering Wheel / Helm Pedestal
+  { id: 'ship-mast-fore', minX: -0.4, maxX: 0.4, minZ: -2.0, maxZ: -1.35, minY: 0.0, maxY: 15.0 },
+  { id: 'ship-mast-main', minX: -0.42, maxX: 0.42, minZ: 4.4, maxZ: 5.1, minY: 0.0, maxY: 16.0 },
+  { id: 'ship-2f-helm-pedestal', minX: -0.55, maxX: 0.55, minZ: 7.9, maxZ: 8.68, minY: 1.8, maxY: 3.25 },
+];
+
+/**
  * Summary: Returns all local-space (world-scaled, relative to ship center & deckY) solid collision boxes
- *          matching ship.glb hull, outer bulwark railings, port gangway gap, forecastle walls,
- *          aft cabin bulkhead, side stair guards, 2nd-floor railings, masts, and steering wheel pedestal.
+ *          matching ship.glb hull, outer bulwark railings, symmetric port & starboard gangway gaps,
+ *          forecastle walls, aft cabin bulkhead, side stair guards, 2nd-floor railings, masts, and helm pedestal,
+ *          applying any live Lab hitbox overrides before scaling.
  */
 export function getSailableShipLocalCollisionBoxes(
   ship: ISailableShipState = activeSailableShip
 ): ISailableShipLocalColliderBox[] {
   const s = ship.scale || 1.0;
   const dY = ship.deckY;
-  const box = (
-    id: string,
-    minBx: number,
-    maxBx: number,
-    minBz: number,
-    maxBz: number,
-    minRelY: number,
-    maxRelY: number,
-    isStairGuard = false
-  ): ISailableShipLocalColliderBox => ({
-    id,
-    minX: minBx * s,
-    maxX: maxBx * s,
-    minZ: minBz * s,
-    maxZ: maxBz * s,
-    minY: dY + minRelY,
-    maxY: dY + maxRelY,
-    isStairGuard,
-  });
+  const result: ISailableShipLocalColliderBox[] = [];
+  for (let i = 0; i < DEFAULT_SAILABLE_SHIP_LOCAL_BOXES.length; i++) {
+    const base = DEFAULT_SAILABLE_SHIP_LOCAL_BOXES[i];
+    const eff = applyBoxHitboxOverride(base);
+    result.push({
+      id: eff.id,
+      minX: eff.minX * s,
+      maxX: eff.maxX * s,
+      minZ: eff.minZ * s,
+      maxZ: eff.maxZ * s,
+      minY: dY + eff.minY,
+      maxY: dY + eff.maxY,
+      isStairGuard: base.isStairGuard,
+    });
+  }
+  return result;
+}
 
-  return [
-    // 1. Solid lower/underwater hull & bowsprit spar (prevents swimming/walking through the ship hull sides or keel)
-    box('ship-hull-lower', -2.95, 2.95, -6.4, 11.2, -3.9, -0.05),
-    box('ship-hull-bow-beak', -1.35, 1.35, -9.2, -6.2, -3.2, 1.85),
-    box('ship-hull-bowsprit', -0.45, 0.45, -12.4, -6.0, 0.7, 3.1),
+/**
+ * Summary: Returns world-space climbable side boarding ladders on both Port (-X) and Starboard (+X)
+ *          gangway openings of a spawned sailable ship.
+ */
+export function getSailableShipSideLadders(ship: ISailableShipState): IClimbableLadderInfo[] {
+  if (!ship.spawned) return [];
+  const makeSide = (side: 'port' | 'stbd'): IClimbableLadderInfo => {
+    const sign = side === 'port' ? -1 : 1;
+    const rungW = sailableShipLocalToWorld(sign * 3.48, 1.75, ship);
+    const standW = sailableShipLocalToWorld(sign * 4.08, 1.75, ship);
+    const topW = sailableShipLocalToWorld(sign * 2.15, 1.75, ship);
+    const minY = WATER_LEVEL - 0.9;
+    const maxY = ship.deckY + 0.08;
+    return {
+      id: `${ship.id}-ladder-${side}`,
+      name: `${ship.name} (${side === 'port' ? 'Port' : 'Starboard'} Ladder)`,
+      ladderX: rungW.x,
+      ladderZ: rungW.z,
+      standX: standW.x,
+      standZ: standW.z,
+      isWest: side === 'port',
+      isSouth: false,
+      minY,
+      maxY,
+      floors: [WATER_LEVEL - 0.7, maxY],
+      topDismountX: topW.x,
+      topDismountZ: topW.z,
+    };
+  };
+  return [makeSide('port'), makeSide('stbd')];
+}
 
-    // 2. Main Deck (1F) Outer Bulwark Railings (Port gangway gap bz=0.8..3.8 left open for Harbor Jetty boarding)
-    box('ship-rail-port-fwd', -3.32, -2.85, -2.4, 0.8, -0.2, 1.25),
-    box('ship-rail-port-aft', -3.32, -2.85, 3.8, 7.5, -0.2, 2.25),
-    box('ship-rail-stbd', 2.85, 3.32, -2.4, 7.5, -0.2, 2.25),
-
-    // 3. Tapered Bow Forecastle Bulwarks & Nose Cap
-    box('ship-bow-port-mid', -2.82, -2.25, -4.6, -2.2, -0.1, 1.65),
-    box('ship-bow-stbd-mid', 2.25, 2.82, -4.6, -2.2, -0.1, 1.65),
-    box('ship-bow-port-fwd', -2.18, -1.55, -6.1, -4.4, -0.1, 1.95),
-    box('ship-bow-stbd-fwd', 1.55, 2.18, -6.1, -4.4, -0.1, 1.95),
-    box('ship-bow-nose-cap', -1.75, 1.75, -6.6, -5.85, -0.1, 2.15),
-
-    // 4. Aft Cabin Front Bulkhead Wall (solid under 2nd-floor front, between the Port & Starboard staircases)
-    box('ship-aft-cabin-bulkhead', -1.25, 1.25, 7.05, 7.55, 0.0, 1.82),
-
-    // 5. Inner Stairway Guard Stringers (bz = 5.5..7.5, |bx| ~ 1.22)
-    box('ship-stair-guard-port', -1.32, -1.06, 5.5, 7.5, 0.0, 2.42, true),
-    box('ship-stair-guard-stbd', 1.06, 1.32, 5.5, 7.5, 0.0, 2.42, true),
-
-    // 6. Second Floor (2F Quarterdeck) Front Balustrade, Side Railings & Stern Transom
-    box('ship-2f-rail-front', -1.36, 1.36, 7.22, 7.58, 1.8, 2.9),
-    box('ship-2f-rail-port', -2.95, -2.55, 7.4, 11.3, 1.8, 2.95),
-    box('ship-2f-rail-stbd', 2.55, 2.95, 7.4, 11.3, 1.8, 2.95),
-    box('ship-2f-rail-stern', -2.75, 2.75, 10.95, 11.55, 0.0, 3.15),
-
-    // 7. Masts & 2nd-Floor Steering Wheel / Helm Pedestal
-    box('ship-mast-fore', -0.42, 0.42, -2.05, -1.15, 0.0, 15.0),
-    box('ship-mast-main', -0.42, 0.42, 4.25, 5.15, 0.0, 16.0),
-    box('ship-2f-helm-pedestal', -0.55, 0.55, 7.9, 8.68, 1.8, 3.25),
-  ];
+/**
+ * Summary: Returns all dynamic side boarding ladders across every currently spawned sailable ship.
+ */
+export function getAllDynamicSailableShipLadders(): IClimbableLadderInfo[] {
+  const out: IClimbableLadderInfo[] = [];
+  for (let i = 0; i < allShipsRegistry.length; i++) {
+    const s = allShipsRegistry[i];
+    if (!s.spawned) continue;
+    const sides = getSailableShipSideLadders(s);
+    out.push(sides[0], sides[1]);
+  }
+  return out;
 }
 
 /**
@@ -894,6 +947,43 @@ export function carryPassengersOnSailableShip(
       transformPassenger(worldAnimals[i]);
     }
   }
+}
+
+/**
+ * Summary: Computes the alpha-interpolated world pose for an unmounted animal or horse standing
+ *          on a spawned sailable ship's deck so its 3D mesh moves in exact lockstep with the hull.
+ */
+export function getInterpolatedShipPassengerPose(
+  x: number,
+  y: number,
+  z: number,
+  yaw: number,
+  alpha = 1
+): { x: number; y: number; z: number; yaw: number; onShip: boolean } {
+  if (alpha >= 0.9999) {
+    return { x, y, z, yaw, onShip: false };
+  }
+  const ship = findSailableShipContainingPoint(x, z, y, 0.85);
+  if (!ship) {
+    return { x, y, z, yaw, onShip: false };
+  }
+  const pose = getInterpolatedSailableShipPose(ship, alpha);
+  const dx = x - ship.x;
+  const dz = z - ship.z;
+  const cosCur = Math.cos(ship.yaw);
+  const sinCur = Math.sin(ship.yaw);
+  const lx = dx * cosCur - dz * sinCur;
+  const lz = dx * sinCur + dz * cosCur;
+  const cosPose = Math.cos(pose.yaw);
+  const sinPose = Math.sin(pose.yaw);
+  const yawDelta = Math.atan2(Math.sin(pose.yaw - ship.yaw), Math.cos(pose.yaw - ship.yaw));
+  return {
+    x: pose.x + lx * cosPose + lz * sinPose,
+    y,
+    z: pose.z - lx * sinPose + lz * cosPose,
+    yaw: Math.atan2(Math.sin(yaw + yawDelta), Math.cos(yaw + yawDelta)),
+    onShip: true,
+  };
 }
 
 function getShipHullHalfWidthAtBaseZ(bz: number): number {
