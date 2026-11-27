@@ -1443,8 +1443,12 @@ export function evaluateSwordStrikeWindowHit(
     for (let a = 0; a < activeAnimals.length; a++) {
       const anim = activeAnimals[a];
       if (anim.isDead || anim.isLooted || anim.isTamed || anim.isMountedByPlayer) continue;
+      const isAnyDragon =
+        anim.species === 'dragon' ||
+        anim.species === 'skeleton_dragon' ||
+        anim.species === 'hydra_dragon';
       const animRad =
-        anim.species === 'dragon'
+        isAnyDragon
           ? 5.2
           : anim.species === 'bear'
             ? 2.35
@@ -1469,7 +1473,7 @@ export function evaluateSwordStrikeWindowHit(
       const animGroundY = anim.y ?? walkableHeightValueAt(anim.x, anim.z);
       const animCenterY =
         animGroundY +
-        (anim.species === 'dragon'
+        (isAnyDragon
           ? 2.85
           : anim.species === 'lion' && anim.isBoss
             ? 1.55
@@ -1489,8 +1493,8 @@ export function evaluateSwordStrikeWindowHit(
                           ? 0.05
                           : 0.35);
       const animHalfH =
-        anim.species === 'dragon'
-          ? 4.2
+        isAnyDragon
+          ? 4.6
           : anim.species === 'lion' && anim.isBoss
             ? 2.35
             : anim.species === 'bear' || anim.species === 'rhino' || anim.species === 'hippo'

@@ -60,6 +60,13 @@ import {
   findLookedAtWatchtowerLadder,
   isInsideSacredCloudMountainZone,
   getObstacleColliderMetrics,
+  DRAGON_PORTAL_SHRINE_POS,
+  DRAGON_REALM_BOUNDS,
+  DRAGON_REALM_SPAWN_POS,
+  isInsideDragonRealm,
+  isInsideNorthernShrineGliderThermal,
+  clampInsideDragonRealmBounds,
+  dragonRealmWalkableHeightAt,
 } from '../domain/landmarksRegistry';
 import { getEffectiveEntityHitbox } from '../domain/hitboxOverrides';
 import { isInsideSouthernMine } from './dwarvenMineAndCaravanSystem';
@@ -350,6 +357,10 @@ export function stepSurvivalVitals(
     const a = animals[i];
     if (a.isDead || a.isTamed || a.isSubdued || a.isMountedByPlayer) continue;
     // G11: the cooldown is counted down once, by the animal's own step (boids), not here as well.
+    const isAnyDragon =
+      a.species === 'dragon' ||
+      a.species === 'skeleton_dragon' ||
+      a.species === 'hydra_dragon';
     const canAttackPlayer =
       a.species === 'wolf' ||
       a.species === 'bear' ||
@@ -359,17 +370,17 @@ export function stepSurvivalVitals(
       a.species === 'hippo' ||
       a.species === 'stag' ||
       a.species === 'lion' ||
-      a.species === 'dragon';
+      isAnyDragon;
     if (!canAttackPlayer) continue;
     // Enforce vertical height check so ground predators cannot hit a flying or elevated player!
     const vertDiff = Math.abs(a.y - state.y);
-    const maxVerticalReach = a.isBoss || a.species === 'dragon' ? 4.2 : 2.6;
+    const maxVerticalReach = a.isBoss || isAnyDragon ? 4.8 : 2.6;
     if (vertDiff > maxVerticalReach) continue;
 
     const dist = Math.hypot(a.x - state.x, a.z - state.z);
     const strikeReach =
-      a.isBoss || a.species === 'dragon'
-        ? 4.4
+      a.isBoss || isAnyDragon
+        ? 5.2
         : a.species === 'rhino' || a.species === 'hippo' || a.species === 'bear' || a.species === 'crocodile'
           ? 3.2
           : 2.6;
@@ -392,12 +403,16 @@ export function stepSurvivalVitals(
     }
   }
 
-  // DR1: dragon fire breath. Inside the cone, within reach, with no wall in the line, the fire burns the player.
+  // DR1: dragon breath (fire, frost-necrotic, or venom). Inside the cone, within reach, with no wall in the line, it burns the player.
   if (!godMode) {
     for (let i = 0; i < animals.length; i++) {
       const d = animals[i];
       const fb = d.fireBreath;
-      if (d.species !== 'dragon' || d.isDead || !fb) continue;
+      const isDragon =
+        d.species === 'dragon' ||
+        d.species === 'skeleton_dragon' ||
+        d.species === 'hydra_dragon';
+      if (!isDragon || d.isDead || !fb) continue;
       const dx = state.x - fb.x;
       const dz = state.z - fb.z;
       const dist = Math.hypot(dx, dz);
@@ -1088,6 +1103,7 @@ export function stepPlayerPhysics(
     state.walkPace = input.sprint ? 'fast' : 'normal';
 
     const wasInMine = isInsideSouthernMine(state.x, state.z, state.y);
+    const wasInDragonRealm = isInsideDragonRealm(state.x, state.z, state.y);
     const prevY = state.y;
 
     const targetVx = moveX * flySpeed;
@@ -1106,14 +1122,20 @@ export function stepPlayerPhysics(
 
     let nextX = state.x + state.vx * dt;
     let nextZ = state.z + state.vz * dt;
-    const distFromCenter = Math.hypot(nextX, nextZ);
-    if (distFromCenter > PLAYABLE_RADIUS) {
-      const scaleBack = PLAYABLE_RADIUS / distFromCenter;
-      nextX *= scaleBack;
-      nextZ *= scaleBack;
+    if (wasInDragonRealm) {
+      const clampedRealm = clampInsideDragonRealmBounds(nextX, nextZ);
+      nextX = clampedRealm.x;
+      nextZ = clampedRealm.z;
+    } else {
+      const distFromCenter = Math.hypot(nextX, nextZ);
+      if (distFromCenter > PLAYABLE_RADIUS) {
+        const scaleBack = PLAYABLE_RADIUS / distFromCenter;
+        nextX *= scaleBack;
+        nextZ *= scaleBack;
+      }
     }
 
-    if (wasInMine) {
+    if (wasInMine || wasInDragonRealm) {
       const nearbyBoxes = getNearbySolidBuildingBoxes(nextX, nextZ, 2.0);
       for (let i = 0; i < nearbyBoxes.length; i++) {
         const b = nearbyBoxes[i];
@@ -1125,23 +1147,25 @@ export function stepPlayerPhysics(
           nextZ = resolved.z;
         }
       }
-      // Keep flying player within the mine's carved volume unless exiting via the portal mouth (lz < 1.5).
-      const nextLx = nextX - ANCIENT_MINE_ORIGIN.x;
-      const nextLz = nextZ - ANCIENT_MINE_ORIGIN.z;
-      if (nextLz >= 1.5 && sampleAncientMineFloor(nextLx, nextLz, prevY) === null) {
-        const canX = sampleAncientMineFloor(nextLx, state.z - ANCIENT_MINE_ORIGIN.z, prevY) !== null;
-        const canZ = sampleAncientMineFloor(state.x - ANCIENT_MINE_ORIGIN.x, nextLz, prevY) !== null;
-        if (canX) {
-          nextZ = state.z;
-          state.vz = 0;
-        } else if (canZ) {
-          nextX = state.x;
-          state.vx = 0;
-        } else {
-          nextX = state.x;
-          nextZ = state.z;
-          state.vx = 0;
-          state.vz = 0;
+      if (wasInMine) {
+        // Keep flying player within the mine's carved volume unless exiting via the portal mouth (lz < 1.5).
+        const nextLx = nextX - ANCIENT_MINE_ORIGIN.x;
+        const nextLz = nextZ - ANCIENT_MINE_ORIGIN.z;
+        if (nextLz >= 1.5 && sampleAncientMineFloor(nextLx, nextLz, prevY) === null) {
+          const canX = sampleAncientMineFloor(nextLx, state.z - ANCIENT_MINE_ORIGIN.z, prevY) !== null;
+          const canZ = sampleAncientMineFloor(state.x - ANCIENT_MINE_ORIGIN.x, nextLz, prevY) !== null;
+          if (canX) {
+            nextZ = state.z;
+            state.vz = 0;
+          } else if (canZ) {
+            nextX = state.x;
+            state.vx = 0;
+          } else {
+            nextX = state.x;
+            nextZ = state.z;
+            state.vx = 0;
+            state.vz = 0;
+          }
         }
       }
     }
@@ -1151,6 +1175,24 @@ export function stepPlayerPhysics(
     state.z = nextZ;
     state.distanceWalked += stepDist;
     state.y += state.vy * dt;
+
+    if (wasInDragonRealm) {
+      const realmFloorY = dragonRealmWalkableHeightAt(state.x, state.z);
+      const minFlyY = realmFloorY !== null ? realmFloorY + 0.15 : DRAGON_REALM_BOUNDS.minY + 6.0;
+      const maxFlyY = DRAGON_REALM_BOUNDS.maxY - 6.0;
+      if (state.y > maxFlyY) {
+        state.y = maxFlyY;
+        if (state.vy > 0) state.vy = 0;
+      } else if (realmFloorY !== null && state.y < realmFloorY + 0.15 && input.relaxed) {
+        state.y = realmFloorY;
+        state.vy = 0;
+        state.isFlying = false;
+        state.onGround = true;
+      } else if (state.y < minFlyY) {
+        state.y = minFlyY;
+        if (state.vy < 0) state.vy = 0;
+      }
+    }
 
     const mineSampleNow = wasInMine
       ? sampleAncientMineFloor(state.x - ANCIENT_MINE_ORIGIN.x, state.z - ANCIENT_MINE_ORIGIN.z, prevY)
@@ -1582,28 +1624,60 @@ export function stepPlayerPhysics(
     skyWindLiftingLastFrame = false;
   }
 
-  // Wind Glider: holding jump while falling, with the glider in the inventory, brakes the fall
-  // to a slow glide (no fall damage on landing) and adds forward speed while forward is held.
-  const canGlide =
+  // Northern Dragon Mirror Shrine: Astral Wind Thermal lifts players ONLY if they own the Wind Glider
+  // (earned from the Floating Sky Islands quest) and hold Jump to deploy their glider.
+  const hasWindGlider = Boolean(state.ownedItemIds?.includes('wind_glider'));
+  const inShrineGliderThermal =
     !state.isFlying &&
     !state.isSwimming &&
     !state.mountedHorseId &&
     !state.climbingLadderId &&
-    !state.onGround &&
-    input.jumpHeld &&
-    state.vy < 0 &&
-    Boolean(state.ownedItemIds?.includes('wind_glider'));
-  // Only written once the glider has been used, so players who never glide keep the same state shape.
-  if (canGlide || state.isGliding !== undefined) state.isGliding = canGlide;
-  if (canGlide) {
-    if (state.vy < -WIND_GLIDER_FALL_SPEED_MPS) {
-      state.vy += (-WIND_GLIDER_FALL_SPEED_MPS - state.vy) * (1 - Math.exp(-WIND_GLIDER_BRAKE_PER_SEC * dt));
-      // Snap the last bit so gravity cannot hold the glide just under the cap.
-      if (state.vy > -WIND_GLIDER_FALL_SPEED_MPS - 0.6) state.vy = -WIND_GLIDER_FALL_SPEED_MPS;
-    }
+    hasWindGlider &&
+    (input.jumpHeld || input.jumpPressed) &&
+    isInsideNorthernShrineGliderThermal(state.x, state.y, state.z);
+
+  if (inShrineGliderThermal) {
+    const mirrorHoverY =
+      DRAGON_PORTAL_SHRINE_POS.targetH +
+      DRAGON_PORTAL_SHRINE_POS.plinthHeight +
+      DRAGON_PORTAL_SHRINE_POS.mirrorCenterLocal.y -
+      1.0;
+    const targetVy =
+      state.y < mirrorHoverY - 2.0
+        ? 11.8
+        : Math.max(-0.5, Math.min(4.5, (mirrorHoverY - state.y) * 2.2));
+    state.vy += (targetVy - state.vy) * (1 - Math.exp(-7.5 * dt));
+    state.onGround = false;
+    state.coyoteTimer = 0;
+    state.isGliding = true;
     if (input.forward > 0.1) {
       state.x += -Math.sin(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
       state.z += -Math.cos(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
+    }
+  } else {
+    // Wind Glider: holding jump while falling, with the glider in the inventory, brakes the fall
+    // to a slow glide (no fall damage on landing) and adds forward speed while forward is held.
+    const canGlide =
+      !state.isFlying &&
+      !state.isSwimming &&
+      !state.mountedHorseId &&
+      !state.climbingLadderId &&
+      !state.onGround &&
+      input.jumpHeld &&
+      state.vy < 0 &&
+      hasWindGlider;
+    // Only written once the glider has been used, so players who never glide keep the same state shape.
+    if (canGlide || state.isGliding !== undefined) state.isGliding = canGlide;
+    if (canGlide) {
+      if (state.vy < -WIND_GLIDER_FALL_SPEED_MPS) {
+        state.vy += (-WIND_GLIDER_FALL_SPEED_MPS - state.vy) * (1 - Math.exp(-WIND_GLIDER_BRAKE_PER_SEC * dt));
+        // Snap the last bit so gravity cannot hold the glide just under the cap.
+        if (state.vy > -WIND_GLIDER_FALL_SPEED_MPS - 0.6) state.vy = -WIND_GLIDER_FALL_SPEED_MPS;
+      }
+      if (input.forward > 0.1) {
+        state.x += -Math.sin(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
+        state.z += -Math.cos(state.yaw) * WIND_GLIDER_FORWARD_BOOST_MPS * input.forward * dt;
+      }
     }
   }
 
@@ -1949,11 +2023,18 @@ export function stepPlayerPhysics(
     }
   }
 
-  const distFromCenter = Math.hypot(nextX, nextZ);
-  if (distFromCenter > PLAYABLE_RADIUS) {
-    const scaleBack = PLAYABLE_RADIUS / distFromCenter;
-    nextX *= scaleBack;
-    nextZ *= scaleBack;
+  const wasInDragonRealm = isInsideDragonRealm(state.x, state.z, state.y);
+  if (wasInDragonRealm) {
+    const clampedRealm = clampInsideDragonRealmBounds(nextX, nextZ);
+    nextX = clampedRealm.x;
+    nextZ = clampedRealm.z;
+  } else {
+    const distFromCenter = Math.hypot(nextX, nextZ);
+    if (distFromCenter > PLAYABLE_RADIUS) {
+      const scaleBack = PLAYABLE_RADIUS / distFromCenter;
+      nextX *= scaleBack;
+      nextZ *= scaleBack;
+    }
   }
 
   const dxMoved = nextX - state.x;
@@ -2132,6 +2213,18 @@ export function stepPlayerPhysics(
       state.onGround = true;
       state.lastLandingSpeed = 0;
     }
+  }
+
+  // Dragon Realm astral void fall recovery: falling off an obsidian ledge returns the explorer safely to the Arrival Dais.
+  if (!state.isFlying && wasInDragonRealm && state.y <= DRAGON_REALM_BOUNDS.fallRecoveryY) {
+    state.x = DRAGON_REALM_SPAWN_POS.x;
+    state.y = DRAGON_REALM_SPAWN_POS.y;
+    state.z = DRAGON_REALM_SPAWN_POS.z;
+    state.vx = 0;
+    state.vy = 0;
+    state.vz = 0;
+    state.onGround = true;
+    state.lastLandingSpeed = 0;
   }
 
   state.currentBiome = getSurfaceBiomeAt(state.x, state.z, state.y);

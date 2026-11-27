@@ -27,6 +27,8 @@ export const DEFAULT_ENTITY_HITBOXES: Readonly<Record<string, IEntityHitboxOverr
   ranger_third_person: { radius: 0.44, height: 1.85, bodyRadius: 0.45 },
   forest_dragon: { radius: 5.2, height: 6.5, bodyRadius: 2.4 },
   demon_dragon: { radius: 5.2, height: 6.5, bodyRadius: 2.4 },
+  skeleton_dragon: { radius: 4.8, height: 7.2, bodyRadius: 2.4 },
+  hydra_dragon: { radius: 5.2, height: 6.4, bodyRadius: 2.6 },
   forest_bear: { radius: 2.45, height: 3.05, bodyRadius: 1.45 },
   river_crocodile: { radius: 2.65, height: 1.55, bodyRadius: 1.25 },
   savanna_rhino: { radius: 2.65, height: 2.65, bodyRadius: 1.4 },
@@ -48,6 +50,8 @@ export const DEFAULT_ENTITY_HITBOXES: Readonly<Record<string, IEntityHitboxOverr
  */
 export const WILDLIFE_SPECIES_TO_ENTITY_ID: Readonly<Record<string, string>> = {
   dragon: 'forest_dragon',
+  skeleton_dragon: 'skeleton_dragon',
+  hydra_dragon: 'hydra_dragon',
   bear: 'forest_bear',
   crocodile: 'river_crocodile',
   rhino: 'savanna_rhino',

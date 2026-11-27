@@ -33,6 +33,7 @@ import {
   getAnimalSpeciesName,
   getPlayerHeroLevel,
   isPositionUnderRoof,
+  isInsideDragonRealm,
   sellMarketItem,
   toggleFavoriteItem,
   triggerSwordSlash,
@@ -150,8 +151,12 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
     if (yaw !== undefined && (!Number.isFinite(yaw) || typeof yaw !== 'number')) return false;
     if (pitch !== undefined && (!Number.isFinite(pitch) || typeof pitch !== 'number')) return false;
 
-    const targetX = x !== undefined ? validateCoordinate(x as number) : playerState.x;
-    const targetZ = z !== undefined ? validateCoordinate(z as number) : playerState.z;
+    const rawX = typeof x === 'number' ? x : playerState.x;
+    const rawZ = typeof z === 'number' ? z : playerState.z;
+    const rawY = typeof y === 'number' ? y : playerState.y;
+    const targetingDragonRealm = isInsideDragonRealm(rawX, rawZ, rawY);
+    const targetX = x !== undefined ? (targetingDragonRealm ? rawX : validateCoordinate(rawX)) : playerState.x;
+    const targetZ = z !== undefined ? (targetingDragonRealm ? rawZ : validateCoordinate(rawZ)) : playerState.z;
 
     if (playerState.mountedHorseId && Math.hypot(targetX - playerState.x, targetZ - playerState.z) > 12) {
       playerState.mountedHorseId = null;
@@ -439,6 +444,7 @@ export function registerWindowDebugBridge(deps: IWindowDebugBridgeDeps): () => v
       isCrouching: Boolean(playerState.isCrouching),
       colliderDebugVisible: Boolean(deps.isColliderDebugVisible?.()),
       inWater: playerState.inWater,
+      inDragonRealm: isInsideDragonRealm(playerState.x, playerState.z, playerState.y),
       cameraPerspective: playerState.cameraPerspective,
       equippedTool: playerState.equippedTool,
       activeWeaponId: playerState.activeWeaponId ?? 'bow',

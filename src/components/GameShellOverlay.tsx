@@ -1862,6 +1862,24 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
               </div>
             )}
 
+            {/* Dragon Mirror Gate Portal Traversal Prompt */}
+            {telemetry.nearbyDragonPortal && (
+              <div
+                data-testid="dragon-portal-prompt"
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-purple-100 shadow-2xl"
+                style={{
+                  backgroundColor: 'rgba(18, 10, 36, 0.94)',
+                  border: '1px solid rgba(168, 85, 247, 0.85)',
+                }}
+              >
+                <span className="font-semibold tracking-wide text-sm text-purple-200">
+                  {telemetry.nearbyDragonPortal.destination === 'dragon_realm'
+                    ? t('hud.enter_dragon_realm')
+                    : t('hud.return_from_dragon_realm')}
+                </span>
+              </div>
+            )}
+
             {/* Skybound Isles Puzzle Mechanism Prompt (levers, runes, resonance crystals) */}
             {telemetry.nearbySkyMechanism && (
               <div
@@ -2173,6 +2191,8 @@ export const GameShellOverlay = React.memo<IGameShellOverlayProps>(({
         yawDeg={telemetry.yawDeg}
         isPlaying={gameState === 'playing'}
         godMode={gameSettings.godMode !== false}
+        dragonPortalActive={Boolean(telemetry.dragonPortalActive)}
+        onToggleDragonPortalDebug={gameActions?.onToggleDragonPortalDebug}
         onTeleportToWorldPos={(wx, wz, layer) => {
           gameActions?.onTeleportToWorldPos?.(wx, wz, layer);
         }}

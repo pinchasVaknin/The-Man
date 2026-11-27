@@ -725,7 +725,8 @@ export const en = {
     "crystal_isles": "Crystal Isles",
     "storm_island": "Storm Island",
     "forgotten_airship": "Forgotten Airship",
-    "hidden_isle": "Hidden Isle"
+    "hidden_isle": "Hidden Isle",
+    "dragon_mirror_shrine": "Dragon Mirror Gate"
   },
   "interactions": {
     "equipped_label": "[Equipped]",
@@ -1100,6 +1101,8 @@ export const en = {
     "wind_core_shortcut_opened": "Two Wind Cores burn — a wind current now rises from Sky Harbor to the Observatory",
     "windspire_awake": "All four Wind Cores burn — the Windspire wakes, and a wind current rises to its summit",
     "wind_cores_counter": "Wind Cores {active}/{total}",
+    "enter_dragon_realm": "Pass inside the Mirror Gate to enter Dragon Realm",
+    "return_from_dragon_realm": "Walk inside the Mirror Gate to return",
     "toggle_on": "On (F3)",
     "toggle_off": "Off (F3)"
   },
@@ -1133,7 +1136,12 @@ export const en = {
     "awoke": "Awoke refreshed at morning",
     "sleep_danger": "Cannot sleep while danger is nearby",
     "sleep_day_only": "You can only sleep at night",
-    "sleeping": "Sleeping until morning..."
+    "sleeping": "Sleeping until morning...",
+    "entered_dragon_realm": "Entered the Dragon Mirror Sanctum",
+    "returned_from_dragon_realm": "Returned through the Dragon Mirror",
+    "green_dragon_gate_opened": "The Green Dragon falls — the Colossal Mirror Gate in the frozen north awakens!",
+    "dragon_gate_debug_on": "Debug: Northern Dragon Mirror Gate forced OPEN",
+    "dragon_gate_debug_off": "Debug: Northern Dragon Mirror Gate forced CLOSED"
   },
   "wildlife": {
     "species": {
@@ -1149,6 +1157,8 @@ export const en = {
       "lion": "Lion",
       "stag": "Stag",
       "dragon": "Dragon",
+      "skeleton_dragon": "Skeletal Dragon",
+      "hydra_dragon": "Astral Hydra",
       "hippo": "Hippopotamus",
       "koifish": "Royal Koi Fish",
       "dolphin": "Ocean Dolphin"

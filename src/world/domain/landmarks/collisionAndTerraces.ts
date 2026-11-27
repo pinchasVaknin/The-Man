@@ -63,6 +63,8 @@ import {
   CHINESE_BAGUA_PLATFORM_POS,
   SACRED_CLOUD_MOUNTAIN_SOLID_BOXES,
 } from './sacredCloudMountainLandmarks';
+import { DRAGON_PORTAL_SHRINE_POS } from './dragonRealm/dragonRealmLayout';
+import { DRAGON_REALM_COLLIDER_BOXES } from './dragonRealm/dragonRealmWorld';
 // #endregion
 
 // ======================== CONSTANTS & TYPES ======================== \\
@@ -1862,6 +1864,7 @@ export const SOLID_BUILDING_BOXES: ISolidBuildingBox[] = [
     minY: NORDIC_FROST_SHRINE_POS.floorY,
     maxY: NORDIC_FROST_SHRINE_POS.floorY + 1.0,
   },
+  ...DRAGON_REALM_COLLIDER_BOXES,
 ];
 // #endregion
 
@@ -1903,6 +1906,13 @@ export const FLAT_BUILDING_TERRACES = [
   { x: -322.0, z: -294.0, innerR: 22.0, outerR: 33.0, targetH: NORDIC_FROST_SHRINE_POS.floorY },
   { x: -296.0, z: -294.0, innerR: 22.0, outerR: 33.0, targetH: NORDIC_FROST_SHRINE_POS.floorY },
   { x: DESERT_PYRAMID_SANCTUARY_POS.x + 8.0, z: DESERT_PYRAMID_SANCTUARY_POS.z, innerR: 42.0, outerR: 58.0, targetH: DESERT_PYRAMID_SANCTUARY_POS.baseY },
+  {
+    x: DRAGON_PORTAL_SHRINE_POS.x,
+    z: DRAGON_PORTAL_SHRINE_POS.z,
+    innerR: DRAGON_PORTAL_SHRINE_POS.innerRadius,
+    outerR: DRAGON_PORTAL_SHRINE_POS.outerRadius,
+    targetH: DRAGON_PORTAL_SHRINE_POS.targetH,
+  },
 ] as const;
 // #endregion
 
@@ -1992,6 +2002,7 @@ export const CLEAR_ZONES = [
   { x: SMUGGLER_ISLAND_POS.x, z: SMUGGLER_ISLAND_POS.z, r: 34.0 },
   { x: CHINESE_BAGUA_PLATFORM_POS.x, z: CHINESE_BAGUA_PLATFORM_POS.z, r: 12.5 },
   { x: SACRED_CLOUD_MOUNTAIN_POS.x, z: SACRED_CLOUD_MOUNTAIN_POS.z, r: SACRED_CLOUD_MOUNTAIN_POS.zoneRadius },
+  { x: DRAGON_PORTAL_SHRINE_POS.x, z: DRAGON_PORTAL_SHRINE_POS.z, r: DRAGON_PORTAL_SHRINE_POS.clearRadius },
 ];
 // #endregion
 
@@ -2270,6 +2281,12 @@ export const COLLIDABLE_WORLD_ENTITY_REGISTRY: readonly ICollidableWorldEntity[]
       'nordic-hotspring-east-crates-north',
       'nordic-hotspring-east-crates-south',
     ],
+  },
+  {
+    entityId: 'dragon-mirror-shrine-and-realm',
+    category: 'building',
+    collidable: true,
+    solidBoxIds: DRAGON_REALM_COLLIDER_BOXES.map((b) => b.id),
   },
 ] as const;
 

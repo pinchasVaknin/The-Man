@@ -18,6 +18,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PerfStats } from '../../core/perfStats';
 import { SOLID_BUILDING_BOXES } from '../terrainMath';
+import { isInsideDragonRealm } from '../domain/landmarksRegistry';
 import {
   WeatherKind,
   WeatherCycleMode,
@@ -498,7 +499,11 @@ export function createRenderFrame(ctx: IRenderFrameContext): (frameDt: number, n
     sky.position.copy(camera.position);
     sunDiscMesh.position.copy(_sunVec).multiplyScalar(215).add(camera.position);
 
-    setCameraUndergroundMask(camera, isPlayerUnderground(playerState.x, playerState.y, playerState.z));
+    setCameraUndergroundMask(
+      camera,
+      isPlayerUnderground(playerState.x, playerState.y, playerState.z) ||
+        isInsideDragonRealm(playerState.x, playerState.z, playerState.y)
+    );
     renderer.render(scene, camera);
   };
 }

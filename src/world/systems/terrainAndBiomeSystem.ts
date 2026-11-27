@@ -75,6 +75,10 @@ import {
   sacredCloudMountainWaterSurfaceAt,
   sacredMountainTerrainHeightAt,
   teardropPoolSignedDist,
+  DRAGON_REALM_BOUNDS,
+  isInsideDragonRealm,
+  dragonRealmWalkableHeightAt,
+  surfaceDragonShrineHeightAt,
 } from '../domain/landmarksRegistry';
 import {
   southernMineCeilingHeightAt,
@@ -1777,6 +1781,9 @@ export function isNavigableOceanForShip(x: number, z: number): boolean {
  * @returns Water surface height in meters, or null where there is no water.
  */
 export function getWaterSurfaceHeightAt(x: number, z: number, currentY?: number): number | null {
+  if (isInsideDragonRealm(x, z, currentY)) {
+    return null;
+  }
   const sacredPoolWaterY = sacredCloudMountainWaterSurfaceAt(x, z, currentY);
   if (sacredPoolWaterY !== null) {
     return sacredPoolWaterY;
@@ -1924,6 +1931,18 @@ export function walkableHeightAt(
   currentY?: number,
   out?: IWalkableHeightSample
 ): IWalkableHeightSample {
+  if (isInsideDragonRealm(x, z, currentY)) {
+    const realmY = dragonRealmWalkableHeightAt(x, z, currentY);
+    return writeWalkableSample(
+      out,
+      realmY ?? DRAGON_REALM_BOUNDS.fallRecoveryY - 4.0,
+      'bridge'
+    );
+  }
+  const shrineY = surfaceDragonShrineHeightAt(x, z, currentY);
+  if (shrineY !== null) {
+    return writeWalkableSample(out, shrineY, 'bridge');
+  }
   if (Math.abs(x) <= 21.8 && z >= -215.6 + FZ && z <= -187.8 + FZ) {
     if (z > -189.8 + FZ && Math.abs(x) <= 4.2) {
       const tStep = Math.max(0, Math.min(1, (-187.8 + FZ - z) / 2.0));

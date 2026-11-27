@@ -47,6 +47,8 @@ import { buildOasisModels } from './models/structures/oasisModels';
 import { buildVolcanoAndFloatingIslandsModels } from './models/structures/volcanoAndFloatingIslandsModels';
 import { buildAtlantisAndShipModels } from './models/structures/atlantisAndShipModels';
 import { buildSacredCloudMountainModel } from './models/structures/sacredCloudMountainBuilder';
+import { buildDragonRealmModels } from './models/structures/dragonRealmBuilder';
+import { preloadDragonRealmModels } from './models/structures/dragonRealmAssets';
 import { buildEnvironmentAtmosphereModels } from './models/structures/environmentAtmosphereModels';
 import { createArchitecturalSharedAssets } from './models/structures/architecturalHelpers';
 import { createBirchBarkTexture } from './builders/shaderAndMaterialBuilders';
@@ -178,6 +180,7 @@ export async function buildRealisticWorld(
     preloadAllSaddleModels(),
     preloadAllCharacterModels(),
     preloadBlockingAnimalModels(),
+    preloadDragonRealmModels().catch(() => undefined),
   ]);
   buildVegetationModels(ctx);
   await stage('settlements');
@@ -198,6 +201,8 @@ export async function buildRealisticWorld(
   const { updateAtlantisAndShip } = buildAtlantisAndShipModels(ctx);
   await yieldToBrowser();
   const { updateSacredCloudMountain } = buildSacredCloudMountainModel(ctx);
+  await yieldToBrowser();
+  const { updateDragonRealm } = buildDragonRealmModels(ctx);
 
   await stage('sky and weather');
   const { pollenPoints, starsMaterial, cloudMesh, updateEnvironment } =
@@ -330,6 +335,7 @@ export async function buildRealisticWorld(
       colliderDebugHandles.syncDynamicColliders?.();
     }
     updateSacredCloudMountain(elapsedTime, playerX, playerZ);
+    updateDragonRealm(elapsedTime, playerX, playerState?.y ?? 2.15, playerZ);
     updateEnvironment(
       elapsedTime,
       playerX,

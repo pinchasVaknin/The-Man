@@ -994,6 +994,7 @@ export interface IGameActions {
   readonly onTakeAllFromWorkbenchStash?: () => void;
   readonly onOpenTrapWorkbench?: () => void;
   readonly onCloseTrapWorkbench?: () => void;
+  readonly onToggleDragonPortalDebug?: () => boolean;
 }
 // #endregion
 // #endregion

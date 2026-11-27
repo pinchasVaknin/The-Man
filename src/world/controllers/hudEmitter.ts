@@ -51,13 +51,20 @@ export function buildHudTelemetryInput(src: IHudEmitSources): IHudTelemetryInput
 
   let activeEnemyHealthBar: IHudTelemetryInput['activeEnemyHealthBar'] = null;
   if (showEnemyBar && hit) {
+    const isDragonBoss =
+      hit.species === 'dragon' ||
+      hit.species === 'skeleton_dragon' ||
+      hit.species === 'hydra_dragon';
     activeEnemyHealthBar = {
       id: hit.id,
-      name: hit.isBoss ? `King ${getAnimalSpeciesName(hit.species)}` : getAnimalSpeciesName(hit.species),
+      name:
+        hit.isBoss && !isDragonBoss
+          ? `King ${getAnimalSpeciesName(hit.species)}`
+          : getAnimalSpeciesName(hit.species),
       level: getAnimalStrengthAndLevel(hit).level,
       hp: Math.max(0, hit.hp ?? 0),
       maxHp: Math.max(1, hit.maxHp ?? 1),
-      isBoss: Boolean(hit.isBoss || hit.species === 'dragon'),
+      isBoss: Boolean(hit.isBoss || isDragonBoss),
       isSubdued: Boolean(hit.isSubdued),
     };
   } else if (combatDwarf) {

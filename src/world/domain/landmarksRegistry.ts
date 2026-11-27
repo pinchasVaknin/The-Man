@@ -431,4 +431,44 @@ export {
 } from './landmarks/sacredCloudMountainLandmarks';
 // #endregion
 
-
+// ======================== DRAGON MIRROR SHRINE & REALM ======================== \\
+// #region Dragon Mirror Shrine & Realm
+export {
+  DRAGON_PORTAL_SHRINE_POS,
+  DRAGON_SURFACE_RETURN_POS,
+  DRAGON_REALM_ORIGIN,
+  DRAGON_REALM_BOUNDS,
+  DRAGON_REALM_ARRIVAL_DAIS,
+  DRAGON_REALM_SPAWN_POS,
+  DRAGON_REALM_RETURN_GATE,
+  DRAGON_REALM_CAUSEWAY,
+  DRAGON_REALM_PLAZA,
+  DRAGON_REALM_WEST_DAIS,
+  DRAGON_REALM_EAST_DAIS,
+  DRAGON_REALM_NORTH_THRONE,
+  DRAGON_REALM_FLOATING_ISLANDS,
+  DRAGON_REALM_GUARDIAN_SPAWNS,
+  DRAGON_PORTAL_TELEPORT_COOLDOWN_SEC,
+} from './landmarks/dragonRealm/dragonRealmLayout';
+export {
+  type DragonPortalDebugOverride,
+  getDragonPortalDebugOverride,
+  setDragonPortalDebugOverride,
+  resetDragonPortalDebugOverride,
+  isGreenDragonDefeated,
+  isSurfaceDragonPortalActive,
+  toggleDragonPortalDebug,
+  isInsideNorthernShrineGliderThermal,
+  isInsideDragonRealm,
+  dragonRealmWalkableHeightAt,
+  surfaceDragonShrineHeightAt,
+  clampInsideDragonRealmBounds,
+  getSurfaceDragonMirrorPortalWorldPos,
+  getRealmReturnMirrorPortalWorldPos,
+  isPlayerNearSurfaceDragonPortal,
+  isPlayerInsideSurfacePortalThreshold,
+  isPlayerNearRealmReturnPortal,
+  isPlayerInsideRealmReturnThreshold,
+  DRAGON_REALM_COLLIDER_BOXES,
+} from './landmarks/dragonRealm/dragonRealmWorld';
+// #endregion

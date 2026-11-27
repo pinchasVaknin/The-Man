@@ -34,6 +34,14 @@ import {
   VOLCANO_SANCTUM_POS,
   SACRED_CLOUD_MOUNTAIN_POS,
   CHINESE_BAGUA_PLATFORM_POS,
+  DRAGON_PORTAL_SHRINE_POS,
+  DRAGON_REALM_ORIGIN,
+  DRAGON_REALM_RETURN_GATE,
+  DRAGON_REALM_WEST_DAIS,
+  DRAGON_REALM_EAST_DAIS,
+  DRAGON_REALM_NORTH_THRONE,
+  DRAGON_REALM_PLAZA,
+  isInsideDragonRealm,
 } from '../world/domain/landmarksRegistry';
 
 /**
@@ -47,6 +55,8 @@ export interface IExplorerMinimapProps {
   yawDeg: number;
   isPlaying?: boolean;
   godMode?: boolean;
+  dragonPortalActive?: boolean;
+  onToggleDragonPortalDebug?: () => boolean;
   onTeleportToWorldPos?: (
     worldX: number,
     worldZ: number,
@@ -106,6 +116,7 @@ const WORLD_MAP_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
   { id: 'murky_swamp', label: 'Murky Swamp & Hippo Marsh', x: MURKY_SWAMP_BIOME_POS.x, z: MURKY_SWAMP_BIOME_POS.z, color: '#4ade80' },
   { id: 'croc_lagoon', label: 'Crocodile River Bend', x: CROCODILE_RIVER_BEND_POS.x, z: CROCODILE_RIVER_BEND_POS.z, color: '#22c55e' },
   { id: 'bear_cave', label: 'Bear Mountain Caves', x: BEAR_MOUNTAIN_CAVES[0].x, z: BEAR_MOUNTAIN_CAVES[0].z, color: '#d97706' },
+  { id: 'dragon_mirror_shrine', label: 'Dragon Mirror Gate', x: DRAGON_PORTAL_SHRINE_POS.x, z: DRAGON_PORTAL_SHRINE_POS.z, color: '#a855f7' },
 ];
 
 const UNDERGROUND_MINE_LANDMARKS: readonly IWorldMapLandmarkPin[] = [
@@ -184,6 +195,8 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   yawDeg,
   isPlaying = true,
   godMode = true,
+  dragonPortalActive = false,
+  onToggleDragonPortalDebug,
   onTeleportToWorldPos,
 }) => {
   const displayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -197,6 +210,8 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   const lastRevealPosRef = useRef<{ x: number; z: number }>({ x: 99999, z: 99999 });
 
   const isPlayerInMine = isPlayerInsideUndergroundMine(playerX, playerY, playerZ);
+  const isPlayerInDragonRealm = isInsideDragonRealm(playerX, playerZ, playerY);
+  const [fogEpoch, setFogEpoch] = useState(0);
   const [isFullScreenMapOpen, setIsFullScreenMapOpen] = useState(false);
   const [mapLayer, setMapLayer] = useState<'surface' | 'mine'>(() =>
     isPlayerInMine ? 'mine' : 'surface'
@@ -309,7 +324,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
   }, [isPlaying, isFullScreenMapOpen]);
 
   // Initialize persistent Fog-of-War offscreen canvas and cached color arrays once,
-  // and listen for 'reset-world-minimap' to clear explored Fog-of-War cells on world reset.
+  // and listen for 'reset-world-minimap' / 'map-exploration-loaded' to rebuild or repaint Fog-of-War cells.
   useEffect(() => {
     const initOrClearFogCanvas = (clear: boolean) => {
       let off = offscreenCanvasRef.current;
@@ -340,32 +355,20 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       lastRevealPosRef.current = { x: 99999, z: 99999 };
     };
 
-    initOrClearFogCanvas(false);
-    const onReset = () => initOrClearFogCanvas(true);
-    window.addEventListener('reset-world-minimap', onReset);
-    return () => {
-      window.removeEventListener('reset-world-minimap', onReset);
-    };
-  }, []);
-
-  // S4: paint the explored cells from a loaded save (on mount, and when a save is loaded while the map is open).
-  useEffect(() => {
     const repaintExplored = () => {
-      const revealed = mapExplorationState.revealed;
+      let revealed = mapExplorationState.revealed;
+      if (!revealed || revealed.length !== GRID_SIZE * GRID_SIZE) {
+        initOrClearFogCanvas(true);
+        setFogEpoch((prev) => prev + 1);
+        return;
+      }
       const imgData = offscreenImgDataRef.current;
       const off = offscreenCanvasRef.current;
-      if (!revealed || !imgData || !off) return;
-      let hasExplored = false;
-      for (let i = 0; i < revealed.length; i++) {
-        if (revealed[i] !== 0) {
-          hasExplored = true;
-          break;
-        }
-      }
-      if (!hasExplored) return;
+      if (!imgData || !off) return;
       const ctx = off.getContext('2d');
       if (!ctx) return;
       const data = imgData.data;
+      let hasExplored = false;
       for (let i = 0; i < revealed.length; i++) {
         const level = revealed[i];
         const p = i * 4;
@@ -376,6 +379,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
           data[p + 3] = 255;
           continue;
         }
+        hasExplored = true;
         const wx = ((i % GRID_SIZE) + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
         const wz = (Math.floor(i / GRID_SIZE) + 0.5) * METERS_PER_CELL - MAP_WORLD_HALF;
         const [r, g, b] = sampleMinimapColorAt(wx, wz);
@@ -386,10 +390,24 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
         data[p + 3] = 255;
       }
       ctx.putImageData(imgData, 0, 0);
+      if (!hasExplored) {
+        lastRevealPosRef.current = { x: 99999, z: 99999 };
+      }
+      setFogEpoch((prev) => prev + 1);
     };
+
+    initOrClearFogCanvas(false);
     repaintExplored();
+    const onReset = () => {
+      initOrClearFogCanvas(true);
+      setFogEpoch((prev) => prev + 1);
+    };
+    window.addEventListener('reset-world-minimap', onReset);
     window.addEventListener('map-exploration-loaded', repaintExplored);
-    return () => window.removeEventListener('map-exploration-loaded', repaintExplored);
+    return () => {
+      window.removeEventListener('reset-world-minimap', onReset);
+      window.removeEventListener('map-exploration-loaded', repaintExplored);
+    };
   }, []);
 
   // Lazily build the full-world topographic terrain texture the first time the Full-Screen Map is opened
@@ -482,21 +500,24 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
 
   useEffect(() => {
     const displayCanvas = displayCanvasRef.current;
+    if (!displayCanvas) return;
+    const dispCtx = displayCanvas.getContext('2d');
+    if (!dispCtx) return;
+
     const offCanvas = offscreenCanvasRef.current;
     const imgData = offscreenImgDataRef.current;
+    if (!mapExplorationState.revealed || mapExplorationState.revealed.length !== GRID_SIZE * GRID_SIZE) {
+      mapExplorationState.revealed = new Uint8Array(GRID_SIZE * GRID_SIZE);
+    }
     const revealed = mapExplorationState.revealed;
-    if (!displayCanvas || !offCanvas || !imgData || !revealed) return;
-
-    const offCtx = offCanvas.getContext('2d');
-    const dispCtx = displayCanvas.getContext('2d');
-    if (!offCtx || !dispCtx) return;
+    const offCtx = offCanvas ? offCanvas.getContext('2d') : null;
 
     // 1. Reveal surface cells within DISCOVERY_RADIUS_M around (playerX, playerZ) when on the surface
     const movedDist = Math.hypot(
       playerX - lastRevealPosRef.current.x,
       playerZ - lastRevealPosRef.current.z
     );
-    if (!isPlayerInMine && movedDist >= 6.0) {
+    if (!isPlayerInMine && !isPlayerInDragonRealm && offCtx && imgData && movedDist >= 6.0) {
       lastRevealPosRef.current = { x: playerX, z: playerZ };
 
       const centerCellX = Math.floor((playerX + MAP_WORLD_HALF) / METERS_PER_CELL);
@@ -595,58 +616,114 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     dispCtx.arc(halfW, halfH, halfW - 2, 0, Math.PI * 2);
     dispCtx.clip();
 
-    // Base unexplored background
-    dispCtx.fillStyle = isPlayerInMine ? '#121014' : '#151310';
-    dispCtx.fillRect(0, 0, w, h);
+    if (isPlayerInDragonRealm) {
+      // Render dedicated Astral Dragon Realm schematic radar
+      dispCtx.fillStyle = '#090616';
+      dispCtx.fillRect(0, 0, w, h);
 
-    // Source crop rectangle in offscreen canvas centered on player
-    const activeRadarCanvas = isPlayerInMine
-      ? ensureUndergroundMineCanvas() ?? offCanvas
-      : offCanvas;
-    const playerOffX = (playerX + MAP_WORLD_HALF) / METERS_PER_CELL;
-    const playerOffZ = (playerZ + MAP_WORLD_HALF) / METERS_PER_CELL;
-    const windowCells = VIEW_WINDOW_M / METERS_PER_CELL;
-    const halfWindowCells = windowCells / 2;
+      const toRadar = (wx: number, wz: number) => ({
+        rx: halfW + ((wx - playerX) / VIEW_WINDOW_M) * w,
+        rz: halfH + ((wz - playerZ) / VIEW_WINDOW_M) * h,
+      });
 
-    dispCtx.drawImage(
-      activeRadarCanvas,
-      playerOffX - halfWindowCells,
-      playerOffZ - halfWindowCells,
-      windowCells,
-      windowCells,
-      0,
-      0,
-      w,
-      h
-    );
+      // Causeway bridge lane connecting Arrival Dais to Plaza
+      const causeTop = toRadar(DRAGON_REALM_ORIGIN.x - 4.2, DRAGON_REALM_ORIGIN.z + 18);
+      const causeBot = toRadar(DRAGON_REALM_ORIGIN.x + 4.2, DRAGON_REALM_ORIGIN.z + 38);
+      dispCtx.fillStyle = 'rgba(139, 92, 246, 0.28)';
+      dispCtx.fillRect(
+        causeTop.rx,
+        causeTop.rz,
+        causeBot.rx - causeTop.rx,
+        causeBot.rz - causeTop.rz
+      );
 
-    // Subtle topographic range rings around player (30m and 60m)
-    dispCtx.strokeStyle = 'rgba(255, 248, 220, 0.11)';
-    dispCtx.lineWidth = 1;
-    for (const ringM of [32, 64]) {
-      const rPx = (ringM / VIEW_WINDOW_M) * w;
-      dispCtx.beginPath();
-      dispCtx.arc(halfW, halfH, rPx, 0, Math.PI * 2);
-      dispCtx.stroke();
-    }
+      // Sanctum platforms & boss daises
+      const platformCircles = [
+        { lx: DRAGON_REALM_PLAZA.lx, lz: DRAGON_REALM_PLAZA.lz, radius: DRAGON_REALM_PLAZA.radius, fill: 'rgba(88, 28, 135, 0.30)', stroke: 'rgba(168, 85, 247, 0.60)' },
+        { lx: 0, lz: 48, radius: 11.5, fill: 'rgba(56, 189, 248, 0.18)', stroke: 'rgba(56, 189, 248, 0.55)' },
+        { lx: DRAGON_REALM_WEST_DAIS.lx, lz: DRAGON_REALM_WEST_DAIS.lz, radius: DRAGON_REALM_WEST_DAIS.radius, fill: 'rgba(56, 189, 248, 0.22)', stroke: 'rgba(125, 211, 252, 0.72)' },
+        { lx: DRAGON_REALM_EAST_DAIS.lx, lz: DRAGON_REALM_EAST_DAIS.lz, radius: DRAGON_REALM_EAST_DAIS.radius, fill: 'rgba(16, 185, 129, 0.22)', stroke: 'rgba(52, 211, 153, 0.72)' },
+        { lx: DRAGON_REALM_NORTH_THRONE.lx, lz: DRAGON_REALM_NORTH_THRONE.lz, radius: DRAGON_REALM_NORTH_THRONE.radius, fill: 'rgba(245, 158, 11, 0.20)', stroke: 'rgba(251, 191, 36, 0.65)' },
+      ];
+      for (const plat of platformCircles) {
+        const pt = toRadar(DRAGON_REALM_ORIGIN.x + plat.lx, DRAGON_REALM_ORIGIN.z + plat.lz);
+        const radPx = (plat.radius / VIEW_WINDOW_M) * w;
+        dispCtx.fillStyle = plat.fill;
+        dispCtx.strokeStyle = plat.stroke;
+        dispCtx.lineWidth = 1.5;
+        dispCtx.beginPath();
+        dispCtx.arc(pt.rx, pt.rz, radPx, 0, Math.PI * 2);
+        dispCtx.fill();
+        dispCtx.stroke();
+      }
 
-    // 2B. Draw Owned Sailable Ships on Minimap Radar (only on surface)
-    if (!isPlayerInMine) {
-      const ownedShips = getSpawnedSailableShips();
-      for (let i = 0; i < ownedShips.length; i++) {
-        const sh = ownedShips[i];
-        const dxM = sh.x - playerX;
-        const dzM = sh.z - playerZ;
-        const sx = halfW + (dxM / VIEW_WINDOW_M) * w;
-        const sz = halfH + (dzM / VIEW_WINDOW_M) * h;
-        if (Math.hypot(sx - halfW, sz - halfH) <= halfW - 6) {
-          dispCtx.fillStyle = '#38bdf8';
-          dispCtx.strokeStyle = '#0c0a09';
-          dispCtx.lineWidth = 1.8;
-          dispCtx.beginPath();
-          dispCtx.arc(sx, sz, 4.2, 0, Math.PI * 2);
-          dispCtx.fill();
-          dispCtx.stroke();
+      const realmPins = [
+        { wx: DRAGON_REALM_ORIGIN.x + DRAGON_REALM_RETURN_GATE.lx, wz: DRAGON_REALM_ORIGIN.z + DRAGON_REALM_RETURN_GATE.lz, color: '#38bdf8' },
+        { wx: DRAGON_REALM_ORIGIN.x + DRAGON_REALM_WEST_DAIS.lx, wz: DRAGON_REALM_ORIGIN.z + DRAGON_REALM_WEST_DAIS.lz, color: '#7dd3fc' },
+        { wx: DRAGON_REALM_ORIGIN.x + DRAGON_REALM_EAST_DAIS.lx, wz: DRAGON_REALM_ORIGIN.z + DRAGON_REALM_EAST_DAIS.lz, color: '#34d399' },
+        { wx: DRAGON_REALM_ORIGIN.x + DRAGON_REALM_NORTH_THRONE.lx, wz: DRAGON_REALM_ORIGIN.z + DRAGON_REALM_NORTH_THRONE.lz, color: '#f59e0b' },
+      ];
+      for (const rp of realmPins) {
+        const pt = toRadar(rp.wx, rp.wz);
+        dispCtx.fillStyle = rp.color;
+        dispCtx.beginPath();
+        dispCtx.arc(pt.rx, pt.rz, 4.0, 0, Math.PI * 2);
+        dispCtx.fill();
+      }
+    } else if (offCanvas) {
+      // Base unexplored background
+      dispCtx.fillStyle = isPlayerInMine ? '#121014' : '#151310';
+      dispCtx.fillRect(0, 0, w, h);
+
+      // Source crop rectangle in offscreen canvas centered on player
+      const activeRadarCanvas = isPlayerInMine
+        ? ensureUndergroundMineCanvas() ?? offCanvas
+        : offCanvas;
+      const playerOffX = (playerX + MAP_WORLD_HALF) / METERS_PER_CELL;
+      const playerOffZ = (playerZ + MAP_WORLD_HALF) / METERS_PER_CELL;
+      const windowCells = VIEW_WINDOW_M / METERS_PER_CELL;
+      const halfWindowCells = windowCells / 2;
+
+      dispCtx.drawImage(
+        activeRadarCanvas,
+        playerOffX - halfWindowCells,
+        playerOffZ - halfWindowCells,
+        windowCells,
+        windowCells,
+        0,
+        0,
+        w,
+        h
+      );
+
+      // Subtle topographic range rings around player (30m and 60m)
+      dispCtx.strokeStyle = 'rgba(255, 248, 220, 0.11)';
+      dispCtx.lineWidth = 1;
+      for (const ringM of [32, 64]) {
+        const rPx = (ringM / VIEW_WINDOW_M) * w;
+        dispCtx.beginPath();
+        dispCtx.arc(halfW, halfH, rPx, 0, Math.PI * 2);
+        dispCtx.stroke();
+      }
+
+      // 2B. Draw Owned Sailable Ships on Minimap Radar (only on surface)
+      if (!isPlayerInMine) {
+        const ownedShips = getSpawnedSailableShips();
+        for (let i = 0; i < ownedShips.length; i++) {
+          const sh = ownedShips[i];
+          const dxM = sh.x - playerX;
+          const dzM = sh.z - playerZ;
+          const sx = halfW + (dxM / VIEW_WINDOW_M) * w;
+          const sz = halfH + (dzM / VIEW_WINDOW_M) * h;
+          if (Math.hypot(sx - halfW, sz - halfH) <= halfW - 6) {
+            dispCtx.fillStyle = '#38bdf8';
+            dispCtx.strokeStyle = '#0c0a09';
+            dispCtx.lineWidth = 1.8;
+            dispCtx.beginPath();
+            dispCtx.arc(sx, sz, 4.2, 0, Math.PI * 2);
+            dispCtx.fill();
+            dispCtx.stroke();
+          }
         }
       }
     }
@@ -701,7 +778,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     dispCtx.fillRect(0, 0, w, h);
 
     dispCtx.restore();
-  }, [playerX, playerZ, yawDeg, isPlayerInMine, ensureUndergroundMineCanvas]);
+  }, [playerX, playerZ, yawDeg, isPlayerInMine, isPlayerInDragonRealm, ensureUndergroundMineCanvas, fogEpoch]);
 
   // Render the Full-Screen Interactive World Map whenever it is open
   useEffect(() => {
@@ -785,7 +862,25 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       const pz = mapTop + nz * mapDrawSize;
       if (px < -60 || px > w + 60 || pz < -40 || pz > h + 40) continue;
 
-      ctx.fillStyle = lm.color;
+      const isDragonShrine = lm.id === 'dragon_mirror_shrine';
+      const pinColor = isDragonShrine
+        ? dragonPortalActive
+          ? '#c084fc'
+          : '#64748b'
+        : lm.color;
+      const pinLabel = isDragonShrine
+        ? `${lm.label} (${dragonPortalActive ? 'Active' : 'Locked'})`
+        : lm.label;
+
+      if (isDragonShrine && dragonPortalActive) {
+        ctx.strokeStyle = 'rgba(192, 132, 252, 0.75)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(px, pz, 9.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = pinColor;
       ctx.strokeStyle = '#0c0a09';
       ctx.lineWidth = 2.2;
       ctx.beginPath();
@@ -794,11 +889,11 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
       ctx.stroke();
 
       // Label backdrop pill
-      const textWidth = ctx.measureText(lm.label).width;
+      const textWidth = ctx.measureText(pinLabel).width;
       ctx.fillStyle = 'rgba(12, 10, 8, 0.82)';
       ctx.fillRect(px - textWidth / 2 - 5, pz + 8, textWidth + 10, 17);
-      ctx.fillStyle = '#f5f5f4';
-      ctx.fillText(lm.label, px, pz + 20);
+      ctx.fillStyle = isDragonShrine && dragonPortalActive ? '#e9d5ff' : '#f5f5f4';
+      ctx.fillText(pinLabel, px, pz + 20);
     }
 
     // Always draw Owned/Spawned Sailable Ships on the Surface Map
@@ -858,6 +953,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
     mapLayer,
     showFullMap,
     godMode,
+    dragonPortalActive,
     mapZoom,
     panOffset,
     playerX,
@@ -973,9 +1069,11 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
           className="relative w-full h-full rounded-full flex items-center justify-center transition-transform group-hover:scale-[1.03]"
           style={{
             backgroundColor: 'rgba(18, 16, 13, 0.92)',
-            border: isPlayerInMine
-              ? '2px solid rgba(56, 189, 248, 0.65)'
-              : '2px solid rgba(217, 119, 6, 0.48)',
+            border: isPlayerInDragonRealm
+              ? '2px solid rgba(168, 85, 247, 0.78)'
+              : isPlayerInMine
+                ? '2px solid rgba(56, 189, 248, 0.65)'
+                : '2px solid rgba(217, 119, 6, 0.48)',
             boxShadow: '0 10px 28px rgba(0, 0, 0, 0.65)',
           }}
         >
@@ -1005,7 +1103,7 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
               border: '1px solid rgba(217, 119, 6, 0.45)',
             }}
           >
-            {isPlayerInMine ? '[M] Mine Map' : '[M] Map'}
+            {isPlayerInDragonRealm ? '[M] Sanctum' : isPlayerInMine ? '[M] Mine Map' : '[M] Map'}
           </div>
         </div>
       </div>
@@ -1072,6 +1170,21 @@ export const ExplorerMinimap = React.memo<IExplorerMinimapProps>(({
                   }`}
                 >
                   {showFullMap ? 'Full Map (Show Explored Only)' : 'Explored Only (Show Full Map)'}
+                </button>
+              )}
+
+              {godMode && onToggleDragonPortalDebug && (
+                <button
+                  type="button"
+                  data-testid="fullmap-toggle-dragon-portal"
+                  onClick={() => onToggleDragonPortalDebug()}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    dragonPortalActive
+                      ? 'bg-purple-500/35 border border-purple-400/70 text-purple-100 hover:bg-purple-500/45'
+                      : 'bg-stone-800 border border-stone-600 text-stone-300 hover:bg-stone-700'
+                  }`}
+                >
+                  {dragonPortalActive ? 'Dragon Gate: ON' : 'Dragon Gate: OFF'}
                 </button>
               )}
               <button

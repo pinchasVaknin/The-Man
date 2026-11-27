@@ -147,6 +147,16 @@ export interface ITelemetrySnapshot {
   telescopeView?: {
     islandName: string;
   } | null;
+  /** Surface or return Dragon Mirror portal within interaction range. */
+  nearbyDragonPortal?: {
+    destination: 'dragon_realm' | 'surface';
+  } | null;
+  /** True when the surface Dragon Mirror portal gate is currently active (Green Dragon slain or God Mode override). */
+  dragonPortalActive?: boolean;
+  /** Debug override state for the surface Dragon Mirror portal gate. */
+  dragonPortalDebugOverride?: 'auto' | 'open' | 'closed';
+  /** True when the player is currently inside the Dragon Mirror Sanctum. */
+  inDragonRealm?: boolean;
   nearbyPlacedTrap?: {
     id: string;
     kind: string;

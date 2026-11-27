@@ -17,6 +17,7 @@ import { preloadAllFloraModels } from './world/models/plants/floraAssets';
 import { preloadAllSaddleModels } from './world/models/equipment/saddleAssets';
 import { preloadAllCharacterModels } from './world/models/Characters/characterAssets';
 import { preloadAllStatueModels } from './world/models/statues/statueAssets';
+import { preloadDragonRealmModels } from './world/models/structures/dragonRealmAssets';
 import { preloadArcheryTargetModel } from './world/models/equipment/archeryTargetAssets';
 import { preloadShipModel } from './world/models/vehicles/shipAssets';
 import './index.css';
@@ -54,6 +55,9 @@ queueMicrotask(() => {
         }),
         preloadAllStatueModels().catch((err: unknown) => {
             appServices.logger.warn('Statue models could not be preloaded', { error: String(err) });
+        }),
+        preloadDragonRealmModels().catch((err: unknown) => {
+            appServices.logger.warn('Dragon realm models could not be preloaded', { error: String(err) });
         }),
         preloadArcheryTargetModel().catch((err: unknown) => {
             appServices.logger.warn('Archery target model could not be preloaded', { error: String(err) });

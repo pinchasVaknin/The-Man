@@ -27,6 +27,13 @@ import {
   walkableHeightValueAt,
 } from '../terrainMath';
 import { WATER_LEVEL } from '../domain/landmarksRegistry';
+import {
+  getDragonPortalDebugOverride,
+  isInsideDragonRealm,
+  isPlayerNearRealmReturnPortal,
+  isPlayerNearSurfaceDragonPortal,
+  isSurfaceDragonPortalActive,
+} from '../domain/landmarks/dragonRealm/dragonRealmWorld';
 import { getSkyTelescope } from '../domain/landmarks/skyboundIsles/skyTelescopes';
 import { getActiveWindCoreCount } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import { WIND_CORES } from '../domain/landmarks/skyboundIsles/windCoresLayout';
@@ -120,6 +127,16 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
   const viewingTelescope = player.telescopeViewId ? getSkyTelescope(player.telescopeViewId) : undefined;
   const nearTelescope = !viewingTelescope && lookedAt.kind === 'telescope' ? lookedAt.telescope : null;
   const nearMechanism = lookedAt.kind === 'sky_mechanism' ? lookedAt.mechanism : null;
+  const inDragonRealm = isInsideDragonRealm(player.x, player.z, player.y);
+  const dragonPortalActive = isSurfaceDragonPortalActive(input.activeAnimals ?? []);
+  const dragonPortalDebugOverride = getDragonPortalDebugOverride();
+  const nearbyDragonPortal: ITelemetrySnapshot['nearbyDragonPortal'] = inDragonRealm
+    ? isPlayerNearRealmReturnPortal(player.x, player.y, player.z)
+      ? { destination: 'surface' }
+      : null
+    : dragonPortalActive && isPlayerNearSurfaceDragonPortal(player.x, player.y, player.z)
+      ? { destination: 'dragon_realm' }
+      : null;
   const openJournal = getOpenSkyJournal();
   const nearJournal = !openJournal && lookedAt.kind === 'none' ? findReadableSkyJournal(player.x, player.y, player.z, player.yaw) : null;
   const nearStormBush =
@@ -349,6 +366,10 @@ export function buildTelemetrySnapshot(input: IHudTelemetryInput): ITelemetrySna
     ...(nearJournal ? { nearbyJournal: true } : {}),
     ...(nearTelescope ? { nearbyTelescope: { id: nearTelescope.id, islandName: skyIslandName(nearTelescope.targetIslandId) } } : {}),
     ...(viewingTelescope ? { telescopeView: { islandName: skyIslandName(viewingTelescope.targetIslandId) } } : {}),
+    ...(nearbyDragonPortal ? { nearbyDragonPortal } : {}),
+    dragonPortalActive,
+    dragonPortalDebugOverride,
+    ...(inDragonRealm ? { inDragonRealm: true } : {}),
     ...(nearMechanism ? { nearbySkyMechanism: { id: nearMechanism.id, label: t(nearMechanism.labelKey) } } : {}),
     ...(isInsideSkyboundRegion(player.x, player.z) ? { skyWindCores: { active: getActiveWindCoreCount(), total: WIND_CORES.length } } : {}),
     ...(nearbyPlacedTrap ? { nearbyPlacedTrap } : {}),

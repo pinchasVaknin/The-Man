@@ -585,6 +585,48 @@ export class NatureSoundEngine {
     src.start(now, this.randomSource() * 0.9, 0.2);
   }
 
+  /** Summary: Ethereal cosmic shimmer + spatial whoosh for traversing a Dragon Mirror portal. */
+  public playPortalWarp() {
+    if (!this.initialized) this.init();
+    if (!this.ctx || !this.masterGain || !this.noiseBuffer || this.muted) return;
+    this._resumeContext();
+    const now = this.ctx.currentTime;
+
+    // Deep dimensional whoosh
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.9;
+    filter.frequency.setValueAtTime(180, now);
+    filter.frequency.exponentialRampToValueAtTime(1600, now + 0.28);
+    filter.frequency.exponentialRampToValueAtTime(280, now + 0.72);
+    const whooshGain = this.ctx.createGain();
+    whooshGain.gain.setValueAtTime(0.001, now);
+    whooshGain.gain.linearRampToValueAtTime(0.24, now + 0.08);
+    whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.74);
+    src.connect(filter);
+    filter.connect(whooshGain);
+    whooshGain.connect(this.masterGain);
+    src.start(now, this.randomSource() * 0.6, 0.75);
+
+    // Resonant astral chord (C#5 - G#5 - E6)
+    for (const [freq, delay] of [[554.37, 0.0], [830.61, 0.06], [1318.51, 0.14]] as const) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.03, now + delay + 0.9);
+      const env = this.ctx.createGain();
+      env.gain.setValueAtTime(0.001, now + delay);
+      env.gain.linearRampToValueAtTime(0.11, now + delay + 0.04);
+      env.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.95);
+      osc.connect(env);
+      env.connect(this.masterGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + 1.0);
+    }
+  }
+
   public dispose() {
     if (this.ctx) {
       void this.ctx.close().catch((err: unknown) => {

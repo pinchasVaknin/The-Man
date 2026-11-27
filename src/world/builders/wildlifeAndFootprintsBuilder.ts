@@ -43,7 +43,14 @@ import {
   walkableHeightAt,
   groundHeightAt,
 } from '../systems/terrainAndBiomeSystem';
-import { WATER_LEVEL } from '../domain/landmarksRegistry';
+import { WATER_LEVEL, isInsideDragonRealm } from '../domain/landmarksRegistry';
+import {
+  createDragonRealmModelInstance,
+  getLoadedDragonRealmModel,
+  isDragonRealmModelLoaded,
+  loadDragonRealmModel,
+  type IDragonRealmModelAsset,
+} from '../models/structures/dragonRealmAssets';
 import { getInterpolatedShipPassengerPose } from '../systems/sailableShipSystem';
 import { SAVED_LAB_OVERRIDES } from '../../config/savedLabOverrides';
 import { LAB_POSE_OVERRIDES_STORAGE_KEY, mergeStoredLabOverrides } from '../../lab/labOverridesStorage';
@@ -258,6 +265,9 @@ export function buildWildlifeAndFootprintsLayer(
     stateHoldTimer?: number;
     pawBearTrapGroup?: THREE.Group;
     tailMesh?: THREE.Mesh;
+    realmDragonBreathCone?: THREE.Mesh;
+    realmDragonAuraRing?: THREE.Mesh;
+    realmDragonCoreGlow?: THREE.Mesh;
   }
   const animalMeshes: IAnimalMeshRig[] = [];
   const tmpPawWorldPos = new THREE.Vector3();
@@ -616,6 +626,108 @@ export function buildWildlifeAndFootprintsLayer(
         smoothHeadDip: 0,
         smoothLegAmp: 0,
       });
+    } else if (a.species === 'skeleton_dragon' || a.species === 'hydra_dragon') {
+      const isSkeleton = a.species === 'skeleton_dragon';
+      const auraColor = isSkeleton ? 0x38bdf8 : 0x34d399;
+      const breathColor = isSkeleton ? 0x7dd3fc : 0xa855f7;
+
+      const auraRingGeo = new THREE.RingGeometry(2.6, 3.65, 36);
+      auraRingGeo.rotateX(-Math.PI / 2);
+      const auraRingMat = new THREE.MeshBasicMaterial({
+        color: auraColor,
+        transparent: true,
+        opacity: 0.42,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      disposableGeometries.push(auraRingGeo);
+      disposableMaterials.push(auraRingMat);
+      const auraRing = new THREE.Mesh(auraRingGeo, auraRingMat);
+      auraRing.position.y = 0.08;
+      root.add(auraRing);
+
+      const coreGeo = new THREE.OctahedronGeometry(0.45, 0);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: auraColor,
+        transparent: true,
+        opacity: 0.88,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      disposableGeometries.push(coreGeo);
+      disposableMaterials.push(coreMat);
+      const coreGlow = new THREE.Mesh(coreGeo, coreMat);
+      coreGlow.position.set(0, isSkeleton ? 4.6 : 2.9, isSkeleton ? 0.8 : 1.5);
+      posePivot.add(coreGlow);
+
+      const breathGeo = new THREE.ConeGeometry(2.4, 12.0, 18, 1, true);
+      breathGeo.translate(0, -6.0, 0);
+      breathGeo.rotateX(Math.PI / 2);
+      const breathMat = new THREE.MeshBasicMaterial({
+        color: breathColor,
+        transparent: true,
+        opacity: 0.36,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      disposableGeometries.push(breathGeo);
+      disposableMaterials.push(breathMat);
+      const breathCone = new THREE.Mesh(breathGeo, breathMat);
+      breathCone.position.set(0, isSkeleton ? 5.2 : 3.8, isSkeleton ? 2.8 : 5.8);
+      breathCone.visible = false;
+      posePivot.add(breathCone);
+
+      const attachRealmDragonModel = (asset: IDragonRealmModelAsset) => {
+        const modelInstance = createDragonRealmModelInstance(asset, {
+          scale: isSkeleton ? 9.2 : 15.5,
+          castShadow: true,
+          receiveShadow: true,
+          yawOffset: 0,
+        });
+        modelInstance.traverse((obj) => {
+          const m = obj as THREE.Mesh;
+          if (!m.isMesh) return;
+          if (m.geometry && !disposableGeometries.includes(m.geometry)) {
+            disposableGeometries.push(m.geometry);
+          }
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          for (const mat of mats) {
+            if (mat && !disposableMaterials.includes(mat)) {
+              disposableMaterials.push(mat);
+            }
+          }
+        });
+        posePivot.add(modelInstance);
+      };
+
+      const modelId = isSkeleton ? 'skeleton_dragon' : 'hydra_dragon';
+      if (isDragonRealmModelLoaded(modelId)) {
+        attachRealmDragonModel(getLoadedDragonRealmModel(modelId));
+      } else {
+        void loadDragonRealmModel(modelId)
+          .then(attachRealmDragonModel)
+          .catch((err: unknown) => {
+            logger.warn(`Failed to load realm guardian model '${modelId}'`, {
+              error: String(err),
+            });
+          });
+      }
+
+      root.position.set(a.x, a.y, a.z);
+      root.rotation.y = a.yaw;
+      root.visible = false;
+      layerGroup.add(root);
+      animalMeshes.push({
+        root,
+        posePivot,
+        smoothHeadDip: 0,
+        smoothLegAmp: 0,
+        realmDragonBreathCone: breathCone,
+        realmDragonAuraRing: auraRing,
+        realmDragonCoreGlow: coreGlow,
+      });
     } else {
       const mat = a.species === 'rabbit' ? rabbitFurMat : squirrelFurMat;
       const body = new THREE.Mesh(critterBodyGeo, mat);
@@ -890,6 +1002,83 @@ export function buildWildlifeAndFootprintsLayer(
 
         if (a.isLooted) {
           rig.root.visible = false;
+          continue;
+        }
+
+        const isRealmGuardian = a.species === 'skeleton_dragon' || a.species === 'hydra_dragon';
+        if (isRealmGuardian) {
+          const inRealm =
+            renderPlayer !== undefined &&
+            isInsideDragonRealm(renderPlayer.x, renderPlayer.z, renderPlayer.y);
+          rig.root.visible = inRealm;
+          if (!inRealm) {
+            continue;
+          }
+          rig.root.position.set(a.x, a.y, a.z);
+          rig.root.rotation.set(0, a.yaw, 0, 'YXZ');
+
+          if (a.isDead) {
+            rig.posePivot.position.set(0, 1.0, 0);
+            rig.posePivot.rotation.set(0, 0, Math.PI * 0.42);
+            if (rig.realmDragonBreathCone) rig.realmDragonBreathCone.visible = false;
+            if (rig.realmDragonAuraRing) rig.realmDragonAuraRing.visible = false;
+            if (rig.realmDragonCoreGlow) rig.realmDragonCoreGlow.visible = false;
+            continue;
+          }
+
+          const rawSpd = Math.hypot(a.vx, a.vz);
+          const aiState = a.aiBehavior ?? 'grazing';
+          const isSkeleton = a.species === 'skeleton_dragon';
+          const floatPhase = elapsedTime * (isSkeleton ? 2.35 : 1.95) + i * 1.4;
+          const hoverY =
+            aiState === 'roaring'
+              ? 0.95 + Math.sin(floatPhase * 2.0) * 0.16
+              : aiState === 'charging'
+                ? 0.55 + Math.sin(floatPhase * 1.6) * 0.22
+                : 0.25 + Math.sin(floatPhase) * 0.14;
+          const bankRoll = Math.max(-0.18, Math.min(0.18, (a.yaw - (rig.prevYaw ?? a.yaw)) * -2.0));
+          rig.prevYaw = a.yaw;
+          const pitchTilt =
+            aiState === 'roaring'
+              ? -0.20
+              : aiState === 'attacking'
+                ? 0.14
+                : rawSpd > 0.3
+                  ? 0.06
+                  : Math.sin(floatPhase * 0.6) * 0.03;
+
+          rig.posePivot.position.set(0, hoverY, 0);
+          rig.posePivot.rotation.set(
+            pitchTilt,
+            Math.sin(floatPhase * 0.5) * 0.05,
+            bankRoll + Math.sin(floatPhase * 0.7) * 0.03
+          );
+          const breathe = 1 + Math.sin(floatPhase * 1.3) * 0.024;
+          rig.posePivot.scale.set(1, breathe, 1);
+
+          if (rig.realmDragonCoreGlow) {
+            rig.realmDragonCoreGlow.visible = true;
+            rig.realmDragonCoreGlow.rotation.y = elapsedTime * 2.2;
+            rig.realmDragonCoreGlow.scale.setScalar(
+              aiState === 'roaring' || aiState === 'attacking'
+                ? 1.35 + Math.sin(elapsedTime * 14) * 0.25
+                : 0.85 + Math.sin(elapsedTime * 3.5) * 0.12
+            );
+          }
+          if (rig.realmDragonAuraRing) {
+            rig.realmDragonAuraRing.visible = true;
+            rig.realmDragonAuraRing.rotation.z = elapsedTime * (isSkeleton ? 0.5 : -0.45);
+            const ringScale = 1 + Math.sin(elapsedTime * 3.0 + i) * 0.06;
+            rig.realmDragonAuraRing.scale.set(ringScale, ringScale, 1);
+          }
+          if (rig.realmDragonBreathCone) {
+            const breathing = aiState === 'attacking';
+            rig.realmDragonBreathCone.visible = breathing;
+            if (breathing) {
+              const pulse = 0.88 + Math.sin(elapsedTime * 22) * 0.14;
+              rig.realmDragonBreathCone.scale.set(pulse, pulse, 1.0 + Math.cos(elapsedTime * 16) * 0.08);
+            }
+          }
           continue;
         }
 

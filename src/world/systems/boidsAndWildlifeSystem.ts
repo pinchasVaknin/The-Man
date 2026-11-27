@@ -22,6 +22,11 @@ import {
   SOUTHWEST_OASIS_POS,
   MURKY_SWAMP_BIOME_POS,
   NORDIC_FROST_SHRINE_POS,
+  DRAGON_REALM_ORIGIN,
+  DRAGON_REALM_PLAZA,
+  DRAGON_REALM_GUARDIAN_SPAWNS,
+  dragonRealmWalkableHeightAt,
+  isInsideDragonRealm,
   SOLID_BUILDING_BOXES,
   resolveHorizontalBoxCollision,
   getNearbySolidBuildingBoxes,
@@ -74,6 +79,8 @@ export type GroundAnimalSpecies =
   | 'lion'
   | 'stag'
   | 'dragon'
+  | 'skeleton_dragon'
+  | 'hydra_dragon'
   | 'hippo'
   | 'koifish'
   | 'dolphin';
@@ -358,6 +365,12 @@ export function getAnimalStrengthAndLevel(animal: ISmallAnimalState): {
   if (animal.species === 'dragon') {
     defaultLevel = 18;
     baseStrength = 36;
+  } else if (animal.species === 'hydra_dragon') {
+    defaultLevel = 18;
+    baseStrength = 34;
+  } else if (animal.species === 'skeleton_dragon') {
+    defaultLevel = 16;
+    baseStrength = 30;
   } else if (animal.species === 'lion' && animal.isBoss) {
     defaultLevel = 15;
     baseStrength = 28;
@@ -397,7 +410,13 @@ export function getAnimalStrengthAndLevel(animal: ISmallAnimalState): {
   const xpRewardMultiplier = 1 + (level - 1) * 0.25;
 
   let threatRating: 'easy' | 'moderate' | 'dangerous' | 'deadly' = 'easy';
-  if (level >= 14 || animal.species === 'dragon' || animal.isBoss) {
+  if (
+    level >= 14 ||
+    animal.species === 'dragon' ||
+    animal.species === 'skeleton_dragon' ||
+    animal.species === 'hydra_dragon' ||
+    animal.isBoss
+  ) {
     threatRating = 'deadly';
   } else if (level >= 7 || ['bear', 'rhino', 'lion'].includes(animal.species)) {
     threatRating = 'dangerous';
@@ -496,6 +515,8 @@ export function getAnimalWaterSubmergenceDepth(species: GroundAnimalSpecies): nu
     case 'squirrel':
       return 0.18;
     case 'dragon':
+    case 'skeleton_dragon':
+    case 'hydra_dragon':
       return 1.80;
     case 'hippo':
       return 0.65;
@@ -711,15 +732,21 @@ export function findTargetedLiveAnimal(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     if (a.isDead || a.isLooted || a.isMountedByPlayer) continue;
+    const isDragonSpecies =
+      a.species === 'dragon' ||
+      a.species === 'skeleton_dragon' ||
+      a.species === 'hydra_dragon';
+    const effectiveMaxDist = isDragonSpecies ? Math.max(maxDist, 11.5) : maxDist;
+    const effectiveMaxDy = isDragonSpecies ? 7.5 : 4.5;
     const dx = a.x - playerX;
     const dy = a.y - playerY;
     const dz = a.z - playerZ;
     const dist = Math.hypot(dx, dz);
-    if (dist > maxDist || Math.abs(dy) > 4.5) continue;
+    if (dist > effectiveMaxDist || Math.abs(dy) > effectiveMaxDy) continue;
 
     const dot = (dx * fwdX + dz * fwdZ) / (dist || 1);
-    if (dot > 0.55 || dist <= 2.8) {
-      const score = dot * 2.0 - dist / maxDist;
+    if (dot > 0.55 || dist <= (isDragonSpecies ? 4.8 : 2.8)) {
+      const score = dot * 2.0 - dist / effectiveMaxDist;
       if (score > bestScore) {
         bestScore = score;
         best = a;
@@ -1013,11 +1040,15 @@ export function findNearestDeadLootableAnimal(
   for (let i = 0; i < animals.length; i++) {
     const a = animals[i];
     if (!a.isDead || a.isLooted) continue;
-    if (playerY !== undefined && Math.abs(a.y - playerY) > (a.species === 'dragon' ? 5.2 : 2.8)) {
+    const isDragonBoss =
+      a.species === 'dragon' ||
+      a.species === 'skeleton_dragon' ||
+      a.species === 'hydra_dragon';
+    if (playerY !== undefined && Math.abs(a.y - playerY) > (isDragonBoss ? 5.2 : 2.8)) {
       continue;
     }
     const allowedDist =
-      a.species === 'dragon'
+      isDragonBoss
         ? Math.max(maxDist, 6.8)
         : a.species === 'lion' && a.isBoss
           ? Math.max(maxDist, 5.2)
@@ -1602,33 +1633,48 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
     }
   }
 
+  // Isolated Dragon Mirror Sanctum ("Other World") Guardians appended at end so surface animal IDs stay invariant
+  spawnCandidates.push(
+    { x: DRAGON_REALM_GUARDIAN_SPAWNS.skeletonDragon.x, z: DRAGON_REALM_GUARDIAN_SPAWNS.skeletonDragon.z, species: 'skeleton_dragon' },
+    { x: DRAGON_REALM_GUARDIAN_SPAWNS.hydraDragon.x, z: DRAGON_REALM_GUARDIAN_SPAWNS.hydraDragon.z, species: 'hydra_dragon' },
+  );
+
   for (let i = 0; i < spawnCandidates.length; i++) {
     const c = spawnCandidates[i];
-    const gy = walkableHeightValueAt(c.x, c.z);
+    const isDragonRealmGuardian =
+      c.species === 'skeleton_dragon' || c.species === 'hydra_dragon';
+    const gy = isDragonRealmGuardian
+      ? (dragonRealmWalkableHeightAt(c.x, c.z) ??
+          (c.species === 'skeleton_dragon'
+            ? DRAGON_REALM_GUARDIAN_SPAWNS.skeletonDragon.y
+            : DRAGON_REALM_GUARDIAN_SPAWNS.hydraDragon.y))
+      : walkableHeightValueAt(c.x, c.z);
     const shelter = findNearestShelterPoint(c.x, c.z, c.species, c.caveIndex);
     const isVolcanoSanctumMysticLion =
       c.species === 'lion' &&
       Math.hypot(c.x - VOLCANO_SANCTUM_POS.x, c.z - VOLCANO_SANCTUM_POS.z) < 10.0;
     const level = isVolcanoSanctumMysticLion
       ? 15
-      : c.species === 'dragon'
+      : c.species === 'dragon' || c.species === 'hydra_dragon'
         ? 18
-        : c.species === 'lion'
-          ? 8 + (i % 3)
-          : c.species === 'bear' || c.species === 'rhino' || c.species === 'hippo'
-            ? 7 + (i % 3)
-            : c.species === 'crocodile' || c.species === 'stag'
-              ? 5 + (i % 3)
-              : c.species === 'jaguar' || c.species === 'dolphin'
-                ? 4 + (i % 3)
-                : c.species === 'wolf'
-                  ? 3 + (i % 3)
-                  : c.species === 'deer'
-                    ? 2 + (i % 3)
-                    : c.species === 'sheep'
-                      ? 2 + (i % 2)
-                      : 1 + (i % 3);
-    const maxHp = getAnimalMaxHp(c.species, level, isVolcanoSanctumMysticLion);
+        : c.species === 'skeleton_dragon'
+          ? 16
+          : c.species === 'lion'
+            ? 8 + (i % 3)
+            : c.species === 'bear' || c.species === 'rhino' || c.species === 'hippo'
+              ? 7 + (i % 3)
+              : c.species === 'crocodile' || c.species === 'stag'
+                ? 5 + (i % 3)
+                : c.species === 'jaguar' || c.species === 'dolphin'
+                  ? 4 + (i % 3)
+                  : c.species === 'wolf'
+                    ? 3 + (i % 3)
+                    : c.species === 'deer'
+                      ? 2 + (i % 3)
+                      : c.species === 'sheep'
+                        ? 2 + (i % 2)
+                        : 1 + (i % 3);
+    const maxHp = getAnimalMaxHp(c.species, level, isVolcanoSanctumMysticLion || isDragonRealmGuardian);
     const spawnPond = findKoiPond(c.pondId);
     const waterSurfY =
       spawnPond !== undefined
@@ -1640,8 +1686,9 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       c.species === 'koifish' ||
       c.species === 'dolphin' ||
       (c.species === 'hippo' && gy <= waterSurfY + 0.15);
-    const initY =
-      c.species === 'koifish'
+    const initY = isDragonRealmGuardian
+      ? gy
+      : c.species === 'koifish'
         ? waterSurfY - 0.38
         : c.species === 'dolphin'
           ? c.x > 650
@@ -1650,6 +1697,14 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
           : c.species === 'hippo' && isAquaticInit
             ? Math.max(gy, waterSurfY - 0.65)
             : Math.max(WATER_LEVEL + 0.08, gy);
+    const initYaw =
+      c.species === 'skeleton_dragon'
+        ? DRAGON_REALM_GUARDIAN_SPAWNS.skeletonDragon.yaw
+        : c.species === 'hydra_dragon'
+          ? DRAGON_REALM_GUARDIAN_SPAWNS.hydraDragon.yaw
+          : isVolcanoSanctumMysticLion
+            ? Math.PI / 2
+            : (i * 1.37) % (Math.PI * 2);
     animals.push({
       id: i,
       species: c.species,
@@ -1658,7 +1713,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       z: c.z,
       vx: 0,
       vz: 0,
-      yaw: isVolcanoSanctumMysticLion ? Math.PI / 2 : (i * 1.37) % (Math.PI * 2),
+      yaw: initYaw,
       hopPhase: (i * 0.9) % (Math.PI * 2),
       homeX: c.x,
       homeZ: c.z,
@@ -1685,7 +1740,7 @@ export function createInitialSmallAnimals(): ISmallAnimalState[] {
       hitReactionTimer: 0,
       isDead: false,
       isLooted: false,
-      isBoss: isVolcanoSanctumMysticLion,
+      isBoss: isVolcanoSanctumMysticLion || isDragonRealmGuardian,
       canBeTamed: c.species === 'stag' || isVolcanoSanctumMysticLion,
       isSubdued: false,
     });
@@ -2329,6 +2384,11 @@ function stepOneSmallAnimal(
     return;
   }
 
+  // Dragon Mirror Sanctum guardians live exclusively inside the isolated Dragon Realm arena
+  if (stepDragonRealmGuardianAI(a, frame, distP)) {
+    return;
+  }
+
   // If this animal (Royal Stag or Mystical CatLion) is currently mounted by the player,
   // its position, velocity, and yaw are driven directly by stepPlayerPhysics!
   if (a.isMountedByPlayer) {
@@ -2532,7 +2592,10 @@ function stepDeadSmallAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame)
     if (a.aiBehavior !== 'dead' || a.vx !== 0 || a.vz !== 0) {
       a.vx = 0;
       a.vz = 0;
-      if (a.species !== 'koifish') {
+      if (a.species === 'skeleton_dragon' || a.species === 'hydra_dragon') {
+        a.fireBreath = undefined;
+        a.y = dragonRealmWalkableHeightAt(a.x, a.z) ?? a.y;
+      } else if (a.species !== 'koifish') {
         a.y = Math.max(WATER_LEVEL + 0.05, walkableHeightValueAt(a.x, a.z, a.y));
       }
       a.isResting = false;
@@ -2608,6 +2671,147 @@ function stepDeadSmallAnimal(a: ISmallAnimalState, frame: ISmallAnimalStepFrame)
     return true;
   }
   return false;
+}
+
+/**
+ * Summary: Autonomous AI for the Skeleton Dragon & Astral Hydra inside the Dragon Mirror Sanctum.
+ * Keeps guardians safely on obsidian arena terrain and unleashes telegraphed roar + breath attacks
+ * whenever the player approaches inside the Other World.
+ */
+function stepDragonRealmGuardianAI(
+  a: ISmallAnimalState,
+  frame: ISmallAnimalStepFrame,
+  distP: number
+): boolean {
+  if (a.species !== 'skeleton_dragon' && a.species !== 'hydra_dragon') {
+    return false;
+  }
+  const { elapsedTime, playerX, playerZ, playerStateRef, safeDt } = frame;
+  a.isResting = false;
+  a.isSeekingShelter = false;
+  a.isFleeing = false;
+  a.pounceHeight = 0;
+
+  const playerInRealm = playerStateRef
+    ? isInsideDragonRealm(playerStateRef.x, playerStateRef.z, playerStateRef.y)
+    : isInsideDragonRealm(playerX, playerZ);
+  const plazaCx = DRAGON_REALM_ORIGIN.x + DRAGON_REALM_PLAZA.lx;
+  const plazaCz = DRAGON_REALM_ORIGIN.z + DRAGON_REALM_PLAZA.lz;
+
+  if (!playerInRealm) {
+    a.fireBreath = undefined;
+    a.vx = 0;
+    a.vz = 0;
+    a.alertLevel = 'grazing';
+    a.aiBehavior = 'grazing';
+    const idleAngle = Math.atan2(plazaCx - a.homeX, plazaCz - a.homeZ);
+    a.yaw = rotateYawSmoothlyToward(a.yaw, idleAngle, 2.2, safeDt);
+    a.y = dragonRealmWalkableHeightAt(a.x, a.z) ?? a.y;
+    return true;
+  }
+
+  const engaged = distP <= 46.0 || (a.wokenUpTimer ?? 0) > 0;
+  let targetX = a.homeX;
+  let targetZ = a.homeZ;
+  let moveSpeed = 0;
+
+  if (engaged) {
+    a.alertLevel = 'fleeing';
+    const toPlayerYaw = Math.atan2(playerX - a.x, playerZ - a.z);
+    const turnRate = a.aiBehavior === 'attacking' ? 1.45 : 2.85;
+    a.yaw = rotateYawSmoothlyToward(a.yaw, toPlayerYaw, turnRate, safeDt);
+
+    if (a.aiBehavior === 'attacking' && (a.actionTimer ?? 0) > 0) {
+      moveSpeed = 0;
+      a.fireBreath = {
+        x: a.x + Math.sin(a.yaw) * 3.0,
+        z: a.z + Math.cos(a.yaw) * 3.0,
+        dirX: Math.sin(a.yaw),
+        dirZ: Math.cos(a.yaw),
+        range: 14.5,
+        halfAngle: 0.34,
+      };
+    } else if (a.aiBehavior === 'roaring' && (a.actionTimer ?? 0) > 0) {
+      a.fireBreath = undefined;
+      moveSpeed = 0;
+      if ((a.actionTimer ?? 0) <= safeDt * 1.5) {
+        // Transition seamlessly from roar windup into breath attack
+        a.aiBehavior = 'attacking';
+        a.actionTimer = 2.2;
+      }
+    } else {
+      a.fireBreath = undefined;
+      const cycle = ((elapsedTime * 0.45 + a.id * 1.7) % 1 + 1) % 1;
+      if (distP <= 13.5 && (a.attackHitCooldownTimer ?? 0) <= 0 && cycle > 0.35) {
+        a.aiBehavior = 'roaring';
+        a.actionTimer = 1.25;
+        a.attackHitCooldownTimer = 3.8;
+        moveSpeed = 0;
+      } else if (distP > 7.4) {
+        a.aiBehavior = 'charging';
+        targetX = playerX;
+        targetZ = playerZ;
+        moveSpeed = SPECIES_PROFILES[a.species].chargeSpeed * 0.78;
+      } else {
+        // Orbit standoff cleanly around the player at ~7m while preparing next breath strike
+        a.aiBehavior = 'stalking';
+        const orbitDir = a.species === 'skeleton_dragon' ? 1 : -1;
+        const tangentX = Math.cos(toPlayerYaw) * orbitDir;
+        const tangentZ = -Math.sin(toPlayerYaw) * orbitDir;
+        targetX = a.x + tangentX * 5.0;
+        targetZ = a.z + tangentZ * 5.0;
+        moveSpeed = SPECIES_PROFILES[a.species].stalkSpeed;
+      }
+    }
+  } else {
+    a.fireBreath = undefined;
+    a.alertLevel = 'grazing';
+    // Gentle territorial prowl near home dais
+    const orbitPhase = elapsedTime * 0.35 + (a.species === 'hydra_dragon' ? Math.PI : 0);
+    targetX = a.homeX + Math.cos(orbitPhase) * 4.2;
+    targetZ = a.homeZ + Math.sin(orbitPhase) * 4.2;
+    const dHomeTarget = Math.hypot(targetX - a.x, targetZ - a.z);
+    if (dHomeTarget > 0.4) {
+      a.aiBehavior = 'wandering';
+      moveSpeed = 1.5;
+      a.yaw = rotateYawSmoothlyToward(
+        a.yaw,
+        Math.atan2(targetX - a.x, targetZ - a.z),
+        2.0,
+        safeDt
+      );
+    } else {
+      a.aiBehavior = 'grazing';
+      moveSpeed = 0;
+    }
+  }
+
+  if (moveSpeed > 0.05) {
+    const dx = targetX - a.x;
+    const dz = targetZ - a.z;
+    const dLen = Math.hypot(dx, dz) || 1;
+    a.vx = (dx / dLen) * moveSpeed;
+    a.vz = (dz / dLen) * moveSpeed;
+    const candX = a.x + a.vx * safeDt;
+    const candZ = a.z + a.vz * safeDt;
+    const distFromPlaza = Math.hypot(candX - plazaCx, candZ - plazaCz);
+    const candY = distFromPlaza <= 28.5 ? dragonRealmWalkableHeightAt(candX, candZ) : null;
+    if (candY !== null) {
+      a.x = candX;
+      a.z = candZ;
+      a.y = candY;
+    } else {
+      a.vx = 0;
+      a.vz = 0;
+    }
+    a.hopPhase += safeDt * 6.5;
+  } else {
+    a.vx = 0;
+    a.vz = 0;
+    a.y = dragonRealmWalkableHeightAt(a.x, a.z) ?? a.y;
+  }
+
+  return true;
 }
 
 /**

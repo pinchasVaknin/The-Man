@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { ANCIENT_MINE_ORIGIN } from '../domain/landmarks/ancientMine/ancientMineLayout';
 import { SOUTHERN_MINE_POS } from '../domain/landmarksRegistry';
 import { isInsideSouthernMine } from '../systems/dwarvenMineAndCaravanSystem';
+import { isInsideDragonRealm } from '../domain/landmarks/dragonRealm/dragonRealmWorld';
 // #endregion
 
 // ======================== CULLING ======================== \\
@@ -21,6 +22,7 @@ export const OUTDOOR_LAYER = 1;
 
 const ALWAYS_VISIBLE_ROOT_PREFIXES = [
   'southern-mine',
+  'dragon-realm-root',
   'ColliderDebugWireframes',
   'WildlifeAndFootprintsLayer',
   'dwarven-miner',
@@ -66,7 +68,14 @@ export function isPlayerUnderground(x: number, y: number, z: number): boolean {
   );
 }
 
-/** Summary: Shows (surface) or hides (underground) the outdoor layer for the camera that renders the scene. */
+/**
+ * Summary: True when the player is in an isolated non-outdoor dimension (deep underground mine or Dragon Realm).
+ */
+export function isPlayerInIsolatedRealm(x: number, y: number, z: number): boolean {
+  return isPlayerUnderground(x, y, z) || isInsideDragonRealm(x, z, y);
+}
+
+/** Summary: Shows (surface) or hides (underground/realm) the outdoor layer for the camera that renders the scene. */
 export function setCameraUndergroundMask(camera: THREE.Camera, underground: boolean): void {
   if (underground) {
     camera.layers.disable(OUTDOOR_LAYER);

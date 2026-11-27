@@ -17,6 +17,7 @@ import {
   SOUTHERN_MINE_POS,
   computeDynamicSolarCycle,
   isInsideSouthernMine,
+  isInsideDragonRealm,
 } from '../terrainMath';
 
 const _stormFogColor = new THREE.Color(0x3a4759);
@@ -119,7 +120,7 @@ function updateMineLightPool(
     }
   }
 
-  // Surface lanterns can be skipped on software GL, but underground mine lights MUST always run so dark chambers are lit by torches.
+  // Surface lanterns can be skipped on software GL, but underground mine & Dragon Realm lights MUST always run.
   if (isSoftwareGl && !isPlayerUndergroundInMine) {
     for (let i = 0; i < lanterns.length; i++) {
       lanterns[i].visible = false;
@@ -131,25 +132,30 @@ function updateMineLightPool(
     return;
   }
 
+  const inDragonRealmNow = playerPos ? isInsideDragonRealm(playerPos.x, playerPos.z, playerPos.y) : false;
   const candidates: Array<{ light: THREE.PointLight; dist2: number; wx: number; wy: number; wz: number; inMine: boolean }> = [];
   const maxSurfaceDistSq = 75 * 75;
-  const maxMineDistSq = 90 * 90;
+  const maxMineDistSq = inDragonRealmNow ? 130 * 130 : 90 * 90;
   for (let i = 0; i < lanterns.length; i++) {
     const src = lanterns[i];
+    const isRealmLight = Boolean(src.userData.isDragonRealmLight);
     const inMine = Boolean(src.userData.isUndergroundMineLight) || isMineLantern(src);
     src.userData.isUndergroundMineLight = inMine;
     // Source lanterns never light the scene directly; only the fixed pool does so NUM_POINT_LIGHTS never changes.
     src.visible = false;
     if (!playerPos || src.intensity <= 0.01) continue;
-    if (isPlayerUndergroundInMine && !inMine) continue;
+    if (inDragonRealmNow && !isRealmLight) continue;
+    if (!inDragonRealmNow && isRealmLight) continue;
+    if (isPlayerUndergroundInMine && !inDragonRealmNow && !inMine) continue;
     if (src.parent && !isVisibleInHierarchy(src.parent)) continue;
     src.getWorldPosition(poolScratch);
     const dx = poolScratch.x - playerPos.x;
     const dy = poolScratch.y - playerPos.y;
     const dz = poolScratch.z - playerPos.z;
     const dist2 = dx * dx + dy * dy + dz * dz;
-    if (!inMine && dist2 > maxSurfaceDistSq) continue;
-    if (inMine && dist2 > maxMineDistSq) continue;
+    const isIsolatedLight = inMine || isRealmLight;
+    if (!isIsolatedLight && dist2 > maxSurfaceDistSq) continue;
+    if (isIsolatedLight && dist2 > maxMineDistSq) continue;
     candidates.push({ light: src, dist2, wx: poolScratch.x, wy: poolScratch.y, wz: poolScratch.z, inMine });
   }
   candidates.sort((a, b) => a.dist2 - b.dist2);
@@ -279,7 +285,8 @@ export function applyDynamicAtmosphereToScene(
     if (_mineAtmo.blend > 0.999 && targetMineBlend === 1) _mineAtmo.blend = 1;
   }
   const mineBlend = _mineAtmo.blend;
-  const isPlayerUndergroundInMine = mineBlend > 0.15;
+  const inDragonRealm = playerPos ? isInsideDragonRealm(playerPos.x, playerPos.z, playerPos.y) : false;
+  const isPlayerUndergroundInMine = mineBlend > 0.15 || inDragonRealm;
 
   const stormDark = weather ? weather.cloudDarkness : 0;
   const sandHaze = weather ? weather.sandWindIntensity : 0;
@@ -343,8 +350,24 @@ export function applyDynamicAtmosphereToScene(
   const outdoorExposure = atmo.exposure + flash * 0.35;
   waterMaterial.color.setHex(atmo.waterDeepHex);
 
-  // 2) Blend smoothly between Outdoor Surface (mineBlend = 0) and Subterranean Mine (mineBlend = 1)
-  if (mineBlend > 0.001 && playerPos) {
+  // 2) Apply isolated astral twilight lighting inside Dragon Realm, else mine/surface blend
+  if (inDragonRealm) {
+    renderer.shadowMap.autoUpdate = false;
+    sky.visible = false;
+    sunDiscMesh.visible = false;
+
+    sunLight.color.setHex(0xc4b5fd);
+    sunLight.intensity = 1.95;
+    hemiLight.color.setHex(0x8b5cf6);
+    hemiLight.groundColor.setHex(0x1f1433);
+    hemiLight.intensity = 1.35;
+    scene.environmentIntensity = 0.58;
+
+    fog.color.setHex(0x0b071a);
+    fog.density = 0.0022;
+    bgColor.copy(fog.color);
+    renderer.toneMappingExposure = 1.08;
+  } else if (mineBlend > 0.001 && playerPos) {
     const target = mineAtmosphereAt(
       playerPos.x - ANCIENT_MINE_ORIGIN.x,
       playerPos.z - ANCIENT_MINE_ORIGIN.z,
@@ -398,6 +421,17 @@ export function applyDynamicAtmosphereToScene(
         ? 3.2
         : 0;
   for (const pl of lanternLights) {
+    const isRealmLight = Boolean(pl.userData.isDragonRealmLight);
+    if (isRealmLight) {
+      const base = (pl.userData.baseIntensity as number) ?? 5.5;
+      pl.intensity = inDragonRealm ? base : 0;
+      continue;
+    }
+    if (pl.userData.isSurfaceDragonPortalLight) {
+      const base = (pl.userData.baseIntensity as number) ?? 0;
+      pl.intensity = base;
+      continue;
+    }
     const inMine = Boolean(pl.userData.isUndergroundMineLight) || isMineLantern(pl);
     pl.userData.isUndergroundMineLight = inMine;
     if (inMine) {

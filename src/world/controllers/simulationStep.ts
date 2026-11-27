@@ -16,6 +16,18 @@ import { shouldExitTelescopeView, telescopeViewFor } from '../domain/landmarks/s
 import { activateSkyMechanism } from '../domain/landmarks/skyboundIsles/skyPuzzles';
 import { WIND_CORE_UNLOCKS } from '../domain/landmarks/skyboundIsles/windCoresLayout';
 import {
+  DRAGON_PORTAL_TELEPORT_COOLDOWN_SEC,
+  DRAGON_REALM_SPAWN_POS,
+  DRAGON_SURFACE_RETURN_POS,
+} from '../domain/landmarks/dragonRealm/dragonRealmLayout';
+import {
+  isGreenDragonDefeated,
+  isInsideDragonRealm,
+  isPlayerInsideRealmReturnThreshold,
+  isPlayerInsideSurfacePortalThreshold,
+  isSurfaceDragonPortalActive,
+} from '../domain/landmarks/dragonRealm/dragonRealmWorld';
+import {
   buyOrSpawnHoverbikeFromMerchant,
   getActiveSkyHoverbike,
   isNearSkyHoverbikeMerchant,
@@ -296,6 +308,42 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
     worldPlacedTraps,
   } = ctx;
 
+  let dragonPortalCooldownTimer = 0;
+  let prevGreenDragonDead = isGreenDragonDefeated(getActiveWorldAnimals());
+
+  const teleportThroughDragonPortal = (destination: 'dragon_realm' | 'surface'): void => {
+    playerState.mountedHorseId = null;
+    playerState.climbingLadderId = null;
+    playerState.telescopeViewId = null;
+    playerState.isFlying = false;
+    playerState.isSwimming = false;
+    playerState.inWater = false;
+    playerState.vx = 0;
+    playerState.vy = 0;
+    playerState.vz = 0;
+
+    if (destination === 'dragon_realm') {
+      playerState.x = DRAGON_REALM_SPAWN_POS.x;
+      playerState.y = DRAGON_REALM_SPAWN_POS.y;
+      playerState.z = DRAGON_REALM_SPAWN_POS.z;
+      playerState.yaw = DRAGON_REALM_SPAWN_POS.yaw;
+      playerState.pitch = DRAGON_REALM_SPAWN_POS.pitch;
+      hudFeedback.lootNotification = t('notifications.entered_dragon_realm');
+    } else {
+      playerState.x = DRAGON_SURFACE_RETURN_POS.x;
+      playerState.y = DRAGON_SURFACE_RETURN_POS.y;
+      playerState.z = DRAGON_SURFACE_RETURN_POS.z;
+      playerState.yaw = DRAGON_SURFACE_RETURN_POS.yaw;
+      playerState.pitch = 0;
+      hudFeedback.lootNotification = t('notifications.returned_from_dragon_realm');
+    }
+    hudFeedback.lootNotificationTimer = 4.2;
+    dragonPortalCooldownTimer = DRAGON_PORTAL_TELEPORT_COOLDOWN_SEC;
+    capturePreviousPlayerPose();
+    soundEngine.playPortalWarp();
+    emitHudSnapshot();
+  };
+
   return function simulateStep(rawDt: number): void {
       // UI2: the world holds still while an inventory, trade or map menu is open.
       if (gameStateRef.current === 'playing' && isWorldPausedByMenu(document.body.dataset)) return;
@@ -318,6 +366,9 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
 
       } else if (gameStateRef.current === 'playing') {
         simulationState.elapsedTotal += rawDt;
+        if (dragonPortalCooldownTimer > 0) {
+          dragonPortalCooldownTimer = Math.max(0, dragonPortalCooldownTimer - rawDt);
+        }
         capturePreviousPlayerPose();
 
         if (restState.isSleepingInBed) {
@@ -1096,6 +1147,20 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           if (prevMountedId !== playerState.mountedHorseId) {
             capturePreviousPlayerPose();
           }
+          if (dragonPortalCooldownTimer <= 0 && !restState.isSleepingInBed) {
+            if (isInsideDragonRealm(playerState.x, playerState.z, playerState.y)) {
+              if (isPlayerInsideRealmReturnThreshold(playerState.x, playerState.y, playerState.z)) {
+                teleportThroughDragonPortal('surface');
+              }
+            } else if (
+              isSurfaceDragonPortalActive(liveWildlife) &&
+              (Boolean(playerState.ownedItemIds?.includes('wind_glider')) ||
+                gameSettingsRef.current.godMode !== false) &&
+              isPlayerInsideSurfacePortalThreshold(playerState.x, playerState.y, playerState.z)
+            ) {
+              teleportThroughDragonPortal('dragon_realm');
+            }
+          }
           const vitalsRes = stepSurvivalVitals(
             playerState,
             rawDt,
@@ -1203,6 +1268,15 @@ export function createSimulationStep(ctx: ISimulationStepContext): (rawDt: numbe
           simulationState.currentWeather,
           wildlifeSoundCallbacks
         );
+
+        const nowGreenDragonDead = isGreenDragonDefeated(getActiveWorldAnimals());
+        if (nowGreenDragonDead && !prevGreenDragonDead) {
+          hudFeedback.lootNotification = t('notifications.green_dragon_gate_opened');
+          hudFeedback.lootNotificationTimer = 5.5;
+          soundEngine.playPortalWarp();
+          emitHudSnapshot();
+        }
+        prevGreenDragonDead = nowGreenDragonDead;
 
         // Auto-close chest lid if player walked away (> 4.2m)
         if (openDoorIds.has('chest-hunter-lodge')) {

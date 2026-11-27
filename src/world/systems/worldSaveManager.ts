@@ -35,7 +35,8 @@ import {
   RIDEABLE_HORSES,
   SAILABLE_SHIP_INITIAL_POS,
   SURVIVAL_CABIN_SPAWN,
-  WORLD_SPAWN
+  WORLD_SPAWN,
+  resetDragonPortalDebugOverride,
 } from '../domain/landmarksRegistry';
 import { walkableHeightAt, walkableHeightValueAt } from './terrainAndBiomeSystem';
 import { applyGameModeToPlayerState } from './playerPhysicsSystem';
@@ -734,6 +735,7 @@ export function resetLiveWorldToFreshBaseline(
   resetSkyPuzzles();
   resetSkyPickups();
   resetStormFruit();
+  resetDragonPortalDebugOverride();
 
   openDoorIds.clear();
 }

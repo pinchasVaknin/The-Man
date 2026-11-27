@@ -98,7 +98,11 @@ import {
   resetActiveWorldBirds,
   type ISmallAnimalState,
 } from '../world/systems/boidsAndWildlifeSystem';
-import { WATER_LEVEL } from '../world/domain/landmarksRegistry';
+import {
+  WATER_LEVEL,
+  isSurfaceDragonPortalActive,
+  toggleDragonPortalDebug,
+} from '../world/domain/landmarksRegistry';
 import { parseAndValidateUrlOverrides } from '../core/config';
 import { createWorldScene } from '../world/builders/worldSceneBuilder';
 import { NatureSoundEngine } from '../world/soundEngine';
@@ -1055,6 +1059,20 @@ export const WorldCanvas = React.memo<IWorldCanvasProps>(({
         const win = window as unknown as { openTrapCraftingModal?: (open?: boolean) => void };
         win.openTrapCraftingModal?.(false);
         handleReacquirePointerLock();
+      },
+      onToggleDragonPortalDebug: () => {
+        const animals = getActiveWorldAnimals();
+        if (gameSettingsRef.current.godMode === false) {
+          return isSurfaceDragonPortalActive(animals);
+        }
+        const nowActive = toggleDragonPortalDebug(animals);
+        hudFeedback.lootNotification = nowActive
+          ? t('notifications.dragon_gate_debug_on')
+          : t('notifications.dragon_gate_debug_off');
+        hudFeedback.lootNotificationTimer = 3.5;
+        soundEngine.playPortalWarp();
+        emitHudSnapshot();
+        return nowActive;
       },
     };
     // Expose helpers for modal access

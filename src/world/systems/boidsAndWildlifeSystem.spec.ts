@@ -281,6 +281,8 @@ test('createInitialSmallAnimals_WhenInitialized_ShouldCreateAnimalsInMatchingBio
         a.species === 'lion' ||
         a.species === 'stag' ||
         a.species === 'dragon' ||
+        a.species === 'skeleton_dragon' ||
+        a.species === 'hydra_dragon' ||
         a.species === 'hippo' ||
         a.species === 'koifish' ||
         a.species === 'dolphin'
